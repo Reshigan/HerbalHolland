@@ -13,7 +13,7 @@ export type PodItem = {
   blank: string;
   size: string;
   qty: number;
-  prints: { placement: string; technique: string; size: string; note: string; url: string; svg: string }[]; // url: 300 dpi PNG, svg: vector (for digitising)
+  prints: { placement: string; technique: string; size: string; note: string; url: string; vector: string }[]; // url: 300 dpi PNG, vector: PDF master (for digitising)
 };
 export type PodOrder = {
   ref: string; // our order code
@@ -34,7 +34,7 @@ export async function sendProductionOrder(o: PodOrder) {
     "",
     ...o.items.flatMap((i) => [
       `${i.qty} × ${i.name} — ${i.blank}, size ${i.size} [${i.code}]`,
-      ...i.prints.map((p) => `   ${p.technique} — ${p.placement}: ${p.note}, ${p.size}. Files: ${p.url} · ${p.svg}`),
+      ...i.prints.map((p) => `   ${p.technique} — ${p.placement}: ${p.note}, ${p.size}. Files: ${p.vector} · ${p.url}`),
     ]),
     "",
     `Reply with the courier and tracking number when it ships. Our order reference: ${o.ref}.`,
@@ -42,7 +42,7 @@ export async function sendProductionOrder(o: PodOrder) {
   const rows = o.items
     .map(
       (i) => `<tr><td style="padding:10px 0;border-top:1px solid #ECE5DD;vertical-align:top"><b>${i.qty} × ${esc(i.name)}</b><br/><span style="color:#6B5F57">${esc(i.blank)} · size ${esc(i.size)} · ${esc(i.code)}</span>
-        ${i.prints.map((p) => `<br/><span style="font-size:13px"><b>${esc(p.technique)}</b> — ${esc(p.placement)}: ${esc(p.note)}, ${esc(p.size)} · <a href="${esc(p.url)}" style="color:#C05F18">PNG</a> · <a href="${esc(p.svg)}" style="color:#C05F18">SVG</a></span>`).join("")}</td></tr>`,
+        ${i.prints.map((p) => `<br/><span style="font-size:13px"><b>${esc(p.technique)}</b> — ${esc(p.placement)}: ${esc(p.note)}, ${esc(p.size)} · <a href="${esc(p.vector)}" style="color:#C05F18">PDF (vector)</a> · <a href="${esc(p.url)}" style="color:#C05F18">PNG</a></span>`).join("")}</td></tr>`,
     )
     .join("");
   const html = emailLayout({
@@ -51,7 +51,7 @@ export async function sendProductionOrder(o: PodOrder) {
     body: `<p style="margin:0 0 12px;font-size:15px;line-height:22px">Please make, pack white-label (no partner branding) and courier to:</p>
       <p style="margin:0 0 16px;font-size:15px;line-height:22px"><b>${esc(r.name)}</b> · ${esc(r.phone)}${r.email ? ` · ${esc(r.email)}` : ""}<br/>${esc(address)}${r.notes ? `<br/><i>${esc(r.notes)}</i>` : ""}</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="font-family:Arial,sans-serif;font-size:14px;color:#1A1614">${rows}</table>
-      <p style="margin:16px 0 0;font-size:14px;line-height:21px">Reply with the courier and tracking number when it ships, quoting <b>${esc(o.ref)}</b>. Embroidery is digitised once per design from the SVG; thread matched to Sunset 500 (black on the Sunset hoodie). Sizes and placements are in the brand book (Merch).</p>`,
+      <p style="margin:16px 0 0;font-size:14px;line-height:21px">Reply with the courier and tracking number when it ships, quoting <b>${esc(o.ref)}</b>. Embroidery is digitised once per design from the vector PDF; thread matched to Sunset 500 (black on the Sunset hoodie). Sizes and placements are in the brand book (Merch).</p>`,
   });
   const to = process.env.POD_EMAIL;
   if (to) return sendEmail({ to, subject, text, html });

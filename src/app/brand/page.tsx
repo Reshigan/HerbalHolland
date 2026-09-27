@@ -438,7 +438,7 @@ export default function BrandBook() {
         id="merch"
         n="08"
         title="Merch"
-        intro="Made to order in South Africa, one at a time — no stock and no minimums. Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed. Each design is a single colour: Sunset on black garments, black on the Sunset hoodie. The files below are what our partner works from."
+        intro="Made to order in South Africa, one at a time — no stock and no minimums. Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed (DTF). Each design is a single colour: Sunset on black garments, black on the Sunset hoodie. The files below are what our partner works from."
         light
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -457,8 +457,12 @@ export default function BrandBook() {
                     </div>
                   )}
                 </div>
-                <h3 className="mt-4 font-display text-lg font-semibold text-ink-950">{m.name}</h3>
+                <h3 className="mt-4 flex flex-wrap items-center gap-2 font-display text-lg font-semibold text-ink-950">
+                  {m.name}
+                  {m.pending && <span className="rounded-full bg-amber-50 px-2 py-0.5 font-sans text-[0.7rem] font-semibold text-amber-800 ring-1 ring-inset ring-amber-200">Held back</span>}
+                </h3>
                 <p className="text-sm text-ink-500">{m.blank}</p>
+                {m.pending && <p className="mt-1 text-xs text-amber-800">{m.pending}.</p>}
                 <ul className="mt-3 flex-1 space-y-2.5 text-sm">
                   {m.prints.map((p) => {
                     const a = ART[p.art];
@@ -477,8 +481,11 @@ export default function BrandBook() {
                           {p.where}. {a.note}. {stitched ? "Thread" : "Ink"}: {a.ink === "sunset" ? "Sunset 500" : "Black"} <span className="tnum">{INKS[a.ink].toUpperCase()}</span>.
                         </p>
                         <div className="mt-2 flex gap-3 text-xs font-semibold">
+                          <a href={`/merch/print/${p.art}.pdf`} download className="text-brand-800 hover:underline">
+                            {stitched ? "PDF for digitising" : "PDF master"}
+                          </a>
                           <a href={`/merch/print/${p.art}.svg`} download className="text-brand-800 hover:underline">
-                            {stitched ? "SVG for digitising" : "SVG master"}
+                            SVG
                           </a>
                           <a href={`/merch/print/${p.art}.png`} download className="text-brand-800 hover:underline">
                             PNG · 300 dpi
@@ -497,9 +504,9 @@ export default function BrandBook() {
             <h3 className="font-display text-lg font-semibold text-ink-950">Print rules</h3>
             <ul className="mt-4 space-y-2.5">
               <Rule ok>Two garment colours only: black, and the orange closest to Sunset 500. Thread and ink are always the other colour.</Rule>
-              <Rule ok>Embroidery is digitised once per design from the SVG, at the size shown: satin stitch, no fill patterns, no outlines.</Rule>
+              <Rule ok>Embroidery is digitised once per design from the vector PDF, at the size shown: satin stitch, no fill patterns, no outlines.</Rule>
               <Rule ok>Stitched logos use the heavy cut of the Mark (thicker lines, a solid hub) and lettering 7 mm or taller.</Rule>
-              <Rule ok>Prints come from the 300 dpi PNG at 100%; keep every placement within ±5 mm, centred on the garment.</Rule>
+              <Rule ok>Prints (DTF) come from the vector PDF or the 300 dpi PNG at 100%; keep every placement within ±5 mm, centred on the garment.</Rule>
               <Rule ok>Approve a sample of each piece before it goes on sale, and again whenever the blank, thread or ink changes.</Rule>
               <Rule ok={false}>No other colours, gradients, distressing or effects on the Mark; no cannabis leaves, slogans or claims.</Rule>
               <Rule ok={false}>Don&apos;t scale a design to fill a bigger area — the sizes are set to the garment.</Rule>

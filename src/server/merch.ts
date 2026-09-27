@@ -49,7 +49,7 @@ export async function submitMerchOrders() {
               code: l.variant.podSku!, name: l.variant.product.name, blank: m?.blank ?? "", size: l.variant.name, qty: l.qty,
               prints: (m?.prints ?? []).map((p) => ({
                 placement: p.where, technique: p.technique, size: `${ART[p.art].w} × ${ART[p.art].h} mm`, note: ART[p.art].note,
-                url: `${APP_URL()}/merch/print/${p.art}.png`, svg: `${APP_URL()}/merch/print/${p.art}.svg`,
+                url: `${APP_URL()}/merch/print/${p.art}.png`, vector: `${APP_URL()}/merch/print/${p.art}.pdf`,
               })),
             };
           }),

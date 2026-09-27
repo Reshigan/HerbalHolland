@@ -1,6 +1,7 @@
-// Renders the merch print files the print partner receives, from the artwork in src/components/merch/art.tsx:
-//   public/merch/print/<design>.svg   vector master at print size (mm), Outfit embedded
-//   public/merch/print/<design>.png   300 dpi, transparent, exact print size
+// Renders the files the merch partner embroiders and prints from, from the artwork in src/components/merch/art.tsx:
+//   public/merch/print/<design>.pdf   vector master at actual size, font embedded — for digitising and DTF
+//   public/merch/print/<design>.svg   the same vector master as SVG
+//   public/merch/print/<design>.png   300 dpi, transparent, exact size
 // Usage: npx tsx scripts/merch-export.tsx [--preview <file.png>] [--mockups <file.png>]   (contact sheets for review)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { crc32 } from "node:zlib";
@@ -79,6 +80,9 @@ if (mockups) {
     await page.setContent(`<body style="margin:0;background:transparent">${svgOf(k, { width: `${w}px`, height: `${h}px` })}</body>`);
     await page.evaluate(() => document.fonts.ready);
     writeFileSync(`${OUT}/${k}.png`, withDpi(await page.screenshot({ omitBackground: true, clip: { x: 0, y: 0, width: w, height: h } })));
+    await page.setContent(`<style>@page{margin:0}body{margin:0}</style>${svgOf(k, { width: `${a.w}mm`, height: `${a.h}mm` })}`);
+    await page.evaluate(() => document.fonts.ready);
+    writeFileSync(`${OUT}/${k}.pdf`, await page.pdf({ width: `${a.w}mm`, height: `${a.h}mm`, margin: { top: "0", right: "0", bottom: "0", left: "0" }, pageRanges: "1" }));
     console.log(`${k}: ${a.w}×${a.h} mm → ${w}×${h} px`);
   }
 }

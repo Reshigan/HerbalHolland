@@ -59,30 +59,44 @@ Per-store ledgers in **Sage Business Cloud** or **Xero**: post a daily summary j
 tenders, COGS, points) from `DailyStoreStat`. Invoices already carry structured data for SARS e-invoicing (VAT
 modernisation, phased from 2030).
 
-## Print partner — made-to-order merch (`src/server/pod.ts`, `merch.ts`)
+## Merch partner — made-to-order merch (`src/server/pod.ts`, `merch.ts`)
 
-Merch is printed on demand in South Africa and couriered, white-label, straight to the customer: no stock, no minimums.
-Recommended partner: **OTC Printing, Oudtshoorn** (info@otcprinting.co.za · 082 443 4737) — DTG and transfers from one
-piece, Vic Bay heavyweight SA-made tees, hoodies, sweatshirts, caps and totes; white-label packaging; courier at cost
-(Aramex ≈ R100 per parcel, or The Courier Guy/Pudo); 5–7 working days; in-house designers at R200/hour. Runner-up:
-**Merchbox, Durban** (48–72 h turnaround, The Courier Guy R130/Pudo R120, relaxed content policy; white-label and
-custom-platform intake to confirm). Neither embroiders — for embroidered caps or bucket hats, PI Printers
-(weprintall.store, Johannesburg) or Lucani (Cape Town) make them from one piece.
+Merch is made to order in South Africa and couriered, white-label, straight to the customer: no stock, no minimums.
+Upmarket by design — every logo is embroidered; only the big back graphics and the tote are printed.
 
-No South African print-on-demand partner has an API, so the platform works by email:
+**Partner: Lucani, Cape Town** (Digihuis (Pty) Ltd; trade account: lucani.co.za/trade-account-application). The only
+South African partner found that does all of it from one piece: embroidery on tees, hoodies and caps, DTF prints on
+the same garment, white-label trade fulfilment (advertised), a digital proof before every job, and terms that only
+refuse unlawful/obscene artwork (nothing on cannabis or CBD). Digitising is once-off per design (R200–R500 in their
+guides; our three stitched designs are digitised once each). Production 3–5 business days, then 1–3 days to metros
+(3–5 regional). Not VAT-registered: their invoices carry no VAT. Blanks are mid-weight (185 g tee, 240–280 g
+fleece) — ask for heavier.
+
+- **Runner-up: OneOff, Johannesburg** — better 100% cotton blanks (260 g hoodie, 220 g tee), DTF++ with an orange ink
+  channel, embroidery up to 27 × 27 cm, flat R150 drop-ship; but its terms bar products that "encourage the use of
+  drugs" and it doesn't proof by default.
+- **Beanies and bucket hats** (designed, held back): Lucani doesn't make them. GetCapped (Johannesburg) embroiders them
+  from one piece with embroidery included, but has no white-label programme — ask before adding them.
+- No global print-on-demand network embroiders in South Africa (Printful, Gelato, Printify, Teelaunch).
+
+No South African partner has an API, so the platform works by email:
 
 1. A paid order with merch → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
-   items (our product code, blank, size, quantity) and, per placement, technique, size and a link to our 300 dpi print
-   file (`/merch/print/*.png`). Every production order is also kept in HQ → Messages.
-2. The partner prints, packs white-label and couriers to the customer, then emails back the courier and tracking number.
-3. The distribution centre opens the order and enters it (**Merch shipped**): the customer is texted their tracking, and a
+   items (our product code, blank, size, quantity) and, per placement, embroidery or DTF, where it goes, its size and
+   links to our files — the vector PDF (for digitising and DTF) and a 300 dpi PNG. Also kept in HQ → Messages.
+2. The partner makes it, packs white-label and couriers to the customer, then emails back the courier and tracking.
+3. The distribution centre enters it on the order (**Merch shipped**): the customer is texted their tracking, and a
    merch-only order goes out for delivery (the sale posts at the partner's price, booked to the DC).
 4. On delivery the DC marks the order delivered, as for any courier order.
 
-Setup: agree the price list and each blank with the partner, confirm in writing that they'll print for a CBD brand
-(designs carry the brand and heritage motifs only), approve a printed sample of every piece, then set the partner's
-product code and price on each variant (HQ → Catalogue → Print partner code / Cost) and `POD_EMAIL` /
-`POD_PARTNER_NAME`. The merch courier fee (HQ → Online orders) is charged on top of the price, never waived.
+Before the first sale, get in writing: that they'll make merch for a CBD/hemp wellness brand (send the logo and a back
+print); embroidery at quantity 1 with no per-order setup or reseller minimum; digitising cost per design and who owns
+the stitch file; per-piece prices at 1, 5 and 10 units for the tee, hoodie, crewneck, cap and tote; their thread
+chart (a sew-out of the closest match to Sunset 500 #F5913C); which blanks (black and orange in stock, heavier
+options, a crewneck and a tote); white-label details (plain packaging, no partner invoice inside, our insert, return
+address); email ordering and tracking replies; courier rates; payment terms; misprint/reprint policy; and an opt-out
+from promotional photography. Then approve a paid sample set, set each variant's partner code and cost (HQ →
+Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
 ## Environment variables
 
@@ -98,5 +112,5 @@ product code and price on each variant (HQ → Catalogue → Print partner code 
 | `NEXT_PUBLIC_TAP_PROVIDER`, `HALO_API_URL`, `HALO_API_KEY` | Tap on glass |
 | `ONLINE_GATEWAY` | Online payments adapter |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
-| `POD_EMAIL`, `POD_PARTNER_NAME` | Print partner's order inbox and name (made-to-order merch); unset = production orders only logged |
+| `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `CRON_SECRET` | Protects `/api/cron/*` |

@@ -11,7 +11,7 @@ describe("made-to-order merch", () => {
     for (const m of MERCH)
       for (const p of m.prints) {
         const a = ART[p.art];
-        if (p.technique === "DTG") expect(a.w <= 297 && a.h <= 420, `${p.art} ${a.w}×${a.h}`).toBe(true);
+        if (p.technique === "DTF") expect(a.w <= 297 && a.h <= 420, `${p.art} ${a.w}×${a.h}`).toBe(true);
         else expect(a.w <= 200 && a.h <= 120, `${p.art} ${a.w}×${a.h}`).toBe(true);
         if (["cap", "bucket", "beanie"].includes(m.garment)) expect(Math.max(a.w, a.h)).toBeLessThanOrEqual(60);
       }
@@ -20,7 +20,7 @@ describe("made-to-order merch", () => {
     for (const m of MERCH) if (m.garment !== "tote") expect(m.prints.some((p) => p.technique === "Embroidery"), m.slug).toBe(true);
   });
   it("has print files for every design (npx tsx scripts/merch-export.tsx)", () => {
-    for (const m of MERCH) for (const p of m.prints) for (const ext of ["png", "svg"]) expect(existsSync(`public/merch/print/${p.art}.${ext}`), `${p.art}.${ext}`).toBe(true);
+    for (const m of MERCH) for (const p of m.prints) for (const ext of ["png", "svg", "pdf"]) expect(existsSync(`public/merch/print/${p.art}.${ext}`), `${p.art}.${ext}`).toBe(true);
   });
   it("looks items up by product slug", () => {
     expect(merchFor("windmill-tee")?.garment).toBe("tee");

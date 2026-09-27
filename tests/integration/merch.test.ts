@@ -49,9 +49,9 @@ describe("made-to-order merch", () => {
     expect(po.recipient).toMatchObject({ city: "Pretoria", phone: w.walkIn.phone });
     expect(po.items).toHaveLength(1);
     expect(po.items[0]).toMatchObject({ code: "HH-TEE-BLK-M", qty: 3, size: "M", name: "Windmill Tee" });
-    expect(po.items[0].prints.map((p) => [p.technique, p.placement, p.url.replace(/^.*\/merch/, "/merch"), p.svg.replace(/^.*\/merch/, "/merch")])).toEqual([
-      ["Embroidery", "Left chest, 80 mm below the shoulder seam", "/merch/print/mark-stitch.png", "/merch/print/mark-stitch.svg"],
-      ["DTG", "Centre back, 75 mm below the collar", "/merch/print/window-back.png", "/merch/print/window-back.svg"],
+    expect(po.items[0].prints.map((p) => [p.technique, p.placement, p.url.replace(/^.*\/merch/, "/merch"), p.vector.replace(/^.*\/merch/, "/merch")])).toEqual([
+      ["Embroidery", "Left chest, 80 mm below the shoulder seam", "/merch/print/mark-stitch.png", "/merch/print/mark-stitch.pdf"],
+      ["DTF", "Centre back, 75 mm below the collar", "/merch/print/window-back.png", "/merch/print/window-back.pdf"],
     ]);
     let order = await db.order.findUniqueOrThrow({ where: { id: o.id } });
     expect([order.podRef, order.podStatus, order.status]).toEqual([o.code, "sent", "PICKING"]);
@@ -80,7 +80,7 @@ describe("made-to-order merch", () => {
     await real.sendProductionOrder({
       ref: "TEST01",
       recipient: { name: "Wally Walker", phone: "+27820000002", email: null, addressLine: "12 Jacaranda St", suburb: "Hatfield", city: "Pretoria", province: "GP", postalCode: "0083", notes: null },
-      items: [{ code: "HH-TEE-BLK-M", name: "Windmill Tee", blank: "Black tee", size: "M", qty: 1, prints: [{ placement: "Centre back", technique: "DTG", size: "250 × 340 mm", note: "Store-window poster", url: "http://localhost:3000/merch/print/window-back.png", svg: "http://localhost:3000/merch/print/window-back.svg" }] }],
+      items: [{ code: "HH-TEE-BLK-M", name: "Windmill Tee", blank: "Black tee", size: "M", qty: 1, prints: [{ placement: "Centre back", technique: "DTF", size: "250 × 340 mm", note: "Store-window poster", url: "http://localhost:3000/merch/print/window-back.png", vector: "http://localhost:3000/merch/print/window-back.pdf" }] }],
     });
     const log = await db.messageLog.findFirstOrThrow({ where: { reason: "logged (POD_EMAIL not set)" }, orderBy: { createdAt: "desc" } });
     expect(log.body).toContain("Production order TEST01");

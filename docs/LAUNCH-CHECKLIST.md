@@ -24,10 +24,11 @@ Tick every line before the first store trades on the platform.
 - [ ] DC replenishment cadence and lead times set; par/reorder levels reviewed
 
 ## Merch (made to order)
-- [ ] Print partner agreed (OTC Printing recommended): price list per blank, courier rates, turnaround, white-label packing, payment terms
-- [ ] Partner confirms in writing that it prints for a CBD/wellness brand; IP of any partner-made artwork assigned to Herbal Holland
-- [ ] Printed sample of every piece approved (colour against Sunset 500, placements, wash test); hoodie blank colour signed off
-- [ ] Variant costs and print partner codes set in HQ → Catalogue; `POD_EMAIL` and the merch courier fee set
+- [ ] Merch partner agreed (Lucani trade account; OneOff as fallback): prices at 1/5/10 units, digitising, blanks, courier rates, white-label packing, payment terms
+- [ ] Partner confirms in writing that it makes merch for a CBD/wellness brand; stitch files and any partner-made artwork owned by (or released to) Herbal Holland
+- [ ] Each stitched design digitised once; thread sew-out approved against Sunset 500; sample of every piece approved (placements, wash test, hoodie blank colour)
+- [ ] Beanie and bucket hat: a white-label source confirmed before they go on sale
+- [ ] Variant costs and merch partner codes set in HQ → Catalogue; `POD_EMAIL` and the merch courier fee set
 - [ ] DC team trained on **Merch shipped** (tracking from the partner's email) and on chasing late orders
 
 ## Devices & people
