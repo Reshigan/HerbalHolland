@@ -7,7 +7,7 @@ import { storeCampaigns, storePromotions, type PromoState } from "@/server/store
 import { hrefWith, scheduleLabel, sp1, toLocalInput } from "@/server/store/rules";
 import { welcomeLine } from "@/server/hq/launch-rules";
 import { describePromo, type PromoInput } from "@/lib/promotions";
-import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
+import { INTERESTS, SEGMENTS, type InterestKey, type SegmentKey } from "@/lib/rfm";
 import { zar } from "@/lib/money";
 import { addDays, fmtDate, fmtDateTime, dayKey } from "@/lib/format";
 import { campaignReach, cancelCampaign, createCampaign, endPromotion, savePromotion, sendDraft } from "./actions";
@@ -222,6 +222,7 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
     { value: "ALL", label: "All members" },
     ...(Object.keys(SEGMENTS) as SegmentKey[]).map((k) => ({ value: k, label: SEGMENTS[k].name, hint: SEGMENTS[k].blurb })),
     ...["SEED", "SPROUT", "BLOOM", "HARVEST"].map((t) => ({ value: `tier:${t}`, label: `${t.charAt(0) + t.slice(1).toLowerCase()} tier` })),
+    ...(Object.keys(INTERESTS) as InterestKey[]).map((k) => ({ value: `interest:${k}`, label: `Into ${INTERESTS[k]}`, hint: "What they told us they're into when they joined" })),
   ];
 
   return (

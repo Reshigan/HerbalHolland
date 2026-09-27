@@ -172,6 +172,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
           source: referrer ? "REFERRAL" : "WEB",
           joinedVia: String(form.get("src") ?? ""),
           termsAccepted: form.get("accept") === "on",
+          interests: form.getAll("interest").map(String),
         },
         { type: "CUSTOMER", name: v.firstName },
       );

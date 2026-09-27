@@ -14,3 +14,6 @@ export const KEY_TERMS = [
   "We confirm your age with a secure fingerprint of your ID number and keep the records the law requires (see the privacy notice).",
   "Most online orders can be cancelled within 7 days of delivery, and faulty goods can be repaired, replaced or refunded within 6 months.",
 ];
+
+/** The question staff ask when someone joins in store. Their answer is recorded as consent with this wording (POPIA s69). */
+export const DEALS_QUESTION = "Can we send you member deals, drops and news by SMS and email? You can opt out any time — just reply STOP.";

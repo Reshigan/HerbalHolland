@@ -8,6 +8,7 @@ import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
 import { checkSaId, displayPhone } from "@/lib/sa";
 import { cn } from "@/lib/cn";
 import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
+import { INTERESTS, type InterestKey } from "@/lib/rfm";
 
 type StoreOpt = { id: string; name: string; city: string };
 
@@ -271,6 +272,12 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         <div className="grid grid-cols-2 gap-x-4">
           {CHANNELS.map((c) => (
             <CheckRow key={c.key} name={`consent_${c.key}`} label={c.label} defaultChecked={false} />
+          ))}
+        </div>
+        <div className="mt-3 text-[0.8rem] font-semibold text-ink-200">What are you into? (optional)</div>
+        <div className="grid grid-cols-2 gap-x-4">
+          {(Object.keys(INTERESTS) as InterestKey[]).map((k) => (
+            <CheckRow key={k} name="interest" value={k} label={INTERESTS[k]} defaultChecked={false} />
           ))}
         </div>
       </fieldset>

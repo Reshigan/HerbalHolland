@@ -563,6 +563,7 @@ model Customer {
   joinedVia          String? // ?src= tag on the join link or QR code (e.g. qr-window-hillcrest)
   termsVersion       String? // membership terms accepted (TERMS_VERSION)
   termsAcceptedAt    DateTime?
+  interests          String[]  @default([]) // what they told us they're into (INTERESTS), for relevant deals
   // Denormalised stats (kept current on every purchase) so segmentation stays
   // cheap across millions of members.
   points             Int       @default(0)

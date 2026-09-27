@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
-import { createCustomer, recordAgeCheck, setConsent } from "@/server/customers";
+import { createCustomer, recordAgeCheck, setConsent, STORE_CONSENT_WORDING } from "@/server/customers";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, str } from "@/server/store/rules";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
@@ -30,6 +30,11 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const idNumber = str(fd, "idNumber").replace(/\s/g, "");
     const sighted = bool(fd, "idSighted");
     if (!idNumber && !sighted) return fail("Confirm the member is 18+: capture an SA ID number or tick that you've seen their ID", "idSighted");
+    const dobRaw = str(fd, "dob");
+    const dob = /^\d{4}-\d{2}-\d{2}$/.test(dobRaw) ? new Date(`${dobRaw}T00:00:00Z`) : undefined;
+    if (!idNumber && !dob) return fail("Without an SA ID number, enter their date of birth from the document you saw", "dob");
+    const deals = str(fd, "deals");
+    if (deals !== "yes" && deals !== "no") return fail("Ask whether they want member deals and news — their answer is recorded", "deals");
     if (!bool(fd, "acceptTerms")) return fail("The member must read the key terms and accept the membership terms", "acceptTerms");
     const c = await createCustomer(
       {
@@ -38,8 +43,11 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
         lastName: str(fd, "lastName").slice(0, 60) || undefined,
         email: email || undefined,
         idNumber: idNumber || undefined,
+        dob: idNumber ? undefined : dob,
         homeStoreId: store.id,
-        consents: Object.fromEntries(CHANNELS.map((ch) => [ch, bool(fd, `consent:${ch}`)])),
+        consents: { SMS: deals === "yes", EMAIL: deals === "yes" && !!email, WHATSAPP: false, PUSH: false },
+        interests: fd.getAll("interest").map(String),
+        consentWording: STORE_CONSENT_WORDING,
         source: "ADMIN",
         termsAccepted: true,
         ageCheck: sighted ? "ID_SIGHTED" : undefined,

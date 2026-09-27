@@ -8,7 +8,7 @@ import { Select } from "@/components/hq/select";
 import { Mark } from "@/components/brand/logo";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { screenCopy } from "@/lib/compliance";
-import { SEGMENTS } from "@/lib/rfm";
+import { INTERESTS, SEGMENTS, type InterestKey } from "@/lib/rfm";
 import { TIERS } from "@/lib/loyalty-rules";
 import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
 import { cn } from "@/lib/cn";
@@ -138,6 +138,11 @@ export function Composer({
                   <optgroup label="Tiers">
                     {TIERS.map((t) => (
                       <option key={t.key} value={`tier:${t.key}`}>{t.name} tier</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Interests (told us at sign-up)">
+                    {(Object.keys(INTERESTS) as InterestKey[]).map((k) => (
+                      <option key={k} value={`interest:${k}`}>Into {INTERESTS[k]}</option>
                     ))}
                   </optgroup>
                 </Select>

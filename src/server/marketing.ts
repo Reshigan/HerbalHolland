@@ -6,7 +6,7 @@ import { sendBulk } from "./messaging";
 import { audit, type Actor } from "./audit";
 import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
 import { addDays } from "@/lib/format";
-import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
+import { INTERESTS, SEGMENTS, type InterestKey, type SegmentKey } from "@/lib/rfm";
 import { screenCopy } from "@/lib/compliance";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import type { MsgChannel, Prisma, Tier } from "@/generated/prisma/client";
@@ -45,6 +45,7 @@ export function segmentWhere(segment: string, now = new Date()): Prisma.Customer
       return { lastPurchaseAt: { lt: d(120) } };
     default:
       if (segment.startsWith("tier:")) return { tier: segment.slice(5) as Tier };
+      if (segment.startsWith("interest:")) return { interests: { has: segment.slice(9) } };
       return { id: "__none__" };
   }
 }
@@ -52,6 +53,7 @@ export function segmentWhere(segment: string, now = new Date()): Prisma.Customer
 export function segmentLabel(segment: string) {
   if (segment === "ALL") return "All members";
   if (segment.startsWith("tier:")) return `Tier: ${segment.slice(5).toLowerCase()}`;
+  if (segment.startsWith("interest:")) return `Into ${INTERESTS[segment.slice(9) as InterestKey] ?? segment.slice(9)}`;
   return SEGMENTS[segment as SegmentKey]?.name ?? segment;
 }
 

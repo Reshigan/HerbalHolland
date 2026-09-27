@@ -7,7 +7,8 @@ import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText, OfflineError } from "../lib/api";
 import { memberNoFrom, offlineMember } from "../lib/rules";
-import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
+import { DEALS_QUESTION, KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
+import { INTERESTS, type InterestKey } from "@/lib/rfm";
 import { Alert, CheckRow, Chip, Field, PosButton, Segmented, Sheet, Spinner, TextInput, TIER_CHIP, tierName } from "../ui";
 import { visitDate } from "./cart-panel";
 import type { CustomerDetail, CustomerHit } from "@/server/pos/types";
@@ -151,7 +152,9 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
 function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number }) {
   const [f, setF] = useState({ phone: "", firstName: "", lastName: "", email: "", idNumber: "" });
   const [passport, setPassport] = useState(false);
-  const [consents, setConsents] = useState({ SMS: false, WHATSAPP: false, EMAIL: false });
+  const [deals, setDeals] = useState<boolean | null>(null);
+  const [interests, setInterests] = useState<string[]>([]);
+  const [dob, setDob] = useState("");
   const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -166,7 +169,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
   const phoneOk = !!normalisePhone(f.phone);
   const emailOk = !f.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
   const underage = id?.ok && id.age < minAge;
-  const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport)) && terms;
+  const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport && !!dob)) && deals !== null && terms;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   async function submit(e: React.FormEvent) {
@@ -177,7 +180,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
     setError(null);
     try {
       const r = await api<{ customer: CustomerDetail }>("/api/pos/customers", {
-        body: { ...f, email: f.email.trim(), idNumber: f.idNumber.replace(/\s/g, "") || undefined, passportSighted: passport && !f.idNumber, consents, acceptTerms: terms },
+        body: { ...f, email: f.email.trim(), idNumber: f.idNumber.replace(/\s/g, "") || undefined, passportSighted: passport && !f.idNumber, dob: passport && !f.idNumber ? dob : undefined, deals, interests, acceptTerms: terms },
       });
       onCreated(r.customer);
     } catch (e) {
@@ -201,7 +204,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
           <Field label="Surname (optional)" htmlFor="nm-last">
             <TextInput id="nm-last" autoComplete="off" value={f.lastName} onChange={set("lastName")} />
           </Field>
-          <Field label="Email for invoices (optional)" htmlFor="nm-email" error={!emailOk ? "That email doesn't look right" : undefined}>
+          <Field label="Email for deals and invoices (optional)" htmlFor="nm-email" error={!emailOk ? "That email doesn't look right" : undefined}>
             <TextInput id="nm-email" type="email" inputMode="email" autoComplete="off" value={f.email} onChange={set("email")} placeholder="name@example.co.za" aria-invalid={!emailOk} />
           </Field>
         </div>
@@ -219,14 +222,40 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
           </div>
         )}
         <CheckRow checked={passport} onChange={(v) => (setPassport(v), v && setF((s) => ({ ...s, idNumber: "" })))} label="Passport sighted (not an SA citizen)" description={`I've checked their passport and they are ${minAge} or older.`} />
-        <fieldset className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800">
-          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Marketing (optional — ask them)</legend>
-          <div className="grid gap-1 sm:grid-cols-3">
-            <CheckRow checked={consents.SMS} onChange={(v) => setConsents((c) => ({ ...c, SMS: v }))} label="SMS" />
-            <CheckRow checked={consents.WHATSAPP} onChange={(v) => setConsents((c) => ({ ...c, WHATSAPP: v }))} label="WhatsApp" />
-            <CheckRow checked={consents.EMAIL} disabled={!f.email} onChange={(v) => setConsents((c) => ({ ...c, EMAIL: v }))} label="Email" />
+        {passport && (
+          <Field label="Date of birth (from the passport)" htmlFor="nm-dob" error={touched && !dob ? "Enter their date of birth — it's also how they get birthday deals" : undefined}>
+            <TextInput id="nm-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} aria-invalid={touched && !dob} />
+          </Field>
+        )}
+        <fieldset className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="deals-question">
+          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Member deals &amp; news — ask them</legend>
+          <p className="px-1 text-sm leading-relaxed text-ink-200">&ldquo;{DEALS_QUESTION}&rdquo;</p>
+          <div className="mt-2 grid grid-cols-2 gap-2">
+            <PosButton type="button" variant={deals === true ? "primary" : "secondary"} aria-pressed={deals === true} onClick={() => setDeals(true)}>
+              Yes, send deals
+            </PosButton>
+            <PosButton type="button" variant={deals === false ? "primary" : "secondary"} aria-pressed={deals === false} onClick={() => setDeals(false)}>
+              No thanks
+            </PosButton>
           </div>
-          <p className="px-1 text-xs leading-relaxed text-ink-400">Drops, offers and events on the channels ticked. They can opt out any time by replying STOP. Invoices are always emailed.</p>
+          {touched && deals === null && <p className="px-1 pt-1.5 text-xs font-medium text-[#f29b9b]">Ask them — their answer is recorded</p>}
+          <div className="mt-3 px-1 text-[0.8rem] font-semibold text-ink-300">What are they into? (optional)</div>
+          <div className="mt-1.5 flex flex-wrap gap-2">
+            {(Object.keys(INTERESTS) as InterestKey[]).map((k) => {
+              const on = interests.includes(k);
+              return (
+                <button
+                  key={k}
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => setInterests((x) => (on ? x.filter((i) => i !== k) : [...x, k]))}
+                  className={`min-h-11 rounded-full px-3.5 text-sm ring-1 transition ${on ? "bg-brand-500/20 text-brand-100 ring-brand-500/50" : "bg-ink-900 text-ink-300 ring-ink-700 hover:ring-ink-500"}`}
+                >
+                  {INTERESTS[k]}
+                </button>
+              );
+            })}
+          </div>
         </fieldset>
         <div className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="key-terms">
           <div className="px-1 text-[0.8rem] font-semibold text-ink-300">Key membership terms — turn the screen so they can read them</div>

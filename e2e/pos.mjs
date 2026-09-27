@@ -83,13 +83,17 @@ try {
   await page.getByLabel("Mobile number").fill(joinPhone);
   await page.getByLabel("First name").fill("Sipho");
   await page.getByLabel("SA ID number").fill(joinId);
+  await page.getByTestId("deals-question").getByRole("button", { name: "Yes, send deals" }).click();
+  await page.getByTestId("deals-question").getByRole("button", { name: "CBD & wellness" }).click();
   await page.getByTestId("key-terms").waitFor();
   await page.getByLabel(/read the key terms and accept the membership terms/).check();
   await shot("join-at-till");
   await page.getByRole("button", { name: /Create member/ }).click();
   await page.getByTestId("remaining").waitFor({ timeout: 30_000 });
-  const joined = (await q(`select id, "memberNo", "termsVersion", "termsAcceptedAt" from "Customer" where phone = $1`, [`+27${joinPhone.slice(1)}`]))[0];
+  const joined = (await q(`select id, "memberNo", "termsVersion", "termsAcceptedAt", "consentSms", interests from "Customer" where phone = $1`, [`+27${joinPhone.slice(1)}`]))[0];
   assert(joined?.termsVersion === "2026-09-27" && joined.termsAcceptedAt, `member ${joined?.memberNo} joined; terms version ${joined?.termsVersion} recorded`);
+  const optIn = (await q(`select wording from "ConsentEvent" where "customerId" = $1 and channel = 'SMS' and granted`, [joined.id]))[0];
+  assert(joined.consentSms && joined.interests.includes("CBD") && /^Asked in store/.test(optIn?.wording ?? ""), "said yes to member deals (SMS consent + the question asked recorded) and is into CBD");
   await page.getByTestId("tender-cash").click();
   await page.getByRole("button", { name: "R400" }).click();
   await page.getByTestId("receipt").waitFor();

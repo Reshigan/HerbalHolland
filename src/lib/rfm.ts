@@ -25,3 +25,13 @@ export function segmentOf(c: RfmStats, now = new Date()): SegmentKey {
   if (days <= 120) return "PROMISING";
   return "LAPSED";
 }
+
+// ── Interests: asked when someone joins, so deals are relevant from the first message ─────────────────────────────
+// Never licensed medicines — those can't be marketed (Medicines Act s18A/s20).
+export const INTERESTS = { CBD: "CBD & wellness", ACCESSORY: "Accessories", APPAREL: "Merch & apparel", GROW: "Grow your own", EVENTS: "Events & drops" } as const;
+export type InterestKey = keyof typeof INTERESTS;
+export const interestsFrom = (raw: unknown[]) => [...new Set(raw.map(String).filter((k): k is InterestKey => Object.hasOwn(INTERESTS, k)))];
+
+/** A campaign audience: everyone, an RFM segment, a tier or an interest. */
+export const isAudience = (s: string) =>
+  s === "ALL" || Object.hasOwn(SEGMENTS, s) || /^tier:(SEED|SPROUT|BLOOM|HARVEST)$/.test(s) || (s.startsWith("interest:") && Object.hasOwn(INTERESTS, s.slice(9)));

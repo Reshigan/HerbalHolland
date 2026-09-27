@@ -8,7 +8,7 @@ import { promoWindowOpen, resolvePrice, type PriceListRule } from "@/lib/pricing
 import { pointsFor, tierFor, nextTier, tierBenefits, DEFAULT_TIER_SAVINGS } from "@/lib/loyalty-rules";
 import { routeOrder, type RouteCandidate } from "@/lib/routing";
 import { suggestQty } from "@/lib/replenish";
-import { segmentOf } from "@/lib/rfm";
+import { interestsFrom, isAudience, segmentOf } from "@/lib/rfm";
 import { buildStatement } from "@/lib/statement";
 import { dayKey, rangeFromParams } from "@/lib/format";
 
@@ -350,6 +350,11 @@ describe("segments", () => {
     expect(segmentOf({ visits: 1, lastPurchaseAt: ago(3), firstPurchaseAt: ago(3) }, now)).toBe("NEW");
     expect(segmentOf({ visits: 6, lastPurchaseAt: ago(90), firstPurchaseAt: ago(300) }, now)).toBe("AT_RISK");
     expect(segmentOf({ visits: 6, lastPurchaseAt: ago(200), firstPurchaseAt: ago(300) }, now)).toBe("LAPSED");
+  });
+  it("keeps interests to the known list; campaigns can target an interest", () => {
+    expect(interestsFrom(["CBD", "CBD", "GROW", "THC", "toString", 7])).toEqual(["CBD", "GROW"]);
+    for (const a of ["ALL", "CHAMPION", "tier:BLOOM", "interest:CBD"]) expect(isAudience(a)).toBe(true);
+    for (const a of ["interest:THC", "interest:toString", "constructor", "tier:GOLD", ""]) expect(isAudience(a)).toBe(false);
   });
 });
 

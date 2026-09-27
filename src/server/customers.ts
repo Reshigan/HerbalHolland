@@ -11,7 +11,8 @@ import { nextNumber, shortCode } from "./counters";
 import { sha256 } from "./crypto";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
-import { TERMS_VERSION } from "@/lib/terms";
+import { DEALS_QUESTION, TERMS_VERSION } from "@/lib/terms";
+import { interestsFrom } from "@/lib/rfm";
 
 export class CustomerError extends Error {}
 
@@ -56,6 +57,8 @@ export type NewCustomer = {
   source: string;
   joinedVia?: string | null; // raw ?src= tag; normalised by joinTag
   termsAccepted: boolean; // accepted the membership terms (TERMS_VERSION) — required to join
+  interests?: string[]; // what they told us they're into (INTERESTS keys), for relevant deals
+  consentWording?: string; // what they were asked, for the consent ledger (default: the online wording)
   ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a budtender checked a passport in store
 };
 
@@ -85,6 +88,7 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
     if (ageCheck === "NONE") ageCheck = "ID_NUMBER";
     if (await db.customer.findUnique({ where: { idHash: hash } })) throw new CustomerError("That ID number is already linked to a member");
   }
+  if (dob && isNaN(+dob)) throw new CustomerError("Enter a valid date of birth");
   if (dob && ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`Herbal Holland Rewards is for adults ${settings.compliance.minAge}+`);
 
   const referrer = a.referralCode ? await db.customer.findUnique({ where: { referralCode: a.referralCode.trim().toUpperCase() } }) : null;
@@ -115,17 +119,21 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
         source: a.source,
         joinedVia: joinTag(a.joinedVia),
         termsVersion: TERMS_VERSION,
+        interests: interestsFrom(a.interests ?? []),
         termsAcceptedAt: new Date(),
       },
     });
     await t.consentEvent.createMany({
-      data: channels.map((ch) => ({ customerId: c.id, channel: ch, granted: !!a.consents[ch], source: a.source, wording: CONSENT_WORDING })),
+      data: channels.map((ch) => ({ customerId: c.id, channel: ch, granted: !!a.consents[ch], source: a.source, wording: a.consentWording ?? CONSENT_WORDING })),
     });
     if (settings.loyalty.signupBonus) await addPoints(t, { customerId: c.id, points: settings.loyalty.signupBonus, kind: "SIGNUP", note: "Welcome to Herbal Holland Rewards" });
     await audit(t, actor, "customer.create", { storeId: a.homeStoreId, entity: "Customer", entityId: c.id, data: { source: a.source, ageCheck, termsVersion: TERMS_VERSION } });
     return c;
   });
 }
+
+/** Recorded for members who join in store: staff ask DEALS_QUESTION and record the answer. */
+export const STORE_CONSENT_WORDING = `Asked in store: “${DEALS_QUESTION}”`;
 
 export const CONSENT_WORDING =
   "I'd like to hear from Herbal Holland about drops, offers and events on the channels I've ticked. I can opt out at any time by replying STOP or in my Herbal Holland Rewards settings.";

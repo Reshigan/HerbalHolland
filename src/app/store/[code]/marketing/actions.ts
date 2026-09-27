@@ -6,13 +6,13 @@ import { audienceSize, sendCampaign } from "@/server/marketing";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
 import { bool, list, parseClock, parseLocal, parseRand, parseWhole, str } from "@/server/store/rules";
 import { screenCopy } from "@/lib/compliance";
-import { SEGMENTS } from "@/lib/rfm";
+import { isAudience } from "@/lib/rfm";
 import { fmtDateTime } from "@/lib/format";
 import type { MsgChannel, PromoKind, Prisma } from "@/generated/prisma/client";
 
 const KINDS: PromoKind[] = ["PERCENT", "FIXED", "BUY_X_GET_Y", "MULTIBUY"];
 const CHANNELS: MsgChannel[] = ["SMS", "EMAIL"];
-const validSegment = (s: string) => s === "ALL" || s in SEGMENTS || ["tier:SEED", "tier:SPROUT", "tier:BLOOM", "tier:HARVEST"].includes(s);
+const validSegment = isAudience;
 
 /** Creates or updates one of the store's own till promotions. */
 export async function savePromotion(code: string, promoId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {

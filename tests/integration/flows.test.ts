@@ -2,7 +2,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { postPosSale, refundSale } from "@/server/sales";
-import { createCustomer } from "@/server/customers";
+import { createCustomer, STORE_CONSENT_WORDING } from "@/server/customers";
+import { audienceSize } from "@/server/marketing";
 import { TERMS_VERSION } from "@/lib/terms";
 import { placeOrder, advanceOrder } from "@/server/orders";
 import { availability, availKey, startStockTake, approveStockTake, recordCounts, adjustStock } from "@/server/inventory";
@@ -69,6 +70,21 @@ describe("POS", () => {
     const c = await join(true);
     expect(c.termsVersion).toBe(TERMS_VERSION);
     expect(c.termsAcceptedAt).toBeInstanceOf(Date);
+  });
+
+  it("records the deals answer (with the question asked) and interests when someone joins in store", async () => {
+    const c = await createCustomer(
+      { phone: "0721234599", firstName: "Lwazi", dob: new Date("1992-03-04"), ageCheck: "ID_SIGHTED", consents: { SMS: true }, source: "POS", termsAccepted: true, interests: ["CBD", "THC", "CBD"], consentWording: STORE_CONSENT_WORDING },
+      { type: "USER", id: w.manager.id, name: "Mia" },
+    );
+    expect(c).toMatchObject({ consentSms: true, consentEmail: false, interests: ["CBD"] });
+    const sms = await db.consentEvent.findFirstOrThrow({ where: { customerId: c.id, channel: "SMS" } });
+    expect(sms).toMatchObject({ granted: true, source: "POS", wording: STORE_CONSENT_WORDING });
+    expect(await audienceSize("interest:CBD", "SMS")).toEqual({ total: 1, reachable: 1 });
+    expect(await audienceSize("interest:GROW", "SMS")).toEqual({ total: 0, reachable: 0 });
+    await expect(
+      createCustomer({ phone: "0721234598", firstName: "Zee", dob: new Date("1992-13-04T00:00:00Z"), ageCheck: "ID_SIGHTED", consents: {}, source: "POS", termsAccepted: true }, { type: "USER", id: w.manager.id, name: "Mia" }),
+    ).rejects.toThrow(/valid date of birth/);
   });
 
   it("sells to members only; an offline sale finds its member by number when it syncs", async () => {

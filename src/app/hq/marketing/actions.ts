@@ -6,7 +6,7 @@ import { audienceSize, sendCampaign, CampaignError } from "@/server/marketing";
 import { guard, inScope, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, opt, parseRand, parseLocal, parseSuppressionList } from "@/server/hq/form";
 import { screenCopy } from "@/lib/compliance";
-import { SEGMENTS } from "@/lib/rfm";
+import { isAudience } from "@/lib/rfm";
 import { marketingWindow, nextMarketingSlot, normalisePhone } from "@/lib/sa";
 import { fmtDateTime } from "@/lib/format";
 import type { MsgChannel } from "@/generated/prisma/client";
@@ -14,8 +14,7 @@ import type { MsgChannel } from "@/generated/prisma/client";
 const CHANNELS: MsgChannel[] = ["SMS", "EMAIL", "PUSH", "WHATSAPP"];
 const PUSH_TITLE_MAX = 40;
 const PUSH_BODY_MAX = 140;
-const TIER_SEGMENTS = ["tier:SEED", "tier:SPROUT", "tier:BLOOM", "tier:HARVEST"];
-const validSegment = (s: string) => s === "ALL" || s in SEGMENTS || TIER_SEGMENTS.includes(s);
+const validSegment = isAudience;
 
 /** Live audience estimate for the composer. */
 export async function estimateReach(segment: string, channel: string, storeId: string | null) {

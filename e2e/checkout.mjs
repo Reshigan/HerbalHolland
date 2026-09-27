@@ -51,6 +51,7 @@ await page.getByLabel(/Email for invoices/).fill(`lindiwe.${phone}@example.co.za
 await page.getByLabel("SA ID number").fill(saId);
 await page.getByLabel("Home store").selectOption({ label: "Hatfield" });
 await page.getByLabel("SMS").check();
+await page.getByLabel("CBD & wellness").check();
 await shot("checkout-register");
 await page.getByLabel(/I'm 18 or older and I accept/).check();
 await page.getByRole("button", { name: /Join and continue/ }).click();

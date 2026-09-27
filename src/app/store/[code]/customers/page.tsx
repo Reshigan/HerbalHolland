@@ -4,7 +4,6 @@ import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
-import { CONSENT_WORDING } from "@/server/customers";
 import { SEGMENT_TONE, hrefWith, sp1 } from "@/server/store/rules";
 import { NO_STATS, homeMemberTotals, membersByHere, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf, type SegmentKey } from "@/lib/rfm";
@@ -94,7 +93,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
         overline={`Members · ${store.name}`}
         title="Members"
         description={`Herbal Holland Rewards members who call ${store.name} home. Spend and visits are what they bought here; tier, points and segment follow the network programme.`}
-        actions={canManage && <AddMember action={addMember.bind(null, store.code)} wording={CONSENT_WORDING} storeName={store.name} />}
+        actions={canManage && <AddMember action={addMember.bind(null, store.code)} storeName={store.name} />}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
