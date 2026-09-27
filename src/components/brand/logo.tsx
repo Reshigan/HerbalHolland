@@ -7,21 +7,40 @@ export const PETAL = "M5 0 C 11 -9.5, 23 -9.5, 29 -1.5 C 23 4.5, 13 6.5, 5 0 Z";
 
 export function Mark({ className, spin = false, detail = true, title = "Herbal Holland" }: { className?: string; spin?: boolean | "fast"; detail?: boolean; title?: string }) {
   return (
-    <svg viewBox="0 0 100 100" className={cn("shrink-0", className)} role="img" aria-label={title} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-      {/* Open ring: the gap at the bottom is where the tower stands. */}
-      <path d="M 36.2 82.6 A 40 40 0 1 1 63.8 82.6" strokeWidth={5.5} />
-      {/* Tower */}
-      <path d="M 33 91 L 50 44.5 L 67 91" strokeWidth={5.5} />
-      {detail && <path d="M 42.5 91 L 50 69 L 57.5 91" strokeWidth={3.2} />}
-      {/* Windmill flower */}
-      <g transform="translate(50 40)" className={spin ? (spin === "fast" ? "animate-spin-fast" : "animate-spin-slow") : undefined} style={{ transformOrigin: "50px 40px", transformBox: "view-box" }}>
-        {[45, 135, 225, 315].map((r) => (
-          <path key={r} d={PETAL} transform={`rotate(${r - 90})`} strokeWidth={3.6} />
-        ))}
-        <circle r={3.4} strokeWidth={2.4} />
-        <circle r={0.9} fill="currentColor" stroke="none" />
-      </g>
+    <svg viewBox="0 0 100 100" className={cn("shrink-0", className)} role="img" aria-label={title}>
+      <MarkGlyph detail={detail} spin={spin} />
     </svg>
+  );
+}
+
+/**
+ * The Mark's strokes in a 100-unit box, drawn in currentColor — for placing inside other artwork (print files, merch).
+ * `stitch` is the embroidery cut: heavier lines, a solid hub and no inner tower line, so it sews cleanly at cap size.
+ */
+export function MarkGlyph({ detail = true, stitch = false, spin = false }: { detail?: boolean; stitch?: boolean; spin?: boolean | "fast" }) {
+  const line = stitch ? 7.5 : 5.5;
+  return (
+    <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+      {/* Open ring: the gap at the bottom is where the tower stands. */}
+      <path d="M 36.2 82.6 A 40 40 0 1 1 63.8 82.6" strokeWidth={line} />
+      {/* Tower */}
+      <path d="M 33 91 L 50 44.5 L 67 91" strokeWidth={line} />
+      {detail && !stitch && <path d="M 42.5 91 L 50 69 L 57.5 91" strokeWidth={3.2} />}
+      {/* Windmill flower */}
+      <g transform="translate(50 40)" className={spin ? (spin === "fast" ? "animate-spin-fast" : "animate-spin-slow") : undefined} style={spin ? { transformOrigin: "50px 40px", transformBox: "view-box" } : undefined}>
+        {[45, 135, 225, 315].map((r) => (
+          <path key={r} d={PETAL} transform={`rotate(${r - 90})`} strokeWidth={stitch ? 5.2 : 3.6} />
+        ))}
+        {stitch ? (
+          <circle r={4.6} fill="currentColor" stroke="none" />
+        ) : (
+          <>
+            <circle r={3.4} strokeWidth={2.4} />
+            <circle r={0.9} fill="currentColor" stroke="none" />
+          </>
+        )}
+      </g>
+    </g>
   );
 }
 

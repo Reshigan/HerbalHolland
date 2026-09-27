@@ -1,6 +1,9 @@
 // Generative product artwork in the brand language (the windmill-flower petals),
 // coloured by product family. Deterministic per product, no photography needed.
+// Made-to-order merch shows its actual design instead (MerchArt).
 import { PETAL } from "@/components/brand/logo";
+import { MerchArt } from "@/components/merch/mockup";
+import { merchFor } from "@/lib/merch";
 import { cn } from "@/lib/cn";
 
 const FAMILY: Record<string, { bg: [string, string]; fg: string; ring: string }> = {
@@ -27,6 +30,7 @@ export function familyOf(p: { strain?: string | null; regClass: string }) {
 }
 
 export function ProductArt({ slug, strain, regClass, className, label }: { slug: string; strain?: string | null; regClass: string; className?: string; label?: string }) {
+  if (merchFor(slug)) return <MerchArt slug={slug} className={className} label={label} />;
   const f = FAMILY[familyOf({ strain, regClass })];
   const h = hash(slug);
   const rot = h % 90;

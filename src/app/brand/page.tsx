@@ -3,6 +3,9 @@ import type { Metadata } from "next";
 import { Check, X } from "lucide-react";
 import { Lockup, Logo, Mark, Wordmark } from "@/components/brand/logo";
 import { ProductArt } from "@/components/product/art";
+import { MerchArt } from "@/components/merch/mockup";
+import { ART, Artwork, INKS } from "@/components/merch/art";
+import { MERCH } from "@/lib/merch";
 import { ShopSurface } from "@/components/shop/chrome";
 import { buttonClass } from "@/components/ui/button";
 import { Tag } from "@/components/shop/ui";
@@ -54,6 +57,7 @@ const NAV = [
   ["art", "Product art"],
   ["voice", "Voice & tone"],
   ["misuse", "Do & don't"],
+  ["merch", "Merch"],
 ];
 
 function Section({ id, n, title, intro, children, light }: { id: string; n: string; title: string; intro: string; children: React.ReactNode; light?: boolean }) {
@@ -428,6 +432,93 @@ export default function BrandBook() {
           ))}
         </div>
         <p className="mt-8 text-sm text-ink-400">Questions about the brand? Ask the HQ marketing team before anything goes to print.</p>
+      </Section>
+
+      <Section
+        id="merch"
+        n="08"
+        title="Merch"
+        intro="Made to order in South Africa, one at a time — no stock and no minimums. Every design is a single ink: Sunset on black garments, black on the Sunset hoodie. The print files below are what the print partner receives."
+        light
+      >
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+          {MERCH.map((m) => {
+            const sides = (["front", "back"] as const).filter((side) => side === m.hero || m.prints.some((p) => p.side === side));
+            return (
+              <article key={m.slug} className="flex flex-col rounded-3xl border border-ink-150 bg-white p-4 shadow-card">
+                <div className="grid grid-cols-2 gap-2">
+                  {sides.map((side) => (
+                    <MerchArt key={side} slug={m.slug} side={side} label={`${m.name}, ${side}`} className="aspect-square w-full rounded-2xl" />
+                  ))}
+                  {sides.length === 1 && (
+                    // One-sided pieces: show the print file itself, on the garment colour.
+                    <div className="grid aspect-square place-items-center rounded-2xl p-5" style={{ background: m.colour === "black" ? INKS.black : INKS.sunset }}>
+                      <Artwork art={m.prints[0].art} className="max-h-full w-full" />
+                    </div>
+                  )}
+                </div>
+                <h3 className="mt-4 font-display text-lg font-semibold text-ink-950">{m.name}</h3>
+                <p className="text-sm text-ink-500">{m.blank}</p>
+                <ul className="mt-3 flex-1 space-y-2.5 text-sm">
+                  {m.prints.map((p) => {
+                    const a = ART[p.art];
+                    return (
+                      <li key={p.art} className="rounded-xl bg-ink-50 p-3">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-medium capitalize text-ink-850">
+                            {p.side} · {p.technique}
+                          </span>
+                          <span className="tnum text-xs text-ink-500">
+                            {a.w} × {a.h} mm
+                          </span>
+                        </div>
+                        <p className="mt-1 text-xs leading-relaxed text-ink-600">
+                          {a.note}. Ink: {a.ink === "sunset" ? "Sunset 500" : "Black"} <span className="tnum">{INKS[a.ink].toUpperCase()}</span>.
+                        </p>
+                        <div className="mt-2 flex gap-3 text-xs font-semibold">
+                          <a href={`/merch/print/${p.art}.png`} download className="text-brand-800 hover:underline">
+                            PNG · 300 dpi
+                          </a>
+                          <a href={`/merch/print/${p.art}.svg`} download className="text-brand-800 hover:underline">
+                            SVG master
+                          </a>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </article>
+            );
+          })}
+        </div>
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <div className="rounded-3xl bg-white p-6 text-sm leading-relaxed text-ink-700 shadow-card">
+            <h3 className="font-display text-lg font-semibold text-ink-950">Print rules</h3>
+            <ul className="mt-4 space-y-2.5">
+              <Rule ok>Two garment colours only: black, and the orange closest to Sunset 500. The print is always the other ink.</Rule>
+              <Rule ok>Print from the 300 dpi PNG at 100% (or the SVG master); keep placements within ±5 mm, centred on the garment.</Rule>
+              <Rule ok>Embroidery uses the stitch cut of the Mark — heavier lines, a solid hub — at 45 mm or more, thread matched to Sunset 500.</Rule>
+              <Rule ok>Approve a printed sample of each piece before it goes on sale, and again whenever the blank or the ink changes.</Rule>
+              <Rule ok={false}>No other colours, gradients, distressing or effects on the Mark; no cannabis leaves, slogans or claims.</Rule>
+              <Rule ok={false}>Don&apos;t scale a design up or down to fill a bigger print area — the sizes are set to the garment.</Rule>
+            </ul>
+          </div>
+          <div className="rounded-3xl bg-white p-6 text-sm leading-relaxed text-ink-700 shadow-card">
+            <h3 className="font-display text-lg font-semibold text-ink-950">Inks</h3>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              {(["sunset", "black"] as const).map((k) => (
+                <div key={k} className="overflow-hidden rounded-2xl ring-1 ring-ink-150">
+                  <div className="h-20" style={{ background: INKS[k] }} />
+                  <div className="p-3">
+                    <div className="font-medium text-ink-950">{k === "sunset" ? "Sunset 500" : "Black"}</div>
+                    <div className="tnum text-xs text-ink-500">{INKS[k].toUpperCase()}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <p className="mt-4 text-xs text-ink-500">DTG and DTF inks are matched to the hex on a physical sample; embroidery thread to the closest shade on the partner&apos;s thread card. When in doubt, the sample wins.</p>
+          </div>
+        </div>
       </Section>
     </main>
   );
