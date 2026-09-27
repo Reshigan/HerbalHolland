@@ -66,6 +66,19 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Compliance** — SAHPRA medical mode (switchable to adult-use), licence gating per store, Schedule 0 CBD validation,
   Medicines Act s18A incentive exclusions, dispensing register, recalls, audit log.
 
+## Testing
+
+```bash
+npm test                          # unit: pure rules (pricing, promotions, compliance, loyalty, SA calendars…)
+npm run test:integration          # domain services against a disposable DB (TEST_DATABASE_URL, migrated)
+node e2e/checkout.mjs             # phone checkout: sign-up by SMS code → collect → pay → order (DEMO_MODE, seeded)
+node e2e/pos.mjs                  # till: pair → PIN → shift → sales → refund → offline + sync → handover → Z-report
+npx tsx scripts/bench.ts [--write] # timings on a production-sized copy (SEED_STORES=1000)
+```
+
+CI (`.github/workflows/ci.yml`) runs typecheck, unit, integration and build, then both end-to-end journeys against a
+production build.
+
 ## Documentation
 
 - [Strategy: go-to-market, marketing playbook, beating the competition](docs/STRATEGY.md)

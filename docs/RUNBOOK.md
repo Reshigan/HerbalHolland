@@ -27,9 +27,10 @@
 - Migrations (`prisma migrate deploy`) run before the new app version starts. Schema changes take table locks: apply
   them outside trading hours (after 22:00 SAST) — tills keep selling offline and sync afterwards. A load test showed a
   migration during peak posting stalls tills behind the lock.
-- Capacity (1,000-store dataset, one app instance, 10 DB connections): POS posting p50 ≈ 170 ms, p95 ≈ 440 ms,
-  ≈ 45 sales/s; network dashboards and month-end reports < 0.35 s. Re-run `scripts/bench.ts` against a production-sized
-  copy before big releases.
+- Capacity (1,000-store dataset — 998 stores, 175k members, 425k sales — one app instance, 10 DB connections):
+  POS posting p50 ≈ 170 ms, p95 ≈ 440 ms, ≈ 45 sales/s; production-build pages: HQ console p50 ≈ 90 ms (slowest: the
+  network-wide age-check report ≈ 2 s, which reads raw sales), store back office p50 ≈ 30 ms (max < 0.4 s). Re-run
+  `scripts/bench.ts` and the e2e journeys against a production-sized copy before big releases.
 
 ## Routine operations
 

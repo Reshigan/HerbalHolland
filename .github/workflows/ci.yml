@@ -39,3 +39,56 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql://hh:hh@localhost:5432/hh_ci
       - run: npm run build
+
+  e2e:
+    # Customer checkout (phone) and the full till journey against a production build with demo data.
+    needs: verify
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: hh
+          POSTGRES_PASSWORD: hh
+          POSTGRES_DB: hh_e2e
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U hh -d hh_e2e" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://hh:hh@localhost:5432/hh_e2e
+      SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
+      APP_URL: http://127.0.0.1:3000
+      DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      - run: npx tsx prisma/seed.ts
+        env:
+          SEED_DAYS: "21"
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - name: Start the production server
+        run: |
+          cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public
+          (cd .next/standalone && PORT=3000 HOSTNAME=127.0.0.1 node server.js > ../../server.log 2>&1 &)
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/api/health && break; sleep 2; done
+      - run: node e2e/checkout.mjs test-results/e2e-checkout
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/pos.mjs test-results/e2e-pos
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-results
+          path: |
+            test-results
+            server.log

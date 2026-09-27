@@ -37,4 +37,7 @@ Tick every line before the first store trades on the platform.
 - [ ] `DEMO_MODE=false`, strong `SESSION_SECRET`, `CRON_SECRET` set, `APP_URL` correct
 - [ ] Migrations applied; backups + PITR verified with a restore test
 - [ ] Monitoring, alerting and on-call rota in place; runbook shared
-- [ ] Load test: peak-hour POS posting and month-end reports against a production-sized dataset (`SEED_STORES=1000`)
+- [ ] Load test: peak-hour POS posting and month-end reports against a production-sized dataset (`SEED_STORES=1000`,
+      `scripts/bench.ts --write`)
+- [ ] End-to-end journeys green against staging (`e2e/checkout.mjs`, `e2e/pos.mjs`) on the real devices (Android till,
+      phone, tablet)
