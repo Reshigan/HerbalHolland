@@ -5,7 +5,7 @@
 // My Deals, welcome gifts, limited drops and event check-in — need the connection.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
-import { checkCompliance } from "@/lib/compliance";
+import { checkCompliance, incentiveExcluded } from "@/lib/compliance";
 import { zar, zarWhole } from "@/lib/money";
 import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
@@ -113,12 +113,13 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const welcome: WelcomeGift | null = useMemo(() => {
     const s = memberQuote?.suggestions.find((x) => welcomeIds.has(x.promoId) && /add it/.test(x.message));
     if (!s) return null;
-    const product = boot.products.find((p) => s.productIds.includes(p.id)) ?? boot.products.find((p) => s.categoryIds.includes(p.categoryId));
+    const giftable = boot.products.filter((p) => !incentiveExcluded(boot.settings.compliance).includes(p.regClass)); // never a medicine (s18A)
+    const product = giftable.find((p) => s.productIds.includes(p.id)) ?? giftable.find((p) => s.categoryIds.includes(p.categoryId));
     if (!product || cart.lines.some((l) => index.get(l.variantId)?.product.id === product.id)) return null;
     const variant = product.variants.find((v) => v.available > 0) ?? product.variants[0];
     const pct = boot.promotions.find((p) => p.id === s.promoId)?.rewardPercent ?? 100;
     return { promoId: s.promoId, variantId: variant.id, label: `Welcome gift: ${product.name} ${pct >= 100 ? "free" : `${pct}% off`} — add it` };
-  }, [memberQuote, welcomeIds, boot.products, boot.promotions, cart.lines, index]);
+  }, [memberQuote, welcomeIds, boot.products, boot.promotions, boot.settings.compliance, cart.lines, index]);
 
   // ── Basket ──────────────────────────────────────────────────────────────
   const add = useCallback(
