@@ -1,5 +1,5 @@
 // Storefront chrome (server): announcement bar, header, footer and the 18+ age gate.
-// Used by the (shop) route group and the Windmill Club so the consumer surfaces share one frame.
+// Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
 import Link from "next/link";
 import { ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
@@ -23,7 +23,7 @@ export const NAV: NavItem[] = [
   { href: "/dispensary", label: "Dispensary" },
   { href: "/stores", label: "Stores" },
   { href: "/learn", label: "Learn" },
-  { href: "/club", label: "Windmill Club" },
+  { href: "/club", label: "Rewards" },
 ];
 
 /** Dark page surface for the consumer app (body background, native controls, reduced motion). */
@@ -96,7 +96,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               footer={
                 <div className="space-y-3 text-sm text-ink-400">
                   <Link href={customer ? "/club" : "/club/join"} className={buttonClass("primary", "lg", "w-full")}>
-                    {customer ? `${customer.firstName}'s Windmill Club` : "Sign in or join"}
+                    {customer ? `${customer.firstName}'s Rewards` : "Sign in or join Rewards"}
                   </Link>
                   <p className="text-center text-xs">Adults 18+ only · Lab-tested &amp; batch-traceable</p>
                 </div>
@@ -111,7 +111,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <Link
                 href="/club"
                 className="flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
-                aria-label={customer ? `Windmill Club — ${customer.firstName}` : "Sign in to the Windmill Club"}
+                aria-label={customer ? `Rewards — ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
               >
                 <span className="relative">
                   <UserRound className="h-[22px] w-[22px]" strokeWidth={1.8} />
@@ -153,13 +153,13 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Lab-tested, batch-traceable cannabis wellness, accessories and gear — in {trading.length} stores across {provinces.length} provinces and online.
               </p>
               <Link href="/club/join" className={buttonClass("outline-dark", "md", "mt-6")}>
-                Join the Windmill Club
+                Join Herbal Holland Rewards
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
               <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Dispensary (patients)", "/dispensary"]]} />
               <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${company?.email ?? "hello@herbalholland.co.za"}`]]} />
-              <FooterCol title="Windmill Club" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How Guilders work", "/learn/guilders"], ["Refer a friend", "/club#refer"]]} />
+              <FooterCol title="Rewards" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"]]} />
               <FooterCol title="Legal" links={[["Terms of use", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["PAIA manual", "/legal/paia"], ["Responsible use", "/learn/responsible-use"]]} />
             </div>
           </Container>

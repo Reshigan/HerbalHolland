@@ -1,5 +1,5 @@
 // Integration tests run the real domain services against a disposable database.
-//   TEST_DATABASE_URL=postgresql://…/hh_test npm run test:integration   (schema: prisma db push first)
+//   TEST_DATABASE_URL=postgresql://…/hh_test npm run test:integration   (schema: prisma migrate deploy first)
 import { defineConfig } from "vitest/config";
 import { fileURLToPath } from "node:url";
 

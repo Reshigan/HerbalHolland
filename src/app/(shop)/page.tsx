@@ -15,7 +15,7 @@ import { ProductGrid } from "@/components/shop/product-card";
 import { StoreCard } from "@/components/shop/store-card";
 import { Container, Panel, SectionHead } from "@/components/shop/ui";
 import { ARTICLES } from "@/components/shop/learn/articles";
-import { TIERS, guilders } from "@/lib/loyalty-rules";
+import { TIERS, fmtPoints } from "@/lib/loyalty-rules";
 import { zarWhole } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
@@ -50,11 +50,13 @@ export default async function Home() {
   ]);
   const who = { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name };
   const [featured, heritage, facets, categories] = await Promise.all([
-    cardsWhere({ featured: true }, classes.public, who, 8),
+    cardsWhere({}, classes.public, who),
     cardsWhere({ heritage: true }, classes.public, who, 3),
     listCatalogue("public", { page: 1 }, who),
     db.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { status: "ACTIVE", regClass: { in: classes.public } } } } } } }),
   ]);
+  // Staff picks first, then the most-reviewed of the rest, so the grid is always full.
+  const picks = [...featured].sort((a, b) => Number(b.featured) - Number(a.featured) || (b.rating?.count ?? 0) - (a.rating?.count ?? 0)).slice(0, 8);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const provinces = [...new Set(trading.map((s) => s.province))];
   const moods = facets.moods.filter((m) => MOODS[m.key]);
@@ -82,14 +84,14 @@ export default async function Home() {
                 Shop the range <ArrowRight className="h-5 w-5" />
               </ButtonLink>
               <ButtonLink href={customer ? "/club" : "/club/join"} variant="outline-dark" size="xl">
-                {customer ? "Your Windmill Club" : "Join the Windmill Club"}
+                {customer ? "Your Rewards card" : "Join Herbal Holland Rewards"}
               </ButtonLink>
             </div>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
               {[
                 [String(trading.length), "stores nationwide"],
                 [batches.toLocaleString(), "lab-tested batches"],
-                [guilders(loyalty.signupBonus), "welcome Guilders"],
+                [String(loyalty.signupBonus), "welcome points"],
               ].map(([v, l]) => (
                 <div key={l}>
                   <dt className="sr-only">{l}</dt>
@@ -101,7 +103,7 @@ export default async function Home() {
           </div>
           <div className="order-1 lg:order-2">
             <div className="hh-frame relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
-              <Lockup spin className="h-full w-full text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
+              <Lockup spin className="h-full w-full justify-center text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
             </div>
           </div>
         </Container>
@@ -179,10 +181,10 @@ export default async function Home() {
       </Container>
 
       {/* ── Featured ──────────────────────────────────────────────── */}
-      {featured.length > 0 && (
+      {picks.length > 0 && (
         <Container className="pt-20">
           <SectionHead eyebrow="Staff picks" title="Featured this week" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Shop all <ArrowRight className="h-4 w-4" /></ButtonLink>} />
-          <ProductGrid items={featured} />
+          <ProductGrid items={picks} />
         </Container>
       )}
 
@@ -247,23 +249,23 @@ export default async function Home() {
         </Container>
       </section>
 
-      {/* ── Windmill Club ─────────────────────────────────────────── */}
+      {/* ── Rewards ─────────────────────────────────────────── */}
       <Container className="pt-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900 p-6 sm:p-10 lg:p-14">
           <Mark aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 h-80 w-80 text-oranje-500/[0.07]" />
           <div className="relative grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
-              <div className="eyebrow text-oranje-500">Windmill Club</div>
-              <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Every rand earns Guilders.</h2>
+              <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
+              <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Every rand earns points.</h2>
               <p className="mt-4 max-w-md text-[1.02rem] leading-relaxed text-ink-300">
-                Earn {loyalty.earnPer100} Guilders for every R100 you spend in store and online. Each Guilder is worth R1 off your next order — and the more you shop, the faster you earn. Free to join, with {guilders(loyalty.signupBonus)} to welcome you.
+                Earn {loyalty.earnPer100} points for every R100 you spend in store and online. Each point is worth R1 off your next order — and the more you shop, the faster you earn. Free to join, with {fmtPoints(loyalty.signupBonus)} to welcome you.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href={customer ? "/club" : "/club/join"} size="lg">
                   {customer ? "View your card" : "Join free"}
                 </ButtonLink>
-                <ButtonLink href="/learn/guilders" variant="ghost-dark" size="lg">
-                  How Guilders work
+                <ButtonLink href="/learn/points" variant="ghost-dark" size="lg">
+                  How points work
                 </ButtonLink>
               </div>
             </div>

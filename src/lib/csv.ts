@@ -1,10 +1,10 @@
 // CSV export (RFC 4180) tuned for spreadsheets: money in rands with 2 decimals (no
 // symbol or separators, so it stays numeric), percentages as "12.35%", ISO dates in
-// SAST, CRLF line endings, a UTF-8 BOM so Excel reads ƒ and accents, and text cells
+// SAST, CRLF line endings, a UTF-8 BOM so Excel reads accents and symbols, and text cells
 // guarded against formula injection.
 import { TZ, dayKey } from "./format";
 
-export type CsvFormat = "zar" | "number" | "pct" | "date" | "day" | "datetime" | "text" | "badge" | "guilders";
+export type CsvFormat = "zar" | "number" | "pct" | "date" | "day" | "datetime" | "text" | "badge" | "points";
 export type CsvColumn = { key: string; label: string; format?: CsvFormat };
 export type CsvTable = { title?: string; columns: CsvColumn[]; rows: Record<string, unknown>[]; totals?: Record<string, unknown> | null };
 
@@ -32,7 +32,7 @@ export function csvValue(v: unknown, format: CsvFormat = "text"): string {
       return Number.isFinite(n) ? `${(n * 100).toFixed(2)}%` : "";
     }
     case "number":
-    case "guilders": {
+    case "points": {
       const n = Number(v);
       if (!Number.isFinite(n)) return "";
       return Number.isInteger(n) ? String(n) : String(Math.round(n * 100) / 100);

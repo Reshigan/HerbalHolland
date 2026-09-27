@@ -18,7 +18,7 @@ export function StockLine({ stock, className }: { stock: Card["stock"]; classNam
   return <p className={cn("flex items-center gap-1.5 text-xs font-medium", tone, className)}>{icon}{text}</p>;
 }
 
-export function ProductCardView({ p, priority }: { p: Card; priority?: boolean }) {
+export function ProductCardView({ p }: { p: Card }) {
   const low = (p.stock.kind === "store" || p.stock.kind === "ships") && p.stock.low;
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition duration-300 hover:-translate-y-0.5 hover:border-ink-600 hover:shadow-[0_18px_40px_-20px_rgb(245_145_60/0.35)]">
@@ -29,7 +29,6 @@ export function ProductCardView({ p, priority }: { p: Card; priority?: boolean }
           {p.heritage && <Tag tone="orange" className="bg-ink-950/70 backdrop-blur">Heritage</Tag>}
           {low && <Tag tone="amber" className="bg-ink-950/70 backdrop-blur">Low stock</Tag>}
         </div>
-        {priority && <span className="sr-only">Featured</span>}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="eyebrow text-[0.62rem] text-ink-400">{p.category.name}</div>
@@ -48,7 +47,7 @@ export function ProductCardView({ p, priority }: { p: Card; priority?: boolean }
         <div className="mt-auto flex items-end justify-between gap-3 pt-4">
           <div className="min-w-0">
             <Price cents={p.priceCents} was={p.wasCents} from={p.variantCount > 1} />
-            {p.priceNote && p.wasCents && <p className="mt-0.5 truncate text-[0.7rem] font-medium text-oranje-300">{p.priceNote}</p>}
+            {p.priceNote && p.wasCents && !p.deal && <p className="mt-0.5 truncate text-[0.7rem] font-medium text-oranje-300">{p.priceNote}</p>}
           </div>
           {p.variantCount === 1 && p.stock.kind !== "out" ? (
             <AddToBag compact variantId={p.firstVariantId} name={p.name} />
@@ -67,8 +66,8 @@ export function ProductCardView({ p, priority }: { p: Card; priority?: boolean }
 export function ProductGrid({ items, className }: { items: Card[]; className?: string }) {
   return (
     <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
-      {items.map((p, i) => (
-        <ProductCardView key={p.id} p={p} priority={i < 4} />
+      {items.map((p) => (
+        <ProductCardView key={p.id} p={p} />
       ))}
     </div>
   );

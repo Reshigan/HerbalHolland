@@ -46,11 +46,11 @@ export function withQty(items: CartItem[], variantId: string, qty: number): Cart
 export const cartCount = (items: CartItem[]) => items.reduce((s, i) => s + i.qty, 0);
 
 /**
- * Guilders a member may redeem on an order: whole Guilders (1 = R1), at most `maxPct`
+ * Points a member may redeem on an order: whole points (1 point = R1), at most `maxPct`
  * of the part of the order that may carry incentives (medicines are excluded under
  * Medicines Act s18A), never more than the balance, and nothing below the minimum.
  */
-export function redeemableGuilders(a: { balance: number; eligibleCents: number; maxPct: number; min: number }) {
+export function redeemablePoints(a: { balance: number; eligibleCents: number; maxPct: number; min: number }) {
   const cap = Math.floor((Math.max(0, a.eligibleCents) * a.maxPct) / 100 / 100);
   const max = Math.max(0, Math.min(a.balance, cap));
   return max >= a.min ? max : 0;

@@ -21,7 +21,7 @@ compliance-first by design.
 ```bash
 npm install
 cp .env.example .env              # set DATABASE_URL
-npm run db:push                   # create the schema
+npm run db:migrate                # apply prisma/migrations
 npm run db:seed                   # demo network (24 stores, ~18k members, 60 days of trading) — truncates all tables
 npm run dev                       # http://localhost:3000
 ```

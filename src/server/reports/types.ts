@@ -23,7 +23,7 @@ export type Column = {
 };
 /** Reserved keys: `_href` links the first cell, `_style` emphasises the row. */
 export type Row = Record<string, unknown> & { _href?: string; _style?: "strong" | "muted" | "section" };
-export type Table = { title?: string; description?: string; columns: Column[]; rows: Row[]; totals?: Row | null };
+export type Table = { title?: string; description?: string; columns: Column[]; rows: Row[]; totals?: Row | null; /** extra tables: show above the main table */ position?: "before" };
 
 export type Summary = { label: string; value: number | string | null; format?: Format; delta?: number | null; upIsGood?: boolean; sub?: string };
 
@@ -68,7 +68,7 @@ export type ReportCtx = {
   /** Scope-checked store ids the report covers. */
   storeIds: string[];
   stores: Map<string, StoreInfo>;
-  /** HQ user looking at the whole network (unfiltered): network-level rows (e.g. HQ-funded Guilders) apply. */
+  /** HQ user looking at the whole network (unfiltered): network-level rows (e.g. HQ-funded Rewards points) apply. */
   networkWide: boolean;
   range: DateRange & { preset: string };
   category?: { id: string; slug: string; name: string };

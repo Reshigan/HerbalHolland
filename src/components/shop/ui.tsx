@@ -34,7 +34,7 @@ const TAG: Record<TagTone, string> = {
   red: "bg-rose-500/15 text-rose-100 ring-rose-500/40",
   neutral: "bg-ink-800 text-ink-200 ring-ink-700",
   violet: "bg-series-4/30 text-ink-100 ring-series-4/60",
-  solid: "bg-oranje-500 text-ink-950 ring-oranje-500",
+  solid: "bg-ink-950/85 text-oranje-300 ring-oranje-500/60 backdrop-blur",
 };
 export function Tag({ tone = "neutral", icon, className, children }: { tone?: TagTone; icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
@@ -93,7 +93,7 @@ export function Callout({ tone = "info", title, icon, children, className }: { t
       {icon && <span className="mt-0.5 shrink-0">{icon}</span>}
       <div className="min-w-0">
         {title && <div className="font-semibold text-white">{title}</div>}
-        {children && <div className={cn("leading-relaxed", title && "mt-0.5")}>{children}</div>}
+        {children && <div className={cn("leading-relaxed", title ? "mt-0.5" : null)}>{children}</div>}
       </div>
     </div>
   );

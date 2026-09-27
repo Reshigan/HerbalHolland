@@ -10,12 +10,15 @@ Single Next.js 16 app (App Router) + Prisma 7 + PostgreSQL. Modular monolith: do
 
 ```bash
 npm install
-npm run db:push        # schema → database (DATABASE_URL in .env)
+npm run db:migrate     # prisma/migrations → database (DATABASE_URL in .env)
 npm run db:seed        # demo network: 24 stores, ~18k members, 60 days of trading (truncates all tables!)
 npm run dev            # http://localhost:3000
 npm test               # vitest (pure domain rules)
 npm run typecheck
 ```
+
+Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev --name <change>` and commit the new
+folder in `prisma/migrations` (CI and deploys run `prisma migrate deploy`). Run `npx prisma generate` after pulls.
 
 Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), or GET
 `/api/auth/demo?email=hq@herbalholland.co.za&next=/hq`. POS PINs: 1111 (manager, dispenser), 2222 (dispenser), 3333, 4444.

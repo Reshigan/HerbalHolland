@@ -51,12 +51,12 @@ export const ARTICLES: ArticleMeta[] = [
     art: { slug: "responsible-use-guide", regClass: "GROW" },
   },
   {
-    slug: "guilders",
-    kicker: "Windmill Club",
-    title: "How Guilders work",
-    dek: "Earn on every rand you spend, climb from Seed to Harvest, and spend Guilders like cash in any store or online.",
+    slug: "points",
+    kicker: "Rewards",
+    title: "How Rewards points work",
+    dek: "Earn on every rand you spend, climb from Seed to Harvest, and spend points like cash in any store or online.",
     minutes: 3,
-    art: { slug: "guilders-rewards", regClass: "APPAREL" },
+    art: { slug: "rewards-points", regClass: "APPAREL" },
   },
 ];
 

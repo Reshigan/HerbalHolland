@@ -398,7 +398,7 @@ export const salesByStaff: ReportDef = {
       totals: t,
       chart: list.length > 1 ? { kind: "bar", title: "Net sales by staff member", description: "Ex VAT · top 10", format: "zar", rows: list.slice(0, 10).map((x) => ({ label: x.name, value: x.net, sub: `${x.sales} sales` })) } : null,
       empty: "No sales recorded in this period.",
-      note: "Net sales are after refunds the staff member processed. Member attach = share of their transactions linked to a Windmill Club member. Average basket includes VAT.",
+      note: "Net sales are after refunds the staff member processed. Member attach = share of their transactions linked to a Herbal Holland Rewards member. Average basket includes VAT.",
     };
   },
 };
@@ -477,7 +477,7 @@ const TENDERS = [
   { key: "payshapCents", label: "PayShap" },
   { key: "eftCents", label: "EFT" },
   { key: "onlineCents", label: "Paid online" },
-  { key: "loyaltyCents", label: "Guilders" },
+  { key: "loyaltyCents", label: "Points" },
 ] as const;
 
 export const payments: ReportDef = {
@@ -523,7 +523,7 @@ export const payments: ReportDef = {
         { label: "PayShap", value: t.payshapCents as number, format: "zar", sub: pctOf(t.payshapCents, t.total) },
       ],
       chart: (t.total as number) > 0 ? { kind: "donut", title: "How customers paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarShort(t.total as number) } : null,
-      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account; online payments are collected by HQ and Guilders are reimbursed — both on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to.",
+      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account; online payments are collected by HQ and redeemed Rewards points are reimbursed — both on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to.",
     };
   },
 };

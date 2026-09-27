@@ -18,7 +18,7 @@ describe("csv values", () => {
     expect(csvValue(1500, "number")).toBe("1500");
     expect(csvValue(1.456, "number")).toBe("1.46");
     expect(csvValue(NaN, "number")).toBe("");
-    expect(csvValue(250, "guilders")).toBe("250");
+    expect(csvValue(250, "points")).toBe("250");
   });
   it("writes dates and times in South African time", () => {
     // 22:30 UTC on the 26th is 00:30 SAST on the 27th.

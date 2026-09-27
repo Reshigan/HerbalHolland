@@ -185,7 +185,9 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                       {terps.map((t, i) => (
                         <div key={i} className="flex gap-2">
                           <Input name="terpName" aria-label={`Terpene ${i + 1}`} defaultValue={t.name} placeholder="Terpene" />
-                          <Input name="terpPct" aria-label={`Terpene ${i + 1} %`} defaultValue={t.pct} placeholder="%" inputMode="decimal" className="w-24 shrink-0" />
+                          <div className="w-24 shrink-0">
+                            <Input name="terpPct" aria-label={`Terpene ${i + 1} %`} defaultValue={t.pct} placeholder="%" inputMode="decimal" />
+                          </div>
                         </div>
                       ))}
                     </div>

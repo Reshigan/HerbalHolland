@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CART_MAX_LINES, CART_MAX_QTY, cartCount, parseCart, redeemableGuilders, serializeCart, withItem, withQty } from "@/server/shop/cart-codec";
+import { CART_MAX_LINES, CART_MAX_QTY, cartCount, parseCart, redeemablePoints, serializeCart, withItem, withQty } from "@/server/shop/cart-codec";
 import { openState, parseHours, weekRows } from "@/server/shop/hours";
 import { readPhoneToken, signPhone } from "@/server/shop/phone-token";
 
@@ -32,14 +32,14 @@ describe("bag cookie codec", () => {
   });
 });
 
-describe("Guilders redemption cap", () => {
+describe("points redemption cap", () => {
   it("caps at the balance and the share of incentive-eligible spend", () => {
-    expect(redeemableGuilders({ balance: 500, eligibleCents: 40_000, maxPct: 50, min: 20 })).toBe(200);
-    expect(redeemableGuilders({ balance: 80, eligibleCents: 40_000, maxPct: 50, min: 20 })).toBe(80);
+    expect(redeemablePoints({ balance: 500, eligibleCents: 40_000, maxPct: 50, min: 20 })).toBe(200);
+    expect(redeemablePoints({ balance: 80, eligibleCents: 40_000, maxPct: 50, min: 20 })).toBe(80);
   });
   it("excludes medicines and respects the minimum", () => {
-    expect(redeemableGuilders({ balance: 500, eligibleCents: 0, maxPct: 50, min: 20 })).toBe(0);
-    expect(redeemableGuilders({ balance: 15, eligibleCents: 90_000, maxPct: 50, min: 20 })).toBe(0);
+    expect(redeemablePoints({ balance: 500, eligibleCents: 0, maxPct: 50, min: 20 })).toBe(0);
+    expect(redeemablePoints({ balance: 15, eligibleCents: 90_000, maxPct: 50, min: 20 })).toBe(0);
   });
 });
 

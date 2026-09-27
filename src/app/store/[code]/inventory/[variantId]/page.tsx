@@ -118,7 +118,6 @@ export default async function VariantStockPage({ params, searchParams }: { param
                   <tr>
                     <Th>Batch</Th>
                     <Th>Status</Th>
-                    <Th>Packed</Th>
                     <Th>Expiry</Th>
                     <Th align="right">On hand</Th>
                     <Th align="right">Unit cost</Th>
@@ -134,13 +133,12 @@ export default async function VariantStockPage({ params, searchParams }: { param
                           <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-xs font-semibold text-ink-900 hover:text-oranje-700">
                             {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                           </Link>
-                          <div className="max-w-44 truncate text-xs text-ink-400" title={l.batch.supplier}>{l.batch.supplier}</div>
+                          <div className="whitespace-nowrap text-xs text-ink-400" title={l.batch.supplier}>Packed {fmtDate(l.batch.packedAt)}</div>
                         </Td>
                         <Td>
                           <StatusBadge status={l.batch.status} />
                           {l.batch.statusReason && <div className="mt-1 max-w-48 text-xs text-ink-500">{l.batch.statusReason}</div>}
                         </Td>
-                        <Td className="whitespace-nowrap text-ink-600">{fmtDate(l.batch.packedAt)}</Td>
                         <Td className="whitespace-nowrap">
                           {l.batch.expiresAt ? fmtDate(l.batch.expiresAt) : "—"}
                           {l.onHand > 0 && exp.days != null && <div><Badge tone={exp.tone}>{exp.label}</Badge></div>}

@@ -96,7 +96,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
               return (
                 <Tr key={b.id}>
                   <Td>
-                    <Link href={`/hq/batches/${b.id}`} className="font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/batches/${b.id}`} className="whitespace-nowrap font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-oranje-700">
                       {b.code}
                     </Link>
                     <div className="text-xs text-ink-500">Packed {fmtDate(b.packedAt)}</div>
@@ -114,7 +114,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
                       <span className={`block text-xs font-medium ${left <= 0 ? "text-rose-600" : left <= 30 ? "text-amber-700" : "text-ink-500"}`}>{left <= 0 ? "Expired" : `in ${left} days`}</span>
                     )}
                   </Td>
-                  <Td align="right" className="hidden text-ink-600 sm:table-cell">
+                  <Td align="right" className="hidden whitespace-nowrap text-ink-600 sm:table-cell">
                     {b.thc != null ? `${b.thc}%` : "—"} / {b.cbd != null ? `${b.cbd}%` : "—"}
                   </Td>
                   <Td align="right" className="font-medium">{num(onHand.get(b.id) ?? 0)}</Td>
