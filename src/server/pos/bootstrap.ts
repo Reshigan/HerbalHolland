@@ -50,7 +50,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
         channels: { has: "POS" },
         startsAt: { lte: horizon },
         endsAt: { gte: now },
-        OR: [{ storeIds: { isEmpty: true } }, { storeIds: { has: store.id } }],
+        OR: [{ storeIds: { isEmpty: true } }, { storeIds: { equals: null } }, { storeIds: { has: store.id } }],
       },
       orderBy: { createdAt: "desc" },
     }),
@@ -60,7 +60,13 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
         AND: [
           { OR: [{ startsAt: null }, { startsAt: { lte: horizon } }] },
           { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-          { OR: [{ storeIds: { isEmpty: true }, regionIds: { isEmpty: true } }, { storeIds: { has: store.id } }, { regionIds: { has: store.regionId } }] },
+          {
+            OR: [
+              { AND: [{ OR: [{ storeIds: { isEmpty: true } }, { storeIds: { equals: null } }] }, { OR: [{ regionIds: { isEmpty: true } }, { regionIds: { equals: null } }] }] },
+              { storeIds: { has: store.id } },
+              { regionIds: { has: store.regionId } },
+            ],
+          },
         ],
       },
       include: { items: { select: { variantId: true, priceCents: true, minQty: true } } },

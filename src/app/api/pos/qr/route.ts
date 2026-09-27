@@ -1,4 +1,4 @@
-// QR codes for the till, rendered server-side as SVG: the Windmill Club self-sign-up
+// QR codes for the till, rendered server-side as SVG: the Herbal Holland Rewards self-sign-up
 // link and PayShap payment requests.
 import QRCode from "qrcode";
 import { withStaff, PosError } from "@/server/pos/http";

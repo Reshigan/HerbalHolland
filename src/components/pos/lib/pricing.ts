@@ -100,5 +100,5 @@ export function priceBasket(
   };
 }
 
-/** Rand value of a basket that Guilders may pay for (never medicines under s18A). */
+/** Rand value of a basket that points may pay for (never medicines under s18A). */
 export const redeemableCents = (q: Pick<QuoteDTO, "lines">) => q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);

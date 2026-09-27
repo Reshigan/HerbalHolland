@@ -1,5 +1,5 @@
 // Member lookup at the till: search by phone, name or member number (or a scanned
-// member QR), and the detail panel (tier, Guilders, age check, patient authorisation).
+// member QR), and the detail panel (tier, points, age check, patient authorisation).
 import { db } from "@/server/db";
 import { customerContext } from "@/server/compliance";
 import { normalisePhone } from "@/lib/sa";

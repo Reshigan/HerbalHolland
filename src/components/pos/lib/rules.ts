@@ -1,5 +1,5 @@
 // Small pure rules for the till: receipt numbering, cash handling, compliance block
-// types, order SLAs and Guilders redemption. Isomorphic and unit-tested (tests/pos.test.ts).
+// types, order SLAs and points redemption. Isomorphic and unit-tested (tests/pos.test.ts).
 import type { BlockKind } from "@/server/pos/types";
 
 /** Device-local receipt number, e.g. PTA01-B00042 (store code · device prefix · sequence). */
@@ -45,7 +45,7 @@ export function orderSla(placedAt: Date | string, doneAt: Date | string | null, 
 }
 
 /**
- * Guilders a member can put towards this sale: whole Guilders (ƒ1 = R1), within their
+ * Points a member can put towards this sale: whole points (1 point = R1), within their
  * balance, within what's still due, never against medicines, and only once they hold
  * the programme minimum.
  */
@@ -60,7 +60,7 @@ export const TENDER_LABEL: Record<string, string> = {
   CASH: "Cash",
   PAYSHAP: "PayShap",
   EFT: "EFT",
-  LOYALTY: "Guilders",
+  LOYALTY: "Points",
   ONLINE: "Paid online",
 };
 
@@ -70,7 +70,7 @@ export function maskPhone(e164: string) {
   return local.length >= 10 ? `${local.slice(0, 3)} ••• ${local.slice(-4)}` : local;
 }
 
-/** Extracts a Windmill Club member number from a scanned QR / typed value. */
+/** Extracts a Herbal Holland Rewards member number from a scanned QR / typed value. */
 export const memberNoFrom = (text: string) => text.toUpperCase().match(/HH\d{7}/)?.[0] ?? null;
 
 /** Parses "123.45" / "R 1 234,50" style amounts into cents; null when not a number. */

@@ -6,6 +6,7 @@ import { audit, type Actor } from "@/server/audit";
 import { sendEmail, emailLayout, esc } from "@/server/email";
 import { zar } from "@/lib/money";
 import { fmtDateTime } from "@/lib/format";
+import { fmtPoints } from "@/lib/loyalty-rules";
 import { countCash, denomLabel, DENOMINATIONS, TENDER_LABEL } from "@/components/pos/lib/rules";
 import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
@@ -97,7 +98,7 @@ export async function zReport(shiftId: string): Promise<ZReport> {
     tenders: tenders
       .map((t) => ({ method: t.method, label: TENDER_LABEL[t.method] ?? t.method, amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
       .sort((a, b) => b.amountCents - a.amountCents),
-    guilders: { issued: sum(kinds, (r) => r._sum.pointsEarned ?? 0), redeemed: Math.round(loyalty / 100) },
+    points: { issued: sum(kinds, (r) => r._sum.pointsEarned ?? 0), redeemed: Math.round(loyalty / 100) },
     cash: {
       floatCents: shift.openingFloatCents,
       cashNetCents: cash.cashSalesCents,
@@ -132,7 +133,7 @@ ${row("Net of VAT", zar(r.sales.netCents))}
 ${row("Discounts given", zar(r.sales.discountCents))}
 ${row("Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`)}
 ${r.tenders.map((t) => row(t.label, zar(t.amountCents))).join("")}
-${row("Guilders issued / redeemed", `ƒ${r.guilders.issued} / ƒ${r.guilders.redeemed}`)}
+${row("Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`)}
 ${row("Cash expected in drawer", zar(r.cash.expectedCents))}
 ${row("Cash counted", r.cash.countedCents != null ? zar(r.cash.countedCents) : "—")}
 ${row("Variance", `${variance > 0 ? "+" : ""}${zar(variance)}`, true)}

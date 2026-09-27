@@ -18,7 +18,8 @@ export async function activePromotions(opts: { storeId?: string | null; channel:
       startsAt: { lte: at },
       endsAt: { gte: at },
       channels: { has: opts.channel },
-      OR: [{ storeIds: { isEmpty: true } }, ...(opts.storeId ? [{ storeIds: { has: opts.storeId } }] : [])],
+      // Network-wide promotions may store storeIds as NULL (not '{}'), which isEmpty doesn't match.
+      OR: [{ storeIds: { isEmpty: true } }, { storeIds: { equals: null } }, ...(opts.storeId ? [{ storeIds: { has: opts.storeId } }] : [])],
     },
     orderBy: { createdAt: "desc" },
   });

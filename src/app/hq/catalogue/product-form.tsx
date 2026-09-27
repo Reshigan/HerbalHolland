@@ -214,7 +214,7 @@ export function ProductForm({
                 </Select>
                 <FieldError name="regClass" />
               </Field>
-              {regClass === "THC" && <p className="rounded-xl bg-[#f1effb] px-3 py-2 text-xs text-[#4a3aa7]">Licence-gated: only stores holding a THC licence can sell it, and in medical mode only to patients with an active authorisation, dispensed by an authorised dispenser. No promotions or Guilders apply (Medicines Act s18A).</p>}
+              {regClass === "THC" && <p className="rounded-xl bg-[#f1effb] px-3 py-2 text-xs text-[#4a3aa7]">Licence-gated: only stores holding a THC licence can sell it, and in medical mode only to patients with an active authorisation, dispensed by an authorised dispenser. No promotions, member prices or reward points apply (Medicines Act s18A).</p>}
               <Field label="Legal basis" htmlFor="legalBasis" hint="Shown on the product page and in audits">
                 <Input id="legalBasis" name="legalBasis" value={legalBasis} onChange={(e) => setLegalBasis(e.target.value)} />
               </Field>

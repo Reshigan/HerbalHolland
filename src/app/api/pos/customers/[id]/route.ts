@@ -1,4 +1,4 @@
-// Member detail for the till's customer panel: tier, Guilders, age check, patient authorisation.
+// Member detail for the till's customer panel: tier, points, age check, patient authorisation.
 import { json, withStaff } from "@/server/pos/http";
 import { customerDetail } from "@/server/pos/customers";
 

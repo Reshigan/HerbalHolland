@@ -100,7 +100,7 @@ export type BootData = {
   };
   shift: BootShift | null;
   tapProvider: TapProviderKind;
-  joinUrl: string; // Windmill Club self-registration link for this store
+  joinUrl: string; // Herbal Holland Rewards self-registration link for this store
 };
 
 // ── Pricing ─────────────────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ export type ZReport = {
   refunds: { count: number; totalCents: number };
   online: { count: number; grossCents: number };
   tenders: { method: string; label: string; amountCents: number; count: number }[];
-  guilders: { issued: number; redeemed: number };
+  points: { issued: number; redeemed: number };
   cash: {
     floatCents: number;
     cashNetCents: number;
