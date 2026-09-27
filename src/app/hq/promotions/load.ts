@@ -24,7 +24,7 @@ export function promoValues(p: Promotion | null): PromoValues {
       name: "", description: "", kind: "PERCENT", percent: "", amount: "", multiplier: "2", bundlePrice: "", buyQty: "", getQty: "1", rewardPercent: "100",
       minSpend: "", categoryIds: [], productIds: [], rewardCategoryIds: [], rewardProductIds: [], channels: ["POS", "ONLINE"], storeIds: [], days: [],
       startTime: "", endTime: "", startsAt: toLocalInput(nextHour), endsAt: toLocalInput(new Date(nextHour.getTime() + 30 * 86_400_000)),
-      code: "", maxUses: "", active: true,
+      code: "", maxUses: "", active: true, firstPurchaseOnly: false,
     };
   const r = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
   return {
@@ -35,6 +35,6 @@ export function promoValues(p: Promotion | null): PromoValues {
     minSpend: p.minSpendCents ? r(p.minSpendCents) : "", categoryIds: p.categoryIds, productIds: p.productIds,
     rewardCategoryIds: p.rewardCategoryIds, rewardProductIds: p.rewardProductIds, channels: p.channels, storeIds: p.storeIds, days: p.days,
     startTime: clock(p.startMinute), endTime: clock(p.endMinute), startsAt: toLocalInput(p.startsAt), endsAt: toLocalInput(p.endsAt),
-    code: p.code ?? "", maxUses: p.maxUses?.toString() ?? "", active: p.active,
+    code: p.code ?? "", maxUses: p.maxUses?.toString() ?? "", active: p.active, firstPurchaseOnly: p.firstPurchaseOnly,
   };
 }

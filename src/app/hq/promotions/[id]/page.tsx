@@ -53,6 +53,7 @@ export default async function PromotionPage({ params, searchParams }: { params: 
             <Badge tone={tone} dot>
               {status}
             </Badge>
+            {promo.firstPurchaseOnly && <Badge tone="violet">Welcome gift</Badge>}
           </span>
         }
         description={`${describePromo(promo as PromoInput)}${promo.code ? ` · code ${promo.code}` : ""}`}

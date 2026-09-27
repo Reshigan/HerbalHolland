@@ -68,8 +68,12 @@ export async function audienceSize(segment: string, channel: MsgChannel, storeId
   return { total, reachable };
 }
 
-/** Sender identity on every marketing message; texts add "Reply STOP", emails carry an unsubscribe link instead. */
+/**
+ * Sender identity on every marketing message; texts add "Reply STOP", emails carry an unsubscribe link instead.
+ * Push comes from the Rewards app itself, so it only says where to turn it off (and stays short enough to show in full).
+ */
 export async function senderFooter(channel?: MsgChannel) {
+  if (channel === "PUSH") return "\nTurn off in Rewards settings.";
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" } });
   return `\n— ${hq?.legalName ?? "Herbal Holland"}, ${hq?.address ?? ""}, ${hq?.phone ?? ""}, ${hq?.email ?? ""}.${channel === "EMAIL" ? "" : " Reply STOP to opt out."}`;
 }

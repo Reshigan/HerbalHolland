@@ -7,19 +7,20 @@ import { getSettings } from "@/server/settings";
 import { can } from "@/server/hq/guard";
 import { qs } from "@/server/hq/form";
 import { TIERS, POINT_VALUE_CENTS, fmtPoints, tierBenefits } from "@/lib/loyalty-rules";
-import { zar, zarCompact } from "@/lib/money";
+import { pct, zar, zarCompact } from "@/lib/money";
 import { num } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
+import { Badge } from "@/components/ui/badge";
 import { TierBadge } from "@/components/ui/status";
-import { Field, Input } from "@/components/ui/form";
+import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Donut } from "@/components/charts/donut";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
-import { EmptyRow, ViewOnly } from "@/components/hq/ui";
-import { saveLoyalty, saveTierSavings } from "./actions";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { EmptyRow, MiniStat, ViewOnly } from "@/components/hq/ui";
+import { generateDealsNow, saveLoyalty, saveOffers, saveTierSavings } from "./actions";
 import type { LoyaltyKind } from "@/generated/prisma/client";
 
 export const metadata = { title: "Rewards" };
@@ -39,7 +40,8 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
   const since = r30.start;
   const page = pageParam(sp.page);
   const pageSize = 20;
-  const [settings, liability, tiers, movement, byStore, top, stores, cost] = await Promise.all([
+  const offerWhere = { createdAt: { gte: since }, ...(scope.kind === "HQ" ? {} : { customer: members }) };
+  const [settings, liability, tiers, movement, byStore, top, stores, cost, loaded, usedDeals, liveDeals, optedOut] = await Promise.all([
     getSettings(),
     db.customer.aggregate({ where: { ...members, points: { gt: 0 } }, _sum: { points: true }, _count: true }),
     db.customer.groupBy({ by: ["tier"], where: members, _count: true }),
@@ -47,8 +49,14 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
     db.loyaltyEntry.groupBy({ by: ["storeId", "kind"], where: { createdAt: { gte: since }, storeId: { in: ids }, kind: { in: ["EARN", "REDEEM", "REFERRAL", "BONUS", "BIRTHDAY", "REVERSAL"] } }, _sum: { points: true } }),
     db.customer.findMany({ where: members, orderBy: { lifetimeCents: "desc" }, take: 8, select: { id: true, firstName: true, lastName: true, memberNo: true, tier: true, points: true, lifetimeCents: true, homeStore: { select: { name: true } } } }),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true } }),
-    db.$queryRaw<{ saved: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS saved FROM "DailyStoreStat" WHERE "storeId" = ANY(${ids}::text[]) AND "date" >= ${r30.fromDate}`,
+    db.$queryRaw<{ saved: number; offers: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS saved, COALESCE(SUM("offerCents"), 0)::float8 AS offers FROM "DailyStoreStat" WHERE "storeId" = ANY(${ids}::text[]) AND "date" >= ${r30.fromDate}`,
+    // My Deals, last 30 days: loaded onto cards, and how many of those were used.
+    db.memberOffer.count({ where: offerWhere }),
+    db.memberOffer.count({ where: { ...offerWhere, redeemedAt: { not: null } } }),
+    db.memberOffer.count({ where: { redeemedAt: null, startsAt: { lte: new Date() }, endsAt: { gte: new Date() }, ...(scope.kind === "HQ" ? {} : { customer: members }) } }),
+    db.customer.count({ where: { ...members, personalisedOffers: false } }),
   ]);
+  const o = settings.offers;
   const l = settings.loyalty;
   const admin = can(user, "admin");
   const kindSum = (k: LoyaltyKind) => movement.find((m) => m.kind === k)?._sum.points ?? 0;
@@ -116,6 +124,76 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
           </CardBody>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="My Deals"
+          description="A weekly personal deal on each opted-in member's favourite product — applied automatically at the till and online, single use, funded from the marketing fund and credited to the selling store. Never on licensed medicines."
+          action={
+            <Badge tone={o.enabled ? "green" : "neutral"} dot>
+              {o.enabled ? `On · ${o.percent}% off for ${o.validDays} days` : "Off"}
+            </Badge>
+          }
+        />
+        <CardBody className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="min-w-0 space-y-4 lg:col-span-2">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <MiniStat label="Loaded · 30 days" value={num(loaded)} sub="deals on members' cards" />
+              <MiniStat label="Redeemed" value={num(usedDeals)} sub="of those deals" />
+              <MiniStat label="Redemption rate" value={loaded ? pct(usedDeals / loaded) : "—"} sub="redeemed ÷ loaded" />
+              <MiniStat label="Cost · 30 days" value={zarCompact(cost[0]?.offers ?? 0)} sub="discount given, incl. VAT" />
+            </div>
+            <p className="text-xs text-ink-500">
+              {num(liveDeals)} deal{liveDeals === 1 ? " is" : "s are"} live on cards right now. {num(optedOut)} member{optedOut === 1 ? " has" : "s have"} turned off personalised offers in the Rewards app (POPIA) and never get one. New deals load every Monday at 02:00.
+            </p>
+            {admin && (
+              <ConfirmAction
+                action={generateDealsNow}
+                variant="primary"
+                label="Generate this week's deals now"
+                title="Load this week's deals now?"
+                confirmLabel="Load deals"
+                className="max-w-xl"
+              >
+                <p>
+                  Each opted-in member who bought in the last 90 days and has no live deal gets {o.percent}% off their favourite eligible product for {o.validDays} days. Members who already have a deal are skipped, and the cost comes from the marketing fund.
+                </p>
+              </ConfirmAction>
+            )}
+          </div>
+          <div className="min-w-0">
+            {!admin && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
+            <ActionForm action={saveOffers}>
+              <fieldset disabled={!admin} className="min-w-0 space-y-3">
+                <Checkbox name="offersEnabled" defaultChecked={o.enabled} label="Load My Deals every week" description="Off: no new deals load; existing ones run out" />
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Deal size" htmlFor="offerPercent" hint="5–30% off">
+                    <div className="relative">
+                      <Input id="offerPercent" name="offerPercent" defaultValue={o.percent} inputMode="numeric" className="tnum pr-7" />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                    </div>
+                    <FieldError name="offerPercent" />
+                  </Field>
+                  <Field label="Valid for" htmlFor="offerDays" hint="3–14 days">
+                    <div className="relative">
+                      <Input id="offerDays" name="offerDays" defaultValue={o.validDays} inputMode="numeric" className="tnum pr-12" />
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">days</span>
+                    </div>
+                    <FieldError name="offerDays" />
+                  </Field>
+                </div>
+              </fieldset>
+              {admin && (
+                <div className="mt-4 flex justify-end">
+                  <SubmitButton variant="outline" pendingLabel="Saving…">
+                    Save My Deals
+                  </SubmitButton>
+                </div>
+              )}
+            </ActionForm>
+          </div>
+        </CardBody>
+      </Card>
 
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">

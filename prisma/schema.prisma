@@ -588,6 +588,7 @@ model Customer {
   @@index([lastPurchaseAt])
   @@index([tier])
   @@index([referredById])
+  @@index([createdAt])
 }
 
 enum LoyaltyKind {

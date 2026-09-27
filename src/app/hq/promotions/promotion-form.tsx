@@ -14,6 +14,7 @@ export type PromoValues = {
   buyQty: string; getQty: string; rewardPercent: string; minSpend: string; categoryIds: string[]; productIds: string[];
   rewardCategoryIds: string[]; rewardProductIds: string[]; channels: string[]; storeIds: string[]; days: number[];
   startTime: string; endTime: string; startsAt: string; endsAt: string; code: string; maxUses: string; active: boolean;
+  firstPurchaseOnly: boolean;
 };
 
 const KINDS: { key: PromoKind; label: string; blurb: string; icon: React.ReactNode }[] = [
@@ -294,6 +295,7 @@ export function PromotionForm({
                     <span className="font-mono">{v.code.toUpperCase()}</span>
                   </Row>
                 )}
+                {v.firstPurchaseOnly && <Row k="Who">A member&apos;s first purchase only — welcome gift</Row>}
               </dl>
             </div>
             {(medicalMode || preview.longReduction) && (
@@ -319,6 +321,13 @@ export function PromotionForm({
                   <Input id="maxUses" name="maxUses" {...input("maxUses")} inputMode="numeric" />
                   <FieldError name="maxUses" />
                 </Field>
+                <Checkbox
+                  name="firstPurchaseOnly"
+                  checked={v.firstPurchaseOnly}
+                  onChange={(e) => set("firstPurchaseOnly", e.target.checked)}
+                  label="First purchase only (welcome gift)"
+                  description="Only for a member with no purchases yet, once identified at the till or signed in online. If the gift isn't in the basket, they see “Free with your basket — add it…”."
+                />
                 <Checkbox name="active" checked={v.active} onChange={(e) => set("active", e.target.checked)} label="Active" description="Untick to pause without ending it" />
               </CardBody>
             </Card>

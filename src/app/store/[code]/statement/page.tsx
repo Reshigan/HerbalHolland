@@ -90,7 +90,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
                     <span className="block text-ink-850">{l.label}</span>
                     <span className="text-xs text-ink-500">{l.detail}</span>
                   </span>
-                  <span className="tnum whitespace-nowrap font-medium text-leaf-700">{zar(l.cents)}</span>
+                  <span className={cn("tnum whitespace-nowrap font-medium", l.cents ? "text-leaf-700" : "text-ink-400")}>{zar(l.cents)}</span>
                 </div>
               ))}
               <Line label="Total credits" value={zar(st.credits)} strong className="mt-1" />
@@ -103,7 +103,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
                     <span className="block text-ink-850">{l.label}</span>
                     <span className="text-xs text-ink-500">{l.detail}</span>
                   </span>
-                  <span className="tnum whitespace-nowrap font-medium text-ink-900">−{zar(l.cents)}</span>
+                  <span className={cn("tnum whitespace-nowrap font-medium", l.cents ? "text-ink-900" : "text-ink-400")}>{l.cents ? `−${zar(l.cents)}` : zar(0)}</span>
                 </div>
               ))}
               <Line label="Total debits" value={`−${zar(st.debits)}`} strong className="mt-1" />

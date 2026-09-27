@@ -88,10 +88,11 @@ export async function savePromotion(promoId: string | null, _: ActionState, fd: 
   const data = {
     name, description, kind, value, categoryIds, productIds, minSpendCents: minSpendCents ?? 0, buyQty, getQty, rewardPercent, rewardCategoryIds, rewardProductIds,
     channels, storeIds, days: days.length === 7 ? [] : days, startMinute, endMinute, startsAt: startsAt!, endsAt: endsAt!, code, maxUses, active: bool(fd, "active"),
+    firstPurchaseOnly: bool(fd, "firstPurchaseOnly"), // welcome gift: quote() only offers it to a member with no purchases yet
   };
   if (!promoId) {
     const p = await db.promotion.create({ data });
-    await audit(db, g.actor, "promotion.create", { entity: "Promotion", entityId: p.id, data: { name, kind, value, code } });
+    await audit(db, g.actor, "promotion.create", { entity: "Promotion", entityId: p.id, data: { name, kind, value, code, firstPurchaseOnly: data.firstPurchaseOnly } });
     revalidatePath("/hq/promotions");
     redirect(`/hq/promotions/${p.id}?saved=1`);
   }

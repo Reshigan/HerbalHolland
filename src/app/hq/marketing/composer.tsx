@@ -5,6 +5,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Label } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/hq/select";
+import { Mark } from "@/components/brand/logo";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { screenCopy } from "@/lib/compliance";
 import { SEGMENTS } from "@/lib/rfm";
@@ -19,7 +20,7 @@ type Reach = { total: number; reachable: number; suppressionList: number } | nul
 const CHANNELS = [
   { key: "SMS", label: "SMS", icon: Smartphone, note: "Widest reach · CPA windows apply" },
   { key: "EMAIL", label: "Email", icon: Mail, note: "Rich content · unsubscribe link" },
-  { key: "PUSH", label: "Push", icon: Bell, note: "App users · free to send" },
+  { key: "PUSH", label: "Push", icon: Bell, note: "Rewards app alerts · free" },
   { key: "WHATSAPP", label: "WhatsApp", icon: MessageSquare, note: "Utility messages only" },
 ] as const;
 const TOKENS = [
@@ -27,6 +28,9 @@ const TOKENS = [
   ["{{points}}", "Points balance"],
   ["{{code}}", "Promo code"],
 ] as const;
+// Push notifications: the campaign name is the bold title; lock screens truncate long bodies.
+const PUSH_TITLE_MAX = 40;
+const PUSH_BODY_MAX = 140;
 const fmt = (d: Date) => new Intl.DateTimeFormat("en-ZA", { timeZone: "Africa/Johannesburg", weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
 
 export function Composer({
@@ -44,7 +48,7 @@ export function Composer({
   values: CampaignValues;
   stores: { id: string; name: string }[];
   promotions: { id: string; label: string; code: string | null }[];
-  footers: { email: string; text: string };
+  footers: { email: string; text: string; push: string };
   canSend: boolean;
   requireStore: boolean;
 }) {
@@ -69,9 +73,12 @@ export function Composer({
   const promo = promotions.find((p) => p.id === v.promotionId);
   const flags = useMemo(() => screenCopy(`${v.name} ${v.message}`), [v.name, v.message]);
   const rendered = v.message.replaceAll("{{firstName}}", "Thandi").replaceAll("{{points}}", "1,250 pts").replaceAll("{{code}}", promo?.code ?? "CODE");
-  const footer = v.channel === "EMAIL" ? footers.email : footers.text;
+  const footer = v.channel === "EMAIL" ? footers.email : v.channel === "PUSH" ? footers.push : footers.text;
   const full = rendered + footer;
   const parts = full.length <= 160 ? 1 : Math.ceil(full.length / 153);
+  const push = v.channel === "PUSH";
+  const titleLong = push && v.name.length > PUSH_TITLE_MAX;
+  const bodyLong = push && v.message.length > PUSH_BODY_MAX;
   const window = now ? marketingWindow(now) : null;
   const scheduled = v.scheduledAt ? new Date(`${v.scheduledAt}:00+02:00`) : null;
   const scheduledOk = scheduled ? marketingWindow(scheduled) : null;
@@ -153,8 +160,30 @@ export function Composer({
         <Card>
           <CardHeader title="Message" description="Copy is screened as you type (ARB Code, Medicines Act s20). A sender footer with our details and opt-out is added to every message." />
           <CardBody className="space-y-4">
-            <Field label={v.channel === "EMAIL" ? "Name (email subject line)" : "Campaign name"} htmlFor="name" hint={v.channel === "EMAIL" ? "Customers see this as the subject" : "For reporting — customers don't see it"}>
-              <Input id="name" name="name" value={v.name} onChange={(e) => set("name", e.target.value)} placeholder="e.g. We miss you — R75 off" />
+            <Field
+              label={v.channel === "EMAIL" ? "Name (email subject line)" : push ? "Name (push title)" : "Campaign name"}
+              htmlFor="name"
+              hint={
+                v.channel === "EMAIL" ? (
+                  "Customers see this as the subject"
+                ) : push ? (
+                  <span className={cn(titleLong && "font-medium text-rose-600")}>
+                    Shown in bold on the notification · {v.name.length} / {PUSH_TITLE_MAX} characters
+                  </span>
+                ) : (
+                  "For reporting — customers don't see it"
+                )
+              }
+            >
+              <Input
+                id="name"
+                name="name"
+                value={v.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder={push ? "e.g. Sunset Hoodie drops Friday" : "e.g. We miss you — R75 off"}
+                aria-invalid={titleLong || undefined}
+                className={cn(titleLong && "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15")}
+              />
               <FieldError name="name" />
             </Field>
             <div>
@@ -174,14 +203,18 @@ export function Composer({
                 ref={text}
                 value={v.message}
                 onChange={(e) => set("message", e.target.value)}
+                aria-invalid={bodyLong || flags.length > 0 || undefined}
                 className={cn(
                   "min-h-32 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-ink-900 shadow-[inset_0_1px_0_rgb(0_0_0/0.02)] transition placeholder:text-ink-400 focus:outline-none focus:ring-4",
-                  flags.length > 0 ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
+                  flags.length > 0 || bodyLong ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
                 )}
                 placeholder="Hi {{firstName}}, …"
               />
               <div className="mt-1.5 flex flex-wrap justify-between gap-2 text-xs text-ink-500">
-                <span>{v.message.length} characters{v.channel === "SMS" && ` · ${parts} SMS part${parts === 1 ? "" : "s"} with footer`}</span>
+                <span className={cn(bodyLong && "font-medium text-rose-600")}>
+                  {push ? `${v.message.length} / ${PUSH_BODY_MAX} characters — keep push short` : `${v.message.length} characters`}
+                  {v.channel === "SMS" && ` · ${parts} SMS part${parts === 1 ? "" : "s"} with footer`}
+                </span>
                 {v.message.includes("{{code}}") && !promo?.code && <span className="font-medium text-rose-600">Link a promotion with a code for {"{{code}}"}</span>}
               </div>
               <FieldError name="message" />
@@ -240,7 +273,19 @@ export function Composer({
 
         <div className="rounded-2xl bg-ink-950 p-4 text-white shadow-card">
           <div className="eyebrow mb-3 text-brand-500">Preview</div>
-          {v.channel === "EMAIL" ? (
+          {push ? (
+            <div className="rounded-2xl bg-white/95 p-3 text-ink-900 shadow-lift">
+              <div className="flex items-center gap-2 text-[0.68rem] font-medium uppercase tracking-wide text-ink-500">
+                <span className="grid h-5 w-5 place-items-center rounded-md bg-ink-950 text-brand-500">
+                  <Mark className="h-4 w-4" detail={false} />
+                </span>
+                Herbal Holland · now
+              </div>
+              <div className="mt-1.5 truncate text-sm font-semibold">{v.name || "Title"}</div>
+              <p className="line-clamp-3 whitespace-pre-wrap text-sm text-ink-700">{rendered || "Your message…"}</p>
+              <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[0.68rem] text-ink-400">{footer.trim()}</p>
+            </div>
+          ) : v.channel === "EMAIL" ? (
             <div className="rounded-xl bg-white p-3 text-ink-850">
               <div className="border-b border-ink-100 pb-2 text-xs text-ink-500">
                 <b className="text-ink-900">{v.name || "Subject line"}</b>
@@ -276,7 +321,7 @@ export function Composer({
             )}
             <div className="grid grid-cols-2 gap-2">
               {canSend && (
-                <SubmitButton name="intent" value="send" size="lg" disabled={flags.length > 0} pendingLabel="Sending…" className="col-span-2">
+                <SubmitButton name="intent" value="send" size="lg" disabled={flags.length > 0 || titleLong || bodyLong} pendingLabel="Sending…" className="col-span-2">
                   <Send className="h-4 w-4" /> Send now
                 </SubmitButton>
               )}
@@ -284,7 +329,7 @@ export function Composer({
                 Save draft
               </SubmitButton>
               {canSend && (
-                <SubmitButton name="intent" value="schedule" variant="dark" disabled={!v.scheduledAt || flags.length > 0}>
+                <SubmitButton name="intent" value="schedule" variant="dark" disabled={!v.scheduledAt || flags.length > 0 || titleLong || bodyLong}>
                   Schedule
                 </SubmitButton>
               )}

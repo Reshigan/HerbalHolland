@@ -49,6 +49,8 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const page = pageParam(sp.page);
   const pageRows = stores.slice((page - 1) * 25, page * 25);
   const spend = campaigns.reduce((a, c) => a + c.costCents, 0);
+  const deals = sum.offerCents; // My Deals: HQ-funded discounts, credited to the selling store on its statement
+  const fundSpend = spend + deals;
   const kind = (k: string) => points.find((p) => p.kind === k)?._sum.points ?? 0;
   const issued = ["EARN", "SIGNUP", "REFERRAL", "BIRTHDAY", "BONUS"].reduce((a, k) => a + kind(k), 0);
   const redeemed = -kind("REDEEM");
@@ -107,13 +109,23 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         </Card>
 
         <Card>
-          <CardHeader title="Marketing fund" description="Levy collected vs campaign spend — kept in a separate, auditable account (CPA franchise regulations)" />
+          <CardHeader title="Marketing fund" description="Levy collected vs spend on campaigns and My Deals — kept in a separate, auditable account (CPA franchise regulations)" />
           <CardBody className="space-y-4">
-            <div className="grid grid-cols-2 gap-3">
-              <MiniStat label="Levy collected" value={zarCompact(fees.levy)} />
-              <MiniStat label="Campaign spend" value={zarCompact(spend)} sub={`${campaigns.length} campaign${campaigns.length === 1 ? "" : "s"}`} />
-            </div>
-            <MiniStat tone="dark" label={fees.levy - spend >= 0 ? "Unspent this period" : "Overspent this period"} value={zar(Math.abs(fees.levy - spend))} sub="Carried in the fund; reported to franchisees annually" />
+            <dl className="divide-y divide-ink-100">
+              <Detail label="Levy collected">{zar(fees.levy)}</Detail>
+              <Detail label={`Campaigns · ${campaigns.length}`}>{spend ? `−${zar(spend)}` : zar(0)}</Detail>
+              <Detail
+                label={
+                  <>
+                    My Deals given
+                    <span className="block text-xs text-ink-400">credited to stores on their statements</span>
+                  </>
+                }
+              >
+                {deals ? `−${zar(deals)}` : zar(0)}
+              </Detail>
+            </dl>
+            <MiniStat tone="dark" label={fees.levy - fundSpend >= 0 ? "Unspent this period" : "Overspent this period"} value={zar(Math.abs(fees.levy - fundSpend))} sub="Carried in the fund; reported to franchisees annually" />
             {campaigns.length > 0 && (
               <ul className="space-y-1 text-sm">
                 {campaigns.slice(0, 4).map((c) => (

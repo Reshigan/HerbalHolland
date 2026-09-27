@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { segmentLabel } from "@/server/marketing";
 import { storeCampaigns, storePromotions, type PromoState } from "@/server/store/marketing";
 import { hrefWith, scheduleLabel, sp1, toLocalInput } from "@/server/store/rules";
+import { welcomeLine } from "@/server/hq/launch-rules";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
 import { zar } from "@/lib/money";
@@ -54,6 +55,7 @@ const draftOf = (p: Promotion | null): PromoDraft => {
     from: clockOf(p?.startMinute ?? null),
     to: clockOf(p?.endMinute ?? null),
     maxUses: p?.maxUses ? String(p.maxUses) : "",
+    firstPurchaseOnly: p?.firstPurchaseOnly ?? false,
   };
 };
 
@@ -107,7 +109,12 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
       <Td className="min-w-56">
         <div className="font-medium text-ink-900">{p.name}</div>
         <div className="text-xs text-ink-500">
-          {describePromo(p as PromoInput)}
+          {p.firstPurchaseOnly && (
+            <Badge tone="violet" className="mr-1.5">
+              Welcome gift
+            </Badge>
+          )}
+          {welcomeLine(p) ?? describePromo(p as PromoInput)}
           {p.code && <span className="ml-1.5 rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[0.68rem] text-ink-700">{p.code}</span>}
         </div>
       </Td>

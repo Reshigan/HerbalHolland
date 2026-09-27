@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { can } from "@/server/hq/guard";
 import { qs, clock } from "@/server/hq/form";
+import { welcomeLine } from "@/server/hq/launch-rules";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { zarCompact } from "@/lib/money";
 import { fmtDate, num } from "@/lib/format";
@@ -146,7 +147,12 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                       {p.name}
                     </Link>
                     <span className="block text-xs text-ink-500">
-                      {describePromo(p as PromoInput)}
+                      {p.firstPurchaseOnly && (
+                        <Badge tone="violet" className="mr-1.5">
+                          Welcome gift
+                        </Badge>
+                      )}
+                      {welcomeLine(p) ?? describePromo(p as PromoInput)}
                       {p.code && (
                         <>
                           {" "}· code <span className="font-mono font-semibold text-ink-700">{p.code}</span>

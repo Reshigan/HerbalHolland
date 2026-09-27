@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { describePromo, type PromoKind } from "@/lib/promotions";
-import { Field, Input, Label } from "@/components/ui/form";
+import { Checkbox, Field, Input, Label } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
 import { parseRand, scheduleLabel } from "@/server/store/rules";
 
@@ -31,6 +31,7 @@ export type PromoDraft = {
   from: string;
   to: string;
   maxUses: string;
+  firstPurchaseOnly: boolean;
 };
 
 const KINDS: { key: PromoKind; label: string; hint: string }[] = [
@@ -107,6 +108,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
         <div className="mt-1 text-sm text-ink-300">
           {preview.targets.length ? `On ${preview.targets.slice(0, 3).join(", ")}${preview.targets.length > 3 ? ` +${preview.targets.length - 3} more` : ""}` : "On everything in store"} · {scheduleLabel(d.days, minutes(d.from), minutes(d.to))}
           {d.code && ` · code ${d.code.toUpperCase()}`}
+          {d.firstPurchaseOnly && " · welcome gift: a member's first purchase only"}
         </div>
         <div className="mt-2 text-[0.7rem] text-ink-400">At {storeName}&apos;s tills only. Never applies to licensed medicines (Medicines Act s18A).</div>
       </div>
@@ -243,6 +245,13 @@ export function PromoForm({ action, initial, categories, products, storeName, su
         <Input id="pr-code" name="code" maxLength={16} {...text("code")} className="font-mono uppercase" placeholder="HATFIELD10" />
         <FieldError name="code" />
       </Field>
+      <Checkbox
+        name="firstPurchaseOnly"
+        checked={d.firstPurchaseOnly}
+        onChange={(e) => set("firstPurchaseOnly", e.target.checked)}
+        label="First purchase only (welcome gift)"
+        description="Only for a member with no purchases yet, once identified at the till. If the gift isn't in the basket, the till suggests “Free with your basket — add it…”."
+      />
       <Field label="Internal note (optional)" htmlFor="pr-desc">
         <Input id="pr-desc" name="description" maxLength={200} {...text("description")} />
       </Field>

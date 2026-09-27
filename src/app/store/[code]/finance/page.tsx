@@ -67,6 +67,17 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
             <Line label="Net sales" value={zar(pl.revenue)} strong />
             <Line label={<span className="pl-4">incl. Rewards savings given to members</span>} value={saved ? `−${zar(saved)}` : zar(0)} muted />
             {pl.summary.discountCents > 0 && <Line label={<span className="pl-4">incl. promotions and discounts</span>} value={`−${zar(pl.summary.discountCents)}`} muted />}
+            {pl.summary.offerCents > 0 && (
+              <Line
+                label={
+                  <span className="pl-8">
+                    of which My Deals — <Link href={`${base}/statement`} className="font-medium text-brand-700 hover:underline">HQ credits these on your statement</Link>
+                  </span>
+                }
+                value={zar(pl.summary.offerCents)}
+                muted
+              />
+            )}
             <Line label="Cost of sales (FIFO)" value={`−${zar(pl.cogs)}`} />
             <div className="my-1 border-t border-ink-100" />
             <Line label="Gross profit" value={<>{zar(pl.grossProfit)} <span className="ml-2 text-xs font-normal text-ink-500">{pct(pl.marginPct)}</span></>} strong />

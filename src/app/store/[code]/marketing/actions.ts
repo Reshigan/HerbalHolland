@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { audienceSize, sendCampaign } from "@/server/marketing";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
-import { list, parseClock, parseLocal, parseRand, parseWhole, str } from "@/server/store/rules";
+import { bool, list, parseClock, parseLocal, parseRand, parseWhole, str } from "@/server/store/rules";
 import { screenCopy } from "@/lib/compliance";
 import { SEGMENTS } from "@/lib/rfm";
 import { fmtDateTime } from "@/lib/format";
@@ -100,9 +100,10 @@ export async function savePromotion(code: string, promoId: string | null, _: Act
       endMinute: to,
       active: true,
       maxUses,
+      firstPurchaseOnly: bool(fd, "firstPurchaseOnly"), // welcome gift: only for a member with no purchases yet
     };
     const saved = existing ? await db.promotion.update({ where: { id: existing.id }, data }) : await db.promotion.create({ data });
-    await audit(db, actor, existing ? "promotion.update" : "promotion.create", { storeId: store.id, entity: "Promotion", entityId: saved.id, data: { name, kind, value } });
+    await audit(db, actor, existing ? "promotion.update" : "promotion.create", { storeId: store.id, entity: "Promotion", entityId: saved.id, data: { name, kind, value, firstPurchaseOnly: data.firstPurchaseOnly } });
     revalidatePath(`/store/${store.code}/marketing`);
     return done(existing ? `“${name}” updated.` : `“${name}” created — it runs at your tills from ${fmtDateTime(startsAt)}.`);
   });

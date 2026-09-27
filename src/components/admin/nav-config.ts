@@ -32,6 +32,7 @@ export const storeNav = (code: string): NavGroup[] => [
       { label: "Members", href: `/store/${code}/customers`, icon: "Users" },
       { label: "Patient register", href: `/store/${code}/patients`, icon: "Stethoscope" },
       { label: "Local marketing", href: `/store/${code}/marketing`, icon: "Megaphone" },
+      { label: "Events", href: `/store/${code}/events`, icon: "CalendarDays" },
     ],
   },
   {
@@ -83,6 +84,14 @@ export const hqNav: NavGroup[] = [
       { label: "Members & CRM", href: "/hq/customers", icon: "Users" },
       { label: "Campaigns", href: "/hq/marketing", icon: "Megaphone" },
       { label: "Rewards", href: "/hq/loyalty", icon: "Crown" },
+    ],
+  },
+  {
+    title: "Launch programme",
+    items: [
+      { label: "Launch & founders", href: "/hq/launch", icon: "Rocket" },
+      { label: "Drops", href: "/hq/drops", icon: "Sparkles" },
+      { label: "Events", href: "/hq/events", icon: "CalendarDays" },
     ],
   },
   {

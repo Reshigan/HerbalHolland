@@ -4,11 +4,11 @@ import { ShieldCheck, ShieldAlert, Stethoscope } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
-import { spend12m } from "@/server/loyalty";
 import { getSettings } from "@/server/settings";
 import { SEGMENT_TONE, hrefWith } from "@/server/store/rules";
+import { NO_STATS, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf } from "@/lib/rfm";
-import { fmtPoints, tierInfo, TIERS, type TierKey } from "@/lib/loyalty-rules";
+import { fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { ageOn, displayPhone } from "@/lib/sa";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, timeAgo } from "@/lib/format";
@@ -41,7 +41,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const c = await db.customer.findFirst({ where: { id, homeStoreId: store.id } });
   if (!c) notFound();
   const page = pageParam(sp.page);
-  const [sales, salesTotal, ledger, consents, auths, referrer, spend, settings, saved] = await Promise.all([
+  const [sales, salesTotal, ledger, consents, auths, referrer, here, settings] = await Promise.all([
     db.sale.findMany({
       where: { customerId: c.id, storeId: store.id },
       orderBy: { createdAt: "desc" },
@@ -50,23 +50,17 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       include: { lines: { select: { qty: true } }, payments: { select: { method: true } } },
     }),
     db.sale.count({ where: { customerId: c.id, storeId: store.id } }),
-    db.loyaltyEntry.findMany({ where: { customerId: c.id }, orderBy: { createdAt: "desc" }, take: 15, include: { store: { select: { name: true } } } }),
+    // Only this store's entries and network-wide ones (sign-up, birthday, quests…) — never another store's.
+    db.loyaltyEntry.findMany({ where: { customerId: c.id, OR: [{ storeId: store.id }, { storeId: null }] }, orderBy: { createdAt: "desc" }, take: 15 }),
     db.consentEvent.findMany({ where: { customerId: c.id }, orderBy: { createdAt: "desc" }, take: 12 }),
     db.patientAuth.findMany({ where: { customerId: c.id }, orderBy: { validTo: "desc" } }),
     c.referredById ? db.customer.findUnique({ where: { id: c.referredById }, select: { firstName: true, memberNo: true } }) : null,
-    spend12m(db, c.id),
+    statsHere(store.id, [c.id]).then((m) => m.get(c.id) ?? NO_STATS),
     getSettings(),
-    db.sale.aggregate({ where: { customerId: c.id }, _sum: { memberSavingsCents: true } }),
   ]);
   const seg = segmentOf(c);
   const tier = tierInfo(c.tier as TierKey);
-  const above = TIERS[TIERS.findIndex((t) => t.key === c.tier) + 1];
-  const tierNote =
-    spend < tier.minCents
-      ? `${zar(tier.minCents - spend)} more in 12 months to keep ${tier.name}`
-      : above
-        ? `${zar(above.minCents - spend)} more in 12 months to ${above.name}`
-        : "top tier";
+  const founder = c.foundingNo != null;
   const base = `/store/${store.code}`;
   const now = new Date();
   const consent: Record<MsgChannel, boolean> = { SMS: c.consentSms, WHATSAPP: c.consentWhatsapp, EMAIL: c.consentEmail, PUSH: c.consentPush };
@@ -82,6 +76,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             {c.firstName} {c.lastName ?? ""}
             <TierBadge tier={c.tier} />
             <Badge tone={SEGMENT_TONE[seg]}>{SEGMENTS[seg].name}</Badge>
+            {founder && <Badge tone="dark">Founding Member #{String(c.foundingNo).padStart(4, "0")}</Badge>}
           </span>
         }
         description={`Joined ${fmtDate(c.createdAt)}${c.source ? ` via ${c.source.toLowerCase().replaceAll("_", " ")}` : ""} · ${SEGMENTS[seg].blurb}`}
@@ -89,10 +84,14 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Points balance" value={fmtPoints(c.points)} sub={`worth ${zar(c.points * 100)}`} />
-        <Stat label="Lifetime spend" value={zar(c.lifetimeCents)} sub={`saved ${zar(saved._sum.memberSavingsCents ?? 0)} with Rewards`} />
-        <Stat label="Visits" value={c.visits.toLocaleString()} sub={c.visits ? `avg ${zar(Math.round(c.lifetimeCents / c.visits))}` : "no purchases yet"} />
-        <Stat label="Last visit" value={c.lastPurchaseAt ? timeAgo(c.lastPurchaseAt) : "—"} sub={c.firstPurchaseAt ? `first ${fmtDate(c.firstPurchaseAt)}` : "never purchased"} />
-        <Stat label={`${tier.name} tier`} value={`${settings.loyalty.tierSavingsPct[c.tier as TierKey] ?? 0}% off`} sub={tierNote} />
+        <Stat label="Spend here" value={zar(here.spendCents)} sub={`saved ${zar(here.savedCents)} here with Rewards`} />
+        <Stat label="Visits here" value={here.visits.toLocaleString()} sub={here.visits ? `avg ${zar(Math.round(here.spendCents / here.visits))} a visit` : "no purchases here yet"} />
+        <Stat label="Last visit here" value={here.lastAt ? timeAgo(here.lastAt) : "—"} sub={here.firstAt ? `first ${fmtDate(here.firstAt)}` : "not yet"} />
+        <Stat
+          label={`${tier.name} tier`}
+          value={`${settings.loyalty.tierSavingsPct[c.tier as TierKey] ?? 0}% off`}
+          sub={c.tierFloor && c.tierFloorUntil && c.tierFloorUntil > now ? `${founder ? "Founding Member · " : ""}at least ${tierInfo(c.tierFloor as TierKey).name} to ${fmtDate(c.tierFloorUntil)}` : "instant saving on every visit"}
+        />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
@@ -138,7 +137,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           </Card>
 
           <Card>
-            <CardHeader title="Points ledger" description="Latest 15 entries · 1 point = R1" />
+            <CardHeader title="Points ledger" description={`Latest 15 entries at ${store.name} and network-wide bonuses · 1 point = R1`} />
             {ledger.length === 0 ? (
               <EmptyState title="No points activity" />
             ) : (
@@ -159,7 +158,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                         <span className="font-medium text-ink-850">{KIND[e.kind] ?? e.kind}</span>
                         {e.note && <div className="text-xs text-ink-500">{e.note}</div>}
                       </Td>
-                      <Td className="text-ink-600">{e.store?.name ?? "Online / HQ"}</Td>
+                      <Td className="text-ink-600">{e.storeId ? store.name : "Network"}</Td>
                       <Td align="right"><Qty n={e.points} /></Td>
                     </Tr>
                   ))}

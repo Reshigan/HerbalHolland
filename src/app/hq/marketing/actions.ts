@@ -12,6 +12,8 @@ import { fmtDateTime } from "@/lib/format";
 import type { MsgChannel } from "@/generated/prisma/client";
 
 const CHANNELS: MsgChannel[] = ["SMS", "EMAIL", "PUSH", "WHATSAPP"];
+const PUSH_TITLE_MAX = 40;
+const PUSH_BODY_MAX = 140;
 const TIER_SEGMENTS = ["tier:SEED", "tier:SPROUT", "tier:BLOOM", "tier:HARVEST"];
 const validSegment = (s: string) => s === "ALL" || s in SEGMENTS || TIER_SEGMENTS.includes(s);
 
@@ -38,6 +40,8 @@ export async function saveCampaign(campaignId: string | null, _: ActionState, fd
   if (!name) fields.name = "Name the campaign";
   const channel = str(fd, "channel") as MsgChannel;
   if (!CHANNELS.includes(channel)) fields.channel = "Choose a channel";
+  // Push: the name is the notification's bold title; lock screens cut long text.
+  if (channel === "PUSH" && name.length > PUSH_TITLE_MAX) fields.name = `Push titles fit ${PUSH_TITLE_MAX} characters — shorten the name`;
   const segment = str(fd, "segment");
   if (!validSegment(segment)) fields.segment = "Choose an audience";
   const storeId = opt(fd, "storeId");
@@ -46,6 +50,7 @@ export async function saveCampaign(campaignId: string | null, _: ActionState, fd
   const message = str(fd, "message");
   if (message.length < 10) fields.message = "Write the message";
   else if (channel === "SMS" && message.length > 480) fields.message = "Keep SMS to 3 parts (480 characters) or fewer";
+  else if (channel === "PUSH" && message.length > PUSH_BODY_MAX) fields.message = `Push messages fit ${PUSH_BODY_MAX} characters — say one thing`;
   const flags = screenCopy(`${name} ${message}`);
   if (flags.length) fields.message = flags.map((f) => `“${f.term}” — ${f.reason}`).join(" · ");
   const promotionId = opt(fd, "promotionId");

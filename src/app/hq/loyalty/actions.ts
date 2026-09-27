@@ -3,8 +3,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { getSettings, saveSetting } from "@/server/settings";
+import { generateOffers } from "@/server/offers";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
-import { str, parseInt10, parseNum } from "@/server/hq/form";
+import { str, bool, parseInt10, parseNum } from "@/server/hq/form";
 import { TIERS, type TierKey } from "@/lib/loyalty-rules";
 
 const RULES = {
@@ -59,4 +60,43 @@ export async function saveTierSavings(_: ActionState, fd: FormData): Promise<Act
   await audit(db, g.actor, "settings.tier_savings", { entity: "Setting", entityId: "loyalty", data: { before: before.tierSavingsPct, after: pct } });
   revalidatePath("/hq/loyalty");
   return done("Instant savings updated — members see the new prices on their next basket.");
+}
+
+/** My Deals programme settings (settings.offers). Deals already on members' cards keep their terms. */
+export async function saveOffers(_: ActionState, fd: FormData): Promise<ActionState> {
+  const g = await guard("admin");
+  if (!g) return DENIED;
+  const fields: Record<string, string> = {};
+  const percent = parseInt10(str(fd, "offerPercent"));
+  if (percent == null || percent < 5 || percent > 30) fields.offerPercent = "5–30%";
+  const validDays = parseInt10(str(fd, "offerDays"));
+  if (validDays == null || validDays < 3 || validDays > 14) fields.offerDays = "3–14 days";
+  if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
+  const before = (await getSettings()).offers;
+  const next = { enabled: bool(fd, "offersEnabled"), percent: percent!, validDays: validDays! };
+  const changed = (Object.keys(next) as (keyof typeof next)[]).filter((k) => before[k] !== next[k]);
+  if (!changed.length) return done("No changes to save.");
+  await saveSetting("offers", { ...before, ...next });
+  await audit(db, g.actor, "settings.offers", { entity: "Setting", entityId: "offers", data: { before: Object.fromEntries(changed.map((k) => [k, before[k]])), after: Object.fromEntries(changed.map((k) => [k, next[k]])) } });
+  revalidatePath("/hq/loyalty");
+  return done(
+    next.enabled
+      ? `My Deals saved — new deals are ${next.percent}% off for ${next.validDays} days. Deals already on cards keep their terms.`
+      : "My Deals switched off — no new deals load. Deals already on members' cards stay valid until they expire.",
+  );
+}
+
+/** Loads this week's deals now instead of waiting for Monday's job. Idempotent: members with a live deal are skipped. */
+export async function generateDealsNow(_: ActionState): Promise<ActionState> {
+  const g = await guard("admin");
+  if (!g) return DENIED;
+  if (!(await getSettings()).offers.enabled) return fail("My Deals is switched off — switch it on and save first.");
+  const { created } = await generateOffers();
+  await audit(db, g.actor, "offers.generate", { entity: "MemberOffer", data: { created } });
+  revalidatePath("/hq/loyalty");
+  return done(
+    created
+      ? `${created.toLocaleString()} new deals loaded onto members' cards — they apply automatically at the till and online.`
+      : "Every opted-in member who bought recently already has a live deal — nothing new to load.",
+  );
 }

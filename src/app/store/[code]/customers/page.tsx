@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { CONSENT_WORDING } from "@/server/customers";
 import { SEGMENT_TONE, hrefWith, sp1 } from "@/server/store/rules";
+import { NO_STATS, homeMemberTotals, membersByHere, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf, type SegmentKey } from "@/lib/rfm";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { displayPhone } from "@/lib/sa";
@@ -29,12 +30,13 @@ export const metadata = { title: "Members" };
 const PAGE_SIZE = 25;
 type SP = Record<string, string | string[] | undefined>;
 
-const SORTS: Record<string, Prisma.CustomerOrderByWithRelationInput[]> = {
-  recent: [{ lastPurchaseAt: { sort: "desc", nulls: "last" } }, { createdAt: "desc" }],
-  spend: [{ lifetimeCents: "desc" }],
-  points: [{ points: "desc" }],
-  joined: [{ createdAt: "desc" }],
-  name: [{ firstName: "asc" }, { lastName: "asc" }],
+// "recent" and "spend" order by this store's own sales (membersByHere); the rest are member fields.
+const SORTS: Record<string, Prisma.CustomerOrderByWithRelationInput[] | null> = {
+  recent: null,
+  spend: null,
+  points: [{ points: "desc" }, { id: "asc" }],
+  joined: [{ createdAt: "desc" }, { id: "asc" }],
+  name: [{ firstName: "asc" }, { lastName: "asc" }, { id: "asc" }],
 };
 const TIERS: Tier[] = ["SEED", "SPROUT", "BLOOM", "HARVEST"];
 
@@ -69,13 +71,20 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   const where: Prisma.CustomerWhereInput = { AND: [base, segmentWhere(seg)] };
 
   const segKeys = ["ALL", "CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
-  const [segCounts, total, members, agg, active30] = await Promise.all([
+  const order = SORTS[sort];
+  const [segCounts, total, members, agg, here] = await Promise.all([
     Promise.all(segKeys.map(async (k) => [k, await db.customer.count({ where: { AND: [base, segmentWhere(k)] } })] as const)),
     db.customer.count({ where }),
-    db.customer.findMany({ where, orderBy: SORTS[sort], skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }),
-    db.customer.aggregate({ where: { homeStoreId: store.id }, _count: true, _sum: { points: true }, _avg: { lifetimeCents: true } }),
-    db.customer.count({ where: { homeStoreId: store.id, lastPurchaseAt: { gte: new Date(Date.now() - 30 * 86_400_000) } } }),
+    order
+      ? db.customer.findMany({ where, orderBy: order, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE })
+      : membersByHere(store.id, where, sort as "recent" | "spend", (page - 1) * PAGE_SIZE, PAGE_SIZE).then(async (ids) => {
+          const rows = new Map((await db.customer.findMany({ where: { id: { in: ids } } })).map((r) => [r.id, r]));
+          return ids.flatMap((id) => rows.get(id) ?? []);
+        }),
+    db.customer.aggregate({ where: { homeStoreId: store.id }, _count: true, _sum: { points: true } }),
+    homeMemberTotals(store.id, new Date(Date.now() - 30 * 86_400_000)),
   ]);
+  const stats = await statsHere(store.id, members.map((m) => m.id));
   const count = Object.fromEntries(segCounts);
   const keep = { seg: seg === "ALL" ? undefined : seg, sort: sort === "recent" ? undefined : sort };
 
@@ -84,15 +93,15 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
       <PageHeader
         overline={`Customers · ${store.name}`}
         title="Members"
-        description={`Herbal Holland Rewards members who call ${store.name} home. Segments update with every purchase.`}
+        description={`Herbal Holland Rewards members who call ${store.name} home. Spend and visits are what they bought here; tier, points and segment follow the network programme.`}
         actions={canManage && <AddMember action={addMember.bind(null, store.code)} wording={CONSENT_WORDING} storeName={store.name} />}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Members" value={agg._count.toLocaleString()} sub="home store here" />
-        <Stat label="Active in 30 days" value={active30.toLocaleString()} sub={agg._count ? `${Math.round((active30 / agg._count) * 100)}% of members` : "—"} />
+        <Stat label="Bought here in 30 days" value={here.active.toLocaleString()} sub={agg._count ? `${Math.round((here.active / agg._count) * 100)}% of members` : "—"} />
         <Stat label="Points outstanding" value={fmtPoints(agg._sum.points ?? 0)} sub={`${zarCompact((agg._sum.points ?? 0) * 100)} liability, network-funded`} />
-        <Stat label="Average lifetime spend" value={zar(Math.round(agg._avg.lifetimeCents ?? 0))} sub="per member" />
+        <Stat label="Average spend here" value={zar(agg._count ? Math.round(here.spendCents / agg._count) : 0)} sub="per member, net of refunds" />
       </div>
 
       <Card className="mt-6">
@@ -107,8 +116,8 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
             </AutoSelect>
             <label className="sr-only" htmlFor="m-sort">Sort</label>
             <AutoSelect id="m-sort" name="sort" defaultValue={sort} wrapperClassName="w-44">
-              <option value="recent">Last visit</option>
-              <option value="spend">Lifetime spend</option>
+              <option value="recent">Last visit here</option>
+              <option value="spend">Spend here</option>
               <option value="points">Points balance</option>
               <option value="joined">Newest members</option>
               <option value="name">Name</option>
@@ -146,15 +155,16 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                 <Th>Mobile</Th>
                 <Th>Tier · segment</Th>
                 <Th align="right">Points</Th>
-                <Th align="right">Visits</Th>
-                <Th>Last visit</Th>
-                <Th align="right">Lifetime spend</Th>
+                <Th align="right">Visits here</Th>
+                <Th>Last visit here</Th>
+                <Th align="right">Spend here</Th>
                 <Th>Consent</Th>
               </tr>
             </thead>
             <tbody>
               {members.map((c) => {
                 const s = segmentOf(c);
+                const h = stats.get(c.id) ?? NO_STATS;
                 return (
                   <Tr key={c.id}>
                     <Td className="min-w-52">
@@ -176,9 +186,9 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                       </div>
                     </Td>
                     <Td align="right">{c.points.toLocaleString()}</Td>
-                    <Td align="right">{c.visits.toLocaleString()}</Td>
-                    <Td className="whitespace-nowrap text-ink-600">{c.lastPurchaseAt ? timeAgo(c.lastPurchaseAt) : <span className="text-ink-300">Never</span>}</Td>
-                    <Td align="right" className="font-medium text-ink-900">{zar(c.lifetimeCents)}</Td>
+                    <Td align="right">{h.visits.toLocaleString()}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{h.lastAt ? timeAgo(h.lastAt) : <span className="text-ink-300">Not yet</span>}</Td>
+                    <Td align="right" className="font-medium text-ink-900">{h.visits || h.spendCents ? zar(h.spendCents) : <span className="font-normal text-ink-300">—</span>}</Td>
                     <Td>
                       <span className="flex gap-1.5 text-ink-300" aria-label="Marketing consent">
                         <MessageSquare className={`h-4 w-4 ${c.consentSms ? "text-leaf-600" : ""}`} aria-label={`SMS ${c.consentSms ? "yes" : "no"}`} />

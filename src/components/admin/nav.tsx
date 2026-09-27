@@ -3,8 +3,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  LayoutDashboard, Megaphone, Menu, Nfc, Package, Receipt, Scale, Settings, ShieldCheck, ShoppingBag, Stethoscope, Store, Tag, Tags,
+  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
+  LayoutDashboard, Megaphone, Menu, Nfc, Package, Receipt, Rocket, Scale, Settings, ShieldCheck, ShoppingBag, Sparkles, Stethoscope, Store, Tag, Tags,
   Truck, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -12,8 +12,8 @@ import type { NavGroup } from "./nav-config";
 
 // Explicit map (not `import *`) so the client bundle carries only the icons the nav uses.
 const ICONS: Record<string, LucideIcon> = {
-  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  LayoutDashboard, Megaphone, Nfc, Package, Receipt, Scale, Settings, ShieldCheck, ShoppingBag, Stethoscope, Store, Tag, Tags,
+  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
+  LayoutDashboard, Megaphone, Nfc, Package, Receipt, Rocket, Scale, Settings, ShieldCheck, ShoppingBag, Sparkles, Stethoscope, Store, Tag, Tags,
   Truck, Users, UsersRound, Wallet, Warehouse,
 };
 
