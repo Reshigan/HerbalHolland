@@ -7,6 +7,7 @@ import { getSettings } from "@/server/settings";
 import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
 import { madeToOrder } from "@/server/merch";
+import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
 import { launchState } from "@/server/launch";
 import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
@@ -87,8 +88,10 @@ export default async function CartPage() {
   const earnable = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
   const tier = (customer?.tier ?? "SEED") as TierKey;
   const earn = pointsFor(earnable, tier, q.pointsMultiplier, settings.loyalty.earnPer100);
+  // Free delivery counts stocked items only; made-to-order merch always carries the print partner's courier.
   const freeOver = settings.ecommerce.freeDeliveryOverCents;
-  const toFree = Math.max(0, freeOver - q.totalCents);
+  const stockedTotal = q.lines.filter((l) => !made.has(l.variantId)).reduce((s, l) => s + l.totalCents, 0);
+  const toFree = Math.max(0, freeOver - stockedTotal);
 
   const sIds = suggestions.flatMap((s) => s.productIds);
   const sCats = suggestions.flatMap((s) => s.categoryIds);
@@ -258,7 +261,7 @@ export default async function CartPage() {
               ))}
               <div className="flex justify-between">
                 <dt className="text-ink-300">Delivery</dt>
-                <dd className="text-ink-400">{toFree === 0 ? "Free" : "At checkout"}</dd>
+                <dd className="text-ink-400">{made.size ? `${zar(settings.ecommerce.merchCourierCents)} merch courier${stockedTotal && toFree ? " + delivery" : ""}` : toFree === 0 ? "Free" : "At checkout"}</dd>
               </div>
               <div className="flex items-baseline justify-between border-t border-ink-800 pt-3">
                 <dt className="font-semibold text-white">Total</dt>
@@ -281,7 +284,12 @@ export default async function CartPage() {
                 <BadgePercent className="h-4 w-4 shrink-0 text-brand-400" /> Join free and save {zar(q.joinSavingsCents)} on this order →
               </Link>
             )}
-            {licensedLines.length === q.lines.length ? null : toFree > 0 ? (
+            {made.size > 0 && (
+              <p className="mt-4 flex items-center gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-xs text-ink-300">
+                <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Made-to-order merch ships on its own from our print partner in {MADE_TO_ORDER_LEAD}: {zar(settings.ecommerce.merchCourierCents)} courier on top.
+              </p>
+            )}
+            {licensedLines.length === q.lines.length || made.size === q.lines.length ? null : toFree > 0 ? (
               <p className="mt-4 flex items-center gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-xs text-ink-300">
                 <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Add {zar(toFree)} more for free delivery.
               </p>

@@ -112,6 +112,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                   <Input id="freeDeliveryOver" name="freeDeliveryOver" defaultValue={rand(e.freeDeliveryOverCents)} inputMode="decimal" />
                   <FieldError name="freeDeliveryOver" />
                 </Field>
+                <Field label="Merch courier (R)" htmlFor="merchCourier" hint="Made-to-order merch: the print partner's courier, always on top">
+                  <Input id="merchCourier" name="merchCourier" defaultValue={rand(e.merchCourierCents)} inputMode="decimal" />
+                  <FieldError name="merchCourier" />
+                </Field>
                 <Field label="Same-day cut-off (hour)" htmlFor="sameDayCutoffHour" hint="Orders after this ship next day">
                   <Input id="sameDayCutoffHour" name="sameDayCutoffHour" defaultValue={e.sameDayCutoffHour} inputMode="numeric" />
                   <FieldError name="sameDayCutoffHour" />

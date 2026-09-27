@@ -48,7 +48,8 @@
 | When | Task | Where |
 |---|---|---|
 | Continuous | Health check, error rate, p95 latency, DB connections | Load balancer + APM |
-| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the launch date passes; drop alerts to watchers | `/api/cron/frequent` |
+| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the launch date passes; drop alerts to watchers; email paid merch orders to the print partner | `/api/cron/frequent` |
+| Daily (DC) | Print partner's shipping emails → enter courier + tracking on each merch order (**Merch shipped**); chase anything "sent" for more than 7 working days; mark delivered merch orders delivered | Store back office → DC → Online orders |
 | Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; load weekly My Deals (Mondays) | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |
 | Weekly | Replenishment orders submitted/approved/shipped; expiry report actioned | Purchasing / Distribution |

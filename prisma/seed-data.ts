@@ -123,7 +123,7 @@ export type ProductSeed = {
   pod?: { code: string; cost: number };
 };
 
-const PRINT_PARTNER = "Print partner — made to order in South Africa";
+const PRINT_PARTNER = "OTC Printing, Oudtshoorn (made to order)";
 
 const HH_CULT = "Herbal Holland Cultivation, Hartbeespoort";
 const MPONDO = "Mpondo Growers Co-operative, Lusikisiki";
@@ -184,12 +184,11 @@ export const PRODUCTS: ProductSeed[] = [
   { slug: "led-grow-light", name: "Full-Spectrum LED 200W", tagline: "Dimmable, efficient, quiet", cat: "grow", line: "PARTNER", reg: "GROW", supplier: "Herbal Holland Goods", shelfMonths: 0, desc: "Samsung-diode full-spectrum board, dimmable, passively cooled.", variants: [["200W", null, 3200]] },
   { slug: "heritage-seed-pack", name: "Durban Poison Heritage Seeds", tagline: "Five regular seeds, locally kept", cat: "grow", line: "HERITAGE", reg: "GROW", heritage: true, supplier: KZN_HERITAGE, shelfMonths: 24, desc: "Regular seeds from the KZN Heritage Growers Collective's preserved line.", variants: [["5 seeds", null, 250]] },
   // ── Apparel ────────────────────────────────────────────────────────────
-  { slug: "windmill-tee", name: "Windmill Tee", tagline: "Heavyweight cotton, made to order", cat: "apparel", line: "HOUSE", reg: "APPAREL", featured: true, supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Black heavyweight cotton tee: the Mark on the chest and the store-window lock-up across the back, in Sunset orange. Printed for you in South Africa.", variants: [["S", null, 450], ["M", null, 450], ["L", null, 450], ["XL", null, 450], ["XXL", null, 450]], pod: { code: "HH-TEE-BLK", cost: 185 } },
+  { slug: "windmill-tee", name: "Windmill Tee", tagline: "Heavyweight SA cotton, made to order", cat: "apparel", line: "HOUSE", reg: "APPAREL", featured: true, supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Black heavyweight cotton tee, made in South Africa: the Mark on the chest and the store-window lock-up across the back, in Sunset orange. Printed for you when you order.", variants: [["S", null, 450], ["M", null, 450], ["L", null, 450], ["XL", null, 450], ["XXL", null, 450]], pod: { code: "HH-TEE-BLK", cost: 240 } },
   { slug: "sunset-hoodie", name: "Sunset Hoodie", tagline: "Brushed fleece, setting-sun back print", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Sunset-orange brushed-fleece hoodie: the lock-up on the chest and a setting sun across the back, printed in black. Made to order in South Africa.", variants: [["S", null, 850], ["M", null, 850], ["L", null, 850], ["XL", null, 850], ["XXL", null, 850]], pod: { code: "HH-HOOD-ORG", cost: 430 } },
   { slug: "heritage-crewneck", name: "Heritage Crewneck", tagline: "Dutch heritage. African soil.", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Black brushed-fleece crewneck with our sign-off across the chest in Sunset orange. Made to order in South Africa.", variants: [["S", null, 750], ["M", null, 750], ["L", null, 750], ["XL", null, 750], ["XXL", null, 750]], pod: { code: "HH-CREW-BLK", cost: 360 } },
-  { slug: "windmill-cap", name: "Windmill Cap", tagline: "The Mark, embroidered", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Black six-panel cotton-twill cap with the Mark embroidered in Sunset orange and an adjustable strap. Made to order.", variants: [["One size", null, 350]], pod: { code: "HH-CAP-BLK", cost: 165 } },
-  { slug: "sunset-bucket-hat", name: "Sunset Bucket Hat", tagline: "For long days in the sun", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Black cotton-twill bucket hat with the Mark embroidered in Sunset orange. Made to order.", variants: [["One size", null, 380]], pod: { code: "HH-BUCKET-BLK", cost: 185 } },
-  { slug: "windmill-tote", name: "Windmill Tote", tagline: "Heavy canvas, the full lock-up", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Heavy black cotton-canvas tote with the Herbal Holland lock-up in Sunset orange. Made to order.", variants: [["One size", null, 250]], pod: { code: "HH-TOTE-BLK", cost: 105 } },
+  { slug: "windmill-cap", name: "Windmill Cap", tagline: "The Mark, up front", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Black six-panel cap with the Mark in Sunset orange on the front and an adjustable strap. Made to order.", variants: [["One size", null, 350]], pod: { code: "HH-CAP-BLK", cost: 150 } },
+  { slug: "windmill-tote", name: "Windmill Tote", tagline: "Heavy canvas, the full lock-up", cat: "apparel", line: "HOUSE", reg: "APPAREL", supplier: PRINT_PARTNER, shelfMonths: 0, desc: "Heavy black cotton-canvas tote with the Herbal Holland lock-up in Sunset orange. Made to order.", variants: [["One size", null, 250]], pod: { code: "HH-TOTE-BLK", cost: 120 } },
 ];
 
 export const FIRST_NAMES = [

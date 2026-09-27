@@ -497,7 +497,7 @@ export default function BrandBook() {
             <ul className="mt-4 space-y-2.5">
               <Rule ok>Two garment colours only: black, and the orange closest to Sunset 500. The print is always the other ink.</Rule>
               <Rule ok>Print from the 300 dpi PNG at 100% (or the SVG master); keep placements within ±5 mm, centred on the garment.</Rule>
-              <Rule ok>Embroidery uses the stitch cut of the Mark — heavier lines, a solid hub — at 45 mm or more, thread matched to Sunset 500.</Rule>
+              <Rule ok>Caps use the heavy cut of the Mark — thicker lines, a solid hub — so it stays crisp at 55 mm.</Rule>
               <Rule ok>Approve a printed sample of each piece before it goes on sale, and again whenever the blank or the ink changes.</Rule>
               <Rule ok={false}>No other colours, gradients, distressing or effects on the Mark; no cannabis leaves, slogans or claims.</Rule>
               <Rule ok={false}>Don&apos;t scale a design up or down to fill a bigger print area — the sizes are set to the garment.</Rule>
@@ -516,7 +516,7 @@ export default function BrandBook() {
                 </div>
               ))}
             </div>
-            <p className="mt-4 text-xs text-ink-500">DTG and DTF inks are matched to the hex on a physical sample; embroidery thread to the closest shade on the partner&apos;s thread card. When in doubt, the sample wins.</p>
+            <p className="mt-4 text-xs text-ink-500">Inks are matched to the hex on a printed sample of each piece, and the hoodie blank to the partner&apos;s closest orange. When in doubt, the sample wins.</p>
           </div>
         </div>
       </Section>

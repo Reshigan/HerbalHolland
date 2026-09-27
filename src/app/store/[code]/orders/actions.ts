@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { advanceOrder, nextStatuses } from "@/server/orders";
+import { merchShipped } from "@/server/merch";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
 import { bool, str } from "@/server/store/rules";
 import { zar } from "@/lib/money";
@@ -55,5 +56,20 @@ export async function moveOrder(code: string, id: string, _: ActionState, fd: Fo
       CANCELLED: `${o.code} cancelled — stock released and the customer notified.`,
     };
     return done(msg[to] ?? "Order updated.");
+  });
+}
+
+/** The print partner's shipping email: record the courier and tracking number for the merch on this order. */
+export async function shipMerch(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  return attempt(async () => {
+    const { store, actor } = await manage(code);
+    const courier = str(fd, "courier").slice(0, 60);
+    const trackingNo = str(fd, "trackingNo").slice(0, 60);
+    if (!courier) return fail("Which courier is it with?", "courier");
+    if (!trackingNo) return fail("Add the tracking number from the partner's email", "trackingNo");
+    await merchShipped(id, store.id, { courier, trackingNo }, actor);
+    revalidatePath(`/store/${store.code}/orders`);
+    revalidatePath(`/store/${store.code}/orders/${id}`);
+    return done("Merch marked as shipped — the customer has been sent their tracking number.");
   });
 }

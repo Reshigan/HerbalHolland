@@ -23,6 +23,13 @@ Tick every line before the first store trades on the platform.
 - [ ] Opening stock counted per store (full blind stock take) and approved
 - [ ] DC replenishment cadence and lead times set; par/reorder levels reviewed
 
+## Merch (made to order)
+- [ ] Print partner agreed (OTC Printing recommended): price list per blank, courier rates, turnaround, white-label packing, payment terms
+- [ ] Partner confirms in writing that it prints for a CBD/wellness brand; IP of any partner-made artwork assigned to Herbal Holland
+- [ ] Printed sample of every piece approved (colour against Sunset 500, placements, wash test); hoodie blank colour signed off
+- [ ] Variant costs and print partner codes set in HQ → Catalogue; `POD_EMAIL` and the merch courier fee set
+- [ ] DC team trained on **Merch shipped** (tracking from the partner's email) and on chasing late orders
+
 ## Devices & people
 - [ ] Android devices (11+, Google services, no developer options) paired per till; printers tested; barcode scanners tested
 - [ ] Staff accounts with PINs; managers with passwords; area managers assigned to regions

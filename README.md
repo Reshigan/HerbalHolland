@@ -59,6 +59,9 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Herbal Holland Rewards** — free national membership, easy phone sign-up (SMS code), digital card, instant tier
   savings (Seed 3% → Harvest 10%), points (1 point = R1), birthday and referral rewards, consent centre, cross-store
   settlement between franchisees.
+- **Merch, made to order** — five-piece collection (tee, hoodie, crewneck, cap, tote) printed one at a time in South
+  Africa by a print partner and couriered white-label to the customer (courier on top); no stock, no minimums. Print
+  files: `npx tsx scripts/merch-export.tsx` → `public/merch/print`; specs in the brand book (`/brand#merch`).
 - **Launch programme** — pre-launch waitlist with a referral ladder, numbered Founding Members (Sprout for a year),
   drops with tier early access and per-member limits, opening-weekend events with QR tickets, first-purchase welcome
   gifts, My Deals (weekly personal offers, HQ-funded), Learn quests, shareable savings cards, app push.

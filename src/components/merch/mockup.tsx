@@ -78,15 +78,6 @@ const SHAPES: Record<Garment, Record<Side, Shape>> = {
     },
     back: { body: "M22 72 C21 44 38 27 60 27 C82 27 99 44 98 72 Z", place: {} },
   },
-  bucket: {
-    front: {
-      body: "M33 64 L37.5 31 C39 25.5 81 25.5 82.5 31 L87 64 Z",
-      trims: ["M31 62 L89 62 L106 80 C92 88 28 88 14 80 Z"],
-      seams: ["M34 66 L86 66", "M24 76 C40 81 80 81 96 76", "M19 79 C36 85 84 85 101 79", "M38.5 33 C45 30 75 30 81.5 33"],
-      place: { front: { cx: 60, top: 36, unitsPerMm: 0.4 } },
-    },
-    back: { body: "M33 64 L37.5 31 C39 25.5 81 25.5 82.5 31 L87 64 Z", place: {} },
-  },
   tote: {
     front: {
       body: "M25 38 L95 38 L96 111 C96 112.5 95 113 93.5 113 L26.5 113 C25 113 24 112.5 24 111 Z",

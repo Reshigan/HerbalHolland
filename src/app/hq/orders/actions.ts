@@ -45,6 +45,7 @@ export async function saveEcommerceSettings(_: ActionState, fd: FormData): Promi
     sameDayFeeCents: money("sameDayFee", 100_000),
     courierFeeCents: money("courierFee", 100_000),
     freeDeliveryOverCents: money("freeDeliveryOver", 1_000_000),
+    merchCourierCents: money("merchCourier", 100_000),
     sameDayCutoffHour: whole("sameDayCutoffHour", 8, 20, "Between 08 and 20"),
     unpaidHoldMinutes: whole("unpaidHoldMinutes", 15, 1440, "15 minutes to 24 hours"),
     collectHoldDays: whole("collectHoldDays", 1, 30, "1 to 30 days"),

@@ -15,23 +15,23 @@ export function Mark({ className, spin = false, detail = true, title = "Herbal H
 
 /**
  * The Mark's strokes in a 100-unit box, drawn in currentColor — for placing inside other artwork (print files, merch).
- * `stitch` is the embroidery cut: heavier lines, a solid hub and no inner tower line, so it sews cleanly at cap size.
+ * `heavy` is the small-size cut: heavier lines, a solid hub and no inner tower line, so it prints cleanly on a cap.
  */
-export function MarkGlyph({ detail = true, stitch = false, spin = false }: { detail?: boolean; stitch?: boolean; spin?: boolean | "fast" }) {
-  const line = stitch ? 7.5 : 5.5;
+export function MarkGlyph({ detail = true, heavy = false, spin = false }: { detail?: boolean; heavy?: boolean; spin?: boolean | "fast" }) {
+  const line = heavy ? 7.5 : 5.5;
   return (
     <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
       {/* Open ring: the gap at the bottom is where the tower stands. */}
       <path d="M 36.2 82.6 A 40 40 0 1 1 63.8 82.6" strokeWidth={line} />
       {/* Tower */}
       <path d="M 33 91 L 50 44.5 L 67 91" strokeWidth={line} />
-      {detail && !stitch && <path d="M 42.5 91 L 50 69 L 57.5 91" strokeWidth={3.2} />}
+      {detail && !heavy && <path d="M 42.5 91 L 50 69 L 57.5 91" strokeWidth={3.2} />}
       {/* Windmill flower */}
       <g transform="translate(50 40)" className={spin ? (spin === "fast" ? "animate-spin-fast" : "animate-spin-slow") : undefined} style={spin ? { transformOrigin: "50px 40px", transformBox: "view-box" } : undefined}>
         {[45, 135, 225, 315].map((r) => (
-          <path key={r} d={PETAL} transform={`rotate(${r - 90})`} strokeWidth={stitch ? 5.2 : 3.6} />
+          <path key={r} d={PETAL} transform={`rotate(${r - 90})`} strokeWidth={heavy ? 5.2 : 3.6} />
         ))}
-        {stitch ? (
+        {heavy ? (
           <circle r={4.6} fill="currentColor" stroke="none" />
         ) : (
           <>

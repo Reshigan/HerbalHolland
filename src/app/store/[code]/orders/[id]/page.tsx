@@ -10,8 +10,9 @@ import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, timeAgo } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { displayPhone, PROVINCES } from "@/lib/sa";
-import { moveOrder } from "../actions";
+import { moveOrder, shipMerch } from "../actions";
 import { OrderActions } from "./order-actions";
+import { MerchShippedForm } from "./merch-shipped-form";
 import { PageHeader, Notice } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +32,7 @@ const EVENT_LABEL: Record<string, string> = {
   OUT_FOR_DELIVERY: "Out for delivery",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
+  MERCH: "Print partner",
 };
 
 export default async function OrderPage({ params }: { params: Promise<{ code: string; id: string }> }) {
@@ -41,6 +43,8 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
   const d = await orderForStore(store.id, id);
   if (!d) notFound();
   const { order: o, lines } = d;
+  const merch = lines.filter((l) => l.made);
+  const merchOnly = merch.length > 0 && merch.length === lines.length;
   const next = nextStatuses(o);
   const due = o.totalCents - o.pointsRedeemed * 100;
   const c = o.customer;
@@ -77,9 +81,31 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
 
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
-          {next.length > 0 && (
+          {merch.length > 0 && (
+            <Card className={cn(o.podRef && o.podStatus !== "shipped" && "border-brand-300 ring-4 ring-brand-500/10")}>
+              <CardHeader
+                title="Made-to-order merch"
+                description={`${merch.reduce((s, l) => s + l.qty, 0)} piece(s) printed and couriered by the print partner — nothing to pick here.`}
+              />
+              <CardBody>
+                {!o.podRef ? (
+                  <p className="text-sm text-ink-600">The production order goes to the print partner as soon as the payment clears.</p>
+                ) : o.podStatus === "shipped" ? (
+                  <p className="text-sm text-ink-600">Shipped — the tracking number is in the timeline and was sent to the customer.</p>
+                ) : canManage ? (
+                  <>
+                    <p className="mb-3 text-sm text-ink-600">Production order sent. When the partner emails the courier and tracking number, enter it here: the customer is texted their tracking{merchOnly ? " and the order goes out for delivery" : ""}.</p>
+                    <MerchShippedForm action={shipMerch.bind(null, store.code, o.id)} />
+                  </>
+                ) : (
+                  <ReadOnlyNote>Production order sent — a manager records the partner&apos;s tracking number.</ReadOnlyNote>
+                )}
+              </CardBody>
+            </Card>
+          )}
+          {next.length > 0 && !(merchOnly && o.podStatus !== "shipped") && (
             <Card className="border-brand-300 ring-4 ring-brand-500/10">
-              <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the customer arrives." : "Pick, pack and dispatch."} />
+              <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : merchOnly ? "The print partner couriered it — mark delivered once the courier confirms." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the customer arrives." : "Pick, pack and dispatch."} />
               <CardBody>
                 {canManage ? (
                   <OrderActions
@@ -101,7 +127,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           )}
 
           <Card>
-            <CardHeader title="Items" description={open ? "Pick from the batches shown — first expiry, first out" : undefined} />
+            <CardHeader title="Items" description={open && !merchOnly ? "Pick from the batches shown — first expiry, first out" : undefined} />
             <Table className="mt-3">
               <thead>
                 <tr>

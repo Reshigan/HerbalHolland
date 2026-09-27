@@ -55,7 +55,7 @@ export async function placeOrderAction(_: CheckoutState, form: FormData): Promis
   if (wanted > 0) {
     if (wanted < settings.loyalty.minRedeem) return { error: `You can redeem from ${settings.loyalty.minRedeem} points.` };
     const q = await quote({ channel: "ONLINE", items, code, customerId: customer.id });
-    const fee = await deliveryFee(fulfilment, q.totalCents, customer.tier);
+    const fee = await deliveryFee(fulfilment, q.lines, customer.tier);
     const eligible = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0) + fee;
     points = Math.min(wanted, redeemablePoints({ balance: customer.points, eligibleCents: eligible, maxPct: settings.loyalty.maxRedeemPct, min: settings.loyalty.minRedeem }));
   }

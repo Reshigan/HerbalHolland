@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { madeToOrder } from "@/server/merch";
+import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
 import { quote } from "@/server/pricing";
 import { evaluateBasket } from "@/server/compliance";
 import { deliveryFee, routingCandidates } from "@/server/orders";
@@ -111,7 +112,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   const keys: SellChannel[] = ["COLLECT", "SAME_DAY", "COURIER"];
   const [comps, fees, cands, lastAddress, drops, dropMsgs, made] = await Promise.all([
     Promise.all(keys.map((channel) => evaluateBasket({ items: compItems, channel, customerId: customer.id, storeLicences: settings.compliance.licensedOnly }))),
-    Promise.all(keys.map((f) => deliveryFee(f as "COLLECT", q.totalCents, customer.tier))),
+    Promise.all(keys.map((f) => deliveryFee(f as "COLLECT", q.lines, customer.tier))),
     routingCandidates(q.lines.map((l) => l.variantId)),
     db.order.findFirst({ where: { customerId: customer.id, fulfilment: { not: "COLLECT" }, addressLine: { not: null } }, orderBy: { createdAt: "desc" }, select: { addressLine: true, suburb: true, city: true, province: true, postalCode: true } }),
     dropsFor(q.lines.map((l) => l.variantId)),
@@ -215,7 +216,11 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         address={lastAddress ? { addressLine: lastAddress.addressLine ?? "", suburb: lastAddress.suburb ?? "", city: lastAddress.city ?? "", province: lastAddress.province ?? "", postalCode: lastAddress.postalCode ?? "" } : null}
         provinces={Object.entries(PROVINCES)}
         sameDayNote={`order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
-        courierNote={`2–4 working days nationwide, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}.`}
+        courierNote={
+          made.size
+            ? `Made-to-order merch is printed for you and couriered in ${MADE_TO_ORDER_LEAD} (${zar(settings.ecommerce.merchCourierCents)} courier, on top of the price)${made.size < q.lines.length ? `; the rest ships in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}` : ""}.`
+            : `2–4 working days nationwide, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}.`
+        }
         blocked={needsAge ? "Verify your age above to place this order." : (shared ?? (dropNotes[0] ? `${dropNotes[0].title} — update your bag to continue.` : null))}
       />
     </Container>

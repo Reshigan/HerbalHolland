@@ -14,10 +14,10 @@ const TAGLINE = "DUTCH HERITAGE · AFRICAN SOIL";
 const tagSize = (width: number) => width / 23.8;
 
 /** The Mark at `size` mm with its top-left corner at (x, y). */
-function M({ x, y, size, stitch }: { x: number; y: number; size: number; stitch?: boolean }) {
+function M({ x, y, size, heavy }: { x: number; y: number; size: number; heavy?: boolean }) {
   return (
     <g transform={`translate(${x} ${y}) scale(${size / 100})`}>
-      <MarkGlyph stitch={stitch} />
+      <MarkGlyph heavy={heavy} />
     </g>
   );
 }
@@ -153,8 +153,8 @@ export const ART: Record<ArtKey, Art> = {
     ),
   },
 
-  // Caps and bucket hats: the embroidery cut of the Mark.
-  "stitch-mark": { w: 55, h: 55, ink: "sunset", note: "Embroidery, 55 mm tall on caps (45 mm on bucket hats); thread matched to Sunset 500", body: <M x={0} y={0} size={55} stitch /> },
+  // Cap front: the heavy cut of the Mark (thicker lines, solid hub) so it holds up at cap size.
+  "cap-mark": { w: 55, h: 55, ink: "sunset", note: "Cap front panel, centred, 55 mm tall", body: <M x={0} y={0} size={55} heavy /> },
 };
 
 /** A design as a standalone SVG element: `ink` overrides the print colour (e.g. black for a proof on white). */

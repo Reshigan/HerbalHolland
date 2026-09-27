@@ -59,6 +59,31 @@ Per-store ledgers in **Sage Business Cloud** or **Xero**: post a daily summary j
 tenders, COGS, points) from `DailyStoreStat`. Invoices already carry structured data for SARS e-invoicing (VAT
 modernisation, phased from 2030).
 
+## Print partner — made-to-order merch (`src/server/pod.ts`, `merch.ts`)
+
+Merch is printed on demand in South Africa and couriered, white-label, straight to the customer: no stock, no minimums.
+Recommended partner: **OTC Printing, Oudtshoorn** (info@otcprinting.co.za · 082 443 4737) — DTG and transfers from one
+piece, Vic Bay heavyweight SA-made tees, hoodies, sweatshirts, caps and totes; white-label packaging; courier at cost
+(Aramex ≈ R100 per parcel, or The Courier Guy/Pudo); 5–7 working days; in-house designers at R200/hour. Runner-up:
+**Merchbox, Durban** (48–72 h turnaround, The Courier Guy R130/Pudo R120, relaxed content policy; white-label and
+custom-platform intake to confirm). Neither embroiders — for embroidered caps or bucket hats, PI Printers
+(weprintall.store, Johannesburg) or Lucani (Cape Town) make them from one piece.
+
+No South African print-on-demand partner has an API, so the platform works by email:
+
+1. A paid order with merch → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
+   items (our product code, blank, size, quantity) and, per placement, technique, size and a link to our 300 dpi print
+   file (`/merch/print/*.png`). Every production order is also kept in HQ → Messages.
+2. The partner prints, packs white-label and couriers to the customer, then emails back the courier and tracking number.
+3. The distribution centre opens the order and enters it (**Merch shipped**): the customer is texted their tracking, and a
+   merch-only order goes out for delivery (the sale posts at the partner's price, booked to the DC).
+4. On delivery the DC marks the order delivered, as for any courier order.
+
+Setup: agree the price list and each blank with the partner, confirm in writing that they'll print for a CBD brand
+(designs carry the brand and heritage motifs only), approve a printed sample of every piece, then set the partner's
+product code and price on each variant (HQ → Catalogue → Print partner code / Cost) and `POD_EMAIL` /
+`POD_PARTNER_NAME`. The merch courier fee (HQ → Online orders) is charged on top of the price, never waived.
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -73,4 +98,5 @@ modernisation, phased from 2030).
 | `NEXT_PUBLIC_TAP_PROVIDER`, `HALO_API_URL`, `HALO_API_KEY` | Tap on glass |
 | `ONLINE_GATEWAY` | Online payments adapter |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
+| `POD_EMAIL`, `POD_PARTNER_NAME` | Print partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `CRON_SECRET` | Protects `/api/cron/*` |

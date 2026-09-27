@@ -29,11 +29,19 @@ export class OrderError extends Error {
   }
 }
 
-export async function deliveryFee(fulfilment: Fulfil, subtotalCents: number, tier: string) {
+/**
+ * Delivery for a bag: the usual rules for stocked items (free over the threshold), plus the print partner's courier
+ * for made-to-order merch — always charged on top, since merch ships on its own from the partner.
+ */
+export async function deliveryFee(fulfilment: Fulfil, lines: { variantId: string; totalCents: number }[], tier: string) {
   const s = (await getSettings()).ecommerce;
-  if (fulfilment === "COLLECT" || subtotalCents >= s.freeDeliveryOverCents) return 0;
-  if (fulfilment === "SAME_DAY") return tier === "BLOOM" || tier === "HARVEST" ? 0 : s.sameDayFeeCents;
-  return s.courierFeeCents;
+  const made = await madeToOrder(lines.map((l) => l.variantId));
+  const stocked = lines.filter((l) => !made.has(l.variantId));
+  const subtotal = stocked.reduce((a, l) => a + l.totalCents, 0);
+  const merch = made.size ? s.merchCourierCents : 0;
+  if (!stocked.length || fulfilment === "COLLECT" || subtotal >= s.freeDeliveryOverCents) return merch;
+  if (fulfilment === "SAME_DAY") return merch + (tier === "BLOOM" || tier === "HARVEST" ? 0 : s.sameDayFeeCents);
+  return merch + s.courierFeeCents;
 }
 
 export async function routingCandidates(variantIds: string[]): Promise<RouteCandidate[]> {
@@ -103,7 +111,7 @@ export async function placeOrder(input: CheckoutInput) {
   );
   if (!route.ok) throw new OrderError(route.reason, route.alternatives);
 
-  const fee = await deliveryFee(input.fulfilment, q.totalCents, customer.tier);
+  const fee = await deliveryFee(input.fulfilment, q.lines, customer.tier);
   const total = q.totalCents + fee;
   const maxPoints = Math.floor((total * settings.loyalty.maxRedeemPct) / 100 / 100);
   const points = Math.max(0, Math.min(Math.floor(input.points ?? 0), customer.points, maxPoints));
