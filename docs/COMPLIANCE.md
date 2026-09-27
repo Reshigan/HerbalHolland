@@ -1,0 +1,63 @@
+# Compliance by design
+
+How the platform encodes South African rules. Background, dates and sources:
+[research/COMPLIANCE-RESEARCH.md](research/COMPLIANCE-RESEARCH.md). **This is not legal advice** — have counsel sign off
+the settings below before launch and whenever the law moves.
+
+## Legal position (as researched on 27 Sep 2026)
+
+- Private adult use, possession and cultivation are decriminalised (*Prince*, 2018). The Cannabis for Private Purposes
+  Act (2024) is **not yet in force**; draft regulations were published in February 2026; a Cannabis Bill for commercial
+  trade is expected from mid-2027. On 18 Sep 2026 the Justice Minister confirmed the regulations still need Parliament.
+- Commercial THC trade is therefore lawful only within **SAHPRA licensing**. Herbal Holland states it is
+  SAHPRA-registered; the platform's default mode matches that: **MEDICAL**.
+- Lawfully sellable today: Schedule 0 CBD within limits, hemp products (≤ 2% THC hemp; non-consumables), accessories,
+  apparel, grow equipment (seeds: unclear — review).
+
+## The compliance engine
+
+Pure rules in `src/lib/compliance.ts`, evaluated server-side for every POS sale and online order
+(`src/server/compliance.ts → evaluateBasket`). The rules are **data** (`HQ → Compliance`, stored in `Setting`), so they
+change without a deploy.
+
+| Setting | Default | Effect |
+|---|---|---|
+| `thcMode` | `MEDICAL` | Licensed products need an active patient authorisation with monthly headroom and an authorised dispenser. `ADULT_USE` switches to verified adults with a daily limit. |
+| `licensedOnly` | `THC` | Classes sellable only at stores whose `licences` include them (per-store, with `licenceRef` printed on invoices). |
+| `minAge` / `ageRestricted` | 18 / THC, CBD, HEMP, ACCESSORY, GROW | ID check required (member verified, ID sighted, or SA ID number checked); under-18s blocked even if an ID was sighted. |
+| `channels` | THC: POS + click & collect only | Class × channel matrix (POS, COLLECT, SAME_DAY, COURIER). |
+| `dailyLimitGrams` | 30 | ADULT_USE daily cap per customer (posted sales + open orders). |
+| `tobaccoBillMode` | off | When Bill B33-2022 commences: related products (pipes, papers, vapes) become in-store only and earn no Guilders. |
+
+## Rule-by-rule
+
+| Obligation | Where it's enforced |
+|---|---|
+| SAHPRA medical pathway: authorisation on file, monthly quantity, authorised dispenser | `PatientAuth` register (no clinical condition stored), `User.canDispense`, `checkCompliance` (`needsPrescription`), dispensing register report |
+| Schedule 6 register | Reports → Compliance → dispensing register (patient, authorisation, prescriber, batch, dispenser) |
+| No advertising of medicines to the public | Storefront hides licensed products unless a signed-in patient has an active authorisation (MEDICAL mode); menu boards show a "ask our pharmacist" panel instead |
+| Medicines Act s18A — no bonus/rebate/incentive schemes on medicines | `incentiveExcluded()` removes licensed lines from promotions, member/volume prices, markdowns and Guilders earn (`quote`, `postSaleTx`) |
+| 18+ | Age gate online; ID checks at the till and at every handover/delivery (`Order.idChecked`); `AgeCheck` recorded per sale |
+| Schedule 0 CBD (GN 586 of 2020): ≤ 600 mg per pack, ≤ 20 mg/day, low-risk claims, ≤ 0.001% THC in consumables | `validateCbdProduct()` on the product master; approved claims only on product pages |
+| Advertising (ARB Code, Medicines Act s20) | `screenCopy()` lints campaign copy and product claims (medical claims, conditions, intoxication, minors, absolute claims) and blocks sends |
+| POPIA s69 — consent / soft opt-in, opt-out in every message | Per-channel consent flags + `ConsentEvent` ledger; campaigns send only to consenting members; sender footer + STOP on every message |
+| CPA Reg 4 contact windows (no Sundays/public holidays; Sat 09–13; weekdays 08–20) | `marketingWindow()` with the SA public-holiday calendar; out-of-window sends are auto-scheduled (`nextMarketingSlot`) |
+| CPA 2026 opt-out registry (monthly cleansing) | `Suppression` table (NCC registry imports + refusals) checked on every send |
+| POPIA minimisation, special personal information | SA ID stored as HMAC + last 4; no diagnoses; exports/anonymisation tools; access scoped by role |
+| SARS tax invoices | Every sale emailed as an abridged tax invoice (≤ R5,000) or full tax invoice (buyer name/address/VAT captured above R5,000); serials per device; non-VAT-vendor franchisees issue plain invoices with no VAT |
+| Competition Act s5(2) — no minimum resale price maintenance | RRP is a recommendation; franchisees set shelf prices; margin guardrails warn but never block |
+| CPA franchise rules — marketing fund in a separate account | Levy tracked separately on statements and in HQ finance (levy collected vs campaign spend) |
+| Product safety & recalls | Batch status (quarantine/recall) blocks sale instantly network-wide; trace to stores and customers; announcement with acknowledgement; customer notification |
+| Cannabis waste destruction | Adjustment reason `DESTROYED` with witness, in the movement ledger |
+| Audit | `AuditLog` for sales exceptions, price overrides, stock takes, recalls, settings, campaigns, logins |
+
+## Operating procedures the software assumes
+
+1. Legal review of MEDICAL-mode flows, the claims library and the class × channel matrix.
+2. Each store's licences/permits captured in HQ before it sells licensed products.
+3. Dispensers designated per store (`canDispense`) and trained.
+4. Patient authorisation documents stored in document storage (`documentRef`), verified by a dispenser.
+5. Direct-marketing registration with the NCC; monthly registry import into Suppression.
+6. Information Officer registered; privacy notice and PAIA manual published (links in the storefront footer).
+7. Before switching to `ADULT_USE`: confirm the commencement notice, limits and channel rules, then update settings per
+   region/store.

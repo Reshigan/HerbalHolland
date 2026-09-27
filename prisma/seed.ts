@@ -344,7 +344,7 @@ async function main() {
       };
       if (c.first && c.last && c.first > c.last) c.first = new Date(c.last.getTime() - 30 * DAY);
       if (c.source === "REFERRAL" && customers.length) c.referredById = pick(customers).id;
-      if (freq !== "prospect" && chance(0.46)) {
+      if (freq !== "prospect" && chance(0.62)) {
         const from = new Date(Math.min(createdAt.getTime(), daysAgo(DAYS).getTime()) - int(0, 120) * DAY);
         const to = chance(0.08) ? daysAgo(-int(2, 12)) : new Date(from.getTime() + pick([180, 365]) * DAY);
         c.auth = { id: uid(), from, to: to < daysAgo(DAYS) ? daysAgo(-int(30, 200)) : to, limit: pick([30, 45, 60, 90]), grams: [] };
@@ -402,7 +402,7 @@ async function main() {
   const variantStats = new Map<string, { storeId: string; date: string; variantId: string; units: number; netCents: number; costCents: number }>();
   const sold14 = new Map<string, number[]>(); // store|variant → units per day index
   const THC_CATS = ["flower", "pre-rolls", "edibles", "vapes", "concentrates"];
-  const CAT_W: [string, number][] = [["flower", 0.42], ["pre-rolls", 0.14], ["edibles", 0.09], ["vapes", 0.08], ["concentrates", 0.04], ["wellness", 0.12], ["accessories", 0.13], ["grow", 0.04], ["apparel", 0.05]];
+  const CAT_W: [string, number][] = [["flower", 0.5], ["pre-rolls", 0.15], ["edibles", 0.08], ["vapes", 0.08], ["concentrates", 0.04], ["wellness", 0.11], ["accessories", 0.09], ["grow", 0.02], ["apparel", 0.025]];
   const variantsIn = (catSlug: string) => variants.filter((v) => v.cat === catSlug);
   const campaignSends: { id: string; ts: Date; promoId?: string }[] = [];
   const heritageCampaignId = uid(), winbackCampaignId = uid(), balmCampaignId = uid();
