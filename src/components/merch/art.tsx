@@ -52,6 +52,8 @@ type Art = { w: number; h: number; ink: InkName; body: React.ReactNode; note: st
 export const ART: Record<ArtKey, Art> = {
   // The stitch cut of the Mark: tee chest, cap, bucket hat and beanie — one design, one digitised file.
   "mark-stitch": { w: 50, h: 50, ink: "sunset", note: "Stitch cut of the Mark, 50 mm", body: <M x={0} y={0} size={50} heavy /> },
+  // Beanie cuff: the same cut at 40 mm — the most a folded rib-knit cuff takes (digitised for knit).
+  "mark-stitch-cuff": { w: 40, h: 40, ink: "sunset", note: "Stitch cut of the Mark, 40 mm, digitised for rib knit", body: <M x={0} y={0} size={40} heavy /> },
 
   // Hoodie chest (black thread on Sunset): the horizontal lock-up, cut for stitching.
   "lockup-stitch": {

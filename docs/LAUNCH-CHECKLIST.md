@@ -27,7 +27,7 @@ Tick every line before the first store trades on the platform.
 - [ ] Merch partner agreed (Lucani trade account; OneOff as fallback): prices at 1/5/10 units, digitising, blanks, courier rates, white-label packing, payment terms
 - [ ] Partner confirms in writing that it makes merch for a CBD/wellness brand; stitch files and any partner-made artwork owned by (or released to) Herbal Holland
 - [ ] Each stitched design digitised once; thread sew-out approved against Sunset 500; sample of every piece approved (placements, wash test, hoodie blank colour)
-- [ ] Beanie and bucket hat: a white-label source confirmed before they go on sale
+- [ ] Lucani adds the beanie and bucket hat (Captivity blanks, no minimum); cuff sample approved (40 mm, outer layer only) — else GetCapped with blind shipping confirmed in writing
 - [ ] Variant costs and merch partner codes set in HQ → Catalogue; `POD_EMAIL` and the merch courier fee set
 - [ ] DC team trained on **Merch shipped** (tracking from the partner's email) and on chasing late orders
 

@@ -92,7 +92,7 @@ const SHAPES: Record<Garment, Record<Side, Shape>> = {
       body: "M30 70 C29 41 43 22 60 22 C77 22 91 41 90 70 Z",
       trims: ["M27 63 L93 63 L94 89 C94 90.4 93 91 91.6 91 L28.4 91 C27 91 26 90.4 26 89 Z"],
       seams: ["M44 30 L40 63", "M52 24.5 L50 63", "M60 22.5 L60 63", "M68 24.5 L70 63", "M76 30 L80 63"],
-      place: { front: { cx: 60, top: 67.5, unitsPerMm: 0.34 } },
+      place: { front: { cx: 60, top: 70, unitsPerMm: 0.34 } },
     },
     back: { body: "M30 70 C29 41 43 22 60 22 C77 22 91 41 90 70 Z", place: {} },
   },

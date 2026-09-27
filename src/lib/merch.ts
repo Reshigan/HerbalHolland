@@ -4,7 +4,7 @@
 // printed (DTF: printed film, heat-pressed). Pieces the partner can't make yet are held back (`pending`).
 // Artwork lives in src/components/merch/art.tsx; the partner's files are rendered by scripts/merch-export.tsx.
 
-export type ArtKey = "mark-stitch" | "lockup-stitch" | "heritage-stitch" | "window-back" | "sunset-back" | "tote-front";
+export type ArtKey = "mark-stitch" | "mark-stitch-cuff" | "lockup-stitch" | "heritage-stitch" | "window-back" | "sunset-back" | "tote-front";
 export type Garment = "tee" | "hoodie" | "crew" | "cap" | "bucket" | "beanie" | "tote";
 export type Side = "front" | "back";
 export type Print = { art: ArtKey; side: Side; technique: "Embroidery" | "DTF"; where: string };
@@ -43,14 +43,12 @@ export const MERCH: MerchItem[] = [
     prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Front panels, centred over the seam" }],
   },
   {
-    slug: "sunset-bucket-hat", name: "Sunset Bucket Hat", blank: "Black cotton-twill bucket hat", garment: "bucket", colour: "black", hero: "front",
+    slug: "sunset-bucket-hat", name: "Sunset Bucket Hat", blank: "Black 100% cotton-twill bucket hat, unstructured (Captivity Phoenix, sourced by the partner)", garment: "bucket", colour: "black", hero: "front",
     prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Front, centred, 20 mm above the brim seam" }],
-    pending: "Our partner doesn't make bucket hats yet — on sale once a white-label source is confirmed",
   },
   {
-    slug: "windmill-beanie", name: "Windmill Beanie", blank: "Black rib-knit cuffed beanie", garment: "beanie", colour: "black", hero: "front",
-    prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Cuff, centred" }],
-    pending: "Our partner doesn't make beanies yet — on sale once a white-label source is confirmed",
+    slug: "windmill-beanie", name: "Windmill Beanie", blank: "Black ribbed cuffed beanie (Captivity Glacier Ribbed, sourced by the partner)", garment: "beanie", colour: "black", hero: "front",
+    prints: [{ art: "mark-stitch-cuff", side: "front", technique: "Embroidery", where: "Folded cuff, centred — through the outer layer only" }],
   },
   {
     slug: "windmill-tote", name: "Windmill Tote", blank: "Black heavy cotton-canvas tote (confirm the blank with the partner)", garment: "tote", colour: "black", hero: "front",

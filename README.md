@@ -59,8 +59,8 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Herbal Holland Rewards** — free national membership, easy phone sign-up (SMS code), digital card, instant tier
   savings (Seed 3% → Harvest 10%), points (1 point = R1), birthday and referral rewards, consent centre, cross-store
   settlement between franchisees.
-- **Merch, made to order** — an embroidered collection (tee, hoodie, crewneck, cap, tote; beanie and bucket hat held
-  back) made one at a time in South Africa by our merch partner and couriered white-label to the customer (courier on
+- **Merch, made to order** — an embroidered collection (tee, hoodie, crewneck, cap, bucket hat, beanie; printed
+  tote) made one at a time in South Africa by our merch partner and couriered white-label to the customer (courier on
   top); no stock, no minimums. Files for the partner: `npx tsx scripts/merch-export.tsx` → `public/merch/print`
   (vector PDF, SVG, 300 dpi PNG); specs in the brand book (`/brand#merch`).
 - **Launch programme** — pre-launch waitlist with a referral ladder, numbered Founding Members (Sprout for a year),

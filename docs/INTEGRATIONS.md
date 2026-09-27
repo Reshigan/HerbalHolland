@@ -75,8 +75,12 @@ fleece) — ask for heavier.
 - **Runner-up: OneOff, Johannesburg** — better 100% cotton blanks (260 g hoodie, 220 g tee), DTF++ with an orange ink
   channel, embroidery up to 27 × 27 cm, flat R150 drop-ship; but its terms bar products that "encourage the use of
   drugs" and it doesn't proof by default.
-- **Beanies and bucket hats** (designed, held back): Lucani doesn't make them. GetCapped (Johannesburg) embroiders them
-  from one piece with embroidery included, but has no white-label programme — ask before adding them.
+- **Beanies and bucket hats:** Lucani embroiders trade blanks it buys per order (its quote form already lists both):
+  Captivity's Glacier Ribbed cuffed beanie and Phoenix 100% cotton-twill bucket hat (Cape Town wholesaler, no minimum,
+  ready in 24–48 h), or TwentyFour's Rib Knit Cuffed and Max Wash for a more premium feel. The beanie cuff takes the
+  40 mm cut of the Mark, stitched through the outer layer only. Fallback: GetCapped (Johannesburg) — beanie R99.95,
+  Phoenix bucket hat R129.95, embroidery included, R180 digitising once, 5–7 days + 2–3 courier — only if it confirms
+  blind shipping in writing.
 - No global print-on-demand network embroiders in South Africa (Printful, Gelato, Printify, Teelaunch).
 
 No South African partner has an API, so the platform works by email:
@@ -90,7 +94,8 @@ No South African partner has an API, so the platform works by email:
 4. On delivery the DC marks the order delivered, as for any courier order.
 
 Before the first sale, get in writing: that they'll make merch for a CBD/hemp wellness brand (send the logo and a back
-print); embroidery at quantity 1 with no per-order setup or reseller minimum; digitising cost per design and who owns
+print); that they'll add the beanie and bucket hat as trade products (blanks bought per order or a few kept in stock,
+and the extra lead time); embroidery at quantity 1 with no per-order setup or reseller minimum; digitising cost per design and who owns
 the stitch file; per-piece prices at 1, 5 and 10 units for the tee, hoodie, crewneck, cap and tote; their thread
 chart (a sew-out of the closest match to Sunset 500 #F5913C); which blanks (black and orange in stock, heavier
 options, a crewneck and a tote); white-label details (plain packaging, no partner invoice inside, our insert, return
