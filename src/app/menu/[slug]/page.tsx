@@ -70,14 +70,14 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
                     <li key={i.variantId} className="flex items-center gap-[1.2vw] rounded-[1.8vh] border border-ink-800 bg-ink-900/70 p-[1.3vh] pr-[1.6vw]">
                       <ProductArt slug={i.slug} strain={i.strain} regClass={i.regClass} label={i.name} className="h-[9.5vh] w-[9.5vh] shrink-0 rounded-[1.3vh]" />
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-[2.6vh] font-semibold leading-tight text-white">{i.name}</div>
+                        <div className="line-clamp-2 text-[2.5vh] font-semibold leading-[1.15] text-white">{i.name}</div>
                         <div className="mt-[0.3vh] truncate text-[1.9vh] text-ink-400">
                           {i.variant}
                           {i.heritage && <span className="ml-[0.8vw] font-semibold text-oranje-400">Heritage</span>}
                           {i.qty <= 3 && <span className="ml-[0.8vw] font-semibold text-amber-100">Last few</span>}
                         </div>
                       </div>
-                      <div className="tnum shrink-0 text-right font-display text-[3.2vh] font-semibold text-white">{zar(i.priceCents)}</div>
+                      <div className="tnum shrink-0 text-right font-display text-[3vh] font-semibold text-white">{zar(i.priceCents)}</div>
                     </li>
                   ))}
                 </ul>
@@ -119,8 +119,8 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
               <ul className="mt-[2vh] space-y-[2vh]">
                 {deals.slice(0, 4).map((d) => (
                   <li key={d.id}>
-                    <div className="font-display text-[2.6vh] font-semibold leading-tight text-white">{dealHeadline(d)}</div>
-                    <div className="mt-[0.4vh] text-[1.7vh] leading-snug text-ink-300">{d.description ?? d.name}</div>
+                    <div className="font-display text-[2.5vh] font-semibold leading-tight text-white">{d.name}</div>
+                    <div className="mt-[0.4vh] text-[1.7vh] leading-snug text-ink-300">{d.description ?? dealHeadline(d)}</div>
                   </li>
                 ))}
               </ul>
