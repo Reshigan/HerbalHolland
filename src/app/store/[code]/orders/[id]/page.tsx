@@ -122,6 +122,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                       <div className="flex items-center gap-2 text-xs text-ink-400">
                         <span className="font-mono">{l.variant.sku}</span>
                         {l.licensed && <Badge tone="violet">Licensed</Badge>}
+                        {l.made && <Badge tone="orange">Made to order · ships from the print partner</Badge>}
                       </div>
                     </Td>
                     <Td align="right" className="font-semibold text-ink-950">{l.qty}</Td>

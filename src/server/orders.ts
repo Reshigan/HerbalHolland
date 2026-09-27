@@ -2,6 +2,7 @@
 // Stock is reserved while an order is open and posted as a Sale (at the fulfilling
 // store, which is merchant of record) on handover/dispatch.
 import { randomUUID } from "node:crypto";
+import { madeToOrder } from "./merch";
 import { db, tx } from "./db";
 import { quote } from "./pricing";
 import { availability, availKey } from "./inventory";
@@ -85,16 +86,20 @@ export async function placeOrder(input: CheckoutInput) {
   const customer = comp.ctx.record!;
 
   const requiredLicences = [...new Set(q.lines.filter((l) => settings.compliance.licensedOnly.includes(l.regClass)).map((l) => l.regClass))];
+  // Made-to-order merch ships from the print partner: courier only, and it needs no stock to route.
+  const made = await madeToOrder(q.lines.map((l) => l.variantId));
+  if (made.size && input.fulfilment !== "COURIER") throw new OrderError("Made-to-order merch ships by courier — choose delivery");
+  const stocked = q.lines.filter((l) => !made.has(l.variantId));
   const route = routeOrder(
     {
       fulfilment: input.fulfilment,
       storeId: input.storeId,
       city: input.address?.city ?? null,
       province: input.address?.province ?? null,
-      lines: q.lines.map((l) => ({ variantId: l.variantId, qty: l.qty })),
+      lines: stocked.map((l) => ({ variantId: l.variantId, qty: l.qty })),
       requiredLicences,
     },
-    await routingCandidates(q.lines.map((l) => l.variantId)),
+    await routingCandidates(stocked.map((l) => l.variantId)),
   );
   if (!route.ok) throw new OrderError(route.reason, route.alternatives);
 
@@ -279,11 +284,12 @@ export async function advanceOrder(
 
   const msg: Partial<Record<OrderStatus, string>> = {
     READY: `Herbal Holland: order ${o.code} is ready at ${o.store.name}. Show code ${o.collectionCode} and your ID (18+) to collect.`,
-    OUT_FOR_DELIVERY: `Herbal Holland: order ${o.code} is on its way. Have your ID (18+) ready for the driver.`,
+    OUT_FOR_DELIVERY: `Herbal Holland: order ${o.code} is on its way${opts.trackingNo ? ` (${opts.courier ?? "courier"} tracking ${opts.trackingNo})` : ""}.${ageRestricted ? " Have your ID (18+) ready for the driver." : ""}`,
     COMPLETED: `Herbal Holland: order ${o.code} complete. Thanks — your points have been added.`,
     CANCELLED: `Herbal Holland: order ${o.code} was cancelled. Any payment or points used have been returned.`,
   };
-  if (msg[to]) await notifyCustomer(o.customer, msg[to]!);
+  // Delivery orders are "ready" only on the packing bench: the customer hears when they're on the way.
+  if (msg[to] && !(to === "READY" && o.fulfilment !== "COLLECT")) await notifyCustomer(o.customer, msg[to]!);
   if (postedSaleId && o.customer.email) queueSaleInvoice(postedSaleId, o.customer.email);
   return updated;
 }

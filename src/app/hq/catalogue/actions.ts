@@ -105,6 +105,8 @@ export async function saveVariant(productId: string, variantId: string | null, _
   const barcode = str(fd, "barcode").replace(/\s/g, "") || null;
   if (barcode && !/^\d{8,14}$/.test(barcode)) fields.barcode = "8–14 digits (EAN/UPC)";
   else if (barcode && (await db.variant.count({ where: { barcode, ...(variantId && { id: { not: variantId } }) } }))) fields.barcode = "Barcode already in use";
+  const podSku = str(fd, "podSku").trim() || null; // made to order by the print partner
+  if (podSku && !/^[A-Za-z0-9._\/-]{2,64}$/.test(podSku)) fields.podSku = "The partner's code: letters, digits, dots, dashes";
   const name = str(fd, "name");
   if (!name) fields.name = "Required";
   const grams = parseNum(str(fd, "grams"));
@@ -116,7 +118,7 @@ export async function saveVariant(productId: string, variantId: string | null, _
   if (wholesaleCents == null || wholesaleCents < 0) fields.wholesale = "Ex VAT";
   if (costCents == null || costCents < 0) fields.cost = "Ex VAT";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
-  const data = { sku, barcode, name, grams, priceCents: priceCents!, wholesaleCents: wholesaleCents!, costCents: costCents!, active: bool(fd, "active") };
+  const data = { sku, barcode, podSku, name, grams, priceCents: priceCents!, wholesaleCents: wholesaleCents!, costCents: costCents!, active: bool(fd, "active") };
 
   if (!variantId) {
     const v = await tx(async (t) => {

@@ -188,7 +188,10 @@ async function main() {
       const wholesale = Math.round((price / 1.15) * (p.reg === "THC" ? 0.52 : p.reg === "APPAREL" ? 0.5 : 0.55));
       const cost = Math.round(wholesale * (p.reg === "THC" ? 0.55 : 0.62));
       const sku = `${CAT_CODE[p.cat]}-${code}${pi}-${label.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6)}`;
-      variantRows.push({ id, productId: pid, sku, barcode: eanCheck(`6001234${String(ean++).padStart(5, "0")}`), name: label, grams, priceCents: price, wholesaleCents: wholesale, costCents: cost, sortOrder: vi });
+      // Made-to-order merch costs what the print partner charges and has no stock anywhere.
+      const podSku = p.pod ? `${p.pod.code}-${label === "One size" ? "OS" : label}` : null;
+      variantRows.push({ id, productId: pid, sku, barcode: eanCheck(`6001234${String(ean++).padStart(5, "0")}`), name: label, grams, priceCents: price, wholesaleCents: wholesale, costCents: p.pod ? p.pod.cost * 100 : cost, podSku, sortOrder: vi });
+      if (podSku) return;
       variants.push({ id, sku, productId: pid, slug: p.slug, name: p.name, label, grams, price, wholesale, cost, reg: p.reg, cat: p.cat, heritage: !!p.heritage, featured: !!p.featured, tobacco: !!p.tobacco, line: p.line, shelfMonths: p.shelfMonths, supplier: p.supplier, thc: p.thc, cbd: p.cbd, terps: p.terps });
     });
   });
@@ -1093,11 +1096,12 @@ async function main() {
     }
     return NOW;
   };
-  const vids = (...slugs: string[]) => variants.filter((v) => slugs.includes(v.slug)).map((v) => v.id);
+  // All variants of these products — made-to-order merch included (it isn't in the stock simulation's `variants`).
+  const vids = (...slugs: string[]) => variantRows.filter((v) => slugs.some((s) => productIdBySlug[s] === v.productId)).map((v) => v.id as string);
   const hoodie = uid();
   await db.drop.createMany({
     data: [
-      { id: uid(), slug: "heritage-pin-and-hat", name: "Heritage Month: pin + bucket hat", blurb: "The windmill in hard enamel and our sun-ready bucket hat — a small run for Heritage Month.", variantIds: vids("windmill-enamel-pin", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
+      { id: uid(), slug: "heritage-cap-and-hat", name: "Heritage Month: cap + bucket hat", blurb: "The Mark, embroidered on our cap and our sun-ready bucket hat — made to order for Heritage Month.", variantIds: vids("windmill-cap", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
       { id: hoodie, slug: "sunset-hoodie-no-1", name: "Sunset Hoodie No. 1", blurb: "A numbered first run of our brushed-fleece hoodie. One per member; Harvest members get in two hours early.", variantIds: vids("sunset-hoodie"), startsAt: nextAt(5, 9), earlyTier: "HARVEST", earlyMinutes: 120, perMemberLimit: 1 },
     ],
   });

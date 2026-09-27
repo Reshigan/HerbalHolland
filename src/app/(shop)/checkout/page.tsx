@@ -5,6 +5,7 @@ import { ArrowRight, CalendarClock, ChevronLeft, IdCard, ShieldCheck, Sparkles }
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
+import { madeToOrder } from "@/server/merch";
 import { quote } from "@/server/pricing";
 import { evaluateBasket } from "@/server/compliance";
 import { deliveryFee, routingCandidates } from "@/server/orders";
@@ -108,13 +109,14 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   const compItems = q.lines.map((l) => ({ name: l.name, regClass: l.regClass, grams: l.grams, qty: l.qty, tobaccoRelated: l.tobaccoRelated }));
   const keys: SellChannel[] = ["COLLECT", "SAME_DAY", "COURIER"];
-  const [comps, fees, cands, lastAddress, drops, dropMsgs] = await Promise.all([
+  const [comps, fees, cands, lastAddress, drops, dropMsgs, made] = await Promise.all([
     Promise.all(keys.map((channel) => evaluateBasket({ items: compItems, channel, customerId: customer.id, storeLicences: settings.compliance.licensedOnly }))),
     Promise.all(keys.map((f) => deliveryFee(f as "COLLECT", q.totalCents, customer.tier))),
     routingCandidates(q.lines.map((l) => l.variantId)),
     db.order.findFirst({ where: { customerId: customer.id, fulfilment: { not: "COLLECT" }, addressLine: { not: null } }, orderBy: { createdAt: "desc" }, select: { addressLine: true, suburb: true, city: true, province: true, postalCode: true } }),
     dropsFor(q.lines.map((l) => l.variantId)),
     dropBlocks(customer.id, q.lines),
+    madeToOrder(q.lines.map((l) => l.variantId)),
   ]);
   // Limited drops (members only, early access, per-member limits): say what's wrong in plain words, before paying.
   const dropNotes = dropMsgs.map((m) => {
@@ -126,6 +128,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   const eligibleBase = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
   const options: FulfilOption[] = keys.map((k, i) => {
     const blocks = comps[i].blocks.filter((b) => !AGE_BLOCK.test(b));
+    // Made-to-order merch is couriered by the print partner, so a bag with merch goes by courier.
+    if (made.size && k !== "COURIER") blocks.unshift("Made-to-order merch ships by courier");
     return {
       key: k as FulfilOption["key"],
       ok: blocks.length === 0,

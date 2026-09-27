@@ -34,6 +34,7 @@ import { fmtDate, fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { TierKey } from "@/lib/loyalty-rules";
 import { cn } from "@/lib/cn";
+import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
 
 type Params = { slug: string };
 type SP = { v?: string; reviews?: string };
@@ -98,9 +99,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const rewardsCents = guestRewards != null ? withDeal(guestRewards, directDeal(product, pricing)) : null;
   const channels = settings.compliance.channels;
   const inStoreOnly = settings.compliance.tobaccoBillMode && product.tobaccoRelated;
-  const canShip = !licensed && !inStoreOnly && channels.COURIER.includes(product.regClass);
-  const canCollect = !inStoreOnly && channels.COLLECT.includes(product.regClass);
-  const networkQty = net.all.reduce((s, id) => s + Math.max(0, networkAvail.get(availKey(id, variant.id))?.available ?? 0), 0);
+  // Made-to-order merch is printed by our partner for each order: always available, courier only.
+  const made = !!variant.podSku;
+  const canShip = !licensed && !inStoreOnly && (made || channels.COURIER.includes(product.regClass));
+  const canCollect = !made && !inStoreOnly && channels.COLLECT.includes(product.regClass);
+  const networkQty = made ? 99 : net.all.reduce((s, id) => s + Math.max(0, networkAvail.get(availKey(id, variant.id))?.available ?? 0), 0);
   const here = store ? stores.find((x) => x.store.id === store.id) : undefined;
   const hereQty = here?.qty[variant.id] ?? 0;
   const withStock = stores.filter((x) => (x.qty[variant.id] ?? 0) > 0);
@@ -350,10 +353,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 <div className="flex items-start gap-3 p-4">
                   <Truck className={cn("mt-0.5 h-5 w-5 shrink-0", networkQty > 0 ? "text-leaf-500" : "text-ink-500")} />
                   <div className="text-sm">
-                    <div className="font-semibold text-white">{networkQty > 0 ? "Ships nationwide" : "Out of stock for delivery"}</div>
+                    <div className="font-semibold text-white">{made ? "Made to order · ships nationwide" : networkQty > 0 ? "Ships nationwide" : "Out of stock for delivery"}</div>
                     <div className="text-ink-400">
+                      {made && `Printed for you in South Africa and couriered to your door in ${MADE_TO_ORDER_LEAD}, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}. It ships on its own, separately from anything else in your order.`}
                       {store?.sameDay && hereQty > 0 && channels.SAME_DAY.includes(product.regClass) ? `Same-day delivery from ${store.name} when you order by ${settings.ecommerce.sameDayCutoffHour}:00. ` : ""}
-                      Courier in 2–4 working days, free over {zar(settings.ecommerce.freeDeliveryOverCents)}. ID (18+) checked on delivery.
+                      {!made && `Courier in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}. ID (18+) checked on delivery.`}
                     </div>
                   </div>
                 </div>

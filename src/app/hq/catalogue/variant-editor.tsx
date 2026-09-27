@@ -11,7 +11,7 @@ import { saveVariant } from "./actions";
 
 export type VariantRow = {
   id: string; sku: string; barcode: string | null; name: string; grams: number | null;
-  priceCents: number; wholesaleCents: number; costCents: number; active: boolean; batches: number; onHand: number;
+  priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; batches: number; onHand: number;
 };
 
 const rand = (c: number) => (c / 100).toFixed(2);
@@ -54,6 +54,10 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
         <Field label="Barcode" htmlFor={`barcode-${k}`} className="col-span-2 md:col-span-1 xl:col-span-2">
           <Input id={`barcode-${k}`} name="barcode" defaultValue={v?.barcode ?? ""} inputMode="numeric" className="font-mono text-[0.8rem]" />
           <FieldError name="barcode" />
+        </Field>
+        <Field label="Print partner code" hint="Made to order: the partner's product code. Leave empty for stocked items." htmlFor={`podSku-${k}`} className="col-span-2 md:col-span-1 xl:col-span-2">
+          <Input id={`podSku-${k}`} name="podSku" defaultValue={v?.podSku ?? ""} className="font-mono text-[0.8rem]" />
+          <FieldError name="podSku" />
         </Field>
         <Field label="Size / name" htmlFor={`name-${k}`}>
           <Input id={`name-${k}`} name="name" defaultValue={v?.name} placeholder="3.5g" required />

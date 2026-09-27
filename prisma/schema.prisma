@@ -281,7 +281,8 @@ model Variant {
   grams          Float? // dried-flower equivalent grams, used for purchase limits
   priceCents     Int // national RRP, VAT incl.
   wholesaleCents Int // price to stores, VAT excl.
-  costCents      Int // HQ landed cost, VAT excl.
+  costCents      Int // HQ landed cost, VAT excl. (made to order: the print partner's price)
+  podSku         String? // print partner's product code: set = made to order (no stock; ships from the partner)
   active         Boolean @default(true)
   sortOrder      Int     @default(0)
 
@@ -857,6 +858,8 @@ model Order {
   idChecked      Boolean       @default(false) // 18+ ID check recorded at handover / proof of delivery
   courier        String?
   trackingNo     String?
+  podRef         String? // print partner's order id for made-to-order lines
+  podStatus      String? // partner's last reported status
   promoCode      String?
   promotionId    String?
   campaignId     String?

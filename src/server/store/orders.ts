@@ -12,7 +12,7 @@ export async function orderForStore(storeId: string, id: string) {
     where: { id, storeId },
     include: {
       customer: true,
-      lines: { include: { variant: { select: { id: true, sku: true, name: true, grams: true, product: { select: { name: true, regClass: true } } } } } },
+      lines: { include: { variant: { select: { id: true, sku: true, name: true, grams: true, podSku: true, product: { select: { name: true, regClass: true } } } } } },
       sale: { select: { id: true, number: true, staff: { select: { name: true } } } },
     },
   });
@@ -34,11 +34,13 @@ export async function orderForStore(storeId: string, id: string) {
       l.qty,
     );
     const code = new Map(mine.map((x) => [x.batchId, x.batch]));
+    const made = !!l.variant.podSku; // printed and shipped by the print partner: nothing to pick here
     return {
       ...l,
+      made,
       onHand: avail.get(availKey(storeId, l.variantId))?.onHand ?? 0,
-      pick: pick.allocations.map((a) => ({ code: code.get(a.batchId)?.code ?? "—", expiresAt: code.get(a.batchId)?.expiresAt ?? null, qty: a.qty })),
-      short: pick.short,
+      pick: made ? [] : pick.allocations.map((a) => ({ code: code.get(a.batchId)?.code ?? "—", expiresAt: code.get(a.batchId)?.expiresAt ?? null, qty: a.qty })),
+      short: made ? 0 : pick.short,
       licensed: c.licensedOnly.includes(l.variant.product.regClass),
     };
   });

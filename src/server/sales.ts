@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { db, tx, type Tx } from "./db";
 import { quote, type Quote } from "./pricing";
 import { takeStock, putStock, allocationCost } from "./inventory";
+import { madeToOrder } from "./merch";
 import { bumpStoreStat, bumpVariantStats, paymentColumn, type StoreStatDelta } from "./rollups";
 import { recordPurchase, redeemPoints, addPoints } from "./loyalty";
 import { getSettings } from "./settings";
@@ -86,12 +87,15 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
 
   let cost = 0, units = 0;
   const vstats: { variantId: string; units: number; netCents: number; costCents: number }[] = [];
+  const made = await madeToOrder(a.quote.lines.map((l) => l.variantId), t); // no stock: costed at the partner's price
   for (const l of a.quote.lines) {
-    const allocations = await takeStock(t, {
-      storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "POS" ? "SALE" : "ONLINE",
-      saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true,
-    });
-    const c = allocationCost(allocations);
+    const allocations = made.has(l.variantId)
+      ? []
+      : await takeStock(t, {
+          storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "POS" ? "SALE" : "ONLINE",
+          saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true,
+        });
+    const c = made.has(l.variantId) ? made.get(l.variantId)! * l.qty : allocationCost(allocations);
     cost += c;
     units += l.qty;
     await t.saleLine.create({

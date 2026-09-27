@@ -26,3 +26,6 @@ export const MERCH: MerchItem[] = [
 ];
 
 export const merchFor = (slug: string) => MERCH.find((m) => m.slug === slug);
+
+/** How long the print partner takes to make and deliver an order (shown to shoppers). */
+export const MADE_TO_ORDER_LEAD = "5–7 working days";

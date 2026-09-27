@@ -91,7 +91,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             readOnly={!edit}
             variants={product.variants.map((v) => ({
               id: v.id, sku: v.sku, barcode: v.barcode, name: v.name, grams: v.grams, priceCents: v.priceCents, wholesaleCents: v.wholesaleCents,
-              costCents: v.costCents, active: v.active,
+              costCents: v.costCents, podSku: v.podSku, active: v.active,
               batches: batches.find((b) => b.variantId === v.id)?._count ?? 0,
               onHand: stock.find((s) => s.variantId === v.id)?._sum.onHand ?? 0,
             }))}

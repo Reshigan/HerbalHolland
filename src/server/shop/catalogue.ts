@@ -16,7 +16,7 @@ import type { Prisma, Promotion } from "@/generated/prisma/client";
 
 export const PRODUCT_INCLUDE = {
   category: { select: { id: true, slug: true, name: true, sortOrder: true, icon: true } },
-  variants: { where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, sku: true, grams: true, priceCents: true } },
+  variants: { where: { active: true }, orderBy: { sortOrder: "asc" }, select: { id: true, name: true, sku: true, grams: true, priceCents: true, podSku: true } },
 } satisfies Prisma.ProductInclude;
 export type CatalogueProduct = Prisma.ProductGetPayload<{ include: typeof PRODUCT_INCLUDE }>;
 
@@ -80,6 +80,7 @@ export const getNetwork = cache(async () => {
 });
 
 export type StockBadge =
+  | { kind: "made" } // made to order by the print partner: always available, ships by courier
   | { kind: "store"; store: string; low: boolean }
   | { kind: "ships"; low: boolean }
   | { kind: "collect"; store: string | null; stores: number }
@@ -145,7 +146,8 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
       const licensed = classes.licensed.includes(p.regClass);
       let stock: StockBadge;
       const atStore = who.storeId ? p.variants.reduce((s, v) => s + qty(who.storeId!, v.id), 0) : 0;
-      if (licensed) {
+      if (p.variants.every((v) => v.podSku)) stock = { kind: "made" };
+      else if (licensed) {
         const stores = net.all.filter((id) => !net.dcs.includes(id) && p.variants.some((v) => qty(id, v.id) > 0)).length;
         stock = atStore > 0 ? { kind: "collect", store: who.storeName ?? null, stores } : stores ? { kind: "collect", store: null, stores } : { kind: "out" };
       } else if (atStore > 0) stock = { kind: "store", store: who.storeName ?? "your store", low: atStore <= 3 };

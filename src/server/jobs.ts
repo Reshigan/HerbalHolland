@@ -11,6 +11,7 @@ import { addDays, dayKey } from "@/lib/format";
 import { assignFounding, expireTierFloors } from "./launch";
 import { notifyDrops } from "./drops";
 import { generateOffers } from "./offers";
+import { submitMerchOrders, syncMerchOrders } from "./merch";
 
 const MIN = 60_000;
 
@@ -74,6 +75,8 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     invoices: await retryInvoices(),
     founding: await assignFounding(),
     drops: await notifyDrops(),
+    merchSent: await submitMerchOrders(),
+    merchTracked: await syncMerchOrders(),
   }),
   daily: async () => ({
     birthdays: await birthdayPoints(),

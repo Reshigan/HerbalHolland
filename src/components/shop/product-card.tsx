@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Truck, Store, Package, CircleOff, ChevronRight } from "lucide-react";
+import { Truck, Store, Package, CircleOff, ChevronRight, Shirt } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { AddToBag } from "./add-to-bag";
 import { Price, Stars, Tag } from "./ui";
@@ -9,7 +9,9 @@ import type { ProductCard as Card } from "@/server/shop/catalogue";
 
 export function StockLine({ stock, className }: { stock: Card["stock"]; className?: string }) {
   const [icon, text, tone] =
-    stock.kind === "store"
+    stock.kind === "made"
+      ? [<Shirt key="i" className="h-3.5 w-3.5" />, "Made to order · ships nationwide", "text-ink-300"]
+      : stock.kind === "store"
       ? [<Store key="i" className="h-3.5 w-3.5" />, `In stock at ${stock.store}`, "text-leaf-100"]
       : stock.kind === "ships"
         ? [<Truck key="i" className="h-3.5 w-3.5" />, "Ships nationwide", "text-ink-300"]

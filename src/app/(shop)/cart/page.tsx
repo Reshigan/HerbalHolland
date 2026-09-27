@@ -6,6 +6,7 @@ import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
+import { madeToOrder } from "@/server/merch";
 import { launchState } from "@/server/launch";
 import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
@@ -56,7 +57,7 @@ export default async function CartPage() {
 
   const net = await getNetwork();
   const variantIds = q.lines.map((l) => l.variantId);
-  const [variants, avail, access, drops, dropMsgs, gifts, launch] = await Promise.all([
+  const [variants, avail, access, drops, dropMsgs, gifts, launch, made] = await Promise.all([
     db.variant.findMany({ where: { id: { in: variantIds } }, select: { id: true, product: { select: { slug: true, strain: true, regClass: true, name: true } } } }),
     availability(net.all, variantIds),
     q.lines.some((l) => classes.licensed.includes(l.regClass)) ? getDispensaryAccess() : null,
@@ -64,6 +65,7 @@ export default async function CartPage() {
     dropBlocks(customer?.id, q.lines),
     welcomeGifts(customer, store?.id),
     launchState(),
+    madeToOrder(variantIds),
   ]);
   // Limited drops in the bag: what's wrong (if anything), in plain words, before checkout.
   const dropNotes = dropMsgs.map((m) => {
@@ -78,7 +80,7 @@ export default async function CartPage() {
   const giftHints = gifts.filter((g) => g.product && !inBagProducts.has(g.product.slug));
   const suggestions = q.suggestions.filter((s) => !giftIds.has(s.promoId));
   const byId = new Map(variants.map((v) => [v.id, v]));
-  const stockOf = (variantId: string) => net.all.reduce((s, id) => s + Math.max(0, avail.get(availKey(id, variantId))?.available ?? 0), 0);
+  const stockOf = (variantId: string) => (made.has(variantId) ? 99 : net.all.reduce((s, id) => s + Math.max(0, avail.get(availKey(id, variantId))?.available ?? 0), 0));
   const licensedLines = q.lines.filter((l) => classes.licensed.includes(l.regClass));
   const blockedLicensed = licensedLines.length > 0 && access && !access.allowed;
 
