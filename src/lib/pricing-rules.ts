@@ -3,7 +3,7 @@
 //   member = lowest applicable MEMBER list price (tier-aware) if it beats shelf
 //   breaks = lowest quantity-break price with minQty ≤ qty if it beats the above
 //   markdown (POS) = % off for stock nearing expiry
-export type Tier = "SEED" | "SPROUT" | "BLOOM" | "ORANJE";
+export type Tier = "SEED" | "SPROUT" | "BLOOM" | "HARVEST";
 
 export type PriceListRule = {
   id: string;

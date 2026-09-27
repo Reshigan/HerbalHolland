@@ -3,7 +3,7 @@
 // the state (shareable, back-button friendly); empty values are dropped and paging resets.
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { Search } from "lucide-react";
+import { ChevronDown, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export function FilterForm({ action, children, className, keep = {} }: { action: string; children: React.ReactNode; className?: string; keep?: Record<string, string | undefined> }) {
@@ -54,13 +54,13 @@ export function SearchField({ name = "q", defaultValue, placeholder, label = "Se
 
 export function FilterSelect({ name, label, defaultValue, options, allLabel = "All", className }: { name: string; label: string; defaultValue?: string; options: { value: string; label: string }[]; allLabel?: string | null; className?: string }) {
   return (
-    <label className={cn("block", className)}>
+    <label className={cn("relative block", className)}>
       <span className="sr-only">{label}</span>
       <select
         name={name}
         defaultValue={defaultValue ?? ""}
         aria-label={label}
-        className="h-10 max-w-[14rem] cursor-pointer appearance-none rounded-xl border border-ink-200 bg-white bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b5f57%22 stroke-width=%222.5%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:12px] bg-[right_0.8rem_center] bg-no-repeat pl-3 pr-8 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+        className="h-10 max-w-[15rem] cursor-pointer appearance-none truncate rounded-xl border border-ink-200 bg-white pl-3 pr-8 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
       >
         {allLabel != null && <option value="">{`${label}: ${allLabel}`}</option>}
         {options.map((o) => (
@@ -69,6 +69,7 @@ export function FilterSelect({ name, label, defaultValue, options, allLabel = "A
           </option>
         ))}
       </select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" aria-hidden strokeWidth={2.2} />
     </label>
   );
 }

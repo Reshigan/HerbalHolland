@@ -39,7 +39,7 @@ export function emailLayout(opts: { preheader: string; heading: string; body: st
 </td></tr>
 <tr><td style="padding:28px 32px 8px"><h1 style="margin:0 0 12px;font-size:22px">${esc(opts.heading)}</h1>${opts.body}</td></tr>
 ${cta}
-<tr><td style="padding:18px 32px;background:#FBF6F1;color:#6B5F57;font-size:12px;line-height:18px">Herbal Holland · Adults 18+ only · Keep out of reach of children.<br/>You received this because you made a purchase. Manage email preferences in the Oranje Club.</td></tr>
+<tr><td style="padding:18px 32px;background:#FBF6F1;color:#6B5F57;font-size:12px;line-height:18px">Herbal Holland · Adults 18+ only · Keep out of reach of children.<br/>You received this because you made a purchase. Manage email preferences in the Windmill Club.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 export { esc };

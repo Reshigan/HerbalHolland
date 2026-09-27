@@ -1,4 +1,4 @@
-// Oranje Club membership: phone OTP sign-in, adult-only enrolment, consent ledger,
+// Windmill Club membership: phone OTP sign-in, adult-only enrolment, consent ledger,
 // age verification and the SAHPRA patient register.
 import { createHmac, randomInt } from "node:crypto";
 import { db, tx } from "./db";
@@ -72,7 +72,7 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
     if (ageCheck === "NONE") ageCheck = "ID_NUMBER";
     if (await db.customer.findUnique({ where: { idHash: hash } })) throw new CustomerError("That ID number is already linked to a member");
   }
-  if (dob && ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`The Oranje Club is for adults ${settings.compliance.minAge}+`);
+  if (dob && ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`The Windmill Club is for adults ${settings.compliance.minAge}+`);
 
   const referrer = a.referralCode ? await db.customer.findUnique({ where: { referralCode: a.referralCode.trim().toUpperCase() } }) : null;
   const channels: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
@@ -105,14 +105,14 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
     await t.consentEvent.createMany({
       data: channels.map((ch) => ({ customerId: c.id, channel: ch, granted: !!a.consents[ch], source: a.source, wording: CONSENT_WORDING })),
     });
-    if (settings.loyalty.signupBonus) await addPoints(t, { customerId: c.id, points: settings.loyalty.signupBonus, kind: "SIGNUP", note: "Welcome to the Oranje Club" });
+    if (settings.loyalty.signupBonus) await addPoints(t, { customerId: c.id, points: settings.loyalty.signupBonus, kind: "SIGNUP", note: "Welcome to the Windmill Club" });
     await audit(t, actor, "customer.create", { storeId: a.homeStoreId, entity: "Customer", entityId: c.id, data: { source: a.source, ageCheck } });
     return c;
   });
 }
 
 export const CONSENT_WORDING =
-  "I'd like to hear from Herbal Holland about drops, offers and events on the channels I've ticked. I can opt out at any time by replying STOP or in my Oranje Club settings.";
+  "I'd like to hear from Herbal Holland about drops, offers and events on the channels I've ticked. I can opt out at any time by replying STOP or in my Windmill Club settings.";
 
 export async function setConsent(customerId: string, channel: MsgChannel, granted: boolean, source: string) {
   const field = ({ WHATSAPP: "consentWhatsapp", SMS: "consentSms", EMAIL: "consentEmail", PUSH: "consentPush" } as const)[channel];

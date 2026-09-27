@@ -82,7 +82,7 @@ export const hqNav: NavGroup[] = [
     items: [
       { label: "Members & CRM", href: "/hq/customers", icon: "Users" },
       { label: "Campaigns", href: "/hq/marketing", icon: "Megaphone" },
-      { label: "Oranje Club", href: "/hq/loyalty", icon: "Crown" },
+      { label: "Windmill Club", href: "/hq/loyalty", icon: "Crown" },
     ],
   },
   {

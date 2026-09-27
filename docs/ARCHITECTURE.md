@@ -2,7 +2,7 @@
 
 ## Shape: a modular monolith
 
-One Next.js 16 application, one PostgreSQL database, one codebase. Every surface — storefront, Oranje Club, POS,
+One Next.js 16 application, one PostgreSQL database, one codebase. Every surface — storefront, Windmill Club, POS,
 store back office, HQ console, reports, menu boards — shares the same domain layer, so a sale, a stock movement or a
 Guilder means exactly the same thing everywhere.
 

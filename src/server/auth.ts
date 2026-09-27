@@ -90,7 +90,7 @@ export const getPosStaff = cache(async () => {
   return user?.active ? { user, device } : null;
 });
 
-// ── Customers (storefront, Oranje Club) ──────────────────────────────────────
+// ── Customers (storefront, Windmill Club) ──────────────────────────────────────
 export const getCustomer = cache(async () => {
   const s = await readSession("customer");
   if (!s?.customerId) return null;

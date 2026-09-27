@@ -38,7 +38,7 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 |---|---|---|
 | SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER` (Clickatell, BulkSMS, SMSPortal) |
 | Email | Tax invoices, statements, newsletters | `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark), `EMAIL_FROM` |
-| App push | Oranje Club PWA | Web Push (VAPID) — roadmap |
+| App push | Windmill Club PWA | Web Push (VAPID) — roadmap |
 | WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products — `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
 
 Without providers configured, messages and emails are written to `MessageLog` so every notification is visible in the

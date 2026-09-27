@@ -24,6 +24,7 @@ export function ActionForm({
   notices = "top",
   onDone,
   id,
+  noticeClassName,
 }: {
   action: Action;
   children: React.ReactNode;
@@ -32,6 +33,7 @@ export function ActionForm({
   notices?: "top" | "bottom" | "none";
   onDone?: (s: ActionState) => void;
   id?: string;
+  noticeClassName?: string;
 }) {
   const [state, run, pending] = useActionState(action, {});
   const [, start] = useTransition();
@@ -42,7 +44,7 @@ export function ActionForm({
     onDone?.(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.at]);
-  const note = <FormNotice />;
+  const note = <FormNotice className={noticeClassName} />;
   return (
     <FormCtx.Provider value={{ state, pending }}>
       <form
@@ -66,8 +68,8 @@ export function ActionForm({
 
 export function FormNotice({ className }: { className?: string }) {
   const { state } = useFormCtx();
-  if (state.error) return <Notice tone="danger" className={cn("mb-4", className)}>{state.error}</Notice>;
-  if (state.ok) return <Notice tone="success" className={cn("mb-4", className)}>{state.ok}</Notice>;
+  if (state.error) return <Notice tone="danger" className={className ?? "mb-4"}>{state.error}</Notice>;
+  if (state.ok) return <Notice tone="success" className={className ?? "mb-4"}>{state.ok}</Notice>;
   return null;
 }
 

@@ -3,12 +3,12 @@
 **Dutch heritage. African soil.** One platform for a multi-owner cannabis & wellness retail network in South Africa,
 built to run ~1,000 franchise stores: point of sale with tap-on-glass cards, deep inventory control, stores buying and
 selling stock, finance and franchise settlement, a single national e-commerce brand (click & collect, same-day and
-nationwide delivery), the Oranje Club loyalty app, marketing automation, an HQ console and a full reports centre —
+nationwide delivery), the Windmill Club loyalty app, marketing automation, an HQ console and a full reports centre —
 compliance-first by design.
 
 | Surface | Route | For |
 |---|---|---|
-| Storefront + Oranje Club (PWA) | `/`, `/shop`, `/club` | Customers & patients |
+| Storefront + Windmill Club (PWA) | `/`, `/shop`, `/club` | Customers & patients |
 | POS — offline-first, tap on glass | `/pos` | Budtenders & dispensers |
 | Store back office | `/store/[code]` | Store managers & franchise owners |
 | HQ console | `/hq` | Head office & area managers |
@@ -53,7 +53,7 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Pricing & deals** — RRP, zones, scheduled changes, franchisee shelf prices, member/tier prices, quantity breaks,
   near-expiry markdowns; % / R-off, bonus buys, BOGO, gifts with purchase, complementary deals, multi-buys, happy hours,
   Guilders multipliers.
-- **Oranje Club** — free national membership, easy phone sign-up, digital card, tiers, referrals, consent centre,
+- **Windmill Club** — free national membership, easy phone sign-up, digital card, tiers, referrals, consent centre,
   cross-store settlement between franchisees.
 - **Finance** — P&L, VAT201 working, cash-ups, expenses, monthly franchise statements; every invoice emailed
   (SARS abridged/full tax invoices; non-VAT vendors supported).

@@ -232,7 +232,7 @@ async function main() {
   const sellable = (b: SimBatch, ts: Date) => !(b.unsellableFrom && ts >= b.unsellableFrom) && !(b.expiresAt && b.expiresAt <= ts);
 
   // ── Ranging & local prices ──────────────────────────────────────────────
-  const EXPRESS_SKIP = new Set(["grow-tent", "led-grow-light", "kite-vaporiser", "delft-water-pipe", "oranje-hoodie", "reserve-gelato-cake"]);
+  const EXPRESS_SKIP = new Set(["grow-tent", "led-grow-light", "kite-vaporiser", "delft-water-pipe", "sunset-hoodie", "reserve-gelato-cake"]);
   const PAR: Record<string, number> = { flower: 14, "pre-rolls": 16, edibles: 10, vapes: 8, concentrates: 5, wellness: 8, accessories: 8, grow: 3, apparel: 4 };
   const ranged = new Map<string, { par: number; rp: number; price?: number }>();
   const svRows: Prisma.StoreVariantCreateManyInput[] = [];
@@ -245,7 +245,7 @@ async function main() {
       let price: number | undefined;
       if (s.code === "CPT01" && v.line === "HOUSE" && v.cat === "flower") price = v.price + 2000; // tourist premium
       if (s.code === "JHB06" && v.heritage && v.cat === "flower") price = v.price - 1000; // Soweto community pricing
-      if (s.code === "PTA01" && v.slug === "oranje-grinder") price = 32900;
+      if (s.code === "PTA01" && v.slug === "sunset-grinder") price = 32900;
       if (price) overrides.push({ storeId: s.id, variantId: v.id, price });
       ranged.set(`${s.id}|${v.id}`, { par, rp: Math.ceil(par * 0.35), price });
       svRows.push({ storeId: s.id, variantId: v.id, parLevel: par, reorderPoint: Math.ceil(par * 0.35), priceCents: price });
@@ -352,7 +352,7 @@ async function main() {
         authRows.push({ id: c.auth.id, customerId: c.id, authNumber: `S21/${dayKey(from).slice(0, 4)}/${int(10000, 99999)}`, prescriber: doc, prescriberRegNo: reg, scope: "Dried flower, pre-rolls, oral and inhaled preparations", monthlyLimitGrams: c.auth.limit, validFrom: from, validTo: c.auth.to, documentRef: `auth-docs/${c.id}.pdf` });
       }
       const opening = prior ? Math.round(pointsFor(prior, c.tier) * rand(0.2, 0.7)) : 0;
-      loyalty.push({ id: uid(), customerId: c.id, points: 25, kind: "SIGNUP", createdAt, note: "Welcome to the Oranje Club" });
+      loyalty.push({ id: uid(), customerId: c.id, points: 25, kind: "SIGNUP", createdAt, note: "Welcome to the Windmill Club" });
       c.points += 25;
       if (opening) {
         loyalty.push({ id: uid(), customerId: c.id, points: opening, kind: "ADJUST", createdAt: daysAgo(DAYS + 1), note: "Balance brought forward" });
@@ -373,7 +373,7 @@ async function main() {
     { id: uid(), name: "Heritage Month: 15% off apparel & accessories", description: "Celebrating Heritage Month with 15% off the windmill range all September.", kind: "PERCENT", value: 15, categoryIds: [cat("apparel"), cat("accessories")], productIds: [], channels: ["POS", "ONLINE"], startsAt: sep1, endsAt: midnight(`${NOW.getUTCFullYear()}-10-01`) },
     { id: uid(), name: "Any 2 CBD wellness for R800", description: "Mix and match any two CBD oils, softgels, balms or teas.", kind: "MULTIBUY", value: 80000, buyQty: 2, categoryIds: [cat("wellness")], productIds: [], channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-45) },
     { id: uid(), name: "Rolling essentials: tray + free papers", description: "Buy a Windmill rolling tray and get a booklet of papers free.", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 100, productIds: pids("windmill-rolling-tray"), categoryIds: [], rewardProductIds: pids("king-size-papers"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-60) },
-    { id: uid(), name: "Spend R600, get the Oranje grinder free", description: "Gift with purchase on non-medicinal items.", kind: "BUY_X_GET_Y", value: 0, minSpendCents: 60000, getQty: 1, rewardPercent: 100, productIds: [], categoryIds: [], rewardProductIds: pids("oranje-grinder"), channels: ["POS"], startsAt: daysAgo(21), endsAt: daysAgo(-21) },
+    { id: uid(), name: "Spend R600, get the Sunset grinder free", description: "Gift with purchase on non-medicinal items.", kind: "BUY_X_GET_Y", value: 0, minSpendCents: 60000, getQty: 1, rewardPercent: 100, productIds: [], categoryIds: [], rewardProductIds: pids("sunset-grinder"), channels: ["POS"], startsAt: daysAgo(21), endsAt: daysAgo(-21) },
     { id: uid(), name: "Happy hour: 10% off accessories", description: "Weekdays 16:00–18:00.", kind: "PERCENT", value: 10, categoryIds: [cat("accessories")], productIds: [], channels: ["POS"], days: [1, 2, 3, 4, 5], startMinute: 16 * 60, endMinute: 18 * 60, startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
     { id: uid(), name: "Double Guilders Fridays", description: "2× Guilders every Friday.", kind: "MULTIPLIER", value: 200, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], days: [5], startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
     { id: uid(), name: "Welcome back: R75 off R400", description: "Win-back offer for members we haven't seen in a while.", code: "WELCOMEBACK", kind: "FIXED", value: 7500, minSpendCents: 40000, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], startsAt: daysAgo(20), endsAt: daysAgo(-10) },
@@ -454,7 +454,7 @@ async function main() {
   }) {
     const { store: s, c, ts } = o;
     const zone = o.channel === "POS" && s.code === "CPT01" ? 1.05 : 1;
-    const member = !!c && (c.tier === "BLOOM" || c.tier === "ORANJE");
+    const member = !!c && (c.tier === "BLOOM" || c.tier === "HARVEST");
     const priced = o.lines.map(({ v, qty }) => {
       const r = ranged.get(lk(s.id, v.id));
       let unit = o.channel === "POS" ? (r?.price ?? Math.round(v.price * zone)) : v.price;
@@ -760,7 +760,7 @@ async function main() {
       orderCodes.add(code);
       const payOnline = fulfil !== "COLLECT" || chance(0.62);
       const sub = lines.reduce((a, l) => a + l.qty * l.v.price, 0);
-      const fee = fulfil === "COLLECT" || sub >= 90000 ? 0 : fulfil === "SAME_DAY" ? (c.tier === "BLOOM" || c.tier === "ORANJE" ? 0 : 6500) : 9900;
+      const fee = fulfil === "COLLECT" || sub >= 90000 ? 0 : fulfil === "SAME_DAY" ? (c.tier === "BLOOM" || c.tier === "HARVEST" ? 0 : 6500) : 9900;
       const steps = fulfil === "COLLECT" ? [["PICKING", int(5, 25)], ["READY", int(15, 45)], ["COMPLETED", int(60, 26 * 60)]] : [["PICKING", int(5, 25)], ["READY", int(15, 40)], ["OUT_FOR_DELIVERY", int(20, fulfil === "SAME_DAY" ? 90 : 20 * 60)], ["COMPLETED", fulfil === "SAME_DAY" ? int(40, 120) : int(24 * 60, 60 * 60)]];
       const events: { status: string; at: string; note?: string }[] = [{ status: "PLACED", at: ts.toISOString(), note: fulfil === "COURIER" ? `Ships from ${store.name}` : fulfil === "SAME_DAY" ? `Nearest same-day store with full stock (${store.name})` : "Customer's chosen store" }];
       let cursor = ts.getTime();
@@ -933,7 +933,7 @@ async function main() {
     { id: uid(), title: "Recall: Rooibos & Honey Gummies batch B", body: "Quarantine all units of the batch ending -B immediately. Do not sell. Customers who bought this batch are being contacted by HQ. Log returns as RECALL adjustments.", kind: "RECALL", audience: "ALL", requiresAck: true, createdAt: daysAgo(10) },
     { id: uid(), title: "Heritage Month toolkit", body: "Window decals, shelf talkers and the Heritage Day event pack are in the shared drive. 15% off apparel & accessories runs until 30 September.", kind: "LAUNCH", audience: "ALL", requiresAck: false, createdAt: daysAgo(28) },
     { id: uid(), title: "Policy: ID checks at every handover", body: "Click & collect and delivery handovers must record an ID check (18+). The POS now blocks handover until the check is ticked.", kind: "POLICY", audience: "ALL", requiresAck: true, createdAt: daysAgo(15) },
-    { id: uid(), title: "Reserve No. 1 drops Friday", body: "400 numbered jars across flagship stores. Oranje-tier members get first access from 09:00.", kind: "LAUNCH", audience: "format:FLAGSHIP", requiresAck: false, createdAt: daysAgo(2) },
+    { id: uid(), title: "Reserve No. 1 drops Friday", body: "400 numbered jars across flagship stores. Harvest-tier members get first access from 09:00.", kind: "LAUNCH", audience: "format:FLAGSHIP", requiresAck: false, createdAt: daysAgo(2) },
   ];
   const ackRows: Prisma.AnnouncementAckCreateManyInput[] = [];
   for (const a of announcements) if (a.requiresAck) for (const s of active) if (chance(0.8)) ackRows.push({ announcementId: a.id as string, storeId: s.id, userId: s.staff[0].id, at: new Date((a.createdAt as Date).getTime() + int(1, 48) * 3_600_000) });
@@ -959,7 +959,7 @@ async function main() {
   const plZone = uid(), plMember = uid(), plVolume = uid(), plOct = uid();
   priceLists.push(
     { id: plZone, name: "Atlantic Seaboard tourist zone", kind: "ZONE", storeIds: [stores.find((s) => s.code === "CPT01")!.id], regionIds: [], adjustPct: 5, priority: 1 },
-    { id: plMember, name: "Oranje Club member price", kind: "MEMBER", tiers: ["BLOOM", "ORANJE"], storeIds: [], regionIds: [], adjustPct: -5, priority: 0 },
+    { id: plMember, name: "Windmill Club member price", kind: "MEMBER", tiers: ["BLOOM", "HARVEST"], storeIds: [], regionIds: [], adjustPct: -5, priority: 0 },
     { id: plVolume, name: "Volume pricing", kind: "ZONE", storeIds: [], regionIds: [], priority: 0 },
     { id: plOct, name: "October price update", kind: "ZONE", storeIds: [], regionIds: [], priority: 2, startsAt: midnight(`${NOW.getUTCFullYear()}-${String(NOW.getUTCMonth() + 2).padStart(2, "0")}-01`) },
   );

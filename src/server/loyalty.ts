@@ -1,4 +1,4 @@
-// Oranje Club ledger operations. Points are a network liability: the issuing store
+// Windmill Club ledger operations. Points are a network liability: the issuing store
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
 import { pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";

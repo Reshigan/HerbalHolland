@@ -81,8 +81,8 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
               <Th className="hidden md:table-cell">Region</Th>
               <Th className="hidden lg:table-cell">Owner</Th>
               <Th>Status</Th>
-              <Th align="right">{sortLink("sales", "Net sales 30d")}</Th>
-              <Th align="right">{sortLink("growth", "vs prior 30d")}</Th>
+              <Th align="right" className="whitespace-nowrap">{sortLink("sales", "Net 30d")}</Th>
+              <Th align="right" className="whitespace-nowrap">{sortLink("growth", "Growth")}</Th>
               <Th align="right" className="hidden sm:table-cell">{sortLink("atv", "ATV")}</Th>
               <Th align="right" className="hidden sm:table-cell">Members</Th>
             </tr>
@@ -99,12 +99,15 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
                 <Td>
                   <Link href={`/hq/stores/${s.code}`} className="group block min-w-40">
                     <span className="font-medium text-ink-900 group-hover:text-oranje-700">{s.name}</span>
-                    <span className="block text-xs text-ink-500">
-                      <span className="font-mono">{s.code}</span> · {s.suburb === s.city ? s.city : `${s.suburb}, ${s.city}`} · {titleCase(s.format)}
+                    <span className="block whitespace-nowrap text-xs text-ink-500">
+                      <span className="font-mono">{s.code}</span> · {s.city}
                     </span>
                   </Link>
                 </Td>
-                <Td className="hidden text-ink-600 md:table-cell">{s.region.name}</Td>
+                <Td className="hidden md:table-cell">
+                  <span className="block whitespace-nowrap text-ink-700">{s.region.name}</span>
+                  <span className="text-xs text-ink-500">{titleCase(s.format)}</span>
+                </Td>
                 <Td className="hidden lg:table-cell">
                   <span className="text-ink-800">{s.company.name}</span>
                   {!s.company.vatNumber && (

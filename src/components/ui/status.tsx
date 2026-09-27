@@ -42,7 +42,7 @@ export function StatusBadge({ status, className }: { status: string; className?:
   );
 }
 
-export const TIER_TONE: Record<string, Tone> = { SEED: "neutral", SPROUT: "green", BLOOM: "violet", ORANJE: "orange" };
+export const TIER_TONE: Record<string, Tone> = { SEED: "neutral", SPROUT: "green", BLOOM: "violet", HARVEST: "orange" };
 export function TierBadge({ tier }: { tier: string }) {
   return <Badge tone={TIER_TONE[tier] ?? "neutral"}>{tier.charAt(0) + tier.slice(1).toLowerCase()}</Badge>;
 }

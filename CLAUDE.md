@@ -3,7 +3,7 @@
 # Herbal Holland platform — conventions
 
 Commerce platform for a multi-owner (franchise) cannabis retail network in South Africa, built to scale to ~1,000 stores:
-POS, inventory control, purchasing, finance, e-commerce (click & collect + delivery), Oranje Club loyalty, marketing, HQ console, reports.
+POS, inventory control, purchasing, finance, e-commerce (click & collect + delivery), Windmill Club loyalty, marketing, HQ console, reports.
 Single Next.js 16 app (App Router) + Prisma 7 + PostgreSQL. Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
 
 ## Run it
@@ -24,7 +24,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 
 | Surface | Route | Look |
 |---|---|---|
-| Storefront + Oranje Club (consumer PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club/*`, `/batch/[code]` | dark brand |
+| Storefront + Windmill Club (consumer PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club/*`, `/batch/[code]` | dark brand |
 | POS (offline-first, tap on glass) | `/pos`, `/api/pos/*` | dark, touch-first |
 | Store back office | `/store/[code]/*` | light content, dark sidebar |
 | HQ console | `/hq/*` | light content, dark sidebar |

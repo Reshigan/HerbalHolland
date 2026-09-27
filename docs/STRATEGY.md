@@ -22,12 +22,12 @@ Africa's own landraces and growers.
 |---|---|---|
 | **Provenance** | Every batch is lab-tested and traceable to the farm | Batch-level stock, FEFO, a public COA page per batch (`/batch/[code]`, QR on every pack), recall trace to the customer |
 | **Care** | Pharmacist-led dispensary; honest education | SAHPRA patient register, authorised dispensers, quantity limits, Learn hub, no medical claims |
-| **Community** | One free club for the whole country | Oranje Club — Guilders earned and spent in every store, tiers, referrals, members' evenings |
+| **Community** | One free club for the whole country | Windmill Club — Guilders earned and spent in every store, tiers, referrals, members' evenings |
 | **Convenience** | Order how you like, collect in 15 minutes, delivered nationwide | Omnichannel routing, click & collect SLA, same-day metro, courier for non-medicinal items |
 
 Brand codes to use everywhere: the orange windmill-flower mark, the thick orange **frame** on black (the store window),
 Outfit typography, the "HERBAL / HOLLAND" light/bold lock-up, Guilders (ƒ) as the loyalty currency, and Dutch warmth
-("proeverij" tastings, Koningsdag, Delft blue) meeting Mzansi culture (Heritage Day, landraces, local makers).
+("proeverij" tastings, Delft blue) meeting Mzansi culture (Heritage Day, landraces, local makers).
 
 ## 3. Regulatory reality — and why compliance is our moat
 
@@ -50,7 +50,7 @@ card acquiring, pharmacies, malls, landlords and investors.
 
 | # | Competitor reality (see market study) | Herbal Holland advantage | Where it lives |
 |---|---|---|---|
-| 1 | Paid memberships (R30–R250/month) valid at one venue | **Free** Oranje Club valid at every store and online; 2-minute sign-up | `/club/join`, POS quick-join, QR self-signup |
+| 1 | Paid memberships (R30–R250/month) valid at one venue | **Free** Windmill Club valid at every store and online; 2-minute sign-up | `/club/join`, POS quick-join, QR self-signup |
 | 2 | Flat 5% cashback at best | Tiered Guilders (1×→2×), birthday, referral (ƒ50 + ƒ50), double-Guilders days; settled fairly between franchisees | Loyalty ledger + franchise statement |
 | 3 | No lab results, fake COAs, contamination scares | Batch QR → public COA (potency, terpenes, microbials, pesticides, metals, solvents) | `/batch/[code]` |
 | 4 | Informal WhatsApp menus, stock-outs | One live catalogue: web, POS, in-store TV menu boards, all stock-aware | `/shop`, `/menu/[slug]` |
@@ -78,10 +78,10 @@ range openly. Let the dispensary grow through patients, pharmacists and word of 
   Standardise window kits, lit signage, and in-store TV menu boards (licensed products hidden in MEDICAL mode).
 - **Out-of-home near stores:** brand-only creative — the windmill mark, "Dutch heritage. African soil.", store
   address. No product, no claims, no youth-oriented placements (not near schools).
-- **Apparel & objects as media:** the Windmill Tee, Oranje hoodie and bucket hat are sold at margin and walk the brand
+- **Apparel & objects as media:** the Windmill Tee, Sunset hoodie and bucket hat are sold at margin and walk the brand
   around. Limited drops with local makers (Salt River apparel, Delft-blue glass).
-- **Sponsorships & culture (18+ only):** Heritage Day, jazz/amapiano/arts events with verified-adult audiences,
-  "Koningsdag" orange celebrations, grower field days. Avoid sport and anything with youth reach.
+- **Sponsorships & culture (18+ only):** Heritage Day, jazz/amapiano/arts events with verified-adult audiences and
+  grower field days. Avoid sport and anything with youth reach.
 - **PR:** the Mpondo Growers Co-operative fair-trade story; the lab-testing standard; the "safe edibles" pledge;
   store openings. Earned media travels where paid media can't.
 
@@ -93,7 +93,7 @@ range openly. Let the dispensary grow through patients, pharmacists and word of 
 - **Product pages** for the public range (CBD wellness, accessories, grow, apparel) optimised for search.
 
 ### 5.3 Owned channels & lifecycle CRM (consent-first)
-Channel priority: **SMS** (reach) → **email** (invoices + newsletters) → **app push** (Oranje Club PWA) → WhatsApp for
+Channel priority: **SMS** (reach) → **email** (invoices + newsletters) → **app push** (Windmill Club PWA) → WhatsApp for
 utility messages only (Meta's commerce policy bans drug/medical products). Every message carries the sender footer and
 STOP opt-out; the platform holds sends outside CPA windows and suppresses NCC-registry numbers.
 
@@ -112,8 +112,8 @@ STOP opt-out; the platform holds sends outside CPA windows and suppresses NCC-re
 Segments come from RFM (`src/lib/rfm.ts`): Champions, Loyal, Promising, New, At risk, Lapsed, Prospects — each with a
 recommended play in the CRM.
 
-### 5.4 Loyalty economics (Oranje Club)
-- Earn 5 Guilders per R100 paid (Seed 1×, Sprout 1.25×, Bloom 1.5×, Oranje 2×); 1 Guilder = R1; redeem up to 50% of a
+### 5.4 Loyalty economics (Windmill Club)
+- Earn 5 Guilders per R100 paid (Seed 1×, Sprout 1.25×, Bloom 1.5×, Harvest 2×); 1 Guilder = R1; redeem up to 50% of a
   basket. Tiers on rolling 12-month spend (R2,500 / R7,500 / R15,000).
 - **Effective cost:** ~5–7% of eligible sales. Medicines earn nothing in MEDICAL mode (s18A).
 - **Fair across 1,000 owners:** the issuing store funds Guilders, the redeeming store is reimbursed, both on the monthly
@@ -166,7 +166,7 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 | Phase | When | Outcomes |
 |---|---|---|
 | 0. Readiness | Weeks 0–6 | Legal sign-off on MEDICAL-mode flows and claims library; acquirer approvals per store (Halo Dot / bank), PayShap & EFT rails; courier allow-list; SMS/email providers; NCC registry registration; Information Officer & POPIA notices; staff training (dispensers, ID checks) |
-| 1. Pilot | Weeks 6–10 | 5 Gauteng stores + DC-GP live on POS, inventory, purchasing; Oranje Club sign-ups; daily reconciliation |
+| 1. Pilot | Weeks 6–10 | 5 Gauteng stores + DC-GP live on POS, inventory, purchasing; Windmill Club sign-ups; daily reconciliation |
 | 2. Omnichannel | Weeks 10–16 | E-commerce live (public range + patient dispensary), click & collect, same-day in Pretoria/Joburg, courier nationwide; lifecycle journeys on |
 | 3. Network | Months 4–9 | Western Cape & KZN DCs; 24 → 100 stores; network trading; statements automated |
 | 4. Adult-use ready | On commencement | Flip licensed stores to ADULT_USE by region; update channel matrix and limits; launch brand campaign within the new rules |

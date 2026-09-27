@@ -4,7 +4,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
   title: { default: "Herbal Holland", template: "%s · Herbal Holland" },
-  description: "Dutch heritage, African soil. Lab-tested, batch-traceable cannabis wellness, accessories and the Oranje Club — in store and online across South Africa. Adults 18+.",
+  description: "Dutch heritage, African soil. Lab-tested, batch-traceable cannabis wellness, accessories and the Windmill Club — in store and online across South Africa. Adults 18+.",
   applicationName: "Herbal Holland",
   formatDetection: { telephone: false },
 };

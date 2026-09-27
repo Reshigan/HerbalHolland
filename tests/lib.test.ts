@@ -159,7 +159,7 @@ describe("promotions", () => {
   const base = { code: null, categoryIds: [] as string[], productIds: [] as string[], minSpendCents: 0 };
   const promos: PromoInput[] = [
     { ...base, id: "p10", name: "10% flower", kind: "PERCENT", value: 10, categoryIds: ["flower"] },
-    { ...base, id: "p20", name: "20% everything", kind: "PERCENT", value: 20, code: "ORANJE20" },
+    { ...base, id: "p20", name: "20% everything", kind: "PERCENT", value: 20, code: "WINDMILL20" },
     { ...base, id: "f50", name: "R50 off R500", kind: "FIXED", value: 5000, minSpendCents: 50000 },
     { ...base, id: "x2", name: "Double Guilders", kind: "MULTIPLIER", value: 200 },
   ];
@@ -171,7 +171,7 @@ describe("promotions", () => {
     expect(r.totalCents).toBe(70000 - 11000);
   });
   it("only applies code promos when the code is entered", () => {
-    const r = applyPromotions(lines, promos, "oranje20");
+    const r = applyPromotions(lines, promos, "windmill20");
     expect(r.lines[1].promoId).toBe("p20");
     expect(r.discountCents).toBe(14000 + 5000);
     expect(applyPromotions(lines, promos).lines[1].promoId).toBeUndefined();
@@ -241,10 +241,10 @@ describe("price rules", () => {
   });
   it("applies member and tier prices only to members", () => {
     const member = mk({ id: "m", name: "Member price", kind: "MEMBER", adjustPct: -5 });
-    const oranje = mk({ id: "o", name: "Oranje price", kind: "MEMBER", tiers: ["ORANJE"], adjustPct: -10 });
-    expect(resolvePrice(v, [member, oranje], ctx).unitCents).toBe(65000);
-    expect(resolvePrice(v, [member, oranje], { ...ctx, member: true, tier: "SEED" })).toMatchObject({ unitCents: 61750, rule: "Member price" });
-    expect(resolvePrice(v, [member, oranje], { ...ctx, member: true, tier: "ORANJE" })).toMatchObject({ unitCents: 58500, rule: "Oranje price" });
+    const harvest = mk({ id: "o", name: "Harvest price", kind: "MEMBER", tiers: ["HARVEST"], adjustPct: -10 });
+    expect(resolvePrice(v, [member, harvest], ctx).unitCents).toBe(65000);
+    expect(resolvePrice(v, [member, harvest], { ...ctx, member: true, tier: "SEED" })).toMatchObject({ unitCents: 61750, rule: "Member price" });
+    expect(resolvePrice(v, [member, harvest], { ...ctx, member: true, tier: "HARVEST" })).toMatchObject({ unitCents: 58500, rule: "Harvest price" });
   });
   it("applies quantity breaks and scheduled windows", () => {
     const breaks = mk({ id: "b", name: "Volume", items: [{ variantId: "v", priceCents: 60000, minQty: 3 }] });
@@ -271,13 +271,13 @@ describe("price rules", () => {
 describe("loyalty", () => {
   it("earns Guilders with tier multipliers", () => {
     expect(pointsFor(100_00, "SEED")).toBe(5);
-    expect(pointsFor(100_00, "ORANJE")).toBe(10);
+    expect(pointsFor(100_00, "HARVEST")).toBe(10);
     expect(pointsFor(100_00, "SEED", 2)).toBe(10);
   });
   it("computes tiers and progress", () => {
     expect(tierFor(0).key).toBe("SEED");
     expect(tierFor(800_000).key).toBe("BLOOM");
-    expect(nextTier(1_000_000)?.tier.key).toBe("ORANJE");
+    expect(nextTier(1_000_000)?.tier.key).toBe("HARVEST");
     expect(nextTier(2_000_000)).toBeNull();
   });
 });

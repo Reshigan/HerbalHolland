@@ -1,12 +1,12 @@
-// Oranje Club — the Herbal Holland loyalty programme. Currency: Guilders (ƒ).
+// Windmill Club — the Herbal Holland loyalty programme. Currency: Guilders (ƒ).
 // Earn on what the member actually pays (not on Guilders redeemed). 1 Guilder = R1.
-export type TierKey = "SEED" | "SPROUT" | "BLOOM" | "ORANJE";
+export type TierKey = "SEED" | "SPROUT" | "BLOOM" | "HARVEST";
 
 export const TIERS: { key: TierKey; name: string; minCents: number; multiplier: number; perks: string[] }[] = [
   { key: "SEED", name: "Seed", minCents: 0, multiplier: 1, perks: ["5 Guilders per R100", "Birthday bonus", "Member-only drops"] },
   { key: "SPROUT", name: "Sprout", minCents: 250_000, multiplier: 1.25, perks: ["1.25× Guilders", "Early access to drops", "Free grinder on tier-up"] },
   { key: "BLOOM", name: "Bloom", minCents: 750_000, multiplier: 1.5, perks: ["1.5× Guilders", "Free same-day delivery", "Members' evenings"] },
-  { key: "ORANJE", name: "Oranje", minCents: 1_500_000, multiplier: 2, perks: ["2× Guilders", "Personal budtender", "First access to Reserve batches"] },
+  { key: "HARVEST", name: "Harvest", minCents: 1_500_000, multiplier: 2, perks: ["2× Guilders", "Personal budtender", "First access to Reserve batches"] },
 ];
 
 export const POINT_VALUE_CENTS = 100;

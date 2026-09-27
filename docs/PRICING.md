@@ -20,7 +20,7 @@ Evaluated per line, in this order:
 6. **Near-expiry markdown** (POS) — when the next lot to sell (FEFO) expires within `settings.pricing.markdownDays`,
    take `markdownPct` off.
 
-Each line reports the rule that set its price (e.g. "Oranje Club member price", "Volume pricing (10+)",
+Each line reports the rule that set its price (e.g. "Windmill Club member price", "Volume pricing (10+)",
 "Near-expiry −20%"), shown on receipts and in carts.
 
 **Incentive exclusion:** when a line is excluded from incentives (licensed medicines in MEDICAL mode — Medicines Act

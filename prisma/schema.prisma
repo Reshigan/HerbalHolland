@@ -520,7 +520,7 @@ enum Tier {
   SEED
   SPROUT
   BLOOM
-  ORANJE
+  HARVEST
 }
 
 enum AgeCheck {
@@ -906,7 +906,7 @@ model Expense {
 enum PriceListKind {
   ZONE // regional / scheduled price changes (stores or regions; empty = network)
   CHANNEL // e.g. online-only prices
-  MEMBER // Oranje Club member prices, optionally tier-specific
+  MEMBER // Windmill Club member prices, optionally tier-specific
 }
 
 model PriceList {

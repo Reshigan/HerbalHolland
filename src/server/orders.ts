@@ -27,7 +27,7 @@ export class OrderError extends Error {
 export async function deliveryFee(fulfilment: Fulfil, subtotalCents: number, tier: string) {
   const s = (await getSettings()).ecommerce;
   if (fulfilment === "COLLECT" || subtotalCents >= s.freeDeliveryOverCents) return 0;
-  if (fulfilment === "SAME_DAY") return tier === "BLOOM" || tier === "ORANJE" ? 0 : s.sameDayFeeCents;
+  if (fulfilment === "SAME_DAY") return tier === "BLOOM" || tier === "HARVEST" ? 0 : s.sameDayFeeCents;
   return s.courierFeeCents;
 }
 
