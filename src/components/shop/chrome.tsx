@@ -163,7 +163,8 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <FooterCol title="Legal" links={[["Terms of use", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["PAIA manual", "/legal/paia"], ["Responsible use", "/learn/responsible-use"]]} />
             </div>
           </Container>
-          <Container className="border-t border-ink-850 py-6">
+          <div className="border-t border-ink-850">
+          <Container className="py-6">
             <p className="text-xs leading-relaxed text-ink-400">
               <span className="font-semibold text-ink-200">Stores: </span>
               {provinces.map((p, i) => (
@@ -175,6 +176,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               ))}
             </p>
           </Container>
+          </div>
           <div className="border-t border-ink-850">
             <Container className="flex flex-col gap-4 py-6 text-xs leading-relaxed text-ink-400 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">

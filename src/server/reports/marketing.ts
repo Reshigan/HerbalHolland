@@ -36,7 +36,7 @@ export const promotions: ReportDef = {
     const ids = [...new Set([...used.map((u) => u.promotionId), ...live.map((l) => l.id)])];
     const promos = new Map((await db.promotion.findMany({ where: { id: { in: ids } } })).map((p) => [p.id, p]));
     const usedBy = new Map(used.map((u) => [u.promotionId, u]));
-    const rows: Row[] = ids
+    const rows = ids
       .map((id) => {
         const p = promos.get(id);
         const u = usedBy.get(id) ?? { n: 0, members: 0, revenue: 0, net: 0, discount: 0 };

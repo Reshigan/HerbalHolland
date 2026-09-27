@@ -565,9 +565,9 @@ export const onlineOrders: ReportDef = {
         COUNT(*) FILTER (WHERE status = 'CANCELLED')::int AS cancelled,
         COUNT(*) FILTER (WHERE status = 'PENDING_PAYMENT')::int AS unpaid,
         COALESCE(SUM("totalCents") FILTER (WHERE status NOT IN ('CANCELLED', 'PENDING_PAYMENT')), 0)::float8 AS value,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ready - placed) / 60) AS "readyMedian",
-        percentile_cont(0.9) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ready - placed) / 60) AS "readyP90",
-        AVG(EXTRACT(EPOCH FROM done - placed) / 3600) AS "doneHours"
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ready - placed) / 60)::float8 AS "readyMedian",
+        percentile_cont(0.9) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ready - placed) / 60)::float8 AS "readyP90",
+        AVG(EXTRACT(EPOCH FROM done - placed) / 3600)::float8 AS "doneHours"
       FROM o
       GROUP BY GROUPING SETS ((${cols}), ())
       ORDER BY 3, 1, 2`;

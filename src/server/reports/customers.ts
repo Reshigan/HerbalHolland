@@ -171,7 +171,7 @@ export const memberAttach: ReportDef = {
         db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx, prevR), _sum: { sales: true, members: true } }),
       ]);
       const prevBy = new Map(before.map((b) => [b.storeId, ratio(b._sum.members ?? 0, b._sum.sales ?? 0)]));
-      const rows: Row[] = now
+      const rows = now
         .map((x) => {
           const rate = ratio(x._sum.members ?? 0, x._sum.sales ?? 0);
           const pr = prevBy.get(x.storeId) ?? null;

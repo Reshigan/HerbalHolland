@@ -172,7 +172,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">
                     {u?._sum.totalCents ? zarCompact(u._sum.totalCents) : "—"}
-                    {u?._sum.discountCents ? <span className="block text-xs text-ink-500">{zarCompact(u._sum.discountCents)} given</span> : null}
+                    {u?._sum.discountCents ? <span className="block whitespace-nowrap text-xs text-ink-500">{zarCompact(u._sum.discountCents)} given</span> : null}
                   </Td>
                 </Tr>
               );

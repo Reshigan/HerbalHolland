@@ -2,12 +2,13 @@
 // Storefront server actions shared across pages: age gate, preferred store, the bag,
 // promo codes and the phone-OTP sign-in / one-step registration flow.
 import { cookies } from "next/headers";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { endSession, getCustomer, startSession } from "@/server/auth";
 import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
-import { createCustomer, CustomerError, requestOtp, verifyOtp } from "@/server/customers";
+import { createCustomer, CustomerError, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
 import { getDispensaryAccess, getClasses } from "./access";
 import { getCart, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
 import { cartCount, withItem, withQty } from "./cart-codec";
@@ -194,4 +195,24 @@ export async function signOut() {
   await endSession("customer");
   if (c) await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.sign_out", { entity: "Customer", entityId: c.id });
   redirect("/");
+}
+
+// ── Age verification (SA ID number: format, checksum and 18+ from the date of birth) ─
+export type AgeCheckState = { ok?: boolean; error?: string };
+
+export async function verifyAgeWithId(_: AgeCheckState, form: FormData): Promise<AgeCheckState> {
+  const c = await getCustomer();
+  if (!c) return { error: "Please sign in again" };
+  const idNumber = String(form.get("idNumber") ?? "").replace(/\s/g, "");
+  const id = checkSaId(idNumber);
+  if (!id.valid) return { error: idNumber ? id.reason : "Enter your 13-digit SA ID number" };
+  try {
+    await recordAgeCheck(c.id, "ID_NUMBER", { type: "CUSTOMER", id: c.id, name: c.firstName }, idNumber);
+  } catch (e) {
+    if (e instanceof CustomerError) return { error: e.message };
+    if ((e as { code?: string }).code === "P2002") return { error: "That ID number is already linked to another member — please visit a store so we can help." };
+    throw e;
+  }
+  refresh();
+  return { ok: true };
 }

@@ -66,7 +66,9 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
     }),
   ]);
   const count = Object.fromEntries(counts);
-  const sum = (f: (l: (typeof all)[number]) => boolean) => all.filter(f).reduce((a, l) => ({ units: a.units + l.onHand, value: a.value + l.onHand * l.unitCostCents }), { units: 0, value: 0 });
+  const sum = (f: (l: (typeof all)[number]) => boolean) =>
+    all.filter(f).reduce((a, l) => ({ lots: a.lots + 1, units: a.units + l.onHand, value: a.value + l.onHand * l.unitCostCents }), { lots: 0, units: 0, value: 0 });
+  const lotsLabel = (x: { lots: number; value: number }) => `${x.lots} lot${x.lots === 1 ? "" : "s"} · ${zar(x.value)} at cost`;
   const blocked = sum((l) => l.batch.status !== "RELEASED" && l.onHand > 0);
   const expiring = sum((l) => l.batch.status === "RELEASED" && !!l.batch.expiresAt && l.batch.expiresAt > now && l.batch.expiresAt <= soon && l.onHand > 0);
   const expired = sum((l) => !!l.batch.expiresAt && l.batch.expiresAt <= now && l.onHand > 0);
@@ -88,14 +90,45 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Lots on hand" value={all.filter((l) => l.onHand > 0).length.toLocaleString()} sub={`${onHand.units.toLocaleString()} units · ${zarCompact(onHand.value)}`} />
-        <Stat label="Blocked (recall / quarantine)" value={blocked.units.toLocaleString()} sub={blocked.units ? `${zar(blocked.value)} at cost` : "nothing blocked"} />
-        <Stat label="Expiring within 30 days" value={expiring.units.toLocaleString()} sub={expiring.units ? `${zar(expiring.value)} at cost — sells first, marked down` : "nothing close to expiry"} />
-        <Stat label="Expired on hand" value={expired.units.toLocaleString()} sub={expired.units ? "write it off" : "none"} />
+        <Stat label="Units on hand" value={onHand.units.toLocaleString()} sub={`${onHand.lots} lots · ${zarCompact(onHand.value)} at cost`} />
+        <Stat label="Blocked units (recall / hold)" value={blocked.units.toLocaleString()} sub={blocked.units ? lotsLabel(blocked) : "nothing blocked"} />
+        <Stat label="Units expiring within 30 days" value={expiring.units.toLocaleString()} sub={expiring.units ? `${lotsLabel(expiring)} · sold first` : "nothing close to expiry"} />
+        <Stat label="Expired units on hand" value={expired.units.toLocaleString()} sub={expired.units ? `${lotsLabel(expired)} — write off` : "none"} />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <Card className="min-w-0 xl:col-span-2">
+      {recalls.length > 0 && (
+        <Card className="mt-6">
+          <CardHeader title="Network recalls & holds" description="Batches HQ has blocked, and what you hold of each" />
+          <CardBody className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {recalls.map((b) => {
+              const held = b.stock.reduce((s, x) => s + Math.max(0, x.onHand), 0);
+              return (
+                <div key={b.id} className="rounded-xl border border-ink-150 p-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-ink-900">{b.variant.product.name} · {b.variant.name}</div>
+                      <Link href={`/batch/${b.code}`} target="_blank" className="font-mono text-xs text-oranje-700 hover:underline">{b.code}</Link>
+                    </div>
+                    <StatusBadge status={b.status} />
+                  </div>
+                  {b.statusReason && <p className="mt-1.5 text-xs text-ink-600">{b.statusReason}</p>}
+                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${held ? "text-rose-600" : "text-leaf-700"}`}>
+                    {held ? <ShieldAlert className="h-3.5 w-3.5" aria-hidden /> : <CircleCheck className="h-3.5 w-3.5" aria-hidden />}
+                    {held ? (
+                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {held} units — resolve →</Link>
+                    ) : (
+                      "None on hand here"
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </CardBody>
+        </Card>
+      )}
+
+      <div className="mt-6">
+        <Card className="min-w-0">
           <div className="space-y-3 border-b border-ink-100 p-4 sm:p-5">
             <SearchForm path={path} q={q} keep={keep} placeholder="Batch code, product or SKU" />
             <Chips
@@ -204,35 +237,6 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
           </div>
         </Card>
 
-        <Card className="h-fit">
-          <CardHeader title="Network recalls & holds" description="Batches HQ has blocked, and what you hold of each" />
-          <CardBody className="space-y-3">
-            {recalls.length === 0 && <p className="text-sm text-ink-500">No batches are recalled or on hold across the network.</p>}
-            {recalls.map((b) => {
-              const held = b.stock.reduce((s, x) => s + Math.max(0, x.onHand), 0);
-              return (
-                <div key={b.id} className="rounded-xl border border-ink-150 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <div className="text-sm font-semibold text-ink-900">{b.variant.product.name} · {b.variant.name}</div>
-                      <Link href={`/batch/${b.code}`} target="_blank" className="font-mono text-xs text-oranje-700 hover:underline">{b.code}</Link>
-                    </div>
-                    <StatusBadge status={b.status} />
-                  </div>
-                  {b.statusReason && <p className="mt-1.5 text-xs text-ink-600">{b.statusReason}</p>}
-                  <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${held ? "text-rose-600" : "text-leaf-700"}`}>
-                    {held ? <ShieldAlert className="h-3.5 w-3.5" aria-hidden /> : <CircleCheck className="h-3.5 w-3.5" aria-hidden />}
-                    {held ? (
-                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {held} units — resolve →</Link>
-                    ) : (
-                      "None on hand here"
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </CardBody>
-        </Card>
       </div>
     </>
   );

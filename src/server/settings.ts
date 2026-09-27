@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS = {
     courierFeeCents: 9_900,
     freeDeliveryOverCents: 90_000,
     sameDayCutoffHour: 15,
+    unpaidHoldMinutes: 60, // unpaid online orders are cancelled (stock released) after this
+    collectHoldDays: 7, // pay-in-store collections not picked up are cancelled after this
   },
 };
 export type Settings = typeof DEFAULT_SETTINGS;

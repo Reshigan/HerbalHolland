@@ -1,0 +1,221 @@
+"use client";
+// Catalogue: category rail, instant search + barcode entry, camera scan, product grid.
+import { forwardRef, useMemo, useState } from "react";
+import { Camera, Cigarette, Cookie, Droplet, Flower2, Leaf, Pill, Search, Shirt, Sparkles, Sprout, Tag, Wind, X, LayoutGrid } from "lucide-react";
+import { ProductArt } from "@/components/product/art";
+import { cn } from "@/lib/cn";
+import { zarWhole, zar } from "@/lib/money";
+import { livePromotions } from "../lib/pricing";
+import { Chip, Sheet } from "../ui";
+import type { BootData, BootProduct, BootVariant } from "@/server/pos/types";
+
+const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { Flower2, Cigarette, Cookie, Wind, Droplet, Leaf, Sparkles, Sprout, Shirt };
+
+export type Filter = { kind: "all" } | { kind: "category"; id: string } | { kind: "deals" } | { kind: "suggestion"; label: string; productIds: string[]; categoryIds: string[] };
+
+export const shelfPrice = (v: BootVariant) => v.shelfCents ?? v.rrpCents;
+
+export function StockChip({ v }: { v: BootVariant }) {
+  if (v.available <= 0) return <Chip tone="red">{v.available < 0 ? `${v.available}` : "0"} here</Chip>;
+  if (v.available <= 3) return <Chip tone="amber">{v.available} here</Chip>;
+  return <Chip tone="neutral">{v.available} here</Chip>;
+}
+
+type Props = {
+  boot: BootData;
+  filter: Filter;
+  setFilter: (f: Filter) => void;
+  query: string;
+  setQuery: (q: string) => void;
+  onSubmitSearch: () => void;
+  onAdd: (variantId: string) => void;
+  onScanCamera?: () => void;
+  licensedClasses: string[];
+};
+
+export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ boot, filter, setFilter, query, setQuery, onSubmitSearch, onAdd, onScanCamera, licensedClasses }, searchRef) {
+  const [picking, setPicking] = useState<BootProduct | null>(null);
+
+  const deals = useMemo(() => {
+    const live = livePromotions(boot.promotions, new Date());
+    const products = new Set(live.flatMap((p) => p.productIds));
+    const cats = new Set(live.flatMap((p) => p.categoryIds));
+    return { products, cats, any: live.some((p) => p.productIds.length || p.categoryIds.length) };
+  }, [boot.promotions]);
+
+  const products = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return boot.products.filter((p) => {
+      if (q) {
+        const hay = `${p.name} ${p.brand} ${p.strain ?? ""} ${p.tagline ?? ""} ${p.variants.map((v) => `${v.name} ${v.sku} ${v.barcode ?? ""}`).join(" ")}`.toLowerCase();
+        return q.split(/\s+/).every((w) => hay.includes(w));
+      }
+      if (filter.kind === "category") return p.categoryId === filter.id;
+      if (filter.kind === "deals") return deals.products.has(p.id) || deals.cats.has(p.categoryId);
+      if (filter.kind === "suggestion") return filter.productIds.includes(p.id) || filter.categoryIds.includes(p.categoryId);
+      return true;
+    });
+  }, [boot.products, query, filter, deals]);
+
+  const pick = (p: BootProduct) => (p.variants.length === 1 ? onAdd(p.variants[0].id) : setPicking(p));
+
+  const railItem = (active: boolean, onClick: () => void, icon: React.ReactNode, label: string, key: string) => (
+    <button
+      key={key}
+      type="button"
+      onClick={onClick}
+      aria-pressed={active}
+      className={cn(
+        "flex shrink-0 items-center gap-2 rounded-2xl text-[0.8rem] font-semibold transition md:w-full md:flex-col md:justify-center md:gap-1.5 md:px-1 md:py-3",
+        "h-11 px-4 md:h-auto md:min-h-[4.5rem]",
+        active ? "bg-oranje-500 text-ink-950" : "bg-ink-900 text-ink-300 ring-1 ring-ink-800 hover:text-white md:bg-transparent md:ring-0 md:hover:bg-ink-900",
+      )}
+    >
+      {icon}
+      <span className="md:text-center md:leading-tight">{label}</span>
+    </button>
+  );
+
+  return (
+    <div className="flex h-full min-h-0 flex-col md:flex-row">
+      {/* Category rail (vertical on tablet, chips on phone) */}
+      <nav className="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-3 pt-3 md:w-[5.75rem] md:flex-col md:gap-1 md:overflow-y-auto md:border-r md:border-ink-850 md:px-2 md:py-3" aria-label="Categories">
+        {railItem(filter.kind === "all" && !query, () => (setFilter({ kind: "all" }), setQuery("")), <LayoutGrid className="h-5 w-5" />, "All", "all")}
+        {deals.any && railItem(filter.kind === "deals" && !query, () => (setFilter({ kind: "deals" }), setQuery("")), <Tag className="h-5 w-5" />, "Deals", "deals")}
+        {boot.categories
+          .filter((c) => boot.products.some((p) => p.categoryId === c.id))
+          .map((c) => {
+            const Icon = ICONS[c.icon] ?? Sparkles;
+            return railItem(filter.kind === "category" && filter.id === c.id && !query, () => (setFilter({ kind: "category", id: c.id }), setQuery("")), <Icon className="h-5 w-5" />, c.name.replace("CBD ", ""), c.id);
+          })}
+      </nav>
+
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="flex items-center gap-2 px-3 pb-2 pt-3 md:px-4">
+          <div className="relative flex-1">
+            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
+            <input
+              ref={searchRef}
+              type="search"
+              inputMode="search"
+              enterKeyHint="go"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  onSubmitSearch();
+                }
+              }}
+              placeholder="Search or scan a barcode"
+              aria-label="Search products or scan a barcode (F2)"
+              className="h-12 w-full rounded-full border border-ink-800 bg-ink-900 pl-12 pr-16 text-base text-white placeholder:text-ink-500 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/20"
+            />
+            {query ? (
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-800">
+                <X className="h-4 w-4" />
+              </button>
+            ) : (
+              <kbd className="absolute right-4 top-1/2 hidden -translate-y-1/2 rounded-md border border-ink-700 px-1.5 py-0.5 text-[0.65rem] font-semibold text-ink-400 lg:block">F2</kbd>
+            )}
+          </div>
+          {onScanCamera && (
+            <button type="button" onClick={onScanCamera} aria-label="Scan with the camera" className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink-900 text-ink-200 ring-1 ring-ink-800 hover:text-white">
+              <Camera className="h-5 w-5" />
+            </button>
+          )}
+        </div>
+
+        {filter.kind === "suggestion" && !query && (
+          <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl bg-oranje-500/10 px-4 py-2 text-sm text-oranje-200 ring-1 ring-oranje-500/30 md:mx-4">
+            <span>
+              <b className="text-oranje-300">Complete the deal:</b> {filter.label}
+            </span>
+            <button type="button" onClick={() => setFilter({ kind: "all" })} className="h-9 shrink-0 rounded-full px-3 font-semibold text-oranje-300 hover:bg-oranje-500/10">
+              Show all
+            </button>
+          </div>
+        )}
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 md:px-4">
+          {products.length === 0 ? (
+            <div className="py-16 text-center text-ink-400">
+              <p className="font-semibold text-ink-200">No products match “{query}”.</p>
+              <p className="mt-1 text-sm">Check the spelling, or scan the barcode.</p>
+            </div>
+          ) : (
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" aria-label="Products">
+              {products.map((p) => {
+                const prices = p.variants.map(shelfPrice);
+                const min = Math.min(...prices);
+                const stock = p.variants.reduce((s, v) => s + Math.max(0, v.available), 0);
+                const markdown = p.variants.some((v) => v.markdownPct > 0);
+                const licensed = licensedClasses.includes(p.regClass);
+                const deal = deals.products.has(p.id) || deals.cats.has(p.categoryId);
+                return (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => pick(p)}
+                      className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-ink-900 text-left ring-1 ring-ink-800 transition hover:ring-oranje-500/60 active:scale-[0.98]"
+                      aria-label={`${p.name}, ${p.variants.length > 1 ? `from ${zar(min)}` : zar(min)}, ${stock} in stock`}
+                    >
+                      <div className="relative aspect-[16/10] w-full overflow-hidden">
+                        <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} className="h-full w-full transition duration-300 group-hover:scale-105" label="" />
+                        <div className="absolute left-2 top-2 flex flex-wrap gap-1">
+                          {licensed && (
+                            <Chip tone="orange" className="bg-ink-950/80 backdrop-blur" icon={<Pill className="h-3 w-3" />}>
+                              Licensed
+                            </Chip>
+                          )}
+                          {markdown && <Chip tone="amber" className="bg-ink-950/80 backdrop-blur">Markdown</Chip>}
+                          {deal && !licensed && <Chip tone="green" className="bg-ink-950/80 backdrop-blur">Deal</Chip>}
+                        </div>
+                      </div>
+                      <div className="flex flex-1 flex-col gap-1.5 p-3">
+                        <div className="line-clamp-2 text-[0.92rem] font-semibold leading-snug text-white">{p.name}</div>
+                        <div className="mt-auto flex items-end justify-between gap-2">
+                          <div className="font-display text-lg font-semibold leading-none text-white tnum">
+                            {p.variants.length > 1 && <span className="mr-1 text-xs font-medium text-ink-400">from</span>}
+                            {zarWhole(min)}
+                          </div>
+                          <span className={cn("text-[0.72rem] font-semibold tnum", stock <= 0 ? "text-[#f29b9b]" : stock <= 3 ? "text-[#f3c65a]" : "text-ink-400")}>{stock} here</span>
+                        </div>
+                      </div>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </div>
+
+      <Sheet open={!!picking} onClose={() => setPicking(null)} title={picking?.name ?? ""} subtitle="Choose a size" size="sm">
+        {picking && (
+          <ul className="space-y-2">
+            {picking.variants.map((v) => (
+              <li key={v.id}>
+                <button
+                  type="button"
+                  onClick={() => (onAdd(v.id), setPicking(null))}
+                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-oranje-500/60 active:scale-[0.99]"
+                >
+                  <span>
+                    <span className="block text-base font-semibold text-white">{v.name}</span>
+                    <span className="mt-1 flex items-center gap-2 text-xs text-ink-400">
+                      <StockChip v={v} />
+                      {v.markdownPct > 0 && <Chip tone="amber">Near expiry −{v.markdownPct}%</Chip>}
+                      <span className="font-mono">{v.sku}</span>
+                    </span>
+                  </span>
+                  <span className="font-display text-xl font-semibold text-white tnum">{zar(shelfPrice(v))}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Sheet>
+    </div>
+  );
+});

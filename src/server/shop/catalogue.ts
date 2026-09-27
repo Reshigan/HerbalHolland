@@ -171,7 +171,7 @@ export const SORTS = [
 export type SortKey = (typeof SORTS)[number]["key"];
 
 export type ListQuery = { category?: string; mood?: string; sort?: SortKey; min?: number; max?: number; q?: string; page: number };
-export const PAGE_SIZE = 24;
+export const PAGE_SIZE = 36;
 
 export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, who: Shopper) {
   const classes = await getClasses();
@@ -246,7 +246,11 @@ export async function storesWithStock(variantIds: string[], from?: { lat: number
       qty: Object.fromEntries(variantIds.map((v) => [v, Math.max(0, avail.get(availKey(s.id, v))?.available ?? 0)])) as Record<string, number>,
       km: origin && s.lat != null && s.lng != null ? distanceKm(origin, { lat: s.lat, lng: s.lng }) : null,
     }))
-    .sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9) || a.store.city.localeCompare(b.store.city) || a.store.name.localeCompare(b.store.name));
+    .sort((a, b) => {
+      if (a.km != null || b.km != null) return (a.km ?? 1e9) - (b.km ?? 1e9);
+      const stock = (x: typeof a) => variantIds.reduce((s, v) => s + x.qty[v], 0);
+      return Number(stock(b) > 0) - Number(stock(a) > 0) || a.store.city.localeCompare(b.store.city) || a.store.name.localeCompare(b.store.name);
+    });
 }
 
 export async function productReviews(productId: string, take: number) {

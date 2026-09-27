@@ -19,14 +19,16 @@
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
 7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences); Catalogue: products, variants, batches with COAs.
 8. Pair POS devices per store (`/pos/pair`), create staff with PINs, designate dispensers.
-9. Configure the scheduler: `POST /api/cron/campaigns` every 15 min with `Authorization: Bearer $CRON_SECRET`.
+9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min and
+   `POST /api/cron/daily` at 02:00 SAST.
 
 ## Routine operations
 
 | When | Task | Where |
 |---|---|---|
 | Continuous | Health check, error rate, p95 latency, DB connections | Load balancer + APM |
-| Every 15 min | Release scheduled campaigns | `/api/cron/campaigns` |
+| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails | `/api/cron/frequent` |
+| Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays` | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |
 | Weekly | Replenishment orders submitted/approved/shipped; expiry report actioned | Purchasing / Distribution |
 | Monthly | Cycle counts per category; franchise statements emailed; NCC opt-out registry import into Suppression; VAT201 working per store | Stock takes / HQ Statements / Marketing |

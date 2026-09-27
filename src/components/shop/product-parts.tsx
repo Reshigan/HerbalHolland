@@ -69,6 +69,7 @@ export function SafetyResult({ value }: { value?: string }) {
 /** "17–21%" / "0.2%" / null */
 export function range(min?: number | null, max?: number | null, unit = "%") {
   if (min == null && max == null) return null;
+  if (min === 0 && max) return `≤ ${max}${unit}`;
   if (min != null && max != null && min !== max) return `${min}–${max}${unit}`;
   return `${max ?? min}${unit}`;
 }

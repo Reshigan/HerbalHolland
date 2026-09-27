@@ -167,17 +167,17 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           {query.category && <input type="hidden" name="category" value={query.category} />}
           {query.mood && <input type="hidden" name="mood" value={query.mood} />}
           {q && <input type="hidden" name="q" value={q} />}
-          <label className="flex flex-col text-xs font-semibold text-ink-400">
+          <label className="flex w-24 flex-col text-xs font-semibold text-ink-400">
             Min R
-            <input name="min" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.min} placeholder={String(res.priceBounds.min)} className={cn(inputClass, "mt-1 h-10 w-24 text-sm")} />
+            <input name="min" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.min} placeholder={String(res.priceBounds.min)} className={cn(inputClass, "mt-1 h-10 text-sm")} />
           </label>
-          <label className="flex flex-col text-xs font-semibold text-ink-400">
+          <label className="flex w-24 flex-col text-xs font-semibold text-ink-400">
             Max R
-            <input name="max" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.max} placeholder={String(res.priceBounds.max)} className={cn(inputClass, "mt-1 h-10 w-24 text-sm")} />
+            <input name="max" type="number" inputMode="numeric" min={0} step={10} defaultValue={sp.max} placeholder={String(res.priceBounds.max)} className={cn(inputClass, "mt-1 h-10 text-sm")} />
           </label>
-          <label className="flex flex-col text-xs font-semibold text-ink-400">
+          <label className="flex w-48 flex-col text-xs font-semibold text-ink-400">
             Sort
-            <AutoSubmitSelect name="sort" defaultValue={sort} className={cn(inputClass, "mt-1 h-10 w-48 cursor-pointer text-sm")}>
+            <AutoSubmitSelect name="sort" defaultValue={sort} className={cn(inputClass, "mt-1 h-10 cursor-pointer text-sm")}>
               {SORTS.map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}

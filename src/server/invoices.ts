@@ -65,9 +65,11 @@ export async function emailSaleInvoice(saleId: string, to?: string) {
   await db.sale.update({ where: { id: s.id }, data: { invoiceEmail: email, invoiceSentAt: new Date() } });
 }
 
-/** Fire-and-forget wrapper so a mail outage never blocks the till. */
+/** Fire-and-forget so a mail outage never blocks the till; the address is kept so the scheduler retries failures. */
 export function queueSaleInvoice(saleId: string, to?: string) {
-  emailSaleInvoice(saleId, to).catch((e) => console.error("[invoice] email failed", saleId, e));
+  (to ? db.sale.update({ where: { id: saleId }, data: { invoiceEmail: to } }) : Promise.resolve())
+    .then(() => emailSaleInvoice(saleId, to))
+    .catch((e) => console.error("[invoice] email failed", saleId, e));
 }
 
 export async function emailStockOrderInvoice(stockOrderId: string) {
