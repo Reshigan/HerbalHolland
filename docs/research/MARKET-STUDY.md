@@ -196,7 +196,7 @@ Ideas are ranked by impact relative to effort. H = high, M = medium, L = low.
 | 2 | WhatsApp ordering: product catalogue, chatbot, PayShap or card payment links and "order ready" alerts, all linked to each store's live stock | Menus kept by hand on WhatsApp | H | M |
 | 3 | One live catalogue feeding the website, app, WhatsApp and in-store TV and QR menus, showing THC, terpenes, harvest date and stock | Static menus | H | M |
 | 4 | A QR code on every batch linking to an independent lab certificate (potency, microbes, pesticides, solvents), plus grower and dates | Fake or missing lab results | H | M |
-| 5 | Tiered "Windmill Club" loyalty with point multipliers, birthday rewards and expiry, honoured in every store, with central settlement between franchisees | A flat 5% back | H | M |
+| 5 | Tiered "Herbal Holland Rewards" loyalty with point multipliers, birthday rewards and expiry, honoured in every store, with central settlement between franchisees | A flat 5% back | H | M |
 | 6 | Payments with no surcharges: tap to pay, QR (SnapScan/Zapper), PayShap payment requests, instant EFT and cash | Cash-first sellers and card fees | H | M |
 | 7 | Click & collect ready in 15 minutes, with an ID check at handover | Walk-in-only venues | H | L |
 | 8 | A compliance engine: member register, purchase allocation caps, age checks, audit trail, prices shown only after login, and rules that switch over when licensing arrives | Improvised grey-zone operation | H | M |

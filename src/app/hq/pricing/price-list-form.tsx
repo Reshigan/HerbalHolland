@@ -156,7 +156,7 @@ export function PriceListForm({
                 </div>
                 <FieldError name="adjustPct" />
               </Field>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 <Field label="Starts" htmlFor="startsAt">
                   <Input id="startsAt" name="startsAt" type="datetime-local" defaultValue={values.startsAt} />
                   <FieldError name="startsAt" />
@@ -167,7 +167,9 @@ export function PriceListForm({
                 </Field>
               </div>
               <Field label="Priority" htmlFor="priority" hint="When several zone lists match, the highest priority sets the shelf price.">
-                <Input id="priority" name="priority" defaultValue={values.priority} inputMode="numeric" className="w-28" />
+                <div className="w-28">
+                  <Input id="priority" name="priority" defaultValue={values.priority} inputMode="numeric" />
+                </div>
                 <FieldError name="priority" />
               </Field>
               <Checkbox name="active" defaultChecked={values.active} label="Active" description="Switch off to pause without deleting" />

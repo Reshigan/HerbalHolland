@@ -118,7 +118,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                   </Td>
                   <Td align="right">
                     {l.items.length}
-                    {l.items.some((i) => i.minQty > 1) && <span className="block text-xs text-ink-500">incl. qty breaks</span>}
+                    {l.items.some((i) => i.minQty > 1) && <span className="block whitespace-nowrap text-xs text-ink-500">qty breaks</span>}
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">{l.priority}</Td>
                   <Td>

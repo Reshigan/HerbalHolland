@@ -39,13 +39,10 @@ export type AuthState = { me: StaffTile | null; locked: boolean; offline?: boole
 export const loadAuth = () => read<AuthState>("auth");
 export const saveAuth = (a: AuthState) => write("auth", a);
 
-/** Next device-local receipt sequence: never behind the server's, never reused. */
-export function nextSeq(serverSeq: number) {
-  const n = Math.max(serverSeq, read<number>("seq") ?? 0) + 1;
-  write("seq", n);
-  return n;
-}
+/** Last receipt sequence used on this till: never behind the server's. */
 export const peekSeq = (serverSeq: number) => Math.max(serverSeq, read<number>("seq") ?? 0);
+/** Marks a sequence as used once its sale is posted or queued (numbers are never reused). */
+export const commitSeq = (seq: number) => write("seq", Math.max(seq, read<number>("seq") ?? 0));
 
 // ── Cart ─────────────────────────────────────────────────────────────────────
 
