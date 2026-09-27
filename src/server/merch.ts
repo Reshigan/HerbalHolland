@@ -73,7 +73,7 @@ export async function merchShipped(orderId: string, storeId: string, ship: { cou
   if (!o.podRef) throw new OrderError("This order hasn't gone to the merch partner yet");
   if (o.podStatus === "shipped") throw new OrderError("Already marked as shipped");
   const note = `Merch shipped by ${partnerName()}: ${ship.courier} ${ship.trackingNo}`;
-  await db.order.update({ where: { id: o.id }, data: { podStatus: "shipped", events: withNote(o, note) } });
+  await db.order.update({ where: { id: o.id }, data: { podStatus: "shipped", podTracking: `${ship.courier} · ${ship.trackingNo}`, events: withNote(o, note) } });
   await audit(db, actor, "order.merch_shipped", { storeId: o.storeId, entity: "Order", entityId: o.id, data: ship });
   if (o.lines.every((l) => l.variant.podSku)) {
     if (o.status === "PICKING") await advanceOrder(o.id, "READY", actor, { note: "Printed and packed" });

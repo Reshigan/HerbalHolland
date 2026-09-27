@@ -33,6 +33,25 @@ self.addEventListener("push", (event) => {
   );
 });
 
+// The browser rotated this device's subscription (expiry or new keys): subscribe again and tell the server, so drop
+// alerts keep arriving. Needs the member to still be signed in on this device; otherwise Rewards settings re-enables.
+self.addEventListener("pushsubscriptionchange", (event) => {
+  event.waitUntil(
+    (async () => {
+      const old = event.oldSubscription;
+      const key = (old && old.options && old.options.applicationServerKey) || (await fetch("/api/push/renew").then((r) => (r.ok ? r.text() : null)));
+      if (!key) return;
+      const sub = event.newSubscription || (await self.registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: key }));
+      await fetch("/api/push/renew", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ old: old ? old.endpoint : null, sub: sub.toJSON() }),
+      });
+    })().catch(() => {}),
+  );
+});
+
 // Tabs we may reuse: the storefront and Rewards app — never a till, back-office or menu-board screen.
 const STAFF = /^\/(pos|hq|store|menu|login|invoice)(\/|$)/;
 

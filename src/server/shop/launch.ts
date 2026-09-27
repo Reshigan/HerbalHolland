@@ -72,15 +72,18 @@ export const isWatching = (dropId: string, customerId: string) => db.dropWatch.f
 // ── Events ───────────────────────────────────────────────────────────────────
 const EVENT_STORE = { select: { name: true, slug: true, code: true, suburb: true, city: true, status: true } } as const;
 
-/** Events that haven't ended, soonest first (optionally at one store). */
-export async function upcomingEvents(opts: { storeId?: string; take?: number } = {}, at = new Date()) {
+/** Events that haven't ended, soonest first (optionally at one store, or with a member's home store first). */
+export async function upcomingEvents(opts: { storeId?: string; homeStoreId?: string | null; take?: number } = {}, at = new Date()) {
+  const take = opts.take ?? 6;
   const rows = await db.storeEvent.findMany({
     where: { endsAt: { gt: at }, ...(opts.storeId ? { storeId: opts.storeId } : { store: { status: { in: ["ACTIVE", "OPENING_SOON"] } } }) },
     orderBy: { startsAt: "asc" },
-    take: opts.take ?? 6,
+    take: opts.homeStoreId ? take * 4 : take,
     include: { store: EVENT_STORE, _count: { select: { rsvps: true } } },
   });
-  return rows.map(({ _count, ...e }) => ({ ...e, left: Math.max(0, e.capacity - _count.rsvps) }));
+  const home = opts.homeStoreId;
+  const ordered = home ? [...rows].sort((a, b) => Number(b.storeId === home) - Number(a.storeId === home)) : rows; // stable: soonest first within each
+  return ordered.slice(0, take).map(({ _count, ...e }) => ({ ...e, left: Math.max(0, e.capacity - _count.rsvps) }));
 }
 export type EventCard = Awaited<ReturnType<typeof upcomingEvents>>[number];
 

@@ -75,6 +75,30 @@ describe("made-to-order merch", () => {
     expect((await db.order.findUniqueOrThrow({ where: { id: o.id } })).status).toBe("COMPLETED");
   });
 
+  it("ships a mixed order as two parcels: stocked items from the DC, merch from the partner — each courier charged", async () => {
+    sent.length = 0;
+    const o = await placeOrder({ customerId: w.walkIn.id, fulfilment: "COURIER", items: [{ variantId: w.oilV.id, qty: 1 }, { variantId: tee.id, qty: 1 }], payMethod: "ONLINE", address });
+    expect(o.storeId).toBe(w.dc.id);
+    expect(o.deliveryCents).toBe(9_900 + 10_000); // stocked items under the free-delivery threshold + the merch courier
+    await markOrderPaid(o.id, "PAY-2");
+    await submitMerchOrders();
+    expect((sent[0] as PodOrder).items.map((i) => i.code)).toEqual(["HH-TEE-BLK-M"]); // only the merch goes to the partner
+    expect((await db.order.findUniqueOrThrow({ where: { id: o.id } })).status).toBe("PLACED"); // the DC still picks the oil
+
+    await merchShipped(o.id, w.dc.id, { courier: "Aramex", trackingNo: "ARX456" }, staff());
+    const order = await db.order.findUniqueOrThrow({ where: { id: o.id } });
+    expect([order.status, order.podTracking, order.trackingNo]).toEqual(["PLACED", "Aramex · ARX456", null]);
+    const sms = await db.messageLog.findFirst({ where: { customerId: w.walkIn.id, body: { contains: "ARX456" } } });
+    expect(sms?.body).toMatch(/merch .* on its way .* ships separately/);
+
+    // The DC dispatches its parcel as usual; the sale takes the oil from stock and costs the tee at the partner's price.
+    for (const s of ["PICKING", "READY"] as const) await advanceOrder(o.id, s, staff());
+    await advanceOrder(o.id, "OUT_FOR_DELIVERY", staff(), { courier: "The Courier Guy", trackingNo: "TCG9" });
+    const sale = await db.sale.findUniqueOrThrow({ where: { orderId: o.id }, include: { lines: true } });
+    expect(sale.lines.find((l) => l.variantId === tee.id)?.costCents).toBe(24_000);
+    expect(sale.lines.find((l) => l.variantId === w.oilV.id)?.allocations).not.toEqual([]);
+  });
+
   it("writes the production order down when no partner email is set", async () => {
     const real = await vi.importActual<typeof import("@/server/pod")>("@/server/pod");
     await real.sendProductionOrder({

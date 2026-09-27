@@ -49,12 +49,16 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const at = (s: OrderStatus) => events.filter((e) => e.status === s).at(-1)?.at;
   const collect = order.fulfilment === "COLLECT";
   const medicine = order.lines.some((l) => settings.compliance.licensedOnly.includes(l.variant.product.regClass));
+  // Made-to-order merch is made for this order and ships on its own (the maker is never named to customers).
+  const made = order.lines.filter((l) => l.variant.podSku);
+  const merchOnly = made.length > 0 && made.length === order.lines.length;
+  const idAtDoor = order.lines.some((l) => settings.compliance.ageRestricted.includes(l.variant.product.regClass));
   const steps: { key: OrderStatus; label: string; sub: string }[] = [
     ...(order.paymentStatus !== "PAID" && order.payMethod === "ONLINE" && order.status !== "CANCELLED" ? [{ key: "PENDING_PAYMENT" as const, label: "Awaiting payment", sub: "Complete payment to confirm your order" }] : []),
     { key: "PLACED", label: "Order placed", sub: collect ? `Sent to ${order.store.name}` : "We've received your order" },
-    { key: "PICKING", label: "Being packed", sub: "Checked against the batch on the shelf" },
-    { key: "READY", label: collect ? "Ready for collection" : "Packed and ready", sub: collect ? "We'll SMS you — bring your ID" : "Waiting for the driver" },
-    ...(collect ? [] : [{ key: "OUT_FOR_DELIVERY" as const, label: "Out for delivery", sub: order.courier ? `${order.courier}${order.trackingNo ? ` · ${order.trackingNo}` : ""}` : "ID (18+) checked at the door" }]),
+    merchOnly ? { key: "PICKING", label: "Being made", sub: "Embroidered and printed for you" } : { key: "PICKING", label: "Being packed", sub: "Checked against the batch on the shelf" },
+    { key: "READY", label: collect ? "Ready for collection" : merchOnly ? "Made and packed" : "Packed and ready", sub: collect ? "We'll SMS you — bring your ID" : merchOnly ? "Handed to the courier" : "Waiting for the driver" },
+    ...(collect ? [] : [{ key: "OUT_FOR_DELIVERY" as const, label: "Out for delivery", sub: order.courier ? `${order.courier}${order.trackingNo ? ` · ${order.trackingNo}` : ""}` : idAtDoor ? "ID (18+) checked at the door" : "On its way to you" }]),
     { key: "COMPLETED", label: collect ? "Collected" : "Delivered", sub: medicine ? "Use only as directed by your prescriber" : "Enjoy — responsibly" },
   ];
   const order_ = steps.map((s) => s.key);
@@ -273,15 +277,30 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
               ) : (
                 <p className="mt-2 text-sm text-ink-400">Sign in to see the delivery address.</p>
               )}
-              <p className="mt-3 text-sm text-ink-400">Ships from {order.store.name}.</p>
+              <p className="mt-3 text-sm text-ink-400">{merchOnly ? "Made to order in South Africa and couriered to you." : `Ships from ${order.store.name}.`}</p>
               {order.trackingNo && (
                 <p className="mt-2 text-sm text-ink-300">
                   {order.courier} · tracking <span className="tnum font-semibold text-white">{order.trackingNo}</span>
                 </p>
               )}
-              <p className="mt-3 flex items-start gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-sm text-ink-200">
-                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> ID (18+) is checked on delivery. We can&apos;t leave the parcel without it.
-              </p>
+              {made.length > 0 && !merchOnly && (
+                <p className="mt-2 text-sm text-ink-300">
+                  Your merch is made to order and ships separately
+                  {order.podTracking ? (
+                    <>
+                      {" "}· tracking <span className="tnum font-semibold text-white">{order.podTracking}</span>
+                    </>
+                  ) : (
+                    " — we'll SMS its tracking number"
+                  )}
+                  .
+                </p>
+              )}
+              {idAtDoor && (
+                <p className="mt-3 flex items-start gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-sm text-ink-200">
+                  <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> ID (18+) is checked on delivery. We can&apos;t leave the parcel without it.
+                </p>
+              )}
             </Panel>
           )}
 

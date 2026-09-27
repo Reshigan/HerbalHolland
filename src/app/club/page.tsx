@@ -41,7 +41,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
     memberTickets(customer.id),
     welcomeGifts(customer, store?.id),
   ]);
-  const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2 })]);
+  const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2, homeStoreId: customer.homeStoreId })]);
   const savings = settings.loyalty.tierSavingsPct as Record<TierKey, number>;
   const idx = tierIndex(m.customer.tier);
   const base = APP_URL();

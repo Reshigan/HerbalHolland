@@ -860,6 +860,7 @@ model Order {
   trackingNo     String?
   podRef         String? // print partner's order id for made-to-order lines
   podStatus      String? // partner's last reported status
+  podTracking    String? // merch parcel's courier and tracking number ("Aramex · ARX123")
   promoCode      String?
   promotionId    String?
   campaignId     String?
