@@ -8,8 +8,7 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import {
-  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio,
-  storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap,
+  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio, storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap, rangeQS, storeDrill,
 } from "./util";
 
 const channelSql = (c?: "POS" | "ONLINE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
@@ -36,7 +35,10 @@ export const salesOverview: ReportDef = {
       net: s.netCents, cost: s.costCents, gp: s.grossProfitCents, margin: s.netCents ? s.marginPct : null,
       atv: s.sales ? s.atvCents : null, upt: s.sales ? s.upt : null, members: s.sales ? s.memberRate : null,
     });
-    const rows: Row[] = eachDay(r).map((date) => ({ date, ...line(byDay.get(date) ?? summaryOf(null)), savings: savedBy.get(date) ?? 0 }));
+    const rows: Row[] = eachDay(r).map((date) => ({
+      _href: ctx.href("sales-by-hour", { from: date, to: date }),
+      date, ...line(byDay.get(date) ?? summaryOf(null)), savings: savedBy.get(date) ?? 0,
+    }));
     const t = summaryOf(cur._sum), p = summaryOf(prev._sum);
     // Today is still trading: keep the partial day off the trend line.
     const complete = r.days > 1 && r.to === dayKey(ctx.now) ? rows.slice(0, -1) : rows;
@@ -167,7 +169,11 @@ export const salesByCategory: ReportDef = {
     }
     const total = data.reduce((s, d) => s + d.net, 0);
     const list = [...by.values()].sort((a, b) => b.net - a.net);
-    const rows: Row[] = list.map((c) => ({ category: c.name, skus: c.skus, units: c.units, net: c.net, cost: c.cost, gp: c.net - c.cost, margin: ratio(c.net - c.cost, c.net), share: ratio(c.net, total) }));
+    const slugs = new Map((await db.category.findMany({ select: { name: true, slug: true } })).map((c) => [c.name, c.slug]));
+    const rows: Row[] = list.map((c) => ({
+      _href: slugs.has(c.name) ? ctx.href("sales-by-product", { category: slugs.get(c.name)!, ...rangeQS(ctx) }) : undefined,
+      category: c.name, skus: c.skus, units: c.units, net: c.net, cost: c.cost, gp: c.net - c.cost, margin: ratio(c.net - c.cost, c.net), share: ratio(c.net, total),
+    }));
     const t = sumRows(rows, ["skus", "units", "net", "cost", "gp"], { category: "Total" });
     t.margin = ratio(t.gp as number, t.net as number);
     t.share = rows.length ? 1 : null;
@@ -218,6 +224,7 @@ export const salesByStore: ReportDef = {
     const rows: Row[] = list.map((x, i) => {
       const st = ctx.stores.get(x.id)!;
       return {
+        _link: "store", _href: storeDrill(ctx, st.code, "sales-overview"),
         rank: i + 1, store: storeLabel(ctx, x.id), code: st.code, region: st.region, net: x.s.netCents, prev: x.prev,
         growth: delta(x.s.netCents, x.prev), sales: x.s.sales, atv: x.s.sales ? x.s.atvCents : null, margin: x.s.netCents ? x.s.marginPct : null,
         members: x.s.sales ? x.s.memberRate : null, online: ratio(onl.get(x.id) ?? 0, x.s.netCents),

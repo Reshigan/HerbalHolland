@@ -103,8 +103,11 @@ export const getCustomer = cache(async () => {
 export async function homeFor(u: { role: Role; storeId: string | null; companyId: string | null }) {
   if (isHq(u)) return "/hq";
   if (u.role === "BUDTENDER") return "/pos";
-  const store = u.storeId
-    ? await db.store.findUnique({ where: { id: u.storeId }, select: { code: true } })
-    : await db.store.findFirst({ where: { companyId: u.companyId ?? "", kind: "RETAIL", status: "ACTIVE" }, orderBy: { code: "asc" }, select: { code: true } });
-  return store ? `/store/${store.code}` : "/login?nostore=1";
+  if (u.storeId) {
+    const store = await db.store.findUnique({ where: { id: u.storeId }, select: { code: true } });
+    return store ? `/store/${store.code}` : "/login?nostore=1";
+  }
+  // Owners land on all their stores together (a single-store owner just sees that store).
+  const stores = await db.store.findMany({ where: { companyId: u.companyId ?? "", kind: "RETAIL", status: "ACTIVE" }, orderBy: { code: "asc" }, select: { code: true }, take: 2 });
+  return stores.length ? `/store/${stores[0].code}${stores.length > 1 ? "?stores=company" : ""}` : "/login?nostore=1";
 }

@@ -23,8 +23,8 @@ export type Column = {
   /** Exported in the CSV but left off the on-screen table (keeps wide reports readable). */
   csvOnly?: boolean;
 };
-/** Reserved keys: `_href` links the first cell, `_style` emphasises the row. */
-export type Row = Record<string, unknown> & { _href?: string; _style?: "strong" | "muted" | "section" };
+/** Reserved keys: `_href` links the first cell (or the `_link` column: drill-down), `_style` emphasises the row. */
+export type Row = Record<string, unknown> & { _href?: string; _link?: string; _style?: "strong" | "muted" | "section" };
 export type Table = { title?: string; description?: string; columns: Column[]; rows: Row[]; totals?: Row | null; /** extra tables: show above the main table */ position?: "before" };
 
 export type Summary = { label: string; value: number | string | null; format?: Format; delta?: number | null; upIsGood?: boolean; sub?: string };

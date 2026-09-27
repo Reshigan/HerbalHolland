@@ -96,7 +96,7 @@ export function ReportTable({ columns: all, rows, totals, limit }: { columns: Co
                       stick(ci) && (row._style === "strong" ? "bg-ink-50" : "bg-white group-hover/row:bg-brand-50"),
                     )}
                   >
-                    <Cell c={c} row={row} first={ci === 0} />
+                    <Cell c={c} row={row} first={row._link ? c.key === row._link : ci === 0} />
                   </td>
                 ))}
               </tr>

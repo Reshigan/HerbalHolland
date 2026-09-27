@@ -1,9 +1,10 @@
 // Part-to-whole: ring with 2px surface gaps between segments, legend with values.
+import Link from "next/link";
 import { ChartFrame } from "./chart-frame";
 import { SERIES } from "./scale";
 import { fmtValue, type ValueFormat } from "./format";
 
-export function Donut({ data, format = "zar", centerLabel, layout = "stack", className }: { data: { label: string; value: number; color?: string }[]; format?: ValueFormat; centerLabel?: string; layout?: "stack" | "row"; className?: string }) {
+export function Donut({ data, format = "zar", centerLabel, layout = "stack", className }: { data: { label: string; value: number; color?: string; href?: string }[]; format?: ValueFormat; centerLabel?: string; layout?: "stack" | "row"; className?: string }) {
   const items = data.filter((d) => d.value > 0).map((d, i) => ({ ...d, color: d.color ?? SERIES[i % SERIES.length] }));
   const total = items.reduce((s, d) => s + d.value, 0);
   const R = 52, C = 2 * Math.PI * R, gap = items.length > 1 ? 2.5 : 0;
@@ -42,7 +43,13 @@ export function Donut({ data, format = "zar", centerLabel, layout = "stack", cla
           <li key={d.label} className="flex items-center justify-between gap-3" data-tip={`${d.label}\n${fmtValue(d.value, format)}`}>
             <span className="inline-flex min-w-0 items-center gap-2 text-ink-700">
               <span className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: d.color }} />
-              <span className="truncate">{d.label}</span>
+              {d.href ? (
+                <Link href={d.href} className="truncate underline decoration-ink-200 underline-offset-2 hover:text-brand-700">
+                  {d.label}
+                </Link>
+              ) : (
+                <span className="truncate">{d.label}</span>
+              )}
             </span>
             <span className="tnum whitespace-nowrap text-ink-500">
               <span className="font-semibold text-ink-850">{total ? ((d.value / total) * 100).toFixed(0) : 0}%</span> · {fmtValue(d.value, format, true)}

@@ -53,6 +53,14 @@ export const storeLabel = (ctx: ReportCtx, id: string | null | undefined) => {
 };
 
 export const ratio = (a: number, b: number) => (b ? a / b : null);
+
+/** Query params that keep the report's period on drill-down links. */
+export const rangeQS = (ctx: ReportCtx): Record<string, string> =>
+  ctx.range.preset === "custom" ? { from: ctx.range.from, to: ctx.range.to } : { range: ctx.range.preset };
+
+/** Drill into one store: HQ narrows its own report to that store; owners open that store's own report. */
+export const storeDrill = (ctx: ReportCtx, code: string, key: string) =>
+  ctx.scope === "hq" ? ctx.href(key, { stores: code, ...rangeQS(ctx) }) : `/store/${code}/reports/${key}?${new URLSearchParams(rangeQS(ctx))}`;
 /** 12,345 */
 export const n = (v: number) => v.toLocaleString("en-US");
 /** "1 unit", "12 units" */

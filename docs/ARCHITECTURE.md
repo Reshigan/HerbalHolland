@@ -36,6 +36,15 @@ access (`storeForUser`), so a crafted request can't reach another franchisee's d
 are never exposed (competition-law hygiene). For defence in depth at 1,000 owners, Postgres row-level security keyed on a
 per-request `app.store_ids` setting can be layered under the same scopes.
 
+Analytics follow the same scopes (`tests/integration/scope.test.ts` pins them down):
+
+- **Store** — a manager's dashboard, reports and CSVs cover their store only; `?stores=company` is ignored for them.
+- **Owner** — lands on *All my stores* (`/store/{code}?stores=company`) when they own more than one: consolidated KPIs, a
+  store comparison with drill-down into each store and CSV export. Every report takes the same toggle.
+- **HQ** — the network overview drills region → stores (`/hq/reports/sales-by-store?stores=region:XX`) → store
+  (`/store/{code}`, the store's own dashboard) → day → hour; categories drill to their products. Area managers get the
+  same console limited to their region, whatever the URL asks for. Every CSV export is audited (`report.export`).
+
 ## Core flows
 
 **POS sale** (`postPosSale` → `postSaleTx`): re-price server-side (store shelf price → price lists → markdowns →

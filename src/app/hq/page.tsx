@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Download } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { kpis, hourlyHeat, stockAlerts } from "@/server/dashboard";
@@ -11,7 +12,7 @@ import { PageHeader } from "@/components/ui/page";
 import { RangeTabs } from "@/components/ui/range-tabs";
 import { Stat } from "@/components/ui/stat";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { AreaChart } from "@/components/charts/area-chart";
 import { Donut } from "@/components/charts/donut";
 import { BarList } from "@/components/charts/bar-list";
@@ -19,7 +20,7 @@ import { Heatmap } from "@/components/charts/heatmap";
 
 export const metadata = { title: "Network overview" };
 
-export default async function HqOverview({ searchParams }: { searchParams: Promise<{ range?: string }> }) {
+export default async function HqOverview({ searchParams }: { searchParams: Promise<{ range?: string; from?: string; to?: string }> }) {
   const sp = await searchParams;
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
@@ -28,7 +29,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
   const [k, byStore, stores, heat, alerts, liability, active30, pendingPOs, recalls] = await Promise.all([
     kpis(ids, r),
     salesByStore(ids, r),
-    db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true, kind: true, status: true, region: { select: { name: true } } } }),
+    db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true, kind: true, status: true, region: { select: { name: true, code: true } } } }),
     hourlyHeat(ids, { ...r, start: new Date(Math.max(r.start.getTime(), Date.now() - 28 * 86_400_000)) }),
     stockAlerts(ids),
     db.customer.aggregate({ where: scope.kind === "HQ" ? {} : { homeStoreId: { in: ids } }, _sum: { points: true }, _count: true }),
@@ -38,8 +39,12 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
   ]);
   const c = k.cur;
   const retail = stores.filter((s) => s.kind === "RETAIL");
-  const regions = new Map<string, number>();
-  for (const s of retail) regions.set(s.region.name, (regions.get(s.region.name) ?? 0) + (byStore.get(s.id)?.netCents ?? 0));
+  const rangeQS = r.preset === "custom" ? `from=${r.from}&to=${r.to}` : `range=${r.preset}`;
+  const regions = new Map<string, { label: string; value: number; href: string }>();
+  for (const s of retail) {
+    const g = regions.get(s.region.code) ?? { label: s.region.name, value: 0, href: `/hq/reports/sales-by-store?stores=region:${s.region.code}&${rangeQS}` };
+    regions.set(s.region.code, { ...g, value: g.value + (byStore.get(s.id)?.netCents ?? 0) });
+  }
   const league = retail
     .map((s) => ({ s, net: byStore.get(s.id)?.netCents ?? 0, atv: byStore.get(s.id)?.atvCents ?? 0 }))
     .filter((x) => x.s.status === "ACTIVE")
@@ -52,7 +57,14 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Herbal Holland network"}
         title="Network overview"
         description={`${retail.filter((s) => s.status === "ACTIVE").length} trading stores · ${retail.filter((s) => s.status === "OPENING_SOON").length} opening soon · ${liability._count.toLocaleString()} Herbal Holland Rewards members`}
-        actions={<RangeTabs path="/hq" current={r.preset} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <RangeTabs path="/hq" current={r.preset} />
+            <a href={`/api/reports/sales-by-store?scope=hq&${rangeQS}`} className={buttonClass("outline", "sm")} download>
+              <Download className="h-3.5 w-3.5" /> Export stores
+            </a>
+          </div>
+        }
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
         <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} className="col-span-2" />
@@ -70,21 +82,21 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Sales by region" description="Net sales, ex VAT" />
+          <CardHeader title="Sales by region" description="Net sales, ex VAT · open a region for its stores" />
           <CardBody>
-            <Donut data={[...regions].map(([label, value]) => ({ label, value }))} centerLabel={zarCompact(c.netCents)} />
+            <Donut data={[...regions.values()]} centerLabel={zarCompact(c.netCents)} />
           </CardBody>
         </Card>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader title="Store league" description="Ranked by net sales" action={<ButtonLink href={`/hq/reports/sales-by-store?range=${r.preset}`} variant="ghost" size="sm">Full table</ButtonLink>} />
+          <CardHeader title="Store league" description="Ranked by net sales" action={<ButtonLink href={`/hq/reports/sales-by-store?${rangeQS}`} variant="ghost" size="sm">Full table</ButtonLink>} />
           <CardBody>
             <BarList
               rows={league.slice(0, 10).map((x, i) => ({
                 label: (
-                  <Link href={`/store/${x.s.code}`} className="hover:text-brand-700">
+                  <Link href={`/store/${x.s.code}?${rangeQS}`} className="hover:text-brand-700">
                     <span className="tnum mr-2 text-ink-400">{String(i + 1).padStart(2, "0")}</span>
                     {x.s.name}
                   </Link>
