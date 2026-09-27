@@ -1,3 +1,4 @@
+import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 const field =
@@ -11,11 +12,17 @@ export function Input({ className, ...props }: React.InputHTMLAttributes<HTMLInp
   return <input className={cn(field, "h-10", className)} {...props} />;
 }
 
-export function Select({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export type SelectProps = React.SelectHTMLAttributes<HTMLSelectElement> & { wrapperClassName?: string };
+
+/** Native select with a drawn chevron. Size it with `wrapperClassName` (e.g. "w-48"). */
+export function Select({ className, wrapperClassName, children, ...props }: SelectProps) {
   return (
-    <select className={cn(field, "h-10 appearance-none bg-[url('data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2212%22 height=%2212%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%236b5f57%22 stroke-width=%222.5%22><path d=%22m6 9 6 6 6-6%22/></svg>')] bg-[length:12px] bg-[right_0.9rem_center] bg-no-repeat pr-9", className)} {...props}>
-      {children}
-    </select>
+    <span className={cn("relative block", wrapperClassName)}>
+      <select className={cn(field, "h-10 cursor-pointer appearance-none truncate pr-9 disabled:cursor-default", className)} {...props}>
+        {children}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-500" aria-hidden strokeWidth={2.2} />
+    </span>
   );
 }
 

@@ -18,12 +18,12 @@ export async function promoOptions() {
 }
 
 export function promoValues(p: Promotion | null): PromoValues {
-  const now = new Date();
+  const nextHour = new Date(Math.ceil(Date.now() / 3_600_000) * 3_600_000);
   if (!p)
     return {
       name: "", description: "", kind: "PERCENT", percent: "", amount: "", multiplier: "2", bundlePrice: "", buyQty: "", getQty: "1", rewardPercent: "100",
       minSpend: "", categoryIds: [], productIds: [], rewardCategoryIds: [], rewardProductIds: [], channels: ["POS", "ONLINE"], storeIds: [], days: [],
-      startTime: "", endTime: "", startsAt: toLocalInput(new Date(Math.ceil(now.getTime() / 3_600_000) * 3_600_000)), endsAt: toLocalInput(new Date(now.getTime() + 30 * 86_400_000)),
+      startTime: "", endTime: "", startsAt: toLocalInput(nextHour), endsAt: toLocalInput(new Date(nextHour.getTime() + 30 * 86_400_000)),
       code: "", maxUses: "", active: true,
     };
   const r = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");

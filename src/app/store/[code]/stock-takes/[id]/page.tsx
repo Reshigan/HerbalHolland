@@ -112,10 +112,12 @@ export default async function StockTakePage({ params, searchParams }: { params: 
     const lot = now?.get(`${l.variantId}:${l.batchId}`);
     const system = now ? lot?.onHand ?? 0 : l.countedQty != null && l.varianceQty != null ? l.countedQty - l.varianceQty : l.expectedQty;
     const cost = now ? lot?.unitCostCents ?? l.unitCostCents : l.unitCostCents;
-    const variance = l.countedQty == null ? null : now ? l.countedQty - system : l.varianceQty ?? l.countedQty - system;
-    return { ...l, system, cost, variance, moved: now ? system !== l.expectedQty : false };
+    // Counts are compared with stock when each line was counted (expectedQty), so sales during the count aren't variance.
+    const base = now ? l.expectedQty : system;
+    const variance = l.countedQty == null ? null : now ? l.countedQty - base : l.varianceQty ?? l.countedQty - base;
+    return { ...l, system, base, cost, variance, moved: now ? system !== l.expectedQty : false };
   });
-  const sum = varianceSummary(rows.map((r) => ({ counted: r.countedQty, system: r.system, unitCostCents: r.cost })));
+  const sum = varianceSummary(rows.map((r) => ({ counted: r.countedQty, system: r.base, unitCostCents: r.cost })));
   const moved = rows.filter((r) => r.moved && r.countedQty != null).length;
   const show = sp.show === "all" ? "all" : sp.show === "uncounted" ? "uncounted" : "variance";
   const listed = rows
@@ -130,10 +132,11 @@ export default async function StockTakePage({ params, searchParams }: { params: 
 
       {review && (
         <Notice tone="info" className="mb-4" title="Review before approving">
-          Variances compare each count with what the system holds <b>right now</b>. Approving posts a stock-take movement for every difference — it can&apos;t be undone.
+          Variances compare each count with what the system held <b>when that line was counted</b>, so trading during the count
+          isn&apos;t a variance. Approving posts a stock-take movement for every difference — it can&apos;t be undone.
           {moved > 0 && (
             <span className="mt-1 flex items-start gap-1.5 font-medium text-amber-700">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {moved} counted line{moved > 1 ? "s have" : " has"} had sales or deliveries since counting started. Re-count those lines if stock moved after they were counted.
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {moved} counted line{moved > 1 ? "s have" : " has"} had sales or deliveries since being counted — already allowed for.
             </span>
           )}
         </Notice>
@@ -198,7 +201,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
                   <Td align="right" className="text-ink-500">{r.expectedQty}</Td>
                   <Td align="right" className={r.moved ? "relative font-semibold text-amber-700" : undefined}>
                     {r.system}
-                    {r.moved && <span className="sr-only"> (changed since counting started)</span>}
+                    {r.moved && <span className="sr-only"> (changed since it was counted)</span>}
                   </Td>
                   <Td align="right" className="font-semibold text-ink-950">{r.countedQty ?? <span className="font-normal text-ink-300">—</span>}</Td>
                   <Td align="right">{r.variance == null ? <span className="text-ink-300">—</span> : <Qty n={r.variance} />}</Td>

@@ -178,7 +178,7 @@ export function CartPanel({
                           {!!q?.discountCents && <div className="text-[0.7rem] text-ink-500 line-through tnum">{zar(q.grossCents)}</div>}
                         </div>
                       </div>
-                      <div className="mt-1.5 flex flex-wrap gap-1">
+                      <div className="mt-1.5 flex min-w-0 flex-wrap gap-1">
                         {q?.priceRule && <Chip tone={ruleTone(q.priceRule)}>{q.priceRule}</Chip>}
                         {licensed && (
                           <Chip tone="orange" icon={<Pill className="h-3 w-3" />}>

@@ -35,11 +35,11 @@ export async function addUser(_: ActionState, fd: FormData): Promise<ActionState
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" }, select: { id: true } });
   const password = tempPassword();
   const u = await db.user.create({
-    data: { name, email, role, regionId: role === "AREA_MANAGER" ? regionId : null, companyId: role === "AREA_MANAGER" ? null : hq?.id ?? null, passwordHash: hashSecret(password) },
+    data: { name, email, role, regionId: role === "AREA_MANAGER" ? regionId : null, companyId: role === "AREA_MANAGER" ? null : hq?.id ?? null, passwordHash: hashSecret(password), mustChangePassword: true },
   });
   await audit(db, g.actor, "user.create", { entity: "User", entityId: u.id, data: { email, role, regionId } });
   revalidatePath("/hq/team");
-  return done(`${name} can now sign in as ${email} with the temporary password  ${password}  — share it privately (it isn't shown again).`);
+  return done(`${name} can now sign in as ${email} with the temporary password  ${password}  — share it privately (it isn't shown again). They'll choose their own password when they first sign in.`);
 }
 
 export async function setUserActive(userId: string, active: boolean, _: ActionState): Promise<ActionState> {
@@ -62,9 +62,9 @@ export async function resetPassword(userId: string, _: ActionState): Promise<Act
   const u = await db.user.findUnique({ where: { id: userId } });
   if (!u || !ROLES.includes(u.role)) return fail("User not found.");
   const password = tempPassword();
-  await db.user.update({ where: { id: userId }, data: { passwordHash: hashSecret(password) } });
+  await db.user.update({ where: { id: userId }, data: { passwordHash: hashSecret(password), mustChangePassword: true } });
   await db.session.deleteMany({ where: { userId } });
   await audit(db, g.actor, "user.password_reset", { entity: "User", entityId: userId, data: { email: u.email } });
   revalidatePath("/hq/team");
-  return done(`New temporary password for ${u.name}:  ${password}  — share it privately.`);
+  return done(`New temporary password for ${u.name}:  ${password}  — share it privately. They'll choose their own password when they sign in.`);
 }

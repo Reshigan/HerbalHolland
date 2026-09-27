@@ -328,7 +328,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
       if (dialog) return;
-      const now = performance.now();
+      // Event creation time, not handling time: a busy main thread mustn't break up a fast scan.
+      const now = e.timeStamp;
       if (e.key === "Enter") {
         if (buf.length >= 4 && now - last < 120) {
           e.preventDefault();
@@ -358,6 +359,12 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     const t = setTimeout(() => window.print(), 60);
     return () => clearTimeout(t);
   }, [printDoc]);
+
+  const openOrderScan = useCallback((text: string) => {
+    setOrderScan(text);
+    setTab("orders");
+  }, []);
+  const clearOrderScan = useCallback(() => setOrderScan(null), []);
 
   // ── Context ─────────────────────────────────────────────────────────────
   const ctx: PosCtx | null = useMemo(() => {
@@ -403,13 +410,10 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       goTo: setTab,
       toast,
       orderScan,
-      openOrderScan: (text: string) => {
-        setOrderScan(text);
-        setTab("orders");
-      },
-      clearOrderScan: () => setOrderScan(null),
+      openOrderScan,
+      clearOrderScan,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan, openOrderScan, clearOrderScan]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;

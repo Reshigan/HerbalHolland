@@ -144,22 +144,23 @@ enum Role {
 }
 
 model User {
-  id           String    @id @default(cuid())
-  name         String
-  email        String?   @unique
-  passwordHash String?
-  pinHash      String?
-  canDispense  Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
-  role         Role
-  company      Company?  @relation(fields: [companyId], references: [id])
-  companyId    String?
-  store        Store?    @relation(fields: [storeId], references: [id])
-  storeId      String?
-  region       Region?   @relation(fields: [regionId], references: [id])
-  regionId     String?
-  active       Boolean   @default(true)
-  lastLoginAt  DateTime?
-  createdAt    DateTime  @default(now())
+  id                 String    @id @default(cuid())
+  name               String
+  email              String?   @unique
+  passwordHash       String?
+  mustChangePassword Boolean   @default(false) // set with a temporary password; cleared when they choose their own
+  pinHash            String?
+  canDispense        Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
+  role               Role
+  company            Company?  @relation(fields: [companyId], references: [id])
+  companyId          String?
+  store              Store?    @relation(fields: [storeId], references: [id])
+  storeId            String?
+  region             Region?   @relation(fields: [regionId], references: [id])
+  regionId           String?
+  active             Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
 
   sessions Session[]
   sales    Sale[]
@@ -753,6 +754,7 @@ model Sale {
   @@index([storeId, createdAt])
   @@index([customerId])
   @@index([createdAt])
+  @@index([promotionId]) // promotion usage caps (maxUses) and redemption reporting
 }
 
 model SaleLine {

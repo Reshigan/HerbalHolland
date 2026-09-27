@@ -58,7 +58,15 @@ export function PromotionForm({
 
   const preview = useMemo(() => {
     const value = { PERCENT: int(v.percent) ?? 0, FIXED: cents(v.amount), MULTIPLIER: Math.round((Number(v.multiplier) || 0) * 100), MULTIBUY: cents(v.bundlePrice), BUY_X_GET_Y: 0 }[v.kind];
-    const headline = describePromo({
+    // Until the deal's key number is filled in, say so rather than preview "0% off".
+    const incomplete = {
+      PERCENT: !int(v.percent),
+      FIXED: !cents(v.amount),
+      MULTIPLIER: !(Number(v.multiplier) > 1),
+      MULTIBUY: !cents(v.bundlePrice) || !int(v.buyQty),
+      BUY_X_GET_Y: !int(v.buyQty) && !cents(v.minSpend),
+    }[v.kind];
+    const headline = incomplete ? null : describePromo({
       id: "preview", name: v.name, kind: v.kind, value, categoryIds: v.categoryIds, productIds: v.productIds, minSpendCents: cents(v.minSpend),
       buyQty: int(v.buyQty), getQty: int(v.getQty), rewardPercent: int(v.rewardPercent) ?? 100, rewardCategoryIds: v.rewardCategoryIds, rewardProductIds: v.rewardProductIds,
     });
@@ -263,7 +271,9 @@ export function PromotionForm({
                   <BadgePercent className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">
-                  <div className="font-display text-xl font-semibold leading-tight">{preview.headline}</div>
+                  <div className="font-display text-xl font-semibold leading-tight">
+                    {preview.headline ?? <span className="text-ink-400">{KINDS.find((k) => k.key === v.kind)?.label}: add the details</span>}
+                  </div>
                   <div className="mt-0.5 text-sm text-ink-300">{v.name || "Untitled promotion"}</div>
                 </div>
               </div>

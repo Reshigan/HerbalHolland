@@ -125,7 +125,7 @@ const CHIP: Record<ChipTone, string> = {
 };
 export function Chip({ tone = "neutral", className, children, icon, wrap }: { tone?: ChipTone; className?: string; children: React.ReactNode; icon?: React.ReactNode; wrap?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 text-[0.72rem] font-semibold ring-1 ring-inset", wrap ? "rounded-xl text-left" : "whitespace-nowrap rounded-full", CHIP[tone], className)}>
+    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 text-[0.72rem] font-semibold ring-1 ring-inset", wrap ? "min-w-0 max-w-full rounded-xl text-left [overflow-wrap:anywhere]" : "whitespace-nowrap rounded-full", CHIP[tone], className)}>
       {icon}
       {children}
     </span>

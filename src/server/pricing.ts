@@ -22,7 +22,14 @@ export async function activePromotions(opts: { storeId?: string | null; channel:
     },
     orderBy: { createdAt: "desc" },
   });
-  return rows.filter((p) => promoWindowOpen(p, at));
+  // Usage caps: a use is a sale that carried the promotion (as HQ reports it).
+  const capped = rows.filter((p) => p.maxUses != null).map((p) => p.id);
+  const used = new Map(
+    capped.length
+      ? (await db.sale.groupBy({ by: ["promotionId"], where: { promotionId: { in: capped }, kind: "SALE" }, _count: true })).map((u) => [u.promotionId, u._count])
+      : [],
+  );
+  return rows.filter((p) => promoWindowOpen(p, at) && (p.maxUses == null || (used.get(p.id) ?? 0) < p.maxUses));
 }
 
 /** Price context for a shopper with their instant tier saving; `tier: null` = walk-in, "SEED" = what joining saves. */

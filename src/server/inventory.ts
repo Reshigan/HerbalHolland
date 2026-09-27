@@ -163,16 +163,34 @@ export async function startStockTake(storeId: string, scope: string, blind: bool
 }
 
 /** Approving posts COUNT movements for the difference between counted and current on-hand. */
+/** Saves counts, snapshotting on-hand as each line is counted so sales during the count don't read as variance. */
+export async function recordCounts(storeId: string, stockTakeId: string, counts: { lineId: string; qty: number | null }[]) {
+  const lines = await db.stockTakeLine.findMany({ where: { stockTakeId, id: { in: counts.map((c) => c.lineId) } }, select: { id: true, variantId: true, batchId: true } });
+  const levels = await db.stockLevel.findMany({
+    where: { storeId, variantId: { in: [...new Set(lines.map((l) => l.variantId))] } },
+    select: { variantId: true, batchId: true, onHand: true },
+  });
+  const onHand = new Map(levels.map((l) => [`${l.variantId}:${l.batchId}`, l.onHand]));
+  const byId = new Map(lines.map((l) => [l.id, l]));
+  await db.$transaction(
+    counts
+      .filter((c) => byId.has(c.lineId))
+      .map((c) => {
+        const l = byId.get(c.lineId)!;
+        const data = c.qty == null ? { countedQty: null } : { countedQty: c.qty, expectedQty: onHand.get(`${l.variantId}:${l.batchId}`) ?? 0 };
+        return db.stockTakeLine.update({ where: { id: c.lineId }, data });
+      }),
+  );
+}
+
 export async function approveStockTake(t: Tx, stockTakeId: string, userId: string | null) {
   const st = await t.stockTake.findUniqueOrThrow({ where: { id: stockTakeId }, include: { lines: true } });
   if (st.status !== "COUNTING") throw new StockError("Stock take is already closed");
   let varianceValue = 0;
   for (const line of st.lines) {
     if (line.countedQty == null) continue;
-    const current = await t.stockLevel.findUnique({
-      where: { storeId_variantId_batchId: { storeId: st.storeId, variantId: line.variantId, batchId: line.batchId } },
-    });
-    const delta = line.countedQty - (current?.onHand ?? 0);
+    // Against stock when the line was counted (recordCounts); later sales and deliveries stay on top.
+    const delta = line.countedQty - line.expectedQty;
     await t.stockTakeLine.update({ where: { id: line.id }, data: { varianceQty: delta } });
     if (delta === 0) continue;
     const cost = await adjustStock(t, {

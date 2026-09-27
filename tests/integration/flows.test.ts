@@ -3,7 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { postPosSale, refundSale } from "@/server/sales";
 import { placeOrder, advanceOrder } from "@/server/orders";
-import { availability, availKey, startStockTake, approveStockTake } from "@/server/inventory";
+import { availability, availKey, startStockTake, approveStockTake, recordCounts, adjustStock } from "@/server/inventory";
 import { createStockOrder, actOnStockOrder, receivedValue } from "@/server/stock-orders";
 import { quote } from "@/server/pricing";
 import { tx } from "@/server/db";
@@ -158,6 +158,17 @@ describe("Purchasing & stock control", () => {
     expect(await onHand(w.store.id, w.flowerNew.id)).toBe(line.expectedQty - 1);
     expect(await db.stockMovement.count({ where: { stockTakeId: st.id, type: "COUNT" } })).toBe(1);
   });
+
+  it("doesn't treat sales made after a line was counted as variance", async () => {
+    const st = await startStockTake(w.store.id, "FULL", true, w.manager.id, "ST-00002");
+    const line = await db.stockTakeLine.findFirstOrThrow({ where: { stockTakeId: st.id, batchId: w.oilNew.id } });
+    const before = await onHand(w.store.id, w.oilNew.id);
+    await recordCounts(w.store.id, st.id, [{ lineId: line.id, qty: before }]); // counted correctly…
+    await tx((t) => adjustStock(t, { storeId: w.store.id, variantId: w.oilV.id, batchId: w.oilNew.id, delta: -1, reason: "DAMAGED", type: "ADJUST", userId: w.manager.id })); // …then trading moves stock
+    await tx((t) => approveStockTake(t, st.id, w.manager.id));
+    expect(await onHand(w.store.id, w.oilNew.id)).toBe(before - 1);
+    expect(await db.stockMovement.count({ where: { stockTakeId: st.id } })).toBe(0);
+  });
 });
 
 describe("Pricing & promotions", () => {
@@ -175,5 +186,17 @@ describe("Pricing & promotions", () => {
     expect(oil.discountCents).toBe(Math.round(59_500 / 2));
     expect(flower.discountCents).toBe(0);
     expect(flower.noEarn).toBe(true);
+  });
+
+  it("stops a promotion once it reaches its maximum uses", async () => {
+    await db.promotion.updateMany({ data: { active: false } });
+    const promo = await db.promotion.create({
+      data: { name: "First sale R20 off", kind: "FIXED", value: 2_000, maxUses: 1, productIds: [w.oilV.productId], channels: ["POS"], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) },
+    });
+    const basket = { storeId: w.store.id, channel: "POS" as const, items: [{ variantId: w.oilV.id, qty: 1 }] };
+    const first = await quote(basket);
+    expect(first.promotionId).toBe(promo.id);
+    await postPosSale(saleInput({ lines: basket.items, payments: [{ method: "CARD", amountCents: first.totalCents }], ageCheck: "ID_SIGHTED" }), pos());
+    expect((await quote(basket)).applied).toEqual([]);
   });
 });

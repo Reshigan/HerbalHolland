@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { nextNumber } from "@/server/counters";
-import { approveStockTake, startStockTake } from "@/server/inventory";
+import { approveStockTake, recordCounts, startStockTake } from "@/server/inventory";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, scopesOverlap, str } from "@/server/store/rules";
 
@@ -52,7 +52,7 @@ export async function saveCounts(code: string, id: string, counts: { lineId: str
       if (typeof c?.lineId !== "string") return fail("Invalid line");
       if (c.qty != null && (!Number.isInteger(c.qty) || c.qty < 0 || c.qty > 100_000)) return fail("Counts must be whole numbers of 0 or more");
     }
-    await db.$transaction(counts.map((c) => db.stockTakeLine.updateMany({ where: { id: c.lineId, stockTakeId: id }, data: { countedQty: c.qty } })));
+    await recordCounts(store.id, id, counts);
     return done(`Saved ${counts.length} ${counts.length === 1 ? "count" : "counts"}`);
   });
 }

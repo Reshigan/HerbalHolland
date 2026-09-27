@@ -31,6 +31,9 @@ export const metadata = { title: "Campaigns" };
 type SP = { tab?: string; status?: string; channel?: string; q?: string; page?: string };
 const mask = (v: string) => (v.includes("@") ? v.replace(/^(.{2}).*(@.*)$/, "$1•••$2") : v.replace(/^(\+27\d{2})\d{3}(\d{4})$/, "$1 ••• $2"));
 
+const SOURCE_LABEL: Record<string, string> = { NCC_REGISTRY: "NCC registry", REFUSED: "Refused", STOP_REPLY: "STOP reply", COMPLAINT: "Complaint" };
+const sourceLabel = (s: string) => SOURCE_LABEL[s] ?? s.replaceAll("_", " ").toLowerCase();
+
 export default async function MarketingPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const user = await requireStaff(HQ_ROLES);
@@ -56,7 +59,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
         <Tabs current="suppression" />
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <Card className="xl:col-span-2">
-            <CardHeader title="Do-not-contact list" description={bySource.map((s) => `${num(s._count)} ${s.source.replaceAll("_", " ").toLowerCase()}`).join(" · ") || "Empty"} />
+            <CardHeader title="Do-not-contact list" description={bySource.map((s) => `${sourceLabel(s.source)}: ${num(s._count)}`).join(" · ") || "Empty"} />
             <div className="mt-4 border-y border-ink-100 p-4">
               <FilterForm action="/hq/marketing" keep={{ tab: "suppression" }}>
                 <SearchField defaultValue={sp.q} placeholder="Find a number or email" />
@@ -78,7 +81,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
                     <Td className="font-mono text-xs">{mask(r.value)}</Td>
                     <Td>{r.channel ? CHANNEL_LABEL[r.channel] : "All channels"}</Td>
                     <Td>
-                      <Badge tone={r.source === "NCC_REGISTRY" ? "blue" : r.source === "COMPLAINT" ? "red" : "neutral"}>{r.source.replaceAll("_", " ").toLowerCase()}</Badge>
+                      <Badge tone={r.source === "NCC_REGISTRY" ? "blue" : r.source === "COMPLAINT" ? "red" : "neutral"}>{sourceLabel(r.source)}</Badge>
                     </Td>
                     <Td className="hidden whitespace-nowrap text-ink-600 sm:table-cell">{fmtDateTime(r.createdAt)}</Td>
                   </Tr>

@@ -25,6 +25,7 @@ export async function startSession(
 ) {
   const token = newToken();
   await db.session.create({ data: { id: sha256(token), ...who, expiresAt: new Date(Date.now() + hours * 3_600_000) } });
+  if (who.userId) await db.user.update({ where: { id: who.userId }, data: { lastLoginAt: new Date() } });
   (await cookies()).set(COOKIE[name], token, cookieOpts(hours * 3600));
 }
 
@@ -58,6 +59,7 @@ export type Staff = NonNullable<Awaited<ReturnType<typeof getStaff>>>;
 export async function requireStaff(roles?: Role[]) {
   const user = await getStaff();
   if (!user) redirect("/login");
+  if (user.mustChangePassword) redirect("/account/password");
   if (roles && !roles.includes(user.role)) redirect("/login?denied=1");
   return user;
 }

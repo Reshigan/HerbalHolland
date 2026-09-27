@@ -46,6 +46,7 @@ export async function addStaff(code: string, _: ActionState, fd: FormData): Prom
         pinHash: hashSecret(pin),
         email: email || null,
         passwordHash: email ? hashSecret(password) : null,
+        mustChangePassword: !!email,
         canDispense,
       },
     });

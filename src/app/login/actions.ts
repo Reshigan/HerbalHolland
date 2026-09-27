@@ -22,7 +22,6 @@ export async function login(_: LoginState, form: FormData): Promise<LoginState> 
   }
   attempts.delete(email);
   await startSession("staff", { userId: user.id }, 24 * 7);
-  await db.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
   await audit(db, { type: "USER", id: user.id, name: user.name }, demo ? "auth.demo_login" : "auth.login", { storeId: user.storeId });
   redirect(String(form.get("next") || "") || (await homeFor(user)));
 }

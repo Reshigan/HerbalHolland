@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { KeyRound, LogOut } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/misc";
 import { SideNav, StoreSwitcher, MobileNav } from "./nav";
@@ -54,6 +54,9 @@ export function AdminShell({
           <div className="truncate text-sm font-semibold text-white">{user.name}</div>
           <div className="truncate text-xs text-ink-400">{ROLE[user.role]}</div>
         </div>
+        <Link href="/account/password" className="grid h-8 w-8 place-items-center rounded-lg text-ink-400 hover:bg-ink-800 hover:text-white" aria-label="Change password" title="Change password">
+          <KeyRound className="h-4 w-4" />
+        </Link>
         <form action="/logout" method="post">
           <button className="grid h-8 w-8 place-items-center rounded-lg text-ink-400 hover:bg-ink-800 hover:text-white" aria-label="Sign out" title="Sign out">
             <LogOut className="h-4 w-4" />
