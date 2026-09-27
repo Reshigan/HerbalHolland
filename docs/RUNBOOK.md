@@ -32,13 +32,22 @@
   network-wide age-check report ≈ 2 s, which reads raw sales), store back office p50 ≈ 30 ms (max < 0.4 s). Re-run
   `scripts/bench.ts` and the e2e journeys against a production-sized copy before big releases.
 
+## Launch day
+
+1. HQ → Launch: confirm the launch date-time (SAST). Until then the shop runs as a waitlist.
+2. After the launch time the scheduler numbers the first `foundingCap` waitlist places (or press "Assign founding
+   numbers now"); spot-check a founder's card shows the number and Sprout.
+3. HQ → Drops / Events: first drop and opening weekends scheduled inside CPA send windows; stock allocated.
+4. HQ → Rewards: My Deals on; welcome-gift promotion live (first purchase only).
+5. Watch the till member-attach rate, sign-ups per hour and SMS spend in the first 48 hours.
+
 ## Routine operations
 
 | When | Task | Where |
 |---|---|---|
 | Continuous | Health check, error rate, p95 latency, DB connections | Load balancer + APM |
-| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails | `/api/cron/frequent` |
-| Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays` | `/api/cron/daily` |
+| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the launch date passes; drop alerts to watchers | `/api/cron/frequent` |
+| Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; load weekly My Deals (Mondays) | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |
 | Weekly | Replenishment orders submitted/approved/shipped; expiry report actioned | Purchasing / Distribution |
 | Monthly | Cycle counts per category; franchise statements emailed; NCC opt-out registry import into Suppression; VAT201 working per store | Stock takes / HQ Statements / Marketing |

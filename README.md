@@ -59,6 +59,9 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Herbal Holland Rewards** — free national membership, easy phone sign-up (SMS code), digital card, instant tier
   savings (Seed 3% → Harvest 10%), points (1 point = R1), birthday and referral rewards, consent centre, cross-store
   settlement between franchisees.
+- **Launch programme** — pre-launch waitlist with a referral ladder, numbered Founding Members (Sprout for a year),
+  drops with tier early access and per-member limits, opening-weekend events with QR tickets, first-purchase welcome
+  gifts, My Deals (weekly personal offers, HQ-funded), Learn quests, shareable savings cards, app push.
 - **Finance** — P&L, VAT201 working, cash-ups, expenses, monthly franchise statements; every invoice emailed
   (SARS abridged/full tax invoices; non-VAT vendors supported).
 - **Marketing** — RFM segments, campaigns over SMS/email/push, POPIA consent ledger, CPA send windows, opt-out registry

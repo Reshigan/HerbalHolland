@@ -177,6 +177,27 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 | 3. Network | Months 4–9 | Western Cape & KZN DCs; 24 → 100 stores; network trading; statements automated |
 | 4. Adult-use ready | On commencement | Flip licensed stores to ADULT_USE by region; update channel matrix and limits; launch brand campaign within the new rules |
 
+### 8.1 Launch programme: "Windmill Days — Founding Members"
+
+The biggest consumer draw (legal adult-use THC) can't be sold or advertised at launch, so the launch wins on what we
+can own: **value people feel** (instant tier savings), **status and scarcity**, and **trust and culture** — and builds
+the largest consented member base in SA cannabis, ready for the day adult use becomes lawful.
+
+| Mechanic | How it works in the platform |
+|---|---|
+| Waitlist with a referral ladder | Before `launch.launchAt` the shop is a waitlist; a member's place = join order, moved up `referralBoost` places per friend who joins with their link |
+| Founding Members | At launch the first 10,000 places get a numbered card (#0001…) and hold at least Sprout (5% instant savings) for 12 months (`Customer.tierFloor`) |
+| Drops | Limited apparel/accessory/CBD runs: members-only, tier early access (e.g. Harvest 2 h early), per-member limits enforced online and at the till, "notify me" by app push or SMS inside legal send windows |
+| Opening weekends & members' evenings | Store events with capacity-limited RSVPs, QR tickets checked in at the till, welcome gift on the first purchase |
+| My Deals | Weekly personal offer on each member's favourite eligible product, applied automatically, HQ-funded from the marketing fund and credited to the store |
+| Shareables & Learn quests | Signed "I saved R…" cards that carry the referral link; points for passing Learn quizzes |
+
+Never on medicines: drops, gifts, deals, quests and events never promote, discount or reward licensed products.
+
+**Launch targets:** 50,000 waitlist sign-ups before the first store opens · 60% member attach at the till by week 4 ·
+35% of members buy again within 30 days · 0.3 new members per member through referrals · drops sold out in under
+10 minutes · 40% push opt-in among app installs.
+
 ## 9. KPIs to run the business
 
 Net sales & growth · ATV & UPT · gross margin · member attach % · active members (30/90 days) · repeat rate ·
