@@ -79,5 +79,10 @@ SELECT (SELECT sum("grossCents") FROM "DailyStoreStat") = (SELECT sum("totalCent
 -- Loyalty balances equal the ledger
 SELECT count(*) FROM "Customer" c LEFT JOIN (SELECT "customerId", sum(points) p FROM "LoyaltyEntry" GROUP BY 1) l
   ON l."customerId" = c.id WHERE coalesce(l.p,0) <> c.points;
+-- Instant Rewards savings: never on medicines (s18A), never on walk-ins, rollups equal sales
+SELECT coalesce(sum(sl."memberSavingsCents"),0) FROM "SaleLine" sl JOIN "Variant" v ON v.id = sl."variantId"
+  JOIN "Product" p ON p.id = v."productId" WHERE p."regClass" = 'THC';
+SELECT coalesce(sum("memberSavingsCents"),0) FROM "Sale" WHERE "customerId" IS NULL;
+SELECT (SELECT sum("memberSavingsCents") FROM "DailyStoreStat") = (SELECT sum("memberSavingsCents") FROM "Sale");
 ```
-All three should return 0 / true.
+All should return 0 / true.

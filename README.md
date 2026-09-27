@@ -8,13 +8,15 @@ compliance-first by design.
 
 | Surface | Route | For |
 |---|---|---|
-| Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/club` | Customers & patients |
+| Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club` | Customers & patients |
+| Dispensary (licensed medicines) | `/dispensary` — visible only to signed-in patients with an active authorisation | Patients |
 | POS — offline-first, tap on glass | `/pos` | Budtenders & dispensers |
 | Store back office | `/store/[code]` | Store managers & franchise owners |
 | HQ console | `/hq` | Head office & area managers |
 | Reports centre | `/store/[code]/reports`, `/hq/reports` | Everyone, scoped |
 | In-store menu boards | `/menu/[slug]` | Store TVs |
 | Brand book | `/brand` | Marketing & partners |
+| Public documents | `/invoice/[id]?t=` (signed tax invoice), `/batch/[code]` (lab results), `/unsubscribe` | Customers |
 
 ## Quick start
 
@@ -45,17 +47,18 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Inventory control** — batch-level stock with FEFO picking and FIFO cost, an immutable movement ledger, blind stock
   takes and cycle counts, reason-coded adjustments (incl. witnessed destruction), expiry and recall management,
   replenishment suggestions, DC distribution and store-to-store network trading.
-- **POS** — tablet/phone, tap on glass (Halo Dot SoftPOS adapter; simulated in demo), cash, PayShap, split tenders,
+- **POS** — phone and tablet (portrait and landscape), tap on glass (Halo Dot SoftPOS adapter; simulated in demo), cash, PayShap, split tenders,
   points, bonus-buy prompts, compliance checks (18+, patient authorisations, dispensers), offline cash selling with
-  idempotent sync, click & collect handover, refunds, shifts and Z-reports.
+  idempotent sync, click & collect handover (order QR), member card QR, refunds, shifts and Z-reports.
 - **Omnichannel** — one national shop; orders routed to the right store or DC; stores are merchant of record and get
   credited; nationwide courier for non-medicinal items; 15-minute click & collect.
 - **Pricing & deals** — RRP, zones, scheduled changes, franchisee shelf prices, instant Rewards prices by tier and weekly
   member deals (Checkers Xtra Savings style), quantity breaks,
   near-expiry markdowns; % / R-off, bonus buys, BOGO, gifts with purchase, complementary deals, multi-buys, happy hours,
-  Points multipliers.
-- **Herbal Holland Rewards** — free national membership, easy phone sign-up, digital card, tiers, referrals, consent centre,
-  cross-store settlement between franchisees.
+  points multipliers, usage caps.
+- **Herbal Holland Rewards** — free national membership, easy phone sign-up (SMS code), digital card, instant tier
+  savings (Seed 3% → Harvest 10%), points (1 point = R1), birthday and referral rewards, consent centre, cross-store
+  settlement between franchisees.
 - **Finance** — P&L, VAT201 working, cash-ups, expenses, monthly franchise statements; every invoice emailed
   (SARS abridged/full tax invoices; non-VAT vendors supported).
 - **Marketing** — RFM segments, campaigns over SMS/email/push, POPIA consent ledger, CPA send windows, opt-out registry
