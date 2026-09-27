@@ -45,7 +45,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         </Container>
       </div>
       <Container>
-        <div className="grid gap-12 py-8 lg:grid-cols-[minmax(0,42rem)_1fr] lg:gap-20">
+        <div className="grid grid-cols-1 gap-12 py-8 lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-20">
           <div className="min-w-0">
             <ArticleBody slug={a.slug} settings={settings} />
             <Link href={`/learn/${next.slug}`} className="group mt-16 flex items-center justify-between gap-6 rounded-3xl border border-ink-800 bg-ink-900/60 p-6 transition hover:border-oranje-500/60">

@@ -57,13 +57,13 @@ export function SalesHistory() {
 
   return (
     <div className="flex h-full min-h-0">
-      <section className={cn("flex min-h-0 w-full flex-col border-ink-850 md:w-[26rem] md:border-r", selected && "hidden md:flex")} aria-label="Recent sales">
+      <section className={cn("flex min-h-0 w-full flex-col border-ink-850 md:w-[21rem] md:shrink-0 md:border-r lg:w-[26rem]", selected && "hidden md:flex")} aria-label="Recent sales">
         <div className="px-4 pb-3 pt-4">
           <h1 className="font-display text-xl font-semibold text-white">Sales</h1>
           <p className="text-sm text-ink-400">This store · last {days} days</p>
           <div className="relative mt-3">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
-            <TextInput value={q} onChange={(e) => setQ(e.target.value.toUpperCase())} placeholder="Receipt number, e.g. B00012" aria-label="Search by receipt number" className="rounded-full pl-12 font-mono" />
+            <TextInput value={q} onChange={(e) => setQ(e.target.value.toUpperCase())} placeholder="Receipt number" aria-label="Search by receipt number" className="rounded-full pl-12 font-mono" />
           </div>
         </div>
         {error && <Alert className="mx-4 mb-3">{error}</Alert>}
@@ -80,14 +80,14 @@ export function SalesHistory() {
                   {s.kind === "REFUND" ? <Undo2 className="h-4 w-4" /> : <History className="h-4 w-4" />}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-mono text-sm font-semibold text-white">{s.number}</span>
+                  <span className="block truncate font-mono text-sm font-semibold text-white">{s.number}</span>
+                  <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-400">
                     {s.channel === "ONLINE" && <Chip tone="blue">Online</Chip>}
                     {s.refunded && <Chip tone="red">Refunded</Chip>}
                     {s.offline && <Chip tone="amber">Offline</Chip>}
-                  </span>
-                  <span className="mt-0.5 block truncate text-xs text-ink-400">
-                    {fmtDay(s.createdAt)} {fmtTime(s.createdAt)} · {s.customer ?? "Walk-in"} · {s.methods.map((m) => TENDER_LABEL[m] ?? m).join(", ")}
+                    <span className="truncate">
+                      {fmtDay(s.createdAt)} {fmtTime(s.createdAt)} · {s.customer ?? "Walk-in"} · {s.methods.map((m) => TENDER_LABEL[m] ?? m).join(", ")}
+                    </span>
                   </span>
                 </span>
                 <span className={cn("font-semibold tnum", s.totalCents < 0 ? "text-[#f29b9b]" : "text-white")}>{zar(s.totalCents)}</span>
@@ -110,7 +110,7 @@ export function SalesHistory() {
           )}
         </ul>
       </section>
-      <section className={cn("min-h-0 flex-1", !selected && "hidden md:block")} aria-label="Receipt">
+      <section className={cn("min-h-0 min-w-0 flex-1", !selected && "hidden md:block")} aria-label="Receipt">
         {selected ? (
           <SaleDetail id={selected} onBack={() => setSelected(null)} onChanged={() => void load()} onOpen={setSelected} />
         ) : (

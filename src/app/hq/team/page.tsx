@@ -13,6 +13,7 @@ import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Select } from "@/components/hq/select";
 import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { ViewOnly } from "@/components/hq/ui";
+import { Flash } from "@/components/hq/flash";
 import { addUser, resetPassword, setUserActive } from "./actions";
 
 export const metadata = { title: "Team" };
@@ -23,7 +24,8 @@ const ROLE: Record<string, [string, Tone, string]> = {
   AREA_MANAGER: ["Area manager", "blue", "Their region's stores, members and orders (view + drafts)"],
 };
 
-export default async function TeamPage() {
+export default async function TeamPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
+  const sp = await searchParams;
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
   const ids = await scopedStoreIds(scope);
@@ -37,6 +39,7 @@ export default async function TeamPage() {
   return (
     <>
       <PageHeader overline="Governance" title="Team" description="HQ staff and area managers. Store teams are managed by each store's owner or manager in the back office." />
+      <Flash message={sp.m} />
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <Table>

@@ -53,7 +53,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-[1fr_27vw] gap-[2.5vw] px-[3vw] py-[3vh]">
+      <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_27vw] gap-[2.5vw] px-[3vw] py-[3vh]">
         <MenuRotator count={panels.length}>
           {panels.map((p, n) =>
             p.kind === "items" ? (

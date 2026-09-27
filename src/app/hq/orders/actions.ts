@@ -4,7 +4,7 @@ import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { advanceOrder, nextStatuses, OrderError } from "@/server/orders";
 import { getSettings, saveSetting } from "@/server/settings";
-import { guard, inScope, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { guard, inScope, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, parseRand, parseInt10 } from "@/server/hq/form";
 
 /** Customer-service cancel from HQ (area managers may cancel orders in their region). */
@@ -24,7 +24,7 @@ export async function cancelOrder(orderId: string, _: ActionState, fd: FormData)
   }
   revalidatePath(`/hq/orders/${order.code}`);
   revalidatePath("/hq/orders");
-  return done("Order cancelled. Stock is released, any points used are returned and the customer has been told.");
+  flashTo(`/hq/orders/${order.code}`, "Order cancelled. Stock is released, any points used are returned and the customer has been told.");
 }
 
 export async function saveEcommerceSettings(_: ActionState, fd: FormData): Promise<ActionState> {

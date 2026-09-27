@@ -48,7 +48,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
         </Callout>
       )}
 
-      <div className="mt-8 grid gap-8 md:grid-cols-[14rem_1fr] md:items-center">
+      <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-[14rem_minmax(0,1fr)] md:items-center">
         <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} label={p.name} className="aspect-square w-40 rounded-3xl md:w-full" />
         <div>
           <div className="eyebrow text-oranje-500">{tested ? "Certificate of analysis" : "Batch record"}</div>
@@ -77,7 +77,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
       </div>
 
       {tested ? (
-        <div className="mt-12 grid gap-6 lg:grid-cols-2">
+        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Panel className="p-6">
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
               <FlaskConical className="h-5 w-5 text-oranje-500" /> Potency
@@ -151,7 +151,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
 
       <Panel className="mt-6 p-6">
         <h2 className="font-display text-lg font-semibold text-white">Traceability</h2>
-        <dl className="mt-5 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <dl className="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {[
             [<Sprout key="s" className="h-4 w-4" />, "Grown / made by", batch.supplier],
             [<CalendarDays key="p" className="h-4 w-4" />, "Packed", fmtDate(batch.packedAt)],

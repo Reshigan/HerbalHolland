@@ -21,12 +21,13 @@ import { EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { Field, Input } from "@/components/ui/form";
 import { savePricingRules } from "./actions";
+import { Flash } from "@/components/hq/flash";
 import { listStatus } from "@/components/hq/tones";
 import type { PriceListRule } from "@/lib/pricing-rules";
 
 export const metadata = { title: "Pricing" };
 
-type SP = { store?: string; channel?: string; tier?: string; variant?: string; qty?: string; at?: string };
+type SP = { store?: string; channel?: string; tier?: string; variant?: string; qty?: string; at?: string; m?: string };
 
 const KIND: Record<string, [string, Tone]> = { ZONE: ["Zone", "blue"], CHANNEL: ["Channel", "violet"], MEMBER: ["Rewards deal", "orange"] };
 const tierName = (k: string) => TIERS.find((t) => t.key === k)?.name ?? k;
@@ -82,6 +83,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
           )
         }
       />
+      <Flash message={sp.m} />
       <Card>
         <Table>
           <thead>

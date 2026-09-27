@@ -51,7 +51,7 @@ export function NewTakeForm({ action, cats, fullLines, busy }: { action: FormAct
                   <input type="radio" name="category" value={c.slug} checked={cat === c.slug} onChange={() => setCat(c.slug)} disabled={disabled} className="accent-oranje-500" />
                   <span className="flex-1 text-sm font-medium text-ink-850">{c.name}</span>
                   <span className="text-xs text-ink-500">{blocked.has(c.slug) ? "Counting now" : c.lastCounted ? `Last counted ${c.lastCounted}` : "Never counted"}</span>
-                  <span className="tnum w-16 text-right text-xs font-semibold text-ink-700">{c.lines} lines</span>
+                  <span className="tnum w-16 text-right text-xs font-semibold text-ink-700">{c.lines === 1 ? "1 line" : `${c.lines} lines`}</span>
                 </label>
               );
             })}

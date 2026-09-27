@@ -134,9 +134,10 @@ export function ConfirmAction({
 }) {
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  // `className` styles the open confirmation panel (e.g. its width); the closed trigger stays compact.
   if (!open)
     return (
-      <div className={cn("inline-flex flex-col items-start gap-2", className)}>
+      <div className="inline-flex flex-col items-start gap-2">
         {msg && <Notice tone="success">{msg}</Notice>}
         <Button type="button" variant={triggerVariant} size={size} onClick={() => (setOpen(true), setMsg(null))}>
           {icon}

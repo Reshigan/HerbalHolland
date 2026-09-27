@@ -51,7 +51,7 @@ export default async function StoresPage() {
           <h2 id="yours" className="eyebrow mb-3 text-ink-400">
             Your store{nearby.length ? " & nearby" : ""}
           </h2>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
             <StoreCard s={preferred} preferred />
             {nearby.map(({ s, km: d }) => (
               <StoreCard key={s.id} s={s} km={d < 1e9 ? d : null} />
@@ -71,7 +71,7 @@ export default async function StoresPage() {
             {cities.map((c) => (
               <div key={c} className="mt-5">
                 <h3 className="eyebrow mb-3 text-ink-400">{c}</h3>
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                   {inProv
                     .filter((s) => s.city === c)
                     .map((s) => (
@@ -90,7 +90,7 @@ export default async function StoresPage() {
             Opening soon
           </h2>
           <p className="mt-1 text-sm text-ink-400">Join Rewards and choose one of these as your home store — we&apos;ll let you know the day the doors open.</p>
-          <div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {soon.map((s) => (
               <StoreCard key={s.id} s={s} />
             ))}

@@ -51,7 +51,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
 
   return (
     <Container className="pt-10 sm:pt-16">
-      <div className="grid gap-10 lg:grid-cols-[1fr_30rem] lg:gap-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-16">
         <div className="lg:pt-6">
           <Mark className="h-14 w-14 text-oranje-500" />
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1] tracking-tight text-white">

@@ -81,7 +81,7 @@ export async function actOnStockOrder(
   const o = await db.stockOrder.findUniqueOrThrow({ where: { id }, include: { lines: true } });
   if (!ALLOWED[action].includes(o.status)) throw new PurchaseError(`Can't ${action} an order that is ${o.status.toLowerCase()}`);
 
-  return tx(async (t) => {
+  const result = await tx(async (t) => {
     const now = new Date();
     if (action === "ship") {
       // Ship what the seller actually has; shortfalls are visible on the order.
@@ -122,10 +122,12 @@ export async function actOnStockOrder(
       where: { id },
       data: { status: status[action], ...(action in stamp && { [stamp[action as keyof typeof stamp]]: now }) },
     });
-    if (action === "receive") queueMicrotask(() => import("./invoices").then((m) => m.emailStockOrderInvoice(id)).catch((e) => console.error("[invoice] stock order", id, e)));
     await audit(t, actor, `stockorder.${action}`, { storeId: action === "receive" || action === "submit" ? o.buyerId : o.sellerId, entity: "StockOrder", entityId: id, data: { number: o.number } });
     return updated;
   });
+  // After commit, so the invoice bills the quantities actually received (not the ordered total).
+  if (action === "receive") queueMicrotask(() => import("./invoices").then((m) => m.emailStockOrderInvoice(id)).catch((e) => console.error("[invoice] stock order", id, e)));
+  return result;
 }
 
 /** Value actually received on a stock order (VAT incl.) — what the buyer is invoiced. */

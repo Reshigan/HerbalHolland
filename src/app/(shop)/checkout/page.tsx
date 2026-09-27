@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { ChevronLeft, IdCard, ShieldCheck } from "lucide-react";
+import { ChevronLeft, IdCard, ShieldCheck, Sparkles } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -20,13 +20,15 @@ import { Callout, Container, Panel } from "@/components/shop/ui";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES } from "@/lib/sa";
 import { zar } from "@/lib/money";
+import { fmtPoints } from "@/lib/loyalty-rules";
 import type { SellChannel } from "@/lib/compliance";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
 
 const AGE_BLOCK = /^Age verification required/;
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
+  const { welcome } = await searchParams;
   const [items, code, customer, settings, store, stores] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores()]);
   if (!items.length) redirect("/cart");
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
@@ -46,7 +48,7 @@ export default async function CheckoutPage() {
     return (
       <Container className="pt-10 sm:pt-14">
         {header}
-        <div className="grid gap-10 lg:grid-cols-[1fr_24rem] lg:gap-12">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
           <Panel className="p-6 sm:p-8">
             <PhoneAuth
               next="/checkout"
@@ -111,6 +113,11 @@ export default async function CheckoutPage() {
       <p className="-mt-4 mb-8 text-sm text-ink-400">
         Signed in as <strong className="text-ink-100">{customer.firstName}</strong> · {customer.memberNo}
       </p>
+      {welcome && (
+        <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${customer.firstName}!`} className="mb-8">
+          Your {tierMeta(customer.tier).name} member prices are already applied below, and {fmtPoints(settings.loyalty.signupBonus)} are waiting in your account.
+        </Callout>
+      )}
       {needsAge && (
         <Callout tone="warn" icon={<IdCard className="h-5 w-5" />} title="Confirm your age to order online" className="mb-8">
           <p>Your bag has age-restricted items. Add your SA ID number and we&apos;ll verify you instantly — or show your ID or passport at any store and our team will verify you there.</p>

@@ -240,7 +240,7 @@ function Responsible() {
   return (
     <>
       <P>We&apos;d rather you enjoyed a small amount responsibly than too much carelessly. These are the basics we ask every member to live by.</P>
-      <ul className="my-10 grid gap-3 sm:grid-cols-2">
+      <ul className="my-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {rules.map((r) => (
           <li key={r.title} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
             <span className="grid h-10 w-10 place-items-center rounded-full bg-oranje-500/10 text-oranje-400">{r.icon}</span>
@@ -290,7 +290,7 @@ function Points({ settings }: { settings: Settings }) {
         Use points from {fmtPoints(l.minRedeem)}, for up to {l.maxRedeemPct}% of an order — at the till, just say you&apos;d like to use them; online, tick &ldquo;Use my points&rdquo; at checkout.
       </P>
       <H2>Bonuses</H2>
-      <ul className="my-8 grid gap-3 sm:grid-cols-3">
+      <ul className="my-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
         {[
           [fmtPoints(l.signupBonus), "when you join"],
           [fmtPoints(l.birthdayBonus), "on your birthday"],

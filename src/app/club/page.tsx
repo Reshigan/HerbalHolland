@@ -41,7 +41,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           Your card is ready — show the QR code at any till to earn points. We&apos;ve added {fmtPoints(settings.loyalty.signupBonus)} to get you started.
         </Callout>
       )}
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,26rem)_1fr] lg:gap-12">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
@@ -94,7 +94,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             ) : (
               <p className="mt-5 text-sm text-oranje-200">You&apos;re at our top tier — thank you for being one of our best members.</p>
             )}
-            <div className="mt-5 grid gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2">
+            <div className="mt-5 grid grid-cols-1 gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2">
               <div>
                 <h3 className="text-xs font-semibold uppercase tracking-wider text-ink-400">Your perks</h3>
                 <ul className="mt-2 space-y-1.5 text-sm text-ink-100">
@@ -122,7 +122,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6 lg:grid-cols-2">
+      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-white">Recent points</h2>
@@ -273,7 +273,7 @@ async function Landing() {
   const trading = stores.filter((s) => s.status === "ACTIVE");
   return (
     <Container className="pt-10 sm:pt-16">
-      <div className="grid gap-10 lg:grid-cols-[1fr_28rem] lg:gap-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-16">
         <div>
           <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
           <h1 className="mt-3 font-display text-5xl font-semibold leading-[1] tracking-tight text-white sm:text-6xl">
@@ -286,7 +286,7 @@ async function Landing() {
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-300">
             Free to join. Members pay less instantly — in {trading.length} stores and online — and earn {settings.loyalty.earnPer100} points for every R100 to spend like cash. 1 point = R1.
           </p>
-          <ul className="mt-8 grid max-w-xl gap-3 sm:grid-cols-2">
+          <ul className="mt-8 grid grid-cols-1 max-w-xl gap-3 sm:grid-cols-2">
             {[
               [<Gift key="g" className="h-5 w-5" />, `${fmtPoints(settings.loyalty.signupBonus)} when you join`],
               [<Cake key="c" className="h-5 w-5" />, `${fmtPoints(settings.loyalty.birthdayBonus)} on your birthday`],

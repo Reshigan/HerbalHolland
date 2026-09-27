@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { hashSecret } from "@/server/auth";
-import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str } from "@/server/hq/form";
 import type { Role } from "@/generated/prisma/client";
 
@@ -53,7 +53,7 @@ export async function setUserActive(userId: string, active: boolean, _: ActionSt
   if (!active) await db.session.deleteMany({ where: { userId } });
   await audit(db, g.actor, active ? "user.reactivate" : "user.deactivate", { entity: "User", entityId: userId, data: { email: u.email } });
   revalidatePath("/hq/team");
-  return done(active ? `${u.name} can sign in again.` : `${u.name} has been signed out everywhere and can no longer sign in.`);
+  flashTo("/hq/team", active ? `${u.name} can sign in again.` : `${u.name} has been signed out everywhere and can no longer sign in.`);
 }
 
 export async function resetPassword(userId: string, _: ActionState): Promise<ActionState> {

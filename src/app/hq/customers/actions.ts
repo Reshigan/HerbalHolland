@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { addPoints } from "@/server/loyalty";
-import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { guard, DENIED, fail, flashTo, type ActionState } from "@/server/hq/guard";
 import { str } from "@/server/hq/form";
 import type { MsgChannel } from "@/generated/prisma/client";
 
@@ -49,5 +49,5 @@ export async function anonymiseCustomer(customerId: string, _: ActionState, fd: 
     await audit(t, g.actor, "customer.anonymise", { entity: "Customer", entityId: customerId, data: { memberNo: c.memberNo, reason, pointsForfeited: Math.max(0, c.points) } });
   });
   revalidatePath(`/hq/customers/${customerId}`);
-  return done("Personal information erased. Financial and dispensing records remain, detached from the person.");
+  flashTo(`/hq/customers/${customerId}`, "Personal information erased. Financial and dispensing records remain, detached from the person.");
 }

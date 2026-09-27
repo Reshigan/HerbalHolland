@@ -9,7 +9,7 @@ export function ProfileForm({ values, stores }: { values: { firstName: string; l
   const cities = [...new Set(stores.map((s) => s.city))].sort();
   return (
     <form action={action} className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FieldRow label="First name" htmlFor="pf-first" error={state.fields?.firstName}>
           <TextInput id="pf-first" name="firstName" defaultValue={values.firstName} autoComplete="given-name" required maxLength={60} />
         </FieldRow>

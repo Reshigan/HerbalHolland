@@ -20,6 +20,7 @@ import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ConfirmAction, FieldError } from "@/components/hq/action-form";
 import { BackLink } from "@/components/hq/ui";
+import { Flash } from "@/components/hq/flash";
 import { cancelOrder } from "../actions";
 
 export const metadata = { title: "Online order" };
@@ -28,8 +29,8 @@ type Event = { status: string; at: string; note?: string };
 const FULFIL = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier delivery" } as const;
 const PAY = { ONLINE: "Paid online", CARD: "Pay in store", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points" } as const;
 
-export default async function OrderPage({ params }: { params: Promise<{ code: string }> }) {
-  const { code } = await params;
+export default async function OrderPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ m?: string }> }) {
+  const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
   const ids = await scopedStoreIds(scope);
@@ -70,6 +71,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
         }
       />
 
+      <Flash message={sp.m} />
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>

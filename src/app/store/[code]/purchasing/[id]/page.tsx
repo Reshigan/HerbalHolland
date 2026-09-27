@@ -37,6 +37,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
   const received = o.status === "RECEIVED" ? receivedValue(o) : null;
   const receivedEx = lines.reduce((s, l) => s + (l.receivedQty ?? 0) * l.unitCostCents, 0);
   const units = lines.reduce((s, l) => s + l.qty, 0);
+  const shortReceived = lines.reduce((s, l) => s + (l.receivedQty != null && l.shippedQty != null ? Math.max(0, l.shippedQty - l.receivedQty) : 0), 0);
 
   return (
     <>
@@ -120,12 +121,19 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
         </Card>
       )}
 
-      {o.status === "RECEIVED" && (
-        <Notice tone="success" className="mb-6">
-          Received {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT.{" "}
-          {d.invoiceSentAt ? `Tax invoice emailed ${fmtDateTime(d.invoiceSentAt)}.` : "Tax invoice is being emailed."} Settled on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
-        </Notice>
-      )}
+      {o.status === "RECEIVED" &&
+        (isBuyer ? (
+          <Notice tone="success" className="mb-6">
+            Received {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT.{" "}
+            {d.invoiceSentAt ? `Tax invoice emailed ${fmtDateTime(d.invoiceSentAt)}.` : "Tax invoice is being emailed."} Settled on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
+            {shortReceived > 0 && <span className="mt-1 block font-semibold">{plural(shortReceived, "unit")} short against the delivery note — recorded on the order for {o.seller.name}. You&apos;re only invoiced for what you received.</span>}
+          </Notice>
+        ) : (
+          <Notice tone={shortReceived > 0 ? "warn" : "success"} className="mb-6">
+            {o.buyer.name} received this {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT, cleared by HQ on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
+            {shortReceived > 0 && <span className="mt-1 block font-semibold">They received {plural(shortReceived, "unit")} fewer than you shipped, so those units aren&apos;t paid for — check the dispatch and courier.</span>}
+          </Notice>
+        ))}
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">

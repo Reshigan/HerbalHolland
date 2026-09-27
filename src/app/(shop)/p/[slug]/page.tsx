@@ -85,8 +85,16 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const buyable = !inStoreOnly && (licensed ? withStock.length > 0 : networkQty > 0);
 
   const deals = licensed ? [] : dealsFor(product, pricing);
-  const suggestionIds = q.suggestions.flatMap((s) => s.productIds);
-  const suggestionCats = q.suggestions.flatMap((s) => s.categoryIds);
+  // Deal nudges for this product only: never on medicines, and a multi-buy is only suggested when this product counts towards it.
+  const suggestions = licensed
+    ? []
+    : q.suggestions.filter((s) => {
+        const promo = pricing.promos.find((x) => x.id === s.promoId);
+        if (promo?.kind !== "MULTIBUY") return true;
+        return (!s.productIds.length && !s.categoryIds.length) || s.productIds.includes(product.id) || s.categoryIds.includes(product.categoryId);
+      });
+  const suggestionIds = suggestions.flatMap((s) => s.productIds);
+  const suggestionCats = suggestions.flatMap((s) => s.categoryIds);
   const who = { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name };
   const complete =
     !licensed && (suggestionIds.length || suggestionCats.length)
@@ -139,7 +147,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           </span>
         </nav>
 
-        <div className="mt-6 grid gap-8 lg:grid-cols-2 lg:gap-14">
+        <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-14">
           {/* Art */}
           <div className="lg:sticky lg:top-28 lg:self-start">
             <div className="relative overflow-hidden rounded-[2rem] border border-ink-800">
@@ -325,7 +333,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         </div>
 
         {/* Details */}
-        <div className="mt-20 grid gap-10 lg:grid-cols-[1fr_24rem] lg:gap-14">
+        <div className="mt-20 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14">
           <div className="space-y-14">
             {tested && batch && (
               <section aria-labelledby="lab">
@@ -340,7 +348,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     Full lab certificate <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
-                <Panel className="mt-5 grid gap-6 p-5 sm:grid-cols-2">
+                <Panel className="mt-5 grid grid-cols-1 gap-6 p-5 sm:grid-cols-2">
                   <dl className="space-y-2.5 text-sm">
                     {[
                       ["Tested by", batch.labName],
@@ -371,7 +379,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             )}
 
             {(terps.length > 0 || product.effects.length > 0 || product.flavours.length > 0) && (
-              <section aria-labelledby="profile" className="grid gap-8 md:grid-cols-2">
+              <section aria-labelledby="profile" className="grid grid-cols-1 gap-8 md:grid-cols-2">
                 {terps.length > 0 && (
                   <div>
                     <div className="eyebrow text-oranje-500">Terpenes</div>
@@ -430,7 +438,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 <div className="eyebrow text-oranje-500">Legal basis</div>
                 <h2 id="legal" className="mt-2 font-display text-2xl font-semibold text-white">What this product is — and isn&apos;t</h2>
                 <Panel className="mt-5 p-5">
-                  <dl className="grid gap-4 text-sm sm:grid-cols-2">
+                  <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
                     <div>
                       <dt className="text-ink-400">Classification</dt>
                       <dd className="mt-0.5 font-medium text-ink-100">{REG_CLASS_LABEL[product.regClass]}</dd>
@@ -489,7 +497,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               <div className="eyebrow text-oranje-500">Verified reviews</div>
               <h2 id="reviews-title" className="mt-2 font-display text-2xl font-semibold text-white">What members say</h2>
               {reviews.count > 0 ? (
-                <div className="mt-6 grid gap-8 md:grid-cols-[14rem_1fr]">
+                <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
                   <div>
                     <div className="tnum font-display text-5xl font-semibold text-white">{reviews.avg.toFixed(1)}</div>
                     <Stars value={reviews.avg} className="mt-2" />
@@ -582,14 +590,17 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 </Link>
               </Panel>
             )}
-            {q.suggestions.length > 0 && (
+            {suggestions.length > 0 && (
               <Panel className="border-oranje-500/40 p-5">
                 <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
                   <Package className="h-5 w-5 text-oranje-500" /> Complete the deal
                 </h2>
-                <ul className="mt-3 space-y-2 text-sm text-ink-300">
-                  {q.suggestions.map((s) => (
-                    <li key={s.promoId + s.message}>{s.message}</li>
+                <ul className="mt-3 space-y-2.5 text-sm text-ink-300">
+                  {suggestions.map((s) => (
+                    <li key={s.promoId + s.message}>
+                      {!s.message.includes(s.name) && <span className="block font-semibold text-white">{s.name}</span>}
+                      {s.message}
+                    </li>
                   ))}
                 </ul>
               </Panel>

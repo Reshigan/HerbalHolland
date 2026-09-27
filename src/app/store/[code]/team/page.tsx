@@ -29,6 +29,15 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
     db.user.findMany({ where: { companyId: store.companyId, role: "OWNER" }, select: { id: true, name: true, email: true, lastLoginAt: true } }),
   ]);
   const active = staff.filter((s) => s.active);
+  // lastLoginAt isn't written by sign-in, so "last active" also looks at sessions (back office or till PIN) and sales rung up here.
+  const ids = staff.map((s) => s.id);
+  const [sessions, sold] = await Promise.all([
+    db.session.groupBy({ by: ["userId"], where: { userId: { in: ids } }, _max: { createdAt: true } }),
+    db.sale.groupBy({ by: ["staffId"], where: { storeId: store.id, staffId: { in: ids } }, _max: { createdAt: true } }),
+  ]);
+  const seen = new Map<string, Date>();
+  for (const [id, at] of [...sessions.map((r) => [r.userId, r._max.createdAt] as const), ...sold.map((r) => [r.staffId, r._max.createdAt] as const), ...staff.map((s) => [s.id, s.lastLoginAt] as const)])
+    if (id && at && (!seen.has(id) || seen.get(id)! < at)) seen.set(id, at);
   const may = (t: (typeof staff)[number]) => ownerLevel || (user.role === "MANAGER" && (t.role === "BUDTENDER" || t.id === user.id));
 
   return (
@@ -92,7 +101,7 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
                 <Th>Name</Th>
                 <Th>Role</Th>
                 <Th>Access</Th>
-                <Th>Last sign-in</Th>
+                <Th className="whitespace-nowrap">Last active</Th>
                 <Th>Status</Th>
                 {canManage && <Th><span className="sr-only">Actions</span></Th>}
               </tr>
@@ -126,7 +135,7 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
                       {s.email && <Badge tone="blue">Back office</Badge>}
                     </div>
                   </Td>
-                  <Td className="whitespace-nowrap text-ink-600">{s.lastLoginAt ? timeAgo(s.lastLoginAt) : <span className="text-ink-300">Never</span>}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{seen.get(s.id) ? timeAgo(seen.get(s.id)!) : <span className="text-ink-300">Not yet</span>}</Td>
                   <Td>{s.active ? <Badge tone="green" dot>Active</Badge> : <Badge dot>Inactive</Badge>}</Td>
                   {canManage && (
                     <Td className="text-right">

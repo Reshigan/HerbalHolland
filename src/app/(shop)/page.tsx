@@ -68,7 +68,7 @@ export default async function Home() {
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute -right-40 top-10 h-[36rem] w-[36rem] rounded-full bg-oranje-500/10 blur-3xl" />
-        <Container className="relative grid items-center gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16 lg:py-20">
+        <Container className="relative grid grid-cols-1 items-center gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:py-20">
           <div className="order-2 animate-rise lg:order-1">
             <div className="eyebrow mb-5 text-oranje-500">Herbal Holland · South Africa</div>
             <h1 className="font-display text-[2.9rem] font-semibold leading-[0.95] tracking-tight text-white sm:text-6xl xl:text-[5.2rem]">
@@ -190,7 +190,7 @@ export default async function Home() {
 
       {/* ── Heritage story ────────────────────────────────────────── */}
       <section className="mt-24 border-y border-ink-850 bg-[radial-gradient(ellipse_at_top_left,rgb(245_145_60/0.08),transparent_60%)]">
-        <Container className="grid gap-12 py-20 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
+        <Container className="grid grid-cols-1 gap-12 py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
           <div>
             <div className="eyebrow text-oranje-500">Our heritage</div>
             <h2 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl">Four landraces. One fair promise.</h2>
@@ -219,7 +219,7 @@ export default async function Home() {
             </ButtonLink>
           </div>
           <div>
-            <ol className="grid gap-3 sm:grid-cols-2">
+            <ol className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               {LANDRACES.map((l, i) => (
                 <li key={l.name} className="relative overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/70 p-5">
                   <span className="tnum font-display text-sm font-semibold text-oranje-500">0{i + 1}</span>
@@ -232,7 +232,7 @@ export default async function Home() {
             {heritage.length > 0 && (
               <div className="mt-6">
                 <div className="eyebrow mb-3 text-ink-400">From the heritage line</div>
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   {heritage.slice(0, 2).map((p) => (
                     <Link key={p.id} href={`/p/${p.slug}`} className="group flex items-center gap-4 rounded-2xl border border-ink-800 p-3 transition hover:border-oranje-500/60">
                       <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} label={p.name} className="h-16 w-16 shrink-0 rounded-xl" />
@@ -253,7 +253,7 @@ export default async function Home() {
       <Container className="pt-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900 p-6 sm:p-10 lg:p-14">
           <Mark aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 h-80 w-80 text-oranje-500/[0.07]" />
-          <div className="relative grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
+          <div className="relative grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-center">
             <div>
               <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
               <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Pay less. Earn more.</h2>
@@ -287,7 +287,7 @@ export default async function Home() {
 
       {/* ── Stores ────────────────────────────────────────────────── */}
       <Container className="pt-24">
-        <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-center">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
           <div>
             <div className="eyebrow text-oranje-500">Find us</div>
             <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{trading.length} stores. One windmill.</h2>
@@ -326,7 +326,7 @@ export default async function Home() {
       {/* ── Learn ─────────────────────────────────────────────────── */}
       <Container className="pt-24">
         <SectionHead eyebrow="Learn" title="Know what you're buying" action={<ButtonLink href="/learn" variant="ghost-dark" size="sm">All guides <ArrowRight className="h-4 w-4" /></ButtonLink>} />
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
           {ARTICLES.slice(0, 3).map((a) => (
             <Link key={a.slug} href={`/learn/${a.slug}`} className="group overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition hover:border-oranje-500/60">
               <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="aspect-[16/9] w-full" />

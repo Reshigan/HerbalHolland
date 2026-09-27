@@ -95,6 +95,7 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
 
 export function VariantEditor({ productId, variants, minMarginPct, readOnly }: { productId: string; variants: VariantRow[]; minMarginPct: number; readOnly?: boolean }) {
   const [adding, setAdding] = useState(variants.length === 0);
+  const [addKey, setAddKey] = useState(0);
   return (
     <div className="divide-y divide-ink-100">
       {variants.map((v) => (
@@ -120,9 +121,9 @@ export function VariantEditor({ productId, variants, minMarginPct, readOnly }: {
       ))}
       {!readOnly &&
         (adding ? (
-          <ActionForm action={saveVariant.bind(null, productId, null)} className="bg-oranje-50/40 px-5 py-4" resetOnSuccess onDone={(s) => s.ok && setAdding(false)}>
-            <div className="mb-3 font-display text-sm font-semibold text-ink-900">New variant</div>
-            <VariantFields minMarginPct={minMarginPct} isNew />
+          <ActionForm action={saveVariant.bind(null, productId, null)} className="bg-oranje-50/40 px-5 py-4" onDone={(s) => s.ok && setAddKey((k) => k + 1)}>
+            <div className="mb-3 font-display text-sm font-semibold text-ink-900">{variants.length ? "Add another variant" : "New variant"}</div>
+            <VariantFields key={addKey} minMarginPct={minMarginPct} isNew />
             <div className="mt-3 flex justify-end gap-2">
               {variants.length > 0 && (
                 <Button type="button" variant="ghost" size="sm" onClick={() => setAdding(false)}>

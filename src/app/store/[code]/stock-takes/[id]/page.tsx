@@ -4,7 +4,7 @@ import { EyeOff, TriangleAlert } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { currentOnHand, scopeLabels, stockTakeSheet } from "@/server/store/stock-takes";
-import { varianceSummary, hrefWith } from "@/server/store/rules";
+import { varianceSummary, hrefWith, plural } from "@/server/store/rules";
 import { pct, zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, timeAgo } from "@/lib/format";
 import { approveTake, cancelTake, saveCounts } from "../actions";
@@ -208,7 +208,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={5} className="px-5 py-3 text-xs text-ink-500">{listed.length} lines</td>
+                <td colSpan={5} className="px-5 py-3 text-xs text-ink-500">{plural(listed.length, "line")}</td>
                 <td className="px-4 py-3 text-right"><Qty n={listed.reduce((s, r) => s + (r.variance ?? 0), 0)} /></td>
                 <td className="tnum px-5 py-3 text-right text-sm font-semibold text-ink-950">{zar(listed.reduce((s, r) => s + (r.variance ?? 0) * r.cost, 0))}</td>
               </tr>

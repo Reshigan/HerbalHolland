@@ -34,13 +34,16 @@ const ratio = (a: string, b: string) => {
   const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
   return (x + 0.05) / (y + 0.05);
 };
+// Label colour for a swatch: whichever of ink or cream reads better on it.
+const onSwatch = (hex: string) => (ratio("#0c0a09", hex) >= ratio("#fbf7f3", hex) ? "#0c0a09" : "#fbf7f3");
 const PAIRS: [string, string, string, string][] = [
   ["Sunset 500 on Ink 950", "#f5913c", "#0c0a09", "Headlines, links, the Mark"],
   ["Ink 950 on Sunset 500", "#0c0a09", "#f5913c", "Primary buttons, announcement bar"],
   ["Ink 100 on Ink 950", "#f4eee8", "#0c0a09", "Body copy on dark"],
   ["Ink 400 on Ink 950", "#968a80", "#0c0a09", "Secondary copy on dark"],
   ["Ink 850 on Ink 50", "#1a1614", "#fbf7f3", "Body copy on light (back office, invoices)"],
-  ["Sunset 700 on Ink 50", "#c05f18", "#fbf7f3", "Overlines on light surfaces"],
+  ["Sunset 800 on Ink 50", "#974a15", "#fbf7f3", "Small orange text on light surfaces"],
+  ["Sunset 700 on Ink 50", "#c05f18", "#fbf7f3", "Large headings and icons on light only"],
 ];
 
 const NAV = [
@@ -57,8 +60,8 @@ function Section({ id, n, title, intro, children, light }: { id: string; n: stri
   return (
     <section id={id} className={cn("scroll-mt-6 border-t py-20", light ? "border-ink-150 bg-ink-50 text-ink-850" : "border-ink-850 bg-ink-950 text-ink-100")}>
       <div className="mx-auto max-w-6xl px-6">
-        <div className="grid gap-4 lg:grid-cols-[14rem_1fr]">
-          <div className={cn("tnum font-display text-sm font-semibold", light ? "text-oranje-700" : "text-oranje-500")}>{n}</div>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
+          <div className={cn("tnum font-display text-sm font-semibold", light ? "text-oranje-800" : "text-oranje-500")}>{n}</div>
           <div>
             <h2 className={cn("font-display text-4xl font-semibold tracking-tight", light ? "text-ink-950" : "text-white")}>{title}</h2>
             <p className={cn("mt-3 max-w-2xl text-[1.02rem] leading-relaxed", light ? "text-ink-600" : "text-ink-300")}>{intro}</p>
@@ -84,7 +87,7 @@ export default function BrandBook() {
     <main className="min-h-dvh bg-ink-950 text-ink-100">
       <ShopSurface />
       {/* Cover */}
-      <header className="mx-auto grid max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[1fr_1.1fr] lg:items-center lg:py-24">
+      <header className="mx-auto grid grid-cols-1 max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:py-24">
         <div>
           <div className="eyebrow text-oranje-500">Brand book · v1.0 · 2026</div>
           <h1 className="mt-4 font-display text-6xl font-semibold leading-[0.95] tracking-tight text-white sm:text-7xl">Herbal Holland</h1>
@@ -106,7 +109,7 @@ export default function BrandBook() {
       </header>
 
       <Section id="logo" n="01" title="Logo" intro="A four-petal windmill flower on a tower, inside an open ring: Holland's windmill and the herb in one line drawing. It always draws in a single colour — Sunset orange on black, or black on Sunset orange.">
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <figure className="rounded-3xl bg-ink-900 p-8">
             <div className="hh-frame flex aspect-[4/5] items-center justify-center p-6">
               <Lockup className="h-full w-full justify-center text-[1.6rem] [&>svg]:h-[54%]" />
@@ -132,18 +135,20 @@ export default function BrandBook() {
             </figcaption>
           </figure>
           <figure className="flex flex-col rounded-3xl bg-ink-900 p-8">
-            <div className="flex flex-1 items-end justify-center gap-5 text-oranje-500">
-              <Mark className="h-28 w-28" />
-              <Mark className="h-16 w-16" />
-              <Mark className="h-10 w-10" detail={false} />
-              <Mark className="h-6 w-6" detail={false} />
+            <div className="flex flex-1 items-center justify-center">
+              <div className="flex items-end gap-5 text-oranje-500">
+                <Mark className="h-28 w-28" />
+                <Mark className="h-16 w-16" />
+                <Mark className="h-10 w-10" detail={false} />
+                <Mark className="h-6 w-6" detail={false} />
+              </div>
             </div>
             <figcaption className="mt-6 text-sm text-ink-300">
               <strong className="text-white">The Mark.</strong> App icons, favicons, the till. Below 40 px, drop the inner tower line. Never smaller than 16 px.
             </figcaption>
           </figure>
         </div>
-        <div className="mt-4 grid gap-4 lg:grid-cols-[1fr_1.2fr]">
+        <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <figure className="rounded-3xl bg-ink-900 p-8">
             <div className="relative mx-auto aspect-square w-56">
               <div className="absolute inset-0 rounded-xl border-2 border-dashed border-oranje-500/50" />
@@ -177,26 +182,26 @@ export default function BrandBook() {
             <h3 className="font-display text-lg font-semibold text-ink-950">Sunset — primary</h3>
             <ol className="mt-4 grid grid-cols-5 overflow-hidden rounded-2xl ring-1 ring-ink-150 sm:grid-cols-10">
               {SUNSET.map(([k, hex]) => (
-                <li key={k} className="flex h-28 flex-col justify-end p-2.5 text-[0.7rem] font-semibold" style={{ background: hex, color: Number(k) >= 500 ? "#0c0a09" : "#4a403a" }}>
+                <li key={k} className="flex h-28 flex-col justify-end p-2.5 text-[0.7rem] font-semibold" style={{ background: hex, color: onSwatch(hex) }}>
                   <span className={k === "500" ? "font-bold" : undefined}>{k}</span>
                   <span className="font-mono opacity-80">{hex.toUpperCase()}</span>
                 </li>
               ))}
             </ol>
-            <p className="mt-2 text-sm text-ink-600">Sunset 500 is the brand colour. 600–700 for text and icons on light backgrounds.</p>
+            <p className="mt-2 text-sm text-ink-600">Sunset 500 is the brand colour. On light backgrounds, use 700 for large headings and icons and 800 for small text.</p>
           </div>
           <div>
             <h3 className="font-display text-lg font-semibold text-ink-950">Ink — warm neutrals</h3>
             <ol className="mt-4 grid grid-cols-5 overflow-hidden rounded-2xl ring-1 ring-ink-150 sm:grid-cols-[repeat(13,minmax(0,1fr))]">
               {INK.map(([k, hex]) => (
-                <li key={k} className="flex h-28 flex-col justify-end p-2.5 text-[0.7rem] font-semibold" style={{ background: hex, color: Number(k) >= 500 ? "#f4eee8" : "#2f2824" }}>
+                <li key={k} className="flex h-28 flex-col justify-end p-2.5 text-[0.7rem] font-semibold" style={{ background: hex, color: onSwatch(hex) }}>
                   <span>{k}</span>
                   <span className="font-mono opacity-80">{hex.toUpperCase()}</span>
                 </li>
               ))}
             </ol>
           </div>
-          <div className="grid gap-8 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-2">
             <div>
               <h3 className="font-display text-lg font-semibold text-ink-950">Status colours</h3>
               <ul className="mt-4 space-y-2">
@@ -239,7 +244,7 @@ export default function BrandBook() {
       </Section>
 
       <Section id="type" n="03" title="Typography" intro="Outfit for display — geometric and warm, it echoes the wordmark. Inter for everything you read or tap, with tabular figures wherever numbers line up.">
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="rounded-3xl bg-ink-900 p-8">
             <div className="eyebrow text-oranje-500">Outfit · display</div>
             <p className="mt-6 font-display text-7xl font-semibold leading-[0.95] tracking-tight text-white">Dutch heritage.</p>
@@ -285,7 +290,7 @@ export default function BrandBook() {
       </Section>
 
       <Section id="shape" n="04" title="Shape & components" intro="Soft, confident geometry. Cards are generously rounded, buttons are pills, inputs sit in between. The window-poster frame is reserved for hero and brand moments — use it sparingly so it keeps its power." light>
-        <div className="grid gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="rounded-3xl bg-ink-950 p-8">
             <div className="flex flex-wrap gap-3">
               <span className={buttonClass("primary", "lg")}>Primary</span>
@@ -338,7 +343,7 @@ export default function BrandBook() {
       </Section>
 
       <Section id="voice" n="06" title="Voice & tone" intro="Warm, plain English, confident. We sound like a knowledgeable friend behind the counter — never a salesperson, never a stoner cliché, never a doctor." light>
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
             ["Warm", "Welcome people in. Thank them. Use their name when we know it."],
             ["Plain", "Short sentences, everyday words. Say what happens next."],
@@ -351,7 +356,7 @@ export default function BrandBook() {
             </div>
           ))}
         </div>
-        <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="rounded-3xl bg-white p-6 ring-1 ring-ink-150">
             <h3 className="font-display text-lg font-semibold text-ink-950">Say this</h3>
             <ul className="mt-4 space-y-3 text-sm text-ink-700">
@@ -378,24 +383,47 @@ export default function BrandBook() {
         </p>
       </Section>
 
-      <Section id="misuse" n="07" title="Do & don't" intro="The Mark only works when it's left alone. These are the mistakes we see most.">
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+      <Section id="misuse" n="07" title="Do & don't" intro="The Mark only works when it's left alone: one colour, full clear space, upright. These are the right ways to use it, and the mistakes we see most.">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            ["Stretch it", "scale-x-150"],
-            ["Recolour it", "text-sky-500"],
-            ["Rotate it", "-rotate-12"],
-            ["Add effects", "drop-shadow-[0_0_12px_rgb(245_145_60)] blur-[0.6px]"],
-            ["Busy backgrounds", "bg-[repeating-linear-gradient(45deg,#2f9e4f_0_10px,#e8a10c_10px_20px)]"],
-            ["Crowd the space", "outline outline-8 outline-offset-0 outline-ink-600"],
-          ].map(([label, cls]) => (
+            ["Sunset on black", "bg-ink-950 text-oranje-500", false],
+            ["Black on Sunset", "bg-oranje-500 text-ink-950", false],
+            ["Inside the window-poster frame", "text-oranje-500", true],
+          ].map(([label, tile, frame]) => (
+            <figure key={label as string} className="rounded-3xl bg-ink-900 p-5">
+              <div className={cn("relative grid aspect-[16/9] place-items-center overflow-hidden rounded-2xl", frame ? "bg-ink-950" : (tile as string))}>
+                {frame ? (
+                  <div className="hh-frame grid h-[78%] aspect-[4/5] place-items-center border-[6px] sm:border-[6px]">
+                    <Mark className="h-[55%] w-[55%] text-oranje-500" />
+                  </div>
+                ) : (
+                  <Mark className="h-20 w-20" />
+                )}
+                <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-leaf-500 text-ink-950">
+                  <Check className="h-3.5 w-3.5" strokeWidth={3} />
+                </span>
+              </div>
+              <figcaption className="mt-3 text-sm font-medium text-ink-200">Do: {label as string}</figcaption>
+            </figure>
+          ))}
+        </div>
+        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+          {[
+            ["Don't stretch or squash it", "scale-x-150", ""],
+            ["Don't recolour it", "text-sky-500", ""],
+            ["Don't rotate it", "-rotate-12", ""],
+            ["Don't add glows or blur", "drop-shadow-[0_0_12px_rgb(245_145_60)] blur-[0.6px]", ""],
+            ["Don't put it on busy backgrounds", "", "bg-[repeating-linear-gradient(45deg,#2f9e4f_0_10px,#e8a10c_10px_20px)]"],
+            ["Don't box it in or crowd it", "outline outline-8 outline-offset-0 outline-ink-600", ""],
+          ].map(([label, markCls, tileCls]) => (
             <figure key={label} className="rounded-3xl bg-ink-900 p-5">
-              <div className={cn("relative grid aspect-square place-items-center overflow-hidden rounded-2xl bg-ink-950", label === "Busy backgrounds" && cls)}>
-                <Mark className={cn("h-16 w-16 text-oranje-500", label !== "Busy backgrounds" && cls)} />
+              <div className={cn("relative grid aspect-square place-items-center overflow-hidden rounded-2xl bg-ink-950", tileCls)}>
+                <Mark className={cn("h-16 w-16 text-oranje-500", markCls)} />
                 <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-rose-500 text-white">
                   <X className="h-3.5 w-3.5" strokeWidth={3} />
                 </span>
               </div>
-              <figcaption className="mt-3 text-sm font-medium text-ink-200">Don&apos;t {label.charAt(0).toLowerCase() + label.slice(1)}</figcaption>
+              <figcaption className="mt-3 text-sm font-medium text-ink-200">{label}</figcaption>
             </figure>
           ))}
         </div>

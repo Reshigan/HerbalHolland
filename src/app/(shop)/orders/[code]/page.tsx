@@ -48,13 +48,14 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const events = (order.events as Event[]) ?? [];
   const at = (s: OrderStatus) => events.filter((e) => e.status === s).at(-1)?.at;
   const collect = order.fulfilment === "COLLECT";
+  const medicine = order.lines.some((l) => settings.compliance.licensedOnly.includes(l.variant.product.regClass));
   const steps: { key: OrderStatus; label: string; sub: string }[] = [
     ...(order.paymentStatus !== "PAID" && order.payMethod === "ONLINE" && order.status !== "CANCELLED" ? [{ key: "PENDING_PAYMENT" as const, label: "Awaiting payment", sub: "Complete payment to confirm your order" }] : []),
     { key: "PLACED", label: "Order placed", sub: collect ? `Sent to ${order.store.name}` : "We've received your order" },
     { key: "PICKING", label: "Being packed", sub: "Checked against the batch on the shelf" },
     { key: "READY", label: collect ? "Ready for collection" : "Packed and ready", sub: collect ? "We'll SMS you — bring your ID" : "Waiting for the driver" },
     ...(collect ? [] : [{ key: "OUT_FOR_DELIVERY" as const, label: "Out for delivery", sub: order.courier ? `${order.courier}${order.trackingNo ? ` · ${order.trackingNo}` : ""}` : "ID (18+) checked at the door" }]),
-    { key: "COMPLETED", label: collect ? "Collected" : "Delivered", sub: "Enjoy — responsibly" },
+    { key: "COMPLETED", label: collect ? "Collected" : "Delivered", sub: medicine ? "Use only as directed by your prescriber" : "Enjoy — responsibly" },
   ];
   const order_ = steps.map((s) => s.key);
   const current = order.status === "CANCELLED" ? -1 : order_.indexOf(order.status);
@@ -107,12 +108,12 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         </Callout>
       )}
 
-      <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_24rem] lg:gap-12">
+      <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
         <div className="space-y-8">
           {/* Collection pass */}
           {collect && open && order.status !== "PENDING_PAYMENT" && (
             <Panel className="overflow-hidden">
-              <div className="grid gap-6 p-6 sm:grid-cols-[auto_1fr] sm:items-center">
+              <div className="grid grid-cols-1 gap-6 p-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
                 {mine ? (
                   <div className="mx-auto w-44 rounded-2xl bg-white p-3 sm:mx-0">
                     <QrCode value={`HHORDER:${order.code}:${order.collectionCode}`} label={`Collection QR for order ${order.code}`} />

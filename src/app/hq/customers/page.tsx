@@ -57,7 +57,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       <PageHeader
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Herbal Holland Rewards"}
         title="Members & CRM"
-        description="Every Rewards member across the network, segmented by recency and frequency. Consent is tracked per channel (POPIA s69) and every message respects the CPA contact windows."
+        description={`${scope.kind === "HQ" ? "Every Rewards member across the network" : "Rewards members whose home store is in your region"}, segmented by recency and frequency. Consent is tracked per channel (POPIA s69) and every message respects the CPA contact windows.`}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Members" value={num(k.members)} sub={`${fmtPoints(k.points)} outstanding`} />

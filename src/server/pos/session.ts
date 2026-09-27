@@ -1,7 +1,7 @@
 // Till identity: which stores a signed-in manager may pair a device to, the staff tiles
 // on the lock screen, and PIN sign-in (rate limited, audited).
 import { db } from "@/server/db";
-import { endSession, pairDevice, startSession, verifySecret, HQ_ROLES } from "@/server/auth";
+import { endSession, pairDevice, startSession, verifySecret } from "@/server/auth";
 import { audit, type Actor } from "@/server/audit";
 import { scopeOf, storeWhere } from "@/server/scope";
 import { PosError, limiter, type PosDevice } from "./http";
@@ -99,4 +99,3 @@ export async function pairTill(opts: { storeId: string; name: string; actor: Act
   return { device, store };
 }
 
-export const isHqRole = (r: Role) => HQ_ROLES.includes(r);

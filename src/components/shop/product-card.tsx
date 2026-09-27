@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Truck, Store, Package, CircleOff } from "lucide-react";
+import { Truck, Store, Package, CircleOff, ChevronRight } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { AddToBag } from "./add-to-bag";
 import { Price, Stars, Tag } from "./ui";
@@ -45,22 +45,24 @@ export function ProductCardView({ p }: { p: Card }) {
             <span className="tnum">({p.rating.count})</span>
           </div>
         )}
-        <div className="mt-auto flex items-end justify-between gap-3 pt-4">
-          <div className="min-w-0">
-            <Price cents={p.priceCents} was={p.wasCents} from={p.variantCount > 1} />
-            {p.priceNote && p.wasCents && p.priceNote !== p.deal?.name && <p className="mt-0.5 truncate text-[0.7rem] font-semibold text-oranje-300">{p.priceNote}</p>}
-            {p.rewardsCents != null && (
-              <p className="mt-1 flex w-fit items-center gap-1 rounded-md bg-oranje-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-oranje-200">
-                Rewards <span className="tnum">{zar(p.rewardsCents)}</span>
-              </p>
+        <div className="mt-auto pt-4">
+          <div className="flex items-center justify-between gap-2">
+            <Price cents={p.priceCents} was={p.wasCents} from={p.variantCount > 1} className="min-w-0" />
+            {p.variantCount === 1 && p.stock.kind !== "out" ? (
+              <AddToBag compact variantId={p.firstVariantId} name={p.name} className="shrink-0" />
+            ) : (
+              // Not interactive on its own: clicks fall through to the card link underneath.
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink-700 text-xs font-semibold text-ink-200 transition group-hover:border-oranje-500 group-hover:text-oranje-300 sm:flex sm:h-auto sm:w-auto sm:px-3 sm:py-1.5">
+                <ChevronRight className="h-5 w-5 sm:hidden" aria-hidden />
+                <span className="sr-only sm:not-sr-only">{p.stock.kind === "out" ? "View" : `${p.variantCount} options`}</span>
+              </span>
             )}
           </div>
-          {p.variantCount === 1 && p.stock.kind !== "out" ? (
-            <AddToBag compact variantId={p.firstVariantId} name={p.name} />
-          ) : (
-            <span className="relative z-10 shrink-0 rounded-full border border-ink-700 px-3 py-1.5 text-xs font-semibold text-ink-200 transition group-hover:border-oranje-500 group-hover:text-oranje-300">
-              {p.stock.kind === "out" ? "View" : `${p.variantCount} options`}
-            </span>
+          {p.priceNote && p.wasCents && p.priceNote !== p.deal?.name && <p className="mt-1 truncate text-[0.7rem] font-semibold text-oranje-300">{p.priceNote}</p>}
+          {p.rewardsCents != null && (
+            <p className="mt-1.5 flex w-fit max-w-full items-center gap-1 rounded-md bg-oranje-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-oranje-200">
+              Rewards <span className="tnum truncate">{zar(p.rewardsCents)}</span>
+            </p>
           )}
         </div>
         <StockLine stock={p.stock} className="mt-3 border-t border-ink-800 pt-3" />

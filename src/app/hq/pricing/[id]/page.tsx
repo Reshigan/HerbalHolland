@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
@@ -30,6 +30,7 @@ export default async function PriceListPage({ params, searchParams }: { params: 
   ]);
   if (!isNew && !list) notFound();
   const edit = can(user, "network");
+  if (isNew && !edit) redirect("/hq/pricing");
   const values: PriceListValues = list
     ? {
         name: list.name, kind: list.kind, channel: list.channel ?? "", tiers: list.tiers, storeIds: list.storeIds, regionIds: list.regionIds,

@@ -396,6 +396,8 @@ export const deadStock: ReportDef = {
         FROM oh LEFT JOIN sold ON sold."storeId" = oh."storeId" AND sold."variantId" = oh."variantId"
         LEFT JOIN recv ON recv."storeId" = oh."storeId" AND recv."variantId" = oh."variantId"
         WHERE COALESCE(sold.recent, 0) = 0
+          -- new lines still waiting for their first sale aren't dead yet
+          AND NOT (sold."lastSold" IS NULL AND recv."lastIn" >= ${addDays(ctx.now, -days)})
         ORDER BY oh.value DESC`,
       db.$queryRaw<{ value: number }[]>`
         SELECT COALESCE(SUM(sl."onHand"::float8 * sl."unitCostCents"), 0)::float8 AS value
@@ -439,7 +441,7 @@ export const deadStock: ReportDef = {
       chart: byCat.size ? { kind: "bar", title: "Dead stock by category", description: "At cost, ex VAT", format: "zar", rows: [...byCat].sort((a, b) => b[1] - a[1]).map(([label, v]) => ({ label, value: v })) } : null,
       emptyTitle: "No dead stock",
       empty: `Everything on hand has sold in the last ${days} days.`,
-      note: `Sellable stock on hand with no sales in the last ${days} days. "Last sold" looks back 12 months. Consider a network listing, a transfer or a promotion before it ages further.`,
+      note: `Sellable stock on hand with no sales in the last ${days} days (new lines received in that time and not yet sold are left out). "Last sold" looks back 12 months. Consider a network listing, a transfer or a promotion before it ages further.`,
     };
   },
 };

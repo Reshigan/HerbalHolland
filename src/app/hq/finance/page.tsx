@@ -3,7 +3,6 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { franchiseFees, salesByDay, salesByStore, salesSummary } from "@/server/finance";
-import { receivedValue } from "@/server/stock-orders";
 import { resolveRange } from "@/lib/ranges";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { zar, zarCompact, pct, vatOnExcl } from "@/lib/money";
@@ -37,7 +36,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
     salesByDay(rids, r),
     db.campaign.findMany({ where: { status: "SENT", sentAt: { gte: r.start, lt: r.end }, ...(scope.kind === "HQ" ? {} : { storeId: { in: rids } }) }, select: { id: true, name: true, costCents: true }, orderBy: { costCents: "desc" } }),
     db.loyaltyEntry.groupBy({ by: ["kind"], where: { createdAt: { gte: r.start, lt: r.end }, ...(scope.kind === "HQ" ? {} : { storeId: { in: rids } }) }, _sum: { points: true } }),
-    db.stockOrder.findMany({ where: { kind: "WHOLESALE", status: "RECEIVED", receivedAt: { gte: r.start, lt: r.end }, buyerId: { in: rids } }, select: { lines: { select: { receivedQty: true, unitCostCents: true } } } }),
+    db.$queryRaw<{ ex: number }[]>`
+      SELECT COALESCE(SUM(l."receivedQty" * l."unitCostCents"), 0)::float8 AS ex FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      WHERE o.kind = 'WHOLESALE' AND o.status = 'RECEIVED' AND o."receivedAt" >= ${r.start} AND o."receivedAt" < ${r.end} AND o."buyerId" = ANY(${rids}::text[])`,
     db.customer.aggregate({ where: scope.kind === "HQ" ? {} : { homeStoreId: { in: rids } }, _sum: { points: true } }),
     db.$queryRaw<{ cents: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS cents FROM "DailyStoreStat" WHERE "storeId" = ANY(${rids}::text[]) AND "date" >= ${r.fromDate} AND "date" <= ${r.toDate}`,
   ]);
@@ -52,8 +53,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const issued = ["EARN", "SIGNUP", "REFERRAL", "BIRTHDAY", "BONUS"].reduce((a, k) => a + kind(k), 0);
   const redeemed = -kind("REDEEM");
   const expired = -kind("EXPIRE");
-  const wholesaleIncl = wholesale.reduce((a, o) => a + receivedValue(o), 0);
-  const wholesaleVat = wholesaleIncl - Math.round(wholesaleIncl / 1.15);
+  const wholesaleEx = Math.round(wholesale[0]?.ex ?? 0);
+  const wholesaleVat = vatOnExcl(wholesaleEx);
+  const wholesaleIncl = wholesaleEx + wholesaleVat;
   const nonVat = retail.filter((s) => !s.company.vatNumber);
   const nonVatSales = nonVat.reduce((a, s) => a + (byStore.get(s.id)?.grossCents ?? 0), 0);
   const feesVat = vatOnExcl(fees.total);

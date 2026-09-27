@@ -6,7 +6,7 @@ import { audit } from "@/server/audit";
 import { availability, availKey } from "@/server/inventory";
 import { actOnStockOrder, createStockOrder } from "@/server/stock-orders";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
-import { parseWhole, receiptCheck, str } from "@/server/store/rules";
+import { parseWhole, plural, receiptCheck, str } from "@/server/store/rules";
 import type { StockOrder } from "@/generated/prisma/client";
 
 type Shipped = { batchId: string; qty: number }[];
@@ -81,7 +81,7 @@ export async function receiveOrder(code: string, id: string, _: ActionState, fd:
     revalidatePath(`/store/${store.code}/purchasing`);
     revalidatePath(`/store/${store.code}/inventory`);
     return done(
-      `Received ${summary.units} units into stock.${summary.shortReceived ? ` ${summary.shortReceived} short against the delivery note — flagged for the supplier.` : ""} The tax invoice is on its way to ${store.company.email ?? "the owner"}.`,
+      `Received ${plural(summary.units, "unit")} into stock.${summary.shortReceived ? ` ${summary.shortReceived} short against the delivery note — flagged for the supplier.` : ""} The tax invoice is on its way to ${store.company.email ?? "the owner"}.`,
     );
   });
 }

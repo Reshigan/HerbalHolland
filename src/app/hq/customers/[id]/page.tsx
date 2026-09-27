@@ -23,14 +23,15 @@ import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ConfirmAction } from "@/components/hq/action-form";
 import { BackLink, EmptyRow, MiniStat } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
+import { Flash } from "@/components/hq/flash";
 import { anonymiseCustomer } from "../actions";
 
 export const metadata = { title: "Member" };
 
 const AGE_CHECK: Record<string, string> = { NONE: "Not verified", ID_SIGHTED: "ID sighted in store", ID_NUMBER: "ID number checked", VERIFIED: "Verified (Home Affairs)" };
 
-export default async function MemberPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function MemberPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ m?: string }> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
   const ids = await scopedStoreIds(scope);
@@ -82,6 +83,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
           )
         }
       />
+      <Flash message={sp.m} />
       {anonymised && (
         <Notice tone="warn" className="mb-6" title="Anonymised">
           This member&apos;s personal information was erased on request. Purchase, invoice and points records remain for statutory retention, detached from the person.

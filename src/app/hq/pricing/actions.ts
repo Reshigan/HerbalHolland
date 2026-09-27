@@ -81,7 +81,7 @@ export async function deletePriceList(listId: string, _: ActionState, fd: FormDa
   await db.priceList.delete({ where: { id: listId } });
   await audit(db, g.actor, "pricelist.delete", { entity: "PriceList", entityId: listId, data: { name: pl.name, kind: pl.kind, items: pl._count.items } });
   revalidatePath("/hq/pricing");
-  redirect("/hq/pricing");
+  redirect(`/hq/pricing?m=${encodeURIComponent(`“${pl.name}” deleted — prices fall back to the next matching list or RRP.`)}`);
 }
 
 /** Network pricing guardrails: near-expiry markdowns at the till and the store margin guide. */

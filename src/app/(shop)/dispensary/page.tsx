@@ -34,7 +34,7 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
 
   return (
     <Container className="pt-10 sm:pt-14">
-      <div className="grid gap-8 lg:grid-cols-[1fr_24rem] lg:items-end">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
         <div>
           <div className="eyebrow text-oranje-500">Dispensary</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Your dispensary</h1>

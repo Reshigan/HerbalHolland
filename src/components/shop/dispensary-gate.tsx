@@ -17,7 +17,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
   const medical = access.mode === "MEDICAL";
   return (
     <Container className="pt-10 sm:pt-14">
-      <div className="grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:gap-16">
+      <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
         <div>
           <div className="eyebrow text-oranje-500">Dispensary</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{medical ? "For registered patients" : "For verified adults"}</h1>
@@ -48,7 +48,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
             )}
           </div>
           {medical && (
-            <ol className="mt-10 grid gap-3 sm:grid-cols-2">
+            <ol className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
               {STEPS.map((s, i) => (
                 <li key={s.title} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
                   <div className="flex items-center gap-3">

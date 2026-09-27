@@ -3,6 +3,7 @@
 //   view    — HQ admin, HQ team, area managers (area managers see their region only)
 //   network — network-wide merchandising, marketing and operations (HQ admin + HQ team)
 //   admin   — commercial terms, compliance, programme settings, POPIA tools, users (HQ admin)
+import { redirect } from "next/navigation";
 import { getStaff, HQ_ROLES, type Staff } from "@/server/auth";
 import { scopeOf, scopedStoreIds, storeWhere, type Scope } from "@/server/scope";
 import { db } from "@/server/db";
@@ -43,6 +44,11 @@ export async function inScope(scope: Scope, storeId: string) {
 /** Customer rows an HQ user may see: the network for HQ, members homed in the region for area managers. */
 export function customerScope(scope: Scope, ids: string[]) {
   return scope.kind === "HQ" ? {} : { homeStoreId: { in: ids } };
+}
+
+/** Redirects back to a page with a one-time confirmation (shown by <Flash>). */
+export function flashTo(path: string, message: string): never {
+  redirect(`${path}${path.includes("?") ? "&" : "?"}m=${encodeURIComponent(message)}`);
 }
 
 export { scopedStoreIds, scopeOf };

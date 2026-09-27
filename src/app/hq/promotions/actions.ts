@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
-import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, opt, list, bool, parseNum, parseInt10, parseLocal, parseRand, parseClock } from "@/server/hq/form";
 import { screenCopy } from "@/lib/compliance";
 import type { Channel, PromoKind } from "@/generated/prisma/client";
@@ -111,5 +111,5 @@ export async function setPromotionActive(promoId: string, active: boolean, _: Ac
   await audit(db, g.actor, active ? "promotion.resume" : "promotion.pause", { storeId: p.ownerStoreId, entity: "Promotion", entityId: promoId, data: { name: p.name } });
   revalidatePath(`/hq/promotions/${promoId}`);
   revalidatePath("/hq/promotions");
-  return done(active ? "Promotion resumed." : "Promotion paused — it stops applying immediately.");
+  flashTo(`/hq/promotions/${promoId}`, active ? "Promotion resumed." : "Promotion paused — it stops applying immediately.");
 }

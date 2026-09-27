@@ -32,7 +32,7 @@ const COURIERS = ["Herbal Holland driver", "The Courier Guy", "Pargo", "Bob Go",
 
 export function OrdersBoard() {
   const pos = usePos();
-  const { orders, online, refreshOrders } = pos;
+  const { orders, ordersAt, online, refreshOrders } = pos;
   const [col, setCol] = useState<Column>("new");
   const [now, setNow] = useState(() => new Date());
   const [open, setOpen] = useState<OrderCard | null>(null);
@@ -148,7 +148,9 @@ export function OrdersBoard() {
       <div className="flex items-center justify-between gap-3 px-4 pb-2 pt-4">
         <div>
           <h1 className="font-display text-xl font-semibold text-white">Online orders</h1>
-          <p className="text-sm text-ink-400">Click &amp; collect and delivery for this store · ready within 15 minutes</p>
+          <p className="text-sm text-ink-400">
+            Click &amp; collect and delivery · ready within 15 minutes{ordersAt ? ` · updated ${fmtTime(ordersAt)}` : ""}
+          </p>
         </div>
         <PosButton variant="outline" onClick={() => void refreshOrders()} aria-label="Refresh orders">
           <RefreshCw className="h-4 w-4" /> <span className="hidden sm:inline">Refresh</span>

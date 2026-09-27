@@ -21,7 +21,7 @@ export default function LearnIndex() {
         <p className="mt-4 text-lg leading-relaxed text-ink-300">Straight answers about where our products come from, what the lab found, and what the law says. No jargon, no hype.</p>
       </div>
 
-      <Link href={`/learn/${lead.slug}`} className="group mt-12 grid overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/60 transition hover:border-oranje-500/60 lg:grid-cols-[1.2fr_1fr]">
+      <Link href={`/learn/${lead.slug}`} className="group mt-12 grid grid-cols-1 overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/60 transition hover:border-oranje-500/60 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
         <ProductArt slug={lead.art.slug} strain={lead.art.strain} regClass={lead.art.regClass} label="" className="aspect-[16/10] h-full w-full lg:aspect-auto" />
         <div className="flex flex-col justify-center p-8 sm:p-12">
           <div className="eyebrow text-oranje-500">{lead.kicker}</div>
@@ -33,7 +33,7 @@ export default function LearnIndex() {
         </div>
       </Link>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {rest.map((a) => (
           <Link key={a.slug} href={`/learn/${a.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 transition hover:border-oranje-500/60">
             <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="aspect-[16/9] w-full" />

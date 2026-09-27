@@ -73,7 +73,7 @@ export function PhoneAuth({
           <FieldRow label="Mobile number" htmlFor="auth-phone" error={state.fields?.phone} hint="We'll send a 6-digit code by SMS.">
             <div className="relative">
               <Smartphone className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-              <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone} className="pl-11 text-lg tracking-wide" aria-invalid={!!state.fields?.phone} autoFocus />
+              <TextInput id="auth-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel-national" required placeholder="082 123 4567" defaultValue={state.values?.phone} className="pl-11 text-lg tracking-wide" aria-invalid={!!state.fields?.phone} autoFocus={!!state.error || !!state.fields?.phone} />
             </div>
           </FieldRow>
           <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
@@ -198,7 +198,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
           Number confirmed: <strong className="text-ink-100">{state.phone ? displayPhone(state.phone) : ""}</strong>. Tell us a little about you to finish joining Herbal Holland Rewards.
         </p>
       </div>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <FieldRow label="First name" htmlFor="reg-first" error={state.fields?.firstName}>
           <TextInput id="reg-first" name="firstName" autoComplete="given-name" required maxLength={60} defaultValue={v.firstName} aria-invalid={!!state.fields?.firstName} autoFocus />
         </FieldRow>

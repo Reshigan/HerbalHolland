@@ -228,7 +228,12 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   useEffect(() => {
     if (!ready) return;
     void syncNow();
-    const t = setInterval(() => navigator.onLine && void syncNow(), SYNC_EVERY_MS);
+    const t = setInterval(() => {
+      if (!navigator.onLine) return;
+      // Offline after a server hiccup: probe cheaply; a success flips the till back online (and syncs).
+      if (!onlineRef.current) void api("/api/pos/session", { quiet401: true, timeoutMs: 8_000 }).catch(() => undefined);
+      else void syncNow();
+    }, SYNC_EVERY_MS);
     return () => clearInterval(t);
   }, [ready, syncNow]);
   useEffect(() => {

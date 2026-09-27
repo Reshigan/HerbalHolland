@@ -11,7 +11,7 @@ const FEATURED = ["sales-by-store", "sales-overview", "stock-valuation", "statem
 export default async function HqReports() {
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
-  const stores = await scopedStoreIds(scope, { kind: "RETAIL", status: "ACTIVE" });
+  const [stores, dcs] = await Promise.all([scopedStoreIds(scope, { kind: "RETAIL", status: "ACTIVE" }), scopedStoreIds(scope, { kind: "WAREHOUSE" })]);
   const groups = catalogue("hq", user.role).map((g) => ({
     group: g.group,
     reports: g.reports.map((r): CatalogueReport => ({ key: r.key, title: r.title, description: r.description, personal: r.personal, href: `/hq/reports/${r.key}` })),
@@ -23,7 +23,7 @@ export default async function HqReports() {
       <PageHeader
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Herbal Holland network"}
         title="Reports"
-        description={`Network reporting across ${stores.length} trading stores and the distribution centres. Every report can be narrowed to a region or a single store, charted and exported.`}
+        description={`Reporting across ${stores.length} trading stores${dcs.length ? ` and ${dcs.length} distribution centre${dcs.length === 1 ? "" : "s"}` : ""}. Narrow any report to ${scope.kind === "HQ" ? "a region or " : ""}a single store, see it charted and export it.`}
       />
       <ReportCatalogue groups={groups} featured={featured} />
     </>

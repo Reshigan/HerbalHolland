@@ -55,7 +55,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
         <span className="text-ink-200">{s.name}</span>
       </nav>
 
-      <div className="mt-6 grid gap-8 lg:grid-cols-[1fr_24rem] lg:gap-14">
+      <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14">
         <div>
           <div className="flex flex-wrap items-center gap-2">
             {soon ? <Tag tone="amber">Opening soon</Tag> : <Tag tone={o.open ? "green" : "neutral"}>{o.open ? "Open now" : "Closed now"}</Tag>}
@@ -124,7 +124,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               <h2 id="deals" className="font-display text-2xl font-semibold text-white">
                 In-store deals today
               </h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {deals.map((d) => (
                   <div key={d.id} className="flex items-start gap-3 rounded-2xl border border-oranje-500/35 bg-oranje-500/[0.06] p-4">
                     <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-oranje-400" />
@@ -161,7 +161,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               {memberMenu.map((c) => (
                 <div key={c.slug}>
                   <h3 className="font-display text-lg font-semibold text-white">{c.name}</h3>
-                  <ul className="mt-3 grid gap-2 md:grid-cols-2">
+                  <ul className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                     {c.items.map((i) => (
                       <li key={i.variantId}>
                         <Link href={`/p/${i.slug}?v=${i.variantId}`} className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/50 p-2.5 pr-4 transition hover:border-ink-600">

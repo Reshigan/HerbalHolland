@@ -9,7 +9,7 @@ export function HoursEditor({ initial }: { initial: TradingHours }) {
   );
   const set = (k: DayKey, patch: Partial<(typeof week)[DayKey]>) => setWeek((w) => ({ ...w, [k]: { ...w[k], ...patch } }));
   const copyMonday = () => setWeek((w) => ({ ...w, tue: { ...w.mon }, wed: { ...w.mon }, thu: { ...w.mon }, fri: { ...w.mon } }));
-  const input = "tnum h-9 w-28 rounded-xl border border-ink-200 bg-white px-2.5 text-sm focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15 disabled:bg-ink-50 disabled:text-ink-300";
+  const input = "tnum h-9 w-36 rounded-xl border border-ink-200 bg-white px-2.5 text-sm focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15 disabled:bg-ink-50 disabled:text-ink-300";
   return (
     <fieldset>
       <legend className="mb-1.5 flex w-full items-center justify-between text-[0.78rem] font-semibold text-ink-700">

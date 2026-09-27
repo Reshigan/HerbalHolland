@@ -15,12 +15,13 @@ import { ActionButton } from "@/components/hq/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { listStatus } from "@/components/hq/tones";
 import { savePromotion, setPromotionActive } from "../actions";
+import { Flash } from "@/components/hq/flash";
 import { PromotionForm } from "../promotion-form";
 import { promoOptions, promoValues } from "../load";
 
 export const metadata = { title: "Promotion" };
 
-export default async function PromotionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string }> }) {
+export default async function PromotionPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ saved?: string; m?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
@@ -69,6 +70,7 @@ export default async function PromotionPage({ params, searchParams }: { params: 
         }
       />
       {sp.saved && <Notice tone="success" className="mb-6">Promotion created.</Notice>}
+      <Flash message={sp.m} />
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Times used" value={num(uses)} sub={promo.maxUses ? `of ${num(promo.maxUses)} allowed` : "transactions"} />
         <Stat label="Revenue with the deal" value={zarCompact(usage._sum.totalCents ?? 0)} sub="incl. VAT" />

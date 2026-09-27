@@ -21,7 +21,7 @@ export default async function ClubPoints({ searchParams }: { searchParams: Promi
 
   return (
     <Container className="pt-8">
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Points activity</h1>
           <p className="mt-1 text-sm text-ink-400">Everything you&apos;ve earned and spent, in store and online.</p>

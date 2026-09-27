@@ -1,10 +1,9 @@
 "use server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { audienceSize, sendCampaign, CampaignError } from "@/server/marketing";
-import { guard, inScope, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { guard, inScope, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, opt, parseRand, parseLocal, parseSuppressionList } from "@/server/hq/form";
 import { screenCopy } from "@/lib/compliance";
 import { SEGMENTS } from "@/lib/rfm";
@@ -92,22 +91,24 @@ export async function saveCampaign(campaignId: string | null, _: ActionState, fd
   }
   revalidatePath("/hq/marketing");
   revalidatePath(`/hq/marketing/${id}`);
-  if (!campaignId) redirect(`/hq/marketing/${id}?m=${encodeURIComponent(msg)}`);
+  if (!campaignId || intent === "send") flashTo(`/hq/marketing/${id}`, msg);
   return done(msg);
 }
 
 export async function sendNow(campaignId: string, _: ActionState): Promise<ActionState> {
   const g = await guard("network");
   if (!g) return DENIED;
+  let msg: string;
   try {
     const r = await sendCampaign(campaignId, g.actor);
     revalidatePath(`/hq/marketing/${campaignId}`);
     revalidatePath("/hq/marketing");
-    return done("scheduledAt" in r && r.scheduledAt ? `${r.reason}: held until ${fmtDateTime(r.scheduledAt)}.` : `Sent to ${r.sent.toLocaleString()} members · ${r.suppressed.toLocaleString()} suppressed.`);
+    msg = "scheduledAt" in r && r.scheduledAt ? `${r.reason}: held until ${fmtDateTime(r.scheduledAt)}.` : `Sent to ${r.sent.toLocaleString()} members · ${r.suppressed.toLocaleString()} suppressed.`;
   } catch (e) {
     if (e instanceof CampaignError) return fail(e.message);
     throw e;
   }
+  flashTo(`/hq/marketing/${campaignId}`, msg);
 }
 
 export async function cancelCampaign(campaignId: string, _: ActionState): Promise<ActionState> {
@@ -120,7 +121,7 @@ export async function cancelCampaign(campaignId: string, _: ActionState): Promis
   await audit(db, g.actor, "campaign.cancel", { storeId: c.storeId, entity: "Campaign", entityId: campaignId, data: { name: c.name } });
   revalidatePath(`/hq/marketing/${campaignId}`);
   revalidatePath("/hq/marketing");
-  return done("Campaign cancelled — nothing will be sent.");
+  flashTo(`/hq/marketing/${campaignId}`, "Campaign cancelled — nothing will be sent.");
 }
 
 /** NCC opt-out registry import (monthly cleanse) and manual do-not-contact entries. */

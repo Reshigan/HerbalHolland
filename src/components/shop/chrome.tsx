@@ -140,7 +140,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         </main>
 
         <footer className="mt-24 border-t border-ink-850 bg-ink-950">
-          <Container className="grid gap-12 py-14 lg:grid-cols-[1.2fr_2fr]">
+          <Container className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
               <Link href="/" className="inline-flex items-center gap-3 text-oranje-500" aria-label="Herbal Holland — home">
                 <Mark className="h-14 w-14" />

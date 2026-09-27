@@ -19,6 +19,7 @@ import { ActionButton, ConfirmAction } from "@/components/hq/action-form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
 import { cancelCampaign, estimateReach, saveCampaign, sendNow } from "../actions";
+import { Flash } from "@/components/hq/flash";
 import { Composer } from "../composer";
 import { composerOptions } from "../load";
 
@@ -65,7 +66,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           )
         }
       />
-      {sp.m && <Notice tone="success" className="mb-6">{sp.m}</Notice>}
+      <Flash message={sp.m} />
     </>
   );
 

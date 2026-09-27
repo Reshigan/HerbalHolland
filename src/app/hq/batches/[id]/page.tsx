@@ -19,6 +19,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Select } from "@/components/hq/select";
 import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { BackLink, EmptyRow, MiniStat, ViewOnly } from "@/components/hq/ui";
+import { Flash } from "@/components/hq/flash";
 import { saveLabResults, setBatchStatus } from "../actions";
 
 export const metadata = { title: "Batch" };
@@ -31,7 +32,7 @@ const PANEL = [
   ["residualSolvents", "Residual solvents"],
 ] as const;
 
-export default async function BatchPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ page?: string }> }) {
+export default async function BatchPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ page?: string; m?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
@@ -74,6 +75,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
         description={`${batch.supplier} · packed ${fmtDate(batch.packedAt)}${batch.expiresAt ? ` · best before ${fmtDate(batch.expiresAt)}` : ""}`}
       />
 
+      <Flash message={sp.m} />
       {batch.status !== "RELEASED" && (
         <Notice tone={batch.status === "RECALLED" ? "danger" : "warn"} className="mb-6" title={batch.status === "RECALLED" ? "Recalled — blocked everywhere" : "Quarantined — blocked from sale and shipping"}>
           {batch.statusReason}

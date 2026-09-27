@@ -19,12 +19,13 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ActionButton } from "@/components/hq/action-form";
 import { FilterForm, FilterSelect } from "@/components/hq/filter-form";
 import { EmptyRow } from "@/components/hq/ui";
+import { Flash } from "@/components/hq/flash";
 import { actOnDcOrder } from "./actions";
 import type { Prisma, StockOrderStatus } from "@/generated/prisma/client";
 
 export const metadata = { title: "Distribution" };
 
-type SP = { dc?: string; view?: string; low?: string; page?: string };
+type SP = { dc?: string; view?: string; low?: string; page?: string; m?: string };
 const VIEWS: { key: string; label: string; status?: StockOrderStatus }[] = [
   { key: "incoming", label: "Incoming", status: "SUBMITTED" },
   { key: "ship", label: "To pick & ship", status: "APPROVED" },
@@ -85,6 +86,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
   return (
     <>
       <PageHeader overline="Supply" title="Distribution" description="Store orders from the distribution centres: approve, pick first-expiry-first-out, ship. Stores are invoiced for what they receive, settled on their monthly statement." />
+      <Flash message={sp.m} />
       <TabLinks className="mb-5" current={tabHref({ view: undefined, page: undefined })} tabs={dcs.map((d) => ({ href: `/hq/distribution${qs({ dc: d.code })}`, label: d.name, count: waiting.find((w) => w.sellerId === d.id)?._count }))} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -144,7 +146,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
                     <Td align="right">
                       {view.status === "SUBMITTED" && act ? (
                         <div className="flex justify-end gap-2">
-                          <ActionButton action={actOnDcOrder.bind(null, o.id, "approve")} variant="dark" pendingLabel="Approving…">
+                          <ActionButton action={actOnDcOrder.bind(null, o.id, "approve")} variant="dark" pendingLabel="Approving…" fields={{ returnTo: `/hq/distribution${qs({ dc: dc.code, view: view.key })}` }}>
                             Approve
                           </ActionButton>
                           <Link href={`/hq/distribution/${o.id}`} className="inline-flex h-8 items-center rounded-full px-3 text-xs font-semibold text-ink-600 hover:bg-ink-100">

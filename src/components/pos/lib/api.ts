@@ -6,8 +6,8 @@ export class ApiError extends Error {
   }
 }
 export class OfflineError extends Error {
-  constructor() {
-    super("No connection — check the Wi-Fi or mobile data");
+  constructor(public timedOut = false) {
+    super(timedOut ? "The server is taking too long to answer — try again" : "No connection — check the Wi-Fi or mobile data");
   }
 }
 
@@ -30,9 +30,12 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
       credentials: "same-origin",
       signal: AbortSignal.timeout(opts.timeoutMs ?? 20_000),
     });
-  } catch {
-    emit("offline");
-    throw new OfflineError();
+  } catch (e) {
+    // A slow answer isn't a lost connection: only hard network failures flip the till offline.
+    // Callers still get an OfflineError, so e.g. a sale that timed out is queued (the id makes it idempotent).
+    const timedOut = (e as Error)?.name === "TimeoutError";
+    if (!timedOut) emit("offline");
+    throw new OfflineError(timedOut);
   }
   emit("online");
   const data = (await res.json().catch(() => ({}))) as T & { error?: string; code?: string };

@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { notifyCustomer } from "@/server/messaging";
-import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { affectedCustomers } from "@/server/hq/batches";
 import { str, opt, parseNum } from "@/server/hq/form";
 import type { Prisma } from "@/generated/prisma/client";
@@ -73,6 +73,6 @@ export async function setBatchStatus(batchId: string, to: "QUARANTINE" | "RELEAS
   await audit(db, g.actor, action, { entity: "Batch", entityId: batchId, data: { code: batch.code, from: batch.status, reason, notified, announcementId } });
   revalidatePath(`/hq/batches/${batchId}`);
   revalidatePath("/hq/batches");
-  if (to === "RECALLED") return done(`Batch recalled. ${notified} customer${notified === 1 ? "" : "s"} notified by SMS and every store has a recall notice to acknowledge.`);
-  return done(to === "QUARANTINE" ? "Batch quarantined — it can't be sold or shipped until released." : "Batch released for sale.");
+  if (to === "RECALLED") flashTo(`/hq/batches/${batchId}`, `Batch recalled. ${notified} customer${notified === 1 ? "" : "s"} notified by SMS and every store has a recall notice to acknowledge.`);
+  flashTo(`/hq/batches/${batchId}`, to === "QUARANTINE" ? "Batch quarantined — it can't be sold or shipped until released." : "Batch released for sale.");
 }

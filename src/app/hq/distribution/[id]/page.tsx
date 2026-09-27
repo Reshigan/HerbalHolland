@@ -19,14 +19,15 @@ import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ActionButton, ConfirmAction, FieldError } from "@/components/hq/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
+import { Flash } from "@/components/hq/flash";
 import { actOnDcOrder } from "../actions";
 
 export const metadata = { title: "Store order" };
 
 type Shipped = { batchId: string; qty: number }[];
 
-export default async function DcOrderPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function DcOrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ m?: string }> }) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
   const ids = await scopedStoreIds(scope);
@@ -70,6 +71,7 @@ export default async function DcOrderPage({ params }: { params: Promise<{ id: st
         }
         description={`${order.lines.length} lines · ${num(units)} units · ${zar(order.totalCents)} incl. VAT`}
       />
+      <Flash message={sp.m} />
       {order.notes && <Notice className="mb-6" title="Notes">{order.notes.split("\n").map((n, i) => <span key={i} className="block">{n}</span>)}</Notice>}
       {short > 0 && order.status !== "SHIPPED" && (
         <Notice tone="warn" className="mb-6" title="Not enough released stock at the DC">

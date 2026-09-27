@@ -2,7 +2,7 @@ import { MonitorSmartphone, ShieldCheck } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
-import { readHours, WEEK } from "@/server/store/rules";
+import { plural, readHours, WEEK } from "@/server/store/rules";
 import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { bps } from "@/lib/money";
 import { displayPhone, PROVINCES } from "@/lib/sa";
@@ -26,6 +26,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
   const store = await storeForUser(user, code);
   const canManage = canManageStore(user);
   const devices = await db.device.findMany({ where: { storeId: store.id }, orderBy: [{ active: "desc" }, { createdAt: "asc" }] });
+  const live = devices.filter((d) => d.active);
+  const revoked = devices.filter((d) => !d.active).sort((a, b) => (b.lastSeenAt?.getTime() ?? 0) - (a.lastSeenAt?.getTime() ?? 0));
   const hours = readHours(store.hours);
 
   return (
@@ -41,7 +43,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
           <CardBody>
             {canManage ? (
               <ActionForm action={saveStoreDetails.bind(null, store.code)} className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-3">
+                <div className="grid gap-4 sm:grid-cols-2 2xl:grid-cols-[1fr_1fr_1.4fr]">
                   <Field label="Phone" htmlFor="s-phone">
                     <Input id="s-phone" name="phone" type="tel" defaultValue={store.phone ?? ""} placeholder="012 345 6789" />
                     <FieldError name="phone" />
@@ -50,7 +52,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                     <Input id="s-wa" name="whatsapp" type="tel" defaultValue={store.whatsapp ? displayPhone(store.whatsapp) : ""} placeholder="071 234 5678" />
                     <FieldError name="whatsapp" />
                   </Field>
-                  <Field label="Email" htmlFor="s-email">
+                  <Field label="Email" htmlFor="s-email" className="sm:col-span-2 2xl:col-span-1">
                     <Input id="s-email" name="email" type="email" defaultValue={store.email ?? ""} />
                     <FieldError name="email" />
                   </Field>
@@ -123,31 +125,51 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
             />
             <CardBody className="space-y-2 pt-3">
               {devices.length === 0 && <EmptyState className="py-6" icon={<MonitorSmartphone className="h-5 w-5" />} title="No tills paired">Open Pair a till on the device while signed in as a manager or owner.</EmptyState>}
-              {devices.map((d) => (
-                <div key={d.id} className="flex items-center justify-between gap-3 rounded-xl border border-ink-150 px-3 py-2.5">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-ink-900">{d.name}</div>
-                    <div className="text-xs text-ink-500">
-                      Prefix {d.prefix} · {d.lastSeenAt ? `seen ${timeAgo(d.lastSeenAt)}` : "never used"}
-                    </div>
-                  </div>
-                  {d.active ? (
-                    canManage ? (
-                      <ConfirmAction action={revokeDevice.bind(null, store.code, d.id)} label="Revoke" title={`Revoke ${d.name}?`} confirmLabel="Revoke till" className="min-w-56">
-                        It stops trading immediately and signs out whoever is on it — sync any offline sales on it first.
-                      </ConfirmAction>
-                    ) : (
-                      <Badge tone="green" dot>Active</Badge>
-                    )
+              {live.map((d) => (
+                <DeviceRow key={d.id} d={d}>
+                  {canManage ? (
+                    <ConfirmAction action={revokeDevice.bind(null, store.code, d.id)} label="Revoke" title={`Revoke ${d.name}?`} confirmLabel="Revoke till" className="min-w-56">
+                      It stops trading immediately and signs out whoever is on it — sync any offline sales on it first.
+                    </ConfirmAction>
                   ) : (
-                    <Badge>Revoked</Badge>
+                    <Badge tone="green" dot>Active</Badge>
                   )}
-                </div>
+                </DeviceRow>
               ))}
+              {live.length === 0 && revoked.length > 0 && <p className="text-sm text-ink-500">No active tills — pair one to start trading.</p>}
+              {revoked.length > 0 && (
+                <details className="group pt-1">
+                  <summary className="cursor-pointer list-none text-xs font-semibold text-ink-500 hover:text-ink-800">
+                    <span className="group-open:hidden">Show {plural(revoked.length, "revoked till")}</span>
+                    <span className="hidden group-open:inline">Hide revoked tills</span>
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {revoked.map((d) => (
+                      <DeviceRow key={d.id} d={d}>
+                        <Badge>Revoked</Badge>
+                      </DeviceRow>
+                    ))}
+                  </div>
+                </details>
+              )}
             </CardBody>
           </Card>
         </div>
       </div>
     </>
+  );
+}
+
+function DeviceRow({ d, children }: { d: { name: string; prefix: string; lastSeenAt: Date | null }; children: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-xl border border-ink-150 px-3 py-2.5">
+      <div className="min-w-0">
+        <div className="truncate text-sm font-medium text-ink-900">{d.name}</div>
+        <div className="text-xs text-ink-500">
+          Prefix {d.prefix} · {d.lastSeenAt ? `seen ${timeAgo(d.lastSeenAt)}` : "never used"}
+        </div>
+      </div>
+      {children}
+    </div>
   );
 }

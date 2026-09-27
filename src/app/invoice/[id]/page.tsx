@@ -98,7 +98,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
           </div>
         </header>
 
-        <section className="grid gap-8 py-6 sm:grid-cols-2">
+        <section className="grid grid-cols-1 gap-8 py-6 sm:grid-cols-2">
           <div>
             <h2 className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-ink-500">Supplier</h2>
             <p className="mt-2 font-semibold text-ink-950">{c.legalName}</p>
@@ -187,7 +187,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
           </tbody>
         </table>
 
-        <section className="mt-6 grid gap-8 sm:grid-cols-[1fr_18rem]">
+        <section className="mt-6 grid grid-cols-1 gap-8 sm:grid-cols-[minmax(0,1fr)_18rem]">
           <div className="space-y-3 text-sm">
             {s.payments.length > 0 && (
               <div>

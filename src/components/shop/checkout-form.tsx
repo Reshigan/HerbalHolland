@@ -54,7 +54,7 @@ export function CheckoutForm(props: {
   const chosen = props.stores.find((s) => s.id === storeId);
 
   return (
-    <form action={action} className="grid gap-8 lg:grid-cols-[1fr_24rem] lg:gap-12">
+    <form action={action} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
       <input type="hidden" name="fulfilment" value={fulfilment} />
       <input type="hidden" name="payMethod" value={payIn} />
       <input type="hidden" name="points" value={pts} />
@@ -64,7 +64,7 @@ export function CheckoutForm(props: {
           <h2 id="co-how" className="font-display text-xl font-semibold text-white">
             <span className="tnum mr-2 text-oranje-500">1</span>How would you like it?
           </h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-labelledby="co-how">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-labelledby="co-how">
             {props.options.map((o) => {
               const on = o.key === fulfilment;
               return (
@@ -122,9 +122,9 @@ export function CheckoutForm(props: {
                       <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full border-2", on ? "border-oranje-500 bg-oranje-500" : "border-ink-600")}>{on && <span className="h-1.5 w-1.5 rounded-full bg-ink-950" />}</span>
                       <span className="min-w-0 flex-1">
                         <span className="block truncate font-semibold text-white">{s.name}</span>
-                        <span className="block truncate text-xs text-ink-400">
+                        <span className="block text-xs text-ink-400 sm:truncate">
                           {s.suburb}, {s.city}
-                          {s.km != null && ` · ${s.km < 10 ? s.km.toFixed(1) : Math.round(s.km)} km`} · <span className={s.open ? "text-leaf-100" : undefined}>{s.openLabel}</span>
+                          {s.km != null && (s.km < 0.05 ? " · Your store" : ` · ${s.km < 10 ? s.km.toFixed(1) : Math.round(s.km)} km away`)} · <span className={s.open ? "text-leaf-100" : undefined}>{s.openLabel}</span>
                         </span>
                       </span>
                       <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-[0.7rem] font-semibold", s.hasAll ? "bg-leaf-500/15 text-leaf-100" : "bg-amber-500/15 text-amber-100")}>
@@ -142,7 +142,7 @@ export function CheckoutForm(props: {
             <h2 id="co-where" className="font-display text-xl font-semibold text-white">
               <span className="tnum mr-2 text-oranje-500">2</span>Deliver to
             </h2>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldRow label="Street address" htmlFor="co-line" error={state.fields?.addressLine} className="sm:col-span-2">
                 <TextInput id="co-line" name="addressLine" autoComplete="address-line1" defaultValue={props.address?.addressLine} required aria-invalid={!!state.fields?.addressLine} />
               </FieldRow>
@@ -179,7 +179,7 @@ export function CheckoutForm(props: {
           <h2 id="co-pay" className="font-display text-xl font-semibold text-white">
             <span className="tnum mr-2 text-oranje-500">3</span>Payment
           </h2>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="co-pay">
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="co-pay">
             {(
               [
                 ["ONLINE", "Pay online now", "Card, Instant EFT or PayShap", <CreditCard key="c" className="h-5 w-5" />],

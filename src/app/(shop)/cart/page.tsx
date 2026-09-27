@@ -78,7 +78,7 @@ export default async function CartPage() {
         {q.lines.reduce((s, l) => s + l.qty, 0)} item{q.lines.reduce((s, l) => s + l.qty, 0) === 1 ? "" : "s"} · prices include VAT
       </p>
 
-      <div className="mt-8 grid gap-8 lg:grid-cols-[1fr_24rem] lg:gap-12">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
         <div className="space-y-4">
           {blockedLicensed && (
             <Callout tone="warn" icon={<ShieldCheck className="h-5 w-5" />} title="Dispensary items need a registered patient">
@@ -99,7 +99,10 @@ export default async function CartPage() {
               {q.suggestions.map((s) => (
                 <div key={s.promoId + s.message} className="flex items-center gap-3 rounded-2xl border border-oranje-500/35 bg-oranje-500/[0.06] px-4 py-3 text-sm">
                   <Sparkles className="h-5 w-5 shrink-0 text-oranje-400" />
-                  <span className="text-ink-100">{s.message}</span>
+                  <span className="text-ink-100">
+                    {!s.message.includes(s.name) && <strong className="font-semibold text-white">{s.name} · </strong>}
+                    {s.message}
+                  </span>
                 </div>
               ))}
             </div>
