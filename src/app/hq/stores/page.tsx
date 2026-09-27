@@ -1,0 +1,133 @@
+import Link from "next/link";
+import { Plus, Store as StoreIcon } from "lucide-react";
+import { requireStaff, HQ_ROLES } from "@/server/auth";
+import { scopeOf, scopedStoreIds } from "@/server/scope";
+import { db } from "@/server/db";
+import { can } from "@/server/hq/guard";
+import { storeTable, FORMATS, STATUSES, titleCase } from "@/server/hq/stores";
+import { qs } from "@/server/hq/form";
+import { zar, zarCompact } from "@/lib/money";
+import { num } from "@/lib/format";
+import { PageHeader } from "@/components/ui/page";
+import { Card } from "@/components/ui/card";
+import { ButtonLink } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status";
+import { Stat } from "@/components/ui/stat";
+import { Table, Th, Td, Tr } from "@/components/ui/table";
+import { Pagination, pageParam } from "@/components/ui/pagination";
+import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
+import { DeltaText, EmptyRow } from "@/components/hq/ui";
+
+export const metadata = { title: "Stores" };
+
+type SP = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; page?: string };
+
+export default async function StoresPage({ searchParams }: { searchParams: Promise<SP> }) {
+  const sp = await searchParams;
+  const user = await requireStaff(HQ_ROLES);
+  const scope = scopeOf(user);
+  const ids = await scopedStoreIds(scope);
+  const page = pageParam(sp.page);
+  const pageSize = 25;
+  const [t, regions] = await Promise.all([
+    storeTable(ids, sp, page, pageSize),
+    db.region.findMany({ where: scope.kind === "REGION" ? { id: scope.regionId } : {}, orderBy: { name: "asc" } }),
+  ]);
+  const dcs = sp.kind === "WAREHOUSE";
+  const href = (p: Record<string, string | number | undefined>) => `/hq/stores${qs({ ...sp, ...p })}`;
+  const sortLink = (key: string, label: string) => (
+    <Link href={href({ sort: key, page: undefined })} className={sp.sort === key || (!sp.sort && key === "sales") ? "text-ink-900" : "hover:text-ink-800"} aria-current={sp.sort === key ? "true" : undefined}>
+      {label}
+    </Link>
+  );
+
+  return (
+    <>
+      <PageHeader
+        overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Network"}
+        title="Stores"
+        description="Every store in the network with its owner, trading over the last 30 days and membership."
+        actions={
+          can(user, "admin") && (
+            <ButtonLink href="/hq/stores/new">
+              <Plus className="h-4 w-4" /> Onboard a store
+            </ButtonLink>
+          )
+        }
+      />
+
+      <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat label={dcs ? "Distribution centres" : "Trading stores"} value={num(t.trading)} sub={t.opening ? `${t.opening} opening soon` : undefined} />
+        <Stat label="Net sales · 30 days" value={zarCompact(t.totals.net)} sub="ex VAT, matching stores" />
+        <Stat label="Transactions · 30 days" value={num(t.totals.tx)} />
+        <Stat label="Average per trading store" value={zarCompact(t.trading ? t.totals.net / t.trading : 0)} sub="net sales, 30 days" />
+      </div>
+
+      <Card>
+        <div className="border-b border-ink-100 p-4">
+          <FilterForm action="/hq/stores" keep={{ sort: sp.sort }}>
+            <SearchField defaultValue={sp.q} placeholder="Search store, code, city or owner" />
+            {regions.length > 1 && <FilterSelect name="region" label="Region" defaultValue={sp.region} options={regions.map((r) => ({ value: r.code, label: r.name }))} />}
+            <FilterSelect name="format" label="Format" defaultValue={sp.format} options={FORMATS.map((f) => ({ value: f, label: titleCase(f) }))} />
+            <FilterSelect name="status" label="Status" defaultValue={sp.status} options={STATUSES.map((s) => ({ value: s, label: titleCase(s) }))} />
+            <FilterSelect name="kind" label="Type" defaultValue={sp.kind} allLabel={null} options={[{ value: "", label: "Retail stores" }, { value: "WAREHOUSE", label: "Distribution centres" }]} />
+          </FilterForm>
+        </div>
+        <Table>
+          <thead>
+            <tr>
+              <Th>{sortLink("name", "Store")}</Th>
+              <Th className="hidden md:table-cell">Region</Th>
+              <Th className="hidden lg:table-cell">Owner</Th>
+              <Th>Status</Th>
+              <Th align="right">{sortLink("sales", "Net sales 30d")}</Th>
+              <Th align="right">{sortLink("growth", "vs prior 30d")}</Th>
+              <Th align="right" className="hidden sm:table-cell">{sortLink("atv", "ATV")}</Th>
+              <Th align="right" className="hidden sm:table-cell">Members</Th>
+            </tr>
+          </thead>
+          <tbody>
+            {t.rows.length === 0 && (
+              <EmptyRow cols={8}>
+                <StoreIcon className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
+                No stores match these filters.
+              </EmptyRow>
+            )}
+            {t.rows.map((s) => (
+              <Tr key={s.id}>
+                <Td>
+                  <Link href={`/hq/stores/${s.code}`} className="group block min-w-40">
+                    <span className="font-medium text-ink-900 group-hover:text-oranje-700">{s.name}</span>
+                    <span className="block text-xs text-ink-500">
+                      <span className="font-mono">{s.code}</span> · {s.suburb === s.city ? s.city : `${s.suburb}, ${s.city}`} · {titleCase(s.format)}
+                    </span>
+                  </Link>
+                </Td>
+                <Td className="hidden text-ink-600 md:table-cell">{s.region.name}</Td>
+                <Td className="hidden lg:table-cell">
+                  <span className="text-ink-800">{s.company.name}</span>
+                  {!s.company.vatNumber && (
+                    <Badge tone="amber" className="ml-2">
+                      Non-VAT
+                    </Badge>
+                  )}
+                </Td>
+                <Td>
+                  <StatusBadge status={s.status} />
+                </Td>
+                <Td align="right" className="font-medium text-ink-900">{s.netCents ? zarCompact(s.netCents) : "—"}</Td>
+                <Td align="right">
+                  <DeltaText value={s.growth} />
+                </Td>
+                <Td align="right" className="hidden sm:table-cell">{s.atvCents ? zar(s.atvCents) : "—"}</Td>
+                <Td align="right" className="hidden sm:table-cell">{num(s.members)}</Td>
+              </Tr>
+            ))}
+          </tbody>
+        </Table>
+        <Pagination page={page} pageSize={pageSize} total={t.total} href={(p) => href({ page: p })} />
+      </Card>
+    </>
+  );
+}
