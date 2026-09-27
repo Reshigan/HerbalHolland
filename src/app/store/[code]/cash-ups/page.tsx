@@ -119,7 +119,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
                         {fmtTime(s.openedAt)} – {s.closedAt ? fmtTime(s.closedAt) : <span className="font-semibold text-oranje-700">open · {timeAgo(s.openedAt)}</span>}
                       </div>
                     </Td>
-                    <Td className="text-ink-600">{(s.deviceId && device.get(s.deviceId)) ?? "—"}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{(s.deviceId && device.get(s.deviceId)) ?? "—"}</Td>
                     <Td className="whitespace-nowrap text-ink-700">{name.get(s.openedById) ?? "—"}</Td>
                     <Td className="whitespace-nowrap text-ink-700">{s.closedById ? name.get(s.closedById) ?? "—" : <span className="text-ink-300">—</span>}</Td>
                     <Td align="right">{s._count.sales.toLocaleString()}</Td>

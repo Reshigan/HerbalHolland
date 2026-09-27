@@ -65,7 +65,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           <CardHeader title="Profit & loss" description="Ex VAT" />
           <CardBody className="pt-3">
             <Line label="Net sales" value={zar(pl.revenue)} strong />
-            {saved > 0 && <Line label={<span className="pl-4">incl. Rewards savings given to members</span>} value={`−${zar(saved)}`} muted />}
+            <Line label={<span className="pl-4">incl. Rewards savings given to members</span>} value={saved ? `−${zar(saved)}` : zar(0)} muted />
             {pl.summary.discountCents > 0 && <Line label={<span className="pl-4">incl. promotions and discounts</span>} value={`−${zar(pl.summary.discountCents)}`} muted />}
             <Line label="Cost of sales (FIFO)" value={`−${zar(pl.cogs)}`} />
             <div className="my-1 border-t border-ink-100" />
