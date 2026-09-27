@@ -71,7 +71,8 @@ function tableLines(t: CsvTable) {
   if (t.totals) {
     const first = t.columns[0]?.key;
     const totals = first && t.totals[first] == null ? { ...t.totals, [first]: "Total" } : t.totals;
-    out.push(line(t.columns.map((c) => csvValue(totals[c.key], c.format))));
+    // Text in a totals row is a label ("Total", "Closed shifts"), whatever the column's format.
+    out.push(line(t.columns.map((c) => csvValue(totals[c.key], typeof totals[c.key] === "string" ? "text" : c.format))));
   }
   return out;
 }

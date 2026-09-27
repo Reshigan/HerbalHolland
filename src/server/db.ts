@@ -1,12 +1,14 @@
 import { PrismaClient, Prisma } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
-const globalForDb = globalThis as unknown as { db?: PrismaClient };
+const g = globalThis as unknown as { db?: PrismaClient; dbClass?: typeof PrismaClient };
 
+// One client across dev hot reloads — unless `prisma generate` produced a new client class (schema change).
+if (g.db && g.dbClass !== PrismaClient) void g.db.$disconnect();
 export const db =
-  globalForDb.db ?? new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
+  g.db && g.dbClass === PrismaClient ? g.db : new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL!, max: Number(process.env.DATABASE_POOL_MAX) || 10 }) });
 
-if (process.env.NODE_ENV !== "production") globalForDb.db = db;
+if (process.env.NODE_ENV !== "production") (g.db = db), (g.dbClass = PrismaClient);
 
 export type Tx = Prisma.TransactionClient;
 export { Prisma };

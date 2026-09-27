@@ -186,7 +186,7 @@ export function CartPanel({
                           </Chip>
                         )}
                         {!!q?.discountCents && (
-                          <Chip tone="green" icon={<Tag className="h-3 w-3" />}>
+                          <Chip tone="green" className="whitespace-normal" icon={<Tag className="h-3 w-3 shrink-0" />}>
                             −{zar(q.discountCents)} {q.promoId && promoName.get(q.promoId) ? `· ${promoName.get(q.promoId)}` : ""}
                           </Chip>
                         )}

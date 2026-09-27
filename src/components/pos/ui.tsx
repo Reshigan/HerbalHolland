@@ -9,7 +9,7 @@ type BtnSize = "sm" | "md" | "lg" | "xl";
 
 export function posBtn(variant: BtnVariant = "secondary", size: BtnSize = "md", className?: string) {
   return cn(
-    "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-[background,color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40",
+    "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-[background,color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 [&_svg]:shrink-0",
     {
       primary: "bg-oranje-500 text-ink-950 hover:bg-oranje-400 shadow-[inset_0_-2px_0_rgb(0_0_0/0.14)]",
       secondary: "bg-ink-800 text-ink-50 hover:bg-ink-700",
@@ -157,6 +157,7 @@ export function Sheet({
   dismissable = true,
   className,
   bodyClassName,
+  anchorBottom = false,
 }: {
   open: boolean;
   onClose: () => void;
@@ -168,6 +169,7 @@ export function Sheet({
   dismissable?: boolean;
   className?: string;
   bodyClassName?: string;
+  anchorBottom?: boolean; // phones: push short content down to the thumb zone
 }) {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
@@ -215,7 +217,9 @@ export function Sheet({
             </IconButton>
           )}
         </div>
-        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6", bodyClassName)}>{children}</div>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6", anchorBottom && "flex flex-col", bodyClassName)}>
+          {anchorBottom ? <div className="mt-auto sm:mt-0">{children}</div> : children}
+        </div>
         {footer && <div className="border-t border-ink-800 bg-ink-900 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">{footer}</div>}
       </div>
     </div>
@@ -275,7 +279,7 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 /** Segmented control (tabs on phone layouts, filters). */
-export function Segmented<T extends string>({ value, onChange, options, className, label }: { value: T; onChange: (v: T) => void; options: { value: T; label: React.ReactNode; count?: number }[]; className?: string; label: string }) {
+export function Segmented<T extends string>({ value, onChange, options, className, label, fill }: { value: T; onChange: (v: T) => void; options: { value: T; label: React.ReactNode; count?: number }[]; className?: string; label: string; fill?: boolean }) {
   return (
     <div role="tablist" aria-label={label} className={cn("scrollbar-none flex gap-1 overflow-x-auto rounded-full bg-ink-900 p-1 ring-1 ring-ink-800", className)}>
       {options.map((o) => (
@@ -286,7 +290,8 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "inline-flex h-12 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition",
+            "inline-flex h-12 shrink-0 items-center justify-center gap-1.5 rounded-full text-sm font-semibold transition",
+            fill ? "min-w-0 flex-1 px-1.5" : "px-4",
             value === o.value ? "bg-ink-700 text-white" : "text-ink-400 hover:text-ink-100",
           )}
         >

@@ -63,7 +63,7 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
     })),
     subtotalCents: s.subtotalCents,
     discountCents: s.discountCents,
-    memberSavingsCents: s.memberSavingsCents,
+    memberSavingsCents: s.memberSavingsCents ?? 0,
     totalCents: s.totalCents,
     vatCents: s.vatCents,
     pointsEarned: s.pointsEarned,

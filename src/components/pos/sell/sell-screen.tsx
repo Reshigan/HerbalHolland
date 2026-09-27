@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { checkCompliance } from "@/lib/compliance";
-import { zar } from "@/lib/money";
+import { zar, zarWhole } from "@/lib/money";
 import { api, errorText, OfflineError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
 import { classifyBlock, memberNoFrom, uuid } from "../lib/rules";
@@ -452,7 +452,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
               </span>
               <span className="min-w-0 flex-1">
                 <span className="block truncate text-sm font-semibold text-white">{cart.customer ? `${cart.customer.firstName} ${cart.customer.lastName ?? ""}`.trim() : units ? "Basket" : "Basket is empty"}</span>
-                <span className="block truncate text-xs text-ink-400">{units ? `${units} item${units === 1 ? "" : "s"}${quote.discountCents + quote.memberSavingsCents ? ` · saved ${zar(quote.discountCents + quote.memberSavingsCents)}` : ""}` : "Tap products to add"}</span>
+                <span className="block truncate text-xs text-ink-400">{units ? `${units} item${units === 1 ? "" : "s"}${quote.discountCents + quote.memberSavingsCents ? ` · −${zarWhole(quote.discountCents + quote.memberSavingsCents)}` : ""}` : "Tap products to add"}</span>
               </span>
               <span className="font-display text-lg font-semibold text-white tnum">{zar(quote.totalCents)}</span>
             </button>

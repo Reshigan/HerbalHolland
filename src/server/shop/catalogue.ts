@@ -62,6 +62,11 @@ export function dealsFor(p: { id: string; categoryId: string; regClass: string }
   return pr.promos.filter((d) => d.kind !== "MULTIPLIER" && (qualifies(d, p) || rewards(d, p)));
 }
 
+/** A single-unit line deal (x% or Rx off, no minimum spend) that applies straight to the shelf price. */
+export const directDeal = (p: { id: string; categoryId: string; regClass: string }, pr: Pricing) =>
+  dealsFor(p, pr).find((d) => (d.kind === "PERCENT" || d.kind === "FIXED") && !d.minSpendCents && qualifies(d, p));
+export const withDeal = (cents: number, d?: Promotion | null) => (!d ? cents : cents - (d.kind === "PERCENT" ? Math.round((cents * d.value) / 100) : Math.min(cents, d.value)));
+
 export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d as unknown as PromoInput));
 
 // ── Stock ────────────────────────────────────────────────────────────────────
@@ -125,11 +130,10 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
       let priceNote = wasCents ? (pr.tierName && cheapest.price.rule?.startsWith(pr.tierName) ? `${pr.tierName} price` : cheapest.price.rule) : null;
       const rewardsCents = rewardsPrice(cheapest.v, p.regClass, pr);
       const deals = dealsFor(p, pr);
-      const direct = deals.find((d) => (d.kind === "PERCENT" || d.kind === "FIXED") && !d.minSpendCents && qualifies(d, p));
-      const withDeal = (x: number) => (!direct ? x : x - (direct.kind === "PERCENT" ? Math.round((x * direct.value) / 100) : Math.min(x, direct.value)));
+      const direct = directDeal(p, pr);
       if (direct) {
         wasCents = wasCents ?? priceCents;
-        priceCents = withDeal(priceCents);
+        priceCents = withDeal(priceCents, direct);
         priceNote = priceNote ?? direct.name;
       }
       const deal = direct ?? deals[0];
@@ -160,7 +164,7 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
         priceCents,
         wasCents: wasCents && wasCents > priceCents ? wasCents : null,
         priceNote,
-        rewardsCents: rewardsCents != null ? withDeal(rewardsCents) : null,
+        rewardsCents: rewardsCents != null ? withDeal(rewardsCents, direct) : null,
         variantCount: p.variants.length,
         firstVariantId: cheapest.v.id,
         deal: deal ? { name: deal.name, label: dealLabel(deal) } : null,

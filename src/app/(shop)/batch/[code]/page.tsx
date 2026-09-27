@@ -89,10 +89,33 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
               ].map(([k, v]) => (
                 <div key={k as string} className="rounded-2xl bg-ink-950 p-4">
                   <dt className="text-xs font-semibold uppercase tracking-wider text-ink-400">{k}</dt>
-                  <dd className="tnum mt-1 font-display text-3xl font-semibold text-white">{v != null ? `${v}%` : "—"}</dd>
+                  <dd className="tnum mt-1 font-display text-3xl font-semibold text-white">{v === 0 ? "ND" : v != null ? `${v}%` : "—"}</dd>
+                  {v === 0 && <dd className="text-xs text-ink-400">Not detected</dd>}
                 </div>
               ))}
             </dl>
+            {(p.cbdMgPerPack != null || p.cbdMgPerDay != null) && (
+              <dl className="mt-4 divide-y divide-ink-800 rounded-2xl border border-ink-800 px-4 text-sm">
+                {p.cbdMgPerPack != null && (
+                  <div className="flex justify-between py-2.5">
+                    <dt className="text-ink-400">CBD per pack</dt>
+                    <dd className="tnum font-semibold text-white">{p.cbdMgPerPack} mg</dd>
+                  </div>
+                )}
+                {p.cbdMgPerDay != null && (
+                  <div className="flex justify-between py-2.5">
+                    <dt className="text-ink-400">Maximum daily serving</dt>
+                    <dd className="tnum font-semibold text-white">{p.cbdMgPerDay} mg</dd>
+                  </div>
+                )}
+                {p.regClass === "CBD" && (
+                  <div className="flex justify-between py-2.5">
+                    <dt className="text-ink-400">THC limit (Schedule 0)</dt>
+                    <dd className="tnum font-semibold text-white">≤ 0.001%</dd>
+                  </div>
+                )}
+              </dl>
+            )}
             {lab?.moisturePct != null && <p className="mt-4 text-sm text-ink-400">Moisture content {lab.moisturePct}% (target 9–12% for cured flower)</p>}
             {!!lab?.terpenes?.length && (
               <div className="mt-6">

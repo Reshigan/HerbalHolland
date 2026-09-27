@@ -21,10 +21,10 @@ export async function saveCompliance(_: ActionState, fd: FormData): Promise<Acti
   if (minAge == null || minAge < 18 || minAge > 25) fields.minAge = "Between 18 and 25 — never below 18";
   const dailyLimitGrams = parseNum(str(fd, "dailyLimitGrams"));
   if (dailyLimitGrams == null || dailyLimitGrams <= 0 || dailyLimitGrams > 750) fields.dailyLimitGrams = "Between 0 and 750 g";
-  if (thcMode === "ADULT_USE" && str(fd, "confirmAdult") !== "ADULT USE") fields.confirmAdult = "Type ADULT USE to confirm the switch";
+  const before = (await getSettings()).compliance;
+  if (thcMode === "ADULT_USE" && before.thcMode !== "ADULT_USE" && str(fd, "confirmAdult").toUpperCase() !== "ADULT USE") fields.confirmAdult = "Type ADULT USE to confirm the switch";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
 
-  const before = (await getSettings()).compliance;
   const next: ComplianceSettings = {
     thcMode,
     minAge: minAge!,

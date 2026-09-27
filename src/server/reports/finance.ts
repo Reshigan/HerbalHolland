@@ -52,7 +52,7 @@ export const pnl: ReportDef = {
     return {
       title: "Income statement",
       columns: [
-        { key: "line", label: "" },
+        { key: "line", label: "Line" },
         { key: "cur", label: `${fmtDay(ctx.range.start)} – ${fmtDay(`${ctx.range.to}T12:00:00Z`)}`, format: "zar" },
         { key: "pct", label: "% of sales", format: "pct" },
         { key: "prev", label: `Previous ${ctx.range.days} days`, format: "zar" },
@@ -161,7 +161,7 @@ export const vat: ReportDef = {
     return {
       title: "VAT201 working",
       columns: [
-        { key: "line", label: "" },
+        { key: "line", label: "Line" },
         { key: "field", label: "VAT201 field" },
         { key: "amount", label: "Amount incl VAT", format: "zar" },
         { key: "vat", label: "VAT", format: "zar" },
@@ -291,14 +291,14 @@ export const statements: ReportDef = {
     const rows: Row[] = list.map((st) => {
       const i = st.input;
       return {
-        store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents,
+        store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents, fees: st.royalty + st.levy + st.ecom,
         online: i.onlineCollectedCents, redeemed: i.pointsRedeemedCents, netSold: i.networkSoldCents,
         royalty: st.royalty, levy: st.levy, ecom: st.ecom, feesVat: st.feesVat, issued: i.pointsIssuedCents, savings: savedBy.get(st.store.id) ?? 0, wholesale: i.wholesaleCents, netBought: i.networkBoughtCents,
         credits: st.credits, debits: st.debits, net: st.net, position: st.net >= 0 ? "HQ pays store" : "Store pays HQ",
         _href: `/store/${st.store.code}/statement?month=${month}`,
       };
     });
-    const t = sumRows(rows, ["sales", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
+    const t = sumRows(rows, ["sales", "fees", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
     const due = rows.filter((r) => (r.net as number) < 0).reduce((s, r) => s - (r.net as number), 0);
     const pay = rows.filter((r) => (r.net as number) >= 0).reduce((s, r) => s + (r.net as number), 0);
     const current = month === dayKey(ctx.now).slice(0, 7);
@@ -307,24 +307,26 @@ export const statements: ReportDef = {
         { key: "store", label: "Store" },
         { key: "code", label: "Code" },
         { key: "company", label: "Franchisee" },
+        { key: "position", label: "Settlement", format: "badge", tones: { "HQ pays store": "green", "Store pays HQ": "amber" } },
+        { key: "net", label: "Net", format: "zar" },
         { key: "sales", label: "Net sales ex VAT", format: "zar" },
+        { key: "fees", label: "Fees ex VAT", format: "zar" },
+        { key: "royalty", label: "Royalty", format: "zar", csvOnly: true },
+        { key: "levy", label: "Marketing levy", format: "zar", csvOnly: true },
+        { key: "ecom", label: "E-com commission", format: "zar", csvOnly: true },
+        { key: "feesVat", label: "VAT on fees", format: "zar" },
         { key: "online", label: "Online collected", format: "zar", csvOnly: true },
         { key: "redeemed", label: "Points redeemed", format: "zar", csvOnly: true },
-        { key: "netSold", label: "Sold to network", format: "zar", csvOnly: true },
-        { key: "royalty", label: "Royalty", format: "zar" },
-        { key: "levy", label: "Marketing levy", format: "zar" },
-        { key: "ecom", label: "E-com commission", format: "zar" },
-        { key: "feesVat", label: "VAT on fees", format: "zar" },
         { key: "issued", label: "Points issued", format: "zar" },
         { key: "savings", label: "Rewards savings (memo)", format: "zar" },
         { key: "wholesale", label: "Wholesale stock", format: "zar" },
+        { key: "netSold", label: "Sold to network", format: "zar", csvOnly: true },
         { key: "netBought", label: "Bought from network", format: "zar", csvOnly: true },
-        { key: "credits", label: "Credits", format: "zar" },
-        { key: "debits", label: "Debits", format: "zar" },
-        { key: "net", label: "Net", format: "zar" },
-        { key: "position", label: "Settlement", format: "badge", tones: { "HQ pays store": "green", "Store pays HQ": "amber" } },
+        { key: "credits", label: "Credits", format: "zar", csvOnly: true },
+        { key: "debits", label: "Debits", format: "zar", csvOnly: true },
       ],
       rows,
+      title: "Statements",
       totals: t,
       summary: [
         { label: "Statements", value: rows.length, format: "number", sub: fmtMonth(`${month}-15T12:00:00Z`) },

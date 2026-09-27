@@ -50,7 +50,7 @@ export function ProductCardView({ p }: { p: Card }) {
             <Price cents={p.priceCents} was={p.wasCents} from={p.variantCount > 1} />
             {p.priceNote && p.wasCents && p.priceNote !== p.deal?.name && <p className="mt-0.5 truncate text-[0.7rem] font-semibold text-oranje-300">{p.priceNote}</p>}
             {p.rewardsCents != null && (
-              <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-oranje-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-oranje-200">
+              <p className="mt-1 flex w-fit items-center gap-1 rounded-md bg-oranje-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-oranje-200">
                 Rewards <span className="tnum">{zar(p.rewardsCents)}</span>
               </p>
             )}

@@ -5,7 +5,7 @@ import { db } from "../db";
 import { scopeOf, storeWhere } from "../scope";
 import type { Staff } from "../auth";
 import { resolveRange } from "@/lib/ranges";
-import { addDays, dayKey, fmtDate } from "@/lib/format";
+import { addDays, dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import type { Option, ReportCtx, ReportDef, ReportScope, StoreInfo } from "./types";
 
 export type SearchParams = Record<string, string | string[] | undefined>;
@@ -156,6 +156,10 @@ export async function reportContext(a: {
   if (controls.range) Object.assign(query, range.preset === "custom" ? { from: range.from, to: range.to } : { range: range.preset });
   for (const s of selects) if (s.value) query[s.name] = s.value;
 
-  const rangeLabel = uses("range") ? `${fmtDate(`${range.from}T12:00:00Z`)} – ${fmtDate(`${range.to}T12:00:00Z`)} (${range.days} day${range.days === 1 ? "" : "s"})` : `As of ${fmtDate(now)}`;
+  const rangeLabel = uses("range")
+    ? `${fmtDate(`${range.from}T12:00:00Z`)} – ${fmtDate(`${range.to}T12:00:00Z`)} (${range.days} day${range.days === 1 ? "" : "s"})`
+    : params.month
+      ? fmtMonth(`${params.month}-15T12:00:00Z`)
+      : `As of ${fmtDate(now)}`;
   return { ctx, controls, query, scopeLabel, rangeLabel, clamped };
 }

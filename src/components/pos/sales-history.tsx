@@ -151,30 +151,39 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
       </div>
     );
   const refundable = r.kind === "SALE" && r.lines.some((l) => l.qty - l.refundedQty > 0);
+  const saved = r.memberSavingsCents ?? 0;
+  const actions = (
+    <>
+      <PosButton variant="outline" onClick={() => pos.print({ kind: "receipt", receipt: r })} aria-label="Print receipt">
+        <Printer className="h-4 w-4" /> <span className="sm:hidden lg:inline">Print</span>
+      </PosButton>
+      <PosButton variant="outline" onClick={() => setEmailOpen(true)} aria-label="Email invoice">
+        <Mail className="h-4 w-4" /> <span className="sm:hidden lg:inline">Email</span>
+      </PosButton>
+      {refundable && (
+        <PosButton variant="primary" onClick={() => setRefunding(true)} data-testid="start-refund">
+          <RotateCcw className="h-4 w-4" /> Refund
+        </PosButton>
+      )}
+    </>
+  );
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex items-center gap-2 border-b border-ink-850 px-4 py-3">
-        <PosButton variant="ghost" className="px-3 md:hidden" onClick={onBack}>
-          ← Sales
-        </PosButton>
-        <div className="min-w-0 flex-1">
-          <div className="font-mono text-lg font-bold text-white">{r.number}</div>
-          <div className="text-xs text-ink-400">
-            {r.title} · {fmtDateTime(r.createdAt)} · {r.staff ?? "—"}
-          </div>
-        </div>
-        <PosButton variant="outline" onClick={() => pos.print({ kind: "receipt", receipt: r })} aria-label="Print receipt">
-          <Printer className="h-4 w-4" /> <span className="hidden lg:inline">Print</span>
-        </PosButton>
-        <PosButton variant="outline" onClick={() => setEmailOpen(true)} aria-label="Email invoice">
-          <Mail className="h-4 w-4" /> <span className="hidden lg:inline">Email</span>
-        </PosButton>
-        {refundable && (
-          <PosButton variant="primary" onClick={() => setRefunding(true)} data-testid="start-refund">
-            <RotateCcw className="h-4 w-4" /> Refund
+      <div className="border-b border-ink-850 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <PosButton variant="ghost" className="-ml-2 px-3 md:hidden" onClick={onBack} aria-label="Back to sales">
+            ←
           </PosButton>
-        )}
+          <div className="min-w-0 flex-1">
+            <div className="truncate font-mono text-lg font-bold text-white">{r.number}</div>
+            <div className="truncate text-xs text-ink-400">
+              {r.title} · {fmtDateTime(r.createdAt)} · {r.staff ?? "—"}
+            </div>
+          </div>
+          <div className="hidden gap-2 sm:flex">{actions}</div>
+        </div>
+        <div className="mt-3 grid grid-flow-col gap-2 sm:hidden">{actions}</div>
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-xl">
@@ -207,10 +216,10 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
             ))}
           </ul>
           <dl className="mt-4 space-y-1 px-1 text-sm">
-            {r.memberSavingsCents !== 0 && (
+            {saved !== 0 && (
               <div className="flex justify-between text-oranje-300">
                 <dt>Rewards savings (in prices)</dt>
-                <dd className="tnum">{zar(r.memberSavingsCents)}</dd>
+                <dd className="tnum">{zar(saved)}</dd>
               </div>
             )}
             {r.discountCents > 0 && (

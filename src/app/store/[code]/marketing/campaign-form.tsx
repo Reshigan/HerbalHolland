@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { screenCopy } from "@/lib/compliance";
 import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
 import { fmtDateTime } from "@/lib/format";
-import { Field, Input, Textarea } from "@/components/ui/form";
+import { Field, Input } from "@/components/ui/form";
 import { Select } from "@/components/store/select";
 import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
 
@@ -110,7 +110,17 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
             ))}
           </span>
         </div>
-        <Textarea id="cp-msg" ref={box} name="message" value={message} onChange={(e) => setMessage(e.target.value)} rows={5} maxLength={channel === "SMS" ? 459 : 2000} aria-describedby="cp-lint" />
+        <textarea
+          id="cp-msg"
+          ref={box}
+          name="message"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+          rows={5}
+          maxLength={channel === "SMS" ? 459 : 2000}
+          aria-describedby="cp-lint"
+          className="min-h-24 w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 transition focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+        />
         <FieldError name="message" />
         <div id="cp-lint" className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
           {flags.length ? (

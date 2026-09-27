@@ -8,7 +8,7 @@ import { getSettings } from "@/server/settings";
 import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
-import { cardsWhere, currentBatch, dealsFor, getNetwork, getPricing, getProductBySlug, productReviews, storesWithStock } from "@/server/shop/catalogue";
+import { cardsWhere, currentBatch, dealsFor, directDeal, getNetwork, getPricing, getProductBySlug, productReviews, rewardsPrice, storesWithStock, withDeal } from "@/server/shop/catalogue";
 import { getPreferredStore } from "@/server/shop/context";
 import { tierMeta } from "@/server/shop/club";
 import { openState, parseHours } from "@/server/shop/hours";
@@ -72,7 +72,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     line.memberSavingsCents > 0 && tierName ? `${tierName} price` : !customer ? null : line.priceRule,
     line.discountCents ? q.applied.find((a) => a.discountCents > 0)?.name : null,
   ].filter(Boolean).join(" · ");
-  const rewardsCents = !customer && q.joinSavingsCents > 0 ? line.totalCents - q.joinSavingsCents : null;
+  const guestRewards = customer ? null : rewardsPrice(variant, product.regClass, pricing);
+  const rewardsCents = guestRewards != null ? withDeal(guestRewards, directDeal(product, pricing)) : null;
   const channels = settings.compliance.channels;
   const inStoreOnly = settings.compliance.tobaccoBillMode && product.tobaccoRelated;
   const canShip = !licensed && !inStoreOnly && channels.COURIER.includes(product.regClass);

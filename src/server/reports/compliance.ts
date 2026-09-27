@@ -281,7 +281,7 @@ export const recalls: ReportDef = {
         { key: "reason", label: "Reason" },
         { key: "since", label: "Since", format: "date" },
         { key: "sold", label: "Units sold", format: "number" },
-        { key: "returned", label: "Returned", format: "number" },
+        { key: "returned", label: "Returned", format: "number", csvOnly: true },
         { key: "out", label: "With customers", format: "number" },
         { key: "members", label: "Members affected", format: "number" },
         { key: "walkIn", label: "Walk-in units", format: "number" },

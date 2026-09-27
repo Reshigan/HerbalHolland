@@ -60,6 +60,10 @@ describe("toCsv", () => {
     expect(csv.startsWith("﻿")).toBe(true);
     expect(csv.slice(1).split("\r\n")).toEqual(["Product,Units,Net sales", '"Windmill Haze, 3.5g",3,450.00', "Papers,1,", "Total,4,450.00", ""]);
   });
+  it("keeps a text label in a totals row even under a date column", () => {
+    const csv = toCsv({ columns: [{ key: "day", label: "Day", format: "day" }, { key: "net", label: "Net", format: "zar" }], rows: [{ day: "2026-09-27", net: 100 }], totals: { day: "Total", net: 100 } }, { bom: false });
+    expect(csv).toBe("Day,Net\r\n2026-09-27,1.00\r\nTotal,1.00\r\n");
+  });
   it("keeps an explicit totals label and can skip the BOM", () => {
     const csv = toCsv({ columns, rows: [], totals: { name: "All products", units: 0, net: 0 } }, { bom: false });
     expect(csv).toBe("Product,Units,Net sales\r\nAll products,0,0.00\r\n");

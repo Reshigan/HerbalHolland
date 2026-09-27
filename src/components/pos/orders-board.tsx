@@ -159,6 +159,7 @@ export function OrdersBoard() {
         value={col}
         onChange={setCol}
         className="mx-4 mb-3 lg:hidden"
+        fill
         options={COLUMNS.map((c) => ({ value: c.key, label: c.label, count: grouped[c.key].length }))}
       />
       <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto px-4 pb-4 lg:grid-cols-4 lg:overflow-hidden">

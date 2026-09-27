@@ -427,7 +427,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
               </div>
             </div>
           </div>
-          <nav className="ml-4 hidden items-center gap-1 md:flex" aria-label="Till sections">
+          <nav className="ml-4 hidden items-center gap-1 lg:flex" aria-label="Till sections">
             {TABS.map((t) => (
               <button
                 key={t.key}
@@ -465,10 +465,10 @@ export function PosApp({ deviceId }: { deviceId: string }) {
                 </span>
               )}
             </button>
-            <div className="hidden items-center gap-2 rounded-full bg-ink-900 py-1 pl-1 pr-3 ring-1 ring-ink-800 sm:flex">
+            <div className="flex items-center gap-2 rounded-full bg-ink-900 p-1 ring-1 ring-ink-800 sm:pr-3" aria-label={`Signed in: ${auth.me!.name}`}>
               <span className="grid h-9 w-9 place-items-center rounded-full bg-oranje-500 font-display text-xs font-bold text-ink-950">{initials(auth.me!.name)}</span>
-              <span className="max-w-32 truncate text-sm font-semibold text-white">{auth.me!.name.split(" ")[0]}</span>
-              {auth.me!.canDispense && <ShieldCheck className="h-4 w-4 text-oranje-400" aria-label="Authorised dispenser" />}
+              <span className="hidden max-w-32 truncate text-sm font-semibold text-white sm:inline">{auth.me!.name.split(" ")[0]}</span>
+              {auth.me!.canDispense && <ShieldCheck className="hidden h-4 w-4 text-oranje-400 sm:block" aria-label="Authorised dispenser" />}
             </div>
             <PosButton variant="outline" onClick={lock} className="px-3 sm:px-4" aria-label="Lock the till">
               <Lock className="h-4 w-4" />
@@ -497,7 +497,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         </main>
 
         {/* Phone navigation */}
-        <nav className="grid shrink-0 grid-cols-5 border-t border-ink-850 bg-ink-950 pb-[env(safe-area-inset-bottom)] md:hidden" aria-label="Till sections">
+        <nav className="grid shrink-0 grid-cols-5 border-t border-ink-850 bg-ink-950 pb-[env(safe-area-inset-bottom)] lg:hidden" aria-label="Till sections">
           {TABS.map((t) => (
             <button
               key={t.key}
@@ -516,7 +516,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
 
       <OutboxSheet open={outboxOpen} onClose={() => setOutboxOpen(false)} />
       {printDoc && <PrintArea key={printDoc.n} doc={printDoc.doc} boot={boot} />}
-      <div className="pointer-events-none fixed inset-x-0 bottom-20 z-[60] flex flex-col items-center gap-2 px-4 md:bottom-6 print:hidden" aria-live="polite">
+      <div className="pointer-events-none fixed inset-x-0 bottom-40 z-[60] flex flex-col items-center gap-2 px-4 lg:bottom-6 print:hidden" aria-live="polite">
         {toasts.map((t) => (
           <div
             key={t.id}

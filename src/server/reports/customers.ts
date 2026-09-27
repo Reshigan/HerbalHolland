@@ -271,7 +271,7 @@ export const rewardsSavings: ReportDef = {
       title: byStore ? "By store" : "Day by day",
       columns: [
         ...(byStore ? [{ key: "store", label: "Store" }, { key: "code", label: "Code" }] : [{ key: "date", label: "Day", format: "day" as const }]),
-        { key: "memberTx", label: "Member sales", format: "number" },
+        { key: "memberTx", label: "Member transactions", format: "number" },
         { key: "memberGross", label: "Member sales incl VAT", format: "zar" },
         { key: "savings", label: "Rewards savings", format: "zar" },
         { key: "rate", label: "Savings rate", format: "pct" },

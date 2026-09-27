@@ -54,7 +54,7 @@ function FilterSelect({ control, onChange }: { control: Control; onChange: (v: s
         key={control.value}
         defaultValue={control.value}
         onChange={(e) => onChange(e.target.value)}
-        className="min-w-0 max-w-[15rem] cursor-pointer appearance-none truncate bg-transparent text-sm font-semibold text-ink-900 focus:outline-none"
+        className="min-w-0 max-w-[12.5rem] cursor-pointer appearance-none truncate bg-transparent text-sm font-semibold text-ink-900 focus:outline-none"
       >
         {loose.map((o) => (
           <option key={o.value} value={o.value}>

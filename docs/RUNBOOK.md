@@ -22,6 +22,15 @@
 9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min and
    `POST /api/cron/daily` at 02:00 SAST.
 
+## Releases
+
+- Migrations (`prisma migrate deploy`) run before the new app version starts. Schema changes take table locks: apply
+  them outside trading hours (after 22:00 SAST) — tills keep selling offline and sync afterwards. A load test showed a
+  migration during peak posting stalls tills behind the lock.
+- Capacity (1,000-store dataset, one app instance, 10 DB connections): POS posting p50 ≈ 170 ms, p95 ≈ 440 ms,
+  ≈ 45 sales/s; network dashboards and month-end reports < 0.35 s. Re-run `scripts/bench.ts` against a production-sized
+  copy before big releases.
+
 ## Routine operations
 
 | When | Task | Where |

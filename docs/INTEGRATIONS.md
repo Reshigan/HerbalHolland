@@ -64,6 +64,7 @@ modernisation, phased from 2030).
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection |
+| `DATABASE_POOL_MAX` | Connections per app instance (default 10); keep instances × pool under the database's limit (or use PgBouncer) |
 | `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers |
 | `APP_URL` | Public base URL (links in emails) |
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |

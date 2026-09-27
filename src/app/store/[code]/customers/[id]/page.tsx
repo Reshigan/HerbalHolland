@@ -41,7 +41,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const c = await db.customer.findFirst({ where: { id, homeStoreId: store.id } });
   if (!c) notFound();
   const page = pageParam(sp.page);
-  const [sales, salesTotal, ledger, consents, auths, referrer, spend, settings] = await Promise.all([
+  const [sales, salesTotal, ledger, consents, auths, referrer, spend, settings, saved] = await Promise.all([
     db.sale.findMany({
       where: { customerId: c.id, storeId: store.id },
       orderBy: { createdAt: "desc" },
@@ -56,6 +56,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
     c.referredById ? db.customer.findUnique({ where: { id: c.referredById }, select: { firstName: true, memberNo: true } }) : null,
     spend12m(db, c.id),
     getSettings(),
+    db.sale.aggregate({ where: { customerId: c.id }, _sum: { memberSavingsCents: true } }),
   ]);
   const seg = segmentOf(c);
   const tier = tierInfo(c.tier as TierKey);
@@ -88,7 +89,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Points balance" value={fmtPoints(c.points)} sub={`worth ${zar(c.points * 100)}`} />
-        <Stat label="Lifetime spend" value={zar(c.lifetimeCents)} sub="all stores" />
+        <Stat label="Lifetime spend" value={zar(c.lifetimeCents)} sub={`saved ${zar(saved._sum.memberSavingsCents ?? 0)} with Rewards`} />
         <Stat label="Visits" value={c.visits.toLocaleString()} sub={c.visits ? `avg ${zar(Math.round(c.lifetimeCents / c.visits))}` : "no purchases yet"} />
         <Stat label="Last visit" value={c.lastPurchaseAt ? timeAgo(c.lastPurchaseAt) : "—"} sub={c.firstPurchaseAt ? `first ${fmtDate(c.firstPurchaseAt)}` : "never purchased"} />
         <Stat label={`${tier.name} tier`} value={`${settings.loyalty.tierSavingsPct[c.tier as TierKey] ?? 0}% off`} sub={tierNote} />
@@ -109,6 +110,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                     <Th>Channel</Th>
                     <Th align="right">Items</Th>
                     <Th align="right">Total</Th>
+                    <Th align="right">Rewards saving</Th>
                     <Th align="right">Points earned</Th>
                   </tr>
                 </thead>
@@ -123,6 +125,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                       <Td className="text-ink-600">{s.channel === "ONLINE" ? "Online" : "In store"}</Td>
                       <Td align="right">{s.lines.reduce((a, l) => a + l.qty, 0)}</Td>
                       <Td align="right" className="font-medium text-ink-900">{zar(s.totalCents)}</Td>
+                      <Td align="right" className="text-leaf-700">{s.memberSavingsCents ? zar(s.memberSavingsCents) : <span className="text-ink-300">—</span>}</Td>
                       <Td align="right" className="text-ink-600">{s.pointsEarned ? `+${s.pointsEarned.toLocaleString()}` : "—"}</Td>
                     </Tr>
                   ))}

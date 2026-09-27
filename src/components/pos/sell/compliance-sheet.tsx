@@ -72,7 +72,7 @@ export function ComplianceSheet({
 
   const blocks = result?.blocks ?? [];
   return (
-    <Sheet open={open} onClose={onClose} title="Before payment" subtitle="Compliance checks for this basket" size="md" footer={<PosButton variant="ghost" onClick={onClose}>Back to the basket</PosButton>}>
+    <Sheet open={open} onClose={onClose} title="Before payment" subtitle="Compliance checks for this basket" size="md" anchorBottom footer={<PosButton variant="ghost" onClick={onClose}>Back to the basket</PosButton>}>
       {error && <Alert className="mb-4">{error}</Alert>}
       <ul className="space-y-3" aria-label="Compliance checks">
         {blocks.map((b, i) => {

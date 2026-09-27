@@ -47,7 +47,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <PageHeader overline={`Buying · ${store.name}`} title="Pricing" description="Set your own shelf prices for your tills. Online prices are set nationally; member prices and multi-buy deals apply on top of your price." />
+      <PageHeader overline={`Buying · ${store.name}`} title="Pricing" description="Set your own shelf prices for your tills. Online prices are set nationally; Rewards member prices and deals apply on top of your price." />
 
       <Notice tone="info" className="mb-6" title="Your prices, your call">
         Herbal Holland publishes recommended retail prices (RRP) only. As an independent franchisee you decide your own selling prices — HQ never sets or enforces a minimum resale price (Competition Act 89 of 1998). The {settings.pricing.minMarginPct}% margin guide is a warning, never a block.
@@ -128,7 +128,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
               <ReadOnlyNote />
             )}
             <p className="mt-4 text-xs text-ink-500">
-              Prices include VAT{store.company.vatNumber ? "" : " where applicable — your company isn't VAT-registered, so receipts show no VAT"}. Promotions and member prices never apply to licensed medicines (Medicines Act s18A).
+              Prices include VAT{store.company.vatNumber ? "" : " where applicable — your company isn't VAT-registered, so receipts show no VAT"}. Promotions and Rewards prices never apply to licensed medicines (Medicines Act s18A).
             </p>
           </CardBody>
         </Card>
