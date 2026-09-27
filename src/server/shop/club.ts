@@ -1,4 +1,4 @@
-// Oranje Club member views: card, tier progress, Guilders ledger, orders, invoices,
+// Windmill Club member views: card, tier progress, Guilders ledger, orders, invoices,
 // marketing preferences and patient-authorisation status. Always scoped to the
 // signed-in member — callers pass the id from the session, never from the client.
 import { db } from "@/server/db";

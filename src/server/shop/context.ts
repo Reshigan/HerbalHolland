@@ -1,5 +1,5 @@
 // Storefront request context: the bag, preferred store, promo code and age-gate
-// cookies, plus the signed-in Oranje Club member. Reads are memoised per request.
+// cookies, plus the signed-in Windmill Club member. Reads are memoised per request.
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { db } from "@/server/db";
@@ -57,7 +57,7 @@ export const STORE_SELECT = {
 } satisfies Prisma.StoreSelect;
 export type ShopStore = Prisma.StoreGetPayload<{ select: typeof STORE_SELECT }>;
 
-/** The shopper's chosen store (cookie), else their Oranje Club home store. Only trading stores count. */
+/** The shopper's chosen store (cookie), else their Windmill Club home store. Only trading stores count. */
 export const getPreferredStore = cache(async (): Promise<ShopStore | null> => {
   const code = (await cookies()).get(SHOP_COOKIE.store)?.value;
   const customer = await getCustomer();
