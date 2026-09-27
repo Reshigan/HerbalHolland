@@ -246,7 +246,9 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           try {
             q = await api<QuoteDTO>("/api/pos/quote", { body: { items: c.lines, code: c.code, customerId: c.customer?.id ?? null } });
           } catch (e) {
-            if (!(e instanceof OfflineError)) throw e;
+            // A lost connection flips the till offline (cached prices, cash only). A slow answer doesn't: charging on cached
+            // prices would miss the member's My Deals, and the server would then refuse the paid sale. Ask to try again.
+            if (!(e instanceof OfflineError) || e.timedOut) throw e;
           }
         }
         if (c.code && q.codeError) {
