@@ -849,11 +849,19 @@ async function main() {
   const demo = stores.find((x) => x.code === "PTA01");
   const regulars = demo ? customers.filter((c) => c.homeStoreId === demo.id && c.email && !c.auth && c.createdAt < daysAgo(2)) : [];
   for (const [i, status] of (["READY", "PLACED"] as const).entries()) {
-    const c = regulars[i * 7];
-    if (!demo || !c) break;
+    if (!demo) break;
     const ts = new Date(NOW.getTime() - (95 - i * 50) * 60_000);
-    const lines = buildBasket(demo.id, c, ts, "COLLECT");
-    if (!lines.length) continue;
+    // A basket can come up empty when the draw lands on items the store has sold out of: try other regulars. Prefer
+    // one with 18+ items, so the handover demo (and the end-to-end test) shows the ID check.
+    const adult = (ls: ReturnType<typeof buildBasket>) => ls.some((l) => l.v.reg !== "APPAREL");
+    let c: SimCustomer | undefined;
+    let lines: ReturnType<typeof buildBasket> = [];
+    for (let k = 0; k < 40 && !adult(lines); k++) {
+      const who = regulars[(i * 7 + k * 3) % Math.max(1, regulars.length)];
+      const got = who ? buildBasket(demo.id, who, ts, "COLLECT") : [];
+      if (got.length && (!lines.length || adult(got))) (c = who), (lines = got);
+    }
+    if (!c || !lines.length) throw new Error(`Seed: couldn't build the demo ${status} click & collect order at PTA01`);
     let code: string;
     do code = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[int(0, 31)]).join("");
     while (orderCodes.has(code));

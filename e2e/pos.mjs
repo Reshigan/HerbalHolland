@@ -207,7 +207,16 @@ try {
   assert(synced?.offline === true && synced.shiftId === shift.id, `offline sale ${offlineNo} synced (offline=true, on the shift)`);
 
   step("Hand over a READY click & collect order");
-  let ready = (await q(`select id, code, "collectionCode", "paymentStatus" from "Order" where "storeId" = (select id from "Store" where code = 'PTA01') and status = 'READY' and fulfilment = 'COLLECT' order by "createdAt" limit 1`))[0];
+  // Prefer an order with 18+ items (anything but apparel), so the ID check is exercised: seeded baskets are random.
+  // Licensed medicines are left out (their handover is a dispenser's, covered above).
+  const has = (cond) => `exists (select 1 from "OrderLine" l join "Variant" v on v.id = l."variantId" join "Product" p on p.id = v."productId" where l."orderId" = o.id and ${cond})`;
+  let ready = (
+    await q(
+      `select o.id, o.code, o."collectionCode", o."paymentStatus" from "Order" o
+       where o."storeId" = (select id from "Store" where code = 'PTA01') and o.status = 'READY' and o.fulfilment = 'COLLECT' and not ${has(`p."regClass" = 'THC'`)}
+       order by ${has(`p."regClass" <> 'APPAREL'`)} desc, o."createdAt" limit 1`,
+    )
+  )[0];
   await waitOnline();
   await page.getByRole("button", { name: "Orders" }).first().click();
   if (!ready) {
@@ -223,7 +232,9 @@ try {
   await shot("orders-board");
   await page.getByTestId(`order-action-${ready.code}`).click();
   await page.locator("#collect-code").fill("000000");
-  await page.getByText(/I've checked their ID/).click();
+  const idCheck = page.getByText(/I've checked their ID/);
+  const needsId = (await idCheck.count()) > 0; // only orders with 18+ items ask for it
+  if (needsId) await idCheck.click();
   await page.getByTestId("confirm-handover").click();
   await page.getByText(/doesn't match this order/).waitFor();
   ok("wrong collection code rejected");
@@ -236,7 +247,10 @@ try {
   }
   await page.getByText(new RegExp(`^${ready.code} (paid and )?handed over`)).waitFor();
   const done = (await q(`select o.status, o."idChecked", s.number, s."shiftId" from "Order" o join "Sale" s on s."orderId" = o.id where o.id = $1`, [ready.id]))[0];
-  assert(done?.status === "COMPLETED" && done.idChecked && done.shiftId === shift.id, `order ${ready.code} completed, ID checked, posted as ${done?.number}`);
+  assert(
+    done?.status === "COMPLETED" && done.idChecked === needsId && done.shiftId === shift.id,
+    `order ${ready.code} completed${needsId ? ", ID checked" : " (no 18+ items: no ID check)"}, posted as ${done?.number}`,
+  );
 
   step("Close the shift with a count → Z-report");
   await waitOnline();
