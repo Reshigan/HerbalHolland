@@ -843,6 +843,34 @@ async function main() {
     if (k === keyOf(20)) for (const c of customers) if (c.last && c.visits >= 3 && c.last < daysAgo(60) && c.last > daysAgo(120)) c.atRisk = true;
   }
 
+  // The demo store always has click & collect orders waiting — whatever time the seed runs — for the dashboard queue,
+  // the POS handover demo and the end-to-end tests.
+  const demo = stores.find((x) => x.code === "PTA01");
+  const regulars = demo ? customers.filter((c) => c.homeStoreId === demo.id && c.email && !c.auth && c.createdAt < daysAgo(2)) : [];
+  for (const [i, status] of (["READY", "PLACED"] as const).entries()) {
+    const c = regulars[i * 7];
+    if (!demo || !c) break;
+    const ts = new Date(NOW.getTime() - (95 - i * 50) * 60_000);
+    const lines = buildBasket(demo.id, c, ts, "COLLECT");
+    if (!lines.length) continue;
+    let code: string;
+    do code = Array.from({ length: 6 }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[int(0, 31)]).join("");
+    while (orderCodes.has(code));
+    orderCodes.add(code);
+    const orderId = uid();
+    const units = lines.map((l) => ({ l, unit: memberUnit(l.v.price, l.v, c, ts) }));
+    const sub = units.reduce((a, x) => a + x.l.qty * x.unit, 0);
+    const events = [{ status: "PLACED", at: ts.toISOString(), note: "Customer's chosen store" }];
+    if (status === "READY") events.push({ status: "PICKING", at: new Date(ts.getTime() + 8 * 60_000).toISOString(), note: "" }, { status: "READY", at: new Date(ts.getTime() + 25 * 60_000).toISOString(), note: "" });
+    orders.push({
+      id: orderId, code, collectionCode: String(int(100000, 999999)), customerId: c.id, storeId: demo.id, status, fulfilment: "COLLECT",
+      routingNote: events[0].note, subtotalCents: sub, discountCents: 0, deliveryCents: 0, pointsRedeemed: 0, totalCents: sub,
+      vatCents: demo.vendor ? vatOf(sub) : 0, payMethod: "CARD", paymentStatus: "UNPAID", events, createdAt: ts, updatedAt: ts,
+    });
+    for (const { l, unit } of units)
+      orderLines.push({ id: uid(), orderId, variantId: l.v.id, qty: l.qty, unitPriceCents: unit, memberSavingsCents: (l.v.price - unit) * l.qty, totalCents: l.qty * unit });
+  }
+
   // A network trade or two per region (store-to-store), then open purchasing work.
   const byRegion = new Map<string, SimStore[]>();
   for (const s of active) byRegion.set(s.regionCode, [...(byRegion.get(s.regionCode) ?? []), s]);
