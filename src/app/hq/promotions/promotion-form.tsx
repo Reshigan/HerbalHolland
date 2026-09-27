@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { BadgePercent, Coins, Gift, Layers, Percent, Sparkles, AlertTriangle } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Field, Input, Textarea, Checkbox, Label } from "@/components/ui/form";
+import { Field, Input, Checkbox, Label } from "@/components/ui/form";
 import { MultiPick, type PickOption } from "@/components/hq/multi-pick";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { describePromo, type PromoKind } from "@/lib/promotions";

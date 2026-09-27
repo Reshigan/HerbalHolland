@@ -10,7 +10,7 @@ import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { zar, zarCompact, vatOnExcl } from "@/lib/money";
 import { dayKey, fmtMonth } from "@/lib/format";
 import { PageHeader, Notice } from "@/components/ui/page";
-import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { Card, CardBody } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { Stat } from "@/components/ui/stat";
 import { Table, Th, Td, Tr } from "@/components/ui/table";

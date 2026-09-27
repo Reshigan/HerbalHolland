@@ -3,7 +3,6 @@ import Form from "next/form";
 import type { Metadata } from "next";
 import { Search, ShieldCheck, SlidersHorizontal, X } from "lucide-react";
 import { getCustomer } from "@/server/auth";
-import { getClasses } from "@/server/shop/access";
 import { listCatalogue, PAGE_SIZE, SORTS, type SortKey } from "@/server/shop/catalogue";
 import { getPreferredStore } from "@/server/shop/context";
 import { db } from "@/server/db";
@@ -32,7 +31,7 @@ const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const [customer, store, classes] = await Promise.all([getCustomer(), getPreferredStore(), getClasses()]);
+  const [customer, store] = await Promise.all([getCustomer(), getPreferredStore()]);
   const sort = (SORTS.find((s) => s.key === sp.sort)?.key ?? "featured") as SortKey;
   const q = (sp.q ?? "").trim().slice(0, 60);
   const query = { category: sp.category || undefined, mood: sp.mood || undefined, sort, min: num(sp.min), max: num(sp.max), q: q || undefined, page: pageParam(sp.page) };

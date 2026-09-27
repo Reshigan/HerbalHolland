@@ -3,6 +3,9 @@ import { db } from "@/server/db";
 import { getClasses } from "@/server/shop/access";
 import { ARTICLES } from "@/components/shop/learn/articles";
 
+// Rendered per request: always current, and the build (e.g. in Docker) needs no database.
+export const dynamic = "force-dynamic";
+
 const base = () => (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
 
 // Public pages only: licensed (medicine) products are never listed.

@@ -9,7 +9,7 @@ import { dayKey, fmtDay, fmtMonth } from "@/lib/format";
 import { POINT_VALUE_CENTS, fmtPoints } from "@/lib/loyalty-rules";
 import type { Column, Option, ReportCtx, ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
-import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
+import { bounds, completeDays, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
 
 const EXPENSE_LABEL: Record<string, string> = {
   RENT: "Rent", SALARIES: "Salaries & wages", UTILITIES: "Electricity & water", SECURITY: "Security", MARKETING: "Local marketing",

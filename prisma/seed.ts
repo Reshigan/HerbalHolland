@@ -661,7 +661,6 @@ async function main() {
   const replDay = new Map(active.map((s, i) => [s.id, 1 + (i % 6)]));
   const phoneOrderRate = active.length * 4;
   const orderCodes = new Set<string>();
-  const deliveryWindow = (f: string) => (f === "SAME_DAY" ? 4 * 60 : 2 * 24 * 60);
 
   console.log("  simulating trading…");
   for (const [di, k] of dayKeys.entries()) {

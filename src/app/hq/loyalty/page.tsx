@@ -1,3 +1,4 @@
+import { resolveRange } from "@/lib/ranges";
 import Link from "next/link";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
@@ -7,7 +8,7 @@ import { can } from "@/server/hq/guard";
 import { qs } from "@/server/hq/form";
 import { TIERS, POINT_VALUE_CENTS, fmtPoints, tierBenefits } from "@/lib/loyalty-rules";
 import { zar, zarCompact } from "@/lib/money";
-import { addDays, dateOnly, num } from "@/lib/format";
+import { num } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
@@ -34,7 +35,8 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
   const scope = scopeOf(user);
   const ids = await scopedStoreIds(scope, { kind: "RETAIL" });
   const members = scope.kind === "HQ" ? {} : { homeStoreId: { in: ids } };
-  const since = addDays(new Date(), -30);
+  const r30 = resolveRange({ range: "30d" }); // same 30-day window as the reports centre
+  const since = r30.start;
   const page = pageParam(sp.page);
   const pageSize = 20;
   const [settings, liability, tiers, movement, byStore, top, stores, cost] = await Promise.all([
@@ -45,7 +47,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
     db.loyaltyEntry.groupBy({ by: ["storeId", "kind"], where: { createdAt: { gte: since }, storeId: { in: ids }, kind: { in: ["EARN", "REDEEM", "REFERRAL", "BONUS", "BIRTHDAY", "REVERSAL"] } }, _sum: { points: true } }),
     db.customer.findMany({ where: members, orderBy: { lifetimeCents: "desc" }, take: 8, select: { id: true, firstName: true, lastName: true, memberNo: true, tier: true, points: true, lifetimeCents: true, homeStore: { select: { name: true } } } }),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true } }),
-    db.$queryRaw<{ saved: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS saved FROM "DailyStoreStat" WHERE "storeId" = ANY(${ids}::text[]) AND "date" >= ${dateOnly(since)}`,
+    db.$queryRaw<{ saved: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS saved FROM "DailyStoreStat" WHERE "storeId" = ANY(${ids}::text[]) AND "date" >= ${r30.fromDate}`,
   ]);
   const l = settings.loyalty;
   const admin = can(user, "admin");

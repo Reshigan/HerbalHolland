@@ -8,7 +8,7 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import {
-  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, multi, n, ratio,
+  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio,
   storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap,
 } from "./util";
 
