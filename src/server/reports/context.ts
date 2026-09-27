@@ -12,7 +12,7 @@ export type SearchParams = Record<string, string | string[] | undefined>;
 export const flat = (sp: SearchParams) =>
   Object.fromEntries(Object.entries(sp).flatMap(([k, v]) => (v == null ? [] : [[k, Array.isArray(v) ? v[0] ?? "" : v]]))) as Record<string, string>;
 
-export const SCREEN_ROWS = 500;
+export const SCREEN_ROWS = 200;
 export const CSV_ROWS = 100_000;
 const MAX_DAYS = 366;
 

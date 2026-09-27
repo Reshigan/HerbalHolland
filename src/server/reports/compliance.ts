@@ -127,6 +127,7 @@ export const dispensingRegister: ReportDef = {
         who: `${x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "Unknown"}${x.memberNo ? ` · ${x.memberNo}` : ""}`,
         patient: x.memberNo ?? "—", name: x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "", auth: x.authNumber ?? "",
         prescriber: x.prescriber ? `${x.prescriber} (${x.prescriberRegNo})` : "", product: x.product, batches: x.batches ?? "",
+        authorisation: x.authNumber ? `${x.authNumber} · ${x.prescriber} (${x.prescriberRegNo})` : "None on file",
         qty: x.qty, grams: x.grams == null ? null : Math.round(x.grams * 10) / 10, dispenser: x.dispenser ?? "", check: issues.length ? issues.join("; ") : "OK",
       };
     });
@@ -143,8 +144,9 @@ export const dispensingRegister: ReportDef = {
         { key: "qty", label: "Qty", format: "number" },
         { key: "grams", label: "Grams", format: "number" },
         { key: "batches", label: "Batch" },
-        { key: "auth", label: "Authorisation" },
-        { key: "prescriber", label: "Prescriber (HPCSA)" },
+        { key: "authorisation", label: "Authorisation · prescriber" },
+        { key: "auth", label: "Authorisation", csvOnly: true },
+        { key: "prescriber", label: "Prescriber (HPCSA)", csvOnly: true },
         { key: "dispenser", label: "Dispensed by" },
         { key: "check", label: "Check", format: "badge", tones: { OK: "green" } },
         { key: "number", label: "Sale" },

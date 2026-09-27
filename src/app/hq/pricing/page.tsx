@@ -17,7 +17,10 @@ import { ButtonLink, Button } from "@/components/ui/button";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { FilterForm, FilterSelect } from "@/components/hq/filter-form";
-import { EmptyRow } from "@/components/hq/ui";
+import { EmptyRow, ViewOnly } from "@/components/hq/ui";
+import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { Field, Input } from "@/components/ui/form";
+import { savePricingRules } from "./actions";
 import { listStatus } from "@/components/hq/tones";
 import type { PriceListRule } from "@/lib/pricing-rules";
 
@@ -207,6 +210,34 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
               </div>
             </div>
           )}
+        </CardBody>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader title="Pricing rules" description="Network guardrails applied at every till" />
+        <CardBody>
+          {!can(user, "admin") && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
+          <ActionForm action={savePricingRules}>
+            <fieldset disabled={!can(user, "admin")} className="grid gap-4 sm:grid-cols-3">
+              <Field label="Near-expiry window (days)" htmlFor="markdownDays" hint="Stock expiring this soon is marked down at the till (FEFO)">
+                <Input id="markdownDays" name="markdownDays" defaultValue={settings.pricing.markdownDays} inputMode="numeric" />
+                <FieldError name="markdownDays" />
+              </Field>
+              <Field label="Near-expiry markdown %" htmlFor="markdownPct" hint="0 switches markdowns off. Never on licensed medicines.">
+                <Input id="markdownPct" name="markdownPct" defaultValue={settings.pricing.markdownPct} inputMode="numeric" />
+                <FieldError name="markdownPct" />
+              </Field>
+              <Field label="Store margin guide %" htmlFor="minMarginPct" hint="Warning only — franchisees set their own prices (Competition Act s5(2))">
+                <Input id="minMarginPct" name="minMarginPct" defaultValue={settings.pricing.minMarginPct} inputMode="numeric" />
+                <FieldError name="minMarginPct" />
+              </Field>
+            </fieldset>
+            {can(user, "admin") && (
+              <div className="mt-4 flex justify-end">
+                <SubmitButton variant="outline" pendingLabel="Saving…">Save rules</SubmitButton>
+              </div>
+            )}
+          </ActionForm>
         </CardBody>
       </Card>
     </>

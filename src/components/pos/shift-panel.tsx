@@ -15,6 +15,8 @@ import { Alert, Confirm, EmptyPanel, Field, PosButton, Spinner, TextArea } from 
 import type { BootShift, ZReport } from "@/server/pos/types";
 
 const FLOATS = [50000, 100000, 150000, 200000];
+// Phones: the primary action rides at the bottom of the screen (thumb reach) while counting.
+const STICKY_ACTION = "sticky bottom-0 z-10 -mx-5 -mb-5 mt-4 rounded-b-3xl bg-ink-900/95 px-5 pb-5 pt-3 backdrop-blur lg:static lg:m-0 lg:mt-4 lg:bg-transparent lg:p-0 lg:backdrop-blur-none";
 
 export function ShiftPanel() {
   const pos = usePos();
@@ -128,9 +130,11 @@ function OpenShift({ onOpened }: { onOpened: (s: BootShift) => void }) {
           </button>
         </div>
       )}
-      <PosButton variant="primary" size="xl" className="mt-4 w-full" busy={busy} disabled={counting && counted === 0} onClick={() => void open()} data-testid="open-shift">
-        Open shift with {zar(counting ? counted : floatCents)}
-      </PosButton>
+      <div className={STICKY_ACTION}>
+        <PosButton variant="primary" size="xl" className="w-full" busy={busy} disabled={counting && counted === 0} onClick={() => void open()} data-testid="open-shift">
+          Open shift with {zar(counting ? counted : floatCents)}
+        </PosButton>
+      </div>
     </section>
   );
 }
@@ -145,7 +149,8 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
   const counted = countCash(counts);
   const expected = x?.cash.expectedCents ?? null;
   const variance = expected != null ? counted - expected : null;
-  const blocked = pos.outbox.length > 0 ? `Sync ${pos.outbox.length} offline sale${pos.outbox.length === 1 ? "" : "s"} before closing` : !pos.online ? "Closing a shift needs a connection" : null;
+  const queued = pos.outbox.filter((o) => !o.deviceId || o.deviceId === pos.boot.device.id).length;
+  const blocked = queued > 0 ? `Sync ${queued} offline sale${queued === 1 ? "" : "s"} before closing` : !pos.online ? "Closing a shift needs a connection" : null;
 
   async function close() {
     setBusy(true);
@@ -189,9 +194,11 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
         <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. R50 paid out for milk, slip in drawer" />
       </Field>
       {blocked && <Alert tone="warn" className="mt-4">{blocked}</Alert>}
-      <PosButton variant="primary" size="xl" className="mt-4 w-full" disabled={!!blocked || busy} onClick={() => setConfirm(true)} data-testid="close-shift">
-        Close shift &amp; print Z-report
-      </PosButton>
+      <div className={STICKY_ACTION}>
+        <PosButton variant="primary" size="xl" className="w-full" disabled={!!blocked || busy} onClick={() => setConfirm(true)} data-testid="close-shift">
+          Close shift &amp; print Z-report
+        </PosButton>
+      </div>
       <Confirm
         open={confirm}
         title="Close this shift?"

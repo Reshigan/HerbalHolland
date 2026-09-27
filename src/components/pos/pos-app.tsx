@@ -121,6 +121,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     setSyncing(true);
     let synced = 0;
     for (const item of items) {
+      if (item.deviceId && item.deviceId !== deviceId) continue; // queued on this browser under a previous pairing
       try {
         await api("/api/pos/sales", { body: item.payload, quiet401: true, timeoutMs: 30_000 });
         updateQueued(item.payload.id, () => null);
@@ -137,7 +138,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       toast(`${synced} offline sale${synced === 1 ? "" : "s"} synced`);
       void refreshBoot();
     }
-  }, [refreshBoot, toast]);
+  }, [refreshBoot, toast, deviceId]);
 
   /** Checks the server session still matches who the till thinks is signed in. */
   const revalidate = useCallback(
@@ -362,7 +363,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       refreshOrders,
       syncNow,
       queueSale: (payload: SalePayload, totalCents: number) => {
-        enqueue({ payload, totalCents, queuedAt: new Date().toISOString(), attempts: 0 });
+        enqueue({ payload, deviceId, totalCents, queuedAt: new Date().toISOString(), attempts: 0 });
         setOutbox(loadOutbox());
       },
       adjustStock: (moves) => {
@@ -390,7 +391,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       goTo: setTab,
       toast,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;
@@ -586,9 +587,19 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
               </div>
               <div className="mt-0.5 flex items-center justify-between gap-3 text-xs text-ink-400">
                 <span>Queued {fmtTime(o.queuedAt)}</span>
-                {o.error ? <Chip tone="red">Needs attention</Chip> : <Chip tone="amber">Waiting</Chip>}
+                {o.deviceId && o.deviceId !== boot.device.id ? (
+                  <Chip tone="red">Another till</Chip>
+                ) : o.error ? (
+                  <Chip tone="red">Needs attention</Chip>
+                ) : (
+                  <Chip tone="amber">Waiting</Chip>
+                )}
               </div>
-              {o.error && <Alert className="mt-2">{o.error}</Alert>}
+              {o.deviceId && o.deviceId !== boot.device.id ? (
+                <Alert className="mt-2">Rung up before this device was re-paired. Ask HQ support to post it for the original store — it won&apos;t sync here.</Alert>
+              ) : (
+                o.error && <Alert className="mt-2">{o.error}</Alert>
+              )}
             </li>
           ))}
         </ul>

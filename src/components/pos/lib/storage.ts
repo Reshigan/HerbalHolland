@@ -88,7 +88,14 @@ export type SalePayload = {
   staffId: string;
 };
 
-export type OutboxItem = { payload: SalePayload; totalCents: number; queuedAt: string; attempts: number; error?: string };
+export type OutboxItem = {
+  payload: SalePayload;
+  deviceId: string; // only this till may sync it (a re-paired device must not post into another store)
+  totalCents: number;
+  queuedAt: string;
+  attempts: number;
+  error?: string;
+};
 
 const OUTBOX = "outbox";
 export const loadOutbox = () => read<OutboxItem[]>(OUTBOX) ?? [];

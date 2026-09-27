@@ -83,9 +83,9 @@ export default async function TeamPage() {
                     ) : (
                       <div className="flex flex-wrap items-start justify-end gap-2">
                         {u.active && (
-                          <ActionButton action={resetPassword.bind(null, u.id)} variant="ghost" pendingLabel="Resetting…">
-                            <KeyRound className="h-3.5 w-3.5" /> Reset password
-                          </ActionButton>
+                          <ConfirmAction action={resetPassword.bind(null, u.id)} label="Reset password" icon={<KeyRound className="h-3.5 w-3.5" />} triggerVariant="ghost" variant="dark" title={`Reset ${u.name}'s password?`} confirmLabel="Reset password" className="max-w-xs text-left">
+                            <p>They&apos;re signed out everywhere and get a new temporary password, shown here once.</p>
+                          </ConfirmAction>
                         )}
                         {u.active ? (
                           <ConfirmAction action={setUserActive.bind(null, u.id, false)} label="Deactivate" icon={<UserMinus className="h-3.5 w-3.5" />} title={`Deactivate ${u.name}?`} confirmLabel="Deactivate" className="max-w-xs text-left">

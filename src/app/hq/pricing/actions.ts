@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { getSettings, saveSetting } from "@/server/settings";
 import { str, list, bool, parseNum, parseInt10, parseLocal, parseRand } from "@/server/hq/form";
 import type { Channel, PriceListKind, Tier } from "@/generated/prisma/client";
 
@@ -81,4 +82,24 @@ export async function deletePriceList(listId: string, _: ActionState, fd: FormDa
   await audit(db, g.actor, "pricelist.delete", { entity: "PriceList", entityId: listId, data: { name: pl.name, kind: pl.kind, items: pl._count.items } });
   revalidatePath("/hq/pricing");
   redirect("/hq/pricing");
+}
+
+/** Network pricing guardrails: near-expiry markdowns at the till and the store margin guide. */
+export async function savePricingRules(_: ActionState, fd: FormData): Promise<ActionState> {
+  const g = await guard("admin");
+  if (!g) return DENIED;
+  const fields: Record<string, string> = {};
+  const read = (k: string, min: number, max: number) => {
+    const v = parseInt10(str(fd, k));
+    if (v == null || v < min || v > max) fields[k] = `${min}–${max}`;
+    return v ?? min;
+  };
+  const next = { markdownDays: read("markdownDays", 0, 120), markdownPct: read("markdownPct", 0, 75), minMarginPct: read("minMarginPct", 0, 80) };
+  if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
+  const before = (await getSettings()).pricing;
+  if (JSON.stringify(before) === JSON.stringify({ ...before, ...next })) return done("No changes to save.");
+  await saveSetting("pricing", { ...before, ...next });
+  await audit(db, g.actor, "settings.pricing", { entity: "Setting", entityId: "pricing", data: { before, after: next } });
+  revalidatePath("/hq/pricing");
+  return done(next.markdownPct ? `Saved. Stock within ${next.markdownDays} days of expiry is marked down ${next.markdownPct}% at the till.` : "Saved. Near-expiry markdowns are off.");
 }

@@ -78,7 +78,7 @@ export type ReportCtx = {
   channel?: "POS" | "ONLINE";
   /** Validated values of the report's own params. */
   params: Record<string, string>;
-  /** Screen: 500 rows. CSV: everything up to a hard cap. */
+  /** Screen: 200 rows. CSV: everything up to a hard cap. */
   rowLimit: number;
   now: Date;
   /** Link to another report in the same scope (keeps the store filter). */

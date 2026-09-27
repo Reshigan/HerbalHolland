@@ -275,7 +275,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                   ))}
                 </fieldset>
                 <p className="mt-2 text-xs text-ink-500">
-                  Currently {bps(store.royaltyBps)} royalty + {bps(store.levyBps)} levy on all sales, {bps(store.ecomBps)} on online sales. The levy funds the marketing fund.
+                  Currently {bps(store.royaltyBps)} royalty ({store.royaltyBps} bps) + {bps(store.levyBps)} levy ({store.levyBps} bps) on all sales, {bps(store.ecomBps)} ({store.ecomBps} bps) on online sales. The levy funds the marketing fund.
                 </p>
                 {admin && (
                   <div className="mt-4 flex justify-end">

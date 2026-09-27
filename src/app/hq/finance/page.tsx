@@ -30,7 +30,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const r = resolveRange(sp, "mtd");
   const retail = await db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { id: true, code: true, name: true, region: { select: { name: true } }, company: { select: { vatNumber: true } } } });
   const rids = retail.map((s) => s.id);
-  const [sum, byStore, fees, days, campaigns, points, wholesale, liability] = await Promise.all([
+  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved] = await Promise.all([
     salesSummary(rids, r),
     salesByStore(rids, r),
     franchiseFees(rids, r),
@@ -39,6 +39,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
     db.loyaltyEntry.groupBy({ by: ["kind"], where: { createdAt: { gte: r.start, lt: r.end }, ...(scope.kind === "HQ" ? {} : { storeId: { in: rids } }) }, _sum: { points: true } }),
     db.stockOrder.findMany({ where: { kind: "WHOLESALE", status: "RECEIVED", receivedAt: { gte: r.start, lt: r.end }, buyerId: { in: rids } }, select: { lines: { select: { receivedQty: true, unitCostCents: true } } } }),
     db.customer.aggregate({ where: scope.kind === "HQ" ? {} : { homeStoreId: { in: rids } }, _sum: { points: true } }),
+    db.$queryRaw<{ cents: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS cents FROM "DailyStoreStat" WHERE "storeId" = ANY(${rids}::text[]) AND "date" >= ${r.fromDate} AND "date" <= ${r.toDate}`,
   ]);
 
   const regions = new Map<string, number>();
@@ -135,6 +136,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                 <span className="font-display text-base">{zar((issued - redeemed - expired) * POINT_VALUE_CENTS)}</span>
               </Detail>
               <Detail label="Outstanding liability">{zarCompact((liability._sum.points ?? 0) * POINT_VALUE_CENTS)}</Detail>
+              <Detail label="Instant member savings given">{zar(saved[0]?.cents ?? 0)}</Detail>
             </dl>
             <Link href="/hq/loyalty" className="mt-3 inline-block text-xs font-semibold text-oranje-700 hover:underline">Settlement by store →</Link>
           </CardBody>

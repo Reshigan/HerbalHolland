@@ -17,7 +17,7 @@ import { ReportTable } from "./report-table";
 import { ReportIcon } from "./icons";
 import { fmtTile } from "./format";
 
-export const SCREEN_LIMIT = 500;
+export const SCREEN_LIMIT = 200;
 
 const TILE_COLS: Record<number, string> = { 1: "lg:grid-cols-1", 2: "lg:grid-cols-2", 3: "lg:grid-cols-3", 4: "lg:grid-cols-4", 5: "lg:grid-cols-5", 6: "lg:grid-cols-3 xl:grid-cols-6" };
 
