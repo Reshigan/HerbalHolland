@@ -5,8 +5,8 @@ export const SEGMENTS: Record<SegmentKey, { name: string; blurb: string; play: s
   CHAMPION: { name: "Champions", blurb: "Bought in the last 30 days, 10+ visits", play: "Reward & recruit: referral asks, Reserve early access" },
   LOYAL: { name: "Loyal", blurb: "Bought in the last 60 days, 5+ visits", play: "Tier-up nudges, new-drop previews" },
   PROMISING: { name: "Promising", blurb: "Recent, 2–4 visits", play: "Education + second-category cross-sell" },
-  NEW: { name: "New", blurb: "First purchase in the last 30 days", play: "Welcome journey: how Guilders work, strain guide" },
-  AT_RISK: { name: "At risk", blurb: "3+ visits but quiet for 60–120 days", play: "Win-back: double Guilders weekend" },
+  NEW: { name: "New", blurb: "First purchase in the last 30 days", play: "Welcome journey: how points work, strain guide" },
+  AT_RISK: { name: "At risk", blurb: "3+ visits but quiet for 60–120 days", play: "Win-back: double points weekend" },
   LAPSED: { name: "Lapsed", blurb: "No purchase for 120+ days", play: "Reactivation offer, then suppress" },
   PROSPECT: { name: "Prospects", blurb: "Joined, never purchased", play: "First-visit offer at their home store" },
 };

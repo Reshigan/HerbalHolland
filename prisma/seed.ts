@@ -352,7 +352,7 @@ async function main() {
         authRows.push({ id: c.auth.id, customerId: c.id, authNumber: `S21/${dayKey(from).slice(0, 4)}/${int(10000, 99999)}`, prescriber: doc, prescriberRegNo: reg, scope: "Dried flower, pre-rolls, oral and inhaled preparations", monthlyLimitGrams: c.auth.limit, validFrom: from, validTo: c.auth.to, documentRef: `auth-docs/${c.id}.pdf` });
       }
       const opening = prior ? Math.round(pointsFor(prior, c.tier) * rand(0.2, 0.7)) : 0;
-      loyalty.push({ id: uid(), customerId: c.id, points: 25, kind: "SIGNUP", createdAt, note: "Welcome to the Windmill Club" });
+      loyalty.push({ id: uid(), customerId: c.id, points: 25, kind: "SIGNUP", createdAt, note: "Welcome to Herbal Holland Rewards" });
       c.points += 25;
       if (opening) {
         loyalty.push({ id: uid(), customerId: c.id, points: opening, kind: "ADJUST", createdAt: daysAgo(DAYS + 1), note: "Balance brought forward" });
@@ -375,7 +375,7 @@ async function main() {
     { id: uid(), name: "Rolling essentials: tray + free papers", description: "Buy a Windmill rolling tray and get a booklet of papers free.", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 100, productIds: pids("windmill-rolling-tray"), categoryIds: [], rewardProductIds: pids("king-size-papers"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-60) },
     { id: uid(), name: "Spend R600, get the Sunset grinder free", description: "Gift with purchase on non-medicinal items.", kind: "BUY_X_GET_Y", value: 0, minSpendCents: 60000, getQty: 1, rewardPercent: 100, productIds: [], categoryIds: [], rewardProductIds: pids("sunset-grinder"), channels: ["POS"], startsAt: daysAgo(21), endsAt: daysAgo(-21) },
     { id: uid(), name: "Happy hour: 10% off accessories", description: "Weekdays 16:00–18:00.", kind: "PERCENT", value: 10, categoryIds: [cat("accessories")], productIds: [], channels: ["POS"], days: [1, 2, 3, 4, 5], startMinute: 16 * 60, endMinute: 18 * 60, startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
-    { id: uid(), name: "Double Guilders Fridays", description: "2× Guilders every Friday.", kind: "MULTIPLIER", value: 200, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], days: [5], startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
+    { id: uid(), name: "Double Points Fridays", description: "2× points every Friday.", kind: "MULTIPLIER", value: 200, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], days: [5], startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
     { id: uid(), name: "Welcome back: R75 off R400", description: "Win-back offer for members we haven't seen in a while.", code: "WELCOMEBACK", kind: "FIXED", value: 7500, minSpendCents: 40000, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], startsAt: daysAgo(20), endsAt: daysAgo(-10) },
     { id: uid(), name: "10% off your first online order", code: "WELCOME10", kind: "PERCENT", value: 10, categoryIds: [], productIds: [], channels: ["ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-120) },
     { id: uid(), name: "Sea Point: 10% off apparel", description: "Local offer for Atlantic Seaboard visitors.", code: "SEAPOINT10", kind: "PERCENT", value: 10, categoryIds: [cat("apparel")], productIds: [], channels: ["POS"], storeIds: [stores.find((s) => s.code === "CPT01")!.id], ownerStoreId: stores.find((s) => s.code === "CPT01")!.id, startsAt: daysAgo(30), endsAt: daysAgo(-30) },
@@ -895,14 +895,14 @@ async function main() {
   campaign(winbackCampaignId, "We miss you — R75 off", "SMS", "AT_RISK", "Hi {{firstName}}, it's been a while! Here's R75 off when you spend R400 on wellness, accessories or apparel. Use code {{code}} by the end of the month.", customers.filter((c) => c.atRisk), winbackSend, "SENT", winbackPromoId, 240_000);
   campaign(balmCampaignId, "New: Recover CBD Muscle Balm", "PUSH", "LOYAL", "New in the wellness range: Recover CBD Muscle Balm — arnica, wintergreen and 500 mg CBD for after the gym.", customers.filter((c) => c.visits >= 5 && c.last && c.last > daysAgo(60)), at(keyOf(8), 11 * 60), "SENT");
   const nextFriday = new Date(NOW.getTime() + ((5 - NOW.getUTCDay() + 7) % 7 || 7) * DAY);
-  campaign(uid(), "Double Guilders Friday", "SMS", "ALL", "Hi {{firstName}}, it's Double Guilders Friday at Herbal Holland — every rand counts twice today.", [], at(dayKey(nextFriday), 10 * 60), "SCHEDULED");
+  campaign(uid(), "Double Points Friday", "SMS", "ALL", "Hi {{firstName}}, it's Double Points Friday at Herbal Holland — every rand counts twice today.", [], at(dayKey(nextFriday), 10 * 60), "SCHEDULED");
   campaign(uid(), "Spring grow season", "EMAIL", "PROSPECT", "Hi {{firstName}}, spring is planting season. Everything for the home grow — living soil, nutrients and heritage seeds — is in store now.", [], null, "DRAFT");
 
   // Reviews, stock alerts, announcements, suppressions, audit trail.
   const reviewRows: Prisma.ReviewCreateManyInput[] = [];
   const reviewed = new Set<string>();
   const REVIEW = {
-    5: [["Exactly as described", "Beautiful quality and the budtender knew their stuff."], ["My new favourite", "Consistent every time. Love that I can see the lab results."], ["Worth it", "Great value with Guilders. Collection was ready in 10 minutes."]],
+    5: [["Exactly as described", "Beautiful quality and the budtender knew their stuff."], ["My new favourite", "Consistent every time. Love that I can see the lab results."], ["Worth it", "Great value with my Rewards points. Collection was ready in 10 minutes."]],
     4: [["Really good", "Lovely product, would buy again."], ["Solid", "Good quality, slightly pricey but you get what you pay for."]],
     3: [["Decent", "Okay, not my favourite from the range."]],
     2: [["Not for me", "Didn't suit me, but the staff were great about it."]],
@@ -959,7 +959,7 @@ async function main() {
   const plZone = uid(), plMember = uid(), plVolume = uid(), plOct = uid();
   priceLists.push(
     { id: plZone, name: "Atlantic Seaboard tourist zone", kind: "ZONE", storeIds: [stores.find((s) => s.code === "CPT01")!.id], regionIds: [], adjustPct: 5, priority: 1 },
-    { id: plMember, name: "Windmill Club member price", kind: "MEMBER", tiers: ["BLOOM", "HARVEST"], storeIds: [], regionIds: [], adjustPct: -5, priority: 0 },
+    { id: plMember, name: "Rewards member price", kind: "MEMBER", tiers: ["BLOOM", "HARVEST"], storeIds: [], regionIds: [], adjustPct: -5, priority: 0 },
     { id: plVolume, name: "Volume pricing", kind: "ZONE", storeIds: [], regionIds: [], priority: 0 },
     { id: plOct, name: "October price update", kind: "ZONE", storeIds: [], regionIds: [], priority: 2, startsAt: midnight(`${NOW.getUTCFullYear()}-${String(NOW.getUTCMonth() + 2).padStart(2, "0")}-01`) },
   );

@@ -31,7 +31,7 @@ Tick every line before the first store trades on the platform.
 ## Customer channels
 - [ ] SMS and email providers live (`SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
-- [ ] Windmill Club rules and liability policy approved by finance
+- [ ] Herbal Holland Rewards rules and liability policy approved by finance
 
 ## Platform
 - [ ] `DEMO_MODE=false`, strong `SESSION_SECRET`, `CRON_SECRET` set, `APP_URL` correct

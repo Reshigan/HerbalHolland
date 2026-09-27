@@ -6,7 +6,7 @@ import { db } from "./db";
 import { sendEmail, emailLayout, esc } from "./email";
 import { zar } from "@/lib/money";
 import { fmtDateTime, fmtMonth } from "@/lib/format";
-import { guilders } from "@/lib/loyalty-rules";
+import { fmtPoints } from "@/lib/loyalty-rules";
 import { receivedValue } from "./stock-orders";
 import { franchiseStatement } from "./finance";
 
@@ -34,7 +34,7 @@ export function invoiceTitle(s: InvoiceData) {
   return s.store.company.vatNumber ? "Tax Invoice" : "Invoice";
 }
 
-const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Guilders", ONLINE: "Paid online" };
+const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", ONLINE: "Paid online" };
 
 export async function emailSaleInvoice(saleId: string, to?: string) {
   const s = await invoiceData(saleId);
@@ -53,7 +53,7 @@ export async function emailSaleInvoice(saleId: string, to?: string) {
 <p style="margin:0 0 16px;font-size:14px"><b>${title} ${esc(s.number)}</b> · ${fmtDateTime(s.createdAt)}${s.refundOf ? ` · for ${esc(s.refundOf.number)}` : ""}</p>
 <table role="presentation" width="100%" style="font-size:14px">${rows}
 <tr><td style="padding:10px 0 0">Total${s.vatCents ? ` (incl. VAT ${zar(s.vatCents)})` : ""}</td><td align="right" style="padding:10px 0 0;font-size:18px"><b>${zar(s.totalCents)}</b></td></tr></table>
-<p style="margin:14px 0 0;color:#6B5F57;font-size:13px">${esc(pays)}${s.pointsEarned > 0 ? ` · You earned ${guilders(s.pointsEarned)}` : ""}</p>`;
+<p style="margin:14px 0 0;color:#6B5F57;font-size:13px">${esc(pays)}${s.pointsEarned > 0 ? ` · You earned ${fmtPoints(s.pointsEarned)}` : ""}</p>`;
   const text = `${title} ${s.number}\n${s.store.company.legalName} — ${s.store.name}\n${s.lines.map((l) => `${l.qty} x ${l.variant.product.name} ${l.variant.name}  ${zar(l.totalCents)}`).join("\n")}\nTotal ${zar(s.totalCents)}${s.vatCents ? ` (VAT ${zar(s.vatCents)})` : ""}\nView: ${invoiceUrl(s.id)}`;
   await sendEmail({
     to: email,

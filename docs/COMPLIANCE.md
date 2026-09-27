@@ -27,7 +27,7 @@ change without a deploy.
 | `minAge` / `ageRestricted` | 18 / THC, CBD, HEMP, ACCESSORY, GROW | ID check required (member verified, ID sighted, or SA ID number checked); under-18s blocked even if an ID was sighted. |
 | `channels` | THC: POS + click & collect only | Class × channel matrix (POS, COLLECT, SAME_DAY, COURIER). |
 | `dailyLimitGrams` | 30 | ADULT_USE daily cap per customer (posted sales + open orders). |
-| `tobaccoBillMode` | off | When Bill B33-2022 commences: related products (pipes, papers, vapes) become in-store only and earn no Guilders. |
+| `tobaccoBillMode` | off | When Bill B33-2022 commences: related products (pipes, papers, vapes) become in-store only and earn no points. |
 
 ## Rule-by-rule
 
@@ -36,7 +36,7 @@ change without a deploy.
 | SAHPRA medical pathway: authorisation on file, monthly quantity, authorised dispenser | `PatientAuth` register (no clinical condition stored), `User.canDispense`, `checkCompliance` (`needsPrescription`), dispensing register report |
 | Schedule 6 register | Reports → Compliance → dispensing register (patient, authorisation, prescriber, batch, dispenser) |
 | No advertising of medicines to the public | Storefront hides licensed products unless a signed-in patient has an active authorisation (MEDICAL mode); menu boards show a "ask our pharmacist" panel instead |
-| Medicines Act s18A — no bonus/rebate/incentive schemes on medicines | `incentiveExcluded()` removes licensed lines from promotions, member/volume prices, markdowns and Guilders earn (`quote`, `postSaleTx`) |
+| Medicines Act s18A — no bonus/rebate/incentive schemes on medicines | `incentiveExcluded()` removes licensed lines from promotions, member/volume prices, markdowns and points earn (`quote`, `postSaleTx`) |
 | 18+ | Age gate online; ID checks at the till and at every handover/delivery (`Order.idChecked`); `AgeCheck` recorded per sale |
 | Schedule 0 CBD (GN 586 of 2020): ≤ 600 mg per pack, ≤ 20 mg/day, low-risk claims, ≤ 0.001% THC in consumables | `validateCbdProduct()` on the product master; approved claims only on product pages |
 | Advertising (ARB Code, Medicines Act s20) | `screenCopy()` lints campaign copy and product claims (medical claims, conditions, intoxication, minors, absolute claims) and blocks sends |

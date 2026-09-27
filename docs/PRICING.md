@@ -20,7 +20,7 @@ Evaluated per line, in this order:
 6. **Near-expiry markdown** (POS) — when the next lot to sell (FEFO) expires within `settings.pricing.markdownDays`,
    take `markdownPct` off.
 
-Each line reports the rule that set its price (e.g. "Windmill Club member price", "Volume pricing (10+)",
+Each line reports the rule that set its price (e.g. "Rewards member price", "Volume pricing (10+)",
 "Near-expiry −20%"), shown on receipts and in carts.
 
 **Incentive exclusion:** when a line is excluded from incentives (licensed medicines in MEDICAL mode — Medicines Act
@@ -32,7 +32,7 @@ s18A), steps 4–6 are skipped.
 |---|---|---|
 | `PERCENT` | 15% off apparel & accessories | `value` = %, `categoryIds` / `productIds` |
 | `FIXED` | R50 off orders over R500 (untargeted) · R20 off each tray (targeted) | `value` = cents, `minSpendCents` |
-| `MULTIPLIER` | Double Guilders Fridays | `value` = ×100, `days` |
+| `MULTIPLIER` | Double Points Fridays | `value` = ×100, `days` |
 | `BUY_X_GET_Y` | Buy 2 get 1 free · tray + free papers · spend R600 get the grinder · papers 50% off with flower | `buyQty`, `getQty`, `rewardPercent`, `reward*Ids`, `minSpendCents` |
 | `MULTIBUY` | Any 2 CBD wellness for R800 | `buyQty`, `value` = bundle price |
 
@@ -45,7 +45,7 @@ Common fields: `code` (promo code), `channels` (POS/ONLINE), `storeIds` (empty =
    unit is the reward).
 2. Line deals — each remaining unit takes the single best `PERCENT` / targeted `FIXED` discount.
 3. Basket deal — the best untargeted `FIXED` amount, spread across lines so VAT per line stays exact.
-4. Guilders multiplier — the highest applicable.
+4. Points multiplier — the highest applicable.
 
 Lines excluded from incentives neither receive deals nor count towards thresholds.
 

@@ -266,8 +266,8 @@ export async function advanceOrder(
   const msg: Partial<Record<OrderStatus, string>> = {
     READY: `Herbal Holland: order ${o.code} is ready at ${o.store.name}. Show code ${o.collectionCode} and your ID (18+) to collect.`,
     OUT_FOR_DELIVERY: `Herbal Holland: order ${o.code} is on its way. Have your ID (18+) ready for the driver.`,
-    COMPLETED: `Herbal Holland: order ${o.code} complete. Thanks — your Guilders have been added.`,
-    CANCELLED: `Herbal Holland: order ${o.code} was cancelled. Any payment or Guilders used have been returned.`,
+    COMPLETED: `Herbal Holland: order ${o.code} complete. Thanks — your points have been added.`,
+    CANCELLED: `Herbal Holland: order ${o.code} was cancelled. Any payment or points used have been returned.`,
   };
   if (msg[to]) await notifyCustomer(o.customer, msg[to]!);
   if (postedSaleId && o.customer.email) queueSaleInvoice(postedSaleId, o.customer.email);

@@ -145,7 +145,7 @@ describe("compliance", () => {
     expect(validateCbdProduct({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: ["Cures anxiety"] }).length).toBeGreaterThan(0);
   });
   it("screens marketing copy", () => {
-    expect(screenCopy("Double Guilders this weekend on all CBD wellness")).toEqual([]);
+    expect(screenCopy("Double Points this weekend on all CBD wellness")).toEqual([]);
     expect(screenCopy("Get stoned with our new drop").length).toBeGreaterThan(0);
     expect(screenCopy("This oil cures insomnia").length).toBe(2);
   });
@@ -161,7 +161,7 @@ describe("promotions", () => {
     { ...base, id: "p10", name: "10% flower", kind: "PERCENT", value: 10, categoryIds: ["flower"] },
     { ...base, id: "p20", name: "20% everything", kind: "PERCENT", value: 20, code: "WINDMILL20" },
     { ...base, id: "f50", name: "R50 off R500", kind: "FIXED", value: 5000, minSpendCents: 50000 },
-    { ...base, id: "x2", name: "Double Guilders", kind: "MULTIPLIER", value: 200 },
+    { ...base, id: "x2", name: "Double Points", kind: "MULTIPLIER", value: 200 },
   ];
   it("applies the best line discount plus cart-level fixed, and multipliers", () => {
     const r = applyPromotions(lines, promos);
@@ -269,7 +269,7 @@ describe("price rules", () => {
 });
 
 describe("loyalty", () => {
-  it("earns Guilders with tier multipliers", () => {
+  it("earns points with tier multipliers", () => {
     expect(pointsFor(100_00, "SEED")).toBe(5);
     expect(pointsFor(100_00, "HARVEST")).toBe(10);
     expect(pointsFor(100_00, "SEED", 2)).toBe(10);

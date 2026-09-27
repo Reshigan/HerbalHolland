@@ -590,7 +590,7 @@ enum LoyaltyKind {
   ADJUST
 }
 
-// Guilders ledger. Points are a network-wide liability settled between stores
+// Points ledger. Points are a network-wide liability settled between stores
 // on the monthly franchise statement (issuing store funds, redeeming store is reimbursed).
 model LoyaltyEntry {
   id         String      @id @default(cuid())
@@ -906,7 +906,7 @@ model Expense {
 enum PriceListKind {
   ZONE // regional / scheduled price changes (stores or regions; empty = network)
   CHANNEL // e.g. online-only prices
-  MEMBER // Windmill Club member prices, optionally tier-specific
+  MEMBER // Rewards member prices, optionally tier-specific
 }
 
 model PriceList {
@@ -943,7 +943,7 @@ model PriceListItem {
 enum PromoKind {
   PERCENT // % off qualifying items
   FIXED // R off per qualifying item, or off the basket when untargeted
-  MULTIPLIER // Guilders multiplier (x100)
+  MULTIPLIER // Points multiplier (x100)
   BUY_X_GET_Y // bonus buys, BOGO, gifts with purchase, complementary deals
   MULTIBUY // mix & match: any N qualifying items for a set price
 }

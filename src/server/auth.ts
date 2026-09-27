@@ -90,7 +90,7 @@ export const getPosStaff = cache(async () => {
   return user?.active ? { user, device } : null;
 });
 
-// ── Customers (storefront, Windmill Club) ──────────────────────────────────────
+// ── Customers (storefront, Herbal Holland Rewards) ──────────────────────────────────────
 export const getCustomer = cache(async () => {
   const s = await readSession("customer");
   if (!s?.customerId) return null;

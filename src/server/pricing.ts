@@ -68,7 +68,7 @@ export type QuoteLine = {
   totalCents: number;
   vatCents: number;
   promoId?: string;
-  noEarn: boolean; // excluded from incentives incl. Guilders earn
+  noEarn: boolean; // excluded from incentives incl. points earn
 };
 
 export async function quote(opts: {

@@ -103,6 +103,12 @@ export default async function VariantStockPage({ params, searchParams }: { param
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
           <Card>
+            <CardHeader title="Sales velocity" description={`Units sold per day · last 28 days · avg ${avgDaily.toFixed(1)}/day`} />
+            <CardBody>
+              <ColumnChart data={vel.map((d) => ({ label: d.label, value: d.units, tip: `${d.label}\n${d.units} units · ${zar(d.netCents)} net` }))} format="number" height={200} labelEvery={7} />
+            </CardBody>
+          </Card>
+          <Card>
             <CardHeader title={`Batches at ${store.name}`} description="In the order the till sells them (first expiry, first out)" />
             {lots.length === 0 ? (
               <EmptyState title="No batches on record here">Stock arrives with a delivery or a network transfer.</EmptyState>
@@ -125,10 +131,10 @@ export default async function VariantStockPage({ params, searchParams }: { param
                     return (
                       <Tr key={l.id} className={l.onHand === 0 ? "text-ink-400" : undefined}>
                         <Td>
-                          <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-ink-900 hover:text-oranje-700">
+                          <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-xs font-semibold text-ink-900 hover:text-oranje-700">
                             {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                           </Link>
-                          <div className="text-xs text-ink-400">{l.batch.supplier}</div>
+                          <div className="max-w-44 truncate text-xs text-ink-400" title={l.batch.supplier}>{l.batch.supplier}</div>
                         </Td>
                         <Td>
                           <StatusBadge status={l.batch.status} />
@@ -149,75 +155,9 @@ export default async function VariantStockPage({ params, searchParams }: { param
               </Table>
             )}
           </Card>
-
-          <Card>
-            <CardHeader title="Movement ledger" description="Every unit in and out, newest first. Balance is the on-hand total after each movement." />
-            {led.rows.length === 0 ? (
-              <EmptyState title="No movements yet" />
-            ) : (
-              <Table className="mt-3">
-                <thead>
-                  <tr>
-                    <Th>When</Th>
-                    <Th>Movement</Th>
-                    <Th>Batch</Th>
-                    <Th align="right">Qty</Th>
-                    <Th align="right">Balance</Th>
-                    <Th align="right">Value</Th>
-                    <Th>By</Th>
-                    <Th>Reference</Th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {led.rows.map((m) => {
-                    const ref = m.orderCode ? (
-                      <Link href={`${base}/orders/${m.orderId}`} className="font-medium text-oranje-700 hover:underline">Order {m.orderCode}</Link>
-                    ) : m.poNumber ? (
-                      <Link href={`${base}/purchasing/${m.stockOrderId}`} className="font-medium text-oranje-700 hover:underline">{m.poNumber}</Link>
-                    ) : m.stNumber ? (
-                      <Link href={`${base}/stock-takes/${m.stockTakeId}`} className="font-medium text-oranje-700 hover:underline">{m.stNumber}</Link>
-                    ) : m.saleNumber ? (
-                      <span className="font-mono text-xs">{m.saleNumber}</span>
-                    ) : null;
-                    const refText = m.orderCode ?? m.poNumber ?? m.stNumber ?? m.saleNumber ?? "";
-                    const note = m.note && !m.note.includes(refText || "\u0000") ? m.note : null;
-                    return (
-                      <Tr key={m.id}>
-                        <Td className="whitespace-nowrap text-ink-600" title={fmtDateTime(m.createdAt)}>{fmtDateTime(m.createdAt)}</Td>
-                        <Td className="whitespace-nowrap">
-                          <span className="font-medium text-ink-850">{MOVEMENT_LABEL[m.type]}</span>
-                          {m.reason && <span className="ml-1.5"><Badge tone={m.qty < 0 ? "amber" : "green"}>{ADJUST_REASONS[m.reason].label}</Badge></span>}
-                        </Td>
-                        <Td className="font-mono text-xs text-ink-600">{m.batch.code}</Td>
-                        <Td align="right"><Qty n={m.qty} /></Td>
-                        <Td align="right" className={m.balance < 0 ? "font-semibold text-rose-600" : "text-ink-900"}>{m.balance}</Td>
-                        <Td align="right" className="text-ink-600">{zar(m.qty * m.unitCostCents)}</Td>
-                        <Td className="whitespace-nowrap text-ink-600">{m.user ?? <span className="text-ink-400">System</span>}</Td>
-                        <Td className="max-w-56 text-xs text-ink-600">
-                          {ref}
-                          {note && <div className="truncate text-ink-500" title={note}>{note}</div>}
-                          {!ref && !note && <span className="text-ink-300">—</span>}
-                        </Td>
-                      </Tr>
-                    );
-                  })}
-                </tbody>
-              </Table>
-            )}
-            <div className="border-t border-ink-100">
-              <Pagination page={page} pageSize={LEDGER_PAGE} total={led.total} href={(p) => hrefWith(path, {}, { page: p })} />
-            </div>
-          </Card>
         </div>
 
         <div className="min-w-0 space-y-6">
-          <Card>
-            <CardHeader title="Sales velocity" description={`Units sold per day · last 28 days · avg ${avgDaily.toFixed(1)}/day`} />
-            <CardBody>
-              <ColumnChart data={vel.map((d) => ({ label: d.label, value: d.units, tip: `${d.label}\n${d.units} units · ${zar(d.netCents)} net` }))} format="number" height={180} labelEvery={7} />
-            </CardBody>
-          </Card>
-
           <Card>
             <CardHeader title="Stock levels" description={`Replenishment orders up to the higher of par and ${TARGET_DAYS} days of sales (${target} units now).`} />
             <CardBody>
@@ -275,6 +215,65 @@ export default async function VariantStockPage({ params, searchParams }: { param
           )}
         </div>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader title="Movement ledger" description="Every unit in and out, newest first. Balance is the on-hand total after each movement." />
+        {led.rows.length === 0 ? (
+          <EmptyState title="No movements yet" />
+        ) : (
+          <Table className="mt-3">
+            <thead>
+              <tr>
+                <Th>When</Th>
+                <Th>Movement</Th>
+                <Th>Batch</Th>
+                <Th align="right">Qty</Th>
+                <Th align="right">Balance</Th>
+                <Th align="right">Value</Th>
+                <Th>By</Th>
+                <Th>Reference</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {led.rows.map((m) => {
+                const ref = m.orderCode ? (
+                  <Link href={`${base}/orders/${m.orderId}`} className="font-medium text-oranje-700 hover:underline">Order {m.orderCode}</Link>
+                ) : m.poNumber ? (
+                  <Link href={`${base}/purchasing/${m.stockOrderId}`} className="font-medium text-oranje-700 hover:underline">{m.poNumber}</Link>
+                ) : m.stNumber ? (
+                  <Link href={`${base}/stock-takes/${m.stockTakeId}`} className="font-medium text-oranje-700 hover:underline">{m.stNumber}</Link>
+                ) : m.saleNumber ? (
+                  <span className="font-mono text-xs">{m.saleNumber}</span>
+                ) : null;
+                const refText = m.orderCode ?? m.poNumber ?? m.stNumber ?? m.saleNumber ?? "";
+                const note = m.note && !m.note.includes(refText || "\u0000") ? m.note : null;
+                return (
+                  <Tr key={m.id}>
+                    <Td className="whitespace-nowrap text-ink-600" title={fmtDateTime(m.createdAt)}>{fmtDateTime(m.createdAt)}</Td>
+                    <Td className="whitespace-nowrap">
+                      <span className="font-medium text-ink-850">{MOVEMENT_LABEL[m.type]}</span>
+                      {m.reason && <span className="ml-1.5"><Badge tone={m.qty < 0 ? "amber" : "green"}>{ADJUST_REASONS[m.reason].label}</Badge></span>}
+                    </Td>
+                    <Td className="whitespace-nowrap font-mono text-xs text-ink-600">{m.batch.code}</Td>
+                    <Td align="right"><Qty n={m.qty} /></Td>
+                    <Td align="right" className={m.balance < 0 ? "font-semibold text-rose-600" : "text-ink-900"}>{m.balance}</Td>
+                    <Td align="right" className="text-ink-600">{zar(m.qty * m.unitCostCents)}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{m.user ?? <span className="text-ink-400">System</span>}</Td>
+                    <Td className="max-w-56 text-xs text-ink-600">
+                      {ref}
+                      {note && <div className="truncate text-ink-500" title={note}>{note}</div>}
+                      {!ref && !note && <span className="text-ink-300">—</span>}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        )}
+        <div className="border-t border-ink-100">
+          <Pagination page={page} pageSize={LEDGER_PAGE} total={led.total} href={(p) => hrefWith(path, {}, { page: p })} />
+        </div>
+      </Card>
     </>
   );
 }

@@ -9,6 +9,7 @@ import { CustomerError } from "@/server/customers";
 import { StockError } from "@/server/inventory";
 import { LoyaltyError } from "@/server/loyalty";
 import type { Actor } from "@/server/audit";
+import { Prisma } from "@/generated/prisma/client";
 
 export class PosError extends Error {
   constructor(message: string, public status = 400, public code?: string) {
@@ -31,6 +32,8 @@ function handleError(e: unknown) {
   if (e instanceof ZodError) return fail(400, e.issues[0]?.message ?? "Invalid request");
   if (e instanceof SaleError || e instanceof OrderError || e instanceof CustomerError || e instanceof StockError || e instanceof LoyaltyError)
     return fail(422, e.message);
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail(409, "That's already on record for another member or sale");
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") return fail(404, "Not found");
   console.error("[pos]", e);
   return fail(500, "Something went wrong on our side — please try again");
 }

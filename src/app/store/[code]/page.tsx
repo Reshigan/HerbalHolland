@@ -7,6 +7,7 @@ import { db } from "@/server/db";
 import { resolveRange } from "@/lib/ranges";
 import { zar, zarCompact, pct } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
+import { fmtPoints } from "@/lib/loyalty-rules";
 import { PageHeader } from "@/components/ui/page";
 import { RangeTabs } from "@/components/ui/range-tabs";
 import { Stat } from "@/components/ui/stat";
@@ -125,8 +126,8 @@ export default async function StoreDashboard({ params, searchParams }: { params:
                 <div className="font-display text-lg font-semibold">{zarCompact(k.online)}</div>
               </div>
               <div className="rounded-xl bg-ink-50 p-3">
-                <div className="text-xs text-ink-500">Guilders issued</div>
-                <div className="font-display text-lg font-semibold">ƒ{c.pointsIssued.toLocaleString()}</div>
+                <div className="text-xs text-ink-500">Points issued</div>
+                <div className="font-display text-lg font-semibold">{fmtPoints(c.pointsIssued)}</div>
               </div>
             </div>
             <ButtonLink href="/pos" className="w-full" variant="dark">

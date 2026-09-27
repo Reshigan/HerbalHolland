@@ -22,11 +22,11 @@ Africa's own landraces and growers.
 |---|---|---|
 | **Provenance** | Every batch is lab-tested and traceable to the farm | Batch-level stock, FEFO, a public COA page per batch (`/batch/[code]`, QR on every pack), recall trace to the customer |
 | **Care** | Pharmacist-led dispensary; honest education | SAHPRA patient register, authorised dispensers, quantity limits, Learn hub, no medical claims |
-| **Community** | One free club for the whole country | Windmill Club — Guilders earned and spent in every store, tiers, referrals, members' evenings |
+| **Community** | One free club for the whole country | Herbal Holland Rewards — points earned and spent in every store, tiers, referrals, members' evenings |
 | **Convenience** | Order how you like, collect in 15 minutes, delivered nationwide | Omnichannel routing, click & collect SLA, same-day metro, courier for non-medicinal items |
 
 Brand codes to use everywhere: the orange windmill-flower mark, the thick orange **frame** on black (the store window),
-Outfit typography, the "HERBAL / HOLLAND" light/bold lock-up, Guilders (ƒ) as the loyalty currency, and Dutch warmth
+Outfit typography, the "HERBAL / HOLLAND" light/bold lock-up, Herbal Holland Rewards (points worth R1 each), and Dutch warmth
 ("proeverij" tastings, Delft blue) meeting Mzansi culture (Heritage Day, landraces, local makers).
 
 ## 3. Regulatory reality — and why compliance is our moat
@@ -36,7 +36,7 @@ Outfit typography, the "HERBAL / HOLLAND" light/bold lock-up, Guilders (ƒ) as t
   quantity, an authorised dispenser, and a Schedule 6 dispensing register. Public e-commerce shows **non-medicinal**
   ranges (Schedule 0 CBD, hemp, accessories, grow, apparel); the dispensary is visible only to registered patients.
 - **Medicines Act s18A** bans bonus/rebate/incentive schemes on medicines → the platform automatically excludes licensed
-  medicines from promotions, member prices, markdowns and Guilders earn. Deals and loyalty live on the rest of the range.
+  medicines from promotions, member prices, markdowns and points earn. Deals and loyalty live on the rest of the range.
 - **Tomorrow:** one HQ switch moves licensed stores to **ADULT_USE mode** (verified adults, daily limits) when a
   commercial regime commences. Store licences are data, so a region or a single store can go live independently.
 - **Always:** 18+ everywhere, Schedule 0 CBD limits (≤ 600 mg/pack, ≤ 20 mg/day, low-risk claims only), POPIA consent,
@@ -50,8 +50,8 @@ card acquiring, pharmacies, malls, landlords and investors.
 
 | # | Competitor reality (see market study) | Herbal Holland advantage | Where it lives |
 |---|---|---|---|
-| 1 | Paid memberships (R30–R250/month) valid at one venue | **Free** Windmill Club valid at every store and online; 2-minute sign-up | `/club/join`, POS quick-join, QR self-signup |
-| 2 | Flat 5% cashback at best | Tiered Guilders (1×→2×), birthday, referral (ƒ50 + ƒ50), double-Guilders days; settled fairly between franchisees | Loyalty ledger + franchise statement |
+| 1 | Paid memberships (R30–R250/month) valid at one venue | **Free** Herbal Holland Rewards membership, valid at every store and online; 2-minute sign-up | `/club/join`, POS quick-join, QR self-signup |
+| 2 | Flat 5% cashback at best | Tiered points (1×→2×), birthday, referral (50 + 50 points), double-points days; settled fairly between franchisees | Loyalty ledger + franchise statement |
 | 3 | No lab results, fake COAs, contamination scares | Batch QR → public COA (potency, terpenes, microbials, pesticides, metals, solvents) | `/batch/[code]` |
 | 4 | Informal WhatsApp menus, stock-outs | One live catalogue: web, POS, in-store TV menu boards, all stock-aware | `/shop`, `/menu/[slug]` |
 | 5 | Card surcharges, cash-only, prepay-only | Surcharge-free tap-on-glass, PayShap, EFT, cash; pay online or on collection | POS payment sheet |
@@ -93,30 +93,30 @@ range openly. Let the dispensary grow through patients, pharmacists and word of 
 - **Product pages** for the public range (CBD wellness, accessories, grow, apparel) optimised for search.
 
 ### 5.3 Owned channels & lifecycle CRM (consent-first)
-Channel priority: **SMS** (reach) → **email** (invoices + newsletters) → **app push** (Windmill Club PWA) → WhatsApp for
+Channel priority: **SMS** (reach) → **email** (invoices + newsletters) → **app push** (Rewards PWA) → WhatsApp for
 utility messages only (Meta's commerce policy bans drug/medical products). Every message carries the sender footer and
 STOP opt-out; the platform holds sends outside CPA windows and suppresses NCC-registry numbers.
 
 | Journey | Trigger | Message (non-medicinal offers only) |
 |---|---|---|
-| Welcome | Sign-up | How Guilders work, your store, the Learn hub |
-| Second visit | 7 days after first purchase, no second | Double Guilders on your next visit |
+| Welcome | Sign-up | How points work, your store, the Learn hub |
+| Second visit | 7 days after first purchase, no second | Double Points on your next visit |
 | Replenish | ~21 days after a CBD oil purchase | Reminder + member price on the wellness range |
 | Tier-up | Crossing a tier | Celebrate, explain perks |
 | Win-back | At risk (60–120 days quiet) | "We miss you — R75 off R400" on the non-medicinal range |
-| Birthday | Birthday month | ƒ100 bonus |
+| Birthday | Birthday month | 100-point bonus |
 | Drop alert | Customer tapped "Notify me" | Back in stock / new release |
 | Review ask | 5 days after purchase | Rate what you bought (verified reviews) |
-| Referral | Champions & loyal | "Give ƒ50, get ƒ50" link |
+| Referral | Champions & loyal | "Give 50 points, get 50 points" link |
 
 Segments come from RFM (`src/lib/rfm.ts`): Champions, Loyal, Promising, New, At risk, Lapsed, Prospects — each with a
 recommended play in the CRM.
 
-### 5.4 Loyalty economics (Windmill Club)
-- Earn 5 Guilders per R100 paid (Seed 1×, Sprout 1.25×, Bloom 1.5×, Harvest 2×); 1 Guilder = R1; redeem up to 50% of a
+### 5.4 Loyalty economics (Herbal Holland Rewards)
+- Earn 5 points per R100 paid (Seed 1×, Sprout 1.25×, Bloom 1.5×, Harvest 2×); 1 point = R1; redeem up to 50% of a
   basket. Tiers on rolling 12-month spend (R2,500 / R7,500 / R15,000).
 - **Effective cost:** ~5–7% of eligible sales. Medicines earn nothing in MEDICAL mode (s18A).
-- **Fair across 1,000 owners:** the issuing store funds Guilders, the redeeming store is reimbursed, both on the monthly
+- **Fair across 1,000 owners:** the issuing store funds points, the redeeming store is reimbursed, both on the monthly
   franchise statement — so cross-store redemption never punishes a franchisee.
 - Liability is tracked live in HQ; expiry rules can be added before launch if finance requires them.
 
@@ -144,7 +144,7 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
   non-medicinal range; **near-expiry markdowns** clear CBD and edibles before they expire (never on medicines in
   MEDICAL mode).
 - **Deals:** multi-buys ("any 2 CBD for R800"), bonus buys and complementary deals ("tray + free papers"), gifts with
-  purchase ("spend R600, get the grinder"), happy hours, double-Guilders days. Deals nudge at the till and online
+  purchase ("spend R600, get the grinder"), happy hours, double-points days. Deals nudge at the till and online
   ("add 1 more to complete the deal").
 - **Calendar:** Heritage Month (September), summer grow season (spring), Black Friday on accessories/apparel, festive
   gifting. Avoid "4/20" style promotions while in MEDICAL mode.
@@ -153,7 +153,7 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 
 - **Economics (defaults, editable per store):** royalty 6% of net sales, marketing levy 2% (held in a separate,
   auditable fund as the CPA requires), e-commerce commission 10% of online sales fulfilled by the store.
-- **Settlement:** one monthly statement per store nets online takings collected by HQ, Guilders issued/redeemed,
+- **Settlement:** one monthly statement per store nets online takings collected by HQ, points issued/redeemed,
   wholesale purchases on account, network trades and fees — emailed to each owner.
 - **Supply:** regional distribution centres (Gauteng, Western Cape, KZN to start) replenish stores weekly from
   suggested orders; stores trade surplus with each other through the network marketplace.
@@ -166,7 +166,7 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 | Phase | When | Outcomes |
 |---|---|---|
 | 0. Readiness | Weeks 0–6 | Legal sign-off on MEDICAL-mode flows and claims library; acquirer approvals per store (Halo Dot / bank), PayShap & EFT rails; courier allow-list; SMS/email providers; NCC registry registration; Information Officer & POPIA notices; staff training (dispensers, ID checks) |
-| 1. Pilot | Weeks 6–10 | 5 Gauteng stores + DC-GP live on POS, inventory, purchasing; Windmill Club sign-ups; daily reconciliation |
+| 1. Pilot | Weeks 6–10 | 5 Gauteng stores + DC-GP live on POS, inventory, purchasing; Herbal Holland Rewards sign-ups; daily reconciliation |
 | 2. Omnichannel | Weeks 10–16 | E-commerce live (public range + patient dispensary), click & collect, same-day in Pretoria/Joburg, courier nationwide; lifecycle journeys on |
 | 3. Network | Months 4–9 | Western Cape & KZN DCs; 24 → 100 stores; network trading; statements automated |
 | 4. Adult-use ready | On commencement | Flip licensed stores to ADULT_USE by region; update channel matrix and limits; launch brand campaign within the new rules |

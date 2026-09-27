@@ -34,7 +34,7 @@ afterAll(async () => {
 });
 
 describe("POS", () => {
-  it("posts a CBD sale: FEFO lots, VAT, rollups and Guilders", async () => {
+  it("posts a CBD sale: FEFO lots, VAT, rollups and points", async () => {
     const total = 2 * 59_500;
     const r = await postPosSale(
       saleInput({ customerId: w.walkIn.id, lines: [{ variantId: w.oilV.id, qty: 2 }], payments: [{ method: "CASH", amountCents: total, tenderedCents: 120_000, changeCents: 1_000 }], ageCheck: "ID_SIGHTED" }),
@@ -73,7 +73,7 @@ describe("POS", () => {
     ).rejects.toThrow(/dispenser/);
   });
 
-  it("dispenses to a patient; medicines earn no Guilders (s18A)", async () => {
+  it("dispenses to a patient; medicines earn no points (s18A)", async () => {
     const r = await postPosSale(
       saleInput({ customerId: w.patient.id, lines: [{ variantId: w.flowerV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: 65_000, provider: "SIMULATED", reference: "T1" }] }),
       pos(),
@@ -82,7 +82,7 @@ describe("POS", () => {
     expect(await onHand(w.store.id, w.flowerOld.id)).toBe(2);
   });
 
-  it("refunds a line back into the same batch and reverses Guilders", async () => {
+  it("refunds a line back into the same batch and reverses points", async () => {
     const sale = await postPosSale(
       saleInput({ customerId: w.walkIn.id, lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: 59_500 }], ageCheck: "ID_SIGHTED" }),
       pos(),

@@ -2,9 +2,9 @@
 
 ## Shape: a modular monolith
 
-One Next.js 16 application, one PostgreSQL database, one codebase. Every surface — storefront, Windmill Club, POS,
+One Next.js 16 application, one PostgreSQL database, one codebase. Every surface — storefront, Herbal Holland Rewards, POS,
 store back office, HQ console, reports, menu boards — shares the same domain layer, so a sale, a stock movement or a
-Guilder means exactly the same thing everywhere.
+loyalty point means exactly the same thing everywhere.
 
 ```
 src/
@@ -41,7 +41,7 @@ per-request `app.store_ids` setting can be layered under the same scopes.
 **POS sale** (`postPosSale` → `postSaleTx`): re-price server-side (store shelf price → price lists → markdowns →
 promotions; offline sales keep the price the customer paid), evaluate compliance (licences, age, patient authorisation,
 dispenser, limits), then in one transaction: create the sale, take stock FEFO per line (row-locked `SELECT … FOR UPDATE`,
-FIFO cost from the lots), record tenders, redeem/earn Guilders, update customer stats and tier, and increment the daily
+FIFO cost from the lots), record tenders, redeem/earn points, update customer stats and tier, and increment the daily
 rollups. The tax invoice is emailed after commit. Refunds are negative sales that return units to the same batches.
 
 **Offline POS:** the client caches a bootstrap (catalogue, prices, promotions, settings, staff) and prices with the same

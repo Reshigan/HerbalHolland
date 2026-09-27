@@ -92,7 +92,7 @@ export function checkCompliance(input: {
 }
 
 /**
- * Classes excluded from incentives (promotions, member/volume prices, markdowns, Guilders earn).
+ * Classes excluded from incentives (promotions, member/volume prices, markdowns, points earn).
  * In MEDICAL mode licensed products are medicines: Medicines Act s18A prohibits supplying
  * medicine under a bonus, rebate or other incentive scheme.
  */

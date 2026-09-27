@@ -1,4 +1,4 @@
-// Windmill Club ledger operations. Points are a network liability: the issuing store
+// Herbal Holland Rewards ledger operations. Points are a network liability: the issuing store
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
 import { pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
@@ -24,13 +24,13 @@ export async function addPoints(
 export async function redeemPoints(t: Tx, a: { customerId: string; points: number; storeId?: string | null; saleId?: string; orderId?: string }) {
   if (a.points <= 0) return;
   const c = await t.customer.findUniqueOrThrow({ where: { id: a.customerId }, select: { points: true } });
-  if (c.points < a.points) throw new LoyaltyError(`Only ƒ${c.points} available`);
+  if (c.points < a.points) throw new LoyaltyError(`Only ${c.points} points available`);
   await addPoints(t, { ...a, points: -a.points, kind: "REDEEM" });
 }
 
 /**
  * Updates purchase stats, re-tiers the member on rolling 12-month spend and awards
- * Guilders on what was actually paid. Handles first-purchase referral rewards.
+ * points on what was actually paid. Handles first-purchase referral rewards.
  */
 export async function recordPurchase(
   t: Tx,

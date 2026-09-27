@@ -4,7 +4,7 @@
 //   1. Unit deals — MULTIBUY bundles and BUY_X_GET_Y bonus buys — claim the units they use.
 //   2. Line deals — the single best PERCENT / targeted FIXED discount on each remaining unit.
 //   3. Basket deal — the best untargeted FIXED amount, spread across lines so VAT per line stays right.
-//   4. Guilders multiplier — the highest applicable.
+//   4. Points multiplier — the highest applicable.
 // Deals that are close but not yet triggered come back as `suggestions` ("add 1 more pre-roll…")
 // so tills and the web shop can prompt the complementary item.
 import { allocateProportionally } from "./money";
@@ -184,7 +184,7 @@ export function applyPromotions(lines: PricedLine[], promos: PromoInput[], code?
     credit(cartFixed, amt);
   }
 
-  // 4. Guilders multiplier.
+  // 4. Points multiplier.
   const multipliers = eligible.filter((p) => p.kind === "MULTIPLIER");
   const multiplier = Math.max(1, ...multipliers.map((p) => p.value / 100));
   for (const p of multipliers) if (p.value / 100 === multiplier && multiplier > 1) credit(p, 0);
@@ -210,7 +210,7 @@ export function describePromo(p: PromoInput) {
     case "FIXED":
       return `R${p.value / 100} off${p.productIds.length || p.categoryIds.length ? " each" : ""}${p.minSpendCents ? ` when you spend R${p.minSpendCents / 100}` : ""}`;
     case "MULTIPLIER":
-      return `${p.value / 100}× Guilders`;
+      return `${p.value / 100}× points`;
     case "MULTIBUY":
       return `Any ${p.buyQty} for R${p.value / 100}`;
     case "BUY_X_GET_Y": {

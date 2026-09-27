@@ -3,12 +3,12 @@
 **Dutch heritage. African soil.** One platform for a multi-owner cannabis & wellness retail network in South Africa,
 built to run ~1,000 franchise stores: point of sale with tap-on-glass cards, deep inventory control, stores buying and
 selling stock, finance and franchise settlement, a single national e-commerce brand (click & collect, same-day and
-nationwide delivery), the Windmill Club loyalty app, marketing automation, an HQ console and a full reports centre —
+nationwide delivery), the Herbal Holland Rewards loyalty app, marketing automation, an HQ console and a full reports centre —
 compliance-first by design.
 
 | Surface | Route | For |
 |---|---|---|
-| Storefront + Windmill Club (PWA) | `/`, `/shop`, `/club` | Customers & patients |
+| Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/club` | Customers & patients |
 | POS — offline-first, tap on glass | `/pos` | Budtenders & dispensers |
 | Store back office | `/store/[code]` | Store managers & franchise owners |
 | HQ console | `/hq` | Head office & area managers |
@@ -46,14 +46,14 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
   takes and cycle counts, reason-coded adjustments (incl. witnessed destruction), expiry and recall management,
   replenishment suggestions, DC distribution and store-to-store network trading.
 - **POS** — tablet/phone, tap on glass (Halo Dot SoftPOS adapter; simulated in demo), cash, PayShap, split tenders,
-  Guilders, bonus-buy prompts, compliance checks (18+, patient authorisations, dispensers), offline cash selling with
+  points, bonus-buy prompts, compliance checks (18+, patient authorisations, dispensers), offline cash selling with
   idempotent sync, click & collect handover, refunds, shifts and Z-reports.
 - **Omnichannel** — one national shop; orders routed to the right store or DC; stores are merchant of record and get
   credited; nationwide courier for non-medicinal items; 15-minute click & collect.
 - **Pricing & deals** — RRP, zones, scheduled changes, franchisee shelf prices, member/tier prices, quantity breaks,
   near-expiry markdowns; % / R-off, bonus buys, BOGO, gifts with purchase, complementary deals, multi-buys, happy hours,
-  Guilders multipliers.
-- **Windmill Club** — free national membership, easy phone sign-up, digital card, tiers, referrals, consent centre,
+  Points multipliers.
+- **Herbal Holland Rewards** — free national membership, easy phone sign-up, digital card, tiers, referrals, consent centre,
   cross-store settlement between franchisees.
 - **Finance** — P&L, VAT201 working, cash-ups, expenses, monthly franchise statements; every invoice emailed
   (SARS abridged/full tax invoices; non-VAT vendors supported).

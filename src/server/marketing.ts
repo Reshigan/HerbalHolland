@@ -8,7 +8,7 @@ import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
 import { addDays } from "@/lib/format";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
 import { screenCopy } from "@/lib/compliance";
-import { guilders } from "@/lib/loyalty-rules";
+import { fmtPoints } from "@/lib/loyalty-rules";
 import type { MsgChannel, Prisma, Tier } from "@/generated/prisma/client";
 
 export const CONSENT_FIELD = { WHATSAPP: "consentWhatsapp", SMS: "consentSms", EMAIL: "consentEmail", PUSH: "consentPush" } as const;
@@ -76,7 +76,7 @@ export async function senderFooter() {
 function render(tpl: string, c: { firstName: string; points: number }, code?: string | null) {
   return tpl
     .replaceAll("{{firstName}}", c.firstName)
-    .replaceAll("{{points}}", guilders(c.points))
+    .replaceAll("{{points}}", fmtPoints(c.points))
     .replaceAll("{{code}}", code ?? "");
 }
 

@@ -6,7 +6,7 @@ import { salesByStore } from "@/server/finance";
 import { db } from "@/server/db";
 import { resolveRange } from "@/lib/ranges";
 import { zar, zarCompact, pct } from "@/lib/money";
-import { guilders, POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
+import { fmtPoints, POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { PageHeader } from "@/components/ui/page";
 import { RangeTabs } from "@/components/ui/range-tabs";
 import { Stat } from "@/components/ui/stat";
@@ -51,7 +51,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
       <PageHeader
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Herbal Holland network"}
         title="Network overview"
-        description={`${retail.filter((s) => s.status === "ACTIVE").length} trading stores · ${retail.filter((s) => s.status === "OPENING_SOON").length} opening soon · ${liability._count.toLocaleString()} Windmill Club members`}
+        description={`${retail.filter((s) => s.status === "ACTIVE").length} trading stores · ${retail.filter((s) => s.status === "OPENING_SOON").length} opening soon · ${liability._count.toLocaleString()} Herbal Holland Rewards members`}
         actions={<RangeTabs path="/hq" current={r.preset} />}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
@@ -104,9 +104,9 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
             <Attention href="/hq/reports/low-stock" n={alerts.low} label="SKU-store lines at or below reorder point" />
             <Attention href="/hq/reports/negative-stock" n={alerts.negative} label="Negative stock lots" danger />
             <div className="rounded-xl bg-ink-950 p-4 text-white">
-              <div className="text-xs text-ink-300">Windmill Club liability</div>
+              <div className="text-xs text-ink-300">Rewards liability</div>
               <div className="font-display text-2xl font-semibold">{zar((liability._sum.points ?? 0) * POINT_VALUE_CENTS)}</div>
-              <div className="text-xs text-ink-400">{guilders(liability._sum.points ?? 0)} outstanding</div>
+              <div className="text-xs text-ink-400">{fmtPoints(liability._sum.points ?? 0)} outstanding</div>
             </div>
           </CardBody>
         </Card>

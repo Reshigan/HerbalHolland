@@ -14,7 +14,7 @@ export async function kpis(storeIds: string[], r: DateRange) {
     { label: "Cash", value: cur.cashCents },
     { label: "PayShap", value: cur.payshapCents },
     { label: "Paid online", value: cur.onlineCents },
-    { label: "Guilders", value: cur.loyaltyCents },
+    { label: "Points", value: cur.loyaltyCents },
     { label: "EFT", value: cur.eftCents },
   ];
   return {

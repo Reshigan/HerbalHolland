@@ -177,8 +177,8 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   });
   const customer = comp.ctx.record;
   const points = Math.max(0, Math.floor(input.pointsRedeemed ?? 0));
-  if (points && !customer) throw new SaleError("Attach a member to redeem Guilders");
-  if (customer && points > customer.points && !offline) throw new SaleError(`Only ƒ${customer.points} available`);
+  if (points && !customer) throw new SaleError("Attach a member to redeem points");
+  if (customer && points > customer.points && !offline) throw new SaleError(`Only ${customer.points} points available`);
   if (!comp.ok && !offline) throw new SaleError(comp.blocks[0]);
   if (q.totalCents > FULL_TAX_INVOICE_OVER_CENTS && !input.buyer?.name && !offline)
     throw new SaleError("Over R5,000: capture the buyer's name and address for a full tax invoice");
@@ -301,8 +301,8 @@ export async function refundSale(a: {
     await t.sale.update({ where: { id: refund.id }, data: { costCents: -cost } });
 
     if (orig.customerId) {
-      if (loyaltyBack) await addPoints(t, { customerId: orig.customerId, points: loyaltyBack / 100, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "Guilders returned on refund" });
-      if (earnedBack) await addPoints(t, { customerId: orig.customerId, points: -earnedBack, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "Guilders reversed on refund" });
+      if (loyaltyBack) await addPoints(t, { customerId: orig.customerId, points: loyaltyBack / 100, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points returned on refund" });
+      if (earnedBack) await addPoints(t, { customerId: orig.customerId, points: -earnedBack, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points reversed on refund" });
       await t.customer.update({ where: { id: orig.customerId }, data: { lifetimeCents: { decrement: amount } } });
     }
 
