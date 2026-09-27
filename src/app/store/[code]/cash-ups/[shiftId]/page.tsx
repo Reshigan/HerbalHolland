@@ -74,20 +74,22 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
         />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 space-y-6">
         <Card>
           <CardHeader title="Takings by tender" description="Sales and refunds in this shift, incl. VAT" />
-          <CardBody>
-            {tenders.length ? <Donut data={tenders.map((t) => ({ label: METHOD[t.method] ?? t.method, value: Math.max(0, t._sum.amountCents ?? 0) }))} centerLabel={zar(saleTotal?._sum.totalCents ?? 0)} /> : <p className="text-sm text-ink-500">No takings yet.</p>}
-            <div className="mt-4 space-y-1 border-t border-ink-100 pt-3 text-sm">
+          <CardBody className="grid gap-6 md:grid-cols-3">
+            <div className="md:col-span-2">
+              {tenders.length ? <Donut layout="row" data={tenders.map((t) => ({ label: METHOD[t.method] ?? t.method, value: Math.max(0, t._sum.amountCents ?? 0) }))} centerLabel={zar(saleTotal?._sum.totalCents ?? 0)} /> : <p className="text-sm text-ink-500">No takings yet.</p>}
+            </div>
+            <div className="space-y-1 text-sm md:border-l md:border-ink-100 md:pl-6">
               <div className="flex justify-between"><span className="text-ink-500">Sales</span><span className="tnum">{saleTotal?._count ?? 0} · {zar(saleTotal?._sum.totalCents ?? 0)}</span></div>
               <div className="flex justify-between"><span className="text-ink-500">Refunds</span><span className="tnum">{refundTotal?._count ?? 0} · {zar(refundTotal?._sum.totalCents ?? 0)}</span></div>
+              {shift.notes && <p className="mt-3 rounded-xl bg-ink-50 p-3 text-sm text-ink-700">“{shift.notes}”</p>}
             </div>
-            {shift.notes && <p className="mt-3 rounded-xl bg-ink-50 p-3 text-sm text-ink-700">“{shift.notes}”</p>}
           </CardBody>
         </Card>
 
-        <Card className="min-w-0 xl:col-span-2">
+        <Card className="min-w-0">
           <CardHeader title="Transactions" description={`${count} in this shift`} />
           {sales.length === 0 ? (
             <EmptyState title="No transactions in this shift" />
