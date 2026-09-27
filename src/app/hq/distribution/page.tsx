@@ -61,7 +61,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
   const where: Prisma.StockOrderWhereInput = { ...base, status: view.status, ...(view.status === "RECEIVED" && { receivedAt: { gte: recent } }) };
   const act = can(user, "network");
 
-  const [counts, orders, total, stock, monthValue] = await Promise.all([
+  const [counts, orders, total, stock, monthValue, waiting] = await Promise.all([
     db.stockOrder.groupBy({ by: ["status"], where: { ...base, status: { in: ["SUBMITTED", "APPROVED", "SHIPPED"] } }, _count: true, _sum: { totalCents: true } }),
     view.status
       ? db.stockOrder.findMany({
@@ -75,6 +75,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
     view.status ? db.stockOrder.count({ where }) : 0,
     view.key === "stock" ? dcStockHealth(dc.id) : null,
     db.stockOrder.aggregate({ where: { ...base, status: { in: ["SHIPPED", "RECEIVED"] }, shippedAt: { gte: recent } }, _sum: { totalCents: true }, _count: true }),
+    db.stockOrder.groupBy({ by: ["sellerId"], where: { kind: "WHOLESALE", sellerId: { in: dcs.map((d) => d.id) }, buyerId: { in: ids }, status: { in: ["SUBMITTED", "APPROVED"] } }, _count: true }),
   ]);
   const count = (s: string) => counts.find((c) => c.status === s)?._count ?? 0;
   const tabHref = (p: Record<string, string | undefined>) => `/hq/distribution${qs({ dc: dc.code, view: view.key, ...p })}`;
@@ -84,7 +85,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
   return (
     <>
       <PageHeader overline="Supply" title="Distribution" description="Store orders from the distribution centres: approve, pick first-expiry-first-out, ship. Stores are invoiced for what they receive, settled on their monthly statement." />
-      <TabLinks className="mb-5" current={tabHref({ view: undefined, page: undefined })} tabs={dcs.map((d) => ({ href: `/hq/distribution${qs({ dc: d.code })}`, label: d.name }))} />
+      <TabLinks className="mb-5" current={tabHref({ view: undefined, page: undefined })} tabs={dcs.map((d) => ({ href: `/hq/distribution${qs({ dc: d.code })}`, label: d.name, count: waiting.find((w) => w.sellerId === d.id)?._count }))} />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Awaiting approval" value={num(count("SUBMITTED"))} sub={zarCompact(counts.find((c) => c.status === "SUBMITTED")?._sum.totalCents ?? 0) + " incl. VAT"} />

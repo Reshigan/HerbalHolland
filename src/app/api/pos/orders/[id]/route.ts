@@ -4,6 +4,7 @@
 import { z } from "zod";
 import { db } from "@/server/db";
 import { advanceOrder } from "@/server/orders";
+import { getSettings } from "@/server/settings";
 import { json, readBody, withStaff, actorOf, PosError } from "@/server/pos/http";
 import { Tender } from "@/server/pos/schemas";
 import { codeMatches } from "@/server/pos/orders";
@@ -18,12 +19,13 @@ const Body = z.object({
   courier: z.string().trim().max(60).optional(),
   trackingNo: z.string().trim().max(60).optional(),
   note: z.string().trim().max(200).optional(),
+  check: z.boolean().optional(), // verify the handover (code etc.) without changing the order — before taking payment
 });
 
 export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
   const { id } = await params;
   const b = await readBody(req, Body);
-  const order = await db.order.findUnique({ where: { id }, select: { storeId: true, code: true, collectionCode: true, fulfilment: true, status: true } });
+  const order = await db.order.findUnique({ where: { id }, select: { storeId: true, code: true, collectionCode: true, fulfilment: true, status: true, paymentStatus: true } });
   if (!order || order.storeId !== pos.device.storeId) throw new PosError("Order not found at this store", 404);
 
   const handover = b.to === "COMPLETED" && order.fulfilment === "COLLECT";
@@ -31,6 +33,14 @@ export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
   if (b.to === "CANCELLED" && !b.note) throw new PosError("Give a reason for cancelling", 422);
 
   const shift = await db.shift.findFirst({ where: { storeId: pos.device.storeId, deviceId: pos.device.id, closedAt: null }, select: { id: true } });
+  if (b.check) {
+    const { compliance } = await getSettings();
+    const licensed = await db.orderLine.count({ where: { orderId: id, variant: { product: { regClass: { in: compliance.licensedOnly } } } } });
+    if (handover && licensed && compliance.thcMode === "MEDICAL" && !pos.user.canDispense)
+      throw new PosError("An authorised dispenser must hand over this order", 422, "DISPENSER");
+    if (handover && order.paymentStatus !== "PAID" && !shift) throw new PosError("Open a shift before taking payment", 409, "NO_SHIFT");
+    return json({ ok: true });
+  }
   if (b.payments?.length && !shift) throw new PosError("Open a shift before taking payment", 409, "NO_SHIFT");
   if (b.to === "OUT_FOR_DELIVERY" && !b.courier) throw new PosError("Choose the courier or driver", 422);
 

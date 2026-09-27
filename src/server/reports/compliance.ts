@@ -5,7 +5,7 @@ import { getSettings } from "../settings";
 import { fmtDate } from "@/lib/format";
 import type { Option, ParamArgs, ReportDef, Row } from "./types";
 import { MANAGERS, PATIENT_DATA } from "./types";
-import { CHANNEL_LABEL, bounds, multi, ratio, storeCols, storeLabel, storeVals, sumRows } from "./util";
+import { CHANNEL_LABEL, bounds, multi, n, ratio, storeCols, storeLabel, storeVals, sumRows } from "./util";
 
 const channelSql = (c?: "POS" | "ONLINE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
 
@@ -61,7 +61,7 @@ export const ageChecks: ReportDef = {
       rows,
       totals: { method: "Total", ...sumRows(rows, ["n", "restricted", "gross"]), share: total ? 1 : null, restrictedShare: restrictedTotal ? 1 : null },
       summary: [
-        { label: "Age-restricted sales", value: restrictedTotal, format: "number", sub: `of ${total.toLocaleString()} transactions` },
+        { label: "Age-restricted sales", value: restrictedTotal, format: "number", sub: `of ${n(total)} transactions` },
         { label: "Verified or ID sighted", value: ratio(strong, restrictedTotal), format: "pct", sub: "of age-restricted sales" },
         { label: "Restricted sales with no check", value: missed, format: "number", sub: missed ? "investigate — see below" : "none — every restricted sale was checked", upIsGood: false },
       ],
@@ -152,10 +152,10 @@ export const dispensingRegister: ReportDef = {
       totalRows: a.n,
       totals: { at: "Total", qty: a.units, grams: Math.round(a.grams * 10) / 10 },
       summary: [
-        { label: "Licensed sales", value: a.sales, format: "number", sub: `${a.n} lines` },
+        { label: "Licensed sales", value: a.sales, format: "number", sub: `${n(a.n)} lines` },
         { label: "Patients", value: a.patients, format: "number" },
-        { label: "Dispensed", value: `${(Math.round(a.grams * 10) / 10).toLocaleString()} g`, sub: `${a.units} units` },
-        { label: "Exceptions", value: exceptions, format: "number", sub: exceptions ? `${a.noAuth} without authorisation · ${a.noDispenser} without a dispenser` : "every sale authorised and dispensed", upIsGood: false },
+        { label: "Dispensed", value: `${n(Math.round(a.grams * 10) / 10)} g`, sub: `${n(a.units)} units` },
+        { label: "Exceptions", value: exceptions, format: "number", sub: exceptions ? `${n(a.noAuth)} without authorisation · ${n(a.noDispenser)} without a dispenser` : "every sale authorised and dispensed", upIsGood: false },
       ],
       empty: "No licensed products were dispensed in this period.",
       note: "Contains health-related personal information (POPIA s26) — view and export only for SAHPRA record-keeping and inspections; exports are logged. The authorisation shown is the one valid at the time of sale. Clinical conditions are never stored.",
@@ -289,9 +289,9 @@ export const recalls: ReportDef = {
       rows,
       totals: t,
       summary: [
-        { label: "Batches blocked", value: rows.length, format: "number", sub: `${rows.filter((r) => r.status === "Recalled").length} recalled · ${rows.filter((r) => r.status === "Quarantine").length} in quarantine` },
+        { label: "Batches blocked", value: rows.length, format: "number", sub: `${n(rows.filter((r) => r.status === "Recalled").length)} recalled · ${n(rows.filter((r) => r.status === "Quarantine").length)} in quarantine` },
         { label: "Units with customers", value: t.out as number, format: "number", upIsGood: false },
-        { label: "Members to contact", value: t.members as number, format: "number", sub: `${t.walkIn} walk-in units untraceable` },
+        { label: "Members to contact", value: t.members as number, format: "number", sub: `${n(t.walkIn as number)} walk-in units untraceable` },
         { label: "Still on hand", value: t.onHand as number, format: "number", sub: "must be pulled from sale", upIsGood: false },
       ],
       empty: "No batches are recalled or in quarantine. ",
@@ -308,7 +308,7 @@ async function batchOptions({ storeIds }: ParamArgs): Promise<Option[]> {
     SELECT b.id, b.code, b.status::text AS status, p.name AS product, v.name AS variant
     FROM "Batch" b JOIN "Variant" v ON v.id = b."variantId" JOIN "Product" p ON p.id = v."productId"
     WHERE EXISTS (SELECT 1 FROM "StockLevel" sl WHERE sl."batchId" = b.id AND sl."storeId" = ANY(${storeIds}::text[]))
-    ORDER BY (b.status = 'RELEASED'), b.status, p.name, v.name, b.code`;
+    ORDER BY CASE b.status WHEN 'RECALLED' THEN 0 WHEN 'QUARANTINE' THEN 1 ELSE 2 END, p.name, v.name, b.code`;
   return [{ value: "", label: "Choose a batch…" }, ...rows.map((r) => ({ value: r.id, label: `${r.code} — ${r.product} · ${r.variant}`, group: STATUS_LABEL[r.status] ?? r.status }))];
 }
 
@@ -380,9 +380,9 @@ export const batchTrace: ReportDef = {
       totals: { at: "Total", units: a.sold - a.returned },
       summary: [
         { label: "Status", value: STATUS_LABEL[batch.status] ?? batch.status, sub: batch.statusReason ?? `Packed ${fmtDate(batch.packedAt)}${batch.expiresAt ? ` · expires ${fmtDate(batch.expiresAt)}` : ""}` },
-        { label: "Units sold", value: a.sold, format: "number", sub: `${a.returned} returned` },
-        { label: "Members to contact", value: a.members, format: "number", sub: `${a.walkIn} walk-in units can't be traced` },
-        { label: "Still on hand", value: onHand, format: "number", sub: `at ${where.filter((w) => w.onHand > 0).length} locations` },
+        { label: "Units sold", value: a.sold, format: "number", sub: `${n(a.returned)} returned` },
+        { label: "Members to contact", value: a.members, format: "number", sub: `${n(a.walkIn)} walk-in units can't be traced` },
+        { label: "Still on hand", value: onHand, format: "number", sub: `at ${n(where.filter((w) => w.onHand > 0).length)} location${where.filter((w) => w.onHand > 0).length === 1 ? "" : "s"}` },
       ],
       extra: [
         {

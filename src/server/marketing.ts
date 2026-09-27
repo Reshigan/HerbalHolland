@@ -68,9 +68,10 @@ export async function audienceSize(segment: string, channel: MsgChannel, storeId
   return { total, reachable };
 }
 
-export async function senderFooter() {
+/** Sender identity on every marketing message; texts add "Reply STOP", emails carry an unsubscribe link instead. */
+export async function senderFooter(channel?: MsgChannel) {
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" } });
-  return `\n— ${hq?.legalName ?? "Herbal Holland"}, ${hq?.address ?? ""}, ${hq?.phone ?? ""}, ${hq?.email ?? ""}. Reply STOP to opt out.`;
+  return `\n— ${hq?.legalName ?? "Herbal Holland"}, ${hq?.address ?? ""}, ${hq?.phone ?? ""}, ${hq?.email ?? ""}.${channel === "EMAIL" ? "" : " Reply STOP to opt out."}`;
 }
 
 function render(tpl: string, c: { firstName: string; points: number }, code?: string | null) {
@@ -94,7 +95,7 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
   }
 
   const promo = c.promotionId ? await db.promotion.findUnique({ where: { id: c.promotionId } }) : null;
-  const footer = await senderFooter();
+  const footer = await senderFooter(c.channel);
   const field = CONSENT_FIELD[c.channel];
   const where = audienceWhere(c.segment, c.storeId);
   let cursor: string | undefined;
@@ -120,10 +121,9 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
         suppressed++;
         return [];
       }
-      return [{ campaignId: c.id, customerId: b.id, to, channel: c.channel, body: render(c.message, b, promo?.code) + footer }];
+      return [{ campaignId: c.id, customerId: b.id, to, channel: c.channel, subject: c.name, body: render(c.message, b, promo?.code) + footer }];
     });
-    await sendBulk(rows);
-    sent += rows.length;
+    sent += await sendBulk(rows);
     cursor = batch[batch.length - 1].id;
   }
   await db.campaign.update({ where: { id }, data: { status: "SENT", sentAt: now, audienceCount: audience, sentCount: sent, suppressedCount: suppressed } });

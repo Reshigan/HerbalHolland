@@ -82,7 +82,7 @@ export type SalePayload = {
   promoCode: string | null;
   pointsRedeemed: number;
   payments: QueuedTender[];
-  ageCheck: AgeCheckKind;
+  ageCheck?: AgeCheckKind; // counter check; members' own verification is used otherwise
   buyer: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail: string | null;
   staffId: string;

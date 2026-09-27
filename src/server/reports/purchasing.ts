@@ -4,7 +4,7 @@ import { db, type Prisma } from "../db";
 import { receivedValue } from "../stock-orders";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
-import { bounds, multi, ratio, storeCols, storeVals, sumRows } from "./util";
+import { bounds, multi, n, ratio, storeCols, storeVals, sumRows } from "./util";
 
 const supplierLabel = (s: { name: string; kind: string }) => (s.kind === "WAREHOUSE" ? s.name : `${s.name} (network store)`);
 const KIND_LABEL: Record<string, string> = { WHOLESALE: "Wholesale", NETWORK: "Network trade" };
@@ -52,7 +52,7 @@ export const purchases: ReportDef = {
     }
     const suppliers = [...bySupplier.values()].sort((a, b) => b.ex - a.ex);
     const chart = suppliers.length
-      ? { kind: "bar" as const, title: "Purchases by supplier", description: "Received value ex VAT", format: "zar" as const, rows: suppliers.map((s) => ({ label: s.name, value: s.ex, sub: `${s.orders} orders` })) }
+      ? { kind: "bar" as const, title: "Purchases by supplier", description: "Received value ex VAT", format: "zar" as const, rows: suppliers.map((s) => ({ label: s.name, value: s.ex, sub: `${n(s.orders)} order${s.orders === 1 ? "" : "s"}` })) }
       : null;
     const note = "Value is what was actually received (received quantity × agreed unit cost), which is what the tax invoice and franchise statement charge. Open orders are submitted, approved or in transit.";
     if (ctx.params.by === "order") {
@@ -160,10 +160,10 @@ export const receiving: ReportDef = {
       totalRows: all.length,
       totals: { received: "Total", ...sumRows(all, ["ordered", "shipped", "got", "short", "lost", "value"]) },
       summary: [
-        { label: "Orders received", value: orders.length, format: "number", sub: `${lines} lines` },
+        { label: "Orders received", value: orders.length, format: "number", sub: `${n(lines)} lines` },
         { label: "Fill rate", value: ratio(shipped, ordered), format: "pct", sub: "shipped ÷ ordered" },
         { label: "Receipt accuracy", value: ratio(received, shipped), format: "pct", sub: "received ÷ shipped" },
-        { label: "Missing on arrival", value: lostValue, format: "zar", sub: `${shipped - received} units`, upIsGood: false },
+        { label: "Missing on arrival", value: lostValue, format: "zar", sub: `${n(shipped - received)} units`, upIsGood: false },
       ],
       empty: ctx.params.show === "all" ? "No stock orders were received in this period." : "Every line arrived as shipped — no discrepancies in this period.",
       note: `Short-shipped = ordered but not sent (the supplier didn't have it). Missing on arrival = shipped but not received — raise it with the supplier${multi(ctx) ? "s" : ""}; the buyer is only invoiced for what was received.`,

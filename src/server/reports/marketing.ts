@@ -5,7 +5,7 @@ import { describePromo, type PromoInput } from "@/lib/promotions";
 import { fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
-import { bounds, ratio, statWhere, storeLabel, sumRows } from "./util";
+import { bounds, n, ratio, statWhere, storeLabel, sumRows } from "./util";
 
 const channelSql = (c?: "POS" | "ONLINE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
 
@@ -151,10 +151,10 @@ export const campaigns: ReportDef = {
       summary: [
         { label: "Campaigns sent", value: list.length, format: "number" },
         { label: "Messages", value: t.delivered as number, format: "number", sub: ctx.networkWide ? "after consent & suppression" : "to members of this store" },
-        { label: "Attributed revenue", value: t.revenue as number, format: "zar", sub: `${t.orders} sales incl VAT` },
+        { label: "Attributed revenue", value: t.revenue as number, format: "zar", sub: `${n(t.orders as number)} sales · incl VAT` },
         { label: "ROI", value: t.roi as number | null, format: "pct", sub: cost ? `on ${zar(cost)} spend` : "no costed campaigns in view" },
       ],
-      chart: rows.some((r) => (r.revenue as number) > 0) ? { kind: "bar", title: "Attributed revenue", description: "Sales incl VAT credited to each campaign", format: "zar", rows: rows.filter((r) => (r.revenue as number) > 0).map((r) => ({ label: String(r.name), value: r.revenue as number, sub: `${r.orders} sales` })) } : null,
+      chart: rows.some((r) => (r.revenue as number) > 0) ? { kind: "bar", title: "Attributed revenue", description: "Sales incl VAT credited to each campaign", format: "zar", rows: rows.filter((r) => (r.revenue as number) > 0).map((r) => ({ label: String(r.name), value: r.revenue as number, sub: `${n(r.orders as number)} sale${r.orders === 1 ? "" : "s"}` })) } : null,
       empty: "No campaigns were sent in this period.",
       note: `Last-touch attribution: sales that used the campaign's promo code or tracked link, or its promotion after the send. ROI = (attributed net sales − cost) ÷ cost${ctx.networkWide ? "" : ", shown only for campaigns whose whole audience is in this view; network campaigns show the sales and members at this store"}.`,
     };

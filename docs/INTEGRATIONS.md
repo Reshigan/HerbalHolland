@@ -36,13 +36,16 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 
 | Channel | Use | Provider slot |
 |---|---|---|
-| SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER` (Clickatell, BulkSMS, SMSPortal) |
-| Email | Tax invoices, statements, newsletters | `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark), `EMAIL_FROM` |
+| SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER=smsportal` — **built** (REST v3 `BulkMessages`, Basic auth, ≤ 500 per call). Other gateways (Clickatell, BulkSMS) slot into `deliver()` in `messaging.ts` |
+| Email | Tax invoices, statements, campaigns | `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
 | App push | Rewards PWA | Web Push (VAPID) — roadmap |
 | WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products — `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
 
 Without providers configured, messages and emails are written to `MessageLog` so every notification is visible in the
-demo.
+demo. With a live provider every message is still logged with its status (`SENT` / `FAILED` + reason); sign-in codes are
+masked in the log, and a failed code send tells the customer to retry. SMS codes end with `@<host> #<code>` so phones
+can autofill them. SMSPortal keeps its own STOP-reply opt-out list; import it into `Suppression` monthly with the NCC
+registry until an inbound webhook syncs it.
 
 ## ID verification
 
@@ -65,7 +68,7 @@ modernisation, phased from 2030).
 | `APP_URL` | Public base URL (links in emails) |
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
-| `MESSAGING_PROVIDER`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
+| `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
 | `NEXT_PUBLIC_TAP_PROVIDER`, `HALO_API_URL`, `HALO_API_KEY` | Tap on glass |
 | `ONLINE_GATEWAY` | Online payments adapter |
 | `CRON_SECRET` | Protects `/api/cron/*` |

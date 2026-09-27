@@ -169,9 +169,8 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                           <span className={cn("tnum font-semibold", shortShip ? "text-amber-700" : "text-ink-900")}>{l.shippedQty}</span>
                           {shortShip && <span className="ml-1 text-xs text-amber-700">short {l.qty - l.shippedQty}</span>}
                           {l.shippedLots.map((b) => (
-                            <div key={b.batchId} className="whitespace-nowrap font-mono text-[0.7rem] text-ink-500">
+                            <div key={b.batchId} className="whitespace-nowrap font-mono text-[0.7rem] text-ink-500" title={b.expiresAt ? `Expires ${fmtDate(b.expiresAt)}` : undefined}>
                               <Link href={`/batch/${b.code}`} target="_blank" className="hover:text-oranje-700">{b.code}</Link> ×{b.qty}
-                              {b.expiresAt && <span className="font-sans"> · exp {fmtDate(b.expiresAt)}</span>}
                             </div>
                           ))}
                         </div>

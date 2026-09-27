@@ -155,6 +155,10 @@ export function receiptCheck(lines: ReceiptLine[]) {
   return { units, shortShipped, shortReceived, clean: shortShipped === 0 && shortReceived === 0 };
 }
 
+// ── Online orders ────────────────────────────────────────────────────────────
+
+export const FULFIL_LABEL = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier" } as const;
+
 // ── Cash ─────────────────────────────────────────────────────────────────────
 
 /** Cash-up variance colour: balanced, within R50, or over R50 out. */

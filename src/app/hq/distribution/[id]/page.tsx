@@ -77,80 +77,7 @@ export default async function DcOrderPage({ params }: { params: Promise<{ id: st
         </Notice>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader title={order.status === "APPROVED" ? "Pick list" : "Lines"} description={order.status === "APPROVED" ? "Pick first-expiry-first-out from these batches" : undefined} />
-          <Table className="mt-4">
-            <thead>
-              <tr>
-                <Th>Item</Th>
-                <Th align="right">Ordered</Th>
-                <Th align="right" className="hidden sm:table-cell">Unit ex VAT</Th>
-                {order.status === "SUBMITTED" || order.status === "APPROVED" ? <Th>Pick from (FEFO)</Th> : <Th>Batches shipped</Th>}
-                <Th align="right">{order.status === "RECEIVED" ? "Received" : order.status === "SHIPPED" ? "Shipped" : "DC available"}</Th>
-              </tr>
-            </thead>
-            <tbody>
-              {order.lines.map((l) => {
-                const p = picks?.get(l.id);
-                const shipped = (l.shipped as Shipped | null) ?? [];
-                const a = avail.get(availKey(order.sellerId, l.variantId))?.available ?? 0;
-                return (
-                  <Tr key={l.id} className="align-top">
-                    <Td>
-                      <span className="font-medium text-ink-850">{l.variant.product.name} · {l.variant.name}</span>
-                      <span className="block font-mono text-xs text-ink-500">{l.variant.sku}</span>
-                    </Td>
-                    <Td align="right" className="font-semibold">{num(l.qty)}</Td>
-                    <Td align="right" className="hidden sm:table-cell">{zar(l.unitCostCents)}</Td>
-                    <Td>
-                      {p ? (
-                        <ul className="space-y-1">
-                          {p.picks.map((x) => (
-                            <li key={x.batchId} className="flex items-center gap-2 text-xs">
-                              <span className="tnum w-8 text-right font-semibold text-ink-900">{x.qty}×</span>
-                              <Link href={`/hq/batches/${x.batchId}`} className="font-mono text-ink-700 hover:text-oranje-700">{x.code}</Link>
-                              {x.expiresAt && <span className="text-ink-400">exp {fmtDate(x.expiresAt)}</span>}
-                            </li>
-                          ))}
-                          {p.short > 0 && <li><Badge tone="red">{p.short} short</Badge></li>}
-                        </ul>
-                      ) : shipped.length ? (
-                        <ul className="space-y-1">
-                          {shipped.map((s) => (
-                            <li key={s.batchId} className="flex items-center gap-2 text-xs">
-                              <span className="tnum w-8 text-right font-semibold text-ink-900">{s.qty}×</span>
-                              <Link href={`/hq/batches/${s.batchId}`} className="font-mono text-ink-700 hover:text-oranje-700">{batchById.get(s.batchId)?.code ?? "batch"}</Link>
-                            </li>
-                          ))}
-                        </ul>
-                      ) : (
-                        <span className="text-xs text-ink-400">—</span>
-                      )}
-                    </Td>
-                    <Td align="right">
-                      {order.status === "RECEIVED" ? (
-                        <span className={(l.receivedQty ?? 0) < l.qty ? "text-amber-700" : undefined}>{num(l.receivedQty ?? 0)}</span>
-                      ) : order.status === "SHIPPED" ? (
-                        num(shipped.reduce((s, x) => s + x.qty, 0))
-                      ) : (
-                        <span className={a < l.qty ? "font-semibold text-rose-600" : undefined}>{num(a)}</span>
-                      )}
-                    </Td>
-                  </Tr>
-                );
-              })}
-            </tbody>
-          </Table>
-          <CardBody className="flex flex-wrap justify-end gap-x-8 gap-y-1 border-t border-ink-100 text-sm">
-            <span className="text-ink-500">Subtotal <b className="tnum text-ink-900">{zar(order.subtotalCents)}</b></span>
-            <span className="text-ink-500">VAT <b className="tnum text-ink-900">{zar(order.vatCents)}</b></span>
-            <span className="text-ink-500">Total <b className="tnum text-ink-900">{zar(order.totalCents)}</b></span>
-            {order.status === "RECEIVED" && <span className="text-ink-500">Invoiced on receipt <b className="tnum text-ink-900">{zar(receivedValue(order))}</b></span>}
-          </CardBody>
-        </Card>
-
-        <div className="space-y-6">
+      <div className="grid gap-6 lg:grid-cols-3">
           <Card>
             <CardHeader title="Actions" />
             <CardBody className="space-y-3">
@@ -227,7 +154,77 @@ export default async function DcOrderPage({ params }: { params: Promise<{ id: st
             </CardBody>
           </Card>
         </div>
-      </div>
+        <Card className="mt-6">
+          <CardHeader title={order.status === "APPROVED" ? "Pick list" : "Lines"} description={order.status === "APPROVED" ? "Pick first-expiry-first-out from these batches" : undefined} />
+          <Table className="mt-4">
+            <thead>
+              <tr>
+                <Th>Item</Th>
+                <Th align="right">Ordered</Th>
+                <Th align="right" className="hidden sm:table-cell">Unit ex VAT</Th>
+                {order.status === "SUBMITTED" || order.status === "APPROVED" ? <Th>Pick from (FEFO)</Th> : <Th>Batches shipped</Th>}
+                <Th align="right">{order.status === "RECEIVED" ? "Received" : order.status === "SHIPPED" ? "Shipped" : "DC available"}</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {order.lines.map((l) => {
+                const p = picks?.get(l.id);
+                const shipped = (l.shipped as Shipped | null) ?? [];
+                const a = avail.get(availKey(order.sellerId, l.variantId))?.available ?? 0;
+                return (
+                  <Tr key={l.id} className="align-top">
+                    <Td>
+                      <span className="font-medium text-ink-850">{l.variant.product.name} · {l.variant.name}</span>
+                      <span className="block font-mono text-xs text-ink-500">{l.variant.sku}</span>
+                    </Td>
+                    <Td align="right" className="font-semibold">{num(l.qty)}</Td>
+                    <Td align="right" className="hidden sm:table-cell">{zar(l.unitCostCents)}</Td>
+                    <Td>
+                      {p ? (
+                        <ul className="space-y-1">
+                          {p.picks.map((x) => (
+                            <li key={x.batchId} className="flex items-center gap-2 text-xs">
+                              <span className="tnum w-8 text-right font-semibold text-ink-900">{x.qty}×</span>
+                              <Link href={`/hq/batches/${x.batchId}`} className="font-mono text-ink-700 hover:text-oranje-700">{x.code}</Link>
+                              {x.expiresAt && <span className="text-ink-400">exp {fmtDate(x.expiresAt)}</span>}
+                            </li>
+                          ))}
+                          {p.short > 0 && <li><Badge tone="red">{p.short} short</Badge></li>}
+                        </ul>
+                      ) : shipped.length ? (
+                        <ul className="space-y-1">
+                          {shipped.map((s) => (
+                            <li key={s.batchId} className="flex items-center gap-2 text-xs">
+                              <span className="tnum w-8 text-right font-semibold text-ink-900">{s.qty}×</span>
+                              <Link href={`/hq/batches/${s.batchId}`} className="font-mono text-ink-700 hover:text-oranje-700">{batchById.get(s.batchId)?.code ?? "batch"}</Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <span className="text-xs text-ink-400">—</span>
+                      )}
+                    </Td>
+                    <Td align="right">
+                      {order.status === "RECEIVED" ? (
+                        <span className={(l.receivedQty ?? 0) < l.qty ? "text-amber-700" : undefined}>{num(l.receivedQty ?? 0)}</span>
+                      ) : order.status === "SHIPPED" ? (
+                        num(shipped.reduce((s, x) => s + x.qty, 0))
+                      ) : (
+                        <span className={a < l.qty ? "font-semibold text-rose-600" : undefined}>{num(a)}</span>
+                      )}
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+          <CardBody className="flex flex-wrap justify-end gap-x-8 gap-y-1 border-t border-ink-100 text-sm">
+            <span className="text-ink-500">Subtotal <b className="tnum text-ink-900">{zar(order.subtotalCents)}</b></span>
+            <span className="text-ink-500">VAT <b className="tnum text-ink-900">{zar(order.vatCents)}</b></span>
+            <span className="text-ink-500">Total <b className="tnum text-ink-900">{zar(order.totalCents)}</b></span>
+            {order.status === "RECEIVED" && <span className="text-ink-500">Invoiced on receipt <b className="tnum text-ink-900">{zar(receivedValue(order))}</b></span>}
+          </CardBody>
+        </Card>
     </>
   );
 }

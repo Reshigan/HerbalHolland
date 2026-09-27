@@ -40,7 +40,7 @@ change without a deploy.
 | 18+ | Age gate online; ID checks at the till and at every handover/delivery (`Order.idChecked`); `AgeCheck` recorded per sale |
 | Schedule 0 CBD (GN 586 of 2020): ≤ 600 mg per pack, ≤ 20 mg/day, low-risk claims, ≤ 0.001% THC in consumables | `validateCbdProduct()` on the product master; approved claims only on product pages |
 | Advertising (ARB Code, Medicines Act s20) | `screenCopy()` lints campaign copy and product claims (medical claims, conditions, intoxication, minors, absolute claims) and blocks sends |
-| POPIA s69 — consent / soft opt-in, opt-out in every message | Per-channel consent flags + `ConsentEvent` ledger; campaigns send only to consenting members; sender footer + STOP on every message |
+| POPIA s69 — consent / soft opt-in, opt-out in every message | Per-channel consent flags + `ConsentEvent` ledger; campaigns send only to consenting members; sender footer on every message — "Reply STOP" on texts, a signed one-click unsubscribe link on emails (`/unsubscribe`) |
 | CPA Reg 4 contact windows (no Sundays/public holidays; Sat 09–13; weekdays 08–20) | `marketingWindow()` with the SA public-holiday calendar; out-of-window sends are auto-scheduled (`nextMarketingSlot`) |
 | CPA 2026 opt-out registry (monthly cleansing) | `Suppression` table (NCC registry imports + refusals) checked on every send |
 | POPIA minimisation, special personal information | SA ID stored as HMAC + last 4; no diagnoses; exports/anonymisation tools; access scoped by role |

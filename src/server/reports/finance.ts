@@ -5,11 +5,11 @@ import { expensesFor, franchiseFees, franchiseStatement, profitAndLoss, salesByS
 import { receivedValue } from "../stock-orders";
 import { delta, previousRange } from "@/lib/ranges";
 import { applyBps, zar } from "@/lib/money";
-import { dayKey, fmtDay, fmtMonth, addDays } from "@/lib/format";
+import { dayKey, fmtDay, fmtMonth } from "@/lib/format";
 import { POINT_VALUE_CENTS, fmtPoints } from "@/lib/loyalty-rules";
 import type { Option, ReportCtx, ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
-import { STAT_SUMS, bounds, eachDay, isoDay, mapLimit, multi, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
+import { STAT_SUMS, bounds, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
 
 const EXPENSE_LABEL: Record<string, string> = {
   RENT: "Rent", SALARIES: "Salaries & wages", UTILITIES: "Electricity & water", SECURITY: "Security", MARKETING: "Local marketing",
@@ -244,8 +244,8 @@ export const cashUps: ReportDef = {
       totalRows: count,
       totals: { day: "Closed shifts", expected: c.expected, counted: c.counted, variance: c.counted - c.expected },
       summary: [
-        { label: "Shifts closed", value: c.n, format: "number", sub: `${count - c.n} still open` },
-        { label: "Balanced", value: ratio(c.balanced, c.n), format: "pct", sub: `${c.balanced} of ${c.n} to the cent` },
+        { label: "Shifts closed", value: c.n, format: "number", sub: `${n(count - c.n)} still open` },
+        { label: "Balanced", value: ratio(c.balanced, c.n), format: "pct", sub: `${n(c.balanced)} of ${n(c.n)} to the cent` },
         { label: "Total short", value: -c.short, format: "zar", upIsGood: false },
         { label: "Net variance", value: c.over + c.short, format: "zar", sub: `${zar(c.over)} over` },
       ],
@@ -318,8 +318,8 @@ export const statements: ReportDef = {
       totals: t,
       summary: [
         { label: "Statements", value: rows.length, format: "number", sub: fmtMonth(`${month}-15T12:00:00Z`) },
-        { label: "Due to HQ", value: due, format: "zar", sub: `${rows.filter((r) => (r.net as number) < 0).length} stores` },
-        { label: "HQ pays out", value: pay, format: "zar", sub: `${rows.filter((r) => (r.net as number) >= 0).length} stores` },
+        { label: "Due to HQ", value: due, format: "zar", sub: `${n(rows.filter((r) => (r.net as number) < 0).length)} stores` },
+        { label: "HQ pays out", value: pay, format: "zar", sub: `${n(rows.filter((r) => (r.net as number) >= 0).length)} stores` },
         { label: "Fees billed ex VAT", value: (t.royalty as number) + (t.levy as number) + (t.ecom as number), format: "zar" },
       ],
       empty: "No trading stores in this selection.",
@@ -346,7 +346,7 @@ export const loyaltyLiability: ReportDef = {
       db.dailyStoreStat.groupBy({ by: ["storeId"], where, _sum: STAT_SUMS }),
       db.customer.aggregate({ where: { ...memberWhere, points: { gt: 0 } }, _sum: { points: true }, _count: true }),
       ctx.networkWide
-        ? db.loyaltyEntry.groupBy({ by: ["kind"], where: { storeId: null, createdAt: { gte: start, lt: end } }, _sum: { points: true }, _count: true })
+        ? db.loyaltyEntry.groupBy({ by: ["kind"], where: { storeId: null, kind: { in: ["SIGNUP", "BIRTHDAY", "REFERRAL", "BONUS", "ADJUST"] }, createdAt: { gte: start, lt: end } }, _sum: { points: true }, _count: true })
         : Promise.resolve([]),
     ]);
     const issued = byStore.reduce((s, x) => s + (x._sum.pointsIssued ?? 0), 0);
@@ -382,7 +382,7 @@ export const loyaltyLiability: ReportDef = {
       rows,
       totals: { [multi(ctx) ? "store" : "date"]: "Total", issued, issuedValue: value(issued), redeemed, redeemedValue: value(redeemed), settlement: value(issued - redeemed), rate: ratio(redeemed, issued) },
       summary: [
-        { label: "Outstanding liability", value: value(outstanding._sum.points ?? 0), format: "zar", sub: `${fmtPoints(outstanding._sum.points ?? 0)} held by ${outstanding._count.toLocaleString()} members` },
+        { label: "Outstanding liability", value: value(outstanding._sum.points ?? 0), format: "zar", sub: `${fmtPoints(outstanding._sum.points ?? 0)} held by ${n(outstanding._count)} members` },
         { label: "Issued in period", value: issued, format: "points", sub: zar(value(issued)) },
         { label: "Redeemed in period", value: redeemed, format: "points", sub: zar(value(redeemed)) },
         { label: "Net settlement", value: value(issued - redeemed), format: "zar", sub: issued - redeemed >= 0 ? "stores pay into the pool" : "pool reimburses stores" },
@@ -406,4 +406,3 @@ export const loyaltyLiability: ReportDef = {
   },
 };
 const KIND_LABEL: Record<string, string> = { SIGNUP: "Sign-up bonus", BIRTHDAY: "Birthday bonus", REFERRAL: "Referral bonus", BONUS: "Bonus", ADJUST: "Adjustment", REVERSAL: "Reversal", EXPIRE: "Expiry", EARN: "Earned", REDEEM: "Redeemed" };
-void addDays;

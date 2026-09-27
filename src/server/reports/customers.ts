@@ -8,7 +8,7 @@ import { previousRange } from "@/lib/ranges";
 import { fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
-import { STAT_SUMS, bounds, eachDay, isoDay, multi, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
+import { STAT_SUMS, bounds, eachDay, isoDay, multi, n, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
 
 const ORDER: SegmentKey[] = ["CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
 const CONSENTED: Prisma.CustomerWhereInput = { OR: [{ consentSms: true }, { consentWhatsapp: true }, { consentEmail: true }, { consentPush: true }] };
@@ -58,7 +58,7 @@ export const segments: ReportDef = {
       totals: t,
       summary: [
         { label: "Members", value: total, format: "number" },
-        { label: "Active (bought in 60 days)", value: ratio(active, total), format: "pct", sub: `${active.toLocaleString()} members` },
+        { label: "Active (bought in 60 days)", value: ratio(active, total), format: "pct", sub: `${n(active)} members` },
         { label: "Can be contacted", value: ratio(t.reachable as number, total), format: "pct", sub: "consented to at least one channel" },
         { label: "Avg lifetime spend", value: t.avg as number | null, format: "zar", sub: "incl VAT" },
       ],
@@ -161,7 +161,7 @@ export const memberAttach: ReportDef = {
     const c = summaryOf(cur._sum), p = summaryOf(prev._sum);
     const summary = [
       { label: "Attach rate", value: c.sales ? c.memberRate : null, format: "pct" as const, sub: p.sales ? `${(p.memberRate * 100).toFixed(1)}% in the previous ${ctx.range.days} days` : undefined },
-      { label: "Member transactions", value: c.members, format: "number" as const, sub: `of ${c.sales.toLocaleString()}` },
+      { label: "Member transactions", value: c.members, format: "number" as const, sub: `of ${n(c.sales)}` },
       { label: "Walk-in transactions", value: c.sales - c.members, format: "number" as const },
     ];
     const note = "A transaction is attached when the customer's Rewards account was linked at the till or online. Refunds don't change the count.";
@@ -184,7 +184,7 @@ export const memberAttach: ReportDef = {
         rows,
         totals: { store: "Total", sales: c.sales, members: c.members, rate: c.sales ? c.memberRate : null, prev: p.sales ? p.memberRate : null, change: c.sales && p.sales ? c.memberRate - p.memberRate : null },
         summary,
-        chart: rows.length ? { kind: "bar", title: "Attach rate by store", description: "Share of transactions with a member linked", format: "pct", rows: rows.slice(0, 15).map((r) => ({ label: String(r.store), value: r.rate ?? 0, sub: `${r.members.toLocaleString()} of ${r.sales.toLocaleString()}` })) } : null,
+        chart: rows.length ? { kind: "bar", title: "Attach rate by store", description: "Share of transactions with a member linked", format: "pct", rows: rows.slice(0, 15).map((r) => ({ label: String(r.store), value: r.rate ?? 0, sub: `${n(r.members)} of ${n(r.sales)}` })) } : null,
         empty: "No transactions in this period.",
         note: `${note} Change is in percentage points.`,
       };

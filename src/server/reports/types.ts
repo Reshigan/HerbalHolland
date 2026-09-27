@@ -100,6 +100,8 @@ export type ReportDef = {
   filters?: BuiltinFilter[];
   params?: ParamDef[];
   defaultRange?: PresetKey;
+  /** Defaults for built-in filters (the select then offers an explicit "All" choice). */
+  defaults?: { channel?: "POS" | "ONLINE" };
   /** Who may run it (default: anyone who can open the scope). */
   roles?: Role[];
   /** Contains customer personal information (POPIA): restricted roles, exports audited. */

@@ -23,7 +23,7 @@ export type BuilderRow = {
   suggested: number;
 };
 
-const coverText = (c: number | null) => (c == null ? "No sales" : c < 1 ? "<1 d" : `${Math.round(c)} d`);
+const coverText = (c: number | null) => (c == null ? "No sales" : c <= 0 ? "0 d" : c < 1 ? "<1 d" : `${Math.round(c)} d`);
 
 export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; action: FormAction; dcName: string }) {
   const initial = () => Object.fromEntries(rows.map((r) => [r.variantId, r.suggested]));

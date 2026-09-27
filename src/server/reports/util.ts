@@ -51,7 +51,8 @@ export const storeLabel = (ctx: ReportCtx, id: string | null | undefined) => {
 };
 
 export const ratio = (a: number, b: number) => (b ? a / b : null);
-export const num = (v: unknown) => (v == null ? 0 : Number(v));
+/** 12,345 */
+export const n = (v: number) => v.toLocaleString("en-US");
 
 /** Column-wise sums for a totals row. */
 export function sumRows(rows: Row[], keys: string[], extra: Row = {}): Row {

@@ -3,12 +3,12 @@
 import { db, Prisma } from "../db";
 import { sast } from "../sql";
 import { delta, previousRange } from "@/lib/ranges";
-import { dayKey, fmtDay } from "@/lib/format";
+import { dayKey, fmtDate, fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import {
-  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, eachDay, isoDay, multi, ratio,
+  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, eachDay, isoDay, multi, n, ratio,
   storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap,
 } from "./util";
 
@@ -238,7 +238,7 @@ export const salesByStore: ReportDef = {
       ],
       rows,
       totals: {
-        rank: null, store: "Total", net: t.netCents, prev: prevTotal, growth: delta(t.netCents, prevTotal), sales: t.sales,
+        rank: "", store: "Total", net: t.netCents, prev: prevTotal, growth: delta(t.netCents, prevTotal), sales: t.sales,
         atv: t.sales ? t.atvCents : null, margin: t.netCents ? t.marginPct : null, members: t.sales ? t.memberRate : null,
         online: ratio(online.reduce((s, x) => s + (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0), 0), t.netCents),
       },
@@ -251,7 +251,7 @@ export const salesByStore: ReportDef = {
       chart: rows.length > 1
         ? { kind: "bar", title: "Store league", description: "Net sales ex VAT · top 15", format: "zar", rows: rows.slice(0, 15).map((r) => ({ label: `${String(r.rank).padStart(2, "0")}  ${r.store}`, value: r.net as number, sub: r.growth == null ? "new" : `${(r.growth as number) >= 0 ? "▲" : "▼"} ${Math.abs((r.growth as number) * 100).toFixed(1)}%`, tip: `${r.store} (${r.code})\n${zar(r.net as number)} net · ${r.region}` })) }
         : null,
-      note: `Growth compares with ${prevR.from} to ${prevR.to} (the same number of days immediately before). Distribution centres appear when they fulfil courier orders.`,
+      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Distribution centres appear when they fulfil courier orders.`,
     };
   },
 };
@@ -269,6 +269,7 @@ export const salesByHour: ReportDef = {
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
+  defaults: { channel: "POS" },
   params: [{ key: "measure", label: "Measure", options: [{ value: "tx", label: "Transactions" }, { value: "net", label: "Net sales" }], default: "tx" }],
   async run(ctx) {
     const { start, end } = bounds(ctx);
@@ -314,8 +315,8 @@ export const salesByHour: ReportDef = {
       rows,
       totals: t,
       summary: [
-        { label: "Busiest hour", value: `${WEEK.find((w) => w.dow === busiest.dow)!.label} ${String(busiest.hour).padStart(2, "0")}:00`, sub: measure === "net" ? zar(busiest.net) : `${busiest.tx} transactions` },
-        { label: "Busiest day", value: busiestDay.w.label, sub: measure === "net" ? zar(busiestDay.v) : `${busiestDay.v.toLocaleString()} transactions` },
+        { label: "Busiest hour", value: `${WEEK.find((w) => w.dow === busiest.dow)!.label} ${String(busiest.hour).padStart(2, "0")}:00`, sub: measure === "net" ? zar(busiest.net) : `${n(busiest.tx)} transactions` },
+        { label: "Busiest day", value: busiestDay.w.label, sub: measure === "net" ? zar(busiestDay.v) : `${n(busiestDay.v)} transactions` },
         { label: measure === "net" ? "Net sales" : "Transactions", value: grand, format: fmt },
       ],
       chart: {
@@ -396,7 +397,7 @@ export const salesByStaff: ReportDef = {
       ],
       rows: list,
       totals: t,
-      chart: list.length > 1 ? { kind: "bar", title: "Net sales by staff member", description: "Ex VAT · top 10", format: "zar", rows: list.slice(0, 10).map((x) => ({ label: x.name, value: x.net, sub: `${x.sales} sales` })) } : null,
+      chart: list.length > 1 ? { kind: "bar", title: "Net sales by staff member", description: "Ex VAT · top 10", format: "zar", rows: list.slice(0, 10).map((x) => ({ label: x.name, value: x.net, sub: `${n(x.sales)} sales` })) } : null,
       empty: "No sales recorded in this period.",
       note: "Net sales are after refunds the staff member processed. Member attach = share of their transactions linked to a Herbal Holland Rewards member. Average basket includes VAT.",
     };
@@ -462,7 +463,7 @@ export const refunds: ReportDef = {
         { label: "Refunds", value: count, format: "number" },
         { label: "Refunded incl VAT", value: value, format: "zar", upIsGood: false },
         { label: "Refund rate", value: ratio(value, salesBefore), format: "pct", sub: "of sales incl VAT" },
-        { label: "Top reason", value: byReason[0]?.reason ?? "—", sub: byReason[0] ? `${byReason[0].n} refunds` : undefined },
+        { label: "Top reason", value: byReason[0]?.reason ?? "—", sub: byReason[0] ? `${n(byReason[0].n)} refunds` : undefined },
       ],
       chart: byReason.length ? { kind: "bar", title: "Refunds by reason", description: "Value incl VAT", format: "zar", rows: byReason.slice(0, 8).map((r) => ({ label: r.reason, value: r.value, sub: `${r.n}×` })) } : null,
       empty: "No refunds in this period.",
@@ -611,7 +612,7 @@ export const onlineOrders: ReportDef = {
       summary: t
         ? [
             { label: "Orders", value: t.orders as number, format: "number" },
-            { label: "Completion rate", value: ratio(t.completed as number, (t.orders as number) - (t.cancelled as number) - (t.unpaid as number)), format: "pct", sub: `${inProgress} still in progress` },
+            { label: "Completion rate", value: ratio(t.completed as number, (t.orders as number) - (t.cancelled as number) - (t.unpaid as number)), format: "pct", sub: `${n(inProgress)} still in progress` },
             { label: "Cancel rate", value: t.cancelRate as number | null, format: "pct", upIsGood: false },
             { label: "Median time to ready", value: t.readyMedian == null ? null : `${Math.round(t.readyMedian as number)} min`, sub: t.readyP90 == null ? undefined : `90% within ${Math.round(t.readyP90 as number)} min` },
           ]

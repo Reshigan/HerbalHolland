@@ -7,7 +7,7 @@ import { suggestQty, daysOfCover } from "@/lib/replenish";
 import { addDays, dateOnly, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ParamDef, ReportCtx, ReportDef, Row } from "./types";
-import { bounds, categoryVariantIds, multi, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, userNames, variantMap } from "./util";
+import { bounds, categoryVariantIds, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, userNames, variantMap } from "./util";
 
 const catSql = (ctx: ReportCtx, alias = "p") => (ctx.category ? Prisma.sql`AND ${Prisma.raw(alias)}."categoryId" = ${ctx.category.id}` : Prisma.empty);
 const variantCatWhere = (ctx: ReportCtx) => (ctx.category ? { variant: { product: { categoryId: ctx.category.id } } } : {});
@@ -256,10 +256,10 @@ export const shrinkage: ReportDef = {
       summary: [
         { label: "Net shrinkage at cost", value: t.value as number, format: "zar", upIsGood: false },
         { label: "Shrinkage rate", value: t.pctSales as number | null, format: "pct", sub: `of ${zar(netSales)} net sales` },
-        { label: "Units lost", value: t.lost as number, format: "number", sub: `${t.found} found again` },
+        { label: "Units lost", value: t.lost as number, format: "number", sub: `${n(t.found as number)} found again` },
         { label: `Biggest ${first.toLowerCase()}`, value: top ? String(top.name) : "—", sub: top ? zar(top.value as number) : undefined },
       ],
-      chart: rows.some((r) => (r.value as number) > 0) ? { kind: "bar", title: `Net shrinkage by ${first.toLowerCase()}`, description: "At cost, ex VAT", format: "zar", rows: rows.filter((r) => (r.value as number) > 0).slice(0, 10).map((r) => ({ label: String(r.name), value: r.value as number, sub: `${r.net} units` })) } : null,
+      chart: rows.some((r) => (r.value as number) > 0) ? { kind: "bar", title: `Net shrinkage by ${first.toLowerCase()}`, description: "At cost, ex VAT", format: "zar", rows: rows.filter((r) => (r.value as number) > 0).slice(0, 10).map((r) => ({ label: String(r.name), value: r.value as number, sub: `${n(r.net as number)} units` })) } : null,
       empty: "No adjustments or count variances in this period.",
       note: "Includes manual adjustments (with their reason codes) and approved stock-take variances. Units found in a count offset losses. The rate is net shrinkage at cost divided by net sales ex VAT.",
     };
@@ -340,13 +340,13 @@ export const expiry: ReportDef = {
       totalRows: count,
       totals: { store: multi(ctx) ? "Total" : undefined, product: multi(ctx) ? undefined : "Total", onHand: sum(all, "units"), value: sum(all, "value"), retail: sum(all, "retail") },
       summary: [
-        { label: "Expired, still on hand", value: sum(["expired"], "value"), format: "zar", sub: `${sum(["expired"], "units")} units to write off`, upIsGood: false },
-        { label: "Expiring within 7 days", value: sum(["d7"], "value"), format: "zar", sub: `${sum(["d7"], "units")} units` },
-        { label: `Expiring within ${days} days`, value: sum(all.slice(1), "value"), format: "zar", sub: `${sum(all.slice(1), "units")} units in ${sum(all.slice(1), "lots")} lots` },
+        { label: "Expired, still on hand", value: sum(["expired"], "value"), format: "zar", sub: `${n(sum(["expired"], "units"))} units to write off`, upIsGood: false },
+        { label: "Expiring within 7 days", value: sum(["d7"], "value"), format: "zar", sub: `${n(sum(["d7"], "units"))} units` },
+        { label: `Expiring within ${days} days`, value: sum(all.slice(1), "value"), format: "zar", sub: `${n(sum(all.slice(1), "units"))} units in ${n(sum(all.slice(1), "lots"))} lots` },
         { label: "Retail value at risk", value: sum(all, "retail"), format: "zar", sub: "at RRP incl VAT" },
       ],
       chart: count
-        ? { kind: "column", title: "Stock value by time to expiry", description: "At cost, ex VAT", format: "zar", data: BUCKETS.filter((b) => b.key === "expired" || b.key === "d7" || Number(b.key.slice(1)) <= days).map((b) => ({ label: b.label, value: agg.get(b.key)?.value ?? 0, tip: `${b.label}\n${zar(agg.get(b.key)?.value ?? 0)} · ${agg.get(b.key)?.units ?? 0} units` })) }
+        ? { kind: "column", title: "Stock value by time to expiry", description: "At cost, ex VAT", format: "zar", data: BUCKETS.filter((b) => b.key === "expired" || b.key === "d7" || Number(b.key.slice(1)) <= days).map((b) => ({ label: b.label, value: agg.get(b.key)?.value ?? 0, tip: `${b.label}\n${zar(agg.get(b.key)?.value ?? 0)} · ${n(agg.get(b.key)?.units ?? 0)} units` })) }
         : null,
       empty: `Nothing expires in the next ${days} days.`,
       note: `Expired stock can't be sold (the till blocks it) — write it off as an EXPIRED adjustment. Stock within ${markdownDays} days of expiry is marked down ${markdownPct}% at the till.`,
@@ -362,9 +362,9 @@ export const deadStock: ReportDef = {
   group: "Inventory",
   scopes: ["store", "hq"],
   filters: ["category"],
-  params: [{ key: "days", label: "No sales for", options: [{ value: "30", label: "30 days" }, { value: "60", label: "60 days" }, { value: "90", label: "90 days" }], default: "60" }],
+  params: [{ key: "days", label: "No sales for", options: [{ value: "30", label: "30 days" }, { value: "60", label: "60 days" }, { value: "90", label: "90 days" }], default: "30" }],
   async run(ctx) {
-    const days = Number(ctx.params.days) || 60;
+    const days = Number(ctx.params.days) || 30;
     const ids = retailIds(ctx);
     const since = dateOnly(addDays(ctx.now, -(days - 1)));
     const yearAgo = dateOnly(addDays(ctx.now, -365));
@@ -426,7 +426,7 @@ export const deadStock: ReportDef = {
       summary: [
         { label: "Dead stock at cost", value, format: "zar", upIsGood: false },
         { label: "Share of stock value", value: ratio(value, stock[0]?.value ?? 0), format: "pct" },
-        { label: "Lines", value: data.length, format: "number", sub: `${units.toLocaleString()} units` },
+        { label: "Lines", value: data.length, format: "number", sub: `${n(units)} units` },
       ],
       chart: byCat.size ? { kind: "bar", title: "Dead stock by category", description: "At cost, ex VAT", format: "zar", rows: [...byCat].sort((a, b) => b[1] - a[1]).map(([label, v]) => ({ label, value: v })) } : null,
       empty: `Everything on hand has sold in the last ${days} days.`,
@@ -498,7 +498,7 @@ export const sellThrough: ReportDef = {
         { label: "Units on hand", value: tStock, format: "number" },
         { label: "Days of cover", value: tCover == null ? null : Math.round(tCover), format: "number", sub: "at this period's pace" },
       ],
-      chart: byCat.size > 1 ? { kind: "bar", title: "Sell-through by category", description: `Sold ÷ (sold + on hand) over ${d} days`, format: "pct", rows: [...byCat].map(([label, c]) => ({ label, value: ratio(c.sold, c.sold + c.stock) ?? 0, sub: `${c.sold} sold` })).sort((a, b) => b.value - a.value) } : null,
+      chart: byCat.size > 1 ? { kind: "bar", title: "Sell-through by category", description: `Sold ÷ (sold + on hand) over ${d} days`, format: "pct", rows: [...byCat].map(([label, c]) => ({ label, value: ratio(c.sold, c.sold + c.stock) ?? 0, sub: `${n(c.sold)} sold` })).sort((a, b) => b.value - a.value) } : null,
       empty: "No stock or sales for these filters.",
       note: "Sell-through = units sold in the period ÷ (units sold + sellable units on hand now). Days of cover = on hand ÷ average daily sales in the period. Distribution centres are excluded.",
     };
@@ -547,7 +547,7 @@ export const lowStock: ReportDef = {
       const v = info.get(r.variantId);
       return {
         ...storeVals(ctx, r.storeId), product: v?.name ?? "", sku: v?.sku ?? "", category: v?.category ?? "",
-        status: r.available <= 0 ? "Out of stock" : r.suggested === 0 && r.oo > 0 ? "Covered by open order" : "Below reorder point",
+        status: r.available <= 0 ? "Out of stock" : r.suggested > 0 ? "Reorder now" : "On order",
         available: r.available, onOrder: r.oo, reorderPoint: r.reorderPoint, par: r.parLevel, perDay: Math.round(r.avgDaily * 100) / 100,
         cover: r.cover == null ? null : Math.round(r.cover * 10) / 10, suggested: r.suggested, cost: r.suggested * (v?.wholesaleCents ?? 0),
       };
@@ -561,7 +561,7 @@ export const lowStock: ReportDef = {
         { key: "product", label: "Product" },
         { key: "sku", label: "SKU" },
         { key: "category", label: "Category" },
-        { key: "status", label: "Status", format: "badge", tones: { "Out of stock": "red", "Below reorder point": "amber", "Covered by open order": "blue" } },
+        { key: "status", label: "Status", format: "badge", tones: { "Out of stock": "red", "Reorder now": "amber", "On order": "blue" } },
         { key: "available", label: "Available", format: "number" },
         { key: "onOrder", label: "On order", format: "number" },
         { key: "reorderPoint", label: "Reorder point", format: "number" },

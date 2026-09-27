@@ -3,6 +3,7 @@
 import { createHmac, randomInt } from "node:crypto";
 import { db, tx } from "./db";
 import { send } from "./messaging";
+import { APP_URL } from "./invoices";
 import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
@@ -22,7 +23,9 @@ export async function requestOtp(raw: string) {
   if (recent >= 5) throw new CustomerError("Too many codes requested — try again in 10 minutes");
   const code = String(randomInt(100_000, 1_000_000));
   await db.otp.create({ data: { phone, codeHash: sha256(`${phone}:${code}`), expiresAt: new Date(Date.now() + 10 * 60_000) } });
-  await send({ channel: "SMS", to: phone, body: "Your Herbal Holland sign-in code is ••••••. It expires in 10 minutes.", kind: "TRANSACTIONAL" });
+  const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
+  const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
+  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now — please try again in a minute");
   return { phone, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
 }
 
