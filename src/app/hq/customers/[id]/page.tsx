@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge, TierBadge } from "@/components/ui/status";
 import { Detail } from "@/components/ui/misc";
 import { Meter } from "@/components/ui/stat";
-import { ButtonLink } from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ConfirmAction } from "@/components/hq/action-form";
@@ -76,9 +76,9 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
         actions={
           admin &&
           !anonymised && (
-            <ButtonLink href={`/hq/customers/${c.id}/export`} variant="outline" prefetch={false}>
+            <a href={`/hq/customers/${c.id}/export`} download className={buttonClass("outline")}>
               <Download className="h-4 w-4" /> Export data
-            </ButtonLink>
+            </a>
           )
         }
       />
