@@ -310,7 +310,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     let last = 0;
     const onKey = (e: KeyboardEvent) => {
       if (switching) return;
+      const dialog = !!document.querySelector("[role=dialog]");
       if (e.key === "F2" || e.key === "F4" || e.key === "F9") {
+        if (dialog) return; // sheets own the keyboard (Esc closes them)
         e.preventDefault();
         setTab("sell");
         setTimeout(() => (e.key === "F2" ? sellApi.current?.focusSearch() : e.key === "F4" ? sellApi.current?.openCustomer() : sellApi.current?.pay()), 0);
@@ -318,7 +320,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       }
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
-      if (document.querySelector("[role=dialog]")) return;
+      if (dialog) return;
       const now = performance.now();
       if (e.key === "Enter") {
         if (buf.length >= 4 && now - last < 120) {

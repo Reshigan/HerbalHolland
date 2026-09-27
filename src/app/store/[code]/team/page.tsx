@@ -1,0 +1,185 @@
+import { KeyRound, ShieldCheck, UserPlus, Users2 } from "lucide-react";
+import { requireStaff } from "@/server/auth";
+import { canManageStore, storeForUser } from "@/server/scope";
+import { db } from "@/server/db";
+import { timeAgo } from "@/lib/format";
+import { addStaff, resetPin, setActive, setDispenser } from "./actions";
+import { PageHeader, EmptyState, Notice } from "@/components/ui/page";
+import { Card, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/misc";
+import { Checkbox, Field, Input } from "@/components/ui/form";
+import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { ReadOnlyNote } from "@/components/store/ui";
+import { Select } from "@/components/store/select";
+import { Drawer } from "@/components/store/drawer";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+
+export const metadata = { title: "Team" };
+const ROLE: Record<string, string> = { MANAGER: "Store manager", BUDTENDER: "Budtender", OWNER: "Owner" };
+
+export default async function TeamPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  const user = await requireStaff();
+  const store = await storeForUser(user, code);
+  const canManage = canManageStore(user);
+  const ownerLevel = user.role === "OWNER" || user.role === "HQ_ADMIN";
+  const [staff, owners] = await Promise.all([
+    db.user.findMany({ where: { storeId: store.id, role: { in: ["MANAGER", "BUDTENDER"] } }, orderBy: [{ active: "desc" }, { role: "asc" }, { name: "asc" }] }),
+    db.user.findMany({ where: { companyId: store.companyId, role: "OWNER" }, select: { id: true, name: true, email: true, lastLoginAt: true } }),
+  ]);
+  const active = staff.filter((s) => s.active);
+  const may = (t: (typeof staff)[number]) => ownerLevel || (user.role === "MANAGER" && (t.role === "BUDTENDER" || t.id === user.id));
+
+  return (
+    <>
+      <PageHeader
+        overline={`Store · ${store.name}`}
+        title="Team"
+        description="Everyone who works the tills. Staff sign in at a paired POS with a personal 4-digit PIN; managers can also have a back-office login."
+        actions={
+          canManage && (
+            <Drawer label="Add staff" icon={<UserPlus className="h-4 w-4" aria-hidden />} title="Add a team member" description={`Works at ${store.name}`}>
+              <ActionForm action={addStaff.bind(null, store.code)} className="space-y-4">
+                <Field label="Full name" htmlFor="st-name">
+                  <Input id="st-name" name="name" maxLength={80} autoComplete="off" />
+                  <FieldError name="name" />
+                </Field>
+                <Field label="Role" htmlFor="st-role" hint={ownerLevel ? undefined : "Only the owner can add managers"}>
+                  <Select id="st-role" name="role" defaultValue="BUDTENDER">
+                    <option value="BUDTENDER">Budtender</option>
+                    {ownerLevel && <option value="MANAGER">Store manager</option>}
+                  </Select>
+                  <FieldError name="role" />
+                </Field>
+                <Field label="Till PIN (4 digits)" htmlFor="st-pin" hint="No repeated or running digits. Share it in person.">
+                  <Input id="st-pin" name="pin" inputMode="numeric" maxLength={4} autoComplete="off" className="tnum tracking-[0.4em]" />
+                  <FieldError name="pin" />
+                </Field>
+                <fieldset className="space-y-3 rounded-2xl bg-ink-50 p-4">
+                  <legend className="sr-only">Back-office login</legend>
+                  <p className="text-xs font-semibold text-ink-700">Back-office login (optional)</p>
+                  <Field label="Work email" htmlFor="st-email">
+                    <Input id="st-email" name="email" type="email" maxLength={120} autoComplete="off" />
+                    <FieldError name="email" />
+                  </Field>
+                  <Field label="Password" htmlFor="st-pass" hint="At least 8 characters">
+                    <Input id="st-pass" name="password" type="password" autoComplete="new-password" />
+                    <FieldError name="password" />
+                  </Field>
+                </fieldset>
+                {ownerLevel && (
+                  <Checkbox name="canDispense" label="Authorised dispenser" description="May complete sales of licensed medicines (SAHPRA). Only tick for your responsible pharmacist or trained, authorised staff." />
+                )}
+                <SubmitButton className="w-full" pendingLabel="Adding…">Add to team</SubmitButton>
+              </ActionForm>
+            </Drawer>
+          )
+        }
+      />
+
+      <Notice tone="info" className="mb-6">
+        {active.filter((s) => s.canDispense).length} of {active.length} active staff are authorised dispensers. Licensed medicines can only be sold when one of them is signed in at the till.
+      </Notice>
+
+      <Card>
+        {staff.length === 0 ? (
+          <EmptyState icon={<Users2 className="h-5 w-5" />} title="No staff yet" />
+        ) : (
+          <Table>
+            <thead>
+              <tr>
+                <Th>Name</Th>
+                <Th>Role</Th>
+                <Th>Access</Th>
+                <Th>Last sign-in</Th>
+                <Th>Status</Th>
+                {canManage && <Th><span className="sr-only">Actions</span></Th>}
+              </tr>
+            </thead>
+            <tbody>
+              {staff.map((s) => (
+                <Tr key={s.id} className={!s.active ? "text-ink-400" : undefined}>
+                  <Td className="min-w-48">
+                    <div className="flex items-center gap-3">
+                      <Avatar name={s.name} className={!s.active ? "opacity-50" : undefined} />
+                      <div>
+                        <div className="font-medium text-ink-900">
+                          {s.name}
+                          {s.id === user.id && <span className="ml-1.5 text-xs font-normal text-ink-400">(you)</span>}
+                        </div>
+                        <div className="text-xs text-ink-500">{s.email ?? "Till PIN only"}</div>
+                      </div>
+                    </div>
+                  </Td>
+                  <Td>
+                    <Badge tone={s.role === "MANAGER" ? "dark" : "neutral"}>{ROLE[s.role]}</Badge>
+                  </Td>
+                  <Td>
+                    <div className="flex flex-wrap gap-1">
+                      {s.canDispense && (
+                        <Badge tone="green">
+                          <ShieldCheck className="h-3 w-3" aria-hidden /> Dispenser
+                        </Badge>
+                      )}
+                      {!s.pinHash && s.active && <Badge tone="amber">No PIN</Badge>}
+                      {s.email && <Badge tone="blue">Back office</Badge>}
+                    </div>
+                  </Td>
+                  <Td className="whitespace-nowrap text-ink-600">{s.lastLoginAt ? timeAgo(s.lastLoginAt) : <span className="text-ink-300">Never</span>}</Td>
+                  <Td>{s.active ? <Badge tone="green" dot>Active</Badge> : <Badge dot>Inactive</Badge>}</Td>
+                  {canManage && (
+                    <Td className="text-right">
+                      {may(s) && (
+                        <div className="flex flex-wrap justify-end gap-2">
+                          {s.active && (
+                            <ConfirmAction action={resetPin.bind(null, store.code, s.id)} label={s.pinHash ? "Reset PIN" : "Set PIN"} icon={<KeyRound className="h-3.5 w-3.5" aria-hidden />} title={`New till PIN for ${s.name}`} confirmLabel="Save PIN" variant="dark" className="min-w-64">
+                              <Field label="New 4-digit PIN" htmlFor={`pin-${s.id}`}>
+                                <Input id={`pin-${s.id}`} name="pin" inputMode="numeric" maxLength={4} autoComplete="off" className="tnum tracking-[0.4em]" />
+                                <FieldError name="pin" />
+                              </Field>
+                            </ConfirmAction>
+                          )}
+                          {ownerLevel && s.active && (
+                            <ActionButton action={setDispenser.bind(null, store.code, s.id, !s.canDispense)} variant="ghost">
+                              {s.canDispense ? "Remove dispenser" : "Make dispenser"}
+                            </ActionButton>
+                          )}
+                          {s.id !== user.id &&
+                            (s.active ? (
+                              <ConfirmAction action={setActive.bind(null, store.code, s.id, false)} label="Deactivate" title={`Deactivate ${s.name}?`} confirmLabel="Deactivate" className="min-w-64">
+                                They&apos;re signed out of every till and the back office straight away. Their sales history is kept.
+                              </ConfirmAction>
+                            ) : (
+                              <ActionButton action={setActive.bind(null, store.code, s.id, true)} variant="outline">Reactivate</ActionButton>
+                            ))}
+                        </div>
+                      )}
+                    </Td>
+                  )}
+                </Tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader title="Owners" description={`${store.company.legalName} — owners see every store in the company`} />
+        <div className="flex flex-wrap gap-3 p-5">
+          {owners.map((o) => (
+            <div key={o.id} className="flex items-center gap-3 rounded-xl border border-ink-150 px-3 py-2">
+              <Avatar name={o.name} />
+              <div className="text-sm">
+                <div className="font-medium text-ink-900">{o.name}</div>
+                <div className="text-xs text-ink-500">{o.email}</div>
+              </div>
+            </div>
+          ))}
+          {!owners.length && <p className="text-sm text-ink-500">No owner login on file.</p>}
+        </div>
+        {!canManage && <ReadOnlyNote className="m-5 mt-0" />}
+      </Card>
+    </>
+  );
+}

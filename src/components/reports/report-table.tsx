@@ -11,7 +11,7 @@ import { fmtCell, isNumeric } from "./format";
 const alignOf = (c: Column) => c.align ?? (isNumeric(c.format) ? "right" : "left");
 const ALIGN = { left: "text-left", right: "text-right", center: "text-center" } as const;
 // Identifier-like columns never wrap.
-const CODE_KEYS = new Set(["sku", "code", "batch", "number", "of", "ref", "member", "patient", "auth", "field"]);
+const CODE_KEYS = new Set(["sku", "code", "batch", "batches", "number", "of", "ref", "member", "patient", "auth", "field", "phone"]);
 // CSS-only scroll shadows: the covers scroll with the content, the shadows stay at the edges,
 // so a shadow shows exactly when there is more table to scroll to.
 const SCROLL_SHADOWS: React.CSSProperties = {

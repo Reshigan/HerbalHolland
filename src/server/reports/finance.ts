@@ -7,7 +7,7 @@ import { delta, previousRange } from "@/lib/ranges";
 import { applyBps, zar } from "@/lib/money";
 import { dayKey, fmtDay, fmtMonth } from "@/lib/format";
 import { POINT_VALUE_CENTS, fmtPoints } from "@/lib/loyalty-rules";
-import type { Option, ReportCtx, ReportDef, Row } from "./types";
+import type { Column, Option, ReportCtx, ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
 
@@ -355,16 +355,18 @@ export const loyaltyLiability: ReportDef = {
     const memberWhere = ctx.networkWide ? {} : { homeStoreId: { in: ctx.storeIds } };
     const { start, end } = bounds(ctx);
     const [byDay, byStore, outstanding, hq] = await Promise.all([
-      db.dailyStoreStat.groupBy({ by: ["date"], where, _sum: { pointsIssued: true, loyaltyCents: true }, orderBy: { date: "asc" } }),
-      db.dailyStoreStat.groupBy({ by: ["storeId"], where, _sum: STAT_SUMS }),
+      db.dailyStoreStat.groupBy({ by: ["date"], where, _sum: { pointsIssued: true, loyaltyCents: true, memberSavingsCents: true }, orderBy: { date: "asc" } }),
+      db.dailyStoreStat.groupBy({ by: ["storeId"], where, _sum: { pointsIssued: true, loyaltyCents: true, memberSavingsCents: true } }),
       db.customer.aggregate({ where: { ...memberWhere, points: { gt: 0 } }, _sum: { points: true }, _count: true }),
       ctx.networkWide
         ? db.loyaltyEntry.groupBy({ by: ["kind"], where: { storeId: null, kind: { in: ["SIGNUP", "BIRTHDAY", "REFERRAL", "BONUS", "ADJUST"] }, createdAt: { gte: start, lt: end } }, _sum: { points: true }, _count: true })
         : Promise.resolve([]),
     ]);
-    const saved = await db.dailyStoreStat.groupBy({ by: [multi(ctx) ? "storeId" : "date"], where, _sum: { memberSavingsCents: true } });
-    const savedBy = new Map(saved.map((x) => [("storeId" in x ? (x.storeId as string) : isoDay((x as { date: Date }).date)), x._sum.memberSavingsCents ?? 0]));
-    const savings = saved.reduce((s, x) => s + (x._sum.memberSavingsCents ?? 0), 0);
+    const savedBy = new Map<string, number>([
+      ...byStore.map((x) => [x.storeId, x._sum.memberSavingsCents ?? 0] as const),
+      ...byDay.map((d) => [isoDay(d.date), d._sum.memberSavingsCents ?? 0] as const),
+    ]);
+    const savings = byStore.reduce((s, x) => s + (x._sum.memberSavingsCents ?? 0), 0);
     const issued = byStore.reduce((s, x) => s + (x._sum.pointsIssued ?? 0), 0);
     const redeemed = byStore.reduce((s, x) => s + Math.round((x._sum.loyaltyCents ?? 0) / POINT_VALUE_CENTS), 0);
     const days = new Map(byDay.map((d) => [isoDay(d.date), { issued: d._sum.pointsIssued ?? 0, redeemed: Math.round((d._sum.loyaltyCents ?? 0) / POINT_VALUE_CENTS) }]));
@@ -372,7 +374,7 @@ export const loyaltyLiability: ReportDef = {
     const trend = completeDays(ctx, series);
     const value = (p: number) => p * POINT_VALUE_CENTS;
     let rows: Row[];
-    let columns;
+    let columns: Column[];
     if (multi(ctx)) {
       rows = byStore
         .map((x) => {

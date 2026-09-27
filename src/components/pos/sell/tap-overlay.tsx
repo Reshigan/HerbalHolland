@@ -28,6 +28,20 @@ export function TapOverlay({
   const approvedRef = useRef(onApproved);
   approvedRef.current = onApproved;
 
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "Escape") return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      ctrl.current?.abort();
+      closeRef.current();
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, []);
+
   useEffect(() => {
     const c = new AbortController();
     ctrl.current = c;

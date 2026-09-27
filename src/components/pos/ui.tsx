@@ -180,8 +180,9 @@ export function Sheet({
     const fn = () => dismissable && close.current();
     stack.push(fn);
     const prev = document.activeElement as HTMLElement | null;
-    const first = ref.current?.querySelector<HTMLElement>("[autofocus], input:not([type=hidden]), select, textarea, button:not([data-close])");
-    (first ?? ref.current)?.focus({ preventScroll: true });
+    // Children that want the keyboard use autoFocus; otherwise focus the dialog itself so
+    // phones and tablets don't pop the on-screen keyboard uninvited.
+    if (!ref.current?.contains(document.activeElement)) ref.current?.focus({ preventScroll: true });
     return () => {
       stack.splice(stack.indexOf(fn), 1);
       prev?.focus?.({ preventScroll: true });

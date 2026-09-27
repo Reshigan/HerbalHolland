@@ -20,6 +20,7 @@ import {
   toLocalInput,
   parseLocal,
   scheduleLabel,
+  weakPin,
 } from "@/server/store/rules";
 
 describe("stock status", () => {
@@ -172,5 +173,15 @@ describe("promotion schedules", () => {
     expect(scheduleLabel([5, 1, 2, 3, 4], 960, 1080)).toBe("Weekdays · 16:00–18:00");
     expect(scheduleLabel([0, 6])).toBe("Weekends");
     expect(scheduleLabel([0, 3, 1])).toBe("Mon, Wed, Sun");
+  });
+});
+
+describe("till PINs", () => {
+  it("rejects repeated and running digits", () => {
+    expect(weakPin("1111")).toBe(true);
+    expect(weakPin("3456")).toBe(true);
+    expect(weakPin("8765")).toBe(true);
+    expect(weakPin("2719")).toBe(false);
+    expect(weakPin("1123")).toBe(false);
   });
 });

@@ -287,6 +287,13 @@ export const clock = (minutes: number | null | undefined) =>
 
 export const isPin = (s: string) => /^\d{4}$/.test(s);
 
+/** Easily guessed till PINs: one repeated digit, or a straight run up or down (1234, 9876). */
+export function weakPin(pin: string) {
+  const d = pin.split("").map(Number);
+  const steps = d.slice(1).map((x, i) => x - d[i]);
+  return steps.every((s) => s === 0) || steps.every((s) => s === 1) || steps.every((s) => s === -1);
+}
+
 // ── URLs ───────────────────────────────────────────────────────────
 
 /** `path?…` keeping the current params, applying `patch` (null/"" removes a key). */

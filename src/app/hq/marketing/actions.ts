@@ -67,7 +67,7 @@ export async function saveCampaign(campaignId: string | null, _: ActionState, fd
   let id = campaignId;
   if (id) {
     const c = await db.campaign.findUnique({ where: { id }, select: { status: true, storeId: true } });
-    if (!c || (c.storeId && !(await inScope(g.scope, c.storeId)))) return DENIED;
+    if (!c || (network ? c.storeId && !(await inScope(g.scope, c.storeId)) : !c.storeId || !(await inScope(g.scope, c.storeId)))) return DENIED;
     if (c.status !== "DRAFT" && c.status !== "SCHEDULED") return fail("Sent or cancelled campaigns can't be edited.");
     await db.campaign.update({ where: { id }, data: { ...data, status: "DRAFT", scheduledAt: null } });
   } else {

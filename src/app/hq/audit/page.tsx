@@ -39,6 +39,10 @@ const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "settings.", label: "Settings", tone: "neutral" },
   { prefix: "statement.", label: "Statements", tone: "neutral" },
   { prefix: "announcement.", label: "Announcements", tone: "neutral" },
+  { prefix: "pos.", label: "Till sign-ins", tone: "dark" },
+  { prefix: "shift.", label: "Shifts & cash-ups", tone: "dark" },
+  { prefix: "device.", label: "Till devices", tone: "dark" },
+  { prefix: "report.", label: "Report exports", tone: "neutral" },
   { prefix: "user.", label: "Users", tone: "dark" },
   { prefix: "auth.", label: "Sign-ins", tone: "dark" },
 ];

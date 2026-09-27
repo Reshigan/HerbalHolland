@@ -1,0 +1,153 @@
+import { MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { requireStaff } from "@/server/auth";
+import { canManageStore, storeForUser } from "@/server/scope";
+import { db } from "@/server/db";
+import { readHours, WEEK } from "@/server/store/rules";
+import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
+import { bps } from "@/lib/money";
+import { displayPhone, PROVINCES } from "@/lib/sa";
+import { fmtDate, timeAgo } from "@/lib/format";
+import { revokeDevice, saveStoreDetails } from "./actions";
+import { HoursEditor } from "./hours-editor";
+import { PageHeader, EmptyState } from "@/components/ui/page";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status";
+import { ButtonLink } from "@/components/ui/button";
+import { Checkbox, Field, Input } from "@/components/ui/form";
+import { Line, ReadOnlyNote } from "@/components/store/ui";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+
+export const metadata = { title: "Store settings" };
+
+export default async function SettingsPage({ params }: { params: Promise<{ code: string }> }) {
+  const { code } = await params;
+  const user = await requireStaff();
+  const store = await storeForUser(user, code);
+  const canManage = canManageStore(user);
+  const devices = await db.device.findMany({ where: { storeId: store.id }, orderBy: [{ active: "desc" }, { createdAt: "asc" }] });
+  const hours = readHours(store.hours);
+
+  return (
+    <>
+      <PageHeader
+        overline={`Store · ${store.name}`}
+        title="Settings"
+        description={`${store.addressLine}, ${store.suburb}, ${store.city}, ${PROVINCES[store.province]} ${store.postalCode}. Address, licences and commercial terms are managed by HQ.`}
+      />
+      <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="min-w-0 xl:col-span-2">
+          <CardHeader title="Store details" description="Shown on the website, store finder, receipts and order messages" />
+          <CardBody>
+            {canManage ? (
+              <ActionForm action={saveStoreDetails.bind(null, store.code)} className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field label="Phone" htmlFor="s-phone">
+                    <Input id="s-phone" name="phone" type="tel" defaultValue={store.phone ?? ""} placeholder="012 345 6789" />
+                    <FieldError name="phone" />
+                  </Field>
+                  <Field label="WhatsApp (mobile)" htmlFor="s-wa" hint="For customer service only">
+                    <Input id="s-wa" name="whatsapp" type="tel" defaultValue={store.whatsapp ? displayPhone(store.whatsapp) : ""} placeholder="071 234 5678" />
+                    <FieldError name="whatsapp" />
+                  </Field>
+                  <Field label="Email" htmlFor="s-email">
+                    <Input id="s-email" name="email" type="email" defaultValue={store.email ?? ""} />
+                    <FieldError name="email" />
+                  </Field>
+                </div>
+                <HoursEditor initial={hours} />
+                <FieldError name="hours" />
+                <fieldset className="grid gap-3 rounded-2xl bg-ink-50 p-4 sm:grid-cols-2">
+                  <legend className="sr-only">Online fulfilment</legend>
+                  <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Customers can order online and collect here. Turn off during stock takes or renovations." />
+                  <Checkbox name="sameDay" defaultChecked={store.sameDay} label="Same-day delivery" description="This store may be picked for same-day orders within 30 km." />
+                </fieldset>
+                <SubmitButton pendingLabel="Saving…">Save details</SubmitButton>
+              </ActionForm>
+            ) : (
+              <div className="space-y-4">
+                <div>
+                  <Line label="Phone" value={store.phone ?? "—"} />
+                  <Line label="WhatsApp" value={store.whatsapp ? displayPhone(store.whatsapp) : "—"} />
+                  <Line label="Email" value={store.email ?? "—"} />
+                  <Line label="Click & collect" value={store.clickCollect ? "On" : "Off"} />
+                  <Line label="Same-day delivery" value={store.sameDay ? "On" : "Off"} />
+                </div>
+                <div>
+                  {WEEK.map(([k, name]) => (
+                    <Line key={k} label={name} value={hours[k] ? `${hours[k]!.open}–${hours[k]!.close}` : "Closed"} />
+                  ))}
+                </div>
+                <ReadOnlyNote />
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <div className="min-w-0 space-y-6">
+          <Card>
+            <CardHeader title="Licences & VAT" description="Held on record by HQ — contact HQ to change" />
+            <CardBody className="space-y-4 pt-3">
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink-900">
+                  <ShieldCheck className="h-4 w-4 text-leaf-600" aria-hidden /> Licensed to sell
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {store.licences.length ? store.licences.map((l) => <Badge key={l} tone="green">{REG_CLASS_LABEL[l as RegClass]}</Badge>) : <span className="text-sm text-ink-500">No licensed classes</span>}
+                </div>
+                {store.licenceRef && <p className="mt-2 font-mono text-xs text-ink-500">{store.licenceRef}</p>}
+              </div>
+              <div className="border-t border-ink-100 pt-3">
+                <Line label="Company" value={store.company.legalName} />
+                <Line label="Registration no." value={store.company.regNumber ?? "—"} />
+                <Line label="VAT" value={store.company.vatNumber ? <span className="font-mono">{store.company.vatNumber}</span> : <Badge tone="amber">Not VAT-registered</Badge>} />
+                <Line label="Status" value={<StatusBadge status={store.status} />} />
+                <Line label="Format" value={store.format.charAt(0) + store.format.slice(1).toLowerCase()} />
+                <Line label="Region" value={store.region.name} />
+                <Line label="Supplied by" value={store.dc?.name ?? "—"} />
+                {store.openedAt && <Line label="Trading since" value={fmtDate(store.openedAt)} />}
+              </div>
+              <div className="border-t border-ink-100 pt-3">
+                <Line label="Royalty" value={bps(store.royaltyBps)} />
+                <Line label="Marketing fund levy" value={bps(store.levyBps)} />
+                <Line label="E-commerce commission" value={bps(store.ecomBps)} />
+              </div>
+            </CardBody>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Paired tills"
+              description="Devices that can trade as this store"
+              action={canManage && <ButtonLink href="/pos/pair" variant="ghost" size="sm">Pair a till</ButtonLink>}
+            />
+            <CardBody className="space-y-2 pt-3">
+              {devices.length === 0 && <EmptyState className="py-6" icon={<MonitorSmartphone className="h-5 w-5" />} title="No tills paired">Open Pair a till on the device while signed in as a manager or owner.</EmptyState>}
+              {devices.map((d) => (
+                <div key={d.id} className="flex items-center justify-between gap-3 rounded-xl border border-ink-150 px-3 py-2.5">
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-ink-900">{d.name}</div>
+                    <div className="text-xs text-ink-500">
+                      Prefix {d.prefix} · {d.lastSeenAt ? `seen ${timeAgo(d.lastSeenAt)}` : "never used"}
+                    </div>
+                  </div>
+                  {d.active ? (
+                    canManage ? (
+                      <ConfirmAction action={revokeDevice.bind(null, store.code, d.id)} label="Revoke" title={`Revoke ${d.name}?`} confirmLabel="Revoke till" className="min-w-56">
+                        It stops trading immediately and signs out whoever is on it — sync any offline sales on it first.
+                      </ConfirmAction>
+                    ) : (
+                      <Badge tone="green" dot>Active</Badge>
+                    )
+                  ) : (
+                    <Badge>Revoked</Badge>
+                  )}
+                </div>
+              ))}
+            </CardBody>
+          </Card>
+        </div>
+      </div>
+    </>
+  );
+}

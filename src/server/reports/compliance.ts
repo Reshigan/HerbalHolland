@@ -124,6 +124,7 @@ export const dispensingRegister: ReportDef = {
       const issues = x.kind === "SALE" ? [!x.authNumber && "No valid authorisation", x.canDispense === false || !x.dispenser ? "Not an authorised dispenser" : null].filter(Boolean) : [];
       return {
         at: x.at, ...storeVals(ctx, x.storeId), number: x.number, type: x.kind === "REFUND" ? "Return" : CHANNEL_LABEL[x.channel] ?? x.channel,
+        who: `${x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "Unknown"}${x.memberNo ? ` · ${x.memberNo}` : ""}`,
         patient: x.memberNo ?? "—", name: x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "", auth: x.authNumber ?? "",
         prescriber: x.prescriber ? `${x.prescriber} (${x.prescriberRegNo})` : "", product: x.product, batches: x.batches ?? "",
         qty: x.qty, grams: x.grams == null ? null : Math.round(x.grams * 10) / 10, dispenser: x.dispenser ?? "", check: issues.length ? issues.join("; ") : "OK",
@@ -135,18 +136,19 @@ export const dispensingRegister: ReportDef = {
       columns: [
         { key: "at", label: "Dispensed", format: "datetime" },
         ...storeCols(ctx),
-        { key: "number", label: "Sale" },
-        { key: "type", label: "Type" },
-        { key: "patient", label: "Patient no." },
-        { key: "name", label: "Patient" },
-        { key: "auth", label: "Authorisation" },
-        { key: "prescriber", label: "Prescriber (HPCSA)" },
+        { key: "who", label: "Patient" },
+        { key: "patient", label: "Patient no.", csvOnly: true },
+        { key: "name", label: "Patient name", csvOnly: true },
         { key: "product", label: "Product" },
-        { key: "batches", label: "Batch" },
         { key: "qty", label: "Qty", format: "number" },
         { key: "grams", label: "Grams", format: "number" },
+        { key: "batches", label: "Batch" },
+        { key: "auth", label: "Authorisation" },
+        { key: "prescriber", label: "Prescriber (HPCSA)" },
         { key: "dispenser", label: "Dispensed by" },
         { key: "check", label: "Check", format: "badge", tones: { OK: "green" } },
+        { key: "number", label: "Sale" },
+        { key: "type", label: "Type", csvOnly: true },
       ],
       rows,
       totalRows: a.n,
@@ -328,14 +330,14 @@ export const batchTrace: ReportDef = {
     const id = ctx.params.batch;
     const columns = [
       { key: "at", label: "When", format: "datetime" as const },
-      { key: "number", label: "Sale" },
       ...storeCols(ctx),
-      { key: "type", label: "Type" },
-      { key: "member", label: "Member no." },
       { key: "name", label: "Customer" },
+      { key: "member", label: "Member no." },
       { key: "phone", label: "Phone" },
-      { key: "email", label: "Email" },
       { key: "units", label: "Units", format: "number" as const },
+      { key: "type", label: "Type" },
+      { key: "number", label: "Sale" },
+      { key: "email", label: "Email" },
     ];
     if (!id) return { columns, rows: [], emptyTitle: "Choose a batch", empty: "Pick a batch above to see where it went and who bought it." };
     const saleIds = Prisma.sql`SELECT DISTINCT "saleId" FROM "StockMovement" WHERE "batchId" = ${id} AND "saleId" IS NOT NULL AND "storeId" = ANY(${ctx.storeIds}::text[])`;
@@ -368,7 +370,7 @@ export const batchTrace: ReportDef = {
     const a = agg[0] ?? { lines: 0, sold: 0, returned: 0, members: 0, walkIn: 0 };
     const rows: Row[] = sales.map((x) => ({
       at: x.at, number: x.number, ...storeVals(ctx, x.storeId), type: x.kind === "REFUND" ? "Returned" : CHANNEL_LABEL[x.channel] ?? x.channel,
-      member: x.memberNo ?? "Walk-in", name: x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "", phone: x.phone ?? "", email: x.email ?? "",
+      member: x.memberNo ?? "", name: x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "Walk-in (not a member)", phone: x.phone ?? "", email: x.email ?? "",
       units: x.kind === "REFUND" ? -x.units : x.units,
     }));
     const where = [...new Set([...held.map((x) => x.storeId), ...rec.keys()])]

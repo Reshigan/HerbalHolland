@@ -195,14 +195,16 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   );
 
   // ── Checkout: fresh quote → compliance → payment ────────────────────────
+  const checkingRef = useRef(false);
   const checkout = useCallback(
     async (c: Cart = cartRef.current) => {
-      if (!c.lines.length) return;
+      if (!c.lines.length || checkingRef.current) return;
       if (!boot.shift) {
         pos.toast("Open a shift before selling", "warn");
         pos.goTo("shift");
         return;
       }
+      checkingRef.current = true;
       setChecking(true);
       setCompError(null);
       try {
@@ -232,6 +234,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       } catch (e) {
         pos.toast(errorText(e), "error");
       } finally {
+        checkingRef.current = false;
         setChecking(false);
       }
     },

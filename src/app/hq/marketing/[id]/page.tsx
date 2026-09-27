@@ -34,7 +34,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const c = await db.campaign.findUnique({ where: { id }, include: { store: { select: { name: true } } } });
   if (!c || (scope.kind !== "HQ" && c.storeId && !ids.includes(c.storeId))) notFound();
   const network = can(user, "network");
-  const editable = c.status === "DRAFT" || c.status === "SCHEDULED";
+  const pending = c.status === "DRAFT" || c.status === "SCHEDULED";
+  const editable = pending && (network || (!!c.storeId && ids.includes(c.storeId)));
 
   const header = (
     <>
@@ -50,7 +51,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         description={c.sentAt ? `Sent ${fmtDateTime(c.sentAt)}` : c.scheduledAt ? `Scheduled for ${fmtDateTime(c.scheduledAt)}` : `Created ${fmtDateTime(c.createdAt)}`}
         actions={
           network &&
-          editable && (
+          pending && (
             <div className="flex flex-wrap items-start gap-2">
               {c.status === "SCHEDULED" && (
                 <ActionButton action={sendNow.bind(null, c.id)} variant="dark" pendingLabel="Sending…">

@@ -596,9 +596,12 @@ export const onlineOrders: ReportDef = {
         value: r.value, aov: live ? Math.round(r.value / live) : null, readyMedian: r.readyMedian, readyP90: r.readyP90, doneHours: r.doneHours,
       };
     };
-    const list = rows.filter((r) => r.total === 0).map(shape);
+    const list = rows
+      .filter((r) => r.total === 0)
+      .map(shape)
+      .sort((a, b) => String(a.store ?? "").localeCompare(String(b.store ?? "")) || String(a.fulfilment).localeCompare(String(b.fulfilment)));
     const t = total ? shape(total) : null;
-    if (t) (t.fulfilment = "All orders"), byStore && ((t.store = "Total"), (t.code = ""));
+    if (t) Object.assign(t, { fulfilment: "All orders" }, byStore ? { store: "Total", code: "" } : {});
     const inProgress = t ? (t.open as number) : 0;
     return {
       columns: [

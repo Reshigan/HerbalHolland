@@ -166,8 +166,10 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                       <span>{audienceLabel(a.audience)}</span>
                       {a.requiresAck ? (
                         <span className="flex items-center gap-2">
-                          <Meter value={k} max={Math.max(1, n)} tone={k >= n ? "green" : "amber"} className="w-24" />
-                          <span className={k >= n ? "text-leaf-700" : "text-amber-700"}>
+                          <span className="w-24">
+                            <Meter value={k} max={Math.max(1, n)} tone={k >= n ? "green" : "amber"} />
+                          </span>
+                          <span className={`whitespace-nowrap ${k >= n ? "text-leaf-700" : "text-amber-700"}`}>
                             {num(k)} / {num(n)} acknowledged
                           </span>
                         </span>
@@ -198,7 +200,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                   <FieldError name="body" />
                 </Field>
                 <div className="grid grid-cols-2 gap-3">
-                  <Field label="Type" htmlFor="kind" hint="Policies and recalls always need acknowledging">
+                  <Field label="Type" htmlFor="kind">
                     <Select id="kind" name="kind" defaultValue="NEWS">
                       <option value="NEWS">News</option>
                       <option value="LAUNCH">Launch</option>
@@ -224,7 +226,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                     <FieldError name="audience" />
                   </Field>
                 </div>
-                <Checkbox name="requiresAck" label="Managers must acknowledge" description="Shows on the store dashboard until acknowledged" />
+                <Checkbox name="requiresAck" label="Managers must acknowledge" description="Stays on the store dashboard until acknowledged. Always on for policies and recalls." />
                 <SubmitButton className="w-full" pendingLabel="Publishing…">
                   Publish to stores
                 </SubmitButton>

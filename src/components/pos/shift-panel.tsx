@@ -174,10 +174,11 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
       <div className="mt-5">
         <DenominationGrid counts={counts} onChange={setCounts} />
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800">
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
         <Figure label="Expected" value={expected != null ? zar(expected) : "…"} />
         <Figure label="Counted" value={zar(counted)} />
         <Figure
+          className="col-span-2 sm:col-span-1"
           label="Variance"
           value={variance != null ? `${variance > 0 ? "+" : ""}${zar(variance)}` : "…"}
           tone={variance == null || variance === 0 ? "ok" : Math.abs(variance) <= 1000 ? "warn" : "bad"}
@@ -258,11 +259,11 @@ function DenominationGrid({ counts, onChange }: { counts: Record<string, number>
   );
 }
 
-function Figure({ label, value, tone = "ok", testId }: { label: string; value: string; tone?: "ok" | "warn" | "bad"; testId?: string }) {
+function Figure({ label, value, tone = "ok", testId, className }: { label: string; value: string; tone?: "ok" | "warn" | "bad"; testId?: string; className?: string }) {
   return (
-    <div>
+    <div className={cn("min-w-0", className)}>
       <div className="text-xs text-ink-400">{label}</div>
-      <div className={cn("font-display text-xl font-semibold tnum sm:text-2xl", tone === "ok" ? "text-white" : tone === "warn" ? "text-[#f3c65a]" : "text-[#f29b9b]")} data-testid={testId}>
+      <div className={cn("whitespace-nowrap font-display text-xl font-semibold tnum lg:text-2xl", tone === "ok" ? "text-white" : tone === "warn" ? "text-[#f3c65a]" : "text-[#f29b9b]")} data-testid={testId}>
         {value}
       </div>
     </div>
@@ -323,10 +324,10 @@ function ZReportCard({ report, onPrint, onDone }: { report: ZReport; onPrint: ()
       <p className="text-sm text-ink-400">
         {report.openedBy} opened · {report.closedBy} closed{report.emailedTo ? ` · emailed to ${report.emailedTo}` : ""}
       </p>
-      <div className="mt-4 grid grid-cols-3 gap-2 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800">
+      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
         <Figure label="Takings" value={zar(report.takingsCents)} />
         <Figure label="Cash counted" value={report.cash.countedCents != null ? zar(report.cash.countedCents) : "—"} />
-        <Figure label="Variance" value={`${v > 0 ? "+" : ""}${zar(v)}`} tone={v === 0 ? "ok" : Math.abs(v) <= 1000 ? "warn" : "bad"} />
+        <Figure className="col-span-2 sm:col-span-1" label="Variance" value={`${v > 0 ? "+" : ""}${zar(v)}`} tone={v === 0 ? "ok" : Math.abs(v) <= 1000 ? "warn" : "bad"} />
       </div>
       <ReportFigures r={report} />
       <div className="mt-4 grid grid-cols-2 gap-2">

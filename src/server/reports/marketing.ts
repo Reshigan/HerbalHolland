@@ -131,6 +131,8 @@ export const campaigns: ReportDef = {
     const costedNet = costed.reduce((s, c) => s + (att.get(c.id)?.net ?? 0), 0);
     t.cost = cost || null;
     t.roi = cost ? (costedNet - cost) / cost : null;
+    // Targeting, cost and ROI only apply where the view covers a campaign's whole audience.
+    const whole = rows.some((r) => r.audience != null);
     return {
       columns: [
         { key: "name", label: "Campaign" },
@@ -138,14 +140,13 @@ export const campaigns: ReportDef = {
         { key: "channel", label: "Channel" },
         { key: "segment", label: "Audience" },
         { key: "sent", label: "Sent", format: "date" },
-        { key: "audience", label: "Targeted", format: "number" },
+        ...(whole ? [{ key: "audience", label: "Targeted", format: "number" as const }] : []),
         { key: "delivered", label: ctx.networkWide ? "Messages sent" : "Sent to your members", format: "number" },
-        { key: "suppressed", label: "Suppressed", format: "number" },
-        { key: "cost", label: "Cost", format: "zar" },
+        ...(whole ? [{ key: "suppressed", label: "Suppressed", format: "number" as const }, { key: "cost", label: "Cost", format: "zar" as const }] : []),
         { key: "orders", label: "Attributed sales", format: "number" },
         { key: "revenue", label: "Attributed revenue", format: "zar" },
         { key: "perMsg", label: "Revenue / message", format: "zar" },
-        { key: "roi", label: "ROI", format: "pct" },
+        ...(whole ? [{ key: "roi", label: "ROI", format: "pct" as const }] : []),
       ],
       rows,
       totals: t,

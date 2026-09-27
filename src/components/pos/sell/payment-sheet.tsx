@@ -220,6 +220,11 @@ export function PaymentSheet({
               </Alert>
             )}
             {busy && <p className="mt-4 text-center text-sm text-ink-300">Completing the sale…</p>}
+            {dueCents === 0 && !busy && !error && (
+              <PosButton variant="primary" size="lg" className="mt-4 w-full" disabled={!buyerOk} onClick={() => void complete()}>
+                Complete — nothing to pay
+              </PosButton>
+            )}
             {remaining === 0 && !busy && !error && !buyerOk && <Alert tone="warn" className="mt-4">Add the buyer&apos;s name and address to finish.</Alert>}
           </div>
 
