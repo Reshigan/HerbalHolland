@@ -81,6 +81,14 @@ Managed Postgres point-in-time recovery (≥ 7 days) plus daily snapshots retain
 staging. Target RPO 5 minutes, RTO 1 hour. The stock ledger and loyalty ledger are append-only, so balances can be
 rebuilt from movements if ever required (see the reconciliation queries in `prisma/seed.ts` comments / reports).
 
+## Exceptions to review (HQ → Audit log)
+
+| Action | Meaning | What to do |
+|---|---|---|
+| `compliance.offline_exception` | An offline till sale broke a compliance rule the till couldn't check | Review with the store manager; retrain if needed |
+| `sale.tender_variance` | Payments didn't match the total on a synced sale | Reconcile against the terminal report |
+| `drop.limit_after_payment` | A card was charged before a drop limit tripped (race with an online order); the sale stands | Decide whether to contact the member; no refund needed unless they ask |
+
 ## Data reconciliation checks
 
 ```sql

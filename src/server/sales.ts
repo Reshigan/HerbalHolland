@@ -172,8 +172,11 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   });
   if (!q.lines.length) throw new SaleError("The sale has no items");
   if (q.codeError && !offline) throw new SaleError(q.codeError);
+  // Drop limits are checked at the till before payment. If a card/PayShap payment already went through (a race with
+  // an online order), post the sale and flag it for HQ rather than leave the customer charged without a sale.
   const dropped = offline ? [] : await dropBlocks(input.customerId, q.lines);
-  if (dropped.length) throw new SaleError(dropped[0]);
+  const charged = input.payments.some((p) => p.method !== "CASH" && !!p.reference);
+  if (dropped.length && !charged) throw new SaleError(dropped[0]);
 
   const [store, staff] = await Promise.all([
     db.store.findUniqueOrThrow({ where: { id: ctx.storeId }, select: { licences: true } }),
@@ -213,6 +216,7 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
     if (input.seq) await t.device.updateMany({ where: { id: ctx.deviceId, seq: { lt: input.seq } }, data: { seq: input.seq } });
     if (!comp.ok) await audit(t, actor, "compliance.offline_exception", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: comp.blocks } });
     if (paid !== q.totalCents) await audit(t, actor, "sale.tender_variance", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { paid, total: q.totalCents } });
+    if (dropped.length) await audit(t, actor, "drop.limit_after_payment", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: dropped } });
     return { sale, duplicate: false };
   });
   const to = input.invoiceEmail?.trim() || customer?.email;

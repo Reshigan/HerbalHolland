@@ -92,6 +92,12 @@ describe("Drops", () => {
     const q = await quote({ storeId: w.store.id, channel: "POS", items: line, customerId: w.walkIn.id });
     await sell(w.walkIn.id, w.oilV.id, 1, q.totalCents);
     await expect(sell(w.walkIn.id, w.oilV.id, 1, q.totalCents)).rejects.toThrow(/limit 1/);
+    // A card that was already charged (race with an online order): the sale stands and HQ is told.
+    const raced = await postPosSale(
+      { id: randomUUID(), number: `TST01-L${String(++n).padStart(5, "0")}`, customerId: w.walkIn.id, lines: [{ variantId: w.oilV.id, qty: 1 }], ageCheck: "ID_SIGHTED", payments: [{ method: "CARD", amountCents: q.totalCents, provider: "HALO", reference: "TAP-123" }] },
+      pos(),
+    );
+    expect(await db.auditLog.count({ where: { action: "drop.limit_after_payment", entityId: raced.sale.id } })).toBe(1);
     await db.drop.deleteMany();
     await db.customer.update({ where: { id: w.walkIn.id }, data: { tier: "SEED", tierFloor: null, tierFloorUntil: null } });
   });
