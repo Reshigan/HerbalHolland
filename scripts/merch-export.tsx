@@ -2,14 +2,16 @@
 //   public/merch/print/<design>.pdf   vector master at actual size, font embedded — for digitising and DTF
 //   public/merch/print/<design>.svg   the same vector master as SVG
 //   public/merch/print/<design>.png   300 dpi, transparent, exact size
-// Usage: npx tsx scripts/merch-export.tsx [--preview <file.png>] [--mockups <file.png>]   (contact sheets for review)
+//   public/social/<key>.jpg           1080 px squares for social posts (--social)
+// Usage: npx tsx scripts/merch-export.tsx [--social] [--preview <file.png>] [--mockups <file.png>]   (contact sheets for review)
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { crc32 } from "node:zlib";
 import { renderToStaticMarkup } from "react-dom/server";
 import { chromium } from "@playwright/test";
 import { ART, INKS, type ArtKey } from "../src/components/merch/art";
 import { MerchArt } from "../src/components/merch/mockup";
-import { MERCH } from "../src/lib/merch";
+import { MERCH, merchFor } from "../src/lib/merch";
+import { SOCIAL_IMAGES } from "../src/lib/social";
 
 const OUT = "public/merch/print";
 const DPI = 300;
@@ -56,6 +58,23 @@ if (mockups) {
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: mockups, fullPage: true });
   console.log("mockups", mockups);
+} else if (process.argv.includes("--social")) {
+  // 1080 px squares for social posts (HQ → Campaigns → Social): the window poster and each merch piece (zoomed out
+  // to leave room for the name).
+  mkdirSync("public/social", { recursive: true });
+  const shoot = async (key: string, html: string) => {
+    await page.setViewportSize({ width: 1080, height: 1080 });
+    await page.setContent(`<style>${FACE}</style><body style="margin:0;width:1080px;height:1080px;position:relative;overflow:hidden;font-family:'Outfit Variable'">${html}</body>`);
+    await page.evaluate(() => document.fonts.ready);
+    writeFileSync(`public/social/${key}.jpg`, await page.screenshot({ type: "jpeg", quality: 90, clip: { x: 0, y: 0, width: 1080, height: 1080 } }));
+    console.log("social", key);
+  };
+  await shoot("brand", `<div style="width:100%;height:100%;background:${INKS.black};display:grid;place-items:center">${svgOf("window-back", { width: "662px", height: "900px" })}</div>`);
+  for (const m of SOCIAL_IMAGES.slice(1).map((i) => merchFor(i.key)!)) {
+    const fg = m.colour === "black" ? INKS.black : "#fbf7f3";
+    const how = m.prints.some((p) => p.technique === "Embroidery") ? "Embroidered" : "Printed";
+    await shoot(m.slug, `${renderToStaticMarkup(<MerchArt slug={m.slug} className="" />).replace('viewBox="0 0 120 120"', 'viewBox="-14 -26 148 148" width="1080" height="1080"').replace('<rect width="120" height="120"', '<rect x="-14" y="-26" width="148" height="148"')}<div style="position:absolute;left:64px;top:56px;color:${fg}"><div style="font-weight:600;font-size:52px;letter-spacing:-0.01em">${m.name}</div><div style="font-size:26px;margin-top:4px;opacity:.85">${how} · made to order in South Africa</div></div>`);
+  }
 } else if (preview) {
   // Contact sheet: each design at 1 mm = 1.6 px on its garment colour.
   const tiles = keys

@@ -40,6 +40,8 @@ Tick every line before the first store trades on the platform.
 - [ ] SMS and email providers live (`SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
+- [ ] Postiz running with Instagram, Facebook, LinkedIn, X and Threads connected; `POSTIZ_URL` / `POSTIZ_API_KEY` set; a test post scheduled and deleted
+- [ ] Social profiles say "adults 18+"; the team briefed: brand, merch, stores, events and Learn only — no products for sale, prices or orders taken in DMs
 
 ## Platform
 - [ ] `DEMO_MODE=false`, strong `SESSION_SECRET`, `CRON_SECRET` set, `APP_URL` correct

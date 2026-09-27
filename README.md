@@ -69,7 +69,8 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 - **Finance** — P&L, VAT201 working, cash-ups, expenses, monthly franchise statements; every invoice emailed
   (SARS abridged/full tax invoices; non-VAT vendors supported).
 - **Marketing** — RFM segments, campaigns over SMS/email/push, POPIA consent ledger, CPA send windows, opt-out registry
-  suppression, copy compliance lint, attribution and ROI.
+  suppression, copy compliance lint, attribution and ROI. Social posts to Instagram, Facebook, LinkedIn, X and Threads
+  through Postiz (free, self-hosted), screened so the brand never sells cannabis or CBD on social.
 - **Compliance** — SAHPRA medical mode (switchable to adult-use), licence gating per store, Schedule 0 CBD validation,
   Medicines Act s18A incentive exclusions, dispensing register, recalls, audit log.
 

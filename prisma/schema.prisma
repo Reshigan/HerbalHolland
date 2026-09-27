@@ -1297,3 +1297,18 @@ model QuestCompletion {
 
   @@id([customerId, key])
 }
+
+// Posts handed to Postiz for the brand's social accounts (HQ → Campaigns → Social).
+model SocialPost {
+  id          String    @id @default(cuid())
+  content     String
+  image       String? // public/social/<image>.jpg
+  channels    String[]  @default([]) // "Instagram · herbalholland", as posted; empty when Postiz isn't connected
+  mode        String // now | schedule | draft
+  scheduledAt DateTime?
+  postizIds   String[]  @default([])
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+}

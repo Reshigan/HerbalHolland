@@ -14,7 +14,6 @@ import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
-import { TabLinks } from "@/components/ui/tabs";
 import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
@@ -24,6 +23,7 @@ import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-fo
 import { EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
 import { importSuppressions } from "./actions";
+import { MarketingTabs } from "./tabs";
 import type { CampaignStatus, Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Campaigns" };
@@ -56,7 +56,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
     return (
       <>
         <Header canCreate={can(user, "network")} />
-        <Tabs current="suppression" />
+        <MarketingTabs current="suppression" />
         <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader title="Do-not-contact list" description={bySource.map((s) => `${sourceLabel(s.source)}: ${num(s._count)}`).join(" · ") || "Empty"} />
@@ -157,7 +157,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
   return (
     <>
       <Header canCreate={can(user, "view")} />
-      <Tabs current="campaigns" />
+      <MarketingTabs current="campaigns" />
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Campaigns sent · 30 days" value={num(recent._count)} />
         <Stat label="Messages delivered · 30 days" value={num(recent._sum.sentCount ?? 0)} />
@@ -249,19 +249,6 @@ function Header({ canCreate }: { canCreate: boolean }) {
           </ButtonLink>
         )
       }
-    />
-  );
-}
-
-function Tabs({ current }: { current: "campaigns" | "suppression" }) {
-  return (
-    <TabLinks
-      className="mb-5"
-      current={current === "campaigns" ? "/hq/marketing" : "/hq/marketing?tab=suppression"}
-      tabs={[
-        { href: "/hq/marketing", label: "Campaigns" },
-        { href: "/hq/marketing?tab=suppression", label: "Do-not-contact list" },
-      ]}
     />
   );
 }

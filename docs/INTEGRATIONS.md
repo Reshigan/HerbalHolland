@@ -103,6 +103,33 @@ address); email ordering and tracking replies; courier rates; payment terms; mis
 from promotional photography. Then approve a paid sample set, set each variant's partner code and cost (HQ →
 Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
+## Social posting — Postiz (`src/server/social.ts`)
+
+HQ → Campaigns → **Social** writes a post once and publishes or schedules it on the brand's Instagram, Facebook,
+LinkedIn, X and Threads through [Postiz](https://postiz.com): open source, free when self-hosted, no limit on
+channels or posts. Captions are screened as you type (`screenSocial`: every `screenCopy` rule, plus no THC and no
+selling cannabis or CBD) and the pictures on offer are brand artwork only (`public/social`, rendered by
+`npx tsx scripts/merch-export.tsx --social`). Without Postiz, posts are only recorded on the page.
+
+1. Run Postiz with its Docker Compose file (it brings its own PostgreSQL and Redis) on a small VPS behind HTTPS,
+   e.g. `https://social.herbalholland.co.za`. Postiz cloud (paid) has the same API.
+2. Connect the accounts in Postiz: Instagram (business account linked to the Facebook Page), Facebook Page, LinkedIn
+   Page, X and Threads. A self-hosted Postiz needs each network's developer-app keys in its environment (Postiz docs →
+   Providers).
+3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.co.za/api/public/v1`;
+   Postiz cloud: `https://api.postiz.com/public/v1`) and `POSTIZ_API_KEY`.
+4. `APP_URL` must be public HTTPS: Postiz fetches the picture from `${APP_URL}/social/<picture>.jpg`.
+
+A post goes out **now**, **scheduled** (Postiz publishes it at that time, SAST in the composer) or as a **draft** in
+Postiz (to add a video or edit per network). Edit or delete scheduled posts in Postiz. Postiz accepts 90 posts an hour
+through its API; the composer holds captions to X's 280 and Threads' 500 characters when those are ticked, and
+Instagram needs a picture. TikTok and YouTube aren't offered (video only, and TikTok bans cannabis content). Meta
+rejects cannabis and CBD ads, so this is organic posting only — no boosting.
+
+Free alternatives if Postiz doesn't suit: Buffer's free plan (3 channels, 10 queued posts each), Meta Business Suite
+(Facebook and Instagram only) or Mixpost Lite (self-hosted, fewer networks). None of them gives us a free API for all
+five networks, so they're used by hand, outside this platform.
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -118,4 +145,5 @@ Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (
 | `ONLINE_GATEWAY` | Online payments adapter |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
+| `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
 | `CRON_SECRET` | Protects `/api/cron/*` |
