@@ -443,7 +443,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       <div className="fixed inset-0 flex flex-col bg-ink-950 text-ink-100 print:hidden">
         {/* Top bar */}
         <header className="box-content flex h-16 shrink-0 items-center gap-2 border-b border-ink-850 bg-ink-950 px-3 pt-[env(safe-area-inset-top)] sm:px-4">
-          <div className="flex min-w-0 items-center gap-2.5 text-oranje-500">
+          <div className="flex min-w-0 items-center gap-2.5 text-brand-500">
             <Mark className="h-9 w-9" />
             <div className="min-w-0 leading-tight">
               <div className="truncate font-display text-[0.95rem] font-semibold text-white">{boot.store.name}</div>
@@ -466,7 +466,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
               >
                 <t.icon className="h-[18px] w-[18px]" />
                 {t.label}
-                {t.key === "orders" && newOrders > 0 && <span className="tnum rounded-full bg-oranje-500 px-1.5 text-[0.7rem] font-bold text-ink-950">{newOrders}</span>}
+                {t.key === "orders" && newOrders > 0 && <span className="tnum rounded-full bg-brand-500 px-1.5 text-[0.7rem] font-bold text-ink-950">{newOrders}</span>}
               </button>
             ))}
           </nav>
@@ -491,9 +491,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
               )}
             </button>
             <div className="flex items-center gap-2 rounded-full bg-ink-900 p-1 ring-1 ring-ink-800 sm:pr-3" aria-label={`Signed in: ${auth.me!.name}`}>
-              <span className="grid h-9 w-9 place-items-center rounded-full bg-oranje-500 font-display text-xs font-bold text-ink-950">{initials(auth.me!.name)}</span>
+              <span className="grid h-9 w-9 place-items-center rounded-full bg-brand-500 font-display text-xs font-bold text-ink-950">{initials(auth.me!.name)}</span>
               <span className="hidden max-w-32 truncate text-sm font-semibold text-white sm:inline">{auth.me!.name.split(" ")[0]}</span>
-              {auth.me!.canDispense && <ShieldCheck className="hidden h-4 w-4 text-oranje-400 sm:block" aria-label="Authorised dispenser" />}
+              {auth.me!.canDispense && <ShieldCheck className="hidden h-4 w-4 text-brand-400 sm:block" aria-label="Authorised dispenser" />}
             </div>
             <PosButton variant="outline" onClick={lock} className="px-3 sm:px-4" aria-label="Lock the till">
               <Lock className="h-4 w-4" />
@@ -529,11 +529,11 @@ export function PosApp({ deviceId }: { deviceId: string }) {
               type="button"
               onClick={() => setTab(t.key)}
               aria-current={tab === t.key ? "page" : undefined}
-              className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[0.7rem] font-semibold", tab === t.key ? "text-oranje-400" : "text-ink-400")}
+              className={cn("relative flex h-16 flex-col items-center justify-center gap-1 text-[0.7rem] font-semibold", tab === t.key ? "text-brand-400" : "text-ink-400")}
             >
               <t.icon className="h-5 w-5" />
               {t.label}
-              {t.key === "orders" && newOrders > 0 && <span className="tnum absolute right-[22%] top-2 rounded-full bg-oranje-500 px-1.5 text-[0.65rem] font-bold text-ink-950">{newOrders}</span>}
+              {t.key === "orders" && newOrders > 0 && <span className="tnum absolute right-[22%] top-2 rounded-full bg-brand-500 px-1.5 text-[0.65rem] font-bold text-ink-950">{newOrders}</span>}
             </button>
           ))}
         </nav>
@@ -565,7 +565,7 @@ function Splash({ message, retry }: { message?: string; retry?: () => void }) {
   return (
     <div className="fixed inset-0 grid place-items-center bg-ink-950 px-6 text-center text-ink-200">
       <div className="flex flex-col items-center">
-        <Mark className="h-16 w-16 text-oranje-500" spin="fast" />
+        <Mark className="h-16 w-16 text-brand-500" spin="fast" />
         <p className="mt-5 max-w-sm text-sm text-ink-400">{message ?? "Starting the till…"}</p>
         {retry && (
           <PosButton variant="primary" className="mt-5" onClick={retry}>

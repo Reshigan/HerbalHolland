@@ -111,7 +111,7 @@ async function Authorisations({ store, canManage, sp, path }: { store: StoreCtx;
                 return (
                   <Tr key={a.id}>
                     <Td className="min-w-40">
-                      <Link href={`/store/${store.code}/customers/${a.customer.id}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                      <Link href={`/store/${store.code}/customers/${a.customer.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                         {a.customer.firstName} {a.customer.lastName ?? ""}
                       </Link>
                       <div className="font-mono text-xs text-ink-400">{a.customer.memberNo}</div>

@@ -173,7 +173,7 @@ function Summary({ lines, total, joinSavings }: { lines: { variantId: string; pr
         </div>
         <p className="mt-1 text-xs text-ink-500">Before delivery and points · prices include VAT</p>
         {joinSavings > 0 && (
-          <p className="mt-4 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-sm text-oranje-100">
+          <p className="mt-4 rounded-xl border border-brand-500/35 bg-brand-500/10 px-3 py-2.5 text-sm text-brand-100">
             Join free in the next step and save <strong className="text-white">{zar(joinSavings)}</strong> on this order with your instant Rewards price.
           </p>
         )}

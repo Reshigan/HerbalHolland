@@ -48,7 +48,7 @@ function FilterSelect({ control, onChange }: { control: Control; onChange: (v: s
   const loose = control.options.filter((o) => !o.group);
   const groups = [...new Set(control.options.filter((o) => o.group).map((o) => o.group!))];
   return (
-    <label className="relative inline-flex h-10 min-w-0 max-w-full items-center rounded-full border border-ink-150 bg-white pl-3.5 pr-9 shadow-card transition focus-within:border-oranje-500 focus-within:ring-4 focus-within:ring-oranje-500/15 hover:border-ink-300">
+    <label className="relative inline-flex h-10 min-w-0 max-w-full items-center rounded-full border border-ink-150 bg-white pl-3.5 pr-9 shadow-card transition focus-within:border-brand-500 focus-within:ring-4 focus-within:ring-brand-500/15 hover:border-ink-300">
       <span className="mr-1.5 whitespace-nowrap text-xs font-semibold text-ink-500">{control.label}</span>
       <select
         key={control.value}
@@ -126,11 +126,11 @@ function CustomRange({ from, to, active, onApply }: { from: string; to: string; 
           <div className="grid grid-cols-2 gap-3">
             <label className="text-[0.78rem] font-semibold text-ink-700">
               From
-              <input type="date" value={f} max={t || undefined} required onChange={(e) => setF(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-ink-200 px-2.5 text-sm font-normal text-ink-900 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+              <input type="date" value={f} max={t || undefined} required onChange={(e) => setF(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-ink-200 px-2.5 text-sm font-normal text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
             <label className="text-[0.78rem] font-semibold text-ink-700">
               To
-              <input type="date" value={t} min={f || undefined} required onChange={(e) => setT(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-ink-200 px-2.5 text-sm font-normal text-ink-900 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+              <input type="date" value={t} min={f || undefined} required onChange={(e) => setT(e.target.value)} className="mt-1.5 h-10 w-full rounded-xl border border-ink-200 px-2.5 text-sm font-normal text-ink-900 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
           </div>
           {invalid && f && t && <p className="mt-2 text-xs font-medium text-rose-600">The start date must be on or before the end date.</p>}

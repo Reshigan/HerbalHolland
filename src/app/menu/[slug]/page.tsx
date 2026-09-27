@@ -42,7 +42,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
     <main className="fixed inset-0 flex cursor-none select-none flex-col overflow-hidden bg-ink-950 text-ink-100">
       <ShopSurface />
       <header className="flex h-[11vh] shrink-0 items-center justify-between border-b border-ink-850 px-[3vw]">
-        <div className="flex items-center gap-[1.2vw] text-oranje-500">
+        <div className="flex items-center gap-[1.2vw] text-brand-500">
           <Mark className="h-[7vh] w-[7vh]" spin />
           <Wordmark className="text-[2.2vh]" />
           <span className="ml-[1vw] border-l border-ink-800 pl-[1.4vw] font-display text-[3.2vh] font-semibold text-white">{store.name}</span>
@@ -73,7 +73,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
                         <div className="line-clamp-2 text-[2.5vh] font-semibold leading-[1.15] text-white">{i.name}</div>
                         <div className="mt-[0.3vh] truncate text-[1.9vh] text-ink-400">
                           {i.variant}
-                          {i.heritage && <span className="ml-[0.8vw] font-semibold text-oranje-400">Heritage</span>}
+                          {i.heritage && <span className="ml-[0.8vw] font-semibold text-brand-400">Heritage</span>}
                           {i.qty <= 3 && <span className="ml-[0.8vw] font-semibold text-amber-100">Last few</span>}
                         </div>
                       </div>
@@ -85,9 +85,9 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
             ) : p.kind === "dispensary" ? (
               <div key={n} className="flex h-full items-center pb-[3vh]">
                 <div className="hh-frame flex w-full items-center gap-[3vw] p-[5vh]">
-                  <Mark className="h-[26vh] w-[26vh] shrink-0 text-oranje-500" />
+                  <Mark className="h-[26vh] w-[26vh] shrink-0 text-brand-500" />
                   <div>
-                    <div className="eyebrow text-[1.8vh] text-oranje-500">Dispensary</div>
+                    <div className="eyebrow text-[1.8vh] text-brand-500">Dispensary</div>
                     <h1 className="mt-[1.5vh] font-display text-[6vh] font-semibold leading-[1.05] text-white">Registered patient? Ask our pharmacist.</h1>
                     <p className="mt-[2vh] max-w-[46vw] text-[2.3vh] leading-relaxed text-ink-300">
                       Licensed medicines are supplied only on a valid SAHPRA authorisation, by an authorised dispenser — so they&apos;re not shown on this screen. Speak to our team in private at the counter.
@@ -102,7 +102,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
                     <QrCode value={`${base}/club/join?store=${store.code}`} label="Join Herbal Holland Rewards" margin={1} />
                   </div>
                   <div>
-                    <div className="eyebrow text-[1.8vh] text-oranje-500">Herbal Holland Rewards</div>
+                    <div className="eyebrow text-[1.8vh] text-brand-500">Herbal Holland Rewards</div>
                     <h1 className="mt-[1.5vh] font-display text-[6vh] font-semibold leading-[1.05] text-white">Scan to join free. Pay less today.</h1>
                     <p className="mt-[2vh] max-w-[44vw] text-[2.3vh] leading-relaxed text-ink-300">Instant member prices, points on every rand, and your card on your phone. Adults 18+.</p>
                   </div>
@@ -113,8 +113,8 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
         </MenuRotator>
 
         <aside className="flex min-h-0 flex-col gap-[2.5vh]">
-          <div className="min-h-0 flex-1 overflow-hidden rounded-[2.2vh] border border-oranje-500/40 bg-oranje-500/[0.06] p-[2.8vh]">
-            <div className="eyebrow text-[1.6vh] text-oranje-400">Today&apos;s deals</div>
+          <div className="min-h-0 flex-1 overflow-hidden rounded-[2.2vh] border border-brand-500/40 bg-brand-500/[0.06] p-[2.8vh]">
+            <div className="eyebrow text-[1.6vh] text-brand-400">Today&apos;s deals</div>
             {deals.length ? (
               <ul className="mt-[2vh] space-y-[2vh]">
                 {deals.slice(0, 4).map((d) => (
@@ -143,7 +143,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
       <footer className="flex h-[6vh] shrink-0 items-center justify-between border-t border-ink-850 px-[3vw] text-[1.7vh] text-ink-400">
         <span>Lab-tested &amp; batch-traceable · Scan any pack for its certificate · Prices include VAT</span>
         <span className="flex items-center gap-[0.6vw] font-semibold text-ink-200">
-          <span className="rounded-full border-2 border-oranje-500 px-[0.5vw] text-[1.4vh] font-bold text-oranje-500">18+</span> Adults only
+          <span className="rounded-full border-2 border-brand-500 px-[0.5vw] text-[1.4vh] font-bold text-brand-500">18+</span> Adults only
         </span>
       </footer>
     </main>

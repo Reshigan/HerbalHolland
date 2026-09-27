@@ -59,10 +59,10 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 
 ## Design language
 
-- Brand: Holland orange `oranje-500 #F5913C` on warm black `ink-950 #0C0A09`; cream `ink-50` for light surfaces.
+- Brand: Holland orange `brand-500 #F5913C` on warm black `ink-950 #0C0A09`; cream `ink-50` for light surfaces.
   Tokens live in `src/app/globals.css` (`@theme`). Never hard-code other brand colours.
 - Type: `font-display` (Outfit) for headings, hero numbers, the wordmark; Inter for UI. `tnum` for numeric columns.
-  `.eyebrow` for small uppercase labels (oranje-700 on light, oranje-500 on dark).
+  `.eyebrow` for small uppercase labels (brand-700 on light, brand-500 on dark).
 - Shapes: cards `rounded-2xl`, buttons pill (`rounded-full`), inputs `rounded-xl`. The window-poster frame (`.hh-frame`)
   is reserved for hero/brand moments.
 - Components: `@/components/ui/*` (Button/ButtonLink, Card, Badge, StatusBadge/TierBadge, Field/Input/Select/Checkbox,

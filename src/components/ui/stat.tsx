@@ -40,7 +40,7 @@ export function Stat({ label, value, delta, deltaLabel = "vs previous period", u
 
 export function Meter({ value, max, tone = "orange", className }: { value: number; max: number; tone?: "orange" | "green" | "red" | "amber"; className?: string }) {
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
-  const [track, fill] = { orange: ["bg-oranje-100", "bg-oranje-500"], green: ["bg-leaf-100", "bg-leaf-500"], red: ["bg-rose-100", "bg-rose-500"], amber: ["bg-amber-100", "bg-amber-500"] }[tone];
+  const [track, fill] = { orange: ["bg-brand-100", "bg-brand-500"], green: ["bg-leaf-100", "bg-leaf-500"], red: ["bg-rose-100", "bg-rose-500"], amber: ["bg-amber-100", "bg-amber-500"] }[tone];
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full", track, className)} role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={max}>
       <div className={cn("h-full rounded-full transition-[width] duration-500", fill)} style={{ width: `${pct * 100}%` }} />

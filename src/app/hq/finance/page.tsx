@@ -118,7 +118,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
               <ul className="space-y-1 text-sm">
                 {campaigns.slice(0, 4).map((c) => (
                   <li key={c.id} className="flex justify-between gap-3">
-                    <Link href={`/hq/marketing/${c.id}`} className="truncate text-ink-700 hover:text-oranje-700">{c.name}</Link>
+                    <Link href={`/hq/marketing/${c.id}`} className="truncate text-ink-700 hover:text-brand-700">{c.name}</Link>
                     <span className="tnum shrink-0 text-ink-600">{zar(c.costCents)}</span>
                   </li>
                 ))}
@@ -140,7 +140,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
               <Detail label="Outstanding liability">{zarCompact((liability._sum.points ?? 0) * POINT_VALUE_CENTS)}</Detail>
               <Detail label="Instant member savings given">{zar(saved[0]?.cents ?? 0)}</Detail>
             </dl>
-            <Link href="/hq/loyalty" className="mt-3 inline-block text-xs font-semibold text-oranje-700 hover:underline">Settlement by store →</Link>
+            <Link href="/hq/loyalty" className="mt-3 inline-block text-xs font-semibold text-brand-700 hover:underline">Settlement by store →</Link>
           </CardBody>
         </Card>
 
@@ -171,7 +171,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
             {pageRows.map(({ s, net, gp }) => (
               <Tr key={s.id}>
                 <Td>
-                  <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-850 hover:text-oranje-700">
+                  <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-850 hover:text-brand-700">
                     {s.name}
                   </Link>
                   {!s.company.vatNumber && <span className="ml-2 text-xs text-amber-700">non-VAT</span>}

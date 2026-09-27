@@ -26,7 +26,7 @@ export default async function StoresPage() {
   return (
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
-        <div className="eyebrow text-oranje-500">Store finder</div>
+        <div className="eyebrow text-brand-500">Store finder</div>
         <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{trading.length} stores, one windmill</h1>
         <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">
           {openNow} open right now. Every store offers click &amp; collect and an authorised dispenser for registered patients; many deliver same-day. Each is independently owned and run by a local franchisee.
@@ -35,12 +35,12 @@ export default async function StoresPage() {
 
       <nav className="scrollbar-none -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Provinces">
         {provinces.map((p) => (
-          <a key={p} href={`#${p}`} className="shrink-0 rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-oranje-500 hover:text-white">
+          <a key={p} href={`#${p}`} className="shrink-0 rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
             {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-500">{trading.filter((s) => s.province === p).length}</span>
           </a>
         ))}
         {soon.length > 0 && (
-          <a href="#soon" className="shrink-0 rounded-full border border-dashed border-ink-700 px-3.5 py-1.5 text-sm text-ink-300 hover:border-oranje-500">
+          <a href="#soon" className="shrink-0 rounded-full border border-dashed border-ink-700 px-3.5 py-1.5 text-sm text-ink-300 hover:border-brand-500">
             Opening soon <span className="tnum text-ink-500">{soon.length}</span>
           </a>
         )}
@@ -100,7 +100,7 @@ export default async function StoresPage() {
 
       <p className="mt-14 text-sm text-ink-400">
         Can&apos;t get to a store?{" "}
-        <Link href="/shop" className="font-semibold text-oranje-400 hover:underline">
+        <Link href="/shop" className="font-semibold text-brand-400 hover:underline">
           We deliver nationwide
         </Link>{" "}
         — ID (18+) checked on delivery.

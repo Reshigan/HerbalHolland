@@ -36,7 +36,7 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
               {FULFIL_LABEL[o.fulfilment]} · placed {fmtDateTime(o.createdAt)} · {plural(lines.length, "line")}, {plural(units, "unit")}
             </p>
           </div>
-          <Logo className="text-ink-950 [&_svg]:text-oranje-500" />
+          <Logo className="text-ink-950 [&_svg]:text-brand-500" />
         </header>
 
         <section className="mt-4 grid grid-cols-2 gap-6 text-sm">

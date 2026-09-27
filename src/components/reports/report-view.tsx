@@ -101,7 +101,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
         }
         title={
           <span className="inline-flex items-center gap-3">
-            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-oranje-50 text-oranje-700 print:hidden">
+            <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 print:hidden">
               <ReportIcon reportKey={def.key} className="h-5 w-5" />
             </span>
             {def.title}
@@ -167,7 +167,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
                   <ReportChart chart={chart} />
                 </div>
                 <aside aria-label="About this report" className="flex flex-col gap-4 border-t border-ink-100 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
-                  <h3 className="eyebrow text-oranje-700">About this report</h3>
+                  <h3 className="eyebrow text-brand-700">About this report</h3>
                   {note || (
                     <p className="flex items-start gap-2 text-sm leading-relaxed text-ink-500">
                       <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" strokeWidth={1.9} aria-hidden />
@@ -176,11 +176,11 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
                   )}
                   <div className="rounded-xl bg-ink-50 p-3 text-sm text-ink-600 print:hidden">
                     <div className="flex items-center gap-2 font-semibold text-ink-850">
-                      <FileSpreadsheet className="h-4 w-4 text-oranje-700" strokeWidth={1.9} aria-hidden />
+                      <FileSpreadsheet className="h-4 w-4 text-brand-700" strokeWidth={1.9} aria-hidden />
                       {total.toLocaleString("en-US")} row{total === 1 ? "" : "s"}
                     </div>
                     <p className="mt-1 text-xs text-ink-500">The CSV has every row, with money in rands and dates in SAST — ready for Excel or your accountant.</p>
-                    <a href={csvHref} download className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-oranje-700 hover:underline">
+                    <a href={csvHref} download className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
                       Download CSV <ChevronRight className="h-3 w-3" aria-hidden />
                     </a>
                   </div>
@@ -217,7 +217,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
           {total > shown && (
             <div className="border-t border-ink-100 bg-ink-50/60 px-5 py-3 text-xs text-ink-600 print:hidden">
               The screen shows the first {shown.toLocaleString("en-US")} rows.{" "}
-              <a href={csvHref} download className="font-semibold text-oranje-700 hover:underline">
+              <a href={csvHref} download className="font-semibold text-brand-700 hover:underline">
                 Download the CSV
               </a>{" "}
               for all {total.toLocaleString("en-US")}.

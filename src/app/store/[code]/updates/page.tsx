@@ -68,9 +68,9 @@ export default async function UpdatesPage({ params, searchParams }: { params: Pr
             const ack = a.acks[0];
             const due = a.requiresAck && !ack;
             return (
-              <Card key={a.id} className={cn("overflow-hidden", due && "border-oranje-300 ring-4 ring-oranje-500/10")}>
+              <Card key={a.id} className={cn("overflow-hidden", due && "border-brand-300 ring-4 ring-brand-500/10")}>
                 <article className="flex gap-4 p-5">
-                  <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", k.tone === "red" ? "bg-rose-50 text-rose-600" : k.tone === "amber" ? "bg-amber-50 text-amber-700" : k.tone === "orange" ? "bg-oranje-50 text-oranje-700" : "bg-ink-100 text-ink-600")}>
+                  <span className={cn("grid h-10 w-10 shrink-0 place-items-center rounded-xl", k.tone === "red" ? "bg-rose-50 text-rose-600" : k.tone === "amber" ? "bg-amber-50 text-amber-700" : k.tone === "orange" ? "bg-brand-50 text-brand-700" : "bg-ink-100 text-ink-600")}>
                     <k.icon className="h-5 w-5" aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -93,7 +93,7 @@ export default async function UpdatesPage({ params, searchParams }: { params: Pr
                             I&apos;ve read this and briefed the team
                           </ActionButton>
                         ) : (
-                          <span className="text-sm font-medium text-oranje-700">Waiting for a manager to acknowledge</span>
+                          <span className="text-sm font-medium text-brand-700">Waiting for a manager to acknowledge</span>
                         )}
                       </div>
                     )}

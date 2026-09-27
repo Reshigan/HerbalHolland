@@ -30,7 +30,7 @@ export function DemoLogin({ email, label, sub }: { email: string; label: string;
     <form action={action}>
       <input type="hidden" name="email" value={email} />
       <input type="hidden" name="demo" value="1" />
-      <button disabled={pending} className="w-full rounded-xl border border-ink-150 bg-white px-3.5 py-2.5 text-left transition hover:border-oranje-300 hover:bg-oranje-50 disabled:opacity-60">
+      <button disabled={pending} className="w-full rounded-xl border border-ink-150 bg-white px-3.5 py-2.5 text-left transition hover:border-brand-300 hover:bg-brand-50 disabled:opacity-60">
         <div className="text-sm font-semibold text-ink-900">{label}</div>
         <div className="text-xs text-ink-500">{sub}</div>
       </button>

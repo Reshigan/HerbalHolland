@@ -104,7 +104,7 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
           <label htmlFor="cp-msg" className="text-[0.78rem] font-semibold text-ink-700">Message</label>
           <span className="flex gap-1">
             {["{{firstName}}", "{{points}}", "{{code}}"].map((t) => (
-              <button key={t} type="button" onClick={() => insert(t)} className="rounded-full border border-ink-200 px-2 py-0.5 font-mono text-[0.68rem] text-ink-600 hover:border-oranje-300 hover:text-oranje-700">
+              <button key={t} type="button" onClick={() => insert(t)} className="rounded-full border border-ink-200 px-2 py-0.5 font-mono text-[0.68rem] text-ink-600 hover:border-brand-300 hover:text-brand-700">
                 {t}
               </button>
             ))}
@@ -119,7 +119,7 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
           rows={5}
           maxLength={channel === "SMS" ? 459 : 2000}
           aria-describedby="cp-lint"
-          className="min-h-24 w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 transition focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+          className="min-h-24 w-full rounded-xl border border-ink-200 bg-white px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-ink-400 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
         />
         <FieldError name="message" />
         <div id="cp-lint" className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">

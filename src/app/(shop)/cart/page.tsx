@@ -30,7 +30,7 @@ export default async function CartPage() {
     return (
       <Container className="pt-16">
         <div className="mx-auto max-w-lg rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
-          <ShoppingBag className="mx-auto h-10 w-10 text-oranje-500" strokeWidth={1.5} />
+          <ShoppingBag className="mx-auto h-10 w-10 text-brand-500" strokeWidth={1.5} />
           <h1 className="mt-5 font-display text-3xl font-semibold text-white">Your bag is empty</h1>
           <p className="mx-auto mt-3 max-w-sm text-ink-400">Find something you love — collect it in store or have it delivered anywhere in South Africa.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
@@ -97,8 +97,8 @@ export default async function CartPage() {
           {q.suggestions.length > 0 && (
             <div className="space-y-2">
               {q.suggestions.map((s) => (
-                <div key={s.promoId + s.message} className="flex items-center gap-3 rounded-2xl border border-oranje-500/35 bg-oranje-500/[0.06] px-4 py-3 text-sm">
-                  <Sparkles className="h-5 w-5 shrink-0 text-oranje-400" />
+                <div key={s.promoId + s.message} className="flex items-center gap-3 rounded-2xl border border-brand-500/35 bg-brand-500/[0.06] px-4 py-3 text-sm">
+                  <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
                   <span className="text-ink-100">
                     {!s.message.includes(s.name) && <strong className="font-semibold text-white">{s.name} · </strong>}
                     {s.message}
@@ -120,7 +120,7 @@ export default async function CartPage() {
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <Link href={v ? `/p/${v.product.slug}?v=${l.variantId}` : "/shop"} className="font-semibold text-white hover:text-oranje-300">
+                        <Link href={v ? `/p/${v.product.slug}?v=${l.variantId}` : "/shop"} className="font-semibold text-white hover:text-brand-300">
                           {l.productName}
                         </Link>
                         <p className="text-sm text-ink-400">
@@ -134,7 +134,7 @@ export default async function CartPage() {
                       </div>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
-                      {l.priceRule && <span className="font-medium text-oranje-300">{l.priceRule}</span>}
+                      {l.priceRule && <span className="font-medium text-brand-300">{l.priceRule}</span>}
                       {l.discountCents > 0 && <span className="font-medium text-leaf-100">You save {zar(l.discountCents)}</span>}
                       {stock < l.qty && (
                         <span className="flex items-center gap-1 font-medium text-amber-100">
@@ -207,18 +207,18 @@ export default async function CartPage() {
               )}
             </dl>
             {q.memberSavingsCents > 0 && (
-              <p className="mt-4 flex items-center gap-2 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-xs font-semibold text-oranje-100">
-                <BadgePercent className="h-4 w-4 shrink-0 text-oranje-400" /> You&apos;re saving {zar(q.memberSavingsCents)} with your {tierMeta(customer!.tier).name} price.
+              <p className="mt-4 flex items-center gap-2 rounded-xl border border-brand-500/35 bg-brand-500/10 px-3 py-2.5 text-xs font-semibold text-brand-100">
+                <BadgePercent className="h-4 w-4 shrink-0 text-brand-400" /> You&apos;re saving {zar(q.memberSavingsCents)} with your {tierMeta(customer!.tier).name} price.
               </p>
             )}
             {!customer && q.joinSavingsCents > 0 && (
-              <Link href="/club/join?next=/cart" className="mt-4 flex items-center gap-2 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-xs font-semibold text-oranje-100 hover:border-oranje-500">
-                <BadgePercent className="h-4 w-4 shrink-0 text-oranje-400" /> Join free and save {zar(q.joinSavingsCents)} on this order →
+              <Link href="/club/join?next=/cart" className="mt-4 flex items-center gap-2 rounded-xl border border-brand-500/35 bg-brand-500/10 px-3 py-2.5 text-xs font-semibold text-brand-100 hover:border-brand-500">
+                <BadgePercent className="h-4 w-4 shrink-0 text-brand-400" /> Join free and save {zar(q.joinSavingsCents)} on this order →
               </Link>
             )}
             {licensedLines.length === q.lines.length ? null : toFree > 0 ? (
               <p className="mt-4 flex items-center gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-xs text-ink-300">
-                <Truck className="h-4 w-4 shrink-0 text-oranje-500" /> Add {zar(toFree)} more for free delivery.
+                <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Add {zar(toFree)} more for free delivery.
               </p>
             ) : (
               <p className="mt-4 flex items-center gap-2 rounded-xl bg-leaf-500/10 px-3 py-2.5 text-xs text-leaf-100">
@@ -234,7 +234,7 @@ export default async function CartPage() {
             <p className="mt-3 text-center text-xs text-ink-500">Adults 18+ · ID checked on collection and delivery</p>
           </Panel>
           <Panel className="p-5">
-            <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
+            <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
             {customer ? (
               <p className="mt-2 text-sm leading-relaxed text-ink-300">
                 You&apos;ll earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order
@@ -243,7 +243,7 @@ export default async function CartPage() {
             ) : (
               <p className="mt-2 text-sm leading-relaxed text-ink-300">
                 Members pay less instantly{q.joinSavingsCents > 0 ? ` (${zar(q.joinSavingsCents)} off this bag)` : ""} and earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order, plus {fmtPoints(settings.loyalty.signupBonus)} for joining.{" "}
-                <Link href="/club/join?next=/cart" className="font-semibold text-oranje-400 hover:underline">
+                <Link href="/club/join?next=/cart" className="font-semibold text-brand-400 hover:underline">
                   Join free
                 </Link>
               </p>
@@ -255,7 +255,7 @@ export default async function CartPage() {
 
       {prompts.length > 0 && (
         <section className="mt-16" aria-labelledby="deal-prompts">
-          <div className="eyebrow text-oranje-500">Complete the deal</div>
+          <div className="eyebrow text-brand-500">Complete the deal</div>
           <h2 id="deal-prompts" className="mb-6 mt-2 font-display text-2xl font-semibold text-white">
             Add one of these to unlock your offer
           </h2>

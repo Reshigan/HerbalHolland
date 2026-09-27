@@ -11,7 +11,7 @@ export function posBtn(variant: BtnVariant = "secondary", size: BtnSize = "md", 
   return cn(
     "inline-flex select-none items-center justify-center gap-2 whitespace-nowrap rounded-full font-semibold transition-[background,color,box-shadow,transform,opacity] duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-40 [&_svg]:shrink-0",
     {
-      primary: "bg-oranje-500 text-ink-950 hover:bg-oranje-400 shadow-[inset_0_-2px_0_rgb(0_0_0/0.14)]",
+      primary: "bg-brand-500 text-ink-950 hover:bg-brand-400 shadow-[inset_0_-2px_0_rgb(0_0_0/0.14)]",
       secondary: "bg-ink-800 text-ink-50 hover:bg-ink-700",
       outline: "border border-ink-700 text-ink-100 hover:border-ink-500 hover:bg-ink-850",
       ghost: "text-ink-200 hover:bg-ink-800",
@@ -48,7 +48,7 @@ export function IconButton({ label, className, children, ...props }: React.Butto
 }
 
 const inputCls =
-  "w-full rounded-xl border border-ink-700 bg-ink-900 px-4 text-base text-white placeholder:text-ink-500 transition focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
+  "w-full rounded-xl border border-ink-700 bg-ink-900 px-4 text-base text-white placeholder:text-ink-500 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
 
 export function TextInput({ className, ...props }: React.InputHTMLAttributes<HTMLInputElement>) {
   return <input className={cn(inputCls, "h-12", className)} {...props} />;
@@ -88,7 +88,7 @@ export function Field({ label, hint, error, children, className, htmlFor }: { la
 export function CheckRow({ checked, onChange, label, description, className, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: React.ReactNode; description?: React.ReactNode; className?: string; disabled?: boolean }) {
   return (
     <label className={cn("flex min-h-12 cursor-pointer items-start gap-3 rounded-xl px-1 py-2.5", disabled && "cursor-not-allowed opacity-50", className)}>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-6 w-6 shrink-0 cursor-pointer rounded-md accent-oranje-500" />
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-6 w-6 shrink-0 cursor-pointer rounded-md accent-brand-500" />
       <span className="text-[0.95rem]">
         <span className="font-medium text-ink-50">{label}</span>
         {description && <span className="mt-0.5 block text-[0.8rem] text-ink-400">{description}</span>}
@@ -116,7 +116,7 @@ export function Stepper({ value, onChange, min = 0, max = 999, label }: { value:
 type ChipTone = "neutral" | "orange" | "green" | "red" | "amber" | "blue" | "violet";
 const CHIP: Record<ChipTone, string> = {
   neutral: "bg-ink-800 text-ink-200 ring-ink-700",
-  orange: "bg-oranje-500/15 text-oranje-300 ring-oranje-500/35",
+  orange: "bg-brand-500/15 text-brand-300 ring-brand-500/35",
   green: "bg-leaf-500/15 text-[#7fd49a] ring-leaf-500/35",
   red: "bg-rose-500/15 text-[#f29b9b] ring-rose-500/40",
   amber: "bg-amber-500/15 text-[#f3c65a] ring-amber-500/35",
@@ -267,7 +267,7 @@ export function Alert({ tone = "danger", children, className }: { tone?: "danger
 export function EmptyPanel({ icon, title, children, action, className }: { icon?: React.ReactNode; title: React.ReactNode; children?: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex flex-col items-center justify-center px-6 py-12 text-center", className)}>
-      {icon && <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-ink-850 text-oranje-400 ring-1 ring-ink-800">{icon}</div>}
+      {icon && <div className="mb-3 grid h-14 w-14 place-items-center rounded-2xl bg-ink-850 text-brand-400 ring-1 ring-ink-800">{icon}</div>}
       <h3 className="font-display text-lg font-semibold text-white">{title}</h3>
       {children && <p className="mt-1 max-w-sm text-sm text-ink-400">{children}</p>}
       {action && <div className="mt-5">{action}</div>}
@@ -276,7 +276,7 @@ export function EmptyPanel({ icon, title, children, action, className }: { icon?
 }
 
 export function Spinner({ className }: { className?: string }) {
-  return <Loader2 className={cn("h-5 w-5 animate-spin text-oranje-400", className)} aria-label="Loading" />;
+  return <Loader2 className={cn("h-5 w-5 animate-spin text-brand-400", className)} aria-label="Loading" />;
 }
 
 /** Segmented control (tabs on phone layouts, filters). */
@@ -297,7 +297,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           )}
         >
           {o.label}
-          {o.count != null && <span className={cn("tnum rounded-full px-1.5 text-[0.7rem]", value === o.value ? "bg-oranje-500 text-ink-950" : "bg-ink-800 text-ink-300")}>{o.count}</span>}
+          {o.count != null && <span className={cn("tnum rounded-full px-1.5 text-[0.7rem]", value === o.value ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-300")}>{o.count}</span>}
         </button>
       ))}
     </div>

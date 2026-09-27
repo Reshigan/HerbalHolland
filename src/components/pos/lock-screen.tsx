@@ -95,10 +95,10 @@ export function LockScreen({
     <div className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-ink-950 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink-100 print:hidden lg:flex-row">
       {/* Brand + store panel */}
       <section className="relative flex shrink-0 flex-col justify-between gap-6 border-b border-ink-850 px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
-        <div className="flex items-center gap-3 text-oranje-500">
+        <div className="flex items-center gap-3 text-brand-500">
           <Mark className="h-11 w-11" />
           <div>
-            <div className="eyebrow text-[0.65rem] text-oranje-500">Herbal Holland till</div>
+            <div className="eyebrow text-[0.65rem] text-brand-500">Herbal Holland till</div>
             <div className="font-display text-lg font-semibold leading-tight text-white">{session.store.name}</div>
           </div>
         </div>
@@ -154,11 +154,11 @@ export function LockScreen({
                     disabled={!ok}
                     onClick={() => (setPicked(s), setCode(""), setError(null))}
                     className={cn(
-                      "group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl bg-ink-900 p-4 text-center ring-1 ring-ink-800 transition hover:bg-ink-850 hover:ring-oranje-500/60 active:scale-[0.98]",
+                      "group flex min-h-40 flex-col items-center justify-center gap-3 rounded-3xl bg-ink-900 p-4 text-center ring-1 ring-ink-800 transition hover:bg-ink-850 hover:ring-brand-500/60 active:scale-[0.98]",
                       !ok && "opacity-35",
                     )}
                   >
-                    <span className="grid h-16 w-16 place-items-center rounded-full bg-oranje-500 font-display text-xl font-bold text-ink-950">{initials(s.name)}</span>
+                    <span className="grid h-16 w-16 place-items-center rounded-full bg-brand-500 font-display text-xl font-bold text-ink-950">{initials(s.name)}</span>
                     <span>
                       <span className="block font-semibold text-white">{s.name}</span>
                       <span className="mt-0.5 block text-[0.8rem] text-ink-400">{ROLE[s.role] ?? s.role}</span>
@@ -184,12 +184,12 @@ export function LockScreen({
             <button type="button" onClick={() => (setPicked(null), setCode(""), setError(null))} className="mb-6 inline-flex h-12 items-center gap-2 self-start rounded-full px-3 text-sm font-semibold text-ink-300 hover:bg-ink-850">
               <ArrowLeft className="h-4 w-4" /> Not you?
             </button>
-            <span className="grid h-20 w-20 place-items-center rounded-full bg-oranje-500 font-display text-2xl font-bold text-ink-950">{initials(picked.name)}</span>
+            <span className="grid h-20 w-20 place-items-center rounded-full bg-brand-500 font-display text-2xl font-bold text-ink-950">{initials(picked.name)}</span>
             <div className="mt-3 font-display text-2xl font-semibold text-white">{picked.name}</div>
             <div className="mt-1 text-sm text-ink-400">Enter your 4-digit PIN</div>
             <div className={cn("mt-6 flex gap-4", error && "animate-[shake_0.35s]")} aria-live="polite" aria-label={`${pin.length} of 4 digits entered`}>
               {[0, 1, 2, 3].map((i) => (
-                <span key={i} className={cn("h-4 w-4 rounded-full ring-2 transition", i < pin.length ? "bg-oranje-500 ring-oranje-500" : "ring-ink-600")} />
+                <span key={i} className={cn("h-4 w-4 rounded-full ring-2 transition", i < pin.length ? "bg-brand-500 ring-brand-500" : "ring-ink-600")} />
               ))}
             </div>
             <div className="mt-3 h-6 text-sm font-medium text-rose-400" role="alert">

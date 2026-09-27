@@ -60,7 +60,7 @@ export function PairScreen({
   return (
     <main className="min-h-dvh bg-ink-950 px-5 py-8 text-ink-100 sm:py-14">
       <div className="mx-auto max-w-3xl">
-        <div className="flex items-center gap-3 text-oranje-500">
+        <div className="flex items-center gap-3 text-brand-500">
           <Mark className="h-12 w-12" />
           <Wordmark className="text-lg" />
         </div>
@@ -88,7 +88,7 @@ export function PairScreen({
               </div>
             </div>
             <div className="mt-5 flex flex-wrap gap-2">
-              <a href="/pos" className="inline-flex h-14 items-center gap-2 rounded-full bg-oranje-500 px-6 font-semibold text-ink-950 hover:bg-oranje-400">
+              <a href="/pos" className="inline-flex h-14 items-center gap-2 rounded-full bg-brand-500 px-6 font-semibold text-ink-950 hover:bg-brand-400">
                 Open the till <ArrowRight className="h-5 w-5" />
               </a>
               <PosButton variant="outline" size="lg" onClick={() => setRepair(true)}>
@@ -121,8 +121,8 @@ export function PairScreen({
                     <legend className="mb-2 text-[0.8rem] font-semibold text-ink-300">Store</legend>
                     <div className="max-h-72 space-y-2 overflow-y-auto pr-1">
                       {signedIn.stores.map((s) => (
-                        <label key={s.id} className={cn("flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl px-4 py-2 ring-1 transition", storeId === s.id ? "bg-oranje-500/10 ring-oranje-500" : "bg-ink-850 ring-ink-800 hover:ring-ink-600")}>
-                          <input type="radio" name="store" className="h-5 w-5 accent-oranje-500" checked={storeId === s.id} onChange={() => setStoreId(s.id)} />
+                        <label key={s.id} className={cn("flex min-h-14 cursor-pointer items-center gap-3 rounded-2xl px-4 py-2 ring-1 transition", storeId === s.id ? "bg-brand-500/10 ring-brand-500" : "bg-ink-850 ring-ink-800 hover:ring-ink-600")}>
+                          <input type="radio" name="store" className="h-5 w-5 accent-brand-500" checked={storeId === s.id} onChange={() => setStoreId(s.id)} />
                           <span>
                             <span className="block font-semibold text-white">
                               {s.name} <span className="font-mono text-xs text-ink-400">{s.code}</span>
@@ -152,7 +152,7 @@ export function PairScreen({
 
             {demoStores.length > 0 && (
               <section className="rounded-3xl border border-dashed border-ink-700 p-6" aria-labelledby="pair-demo">
-                <div className="eyebrow text-[0.62rem] text-oranje-500">Demo mode</div>
+                <div className="eyebrow text-[0.62rem] text-brand-500">Demo mode</div>
                 <h2 id="pair-demo" className="mt-1 font-display text-xl font-semibold text-white">
                   One-click pairing
                 </h2>
@@ -164,10 +164,10 @@ export function PairScreen({
                         type="button"
                         onClick={() => void pair("demo", s.id)}
                         disabled={!!busy}
-                        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-ink-900 px-4 py-2 text-left ring-1 ring-ink-800 transition hover:ring-oranje-500/60 disabled:opacity-50"
+                        className="flex min-h-14 w-full items-center gap-3 rounded-2xl bg-ink-900 px-4 py-2 text-left ring-1 ring-ink-800 transition hover:ring-brand-500/60 disabled:opacity-50"
                         data-testid={`demo-pair-${s.code}`}
                       >
-                        <StoreIcon className="h-5 w-5 shrink-0 text-oranje-400" />
+                        <StoreIcon className="h-5 w-5 shrink-0 text-brand-400" />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold text-white">{s.name}</span>
                           <span className="text-xs text-ink-400">

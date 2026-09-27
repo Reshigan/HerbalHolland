@@ -88,7 +88,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
                     <ul className="space-y-1 text-sm">
                       {pending.map((s) => (
                         <li key={s.id} className="flex justify-between gap-3">
-                          <Link href={`/hq/stores/${s.code}`} className="text-ink-850 hover:text-oranje-700">{s.name}</Link>
+                          <Link href={`/hq/stores/${s.code}`} className="text-ink-850 hover:text-brand-700">{s.name}</Link>
                           <span className="text-xs text-ink-500">{s.region.name}</span>
                         </li>
                       ))}
@@ -153,7 +153,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
               const k = acked.get(a.id) ?? 0;
               return (
                 <li key={a.id}>
-                  <Link href={`/hq/announcements${qs({ a: a.id })}`} className="block px-5 py-4 transition hover:bg-oranje-50/40">
+                  <Link href={`/hq/announcements${qs({ a: a.id })}`} className="block px-5 py-4 transition hover:bg-brand-50/40">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="flex min-w-0 items-center gap-2">
                         <Badge tone={KIND_TONE[a.kind] ?? "neutral"}>{a.kind.toLowerCase()}</Badge>

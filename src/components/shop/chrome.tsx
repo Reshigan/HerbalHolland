@@ -71,11 +71,11 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   return (
     <>
       <ShopSurface />
-      <a href="#main" className="sr-only z-[70] rounded-full bg-oranje-500 px-4 py-2 font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-3">
+      <a href="#main" className="sr-only z-[70] rounded-full bg-brand-500 px-4 py-2 font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-3">
         Skip to content
       </a>
       <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
-        <div className="bg-oranje-500 text-ink-950">
+        <div className="bg-brand-500 text-ink-950">
           <Container className="flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold">
             {messages.map((m, i) => (
               <Link key={m.text} href={m.href} className={cn("truncate hover:underline", i > 0 && "hidden md:inline", i > 1 && "md:hidden lg:inline")}>
@@ -83,7 +83,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               </Link>
             ))}
             <span className="hidden shrink-0 items-center gap-1.5 xl:inline-flex">
-              <span className="rounded-full bg-ink-950 px-1.5 py-px text-[0.62rem] font-bold text-oranje-500">18+</span>
+              <span className="rounded-full bg-ink-950 px-1.5 py-px text-[0.62rem] font-bold text-brand-500">18+</span>
               Adults only
             </span>
           </Container>
@@ -115,7 +115,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               >
                 <span className="relative">
                   <UserRound className="h-[22px] w-[22px]" strokeWidth={1.8} />
-                  {tier && <span className={cn("absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-ink-950", TIER_DOT[tier.key] ?? "bg-oranje-500")} />}
+                  {tier && <span className={cn("absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full ring-2 ring-ink-950", TIER_DOT[tier.key] ?? "bg-brand-500")} />}
                 </span>
                 <span className="hidden sm:inline">{customer ? customer.firstName : "Sign in"}</span>
               </Link>
@@ -123,7 +123,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.8} />
                 <span className="hidden sm:inline">Bag</span>
                 {count > 0 && (
-                  <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-oranje-500 px-1 text-[0.68rem] font-bold text-ink-950 sm:static sm:h-6 sm:min-w-6">{count}</span>
+                  <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.68rem] font-bold text-ink-950 sm:static sm:h-6 sm:min-w-6">{count}</span>
                 )}
               </Link>
             </div>
@@ -142,7 +142,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         <footer className="mt-24 border-t border-ink-850 bg-ink-950">
           <Container className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
-              <Link href="/" className="inline-flex items-center gap-3 text-oranje-500" aria-label="Herbal Holland — home">
+              <Link href="/" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland — home">
                 <Mark className="h-14 w-14" />
                 <Wordmark className="text-xl" />
               </Link>
@@ -180,7 +180,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           <div className="border-t border-ink-850">
             <Container className="flex flex-col gap-4 py-6 text-xs leading-relaxed text-ink-400 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">
-                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-oranje-500 font-display text-[0.7rem] font-bold text-oranje-500">18+</span>
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border-2 border-brand-500 font-display text-[0.7rem] font-bold text-brand-500">18+</span>
                 <p className="max-w-2xl">
                   For adults 18 and older only. Keep all products out of reach of children and pets. Licensed medicines are supplied only to registered patients with a valid SAHPRA authorisation, by an authorised dispenser. Nothing on this site is medical advice.
                 </p>
@@ -199,7 +199,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   );
 }
 
-const TIER_DOT: Record<string, string> = { SEED: "bg-ink-300", SPROUT: "bg-leaf-500", BLOOM: "bg-series-4", HARVEST: "bg-oranje-500" };
+const TIER_DOT: Record<string, string> = { SEED: "bg-ink-300", SPROUT: "bg-leaf-500", BLOOM: "bg-series-4", HARVEST: "bg-brand-500" };
 
 function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
@@ -225,8 +225,8 @@ function AgeGate() {
       <style>{"body{overflow:hidden}"}</style>
       <div className="flex min-h-full items-center justify-center p-4">
         <div className="hh-frame w-full max-w-md animate-rise px-6 py-10 text-center sm:px-10">
-          <Mark spin className="mx-auto h-24 w-24 text-oranje-500" />
-          <Wordmark className="mt-4 items-center text-xl text-oranje-500" />
+          <Mark spin className="mx-auto h-24 w-24 text-brand-500" />
+          <Wordmark className="mt-4 items-center text-xl text-brand-500" />
           <h2 id="age-title" className="mt-8 font-display text-3xl font-semibold text-white">
             Are you 18 or older?
           </h2>
@@ -265,11 +265,11 @@ function UnderAge() {
         </p>
         <p className="mt-8 text-sm text-ink-400">
           Looking for support or information for young people? Visit{" "}
-          <a href="https://www.sadag.org" className="text-oranje-400 underline" rel="noopener noreferrer">
+          <a href="https://www.sadag.org" className="text-brand-400 underline" rel="noopener noreferrer">
             SADAG
           </a>{" "}
           or{" "}
-          <a href="https://www.childline.org.za" className="text-oranje-400 underline" rel="noopener noreferrer">
+          <a href="https://www.childline.org.za" className="text-brand-400 underline" rel="noopener noreferrer">
             Childline South Africa
           </a>
           .

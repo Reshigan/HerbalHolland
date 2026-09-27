@@ -98,7 +98,7 @@ function OpenShift({ onOpened }: { onOpened: (s: BootShift) => void }) {
   return (
     <section className="rounded-3xl bg-ink-900 p-5 ring-1 ring-ink-800" aria-labelledby="open-shift">
       <div className="flex items-center gap-3">
-        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-oranje-500 text-ink-950">
+        <span className="grid h-11 w-11 place-items-center rounded-2xl bg-brand-500 text-ink-950">
           <Wallet className="h-5 w-5" />
         </span>
         <div>
@@ -118,14 +118,14 @@ function OpenShift({ onOpened }: { onOpened: (s: BootShift) => void }) {
               </PosButton>
             ))}
           </div>
-          <button type="button" onClick={() => setCounting(true)} className="mt-3 h-12 text-sm font-semibold text-oranje-400 hover:underline">
+          <button type="button" onClick={() => setCounting(true)} className="mt-3 h-12 text-sm font-semibold text-brand-400 hover:underline">
             Count the float by denomination instead
           </button>
         </>
       ) : (
         <div className="mt-5">
           <DenominationGrid counts={counts} onChange={setCounts} />
-          <button type="button" onClick={() => setCounting(false)} className="mt-2 h-12 text-sm font-semibold text-oranje-400 hover:underline">
+          <button type="button" onClick={() => setCounting(false)} className="mt-2 h-12 text-sm font-semibold text-brand-400 hover:underline">
             Use a standard float instead
           </button>
         </div>
@@ -243,7 +243,7 @@ function DenominationGrid({ counts, onChange }: { counts: Record<string, number>
           value={n || ""}
           placeholder="0"
           onChange={(e) => set(d, Number(e.target.value.replace(/\D/g, "")) || 0)}
-          className="h-12 w-full min-w-0 flex-1 rounded-xl border border-ink-700 bg-ink-900 text-center font-display text-lg font-semibold text-white tnum placeholder:text-ink-600 focus:border-oranje-500 focus:outline-none"
+          className="h-12 w-full min-w-0 flex-1 rounded-xl border border-ink-700 bg-ink-900 text-center font-display text-lg font-semibold text-white tnum placeholder:text-ink-600 focus:border-brand-500 focus:outline-none"
           data-testid={`denom-${d}`}
         />
         <button type="button" aria-label={`One more ${denomLabel(d)}`} onClick={() => set(d, n + 1)} className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink-800 text-lg font-semibold text-white active:scale-95">
@@ -324,7 +324,7 @@ function ZReportCard({ report, onPrint, onDone }: { report: ZReport; onPrint: ()
   const v = report.cash.varianceCents ?? 0;
   return (
     <section className="rounded-3xl bg-ink-900 p-5 ring-1 ring-ink-800" aria-labelledby="zr" data-testid="z-report">
-      <div className="eyebrow text-[0.62rem] text-oranje-400">Z-report</div>
+      <div className="eyebrow text-[0.62rem] text-brand-400">Z-report</div>
       <h1 id="zr" className="font-display text-xl font-semibold text-white">
         Shift closed {report.closedAt ? fmtDateTime(report.closedAt) : ""}
       </h1>

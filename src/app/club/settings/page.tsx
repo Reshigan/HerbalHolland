@@ -64,7 +64,7 @@ export default async function ClubSettings() {
         <aside className="space-y-6">
           <Panel className="p-5">
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-              <ShieldCheck className="h-5 w-5 text-oranje-500" /> Age verification
+              <ShieldCheck className="h-5 w-5 text-brand-500" /> Age verification
             </h2>
             {customer.ageVerifiedAt ? (
               <p className="mt-2 flex items-start gap-2 text-sm text-ink-300">
@@ -84,16 +84,16 @@ export default async function ClubSettings() {
             <h2 className="font-display text-lg font-semibold text-white">Your data</h2>
             <p className="mt-2">
               You can ask for a copy of the personal information we hold about you, have it corrected, or close your account. Email our Information Officer at{" "}
-              <a href={`mailto:privacy@herbalholland.co.za?subject=${encodeURIComponent(`Data request — member ${customer.memberNo}`)}`} className="font-semibold text-oranje-400 underline">
+              <a href={`mailto:privacy@herbalholland.co.za?subject=${encodeURIComponent(`Data request — member ${customer.memberNo}`)}`} className="font-semibold text-brand-400 underline">
                 privacy@herbalholland.co.za
               </a>
               .
             </p>
             <p className="mt-2">
-              <Link href="/legal/privacy" className="font-semibold text-oranje-400 hover:underline">
+              <Link href="/legal/privacy" className="font-semibold text-brand-400 hover:underline">
                 Privacy notice
               </Link>{" "}
-              · <Link href="/legal/paia" className="font-semibold text-oranje-400 hover:underline">PAIA manual</Link>
+              · <Link href="/legal/paia" className="font-semibold text-brand-400 hover:underline">PAIA manual</Link>
             </p>
             <p className="mt-2 text-xs text-ink-500">{company?.legalName ?? "Herbal Holland (Pty) Ltd"} is the responsible party for Rewards.</p>
           </Panel>

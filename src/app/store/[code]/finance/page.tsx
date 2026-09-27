@@ -158,15 +158,15 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: "What you owe HQ, or HQ owes you" },
           { href: `${base}/reports`, icon: ChartColumn, title: "Reports", sub: "Sales, margins, stock and staff" },
         ].map((l) => (
-          <Link key={l.href} href={l.href} className="group flex items-center gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:border-oranje-300">
-            <span className="grid h-10 w-10 place-items-center rounded-xl bg-oranje-50 text-oranje-700">
+          <Link key={l.href} href={l.href} className="group flex items-center gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:border-brand-300">
+            <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-brand-700">
               <l.icon className="h-5 w-5" aria-hidden />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block font-semibold text-ink-900">{l.title}</span>
               <span className="block text-xs text-ink-500">{l.sub}</span>
             </span>
-            <ArrowRight className="h-4 w-4 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-oranje-600" aria-hidden />
+            <ArrowRight className="h-4 w-4 text-ink-300 transition group-hover:translate-x-0.5 group-hover:text-brand-600" aria-hidden />
           </Link>
         ))}
       </div>

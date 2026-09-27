@@ -93,8 +93,8 @@ export default async function InventoryPage({ params, searchParams }: { params: 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Stock value at cost" value={zarCompact(value)} sub={`${units.toLocaleString()} units on hand`} className="col-span-2 lg:col-span-1" />
         <Stat label="Out of stock" value={out.toLocaleString()} sub="ranged SKUs, nothing to sell" />
-        <Stat label="At or below reorder point" value={low.toLocaleString()} sub={low || out ? <Link href={`/store/${store.code}/purchasing/new`} className="font-semibold text-oranje-700 hover:underline">Build an order →</Link> : "all above reorder"} />
-        <Stat label="Tied up in overstock" value={zarCompact(overValue)} sub={over.length ? <Link href={hrefWith(path, {}, { status: "OVER" })} className="font-semibold text-oranje-700 hover:underline">{over.length} SKUs over target →</Link> : "nothing over target"} />
+        <Stat label="At or below reorder point" value={low.toLocaleString()} sub={low || out ? <Link href={`/store/${store.code}/purchasing/new`} className="font-semibold text-brand-700 hover:underline">Build an order →</Link> : "all above reorder"} />
+        <Stat label="Tied up in overstock" value={zarCompact(overValue)} sub={over.length ? <Link href={hrefWith(path, {}, { status: "OVER" })} className="font-semibold text-brand-700 hover:underline">{over.length} SKUs over target →</Link> : "nothing over target"} />
         <Stat label="Reserved for online orders" value={reserved.toLocaleString()} sub="units held for open orders" />
       </div>
 
@@ -165,7 +165,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
                       <div className="flex items-center gap-3">
                         <ProductArt slug={r.slug} strain={r.strain} regClass={r.regClass} className="h-10 w-10 shrink-0 overflow-hidden rounded-xl" label="" />
                         <div className="min-w-0">
-                          <Link href={`${path}/${r.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                          <Link href={`${path}/${r.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                             {r.productName} <span className="text-ink-500">· {r.variantName}</span>
                           </Link>
                           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">

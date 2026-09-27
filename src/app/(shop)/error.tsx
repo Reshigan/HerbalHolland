@@ -12,7 +12,7 @@ export default function ShopError({ error, retry }: { error: Error & { digest?: 
   }, [error]);
   return (
     <div className="mx-auto flex max-w-xl flex-col items-center px-6 py-24 text-center">
-      <Mark className="h-16 w-16 text-oranje-500" />
+      <Mark className="h-16 w-16 text-brand-500" />
       <h1 className="mt-8 font-display text-3xl font-semibold tracking-tight text-white">This page didn&apos;t load</h1>
       <p className="mt-3 leading-relaxed text-ink-300">Please try again. Your bag and account are safe.</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">

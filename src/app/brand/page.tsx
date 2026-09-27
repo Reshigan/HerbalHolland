@@ -61,7 +61,7 @@ function Section({ id, n, title, intro, children, light }: { id: string; n: stri
     <section id={id} className={cn("scroll-mt-6 border-t py-20", light ? "border-ink-150 bg-ink-50 text-ink-850" : "border-ink-850 bg-ink-950 text-ink-100")}>
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[14rem_minmax(0,1fr)]">
-          <div className={cn("tnum font-display text-sm font-semibold", light ? "text-oranje-800" : "text-oranje-500")}>{n}</div>
+          <div className={cn("tnum font-display text-sm font-semibold", light ? "text-brand-800" : "text-brand-500")}>{n}</div>
           <div>
             <h2 className={cn("font-display text-4xl font-semibold tracking-tight", light ? "text-ink-950" : "text-white")}>{title}</h2>
             <p className={cn("mt-3 max-w-2xl text-[1.02rem] leading-relaxed", light ? "text-ink-600" : "text-ink-300")}>{intro}</p>
@@ -89,14 +89,14 @@ export default function BrandBook() {
       {/* Cover */}
       <header className="mx-auto grid grid-cols-1 max-w-6xl gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:items-center lg:py-24">
         <div>
-          <div className="eyebrow text-oranje-500">Brand book · v1.0 · 2026</div>
+          <div className="eyebrow text-brand-500">Brand book · v1.0 · 2026</div>
           <h1 className="mt-4 font-display text-6xl font-semibold leading-[0.95] tracking-tight text-white sm:text-7xl">Herbal Holland</h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-300">
             Dutch heritage. African soil. How the windmill flower looks, sounds and behaves — on shopfronts, packs, screens and in every message we send.
           </p>
           <nav className="mt-10 flex flex-wrap gap-2" aria-label="Sections">
             {NAV.map(([id, label], i) => (
-              <a key={id} href={`#${id}`} className="rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-oranje-500 hover:text-white">
+              <a key={id} href={`#${id}`} className="rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
                 <span className="tnum mr-1.5 text-ink-500">0{i + 1}</span>
                 {label}
               </a>
@@ -123,7 +123,7 @@ export default function BrandBook() {
               <div className="rounded-2xl bg-ink-950 p-6">
                 <Logo markClassName="h-12 w-12" />
               </div>
-              <div className="rounded-2xl bg-oranje-500 p-6 text-ink-950">
+              <div className="rounded-2xl bg-brand-500 p-6 text-ink-950">
                 <span className="inline-flex items-center gap-2.5">
                   <Mark className="h-12 w-12" />
                   <Wordmark className="text-[0.95rem]" />
@@ -136,7 +136,7 @@ export default function BrandBook() {
           </figure>
           <figure className="flex flex-col rounded-3xl bg-ink-900 p-8">
             <div className="flex flex-1 items-center justify-center">
-              <div className="flex items-end gap-5 text-oranje-500">
+              <div className="flex items-end gap-5 text-brand-500">
                 <Mark className="h-28 w-28" />
                 <Mark className="h-16 w-16" />
                 <Mark className="h-10 w-10" detail={false} />
@@ -151,14 +151,14 @@ export default function BrandBook() {
         <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
           <figure className="rounded-3xl bg-ink-900 p-8">
             <div className="relative mx-auto aspect-square w-56">
-              <div className="absolute inset-0 rounded-xl border-2 border-dashed border-oranje-500/50" />
+              <div className="absolute inset-0 rounded-xl border-2 border-dashed border-brand-500/50" />
               <div className="absolute inset-[18%] grid place-items-center rounded-lg bg-ink-950 ring-1 ring-ink-700">
-                <Mark className="h-full w-full p-2 text-oranje-500" />
+                <Mark className="h-full w-full p-2 text-brand-500" />
               </div>
-              <span className="absolute left-1/2 top-[4%] -translate-x-1/2 font-mono text-xs text-oranje-400">x</span>
-              <span className="absolute bottom-[4%] left-1/2 -translate-x-1/2 font-mono text-xs text-oranje-400">x</span>
-              <span className="absolute left-[4%] top-1/2 -translate-y-1/2 font-mono text-xs text-oranje-400">x</span>
-              <span className="absolute right-[4%] top-1/2 -translate-y-1/2 font-mono text-xs text-oranje-400">x</span>
+              <span className="absolute left-1/2 top-[4%] -translate-x-1/2 font-mono text-xs text-brand-400">x</span>
+              <span className="absolute bottom-[4%] left-1/2 -translate-x-1/2 font-mono text-xs text-brand-400">x</span>
+              <span className="absolute left-[4%] top-1/2 -translate-y-1/2 font-mono text-xs text-brand-400">x</span>
+              <span className="absolute right-[4%] top-1/2 -translate-y-1/2 font-mono text-xs text-brand-400">x</span>
             </div>
             <figcaption className="mt-6 text-sm text-ink-300">
               <strong className="text-white">Clear space.</strong> Keep a margin of <em>x</em> — the length of one windmill petal — on every side. Nothing else enters that space.
@@ -246,7 +246,7 @@ export default function BrandBook() {
       <Section id="type" n="03" title="Typography" intro="Outfit for display — geometric and warm, it echoes the wordmark. Inter for everything you read or tap, with tabular figures wherever numbers line up.">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="rounded-3xl bg-ink-900 p-8">
-            <div className="eyebrow text-oranje-500">Outfit · display</div>
+            <div className="eyebrow text-brand-500">Outfit · display</div>
             <p className="mt-6 font-display text-7xl font-semibold leading-[0.95] tracking-tight text-white">Dutch heritage.</p>
             <dl className="mt-8 space-y-4">
               {[
@@ -263,7 +263,7 @@ export default function BrandBook() {
             </dl>
           </div>
           <div className="rounded-3xl bg-ink-900 p-8">
-            <div className="eyebrow text-oranje-500">Inter · interface</div>
+            <div className="eyebrow text-brand-500">Inter · interface</div>
             <p className="mt-6 text-lg leading-relaxed text-ink-200">Every batch is lab-tested and traceable to the farm. Scan the QR code on your pack to see its certificate.</p>
             <dl className="mt-8 space-y-4">
               {[
@@ -277,7 +277,7 @@ export default function BrandBook() {
                 </div>
               ))}
               <div className="flex items-baseline justify-between gap-4 border-t border-ink-800 pt-4">
-                <dt className="eyebrow text-oranje-500">Overline</dt>
+                <dt className="eyebrow text-brand-500">Overline</dt>
                 <dd className="shrink-0 font-mono text-xs text-ink-400">11 · caps · 0.18em</dd>
               </div>
               <div className="flex items-baseline justify-between gap-4 border-t border-ink-800 pt-4">
@@ -315,7 +315,7 @@ export default function BrandBook() {
           </div>
           <div className="rounded-3xl bg-ink-950 p-8">
             <div className="hh-frame flex aspect-[5/4] items-center justify-center">
-              <Mark className="h-24 w-24 text-oranje-500" spin />
+              <Mark className="h-24 w-24 text-brand-500" spin />
             </div>
             <p className="mt-6 text-sm text-ink-300">The window-poster frame: a thick Sunset border around black, like the shopfront. Heroes, the age gate, cards for the TV menu.</p>
           </div>
@@ -386,15 +386,15 @@ export default function BrandBook() {
       <Section id="misuse" n="07" title="Do & don't" intro="The Mark only works when it's left alone: one colour, full clear space, upright. These are the right ways to use it, and the mistakes we see most.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {[
-            ["Sunset on black", "bg-ink-950 text-oranje-500", false],
-            ["Black on Sunset", "bg-oranje-500 text-ink-950", false],
-            ["Inside the window-poster frame", "text-oranje-500", true],
+            ["Sunset on black", "bg-ink-950 text-brand-500", false],
+            ["Black on Sunset", "bg-brand-500 text-ink-950", false],
+            ["Inside the window-poster frame", "text-brand-500", true],
           ].map(([label, tile, frame]) => (
             <figure key={label as string} className="rounded-3xl bg-ink-900 p-5">
               <div className={cn("relative grid aspect-[16/9] place-items-center overflow-hidden rounded-2xl", frame ? "bg-ink-950" : (tile as string))}>
                 {frame ? (
                   <div className="hh-frame grid h-[78%] aspect-[4/5] place-items-center border-[6px] sm:border-[6px]">
-                    <Mark className="h-[55%] w-[55%] text-oranje-500" />
+                    <Mark className="h-[55%] w-[55%] text-brand-500" />
                   </div>
                 ) : (
                   <Mark className="h-20 w-20" />
@@ -418,7 +418,7 @@ export default function BrandBook() {
           ].map(([label, markCls, tileCls]) => (
             <figure key={label} className="rounded-3xl bg-ink-900 p-5">
               <div className={cn("relative grid aspect-square place-items-center overflow-hidden rounded-2xl bg-ink-950", tileCls)}>
-                <Mark className={cn("h-16 w-16 text-oranje-500", markCls)} />
+                <Mark className={cn("h-16 w-16 text-brand-500", markCls)} />
                 <span className="absolute right-2 top-2 grid h-6 w-6 place-items-center rounded-full bg-rose-500 text-white">
                   <X className="h-3.5 w-3.5" strokeWidth={3} />
                 </span>

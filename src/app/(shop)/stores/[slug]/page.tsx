@@ -63,7 +63,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
           </div>
           <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Herbal Holland {s.name}</h1>
           <p className="mt-3 flex items-start gap-2 text-lg text-ink-300">
-            <MapPin className="mt-1 h-5 w-5 shrink-0 text-oranje-500" />
+            <MapPin className="mt-1 h-5 w-5 shrink-0 text-brand-500" />
             {s.addressLine}, {s.suburb}, {s.city}, {s.postalCode}
           </p>
           {!soon && <p className={cn("mt-2 flex items-center gap-2 text-sm font-medium", o.open ? "text-leaf-100" : "text-ink-400")}><Clock className="h-4 w-4" /> {o.label}</p>}
@@ -98,17 +98,17 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             <Panel className="space-y-2.5 p-5 text-sm">
               {s.phone && (
                 <a href={`tel:${s.phone.replace(/\s/g, "")}`} className="flex items-center gap-3 text-ink-200 hover:text-white">
-                  <Phone className="h-4 w-4 text-oranje-500" /> {s.phone}
+                  <Phone className="h-4 w-4 text-brand-500" /> {s.phone}
                 </a>
               )}
               {s.whatsapp && (
                 <a href={`https://wa.me/${s.whatsapp.replace(/\D/g, "")}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 text-ink-200 hover:text-white">
-                  <MessageCircle className="h-4 w-4 text-oranje-500" /> WhatsApp the store
+                  <MessageCircle className="h-4 w-4 text-brand-500" /> WhatsApp the store
                 </a>
               )}
               {s.email && (
                 <a href={`mailto:${s.email}`} className="flex items-center gap-3 text-ink-200 hover:text-white">
-                  <Mail className="h-4 w-4 text-oranje-500" /> {s.email}
+                  <Mail className="h-4 w-4 text-brand-500" /> {s.email}
                 </a>
               )}
               <p className="border-t border-ink-800 pt-2.5 text-xs text-ink-500">Operated by {s.company.legalName}, an independent Herbal Holland franchisee.</p>
@@ -126,8 +126,8 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               </h2>
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
                 {deals.map((d) => (
-                  <div key={d.id} className="flex items-start gap-3 rounded-2xl border border-oranje-500/35 bg-oranje-500/[0.06] p-4">
-                    <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-oranje-400" />
+                  <div key={d.id} className="flex items-start gap-3 rounded-2xl border border-brand-500/35 bg-brand-500/[0.06] p-4">
+                    <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-400" />
                     <div className="text-sm">
                       <div className="font-semibold text-white">{d.name}</div>
                       <div className="text-ink-300">{describePromo(d as unknown as PromoInput)}{d.description ? ` — ${d.description}` : ""}</div>
@@ -141,7 +141,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
           <section className="mt-14" aria-labelledby="menu">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
-                <div className="eyebrow text-oranje-500">On the shelf now</div>
+                <div className="eyebrow text-brand-500">On the shelf now</div>
                 <h2 id="menu" className="mt-2 font-display text-2xl font-semibold text-white">
                   In stock at {s.name}
                 </h2>

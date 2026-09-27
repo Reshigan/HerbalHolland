@@ -8,7 +8,7 @@ export const TIER_STYLE: Record<number, { card: string; chip: string; ring: stri
   0: { card: "from-ink-800 via-ink-900 to-ink-950", chip: "bg-ink-200 text-ink-950", ring: "ring-ink-600" },
   1: { card: "from-leaf-700 via-ink-900 to-ink-950", chip: "bg-leaf-500 text-ink-950", ring: "ring-leaf-500/60" },
   2: { card: "from-series-4 via-ink-900 to-ink-950", chip: "bg-series-4 text-white", ring: "ring-series-4" },
-  3: { card: "from-oranje-600 via-ink-900 to-ink-950", chip: "bg-oranje-500 text-ink-950", ring: "ring-oranje-500/70" },
+  3: { card: "from-brand-600 via-ink-900 to-ink-950", chip: "bg-brand-500 text-ink-950", ring: "ring-brand-500/70" },
 };
 
 export function MemberCard({ name, memberNo, tierName, tierIndex, points, className }: { name: string; memberNo: string; tierName: string; tierIndex: number; points: number; className?: string }) {
@@ -17,7 +17,7 @@ export function MemberCard({ name, memberNo, tierName, tierIndex, points, classN
     <div className={cn("relative isolate overflow-hidden rounded-[1.6rem] bg-gradient-to-br p-5 shadow-lift ring-1 sm:p-6", s.card, s.ring, className)} role="group" aria-label={`${tierName} Rewards card for ${name}`}>
       <Mark aria-hidden className="pointer-events-none absolute -right-10 -top-12 -z-10 h-56 w-56 text-white/[0.06]" />
       <div className="flex items-start justify-between gap-4">
-        <span className="inline-flex items-center gap-2 text-oranje-500">
+        <span className="inline-flex items-center gap-2 text-brand-500">
           <Mark className="h-8 w-8" detail={false} />
           <Wordmark className="text-[0.7rem]" />
         </span>

@@ -13,7 +13,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink-950 px-4 py-16 text-ink-200">
       <div className="w-full max-w-md">
-        <Link href="/" aria-label="Herbal Holland home" className="mb-10 inline-block text-oranje-500">
+        <Link href="/" aria-label="Herbal Holland home" className="mb-10 inline-block text-brand-500">
           <Logo />
         </Link>
         <h1 className="font-display text-3xl font-semibold text-white">{valid ? `Unsubscribe from ${WHAT[ch]}` : "This link has expired"}</h1>
@@ -24,7 +24,7 @@ export default async function UnsubscribePage({ searchParams }: { searchParams: 
         </p>
         {valid ? <Confirm c={c} ch={ch} t={t} what={WHAT[ch]} /> : null}
         <p className="mt-8 text-sm text-ink-400">
-          Change any channel in <Link href="/club" className="font-medium text-oranje-400 hover:underline">Herbal Holland Rewards</Link>.
+          Change any channel in <Link href="/club" className="font-medium text-brand-400 hover:underline">Herbal Holland Rewards</Link>.
         </p>
       </div>
     </main>

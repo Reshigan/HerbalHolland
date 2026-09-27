@@ -9,12 +9,12 @@ export function HoursEditor({ initial }: { initial: TradingHours }) {
   );
   const set = (k: DayKey, patch: Partial<(typeof week)[DayKey]>) => setWeek((w) => ({ ...w, [k]: { ...w[k], ...patch } }));
   const copyMonday = () => setWeek((w) => ({ ...w, tue: { ...w.mon }, wed: { ...w.mon }, thu: { ...w.mon }, fri: { ...w.mon } }));
-  const input = "tnum h-9 w-36 rounded-xl border border-ink-200 bg-white px-2.5 text-sm focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15 disabled:bg-ink-50 disabled:text-ink-300";
+  const input = "tnum h-9 w-36 rounded-xl border border-ink-200 bg-white px-2.5 text-sm focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15 disabled:bg-ink-50 disabled:text-ink-300";
   return (
     <fieldset>
       <legend className="mb-1.5 flex w-full items-center justify-between text-[0.78rem] font-semibold text-ink-700">
         Trading hours
-        <button type="button" onClick={copyMonday} className="text-xs font-semibold text-oranje-700 hover:underline">
+        <button type="button" onClick={copyMonday} className="text-xs font-semibold text-brand-700 hover:underline">
           Copy Monday to weekdays
         </button>
       </legend>
@@ -25,7 +25,7 @@ export function HoursEditor({ initial }: { initial: TradingHours }) {
             <div key={k} className="flex flex-wrap items-center gap-3 px-3 py-2">
               <span className="w-24 text-sm font-medium text-ink-850">{name}</span>
               <label className="flex items-center gap-2 text-xs text-ink-600">
-                <input type="checkbox" name={`closed:${k}`} checked={d.closed} onChange={(e) => set(k, { closed: e.target.checked })} className="accent-oranje-500" />
+                <input type="checkbox" name={`closed:${k}`} checked={d.closed} onChange={(e) => set(k, { closed: e.target.checked })} className="accent-brand-500" />
                 Closed
               </label>
               <div className={cn("ml-auto flex items-center gap-2", d.closed && "opacity-40")}>

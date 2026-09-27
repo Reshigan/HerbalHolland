@@ -34,7 +34,7 @@ export function AdminShell({
     <div className="flex h-full flex-col">
       <Link href={area === "hq" ? "/hq" : `/store/${store?.code}`} className="mb-5 flex items-center justify-between px-2">
         <Logo />
-        <span className="rounded-full border border-oranje-500/40 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-oranje-400">{area === "hq" ? "HQ" : "Store"}</span>
+        <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-brand-400">{area === "hq" ? "HQ" : "Store"}</span>
       </Link>
       {store && (
         <div className="mb-5 space-y-2 px-1">
@@ -49,7 +49,7 @@ export function AdminShell({
         <SideNav groups={nav} />
       </div>
       <div className="mt-6 flex items-center gap-3 rounded-2xl bg-ink-900 p-3">
-        <Avatar name={user.name} className="bg-oranje-500 text-ink-950" />
+        <Avatar name={user.name} className="bg-brand-500 text-ink-950" />
         <div className="min-w-0 flex-1">
           <div className="truncate text-sm font-semibold text-white">{user.name}</div>
           <div className="truncate text-xs text-ink-400">{ROLE[user.role]}</div>

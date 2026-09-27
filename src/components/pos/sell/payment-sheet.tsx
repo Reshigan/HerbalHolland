@@ -130,7 +130,7 @@ export function PaymentSheet({
       aria-pressed={panel === key}
       className={cn(
         "flex min-h-[4.5rem] flex-col items-start justify-center gap-1 rounded-2xl px-4 py-3 text-left ring-1 transition active:scale-[0.99] disabled:opacity-35",
-        panel === key ? "bg-oranje-500 text-ink-950 ring-oranje-500" : "bg-ink-850 text-white ring-ink-800 hover:ring-oranje-500/60",
+        panel === key ? "bg-brand-500 text-ink-950 ring-brand-500" : "bg-ink-850 text-white ring-ink-800 hover:ring-brand-500/60",
       )}
       data-testid={`tender-${key}`}
     >
@@ -159,7 +159,7 @@ export function PaymentSheet({
               </div>
               {(savingsCents > 0 || discountCents > 0) && (
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-800 pt-3 text-sm">
-                  {savingsCents > 0 && <span className="font-semibold text-oranje-300">Rewards savings {zar(savingsCents)}</span>}
+                  {savingsCents > 0 && <span className="font-semibold text-brand-300">Rewards savings {zar(savingsCents)}</span>}
                   {discountCents > 0 && <span className="font-semibold text-[#7fd49a]">Deals {zar(discountCents)}</span>}
                 </div>
               )}

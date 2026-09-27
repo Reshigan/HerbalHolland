@@ -38,10 +38,10 @@ export function SideNav({ groups }: { groups: NavGroup[] }) {
                     href={i.href}
                     className={cn(
                       "group flex items-center gap-3 rounded-xl px-3 py-2 text-[0.84rem] font-medium transition-colors",
-                      active ? "bg-oranje-500 text-ink-950" : "text-ink-300 hover:bg-ink-850 hover:text-white",
+                      active ? "bg-brand-500 text-ink-950" : "text-ink-300 hover:bg-ink-850 hover:text-white",
                     )}
                   >
-                    <Icon name={i.icon} className={cn("h-[18px] w-[18px]", active ? "text-ink-950" : "text-ink-400 group-hover:text-oranje-400")} />
+                    <Icon name={i.icon} className={cn("h-[18px] w-[18px]", active ? "text-ink-950" : "text-ink-400 group-hover:text-brand-400")} />
                     {i.label}
                   </Link>
                 </li>
@@ -64,7 +64,7 @@ export function StoreSwitcher({ current, stores }: { current: string; stores: { 
       aria-label="Switch store"
       value={current}
       onChange={(e) => router.push(path.replace(`/store/${current}`, `/store/${e.target.value}`))}
-      className="h-9 w-full cursor-pointer rounded-xl border border-ink-700 bg-ink-900 px-3 text-sm font-medium text-ink-100 focus:border-oranje-500 focus:outline-none"
+      className="h-9 w-full cursor-pointer rounded-xl border border-ink-700 bg-ink-900 px-3 text-sm font-medium text-ink-100 focus:border-brand-500 focus:outline-none"
     >
       {stores.map((s) => (
         <option key={s.code} value={s.code}>

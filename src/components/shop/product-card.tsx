@@ -52,15 +52,15 @@ export function ProductCardView({ p }: { p: Card }) {
               <AddToBag compact variantId={p.firstVariantId} name={p.name} className="shrink-0" />
             ) : (
               // Not interactive on its own: clicks fall through to the card link underneath.
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink-700 text-xs font-semibold text-ink-200 transition group-hover:border-oranje-500 group-hover:text-oranje-300 sm:flex sm:h-auto sm:w-auto sm:px-3 sm:py-1.5">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink-700 text-xs font-semibold text-ink-200 transition group-hover:border-brand-500 group-hover:text-brand-300 sm:flex sm:h-auto sm:w-auto sm:px-3 sm:py-1.5">
                 <ChevronRight className="h-5 w-5 sm:hidden" aria-hidden />
                 <span className="sr-only sm:not-sr-only">{p.stock.kind === "out" ? "View" : `${p.variantCount} options`}</span>
               </span>
             )}
           </div>
-          {p.priceNote && p.wasCents && p.priceNote !== p.deal?.name && <p className="mt-1 truncate text-[0.7rem] font-semibold text-oranje-300">{p.priceNote}</p>}
+          {p.priceNote && p.wasCents && p.priceNote !== p.deal?.name && <p className="mt-1 truncate text-[0.7rem] font-semibold text-brand-300">{p.priceNote}</p>}
           {p.rewardsCents != null && (
-            <p className="mt-1.5 flex w-fit max-w-full items-center gap-1 rounded-md bg-oranje-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-oranje-200">
+            <p className="mt-1.5 flex w-fit max-w-full items-center gap-1 rounded-md bg-brand-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-brand-200">
               Rewards <span className="tnum truncate">{zar(p.rewardsCents)}</span>
             </p>
           )}

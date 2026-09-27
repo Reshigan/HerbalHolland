@@ -48,9 +48,9 @@ export function MultiPick({
       <div className="flex min-h-10 flex-wrap items-center gap-1.5 border-b border-ink-100 px-2.5 py-2">
         {picked.length === 0 && <span className="px-1 text-xs text-ink-400">{emptyLabel}</span>}
         {picked.map((v) => (
-          <span key={v} className="inline-flex items-center gap-1 rounded-full bg-oranje-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-oranje-800 ring-1 ring-inset ring-oranje-200">
+          <span key={v} className="inline-flex items-center gap-1 rounded-full bg-brand-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-brand-800 ring-1 ring-inset ring-brand-200">
             {byValue.get(v)?.label ?? v}
-            <button type="button" onClick={() => toggle(v)} className="grid h-5 w-5 place-items-center rounded-full hover:bg-oranje-100" aria-label={`Remove ${byValue.get(v)?.label ?? v}`}>
+            <button type="button" onClick={() => toggle(v)} className="grid h-5 w-5 place-items-center rounded-full hover:bg-brand-100" aria-label={`Remove ${byValue.get(v)?.label ?? v}`}>
               <X className="h-3 w-3" />
             </button>
           </span>
@@ -81,7 +81,7 @@ export function MultiPick({
           <li key={o.value}>
             {o.group && o.group !== shown[i - 1]?.group && <div className="px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-ink-400">{o.group}</div>}
             <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-ink-50">
-              <input type="checkbox" checked={picked.includes(o.value)} onChange={() => toggle(o.value)} className="h-4 w-4 shrink-0 accent-oranje-500" />
+              <input type="checkbox" checked={picked.includes(o.value)} onChange={() => toggle(o.value)} className="h-4 w-4 shrink-0 accent-brand-500" />
               <span className="min-w-0 flex-1 truncate text-ink-800">{o.label}</span>
               {o.hint && <span className="shrink-0 text-xs text-ink-400">{o.hint}</span>}
             </label>

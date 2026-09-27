@@ -127,7 +127,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
                 return (
                   <Tr key={o.id}>
                     <Td>
-                      <Link href={`/hq/distribution/${o.id}`} className="font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-oranje-700">
+                      <Link href={`/hq/distribution/${o.id}`} className="font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-brand-700">
                         {o.number}
                       </Link>
                       <span className="block text-xs text-ink-500">{o.lines.length} line{o.lines.length === 1 ? "" : "s"}</span>
@@ -154,7 +154,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
                           </Link>
                         </div>
                       ) : view.status === "APPROVED" && act ? (
-                        <Link href={`/hq/distribution/${o.id}`} className="inline-flex h-8 items-center rounded-full bg-oranje-500 px-3 text-xs font-semibold text-ink-950 hover:bg-oranje-400">
+                        <Link href={`/hq/distribution/${o.id}`} className="inline-flex h-8 items-center rounded-full bg-brand-500 px-3 text-xs font-semibold text-ink-950 hover:bg-brand-400">
                           Pick list →
                         </Link>
                       ) : (

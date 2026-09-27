@@ -37,7 +37,7 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
             <ArrowLeft className="h-4 w-4" /> Learn
           </Link>
           <div className="mt-8 max-w-3xl">
-            <div className="eyebrow text-oranje-500">{a.kicker}</div>
+            <div className="eyebrow text-brand-500">{a.kicker}</div>
             <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-6xl">{a.title}</h1>
             <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-200">{a.dek}</p>
             <p className="mt-6 text-sm text-ink-400">{a.minutes} min read · Herbal Holland</p>
@@ -48,12 +48,12 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         <div className="grid grid-cols-1 gap-12 py-8 lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-20">
           <div className="min-w-0">
             <ArticleBody slug={a.slug} settings={settings} />
-            <Link href={`/learn/${next.slug}`} className="group mt-16 flex items-center justify-between gap-6 rounded-3xl border border-ink-800 bg-ink-900/60 p-6 transition hover:border-oranje-500/60">
+            <Link href={`/learn/${next.slug}`} className="group mt-16 flex items-center justify-between gap-6 rounded-3xl border border-ink-800 bg-ink-900/60 p-6 transition hover:border-brand-500/60">
               <div>
                 <div className="eyebrow text-ink-400">Next</div>
-                <div className="mt-1 font-display text-xl font-semibold text-white group-hover:text-oranje-100">{next.title}</div>
+                <div className="mt-1 font-display text-xl font-semibold text-white group-hover:text-brand-100">{next.title}</div>
               </div>
-              <ArrowRight className="h-6 w-6 shrink-0 text-oranje-500 transition group-hover:translate-x-1" />
+              <ArrowRight className="h-6 w-6 shrink-0 text-brand-500 transition group-hover:translate-x-1" />
             </Link>
           </div>
           <aside className="hidden lg:block">

@@ -68,7 +68,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
       className={cn(
         "flex shrink-0 items-center gap-2 rounded-2xl text-[0.8rem] font-semibold transition lg:w-full lg:flex-col lg:justify-center lg:gap-1.5 lg:px-1 lg:py-3",
         "h-12 px-4 lg:h-auto lg:min-h-[4.5rem]",
-        active ? "bg-oranje-500 text-ink-950" : "bg-ink-900 text-ink-300 ring-1 ring-ink-800 hover:text-white lg:bg-transparent lg:ring-0 lg:hover:bg-ink-900",
+        active ? "bg-brand-500 text-ink-950" : "bg-ink-900 text-ink-300 ring-1 ring-ink-800 hover:text-white lg:bg-transparent lg:ring-0 lg:hover:bg-ink-900",
       )}
     >
       {icon}
@@ -109,7 +109,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
               }}
               placeholder="Search or scan a barcode"
               aria-label="Search products or scan a barcode (F2)"
-              className="h-12 w-full rounded-full border border-ink-800 bg-ink-900 pl-12 pr-16 text-base text-white placeholder:text-ink-500 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/20"
+              className="h-12 w-full rounded-full border border-ink-800 bg-ink-900 pl-12 pr-16 text-base text-white placeholder:text-ink-500 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20"
             />
             {query ? (
               <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-800">
@@ -127,11 +127,11 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
         </div>
 
         {filter.kind === "suggestion" && !query && (
-          <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl bg-oranje-500/10 px-4 py-1 text-sm text-oranje-200 ring-1 ring-oranje-500/30 lg:mx-4">
+          <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl bg-brand-500/10 px-4 py-1 text-sm text-brand-200 ring-1 ring-brand-500/30 lg:mx-4">
             <span>
-              <b className="text-oranje-300">Complete the deal:</b> {filter.label}
+              <b className="text-brand-300">Complete the deal:</b> {filter.label}
             </span>
-            <button type="button" onClick={() => setFilter({ kind: "all" })} className="h-12 shrink-0 rounded-full px-4 font-semibold text-oranje-300 hover:bg-oranje-500/10">
+            <button type="button" onClick={() => setFilter({ kind: "all" })} className="h-12 shrink-0 rounded-full px-4 font-semibold text-brand-300 hover:bg-brand-500/10">
               Show all
             </button>
           </div>
@@ -157,7 +157,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                     <button
                       type="button"
                       onClick={() => pick(p)}
-                      className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-ink-900 text-left ring-1 ring-ink-800 transition hover:ring-oranje-500/60 active:scale-[0.98]"
+                      className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-ink-900 text-left ring-1 ring-ink-800 transition hover:ring-brand-500/60 active:scale-[0.98]"
                       aria-label={`${p.name}, ${p.variants.length > 1 ? `from ${zar(min)}` : zar(min)}, ${stock} in stock`}
                     >
                       <div className="relative aspect-[16/10] w-full overflow-hidden">
@@ -199,7 +199,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                 <button
                   type="button"
                   onClick={() => (onAdd(v.id), setPicking(null))}
-                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-oranje-500/60 active:scale-[0.99]"
+                  className="flex min-h-16 w-full items-center justify-between gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-brand-500/60 active:scale-[0.99]"
                 >
                   <span>
                     <span className="block text-base font-semibold text-white">{v.name}</span>

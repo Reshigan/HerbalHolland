@@ -132,7 +132,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
                     </Td>
                     <Td>
                       {s.customer ? (
-                        <Link href={`/hq/customers/${s.customer.id}`} className="hover:text-oranje-700">
+                        <Link href={`/hq/customers/${s.customer.id}`} className="hover:text-brand-700">
                           {s.customer.firstName} <span className="font-mono text-xs text-ink-500">{s.customer.memberNo}</span>
                         </Link>
                       ) : (
@@ -182,7 +182,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
               {promo && (
                 <p className="mt-3 text-xs text-ink-600">
                   Linked promotion:{" "}
-                  <Link href={`/hq/promotions/${promo.id}`} className="font-medium text-oranje-700 hover:underline">
+                  <Link href={`/hq/promotions/${promo.id}`} className="font-medium text-brand-700 hover:underline">
                     {promo.name}
                   </Link>
                   {promo.code && <span className="font-mono"> · {promo.code}</span>}

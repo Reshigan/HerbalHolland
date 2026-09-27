@@ -51,7 +51,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
       />
 
       {notes.length > 0 && (
-        <Link href={`/store/${code}/updates`} className="mb-6 flex items-center gap-3 rounded-2xl border border-oranje-200 bg-oranje-50 px-4 py-3 text-sm text-oranje-800 hover:bg-oranje-100">
+        <Link href={`/store/${code}/updates`} className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 hover:bg-brand-100">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="flex-1">
             <b>{notes.length} HQ update{notes.length > 1 ? "s" : ""} need your acknowledgement</b> — latest: {notes[0].title}
@@ -106,7 +106,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
           <CardBody className="space-y-4">
             <Link href={`/store/${code}/orders`} className="flex items-center justify-between rounded-2xl bg-ink-950 p-4 text-white transition hover:bg-ink-900">
               <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-oranje-500 text-ink-950">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 text-ink-950">
                   <ShoppingBag className="h-5 w-5" />
                 </span>
                 <div>
@@ -117,7 +117,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
               <div className="text-right text-xs text-ink-300">
                 <div>{queue.PLACED ?? 0} new</div>
                 <div>{queue.PICKING ?? 0} picking</div>
-                <div className="text-oranje-400">{queue.READY ?? 0} ready</div>
+                <div className="text-brand-400">{queue.READY ?? 0} ready</div>
               </div>
             </Link>
             <div className="grid grid-cols-2 gap-3 text-sm">
@@ -149,7 +149,7 @@ function AlertRow({ href, icon, label, value, action, tone }: { href: string; ic
         <span className="block font-medium text-ink-850">{value}</span>
         <span className="text-xs text-ink-500">{label}</span>
       </span>
-      {tone !== "ok" && <span className="text-xs font-semibold text-oranje-700">{action} →</span>}
+      {tone !== "ok" && <span className="text-xs font-semibold text-brand-700">{action} →</span>}
     </Link>
   );
 }

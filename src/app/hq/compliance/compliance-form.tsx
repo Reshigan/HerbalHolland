@@ -41,10 +41,10 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                 role="radio"
                 aria-checked={mode === m.key}
                 onClick={() => setMode(m.key)}
-                className={cn("rounded-2xl border p-4 text-left transition disabled:cursor-default", mode === m.key ? "border-oranje-500 bg-oranje-50 ring-4 ring-oranje-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
+                className={cn("rounded-2xl border p-4 text-left transition disabled:cursor-default", mode === m.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
               >
                 <span className="flex items-center gap-2 font-display text-sm font-semibold text-ink-900">
-                  <m.icon className={cn("h-4 w-4", mode === m.key ? "text-oranje-700" : "text-ink-400")} /> {m.title}
+                  <m.icon className={cn("h-4 w-4", mode === m.key ? "text-brand-700" : "text-ink-400")} /> {m.title}
                   {value.thcMode === m.key && <span className="rounded-full bg-ink-900 px-2 py-0.5 text-[0.65rem] font-semibold text-white">Current</span>}
                 </span>
                 <span className="mt-1.5 block text-xs leading-relaxed text-ink-600">{m.body}</span>
@@ -98,7 +98,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                     <td className="px-4 py-2.5 font-medium text-ink-850">{REG_CLASS_LABEL[cl]}</td>
                     {CHANNELS.map((c) => (
                       <td key={c} className="px-3 py-2.5 text-center">
-                        <input type="checkbox" name={`ch_${c}`} value={cl} defaultChecked={value.channels[c].includes(cl)} aria-label={`${REG_CLASS_LABEL[cl]} via ${channelLabel(c)}`} className="h-[18px] w-[18px] cursor-pointer accent-oranje-500" />
+                        <input type="checkbox" name={`ch_${c}`} value={cl} defaultChecked={value.channels[c].includes(cl)} aria-label={`${REG_CLASS_LABEL[cl]} via ${channelLabel(c)}`} className="h-[18px] w-[18px] cursor-pointer accent-brand-500" />
                       </td>
                     ))}
                     <td className="px-3 py-2.5 text-center">
@@ -108,11 +108,11 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                           <Lock className="mx-auto h-4 w-4 text-ink-400" aria-label="Always licence-gated" />
                         </>
                       ) : (
-                        <input type="checkbox" name="licensedOnly" value={cl} defaultChecked={value.licensedOnly.includes(cl)} aria-label={`${REG_CLASS_LABEL[cl]} licence-gated`} className="h-[18px] w-[18px] cursor-pointer accent-oranje-500" />
+                        <input type="checkbox" name="licensedOnly" value={cl} defaultChecked={value.licensedOnly.includes(cl)} aria-label={`${REG_CLASS_LABEL[cl]} licence-gated`} className="h-[18px] w-[18px] cursor-pointer accent-brand-500" />
                       )}
                     </td>
                     <td className="px-3 py-2.5 text-center">
-                      <input type="checkbox" name="ageRestricted" value={cl} defaultChecked={value.ageRestricted.includes(cl)} aria-label={`${REG_CLASS_LABEL[cl]} 18+`} className="h-[18px] w-[18px] cursor-pointer accent-oranje-500" />
+                      <input type="checkbox" name="ageRestricted" value={cl} defaultChecked={value.ageRestricted.includes(cl)} aria-label={`${REG_CLASS_LABEL[cl]} 18+`} className="h-[18px] w-[18px] cursor-pointer accent-brand-500" />
                     </td>
                   </tr>
                 ))}

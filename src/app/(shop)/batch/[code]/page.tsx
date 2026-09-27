@@ -29,7 +29,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
   return (
     <Container className="max-w-5xl pt-10 sm:pt-14">
       <div className="flex items-center gap-2 text-sm text-ink-400">
-        <ScanLine className="h-4 w-4 text-oranje-500" /> Batch lookup · {batch.code}
+        <ScanLine className="h-4 w-4 text-brand-500" /> Batch lookup · {batch.code}
       </div>
 
       {batch.status === "RECALLED" && (
@@ -51,7 +51,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
       <div className="mt-8 grid grid-cols-1 gap-8 md:grid-cols-[14rem_minmax(0,1fr)] md:items-center">
         <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} label={p.name} className="aspect-square w-40 rounded-3xl md:w-full" />
         <div>
-          <div className="eyebrow text-oranje-500">{tested ? "Certificate of analysis" : "Batch record"}</div>
+          <div className="eyebrow text-brand-500">{tested ? "Certificate of analysis" : "Batch record"}</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white">{p.name}</h1>
           <p className="mt-1 text-lg text-ink-300">
             {batch.variant.name} · {p.category.name}
@@ -69,7 +69,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
             <span className="tnum rounded-full bg-ink-850 px-3 py-1 font-mono text-xs text-ink-200">{batch.code}</span>
           </div>
           {linkable && (
-            <Link href={`/p/${p.slug}?v=${batch.variantId}`} className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-oranje-400 hover:underline">
+            <Link href={`/p/${p.slug}?v=${batch.variantId}`} className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:underline">
               View product <ArrowRight className="h-4 w-4" />
             </Link>
           )}
@@ -80,7 +80,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
         <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-2">
           <Panel className="p-6">
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-              <FlaskConical className="h-5 w-5 text-oranje-500" /> Potency
+              <FlaskConical className="h-5 w-5 text-brand-500" /> Potency
             </h2>
             <dl className="mt-5 grid grid-cols-2 gap-4">
               {[
@@ -127,7 +127,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
 
           <Panel className="p-6">
             <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-              <BadgeCheck className="h-5 w-5 text-oranje-500" /> Safety screening
+              <BadgeCheck className="h-5 w-5 text-brand-500" /> Safety screening
             </h2>
             <p className="mt-1 text-sm text-ink-400">PASS means results were below the laboratory&apos;s action limits.</p>
             <ul className="mt-5 divide-y divide-ink-800">
@@ -160,7 +160,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
           ].map(([icon, k, v]) => (
             <div key={k as string}>
               <dt className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-ink-400">
-                <span className="text-oranje-500">{icon}</span> {k}
+                <span className="text-brand-500">{icon}</span> {k}
               </dt>
               <dd className="mt-1 text-sm font-medium text-ink-100">{v}</dd>
             </div>
@@ -171,7 +171,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
 
       <p className="mt-6 text-sm leading-relaxed text-ink-400">
         This page comes straight from our quality system, so it always shows the current status of the batch. If the code on your pack doesn&apos;t match, or anything looks wrong, please tell us in any store.{" "}
-        <Link href="/learn/reading-lab-results" className="font-semibold text-oranje-400 hover:underline">
+        <Link href="/learn/reading-lab-results" className="font-semibold text-brand-400 hover:underline">
           How to read a lab result
         </Link>
       </p>

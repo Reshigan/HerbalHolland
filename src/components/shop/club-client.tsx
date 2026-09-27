@@ -22,7 +22,7 @@ export function ClubNav() {
     <>
       <nav aria-label="Rewards" className="scrollbar-none -mx-4 hidden gap-1 overflow-x-auto border-b border-ink-850 px-4 sm:mx-0 sm:flex sm:px-0">
         {TABS.map((t) => (
-          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition", active(t.href) ? "border-oranje-500 text-white" : "border-transparent text-ink-400 hover:text-white")}>
+          <Link key={t.href} href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("relative -mb-px flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-medium transition", active(t.href) ? "border-brand-500 text-white" : "border-transparent text-ink-400 hover:text-white")}>
             <t.icon className="h-4 w-4" /> {t.label}
           </Link>
         ))}
@@ -31,7 +31,7 @@ export function ClubNav() {
         <ul className="grid grid-cols-5">
           {TABS.map((t) => (
             <li key={t.href}>
-              <Link href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold", active(t.href) ? "text-oranje-400" : "text-ink-400")}>
+              <Link href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold", active(t.href) ? "text-brand-400" : "text-ink-400")}>
                 <t.icon className="h-5 w-5" strokeWidth={1.9} /> {t.label}
               </Link>
             </li>
@@ -64,7 +64,7 @@ export function ShareLink({ url, text }: { url: string; text: string }) {
         </button>
       </div>
       {canShare && (
-        <button type="button" onClick={() => navigator.share({ title: "Herbal Holland Rewards", text, url }).catch(() => undefined)} className="mt-3 flex h-11 items-center gap-2 rounded-full bg-oranje-500 px-5 text-sm font-semibold text-ink-950 hover:bg-oranje-400">
+        <button type="button" onClick={() => navigator.share({ title: "Herbal Holland Rewards", text, url }).catch(() => undefined)} className="mt-3 flex h-11 items-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400">
           <Share2 className="h-4 w-4" /> Share your invite
         </button>
       )}
@@ -94,7 +94,7 @@ export function InstallPrompt() {
   if (done || (!evt && !ios)) return null;
   return (
     <div className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/70 p-4">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-oranje-500 text-ink-950">
+      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
         <Download className="h-5 w-5" />
       </span>
       <div className="min-w-0 flex-1 text-sm">
@@ -108,7 +108,7 @@ export function InstallPrompt() {
             await evt.userChoice;
             setDone(true);
           }}
-          className="h-10 shrink-0 rounded-full bg-oranje-500 px-4 text-sm font-semibold text-ink-950 hover:bg-oranje-400"
+          className="h-10 shrink-0 rounded-full bg-brand-500 px-4 text-sm font-semibold text-ink-950 hover:bg-brand-400"
         >
           Install
         </button>
@@ -150,7 +150,7 @@ export function ConsentToggles({ channels, action }: { channels: { key: Channel;
                     }
                   })
                 }
-                className={cn("relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40", on ? "bg-oranje-500" : "bg-ink-700")}
+                className={cn("relative h-7 w-12 shrink-0 rounded-full transition disabled:opacity-40", on ? "bg-brand-500" : "bg-ink-700")}
               >
                 <span className={cn("absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-all", on ? "left-6" : "left-1")} />
               </button>

@@ -191,7 +191,7 @@ export function ProductForm({
             <CardHeader
               title={
                 <span className="inline-flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-oranje-700" /> Compliance master data
+                  <ShieldCheck className="h-4 w-4 text-brand-700" /> Compliance master data
                 </span>
               }
               description="Drives what can be sold, where, and how it may be marketed"

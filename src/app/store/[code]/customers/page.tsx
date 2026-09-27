@@ -128,7 +128,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
           {seg !== "ALL" && (
             <p className="text-xs text-ink-500">
               <b className="text-ink-700">{SEGMENTS[seg as SegmentKey].blurb}.</b> Play: {SEGMENTS[seg as SegmentKey].play}.{" "}
-              <Link href={hrefWith(`/store/${store.code}/marketing`, {}, { tab: "campaigns", segment: seg })} className="font-semibold text-oranje-700 hover:underline">
+              <Link href={hrefWith(`/store/${store.code}/marketing`, {}, { tab: "campaigns", segment: seg })} className="font-semibold text-brand-700 hover:underline">
                 Message this segment →
               </Link>
             </p>
@@ -161,7 +161,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                       <Link href={`${path}/${c.id}`} className="group flex items-center gap-3">
                         <Avatar name={`${c.firstName} ${c.lastName ?? ""}`} />
                         <span>
-                          <span className="block font-medium text-ink-900 group-hover:text-oranje-700">
+                          <span className="block font-medium text-ink-900 group-hover:text-brand-700">
                             {c.firstName} {c.lastName ?? ""}
                           </span>
                           <span className="font-mono text-xs text-ink-400">{c.memberNo}</span>

@@ -32,10 +32,10 @@ export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind,
           </div>
         </div>
         {joinSavingsCents > 0 && (
-          <button type="button" onClick={onFind} className="mt-3 flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-oranje-500/15 px-3 py-2 text-left ring-1 ring-oranje-500/40 transition hover:bg-oranje-500/20" data-testid="join-prompt">
-            <Sparkles className="h-5 w-5 shrink-0 text-oranje-400" />
-            <span className="text-[0.85rem] leading-snug text-oranje-100">
-              <b className="text-oranje-300">Members save {zar(joinSavingsCents)}</b> on this basket — add or sign up (free)
+          <button type="button" onClick={onFind} className="mt-3 flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-brand-500/15 px-3 py-2 text-left ring-1 ring-brand-500/40 transition hover:bg-brand-500/20" data-testid="join-prompt">
+            <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
+            <span className="text-[0.85rem] leading-snug text-brand-100">
+              <b className="text-brand-300">Members save {zar(joinSavingsCents)}</b> on this basket — add or sign up (free)
             </span>
           </button>
         )}
@@ -57,9 +57,9 @@ export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind,
     );
   const p = customer.patient;
   return (
-    <div className="rounded-2xl bg-ink-900 p-3 ring-1 ring-oranje-500/30" data-testid="customer-card">
+    <div className="rounded-2xl bg-ink-900 p-3 ring-1 ring-brand-500/30" data-testid="customer-card">
       <div className="flex items-start gap-3">
-        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-oranje-500 font-display text-sm font-bold text-ink-950">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-sm font-bold text-ink-950">
           {(customer.firstName[0] ?? "") + (customer.lastName?.[0] ?? "")}
         </span>
         <div className="min-w-0 flex-1">
@@ -207,16 +207,16 @@ export function CartPanel({
 
         {quote.suggestions.length > 0 && cart.lines.length > 0 && (
           <div className="mb-3 mt-1 space-y-2">
-            <div className="eyebrow text-[0.62rem] text-oranje-400">Complete the deal</div>
+            <div className="eyebrow text-[0.62rem] text-brand-400">Complete the deal</div>
             {quote.suggestions.slice(0, 3).map((s) => (
               <button
                 key={s.promoId + s.message}
                 type="button"
                 onClick={() => onSuggestion(s)}
-                className="flex min-h-12 w-full items-center gap-3 rounded-2xl bg-oranje-500/10 px-3 py-2 text-left ring-1 ring-oranje-500/30 transition hover:bg-oranje-500/15"
+                className="flex min-h-12 w-full items-center gap-3 rounded-2xl bg-brand-500/10 px-3 py-2 text-left ring-1 ring-brand-500/30 transition hover:bg-brand-500/15"
               >
-                <Gift className="h-5 w-5 shrink-0 text-oranje-400" />
-                <span className="text-[0.85rem] leading-snug text-oranje-100">{s.message}</span>
+                <Gift className="h-5 w-5 shrink-0 text-brand-400" />
+                <span className="text-[0.85rem] leading-snug text-brand-100">{s.message}</span>
               </button>
             ))}
           </div>
@@ -257,7 +257,7 @@ export function CartPanel({
             <dd className="tnum">{zar(quote.subtotalCents)}</dd>
           </div>
           {quote.memberSavingsCents > 0 && (
-            <div className="flex justify-between text-oranje-300" data-testid="rewards-savings">
+            <div className="flex justify-between text-brand-300" data-testid="rewards-savings">
               <dt>Rewards savings (in prices)</dt>
               <dd className="tnum">{zar(quote.memberSavingsCents)}</dd>
             </div>
@@ -281,14 +281,14 @@ export function CartPanel({
             </div>
           )}
           {cart.customer && quote.pointsEstimate > 0 && (
-            <div className="flex justify-between text-xs text-oranje-300">
+            <div className="flex justify-between text-xs text-brand-300">
               <dt>Earns{quote.pointsMultiplier > 1 ? ` (${quote.pointsMultiplier}× points)` : ""}</dt>
               <dd className="tnum">{fmtPoints(quote.pointsEstimate)}</dd>
             </div>
           )}
           {hasLicensed && (
             <div className="flex items-center gap-1.5 pt-1 text-xs text-ink-400">
-              <ShieldAlert className="h-3.5 w-3.5 text-oranje-400" /> Licensed medicine: patient authorisation + dispenser at payment
+              <ShieldAlert className="h-3.5 w-3.5 text-brand-400" /> Licensed medicine: patient authorisation + dispenser at payment
             </div>
           )}
         </dl>

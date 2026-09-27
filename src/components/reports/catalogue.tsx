@@ -89,7 +89,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={`Search ${total} reports — try “VAT”, “expiry” or “staff”`}
-            className="h-11 w-full rounded-xl border border-ink-200 bg-white pl-10 pr-10 text-sm text-ink-900 shadow-card placeholder:text-ink-400 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+            className="h-11 w-full rounded-xl border border-ink-200 bg-white pl-10 pr-10 text-sm text-ink-900 shadow-card placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
           />
           {q ? (
             <button type="button" onClick={() => setQ("")} className="absolute right-2 top-1/2 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-lg text-ink-400 hover:bg-ink-100 hover:text-ink-700" aria-label="Clear search">
@@ -103,8 +103,8 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
           {groups.map((g) => {
             const Icon = GROUP_META[g.group].icon;
             return (
-              <a key={g.group} href={`#${slug(g.group)}`} className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink-150 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-card transition hover:border-oranje-300 hover:text-ink-900">
-                <Icon className="h-3.5 w-3.5 text-oranje-600" strokeWidth={2} aria-hidden />
+              <a key={g.group} href={`#${slug(g.group)}`} className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink-150 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-card transition hover:border-brand-300 hover:text-ink-900">
+                <Icon className="h-3.5 w-3.5 text-brand-600" strokeWidth={2} aria-hidden />
                 {g.group}
                 <span className="tnum text-ink-400">{g.reports.length}</span>
               </a>
@@ -117,7 +117,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
         <section aria-labelledby="start-here" className="mb-10 rounded-2xl bg-ink-950 p-5 text-white sm:p-6">
           <div className="mb-4 flex items-end justify-between gap-4">
             <div>
-              <div id="start-here" className="eyebrow text-oranje-500">
+              <div id="start-here" className="eyebrow text-brand-500">
                 Start here
               </div>
               <p className="mt-1 text-sm text-ink-300">The reports people open most. Every report has filters, a chart where it helps, and a CSV export.</p>
@@ -125,13 +125,13 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
           </div>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {featured.map((r) => (
-              <Link key={r.key} href={r.href} className="group flex flex-col rounded-xl border border-ink-800 bg-ink-900 p-4 transition hover:border-oranje-500/60 hover:bg-ink-850">
-                <span className="grid h-10 w-10 place-items-center rounded-xl bg-oranje-500 text-ink-950">
+              <Link key={r.key} href={r.href} className="group flex flex-col rounded-xl border border-ink-800 bg-ink-900 p-4 transition hover:border-brand-500/60 hover:bg-ink-850">
+                <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 text-ink-950">
                   <ReportIcon reportKey={r.key} className="h-5 w-5" />
                 </span>
                 <span className="mt-3 flex items-center gap-1 font-display text-base font-semibold text-white">
                   {r.title}
-                  <ArrowUpRight className="h-4 w-4 text-ink-500 transition group-hover:text-oranje-400" aria-hidden />
+                  <ArrowUpRight className="h-4 w-4 text-ink-500 transition group-hover:text-brand-400" aria-hidden />
                 </span>
                 <span className="mt-1 text-sm leading-snug text-ink-300">{r.description}</span>
               </Link>
@@ -146,7 +146,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
         return (
           <section key={g.group} id={slug(g.group)} aria-labelledby={`h-${slug(g.group)}`} className="mb-10 scroll-mt-24">
             <header className="mb-4 flex items-start gap-3">
-              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink-950 text-oranje-500">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink-950 text-brand-500">
                 <Icon className="h-5 w-5" strokeWidth={1.9} aria-hidden />
               </span>
               <div className="min-w-0 flex-1">
@@ -164,9 +164,9 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
                 <Link
                   key={r.key}
                   href={r.href}
-                  className="group flex items-start gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:border-oranje-300 hover:shadow-lift"
+                  className="group flex items-start gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:-translate-y-0.5 hover:border-brand-300 hover:shadow-lift"
                 >
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-oranje-50 text-oranje-700 transition-colors group-hover:bg-oranje-500 group-hover:text-ink-950">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-700 transition-colors group-hover:bg-brand-500 group-hover:text-ink-950">
                     <ReportIcon reportKey={r.key} className="h-5 w-5" />
                   </span>
                   <span className="min-w-0 flex-1">
@@ -181,7 +181,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
                     </span>
                     <span className="mt-1 block text-sm leading-snug text-ink-500">{r.description}</span>
                   </span>
-                  <ArrowUpRight className={cn("mt-0.5 h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-oranje-600")} aria-hidden />
+                  <ArrowUpRight className={cn("mt-0.5 h-4 w-4 shrink-0 text-ink-300 transition group-hover:text-brand-600")} aria-hidden />
                 </Link>
               ))}
             </div>

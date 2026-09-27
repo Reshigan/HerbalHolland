@@ -125,7 +125,7 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
                     aria-selected={idx === active}
                     onMouseDown={(e) => (e.preventDefault(), choose(i))}
                     onMouseEnter={() => setActive(idx)}
-                    className={cn("flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm", idx === active ? "bg-oranje-50 text-ink-950" : "text-ink-800")}
+                    className={cn("flex cursor-pointer items-center justify-between gap-3 rounded-lg px-3 py-2 text-sm", idx === active ? "bg-brand-50 text-ink-950" : "text-ink-800")}
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{i.name}</span>
@@ -197,8 +197,8 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
           ) : (
             <div className="overflow-hidden rounded-xl border border-ink-150">
               {batches.map((b) => (
-                <label key={b.id} className={cn("flex cursor-pointer items-center gap-3 border-b border-ink-100 px-3.5 py-2.5 text-sm last:border-0", batch?.id === b.id ? "bg-oranje-50/70" : "hover:bg-ink-50")}>
-                  <input type="radio" name="batchPick" value={b.id} checked={batch?.id === b.id} onChange={() => setBatchId(b.id)} className="accent-oranje-500" />
+                <label key={b.id} className={cn("flex cursor-pointer items-center gap-3 border-b border-ink-100 px-3.5 py-2.5 text-sm last:border-0", batch?.id === b.id ? "bg-brand-50/70" : "hover:bg-ink-50")}>
+                  <input type="radio" name="batchPick" value={b.id} checked={batch?.id === b.id} onChange={() => setBatchId(b.id)} className="accent-brand-500" />
                   <span className="min-w-0 flex-1">
                     <span className="font-mono text-xs font-semibold text-ink-900">{b.code}</span>
                     <span className="ml-2 text-xs text-ink-500">{b.expires ? `exp ${b.expires}` : "no expiry"}</span>

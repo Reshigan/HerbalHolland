@@ -32,7 +32,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
 
   return (
     <Container className="max-w-3xl pt-10 sm:pt-14">
-      <div className="eyebrow text-oranje-500">Legal</div>
+      <div className="eyebrow text-brand-500">Legal</div>
       <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{doc.title}</h1>
       <p className="mt-3 text-lg text-ink-300">{doc.dek}</p>
       <Callout tone="info" icon={<FileText className="h-5 w-5" />} className="mt-8">
@@ -40,7 +40,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
       </Callout>
       <nav className="mt-6 flex flex-wrap gap-2 text-sm" aria-label="Legal documents">
         {(Object.keys(DOCS) as Slug[]).map((k) => (
-          <Link key={k} href={`/legal/${k}`} aria-current={k === slug ? "page" : undefined} className={k === slug ? "rounded-full bg-oranje-500 px-3.5 py-1.5 font-semibold text-ink-950" : "rounded-full border border-ink-700 px-3.5 py-1.5 text-ink-200 hover:border-ink-500"}>
+          <Link key={k} href={`/legal/${k}`} aria-current={k === slug ? "page" : undefined} className={k === slug ? "rounded-full bg-brand-500 px-3.5 py-1.5 font-semibold text-ink-950" : "rounded-full border border-ink-700 px-3.5 py-1.5 text-ink-200 hover:border-ink-500"}>
             {DOCS[k].title}
           </Link>
         ))}
@@ -71,7 +71,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
           <>
             <H2>Responsible party</H2>
             <P>
-              {entity}, {address}, is the responsible party for Herbal Holland Rewards and this website. Franchisee stores process your information when they serve you and are bound by agreements with us. Our Information Officer can be reached at <a className="text-oranje-400 underline" href="mailto:privacy@herbalholland.co.za">privacy@herbalholland.co.za</a>.
+              {entity}, {address}, is the responsible party for Herbal Holland Rewards and this website. Franchisee stores process your information when they serve you and are bound by agreements with us. Our Information Officer can be reached at <a className="text-brand-400 underline" href="mailto:privacy@herbalholland.co.za">privacy@herbalholland.co.za</a>.
             </P>
             <H2>What we collect and why</H2>
             <P>
@@ -91,7 +91,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
             <P>This manual is published under section 51 of the Promotion of Access to Information Act, 2000 (PAIA), and describes the records held by {entity} and how to request access to them.</P>
             <H2>Contact details</H2>
             <P>
-              Information Officer: {c?.contactName ?? "Information Officer"}, {entity}, {address}. Email <a className="text-oranje-400 underline" href="mailto:privacy@herbalholland.co.za">privacy@herbalholland.co.za</a>
+              Information Officer: {c?.contactName ?? "Information Officer"}, {entity}, {address}. Email <a className="text-brand-400 underline" href="mailto:privacy@herbalholland.co.za">privacy@herbalholland.co.za</a>
               {c?.phone ? `, telephone ${c.phone}` : ""}.
             </P>
             <H2>Records we hold</H2>

@@ -34,9 +34,9 @@ function Cell({ c, row, first }: { c: Column; row: Row; first: boolean }) {
     );
   if (first && row._href)
     return (
-      <Link href={row._href} className="group inline-flex items-center gap-1 font-semibold text-ink-900 underline-offset-2 hover:text-oranje-700 hover:underline">
+      <Link href={row._href} className="group inline-flex items-center gap-1 font-semibold text-ink-900 underline-offset-2 hover:text-brand-700 hover:underline">
         {text}
-        <ChevronRight className="h-3.5 w-3.5 text-ink-300 group-hover:text-oranje-600" aria-hidden />
+        <ChevronRight className="h-3.5 w-3.5 text-ink-300 group-hover:text-brand-600" aria-hidden />
       </Link>
     );
   return <>{text}</>;
@@ -75,12 +75,12 @@ export function ReportTable({ columns: all, rows, totals, limit }: { columns: Co
           {shown.map((row, i) =>
             row._style === "section" ? (
               <tr key={i}>
-                <td colSpan={columns.length} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-oranje-700">
+                <td colSpan={columns.length} className="border-b border-ink-100 bg-ink-50/60 px-5 pb-1.5 pt-4 text-[0.68rem] font-semibold uppercase tracking-[0.12em] text-brand-700">
                   {String(row[columns[0].key] ?? "")}
                 </td>
               </tr>
             ) : (
-              <tr key={i} className={cn("group/row", row._style === "strong" ? "bg-ink-50/70 font-semibold text-ink-950" : "hover:bg-oranje-50/50", row._style === "muted" && "text-ink-500")}>
+              <tr key={i} className={cn("group/row", row._style === "strong" ? "bg-ink-50/70 font-semibold text-ink-950" : "hover:bg-brand-50/50", row._style === "muted" && "text-ink-500")}>
                 {columns.map((c, ci) => (
                   <td
                     key={c.key}
@@ -93,7 +93,7 @@ export function ReportTable({ columns: all, rows, totals, limit }: { columns: Co
                       ci === 0 && "font-medium text-ink-900",
                       row._style === "strong" && "text-ink-950",
                       stick(ci),
-                      stick(ci) && (row._style === "strong" ? "bg-ink-50" : "bg-white group-hover/row:bg-oranje-50"),
+                      stick(ci) && (row._style === "strong" ? "bg-ink-50" : "bg-white group-hover/row:bg-brand-50"),
                     )}
                   >
                     <Cell c={c} row={row} first={ci === 0} />

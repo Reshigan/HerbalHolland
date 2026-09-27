@@ -17,7 +17,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
     <CardHeader
       title={
         <span className="inline-flex items-center gap-2">
-          <span className="grid h-7 w-7 place-items-center rounded-lg bg-oranje-50 text-oranje-700">{icon}</span>
+          <span className="grid h-7 w-7 place-items-center rounded-lg bg-brand-50 text-brand-700">{icon}</span>
           {title}
         </span>
       }

@@ -164,7 +164,7 @@ async function Marketplace({ store, canManage, q, page, sp, path }: { store: Sto
                             min={1}
                             max={l.qty}
                             defaultValue={l.qty}
-                            className="tnum h-9 w-16 rounded-xl border border-ink-200 bg-white text-center text-sm font-semibold focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+                            className="tnum h-9 w-16 rounded-xl border border-ink-200 bg-white text-center text-sm font-semibold focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
                           />
                           <SubmitButton size="sm" pendingLabel="…">Buy</SubmitButton>
                         </div>
@@ -297,7 +297,7 @@ async function Fulfil({ store, canManage, page, sp, path }: { store: StoreCtx; c
           {rows.map((o) => (
             <Tr key={o.id}>
               <Td>
-                <Link href={`/store/${store.code}/purchasing/${o.id}`} className="font-semibold text-ink-900 hover:text-oranje-700">{o.number}</Link>
+                <Link href={`/store/${store.code}/purchasing/${o.id}`} className="font-semibold text-ink-900 hover:text-brand-700">{o.number}</Link>
                 <div className="text-xs text-ink-500">{timeAgo(o.createdAt)}</div>
               </Td>
               <Td className="font-medium text-ink-850">{o.buyer.name}</Td>

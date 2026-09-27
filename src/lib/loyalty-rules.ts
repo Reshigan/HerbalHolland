@@ -37,5 +37,3 @@ export function pointsFor(paidCents: number, tier: TierKey, promoMultiplier = 1,
 }
 
 export const fmtPoints = (points: number) => `${new Intl.NumberFormat("en-US").format(points)} pts`;
-/** @deprecated use fmtPoints — kept while surfaces migrate. */
-export const guilders = fmtPoints;

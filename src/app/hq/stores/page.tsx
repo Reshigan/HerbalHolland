@@ -98,7 +98,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
               <Tr key={s.id}>
                 <Td>
                   <Link href={`/hq/stores/${s.code}`} className="group block min-w-40">
-                    <span className="font-medium text-ink-900 group-hover:text-oranje-700">{s.name}</span>
+                    <span className="font-medium text-ink-900 group-hover:text-brand-700">{s.name}</span>
                     <span className="block whitespace-nowrap text-xs text-ink-500">
                       <span className="font-mono">{s.code}</span> · {s.city}
                     </span>

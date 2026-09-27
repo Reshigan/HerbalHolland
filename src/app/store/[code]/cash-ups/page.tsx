@@ -112,11 +112,11 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
                 return (
                   <Tr key={s.id}>
                     <Td className="whitespace-nowrap">
-                      <Link href={`${path}/${s.id}`} className="font-semibold text-ink-900 hover:text-oranje-700">
+                      <Link href={`${path}/${s.id}`} className="font-semibold text-ink-900 hover:text-brand-700">
                         {fmtDate(s.openedAt)}
                       </Link>
                       <div className="text-xs text-ink-500">
-                        {fmtTime(s.openedAt)} – {s.closedAt ? fmtTime(s.closedAt) : <span className="font-semibold text-oranje-700">open · {timeAgo(s.openedAt)}</span>}
+                        {fmtTime(s.openedAt)} – {s.closedAt ? fmtTime(s.closedAt) : <span className="font-semibold text-brand-700">open · {timeAgo(s.openedAt)}</span>}
                       </div>
                     </Td>
                     <Td className="whitespace-nowrap text-ink-600">{(s.deviceId && device.get(s.deviceId)) ?? "—"}</Td>

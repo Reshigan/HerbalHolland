@@ -143,11 +143,11 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               {stores.length > 1 && <FilterSelect name="store" label="Store" defaultValue={sp.store} options={stores.map((s) => ({ value: s.code, label: s.name }))} />}
               <label className="block">
                 <span className="sr-only">From date</span>
-                <input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+                <input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
               </label>
               <label className="block">
                 <span className="sr-only">To date</span>
-                <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+                <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
               </label>
             </FilterForm>
           </div>
@@ -172,7 +172,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               {orders.map((o) => (
                 <Tr key={o.id}>
                   <Td>
-                    <Link href={`/hq/orders/${o.code}`} className="font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/orders/${o.code}`} className="font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-brand-700">
                       {o.code}
                     </Link>
                     <span className="block whitespace-nowrap text-xs text-ink-500">{fmtDateTime(o.createdAt)}</span>

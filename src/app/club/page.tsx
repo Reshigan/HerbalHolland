@@ -50,14 +50,14 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
 
         <div className="space-y-6">
           <div>
-            <div className="eyebrow text-oranje-500">{m.tier.name} member{m.customer.homeStore ? ` · ${m.customer.homeStore.name}` : ""}</div>
+            <div className="eyebrow text-brand-500">{m.tier.name} member{m.customer.homeStore ? ` · ${m.customer.homeStore.name}` : ""}</div>
             <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white">Hi {m.customer.firstName}</h1>
             <p className="mt-2 text-ink-300">
               Your {m.tier.name} price takes {savings[m.tier.key]}% off instantly, and you earn {settings.loyalty.earnPer100} points for every R100. Member since {fmtDate(m.customer.createdAt)}.
             </p>
             {m.savedCents > 0 && (
-              <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-oranje-500/40 bg-oranje-500/10 px-4 py-2 text-sm text-oranje-100">
-                <BadgePercent className="h-4 w-4 text-oranje-400" /> You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards
+              <p className="mt-4 inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-100">
+                <BadgePercent className="h-4 w-4 text-brand-400" /> You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards
               </p>
             )}
           </div>
@@ -65,14 +65,14 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           <Panel className="p-5">
             <div className="flex items-center justify-between gap-3">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-                <Trophy className="h-5 w-5 text-oranje-500" /> Your tier
+                <Trophy className="h-5 w-5 text-brand-500" /> Your tier
               </h2>
               <span className="tnum text-sm text-ink-400">{zarWhole(m.spend)} in the last 12 months</span>
             </div>
             <ol className="mt-5 grid grid-cols-4 gap-2" aria-label="Tiers">
               {TIERS.map((t, i) => (
                 <li key={t.key} className="text-center">
-                  <div className={cn("h-1.5 rounded-full", i <= idx ? "bg-oranje-500" : "bg-ink-800")} />
+                  <div className={cn("h-1.5 rounded-full", i <= idx ? "bg-brand-500" : "bg-ink-800")} />
                   <div className={cn("mt-2 text-xs font-semibold", i === idx ? "text-white" : i < idx ? "text-ink-300" : "text-ink-500")}>{t.name}</div>
                   <div className="text-[0.68rem] text-ink-500">{savings[t.key]}% off</div>
                 </li>
@@ -92,7 +92,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-sm text-oranje-200">You&apos;re at our top tier — thank you for being one of our best members.</p>
+              <p className="mt-5 text-sm text-brand-200">You&apos;re at our top tier — thank you for being one of our best members.</p>
             )}
             <div className="mt-5 grid grid-cols-1 gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2">
               <div>
@@ -100,7 +100,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 <ul className="mt-2 space-y-1.5 text-sm text-ink-100">
                   {tierBenefits(m.tier.key, savings, settings.loyalty.earnPer100).map((p) => (
                     <li key={p} className="flex gap-2">
-                      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-oranje-500" /> {p}
+                      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> {p}
                     </li>
                   ))}
                 </ul>
@@ -126,7 +126,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-white">Recent points</h2>
-            <Link href="/club/points" className="text-sm font-semibold text-oranje-400 hover:underline">
+            <Link href="/club/points" className="text-sm font-semibold text-brand-400 hover:underline">
               All activity
             </Link>
           </div>
@@ -155,7 +155,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-white">Recent orders</h2>
-            <Link href="/club/orders" className="text-sm font-semibold text-oranje-400 hover:underline">
+            <Link href="/club/orders" className="text-sm font-semibold text-brand-400 hover:underline">
               All orders
             </Link>
           </div>
@@ -186,7 +186,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           ) : (
             <div className="mt-3 text-sm text-ink-400">
               No online orders yet.{" "}
-              <Link href="/shop" className="font-semibold text-oranje-400 hover:underline">
+              <Link href="/shop" className="font-semibold text-brand-400 hover:underline">
                 Start shopping
               </Link>
             </div>
@@ -195,7 +195,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
 
         <Panel className="scroll-mt-28 p-5" id="refer">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-            <Users className="h-5 w-5 text-oranje-500" /> Invite a friend
+            <Users className="h-5 w-5 text-brand-500" /> Invite a friend
           </h2>
           <p className="mt-1 text-sm text-ink-300">
             When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
@@ -209,7 +209,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
 
         <Panel className="p-5">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-            <Pill className="h-5 w-5 text-oranje-500" /> Patient authorisation
+            <Pill className="h-5 w-5 text-brand-500" /> Patient authorisation
           </h2>
           {m.auth ? (
             <div className="mt-3 space-y-3 text-sm">
@@ -251,7 +251,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           ) : (
             <p className="mt-3 text-sm leading-relaxed text-ink-400">
               No active authorisation on file. If your doctor has obtained a Section 21 authorisation for you, bring it and your ID to any store to register it.{" "}
-              <Link href="/learn/section-21" className="font-semibold text-oranje-400 hover:underline">
+              <Link href="/learn/section-21" className="font-semibold text-brand-400 hover:underline">
                 How it works
               </Link>
             </p>
@@ -275,13 +275,13 @@ async function Landing() {
     <Container className="pt-10 sm:pt-16">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-16">
         <div>
-          <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
+          <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
           <h1 className="mt-3 font-display text-5xl font-semibold leading-[1] tracking-tight text-white sm:text-6xl">
             Your card.
             <br />
             Your points.
             <br />
-            <span className="text-oranje-500">Every store.</span>
+            <span className="text-brand-500">Every store.</span>
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-300">
             Free to join. Members pay less instantly — in {trading.length} stores and online — and earn {settings.loyalty.earnPer100} points for every R100 to spend like cash. 1 point = R1.
@@ -294,7 +294,7 @@ async function Landing() {
               [<BadgePercent key="t" className="h-5 w-5" />, `${settings.loyalty.tierSavingsPct.SEED}% off instantly from day one — up to ${settings.loyalty.tierSavingsPct.HARVEST}% at Harvest`],
             ].map(([i, t]) => (
               <li key={String(t)} className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/60 p-4 text-sm text-ink-100">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-oranje-500/10 text-oranje-400">{i}</span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{i}</span>
                 {t}
               </li>
             ))}
@@ -302,9 +302,9 @@ async function Landing() {
           <ol className="mt-10 grid max-w-xl grid-cols-4 gap-2">
             {TIERS.map((t, i) => (
               <li key={t.key} className="rounded-2xl border border-ink-800 p-3 text-center">
-                <div className={cn("mx-auto h-2 w-8 rounded-full", ["bg-ink-300", "bg-leaf-500", "bg-series-4", "bg-oranje-500"][i])} />
+                <div className={cn("mx-auto h-2 w-8 rounded-full", ["bg-ink-300", "bg-leaf-500", "bg-series-4", "bg-brand-500"][i])} />
                 <div className="mt-2 font-display font-semibold text-white">{t.name}</div>
-                <div className="text-xs font-semibold text-oranje-300">{settings.loyalty.tierSavingsPct[t.key]}% off</div>
+                <div className="text-xs font-semibold text-brand-300">{settings.loyalty.tierSavingsPct[t.key]}% off</div>
                 <div className="text-[0.7rem] text-ink-500">{t.minCents ? `${zarWhole(t.minCents)}+ a year` : "When you join"}</div>
               </li>
             ))}

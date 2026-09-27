@@ -35,5 +35,5 @@ export function Td({ className, align = "left", ...props }: React.TdHTMLAttribut
 }
 
 export function Tr({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn("transition-colors hover:bg-oranje-50/40", className)} {...props} />;
+  return <tr className={cn("transition-colors hover:bg-brand-50/40", className)} {...props} />;
 }

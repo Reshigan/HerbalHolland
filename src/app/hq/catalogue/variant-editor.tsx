@@ -121,7 +121,7 @@ export function VariantEditor({ productId, variants, minMarginPct, readOnly }: {
       ))}
       {!readOnly &&
         (adding ? (
-          <ActionForm action={saveVariant.bind(null, productId, null)} className="bg-oranje-50/40 px-5 py-4" onDone={(s) => s.ok && setAddKey((k) => k + 1)}>
+          <ActionForm action={saveVariant.bind(null, productId, null)} className="bg-brand-50/40 px-5 py-4" onDone={(s) => s.ok && setAddKey((k) => k + 1)}>
             <div className="mb-3 font-display text-sm font-semibold text-ink-900">{variants.length ? "Add another variant" : "New variant"}</div>
             <VariantFields key={addKey} minMarginPct={minMarginPct} isNew />
             <div className="mt-3 flex justify-end gap-2">

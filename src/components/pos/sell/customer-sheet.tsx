@@ -115,7 +115,7 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
               type="button"
               onClick={() => void open(h.id)}
               disabled={!!opening}
-              className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-oranje-500/60 disabled:opacity-60"
+              className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-brand-500/60 disabled:opacity-60"
             >
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink-700 font-display text-sm font-bold text-white">{h.name.split(" ").map((w) => w[0]).slice(0, 2).join("")}</span>
               <span className="min-w-0 flex-1">
@@ -132,7 +132,7 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
                   {h.memberNo} · {h.phone} · {fmtPoints(h.points)}
                 </span>
               </span>
-              {opening === h.id ? <Spinner /> : <span className="text-sm font-semibold text-oranje-400">Add</span>}
+              {opening === h.id ? <Spinner /> : <span className="text-sm font-semibold text-brand-400">Add</span>}
             </button>
           </li>
         ))}
@@ -227,7 +227,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
       </form>
       <aside className="rounded-3xl bg-ink-850 p-4 text-center ring-1 ring-ink-800">
         <div className="flex items-center justify-center gap-2 text-sm font-semibold text-white">
-          <Smartphone className="h-4 w-4 text-oranje-400" /> Or join on their phone
+          <Smartphone className="h-4 w-4 text-brand-400" /> Or join on their phone
         </div>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/api/pos/qr?text=${encodeURIComponent(joinUrl)}`} alt="QR code to join Herbal Holland Rewards" className="mx-auto mt-3 aspect-square w-full max-w-48 rounded-2xl bg-white p-2" />

@@ -188,14 +188,14 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         <div className="mx-auto max-w-xl">
           {r.refundOf && (
-            <button type="button" onClick={() => onOpen(r.refundOf!.id)} className="mb-3 text-sm font-semibold text-oranje-400 hover:underline">
+            <button type="button" onClick={() => onOpen(r.refundOf!.id)} className="mb-3 text-sm font-semibold text-brand-400 hover:underline">
               Refund of {r.refundOf.number} →
             </button>
           )}
           {r.customer && (
             <div className="mb-3 rounded-2xl bg-ink-900 px-4 py-3 text-sm ring-1 ring-ink-800">
               <span className="font-semibold text-white">{r.customer.name}</span> <span className="text-ink-400">· {r.customer.memberNo}</span>
-              {r.pointsEarned !== 0 && <span className="text-oranje-300"> · {fmtPoints(r.pointsEarned)} {r.pointsEarned > 0 ? "earned" : "reversed"}</span>}
+              {r.pointsEarned !== 0 && <span className="text-brand-300"> · {fmtPoints(r.pointsEarned)} {r.pointsEarned > 0 ? "earned" : "reversed"}</span>}
             </div>
           )}
           <ul className="divide-y divide-ink-850 rounded-2xl bg-ink-900 px-4 ring-1 ring-ink-800">
@@ -217,7 +217,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
           </ul>
           <dl className="mt-4 space-y-1 px-1 text-sm">
             {saved !== 0 && (
-              <div className="flex justify-between text-oranje-300">
+              <div className="flex justify-between text-brand-300">
                 <dt>Rewards savings (in prices)</dt>
                 <dd className="tnum">{zar(saved)}</dd>
               </div>
@@ -262,7 +262,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
               <ul className="space-y-2">
                 {r.refunds.map((x) => (
                   <li key={x.id}>
-                    <button type="button" onClick={() => onOpen(x.id)} className="flex min-h-12 w-full items-center justify-between rounded-2xl bg-ink-900 px-4 text-sm ring-1 ring-ink-800 hover:ring-oranje-500/50">
+                    <button type="button" onClick={() => onOpen(x.id)} className="flex min-h-12 w-full items-center justify-between rounded-2xl bg-ink-900 px-4 text-sm ring-1 ring-ink-800 hover:ring-brand-500/50">
                       <span className="font-mono text-white">{x.number}</span>
                       <span className="text-ink-400">{fmtDateTime(x.createdAt)}</span>
                       <span className="font-semibold text-[#f29b9b] tnum">{zar(x.totalCents)}</span>

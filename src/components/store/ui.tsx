@@ -13,7 +13,7 @@ export function Chips({ items, current, className, label = "Filter" }: {
   className?: string;
   label?: string;
 }) {
-  const dot: Partial<Record<Tone, string>> = { red: "bg-rose-500", amber: "bg-amber-500", green: "bg-leaf-500", violet: "bg-[#4a3aa7]", orange: "bg-oranje-500", blue: "bg-sky-500" };
+  const dot: Partial<Record<Tone, string>> = { red: "bg-rose-500", amber: "bg-amber-500", green: "bg-leaf-500", violet: "bg-[#4a3aa7]", orange: "bg-brand-500", blue: "bg-sky-500" };
   return (
     <nav aria-label={label} className={cn("flex flex-wrap gap-2", className)}>
       {items.map((i) => {

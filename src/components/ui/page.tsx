@@ -4,7 +4,7 @@ export function PageHeader({ overline, title, description, actions, className }:
   return (
     <div className={cn("mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0">
-        {overline && <div className="eyebrow mb-1.5 text-oranje-700">{overline}</div>}
+        {overline && <div className="eyebrow mb-1.5 text-brand-700">{overline}</div>}
         <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-950 sm:text-[1.7rem]">{title}</h1>
         {description && <p className="mt-1 max-w-2xl text-sm text-ink-500">{description}</p>}
       </div>
@@ -16,7 +16,7 @@ export function PageHeader({ overline, title, description, actions, className }:
 export function EmptyState({ icon, title, children, action, className }: { icon?: React.ReactNode; title: React.ReactNode; children?: React.ReactNode; action?: React.ReactNode; className?: string }) {
   return (
     <div className={cn("flex flex-col items-center justify-center px-6 py-14 text-center", className)}>
-      {icon && <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-oranje-50 text-oranje-600">{icon}</div>}
+      {icon && <div className="mb-3 grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-600">{icon}</div>}
       <h3 className="font-display text-base font-semibold text-ink-900">{title}</h3>
       {children && <p className="mt-1 max-w-sm text-sm text-ink-500">{children}</p>}
       {action && <div className="mt-4">{action}</div>}

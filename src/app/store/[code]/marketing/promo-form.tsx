@@ -60,8 +60,8 @@ function Picker({ name, options, value, onChange, placeholder }: { name: string;
         {shown.map((o) => {
           const on = value.includes(o.id);
           return (
-            <label key={o.id} className={cn("flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm", on ? "bg-oranje-50 text-ink-950" : "text-ink-700 hover:bg-ink-50")}>
-              <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== o.id) : [...value, o.id])} className="accent-oranje-500" />
+            <label key={o.id} className={cn("flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1.5 text-sm", on ? "bg-brand-50 text-ink-950" : "text-ink-700 hover:bg-ink-50")}>
+              <input type="checkbox" checked={on} onChange={() => onChange(on ? value.filter((x) => x !== o.id) : [...value, o.id])} className="accent-brand-500" />
               <span className="min-w-0 flex-1 truncate">{o.name}</span>
               {o.group && <span className="shrink-0 text-[0.68rem] text-ink-400">{o.group}</span>}
             </label>
@@ -102,7 +102,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
   return (
     <ActionForm action={action} className="space-y-5">
       <div className="rounded-2xl bg-ink-950 p-4 text-white">
-        <div className="eyebrow text-oranje-500">Shelf talker preview</div>
+        <div className="eyebrow text-brand-500">Shelf talker preview</div>
         <div className="mt-1 font-display text-xl font-semibold">{preview.deal}</div>
         <div className="mt-1 text-sm text-ink-300">
           {preview.targets.length ? `On ${preview.targets.slice(0, 3).join(", ")}${preview.targets.length > 3 ? ` +${preview.targets.length - 3} more` : ""}` : "On everything in store"} · {scheduleLabel(d.days, minutes(d.from), minutes(d.to))}
@@ -127,7 +127,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
               role="radio"
               aria-checked={d.kind === k.key}
               onClick={() => set("kind", k.key)}
-              className={cn("rounded-xl border px-3 py-2 text-left transition", d.kind === k.key ? "border-oranje-500 bg-oranje-50 ring-4 ring-oranje-500/15" : "border-ink-200 hover:border-ink-300")}
+              className={cn("rounded-xl border px-3 py-2 text-left transition", d.kind === k.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 hover:border-ink-300")}
             >
               <span className="block text-sm font-semibold text-ink-900">{k.label}</span>
               <span className="block text-[0.7rem] text-ink-500">{k.hint}</span>

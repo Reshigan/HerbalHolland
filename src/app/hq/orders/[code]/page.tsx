@@ -119,7 +119,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
               <ol className="relative space-y-4 border-l border-ink-150 pl-5">
                 {events.map((e, i) => (
                   <li key={i} className="relative">
-                    <span className={`absolute -left-[1.6rem] top-1 h-3 w-3 rounded-full ring-4 ring-white ${i === 0 ? "bg-oranje-500" : "bg-ink-300"}`} aria-hidden />
+                    <span className={`absolute -left-[1.6rem] top-1 h-3 w-3 rounded-full ring-4 ring-white ${i === 0 ? "bg-brand-500" : "bg-ink-300"}`} aria-hidden />
                     <div className="flex flex-wrap items-center gap-2">
                       <StatusBadge status={e.status} />
                       <span className="text-xs text-ink-500">{fmtDateTime(e.at)}</span>
@@ -136,7 +136,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           <Card>
             <CardHeader title="Customer" />
             <CardBody>
-              <Link href={`/hq/customers/${order.customer.id}`} className="font-semibold text-ink-900 hover:text-oranje-700">
+              <Link href={`/hq/customers/${order.customer.id}`} className="font-semibold text-ink-900 hover:text-brand-700">
                 {order.customer.firstName} {order.customer.lastName ?? ""}
               </Link>
               <div className="mt-1 flex items-center gap-2 text-xs text-ink-500">
@@ -174,7 +174,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
               )}
               {order.routingNote && (
                 <p className="flex gap-2 rounded-xl bg-ink-50 p-3 text-xs text-ink-600">
-                  <Route className="h-4 w-4 shrink-0 text-oranje-700" aria-hidden />
+                  <Route className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
                   <span>
                     <b className="text-ink-800">Routing:</b> {order.routingNote}
                   </span>
@@ -182,7 +182,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
               )}
               <dl className="divide-y divide-ink-100 border-t border-ink-100">
                 <Detail label="Fulfilled by">
-                  <Link href={order.store.kind === "RETAIL" ? `/hq/stores/${order.store.code}` : `/hq/distribution?dc=${order.store.code}`} className="hover:text-oranje-700">
+                  <Link href={order.store.kind === "RETAIL" ? `/hq/stores/${order.store.code}` : `/hq/distribution?dc=${order.store.code}`} className="hover:text-brand-700">
                     {order.store.name}
                   </Link>
                 </Detail>
@@ -203,7 +203,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                 {order.paymentRef && <Detail label="Reference"><span className="font-mono text-xs">{order.paymentRef}</span></Detail>}
                 {order.sale && (
                   <Detail label="Tax invoice">
-                    <a href={invoiceUrl(order.sale.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-oranje-700">
+                    <a href={invoiceUrl(order.sale.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 hover:text-brand-700">
                       {order.sale.number} <ExternalLink className="h-3.5 w-3.5" />
                     </a>
                   </Detail>

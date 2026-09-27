@@ -104,9 +104,9 @@ export function Composer({
                     role="radio"
                     aria-checked={v.channel === c.key}
                     onClick={() => set("channel", c.key)}
-                    className={cn("rounded-xl border p-3 text-left transition", v.channel === c.key ? "border-oranje-500 bg-oranje-50 ring-4 ring-oranje-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
+                    className={cn("rounded-xl border p-3 text-left transition", v.channel === c.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
                   >
-                    <c.icon className={cn("mb-1.5 h-5 w-5", v.channel === c.key ? "text-oranje-700" : "text-ink-400")} strokeWidth={1.9} />
+                    <c.icon className={cn("mb-1.5 h-5 w-5", v.channel === c.key ? "text-brand-700" : "text-ink-400")} strokeWidth={1.9} />
                     <span className="block text-sm font-semibold text-ink-900">{c.label}</span>
                     <span className="block text-xs text-ink-500">{c.note}</span>
                   </button>
@@ -146,7 +146,7 @@ export function Composer({
                 <FieldError name="storeId" />
               </Field>
             </div>
-            {v.segment in SEGMENTS && <p className="text-xs text-ink-600"><b className="text-oranje-700">Suggested play:</b> {SEGMENTS[v.segment as keyof typeof SEGMENTS].play}</p>}
+            {v.segment in SEGMENTS && <p className="text-xs text-ink-600"><b className="text-brand-700">Suggested play:</b> {SEGMENTS[v.segment as keyof typeof SEGMENTS].play}</p>}
           </CardBody>
         </Card>
 
@@ -176,7 +176,7 @@ export function Composer({
                 onChange={(e) => set("message", e.target.value)}
                 className={cn(
                   "min-h-32 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-ink-900 shadow-[inset_0_1px_0_rgb(0_0_0/0.02)] transition placeholder:text-ink-400 focus:outline-none focus:ring-4",
-                  flags.length > 0 ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15" : "border-ink-200 focus:border-oranje-500 focus:ring-oranje-500/15",
+                  flags.length > 0 ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
                 )}
                 placeholder="Hi {{firstName}}, …"
               />
@@ -226,7 +226,7 @@ export function Composer({
             ) : (
               <div className={cn("transition-opacity", loading && "opacity-60")} aria-live="polite">
                 <div className="flex items-baseline gap-2">
-                  <Users className="h-5 w-5 self-center text-oranje-700" aria-hidden />
+                  <Users className="h-5 w-5 self-center text-brand-700" aria-hidden />
                   <span className="font-display text-3xl font-semibold tnum text-ink-950">{reach ? reach.reachable.toLocaleString() : "…"}</span>
                   <span className="text-sm text-ink-500">reachable</span>
                 </div>
@@ -239,7 +239,7 @@ export function Composer({
         </Card>
 
         <div className="rounded-2xl bg-ink-950 p-4 text-white shadow-card">
-          <div className="eyebrow mb-3 text-oranje-500">Preview</div>
+          <div className="eyebrow mb-3 text-brand-500">Preview</div>
           {v.channel === "EMAIL" ? (
             <div className="rounded-xl bg-white p-3 text-ink-850">
               <div className="border-b border-ink-100 pb-2 text-xs text-ink-500">

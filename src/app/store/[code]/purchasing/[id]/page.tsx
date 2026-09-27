@@ -69,7 +69,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
       {!canManage && (isBuyer ? o.status === "SHIPPED" : ["SUBMITTED", "APPROVED"].includes(o.status)) && <ReadOnlyNote className="mb-4">Read-only — a manager or owner handles this order.</ReadOnlyNote>}
 
       {isBuyer && o.status === "SHIPPED" && canManage && (
-        <Card className="mb-6 border-oranje-300 ring-4 ring-oranje-500/10">
+        <Card className="mb-6 border-brand-300 ring-4 ring-brand-500/10">
           <CardHeader title="Receive this delivery" description="Count each line against the delivery note. Received quantities are prefilled with what was shipped — change any that are short." />
           <div className="mt-3">
             <ReceiveForm
@@ -89,7 +89,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
       )}
 
       {isSeller && canManage && o.status === "SUBMITTED" && (
-        <Card className="mb-6 border-oranje-300 ring-4 ring-oranje-500/10">
+        <Card className="mb-6 border-brand-300 ring-4 ring-brand-500/10">
           <CardHeader title={`${o.buyer.name} wants to buy from you`} description="Accept to commit the stock, then ship it. Declining puts the units back on your listing." />
           <CardBody className="flex flex-wrap items-start gap-3">
             <ActionButton action={sellerAct.bind(null, store.code, id, "approve")} variant="primary" size="md">Accept order</ActionButton>
@@ -101,7 +101,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
       )}
 
       {isSeller && canManage && o.status === "APPROVED" && (
-        <Card className="mb-6 border-oranje-300 ring-4 ring-oranje-500/10">
+        <Card className="mb-6 border-brand-300 ring-4 ring-brand-500/10">
           <CardHeader title="Ship this order" description="Stock leaves your store first-expiry-first-out. If you have less than ordered, the shortfall is shown to the buyer." />
           <CardBody>
             <ConfirmAction action={sellerAct.bind(null, store.code, id, "ship")} label="Ship now" triggerVariant="primary" size="md" variant="primary" title={`Ship ${o.number} to ${o.buyer.name}?`} confirmLabel="Ship & book out">
@@ -157,7 +157,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                   <Tr key={l.id} className={shortShip || shortRecv ? "bg-amber-50/70 hover:bg-amber-50" : undefined}>
                     <Td className="min-w-40 sm:min-w-48">
                       {isBuyer ? (
-                        <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                        <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                           {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                         </Link>
                       ) : (
@@ -182,7 +182,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                           {shortShip && <span className="ml-1 text-xs text-amber-700">short {l.qty - l.shippedQty}</span>}
                           {l.shippedLots.map((b) => (
                             <div key={b.batchId} className="whitespace-nowrap font-mono text-[0.7rem] text-ink-500" title={b.expiresAt ? `Expires ${fmtDate(b.expiresAt)}` : undefined}>
-                              <Link href={`/batch/${b.code}`} target="_blank" className="hover:text-oranje-700">{b.code}</Link> ×{b.qty}
+                              <Link href={`/batch/${b.code}`} target="_blank" className="hover:text-brand-700">{b.code}</Link> ×{b.qty}
                             </div>
                           ))}
                         </div>
@@ -211,12 +211,12 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
               <ol className="relative space-y-4">
                 {steps.map((s, i) => (
                   <li key={s.key} className="relative flex gap-3">
-                    {i < steps.length - 1 && <span className={cn("absolute left-[11px] top-7 h-[calc(100%-0.5rem)] w-0.5", s.state === "done" ? "bg-oranje-300" : "bg-ink-150")} aria-hidden />}
+                    {i < steps.length - 1 && <span className={cn("absolute left-[11px] top-7 h-[calc(100%-0.5rem)] w-0.5", s.state === "done" ? "bg-brand-300" : "bg-ink-150")} aria-hidden />}
                     <span
                       className={cn(
                         "relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full",
-                        s.state === "done" && "bg-oranje-500 text-ink-950",
-                        s.state === "current" && "bg-oranje-100 text-oranje-700 ring-2 ring-oranje-500",
+                        s.state === "done" && "bg-brand-500 text-ink-950",
+                        s.state === "current" && "bg-brand-100 text-brand-700 ring-2 ring-brand-500",
                         s.state === "todo" && "bg-ink-100 text-ink-400",
                         s.state === "stopped" && "bg-rose-500 text-white",
                       )}
@@ -226,7 +226,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                     <div className="min-w-0 pb-1 text-sm">
                       <div className={cn("font-semibold", s.state === "todo" ? "text-ink-400" : s.state === "stopped" ? "text-rose-600" : "text-ink-900")}>
                         {s.label}
-                        {s.state === "current" && <span className="ml-2 font-normal text-oranje-700">· waiting</span>}
+                        {s.state === "current" && <span className="ml-2 font-normal text-brand-700">· waiting</span>}
                       </div>
                       {s.at && <div className="text-xs text-ink-500">{fmtDateTime(s.at)}{s.by ? ` · ${s.by}` : ""}</div>}
                     </div>

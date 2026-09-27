@@ -103,7 +103,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
                 return (
                   <Tr key={o.id}>
                     <Td>
-                      <Link href={`${path}/${o.id}`} className="font-mono text-sm font-bold tracking-wide text-ink-900 hover:text-oranje-700">
+                      <Link href={`${path}/${o.id}`} className="font-mono text-sm font-bold tracking-wide text-ink-900 hover:text-brand-700">
                         {o.code}
                       </Link>
                       <div className="text-xs text-ink-500">{fmtDateTime(o.createdAt)}</div>

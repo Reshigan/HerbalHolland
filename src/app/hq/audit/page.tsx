@@ -91,11 +91,11 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
             {stores.length > 1 && <FilterSelect name="store" label="Store" defaultValue={sp.store} options={stores.map((s) => ({ value: s.code, label: s.name }))} />}
             <label className="block">
               <span className="sr-only">From date</span>
-              <input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+              <input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
             <label className="block">
               <span className="sr-only">To date</span>
-              <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+              <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
           </FilterForm>
         </div>
@@ -135,7 +135,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                     {data ? (
                       <details className="group">
                         <summary className="cursor-pointer list-none truncate text-xs text-ink-600 marker:hidden hover:text-ink-900">
-                          <span className="mr-1 inline-block text-oranje-700 transition group-open:rotate-90">▸</span>
+                          <span className="mr-1 inline-block text-brand-700 transition group-open:rotate-90">▸</span>
                           {data.replace(/\s+/g, " ").slice(0, 90)}
                         </summary>
                         <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-ink-950 p-3 text-[0.7rem] leading-relaxed text-ink-100">{data}</pre>

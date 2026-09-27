@@ -37,7 +37,7 @@ export function NavLinks({ items, className }: { items: NavItem[]; className?: s
             className={cn("relative rounded-full px-3.5 py-2 text-[0.9rem] font-medium transition-colors", active ? "text-white" : "text-ink-300 hover:text-white")}
           >
             {i.label}
-            {active && <span className="absolute inset-x-3.5 -bottom-[1px] h-0.5 rounded-full bg-oranje-500" />}
+            {active && <span className="absolute inset-x-3.5 -bottom-[1px] h-0.5 rounded-full bg-brand-500" />}
           </Link>
         );
       })}
@@ -61,7 +61,7 @@ export function MobileMenu({ items, footer }: { items: NavItem[]; footer?: React
       >
         <div className="flex h-full flex-col p-5">
           <div className="mb-6 flex items-center justify-between">
-            <span className="eyebrow text-oranje-500">Menu</span>
+            <span className="eyebrow text-brand-500">Menu</span>
             <button onClick={() => ref.current?.close()} className="grid h-11 w-11 place-items-center rounded-full text-ink-300 hover:bg-ink-850" aria-label="Close menu">
               <X className="h-5 w-5" />
             </button>
@@ -71,7 +71,7 @@ export function MobileMenu({ items, footer }: { items: NavItem[]; footer?: React
               <Link
                 key={i.href}
                 href={i.href}
-                className={cn("border-b border-ink-850 py-4 font-display text-2xl font-medium", isActive(path, i.href) ? "text-oranje-400" : "text-white")}
+                className={cn("border-b border-ink-850 py-4 font-display text-2xl font-medium", isActive(path, i.href) ? "text-brand-400" : "text-white")}
               >
                 {i.label}
               </Link>
@@ -147,7 +147,7 @@ export function StorePicker({ stores, current, variant = "pill", className }: { 
         )}
         aria-haspopup="dialog"
       >
-        <MapPin className="h-4 w-4 shrink-0 text-oranje-500" strokeWidth={1.9} />
+        <MapPin className="h-4 w-4 shrink-0 text-brand-500" strokeWidth={1.9} />
         {current ? (
           <span className="min-w-0 truncate">
             <span className="font-semibold text-white">{current.name}</span>
@@ -183,11 +183,11 @@ export function StorePicker({ stores, current, variant = "pill", className }: { 
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Suburb or city"
-                  className="h-11 w-full rounded-full border border-ink-700 bg-ink-900 pl-10 pr-4 text-sm text-white placeholder:text-ink-500 focus:border-oranje-500 focus:outline-none"
+                  className="h-11 w-full rounded-full border border-ink-700 bg-ink-900 pl-10 pr-4 text-sm text-white placeholder:text-ink-500 focus:border-brand-500 focus:outline-none"
                 />
               </label>
-              <button onClick={locate} disabled={locating} className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-medium text-ink-100 hover:border-oranje-500 disabled:opacity-60">
-                <LocateFixed className="h-4 w-4 text-oranje-500" />
+              <button onClick={locate} disabled={locating} className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-medium text-ink-100 hover:border-brand-500 disabled:opacity-60">
+                <LocateFixed className="h-4 w-4 text-brand-500" />
                 <span className="hidden sm:inline">{locating ? "Locating…" : "Near me"}</span>
               </button>
             </div>
@@ -202,9 +202,9 @@ export function StorePicker({ stores, current, variant = "pill", className }: { 
                   <button
                     disabled={soon || pending}
                     onClick={() => pick(s.code)}
-                    className={cn("flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition", selected ? "bg-oranje-500/10" : "hover:bg-ink-900", soon && "cursor-not-allowed opacity-60")}
+                    className={cn("flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition", selected ? "bg-brand-500/10" : "hover:bg-ink-900", soon && "cursor-not-allowed opacity-60")}
                   >
-                    <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full", selected ? "bg-oranje-500 text-ink-950" : "bg-ink-850 text-oranje-500")}>
+                    <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full", selected ? "bg-brand-500 text-ink-950" : "bg-ink-850 text-brand-500")}>
                       {selected ? <Check className="h-4 w-4" strokeWidth={2.4} /> : <MapPin className="h-4 w-4" />}
                     </span>
                     <span className="min-w-0 flex-1">

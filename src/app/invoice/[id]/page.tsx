@@ -65,9 +65,9 @@ export default async function InvoicePage({ params, searchParams }: Props) {
       </div>
 
       <article className="mx-auto max-w-[210mm] rounded-2xl bg-white p-8 shadow-card ring-1 ring-ink-150 sm:p-12 print:max-w-none print:rounded-none print:p-0 print:shadow-none print:ring-0">
-        <header className="flex flex-wrap items-start justify-between gap-6 border-b-4 border-oranje-500 pb-6">
+        <header className="flex flex-wrap items-start justify-between gap-6 border-b-4 border-brand-500 pb-6">
           <div className="flex items-center gap-3 text-ink-950">
-            <Mark className="h-12 w-12 text-oranje-600" />
+            <Mark className="h-12 w-12 text-brand-600" />
             <Wordmark className="text-lg" />
           </div>
           <div className="text-right">
@@ -214,7 +214,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
               </div>
             )}
             {!refund && (s.pointsEarned > 0 || s.memberSavingsCents > 0) && (
-              <div className="rounded-xl bg-oranje-50 px-4 py-3 text-oranje-900 ring-1 ring-oranje-200">
+              <div className="rounded-xl bg-brand-50 px-4 py-3 text-brand-900 ring-1 ring-brand-200">
                 {s.memberSavingsCents > 0 && <p className="font-semibold">You saved {zar(s.memberSavingsCents)} with Herbal Holland Rewards</p>}
                 {s.pointsEarned > 0 && <p>You earned {fmtPoints(s.pointsEarned)} on this purchase.</p>}
               </div>

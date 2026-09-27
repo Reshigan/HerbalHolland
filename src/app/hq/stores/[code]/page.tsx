@@ -241,7 +241,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                   <ul className="space-y-1 text-sm">
                     {siblings.map((s) => (
                       <li key={s.code} className="flex items-center justify-between">
-                        <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-800 hover:text-oranje-700">
+                        <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-800 hover:text-brand-700">
                           {s.name} <span className="font-mono text-xs text-ink-400">{s.code}</span>
                         </Link>
                         <StatusBadge status={s.status} />

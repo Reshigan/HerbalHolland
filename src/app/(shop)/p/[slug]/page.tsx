@@ -184,7 +184,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
           {/* Buy box */}
           <div>
-            <div className="eyebrow text-oranje-500">
+            <div className="eyebrow text-brand-500">
               {product.category.name}
               {product.origin && <span className="text-ink-400"> · {product.origin}</span>}
             </div>
@@ -199,16 +199,16 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <div className="mt-8">
               <Price cents={line.totalCents} was={was} size="lg" />
               <p className="mt-1.5 text-sm text-ink-400">
-                {priceNote ? <span className="font-semibold text-oranje-300">{priceNote} · </span> : null}
+                {priceNote ? <span className="font-semibold text-brand-300">{priceNote} · </span> : null}
                 {variant.name} · incl. VAT
                 {variant.grams && licensed ? ` · ${variant.grams} g dried-flower equivalent` : ""}
               </p>
               {rewardsCents != null && (
-                <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}?v=${variant.id}`)}`} className="mt-3 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-oranje-500/40 bg-oranje-500/10 px-3.5 py-2 text-sm text-oranje-100 hover:border-oranje-500">
+                <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}?v=${variant.id}`)}`} className="mt-3 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-brand-500/40 bg-brand-500/10 px-3.5 py-2 text-sm text-brand-100 hover:border-brand-500">
                   <span>
                     <strong className="tnum text-white">{zar(rewardsCents)}</strong> with Herbal Holland Rewards
                   </span>
-                  <span className="font-semibold text-oranje-300">Join free →</span>
+                  <span className="font-semibold text-brand-300">Join free →</span>
                 </Link>
               )}
             </div>
@@ -226,7 +226,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                         scroll={false}
                         replace
                         aria-current={on ? "true" : undefined}
-                        className={cn("flex min-h-12 flex-col justify-center rounded-2xl border px-4 py-2 transition", on ? "border-oranje-500 bg-oranje-500/10" : "border-ink-700 hover:border-ink-500")}
+                        className={cn("flex min-h-12 flex-col justify-center rounded-2xl border px-4 py-2 transition", on ? "border-brand-500 bg-brand-500/10" : "border-ink-700 hover:border-ink-500")}
                       >
                         <span className={cn("text-sm font-semibold", on ? "text-white" : "text-ink-100")}>{v.name}</span>
                         <span className="tnum text-xs text-ink-400">{zar(quotes[i].lines[0]?.totalCents ?? v.priceCents)}</span>
@@ -274,7 +274,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                       <>
                         <div className="font-semibold text-white">{withStock.length ? `Collect from ${withStock.length} store${withStock.length === 1 ? "" : "s"}` : "Not available to collect right now"}</div>
                         <div className="text-ink-400">
-                          <Link href="/stores" className="font-medium text-oranje-400 hover:underline">
+                          <Link href="/stores" className="font-medium text-brand-400 hover:underline">
                             Choose your store
                           </Link>{" "}
                           to see what&apos;s on the shelf.
@@ -298,7 +298,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               )}
               {licensed && (
                 <div className="flex items-start gap-3 p-4">
-                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-oranje-500" />
+                  <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" />
                   <div className="text-sm">
                     <div className="font-semibold text-white">Collect only · dispensed by our pharmacist</div>
                     <div className="text-ink-400">
@@ -313,8 +313,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             {deals.length > 0 && (
               <div className="mt-6 space-y-2">
                 {deals.map((d) => (
-                  <div key={d.id} className="flex items-start gap-3 rounded-2xl border border-oranje-500/35 bg-oranje-500/[0.06] p-4">
-                    <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-oranje-400" />
+                  <div key={d.id} className="flex items-start gap-3 rounded-2xl border border-brand-500/35 bg-brand-500/[0.06] p-4">
+                    <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-400" />
                     <div className="text-sm">
                       <div className="font-semibold text-white">{d.name}</div>
                       <div className="text-ink-300">
@@ -340,12 +340,12 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               <section aria-labelledby="lab">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
-                    <div className="eyebrow text-oranje-500">Lab &amp; batch</div>
+                    <div className="eyebrow text-brand-500">Lab &amp; batch</div>
                     <h2 id="lab" className="mt-2 font-display text-2xl font-semibold text-white">
                       Current batch {batch.code}
                     </h2>
                   </div>
-                  <Link href={`/batch/${batch.code}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-oranje-400 hover:underline">
+                  <Link href={`/batch/${batch.code}`} className="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-400 hover:underline">
                     Full lab certificate <ArrowRight className="h-4 w-4" />
                   </Link>
                 </div>
@@ -383,7 +383,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               <section aria-labelledby="profile" className="grid grid-cols-1 gap-8 md:grid-cols-2">
                 {terps.length > 0 && (
                   <div>
-                    <div className="eyebrow text-oranje-500">Terpenes</div>
+                    <div className="eyebrow text-brand-500">Terpenes</div>
                     <h2 id="profile" className="mt-2 font-display text-2xl font-semibold text-white">Aroma profile</h2>
                     <p className="mt-1 text-sm text-ink-400">{lab?.terpenes?.length ? `Measured in batch ${batch?.code}` : "Typical profile"} · % by weight</p>
                     <TerpeneBars terps={terps} className="mt-5" />
@@ -436,7 +436,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
             {(product.legalBasis || product.claims.length > 0) && (
               <section aria-labelledby="legal">
-                <div className="eyebrow text-oranje-500">Legal basis</div>
+                <div className="eyebrow text-brand-500">Legal basis</div>
                 <h2 id="legal" className="mt-2 font-display text-2xl font-semibold text-white">What this product is — and isn&apos;t</h2>
                 <Panel className="mt-5 p-5">
                   <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
@@ -496,7 +496,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             {/* Reviews */}
             {!licensed && (
               <section id="reviews" aria-labelledby="reviews-title" className="scroll-mt-28">
-                <div className="eyebrow text-oranje-500">Verified reviews</div>
+                <div className="eyebrow text-brand-500">Verified reviews</div>
                 <h2 id="reviews-title" className="mt-2 font-display text-2xl font-semibold text-white">What members say</h2>
                 {reviews.count > 0 ? (
                   <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
@@ -511,7 +511,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                           <li key={d.rating} className="flex items-center gap-2 text-xs text-ink-400">
                             <span className="tnum w-3">{d.rating}</span>
                             <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-800">
-                              <div className="h-full rounded-full bg-oranje-500" style={{ width: `${reviews.count ? (d.count / reviews.count) * 100 : 0}%` }} />
+                              <div className="h-full rounded-full bg-brand-500" style={{ width: `${reviews.count ? (d.count / reviews.count) * 100 : 0}%` }} />
                             </div>
                             <span className="tnum w-6 text-right">{d.count}</span>
                           </li>
@@ -534,7 +534,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                       ))}
                       {reviews.count > reviews.rows.length && (
                         <li>
-                          <Link href={`/p/${product.slug}?${new URLSearchParams({ ...(sp.v ? { v: sp.v } : {}), reviews: "all" })}#reviews`} scroll={false} className="text-sm font-semibold text-oranje-400 hover:underline">
+                          <Link href={`/p/${product.slug}?${new URLSearchParams({ ...(sp.v ? { v: sp.v } : {}), reviews: "all" })}#reviews`} scroll={false} className="text-sm font-semibold text-brand-400 hover:underline">
                             Show all {reviews.count} reviews
                           </Link>
                         </li>
@@ -552,7 +552,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   ) : !customer ? (
                     <p className="text-sm text-ink-400">
                       Bought this?{" "}
-                      <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}#reviews`)}`} className="font-semibold text-oranje-400 hover:underline">
+                      <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}#reviews`)}`} className="font-semibold text-brand-400 hover:underline">
                         Sign in
                       </Link>{" "}
                       to leave a verified review.
@@ -568,7 +568,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             {canCollect && (
               <Panel className="p-5">
                 <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-                  <MapPin className="h-5 w-5 text-oranje-500" /> {store ? "Stock near you" : "Stock in stores"}
+                  <MapPin className="h-5 w-5 text-brand-500" /> {store ? "Stock near you" : "Stock in stores"}
                 </h2>
                 <p className="mt-1 text-xs text-ink-400">{variant.name} · live, less open online orders</p>
                 <ul className="mt-4 divide-y divide-ink-800">
@@ -577,7 +577,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     return (
                       <li key={x.store.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                         <Link href={`/stores/${x.store.slug}`} className="min-w-0 hover:text-white">
-                          <span className={cn("block truncate font-medium", x.store.id === store?.id ? "text-oranje-300" : "text-ink-100")}>{x.store.name}</span>
+                          <span className={cn("block truncate font-medium", x.store.id === store?.id ? "text-brand-300" : "text-ink-100")}>{x.store.name}</span>
                           <span className="block truncate text-xs text-ink-500">
                             {x.store.city}
                             {x.km != null && ` · ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} km`}
@@ -588,15 +588,15 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     );
                   })}
                 </ul>
-                <Link href="/stores" className="mt-3 inline-block text-xs font-semibold text-oranje-400 hover:underline">
+                <Link href="/stores" className="mt-3 inline-block text-xs font-semibold text-brand-400 hover:underline">
                   All stores →
                 </Link>
               </Panel>
             )}
             {suggestions.length > 0 && (
-              <Panel className="border-oranje-500/40 p-5">
+              <Panel className="border-brand-500/40 p-5">
                 <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-                  <Package className="h-5 w-5 text-oranje-500" /> Complete the deal
+                  <Package className="h-5 w-5 text-brand-500" /> Complete the deal
                 </h2>
                 <ul className="mt-3 space-y-2.5 text-sm text-ink-300">
                   {suggestions.map((s) => (
@@ -613,14 +613,14 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
         {complete.length > 0 && (
           <section className="mt-20" aria-labelledby="complete">
-            <div className="eyebrow text-oranje-500">Complete the deal</div>
+            <div className="eyebrow text-brand-500">Complete the deal</div>
             <h2 id="complete" className="mb-6 mt-2 font-display text-2xl font-semibold text-white">Goes well with</h2>
             <ProductGrid items={complete} />
           </section>
         )}
         {related.length > 0 && (
           <section className="mt-20" aria-labelledby="related">
-            <div className="eyebrow text-oranje-500">{product.category.name}</div>
+            <div className="eyebrow text-brand-500">{product.category.name}</div>
             <h2 id="related" className="mb-6 mt-2 font-display text-2xl font-semibold text-white">You might also like</h2>
             <ProductGrid items={related} />
           </section>

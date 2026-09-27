@@ -56,7 +56,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
       ) : (
         <div className="relative overflow-hidden rounded-2xl bg-black">
           <video ref={video} className="aspect-[4/3] w-full object-cover" muted playsInline />
-          <div className="pointer-events-none absolute inset-[18%] rounded-2xl border-2 border-oranje-500/80 shadow-[0_0_0_999px_rgb(0_0_0/0.35)]" />
+          <div className="pointer-events-none absolute inset-[18%] rounded-2xl border-2 border-brand-500/80 shadow-[0_0_0_999px_rgb(0_0_0/0.35)]" />
         </div>
       )}
     </Sheet>

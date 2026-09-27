@@ -53,7 +53,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
     <Container className="pt-10 sm:pt-16">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_30rem] lg:gap-16">
         <div className="lg:pt-6">
-          <Mark className="h-14 w-14 text-oranje-500" />
+          <Mark className="h-14 w-14 text-brand-500" />
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1] tracking-tight text-white">
             {referrer ? `${referrer.firstName} invited you` : "Join in a minute."}
           </h1>
@@ -63,7 +63,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
               : `Free, no passwords and no plastic. Your card lives on your phone and works in all ${trading.length} stores and online.`}
           </p>
           {qrStore && (
-            <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-oranje-500/40 bg-oranje-500/10 px-4 py-2 text-sm text-oranje-200">
+            <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-200">
               <MapPin className="h-4 w-4" /> Joining at Herbal Holland {qrStore.name}
             </p>
           )}
@@ -74,7 +74,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
               [<Gift key="g" className="h-5 w-5" />, `Start earning — ${fmtPoints(settings.loyalty.signupBonus)} are yours the moment you join`],
             ].map(([icon, t], i) => (
               <li key={i} className="flex items-center gap-4 text-ink-200">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-oranje-500/10 text-oranje-400">{icon}</span>
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{icon}</span>
                 {t}
               </li>
             ))}

@@ -39,7 +39,7 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
             {rows.map((s) => (
               <li key={s.id}>
                 <a href={rel(s.url)} className="flex items-center gap-4 px-5 py-4 transition hover:bg-ink-850/60">
-                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink-850 text-oranje-400">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-ink-850 text-brand-400">
                     <FileText className="h-5 w-5" />
                   </span>
                   <div className="min-w-0 flex-1">

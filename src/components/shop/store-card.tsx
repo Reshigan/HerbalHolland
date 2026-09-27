@@ -37,11 +37,11 @@ export function StoreCard({ s, preferred, km, className }: { s: ShopStore; prefe
   const soon = s.status !== "ACTIVE";
   const o = openState(parseHours(s.hours));
   return (
-    <Panel className={cn("flex flex-col p-5", preferred && "border-oranje-500/60 bg-oranje-500/[0.04]", className)}>
+    <Panel className={cn("flex flex-col p-5", preferred && "border-brand-500/60 bg-brand-500/[0.04]", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-display text-lg font-semibold text-white">
-            <Link href={`/stores/${s.slug}`} className="hover:text-oranje-300">
+            <Link href={`/stores/${s.slug}`} className="hover:text-brand-300">
               Herbal Holland {s.name}
             </Link>
           </h3>

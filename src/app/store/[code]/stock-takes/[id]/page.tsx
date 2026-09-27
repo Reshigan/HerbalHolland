@@ -192,7 +192,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
               {listed.map((r) => (
                 <Tr key={r.id}>
                   <Td>
-                    <Link href={`/store/${store.code}/inventory/${r.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                    <Link href={`/store/${store.code}/inventory/${r.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {r.productName} <span className="text-ink-500">· {r.variantName}</span>
                     </Link>
                     <div className="font-mono text-xs text-ink-400">{r.sku}</div>

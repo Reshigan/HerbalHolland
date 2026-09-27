@@ -89,7 +89,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
                   <Link href={`/hq/catalogue/${p.id}`} className="group flex min-w-56 items-center gap-3">
                     <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} className="h-10 w-10 shrink-0 overflow-hidden rounded-xl" label="" />
                     <span className="min-w-0">
-                      <span className="block font-medium text-ink-900 group-hover:text-oranje-700">{p.name}</span>
+                      <span className="block font-medium text-ink-900 group-hover:text-brand-700">{p.name}</span>
                       <span className="flex flex-wrap items-center gap-1.5 text-xs text-ink-500">
                         {p.line && <span>{titleCase(p.line)}</span>}
                         {p.heritage && <Badge tone="orange">Heritage</Badge>}

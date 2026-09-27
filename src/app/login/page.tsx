@@ -17,7 +17,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="grid min-h-screen lg:grid-cols-[1.1fr_1fr]">
       <section className="relative hidden overflow-hidden bg-ink-950 p-12 text-ink-100 lg:flex lg:flex-col lg:justify-between">
-        <div className="eyebrow text-oranje-500">Herbal Holland platform</div>
+        <div className="eyebrow text-brand-500">Herbal Holland platform</div>
         <div className="hh-frame mx-auto flex aspect-[4/5] w-full max-w-md items-center justify-center rounded-md p-10">
           <Lockup spin className="h-full w-full text-[2.6rem] [&>svg]:h-[52%]" />
         </div>
@@ -32,7 +32,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           {sp.denied && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">Your account doesn&apos;t have access to that page.</p>}
           <LoginForm next={sp.next} />
           <div className="mt-6 flex justify-between text-sm">
-            <Link href="/pos" className="font-medium text-oranje-700 hover:underline">Open the POS →</Link>
+            <Link href="/pos" className="font-medium text-brand-700 hover:underline">Open the POS →</Link>
             <Link href="/" className="text-ink-500 hover:text-ink-800">Shop</Link>
           </div>
           {demo && (

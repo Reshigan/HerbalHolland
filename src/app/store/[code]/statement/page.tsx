@@ -69,7 +69,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
         <CardBody className="p-6 sm:p-8">
           <header className="flex flex-col justify-between gap-4 border-b-2 border-ink-900 pb-5 sm:flex-row sm:items-start">
             <div>
-              <div className="eyebrow text-oranje-700">Franchise statement</div>
+              <div className="eyebrow text-brand-700">Franchise statement</div>
               <h2 className="mt-1 font-display text-2xl font-semibold text-ink-950">{label}</h2>
               <p className="mt-1 text-sm text-ink-600">
                 {store.company.legalName}
@@ -112,7 +112,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
 
           <div className={cn("mt-8 flex flex-col items-start justify-between gap-2 rounded-2xl p-5 sm:flex-row sm:items-center", st.net >= 0 ? "bg-leaf-50" : "bg-ink-950 text-white")}>
             <div>
-              <div className={cn("eyebrow", st.net >= 0 ? "text-leaf-700" : "text-oranje-500")}>{st.net >= 0 ? "HQ pays you" : "Amount due to HQ"}</div>
+              <div className={cn("eyebrow", st.net >= 0 ? "text-leaf-700" : "text-brand-500")}>{st.net >= 0 ? "HQ pays you" : "Amount due to HQ"}</div>
               <p className={cn("mt-1 text-sm", st.net >= 0 ? "text-leaf-700" : "text-ink-300")}>{st.net >= 0 ? "Settled to you by HQ after month end." : "Settled with HQ after month end."}</p>
             </div>
             <div className={cn("font-display text-3xl font-semibold", st.net >= 0 ? "text-leaf-700" : "text-white")}>{zar(Math.abs(st.net))}</div>

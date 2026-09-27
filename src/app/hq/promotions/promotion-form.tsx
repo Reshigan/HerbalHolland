@@ -113,10 +113,10 @@ export function PromotionForm({
                       onClick={() => set("kind", k.key)}
                       className={cn(
                         "rounded-xl border p-3 text-left transition",
-                        v.kind === k.key ? "border-oranje-500 bg-oranje-50 ring-4 ring-oranje-500/15" : "border-ink-200 bg-white hover:border-ink-300",
+                        v.kind === k.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 bg-white hover:border-ink-300",
                       )}
                     >
-                      <span className={cn("mb-1.5 grid h-7 w-7 place-items-center rounded-lg", v.kind === k.key ? "bg-oranje-500 text-ink-950" : "bg-ink-100 text-ink-600")}>{k.icon}</span>
+                      <span className={cn("mb-1.5 grid h-7 w-7 place-items-center rounded-lg", v.kind === k.key ? "bg-brand-500 text-ink-950" : "bg-ink-100 text-ink-600")}>{k.icon}</span>
                       <span className="block text-sm font-semibold text-ink-900">{k.label}</span>
                       <span className="block text-xs text-ink-500">{k.blurb}</span>
                     </button>
@@ -228,7 +228,7 @@ export function PromotionForm({
                   {DAYS.map((d, i) => {
                     const on = v.days.includes(i);
                     return (
-                      <label key={d} className={cn("cursor-pointer rounded-full border px-2.5 py-1.5 text-xs font-semibold transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-oranje-500", on ? "border-oranje-500 bg-oranje-500 text-ink-950" : "border-ink-200 text-ink-600 hover:border-ink-300")}>
+                      <label key={d} className={cn("cursor-pointer rounded-full border px-2.5 py-1.5 text-xs font-semibold transition has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-brand-500", on ? "border-brand-500 bg-brand-500 text-ink-950" : "border-ink-200 text-ink-600 hover:border-ink-300")}>
                         <input type="checkbox" name="days" value={i} checked={on} onChange={() => set("days", on ? v.days.filter((x) => x !== i) : [...v.days, i])} className="sr-only" />
                         {d}
                       </label>
@@ -265,9 +265,9 @@ export function PromotionForm({
         <div className="space-y-6">
           <div className="sticky top-20 space-y-6">
             <div className="rounded-2xl bg-ink-950 p-5 text-white shadow-card" aria-live="polite">
-              <div className="eyebrow text-oranje-500">Live preview</div>
+              <div className="eyebrow text-brand-500">Live preview</div>
               <div className="mt-2 flex items-start gap-3">
-                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-oranje-500 text-ink-950">
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
                   <BadgePercent className="h-5 w-5" />
                 </span>
                 <div className="min-w-0">

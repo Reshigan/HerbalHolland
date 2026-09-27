@@ -15,7 +15,7 @@ export function P({ children }: { children: React.ReactNode }) {
 }
 function Pull({ children, by }: { children: React.ReactNode; by?: string }) {
   return (
-    <figure className="my-12 border-l-4 border-oranje-500 pl-6">
+    <figure className="my-12 border-l-4 border-brand-500 pl-6">
       <blockquote className="font-display text-2xl font-light leading-snug text-white sm:text-3xl">{children}</blockquote>
       {by && <figcaption className="mt-3 text-sm text-ink-400">— {by}</figcaption>}
     </figure>
@@ -23,8 +23,8 @@ function Pull({ children, by }: { children: React.ReactNode; by?: string }) {
 }
 function Fact({ title, children, tone = "brand" }: { title: string; children: React.ReactNode; tone?: "brand" | "warn" }) {
   return (
-    <aside className={`my-10 rounded-3xl border p-6 ${tone === "warn" ? "border-amber-500/35 bg-amber-500/[0.07]" : "border-oranje-500/30 bg-oranje-500/[0.06]"}`}>
-      <div className={`eyebrow ${tone === "warn" ? "text-amber-100" : "text-oranje-400"}`}>{title}</div>
+    <aside className={`my-10 rounded-3xl border p-6 ${tone === "warn" ? "border-amber-500/35 bg-amber-500/[0.07]" : "border-brand-500/30 bg-brand-500/[0.06]"}`}>
+      <div className={`eyebrow ${tone === "warn" ? "text-amber-100" : "text-brand-400"}`}>{title}</div>
       <div className="mt-3 space-y-3 text-[0.98rem] leading-relaxed text-ink-200">{children}</div>
     </aside>
   );
@@ -34,7 +34,7 @@ function Steps({ items }: { items: { icon: React.ReactNode; title: string; body:
     <ol className="my-10 space-y-4">
       {items.map((s, i) => (
         <li key={s.title} className="flex gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
-          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-oranje-500/10 text-oranje-400">{s.icon}</span>
+          <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{s.icon}</span>
           <div>
             <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">Step {i + 1}</div>
             <div className="mt-0.5 font-display text-lg font-semibold text-white">{s.title}</div>
@@ -74,7 +74,7 @@ function Table({ head, rows }: { head: string[]; rows: React.ReactNode[][] }) {
   );
 }
 const A = ({ href, children }: { href: string; children: React.ReactNode }) => (
-  <Link href={href} className="font-semibold text-oranje-400 underline decoration-oranje-500/40 underline-offset-4 hover:decoration-oranje-400">
+  <Link href={href} className="font-semibold text-brand-400 underline decoration-brand-500/40 underline-offset-4 hover:decoration-brand-400">
     {children}
   </Link>
 );
@@ -243,7 +243,7 @@ function Responsible() {
       <ul className="my-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {rules.map((r) => (
           <li key={r.title} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
-            <span className="grid h-10 w-10 place-items-center rounded-full bg-oranje-500/10 text-oranje-400">{r.icon}</span>
+            <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-500/10 text-brand-400">{r.icon}</span>
             <h3 className="mt-4 font-display text-lg font-semibold text-white">{r.title}</h3>
             <p className="mt-1 text-sm leading-relaxed text-ink-300">{r.body}</p>
           </li>
@@ -280,7 +280,7 @@ function Points({ settings }: { settings: Settings }) {
         rows={TIERS.map((t) => [
           <span key="n" className="font-semibold text-white">{t.name}</span>,
           t.minCents ? `${zarWhole(t.minCents)} in 12 months` : "Joining",
-          <span key="s" className="font-semibold text-oranje-300">{l.tierSavingsPct[t.key]}% off</span>,
+          <span key="s" className="font-semibold text-brand-300">{l.tierSavingsPct[t.key]}% off</span>,
           t.perks.join(" · "),
         ])}
       />

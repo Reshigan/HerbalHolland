@@ -112,7 +112,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
             <CardHeader
               title={
                 <span className="inline-flex items-center gap-2">
-                  <UserPlus className="h-4 w-4 text-oranje-700" /> Add a person
+                  <UserPlus className="h-4 w-4 text-brand-700" /> Add a person
                 </span>
               }
               description="They get a temporary password to sign in with"

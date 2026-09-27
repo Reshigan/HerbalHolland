@@ -178,7 +178,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               <ul className="mt-3 divide-y divide-ink-100 border-t border-ink-100">
                 {orders.map((o) => (
                   <li key={o.code} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
-                    <Link href={`/hq/orders/${o.code}`} className="font-mono font-semibold text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/orders/${o.code}`} className="font-mono font-semibold text-ink-900 hover:text-brand-700">
                       {o.code}
                     </Link>
                     <span className="hidden text-xs text-ink-500 sm:inline">{fmtDateTime(o.createdAt)}</span>
@@ -207,7 +207,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </Detail>
                 {referrer && (
                   <Detail label="Referred by">
-                    <Link href={`/hq/customers/${referrer.id}`} className="hover:text-oranje-700">{referrer.firstName} ({referrer.memberNo})</Link>
+                    <Link href={`/hq/customers/${referrer.id}`} className="hover:text-brand-700">{referrer.firstName} ({referrer.memberNo})</Link>
                   </Detail>
                 )}
               </dl>
@@ -287,7 +287,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               <CardBody className="space-y-3">
                 {reviews.map((r) => (
                   <div key={r.id} className="text-sm">
-                    <div className="flex items-center gap-1 text-oranje-600" aria-label={`${r.rating} out of 5`}>
+                    <div className="flex items-center gap-1 text-brand-600" aria-label={`${r.rating} out of 5`}>
                       {Array.from({ length: 5 }, (_, i) => (
                         <Star key={i} className={`h-3.5 w-3.5 ${i < r.rating ? "fill-current" : "text-ink-200"}`} aria-hidden />
                       ))}

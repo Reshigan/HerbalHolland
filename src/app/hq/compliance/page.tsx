@@ -94,7 +94,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
             <CardHeader
               title={
                 <span className="inline-flex items-center gap-2">
-                  <Gavel className="h-4 w-4 text-oranje-700" /> Regulatory watch-list
+                  <Gavel className="h-4 w-4 text-brand-700" /> Regulatory watch-list
                 </span>
               }
               description="As at 27 Sep 2026 · research, not legal advice"
@@ -116,7 +116,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
             <CardHeader
               title={
                 <span className="inline-flex items-center gap-2">
-                  <CalendarClock className="h-4 w-4 text-oranje-700" /> Authorisations expiring
+                  <CalendarClock className="h-4 w-4 text-brand-700" /> Authorisations expiring
                 </span>
               }
               description="Patients need a renewed Section 21 authorisation to keep buying"
@@ -126,7 +126,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
               {expiring.map((a) => (
                 <li key={a.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
                   <span className="min-w-0">
-                    <Link href={`/hq/customers/${a.customer.id}`} className="font-medium text-ink-850 hover:text-oranje-700">
+                    <Link href={`/hq/customers/${a.customer.id}`} className="font-medium text-ink-850 hover:text-brand-700">
                       {a.customer.firstName} {a.customer.lastName ?? ""}
                     </Link>
                     <span className="block truncate text-xs text-ink-500">
@@ -156,7 +156,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
               <ActionForm key={s.id} action={saveLicences.bind(null, s.id)} className="px-5 py-3" notices="bottom">
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                   <div className="w-44 min-w-0">
-                    <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-900 hover:text-oranje-700">{s.name}</Link>
+                    <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-900 hover:text-brand-700">{s.name}</Link>
                     <span className="block text-xs text-ink-500">
                       <span className="font-mono">{s.code}</span> · <StatusBadge status={s.status} className="ml-0.5" />
                     </span>
@@ -164,7 +164,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
                   <fieldset disabled={!admin} className="min-w-0 flex flex-wrap gap-x-4 gap-y-1.5">
                     {CLASSES.filter((cl) => c.licensedOnly.includes(cl) || s.licences.includes(cl)).map((cl) => (
                       <label key={cl} className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-800">
-                        <input type="checkbox" name="licences" value={cl} defaultChecked={s.licences.includes(cl)} className="h-4 w-4 accent-oranje-500" />
+                        <input type="checkbox" name="licences" value={cl} defaultChecked={s.licences.includes(cl)} className="h-4 w-4 accent-brand-500" />
                         {cl}
                       </label>
                     ))}
@@ -188,11 +188,11 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
           <CardHeader
             title={
               <span className="inline-flex items-center gap-2">
-                <ScrollText className="h-4 w-4 text-oranje-700" /> Recent compliance events
+                <ScrollText className="h-4 w-4 text-brand-700" /> Recent compliance events
               </span>
             }
             action={
-              <Link href="/hq/audit?action=compliance." className="inline-flex items-center gap-1 text-xs font-semibold text-oranje-700 hover:underline">
+              <Link href="/hq/audit?action=compliance." className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
                 Audit log <ExternalLink className="h-3.5 w-3.5" />
               </Link>
             }

@@ -65,20 +65,20 @@ export default async function PurchasingPage({ params, searchParams }: { params:
         <Stat
           label="Below reorder point"
           value={alerts.low.toLocaleString()}
-          sub={alerts.low && canManage ? <Link href={`${path}/new`} className="font-semibold text-oranje-700 hover:underline">Build a replenishment order →</Link> : "SKUs"}
+          sub={alerts.low && canManage ? <Link href={`${path}/new`} className="font-semibold text-brand-700 hover:underline">Build a replenishment order →</Link> : "SKUs"}
         />
       </div>
 
       {inTransit > 0 && tab !== "transit" && (
         <Link href={hrefWith(path, {}, { tab: "transit" })} className="mt-6 flex items-center gap-3 rounded-2xl bg-ink-950 p-4 text-white transition hover:bg-ink-900">
-          <span className="grid h-10 w-10 place-items-center rounded-xl bg-oranje-500 text-ink-950">
+          <span className="grid h-10 w-10 place-items-center rounded-xl bg-brand-500 text-ink-950">
             <Truck className="h-5 w-5" aria-hidden />
           </span>
           <span className="flex-1 text-sm">
             <b className="font-display text-base">{inTransit} deliver{inTransit === 1 ? "y is" : "ies are"} on the way.</b>
             <span className="block text-ink-300">Check each box against the delivery note and receive it — stock only becomes sellable once received.</span>
           </span>
-          <span className="text-sm font-semibold text-oranje-400">Receive →</span>
+          <span className="text-sm font-semibold text-brand-400">Receive →</span>
         </Link>
       )}
 
@@ -112,7 +112,7 @@ export default async function PurchasingPage({ params, searchParams }: { params:
                 return (
                   <Tr key={o.id}>
                     <Td>
-                      <Link href={`${path}/${o.id}`} className="font-semibold text-ink-900 hover:text-oranje-700">
+                      <Link href={`${path}/${o.id}`} className="font-semibold text-ink-900 hover:text-brand-700">
                         {o.number}
                       </Link>
                       <div className="text-xs text-ink-500">Created {fmtDate(o.createdAt)}</div>

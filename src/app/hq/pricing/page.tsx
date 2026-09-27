@@ -109,7 +109,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
               return (
                 <Tr key={l.id}>
                   <Td>
-                    <Link href={`/hq/pricing/${l.id}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/pricing/${l.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {l.name}
                     </Link>
                     {l.adjustPct != null && <span className="block text-xs text-ink-500">{l.adjustPct > 0 ? "+" : ""}{l.adjustPct}% on RRP for items without a set price</span>}
@@ -142,7 +142,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         <CardHeader
           title={
             <span className="inline-flex items-center gap-2">
-              <Calculator className="h-4 w-4 text-oranje-700" /> Pricing simulator
+              <Calculator className="h-4 w-4 text-brand-700" /> Pricing simulator
             </span>
           }
           description="What would this customer pay, and which rule decided it? Promotions are applied on top at the till and in the basket."
@@ -155,11 +155,11 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
             <FilterSelect name="tier" label="Customer" allLabel={null} defaultValue={tier ?? ""} options={[{ value: "", label: "Not a member" }, ...TIERS.map((t) => ({ value: t.key, label: `${t.name} member` }))]} />
             <label className="block">
               <span className="sr-only">Quantity</span>
-              <input name="qty" type="number" min={1} max={999} defaultValue={qty} aria-label="Quantity" className="h-10 w-20 rounded-xl border border-ink-200 bg-white px-3 text-sm focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+              <input name="qty" type="number" min={1} max={999} defaultValue={qty} aria-label="Quantity" className="h-10 w-20 rounded-xl border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
             <label className="block">
               <span className="sr-only">Date and time</span>
-              <input name="at" type="datetime-local" defaultValue={toLocalInput(simAt)} aria-label="Date and time" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15" />
+              <input name="at" type="datetime-local" defaultValue={toLocalInput(simAt)} aria-label="Date and time" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
             <Button type="submit" variant="dark">Simulate</Button>
           </FilterForm>
@@ -177,7 +177,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                 <ol className="mt-5 space-y-3 border-t border-ink-800 pt-4">
                   {sim.steps.map((s, i) => (
                     <li key={i} className="flex gap-3 text-sm">
-                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-800 text-xs font-semibold text-oranje-400">{i + 1}</span>
+                      <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-800 text-xs font-semibold text-brand-400">{i + 1}</span>
                       <span className="min-w-0 flex-1">
                         <span className="flex justify-between gap-2 font-medium">
                           {s.label} <span className="tnum">{zar(s.cents)}</span>

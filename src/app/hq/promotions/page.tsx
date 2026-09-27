@@ -142,7 +142,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
               return (
                 <Tr key={p.id}>
                   <Td>
-                    <Link href={`/hq/promotions/${p.id}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/promotions/${p.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {p.name}
                     </Link>
                     <span className="block text-xs text-ink-500">

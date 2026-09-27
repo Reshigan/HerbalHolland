@@ -153,7 +153,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                 <Tr key={m.id}>
                   <Td className="whitespace-nowrap text-ink-600">{fmtDateTime(m.createdAt)}</Td>
                   <Td className="min-w-48">
-                    <Link href={`/store/${store.code}/inventory/${m.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                    <Link href={`/store/${store.code}/inventory/${m.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {m.variant.product.name} <span className="text-ink-500">· {m.variant.name}</span>
                     </Link>
                     <div className="font-mono text-xs text-ink-400">{m.variant.sku}</div>
@@ -165,7 +165,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                   <Td className="whitespace-nowrap text-ink-600">{m.user ?? "—"}</Td>
                   <Td className="max-w-64 text-xs text-ink-600">
                     {m.stockTakeId ? (
-                      <Link href={`/store/${store.code}/stock-takes/${m.stockTakeId}`} className="font-medium text-oranje-700 hover:underline">{m.note ?? "Stock take"}</Link>
+                      <Link href={`/store/${store.code}/stock-takes/${m.stockTakeId}`} className="font-medium text-brand-700 hover:underline">{m.note ?? "Stock take"}</Link>
                     ) : (
                       <span className="line-clamp-2" title={m.note ?? undefined}>{m.note ?? <span className="text-ink-300">—</span>}</span>
                     )}

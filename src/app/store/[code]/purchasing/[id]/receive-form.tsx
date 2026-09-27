@@ -66,7 +66,7 @@ export function ReceiveForm({ lines, action }: { lines: ReceiveLine[]; action: F
                         onChange={(e) => (setRecv((p) => ({ ...p, [l.id]: e.target.value.replace(/[^\d]/g, "").slice(0, 5) })), setConfirming(false))}
                         className={cn(
                           "tnum h-10 w-20 rounded-xl border bg-white text-center text-base font-semibold focus:outline-none focus:ring-4 disabled:bg-ink-50 disabled:text-ink-400",
-                          bad ? "border-rose-500 focus:ring-rose-500/15" : short ? "border-amber-500 focus:ring-amber-500/15" : "border-ink-200 focus:border-oranje-500 focus:ring-oranje-500/15",
+                          bad ? "border-rose-500 focus:ring-rose-500/15" : short ? "border-amber-500 focus:ring-amber-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
                         )}
                       />
                       {short && <span className="mt-0.5 text-[0.68rem] font-semibold text-amber-700">{l.shipped - v} short</span>}

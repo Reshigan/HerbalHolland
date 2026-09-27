@@ -11,16 +11,16 @@
   --font-display: "Outfit Variable", ui-sans-serif, system-ui, sans-serif;
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-oranje-50: #fff5ec;
-  --color-oranje-100: #ffe6d1;
-  --color-oranje-200: #fdcba1;
-  --color-oranje-300: #f9ae6d;
-  --color-oranje-400: #f79f52;
-  --color-oranje-500: #f5913c; /* brand */
-  --color-oranje-600: #e27623;
-  --color-oranje-700: #c05f18;
-  --color-oranje-800: #974a15;
-  --color-oranje-900: #6e3712;
+  --color-brand-50: #fff5ec;
+  --color-brand-100: #ffe6d1;
+  --color-brand-200: #fdcba1;
+  --color-brand-300: #f9ae6d;
+  --color-brand-400: #f79f52;
+  --color-brand-500: #f5913c; /* brand */
+  --color-brand-600: #e27623;
+  --color-brand-700: #c05f18;
+  --color-brand-800: #974a15;
+  --color-brand-900: #6e3712;
 
   --color-ink-50: #fbf7f3;
   --color-ink-100: #f4eee8;
@@ -100,11 +100,11 @@
     letter-spacing: -0.01em;
   }
   ::selection {
-    background: var(--color-oranje-300);
+    background: var(--color-brand-300);
     color: var(--color-ink-950);
   }
   :focus-visible {
-    outline: 2px solid var(--color-oranje-500);
+    outline: 2px solid var(--color-brand-500);
     outline-offset: 2px;
   }
   .tnum { font-variant-numeric: tabular-nums; }
@@ -117,7 +117,7 @@
   }
   /* The window-poster frame: thick orange border around a black panel. */
   .hh-frame {
-    @apply rounded-[1.75rem] border-[10px] border-oranje-500 bg-ink-950 sm:border-[14px];
+    @apply rounded-[1.75rem] border-[10px] border-brand-500 bg-ink-950 sm:border-[14px];
   }
   .dark-surface {
     @apply bg-ink-950 text-ink-100;

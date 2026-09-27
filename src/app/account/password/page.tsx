@@ -13,7 +13,7 @@ export default async function PasswordPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-ink-50 px-4 py-12">
       <div className="w-full max-w-sm">
-        <Logo className="mb-8 text-oranje-600" />
+        <Logo className="mb-8 text-brand-600" />
         <h1 className="font-display text-3xl font-semibold text-ink-950">{forced ? "Choose your own password" : "Change your password"}</h1>
         <p className="mb-6 mt-1 text-sm text-ink-500">
           {forced

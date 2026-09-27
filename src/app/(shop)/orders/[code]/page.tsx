@@ -82,7 +82,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <div className="eyebrow text-oranje-500">Order {order.code}</div>
+          <div className="eyebrow text-brand-500">Order {order.code}</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             {order.status === "CANCELLED" ? "Order cancelled" : order.status === "COMPLETED" ? (collect ? "Collected — thank you" : "Delivered — thank you") : collect ? `Collect at ${order.store.name}` : "On its way to you"}
           </h1>
@@ -125,7 +125,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   <div className="eyebrow text-ink-400">Collection code</div>
                   <div className="tnum mt-1 font-display text-5xl font-semibold tracking-[0.15em] text-white">{mine ? order.collectionCode : "••••••"}</div>
                   <p className="mt-3 flex items-start gap-2 text-sm text-ink-300">
-                    <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-oranje-500" /> Show this code and your ID (18+) at the counter. Only you can collect this order.
+                    <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> Show this code and your ID (18+) at the counter. Only you can collect this order.
                   </p>
                   {order.status === "READY" && (
                     <p className="mt-2 text-sm text-leaf-100">
@@ -161,8 +161,8 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                           <CheckCircle2 className="h-6 w-6 text-leaf-500" />
                         ) : now ? (
                           <span className="relative grid h-6 w-6 place-items-center">
-                            <span className="absolute inset-0 animate-pulse-ring rounded-full bg-oranje-500/50" />
-                            <span className="h-3.5 w-3.5 rounded-full bg-oranje-500" />
+                            <span className="absolute inset-0 animate-pulse-ring rounded-full bg-brand-500/50" />
+                            <span className="h-3.5 w-3.5 rounded-full bg-brand-500" />
                           </span>
                         ) : (
                           <Circle className="h-6 w-6 text-ink-700" />
@@ -222,7 +222,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   <dd className="tnum font-display text-2xl font-semibold text-white">{zar(due)}</dd>
                 </div>
                 {order.vatCents > 0 && <p className="text-right text-xs text-ink-500">Includes VAT of {zar(order.vatCents)}</p>}
-                {saved > 0 && <p className="rounded-xl bg-oranje-500/10 px-3 py-2 text-sm font-semibold text-oranje-100">You saved {zar(saved)} with Herbal Holland Rewards</p>}
+                {saved > 0 && <p className="rounded-xl bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-100">You saved {zar(saved)} with Herbal Holland Rewards</p>}
               </dl>
             </Panel>
           )}
@@ -232,7 +232,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           {collect ? (
             <Panel className="p-5">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-                <MapPin className="h-5 w-5 text-oranje-500" /> Herbal Holland {order.store.name}
+                <MapPin className="h-5 w-5 text-brand-500" /> Herbal Holland {order.store.name}
               </h2>
               <p className="mt-1 text-sm text-ink-300">
                 {order.store.addressLine}, {order.store.suburb}, {order.store.city}
@@ -247,7 +247,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                 ))}
               </dl>
               <div className="mt-5 flex flex-wrap gap-2">
-                <a href={directionsUrl(order.store)} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full bg-oranje-500 px-4 text-sm font-semibold text-ink-950 hover:bg-oranje-400">
+                <a href={directionsUrl(order.store)} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center gap-1.5 rounded-full bg-brand-500 px-4 text-sm font-semibold text-ink-950 hover:bg-brand-400">
                   <Navigation className="h-4 w-4" /> Directions
                 </a>
                 {order.store.phone && (
@@ -260,7 +260,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           ) : (
             <Panel className="p-5">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-                <Truck className="h-5 w-5 text-oranje-500" /> Delivery
+                <Truck className="h-5 w-5 text-brand-500" /> Delivery
               </h2>
               {mine && order.addressLine ? (
                 <p className="mt-2 text-sm leading-relaxed text-ink-300">
@@ -280,7 +280,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                 </p>
               )}
               <p className="mt-3 flex items-start gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-sm text-ink-200">
-                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-oranje-500" /> ID (18+) is checked on delivery. We can&apos;t leave the parcel without it.
+                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> ID (18+) is checked on delivery. We can&apos;t leave the parcel without it.
               </p>
             </Panel>
           )}
@@ -288,7 +288,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           {mine && order.sale && (
             <Panel className="p-5">
               <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-                <FileText className="h-5 w-5 text-oranje-500" /> Your invoice
+                <FileText className="h-5 w-5 text-brand-500" /> Your invoice
               </h2>
               <p className="mt-1 text-sm text-ink-400">
                 Invoice {order.sale.number}
@@ -306,7 +306,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
               Questions about this order? Quote <strong className="text-ink-100">{order.code}</strong>{" "}
               {order.store.phone ? (
                 <>
-                  and call {order.store.name} on <a href={`tel:${order.store.phone.replace(/\s/g, "")}`} className="text-oranje-400 underline">{order.store.phone}</a>.
+                  and call {order.store.name} on <a href={`tel:${order.store.phone.replace(/\s/g, "")}`} className="text-brand-400 underline">{order.store.phone}</a>.
                 </>
               ) : (
                 "at any store."
@@ -314,13 +314,13 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
             </p>
             {!mine && (
               <p className="mt-3">
-                <Link href={`/club/join?next=${encodeURIComponent(`/orders/${order.code}`)}`} className="font-semibold text-oranje-400 hover:underline">
+                <Link href={`/club/join?next=${encodeURIComponent(`/orders/${order.code}`)}`} className="font-semibold text-brand-400 hover:underline">
                   Sign in
                 </Link>{" "}
                 to see your collection code, items and invoice.
               </p>
             )}
-            {mine && <p className="mt-3">Order history lives in <Link href="/club/orders" className="font-semibold text-oranje-400 hover:underline">your Rewards account</Link>. Placed {fmtDate(order.createdAt)}.</p>}
+            {mine && <p className="mt-3">Order history lives in <Link href="/club/orders" className="font-semibold text-brand-400 hover:underline">your Rewards account</Link>. Placed {fmtDate(order.createdAt)}.</p>}
           </Panel>
         </aside>
       </div>

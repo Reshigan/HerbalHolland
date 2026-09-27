@@ -69,7 +69,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
         )}
         {(receipt.memberSavingsCents > 0 || receipt.discountCents > 0) && (
           <div className="mt-2 text-sm font-semibold">
-            {receipt.memberSavingsCents > 0 && <span className="text-oranje-300">Rewards savings {zar(receipt.memberSavingsCents)}</span>}
+            {receipt.memberSavingsCents > 0 && <span className="text-brand-300">Rewards savings {zar(receipt.memberSavingsCents)}</span>}
             {receipt.memberSavingsCents > 0 && receipt.discountCents > 0 && <span className="text-ink-500"> · </span>}
             {receipt.discountCents > 0 && <span className="text-[#7fd49a]">Deals {zar(receipt.discountCents)}</span>}
           </div>
@@ -87,9 +87,9 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
       )}
 
       {receipt.customer && !receipt.queued && (
-        <div className="mt-5 flex items-center gap-3 rounded-2xl bg-oranje-500/10 px-4 py-3 ring-1 ring-oranje-500/30">
-          <Sparkles className="h-5 w-5 shrink-0 text-oranje-400" />
-          <div className="text-sm text-oranje-100">
+        <div className="mt-5 flex items-center gap-3 rounded-2xl bg-brand-500/10 px-4 py-3 ring-1 ring-brand-500/30">
+          <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
+          <div className="text-sm text-brand-100">
             {receipt.pointsEarned > 0 ? (
               <>
                 <b>{fmtPoints(receipt.pointsEarned)}</b> earned

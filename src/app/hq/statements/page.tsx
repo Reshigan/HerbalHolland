@@ -175,7 +175,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
             {statements.map((st, i) => (
               <Tr key={st.store.id}>
                 <Td>
-                  <Link href={`/hq/statements${qs({ month, store: st.store.code })}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                  <Link href={`/hq/statements${qs({ month, store: st.store.code })}`} className="font-medium text-ink-900 hover:text-brand-700">
                     {st.store.name}
                   </Link>
                   <span className="block text-xs text-ink-500">

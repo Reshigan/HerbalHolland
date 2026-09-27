@@ -36,7 +36,7 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
     <Container className="pt-10 sm:pt-14">
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
         <div>
-          <div className="eyebrow text-oranje-500">Dispensary</div>
+          <div className="eyebrow text-brand-500">Dispensary</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Your dispensary</h1>
           <p className="mt-3 max-w-2xl text-[1.02rem] leading-relaxed text-ink-300">
             Medicines are collect-only and handed over by an authorised dispenser after an ID check. Prices are the same for every patient — no promotions, member prices or points apply.

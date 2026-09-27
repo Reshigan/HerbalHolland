@@ -19,7 +19,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
     <Container className="pt-10 sm:pt-14">
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16">
         <div>
-          <div className="eyebrow text-oranje-500">Dispensary</div>
+          <div className="eyebrow text-brand-500">Dispensary</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{medical ? "For registered patients" : "For verified adults"}</h1>
           <p className="mt-4 max-w-xl text-[1.02rem] leading-relaxed text-ink-300">
             {medical
@@ -52,7 +52,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
               {STEPS.map((s, i) => (
                 <li key={s.title} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
                   <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 place-items-center rounded-full bg-oranje-500/10 text-oranje-400">{s.icon}</span>
+                    <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-500/10 text-brand-400">{s.icon}</span>
                     <span className="tnum font-display text-sm font-semibold text-ink-500">Step {i + 1}</span>
                   </div>
                   <h2 className="mt-4 font-display text-lg font-semibold text-white">{s.title}</h2>
@@ -64,7 +64,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
         </div>
         <aside className="space-y-4 lg:pt-10">
           <Panel className="p-6">
-            <Store className="h-7 w-7 text-oranje-500" strokeWidth={1.6} />
+            <Store className="h-7 w-7 text-brand-500" strokeWidth={1.6} />
             <h2 className="mt-4 font-display text-xl font-semibold text-white">Ask our pharmacist in store</h2>
             <p className="mt-2 text-sm leading-relaxed text-ink-400">
               Every store has an authorised dispenser on the team. They can explain the process, check your paperwork and answer questions in private.
@@ -80,7 +80,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
               <li>• Medicines are collect-only and handed over after an ID check.</li>
               <li>• Nothing here is medical advice. Please speak to your doctor.</li>
             </ul>
-            <Link href="/learn/section-21" className="mt-4 inline-block text-sm font-semibold text-oranje-400 hover:underline">
+            <Link href="/learn/section-21" className="mt-4 inline-block text-sm font-semibold text-brand-400 hover:underline">
               Read: Registered patients &amp; Section 21 →
             </Link>
           </Panel>

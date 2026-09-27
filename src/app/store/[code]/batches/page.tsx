@@ -107,7 +107,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <div className="text-sm font-semibold text-ink-900">{b.variant.product.name} · {b.variant.name}</div>
-                      <Link href={`/batch/${b.code}`} target="_blank" className="font-mono text-xs text-oranje-700 hover:underline">{b.code}</Link>
+                      <Link href={`/batch/${b.code}`} target="_blank" className="font-mono text-xs text-brand-700 hover:underline">{b.code}</Link>
                     </div>
                     <StatusBadge status={b.status} />
                   </div>
@@ -167,13 +167,13 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                   return (
                     <Tr key={l.id} className={isBlocked ? "bg-rose-50/60 hover:bg-rose-50" : undefined}>
                       <Td className="whitespace-nowrap">
-                        <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-ink-900 hover:text-oranje-700">
+                        <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-ink-900 hover:text-brand-700">
                           {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                         </Link>
                         <div className="text-xs text-ink-400">Packed {fmtDate(l.batch.packedAt)}</div>
                       </Td>
                       <Td className="min-w-44">
-                        <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                        <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                           {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                         </Link>
                         <div className="font-mono text-xs text-ink-400">{l.variant.sku}</div>
@@ -202,16 +202,16 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                                 <legend className="sr-only">How is it leaving the store?</legend>
                                 {isBlocked && (
                                   <label className="flex items-center gap-2">
-                                    <input type="radio" name="reason" value="RECALL" defaultChecked className="accent-oranje-500" /> Return to {store.dc?.name ?? "the DC"}
+                                    <input type="radio" name="reason" value="RECALL" defaultChecked className="accent-brand-500" /> Return to {store.dc?.name ?? "the DC"}
                                   </label>
                                 )}
                                 {isExpired && (
                                   <label className="flex items-center gap-2">
-                                    <input type="radio" name="reason" value="EXPIRED" defaultChecked={!isBlocked} className="accent-oranje-500" /> Expired — write off
+                                    <input type="radio" name="reason" value="EXPIRED" defaultChecked={!isBlocked} className="accent-brand-500" /> Expired — write off
                                   </label>
                                 )}
                                 <label className="flex items-center gap-2">
-                                  <input type="radio" name="reason" value="DESTROYED" className="accent-oranje-500" /> Destroyed on site (witnessed)
+                                  <input type="radio" name="reason" value="DESTROYED" className="accent-brand-500" /> Destroyed on site (witnessed)
                                 </label>
                                 <FieldError name="reason" />
                               </fieldset>

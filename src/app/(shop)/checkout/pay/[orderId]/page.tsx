@@ -37,7 +37,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
         </div>
         <div className="p-6 sm:p-8">
           <div className="flex items-center gap-3">
-            <Mark className="h-10 w-10 text-oranje-500" />
+            <Mark className="h-10 w-10 text-brand-500" />
             <div>
               <div className="text-sm text-ink-400">Paying {order.store.company.legalName}</div>
               <div className="font-semibold text-white">Herbal Holland order {order.code}</div>

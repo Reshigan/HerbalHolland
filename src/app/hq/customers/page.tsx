@@ -73,16 +73,16 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {segments.map((g) => (
               <div key={g.key} className="flex flex-col rounded-2xl border border-ink-150 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <Link href={href({ segment: g.key, page: undefined })} className="font-display text-sm font-semibold text-ink-900 hover:text-oranje-700">
+                  <Link href={href({ segment: g.key, page: undefined })} className="font-display text-sm font-semibold text-ink-900 hover:text-brand-700">
                     {g.name}
                   </Link>
                   <span className="font-display text-xl font-semibold tnum text-ink-950">{num(g.count)}</span>
                 </div>
                 <p className="mt-0.5 text-xs text-ink-500">{g.blurb}</p>
                 <p className="mt-2 flex-1 text-xs text-ink-700">
-                  <span className="font-semibold text-oranje-700">Play:</span> {g.play}
+                  <span className="font-semibold text-brand-700">Play:</span> {g.play}
                 </p>
-                <Link href={`/hq/marketing/new?segment=${g.key}`} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-700 hover:text-oranje-700">
+                <Link href={`/hq/marketing/new?segment=${g.key}`} className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-700 hover:text-brand-700">
                   <Send className="h-3.5 w-3.5" /> Target this segment
                 </Link>
               </div>
@@ -160,7 +160,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {members.map((m) => (
               <Tr key={m.id}>
                 <Td>
-                  <Link href={`/hq/customers/${m.id}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                  <Link href={`/hq/customers/${m.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                     {m.firstName} {m.lastName ?? ""}
                   </Link>
                   <span className="block font-mono text-xs text-ink-500">{m.memberNo}</span>

@@ -130,7 +130,7 @@ export default async function VariantStockPage({ params, searchParams }: { param
                     return (
                       <Tr key={l.id} className={l.onHand === 0 ? "text-ink-400" : undefined}>
                         <Td>
-                          <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-xs font-semibold text-ink-900 hover:text-oranje-700">
+                          <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-xs font-semibold text-ink-900 hover:text-brand-700">
                             {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                           </Link>
                           <div className="whitespace-nowrap text-xs text-ink-400" title={l.batch.supplier}>Packed {fmtDate(l.batch.packedAt)}</div>
@@ -198,7 +198,7 @@ export default async function VariantStockPage({ params, searchParams }: { param
               <CardHeader title="Held for online orders" description="Reserved until handover, dispatch or cancellation" />
               <CardBody className="space-y-2 pt-3">
                 {reserving.map((r) => (
-                  <Link key={r.order.id} href={`${base}/orders/${r.order.id}`} className="flex items-center justify-between rounded-xl border border-ink-150 px-3 py-2 text-sm hover:border-oranje-300 hover:bg-oranje-50">
+                  <Link key={r.order.id} href={`${base}/orders/${r.order.id}`} className="flex items-center justify-between rounded-xl border border-ink-150 px-3 py-2 text-sm hover:border-brand-300 hover:bg-brand-50">
                     <span>
                       <span className="font-semibold text-ink-900">{r.order.code}</span> <span className="text-xs text-ink-500">· {timeAgo(r.order.createdAt)}</span>
                     </span>
@@ -235,11 +235,11 @@ export default async function VariantStockPage({ params, searchParams }: { param
             <tbody>
               {led.rows.map((m) => {
                 const ref = m.orderCode ? (
-                  <Link href={`${base}/orders/${m.orderId}`} className="font-medium text-oranje-700 hover:underline">Order {m.orderCode}</Link>
+                  <Link href={`${base}/orders/${m.orderId}`} className="font-medium text-brand-700 hover:underline">Order {m.orderCode}</Link>
                 ) : m.poNumber ? (
-                  <Link href={`${base}/purchasing/${m.stockOrderId}`} className="font-medium text-oranje-700 hover:underline">{m.poNumber}</Link>
+                  <Link href={`${base}/purchasing/${m.stockOrderId}`} className="font-medium text-brand-700 hover:underline">{m.poNumber}</Link>
                 ) : m.stNumber ? (
-                  <Link href={`${base}/stock-takes/${m.stockTakeId}`} className="font-medium text-oranje-700 hover:underline">{m.stNumber}</Link>
+                  <Link href={`${base}/stock-takes/${m.stockTakeId}`} className="font-medium text-brand-700 hover:underline">{m.stNumber}</Link>
                 ) : m.saleNumber ? (
                   <span className="font-mono text-xs">{m.saleNumber}</span>
                 ) : null;

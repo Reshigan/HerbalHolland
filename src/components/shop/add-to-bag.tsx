@@ -27,7 +27,7 @@ export function AddToBag({ variantId, name, disabled, compact, label = "Add to b
           disabled={pending || disabled}
           aria-label={`Add ${name} to bag`}
           title="Add to bag"
-          className="grid h-11 w-11 place-items-center rounded-full bg-oranje-500 text-ink-950 shadow-[inset_0_-2px_0_rgb(0_0_0/0.15)] transition hover:bg-oranje-400 active:scale-95 disabled:opacity-40"
+          className="grid h-11 w-11 place-items-center rounded-full bg-brand-500 text-ink-950 shadow-[inset_0_-2px_0_rgb(0_0_0/0.15)] transition hover:bg-brand-400 active:scale-95 disabled:opacity-40"
         >
           {pending ? <ShoppingBag className="h-[18px] w-[18px] animate-pulse" /> : state.ok && toast ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5" strokeWidth={2.2} />}
         </button>
@@ -57,7 +57,7 @@ export function AddToBag({ variantId, name, disabled, compact, label = "Add to b
       )}
       {toast && state.ok && (
         <div role="status" className="fixed inset-x-4 bottom-4 z-[60] mx-auto flex max-w-md animate-rise items-center gap-3 rounded-2xl border border-ink-700 bg-ink-900/95 p-3 pl-4 text-sm text-ink-100 shadow-lift backdrop-blur sm:inset-x-auto sm:right-6 sm:bottom-6">
-          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-oranje-500 text-ink-950">
+          <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 text-ink-950">
             <Check className="h-4 w-4" strokeWidth={2.4} />
           </span>
           <span className="min-w-0 flex-1 truncate">{state.message}</span>

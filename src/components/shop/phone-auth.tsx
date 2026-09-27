@@ -100,7 +100,7 @@ function Steps({ step }: { step: AuthState["step"] }) {
     <ol className="mb-6 flex items-center gap-2 text-[0.7rem] font-semibold uppercase tracking-wider" aria-label="Progress">
       {["Number", "Code", "Details"].map((l, n) => (
         <li key={l} className="flex items-center gap-2">
-          <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-oranje-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
+          <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
             {n + 1}
           </span>
           <span className={n === i ? "text-white" : "text-ink-500"}>{l}</span>
@@ -167,7 +167,7 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
         <form action={action}>
           {hidden}
           <input type="hidden" name="intent" value="send" />
-          <button className="font-semibold text-oranje-400 hover:underline">Send a new code</button>
+          <button className="font-semibold text-brand-400 hover:underline">Send a new code</button>
         </form>
       </div>
     </div>
@@ -220,7 +220,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
               role="radio"
               aria-checked={idType === k}
               onClick={() => setIdType(k as "sa" | "passport")}
-              className={cn("rounded-full px-4 py-1.5 text-sm font-semibold transition", idType === k ? "bg-oranje-500 text-ink-950" : "text-ink-300 hover:text-white")}
+              className={cn("rounded-full px-4 py-1.5 text-sm font-semibold transition", idType === k ? "bg-brand-500 text-ink-950" : "text-ink-300 hover:text-white")}
             >
               {l}
             </button>
@@ -276,7 +276,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         {state.fields?.accept && <p className="mt-1 text-xs font-medium text-rose-100" role="alert">{state.fields.accept}</p>}
       </div>
 
-      {referral && <p className="rounded-xl bg-oranje-500/10 px-4 py-3 text-sm text-oranje-200">Invited by {referral.name} — you&apos;ll both get bonus points after your first purchase.</p>}
+      {referral && <p className="rounded-xl bg-brand-500/10 px-4 py-3 text-sm text-brand-200">Invited by {referral.name} — you&apos;ll both get bonus points after your first purchase.</p>}
 
       <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
         {pending ? "Creating your account…" : "Join and continue"} <ArrowRight className="h-5 w-5" />

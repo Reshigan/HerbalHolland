@@ -57,7 +57,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
         <Stat label="Ranged items" value={all.length.toLocaleString()} sub="priced at your tills" />
         <Stat label="With your own price" value={own.length.toLocaleString()} sub={own.length ? "the rest follow the list price" : "all follow the list price"} />
         <Stat label="Average margin" value={pct(avg)} sub="on shelf price, ex VAT, vs wholesale" />
-        <Stat label={`Below ${settings.pricing.minMarginPct}% margin`} value={thin.length.toLocaleString()} sub={thin.length ? <Link href={hrefWith(path, {}, { view: "thin" })} className="font-semibold text-oranje-700 hover:underline">Review them →</Link> : "all above the guide"} />
+        <Stat label={`Below ${settings.pricing.minMarginPct}% margin`} value={thin.length.toLocaleString()} sub={thin.length ? <Link href={hrefWith(path, {}, { view: "thin" })} className="font-semibold text-brand-700 hover:underline">Review them →</Link> : "all above the guide"} />
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-4">
@@ -110,7 +110,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
                 <fieldset className="space-y-2">
                   <legend className="sr-only">Change</legend>
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="mode" value="pct" defaultChecked className="accent-oranje-500" /> Set to RRP plus or minus
+                    <input type="radio" name="mode" value="pct" defaultChecked className="accent-brand-500" /> Set to RRP plus or minus
                   </label>
                   <div className="flex items-center gap-2 pl-6">
                     <div className="w-20">
@@ -120,7 +120,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
                   </div>
                   <FieldError name="pct" />
                   <label className="flex items-center gap-2">
-                    <input type="radio" name="mode" value="reset" className="accent-oranje-500" /> Clear my prices (follow the list price)
+                    <input type="radio" name="mode" value="reset" className="accent-brand-500" /> Clear my prices (follow the list price)
                   </label>
                 </fieldset>
               </ConfirmAction>

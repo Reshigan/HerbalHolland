@@ -125,7 +125,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                     </Td>
                     <Td>
                       {s.customerId ? (
-                        <Link href={`/hq/customers/${s.customerId}`} className="font-medium text-ink-850 hover:text-oranje-700">
+                        <Link href={`/hq/customers/${s.customerId}`} className="font-medium text-ink-850 hover:text-brand-700">
                           {s.firstName} {s.lastName ?? ""}
                           <span className="block font-mono text-xs font-normal text-ink-500">{s.memberNo}</span>
                         </Link>
@@ -211,7 +211,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
             <CardBody className="space-y-3">
               <dl className="divide-y divide-ink-100">
                 <Detail label="Product">
-                  <Link href={`/hq/catalogue/${batch.variant.product.id}`} className="hover:text-oranje-700">
+                  <Link href={`/hq/catalogue/${batch.variant.product.id}`} className="hover:text-brand-700">
                     {batch.variant.product.name}
                   </Link>
                 </Detail>
@@ -290,7 +290,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
               {levels.map((l) => (
                 <li key={l.id} className="flex items-center justify-between gap-3 px-5 py-2.5 text-sm">
                   <span className="min-w-0">
-                    <Link href={l.store.kind === "WAREHOUSE" ? `/hq/distribution?dc=${l.store.code}&view=stock` : `/hq/stores/${l.store.code}`} className="font-medium text-ink-850 hover:text-oranje-700">
+                    <Link href={l.store.kind === "WAREHOUSE" ? `/hq/distribution?dc=${l.store.code}&view=stock` : `/hq/stores/${l.store.code}`} className="font-medium text-ink-850 hover:text-brand-700">
                       {l.store.name}
                     </Link>
                     <span className="block text-xs text-ink-500">

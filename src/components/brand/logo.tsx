@@ -37,7 +37,7 @@ export function Wordmark({ className, stacked = true }: { className?: string; st
 /** Horizontal lock-up for headers. */
 export function Logo({ className, markClassName, compact = false }: { className?: string; markClassName?: string; compact?: boolean }) {
   return (
-    <span className={cn("inline-flex items-center gap-2.5 text-oranje-500", className)}>
+    <span className={cn("inline-flex items-center gap-2.5 text-brand-500", className)}>
       <Mark className={cn("h-9 w-9", markClassName)} detail={!compact} />
       {!compact && <Wordmark className="text-[0.95rem]" />}
     </span>
@@ -47,7 +47,7 @@ export function Logo({ className, markClassName, compact = false }: { className?
 /** The full window-poster lock-up: mark over stacked wordmark. */
 export function Lockup({ className, spin }: { className?: string; spin?: boolean }) {
   return (
-    <span className={cn("inline-flex flex-col items-center text-oranje-500", className)}>
+    <span className={cn("inline-flex flex-col items-center text-brand-500", className)}>
       <Mark className="h-[46%] w-auto aspect-square" spin={spin} />
       <Wordmark className="mt-[4%] items-center text-center text-[1em]" />
     </span>

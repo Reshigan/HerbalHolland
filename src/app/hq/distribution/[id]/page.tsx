@@ -127,7 +127,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
             <CardHeader title="Deliver to" />
             <CardBody>
               <div className="text-sm">
-                <Link href={`/hq/stores/${order.buyer.code}`} className="font-semibold text-ink-900 hover:text-oranje-700">
+                <Link href={`/hq/stores/${order.buyer.code}`} className="font-semibold text-ink-900 hover:text-brand-700">
                   Herbal Holland {order.buyer.name}
                 </Link>
                 <p className="text-ink-600">{order.buyer.addressLine}, {order.buyer.suburb}, {order.buyer.city}</p>
@@ -141,7 +141,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
               <ol className="space-y-3">
                 {timeline.map(([label, at, who]) => (
                   <li key={label} className="flex items-start gap-3 text-sm">
-                    <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${at ? "bg-oranje-500" : "bg-ink-200"}`} aria-hidden />
+                    <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${at ? "bg-brand-500" : "bg-ink-200"}`} aria-hidden />
                     <span className="flex-1">
                       <span className={at ? "font-medium text-ink-900" : "text-ink-400"}>{label}</span>
                       {who && <span className="text-ink-500"> by {who}</span>}
@@ -187,7 +187,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                           {p.picks.map((x) => (
                             <li key={x.batchId} className="flex items-center gap-2 text-xs">
                               <span className="tnum w-8 text-right font-semibold text-ink-900">{x.qty}×</span>
-                              <Link href={`/hq/batches/${x.batchId}`} className="font-mono text-ink-700 hover:text-oranje-700">{x.code}</Link>
+                              <Link href={`/hq/batches/${x.batchId}`} className="font-mono text-ink-700 hover:text-brand-700">{x.code}</Link>
                               {x.expiresAt && <span className="text-ink-400">exp {fmtDate(x.expiresAt)}</span>}
                             </li>
                           ))}
@@ -198,7 +198,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                           {shipped.map((s) => (
                             <li key={s.batchId} className="flex items-center gap-2 text-xs">
                               <span className="tnum w-8 text-right font-semibold text-ink-900">{s.qty}×</span>
-                              <Link href={`/hq/batches/${s.batchId}`} className="font-mono text-ink-700 hover:text-oranje-700">{batchById.get(s.batchId)?.code ?? "batch"}</Link>
+                              <Link href={`/hq/batches/${s.batchId}`} className="font-mono text-ink-700 hover:text-brand-700">{batchById.get(s.batchId)?.code ?? "batch"}</Link>
                             </li>
                           ))}
                         </ul>

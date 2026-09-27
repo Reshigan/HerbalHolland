@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 export default function HqNotFound() {
   return (
     <Card className="mx-auto mt-10 max-w-lg p-8 text-center">
-      <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-oranje-50 text-oranje-700">
+      <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-brand-700">
         <SearchX className="h-6 w-6" aria-hidden />
       </div>
       <h1 className="font-display text-xl font-semibold text-ink-950">Not found</h1>

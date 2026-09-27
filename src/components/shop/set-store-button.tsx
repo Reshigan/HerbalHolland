@@ -11,7 +11,7 @@ export function SetStoreButton({ code, name, active, className }: { code: string
   const [error, setError] = useState<string | null>(null);
   if (active)
     return (
-      <span className={cn("inline-flex h-9 items-center gap-1.5 rounded-full bg-oranje-500/15 px-3.5 text-xs font-semibold text-oranje-300", className)}>
+      <span className={cn("inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-500/15 px-3.5 text-xs font-semibold text-brand-300", className)}>
         <Check className="h-3.5 w-3.5" strokeWidth={2.4} /> Your store
       </span>
     );
@@ -26,7 +26,7 @@ export function SetStoreButton({ code, name, active, className }: { code: string
             else router.refresh();
           })
         }
-        className={cn("inline-flex h-9 items-center gap-1.5 rounded-full bg-oranje-500 px-3.5 text-xs font-semibold text-ink-950 transition hover:bg-oranje-400 disabled:opacity-60", className)}
+        className={cn("inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-500 px-3.5 text-xs font-semibold text-ink-950 transition hover:bg-brand-400 disabled:opacity-60", className)}
         aria-label={`Make ${name} my store`}
       >
         <MapPin className="h-3.5 w-3.5" /> {pending ? "Saving…" : "Make this my store"}

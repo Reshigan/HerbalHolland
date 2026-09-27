@@ -96,7 +96,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
               return (
                 <Tr key={b.id}>
                   <Td>
-                    <Link href={`/hq/batches/${b.id}`} className="whitespace-nowrap font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/batches/${b.id}`} className="whitespace-nowrap font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-brand-700">
                       {b.code}
                     </Link>
                     <div className="text-xs text-ink-500">Packed {fmtDate(b.packedAt)}</div>

@@ -60,7 +60,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     <Container className="pt-10 sm:pt-14">
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
-          <div className="eyebrow text-oranje-500">Shop</div>
+          <div className="eyebrow text-brand-500">Shop</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{cat && !licensedCategory ? cat.name : query.mood ? `For ${query.mood}` : "The range"}</h1>
           <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">
             {cat && !licensedCategory ? cat.blurb : "CBD wellness, accessories, grow and apparel. Every consumable lab-tested and traceable by batch."}
@@ -93,14 +93,14 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           </Chip>
         ))}
         <Chip href="/dispensary" className="border-dashed">
-          <ShieldCheck className="h-4 w-4 text-oranje-500" /> Dispensary
+          <ShieldCheck className="h-4 w-4 text-brand-500" /> Dispensary
         </Chip>
       </div>
 
       {/* Mood, price, sort */}
       <details className="group mt-4 rounded-2xl border border-ink-850 bg-ink-900/40 open:bg-ink-900/60 sm:open:bg-transparent lg:hidden" open={!!(query.mood || query.min || query.max)}>
         <summary className="flex cursor-pointer list-none items-center gap-2 px-4 py-3 text-sm font-semibold text-ink-100 [&::-webkit-details-marker]:hidden">
-          <SlidersHorizontal className="h-4 w-4 text-oranje-500" /> Mood, price &amp; sort
+          <SlidersHorizontal className="h-4 w-4 text-brand-500" /> Mood, price &amp; sort
           <span className="ml-auto text-xs font-medium text-ink-400 group-open:hidden">Show</span>
         </summary>
         <div className="border-t border-ink-850 p-4">
@@ -119,7 +119,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               {a.label} <X className="h-3.5 w-3.5 text-ink-400" />
             </Link>
           ))}
-          <Link href="/shop" scroll={false} className="ml-1 text-xs font-semibold text-oranje-400 hover:underline">
+          <Link href="/shop" scroll={false} className="ml-1 text-xs font-semibold text-brand-400 hover:underline">
             Clear all
           </Link>
         </div>

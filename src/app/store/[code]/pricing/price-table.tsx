@@ -61,7 +61,7 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
               const thin = m < minMargin;
               const dirty = r.variantId in edit && p !== r.shelfCents;
               return (
-                <tr key={r.variantId} className={cn(dirty ? "bg-oranje-50/60" : "hover:bg-ink-50/60")}>
+                <tr key={r.variantId} className={cn(dirty ? "bg-brand-50/60" : "hover:bg-ink-50/60")}>
                   <td className="border-b border-ink-100 px-5 py-2.5">
                     <div className="font-medium text-ink-900">{r.name}</div>
                     <div className="text-xs text-ink-400">
@@ -87,7 +87,7 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
                           onChange={(e) => (setEdit((x) => ({ ...x, [r.variantId]: e.target.value })), setResult(null))}
                           className={cn(
                             "tnum h-9 w-28 rounded-xl border bg-white pl-6 pr-2 text-right text-sm font-semibold focus:outline-none focus:ring-4 disabled:bg-ink-50",
-                            p === "bad" ? "border-rose-500 focus:ring-rose-500/15" : dirty ? "border-oranje-400 focus:ring-oranje-500/15" : "border-ink-200 focus:border-oranje-500 focus:ring-oranje-500/15",
+                            p === "bad" ? "border-rose-500 focus:ring-rose-500/15" : dirty ? "border-brand-400 focus:ring-brand-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
                             p == null && "font-normal text-ink-400",
                           )}
                         />

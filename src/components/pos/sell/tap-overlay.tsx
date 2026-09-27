@@ -56,16 +56,16 @@ export function TapOverlay({
 
   return (
     <div className="fixed inset-0 z-[70] flex flex-col items-center justify-center bg-ink-950 px-6 text-center" role="dialog" aria-modal="true" aria-label="Card payment" data-testid="tap-overlay">
-      <div className="eyebrow text-oranje-500">Card · tap on glass</div>
+      <div className="eyebrow text-brand-500">Card · tap on glass</div>
       <div className="mt-3 font-display text-6xl font-semibold tracking-tight text-white tnum sm:text-7xl">{zar(amountCents)}</div>
 
       <div className="relative my-12 grid h-56 w-56 place-items-center" aria-live="polite">
         {state.status === "WAITING" && (
           <>
-            <span className="absolute inset-0 rounded-full border-2 border-oranje-500/60 animate-pulse-ring" />
-            <span className="absolute inset-0 rounded-full border-2 border-oranje-500/40 animate-pulse-ring [animation-delay:0.55s]" />
-            <span className="absolute inset-0 rounded-full border-2 border-oranje-500/25 animate-pulse-ring [animation-delay:1.1s]" />
-            <span className="grid h-36 w-36 place-items-center rounded-full bg-oranje-500 text-ink-950 shadow-glow">
+            <span className="absolute inset-0 rounded-full border-2 border-brand-500/60 animate-pulse-ring" />
+            <span className="absolute inset-0 rounded-full border-2 border-brand-500/40 animate-pulse-ring [animation-delay:0.55s]" />
+            <span className="absolute inset-0 rounded-full border-2 border-brand-500/25 animate-pulse-ring [animation-delay:1.1s]" />
+            <span className="grid h-36 w-36 place-items-center rounded-full bg-brand-500 text-ink-950 shadow-glow">
               <Nfc className="h-16 w-16" strokeWidth={1.7} />
             </span>
           </>

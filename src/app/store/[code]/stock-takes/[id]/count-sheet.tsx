@@ -182,7 +182,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
         <div className="flex flex-wrap items-center gap-3">
           <label className="relative min-w-0 flex-1 basis-72">
             <span className="sr-only">Scan a barcode or search the count sheet</span>
-            <ScanLine className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-oranje-600" aria-hidden />
+            <ScanLine className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-brand-600" aria-hidden />
             <input
               ref={scan}
               autoFocus={canEdit}
@@ -193,7 +193,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                 if (e.key === "Escape") setQuery("");
               }}
               placeholder="Scan a barcode, or type a SKU, batch or name"
-              className="h-12 w-full rounded-2xl border border-ink-200 bg-white pl-11 pr-4 text-base text-ink-900 shadow-card placeholder:text-ink-400 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+              className="h-12 w-full rounded-2xl border border-ink-200 bg-white pl-11 pr-4 text-base text-ink-900 shadow-card placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
               aria-describedby="scan-help"
             />
           </label>
@@ -242,7 +242,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
           </p>
         </div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink-150" role="meter" aria-label="Lines counted" aria-valuenow={counted.length} aria-valuemin={0} aria-valuemax={lines.length}>
-          <div className="h-full rounded-full bg-oranje-500 transition-[width] duration-300" style={{ width: `${lines.length ? (counted.length / lines.length) * 100 : 0}%` }} />
+          <div className="h-full rounded-full bg-brand-500 transition-[width] duration-300" style={{ width: `${lines.length ? (counted.length / lines.length) * 100 : 0}%` }} />
         </div>
         <div className="mt-1.5 text-xs text-ink-500">
           <span className="tnum font-semibold text-ink-800">{counted.length}</span> of <span className="tnum">{lines.length}</span> lines counted · <span className="tnum">{units.toLocaleString()}</span> units
@@ -285,7 +285,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                       </td>
                     </tr>
                   )}
-                  <tr className={cn("transition-colors", focusId === l.id ? "bg-oranje-50" : done ? "bg-white" : "bg-white hover:bg-ink-50/60")}>
+                  <tr className={cn("transition-colors", focusId === l.id ? "bg-brand-50" : done ? "bg-white" : "bg-white hover:bg-ink-50/60")}>
                     <td className="border-b border-ink-100 px-4 py-2.5 sm:px-5">
                       <div className="flex items-center gap-2">
                         {done ? <Check className="h-4 w-4 shrink-0 text-leaf-600" aria-label="Counted" /> : <span className="h-4 w-4 shrink-0 rounded-full border-2 border-ink-200" aria-label="Not counted" />}
@@ -346,7 +346,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                           placeholder="–"
                           className={cn(
                             "tnum h-10 w-16 rounded-xl border bg-white text-center text-base font-semibold text-ink-950 focus:outline-none focus:ring-4 sm:w-20",
-                            bad ? "border-rose-500 focus:ring-rose-500/15" : done ? "border-leaf-500/50 focus:border-oranje-500 focus:ring-oranje-500/15" : "border-ink-200 focus:border-oranje-500 focus:ring-oranje-500/15",
+                            bad ? "border-rose-500 focus:ring-rose-500/15" : done ? "border-leaf-500/50 focus:border-brand-500 focus:ring-brand-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
                             "disabled:bg-ink-50",
                           )}
                         />

@@ -29,7 +29,7 @@ export function TerpeneBars({ terps, className }: { terps: Terp[]; className?: s
             <span className="tnum text-ink-300">{t.pct.toFixed(2)}%</span>
           </div>
           <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink-800" aria-hidden>
-            <div className="h-full rounded-full bg-oranje-500" style={{ width: `${(t.pct / max) * 100}%` }} />
+            <div className="h-full rounded-full bg-brand-500" style={{ width: `${(t.pct / max) * 100}%` }} />
           </div>
         </li>
       ))}

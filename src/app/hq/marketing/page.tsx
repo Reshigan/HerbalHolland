@@ -196,7 +196,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
               return (
                 <Tr key={c.id}>
                   <Td>
-                    <Link href={`/hq/marketing/${c.id}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                    <Link href={`/hq/marketing/${c.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {c.name}
                     </Link>
                     <span className="mt-0.5 flex items-center gap-2 text-xs text-ink-500">

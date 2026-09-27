@@ -84,7 +84,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
             <BarList
               rows={league.slice(0, 10).map((x, i) => ({
                 label: (
-                  <Link href={`/store/${x.s.code}`} className="hover:text-oranje-700">
+                  <Link href={`/store/${x.s.code}`} className="hover:text-brand-700">
                     <span className="tnum mr-2 text-ink-400">{String(i + 1).padStart(2, "0")}</span>
                     {x.s.name}
                   </Link>
@@ -124,7 +124,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
 
 function Attention({ href, n, label, danger }: { href: string; n: number; label: string; danger?: boolean }) {
   return (
-    <Link href={href} className="flex items-center justify-between rounded-xl border border-ink-150 px-3 py-2.5 transition hover:border-oranje-300 hover:bg-oranje-50">
+    <Link href={href} className="flex items-center justify-between rounded-xl border border-ink-150 px-3 py-2.5 transition hover:border-brand-300 hover:bg-brand-50">
       <span className="text-ink-700">{label}</span>
       <span className={`tnum rounded-full px-2 py-0.5 text-xs font-bold ${n ? (danger ? "bg-rose-50 text-rose-600" : "bg-amber-50 text-amber-700") : "bg-leaf-50 text-leaf-700"}`}>{n}</span>
     </Link>

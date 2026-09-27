@@ -145,7 +145,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           )}
           {!edit && (
             <CardBody className="border-t border-ink-100 text-sm text-ink-500">
-              Counts cover the stores in your region. <Link href="/hq/stores" className="font-medium text-oranje-700 hover:underline">Store list →</Link>
+              Counts cover the stores in your region. <Link href="/hq/stores" className="font-medium text-brand-700 hover:underline">Store list →</Link>
             </CardBody>
           )}
         </Card>

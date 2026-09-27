@@ -97,7 +97,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
               {shown.map((r) => {
                 const n = qty[r.variantId] ?? 0;
                 return (
-                  <tr key={r.variantId} className={cn("transition-colors", n > 0 ? "bg-oranje-50/50" : "hover:bg-ink-50/60")}>
+                  <tr key={r.variantId} className={cn("transition-colors", n > 0 ? "bg-brand-50/50" : "hover:bg-ink-50/60")}>
                     <td className="border-b border-ink-100 px-5 py-2.5">
                       <div className="font-medium text-ink-900">{r.name}</div>
                       <div className="text-xs text-ink-400">
@@ -123,14 +123,14 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                           aria-label={`Order quantity for ${r.name}`}
                           onChange={(e) => set(r.variantId, Number(e.target.value.replace(/[^\d]/g, "").slice(0, 5)) || 0)}
                           onFocus={(e) => e.currentTarget.select()}
-                          className={cn("tnum h-9 w-16 rounded-xl border bg-white text-center font-semibold focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15", n > 0 ? "border-oranje-300 text-ink-950" : "border-ink-200 text-ink-500")}
+                          className={cn("tnum h-9 w-16 rounded-xl border bg-white text-center font-semibold focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15", n > 0 ? "border-brand-300 text-ink-950" : "border-ink-200 text-ink-500")}
                         />
                         <button type="button" tabIndex={-1} onClick={() => set(r.variantId, n + 1)} className="grid h-8 w-8 place-items-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-ink-900" aria-label={`One more ${r.name}`}>
                           <Plus className="h-3.5 w-3.5" aria-hidden />
                         </button>
                       </div>
                       {r.suggested > 0 && n !== r.suggested && (
-                        <button type="button" onClick={() => set(r.variantId, r.suggested)} className="mx-auto mt-0.5 block text-[0.68rem] font-semibold text-oranje-700 hover:underline">
+                        <button type="button" onClick={() => set(r.variantId, r.suggested)} className="mx-auto mt-0.5 block text-[0.68rem] font-semibold text-brand-700 hover:underline">
                           Suggested {r.suggested}
                         </button>
                       )}

@@ -54,7 +54,7 @@ export function ReviewForm({ action }: { action: (s: ReviewState, f: FormData) =
           {[1, 2, 3, 4, 5].map((n) => (
             <label key={n} className="cursor-pointer" onMouseEnter={() => setHover(n)}>
               <input type="radio" name="rating" value={n} className="peer sr-only" checked={rating === n} onChange={() => setRating(n)} aria-label={`${n} star${n > 1 ? "s" : ""}`} />
-              <Star className={cn("h-8 w-8 rounded transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-oranje-500", n <= (hover || rating) ? "fill-oranje-500 text-oranje-500" : "text-ink-600")} strokeWidth={1.5} />
+              <Star className={cn("h-8 w-8 rounded transition peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-brand-500", n <= (hover || rating) ? "fill-brand-500 text-brand-500" : "text-ink-600")} strokeWidth={1.5} />
             </label>
           ))}
         </div>

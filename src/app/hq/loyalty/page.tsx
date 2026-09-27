@@ -132,7 +132,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
               {slice.map((s) => (
                 <Tr key={s.id}>
                   <Td>
-                    <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-850 hover:text-oranje-700">
+                    <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-850 hover:text-brand-700">
                       {s.name}
                     </Link>
                   </Td>
@@ -244,7 +244,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
             {top.map((m) => (
               <Tr key={m.id}>
                 <Td>
-                  <Link href={`/hq/customers/${m.id}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                  <Link href={`/hq/customers/${m.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                     {m.firstName} {m.lastName ?? ""}
                   </Link>
                   <span className="block font-mono text-xs text-ink-500">{m.memberNo}</span>

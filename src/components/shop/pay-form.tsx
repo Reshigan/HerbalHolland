@@ -27,9 +27,9 @@ export function PayForm({ action, amount }: { action: (s: PayState, f: FormData)
               role="radio"
               aria-checked={on}
               onClick={() => setMethod(m.key)}
-              className={cn("flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition", on ? "border-oranje-500 bg-oranje-500/10" : "border-ink-800 hover:border-ink-600")}
+              className={cn("flex w-full items-center gap-3 rounded-2xl border p-4 text-left transition", on ? "border-brand-500 bg-brand-500/10" : "border-ink-800 hover:border-ink-600")}
             >
-              <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full", on ? "bg-oranje-500 text-ink-950" : "bg-ink-850 text-oranje-400")}>{m.icon}</span>
+              <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full", on ? "bg-brand-500 text-ink-950" : "bg-ink-850 text-brand-400")}>{m.icon}</span>
               <span>
                 <span className="block font-semibold text-white">{m.label}</span>
                 <span className="block text-xs text-ink-400">{m.sub}</span>

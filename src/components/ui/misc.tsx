@@ -3,7 +3,7 @@ import { cn } from "@/lib/cn";
 export function Avatar({ name, className }: { name: string; className?: string }) {
   const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
   return (
-    <span className={cn("inline-grid h-8 w-8 shrink-0 place-items-center rounded-full bg-oranje-100 font-display text-xs font-bold text-oranje-800", className)} aria-hidden>
+    <span className={cn("inline-grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 font-display text-xs font-bold text-brand-800", className)} aria-hidden>
       {initials}
     </span>
   );

@@ -47,7 +47,7 @@ export default async function StockTakesPage({ params, searchParams }: { params:
         <div className="mb-6 grid gap-3 md:grid-cols-2">
           {counting.map((t) => (
             <Link key={t.id} href={`${path}/${t.id}`} className="group flex items-center gap-4 rounded-2xl bg-ink-950 p-4 text-white transition hover:bg-ink-900">
-              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-oranje-500 text-ink-950">
+              <span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
                 <ClipboardCheck className="h-5 w-5" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -59,10 +59,10 @@ export default async function StockTakesPage({ params, searchParams }: { params:
                   {t.createdBy ? ` by ${t.createdBy}` : ""} · {t.stats.counted} of {t.stats.lines} lines counted
                 </span>
                 <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-ink-800" role="meter" aria-valuenow={t.stats.counted} aria-valuemin={0} aria-valuemax={t.stats.lines} aria-label="Lines counted">
-                  <span className="block h-full rounded-full bg-oranje-500" style={{ width: `${t.stats.lines ? (t.stats.counted / t.stats.lines) * 100 : 0}%` }} />
+                  <span className="block h-full rounded-full bg-brand-500" style={{ width: `${t.stats.lines ? (t.stats.counted / t.stats.lines) * 100 : 0}%` }} />
                 </span>
               </span>
-              <span className="inline-flex items-center gap-1 text-sm font-semibold text-oranje-400">
+              <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand-400">
                 Continue <ArrowRight className="h-4 w-4 transition group-hover:translate-x-0.5" aria-hidden />
               </span>
             </Link>
@@ -96,7 +96,7 @@ export default async function StockTakesPage({ params, searchParams }: { params:
               {rows.map((t) => (
                 <Tr key={t.id}>
                   <Td>
-                    <Link href={`${path}/${t.id}`} className="font-semibold text-ink-900 hover:text-oranje-700">
+                    <Link href={`${path}/${t.id}`} className="font-semibold text-ink-900 hover:text-brand-700">
                       {t.number}
                     </Link>
                     <div className="mt-0.5 flex items-center gap-2 text-xs text-ink-500">

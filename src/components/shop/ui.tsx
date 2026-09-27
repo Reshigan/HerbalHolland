@@ -13,7 +13,7 @@ export function SectionHead({ eyebrow, title, description, action, className, as
   return (
     <div className={cn("mb-6 flex flex-col gap-3 sm:mb-8 sm:flex-row sm:items-end sm:justify-between", className)}>
       <div className="min-w-0 max-w-2xl">
-        {eyebrow && <div className="eyebrow mb-2 text-oranje-500">{eyebrow}</div>}
+        {eyebrow && <div className="eyebrow mb-2 text-brand-500">{eyebrow}</div>}
         <H className={cn("font-display font-semibold tracking-tight text-white", H === "h1" ? "text-3xl sm:text-4xl" : "text-2xl sm:text-3xl")}>{title}</H>
         {description && <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-300">{description}</p>}
       </div>
@@ -28,13 +28,13 @@ export function Panel({ className, ...props }: React.HTMLAttributes<HTMLDivEleme
 
 export type TagTone = "orange" | "green" | "amber" | "red" | "neutral" | "violet" | "solid";
 const TAG: Record<TagTone, string> = {
-  orange: "bg-oranje-500/15 text-oranje-300 ring-oranje-500/30",
+  orange: "bg-brand-500/15 text-brand-300 ring-brand-500/30",
   green: "bg-leaf-500/15 text-leaf-100 ring-leaf-500/35",
   amber: "bg-amber-500/15 text-amber-100 ring-amber-500/35",
   red: "bg-rose-500/15 text-rose-100 ring-rose-500/40",
   neutral: "bg-ink-800 text-ink-200 ring-ink-700",
   violet: "bg-series-4/30 text-ink-100 ring-series-4/60",
-  solid: "bg-ink-950/85 text-oranje-300 ring-oranje-500/60 backdrop-blur",
+  solid: "bg-ink-950/85 text-brand-300 ring-brand-500/60 backdrop-blur",
 };
 export function Tag({ tone = "neutral", icon, className, children }: { tone?: TagTone; icon?: React.ReactNode; className?: string; children: React.ReactNode }) {
   return (
@@ -50,7 +50,7 @@ export function Stars({ value, className, label }: { value: number; className?: 
   return (
     <span className={cn("inline-flex items-center gap-0.5", className)} role="img" aria-label={label ?? `${value.toFixed(1)} out of 5 stars`}>
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} className={cn("h-3.5 w-3.5", i <= full ? "fill-oranje-500 text-oranje-500" : i - 0.5 === full ? "fill-oranje-500/50 text-oranje-500" : "text-ink-600")} strokeWidth={1.6} />
+        <Star key={i} className={cn("h-3.5 w-3.5", i <= full ? "fill-brand-500 text-brand-500" : i - 0.5 === full ? "fill-brand-500/50 text-brand-500" : "text-ink-600")} strokeWidth={1.6} />
       ))}
     </span>
   );
@@ -75,7 +75,7 @@ export function Meter({ value, max, className, label }: { value: number; max: nu
   const pct = max > 0 ? Math.max(0, Math.min(1, value / max)) : 0;
   return (
     <div className={cn("h-2 w-full overflow-hidden rounded-full bg-ink-800", className)} role="meter" aria-valuenow={Math.round(value)} aria-valuemin={0} aria-valuemax={Math.round(max)} aria-label={label}>
-      <div className="h-full rounded-full bg-gradient-to-r from-oranje-600 to-oranje-400 transition-[width] duration-700" style={{ width: `${pct * 100}%` }} />
+      <div className="h-full rounded-full bg-gradient-to-r from-brand-600 to-brand-400 transition-[width] duration-700" style={{ width: `${pct * 100}%` }} />
     </div>
   );
 }
@@ -86,7 +86,7 @@ export function Callout({ tone = "info", title, icon, children, className }: { t
     warn: "border-amber-500/35 bg-amber-500/10 text-amber-100",
     danger: "border-rose-500/40 bg-rose-500/10 text-rose-100",
     success: "border-leaf-500/35 bg-leaf-500/10 text-leaf-100",
-    brand: "border-oranje-500/35 bg-oranje-500/10 text-oranje-200",
+    brand: "border-brand-500/35 bg-brand-500/10 text-brand-200",
   }[tone];
   return (
     <div className={cn("flex gap-3 rounded-2xl border px-4 py-3.5 text-sm", t, className)} role={tone === "danger" ? "alert" : "status"}>
@@ -107,7 +107,7 @@ export function Pager({ page, pageSize, total, href, noun = "results" }: { page:
     disabled ? (
       <span className="rounded-full px-4 py-2 text-ink-600">{label}</span>
     ) : (
-      <Link href={href(p)} scroll={false} className="rounded-full border border-ink-700 px-4 py-2 font-medium text-ink-100 transition hover:border-oranje-500 hover:text-oranje-300">
+      <Link href={href(p)} scroll={false} className="rounded-full border border-ink-700 px-4 py-2 font-medium text-ink-100 transition hover:border-brand-500 hover:text-brand-300">
         {label}
       </Link>
     );
@@ -124,7 +124,7 @@ export function Pager({ page, pageSize, total, href, noun = "results" }: { page:
 
 // ── Forms (dark) ─────────────────────────────────────────────────────────────
 export const inputClass =
-  "w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-[0.95rem] text-white placeholder:text-ink-500 transition focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
+  "w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-[0.95rem] text-white placeholder:text-ink-500 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
 
 export function FieldRow({ label, hint, error, htmlFor, children, className }: { label: React.ReactNode; hint?: React.ReactNode; error?: React.ReactNode; htmlFor?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -166,7 +166,7 @@ export function SelectInput({ className, children, ...props }: React.SelectHTMLA
 export function CheckRow({ label, description, className, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: React.ReactNode; description?: React.ReactNode }) {
   return (
     <label className={cn("flex cursor-pointer items-start gap-3 rounded-xl py-1.5", className)}>
-      <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded accent-oranje-500" {...props} />
+      <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded accent-brand-500" {...props} />
       <span className="text-sm leading-snug">
         <span className="font-medium text-ink-100">{label}</span>
         {description && <span className="mt-0.5 block text-xs text-ink-400">{description}</span>}
@@ -184,7 +184,7 @@ export function Chip({ href, active, children, className, count }: { href: strin
       aria-current={active ? "page" : undefined}
       className={cn(
         "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition",
-        active ? "border-oranje-500 bg-oranje-500 text-ink-950" : "border-ink-700 text-ink-200 hover:border-ink-500 hover:text-white",
+        active ? "border-brand-500 bg-brand-500 text-ink-950" : "border-ink-700 text-ink-200 hover:border-ink-500 hover:text-white",
         className,
       )}
     >

@@ -229,7 +229,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
               ))}
               {consents.length > 0 && (
                 <details className="pt-2 text-sm">
-                  <summary className="cursor-pointer text-xs font-semibold text-oranje-700">Consent history ({consents.length})</summary>
+                  <summary className="cursor-pointer text-xs font-semibold text-brand-700">Consent history ({consents.length})</summary>
                   <ul className="mt-2 space-y-1.5">
                     {consents.map((e) => (
                       <li key={e.id} className="flex items-start justify-between gap-3 text-xs">
@@ -274,7 +274,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 );
               })}
               {auths.length > 0 && (
-                <Link href={`${base}/patients?q=${c.memberNo}`} className="block pt-1 text-xs font-semibold text-oranje-700 hover:underline">
+                <Link href={`${base}/patients?q=${c.memberNo}`} className="block pt-1 text-xs font-semibold text-brand-700 hover:underline">
                   Open in the patient register →
                 </Link>
               )}

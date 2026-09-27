@@ -46,7 +46,7 @@ export function SearchField({ name = "q", defaultValue, placeholder, label = "Se
         type="search"
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-10 w-full rounded-xl border border-ink-200 bg-white pl-9 pr-3 text-sm text-ink-900 placeholder:text-ink-400 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+        className="h-10 w-full rounded-xl border border-ink-200 bg-white pl-9 pr-3 text-sm text-ink-900 placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
       />
     </label>
   );
@@ -60,7 +60,7 @@ export function FilterSelect({ name, label, defaultValue, options, allLabel = "A
         name={name}
         defaultValue={defaultValue ?? ""}
         aria-label={label}
-        className="h-10 max-w-[15rem] cursor-pointer appearance-none truncate rounded-xl border border-ink-200 bg-white pl-3 pr-8 text-sm text-ink-800 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/15"
+        className="h-10 max-w-[15rem] cursor-pointer appearance-none truncate rounded-xl border border-ink-200 bg-white pl-3 pr-8 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
       >
         {allLabel != null && <option value="">{`${label}: ${allLabel}`}</option>}
         {options.map((o) => (

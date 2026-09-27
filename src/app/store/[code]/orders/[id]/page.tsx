@@ -78,7 +78,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
           {next.length > 0 && (
-            <Card className="border-oranje-300 ring-4 ring-oranje-500/10">
+            <Card className="border-brand-300 ring-4 ring-brand-500/10">
               <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the customer arrives." : "Pick, pack and dispatch."} />
               <CardBody>
                 {canManage ? (
@@ -116,7 +116,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                 {lines.map((l) => (
                   <Tr key={l.id}>
                     <Td className="min-w-48">
-                      <Link href={`${base}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
+                      <Link href={`${base}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                         {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                       </Link>
                       <div className="flex items-center gap-2 text-xs text-ink-400">
@@ -165,7 +165,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
               <ol className="space-y-3">
                 {d.events.map((e, i) => (
                   <li key={i} className="flex gap-3 text-sm">
-                    <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", i === d.events.length - 1 ? "bg-oranje-500 ring-4 ring-oranje-500/20" : "bg-ink-300")} aria-hidden />
+                    <span className={cn("mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full", i === d.events.length - 1 ? "bg-brand-500 ring-4 ring-brand-500/20" : "bg-ink-300")} aria-hidden />
                     <div>
                       <div className="font-semibold text-ink-900">{EVENT_LABEL[e.status] ?? e.status}</div>
                       <div className="text-xs text-ink-500">
@@ -183,7 +183,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
         <div className="min-w-0 space-y-6">
           {o.fulfilment === "COLLECT" && (
             <div className="rounded-2xl bg-ink-950 p-5 text-white shadow-card">
-              <div className="eyebrow text-oranje-500">Collection code</div>
+              <div className="eyebrow text-brand-500">Collection code</div>
               <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em]">{o.collectionCode}</div>
               <p className="mt-2 text-xs text-ink-300">The customer shows this code and an ID document (18+) at the counter. Never read it out to them.</p>
             </div>
@@ -198,7 +198,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                 </span>
                 <TierBadge tier={c.tier} />
               </div>
-              <Line label="Member no." value={c.homeStoreId === store.id ? <Link href={`${base}/customers/${c.id}`} className="text-oranje-700 hover:underline">{c.memberNo}</Link> : c.memberNo} />
+              <Line label="Member no." value={c.homeStoreId === store.id ? <Link href={`${base}/customers/${c.id}`} className="text-brand-700 hover:underline">{c.memberNo}</Link> : c.memberNo} />
               <Line label="Mobile" value={displayPhone(c.phone)} />
               <Line
                 label="Age check"
@@ -210,7 +210,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           {d.licensed && d.medical && (
             <Card>
               <CardBody className="flex gap-3 text-sm">
-                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-oranje-600" aria-hidden />
+                <TriangleAlert className="mt-0.5 h-5 w-5 shrink-0 text-brand-600" aria-hidden />
                 <div className="text-ink-700">
                   <b className="text-ink-900">Licensed medicines.</b> An authorised dispenser hands this over; the patient authorisation and monthly limit were checked at checkout.{" "}
                   {user.canDispense ? <span className="text-leaf-700">You&apos;re an authorised dispenser.</span> : <span className="text-rose-600">You&apos;re not an authorised dispenser.</span>}
