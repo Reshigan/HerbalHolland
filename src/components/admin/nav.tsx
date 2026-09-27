@@ -2,12 +2,23 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import * as Icons from "lucide-react";
+import {
+  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
+  LayoutDashboard, Megaphone, Menu, Nfc, Package, Receipt, Scale, Settings, ShieldCheck, ShoppingBag, Stethoscope, Store, Tag, Tags,
+  Truck, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
+} from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { NavGroup } from "./nav-config";
 
+// Explicit map (not `import *`) so the client bundle carries only the icons the nav uses.
+const ICONS: Record<string, LucideIcon> = {
+  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
+  LayoutDashboard, Megaphone, Nfc, Package, Receipt, Scale, Settings, ShieldCheck, ShoppingBag, Stethoscope, Store, Tag, Tags,
+  Truck, Users, UsersRound, Wallet, Warehouse,
+};
+
 function Icon({ name, className }: { name: string; className?: string }) {
-  const C = (Icons as unknown as Record<string, React.ComponentType<{ className?: string; strokeWidth?: number }>>)[name] ?? Icons.Circle;
+  const C = ICONS[name] ?? Circle;
   return <C className={className} strokeWidth={1.9} />;
 }
 
@@ -72,14 +83,14 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
   return (
     <>
       <button onClick={() => setOpen(true)} className="grid h-10 w-10 place-items-center rounded-xl text-ink-200 hover:bg-ink-800 lg:hidden" aria-label="Open menu">
-        <Icons.Menu className="h-5 w-5" />
+        <Menu className="h-5 w-5" />
       </button>
       {open && (
         <div className="fixed inset-0 z-50 lg:hidden">
           <div className="absolute inset-0 bg-ink-950/60 backdrop-blur-sm" onClick={() => setOpen(false)} />
           <div className="absolute inset-y-0 left-0 w-72 overflow-y-auto bg-ink-950 p-4 shadow-lift">
             <button onClick={() => setOpen(false)} className="mb-3 ml-auto grid h-9 w-9 place-items-center rounded-xl text-ink-300 hover:bg-ink-800" aria-label="Close menu">
-              <Icons.X className="h-5 w-5" />
+              <X className="h-5 w-5" />
             </button>
             {children}
           </div>

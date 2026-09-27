@@ -43,11 +43,11 @@ export const storeNav = (code: string): NavGroup[] => [
       { label: "Franchise statement", href: `/store/${code}/statement`, icon: "Landmark" },
     ],
   },
-  { title: "Insight", items: [{ label: "Reports", href: `/store/${code}/reports`, icon: "BarChart3" }] },
+  { title: "Insight", items: [{ label: "Reports", href: `/store/${code}/reports`, icon: "ChartColumn" }] },
   {
     title: "Store",
     items: [
-      { label: "Team", href: `/store/${code}/team`, icon: "Users2" },
+      { label: "Team", href: `/store/${code}/team`, icon: "UsersRound" },
       { label: "HQ updates", href: `/store/${code}/updates`, icon: "Bell" },
       { label: "Settings", href: `/store/${code}/settings`, icon: "Settings" },
     ],
@@ -92,14 +92,14 @@ export const hqNav: NavGroup[] = [
       { label: "Statements", href: "/hq/statements", icon: "Landmark" },
     ],
   },
-  { title: "Insight", items: [{ label: "Reports", href: "/hq/reports", icon: "BarChart3" }] },
+  { title: "Insight", items: [{ label: "Reports", href: "/hq/reports", icon: "ChartColumn" }] },
   {
     title: "Governance",
     items: [
       { label: "Compliance", href: "/hq/compliance", icon: "ShieldCheck" },
       { label: "Audit log", href: "/hq/audit", icon: "History" },
       { label: "Announcements", href: "/hq/announcements", icon: "Bell" },
-      { label: "Team", href: "/hq/team", icon: "Users2" },
+      { label: "Team", href: "/hq/team", icon: "UsersRound" },
     ],
   },
 ];

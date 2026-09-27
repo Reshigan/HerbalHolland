@@ -32,7 +32,7 @@ export function Donut({ data, format = "zar", centerLabel, layout = "stack", cla
           return el;
         })}
         {centerLabel && (
-          <text x={70} y={70} textAnchor="middle" dy="0.35em" className="rotate-90 font-display" transform="rotate(90 70 70)" fontSize={15} fontWeight={600} fill="var(--color-ink-900)">
+          <text x={70} y={70} textAnchor="middle" dy="0.35em" className="font-display" transform="rotate(90 70 70)" fontSize={15} fontWeight={600} fill="var(--color-ink-900)">
             {centerLabel}
           </text>
         )}

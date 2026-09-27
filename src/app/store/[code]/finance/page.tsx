@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Banknote, BarChart3, Landmark, Receipt } from "lucide-react";
+import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { monthRange, profitAndLoss, vatReport } from "@/server/finance";
@@ -156,7 +156,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           { href: `${base}/cash-ups`, icon: Banknote, title: "Cash-ups", sub: "Shifts, floats and till variances" },
           { href: `${base}/expenses`, icon: Receipt, title: "Expenses", sub: "Capture rent, wages and bills" },
           { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: "What you owe HQ, or HQ owes you" },
-          { href: `${base}/reports`, icon: BarChart3, title: "Reports", sub: "Sales, margins, stock and staff" },
+          { href: `${base}/reports`, icon: ChartColumn, title: "Reports", sub: "Sales, margins, stock and staff" },
         ].map((l) => (
           <Link key={l.href} href={l.href} className="group flex items-center gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:border-oranje-300">
             <span className="grid h-10 w-10 place-items-center rounded-xl bg-oranje-50 text-oranje-700">

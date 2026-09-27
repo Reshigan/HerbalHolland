@@ -1,4 +1,4 @@
-import { KeyRound, ShieldCheck, UserPlus, Users2 } from "lucide-react";
+import { KeyRound, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
@@ -93,7 +93,7 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
 
       <Card>
         {staff.length === 0 ? (
-          <EmptyState icon={<Users2 className="h-5 w-5" />} title="No staff yet" />
+          <EmptyState icon={<UsersRound className="h-5 w-5" />} title="No staff yet" />
         ) : (
           <Table>
             <thead>

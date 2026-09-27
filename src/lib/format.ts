@@ -19,10 +19,14 @@ export function weekdaySA(d: Date) {
   return new Date(`${dayKey(d)}T12:00:00Z`).getUTCDay();
 }
 
-export const fmtDate = (d: Date | string) =>
-  new Intl.DateTimeFormat("en-ZA", { timeZone: TZ, day: "numeric", month: "short", year: "numeric" }).format(new Date(d));
-export const fmtDay = (d: Date | string) =>
-  new Intl.DateTimeFormat("en-ZA", { timeZone: TZ, day: "numeric", month: "short" }).format(new Date(d));
+// Built from parts: ICU's en-ZA/en-GB print "01 Sept"; we want "1 Sep".
+const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const ymd = (d: Date | string) => dayKey(new Date(d)).split("-").map(Number);
+export const fmtDay = (d: Date | string) => {
+  const [, m, day] = ymd(d);
+  return `${day} ${MON[m - 1]}`;
+};
+export const fmtDate = (d: Date | string) => `${fmtDay(d)} ${ymd(d)[0]}`;
 export const fmtTime = (d: Date | string) =>
   new Intl.DateTimeFormat("en-ZA", { timeZone: TZ, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(d));
 export const fmtDateTime = (d: Date | string) => `${fmtDate(d)}, ${fmtTime(d)}`;
