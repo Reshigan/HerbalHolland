@@ -78,6 +78,7 @@ export type SalePayload = {
   offline: boolean;
   shiftId: string | null;
   customerId: string | null;
+  memberNo?: string | null; // a member taken from their card while offline: resolved when the sale syncs
   lines: { variantId: string; qty: number; unitPriceCents: number }[];
   promoCode: string | null;
   pointsRedeemed: number;

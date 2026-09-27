@@ -197,6 +197,7 @@ export type CustomerDetail = {
     remainingGrams: number;
     validTo: string;
   } | null;
+  offline?: boolean; // taken from the member's card while the till was offline: checked when it reconnects
 };
 
 /** Door check-in from an event ticket (HHRSVP:{code}): the member to attach and their event. */
@@ -208,7 +209,7 @@ export type CheckInDTO = {
 
 // ── Compliance ──────────────────────────────────────────────────────────────
 
-export type BlockKind = "AGE" | "UNDERAGE" | "PATIENT" | "QUANTITY" | "DISPENSER" | "LICENCE" | "CHANNEL" | "DAILY_LIMIT" | "DROP" | "OTHER";
+export type BlockKind = "MEMBER" | "AGE" | "UNDERAGE" | "PATIENT" | "QUANTITY" | "DISPENSER" | "LICENCE" | "CHANNEL" | "DAILY_LIMIT" | "DROP" | "OTHER";
 
 export type ComplianceDTO = {
   ok: boolean;

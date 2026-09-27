@@ -45,8 +45,9 @@ to the public at all. So we grow the one asset nobody can switch off: a consente
 
 Always:
 
-- **Members, always.** Everyone who joins is a _member_ — never a customer, shopper or client. The first 2,026 are
-  _Founding Members_. People who haven't joined yet are _walk-ins_ in store and _visitors_ online.
+- **Members, always.** We sell to members only, and everyone who joins accepts the membership terms (the key terms are
+  shown at every sign-up). Never say customer, shopper or client. The first 2,026 are _Founding Members_. People who
+  haven't joined yet are _walk-ins_ in store and _visitors_ online.
 - **Adults 18+** on every piece. Everyone in our pictures is over 25 and looks it.
 - **No consumption, no smoke, no "high" language, no stoner clichés** (no 4/20, no leaf icons), no cannabis or CBD
   hashtags on social.

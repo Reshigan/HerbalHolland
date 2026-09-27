@@ -30,6 +30,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const idNumber = str(fd, "idNumber").replace(/\s/g, "");
     const sighted = bool(fd, "idSighted");
     if (!idNumber && !sighted) return fail("Confirm the member is 18+: capture an SA ID number or tick that you've seen their ID", "idSighted");
+    if (!bool(fd, "acceptTerms")) return fail("The member must read the key terms and accept the membership terms", "acceptTerms");
     const c = await createCustomer(
       {
         phone,
@@ -40,6 +41,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
         homeStoreId: store.id,
         consents: Object.fromEntries(CHANNELS.map((ch) => [ch, bool(fd, `consent:${ch}`)])),
         source: "ADMIN",
+        termsAccepted: true,
         ageCheck: sighted ? "ID_SIGHTED" : undefined,
       },
       actor,

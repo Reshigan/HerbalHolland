@@ -6,7 +6,8 @@ import { checkSaId, ageOn, normalisePhone } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText, OfflineError } from "../lib/api";
-import { memberNoFrom } from "../lib/rules";
+import { memberNoFrom, offlineMember } from "../lib/rules";
+import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { Alert, CheckRow, Chip, Field, PosButton, Segmented, Sheet, Spinner, TextInput, TIER_CHIP, tierName } from "../ui";
 import { visitDate } from "./cart-panel";
 import type { CustomerDetail, CustomerHit } from "@/server/pos/types";
@@ -45,7 +46,7 @@ export function CustomerSheet({
         ]}
       />
       {!online ? (
-        <Alert tone="warn">Offline — finding and signing up members needs a connection. You can still sell to a walk-in (cash only).</Alert>
+        <OfflineMember onPick={onPick} />
       ) : mode === "find" ? (
         <FindMember onPick={onPick} initialQuery={initialQuery} />
       ) : (
@@ -151,6 +152,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
   const [f, setF] = useState({ phone: "", firstName: "", lastName: "", email: "", idNumber: "" });
   const [passport, setPassport] = useState(false);
   const [consents, setConsents] = useState({ SMS: false, WHATSAPP: false, EMAIL: false });
+  const [terms, setTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [touched, setTouched] = useState(false);
@@ -164,7 +166,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
   const phoneOk = !!normalisePhone(f.phone);
   const emailOk = !f.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
   const underage = id?.ok && id.age < minAge;
-  const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport));
+  const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport)) && terms;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
 
   async function submit(e: React.FormEvent) {
@@ -175,7 +177,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
     setError(null);
     try {
       const r = await api<{ customer: CustomerDetail }>("/api/pos/customers", {
-        body: { ...f, email: f.email.trim(), idNumber: f.idNumber.replace(/\s/g, "") || undefined, passportSighted: passport && !f.idNumber, consents },
+        body: { ...f, email: f.email.trim(), idNumber: f.idNumber.replace(/\s/g, "") || undefined, passportSighted: passport && !f.idNumber, consents, acceptTerms: terms },
       });
       onCreated(r.customer);
     } catch (e) {
@@ -226,6 +228,17 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
           </div>
           <p className="px-1 text-xs leading-relaxed text-ink-400">Drops, offers and events on the channels ticked. They can opt out any time by replying STOP. Invoices are always emailed.</p>
         </fieldset>
+        <div className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="key-terms">
+          <div className="px-1 text-[0.8rem] font-semibold text-ink-300">Key membership terms — turn the screen so they can read them</div>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-ink-300">
+            {KEY_TERMS.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          <p className="mt-2 px-1 text-[0.7rem] text-ink-500">Full terms: herbalholland.co.za/legal/terms · {TERMS_LABEL}</p>
+          <CheckRow checked={terms} onChange={setTerms} label="They've read the key terms and accept the membership terms and privacy notice" />
+          {touched && !terms && <p className="px-1 text-xs font-medium text-[#f29b9b]">They must accept the terms to become a member</p>}
+        </div>
         <PosButton type="submit" variant="primary" size="lg" className="w-full" busy={busy} disabled={busy}>
           <UserPlus className="h-5 w-5" /> Create member &amp; add to sale
         </PosButton>
@@ -244,5 +257,28 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
         </div>
       </aside>
     </div>
+  );
+}
+
+/** Offline: members can't be looked up, so take the number from their card; it's checked when the till reconnects. */
+function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
+  const [no, setNo] = useState("");
+  const memberNo = memberNoFrom(no);
+  return (
+    <form
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (memberNo) onPick(offlineMember(memberNo));
+      }}
+      className="space-y-3"
+    >
+      <Alert tone="warn">Offline — members can&apos;t be looked up or signed up. Scan their card QR or type the member number from their card: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
+      <Field label="Member number" htmlFor="off-member" error={no && !memberNo ? "Member numbers look like HH0123456" : undefined}>
+        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456" />
+      </Field>
+      <PosButton type="submit" variant="primary" size="lg" className="w-full" disabled={!memberNo}>
+        Add to sale
+      </PosButton>
+    </form>
   );
 }

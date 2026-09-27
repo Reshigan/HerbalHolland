@@ -296,6 +296,7 @@ export default async function CartPage() {
             <ButtonLink href="/checkout" size="xl" className={cn("mt-5 w-full", blockedLicensed && "pointer-events-none opacity-45")} aria-disabled={!!blockedLicensed}>
               Checkout <ArrowRight className="h-5 w-5" />
             </ButtonLink>
+            {!customer && <p className="mt-3 text-center text-xs text-ink-400">We sell to members only. Joining is free and takes a minute at checkout (adults 18+).</p>}
             <p className="mt-3 text-center text-xs text-ink-500">Adults 18+ · ID checked on collection and delivery</p>
           </Panel>
           <Panel className="p-5">

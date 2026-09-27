@@ -16,6 +16,7 @@ export type ComplianceSettings = {
   dailyLimitGrams: number; // ADULT_USE: per customer per day, licensed classes
   channels: Record<SellChannel, RegClass[]>;
   tobaccoBillMode: boolean; // B33-2022 in force: related products in-store only, no loyalty
+  membersOnly: boolean; // every sale needs a registered member (online and at the till)
 };
 
 export const DEFAULT_COMPLIANCE: ComplianceSettings = {
@@ -31,6 +32,7 @@ export const DEFAULT_COMPLIANCE: ComplianceSettings = {
     COURIER: ["CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"],
   },
   tobaccoBillMode: false,
+  membersOnly: true,
 };
 
 export type ComplianceItem = { name: string; regClass: RegClass; grams?: number | null; qty: number; tobaccoRelated?: boolean };
@@ -57,6 +59,7 @@ export function checkCompliance(input: {
 }): ComplianceResult {
   const s = input.settings ?? DEFAULT_COMPLIANCE;
   const blocks: string[] = [];
+  if (s.membersOnly && !input.customer) blocks.push("Members only: add the member to the sale, or sign them up, first");
   const allowed = new Set(s.channels[input.channel]);
   const licences = new Set(input.storeLicences ?? []);
 

@@ -3,6 +3,7 @@ import { UserPlus } from "lucide-react";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Drawer } from "@/components/store/drawer";
 import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 
 const CHANNELS = [
   ["SMS", "SMS"],
@@ -49,6 +50,19 @@ export function AddMember({ action, wording, storeName }: { action: FormAction; 
             ))}
           </div>
         </fieldset>
+        <div className="rounded-2xl bg-ink-50 p-4">
+          <div className="text-[0.78rem] font-semibold text-ink-700">Key membership terms — the member reads these first</div>
+          <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-ink-600">
+            {KEY_TERMS.map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+          <p className="mt-2 text-xs text-ink-500">Full terms at herbalholland.co.za/legal/terms · {TERMS_LABEL}</p>
+          <div className="mt-3">
+            <Checkbox name="acceptTerms" label="The member has read the key terms and accepts the membership terms and privacy notice" />
+            <FieldError name="acceptTerms" />
+          </div>
+        </div>
         <SubmitButton className="w-full" size="lg" pendingLabel="Enrolling…">
           Enrol member
         </SubmitButton>

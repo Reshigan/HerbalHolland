@@ -149,6 +149,7 @@ export type PosSaleInput = {
   offline?: boolean;
   shiftId?: string | null;
   customerId?: string | null;
+  memberNo?: string | null; // a member the till took from their card while offline
   lines: { variantId: string; qty: number; unitPriceCents?: number }[];
   promoCode?: string | null;
   pointsRedeemed?: number;
@@ -156,7 +157,7 @@ export type PosSaleInput = {
   ageCheck?: AgeCheck;
   campaignId?: string | null;
   buyer?: { name: string; address: string; vatNumber?: string } | null;
-  invoiceEmail?: string | null; // walk-in customers can still get their invoice by email
+  invoiceEmail?: string | null; // another address for the tax invoice
 };
 
 /** SARS: supplies above R5,000 need a full tax invoice (recipient name and address). */
@@ -167,6 +168,8 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   if (existing) return { sale: existing, duplicate: true };
 
   const offline = !!input.offline;
+  if (!input.customerId && input.memberNo)
+    input = { ...input, customerId: (await db.customer.findUnique({ where: { memberNo: input.memberNo.toUpperCase() }, select: { id: true } }))?.id ?? null };
   const q = await quote({
     storeId: ctx.storeId, channel: "POS", items: input.lines, code: input.promoCode, customerId: input.customerId, trustClientPrices: offline,
   });

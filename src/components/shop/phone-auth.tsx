@@ -7,6 +7,7 @@ import { buttonClass } from "@/components/ui/button";
 import { CheckRow, FieldRow, SelectInput, TextInput } from "./ui";
 import { checkSaId, displayPhone } from "@/lib/sa";
 import { cn } from "@/lib/cn";
+import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 
 type StoreOpt = { id: string; name: string; city: string };
 
@@ -274,8 +275,20 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         </div>
       </fieldset>
 
+      <div className="rounded-2xl border border-brand-500/30 bg-brand-500/[0.06] p-4" data-testid="key-terms">
+        <div className="text-[0.8rem] font-semibold text-white">Before you join: the key membership terms</div>
+        <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-ink-300">
+          {KEY_TERMS.map((t) => (
+            <li key={t}>{t}</li>
+          ))}
+        </ul>
+        <p className="mt-2 text-[0.7rem] text-ink-500">
+          Read the full <Link href="/legal/terms" target="_blank" className="underline hover:text-ink-300">membership terms</Link> ({TERMS_LABEL}) and the <Link href="/legal/privacy" target="_blank" className="underline hover:text-ink-300">privacy notice</Link>.
+        </p>
+      </div>
+
       <div>
-        <CheckRow name="accept" required label={<>I&apos;m 18 or older and I accept the <Link href="/legal/terms" className="underline">terms</Link> and <Link href="/legal/privacy" className="underline">privacy notice</Link>.</>} />
+        <CheckRow name="accept" required label={<>I&apos;m 18 or older and I accept the <Link href="/legal/terms" target="_blank" className="underline">membership terms</Link> and <Link href="/legal/privacy" target="_blank" className="underline">privacy notice</Link>.</>} />
         {state.fields?.accept && <p className="mt-1 text-xs font-medium text-rose-100" role="alert">{state.fields.accept}</p>}
       </div>
 

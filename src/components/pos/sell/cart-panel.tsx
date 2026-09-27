@@ -88,8 +88,8 @@ export function CustomerCard({
             <UserRound className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-white">Walk-in</div>
-            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members save instantly and earn points"}</div>
+            <div className="font-semibold text-white">No member yet</div>
+            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members only — add the member or sign them up (free, about 20 seconds)"}</div>
           </div>
         </div>
         {joinSavingsCents > 0 && (
@@ -137,9 +137,9 @@ export function CustomerCard({
             )}
           </div>
           <div className="mt-0.5 text-xs text-ink-400">
-            {customer.memberNo} · {customer.phone}
+            {customer.offline ? "Taken from their card offline — checked when the till reconnects" : `${customer.memberNo} · ${customer.phone}`}
           </div>
-          {customer.visitsHere != null && (
+          {!customer.offline && customer.visitsHere != null && (
             <div className="text-xs text-ink-400" data-testid="visits-here">
               Visits here {customer.visitsHere}
               {customer.lastVisitHere && ` · Last visit here ${visitDate(customer.lastVisitHere)}`}

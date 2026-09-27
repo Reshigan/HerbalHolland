@@ -11,6 +11,7 @@ import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
 import type { ComplianceDTO, BlockKind, CustomerDetail } from "@/server/pos/types";
 
 const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
+  MEMBER: UserRound,
   AGE: IdCard,
   UNDERAGE: ShieldAlert,
   PATIENT: Stethoscope,
@@ -24,6 +25,7 @@ const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
 };
 
 const TITLE: Record<BlockKind, string> = {
+  MEMBER: "Members only",
   AGE: "Check ID — adults 18+ only",
   UNDERAGE: "Under age — no sale",
   PATIENT: "Patient authorisation needed",
@@ -122,6 +124,13 @@ export function ComplianceSheet({
                 </div>
               )}
 
+              {b.kind === "MEMBER" && (
+                <div className="mt-4">
+                  <PosButton variant="primary" onClick={onFindPatient}>
+                    <UserRound className="h-4 w-4" /> Find or sign up the member
+                  </PosButton>
+                </div>
+              )}
               {(b.kind === "PATIENT" || b.kind === "QUANTITY") && (
                 <div className="mt-4 flex flex-wrap gap-2">
                   {b.kind === "PATIENT" && (

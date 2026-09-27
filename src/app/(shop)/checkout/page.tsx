@@ -63,7 +63,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
               defaultStoreId={store?.id}
               consentWording={CONSENT_WORDING}
               title="First, your mobile number"
-              intro="Members check out in seconds. New to Herbal Holland? You'll join Rewards in one short step — and earn points on this order."
+              intro="We sell to members only. Members check out in seconds; new here? Join free in one short step — you'll accept the membership terms and earn points on this order."
             />
           </Panel>
           <Summary lines={q.lines} total={q.totalCents} joinSavings={q.joinSavingsCents} />

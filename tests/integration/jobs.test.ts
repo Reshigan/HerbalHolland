@@ -3,6 +3,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { placeOrder, advanceOrder } from "@/server/orders";
 import { postPosSale } from "@/server/sales";
+import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
 import { expireUnpaidOrders, releaseUncollected, retryInvoices, birthdayPoints } from "@/server/jobs";
 import { buildWorld, resetDb, type World } from "./world";
@@ -46,8 +47,10 @@ describe("Scheduled jobs", () => {
   });
 
   it("retries tax-invoice emails that failed to send", async () => {
+    const lines = [{ variantId: w.oilV.id, qty: 1 }];
+    const q = await quote({ storeId: w.store.id, channel: "POS", items: lines, customerId: w.walkIn.id });
     const { sale } = await postPosSale(
-      { id: randomUUID(), number: "TST01-J00001", lines: [{ variantId: w.oilV.id, qty: 1 }], ageCheck: "ID_SIGHTED", payments: [{ method: "CARD", amountCents: 59_500 }], invoiceEmail: "walkin@example.co.za" },
+      { id: randomUUID(), number: "TST01-J00001", customerId: w.walkIn.id, lines, ageCheck: "ID_SIGHTED", payments: [{ method: "CARD", amountCents: q.totalCents }], invoiceEmail: "member@example.co.za" },
       { storeId: w.store.id, deviceId: w.device.id, staffId: w.manager.id, staffName: "Staff" },
     );
     await expect.poll(async () => (await db.sale.findUniqueOrThrow({ where: { id: sale.id } })).invoiceSentAt).not.toBeNull();
@@ -56,7 +59,7 @@ describe("Scheduled jobs", () => {
     expect(await retryInvoices()).toEqual({ done: 1, failed: 0 });
     const s = await db.sale.findUniqueOrThrow({ where: { id: sale.id } });
     expect(s.invoiceSentAt).not.toBeNull();
-    expect(s.invoiceEmail).toBe("walkin@example.co.za");
+    expect(s.invoiceEmail).toBe("member@example.co.za");
     expect(await retryInvoices()).toEqual({ done: 0, failed: 0 });
   });
 

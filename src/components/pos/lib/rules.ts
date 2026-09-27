@@ -1,6 +1,6 @@
 // Small pure rules for the till: receipt numbering, cash handling, compliance block
 // types, order SLAs and points redemption. Isomorphic and unit-tested (tests/pos.test.ts).
-import type { BlockKind } from "@/server/pos/types";
+import type { BlockKind, CustomerDetail } from "@/server/pos/types";
 
 /** Device-local receipt number, e.g. PTA01-B00042 (store code · device prefix · sequence). */
 export const receiptNumber = (storeCode: string, prefix: string, seq: number) => `${storeCode}-${prefix}${String(seq).padStart(5, "0")}`;
@@ -24,6 +24,7 @@ export function quickCash(dueCents: number): number[] {
 
 /** Maps the compliance engine's messages to the action the cashier can take. */
 export function classifyBlock(message: string): BlockKind {
+  if (/^Members only/i.test(message)) return "MEMBER";
   if (/^Age verification required/i.test(message)) return "AGE";
   if (/^Under \d+/i.test(message)) return "UNDERAGE";
   if (/patient authorisation/i.test(message)) return "PATIENT";
@@ -111,3 +112,9 @@ export function uuid() {
   const h = [...b].map((x) => x.toString(16).padStart(2, "0")).join("");
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
+
+/** Offline, the till can't look members up: it takes the member number from their card and the server resolves it on sync. */
+export const offlineMember = (memberNo: string): CustomerDetail => ({
+  id: "", memberNo, firstName: "Member", lastName: memberNo, phone: "", email: null, tier: "SEED", points: 0, ageCheck: "NONE", ageVerified: false, age: null,
+  homeStore: null, visitsHere: 0, lastVisitHere: null, foundingNo: null, tierFloor: null, offers: [], patient: null, offline: true,
+});

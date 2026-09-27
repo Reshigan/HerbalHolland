@@ -128,9 +128,14 @@ describe("compliance", () => {
     const r = checkCompliance({ items: [flower], channel: "COURIER", customer: adult, storeLicences: ["THC"] });
     expect(r.blocks.join()).toContain("courier");
   });
+  it("sells to members only, unless HQ switches the rule off", () => {
+    expect(checkCompliance({ items: [oil], channel: "POS", customer: null, ageCheckedAtCounter: true }).blocks).toEqual(["Members only: add the member to the sale, or sign them up, first"]);
+    expect(checkCompliance({ items: [oil], channel: "POS", customer: null, ageCheckedAtCounter: true, settings: { ...DEFAULT_COMPLIANCE, membersOnly: false } }).ok).toBe(true);
+  });
   it("requires an age check for CBD unless ID was checked at the counter", () => {
-    expect(checkCompliance({ items: [oil], channel: "POS", customer: null }).blocks.join()).toContain("Age verification");
-    expect(checkCompliance({ items: [oil], channel: "POS", customer: null, ageCheckedAtCounter: true }).ok).toBe(true);
+    const unverified = { ageVerified: false }; // e.g. a member taken from their card while the till was offline
+    expect(checkCompliance({ items: [oil], channel: "POS", customer: unverified }).blocks.join()).toContain("Age verification");
+    expect(checkCompliance({ items: [oil], channel: "POS", customer: unverified, ageCheckedAtCounter: true }).ok).toBe(true);
   });
   it("blocks minors even when an ID was sighted", () => {
     const r = checkCompliance({ items: [oil], channel: "POS", customer: { ageVerified: true, age: 17 }, ageCheckedAtCounter: true });

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { priceBasket, redeemableCents, livePromotions, type PricingData } from "@/components/pos/lib/pricing";
 import {
   classifyBlock, countCash, DENOMINATIONS, denomLabel, dropIndex, maskPhone, maxRedeemable, memberNoFrom, orderSla, parseOrderQr, parseRands, quickCash, receiptNumber,
-  rsvpTicketFrom, uuid,
+  offlineMember, rsvpTicketFrom, uuid,
 } from "@/components/pos/lib/rules";
 import { checkCompliance, DEFAULT_COMPLIANCE } from "@/lib/compliance";
 import type { BootPromotion } from "@/server/pos/types";
@@ -154,13 +154,19 @@ describe("till rules", () => {
   it("classifies every compliance block the engine produces", () => {
     const flower = { name: "Sunset Kush · 3.5g", regClass: "THC" as const, grams: 3.5, qty: 1 };
     const a = checkCompliance({ items: [flower], channel: "POS", customer: null, storeLicences: ["THC"], staffCanDispense: false });
-    expect(a.blocks.map(classifyBlock)).toEqual(["AGE", "PATIENT", "DISPENSER"]);
+    expect(a.blocks.map(classifyBlock)).toEqual(["MEMBER", "AGE", "PATIENT", "DISPENSER"]);
     const b = checkCompliance({ items: [{ ...flower, qty: 20 }], channel: "POS", customer: { ageVerified: true, patient: { active: true, remainingGrams: 10 } }, storeLicences: ["THC"], staffCanDispense: true });
     expect(b.blocks.map(classifyBlock)).toEqual(["QUANTITY"]);
     const c = checkCompliance({ items: [flower], channel: "POS", customer: { ageVerified: true, age: 17 }, storeLicences: [] });
     expect(c.blocks.map(classifyBlock)).toEqual(["LICENCE", "UNDERAGE", "PATIENT"]);
     expect(classifyBlock("Daily limit is 30g per member (…)")).toBe("DAILY_LIMIT");
     expect(classifyBlock("Something new")).toBe("OTHER");
+  });
+
+  it("takes a member from their card while offline, to be checked on sync", () => {
+    const m = offlineMember("HH0123456");
+    expect(m).toMatchObject({ id: "", memberNo: "HH0123456", offline: true, ageVerified: false, patient: null, points: 0 });
+    expect(checkCompliance({ items: [{ name: "Oil", regClass: "CBD", qty: 1 }], channel: "POS", customer: { ageVerified: m.ageVerified } }).blocks.map(classifyBlock)).toEqual(["AGE"]);
   });
 
   it("times online orders against the ready SLA", () => {

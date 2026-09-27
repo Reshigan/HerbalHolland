@@ -13,6 +13,7 @@ const CHANNELS: SellChannel[] = ["POS", "COLLECT", "SAME_DAY", "COURIER"];
 export function ComplianceForm({ action, value, readOnly }: { action: (s: ActionState, fd: FormData) => Promise<ActionState>; value: ComplianceSettings; readOnly: boolean }) {
   const [mode, setMode] = useState(value.thcMode);
   const [tobacco, setTobacco] = useState(value.tobaccoBillMode);
+  const [members, setMembers] = useState(value.membersOnly);
   const modes = [
     {
       key: "MEDICAL" as const,
@@ -119,6 +120,16 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
               </tbody>
             </table>
           </div>
+        </div>
+
+        <div className={cn("rounded-2xl border p-4", members ? "border-ink-150" : "border-amber-500/40 bg-amber-50")}>
+          <Checkbox
+            name="membersOnly"
+            checked={members}
+            onChange={(e) => setMembers(e.target.checked)}
+            label="Members only"
+            description="Every sale needs a registered member who has accepted the membership terms — online and at the till. Walk-ins sign up at the till in about 20 seconds; offline, the till takes the member number from their card and checks it when it reconnects."
+          />
         </div>
 
         <div className={cn("rounded-2xl border p-4", tobacco ? "border-amber-500/40 bg-amber-50" : "border-ink-150")}>

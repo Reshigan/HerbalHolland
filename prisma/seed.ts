@@ -850,7 +850,9 @@ async function main() {
   // The demo store always has click & collect orders waiting — whatever time the seed runs — for the dashboard queue,
   // the POS handover demo and the end-to-end tests.
   const demo = stores.find((x) => x.code === "PTA01");
-  const regulars = demo ? customers.filter((c) => c.homeStoreId === demo.id && c.email && !c.auth && c.createdAt < daysAgo(2)) : [];
+  // Regulars with an email and no patient authorisation: PTA01's own first, then anyone (short seeds may have none).
+  const pool = customers.filter((c) => c.email && !c.auth && c.createdAt < daysAgo(2));
+  const regulars = demo ? [...pool.filter((c) => c.homeStoreId === demo.id), ...pool.filter((c) => c.homeStoreId !== demo.id)] : [];
   for (const [i, status] of (["READY", "PLACED"] as const).entries()) {
     if (!demo) break;
     const ts = new Date(NOW.getTime() - (95 - i * 50) * 60_000);
@@ -859,7 +861,7 @@ async function main() {
     const adult = (ls: ReturnType<typeof buildBasket>) => ls.some((l) => l.v.reg !== "APPAREL");
     let c: SimCustomer | undefined;
     let lines: ReturnType<typeof buildBasket> = [];
-    for (let k = 0; k < 40 && !adult(lines); k++) {
+    for (let k = 0; k < 80 && !adult(lines); k++) {
       const who = regulars[(i * 7 + k * 3) % Math.max(1, regulars.length)];
       const got = who ? buildBasket(demo.id, who, ts, "COLLECT") : [];
       if (got.length && (!lines.length || adult(got))) (c = who), (lines = got);

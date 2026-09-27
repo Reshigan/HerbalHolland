@@ -11,6 +11,7 @@ import { nextNumber, shortCode } from "./counters";
 import { sha256 } from "./crypto";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
+import { TERMS_VERSION } from "@/lib/terms";
 
 export class CustomerError extends Error {}
 
@@ -54,6 +55,7 @@ export type NewCustomer = {
   consents: Partial<Record<MsgChannel, boolean>>;
   source: string;
   joinedVia?: string | null; // raw ?src= tag; normalised by joinTag
+  termsAccepted: boolean; // accepted the membership terms (TERMS_VERSION) — required to join
   ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a budtender checked a passport in store
 };
 
@@ -65,6 +67,7 @@ export const joinTag = (raw?: string | null) => {
 
 export async function createCustomer(a: NewCustomer, actor: Actor) {
   const settings = await getSettings();
+  if (!a.termsAccepted) throw new CustomerError("Membership needs the member to accept the membership terms");
   const phone = normalisePhone(a.phone);
   if (!phone) throw new CustomerError("Enter a valid South African mobile number");
   if (await db.customer.findUnique({ where: { phone } })) throw new CustomerError("That number is already a member");
@@ -111,13 +114,15 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
         consentAt: new Date(),
         source: a.source,
         joinedVia: joinTag(a.joinedVia),
+        termsVersion: TERMS_VERSION,
+        termsAcceptedAt: new Date(),
       },
     });
     await t.consentEvent.createMany({
       data: channels.map((ch) => ({ customerId: c.id, channel: ch, granted: !!a.consents[ch], source: a.source, wording: CONSENT_WORDING })),
     });
     if (settings.loyalty.signupBonus) await addPoints(t, { customerId: c.id, points: settings.loyalty.signupBonus, kind: "SIGNUP", note: "Welcome to Herbal Holland Rewards" });
-    await audit(t, actor, "customer.create", { storeId: a.homeStoreId, entity: "Customer", entityId: c.id, data: { source: a.source, ageCheck } });
+    await audit(t, actor, "customer.create", { storeId: a.homeStoreId, entity: "Customer", entityId: c.id, data: { source: a.source, ageCheck, termsVersion: TERMS_VERSION } });
     return c;
   });
 }

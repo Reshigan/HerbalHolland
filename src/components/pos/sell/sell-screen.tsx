@@ -9,7 +9,7 @@ import { checkCompliance, incentiveExcluded } from "@/lib/compliance";
 import { zar, zarWhole } from "@/lib/money";
 import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
-import { classifyBlock, dropIndex, memberNoFrom, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
+import { classifyBlock, dropIndex, memberNoFrom, offlineMember, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
 import { EMPTY_CART, type Cart, type SalePayload } from "../lib/storage";
 import { usePos } from "../context";
 import { Confirm, PosButton, Sheet } from "../ui";
@@ -217,7 +217,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     async (c: Cart): Promise<ComplianceDTO> => {
       if (onlineRef.current) {
         try {
-          return await api<ComplianceDTO>("/api/pos/compliance", { body: { items: c.lines, customerId: c.customer?.id ?? null, ageCheck: c.ageCheck } });
+          return await api<ComplianceDTO>("/api/pos/compliance", { body: { items: c.lines, customerId: c.customer?.id || null, ageCheck: c.ageCheck } });
         } catch (e) {
           if (!(e instanceof OfflineError)) throw e;
         }
@@ -244,7 +244,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         let q = priceBasket(pricing, c.lines, { code: c.code, member: !!c.customer, tier: c.customer?.tier ?? null });
         if (onlineRef.current) {
           try {
-            q = await api<QuoteDTO>("/api/pos/quote", { body: { items: c.lines, code: c.code, customerId: c.customer?.id ?? null } });
+            q = await api<QuoteDTO>("/api/pos/quote", { body: { items: c.lines, code: c.code, customerId: c.customer?.id || null } });
           } catch (e) {
             // A lost connection flips the till offline (cached prices, cash only). A slow answer doesn't: charging on cached
             // prices would miss the member's My Deals, and the server would then refuse the paid sale. Ask to try again.
@@ -380,7 +380,8 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       createdAt: new Date().toISOString(),
       offline: !onlineRef.current,
       shiftId: boot.shift?.id ?? null,
-      customerId: c.customer?.id ?? null,
+      customerId: c.customer?.id || null,
+      memberNo: c.customer?.offline ? c.customer.memberNo : null,
       lines: c.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceCents: unit.get(l.variantId) ?? 0 })),
       promoCode: c.code,
       pointsRedeemed: r.points,
@@ -427,7 +428,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   /** Member card QR / member number → attach the member (prices re-quote at their tier). */
   const attachMember = async (memberNo: string) => {
     if (!onlineRef.current) {
-      pos.toast("Offline — members need a connection. Sell to a walk-in (cash) for now.", "warn");
+      pickCustomer(offlineMember(memberNo), `${memberNo} added — checked when the till reconnects`, "warn");
       return;
     }
     try {
@@ -445,6 +446,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   };
   const attachMemberRef = useRef(attachMember);
   attachMemberRef.current = attachMember;
+  // Back online with a member taken from their card offline: look them up properly (prices re-quote at their tier).
+  const offlineNo = cart.customer?.offline ? cart.customer.memberNo : null;
+  useEffect(() => {
+    if (online && offlineNo) void attachMemberRef.current(offlineNo);
+  }, [online, offlineNo]);
 
   const pickCustomer = (c: CustomerDetail, message = `${c.firstName} added to the sale`, tone: "ok" | "warn" = "ok") => {
     setCart((x) => ({ ...x, customer: c, ageCheck: null }));

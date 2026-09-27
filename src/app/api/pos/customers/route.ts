@@ -18,6 +18,7 @@ const Body = z
     idNumber: z.string().trim().optional(),
     passportSighted: z.boolean().optional(),
     consents: z.object({ SMS: z.boolean(), WHATSAPP: z.boolean(), EMAIL: z.boolean() }),
+    acceptTerms: z.literal(true, { message: "The member must accept the membership terms" }),
   })
   .refine((b) => !!b.idNumber || b.passportSighted, { message: "Enter an SA ID number or confirm you've sighted a passport" });
 
@@ -33,6 +34,7 @@ export const POST = withStaff(async (req, pos) => {
       homeStoreId: pos.device.storeId,
       consents: { SMS: b.consents.SMS, WHATSAPP: b.consents.WHATSAPP, EMAIL: b.consents.EMAIL && !!b.email, PUSH: false },
       source: "POS",
+      termsAccepted: b.acceptTerms,
       ageCheck: b.idNumber ? undefined : "ID_SIGHTED",
     },
     actorOf(pos),

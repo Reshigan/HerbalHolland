@@ -7,7 +7,9 @@ Tick every line before the first store trades on the platform.
 - [ ] SAHPRA licence details captured per store (`licences`, `licenceRef`); dispensers designated and trained
 - [ ] Patient-authorisation intake procedure and document storage agreed
 - [ ] CBD master data validated (≤ 600 mg/pack, ≤ 20 mg/day, approved claims, COAs per batch)
-- [ ] Information Officer registered; privacy notice, PAIA manual, terms and returns policy (incl. ECTA cooling-off) published
+- [ ] Information Officer registered; privacy notice, PAIA manual and returns policy (incl. ECTA cooling-off) published
+- [ ] Counsel signs off the membership terms (`/legal/terms`) and fills in the directors' names; bump `TERMS_VERSION` for any change after launch
+- [ ] HQ → Compliance: **Members only** on; tills trained on signing up walk-ins (key terms read, box ticked) and on member numbers while offline
 - [ ] NCC direct-marketing registration done; first opt-out registry import loaded
 - [ ] Franchise agreements reference the separate marketing fund and statement settlement
 

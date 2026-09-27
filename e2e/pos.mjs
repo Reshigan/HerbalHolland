@@ -67,23 +67,37 @@ try {
   const shift = (await q(`select id, "openingFloatCents" from "Shift" where "deviceId" = $1 and "closedAt" is null`, [device.id]))[0];
   assert(shift?.openingFloatCents === 100000, "shift open with R1,000 float");
 
-  step("Walk-in: CBD balm, ID sighted, cash");
+  step("Members only: a new shopper joins at the till (key terms accepted), then buys a CBD balm with cash");
   await page.getByRole("button", { name: /^Recover CBD Muscle Balm/ }).click();
   await page.waitForTimeout(700);
   await page.getByTestId("pay").click();
-  await page.getByTestId("block-AGE").waitFor();
-  await shot("walkin-compliance");
-  await page.getByRole("button", { name: /ID sighted/ }).click();
-  await page.getByTestId("remaining").waitFor();
+  await page.getByTestId("block-MEMBER").waitFor();
+  await shot("members-only");
+  ok("no member on the sale: the till says members only");
+  await page.getByRole("button", { name: "Find or sign up the member" }).click();
+  await page.getByRole("tab", { name: "New member" }).click();
+  const joinPhone = `07${Math.floor(10000000 + Math.random() * 89999999)}`;
+  const luhnOk = (d) => { let t = 0; for (let i = 0; i < d.length; i++) { let n = +d[d.length - 1 - i]; if (i % 2 === 1) { n *= 2; if (n > 9) n -= 9; } t += n; } return t % 10 === 0; };
+  const idBase = `9${Math.floor(Math.random() * 9)}0612${String(Math.floor(Math.random() * 10000)).padStart(4, "0")}08`;
+  const joinId = [...Array(10).keys()].map((z) => idBase + z).find(luhnOk);
+  await page.getByLabel("Mobile number").fill(joinPhone);
+  await page.getByLabel("First name").fill("Sipho");
+  await page.getByLabel("SA ID number").fill(joinId);
+  await page.getByTestId("key-terms").waitFor();
+  await page.getByLabel(/read the key terms and accept the membership terms/).check();
+  await shot("join-at-till");
+  await page.getByRole("button", { name: /Create member/ }).click();
+  await page.getByTestId("remaining").waitFor({ timeout: 30_000 });
+  const joined = (await q(`select id, "memberNo", "termsVersion", "termsAcceptedAt" from "Customer" where phone = $1`, [`+27${joinPhone.slice(1)}`]))[0];
+  assert(joined?.termsVersion === "2026-09-27" && joined.termsAcceptedAt, `member ${joined?.memberNo} joined; terms version ${joined?.termsVersion} recorded`);
   await page.getByTestId("tender-cash").click();
   await page.getByRole("button", { name: "R400" }).click();
   await page.getByTestId("receipt").waitFor();
-  await shot("walkin-receipt");
+  await shot("member-receipt");
   const walkinNo = await receiptNo();
   assert(/^PTA01-[A-Z]00001/.test(walkinNo ?? ""), `receipt ${walkinNo} numbered from the device prefix`);
-  assert((await page.getByTestId("change-due").textContent()).includes("R15.00"), "change due R15.00");
-  const walkin = (await q(`select s.id, s."ageCheck", s."totalCents", s."shiftId", p.method, p."tenderedCents", p."changeCents" from "Sale" s join "Payment" p on p."saleId" = s.id where s.number = $1`, [walkinNo]))[0];
-  assert(walkin?.ageCheck === "ID_SIGHTED" && walkin.method === "CASH" && walkin.changeCents === 1500 && walkin.shiftId === shift.id, "sale posted: ID_SIGHTED, cash R400 tendered, R15 change, on the shift");
+  const walkin = (await q(`select s.id, s."customerId", s."ageCheck", s."totalCents", s."shiftId", p.method, p."tenderedCents", p."changeCents" from "Sale" s join "Payment" p on p."saleId" = s.id where s.number = $1`, [walkinNo]))[0];
+  assert(walkin?.customerId === joined.id && walkin.ageCheck === "VERIFIED" && walkin.method === "CASH" && walkin.changeCents === 40000 - walkin.totalCents && walkin.shiftId === shift.id, `sale posted to the new member at the member price (R${(walkin?.totalCents / 100).toFixed(2)}), cash R400 tendered, on the shift`);
   await page.getByTestId("new-sale").click();
 
   step("Patient member (active authorisation, nothing bought this month): licensed flower by card");
@@ -170,7 +184,7 @@ try {
   } else await page.getByRole("button", { name: "Remove member from sale" }).click();
   await page.getByTestId("customer-card").waitFor({ state: "detached" });
 
-  step("Refund the walk-in's balm (restock, cash)");
+  step("Refund the new member's balm (restock, cash)");
   await waitOnline();
   await page.getByRole("button", { name: "Sales" }).first().click();
   await page.getByLabel("Search by receipt number").fill(walkinNo);
@@ -183,13 +197,18 @@ try {
   await page.getByText(/^Refund PTA01-[A-Z]\d{5}.* done/).waitFor();
   await shot("credit-note");
   const refund = (await q(`select r.number, r."totalCents", p.method from "Sale" r join "Sale" o on o.id = r."refundOfId" join "Payment" p on p."saleId" = r.id where o.number = $1`, [walkinNo]))[0];
-  assert(refund?.totalCents === -38500 && refund.method === "CASH", `refund ${refund?.number} of R385 in cash`);
+  assert(refund?.totalCents === -walkin.totalCents && refund.method === "CASH", `refund ${refund?.number} of R${(walkin.totalCents / 100).toFixed(2)} in cash`);
 
-  step("Go offline and ring up a cash sale");
+  step("Go offline: take the member number from their card and ring up a cash sale");
   await page.getByRole("button", { name: "Sell" }).first().click();
   await ctx.setOffline(true);
   await page.getByTestId("connectivity").filter({ hasText: "Offline" }).waitFor();
   ok("indicator shows Offline");
+  await page.getByRole("button", { name: /Find member/ }).first().click();
+  await page.getByLabel("Member number").fill(joined.memberNo);
+  await page.getByRole("button", { name: "Add to sale" }).click();
+  await page.getByText(/Taken from their card offline/).first().waitFor();
+  ok(`member ${joined.memberNo} added offline, to be checked on sync`);
   await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
   await page.waitForTimeout(500);
   await page.getByTestId("pay").click();
@@ -207,8 +226,9 @@ try {
   step("Back online → outbox syncs");
   await ctx.setOffline(false);
   await page.getByTestId("queued-count").waitFor({ state: "detached", timeout: 60_000 });
-  const synced = (await q(`select offline, "shiftId", "staffId", "totalCents" from "Sale" where number = $1`, [offlineNo]))[0];
+  const synced = (await q(`select offline, "shiftId", "staffId", "totalCents", "customerId" from "Sale" where number = $1`, [offlineNo]))[0];
   assert(synced?.offline === true && synced.shiftId === shift.id, `offline sale ${offlineNo} synced (offline=true, on the shift)`);
+  assert(synced.customerId === joined.id, `the member number resolved to ${joined.memberNo} on sync`);
 
   step("Hand over a READY click & collect order");
   // Prefer an order with 18+ items (anything but apparel), so the ID check is exercised: seeded baskets are random.

@@ -561,6 +561,8 @@ model Customer {
   consentAt          DateTime?
   source             String?
   joinedVia          String? // ?src= tag on the join link or QR code (e.g. qr-window-hillcrest)
+  termsVersion       String? // membership terms accepted (TERMS_VERSION)
+  termsAcceptedAt    DateTime?
   // Denormalised stats (kept current on every purchase) so segmentation stays
   // cheap across millions of members.
   points             Int       @default(0)

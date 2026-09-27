@@ -88,7 +88,7 @@ rebuilt from movements if ever required (see the reconciliation queries in `pris
 
 | Action | Meaning | What to do |
 |---|---|---|
-| `compliance.offline_exception` | An offline till sale broke a compliance rule the till couldn't check | Review with the store manager; retrain if needed |
+| `compliance.offline_exception` | An offline till sale broke a compliance rule the till couldn't check — including a member number that didn't match a member (members only) | Review with the store manager; find the member if you can; retrain if needed |
 | `sale.tender_variance` | Payments didn't match the total on a synced sale | Reconcile against the terminal report |
 | `drop.limit_after_payment` | A card was charged before a drop limit tripped (race with an online order); the sale stands | Decide whether to contact the member; no refund needed unless they ask |
 

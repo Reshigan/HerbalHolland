@@ -171,6 +171,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
           consents: Object.fromEntries(CHANNELS.map((ch) => [ch, form.get(`consent_${ch}`) === "on"])),
           source: referrer ? "REFERRAL" : "WEB",
           joinedVia: String(form.get("src") ?? ""),
+          termsAccepted: form.get("accept") === "on",
         },
         { type: "CUSTOMER", name: v.firstName },
       );

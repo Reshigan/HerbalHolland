@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { postPosSale, refundSale } from "@/server/sales";
+import { createCustomer } from "@/server/customers";
+import { TERMS_VERSION } from "@/lib/terms";
 import { placeOrder, advanceOrder } from "@/server/orders";
 import { availability, availKey, startStockTake, approveStockTake, recordCounts, adjustStock } from "@/server/inventory";
 import { createStockOrder, actOnStockOrder, receivedValue } from "@/server/stock-orders";
@@ -16,6 +18,10 @@ let w: World;
 const actor = () => ({ type: "USER" as const, id: w.manager.id, name: w.manager.name });
 const pos = (staffId = w.manager.id) => ({ storeId: w.store.id, deviceId: w.device.id, staffId, staffName: "Staff" });
 let seq = 0;
+/** A fresh adult member, so a test's spend doesn't move the shared member's tier. */
+const member = (n: number) =>
+  db.customer.create({ data: { memberNo: `HH00001${String(n).padStart(2, "0")}`, phone: `+277100001${String(n).padStart(2, "0")}`, firstName: `Member ${n}`, referralCode: `MEM${n}X`, ageCheck: "ID_NUMBER", ageVerifiedAt: new Date() } });
+
 const saleInput = (over: Partial<Parameters<typeof postPosSale>[0]>) => ({
   id: randomUUID(),
   number: `TST01-A${String(++seq).padStart(5, "0")}`,
@@ -56,8 +62,33 @@ describe("POS", () => {
     expect(c.visits).toBe(1);
   });
 
+  it("makes members accept the membership terms, and records the version", async () => {
+    const join = (termsAccepted: boolean) =>
+      createCustomer({ phone: "0721234567", firstName: "Thandi", dob: new Date("1990-01-01"), ageCheck: "ID_SIGHTED", consents: {}, source: "POS", termsAccepted }, { type: "USER", id: w.manager.id, name: "Mia" });
+    await expect(join(false)).rejects.toThrow(/membership terms/);
+    const c = await join(true);
+    expect(c.termsVersion).toBe(TERMS_VERSION);
+    expect(c.termsAcceptedAt).toBeInstanceOf(Date);
+  });
+
+  it("sells to members only; an offline sale finds its member by number when it syncs", async () => {
+    const oil = { variantId: w.oilV.id, qty: 1, unitPriceCents: 59_500 };
+    await expect(postPosSale(saleInput({ lines: [oil], payments: [{ method: "CASH", amountCents: 59_500 }], ageCheck: "ID_SIGHTED" }), pos())).rejects.toThrow(/Members only/);
+    // Offline the till takes the number from the member's card; the server resolves it when the sale syncs.
+    const m = await member(1);
+    const known = await postPosSale(saleInput({ offline: true, memberNo: m.memberNo.toLowerCase(), lines: [oil], payments: [{ method: "CASH", amountCents: 59_500 }], ageCheck: "ID_SIGHTED" }), pos());
+    expect(known.sale.customerId).toBe(m.id);
+    // A number that doesn't exist: the money was taken, so the sale stands and HQ sees the exception.
+    const unknown = await postPosSale(saleInput({ offline: true, memberNo: "HH9999999", lines: [oil], payments: [{ method: "CASH", amountCents: 59_500 }], ageCheck: "ID_SIGHTED" }), pos());
+    expect(unknown.sale.customerId).toBeNull();
+    expect(await db.auditLog.count({ where: { action: "compliance.offline_exception", entityId: unknown.sale.id } })).toBe(1);
+  });
+
   it("is idempotent for offline sync retries", async () => {
-    const input = saleInput({ lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "CASH", amountCents: 59_500 }], ageCheck: "ID_SIGHTED" });
+    const m = await member(2);
+    const lines = [{ variantId: w.oilV.id, qty: 1 }];
+    const q = await quote({ storeId: w.store.id, channel: "POS", items: lines, customerId: m.id });
+    const input = saleInput({ customerId: m.id, lines, payments: [{ method: "CASH", amountCents: q.totalCents }], ageCheck: "ID_SIGHTED" });
     const a = await postPosSale(input, pos());
     const b = await postPosSale(input, pos());
     expect(b.duplicate).toBe(true);
@@ -193,10 +224,11 @@ describe("Pricing & promotions", () => {
     const promo = await db.promotion.create({
       data: { name: "First sale R20 off", kind: "FIXED", value: 2_000, maxUses: 1, productIds: [w.oilV.productId], channels: ["POS"], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) },
     });
-    const basket = { storeId: w.store.id, channel: "POS" as const, items: [{ variantId: w.oilV.id, qty: 1 }] };
+    const m = await member(3);
+    const basket = { storeId: w.store.id, channel: "POS" as const, items: [{ variantId: w.oilV.id, qty: 1 }], customerId: m.id };
     const first = await quote(basket);
     expect(first.promotionId).toBe(promo.id);
-    await postPosSale(saleInput({ lines: basket.items, payments: [{ method: "CARD", amountCents: first.totalCents }], ageCheck: "ID_SIGHTED" }), pos());
+    await postPosSale(saleInput({ customerId: m.id, lines: basket.items, payments: [{ method: "CARD", amountCents: first.totalCents }], ageCheck: "ID_SIGHTED" }), pos());
     expect((await quote(basket)).applied).toEqual([]);
   });
 });

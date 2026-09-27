@@ -33,6 +33,7 @@ export async function saveCompliance(_: ActionState, fd: FormData): Promise<Acti
     ageRestricted: classes(fd, "ageRestricted"),
     channels: Object.fromEntries(CHANNELS.map((c) => [c, classes(fd, `ch_${c}`)])) as ComplianceSettings["channels"],
     tobaccoBillMode: bool(fd, "tobaccoBillMode"),
+    membersOnly: bool(fd, "membersOnly"),
   };
   // Guardrails: the licence gate and the 18+ check on licensed classes can't be switched off from here.
   if (!next.licensedOnly.includes("THC")) return fail("THC must stay licence-gated. Commercial THC trade needs a licence under any current or proposed regime.");
