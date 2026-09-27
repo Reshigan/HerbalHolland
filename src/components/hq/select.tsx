@@ -1,5 +1,5 @@
-// Select with a visible chevron. (The shared ui/form Select relies on an arbitrary
-// bg-[url(...)] class that Tailwind doesn't emit, so it renders without an arrow.)
+// Select with a visible chevron. (The shared ui/form Select draws its arrow with an
+// arbitrary background-image utility that Tailwind doesn't emit, so it has no arrow.)
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/cn";
 
