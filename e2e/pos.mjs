@@ -86,12 +86,16 @@ try {
   assert(walkin?.ageCheck === "ID_SIGHTED" && walkin.method === "CASH" && walkin.changeCents === 1500 && walkin.shiftId === shift.id, "sale posted: ID_SIGHTED, cash R400 tendered, R15 change, on the shift");
   await page.getByTestId("new-sale").click();
 
-  step("Patient member (HH0100002, active authorisation, home store PTA01): licensed flower by card");
-  const patient = (await q(`select c.id, c.email, pa."authNumber" from "Customer" c join "PatientAuth" pa on pa."customerId" = c.id where c."memberNo" = 'HH0100002' and pa.status = 'ACTIVE' and pa."validTo" > now()`))[0];
-  assert(patient, `patient ${patient?.authNumber} has an active authorisation`);
+  step("Patient member (active authorisation, nothing bought this month): licensed flower by card");
+  // The seed hands out authorisations at random, so pick any verified patient with a full monthly allowance.
+  const patient = (await q(`select c.id, c.email, c."memberNo", pa."authNumber" from "Customer" c join "PatientAuth" pa on pa."customerId" = c.id
+    where pa.status = 'ACTIVE' and pa."validFrom" <= now() and pa."validTo" > now() + interval '7 days' and c.email is not null and c."ageVerifiedAt" is not null
+      and not exists (select 1 from "Sale" s where s."customerId" = c.id and s."createdAt" >= date_trunc('month', now()))
+    order by c."memberNo" limit 1`))[0];
+  assert(patient, `patient ${patient?.memberNo} has an active authorisation`);
   await waitOnline();
   await page.getByRole("button", { name: /Find member/ }).first().click();
-  await page.getByLabel("Search members").fill("HH0100002");
+  await page.getByLabel("Search members").fill(patient.memberNo);
   await page.getByTestId("customer-card").waitFor();
   ok("member attached from member number");
   await page.getByRole("button", { name: /^Durban Poison, from/ }).click();
@@ -163,7 +167,7 @@ try {
     ok(`first-time member: welcome gift offered and added (${gift.name})`);
     await page.getByRole("button", { name: "Clear the basket" }).click();
     await page.getByRole("button", { name: "Clear basket", exact: true }).click();
-  } else await page.getByRole("button", { name: "Remove customer from sale" }).click();
+  } else await page.getByRole("button", { name: "Remove member from sale" }).click();
   await page.getByTestId("customer-card").waitFor({ state: "detached" });
 
   step("Refund the walk-in's balm (restock, cash)");

@@ -134,7 +134,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
         <div className="space-y-6">
           <Card>
-            <CardHeader title="Customer" />
+            <CardHeader title="Member" />
             <CardBody>
               <Link href={`/hq/customers/${order.customer.id}`} className="font-semibold text-ink-900 hover:text-brand-700">
                 {order.customer.firstName} {order.customer.lastName ?? ""}
@@ -215,11 +215,11 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
           {canCancel && (
             <Card>
-              <CardHeader title="Customer service" description="Cancelling releases the stock, returns points and refunds online payments" />
+              <CardHeader title="Member service" description="Cancelling releases the stock, returns points and refunds online payments" />
               <CardBody>
                 <ConfirmAction action={cancelOrder.bind(null, order.id)} label="Cancel order" title={`Cancel order ${order.code}?`} confirmLabel="Cancel order" className="w-full">
-                  <Field label="Reason (the customer is told their order was cancelled)" htmlFor="cancel-reason">
-                    <Textarea id="cancel-reason" name="reason" className="min-h-16" placeholder="e.g. Customer asked to cancel by phone" />
+                  <Field label="Reason (the member is told their order was cancelled)" htmlFor="cancel-reason">
+                    <Textarea id="cancel-reason" name="reason" className="min-h-16" placeholder="e.g. Member asked to cancel by phone" />
                     <FieldError name="reason" />
                   </Field>
                   {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online — refund is marked automatically</Badge>}

@@ -94,7 +94,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
           </Card>
 
           <Card>
-            <CardHeader title="Store profile" description="Location, contact details and services shown to customers and on invoices" />
+            <CardHeader title="Store profile" description="Location, contact details and services shown to members and on invoices" />
             <CardBody>
               {!editProfile && <ViewOnly className="mb-4" />}
               <ActionForm action={saveStoreProfile.bind(null, store.id)}>
@@ -175,7 +175,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                     <Textarea id="receiptFooter" name="receiptFooter" defaultValue={store.receiptFooter ?? ""} className="min-h-16" />
                   </Field>
                   <div className="flex flex-wrap gap-6 sm:col-span-2">
-                    <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Customers can collect online orders here" />
+                    <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Members can collect online orders here" />
                     <Checkbox name="sameDay" defaultChecked={store.sameDay} label="Same-day delivery" description="Store runs same-day dispatch (ID checked at the door)" />
                   </div>
                 </fieldset>

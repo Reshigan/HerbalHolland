@@ -41,7 +41,7 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
 
         <section className="mt-4 grid grid-cols-2 gap-6 text-sm">
           <div>
-            <div className="eyebrow text-ink-400">Customer</div>
+            <div className="eyebrow text-ink-400">Member</div>
             <div className="mt-1 font-semibold text-ink-900">
               {o.customer.firstName} {o.customer.lastName ?? ""}
             </div>

@@ -44,11 +44,11 @@ export async function saveLaunch(_: ActionState, fd: FormData): Promise<ActionSt
     data: { before: Object.fromEntries(changed.map((k) => [k, before[k]])), after: Object.fromEntries(changed.map((k) => [k, next[k]])) },
   });
   revalidatePath("/hq/launch");
-  if (!at) return done("Saved. There's no launch date, so the shop runs normally — no waitlist.");
+  if (!at) return done("Saved. There's no closing date, so there's no Founding Members list.");
   return done(
     at > new Date()
-      ? `Saved. The shop runs as a waitlist until ${fmtDateTime(at)}.`
-      : `Saved. The launch time has passed: the shop is live and the scheduler numbers the Founding Members within 15 minutes — or assign them now below.`,
+      ? `Saved. The Founding Members list closes ${fmtDateTime(at)}.`
+      : `Saved. The closing time has passed: the scheduler numbers the Founding Members within 15 minutes — or assign them now below.`,
   );
 }
 

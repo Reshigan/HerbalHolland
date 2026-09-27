@@ -98,7 +98,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title="Traceability" description={limit ? "Customers of your region's stores who bought from this batch" : "Everyone who bought from this batch, from the till and online"} />
+            <CardHeader title="Traceability" description={limit ? "Members of your region's stores who bought from this batch" : "Everyone who bought from this batch, from the till and online"} />
             <CardBody className="grid grid-cols-2 gap-3 sm:grid-cols-4">
               <MiniStat label="Units sold (net)" value={num(summary.units)} />
               <MiniStat label="Sales" value={num(summary.sales)} sub={`${num(summary.anonymous)} without a member`} />
@@ -109,7 +109,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
               <thead>
                 <tr>
                   <Th>Sale</Th>
-                  <Th>Customer</Th>
+                  <Th>Member</Th>
                   <Th className="hidden sm:table-cell">Store</Th>
                   <Th align="right">Units</Th>
                 </tr>
@@ -145,7 +145,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
           </Card>
 
           <Card>
-            <CardHeader title="Lab results" description="Certificate of analysis for this lot — shown to customers on the batch page" />
+            <CardHeader title="Lab results" description="Certificate of analysis for this lot — shown on the public batch page" />
             <CardBody>
               {!edit && <ViewOnly className="mb-4">View only — lab results are recorded by HQ quality.</ViewOnly>}
               <ActionForm action={saveLabResults.bind(null, batch.id)}>
@@ -274,7 +274,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                       This can&apos;t be undone. The batch is blocked everywhere, every store gets a recall notice to acknowledge, and the {num(summary.customers)} members who bought it get an SMS asking them to return it.
                     </span>
                   </div>
-                  <Field label="Reason (shown to stores and customers)" htmlFor="rc-reason">
+                  <Field label="Reason (shown to stores and members)" htmlFor="rc-reason">
                     <Textarea id="rc-reason" name="reason" className="min-h-16" placeholder="e.g. Potency label misprint" />
                     <FieldError name="reason" />
                   </Field>

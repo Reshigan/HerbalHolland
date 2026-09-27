@@ -7,6 +7,7 @@ import { audit } from "@/server/audit";
 import { setConsent } from "@/server/customers";
 import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { HOME_STORE_STATUSES } from "@/server/shop/context";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
@@ -23,8 +24,8 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   const fields: ProfileState["fields"] = {};
   if (!firstName || firstName.length > 60) fields.firstName = "Tell us your first name";
   if (email && !EMAIL.test(email)) fields.email = "That email address doesn't look right";
-  const store = homeStoreId ? await db.store.findFirst({ where: { id: homeStoreId, kind: "RETAIL", status: "ACTIVE" }, select: { id: true } }) : null;
-  if (!store) fields.homeStoreId = "Choose a trading store";
+  const store = homeStoreId ? await db.store.findFirst({ where: { id: homeStoreId, kind: "RETAIL", status: { in: HOME_STORE_STATUSES } }, select: { id: true } }) : null;
+  if (!store) fields.homeStoreId = "Choose your home store";
   if (Object.keys(fields).length) return { fields };
   try {
     await db.customer.update({ where: { id: c.id }, data: { firstName, lastName: lastName || null, email: email || null, homeStoreId: store!.id } });

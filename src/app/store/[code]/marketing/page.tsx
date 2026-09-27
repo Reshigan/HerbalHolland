@@ -71,7 +71,7 @@ export default async function MarketingPage({ params, searchParams }: { params: 
   return (
     <>
       <PageHeader
-        overline={`Customers · ${store.name}`}
+        overline={`Members · ${store.name}`}
         title="Local marketing"
         description={`Run your own till deals at ${store.name} and message your members. HQ network deals run alongside yours; every message respects consent, do-not-contact lists and legal send times.`}
       />

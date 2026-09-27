@@ -21,7 +21,7 @@ export async function savePromotion(code: string, promoId: string | null, _: Act
     const existing = promoId ? await db.promotion.findFirst({ where: { id: promoId, ownerStoreId: store.id } }) : null;
     if (promoId && !existing) return fail("That promotion isn't one of your store's");
     const name = str(fd, "name").slice(0, 80);
-    if (name.length < 3) return fail("Give the promotion a name customers will understand", "name");
+    if (name.length < 3) return fail("Give the promotion a name members will understand", "name");
     const kind = str(fd, "kind") as PromoKind;
     if (!KINDS.includes(kind)) return fail("Choose a deal type", "kind");
 

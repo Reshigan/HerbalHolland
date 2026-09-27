@@ -125,7 +125,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
       </div>
 
       <Card className="mt-6">
-        <CardHeader title="When customers shop" description="Transactions by weekday and hour · last 28 days" />
+        <CardHeader title="Busiest hours" description="Transactions by weekday and hour · last 28 days" />
         <CardBody>
           <Heatmap cells={heat} hours={hours} />
         </CardBody>

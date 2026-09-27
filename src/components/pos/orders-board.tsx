@@ -95,7 +95,7 @@ export function OrdersBoard() {
     setBusyId(o.id);
     try {
       await api(`/api/pos/orders/${o.id}`, { body: { to } });
-      pos.toast(to === "PICKING" ? `Picking ${o.code}` : `${o.code} is ready — the customer has been notified`);
+      pos.toast(to === "PICKING" ? `Picking ${o.code}` : `${o.code} is ready — the member has been notified`);
       await refreshOrders();
     } catch (e) {
       pos.toast(errorText(e), "error");
@@ -355,7 +355,7 @@ function OrderSheet({
               Confirm delivery
             </PosButton>
           ) : action === "cancel" ? (
-            <PosButton variant="danger" size="lg" className="w-full" busy={busy} disabled={reason.trim().length < 3} onClick={() => void simple({ to: "CANCELLED", note: reason.trim() }, () => `${o.code} cancelled — the customer has been told`)}>
+            <PosButton variant="danger" size="lg" className="w-full" busy={busy} disabled={reason.trim().length < 3} onClick={() => void simple({ to: "CANCELLED", note: reason.trim() }, () => `${o.code} cancelled — the member has been told`)}>
               <XCircle className="h-5 w-5" /> Cancel order
             </PosButton>
           ) : (
@@ -379,11 +379,11 @@ function OrderSheet({
 
         {action === "handover" && (
           <div className="mb-5 space-y-4">
-            <Field label="Collection code" htmlFor="collect-code" hint={initialCode && code === initialCode ? "From the customer's collection QR — checked when you hand over" : "The 6-digit code from the customer's SMS or QR — or their order code"}>
+            <Field label="Collection code" htmlFor="collect-code" hint={initialCode && code === initialCode ? "From the member's collection QR — checked when you hand over" : "The 6-digit code from the member's SMS or QR — or their order code"}>
               <div className="flex gap-2">
                 <TextInput id="collect-code" autoFocus inputMode="text" autoComplete="off" value={code} onChange={(e) => takeCode(e.target.value)} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />
                 {canCamera && (
-                  <PosButton variant="secondary" className="h-14 w-14 shrink-0 px-0" onClick={() => setScanning(true)} aria-label="Scan the customer's collection QR">
+                  <PosButton variant="secondary" className="h-14 w-14 shrink-0 px-0" onClick={() => setScanning(true)} aria-label="Scan the member's collection QR">
                     <QrCode className="h-6 w-6" />
                   </PosButton>
                 )}
@@ -420,7 +420,7 @@ function OrderSheet({
           <CheckRow className="mb-4" checked={idOk} onChange={setIdOk} label="The driver checked the recipient's ID — 18+" />
         )}
         {action === "cancel" && (
-          <Field label="Reason (sent to the customer)" htmlFor="cancel-reason" className="mb-5">
+          <Field label="Reason (sent to the member)" htmlFor="cancel-reason" className="mb-5">
             <TextArea id="cancel-reason" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Out of stock after picking" />
           </Field>
         )}

@@ -116,6 +116,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                   <Input id="merchCourier" name="merchCourier" defaultValue={rand(e.merchCourierCents)} inputMode="decimal" />
                   <FieldError name="merchCourier" />
                 </Field>
+                <Field label="Merch notice" htmlFor="merchNotice" hint="Shown with made-to-order merch in the shop, e.g. the partner's festive closure. Leave empty when there's nothing to say." className="sm:col-span-3">
+                  <Input id="merchNotice" name="merchNotice" defaultValue={e.merchNotice} maxLength={200} placeholder="Order by 10 December for Christmas. Orders after that ship from 12 January." />
+                  <FieldError name="merchNotice" />
+                </Field>
                 <Field label="Same-day cut-off (hour)" htmlFor="sameDayCutoffHour" hint="Orders after this ship next day">
                   <Input id="sameDayCutoffHour" name="sameDayCutoffHour" defaultValue={e.sameDayCutoffHour} inputMode="numeric" />
                   <FieldError name="sameDayCutoffHour" />
@@ -159,7 +163,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             <thead>
               <tr>
                 <Th>Order</Th>
-                <Th>Customer</Th>
+                <Th>Member</Th>
                 <Th className="hidden md:table-cell">Fulfilled by</Th>
                 <Th className="hidden sm:table-cell">Fulfilment</Th>
                 <Th>Status</Th>

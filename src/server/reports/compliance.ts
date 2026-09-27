@@ -286,7 +286,7 @@ export const recalls: ReportDef = {
         { key: "since", label: "Since", format: "date" },
         { key: "sold", label: "Units sold", format: "number" },
         { key: "returned", label: "Returned", format: "number", csvOnly: true },
-        { key: "out", label: "With customers", format: "number" },
+        { key: "out", label: "With members", format: "number" },
         { key: "members", label: "Members affected", format: "number" },
         { key: "walkIn", label: "Walk-in units", format: "number" },
         { key: "onHand", label: "Still on hand", format: "number" },
@@ -296,13 +296,13 @@ export const recalls: ReportDef = {
       totals: t,
       summary: [
         { label: "Batches blocked", value: rows.length, format: "number", sub: `${n(rows.filter((r) => r.status === "Recalled").length)} recalled · ${n(rows.filter((r) => r.status === "Quarantine").length)} in quarantine` },
-        { label: "Units with customers", value: t.out as number, format: "number", upIsGood: false },
+        { label: "Units with members", value: t.out as number, format: "number", upIsGood: false },
         { label: "Members to contact", value: t.members as number, format: "number", sub: `${n(t.walkIn as number)} walk-in units untraceable` },
         { label: "Still on hand", value: t.onHand as number, format: "number", sub: "must be pulled from sale", upIsGood: false },
       ],
       emptyTitle: "No recalls",
       empty: "No batches are recalled or in quarantine.",
-      note: "The till and web shop never sell a recalled or quarantined batch. Pull any units still on hand, log returns as RECALL adjustments and open a batch to trace its customers.",
+      note: "The till and web shop never sell a recalled or quarantined batch. Pull any units still on hand, log returns as RECALL adjustments and open a batch to trace its members.",
     };
   },
 };
@@ -322,7 +322,7 @@ async function batchOptions({ storeIds }: ParamArgs): Promise<Option[]> {
 export const batchTrace: ReportDef = {
   key: "batch-trace",
   title: "Batch trace",
-  description: "Pick a batch: which stores hold it and which customers bought it.",
+  description: "Pick a batch: which stores hold it and which members bought it.",
   group: "Compliance",
   scopes: ["store", "hq"],
   roles: MANAGERS,

@@ -106,7 +106,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="How customers paid" description="Share of takings incl. VAT" />
+          <CardHeader title="How sales were paid" description="Share of takings incl. VAT" />
           <CardBody>
             <Donut data={k.payments} centerLabel={zarCompact(c.grossCents)} />
           </CardBody>

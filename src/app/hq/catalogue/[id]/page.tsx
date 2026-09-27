@@ -74,7 +74,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           )
         }
       />
-      {sp.created && <Notice tone="success" className="mb-6" title="Product created">Add its variants below, then range them at stores. It stays hidden from customers while in draft.</Notice>}
+      {sp.created && <Notice tone="success" className="mb-6" title="Product created">Add its variants below, then range them at stores. It stays out of the shop while in draft.</Notice>}
       {!edit && <ViewOnly className="mb-6">View only — the catalogue is managed by the HQ merchandising team.</ViewOnly>}
 
       <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} readOnly={!edit} />

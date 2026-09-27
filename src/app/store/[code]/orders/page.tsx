@@ -75,7 +75,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
       <Card>
         <TabLinks className="px-4" current={tabHref(tab)} tabs={Object.entries(TABS).map(([k, t]) => ({ href: tabHref(k), label: t.label, count: n(t.statuses) }))} />
         <div className="border-b border-ink-100 p-4 sm:px-5">
-          <SearchForm path={path} q={q} keep={{ tab: tab === "todo" ? undefined : tab }} placeholder="Order code, customer or member number" />
+          <SearchForm path={path} q={q} keep={{ tab: tab === "todo" ? undefined : tab }} placeholder="Order code, member name or number" />
         </div>
         {orders.length === 0 ? (
           <EmptyState icon={<ShoppingBag className="h-5 w-5" />} title={tab === "todo" ? "All caught up" : "No orders here"}>
@@ -86,7 +86,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
             <thead>
               <tr>
                 <Th>Order</Th>
-                <Th>Customer</Th>
+                <Th>Member</Th>
                 <Th>Fulfilment</Th>
                 <Th align="right">Items</Th>
                 <Th align="right">Total</Th>

@@ -159,7 +159,7 @@ describe("till rules", () => {
     expect(b.blocks.map(classifyBlock)).toEqual(["QUANTITY"]);
     const c = checkCompliance({ items: [flower], channel: "POS", customer: { ageVerified: true, age: 17 }, storeLicences: [] });
     expect(c.blocks.map(classifyBlock)).toEqual(["LICENCE", "UNDERAGE", "PATIENT"]);
-    expect(classifyBlock("Daily limit is 30g per customer (…)")).toBe("DAILY_LIMIT");
+    expect(classifyBlock("Daily limit is 30g per member (…)")).toBe("DAILY_LIMIT");
     expect(classifyBlock("Something new")).toBe("OTHER");
   });
 

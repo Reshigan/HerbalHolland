@@ -38,7 +38,7 @@ export default async function PatientsPage({ params, searchParams }: { params: P
   return (
     <>
       <PageHeader
-        overline={`Customers · ${store.name}`}
+        overline={`Members · ${store.name}`}
         title="Patient register"
         description="SAHPRA Section 21 authorisations for your members, and the dispensing register for licensed medicines. Clinical conditions are never stored (POPIA s26)."
       />

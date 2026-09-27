@@ -52,7 +52,7 @@ export function routeOrder(req: RouteRequest, candidates: RouteCandidate[]): Rou
 
   if (req.fulfilment === "COLLECT") {
     const chosen = live.find((c) => c.id === req.storeId);
-    if (chosen && chosen.clickCollect && canFill(chosen, req.lines)) return { ok: true, storeId: chosen.id, reason: "Customer's chosen store" };
+    if (chosen && chosen.clickCollect && canFill(chosen, req.lines)) return { ok: true, storeId: chosen.id, reason: "Member's chosen store" };
     return { ok: false, reason: "Not everything is in stock at that store", alternatives: alts(fillable.filter((c) => c.kind === "RETAIL" && c.clickCollect)) };
   }
 

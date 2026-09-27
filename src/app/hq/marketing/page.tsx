@@ -239,7 +239,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
 function Header({ canCreate }: { canCreate: boolean }) {
   return (
     <PageHeader
-      overline="Customers"
+      overline="Members"
       title="Campaigns"
       description="SMS, email and push to Rewards members — consent checked per channel, the do-not-contact list applied, CPA send windows enforced and every sale attributed."
       actions={

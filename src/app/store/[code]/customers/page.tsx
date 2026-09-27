@@ -91,7 +91,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   return (
     <>
       <PageHeader
-        overline={`Customers · ${store.name}`}
+        overline={`Members · ${store.name}`}
         title="Members"
         description={`Herbal Holland Rewards members who call ${store.name} home. Spend and visits are what they bought here; tier, points and segment follow the network programme.`}
         actions={canManage && <AddMember action={addMember.bind(null, store.code)} wording={CONSENT_WORDING} storeName={store.name} />}

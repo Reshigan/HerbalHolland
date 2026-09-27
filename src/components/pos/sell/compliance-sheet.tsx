@@ -25,7 +25,7 @@ const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
 
 const TITLE: Record<BlockKind, string> = {
   AGE: "Check ID — adults 18+ only",
-  UNDERAGE: "Customer is under age",
+  UNDERAGE: "Under age — no sale",
   PATIENT: "Patient authorisation needed",
   QUANTITY: "Over the authorised quantity",
   DISPENSER: "Authorised dispenser required",

@@ -145,7 +145,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
               <Calculator className="h-4 w-4 text-brand-700" /> Pricing simulator
             </span>
           }
-          description="What would this customer pay, and which rule decided it? Promotions are applied on top at the till and in the basket."
+          description="What would this member pay, and which rule decided it? Promotions are applied on top at the till and in the basket."
         />
         <CardBody>
           <FilterForm action="/hq/pricing" className="items-end">

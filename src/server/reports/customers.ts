@@ -1,5 +1,5 @@
-// Customer reports: RFM segments (as of today), new vs returning customers by week,
-// and member attach (share of transactions linked to a Rewards member).
+// Member reports: RFM segments (as of today), new vs returning members by week, member attach (share of
+// transactions linked to a Rewards member), Rewards savings and where members joined.
 import { db, Prisma } from "../db";
 import { segmentWhere } from "../marketing";
 import { sast } from "../sql";
@@ -19,9 +19,9 @@ const CONSENTED: Prisma.CustomerWhereInput = { OR: [{ consentSms: true }, { cons
 
 export const segments: ReportDef = {
   key: "segments",
-  title: "Customer segments",
+  title: "Member segments",
   description: "Who are our members? Recency, frequency and value segments with the play for each.",
-  group: "Customers",
+  group: "Members",
   scopes: ["store", "hq"],
   async run(ctx) {
     const home: Prisma.CustomerWhereInput = ctx.networkWide ? {} : { homeStoreId: { in: ctx.storeIds } };
@@ -76,9 +76,9 @@ export const segments: ReportDef = {
 
 export const newVsReturning: ReportDef = {
   key: "new-vs-returning",
-  title: "New vs returning customers",
-  description: "Are we winning new customers each week — and bringing them back?",
-  group: "Customers",
+  title: "New vs returning members",
+  description: "Are we winning new members each week — and bringing them back?",
+  group: "Members",
   scopes: ["store", "hq"],
   filters: ["range"],
   defaultRange: "90d",
@@ -123,8 +123,8 @@ export const newVsReturning: ReportDef = {
       columns: [
         { key: "week", label: "Week of", format: "date" },
         { key: "signups", label: "Sign-ups", format: "number" },
-        { key: "newMembers", label: "New customers", format: "number" },
-        { key: "returning", label: "Returning customers", format: "number" },
+        { key: "newMembers", label: "New members", format: "number" },
+        { key: "returning", label: "Returning members", format: "number" },
         { key: "walkIns", label: "Walk-in sales", format: "number" },
         { key: "memberShare", label: "Member sales", format: "pct" },
         { key: "newNet", label: "Net from new", format: "zar" },
@@ -140,7 +140,7 @@ export const newVsReturning: ReportDef = {
         { label: "Member sales", value: t.memberShare as number | null, format: "pct", sub: "of transactions" },
       ],
       chart: rows.length > 1
-        ? { kind: "area", title: "New and returning customers", description: "Distinct members buying each week", format: "number", labels: rows.map((r) => fmtDay(`${r.week}T12:00:00Z`)), series: [{ name: "Returning", values: rows.map((r) => r.returning as number) }, { name: "New", values: rows.map((r) => r.newMembers as number) }] }
+        ? { kind: "area", title: "New and returning members", description: "Distinct members buying each week", format: "number", labels: rows.map((r) => fmtDay(`${r.week}T12:00:00Z`)), series: [{ name: "Returning", values: rows.map((r) => r.returning as number) }, { name: "New", values: rows.map((r) => r.newMembers as number) }] }
         : null,
       empty: "No sales in this period.",
       note: "Weeks start on Monday (South African time); the first and last weeks can be partial. New = the member's first purchase anywhere in the network happened that week. Returning customers are counted per week, so the total isn't summed across weeks.",
@@ -152,7 +152,7 @@ export const memberAttach: ReportDef = {
   key: "member-attach",
   title: "Member attach rate",
   description: "What share of transactions are linked to a Rewards member?",
-  group: "Customers",
+  group: "Members",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
   async run(ctx) {
@@ -169,7 +169,7 @@ export const memberAttach: ReportDef = {
       { label: "Member transactions", value: c.members, format: "number" as const, sub: `of ${n(c.sales)}` },
       { label: "Walk-in transactions", value: c.sales - c.members, format: "number" as const },
     ];
-    const note = "A transaction is attached when the customer's Rewards account was linked at the till or online. Refunds don't change the count.";
+    const note = "A transaction is attached when the member's Rewards account was linked at the till or online. Refunds don't change the count.";
     if (multi(ctx)) {
       const [now, before] = await Promise.all([
         db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx), _sum: { sales: true, members: true, grossCents: true, vatCents: true } }),
@@ -218,7 +218,7 @@ export const rewardsSavings: ReportDef = {
   key: "rewards-savings",
   title: "Rewards savings",
   description: "How much do members save instantly at the till — and do they spend more than walk-ins?",
-  group: "Customers",
+  group: "Members",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
   async run(ctx) {
@@ -301,6 +301,43 @@ export const rewardsSavings: ReportDef = {
       emptyTitle: "No member sales",
       empty: "No sales were linked to a Rewards member in this period.",
       note: `Members pay their tier's Rewards price at the till (${tiers}); the saving is measured against the walk-in price and nets off refunds. It's a price reduction already reflected in net sales — not a points liability.${savings === 0 ? " No instant savings were recorded in this period — savings are captured from the launch of tier pricing." : ""}`,
+    };
+  },
+};
+
+// ── Where members joined: tagged join links and QR codes (/club/join?src=…) ──
+const JOINED_AT: Record<string, string> = { WEB: "Website (untagged)", REFERRAL: "A friend's link", POS: "At the till", ADMIN: "Added by a store" };
+
+export const joinSources: ReportDef = {
+  key: "join-sources",
+  title: "Where members joined",
+  description: "Which QR codes, links, events and partners bring in new members?",
+  group: "Members",
+  scopes: ["store", "hq"],
+  filters: ["range"],
+  async run(ctx) {
+    const { start, end } = bounds(ctx);
+    const home: Prisma.CustomerWhereInput = ctx.networkWide ? {} : { homeStoreId: { in: ctx.storeIds } };
+    const groups = await db.customer.groupBy({ by: ["joinedVia", "source"], where: { AND: [home, { createdAt: { gte: start, lt: end } }] }, _count: true });
+    const by = new Map<string, number>();
+    for (const g of groups) {
+      const label = g.joinedVia ?? JOINED_AT[g.source ?? ""] ?? "Other";
+      by.set(label, (by.get(label) ?? 0) + g._count);
+    }
+    const total = groups.reduce((s, g) => s + g._count, 0);
+    const tagged = groups.reduce((s, g) => s + (g.joinedVia ? g._count : 0), 0);
+    const rows = [...by].map(([source, members]) => ({ source, members, share: ratio(members, total) })).sort((a, b) => b.members - a.members);
+    return {
+      columns: [{ key: "source", label: "Source" }, { key: "members", label: "New members", format: "number" }, { key: "share", label: "Share", format: "pct" }],
+      rows,
+      totals: { source: "Total", members: total, share: total ? 1 : null },
+      summary: [
+        { label: "New members", value: total, format: "number" },
+        { label: "From tagged links and QR codes", value: tagged, format: "number", sub: total ? `${Math.round((tagged / total) * 100)}% of new members` : undefined },
+      ],
+      chart: rows.length ? { kind: "bar", title: "New members by source", format: "number", rows: rows.slice(0, 15).map((r) => ({ label: r.source, value: r.members })) } : null,
+      empty: "No new members in this period.",
+      note: "Tag every join link and QR code with ?src= (for example /club/join?src=flyer-hillcrest) to see it here. Untagged sign-ups show where they happened.",
     };
   },
 };

@@ -24,7 +24,7 @@ import { EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { Prisma } from "@/generated/prisma/client";
 import { assignFoundingNow, saveLaunch } from "./actions";
 
-export const metadata = { title: "Launch" };
+export const metadata = { title: "Founding Members" };
 
 const DAYS = 60;
 const four = (n: number) => `#${String(n).padStart(4, "0")}`;
@@ -85,23 +85,23 @@ export default async function LaunchPage() {
   const filled = Math.min(waitlist, l.foundingCap);
 
   const hero = !at
-    ? { eyebrow: "Windmill Days · not scheduled", title: "No launch date set", sub: "The shop runs normally. Set a launch date to run the waitlist with its referral ladder and numbered Founding Members." }
+    ? { eyebrow: "Founding Members · not scheduled", title: "No closing date set", sub: "Set a closing date to run the Founding Members list with its referral ladder and numbered cards. The shop stays open either way." }
     : pre
-      ? { eyebrow: "Windmill Days · pre-launch", title: `Launch in ${countdown(at, now)}`, sub: `Opens ${fmtDateTime(at)} SAST. Until then the shop is a waitlist: members join, share their link and climb the line.` }
+      ? { eyebrow: "Founding Members · list open", title: `List closes in ${countdown(at, now)}`, sub: `Closes ${fmtDateTime(at)} SAST. Until then members join, share their link and climb the list; the shop stays open.` }
       : {
-          eyebrow: "Windmill Days · launched",
-          title: `Live since ${fmtDate(at)}`,
+          eyebrow: "Founding Members · list closed",
+          title: `Closed ${fmtDate(at)}`,
           sub: assigned
             ? `${num(assignedNetwork)} Founding Members numbered · at least ${tier.name} until ${fmtDate(floorEnds!)}.`
-            : "The launch time has passed — the scheduler numbers the Founding Members within 15 minutes.",
+            : "The list has closed — the scheduler numbers the Founding Members within 15 minutes.",
         };
 
   return (
     <>
       <PageHeader
         overline="Launch programme"
-        title="Launch & Founding Members"
-        description="The pre-launch waitlist, the referral ladder and the numbered founding cards. Win on value, status and trust — never on medicines."
+        title="Founding Members"
+        description="The Founding Members list, the referral ladder and the numbered cards. Win on value, status and trust — never on medicines."
       />
 
       <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-ink-950 p-5 text-white shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -133,11 +133,11 @@ export default async function LaunchPage() {
         )}
       </div>
 
-      {!hq && <Notice className="mb-6">Member figures cover members whose home store is in your region; the waitlist and founding numbers run network-wide.</Notice>}
+      {!hq && <Notice className="mb-6">Member figures cover members whose home store is in your region; the list and the Founding Member numbers run network-wide.</Notice>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label={pre ? "On the waitlist" : "Joined before launch"} value={at ? num(waitlist) : "—"} sub={at ? (hq ? "members, network-wide" : "members in your region") : "no launch date"} />
-        <Stat label="Joined with a friend's link" value={at ? num(viaFriend) : "—"} sub={waitlist ? `${pct(viaFriend / waitlist)} of the waitlist` : "before launch"} />
+        <Stat label={pre ? "On the list" : "Joined before the list closed"} value={at ? num(waitlist) : "—"} sub={at ? (hq ? "members, network-wide" : "members in your region") : "no closing date"} />
+        <Stat label="Joined with a friend's link" value={at ? num(viaFriend) : "—"} sub={waitlist ? `${pct(viaFriend / waitlist)} of the list` : "while the list is open"} />
         <div className="rounded-2xl border border-ink-150 bg-white p-4 shadow-card">
           <div className="text-[0.78rem] font-medium text-ink-500">Founding Members</div>
           <div className="mt-1 font-display text-[1.65rem] font-semibold leading-none tracking-tight text-ink-950 tnum">{assigned ? num(founders) : at ? (hq ? num(filled) : "Pending") : "—"}</div>
@@ -158,7 +158,7 @@ export default async function LaunchPage() {
           <Card>
             <CardHeader
               title="Sign-ups per day"
-              description={`${at && !pre ? `The ${DAYS} days to launch` : `Last ${DAYS} days`} · ${num(chartTotal)} members joined${hq ? "" : " in your region"}`}
+              description={`${at && !pre ? `The ${DAYS} days before the list closed` : `Last ${DAYS} days`} · ${num(chartTotal)} members joined${hq ? "" : " in your region"}`}
             />
             <CardBody>
               <ColumnChart
@@ -188,7 +188,7 @@ export default async function LaunchPage() {
                 {referrers.length === 0 && (
                   <EmptyRow cols={6}>
                     <Share2 className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-                    {at ? "Nobody has joined with a friend's link before launch yet." : "Set a launch date to start the referral ladder."}
+                    {at ? "Nobody has joined with a friend's link yet." : "Set a closing date to start the referral ladder."}
                   </EmptyRow>
                 )}
                 {referrers.map((r, i) => (
@@ -210,16 +210,16 @@ export default async function LaunchPage() {
             </Table>
           </Card>
           <Card>
-            <CardHeader title="How places and founding work" description="What members see on their Rewards card before and after launch" />
+            <CardHeader title="How places and founding work" description="What members see on their Rewards card while the list is open and after it closes" />
             <CardBody className="pt-4">
               <ol className="grid gap-5 text-sm md:grid-cols-3">
                 {[
-                  { icon: Users, title: "Join the waitlist", body: "Every member who joins before launch gets a place in the line — first come, first served. Joining is free and needs no purchase." },
-                  { icon: Share2, title: "Bring friends, move up", body: `Each friend who joins with their link (/club/join?ref=CODE) before launch moves them up ${num(l.referralBoost)} places. The friend gets their own place at the back of the line.` },
+                  { icon: Users, title: "Join the list", body: "Every member who joins before the list closes gets a place — first come, first served. Joining is free and needs no purchase." },
+                  { icon: Share2, title: "Bring friends, move up", body: `Each friend who joins with their link (/club/join?ref=CODE) before the list closes moves them up ${num(l.referralBoost)} places. The friend gets their own place at the bottom of the list.` },
                   {
                     icon: Crown,
-                    title: "Founding Members at launch",
-                    body: `At launch the first ${num(l.foundingCap)} places are numbered ${four(1)}–${four(l.foundingCap)} and hold at least ${tier.name} (${saving}% off instantly) for ${l.foundingMonths} months. Then their tier follows 12-month spend like everyone else's.`,
+                    title: "Founding Members when it closes",
+                    body: `When the list closes, the first ${num(l.foundingCap)} places are numbered ${four(1)}–${four(l.foundingCap)} and hold at least ${tier.name} (${saving}% off instantly) for ${l.foundingMonths} months. Then their tier follows 12-month spend like everyone else's.`,
                   },
                 ].map((s, i) => (
                   <li key={s.title}>
@@ -242,13 +242,13 @@ export default async function LaunchPage() {
 
         <div className="min-w-0 space-y-6">
           <Card>
-            <CardHeader title="Launch settings" description="Apply to the waitlist and the founding programme" />
+            <CardHeader title="Founding Members settings" description="The list, its closing date and what founding members get" />
             <CardBody>
               {!admin && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
-              {admin && assigned && <ViewOnly className="mb-4">Locked — founding numbers are assigned, so the launch can&apos;t be rewritten.</ViewOnly>}
+              {admin && assigned && <ViewOnly className="mb-4">Locked — founding numbers are assigned, so the list can&apos;t be rewritten.</ViewOnly>}
               <ActionForm action={saveLaunch}>
                 <fieldset disabled={locked} className="min-w-0 grid grid-cols-2 gap-3">
-                  <Field label="Launch (SAST)" htmlFor="launchAt" hint="Before this moment the shop is a waitlist. Leave empty for no waitlist." className="col-span-2">
+                  <Field label="List closes (SAST)" htmlFor="launchAt" hint="Members who join before this moment are on the list; the shop stays open. Leave empty for no list." className="col-span-2">
                     <Input id="launchAt" name="launchAt" type="datetime-local" defaultValue={toLocalInput(at)} />
                     <FieldError name="launchAt" />
                   </Field>
@@ -278,7 +278,7 @@ export default async function LaunchPage() {
                 {!locked && (
                   <div className="mt-4 flex justify-end">
                     <SubmitButton variant="outline" pendingLabel="Saving…">
-                      Save launch settings
+                      Save
                     </SubmitButton>
                   </div>
                 )}
@@ -287,7 +287,7 @@ export default async function LaunchPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Founding numbers" description="Assigned once, at launch — numbers are permanent" />
+            <CardHeader title="Founding numbers" description="Assigned once, when the list closes — numbers are permanent" />
             <CardBody className="space-y-3 text-sm text-ink-600">
               {assigned ? (
                 <p className="flex gap-2.5">
@@ -298,14 +298,14 @@ export default async function LaunchPage() {
                 </p>
               ) : !at || pre ? (
                 <>
-                  <p>{at ? `The scheduler numbers the first ${num(l.foundingCap)} places automatically at ${fmtDateTime(at)}.` : "Set a launch date first."} The button unlocks once the launch time has passed.</p>
+                  <p>{at ? `The scheduler numbers the first ${num(l.foundingCap)} places automatically at ${fmtDateTime(at)}.` : "Set a closing date first."} The button unlocks once the list has closed.</p>
                   <Button variant="outline" size="sm" disabled>
                     Assign founding numbers now
                   </Button>
                 </>
               ) : admin ? (
                 <>
-                  <p>The launch time has passed. The scheduler assigns numbers within 15 minutes — or do it now.</p>
+                  <p>The list has closed. The scheduler assigns numbers within 15 minutes — or do it now.</p>
                   <ConfirmAction
                     action={assignFoundingNow}
                     variant="primary"
@@ -314,7 +314,7 @@ export default async function LaunchPage() {
                     confirmLabel="Assign numbers"
                   >
                     <p>
-                      Members in the first {num(l.foundingCap)} waitlist places get their Founding Member number and at least {tier.name} until {floorEnds ? fmtDate(floorEnds) : "—"}. This happens once and can&apos;t be undone.
+                      Members in the first {num(l.foundingCap)} places on the list get their Founding Member number and at least {tier.name} until {floorEnds ? fmtDate(floorEnds) : "—"}. This happens once and can&apos;t be undone.
                     </p>
                   </ConfirmAction>
                 </>

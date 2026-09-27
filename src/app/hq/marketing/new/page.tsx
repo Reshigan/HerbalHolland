@@ -20,7 +20,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
   return (
     <>
       <BackLink href="/hq/marketing">Campaigns</BackLink>
-      <PageHeader overline="Customers" title="New campaign" description="Pick who hears from you and how. Only members who opted in to the channel are messaged, and nothing goes out outside the legal contact windows." />
+      <PageHeader overline="Members" title="New campaign" description="Pick who hears from you and how. Only members who opted in to the channel are messaged, and nothing goes out outside the legal contact windows." />
       <Composer
         action={saveCampaign.bind(null, null)}
         estimate={estimateReach}

@@ -27,7 +27,7 @@ export const storeNav = (code: string): NavGroup[] => [
     ],
   },
   {
-    title: "Customers",
+    title: "Members",
     items: [
       { label: "Members", href: `/store/${code}/customers`, icon: "Users" },
       { label: "Patient register", href: `/store/${code}/patients`, icon: "Stethoscope" },
@@ -79,7 +79,7 @@ export const hqNav: NavGroup[] = [
     ],
   },
   {
-    title: "Customers",
+    title: "Members",
     items: [
       { label: "Members & CRM", href: "/hq/customers", icon: "Users" },
       { label: "Campaigns", href: "/hq/marketing", icon: "Megaphone" },
@@ -89,7 +89,7 @@ export const hqNav: NavGroup[] = [
   {
     title: "Launch programme",
     items: [
-      { label: "Launch & founders", href: "/hq/launch", icon: "Rocket" },
+      { label: "Founding Members", href: "/hq/launch", icon: "Rocket" },
       { label: "Drops", href: "/hq/drops", icon: "Sparkles" },
       { label: "Events", href: "/hq/events", icon: "CalendarDays" },
     ],

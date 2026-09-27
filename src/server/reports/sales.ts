@@ -278,7 +278,7 @@ const WEEK = [
 export const salesByHour: ReportDef = {
   key: "sales-by-hour",
   title: "Sales by hour",
-  description: "When do customers shop? Plan rosters around the busy hours.",
+  description: "When are the tills busiest? Plan rosters around the busy hours.",
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -539,7 +539,7 @@ export const payments: ReportDef = {
         { label: "Cash", value: t.cashCents as number, format: "zar", sub: pctOf(t.cashCents, t.total) },
         { label: "PayShap", value: t.payshapCents as number, format: "zar", sub: pctOf(t.payshapCents, t.total) },
       ],
-      chart: (t.total as number) > 0 ? { kind: "donut", title: "How customers paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarShort(t.total as number) } : null,
+      chart: (t.total as number) > 0 ? { kind: "donut", title: "How sales were paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarShort(t.total as number) } : null,
       note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account; online payments are collected by HQ and redeemed Rewards points are reimbursed — both on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to.",
     };
   },

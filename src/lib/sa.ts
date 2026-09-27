@@ -85,6 +85,11 @@ function easterSunday(year: number) {
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const shift = (d: Date, n: number) => new Date(d.getTime() + n * 86_400_000);
 
+// Days proclaimed under s2A of the Public Holidays Act (election days and the like): add each one when it is gazetted.
+const PROCLAIMED: Record<string, string> = {
+  "2026-11-04": "Local government elections",
+};
+
 export function publicHolidays(year: number): Map<string, string> {
   const fixed: [string, string][] = [
     ["01-01", "New Year's Day"],
@@ -108,6 +113,7 @@ export function publicHolidays(year: number): Map<string, string> {
   const easter = easterSunday(year);
   out.set(iso(shift(easter, -2)), "Good Friday");
   out.set(iso(shift(easter, 1)), "Family Day");
+  for (const [day, name] of Object.entries(PROCLAIMED)) if (day.startsWith(`${year}-`)) out.set(day, name);
   return out;
 }
 

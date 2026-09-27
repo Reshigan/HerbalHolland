@@ -38,8 +38,8 @@ afterAll(async () => {
   await db.$disconnect();
 });
 
-describe("Waitlist & Founding Members", () => {
-  it("ranks the waitlist with referral boosts, numbers founders at launch and holds their tier", async () => {
+describe("Founding Members list", () => {
+  it("ranks the list with referral boosts, numbers Founding Members when it closes and holds their tier", async () => {
     const launchAt = new Date(Date.now() - 86_400_000);
     await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, launchAt: launchAt.toISOString(), foundingCap: 3, referralBoost: 3 });
     const t0 = Date.now() - 10 * 86_400_000;
@@ -70,9 +70,12 @@ describe("Waitlist & Founding Members", () => {
     void b;
   });
 
-  it("keeps the shop closed until launch", async () => {
+  it("keeps the shop open while the Founding Members list runs", async () => {
     await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, launchAt: new Date(Date.now() + 86_400_000).toISOString() });
-    await expect(placeOrder({ customerId: w.walkIn.id, fulfilment: "COLLECT", storeId: w.store.id, items: [{ variantId: w.oilV.id, qty: 1 }], payMethod: "IN_STORE" })).rejects.toThrow(/We open on/);
+    const m = await member(9);
+    const o = await placeOrder({ customerId: m.id, fulfilment: "COLLECT", storeId: w.store.id, items: [{ variantId: w.oilV.id, qty: 1 }], payMethod: "IN_STORE" });
+    expect(o.status).toBe("PLACED");
+    expect((await waitlistPlace(m.id))?.place).toBeGreaterThan(0);
     await saveSetting("launch", DEFAULT_SETTINGS.launch);
   });
 });

@@ -414,7 +414,7 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
         title={`Refund ${zar(amount)}?`}
         body={
           <>
-            {units} item{units === 1 ? "" : "s"} from {sale.number} back to the customer by <b>{TENDER_LABEL[method]}</b>. A credit note is issued{sale.invoiceEmail ? ` and emailed to ${sale.invoiceEmail}` : ""}. This can&apos;t be undone.
+            {units} item{units === 1 ? "" : "s"} from {sale.number} refunded by <b>{TENDER_LABEL[method]}</b>. A credit note is issued{sale.invoiceEmail ? ` and emailed to ${sale.invoiceEmail}` : ""}. This can&apos;t be undone.
           </>
         }
         confirmLabel="Confirm refund"

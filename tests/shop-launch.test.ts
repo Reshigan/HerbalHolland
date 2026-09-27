@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { countdownParts, dropPhase, earlyLabel, earlyWho, fmtCountdown, fmtLead, foundingLabel, icsEvent, readableDropBlock, waitlistView } from "@/server/shop/launch-rules";
 import { dropBlock, type DropRule } from "@/lib/drops";
+import { joinTag } from "@/server/customers";
 
 const at = new Date("2026-10-02T07:00:00Z");
 const drop: DropRule = { name: "Sunset Hoodie No. 1", startsAt: at, endsAt: new Date("2026-10-09T07:00:00Z"), earlyTier: "HARVEST", earlyMinutes: 120, perMemberLimit: 1, membersOnly: true };
@@ -95,5 +96,13 @@ describe("calendar file", () => {
     for (const line of ics.split("\r\n")) expect(new TextEncoder().encode(line).length).toBeLessThanOrEqual(75);
     expect(ics.startsWith("BEGIN:VCALENDAR\r\n")).toBe(true);
     expect(ics.endsWith("END:VCALENDAR\r\n")).toBe(true);
+  });
+});
+
+describe("join tags", () => {
+  it("keeps clean ?src= tags and drops anything else", () => {
+    expect(joinTag(" QR-Window-Hillcrest ")).toBe("qr-window-hillcrest");
+    expect(joinTag("highway-mail")).toBe("highway-mail");
+    for (const bad of ["", null, undefined, "-lead", "flyer hilton", "<script>", "x".repeat(41)]) expect(joinTag(bad)).toBeNull();
   });
 });

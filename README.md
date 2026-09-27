@@ -63,7 +63,8 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
   tote) made one at a time in South Africa by our merch partner and couriered white-label to the customer (courier on
   top); no stock, no minimums. Files for the partner: `npx tsx scripts/merch-export.tsx` → `public/merch/print`
   (vector PDF, SVG, 300 dpi PNG); specs in the brand book (`/brand#merch`).
-- **Launch programme** — pre-launch waitlist with a referral ladder, numbered Founding Members (Sprout for a year),
+- **Launch programme** — a Founding Members list with a referral ladder while the shop trades, numbered Founding
+  Members (a Sprout floor for a set number of months), sign-ups tracked by source (`/club/join?src=…`),
   drops with tier early access and per-member limits, opening-weekend events with QR tickets, first-purchase welcome
   gifts, My Deals (weekly personal offers, HQ-funded), Learn quests, shareable savings cards, app push.
 - **Finance** — P&L, VAT201 working, cash-ups, expenses, monthly franchise statements; every invoice emailed

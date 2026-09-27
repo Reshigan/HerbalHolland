@@ -44,7 +44,7 @@ export default async function StoreEventsPage({ params, searchParams }: { params
   return (
     <>
       <PageHeader
-        overline={`Customers · ${store.name}`}
+        overline={`Members · ${store.name}`}
         title="Events"
         description={`Opening weekends and members' evenings at ${store.name}. Members RSVP in the Rewards app, tickets stop at capacity, and guests check in at the till by scanning their ticket.`}
         actions={

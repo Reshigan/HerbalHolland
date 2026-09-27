@@ -6,7 +6,7 @@ import { getCustomer } from "@/server/auth";
 import { vapidPublicKey } from "@/server/push";
 import { signOut } from "@/server/shop/actions";
 import { consentTrail } from "@/server/shop/club";
-import { getFranchisor, getRetailStores } from "@/server/shop/context";
+import { getFranchisor, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { disablePush, enablePush, setChannelConsent, setPersonalisedOffers } from "../actions";
 import { ConsentToggles } from "@/components/shop/club-client";
 import { PrefSwitch } from "@/components/shop/launch-forms";
@@ -50,7 +50,7 @@ export default async function ClubSettings() {
             </p>
             <ProfileForm
               values={{ firstName: customer.firstName, lastName: customer.lastName ?? "", email: customer.email ?? "", homeStoreId: customer.homeStoreId ?? "" }}
-              stores={stores.filter((s) => s.status === "ACTIVE").map((s) => ({ id: s.id, name: s.name, city: s.city }))}
+              stores={homeStoreOptions(stores)}
             />
           </Panel>
 

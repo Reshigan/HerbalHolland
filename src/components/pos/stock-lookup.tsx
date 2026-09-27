@@ -43,7 +43,7 @@ export function StockLookup({ onAdd }: { onAdd: (variantId: string) => void }) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="mx-auto w-full max-w-4xl px-4 pb-3 pt-4">
         <h1 className="font-display text-xl font-semibold text-white">Stock lookup</h1>
-        <p className="text-sm text-ink-400">What&apos;s on the shelf here, and which nearby stores can help a customer today.</p>
+        <p className="text-sm text-ink-400">What&apos;s on the shelf here, and which nearby stores can help today.</p>
         <div className="relative mt-3">
           <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
           <TextInput autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Product, strain, SKU or barcode" aria-label="Search stock" className="h-14 rounded-full pl-12 text-lg" />

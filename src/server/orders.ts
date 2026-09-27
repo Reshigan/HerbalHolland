@@ -16,11 +16,9 @@ import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
-import { launchState } from "./launch";
 import { routeOrder, type Fulfil, type RouteCandidate } from "@/lib/routing";
 import { incentiveExcluded } from "@/lib/compliance";
 import { vatOf, zar } from "@/lib/money";
-import { fmtDate } from "@/lib/format";
 import type { OrderStatus, Prisma, Province } from "@/generated/prisma/client";
 
 export class OrderError extends Error {
@@ -73,8 +71,6 @@ type Event = { status: OrderStatus; at: string; note?: string };
 
 export async function placeOrder(input: CheckoutInput) {
   const settings = await getSettings();
-  const launch = await launchState();
-  if (launch.preLaunch) throw new OrderError(`We open on ${fmtDate(launch.at!)} — you're on the list`);
   const q = await quote({ channel: "ONLINE", items: input.items, code: input.code, customerId: input.customerId });
   if (!q.lines.length) throw new OrderError("Your bag is empty");
   if (q.codeError) throw new OrderError(q.codeError);
@@ -220,7 +216,7 @@ export async function advanceOrder(
   const dispatch = to === "OUT_FOR_DELIVERY";
   const delivered = to === "COMPLETED" && o.fulfilment !== "COLLECT";
 
-  if ((handover || delivered) && ageRestricted && !opts.idChecked) throw new OrderError("Check the customer's ID (18+) before handing over");
+  if ((handover || delivered) && ageRestricted && !opts.idChecked) throw new OrderError("Check the member's ID (18+) before handing over");
   if (handover && licensed && settings.compliance.thcMode === "MEDICAL" && opts.staffCanDispense === false)
     throw new OrderError("An authorised dispenser must hand over this order");
 

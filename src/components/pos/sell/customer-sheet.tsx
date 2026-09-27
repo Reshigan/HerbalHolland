@@ -35,7 +35,7 @@ export function CustomerSheet({
   return (
     <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name, member number — or scan their member QR" : "Takes about 20 seconds"} size="lg">
       <Segmented
-        label="Customer"
+        label="Member"
         value={mode}
         onChange={onMode}
         className="mb-5 w-fit"
@@ -45,7 +45,7 @@ export function CustomerSheet({
         ]}
       />
       {!online ? (
-        <Alert tone="warn">Offline — finding and signing up members needs a connection. You can still sell to a walk-in customer (cash only).</Alert>
+        <Alert tone="warn">Offline — finding and signing up members needs a connection. You can still sell to a walk-in (cash only).</Alert>
       ) : mode === "find" ? (
         <FindMember onPick={onPick} initialQuery={initialQuery} />
       ) : (
@@ -218,7 +218,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
         )}
         <CheckRow checked={passport} onChange={(v) => (setPassport(v), v && setF((s) => ({ ...s, idNumber: "" })))} label="Passport sighted (not an SA citizen)" description={`I've checked their passport and they are ${minAge} or older.`} />
         <fieldset className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800">
-          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Marketing (optional — ask the customer)</legend>
+          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Marketing (optional — ask them)</legend>
           <div className="grid gap-1 sm:grid-cols-3">
             <CheckRow checked={consents.SMS} onChange={(v) => setConsents((c) => ({ ...c, SMS: v }))} label="SMS" />
             <CheckRow checked={consents.WHATSAPP} onChange={(v) => setConsents((c) => ({ ...c, WHATSAPP: v }))} label="WhatsApp" />
@@ -237,7 +237,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={`/api/pos/qr?text=${encodeURIComponent(joinUrl)}`} alt="QR code to join Herbal Holland Rewards" className="mx-auto mt-3 aspect-square w-full max-w-48 rounded-2xl bg-white p-2" />
         <p className="mt-3 text-xs leading-relaxed text-ink-400">
-          Customers scan with their camera to sign up to Herbal Holland Rewards themselves. Their home store is set to this one.
+          New members scan with their camera to sign up to Herbal Holland Rewards themselves. Their home store is set to this one.
         </p>
         <div className="mt-2 inline-flex items-center gap-1 text-[0.7rem] text-ink-500">
           <QrCode className="h-3 w-3" /> {joinUrl.replace(/^https?:\/\//, "")}

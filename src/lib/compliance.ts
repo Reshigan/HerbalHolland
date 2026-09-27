@@ -71,7 +71,7 @@ export function checkCompliance(input: {
   const needsAgeCheck = input.items.some((i) => s.ageRestricted.includes(i.regClass));
   const c = input.customer;
   if (needsAgeCheck) {
-    if (c?.age != null && c.age < s.minAge) blocks.push(`Customer is under ${s.minAge}`);
+    if (c?.age != null && c.age < s.minAge) blocks.push(`Under ${s.minAge}: age-restricted products can't be sold`);
     else if (!c?.ageVerified && !input.ageCheckedAtCounter) blocks.push(`Age verification required (${s.minAge}+)`);
   }
 
@@ -81,12 +81,12 @@ export function checkCompliance(input: {
 
   if (needsPrescription) {
     const p = c?.patient;
-    if (!p?.active) blocks.push("A valid SAHPRA patient authorisation must be on file for this customer");
+    if (!p?.active) blocks.push("A valid SAHPRA patient authorisation must be on file for this member");
     else if (gramsInCart > p.remainingGrams)
       blocks.push(`Exceeds the authorised quantity: ${fmtG(p.remainingGrams)} left this month, ${fmtG(gramsInCart)} in cart`);
     if (input.channel === "POS" && input.staffCanDispense === false) blocks.push("An authorised dispenser must complete this sale");
   } else if (gramsInCart > 0 && gramsInCart + (input.gramsToday ?? 0) > s.dailyLimitGrams)
-    blocks.push(`Daily limit is ${s.dailyLimitGrams}g per customer (${fmtG(input.gramsToday ?? 0)} already today + ${fmtG(gramsInCart)} in cart)`);
+    blocks.push(`Daily limit is ${s.dailyLimitGrams}g per member (${fmtG(input.gramsToday ?? 0)} already today + ${fmtG(gramsInCart)} in cart)`);
 
   return { ok: blocks.length === 0, blocks, needsAgeCheck, needsPrescription, gramsInCart };
 }

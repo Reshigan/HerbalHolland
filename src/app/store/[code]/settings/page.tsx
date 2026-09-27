@@ -48,7 +48,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                     <Input id="s-phone" name="phone" type="tel" defaultValue={store.phone ?? ""} placeholder="012 345 6789" />
                     <FieldError name="phone" />
                   </Field>
-                  <Field label="WhatsApp (mobile)" htmlFor="s-wa" hint="For customer service only">
+                  <Field label="WhatsApp (mobile)" htmlFor="s-wa" hint="For service messages to members only">
                     <Input id="s-wa" name="whatsapp" type="tel" defaultValue={store.whatsapp ? displayPhone(store.whatsapp) : ""} placeholder="071 234 5678" />
                     <FieldError name="whatsapp" />
                   </Field>
@@ -61,7 +61,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                 <FieldError name="hours" />
                 <fieldset className="grid gap-3 rounded-2xl bg-ink-50 p-4 sm:grid-cols-2">
                   <legend className="sr-only">Online fulfilment</legend>
-                  <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Customers can order online and collect here. Turn off during stock takes or renovations." />
+                  <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Members can order online and collect here. Turn off during stock takes or renovations." />
                   <Checkbox name="sameDay" defaultChecked={store.sameDay} label="Same-day delivery" description="This store may be picked for same-day orders within 30 km." />
                 </fieldset>
                 <SubmitButton pendingLabel="Saving…">Save details</SubmitButton>

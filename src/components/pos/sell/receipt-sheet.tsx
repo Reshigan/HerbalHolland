@@ -121,7 +121,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
             <label htmlFor="inv-email" className="text-sm font-semibold text-white">
               Email the tax invoice?
             </label>
-            <p className="mb-3 mt-0.5 text-xs text-ink-400">Optional — for walk-in customers who want a copy.</p>
+            <p className="mb-3 mt-0.5 text-xs text-ink-400">Optional — for walk-ins who want a copy.</p>
             <div className="flex gap-2">
               <TextInput id="inv-email" type="email" inputMode="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.co.za" />
               <PosButton type="submit" variant="secondary" busy={busy}>

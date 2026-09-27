@@ -189,7 +189,7 @@ the largest consented member base in SA cannabis, ready for the day adult use be
 
 | Mechanic | How it works in the platform |
 |---|---|
-| Waitlist with a referral ladder | Before `launch.launchAt` the shop is a waitlist; a member's place = join order, moved up `referralBoost` places per friend who joins with their link |
+| Founding Members list with a referral ladder | Until `launch.launchAt` (when the list closes) members join the list while the shop trades; a member's place = join order, moved up `referralBoost` places per friend who joins with their link |
 | Founding Members | At launch the first 10,000 places get a numbered card (#0001…) and hold at least Sprout (5% instant savings) for 12 months (`Customer.tierFloor`) |
 | Drops | Limited apparel/accessory/CBD runs: members-only, tier early access (e.g. Harvest 2 h early), per-member limits enforced online and at the till, "notify me" by app push or SMS inside legal send windows |
 | Opening weekends & members' evenings | Store events with capacity-limited RSVPs, QR tickets checked in at the till, welcome gift on the first purchase |

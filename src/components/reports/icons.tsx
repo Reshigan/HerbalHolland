@@ -1,7 +1,7 @@
 // Icons for report groups and individual reports (lucide, 1.9 stroke).
 import {
-  ArrowLeftRight, BadgePercent, Banknote, Boxes, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins,
-  Hourglass, IdCard, Landmark, Megaphone, PackageSearch, PackageX, PiggyBank, Receipt, ReceiptText, Repeat, Route, Scale, ScanSearch, Send, ShieldAlert,
+  ArrowLeftRight, BadgePercent, Banknote, Boxes, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins, Hourglass,
+  IdCard, Landmark, Megaphone, PackageSearch, PackageX, PiggyBank, QrCode, Receipt, ReceiptText, Repeat, Route, Scale, ScanSearch, Send, ShieldAlert,
   ShieldCheck, ShoppingBag, Siren, Snowflake, Stethoscope, Tags, TrendingUp, Trophy, Truck, Undo2, UserCheck, Users, UsersRound, Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -12,7 +12,7 @@ export const GROUP_META: Record<ReportGroup, { icon: LucideIcon; blurb: string }
   Inventory: { icon: Boxes, blurb: "What the stock is worth, how it moves, what goes missing, expires or runs low." },
   Purchasing: { icon: Truck, blurb: "What you bought from the distribution centres and other stores, and how it arrived." },
   Finance: { icon: Wallet, blurb: "Profit, VAT, cash-ups, franchise statements and the Rewards points liability." },
-  Customers: { icon: Users, blurb: "Who your members are, whether they come back, and how many sales carry a member." },
+  Members: { icon: Users, blurb: "Who your members are, whether they come back, and how many sales carry a member." },
   Marketing: { icon: Megaphone, blurb: "What promotions cost and drove, and what campaigns returned." },
   Compliance: { icon: ShieldCheck, blurb: "Age checks, the dispensing register, blocked sales, recalls and batch traceability." },
 };
@@ -46,6 +46,7 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   "new-vs-returning": Repeat,
   "member-attach": IdCard,
   "rewards-savings": PiggyBank,
+  "join-sources": QrCode,
   promotions: BadgePercent,
   campaigns: Send,
   "age-checks": ShieldCheck,

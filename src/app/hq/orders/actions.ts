@@ -14,7 +14,7 @@ export async function cancelOrder(orderId: string, _: ActionState, fd: FormData)
   const order = await db.order.findUnique({ where: { id: orderId }, select: { id: true, code: true, storeId: true, status: true, fulfilment: true } });
   if (!order || !(await inScope(g.scope, order.storeId))) return DENIED;
   const reason = str(fd, "reason");
-  if (reason.length < 3) return fail("Say why — the customer is told their order was cancelled.", { reason: "Required" });
+  if (reason.length < 3) return fail("Say why — the member is told their order was cancelled.", { reason: "Required" });
   if (!nextStatuses(order).includes("CANCELLED")) return fail("This order can no longer be cancelled.");
   try {
     await advanceOrder(order.id, "CANCELLED", g.actor, { note: `Cancelled by HQ: ${reason}` });
@@ -24,7 +24,7 @@ export async function cancelOrder(orderId: string, _: ActionState, fd: FormData)
   }
   revalidatePath(`/hq/orders/${order.code}`);
   revalidatePath("/hq/orders");
-  flashTo(`/hq/orders/${order.code}`, "Order cancelled. Stock is released, any points used are returned and the customer has been told.");
+  flashTo(`/hq/orders/${order.code}`, "Order cancelled. Stock is released, any points used are returned and the member has been told.");
 }
 
 export async function saveEcommerceSettings(_: ActionState, fd: FormData): Promise<ActionState> {
@@ -46,10 +46,12 @@ export async function saveEcommerceSettings(_: ActionState, fd: FormData): Promi
     courierFeeCents: money("courierFee", 100_000),
     freeDeliveryOverCents: money("freeDeliveryOver", 1_000_000),
     merchCourierCents: money("merchCourier", 100_000),
+    merchNotice: str(fd, "merchNotice"),
     sameDayCutoffHour: whole("sameDayCutoffHour", 8, 20, "Between 08 and 20"),
     unpaidHoldMinutes: whole("unpaidHoldMinutes", 15, 1440, "15 minutes to 24 hours"),
     collectHoldDays: whole("collectHoldDays", 1, 30, "1 to 30 days"),
   };
+  if (next.merchNotice.length > 200) fields.merchNotice = "Keep it under 200 characters";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
   const before = (await getSettings()).ecommerce;
   await saveSetting("ecommerce", next);

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowRight, CalendarClock, ChevronLeft, IdCard, ShieldCheck, Sparkles } from "lucide-react";
+import { ChevronLeft, IdCard, ShieldCheck, Sparkles } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -11,10 +11,9 @@ import { quote } from "@/server/pricing";
 import { evaluateBasket } from "@/server/compliance";
 import { deliveryFee, routingCandidates } from "@/server/orders";
 import { CONSENT_WORDING } from "@/server/customers";
-import { launchState } from "@/server/launch";
 import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
-import { getCart, getPreferredStore, getPromoCode, getRetailStores } from "@/server/shop/context";
+import { getCart, getPreferredStore, getPromoCode, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { redeemablePoints } from "@/server/shop/cart-codec";
 import { tierMeta } from "@/server/shop/club";
@@ -22,16 +21,13 @@ import { readableDropBlock } from "@/server/shop/launch-rules";
 import { CheckoutForm, type CollectStore, type FulfilOption } from "@/components/shop/checkout-form";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { VerifyAge } from "@/components/shop/verify-age";
-import { Countdown } from "@/components/shop/countdown";
 import { fmtWhen } from "@/components/shop/launch-cards";
 import { Callout, Container, Panel } from "@/components/shop/ui";
-import { ButtonLink } from "@/components/ui/button";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES } from "@/lib/sa";
 import { zar } from "@/lib/money";
-import { fmtDate, num } from "@/lib/format";
 import { opensFor } from "@/lib/drops";
-import { fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
+import { fmtPoints, type TierKey } from "@/lib/loyalty-rules";
 import type { SellChannel } from "@/lib/compliance";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
@@ -40,7 +36,7 @@ const AGE_BLOCK = /^Age verification required/;
 
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { welcome } = await searchParams;
-  const [items, code, customer, settings, store, stores, launch] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores(), launchState()]);
+  const [items, code, customer, settings, store, stores] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores()]);
   if (!items.length) redirect("/cart");
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
   if (!q.lines.length) redirect("/cart");
@@ -55,39 +51,6 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     </div>
   );
 
-  // Before launch the shop is a waitlist: no pay step (placeOrder refuses too).
-  if (launch.preLaunch && launch.at)
-    return (
-      <Container className="pt-10 sm:pt-14">
-        {header}
-        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
-          <Panel className="p-6 sm:p-8">
-            <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-500/10 text-brand-400">
-              <CalendarClock className="h-6 w-6" strokeWidth={1.8} />
-            </span>
-            <div className="eyebrow mt-6 text-brand-500">Windmill Days</div>
-            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">We open on {fmtDate(launch.at)}</h2>
-            <p className="mt-3 max-w-xl leading-relaxed text-ink-300">
-              Checkout opens when our doors do. Your bag is saved on this device — come back on launch day to order for click &amp; collect or delivery.
-            </p>
-            <Countdown to={launch.at} variant="blocks" label={`Opens ${fmtWhen(launch.at)}`} className="mt-6" />
-            <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href={customer ? "/club" : "/club/join?next=/club"} size="lg">
-                {customer ? "See your place in line" : "Join the waitlist"} <ArrowRight className="h-4 w-4" />
-              </ButtonLink>
-              <ButtonLink href="/shop" variant="outline-dark" size="lg">
-                Keep browsing
-              </ButtonLink>
-            </div>
-            <p className="mt-6 text-sm text-ink-400">
-              The first {num(launch.foundingCap)} on the waitlist become numbered Founding Members and start at {tierInfo(launch.foundingTier).name} for a year.
-            </p>
-          </Panel>
-          <Summary lines={q.lines} total={q.totalCents} joinSavings={0} />
-        </div>
-      </Container>
-    );
-
   if (!customer)
     return (
       <Container className="pt-10 sm:pt-14">
@@ -96,7 +59,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           <Panel className="p-6 sm:p-8">
             <PhoneAuth
               next="/checkout"
-              stores={trading.map((s) => ({ id: s.id, name: s.name, city: s.city }))}
+              stores={homeStoreOptions(stores)}
               defaultStoreId={store?.id}
               consentWording={CONSENT_WORDING}
               title="First, your mobile number"
@@ -218,7 +181,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         sameDayNote={`order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
         courierNote={
           made.size
-            ? `Made-to-order merch is made for you and couriered in ${MADE_TO_ORDER_LEAD} (${zar(settings.ecommerce.merchCourierCents)} courier, on top of the price)${made.size < q.lines.length ? `; the rest ships in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}` : ""}.`
+            ? `Made-to-order merch is made for you and couriered in ${MADE_TO_ORDER_LEAD} (${zar(settings.ecommerce.merchCourierCents)} courier, on top of the price)${made.size < q.lines.length ? `; the rest ships in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}` : ""}. ${settings.ecommerce.merchNotice}`.trim()
             : `2–4 working days nationwide, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}.`
         }
         blocked={needsAge ? "Verify your age above to place this order." : (shared ?? (dropNotes[0] ? `${dropNotes[0].title} — update your bag to continue.` : null))}

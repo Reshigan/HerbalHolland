@@ -44,7 +44,7 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
         ))}
         {next.includes("COMPLETED") && fulfilment === "COLLECT" && (
           <Button type="button" variant={panel === "handover" ? "dark" : "primary"} onClick={() => setPanel(panel === "handover" ? null : "handover")} aria-expanded={panel === "handover"}>
-            <BadgeCheck className="h-4 w-4" aria-hidden /> Hand over to customer
+            <BadgeCheck className="h-4 w-4" aria-hidden /> Hand over to member
           </Button>
         )}
         {next.includes("OUT_FOR_DELIVERY") && (
@@ -73,7 +73,7 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> This order contains licensed medicines — an authorised dispenser must hand it over (at the POS or signed in here).
             </p>
           )}
-          <Checkbox name="idChecked" required={ageRestricted} label="I've seen the customer's ID and they are 18 or older" description={ageRestricted ? "Required for this order" : "Recommended"} />
+          <Checkbox name="idChecked" required={ageRestricted} label="I've seen the member's ID and they are 18 or older" description={ageRestricted ? "Required for this order" : "Recommended"} />
           {!paid && dueCents > 0 && (
             <fieldset>
               <legend className="mb-1.5 text-[0.78rem] font-semibold text-ink-700">Take payment of {zar(dueCents)}</legend>
@@ -130,9 +130,9 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
 
       {next.includes("CANCELLED") && (
         <ConfirmAction action={action} label="Cancel order" title="Cancel this order?" confirmLabel="Cancel order" fields={{ to: "CANCELLED" }}>
-          <p>Reserved stock is released and the customer is told. Paid orders are marked for refund and points used are returned.</p>
+          <p>Reserved stock is released and the member is told. Paid orders are marked for refund and points used are returned.</p>
           <Field label="Reason (shared with the team)" htmlFor="cancel-note">
-            <Input id="cancel-note" name="note" maxLength={300} placeholder="e.g. Customer asked to cancel" />
+            <Input id="cancel-note" name="note" maxLength={300} placeholder="e.g. Member asked to cancel" />
           </Field>
         </ConfirmAction>
       )}

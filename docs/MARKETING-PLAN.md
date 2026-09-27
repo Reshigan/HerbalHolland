@@ -1,6 +1,6 @@
 # Herbal Holland — marketing plan, October 2026 to November 2028
 
-> **Status: draft for approval** (27 September 2026). The launch of our first two stores, **Hillcrest** (Upper
+> **Status: approved** (27 September 2026); the platform changes in §15 are built. The launch of our first two stores, **Hillcrest** (Upper
 > Highway, eThekwini) and **Hilton** (KZN Midlands), on **Tuesday 1 December 2026**, with the online shop selling
 > nationwide from now; then two years of marketing across South Africa. Builds on [STRATEGY.md](STRATEGY.md)
 > (positioning, Rewards, pricing) and runs inside the platform's rules ([COMPLIANCE.md](COMPLIANCE.md)).
@@ -15,8 +15,8 @@ endline stays: _Dutch heritage · African soil._
 | Phase | Dates | The job |
 |---|---|---|
 | 0 · Online is open | Thu 1 Oct – Sat 31 Oct 2026 | Sell online nationwide; open the Founding Members list; start Learn and the merch engine |
-| 1 · Pre-opening | Sun 1 Nov – Mon 30 Nov 2026 | Reveal both stores; win the neighbours; fill the founders' list and the RSVPs |
-| 2 · Opening & festive | Tue 1 Dec – Thu 31 Dec 2026 | Open the doors; Founders' Evenings and Open Day; festive gifting; holiday traffic off the N3 |
+| 1 · Pre-opening | Sun 1 Nov – Mon 30 Nov 2026 | Reveal both stores; win the neighbours; fill the Founding Members list and the RSVPs |
+| 2 · Opening & festive | Tue 1 Dec – Thu 31 Dec 2026 | Open the doors; Founding Members' Evenings and Open Day; festive gifting; holiday traffic off the N3 |
 | Year 1 · Settle in | Jan – Nov 2027 | Turn two stores into habits: Learn, members' evenings, quarterly drops, Heritage Month, the franchise pack |
 | Year 2 · Grow out | Dec 2027 – Nov 2028 | First birthday; new stores with the opening playbook; franchise recruitment; adult-use plan in the drawer |
 
@@ -24,11 +24,11 @@ endline stays: _Dutch heritage · African soil._
 remove posts that sell cannabis or CBD, Google won't take the ads, and licensed (THC) medicines can't be advertised
 to the public at all. So we grow the one asset nobody can switch off: a consented Herbal Holland Rewards membership.
 
-**Decisions needed from you** (proposed defaults in brackets):
+**Decisions** (approved as proposed, except the budget amount, which is still to come):
 
 1. Founding Members [first **2,026** places · Sprout floor (5% instant savings) for **14 months** · list closes
-   **Sun 6 Dec 23:59**, after opening weekend, so the first shoppers can still join].
-2. Opening events [Founders' Evening Thu 3 Dec Hillcrest and Fri 4 Dec Hilton; Open Day Sat 5 Dec at both].
+   **Sun 6 Dec 23:59**, after opening weekend, so opening-weekend visitors can still join].
+2. Opening events [Founding Members' Evening Thu 3 Dec Hillcrest and Fri 4 Dec Hilton; Open Day Sat 5 Dec at both].
 3. The launch budget (§12 gives the split).
 4. Paid local media: community newspapers and a few boards near the stores, brand-only [yes, modest].
 5. The platform changes in §15 [A–C now, A being a launch blocker; D by 30 November; E only if counsel says so].
@@ -45,6 +45,8 @@ to the public at all. So we grow the one asset nobody can switch off: a consente
 
 Always:
 
+- **Members, always.** Everyone who joins is a _member_ — never a customer, shopper or client. The first 2,026 are
+  _Founding Members_. People who haven't joined yet are _walk-ins_ in store and _visitors_ online.
 - **Adults 18+** on every piece. Everyone in our pictures is over 25 and looks it.
 - **No consumption, no smoke, no "high" language, no stoner clichés** (no 4/20, no leaf icons), no cannabis or CBD
   hashtags on social.
@@ -65,10 +67,10 @@ Always:
 
 | # | Finding | Why it matters | Fix |
 |---|---|---|---|
-| 1 | The storefront won't take orders before `launch.launchAt` — it runs as a waitlist until then. | "Online now" and "Founding Members close at opening" can't both be true today. | Platform change **A**: separate "orders open" from "founders' list closes". Launch blocker. |
-| 1b | Joining Rewards requires a home store that is already trading (the join page lists "opening soon" stores, but the sign-up rejects them), and checkout requires joining. With only Hillcrest and Hilton, both opening soon, **no new customer can join or buy online before 1 December**. | Blocks both the online launch and the founders' list. | Part of change **A**: accept opening-soon stores as a home store. Launch blocker. |
-| 2 | The founders' Sprout floor runs `foundingMonths` from numbering. At 12 months it lapses in the first-birthday week. | Founders lose their savings at the anniversary party. | Set 14 months: the floor ends Mon 7 Feb 2028, after the festive season and January payday. |
-| 3 | Sign-ups record the channel (web, POS) but not the campaign or placement. | We can't tell which flyer, board, event or partner filled the founders' list. | Platform change **B**: `?src=` tags on join links and QR codes, and sign-ups by source in Reports. |
+| 1 | The storefront won't take orders before `launch.launchAt` — it runs as a waitlist until then. | "Online now" and "Founding Members close at opening" can't both be true today. | Platform change **A**: separate "orders open" from "Founding Members list closes". Launch blocker. |
+| 1b | Joining Rewards requires a home store that is already trading (the join page lists "opening soon" stores, but the sign-up rejects them), and checkout requires joining. With only Hillcrest and Hilton, both opening soon, **nobody new can join or buy online before 1 December**. | Blocks both the online launch and the Founding Members list. | Part of change **A**: accept opening-soon stores as a home store. Launch blocker. |
+| 2 | The Founding Members' Sprout floor runs `foundingMonths` from numbering. At 12 months it lapses in the first-birthday week. | Founding Members lose their savings at the anniversary party. | Set 14 months: the floor ends Mon 7 Feb 2028, after the festive season and January payday. |
+| 3 | Sign-ups record the channel (web, POS) but not the campaign or placement. | We can't tell which flyer, board, event or partner filled the Founding Members list. | Platform change **B**: `?src=` tags on join links and QR codes, and sign-ups by source in Reports. |
 | 4 | Public holidays are computed from the Public Holidays Act; one-off proclaimed days (like an election day) aren't in the calendar. | A campaign could go out on a proclaimed holiday. | Platform change **C**: extra holidays in HQ settings. |
 | 5 | Welcome, second-visit, win-back and review journeys aren't automated; RFM segments and campaigns are. | Nothing sends itself. | Run them as weekly segment campaigns (§8.7). Automated journeys come later. |
 | 6 | There are no gift cards or vouchers. | Festive gifting is merch (and products in store). | Out of scope for this launch. |
@@ -151,33 +153,33 @@ written and checked by first-language speakers on the team, never machine-transl
 | Mon 26 Oct | **Hillcrest revealed** | Window wrap: _Something's turning in Hillcrest_ |
 | Mon 2 Nov | **Hilton revealed** | Window wrap: _Something's turning in Hilton_ |
 | Wed 4 Nov | Local government elections: public holiday | No posts, no sends |
-| Wed 11 Nov | RSVPs open: Founders' Evenings and Open Day | Members only, capacity-limited |
+| Wed 11 Nov | RSVPs open: Founding Members' Evenings and Open Day | Members only, capacity-limited |
 | Tue 17 Nov | Press release; media walk-throughs Thu 19 (Hillcrest) and Fri 20 Nov (Hilton) | Fit-out must be finished |
 | Fri 27 – Mon 30 Nov | **Black Friday** online: merch and accessories | Merch on social; accessories on our own channels only |
 | Mon 30 Nov 17:00 | Neighbours' preview at both stores | 30 guests each |
 | Tue 1 Dec 07:00 | HQ switches both stores to **trading** | HQ → Stores |
 | **Tue 1 Dec 09:00** | **Doors open** | _Sivulile — we're open_ |
-| Thu 3 Dec 18:00–20:30 | Founders' Evening, Hillcrest | |
-| Fri 4 Dec 18:00–20:30 | Founders' Evening, Hilton | |
+| Thu 3 Dec 18:00–20:30 | Founding Members' Evening, Hillcrest | |
+| Fri 4 Dec 18:00–20:30 | Founding Members' Evening, Hilton | |
 | Sat 5 Dec 09:00–14:00 | **Open Day** at both stores | |
 | Sun 6 Dec 23:59 | Founding Members list closes | Numbering runs automatically overnight |
-| Mon 7 Dec | Founders' numbers in the app | |
-| Tue 8 Dec 10:00 / 12:00 | **Founders' Drop**: Heritage Crewneck — Sprout and up at 10:00, all members at 12:00, until Thu 10 Dec | Founders hold Sprout, so they're in first |
+| Mon 7 Dec | Founding Member numbers in the app | |
+| Tue 8 Dec 10:00 / 12:00 | **Founding Members' Drop**: Heritage Crewneck — Sprout and up at 10:00, all members at 12:00, until Thu 10 Dec | Founding Members hold Sprout, so they're in first |
 | Thu 10 Dec | Last merch order date for Christmas | Confirm with the partner and courier |
 | Wed 16 Dec | Day of Reconciliation | No sends; no heritage-themed content |
 | 24 Dec – 1 Jan | Festive hours | No sends on 25 and 26 Dec, Sun 27 Dec or 1 Jan |
 
 ### 6.2 Founding Members
 
-HQ → Launch & founders: list closes **Sun 6 Dec 2026, 23:59** · **2,026** places · founding tier **Sprout** ·
+HQ → Founding Members: list closes **Sun 6 Dec 2026, 23:59** · **2,026** places · founding tier **Sprout** ·
 **14 months** · **250** places up per referral. After change A, the date closes the list without blocking orders.
 
-- **What founders get:** a numbered card (#0001–#2026) in the Rewards app; at least Sprout (5% instant savings on
+- **What Founding Members get:** a numbered card (#0001–#2026) in the Rewards app; at least Sprout (5% instant savings on
   eligible items — never on medicines) until February 2028; first access to drops through their tier; an invitation
-  to a Founders' Evening every December.
+  to a Founding Members' Evening every December.
 - **How the list fills:** `/club/join` (tagged QR codes on window wraps, flyers and print once change B is in), the
   referral link (a friend who joins moves you up 250 places; you both get 50 points on their first purchase), and
-  POS quick-join at the tills from 1 December — opening-week shoppers can still make the list.
+  POS quick-join at the tills from 1 December — opening-week visitors can still join and make the list.
 - **Why 2,026:** scarcity people can feel, a number that means something, and a bounded cost for the two
   franchisees who carry the extra 2% instant savings.
 
@@ -185,8 +187,8 @@ HQ → Launch & founders: list closes **Sun 6 Dec 2026, 23:59** · **2,026** pla
 
 | Event | Store | When | Capacity | Format |
 |---|---|---|---|---|
-| Founders' Evening | Hillcrest | Thu 3 Dec, 18:00–20:30 | As the fire certificate allows (about 60–80) | Welcome from the team, store tour, good coffee and stroopwafels, the embroidered collection, an ask-the-pharmacist corner |
-| Founders' Evening | Hilton | Fri 4 Dec, 18:00–20:30 | As above | Same |
+| Founding Members' Evening | Hillcrest | Thu 3 Dec, 18:00–20:30 | As the fire certificate allows (about 60–80) | Welcome from the team, store tour, good coffee and stroopwafels, the embroidered collection, an ask-the-pharmacist corner |
+| Founding Members' Evening | Hilton | Fri 4 Dec, 18:00–20:30 | As above | Same |
 | Open Day | Both | Sat 5 Dec, 09:00–14:00 | Walk-in; pharmacist sessions bookable (40) | Coffee cart, three or four local makers' tables, ask-the-pharmacist on the hour, a Learn quiz for points, a photo wall in the orange frame |
 | Neighbours' preview | Both | Mon 30 Nov, 17:00–18:30 | 30 | For the people and businesses next door, before anyone else |
 
@@ -257,7 +259,7 @@ healthcare professionals (factual material, modest refreshments, no inducements)
 
 | Week | Focus | Social | Own channels | Off-line |
 |---|---|---|---|---|
-| 1 · 1–4 Oct | Online is open; founders' list | Online-open; founders explained; _Holland is flat_ | Email and push to existing members; weekly welcome to new members starts | Note to trade and business media |
+| 1 · 1–4 Oct | Online is open; Founding Members list | Online-open; Founding Members explained; _Holland is flat_ | Email and push to existing members; weekly welcome to new members starts | Note to trade and business media |
 | 2 · 5–11 Oct | The brand story | Why a windmill; the tee; teaser | — | Hiring (job boards, LinkedIn) |
 | 3 · 12–18 Oct | Learn before you visit | Lab results; hiring; the idea | — | Stakeholder map; meetings booked |
 | 4 · 19–25 Oct | Made here | Hoodie; cap video; hills we love; Schedule 0 | Newsletter #1 (Tue 20 Oct) | Neighbours' letters, Hillcrest |
@@ -266,8 +268,8 @@ healthcare professionals (factual material, modest refreshments, no inducements)
 | 7 · 9–15 Nov | Team and invitations | Pharmacist; invitation; manager; Section 21 | Invitations by push and SMS (Wed 11 Nov) | HCP evening, Hillcrest (Thu 12 Nov); meet the new ward councillors |
 | 8 · 16–22 Nov | Press and Open Day | Open Day; neighbourhood; bucket hat; countdown | Newsletter #2 (Tue 17 Nov) | Release; walk-throughs; HCP evening, Hilton; print notices |
 | 9 · 23–29 Nov | Black Friday; countdown | Windows going up; Black Friday merch | Black Friday SMS and email (Fri 27 Nov) | Google profiles verified; staff training |
-| 10 · 30 Nov–6 Dec | **Opening** | Doors open; evenings; Open Day; last call | Opening SMS, push and email; founders' last call (Sat 5 Dec) | Neighbours' preview; photo call |
-| 11 · 7–13 Dec | Founders; the drop; gifts | Numbers in; Founders' Drop; last Christmas order; N3 stop; makers | Founders' email and push (Mon 7 Dec) | Review cards at the tills |
+| 10 · 30 Nov–6 Dec | **Opening** | Doors open; evenings; Open Day; last call | Opening SMS, push and email; Founding Members' last call (Sat 5 Dec) | Neighbours' preview; photo call |
+| 11 · 7–13 Dec | Founding Members; the drop; gifts | Numbers in; Founding Members' Drop; last Christmas order; N3 stop; makers | Founding Members email and push (Mon 7 Dec) | Review cards at the tills |
 | 12 · 14–20 Dec | Holiday traffic (the N3 peaks from about 11 Dec) | Festive hours | Festive hours SMS (Tue 15 Dec) | Festive rosters |
 | 13 · 21–31 Dec | Thank you | Happy holidays; plan your ride | Thank-you email (Mon 21 Dec) | — |
 
@@ -291,7 +293,7 @@ draft.
 | Fri 9 Oct | Made here | windmill-tee | The Windmill Tee: the mark embroidered in Sunset thread on the chest, the store-window poster printed on the back. Made for you in Cape Town, one at a time. #MadeInSA |
 | Sat 10 Oct | Teaser | video | Something's turning in the hills. |
 | Mon 12 Oct | Learn | photo | How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass — microbes, pesticides, heavy metals, solvents. Every one of our batches has a public lab page. Scan the QR on the pack. |
-| Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers, customer hosts and a pharmacist for each store. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
+| Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers, member hosts and a pharmacist for each store. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
 | Fri 16 Oct | Brand | brand | Dutch heritage: the coffee-shop tradition of a warm welcome and knowing exactly what you're offering. African soil: South African growers, makers and landraces. That's the whole idea. |
 | Sat 17 Oct | Rewards | brand | {count} people have joined the Founding Members list. The first 2,026 get a numbered card on opening weekend. Free to join, adults 18+. |
 | Mon 19 Oct | Made here | sunset-hoodie | The Sunset Hoodie: our lock-up embroidered on the chest, a sunset over the hills across the back. Orange fleece, made to order in Cape Town. |
@@ -319,11 +321,11 @@ draft.
 | Mon 30 Nov | Teaser | brand | Tomorrow at 09:00 our doors open in Hillcrest and Hilton. Bring your ID and come say hello. Adults 18+. |
 | Tue 1 Dec | Opening | photo | Sivulile — we're open! Herbal Holland Hillcrest and Hilton are open from 09:00 today. Come and say sawubona. Adults 18+, bring your ID. #HollandMeetsTheHills |
 | Wed 2 Dec | Opening | photo | Day one, done. Siyabonga, Hillcrest and Hilton, for the warmest welcome to KwaZulu-Natal. |
-| Thu 3 Dec | Events | photo | Tonight: Founders' Evening in Hillcrest. Tomorrow: Hilton. Saturday: Open Day at both stores, 09:00–14:00. Adults 18+, ID at the door. |
+| Thu 3 Dec | Events | photo | Tonight: Founding Members' Evening in Hillcrest. Tomorrow: Hilton. Saturday: Open Day at both stores, 09:00–14:00. Adults 18+, ID at the door. |
 | Sat 5 Dec | Events | photo | Open Day is on until 14:00 at both stores: coffee, local makers, and our pharmacists answering questions on the hour. Adults 18+. |
 | Sun 6 Dec | Rewards | brand | Last call: the Founding Members list closes at midnight tonight. Join free in the Rewards app. Adults 18+. |
 | Mon 7 Dec | Rewards | brand | Founding Members, your numbers are in: open the Rewards app to see your card. Thank you for being first. |
-| Tue 8 Dec | Drop | heritage-crewneck | Founders' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order in Cape Town — order by 10 December for Christmas. |
+| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order in Cape Town — order by 10 December for Christmas. |
 | Thu 10 Dec | Made here | windmill-tote | Last day to order merch for Christmas: tees, hoodies, crewnecks, caps, bucket hats, beanies and totes, embroidered and printed in South Africa. |
 | Fri 11 Dec | Holiday | brand | Heading down the N3 for the holidays? Hilton is just off the highway, and Hillcrest is on the M13 into Durban. Stretch your legs, say hello, and never drive impaired. Adults 18+. |
 | Sat 12 Dec | Community | photo | Thank you to the makers who joined us on Open Day: {makers}. Go and visit them. |
@@ -341,11 +343,11 @@ windows. SMS stays short enough to fit two parts with the footer. Push titles fi
 | Thu 1 Oct 10:00 | Email | All members | **We're open online — and coming to the hills.** The shop is open nationwide; Founding Members explained (the first 2,026, a numbered card, Sprout savings for 14 months, how to move up); stores open 1 Dec in Hillcrest and Hilton; three Learn reads to start with. |
 | Thu 1 Oct 10:00 | Push | All members | **We're open online** — Our first stores open on 1 Dec in Hillcrest and Hilton. Explore the shop and Learn. |
 | Tuesdays 10:00 from 6 Oct | Email | New members (last 7 days) | **Welcome to Herbal Holland Rewards, {{firstName}}.** How instant savings and points work; your place on the Founding Members list and your referral link; three Learn reads; your home store's opening day. |
-| Tue 20 Oct 10:00 | Email | All members | **The Windmill, No. 1.** How our merch is made; Learn picks; we're hiring; the founders' count. |
+| Tue 20 Oct 10:00 | Email | All members | **The Windmill, No. 1.** How our merch is made; Learn picks; we're hiring; the Founding Members count. |
 | Tue 27 Oct 10:00 | SMS | Home store Hillcrest | Hi {{firstName}}, Herbal Holland Hillcrest opens Tue 1 Dec at {address}. See you there! |
 | Tue 3 Nov 10:00 | SMS | Home store Hilton | Hi {{firstName}}, Herbal Holland Hilton opens Tue 1 Dec at {address}. See you there! |
-| Wed 11 Nov 10:00 | Push | All members | **You're invited** — Founders' Evenings on 3 and 4 Dec, Open Day on 5 Dec. RSVP in the app — spaces are limited. |
-| Wed 11 Nov 12:00 | SMS | Home store Hillcrest or Hilton | {{firstName}}, you're invited: Founders' Evening, Hillcrest Thu 3 Dec or Hilton Fri 4 Dec, 18:00. RSVP in the Rewards app. |
+| Wed 11 Nov 10:00 | Push | All members | **You're invited** — Founding Members' Evenings on 3 and 4 Dec, Open Day on 5 Dec. RSVP in the app — spaces are limited. |
+| Wed 11 Nov 12:00 | SMS | Home store Hillcrest or Hilton | {{firstName}}, you're invited: Founding Members' Evening, Hillcrest Thu 3 Dec or Hilton Fri 4 Dec, 18:00. RSVP in the Rewards app. |
 | Tue 17 Nov 10:00 | Email | All members | **The Windmill, No. 2: doors open 1 December.** What to expect on a first visit (ID, a pharmacist to talk to, Rewards at the till); the Open Day programme; merch dates for Christmas. |
 | Fri 27 Nov 08:30 | SMS | All members | Black Friday online until Monday: 20% off merch for members with code {{code}}. herbalholland.co.za |
 | Fri 27 Nov 08:30 | Email | All members | **Black Friday, members first.** The embroidered collection and accessories at members' prices; last order dates for Christmas. (Wellness-range offers only once counsel has answered the s18A question.) |
@@ -353,11 +355,11 @@ windows. SMS stays short enough to fit two parts with the footer. Push titles fi
 | Tue 1 Dec 09:00 | Push | All members | **Sivulile — we're open!** — Hillcrest and Hilton are open from 09:00 today. Bring your ID and say hello. |
 | Tue 1 Dec 09:05 | Email | All members | **Sivulile — we're open.** Addresses and hours; what to expect; this week's events; how Rewards works at the till. |
 | Sat 5 Dec 09:00 | SMS | Home store Hillcrest or Hilton | Open Day today until 14:00 at Hillcrest and Hilton: coffee, local makers, ask-the-pharmacist sessions. Adults 18+. |
-| Sat 5 Dec 11:00 | Push | All members | **Last call, founders** — The Founding Members list closes on Sunday at midnight. Share your link to move up 250 places. |
-| Mon 7 Dec 10:00 | Email | Founding Members | **Your Founding Member card is here.** Your number; Sprout savings until February 2028; the Founders' Drop opens for you at 10:00 tomorrow; the Founders' Evening every December. |
-| Mon 7 Dec 10:00 | Push | Founding Members | **Your Founding card is ready** — Open the app to see your number. The Founders' Drop opens for you at 10:00 tomorrow. |
+| Sat 5 Dec 11:00 | Push | All members | **Last call, Founding Members** — The Founding Members list closes on Sunday at midnight. Share your link to move up 250 places. |
+| Mon 7 Dec 10:00 | Email | Founding Members | **Your Founding Member card is here.** Your number; Sprout savings until February 2028; the Founding Members' Drop opens for you at 10:00 tomorrow; the Founding Members' Evening every December. |
+| Mon 7 Dec 10:00 | Push | Founding Members | **Your Founding card is ready** — Open the app to see your number. The Founding Members' Drop opens for you at 10:00 tomorrow. |
 | Tue 15 Dec 10:00 | SMS | Home store Hillcrest or Hilton | Festive hours: Hillcrest {hours}, Hilton {hours}. Closed Christmas Day. Your Rewards savings work in store and online. |
-| Mon 21 Dec 10:00 | Email | All members | **Thank you for December.** Photos from opening week; the founders' count; what's on in January (members' evenings, Learn); festive hours. |
+| Mon 21 Dec 10:00 | Email | All members | **Thank you for December.** Photos from opening week; the Founding Members count; what's on in January (members' evenings, Learn); festive hours. |
 
 ## 8. The always-on engine (from January 2027)
 
@@ -406,7 +408,7 @@ Mix over a month: Learn 30%, community and people 25%, made here 20%, brand and 
   warmers, Heritage evening in September.
 - **Open Day** each quarter, on the Saturday after a drop.
 - **Healthcare-professional evening** each quarter per area (§6.8).
-- **Founders' Evening** every December.
+- **Founding Members' Evening** every December.
 - The rules in §6.3 apply to all of them.
 
 ### 8.5 Reviews, referrals and members' pictures
@@ -448,7 +450,7 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 **January 2027 — Know your Holland.**
 - Dates: Fri 1 Jan public holiday · N3 return traffic around 2–10 Jan · schools reopen Wed 13 Jan · payday Mon 25 Jan.
 - Hero: _Read the label_, a four-Monday Learn series on social; member savings for the long month on our own channels.
-- Social ideas: a safe-trip-home post (Sat 2 Jan); _Read the label_ ×4; the makers behind our merch; Founders'
+- Social ideas: a safe-trip-home post (Sat 2 Jan); _Read the label_ ×4; the makers behind our merch; Founding Members'
   Evening photos; questions from Open Day, answered.
 - Learn: _Reading a label, line by line_ · _How instant savings and points work_.
 - Community: a one-month letter to the neighbours: how are we doing?
@@ -540,14 +542,14 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Hero: **Summer Drop** (Tue 12 Oct): the Sunset Bucket Hat and the Windmill Cap; franchise information evenings
   (Pietermaritzburg Thu 14 Oct, Johannesburg Thu 28 Oct).
 - Social ideas: the drop; spring in the Midlands; the team's first year; a what-the-label-may-say carousel.
-- Own channels: founders' email (Tue 19 Oct): the Sprout floor runs to 7 February 2028, and what their spend earns.
+- Own channels: Founding Members email (Tue 19 Oct): the Sprout floor runs to 7 February 2028, and what their spend earns.
 - Learn: _What a CBD label may and may not say_ · _Franchising with Herbal Holland: the basics_.
 
 **November 2027 — Black Friday and the first birthday.**
 - Dates: Revolution Day Sun 7 Nov (an activist day, not ours) · **Black Friday Fri 26 Nov** · Cyber Monday 29 Nov.
 - Hero: _Black Friday, members first_ (Fri 26 – Mon 29 Nov): merch and accessories; birthday invitations.
 - Social ideas: Black Friday merch; a one-year teaser; the gift guide; last merch order date for Christmas (TBC).
-- Own channels: Black Friday SMS and email (Fri 26 Nov); Founders' Evening invitations (Tue 16 Nov).
+- Own channels: Black Friday SMS and email (Fri 26 Nov); Founding Members' Evening invitations (Tue 16 Nov).
 - Learn: _A year of Learn: the ten most-read answers_ · _Gifting guide: made in South Africa_.
 - Franchise: an information evening (Durban, Thu 18 Nov).
 
@@ -556,7 +558,7 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 **December 2027 — One year in the hills.**
 - Dates: **first birthday Wed 1 Dec** · schools close about Wed 8 Dec · the N3 peaks from about 10 Dec · Day of
   Reconciliation Thu 16 Dec (no sends, no heritage themes) · Christmas Sat 25 Dec · Day of Goodwill observed Mon 27 Dec.
-- Hero: **Birthday week**: Founders' Evenings (Hillcrest Thu 2 Dec, Hilton Fri 3 Dec), a birthday Open Day (Sat 4 Dec)
+- Hero: **Birthday week**: Founding Members' Evenings (Hillcrest Thu 2 Dec, Hilton Fri 3 Dec), a birthday Open Day (Sat 4 Dec)
   and the **Anniversary Drop** (Tue 7 Dec) — a new _Est. 2026_ design, briefed in September.
 - Social ideas: one year in numbers; birthday week; the drop; the N3 post (Fri 10 Dec); festive hours; plan your ride
   on New Year's Eve.
@@ -566,14 +568,14 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 
 **January 2028 — Year two, same promise.**
 - Dates: N3 return traffic around 2–9 Jan · payday Tue 25 Jan.
-- Hero: _Read the label_, refreshed; the founders' floor reminder (email, Tue 18 Jan: it ends Mon 7 Feb).
+- Hero: _Read the label_, refreshed; the Founding Members' floor reminder (email, Tue 18 Jan: it ends Mon 7 Feb).
 - Learn: _Label reading, refreshed for 2028_ · _Rewards in year two_.
 - Franchise: book a stand at the FASA Conference & Expo (February).
 
-**February 2028 — Thank you, founders.**
-- Dates: the founders' floor ends Mon 7 Feb · Mon 14 Feb · FASA Conference & Expo (TBC).
-- Hero: _Thank you, founders_ — numbered cards and the December Founders' Evening are theirs for good; a
-  founders-only merch window (Tue 8 Feb); _Bring a friend_ month again.
+**February 2028 — Thank you, Founding Members.**
+- Dates: the Founding Members' floor ends Mon 7 Feb · Mon 14 Feb · FASA Conference & Expo (TBC).
+- Hero: _Thank you, Founding Members_ — numbered cards and the December Founding Members' Evening are theirs for good; a
+  Founding Members-only merch window (Tue 8 Feb); _Bring a friend_ month again.
 - Learn: _What the first 2,026 built_ · _A year of Gezellig evenings_.
 - Franchise: exhibit at FASA with a year of results.
 
@@ -684,7 +686,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 ## 13. Measurement and governance
 
-- **Weekly launch dashboard** (Mondays 09:00, October 2026 to January 2027): members and the founders' list (by source
+- **Weekly launch dashboard** (Mondays 09:00, October 2026 to January 2027): members and the Founding Members list (by source
   once change B is in), consent rates, RSVPs and check-ins, online orders, social (Postiz analytics), press, Google
   profile views, calls and direction requests, reviews. From 1 December: transactions, member attach at the till,
   average basket, repeat visits.
@@ -695,7 +697,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 - **Who approves what:** HQ marketing approves every post and send. Counsel approves the copy bank (once), any new
   claim, the event formats and all franchise material. Store managers approve posts about their store. No photo goes
   out without a release.
-- **Where the numbers live:** HQ → Campaigns (return on spend), Reports (sales, members), HQ → Launch & founders (the
+- **Where the numbers live:** HQ → Campaigns (return on spend), Reports (sales, members), HQ → Founding Members (the
   list), HQ → Campaigns → Social (post history), Postiz analytics, Google Business Profile insights, Search Console.
 
 ## 14. Risks
@@ -712,7 +714,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 | Storms or load-shedding during an event | Medium / medium | Indoor plans; backup power; the tills work offline. |
 | Security at busy December events | Medium / medium | A guard on the door; card and PayShap preferred; ID at the door. |
 | Road closures for the Comrades and Amashova | Certain on the day / low | Plan hours and staff access; tell members in advance. |
-| Founders feel short-changed (the cap, the floor ending) | Medium / medium | Clear rules from day one; the floor ends after the festive season; numbered cards and the December evening are for good. |
+| Founding Members feel short-changed (the cap, the floor ending) | Medium / medium | Clear rules from day one; the floor ends after the festive season; numbered cards and the December evening are for good. |
 | The adult-use law arrives with its own advertising rules | Low in 2027, medium in 2028 | The drawer plan; switch nothing until counsel signs off. |
 | WhatsApp policy on drug-related messaging | High / low | Order updates by SMS; no WhatsApp marketing. |
 
@@ -722,17 +724,24 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 1. **This plan:** the launch (§6), the copy bank (§7), the always-on engine (§8), the 24-month calendar (§9), the
    opening playbook (§10), the franchise track (§11), the budget split (§12), measurement (§13) and risks (§14).
-2. **Platform changes, after your approval:**
-   - **A · Pre-opening launch mode (launch blocker).** Orders stay open while the founders' list runs to its closing
-     date; opening-soon stores can be chosen as a home store when joining; the waitlist card says "Founding Members
-     close {date}" instead of "we open"; tests.
-   - **B · Sign-up sources.** `?src=` on join links and QR codes, stored on the member; sign-ups by source in Reports.
-   - **C · Extra public holidays** in HQ settings (4 November 2026 first), used by the send-window checks.
-   - **D · Festive merch notice.** An HQ-set message and date range on merch pages, cart and checkout (by 30 Nov).
+2. **Platform changes — built 27 September 2026:**
+   - **A · Founding Members list mode (was the launch blocker).** The shop takes orders while the list runs to its
+     closing date (HQ → Founding Members); members can choose an opening-soon store as their home store; the shop,
+     the Rewards card and HQ speak of "the Founding Members list" and its closing date.
+   - **B · Sign-up sources.** Every join link and QR code carries `?src=` (`/club/join?src=qr-window-hillcrest`); the tag
+     is stored on the member and **Reports → Members → Where members joined** counts them. Tags: lowercase letters,
+     digits and dashes — `qr-window-hillcrest`, `qr-window-hilton`, `flyer-hillcrest`, `flyer-hilton`, `highway-mail`,
+     `village-talk`, `witness`, `open-day-hillcrest`, `open-day-hilton`, `hcp-hillcrest`, `hcp-hilton`.
+   - **C · Proclaimed public holidays** (4 November 2026 first) are in the send-window calendar. They're a list in the
+     code (`src/lib/sa.ts`) rather than an HQ setting: they're rare and gazetted weeks ahead.
+   - **D · Merch notice.** HQ → Online orders → Settings → _Merch notice_ shows next to made-to-order merch on product
+     pages, in the bag and at checkout. Set it in late November; clear it in January.
    - **E · Only if counsel says s18A covers Schedule 0:** exclude chosen product classes from deals, points and member
-     prices.
-3. **Loading the launch into the platform** (with your store details): launch settings; both stores as opening soon;
-   the events; the Founders' Drop; campaign drafts for §7.2; the October social posts as Postiz drafts; new Learn
+     prices. Not built.
+   - **Members, always:** the platform's own wording now says _member_ wherever it said customer; walk-ins stay
+     _walk-ins_.
+3. **Loading the launch into the platform** (waiting for your store details and production access): launch settings; both stores as opening soon;
+   the events; the Founding Members' Drop; campaign drafts for §7.2; the October social posts as Postiz drafts; new Learn
    articles (_Your first visit_, _The Good Neighbour Promise_, _Holland, meet the Hills_); STRATEGY.md §8 updated.
 
 ### Out of scope
@@ -748,17 +757,14 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 ### Sequence
 
-1. **Mon 28 Sep:** you approve the plan and the five decisions (§0), and send the store details (addresses, hours,
-   phone numbers, managers, pharmacists) and who packs online orders until 1 December.
-2. **Mon 28 – Wed 30 Sep:** build and test A (the blocker), B and C; set up Postiz and connect the brand accounts.
-3. **Wed 30 Sep:** load the launch settings, both stores (opening soon), the events, the Founders' Drop, the campaign
-   drafts and October's social drafts.
-4. **Thu 1 Oct:** online launch. If A isn't live and tested by Wed 30 Sep, the launch moves to **Thu 8 Oct** — without
-   A no new customer can join or buy.
-5. **By Fri 16 Oct:** counsel's answers (the copy bank, s18A for Schedule 0 CBD, the event formats); build E if
-   needed. D is built by Mon 30 Nov.
-6. **Weekly to January:** the launch dashboard; social drafts loaded four weeks ahead.
-7. **January 2027:** re-base the targets on eight weeks of data; approve the Q1 calendar.
-
-**Awaiting your approval.** Say _execute_ and I'll build A–C and load the launch; tell me what to change in the
-five decisions first if the defaults aren't right.
+1. **Done (27 Sep):** plan approved; A–D built and tested.
+2. **Next, from you:** the store details (addresses, hours, phone numbers, managers, pharmacists), who packs online
+   orders until 1 December, and the launch budget.
+3. **By Wed 30 Sep:** deploy; set up Postiz and connect the brand accounts; in HQ, set the list to close Sun 6 Dec
+   23:59 (2,026 places, Sprout, 14 months, 250 places per referral); create both stores as opening soon; load the
+   events, the Founding Members' Drop, the campaign drafts (§7.2) and October's social drafts (§7.1).
+4. **Thu 1 Oct:** online launch. If the deploy slips, the launch moves to **Thu 8 Oct**.
+5. **By Fri 16 Oct:** counsel's answers (the copy bank, s18A for Schedule 0 CBD, the event formats); build E if needed.
+6. **Late November:** set the merch notice (D) once the partner confirms its festive closing dates.
+7. **Weekly to January:** the launch dashboard; social drafts loaded four weeks ahead.
+8. **January 2027:** re-base the targets on eight weeks of data; approve the Q1 calendar.

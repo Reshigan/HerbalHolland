@@ -318,7 +318,7 @@ export function PaymentSheet({
                 <img src={`/api/pos/qr?text=${encodeURIComponent(payshapText)}`} alt="PayShap payment request QR code" className="aspect-square w-40 rounded-xl bg-white p-1.5" />
                 <div className="flex flex-col">
                   <p className="text-sm text-ink-300">
-                    Customer scans with their banking app and pays <b className="text-white">{zar(charge)}</b>
+                    Scan with any banking app to pay <b className="text-white">{zar(charge)}</b>
                   </p>
                   <dl className="mt-2 space-y-1 text-sm">
                     <div className="flex gap-2">

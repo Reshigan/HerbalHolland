@@ -62,7 +62,7 @@ export function ProductForm({
       <fieldset disabled={readOnly} className="min-w-0 contents">
         <div className="space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title="Product" description="What customers see in the shop, the app and on the menu board" />
+            <CardHeader title="Product" description="What everyone sees in the shop, the app and on the menu board" />
             <CardBody className="grid gap-4 sm:grid-cols-2">
               <Field label="Name" htmlFor="name">
                 <Input id="name" name="name" value={name} onChange={(e) => (setName(e.target.value), !slugTouched && setSlug(slugify(e.target.value)))} required />

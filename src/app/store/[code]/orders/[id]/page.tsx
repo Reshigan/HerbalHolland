@@ -75,7 +75,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
 
       {shortLines.length > 0 && (
         <Notice tone="danger" className="mb-4" title="Not enough stock to fill this order">
-          {shortLines.map((l) => `${l.variant.product.name} · ${l.variant.name} (short ${l.short})`).join(", ")}. Count the shelf, or cancel and let the customer know.
+          {shortLines.map((l) => `${l.variant.product.name} · ${l.variant.name} (short ${l.short})`).join(", ")}. Count the shelf, or cancel and let the member know.
         </Notice>
       )}
 
@@ -91,10 +91,10 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                 {!o.podRef ? (
                   <p className="text-sm text-ink-600">The production order goes to the merch partner as soon as the payment clears.</p>
                 ) : o.podStatus === "shipped" ? (
-                  <p className="text-sm text-ink-600">Shipped — the tracking number is in the timeline and was sent to the customer.</p>
+                  <p className="text-sm text-ink-600">Shipped — the tracking number is in the timeline and was sent to the member.</p>
                 ) : canManage ? (
                   <>
-                    <p className="mb-3 text-sm text-ink-600">Production order sent. When the partner emails the courier and tracking number, enter it here: the customer is texted their tracking{merchOnly ? " and the order goes out for delivery" : ""}.</p>
+                    <p className="mb-3 text-sm text-ink-600">Production order sent. When the partner emails the courier and tracking number, enter it here: the member is texted their tracking{merchOnly ? " and the order goes out for delivery" : ""}.</p>
                     <MerchShippedForm action={shipMerch.bind(null, store.code, o.id)} />
                   </>
                 ) : (
@@ -105,7 +105,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           )}
           {next.length > 0 && !(merchOnly && o.podStatus !== "shipped") && (
             <Card className="border-brand-300 ring-4 ring-brand-500/10">
-              <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : merchOnly ? "The merch partner couriered it — mark delivered once the courier confirms." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the customer arrives." : "Pick, pack and dispatch."} />
+              <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : merchOnly ? "The merch partner couriered it — mark delivered once the courier confirms." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the member arrives." : "Pick, pack and dispatch."} />
               <CardBody>
                 {canManage ? (
                   <OrderActions
@@ -212,12 +212,12 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
             <div className="rounded-2xl bg-ink-950 p-5 text-white shadow-card">
               <div className="eyebrow text-brand-500">Collection code</div>
               <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em]">{o.collectionCode}</div>
-              <p className="mt-2 text-xs text-ink-300">The customer shows this code and an ID document (18+) at the counter. Never read it out to them.</p>
+              <p className="mt-2 text-xs text-ink-300">The member shows this code and an ID document (18+) at the counter. Never read it out to them.</p>
             </div>
           )}
 
           <Card>
-            <CardHeader title="Customer" />
+            <CardHeader title="Member" />
             <CardBody className="space-y-1 pt-3">
               <div className="flex items-center gap-2">
                 <span className="font-semibold text-ink-900">

@@ -10,7 +10,7 @@ import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
 import { createCustomer, CustomerError, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
 import { getDispensaryAccess, getClasses } from "./access";
-import { getCart, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
+import { getCart, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
 import { cartCount, withItem, withQty } from "./cart-codec";
 import { readPhoneToken, signPhone } from "./phone-token";
 import { checkSaId } from "@/lib/sa";
@@ -152,7 +152,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       const id = checkSaId(v.idNumber);
       if (!id.valid) fields.idNumber = v.idNumber ? id.reason : "Enter your 13-digit SA ID number";
     }
-    const store = v.homeStoreId ? await db.store.findFirst({ where: { id: v.homeStoreId, kind: "RETAIL", status: "ACTIVE" }, select: { id: true } }) : null;
+    const store = v.homeStoreId ? await db.store.findFirst({ where: { id: v.homeStoreId, kind: "RETAIL", status: { in: HOME_STORE_STATUSES } }, select: { id: true } }) : null;
     if (!store) fields.homeStoreId = "Choose your home store";
     if (form.get("accept") !== "on") fields.accept = "Please confirm you're 18 or older and accept the terms";
     if (Object.keys(fields).length) return { step: "register", phone, fields, values: v };
@@ -170,6 +170,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
           referralCode: referrer ? v.ref : undefined,
           consents: Object.fromEntries(CHANNELS.map((ch) => [ch, form.get(`consent_${ch}`) === "on"])),
           source: referrer ? "REFERRAL" : "WEB",
+          joinedVia: String(form.get("src") ?? ""),
         },
         { type: "CUSTOMER", name: v.firstName },
       );

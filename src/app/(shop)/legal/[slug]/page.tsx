@@ -95,7 +95,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
               {c?.phone ? `, telephone ${c.phone}` : ""}.
             </P>
             <H2>Records we hold</H2>
-            <P>Company and statutory records; franchise agreements; product, batch and laboratory records; sales, stock and financial records; customer and Rewards records; marketing consent records; and employee records.</P>
+            <P>Company and statutory records; franchise agreements; product, batch and laboratory records; sales, stock and financial records; member and Rewards records; marketing consent records; and employee records.</P>
             <H2>How to request access</H2>
             <P>Complete the prescribed request form (Form 2) and send it to the Information Officer. Prescribed fees may apply. We&apos;ll respond within 30 days, as required by PAIA. Some records may be refused on the grounds set out in the Act, including to protect the privacy of others.</P>
           </>

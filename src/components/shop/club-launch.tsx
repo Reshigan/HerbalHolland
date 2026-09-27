@@ -11,18 +11,18 @@ import type { EventCard, WelcomeGift } from "@/server/shop/launch";
 import { fmtDate, fmtDay, fmtTime, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
-/** Pre-launch: the member's place in line, the Founding zone and the referral link that moves them up. */
+/** While the Founding Members list is open: the member's place, the Founding zone and the referral link that moves them up. */
 export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { place: number; total: number; referrals: number; boost: number; launchAt: Date }; cap: number; referUrl: string; shareText: string; firstName: string }) {
   const v = waitlistView(w, cap);
   const pos = Math.min(100, Math.max(0, v.marker * 100));
   return (
-    <Panel id="waitlist" className="scroll-mt-28 border-brand-500/40 bg-gradient-to-br from-brand-500/[0.09] via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
+    <Panel id="founding" className="scroll-mt-28 border-brand-500/40 bg-gradient-to-br from-brand-500/[0.09] via-ink-900/80 to-ink-900/80 p-5 sm:p-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <div className="eyebrow text-brand-500">Your place in line</div>
+          <div className="eyebrow text-brand-500">Your place on the list</div>
           <p className="tnum mt-2 font-display text-5xl font-semibold leading-none tracking-tight text-white">#{num(w.place)}</p>
           <p className="mt-2 text-sm text-ink-400">
-            of {num(Math.max(w.total, w.place))} on the waitlist · we open {fmtDate(w.launchAt)}
+            of {num(Math.max(w.total, w.place))} members on the list · closes {fmtDate(w.launchAt)}
           </p>
         </div>
         <Tag tone={v.founding ? "orange" : "neutral"} className="mt-1">
@@ -41,7 +41,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
           </span>
         </div>
         <div className="flex justify-between text-[0.7rem] text-ink-500">
-          <span>Front of the line</span>
+          <span>Top of the list</span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-brand-500" /> First {num(cap)} = Founding Members
           </span>
@@ -53,7 +53,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
 
       <p className="mt-5 text-sm leading-relaxed text-ink-200">
         {v.founding
-          ? `You're inside the first ${num(cap)} — a numbered Founding Member spot when we open. Places can shift as others bring friends, so keep sharing.`
+          ? `You're inside the first ${num(cap)} — a numbered Founding Member card when the list closes. Places can shift as others bring friends, so keep sharing.`
           : `Bring ${v.friendsNeeded} friend${v.friendsNeeded === 1 ? "" : "s"} to reach a Founding spot.`}{" "}
         <strong className="font-semibold text-white">Each friend who joins moves you up {num(w.boost)} places.</strong>
         {w.referrals > 0 && ` You've brought ${w.referrals} so far — thank you, ${firstName}.`}

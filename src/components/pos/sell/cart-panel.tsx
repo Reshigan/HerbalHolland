@@ -88,7 +88,7 @@ export function CustomerCard({
             <UserRound className="h-5 w-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <div className="font-semibold text-white">Walk-in customer</div>
+            <div className="font-semibold text-white">Walk-in</div>
             <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members save instantly and earn points"}</div>
           </div>
         </div>
@@ -146,7 +146,7 @@ export function CustomerCard({
             </div>
           )}
         </div>
-        <button type="button" onClick={onDetach} aria-label="Remove customer from sale" className="-mr-2 -mt-2 grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+        <button type="button" onClick={onDetach} aria-label="Remove member from sale" className="-mr-2 -mt-2 grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
           <X className="h-4 w-4" />
         </button>
       </div>

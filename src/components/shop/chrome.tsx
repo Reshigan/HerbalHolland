@@ -63,12 +63,12 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   const current = store ? picker.find((p) => p.code === store.code) ?? null : null;
   // Headline the newest public deal (code-only offers stay private; copy is screened defensively).
   const headline = promos.find((p) => !p.code && !screenCopy(p.name).length);
-  // Before launch the shop is a waitlist: lead with the date and the Founding Members offer.
+  // While the Founding Members list is open, lead with its closing date.
   const messages = launch.preLaunch && launch.at
     ? [
-        { text: `Opening ${fmtDate(launch.at)} — join the waitlist`, href: customer ? "/club" : "/club/join" },
-        { text: `The first ${num(launch.foundingCap)} become Founding Members`, href: customer ? "/club" : "/club/join" },
-        { text: "Every friend you bring moves you up the list", href: customer ? "/club#waitlist" : "/club/join" },
+        { text: `Founding Members close ${fmtDate(launch.at)} — join free`, href: customer ? "/club" : "/club/join" },
+        { text: `The first ${num(launch.foundingCap)} members get a numbered card`, href: customer ? "/club" : "/club/join" },
+        { text: "Every friend you bring moves you up the list", href: customer ? "/club#founding" : "/club/join" },
       ]
     : [
         ...(headline ? [{ text: headline.name, href: "/shop" }] : []),

@@ -84,35 +84,37 @@ export default async function Home() {
         <Container className="relative grid grid-cols-1 items-center gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:py-20">
           {pre ? (
             <div className="order-2 animate-rise lg:order-1">
-              <div className="eyebrow mb-5 text-brand-500">Windmill Days · Founding Members</div>
+              <div className="eyebrow mb-5 text-brand-500">Founding Members</div>
               <h1 className="font-display text-[2.6rem] font-semibold leading-[0.98] tracking-tight text-white sm:text-6xl xl:text-[4.6rem]">
-                Opening {WEEKDAY[weekdaySA(pre)]} {fmtDay(pre).replace(" ", "\u00a0")}.
+                Be one of the first {num(launch.foundingCap)}.
                 <br />
-                <span className="text-brand-500">Join the waitlist.</span>
+                <span className="text-brand-500">
+                  The list closes {WEEKDAY[weekdaySA(pre)]} {fmtDay(pre).replace(" ", "\u00a0")}.
+                </span>
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">
-                The first {num(launch.foundingCap)} on the list become numbered Founding Members and start at {tierInfo(launch.foundingTier).name} — {loyalty.tierSavingsPct[launch.foundingTier]}% off instantly — for a year. Every friend who joins with your link moves you up {num(launch.referralBoost)} places. Adults 18+.
+                Join Herbal Holland Rewards free. The first {num(launch.foundingCap)} members on the list get a numbered Founding Member card and start at {tierInfo(launch.foundingTier).name} — {loyalty.tierSavingsPct[launch.foundingTier]}% off instantly — for {launch.foundingMonths} months. Every friend who joins with your link moves you up {num(launch.referralBoost)} places. Adults 18+.
               </p>
-              <Countdown to={pre} variant="blocks" label={`Opens ${fmtWhen(pre)}`} className="mt-8" />
+              <Countdown to={pre} variant="blocks" label={`List closes ${fmtWhen(pre)}`} className="mt-8" />
               <div className="mt-8 flex flex-wrap gap-3">
                 {place ? (
                   <ButtonLink href="/club" size="xl">
-                    You&apos;re #{num(place.place)} in line <ArrowRight className="h-5 w-5" />
+                    You&apos;re #{num(place.place)} on the list <ArrowRight className="h-5 w-5" />
                   </ButtonLink>
                 ) : (
                   <ButtonLink href={customer ? "/club" : "/club/join"} size="xl">
-                    {customer ? "See your place in line" : "Join the waitlist"} <ArrowRight className="h-5 w-5" />
+                    {customer ? "See your place on the list" : "Join free"} <ArrowRight className="h-5 w-5" />
                   </ButtonLink>
                 )}
                 <ButtonLink href="/shop" variant="outline-dark" size="xl">
-                  Browse the range
+                  Shop the range
                 </ButtonLink>
               </div>
               <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
                 {[
-                  [num(listSize), "on the waitlist"],
+                  [num(listSize), "members on the list"],
                   [num(launch.foundingCap), "Founding spots"],
-                  [String(trading.length), "stores opening"],
+                  [String(stores.length), trading.length < stores.length ? "stores opening" : "stores"],
                 ].map(([v, l]) => (
                   <div key={l}>
                     <dt className="sr-only">{l}</dt>

@@ -70,6 +70,8 @@ describe("South Africa rules", () => {
     expect(marketingWindow(new Date("2026-09-26T14:00:00+02:00")).allowed).toBe(false);
     expect(marketingWindow(new Date("2026-09-27T10:00:00+02:00")).allowed).toBe(false); // Sunday
     expect(marketingWindow(new Date("2026-09-24T10:00:00+02:00")).allowed).toBe(false); // Heritage Day
+    expect(marketingWindow(new Date("2026-11-04T10:00:00+02:00"))).toEqual({ allowed: false, reason: "Public holiday (Local government elections)" }); // proclaimed
+    expect(marketingWindow(new Date("2026-11-05T10:00:00+02:00")).allowed).toBe(true);
     expect(nextMarketingSlot(new Date("2026-09-27T10:00:00+02:00")).toISOString()).toBe("2026-09-28T06:00:00.000Z");
   });
   it("uses SAST business days", () => {
@@ -132,7 +134,7 @@ describe("compliance", () => {
   });
   it("blocks minors even when an ID was sighted", () => {
     const r = checkCompliance({ items: [oil], channel: "POS", customer: { ageVerified: true, age: 17 }, ageCheckedAtCounter: true });
-    expect(r.blocks.join()).toContain("under 18");
+    expect(r.blocks.join()).toContain("Under 18");
   });
   it("keeps Tobacco-Bill related products in-store when that mode is on", () => {
     const settings = { ...DEFAULT_COMPLIANCE, tobaccoBillMode: true };

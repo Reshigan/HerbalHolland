@@ -77,7 +77,7 @@ export const ADJUST_REASONS: Record<AdjustReason, { label: string; dir: Directio
   THEFT: { label: "Theft", dir: "OUT", hint: "Add the SAPS case number in the note" },
   LOST: { label: "Lost / missing", dir: "OUT", hint: "Can't be found" },
   SAMPLE: { label: "Sample / tester", dir: "OUT", hint: "Opened for display or staff training" },
-  QUALITY: { label: "Quality issue", dir: "OUT", hint: "Customer complaint or failed inspection" },
+  QUALITY: { label: "Quality issue", dir: "OUT", hint: "A complaint or a failed inspection" },
   RECALL: { label: "Recall return", dir: "OUT", hint: "Sent back to the distribution centre" },
   DESTROYED: { label: "Destroyed (witnessed)", dir: "OUT", hint: "Destruction register — a witness must sign off" },
   FOUND: { label: "Found", dir: "IN", hint: "Stock found that the system didn't know about" },

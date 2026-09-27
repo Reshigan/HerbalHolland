@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { cartCount, parseCart, serializeCart, type CartItem } from "./cart-codec";
-import type { Prisma } from "@/generated/prisma/client";
+import type { Prisma, StoreStatus } from "@/generated/prisma/client";
 
 export const SHOP_COOKIE = { cart: "hh_cart", store: "hh_store", age: "hh_age", promo: "hh_promo", phone: "hh_phone" } as const;
 
@@ -69,6 +69,11 @@ export const getPreferredStore = cache(async (): Promise<ShopStore | null> => {
 export async function savePreferredStore(code: string) {
   (await cookies()).set(SHOP_COOKIE.store, code, opts(365 * DAY));
 }
+
+/** A member's home store can be trading or opening soon: members join before their store opens. */
+export const HOME_STORE_STATUSES: StoreStatus[] = ["ACTIVE", "OPENING_SOON"];
+export const homeStoreOptions = (stores: { id: string; name: string; city: string; status: StoreStatus }[]) =>
+  stores.map((s) => ({ id: s.id, name: s.status === "OPENING_SOON" ? `${s.name} (opening soon)` : s.name, city: s.city }));
 
 /** Trading and opening-soon retail stores for pickers and the store finder. */
 export const getRetailStores = cache(async () =>

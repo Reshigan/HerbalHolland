@@ -654,7 +654,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       <Confirm
         open={confirmClear}
         title="Clear the basket?"
-        body="This removes every item, the customer and any promo code from this sale."
+        body="This removes every item, the member and any promo code from this sale."
         confirmLabel="Clear basket"
         danger
         onClose={() => setConfirmClear(false)}

@@ -6,7 +6,7 @@ import type { PresetKey } from "@/lib/ranges";
 import type { CsvFormat } from "@/lib/csv";
 import type { Tone } from "@/components/ui/badge";
 
-export const GROUPS = ["Sales", "Inventory", "Purchasing", "Finance", "Customers", "Marketing", "Compliance"] as const;
+export const GROUPS = ["Sales", "Inventory", "Purchasing", "Finance", "Members", "Marketing", "Compliance"] as const;
 export type ReportGroup = (typeof GROUPS)[number];
 export type ReportScope = "store" | "hq";
 /** Built-in filters. The store picker is always offered when the user can see more than one store. */

@@ -1,7 +1,7 @@
-// Launch: the pre-launch waitlist and Founding Members.
-// Before settings.launch.launchAt the storefront runs as a waitlist. A member's place is their join order, moved up
-// `referralBoost` places for every friend who joins before launch. At launch the first `foundingCap` places become
-// numbered Founding Members who hold at least `foundingTier` for `foundingMonths` (Customer.tierFloor).
+// The Founding Members list. Until settings.launch.launchAt (when the list closes) members join the list while the
+// shop trades as normal. A member's place is their join order, moved up `referralBoost` places for every friend who
+// joins before it closes. Then the first `foundingCap` places become numbered Founding Members who hold at least
+// `foundingTier` for `foundingMonths` (Customer.tierFloor).
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { getSettings } from "./settings";

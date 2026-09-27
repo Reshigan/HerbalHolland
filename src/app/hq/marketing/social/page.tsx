@@ -32,7 +32,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <PageHeader
-        overline="Customers"
+        overline="Members"
         title="Social"
         description="Post to the brand's Instagram, Facebook, LinkedIn, X and Threads through Postiz. The platforms remove posts that sell cannabis or CBD, so social is for the brand: merch, stores, events and Learn."
       />

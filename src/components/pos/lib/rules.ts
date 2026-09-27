@@ -25,7 +25,7 @@ export function quickCash(dueCents: number): number[] {
 /** Maps the compliance engine's messages to the action the cashier can take. */
 export function classifyBlock(message: string): BlockKind {
   if (/^Age verification required/i.test(message)) return "AGE";
-  if (/^Customer is under/i.test(message)) return "UNDERAGE";
+  if (/^Under \d+/i.test(message)) return "UNDERAGE";
   if (/patient authorisation/i.test(message)) return "PATIENT";
   if (/authorised quantity/i.test(message)) return "QUANTITY";
   if (/authorised dispenser/i.test(message)) return "DISPENSER";

@@ -41,13 +41,14 @@ const KEYWORDS: Record<string, string> = {
   "new-vs-returning": "retention acquisition first time repeat",
   "member-attach": "rewards members linked sign in",
   "rewards-savings": "tier pricing member prices instant savings discount basket walk-in",
+  "join-sources": "sign-ups qr codes links flyers src tags founding members acquisition",
   promotions: "discounts deals specials bonus buys",
   campaigns: "sms whatsapp email push roi marketing",
   "age-checks": "18+ id verification minors",
   "dispensing-register": "sahpra thc medical patients prescriptions section 21 dispenser",
   "compliance-events": "blocked sales exceptions rules",
   recalls: "recall quarantine batches unsafe",
-  "batch-trace": "traceability recall customers lab coa",
+  "batch-trace": "traceability recall members lab coa",
 };
 
 const slug = (g: string) => g.toLowerCase();

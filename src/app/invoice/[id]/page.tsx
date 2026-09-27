@@ -147,7 +147,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                 <p className="text-sm text-ink-700">{displayPhone(s.customer.phone)}</p>
               </>
             ) : (
-              <p className="mt-2 text-sm text-ink-700">Cash customer</p>
+              <p className="mt-2 text-sm text-ink-700">Walk-in</p>
             )}
           </div>
         </section>

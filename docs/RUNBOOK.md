@@ -34,9 +34,11 @@
 
 ## Launch day
 
-1. HQ → Launch: confirm the launch date-time (SAST). Until then the shop runs as a waitlist.
-2. After the launch time the scheduler numbers the first `foundingCap` waitlist places (or press "Assign founding
-   numbers now"); spot-check a founder's card shows the number and Sprout.
+1. HQ → Founding Members: confirm when the list closes (SAST). The shop trades normally while it's open. Stores
+   that haven't opened are **opening soon** (HQ → Stores) — members can pick them as home store — and switch to
+   trading on the morning they open.
+2. When the list closes the scheduler numbers the first `foundingCap` places (or press "Assign founding numbers
+   now"); spot-check a Founding Member's card shows the number and Sprout.
 3. HQ → Drops / Events: first drop and opening weekends scheduled inside CPA send windows; stock allocated. At the
    door, the till checks guests in by scanning the ticket QR in their Rewards card (or typing `HHRSVP:` + code); the
    event's door list (CSV) is the paper fallback.
@@ -48,7 +50,7 @@
 | When | Task | Where |
 |---|---|---|
 | Continuous | Health check, error rate, p95 latency, DB connections | Load balancer + APM |
-| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the launch date passes; drop alerts to watchers; email paid merch orders to the print partner | `/api/cron/frequent` |
+| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the list closes; drop alerts to watchers; email paid merch orders to the print partner | `/api/cron/frequent` |
 | Daily (DC) | Print partner's shipping emails → enter courier + tracking on each merch order (**Merch shipped**); chase anything "sent" for more than 7 working days; mark delivered merch orders delivered | Store back office → DC → Online orders |
 | Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; load weekly My Deals (Mondays) | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |

@@ -53,7 +53,14 @@ export type NewCustomer = {
   referralCode?: string;
   consents: Partial<Record<MsgChannel, boolean>>;
   source: string;
+  joinedVia?: string | null; // raw ?src= tag; normalised by joinTag
   ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a budtender checked a passport in store
+};
+
+/** A join-link tag (`/club/join?src=flyer-hillcrest`): lowercase letters, digits and dashes, up to 40 characters. */
+export const joinTag = (raw?: string | null) => {
+  const t = raw?.trim().toLowerCase() ?? "";
+  return /^[a-z0-9][a-z0-9-]{0,39}$/.test(t) ? t : null;
 };
 
 export async function createCustomer(a: NewCustomer, actor: Actor) {
@@ -103,6 +110,7 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
         consentPush: !!a.consents.PUSH,
         consentAt: new Date(),
         source: a.source,
+        joinedVia: joinTag(a.joinedVia),
       },
     });
     await t.consentEvent.createMany({
@@ -133,7 +141,7 @@ export async function recordAgeCheck(customerId: string, method: AgeCheck, actor
     const id = checkSaId(idNumber);
     if (!id.valid) throw new CustomerError(id.reason);
     dob = id.dob;
-    if (ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`Customer is under ${settings.compliance.minAge}`);
+    if (ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`Members must be ${settings.compliance.minAge} or older`);
   }
   const c = await db.customer.update({
     where: { id: customerId },

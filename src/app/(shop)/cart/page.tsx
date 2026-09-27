@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AlertTriangle, ArrowRight, BadgePercent, CalendarClock, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Trash2, Truck } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgePercent, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Trash2, Truck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -8,7 +8,6 @@ import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
 import { madeToOrder } from "@/server/merch";
 import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
-import { launchState } from "@/server/launch";
 import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
@@ -26,7 +25,6 @@ import { fmtWhen } from "@/components/shop/launch-cards";
 import { Callout, Container, Panel, Tag } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { opensFor } from "@/lib/drops";
-import { fmtDate } from "@/lib/format";
 import { fmtPoints, pointsFor, type TierKey } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
 import { cn } from "@/lib/cn";
@@ -58,14 +56,13 @@ export default async function CartPage() {
 
   const net = await getNetwork();
   const variantIds = q.lines.map((l) => l.variantId);
-  const [variants, avail, access, drops, dropMsgs, gifts, launch, made] = await Promise.all([
+  const [variants, avail, access, drops, dropMsgs, gifts, made] = await Promise.all([
     db.variant.findMany({ where: { id: { in: variantIds } }, select: { id: true, product: { select: { slug: true, strain: true, regClass: true, name: true } } } }),
     availability(net.all, variantIds),
     q.lines.some((l) => classes.licensed.includes(l.regClass)) ? getDispensaryAccess() : null,
     dropsFor(variantIds),
     dropBlocks(customer?.id, q.lines),
     welcomeGifts(customer, store?.id),
-    launchState(),
     madeToOrder(variantIds),
   ]);
   // Limited drops in the bag: what's wrong (if anything), in plain words, before checkout.
@@ -107,11 +104,6 @@ export default async function CartPage() {
       <p className="mt-2 text-ink-400">
         {q.lines.reduce((s, l) => s + l.qty, 0)} item{q.lines.reduce((s, l) => s + l.qty, 0) === 1 ? "" : "s"} · prices include VAT
       </p>
-      {launch.preLaunch && launch.at && (
-        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} className="mt-6" title={`We open on ${fmtDate(launch.at)}`}>
-          Fill your bag now — it&apos;s saved on this device, and checkout opens on launch day.
-        </Callout>
-      )}
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
         <div className="space-y-4">
@@ -286,7 +278,7 @@ export default async function CartPage() {
             )}
             {made.size > 0 && (
               <p className="mt-4 flex items-center gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-xs text-ink-300">
-                <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Made-to-order merch ships on its own from our merch partner in {MADE_TO_ORDER_LEAD}: {zar(settings.ecommerce.merchCourierCents)} courier on top.
+                <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Made-to-order merch ships on its own from our merch partner in {MADE_TO_ORDER_LEAD}: {zar(settings.ecommerce.merchCourierCents)} courier on top. {settings.ecommerce.merchNotice}
               </p>
             )}
             {licensedLines.length === q.lines.length || made.size === q.lines.length ? null : toFree > 0 ? (

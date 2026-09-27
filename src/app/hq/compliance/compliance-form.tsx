@@ -18,7 +18,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
       key: "MEDICAL" as const,
       icon: Stethoscope,
       title: "Medical (SAHPRA pathway)",
-      body: "Licensed products are medicines: only for customers with an active Section 21 patient authorisation, within its monthly quantity, handed over by an authorised dispenser. No promotions, tier savings or points on them (Medicines Act s18A).",
+      body: "Licensed products are medicines: only for members with an active Section 21 patient authorisation, within its monthly quantity, handed over by an authorised dispenser. No promotions, tier savings or points on them (Medicines Act s18A).",
     },
     {
       key: "ADULT_USE" as const,
@@ -71,7 +71,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
             <Input id="minAge" name="minAge" defaultValue={value.minAge} inputMode="numeric" />
             <FieldError name="minAge" />
           </Field>
-          <Field label="Daily limit (grams)" htmlFor="dailyLimitGrams" hint={mode === "ADULT_USE" ? "Per customer per day, licensed classes" : "Used in adult-use mode"}>
+          <Field label="Daily limit (grams)" htmlFor="dailyLimitGrams" hint={mode === "ADULT_USE" ? "Per member per day, licensed classes" : "Used in adult-use mode"}>
             <Input id="dailyLimitGrams" name="dailyLimitGrams" defaultValue={value.dailyLimitGrams} inputMode="decimal" />
             <FieldError name="dailyLimitGrams" />
           </Field>

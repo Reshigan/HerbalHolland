@@ -22,6 +22,7 @@ export function PhoneAuth({
   stores,
   defaultStoreId,
   referral,
+  src,
   consentWording,
   title = "Sign in or join",
   intro = "Use your mobile number — no passwords. New here? It takes one short step.",
@@ -30,6 +31,7 @@ export function PhoneAuth({
   stores: StoreOpt[];
   defaultStoreId?: string | null;
   referral?: { code: string; name: string } | null;
+  src?: string;
   consentWording: string;
   title?: string;
   intro?: string;
@@ -38,6 +40,7 @@ export function PhoneAuth({
   const hidden = (
     <>
       {next && <input type="hidden" name="next" value={next} />}
+      {src && <input type="hidden" name="src" value={src} />}
       {state.phone && <input type="hidden" name="phone" value={state.phone} />}
     </>
   );

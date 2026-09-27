@@ -58,7 +58,7 @@ export async function setBatchStatus(batchId: string, to: "QUARANTINE" | "RELEAS
         audience: "ALL",
         requiresAck: true,
         title: `Recall: ${name}, batch ${batch.code}`,
-        body: `Stop selling batch ${batch.code} of ${name} immediately. Reason: ${reason}\n\nThe tills and web shop already block this batch. Count what you hold, keep it aside, and return it on your next stock order or book it out as RECALL. Customers who bought it have been contacted by SMS.`,
+        body: `Stop selling batch ${batch.code} of ${name} immediately. Reason: ${reason}\n\nThe tills and web shop already block this batch. Count what you hold, keep it aside, and return it on your next stock order or book it out as RECALL. Members who bought it have been contacted by SMS.`,
       },
     });
     announcementId = a.id;
@@ -73,6 +73,6 @@ export async function setBatchStatus(batchId: string, to: "QUARANTINE" | "RELEAS
   await audit(db, g.actor, action, { entity: "Batch", entityId: batchId, data: { code: batch.code, from: batch.status, reason, notified, announcementId } });
   revalidatePath(`/hq/batches/${batchId}`);
   revalidatePath("/hq/batches");
-  if (to === "RECALLED") flashTo(`/hq/batches/${batchId}`, `Batch recalled. ${notified} customer${notified === 1 ? "" : "s"} notified by SMS and every store has a recall notice to acknowledge.`);
+  if (to === "RECALLED") flashTo(`/hq/batches/${batchId}`, `Batch recalled. ${notified} member${notified === 1 ? "" : "s"} notified by SMS and every store has a recall notice to acknowledge.`);
   flashTo(`/hq/batches/${batchId}`, to === "QUARANTINE" ? "Batch quarantined — it can't be sold or shipped until released." : "Batch released for sale.");
 }

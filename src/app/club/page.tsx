@@ -7,7 +7,7 @@ import { APP_URL } from "@/server/invoices";
 import { launchState, waitlistPlace } from "@/server/launch";
 import { sharePath } from "@/server/share";
 import { LEDGER_LABEL, ledgerTitle, memberOverview, tierIndex } from "@/server/shop/club";
-import { getPreferredStore, getRetailStores } from "@/server/shop/context";
+import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { memberDeals, memberTickets, upcomingEvents, welcomeGifts } from "@/server/shop/launch";
 import { MemberCard } from "@/components/shop/member-card";
 import { PhoneAuth } from "@/components/shop/phone-auth";
@@ -59,7 +59,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
       {sp.welcome && (
         <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${m.customer.firstName}!`} className="mb-8">
           {launch.preLaunch && launch.at
-            ? `You're on the waitlist — we open ${fmtDate(launch.at)}. Share your link below to move up the line; ${fmtPoints(settings.loyalty.signupBonus)} are already on your card.`
+            ? `Your card is ready, and you're on the Founding Members list until ${fmtDate(launch.at)}. Share your link below to move up; ${fmtPoints(settings.loyalty.signupBonus)} are already on your card.`
             : `Your card is ready — show the QR code at any till to earn points. We've added ${fmtPoints(settings.loyalty.signupBonus)} to get you started.`}
         </Callout>
       )}
@@ -101,7 +101,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               cap={launch.foundingCap}
               referUrl={referUrl}
               firstName={m.customer.firstName}
-              shareText={`I'm on the Herbal Holland waitlist — we open ${fmtDate(launch.at)} and the first ${num(launch.foundingCap)} become Founding Members. Join free with my link (adults 18+):`}
+              shareText={`I'm on the Herbal Holland Founding Members list — the first ${num(launch.foundingCap)} members get a numbered card, and it closes ${fmtDate(launch.at)}. Join free with my link (adults 18+):`}
             />
           )}
           {gifts.map((g) => (
@@ -333,8 +333,8 @@ async function Landing() {
   return (
     <Container className="pt-10 sm:pt-16">
       {launch.preLaunch && launch.at && (
-        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`We open ${fmtDate(launch.at)} — join the waitlist`} className="mb-10">
-          The first {num(launch.foundingCap)} on the list become numbered Founding Members and start at {tierInfo(launch.foundingTier).name} for a year. Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
+        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`Founding Members close ${fmtDate(launch.at)} — join free`} className="mb-10">
+          The first {num(launch.foundingCap)} members on the list get a numbered card and start at {tierInfo(launch.foundingTier).name} for {launch.foundingMonths} months. Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
         </Callout>
       )}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-16">
@@ -375,7 +375,7 @@ async function Landing() {
           </ol>
         </div>
         <Panel className="h-fit p-6 sm:p-8">
-          <PhoneAuth next="/club" stores={trading.map((s) => ({ id: s.id, name: s.name, city: s.city }))} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} />
+          <PhoneAuth next="/club" stores={homeStoreOptions(stores)} defaultStoreId={store?.id} consentWording={CONSENT_WORDING} />
         </Panel>
       </div>
     </Container>

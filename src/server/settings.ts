@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS = {
     minMarginPct: 25, // franchisee price-setting guardrail (warning only — never enforced)
   },
   launch: {
-    launchAt: null as string | null, // ISO date-time; before it the storefront runs as a waitlist
+    launchAt: null as string | null, // ISO date-time when the Founding Members list closes (null = no list)
     foundingCap: 10_000, // the first N waitlist places become numbered Founding Members
     foundingTier: "SPROUT" as TierKey, // …who hold at least this tier
     foundingMonths: 12, // …for this long after launch
@@ -36,6 +36,7 @@ export const DEFAULT_SETTINGS = {
     courierFeeCents: 9_900,
     freeDeliveryOverCents: 90_000,
     merchCourierCents: 10_000, // made-to-order merch: the merch partner's courier at cost (Aramex), always on top of the price
+    merchNotice: "", // shown with made-to-order merch, e.g. the partner's festive closure and the last order date for Christmas
     sameDayCutoffHour: 15,
     unpaidHoldMinutes: 60, // unpaid online orders are cancelled (stock released) after this
     collectHoldDays: 7, // pay-in-store collections not picked up are cancelled after this

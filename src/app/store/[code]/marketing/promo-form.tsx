@@ -241,7 +241,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
         </Field>
       </div>
 
-      <Field label="Promo code (optional)" htmlFor="pr-code" hint="Leave blank to apply automatically. With a code, customers must quote it at the till.">
+      <Field label="Promo code (optional)" htmlFor="pr-code" hint="Leave blank to apply automatically. With a code, it applies only when the code is quoted at the till.">
         <Input id="pr-code" name="code" maxLength={16} {...text("code")} className="font-mono uppercase" placeholder="HATFIELD10" />
         <FieldError name="code" />
       </Field>

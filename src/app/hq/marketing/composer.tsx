@@ -165,13 +165,13 @@ export function Composer({
               htmlFor="name"
               hint={
                 v.channel === "EMAIL" ? (
-                  "Customers see this as the subject"
+                  "Members see this as the subject"
                 ) : push ? (
                   <span className={cn(titleLong && "font-medium text-rose-600")}>
                     Shown in bold on the notification · {v.name.length} / {PUSH_TITLE_MAX} characters
                   </span>
                 ) : (
-                  "For reporting — customers don't see it"
+                  "For reporting — members don't see it"
                 )
               }
             >
