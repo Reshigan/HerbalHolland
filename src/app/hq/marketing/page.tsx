@@ -54,7 +54,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
       <>
         <Header canCreate={can(user, "network")} />
         <Tabs current="suppression" />
-        <div className="grid gap-6 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
           <Card className="xl:col-span-2">
             <CardHeader title="Do-not-contact list" description={bySource.map((s) => `${num(s._count)} ${s.source.replaceAll("_", " ").toLowerCase()}`).join(" · ") || "Empty"} />
             <div className="mt-4 border-y border-ink-100 p-4">
@@ -62,7 +62,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
                 <SearchField defaultValue={sp.q} placeholder="Find a number or email" />
               </FilterForm>
             </div>
-            <Table>
+            <Table className="relative">
               <thead>
                 <tr>
                   <Th>Value</Th>
@@ -169,7 +169,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
             <FilterSelect name="channel" label="Channel" defaultValue={sp.channel} options={Object.entries(CHANNEL_LABEL).map(([value, label]) => ({ value, label }))} />
           </FilterForm>
         </div>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>Campaign</Th>

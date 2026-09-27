@@ -75,7 +75,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         <Stat label="Wholesale to stores" value={zarCompact(wholesaleIncl)} sub="received, incl. VAT" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Net sales by day" description="All stores, ex VAT" />
           <CardBody>
@@ -90,7 +90,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader title="Franchise fee income" description="Charged on each store's monthly statement" />
           <CardBody>
@@ -157,7 +157,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
 
       <Card className="mt-6">
         <CardHeader title="Stores" description="Net sales and gross profit this period" />
-        <Table className="mt-4">
+        <Table className="relative mt-4">
           <thead>
             <tr>
               <Th>Store</Th>

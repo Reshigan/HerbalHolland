@@ -81,7 +81,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
         <Stat label="Authorisations expiring" value={num(expiringCount)} sub="in the next 30 days" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Rules" description="Changes are audited and apply to the next basket everywhere" />
           <CardBody>
@@ -142,7 +142,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
         </div>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Store licences" description="Licence-gated classes are only sellable at stores holding the licence. The reference prints on receipts and tax invoices." />
           <div className="mt-4 border-y border-ink-100 p-4">
@@ -161,7 +161,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
                       <span className="font-mono">{s.code}</span> · <StatusBadge status={s.status} className="ml-0.5" />
                     </span>
                   </div>
-                  <fieldset disabled={!admin} className="flex flex-wrap gap-x-4 gap-y-1.5">
+                  <fieldset disabled={!admin} className="min-w-0 flex flex-wrap gap-x-4 gap-y-1.5">
                     {CLASSES.filter((cl) => c.licensedOnly.includes(cl) || s.licences.includes(cl)).map((cl) => (
                       <label key={cl} className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-800">
                         <input type="checkbox" name="licences" value={cl} defaultChecked={s.licences.includes(cl)} className="h-4 w-4 accent-oranje-500" />

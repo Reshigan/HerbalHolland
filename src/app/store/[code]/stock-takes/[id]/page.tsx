@@ -196,7 +196,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
                   </Td>
                   <Td className="whitespace-nowrap font-mono text-xs text-ink-600">{r.batchCode}</Td>
                   <Td align="right" className="text-ink-500">{r.expectedQty}</Td>
-                  <Td align="right" className={r.moved ? "font-semibold text-amber-700" : undefined}>
+                  <Td align="right" className={r.moved ? "relative font-semibold text-amber-700" : undefined}>
                     {r.system}
                     {r.moved && <span className="sr-only"> (changed since counting started)</span>}
                   </Td>

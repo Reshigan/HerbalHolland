@@ -96,7 +96,7 @@ export function applyPromotions(lines: PricedLine[], promos: PromoInput[], code?
       credit(p, total - p.value);
     }
     const left = pool.length % n;
-    if (left > 0 || pool.length === 0) suggest(p, `Add ${n - left} more to get ${n} for R${p.value / 100}`, p);
+    if (pool.length > 0 && left > 0) suggest(p, `Add ${n - left} more to get ${n} for R${p.value / 100}`, p);
   }
 
   // 1b. Bonus buys: buy X (or spend Y) and get Z at a discount / free.
@@ -131,8 +131,10 @@ export function applyPromotions(lines: PricedLine[], promos: PromoInput[], code?
     }
     const triggers = p.buyQty ? Math.floor(free(p).filter((u) => !targets(reward, lines[u.line]) || !sameTargets(p)).length / p.buyQty) : 1;
     entitled = triggers * get;
-    if (p.buyQty) for (const u of free(p).slice(0, triggers * p.buyQty)) if (!targets(reward, lines[u.line])) u.claimed = true;
-    const rewards = free(reward).sort((a, b) => a.price - b.price).slice(0, entitled);
+    const used = p.buyQty ? free(p).slice(0, triggers * p.buyQty).filter((u) => !targets(reward, lines[u.line])) : [];
+    const rewards = free(reward).filter((u) => !used.includes(u)).sort((a, b) => a.price - b.price).slice(0, entitled);
+    // Only triggers that actually earned a reward are used up; the rest keep their line deals.
+    for (const u of used.slice(0, Math.ceil(rewards.length / get) * (p.buyQty ?? 0))) u.claimed = true;
     for (const u of rewards) {
       u.discount = Math.round((u.price * pct) / 100);
       u.claimed = true;

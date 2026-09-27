@@ -46,8 +46,8 @@ export function PriceListForm({
   const set = (i: number, patch: Partial<Item>) => setItems(items.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   return (
-    <ActionForm action={action} className="grid gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
-      <fieldset disabled={readOnly} className="contents">
+    <ActionForm action={action} className="grid grid-cols-1 gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
+      <fieldset disabled={readOnly} className="min-w-0 contents">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Prices" description="Item prices are VAT-inclusive. Add a row with a minimum quantity above 1 for a quantity break." />

@@ -13,7 +13,7 @@ import {
   saveAuth, saveBoot, saveCart, saveSession, updateQueued, type AuthState, type Cart, type OutboxItem, type SalePayload,
 } from "./lib/storage";
 import { rememberPin, verifyOffline, canUnlockOffline } from "./lib/pin";
-import { receiptNumber } from "./lib/rules";
+import { parseOrderQr, receiptNumber } from "./lib/rules";
 import { PosContext, type PosCtx, type PosTab, type PrintDoc } from "./context";
 import { LockScreen, initials } from "./lock-screen";
 import { SellScreen, type SellApi } from "./sell/sell-screen";
@@ -58,6 +58,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const [printDoc, setPrintDoc] = useState<{ doc: PrintDoc; n: number } | null>(null);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [outboxOpen, setOutboxOpen] = useState(false);
+  const [orderScan, setOrderScan] = useState<string | null>(null);
 
   const authRef = useRef(auth);
   authRef.current = auth;
@@ -332,8 +333,14 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         if (buf.length >= 4 && now - last < 120) {
           e.preventDefault();
           const code = buf;
-          setTab("sell");
-          setTimeout(() => sellApi.current?.scan(code), 0);
+          if (parseOrderQr(code)) {
+            // Customer's collection QR → straight to that order's handover.
+            setOrderScan(code);
+            setTab("orders");
+          } else {
+            setTab("sell");
+            setTimeout(() => sellApi.current?.scan(code), 0);
+          }
         }
         buf = "";
       } else if (e.key.length === 1) {
@@ -395,8 +402,14 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setBusy: (b: boolean) => void (busyRef.current = b),
       goTo: setTab,
       toast,
+      orderScan,
+      openOrderScan: (text: string) => {
+        setOrderScan(text);
+        setTab("orders");
+      },
+      clearOrderScan: () => setOrderScan(null),
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;

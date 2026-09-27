@@ -99,7 +99,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           <CardBody>
             {!can(user, "admin") && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
             <ActionForm action={saveEcommerceSettings}>
-              <fieldset disabled={!can(user, "admin")} className="grid gap-4 sm:grid-cols-3">
+              <fieldset disabled={!can(user, "admin")} className="min-w-0 grid gap-4 sm:grid-cols-3">
                 <Field label="Same-day delivery fee (R)" htmlFor="sameDayFee">
                   <Input id="sameDayFee" name="sameDayFee" defaultValue={rand(e.sameDayFeeCents)} inputMode="decimal" />
                   <FieldError name="sameDayFee" />
@@ -151,7 +151,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               </label>
             </FilterForm>
           </div>
-          <Table>
+          <Table className="relative">
             <thead>
               <tr>
                 <Th>Order</Th>

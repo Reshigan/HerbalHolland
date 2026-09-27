@@ -99,7 +99,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
             </label>
           </FilterForm>
         </div>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>When</Th>

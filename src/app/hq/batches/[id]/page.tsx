@@ -95,7 +95,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
         </Notice>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Traceability" description={limit ? "Customers of your region's stores who bought from this batch" : "Everyone who bought from this batch, from the till and online"} />
@@ -105,7 +105,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
               <MiniStat label="Members reached" value={num(summary.customers)} sub="contactable for a recall" />
               <MiniStat label="Stores" value={num(summary.stores)} />
             </CardBody>
-            <Table>
+            <Table className="relative">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -149,7 +149,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
             <CardBody>
               {!edit && <ViewOnly className="mb-4">View only — lab results are recorded by HQ quality.</ViewOnly>}
               <ActionForm action={saveLabResults.bind(null, batch.id)}>
-                <fieldset disabled={!edit} className="space-y-4">
+                <fieldset disabled={!edit} className="min-w-0 space-y-4">
                   <div className="grid gap-4 sm:grid-cols-4">
                     <Field label="THC %" htmlFor="thc">
                       <Input id="thc" name="thc" defaultValue={batch.thc ?? ""} inputMode="decimal" />

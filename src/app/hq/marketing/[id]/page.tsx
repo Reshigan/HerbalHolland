@@ -109,11 +109,11 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <Stat label="Return on spend" value={c.costCents ? `${((r?.revenueCents ?? 0) / c.costCents).toFixed(1)}×` : "—"} sub={c.costCents ? `cost ${zar(c.costCents)}` : "no cost recorded"} />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Attributed sales" description={promo ? `Sales using ${promo.code ? `code ${promo.code}` : promo.name} or the campaign link` : "Sales stamped with this campaign"} />
-            <Table className="mt-4">
+            <Table className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -148,7 +148,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           </Card>
           <Card>
             <CardHeader title="Delivery log" description={`Latest messages · ${statuses.map((s) => `${num(s._count)} ${s.status.toLowerCase()}`).join(" · ") || "none"}`} />
-            <Table className="mt-4">
+            <Table className="relative mt-4">
               <thead>
                 <tr>
                   <Th>To</Th>

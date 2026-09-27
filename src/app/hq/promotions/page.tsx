@@ -119,7 +119,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             <FilterSelect name="owner" label="Run by" defaultValue={sp.owner} allLabel="Everyone" options={[{ value: "network", label: "HQ (network)" }, { value: "store", label: "Stores (local)" }]} />
           </FilterForm>
         </div>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>Promotion</Th>

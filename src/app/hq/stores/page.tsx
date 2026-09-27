@@ -74,7 +74,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
             <FilterSelect name="kind" label="Type" defaultValue={sp.kind} allLabel={null} options={[{ value: "", label: "Retail stores" }, { value: "WAREHOUSE", label: "Distribution centres" }]} />
           </FilterForm>
         </div>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>{sortLink("name", "Store")}</Th>

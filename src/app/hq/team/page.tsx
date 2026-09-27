@@ -40,9 +40,9 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
     <>
       <PageHeader overline="Governance" title="Team" description="HQ staff and area managers. Store teams are managed by each store's owner or manager in the back office." />
       <Flash message={sp.m} />
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <Table>
+          <Table className="relative">
             <thead>
               <tr>
                 <Th>Person</Th>

@@ -143,8 +143,8 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
               <tr>
                 <Th>Item</Th>
                 <Th align="right">Ordered</Th>
-                <Th align="right">Unit</Th>
-                <Th align="right">Line</Th>
+                <Th align="right" className="hidden 2xl:table-cell">Unit</Th>
+                <Th align="right" className="hidden sm:table-cell">Line</Th>
                 <Th>Shipped</Th>
                 <Th align="right">Received</Th>
               </tr>
@@ -155,7 +155,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                 const shortRecv = l.receivedQty != null && l.shippedQty != null && l.receivedQty < l.shippedQty;
                 return (
                   <Tr key={l.id} className={shortShip || shortRecv ? "bg-amber-50/70 hover:bg-amber-50" : undefined}>
-                    <Td className="min-w-48">
+                    <Td className="min-w-40 sm:min-w-48">
                       {isBuyer ? (
                         <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-oranje-700">
                           {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
@@ -166,10 +166,13 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                         </span>
                       )}
                       <div className="font-mono text-xs text-ink-400">{l.variant.sku}</div>
+                      <div className="text-xs text-ink-500 2xl:hidden">
+                        {zar(l.unitCostCents)} each<span className="sm:hidden"> · {zar(l.qty * l.unitCostCents)}</span>
+                      </div>
                     </Td>
                     <Td align="right">{l.qty}</Td>
-                    <Td align="right" className="text-ink-600">{zar(l.unitCostCents)}</Td>
-                    <Td align="right">{zar(l.qty * l.unitCostCents)}</Td>
+                    <Td align="right" className="hidden text-ink-600 2xl:table-cell">{zar(l.unitCostCents)}</Td>
+                    <Td align="right" className="hidden sm:table-cell">{zar(l.qty * l.unitCostCents)}</Td>
                     <Td>
                       {l.shippedQty == null ? (
                         <span className="text-ink-300">—</span>

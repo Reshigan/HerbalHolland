@@ -88,7 +88,7 @@ export function Composer({
   };
 
   return (
-    <ActionForm action={action} className="grid gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
+    <ActionForm action={action} className="grid grid-cols-1 gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
       <div className="space-y-6 xl:col-span-2">
         <Card>
           <CardHeader title="Channel and audience" />

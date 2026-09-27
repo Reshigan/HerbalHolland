@@ -154,7 +154,7 @@ async function Marketplace({ store, canManage, q, page, sp, path }: { store: Sto
                   </Td>
                   {canManage && (
                     <Td className="min-w-44">
-                      <ActionForm action={buyListing.bind(null, store.code, l.id)} notices="bottom" className="flex flex-col items-end">
+                      <ActionForm action={buyListing.bind(null, store.code, l.id)} notices="bottom" className="relative flex flex-col items-end">
                         <div className="flex items-center gap-2">
                           <label className="sr-only" htmlFor={`buy-${l.id}`}>Units to buy</label>
                           <input

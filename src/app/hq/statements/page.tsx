@@ -77,7 +77,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
             }
           />
           <Card className="max-w-3xl">
-            <Table>
+            <Table className="relative">
               <thead>
                 <tr>
                   <Th>Line</Th>
@@ -159,7 +159,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
         <Stat label="Net due to HQ" value={zarCompact(owed)} sub="all stores, after credits" />
       </div>
       <Card>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>Store</Th>

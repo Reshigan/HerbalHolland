@@ -72,7 +72,7 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
           {isNew && <input type="hidden" name="active" value="on" />}
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-3 md:max-w-xl">
+      <div className="mt-3 grid grid-cols-3 items-end gap-3 md:max-w-xl">
         <Field label="RRP incl. VAT" htmlFor={`price-${k}`}>
           <Input id={`price-${k}`} name="price" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" className="tnum" required />
           <FieldError name="price" />
@@ -107,7 +107,7 @@ export function VariantEditor({ productId, variants, minMarginPct, readOnly }: {
               {v.batches} batch{v.batches === 1 ? "" : "es"} · {v.onHand.toLocaleString()} units on hand network-wide
             </span>
           </div>
-          <fieldset disabled={readOnly}>
+          <fieldset disabled={readOnly} className="min-w-0">
             <VariantFields v={v} minMarginPct={minMarginPct} />
           </fieldset>
           {!readOnly && (

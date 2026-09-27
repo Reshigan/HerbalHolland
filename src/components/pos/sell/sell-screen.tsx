@@ -8,7 +8,7 @@ import { checkCompliance } from "@/lib/compliance";
 import { zar, zarWhole } from "@/lib/money";
 import { api, errorText, OfflineError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
-import { classifyBlock, memberNoFrom, uuid } from "../lib/rules";
+import { classifyBlock, memberNoFrom, parseOrderQr, uuid } from "../lib/rules";
 import { EMPTY_CART, type Cart, type SalePayload } from "../lib/storage";
 import { usePos } from "../context";
 import { Confirm, PosButton, Sheet } from "../ui";
@@ -19,7 +19,7 @@ import { ComplianceSheet } from "./compliance-sheet";
 import { PaymentSheet, FULL_INVOICE_OVER_CENTS, type PaymentResult } from "./payment-sheet";
 import { ReceiptSheet } from "./receipt-sheet";
 import { CameraScanner, cameraScanSupported } from "./scanner";
-import type { ComplianceDTO, CustomerDetail, QuoteDTO, ReceiptDTO } from "@/server/pos/types";
+import type { ComplianceDTO, CustomerDetail, CustomerHit, QuoteDTO, ReceiptDTO } from "@/server/pos/types";
 
 export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: () => void; scan: (code: string) => void; add: (variantId: string) => void };
 
@@ -121,10 +121,13 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     (raw: string) => {
       const code = raw.trim();
       if (!code) return;
+      if (parseOrderQr(code)) {
+        pos.openOrderScan(code); // collection QR → that order's handover
+        return;
+      }
       const member = memberNoFrom(code);
       if (member) {
-        setCustQuery(member);
-        setCustSheet("find");
+        void attachMemberRef.current(member); // member card QR (or typed member no.) → attach straight away
         return;
       }
       const hit = [...index.values()].find((e) => e.variant.barcode === code || e.variant.sku.toLowerCase() === code.toLowerCase());
@@ -140,7 +143,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const q = query.trim();
     if (!q) return;
     const exact = [...index.values()].find((e) => e.variant.barcode === q || e.variant.sku.toLowerCase() === q.toLowerCase());
-    if (exact || memberNoFrom(q)) {
+    if (exact || memberNoFrom(q) || parseOrderQr(q)) {
       scan(q);
       setQuery("");
       return;
@@ -375,6 +378,28 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       add,
     };
   });
+
+  /** Member card QR / member number → attach the member (prices re-quote at their tier). */
+  const attachMember = async (memberNo: string) => {
+    if (!onlineRef.current) {
+      pos.toast("Offline — members need a connection. Sell to a walk-in (cash) for now.", "warn");
+      return;
+    }
+    try {
+      const r = await api<{ customers: CustomerHit[] }>(`/api/pos/customers?q=${encodeURIComponent(memberNo)}`);
+      if (r.customers.length !== 1) {
+        setCustQuery(memberNo);
+        setCustSheet("find");
+        return;
+      }
+      const d = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${r.customers[0].id}`);
+      pickCustomer(d.customer);
+    } catch (e) {
+      pos.toast(errorText(e), "error");
+    }
+  };
+  const attachMemberRef = useRef(attachMember);
+  attachMemberRef.current = attachMember;
 
   const pickCustomer = (c: CustomerDetail) => {
     setCart((x) => ({ ...x, customer: c, ageCheck: null }));

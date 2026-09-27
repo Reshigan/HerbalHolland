@@ -104,7 +104,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
 
       {view.status ? (
         <Card>
-          <Table>
+          <Table className="relative">
             <thead>
               <tr>
                 <Th>Order</Th>
@@ -178,7 +178,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
               <FilterSelect name="low" label="Show" allLabel={null} defaultValue={sp.low ?? ""} options={[{ value: "", label: "All SKUs" }, { value: "1", label: "Low stock only" }]} />
             </FilterForm>
           </div>
-          <Table>
+          <Table className="relative">
             <thead>
               <tr>
                 <Th>Item</Th>

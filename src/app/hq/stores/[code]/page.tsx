@@ -84,7 +84,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
         <Stat label="Open online orders" value={num(openOrders)} sub={`${alerts.low} SKUs at reorder point`} />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Net sales" description="Daily, ex VAT, last 30 days" />
@@ -98,7 +98,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
             <CardBody>
               {!editProfile && <ViewOnly className="mb-4" />}
               <ActionForm action={saveStoreProfile.bind(null, store.id)}>
-                <fieldset disabled={!editProfile} className="grid gap-4 sm:grid-cols-2">
+                <fieldset disabled={!editProfile} className="min-w-0 grid gap-4 sm:grid-cols-2">
                   <Field label="Store name" htmlFor="name" className="sm:col-span-2">
                     <Input id="name" name="name" defaultValue={store.name} required />
                     <FieldError name="name" />
@@ -198,7 +198,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
             />
             <CardBody>
               <ActionForm action={saveCompany.bind(null, store.companyId, store.code)}>
-                <fieldset disabled={!admin} className="space-y-3">
+                <fieldset disabled={!admin} className="min-w-0 space-y-3">
                   <Field label="Registered name" htmlFor="legalName">
                     <Input id="legalName" name="legalName" defaultValue={store.company.legalName} />
                     <FieldError name="legalName" />
@@ -257,7 +257,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
             <CardHeader title="Franchise fees" description="Charged on net sales ex VAT, settled on the monthly statement" />
             <CardBody>
               <ActionForm action={saveStoreFees.bind(null, store.id)}>
-                <fieldset disabled={!admin} className="grid grid-cols-3 gap-3">
+                <fieldset disabled={!admin} className="min-w-0 grid grid-cols-3 gap-3">
                   {(
                     [
                       ["royalty", "Royalty", store.royaltyBps],
@@ -290,7 +290,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
             <CardHeader title="Licences" description="Classes this store may sell where a licence is required" />
             <CardBody>
               <ActionForm action={saveLicences.bind(null, store.id)}>
-                <fieldset disabled={!admin} className="space-y-3">
+                <fieldset disabled={!admin} className="min-w-0 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     {CLASSES.map((cl) => (
                       <Checkbox key={cl} name="licences" value={cl} defaultChecked={store.licences.includes(cl)} label={REG_CLASS_LABEL[cl]} />
@@ -314,7 +314,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
             <CardHeader title="Status" description={`${users} active staff logins · ${store.kind === "WAREHOUSE" ? "distribution centre" : "retail store"}`} />
             <CardBody>
               <ActionForm action={saveStoreStatus.bind(null, store.id)}>
-                <fieldset disabled={!admin} className="grid grid-cols-2 gap-3">
+                <fieldset disabled={!admin} className="min-w-0 grid grid-cols-2 gap-3">
                   <Field label="Status" htmlFor="status">
                     <Select id="status" name="status" defaultValue={store.status}>
                       {STATUSES.map((s) => (

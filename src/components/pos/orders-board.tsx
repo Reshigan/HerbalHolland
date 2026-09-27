@@ -3,15 +3,16 @@
 // the 15-minute ready SLA. Handover checks the collection code, 18+ ID, a dispenser for
 // licensed items and takes payment if unpaid; delivery orders are dispatched with tracking.
 import { useEffect, useMemo, useState } from "react";
-import { Bike, Clock, IdCard, Package, PackageCheck, Pill, RefreshCw, ShieldCheck, ShoppingBag, Truck, XCircle } from "lucide-react";
+import { Bike, Clock, IdCard, Package, PackageCheck, Pill, QrCode, RefreshCw, ShieldCheck, ShoppingBag, Truck, XCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
 import { api, errorText } from "./lib/api";
-import { orderSla } from "./lib/rules";
+import { orderSla, parseOrderQr } from "./lib/rules";
 import { usePos } from "./context";
 import { Alert, CheckRow, Chip, EmptyPanel, Field, PosButton, Segmented, SelectInput, Sheet, Spinner, TextInput, TextArea } from "./ui";
 import { PaymentSheet, type PaymentResult } from "./sell/payment-sheet";
+import { CameraScanner, cameraScanSupported } from "./sell/scanner";
 import type { OrderCard } from "@/server/pos/types";
 
 type Column = "new" | "picking" | "ready" | "handover";
@@ -38,12 +39,47 @@ export function OrdersBoard() {
   const [open, setOpen] = useState<OrderCard | null>(null);
   const [action, setAction] = useState<null | "handover" | "dispatch" | "delivered" | "cancel">(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [scannedCode, setScannedCode] = useState<string | null>(null);
 
   useEffect(() => {
     void refreshOrders();
     const t = setInterval(() => setNow(new Date()), 30_000);
     return () => clearInterval(t);
   }, [refreshOrders]);
+
+  // A customer's collection QR scanned anywhere on the till: verify it, then open the handover.
+  const { orderScan, clearOrderScan, toast } = pos;
+  useEffect(() => {
+    if (!orderScan) return;
+    const qr = parseOrderQr(orderScan);
+    if (!qr) return clearOrderScan();
+    // Cancellable (React may run effects twice in development); the scan is cleared once handled.
+    let live = true;
+    api<{ order: OrderCard }>(`/api/pos/orders?scan=${encodeURIComponent(orderScan)}`)
+      .then(({ order }) => {
+        if (!live) return;
+        clearOrderScan();
+        setCol(COLUMNS.find((c) => c.statuses.includes(order.status))?.key ?? "ready");
+        setScannedCode(qr.collectionCode);
+        setOpen(order);
+        if (order.status === "READY") setAction(order.fulfilment === "COLLECT" ? "handover" : "dispatch");
+        else {
+          setAction(null);
+          toast(
+            order.status === "COMPLETED" ? `${order.code} has already been collected` : order.status === "OUT_FOR_DELIVERY" ? `${order.code} is out for delivery` : `${order.code} isn't ready yet — finish picking, then hand it over`,
+            "warn",
+          );
+        }
+      })
+      .catch((e) => {
+        if (!live) return;
+        clearOrderScan();
+        toast(errorText(e), "error");
+      });
+    return () => {
+      live = false;
+    };
+  }, [orderScan, clearOrderScan, toast]);
 
   const grouped = useMemo(() => {
     const g: Record<Column, OrderCard[]> = { new: [], picking: [], ready: [], handover: [] };
@@ -181,12 +217,14 @@ export function OrdersBoard() {
 
       <OrderSheet
         order={open}
+        initialCode={scannedCode}
         action={action}
         onAction={setAction}
-        onClose={() => (setOpen(null), setAction(null))}
+        onClose={() => (setOpen(null), setAction(null), setScannedCode(null))}
         onDone={async (msg) => {
           setOpen(null);
           setAction(null);
+          setScannedCode(null);
           pos.toast(msg);
           await refreshOrders();
         }}
@@ -198,6 +236,7 @@ export function OrdersBoard() {
 
 function OrderSheet({
   order,
+  initialCode,
   action,
   onAction,
   onClose,
@@ -205,6 +244,7 @@ function OrderSheet({
   onAdvance,
 }: {
   order: OrderCard | null;
+  initialCode?: string | null;
   action: null | "handover" | "dispatch" | "delivered" | "cancel";
   onAction: (a: null | "handover" | "dispatch" | "delivered" | "cancel") => void;
   onClose: () => void;
@@ -220,18 +260,33 @@ function OrderSheet({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [canCamera, setCanCamera] = useState(false);
+  useEffect(() => setCanCamera(cameraScanSupported()), []);
 
   useEffect(() => {
-    setCode("");
+    setCode(initialCode ?? "");
     setIdOk(false);
     setTracking("");
     setReason("");
     setError(null);
     setPaying(false);
-  }, [order?.id, action]);
+  }, [order?.id, action, initialCode]);
 
   if (!order) return null;
   const o = order;
+  /** Typed code, or a collection QR scanned into the field / with the camera. */
+  const takeCode = (raw: string) => {
+    const qr = parseOrderQr(raw);
+    if (!qr) return setCode(raw.toUpperCase());
+    if (qr.orderCode !== o.code) {
+      setCode("");
+      setError(`That QR is for order ${qr.orderCode}, not ${o.code}`);
+      return;
+    }
+    setError(null);
+    setCode(qr.collectionCode);
+  };
   const needsDispenser = o.licensed && !pos.me.canDispense;
 
   const post = async (body: Record<string, unknown>) => api<{ order: { trackingNo: string | null } }>(`/api/pos/orders/${o.id}`, { body });
@@ -324,8 +379,15 @@ function OrderSheet({
 
         {action === "handover" && (
           <div className="mb-5 space-y-4">
-            <Field label="Collection code" htmlFor="collect-code" hint="The 6-digit code from the customer's SMS — or their order code">
-              <TextInput id="collect-code" autoFocus inputMode="text" autoComplete="off" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />
+            <Field label="Collection code" htmlFor="collect-code" hint={initialCode && code === initialCode ? "From the customer's collection QR — checked when you hand over" : "The 6-digit code from the customer's SMS or QR — or their order code"}>
+              <div className="flex gap-2">
+                <TextInput id="collect-code" autoFocus inputMode="text" autoComplete="off" value={code} onChange={(e) => takeCode(e.target.value)} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />
+                {canCamera && (
+                  <PosButton variant="secondary" className="h-14 w-14 shrink-0 px-0" onClick={() => setScanning(true)} aria-label="Scan the customer's collection QR">
+                    <QrCode className="h-6 w-6" />
+                  </PosButton>
+                )}
+              </div>
             </Field>
             {o.ageRestricted && (
               <CheckRow checked={idOk} onChange={setIdOk} label="I've checked their ID — adults 18+ only" description={o.customer.ageVerified ? "Their age is verified on their profile; check the ID matches the member." : "Their age isn't verified yet — check an ID document."} />
@@ -396,6 +458,16 @@ function OrderSheet({
           )}
         </div>
       </Sheet>
+
+      <CameraScanner
+        open={scanning}
+        title="Scan the collection QR"
+        onClose={() => setScanning(false)}
+        onResult={(text) => {
+          setScanning(false);
+          takeCode(text);
+        }}
+      />
 
       <PaymentSheet
         open={paying}

@@ -58,8 +58,8 @@ export function ProductForm({
   const cannabis = regClass === "THC" || regClass === "CBD" || regClass === "HEMP";
 
   return (
-    <ActionForm action={action} className="grid gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
-      <fieldset disabled={readOnly} className="contents">
+    <ActionForm action={action} className="grid grid-cols-1 gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
+      <fieldset disabled={readOnly} className="min-w-0 contents">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Product" description="What customers see in the shop, the app and on the menu board" />

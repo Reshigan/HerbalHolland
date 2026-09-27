@@ -929,7 +929,7 @@ async function main() {
     if (reviewRows.length >= 420 || !chance(0.02)) continue;
     const sale = saleById.get(sl.saleId);
     const v = vById.get(sl.variantId);
-    if (!sale?.customerId || !v || reviewed.has(`${v.productId}|${sale.customerId}`)) continue;
+    if (!sale?.customerId || !v || v.reg === "THC" || reviewed.has(`${v.productId}|${sale.customerId}`)) continue; // no medicine testimonials
     reviewed.add(`${v.productId}|${sale.customerId}`);
     const rating = weighted([[5, 0.56], [4, 0.29], [3, 0.1], [2, 0.04], [1, 0.01]] as const);
     const [title, body] = pick(REVIEW[rating] as readonly (readonly [string, string])[]);

@@ -102,14 +102,14 @@ export default async function InventoryPage({ params, searchParams }: { params: 
         <div className="space-y-3 border-b border-ink-100 p-4 sm:p-5">
           <SearchForm path={path} q={q} keep={{ status: status === "ALL" ? undefined : status, sort: sp1(sp.sort), dir: sp1(sp.dir) }} placeholder="Search product, SKU or barcode">
             <label className="sr-only" htmlFor="inv-cat">Category</label>
-            <AutoSelect id="inv-cat" name="cat" defaultValue={cat} wrapperClassName="w-44">
+            <AutoSelect id="inv-cat" name="cat" defaultValue={cat} wrapperClassName="min-w-0 flex-1 sm:w-44 sm:flex-none">
               <option value="">All categories</option>
               {categories.map(([slug, name]) => (
                 <option key={slug} value={slug}>{name}</option>
               ))}
             </AutoSelect>
             <label className="sr-only" htmlFor="inv-cls">Product class</label>
-            <AutoSelect id="inv-cls" name="cls" defaultValue={cls} wrapperClassName="w-52">
+            <AutoSelect id="inv-cls" name="cls" defaultValue={cls} wrapperClassName="min-w-0 flex-1 sm:w-52 sm:flex-none">
               <option value="">All classes</option>
               {classes.map((c) => (
                 <option key={c} value={c}>{REG_CLASS_LABEL[c]}</option>

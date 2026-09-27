@@ -237,7 +237,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
               </button>
             ))}
           </div>
-          <p id="scan-help" className="hidden text-xs text-ink-500 md:block">
+          <p id="scan-help" className={cn("hidden text-xs text-ink-500", canEdit && "md:block")}>
             <Kbd>Enter</Kbd> jumps to the item · <Kbd>Enter</Kbd> in a count moves on · <Kbd>Esc</Kbd> back to scan · <Kbd>Ctrl</Kbd>+<Kbd>S</Kbd> saves
           </p>
         </div>
@@ -262,11 +262,11 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="text-left text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
-              <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5">Item</th>
-              <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5">Batch</th>
-              {!blind && <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-right">Expected</th>}
-              <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-center">Counted</th>
-              {!blind && <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-right">Variance</th>}
+              <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 sm:px-5">Item</th>
+              <th className="hidden border-b border-ink-150 bg-ink-50 px-4 py-2.5 sm:table-cell">Batch</th>
+              {!blind && <th className="hidden border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-right sm:table-cell">Expected</th>}
+              <th className="border-b border-ink-150 bg-ink-50 px-2 py-2.5 text-center sm:px-4">Counted</th>
+              {!blind && <th className="hidden border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-right sm:table-cell">Variance</th>}
             </tr>
           </thead>
           <tbody>
@@ -286,27 +286,40 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                     </tr>
                   )}
                   <tr className={cn("transition-colors", focusId === l.id ? "bg-oranje-50" : done ? "bg-white" : "bg-white hover:bg-ink-50/60")}>
-                    <td className="border-b border-ink-100 px-5 py-2.5">
+                    <td className="border-b border-ink-100 px-4 py-2.5 sm:px-5">
                       <div className="flex items-center gap-2">
                         {done ? <Check className="h-4 w-4 shrink-0 text-leaf-600" aria-label="Counted" /> : <span className="h-4 w-4 shrink-0 rounded-full border-2 border-ink-200" aria-label="Not counted" />}
                         <div className="min-w-0">
                           <div className="font-medium text-ink-900">
                             {l.productName} <span className="text-ink-500">· {l.variantName}</span>
                           </div>
-                          <div className="font-mono text-xs text-ink-400">{l.sku}</div>
+                          <div className="hidden font-mono text-xs text-ink-400 sm:block">{l.sku}</div>
+                          <div className="font-mono text-xs text-ink-600 sm:hidden">
+                            {l.batchCode}
+                            {l.blocked && <Badge tone="red" className="ml-1">Blocked</Badge>}
+                          </div>
+                          <div className="text-xs text-ink-400 sm:hidden">
+                            {l.expiry ?? "No expiry"}
+                            {!blind && l.expected != null && (
+                              <>
+                                {" "}· expected <span className="tnum font-semibold text-ink-700">{l.expected}</span>
+                                {diff != null && diff !== 0 && <span className={cn("tnum ml-1 font-semibold", diff > 0 ? "text-leaf-700" : "text-rose-600")}>({diff > 0 ? "+" : "−"}{Math.abs(diff)})</span>}
+                              </>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </td>
-                    <td className="whitespace-nowrap border-b border-ink-100 px-4 py-2.5">
+                    <td className="hidden whitespace-nowrap border-b border-ink-100 px-4 py-2.5 sm:table-cell">
                       <div className="font-mono text-xs font-semibold text-ink-700">{l.batchCode}</div>
                       <div className="flex items-center gap-1 text-xs text-ink-400">
                         {l.expiry ?? "No expiry"}
                         {l.blocked && <Badge tone="red">Blocked</Badge>}
                       </div>
                     </td>
-                    {!blind && <td className="tnum border-b border-ink-100 px-4 py-2.5 text-right text-ink-600">{l.expected}</td>}
-                    <td className="border-b border-ink-100 px-4 py-2">
-                      <div className="flex items-center justify-center gap-1">
+                    {!blind && <td className="tnum hidden border-b border-ink-100 px-4 py-2.5 text-right text-ink-600 sm:table-cell">{l.expected}</td>}
+                    <td className="border-b border-ink-100 px-2 py-2 sm:px-4">
+                      <div className="flex items-center justify-center gap-0.5 sm:gap-1">
                         {canEdit && (
                           <button type="button" tabIndex={-1} onClick={() => bump(l.id, -1)} className="grid h-9 w-9 place-items-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-ink-900" aria-label={`One less ${l.productName} ${l.variantName}`}>
                             <Minus className="h-4 w-4" aria-hidden />
@@ -332,7 +345,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                           }}
                           placeholder="–"
                           className={cn(
-                            "tnum h-10 w-20 rounded-xl border bg-white text-center text-base font-semibold text-ink-950 focus:outline-none focus:ring-4",
+                            "tnum h-10 w-16 rounded-xl border bg-white text-center text-base font-semibold text-ink-950 focus:outline-none focus:ring-4 sm:w-20",
                             bad ? "border-rose-500 focus:ring-rose-500/15" : done ? "border-leaf-500/50 focus:border-oranje-500 focus:ring-oranje-500/15" : "border-ink-200 focus:border-oranje-500 focus:ring-oranje-500/15",
                             "disabled:bg-ink-50",
                           )}
@@ -345,7 +358,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                       </div>
                     </td>
                     {!blind && (
-                      <td className="tnum border-b border-ink-100 px-5 py-2.5 text-right font-semibold">
+                      <td className="tnum hidden border-b border-ink-100 px-5 py-2.5 text-right font-semibold sm:table-cell">
                         {diff == null ? <span className="text-ink-300">—</span> : diff === 0 ? <span className="text-leaf-700">0</span> : <span className={diff > 0 ? "text-leaf-700" : "text-rose-600"}>{diff > 0 ? "+" : "−"}{Math.abs(diff)}</span>}
                       </td>
                     )}

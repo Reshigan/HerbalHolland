@@ -102,7 +102,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       {product.variants.length > 0 && (
         <Card className="mt-6">
           <CardHeader title="Ranging" description="Which stores carry each variant. Ranging drives replenishment and what the web shop can route to a store." />
-          <Table className="mt-4">
+          <Table className="relative mt-4">
             <thead>
               <tr>
                 <Th>Variant</Th>

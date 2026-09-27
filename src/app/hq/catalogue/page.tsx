@@ -64,7 +64,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
             <FilterSelect name="flag" label="Flag" defaultValue={sp.flag} options={[{ value: "heritage", label: "Heritage" }, { value: "featured", label: "Featured" }, { value: "tobacco", label: "Tobacco Bill related" }]} />
           </FilterForm>
         </div>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>Product</Th>

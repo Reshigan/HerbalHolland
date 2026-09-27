@@ -1,4 +1,5 @@
 "use server";
+import { getSettings } from "@/server/settings";
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -10,8 +11,9 @@ export type ReviewState = { ok?: boolean; error?: string };
 export async function submitReview(productId: string, _: ReviewState, form: FormData): Promise<ReviewState> {
   const customer = await getCustomer();
   if (!customer) return { error: "Sign in to write a review" };
-  const product = await db.product.findUnique({ where: { id: productId }, select: { slug: true } });
+  const product = await db.product.findUnique({ where: { id: productId }, select: { slug: true, regClass: true } });
   if (!product) return { error: "That product is no longer available" };
+  if ((await getSettings()).compliance.licensedOnly.includes(product.regClass)) return { error: "Reviews aren't published for medicines" };
   const rating = Math.floor(Number(form.get("rating")));
   const title = String(form.get("title") ?? "").trim().slice(0, 80);
   const body = String(form.get("body") ?? "").trim().slice(0, 1200);

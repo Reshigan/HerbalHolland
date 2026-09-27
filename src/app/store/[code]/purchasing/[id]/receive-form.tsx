@@ -27,11 +27,11 @@ export function ReceiveForm({ lines, action }: { lines: ReceiveLine[]; action: F
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">
-              <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-left">Item</th>
-              <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-left">Batches shipped</th>
-              <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Ordered</th>
+              <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-left sm:px-5">Item</th>
+              <th className="hidden border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-left md:table-cell">Batches shipped</th>
+              <th className="hidden border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right sm:table-cell">Ordered</th>
               <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Shipped</th>
-              <th className="border-b border-ink-150 bg-ink-50 px-5 py-2.5 text-center">Received</th>
+              <th className="border-b border-ink-150 bg-ink-50 px-4 py-2.5 text-center sm:px-5">Received</th>
             </tr>
           </thead>
           <tbody>
@@ -41,17 +41,19 @@ export function ReceiveForm({ lines, action }: { lines: ReceiveLine[]; action: F
               const short = !bad && v < l.shipped;
               return (
                 <tr key={l.id} className={cn(bad ? "bg-rose-50/70" : short ? "bg-amber-50/80" : undefined)}>
-                  <td className="border-b border-ink-100 px-5 py-2.5">
+                  <td className="border-b border-ink-100 px-4 py-2.5 sm:px-5">
                     <div className="font-medium text-ink-900">{l.name}</div>
                     <div className="font-mono text-xs text-ink-400">{l.sku}</div>
+                    {l.lots && <div className="font-mono text-xs text-ink-600 md:hidden">{l.lots}</div>}
+                    <div className="text-xs text-ink-500 sm:hidden">ordered {l.ordered}</div>
                   </td>
-                  <td className="border-b border-ink-100 px-3 py-2.5 font-mono text-xs text-ink-600">{l.lots || "—"}</td>
-                  <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{l.ordered}</td>
+                  <td className="hidden border-b border-ink-100 px-3 py-2.5 font-mono text-xs text-ink-600 md:table-cell">{l.lots || "—"}</td>
+                  <td className="tnum hidden border-b border-ink-100 px-3 py-2.5 text-right text-ink-600 sm:table-cell">{l.ordered}</td>
                   <td className={cn("tnum border-b border-ink-100 px-3 py-2.5 text-right", l.shipped < l.ordered ? "font-semibold text-amber-700" : "text-ink-800")}>
                     {l.shipped}
                     {l.shipped < l.ordered && <div className="text-[0.68rem] font-medium">short-shipped {l.ordered - l.shipped}</div>}
                   </td>
-                  <td className="border-b border-ink-100 px-5 py-2">
+                  <td className="border-b border-ink-100 px-4 py-2 sm:px-5">
                     <div className="flex flex-col items-center">
                       <input
                         name={`recv:${l.id}`}

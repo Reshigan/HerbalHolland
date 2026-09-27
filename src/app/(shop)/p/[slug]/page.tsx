@@ -54,7 +54,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     Promise.all(product.variants.map((v) => quote({ channel: "ONLINE", items: [{ variantId: v.id, qty: 1 }], customerId: customer?.id }))),
     currentBatch(variant.id, store?.id),
     storesWithStock([variant.id], store),
-    productReviews(product.id, sp.reviews === "all" ? 60 : 6),
+    // No testimonials for medicines (Medicines Act advertising rules): licensed products show no reviews.
+    licensed ? { avg: 0, count: 0, rows: [], distribution: [] } : productReviews(product.id, sp.reviews === "all" ? 60 : 6),
     availability(net.all, [variant.id]),
     getPricing(customer?.tier ?? null),
     customer ? db.stockAlert.findUnique({ where: { customerId_variantId: { customerId: customer.id, variantId: variant.id } } }) : null,
@@ -493,71 +494,73 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             )}
 
             {/* Reviews */}
-            <section id="reviews" aria-labelledby="reviews-title" className="scroll-mt-28">
-              <div className="eyebrow text-oranje-500">Verified reviews</div>
-              <h2 id="reviews-title" className="mt-2 font-display text-2xl font-semibold text-white">What members say</h2>
-              {reviews.count > 0 ? (
-                <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
-                  <div>
-                    <div className="tnum font-display text-5xl font-semibold text-white">{reviews.avg.toFixed(1)}</div>
-                    <Stars value={reviews.avg} className="mt-2" />
-                    <p className="mt-1 text-sm text-ink-400">
-                      {reviews.count} verified review{reviews.count === 1 ? "" : "s"}
-                    </p>
-                    <ul className="mt-5 space-y-1.5" aria-label="Rating distribution">
-                      {reviews.distribution.map((d) => (
-                        <li key={d.rating} className="flex items-center gap-2 text-xs text-ink-400">
-                          <span className="tnum w-3">{d.rating}</span>
-                          <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-800">
-                            <div className="h-full rounded-full bg-oranje-500" style={{ width: `${reviews.count ? (d.count / reviews.count) * 100 : 0}%` }} />
+            {!licensed && (
+              <section id="reviews" aria-labelledby="reviews-title" className="scroll-mt-28">
+                <div className="eyebrow text-oranje-500">Verified reviews</div>
+                <h2 id="reviews-title" className="mt-2 font-display text-2xl font-semibold text-white">What members say</h2>
+                {reviews.count > 0 ? (
+                  <div className="mt-6 grid grid-cols-1 gap-8 md:grid-cols-[14rem_minmax(0,1fr)]">
+                    <div>
+                      <div className="tnum font-display text-5xl font-semibold text-white">{reviews.avg.toFixed(1)}</div>
+                      <Stars value={reviews.avg} className="mt-2" />
+                      <p className="mt-1 text-sm text-ink-400">
+                        {reviews.count} verified review{reviews.count === 1 ? "" : "s"}
+                      </p>
+                      <ul className="mt-5 space-y-1.5" aria-label="Rating distribution">
+                        {reviews.distribution.map((d) => (
+                          <li key={d.rating} className="flex items-center gap-2 text-xs text-ink-400">
+                            <span className="tnum w-3">{d.rating}</span>
+                            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-ink-800">
+                              <div className="h-full rounded-full bg-oranje-500" style={{ width: `${reviews.count ? (d.count / reviews.count) * 100 : 0}%` }} />
+                            </div>
+                            <span className="tnum w-6 text-right">{d.count}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                    <ul className="space-y-4">
+                      {reviews.rows.map((r) => (
+                        <li key={r.id} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <Stars value={r.rating} />
+                            <span className="text-xs text-ink-500">{fmtDate(r.createdAt)}</span>
                           </div>
-                          <span className="tnum w-6 text-right">{d.count}</span>
+                          {r.title && <h3 className="mt-2 font-semibold text-white">{r.title}</h3>}
+                          {r.body && <p className="mt-1 text-sm leading-relaxed text-ink-300">{r.body}</p>}
+                          <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-400">
+                            <BadgeCheck className="h-3.5 w-3.5 text-leaf-500" /> {r.customer.firstName} {r.customer.lastName ? `${r.customer.lastName[0]}.` : ""} · Verified purchase
+                          </p>
                         </li>
                       ))}
+                      {reviews.count > reviews.rows.length && (
+                        <li>
+                          <Link href={`/p/${product.slug}?${new URLSearchParams({ ...(sp.v ? { v: sp.v } : {}), reviews: "all" })}#reviews`} scroll={false} className="text-sm font-semibold text-oranje-400 hover:underline">
+                            Show all {reviews.count} reviews
+                          </Link>
+                        </li>
+                      )}
                     </ul>
                   </div>
-                  <ul className="space-y-4">
-                    {reviews.rows.map((r) => (
-                      <li key={r.id} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <Stars value={r.rating} />
-                          <span className="text-xs text-ink-500">{fmtDate(r.createdAt)}</span>
-                        </div>
-                        {r.title && <h3 className="mt-2 font-semibold text-white">{r.title}</h3>}
-                        {r.body && <p className="mt-1 text-sm leading-relaxed text-ink-300">{r.body}</p>}
-                        <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-400">
-                          <BadgeCheck className="h-3.5 w-3.5 text-leaf-500" /> {r.customer.firstName} {r.customer.lastName ? `${r.customer.lastName[0]}.` : ""} · Verified purchase
-                        </p>
-                      </li>
-                    ))}
-                    {reviews.count > reviews.rows.length && (
-                      <li>
-                        <Link href={`/p/${product.slug}?${new URLSearchParams({ ...(sp.v ? { v: sp.v } : {}), reviews: "all" })}#reviews`} scroll={false} className="text-sm font-semibold text-oranje-400 hover:underline">
-                          Show all {reviews.count} reviews
-                        </Link>
-                      </li>
-                    )}
-                  </ul>
+                ) : (
+                  <p className="mt-3 text-sm text-ink-400">No reviews yet. Reviews come only from members who bought the product.</p>
+                )}
+                <div className="mt-8 max-w-2xl">
+                  {customer && bought && !reviewed ? (
+                    <ReviewForm action={submitReview.bind(null, product.id)} />
+                  ) : customer && reviewed ? (
+                    <p className="text-sm text-ink-400">You&apos;ve reviewed this product — thank you.</p>
+                  ) : !customer ? (
+                    <p className="text-sm text-ink-400">
+                      Bought this?{" "}
+                      <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}#reviews`)}`} className="font-semibold text-oranje-400 hover:underline">
+                        Sign in
+                      </Link>{" "}
+                      to leave a verified review.
+                    </p>
+                  ) : null}
                 </div>
-              ) : (
-                <p className="mt-3 text-sm text-ink-400">No reviews yet. Reviews come only from members who bought the product.</p>
-              )}
-              <div className="mt-8 max-w-2xl">
-                {customer && bought && !reviewed ? (
-                  <ReviewForm action={submitReview.bind(null, product.id)} />
-                ) : customer && reviewed ? (
-                  <p className="text-sm text-ink-400">You&apos;ve reviewed this product — thank you.</p>
-                ) : !customer ? (
-                  <p className="text-sm text-ink-400">
-                    Bought this?{" "}
-                    <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}#reviews`)}`} className="font-semibold text-oranje-400 hover:underline">
-                      Sign in
-                    </Link>{" "}
-                    to leave a verified review.
-                  </p>
-                ) : null}
-              </div>
-            </section>
+              </section>
+            )}
           </div>
 
           {/* Side: stores + complete the deal */}

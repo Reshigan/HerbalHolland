@@ -85,7 +85,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       />
       <Flash message={sp.m} />
       <Card>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>Price list</Th>
@@ -220,7 +220,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
         <CardBody>
           {!can(user, "admin") && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
           <ActionForm action={savePricingRules}>
-            <fieldset disabled={!can(user, "admin")} className="grid gap-4 sm:grid-cols-3">
+            <fieldset disabled={!can(user, "admin")} className="min-w-0 grid gap-4 sm:grid-cols-3">
               <Field label="Near-expiry window (days)" htmlFor="markdownDays" hint="Stock expiring this soon is marked down at the till (FEFO)">
                 <Input id="markdownDays" name="markdownDays" defaultValue={settings.pricing.markdownDays} inputMode="numeric" />
                 <FieldError name="markdownDays" />

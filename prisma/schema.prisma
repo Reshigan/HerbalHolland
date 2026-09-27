@@ -101,7 +101,7 @@ model Store {
   hours         Json?
   clickCollect  Boolean     @default(true)
   sameDay       Boolean     @default(false)
-  licences      RegClass[] // classes this store is licensed/permitted to sell
+  licences      RegClass[]  @default([]) // classes this store is licensed/permitted to sell
   licenceRef    String? // e.g. SAHPRA licence / permit numbers, printed on receipts
   royaltyBps    Int         @default(600)
   levyBps       Int         @default(200)
@@ -248,8 +248,8 @@ model Product {
   cbdMin         Float?
   cbdMax         Float?
   terpenes       Json? // [{ name, pct }]
-  effects        String[]
-  flavours       String[]
+  effects        String[]      @default([])
+  flavours       String[]      @default([])
   lineage        String?
   origin         String?
   heritage       Boolean       @default(false)
@@ -258,7 +258,7 @@ model Product {
   legalBasis     String? // e.g. "Schedule 0 CBD — GN 586 of 2020"
   cbdMgPerPack   Int? // Schedule 0: ≤ 600 mg per sales pack
   cbdMgPerDay    Float? // Schedule 0: ≤ 20 mg maximum daily dose
-  claims         String[] // approved low-risk claims only
+  claims         String[]      @default([]) // approved low-risk claims only
   tobaccoRelated Boolean       @default(false) // pipes, water-pipes, papers, vapes (Tobacco Bill B33-2022)
   featured       Boolean       @default(false)
   status         ProductStatus @default(ACTIVE)
@@ -917,9 +917,9 @@ model PriceList {
   name      String
   kind      PriceListKind
   channel   Channel?
-  tiers     Tier[] // MEMBER: empty = all members
-  storeIds  String[]
-  regionIds String[]
+  tiers     Tier[]          @default([]) // MEMBER: empty = all members
+  storeIds  String[]        @default([])
+  regionIds String[]        @default([])
   adjustPct Float? // blanket adjustment on RRP for items without an explicit price (e.g. -5)
   startsAt  DateTime?
   endsAt    DateTime?
@@ -959,21 +959,21 @@ model Promotion {
   kind              PromoKind
   value             Int // PERCENT: whole %, FIXED: cents, MULTIPLIER: x100, MULTIBUY: bundle price in cents
   // Qualifying items (both empty = everything)
-  categoryIds       String[]
-  productIds        String[]
+  categoryIds       String[]  @default([])
+  productIds        String[]  @default([])
   minSpendCents     Int       @default(0)
   // BUY_X_GET_Y / MULTIBUY
   buyQty            Int? // qualifying units needed (null = the min spend alone triggers)
   getQty            Int? // reward units per trigger
   rewardPercent     Int? // % off reward units (100 = free)
-  rewardCategoryIds String[] // reward items (both empty = same as qualifying items)
-  rewardProductIds  String[]
-  channels          Channel[]
-  storeIds          String[] // empty = whole network
+  rewardCategoryIds String[]  @default([]) // reward items (both empty = same as qualifying items)
+  rewardProductIds  String[]  @default([])
+  channels          Channel[] @default([])
+  storeIds          String[]  @default([]) // empty = whole network
   ownerStoreId      String? // null = HQ promotion
   startsAt          DateTime
   endsAt            DateTime
-  days              Int[] // 0 = Sunday … 6 = Saturday; empty = every day
+  days              Int[]     @default([]) // 0 = Sunday … 6 = Saturday; empty = every day
   startMinute       Int? // happy hours: minutes after midnight SAST
   endMinute         Int?
   active            Boolean   @default(true)

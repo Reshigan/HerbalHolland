@@ -97,7 +97,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
         <MiniStat label="Last purchase" value={c.lastPurchaseAt ? timeAgo(c.lastPurchaseAt) : "Never"} sub={c.firstPurchaseAt ? `first ${fmtDate(c.firstPurchaseAt)}` : "Prospect"} className="border border-ink-150 bg-white shadow-card" />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Purchases" description={`${byStore.length} store${byStore.length === 1 ? "" : "s"} · till and online`} />
@@ -112,7 +112,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   ))}
               </CardBody>
             )}
-            <Table className="mt-4">
+            <Table className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -144,7 +144,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
 
           <Card>
             <CardHeader title="Points ledger" description="Latest movements · 1 point = R1" />
-            <Table className="mt-4">
+            <Table className="relative mt-4">
               <thead>
                 <tr>
                   <Th>When</Th>

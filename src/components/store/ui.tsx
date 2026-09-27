@@ -72,7 +72,7 @@ export function SearchForm({ path, q, keep = {}, placeholder = "Search", classNa
   return (
     <form method="get" action={path} role="search" className={cn("flex flex-wrap items-center gap-2", className)}>
       {Object.entries(keep).map(([k, v]) => (v ? <input key={k} type="hidden" name={k} value={v} /> : null))}
-      <label className="relative min-w-0 flex-1 sm:max-w-sm">
+      <label className="relative min-w-0 flex-1 basis-full sm:max-w-sm sm:basis-auto">
         <span className="sr-only">{placeholder}</span>
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden />
         <Input type="search" name="q" defaultValue={q} placeholder={placeholder} className="pl-9" />

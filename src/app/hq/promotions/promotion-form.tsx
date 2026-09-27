@@ -77,8 +77,8 @@ export function PromotionForm({
   const fmt = (s: string) => (s ? new Intl.DateTimeFormat("en-ZA", { timeZone: "Africa/Johannesburg", day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(`${s}:00+02:00`)) : "—");
 
   return (
-    <ActionForm action={action} className="grid gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
-      <fieldset disabled={readOnly} className="contents">
+    <ActionForm action={action} className="grid grid-cols-1 gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
+      <fieldset disabled={readOnly} className="min-w-0 contents">
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="The deal" />

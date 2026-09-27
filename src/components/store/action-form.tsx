@@ -135,9 +135,10 @@ export function ConfirmAction({
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   // `className` styles the open confirmation panel (e.g. its width); the closed trigger stays compact.
+  // Both are `relative` so sr-only text inside a scrolling table stays inside the scroller.
   if (!open)
     return (
-      <div className="inline-flex flex-col items-start gap-2">
+      <div className="relative inline-flex flex-col items-start gap-2">
         {msg && <Notice tone="success">{msg}</Notice>}
         <Button type="button" variant={triggerVariant} size={size} onClick={() => (setOpen(true), setMsg(null))}>
           {icon}
@@ -147,7 +148,7 @@ export function ConfirmAction({
     );
   return (
     <div
-      className={cn("w-full rounded-2xl border p-4 text-left", variant === "danger" ? "border-rose-500/30 bg-rose-50/60" : "border-ink-200 bg-ink-50", className)}
+      className={cn("relative w-full rounded-2xl border p-4 text-left", variant === "danger" ? "border-rose-500/30 bg-rose-50/60" : "border-ink-200 bg-ink-50", className)}
       role="group"
       aria-label={typeof title === "string" ? title : undefined}
     >

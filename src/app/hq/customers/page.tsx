@@ -66,7 +66,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         <Stat label="Reachable by SMS" value={num(k.sms)} sub={`${reach(k.sms)} opted in`} />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Segments" description="Recency × frequency. Each has a suggested play — send it to a campaign in one click." />
           <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -137,7 +137,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
             {stores.length > 1 && <FilterSelect name="store" label="Home store" defaultValue={sp.store} options={stores.map((x) => ({ value: x.code, label: x.name }))} />}
           </FilterForm>
         </div>
-        <Table>
+        <Table className="relative">
           <thead>
             <tr>
               <Th>Member</Th>

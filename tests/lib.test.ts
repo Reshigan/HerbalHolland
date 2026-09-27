@@ -206,6 +206,13 @@ describe("promotions", () => {
     expect(r.lines[2].discountCents).toBe(1750);
     const prompt = applyPromotions(lines, [comp]);
     expect(prompt.suggestions[0].productIds).toEqual(["papers"]);
+    // Without the reward in the basket, the flower keeps its own line deal.
+    const both = applyPromotions(lines, [comp, promos[0]]);
+    expect(both.lines[0]).toMatchObject({ discountCents: 6000, promoId: "p10" });
+  });
+  it("doesn't suggest multi-buys when nothing in the basket qualifies", () => {
+    const multi: PromoInput = { ...base, id: "m3", name: "Any 3 pre-rolls for R500", kind: "MULTIBUY", value: 50000, buyQty: 3, categoryIds: ["pre-rolls"] };
+    expect(applyPromotions(lines, [multi]).suggestions).toEqual([]);
   });
   it("gift with purchase: spend R600, get the grinder free", () => {
     const gift: PromoInput = { ...base, id: "gift", name: "Free grinder over R600", kind: "BUY_X_GET_Y", value: 0, minSpendCents: 60000, getQty: 1, rewardPercent: 100, rewardProductIds: ["grinder"] };

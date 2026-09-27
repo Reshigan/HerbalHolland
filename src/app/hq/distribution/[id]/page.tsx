@@ -79,7 +79,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
         </Notice>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card>
             <CardHeader title="Actions" />
             <CardBody className="space-y-3">
@@ -158,7 +158,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
         </div>
         <Card className="mt-6">
           <CardHeader title={order.status === "APPROVED" ? "Pick list" : "Lines"} description={order.status === "APPROVED" ? "Pick first-expiry-first-out from these batches" : undefined} />
-          <Table className="mt-4">
+          <Table className="relative mt-4">
             <thead>
               <tr>
                 <Th>Item</Th>

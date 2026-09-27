@@ -25,7 +25,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
     />
   );
   return (
-    <ActionForm action={createStore} className="grid gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
+    <ActionForm action={createStore} className="grid grid-cols-1 gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
       <div className="space-y-6 xl:col-span-2">
         <Card>
           {heading(<MapPin className="h-4 w-4" />, "Store", "Identity, territory and trading address")}

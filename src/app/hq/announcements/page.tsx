@@ -67,7 +67,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
             }
           />
           {sp.created && <Notice tone="success" className="mb-6">Published. It shows on every store&apos;s dashboard{a.requiresAck ? " until a manager acknowledges it" : ""}.</Notice>}
-          <div className="grid gap-6 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
             <Card className="xl:col-span-2">
               <CardHeader title="Message" />
               <CardBody>
@@ -139,7 +139,7 @@ export default async function AnnouncementsPage({ searchParams }: { searchParams
   return (
     <>
       <PageHeader overline="Governance" title="Announcements" description="News, launches, policy changes and recalls for store teams. They appear on each store's dashboard; policies and recalls must be acknowledged by a manager." />
-      <div className="grid gap-6 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <ul className="divide-y divide-ink-100">
             {list.length === 0 && (

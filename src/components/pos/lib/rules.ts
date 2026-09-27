@@ -70,8 +70,17 @@ export function maskPhone(e164: string) {
   return local.length >= 10 ? `${local.slice(0, 3)} ••• ${local.slice(-4)}` : local;
 }
 
-/** Extracts a Herbal Holland Rewards member number from a scanned QR / typed value. */
-export const memberNoFrom = (text: string) => text.toUpperCase().match(/HH\d{7}/)?.[0] ?? null;
+/**
+ * Order collection QR from the storefront: "HHORDER:{orderCode}:{collectionCode}".
+ * The till still verifies the collection code against the order on the server.
+ */
+export function parseOrderQr(text: string): { orderCode: string; collectionCode: string } | null {
+  const m = text.trim().match(/^HHORDER:([A-Z0-9]{4,12}):(\d{4,8})$/i);
+  return m ? { orderCode: m[1].toUpperCase(), collectionCode: m[2] } : null;
+}
+
+/** Extracts a Herbal Holland Rewards member number (member card QR = the plain memberNo) from a scan or typed value. */
+export const memberNoFrom = (text: string) => (parseOrderQr(text) ? null : (text.toUpperCase().match(/\bHH\d{7}\b/)?.[0] ?? null));
 
 /** Parses "123.45" / "R 1 234,50" style amounts into cents; null when not a number. */
 export function parseRands(input: string): number | null {

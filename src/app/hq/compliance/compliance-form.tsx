@@ -29,7 +29,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
   ];
   return (
     <ActionForm action={action} className="space-y-6">
-      <fieldset disabled={readOnly} className="space-y-6">
+      <fieldset disabled={readOnly} className="min-w-0 space-y-6">
         <div>
           <Label>THC mode</Label>
           <input type="hidden" name="thcMode" value={mode} />

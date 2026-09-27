@@ -26,6 +26,10 @@ export type PosCtx = {
   print: (doc: PrintDoc) => void;
   setBusy: (busy: boolean) => void;
   goTo: (tab: PosTab) => void;
+  /** A scanned order collection QR ("HHORDER:…") waiting for the Orders board to open its handover. */
+  orderScan: string | null;
+  openOrderScan: (text: string) => void;
+  clearOrderScan: () => void;
   toast: (msg: string, tone?: "ok" | "warn" | "error") => void;
 };
 

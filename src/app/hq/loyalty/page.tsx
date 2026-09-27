@@ -79,10 +79,10 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
         <Stat label="Redeemed · 30 days" value={fmtPoints(redeemed)} sub={issued ? `${((redeemed / issued) * 100).toFixed(0)}% of issued` : undefined} />
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Tiers" description="Rolling 12-month spend sets the tier; each tier gets an instant saving at the till and online (never on medicines)" />
-          <Table className="mt-4">
+          <Table className="relative mt-4">
             <thead>
               <tr>
                 <Th>Tier</Th>
@@ -115,10 +115,10 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Settlement preview · last 30 days" description="Issued vs redeemed per store, from the points ledger. Positive = the pool reimburses the store." />
-          <Table className="mt-4">
+          <Table className="relative mt-4">
             <thead>
               <tr>
                 <Th>Store</Th>
@@ -157,7 +157,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                 The tier&apos;s percentage comes off the shelf price for every identified member. A Rewards deal price list wins when it&apos;s lower (best-of, never stacked). Never applied to licensed medicines in medical mode (Medicines Act s18A).
               </p>
               <ActionForm action={saveTierSavings}>
-                <fieldset disabled={!admin} className="grid grid-cols-2 gap-3">
+                <fieldset disabled={!admin} className="min-w-0 grid grid-cols-2 gap-3">
                   {TIERS.map((t) => (
                     <Field key={t.key} label={t.name} htmlFor={`save_${t.key}`}>
                       <div className="relative">
@@ -181,7 +181,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
             <CardBody>
               {!admin && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
               <ActionForm action={saveLoyalty}>
-                <fieldset disabled={!admin} className="grid grid-cols-2 gap-3">
+                <fieldset disabled={!admin} className="min-w-0 grid grid-cols-2 gap-3">
                   {(
                     [
                       ["earnPer100", "Points per R100", l.earnPer100, "On what members pay"],
@@ -230,7 +230,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
 
       <Card className="mt-6">
         <CardHeader title="Top members" description="By lifetime spend" />
-        <Table className="mt-4">
+        <Table className="relative mt-4">
           <thead>
             <tr>
               <Th>Member</Th>

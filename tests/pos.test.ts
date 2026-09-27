@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { priceBasket, redeemableCents, livePromotions, type PricingData } from "@/components/pos/lib/pricing";
 import {
-  classifyBlock, countCash, DENOMINATIONS, denomLabel, maskPhone, maxRedeemable, memberNoFrom, orderSla, parseRands, quickCash, receiptNumber, uuid,
+  classifyBlock, countCash, DENOMINATIONS, denomLabel, maskPhone, maxRedeemable, memberNoFrom, orderSla, parseOrderQr, parseRands, quickCash, receiptNumber, uuid,
 } from "@/components/pos/lib/rules";
 import { checkCompliance, DEFAULT_COMPLIANCE } from "@/lib/compliance";
 import type { BootPromotion } from "@/server/pos/types";
@@ -167,8 +167,18 @@ describe("till rules", () => {
     expect(maxRedeemable({ balance: 500, eligibleCents: 30050, dueCents: 20099, minRedeem: 20 })).toBe(200);
   });
 
+  it("reads order collection QR codes", () => {
+    expect(parseOrderQr("HHORDER:TC9D34:122801")).toEqual({ orderCode: "TC9D34", collectionCode: "122801" });
+    expect(parseOrderQr(" hhorder:tc9d34:122801 ")).toEqual({ orderCode: "TC9D34", collectionCode: "122801" });
+    expect(parseOrderQr("HHORDER:TC9D34")).toBeNull();
+    expect(parseOrderQr("HHORDER:TC9D34:12AB01")).toBeNull();
+    expect(parseOrderQr("HH0012345")).toBeNull();
+    expect(memberNoFrom("HHORDER:HH00123:1234567")).toBeNull();
+  });
+
   it("masks phones, reads member QR codes and parses rand amounts", () => {
     expect(maskPhone("+27825551234")).toBe("082 ••• 1234");
+    expect(memberNoFrom("HH0012345")).toBe("HH0012345");
     expect(memberNoFrom("hh://member/hh0100002?x=1")).toBe("HH0100002");
     expect(memberNoFrom("6001234000433")).toBeNull();
     expect(parseRands("R 1 234,50")).toBe(123450);
