@@ -1,6 +1,7 @@
 // Scheduler endpoints — POST with `Authorization: Bearer $CRON_SECRET`.
-//   /api/cron/frequent  every 15 min: campaigns held for a legal send window (CPA Reg 4), unpaid orders, invoice retries
-//   /api/cron/daily     once a day (02:00 SAST): birthday points, uncollected pay-in-store orders
+//   /api/cron/frequent  every 15 min: campaigns held for a send window (CPA Reg 4), unpaid orders, invoice retries,
+//                       founding numbers at launch, drop alerts
+//   /api/cron/daily     02:00 SAST: birthday points, uncollected orders, expired tier floors, My Deals (Mondays)
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { sha256 } from "@/server/crypto";

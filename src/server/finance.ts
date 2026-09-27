@@ -8,7 +8,7 @@ import { rangeFromParams, type DateRange } from "@/lib/format";
 import { receivedValue } from "./stock-orders";
 
 const SUMS = {
-  sales: true, refunds: true, units: true, grossCents: true, vatCents: true, costCents: true, discountCents: true, memberSavingsCents: true,
+  sales: true, refunds: true, units: true, grossCents: true, vatCents: true, costCents: true, discountCents: true, memberSavingsCents: true, offerCents: true,
   cardCents: true, cashCents: true, payshapCents: true, eftCents: true, loyaltyCents: true, onlineCents: true,
   members: true, pointsIssued: true,
 } as const;
@@ -171,6 +171,7 @@ export async function franchiseStatement(storeId: string, month: string) {
     onlineCollectedCents: all.onlineCents,
     pointsIssuedCents: all.pointsIssued * POINT_VALUE_CENTS,
     pointsRedeemedCents: all.loyaltyCents,
+    offersFundedCents: all.offerCents,
     wholesaleCents: sum((o) => o.kind === "WHOLESALE" && o.buyerId === storeId),
     networkSoldCents: sum((o) => o.kind === "NETWORK" && o.sellerId === storeId),
     networkBoughtCents: sum((o) => o.kind === "NETWORK" && o.buyerId === storeId),

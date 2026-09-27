@@ -3,6 +3,7 @@
 // (with happy-hour windows). Always recomputed server-side; clients only display.
 import { db } from "./db";
 import { getSettings } from "./settings";
+import { activeOffers, isOffer, offerPromo } from "./offers";
 import { applyPromotions, type PromoInput, type Suggestion } from "@/lib/promotions";
 import { resolvePrice, promoWindowOpen, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { vatOf } from "@/lib/money";
@@ -83,6 +84,7 @@ export type QuoteLine = {
   promoId?: string;
   noEarn: boolean; // excluded from incentives incl. points earn
   memberSavingsCents: number; // instant Rewards saving on this line vs the non-member price
+  offerCents: number; // My Deals discount on this line (HQ-funded)
 };
 
 export async function quote(opts: {
@@ -97,7 +99,7 @@ export async function quote(opts: {
   const at = opts.at ?? new Date();
   const items = opts.items.filter((i) => i.qty > 0);
   const variantIds = items.map((i) => i.variantId);
-  const [variants, store, customer, lists, promos, marks] = await Promise.all([
+  const [variants, store, customer, lists, promos, marks, offers] = await Promise.all([
     db.variant.findMany({
       where: { id: { in: variantIds } },
       include: {
@@ -106,10 +108,11 @@ export async function quote(opts: {
       },
     }),
     opts.storeId ? db.store.findUnique({ where: { id: opts.storeId }, select: { regionId: true, company: { select: { vatNumber: true } } } }) : null,
-    opts.customerId ? db.customer.findUnique({ where: { id: opts.customerId }, select: { tier: true } }) : null,
+    opts.customerId ? db.customer.findUnique({ where: { id: opts.customerId }, select: { tier: true, visits: true } }) : null,
     activePriceLists(at),
     activePromotions({ storeId: opts.storeId, channel: opts.channel, at }),
     opts.storeId && opts.channel === "POS" ? markdowns(opts.storeId, variantIds, at) : Promise.resolve(new Map<string, number>()),
+    opts.customerId ? activeOffers(opts.customerId, at) : Promise.resolve([]),
   ]);
   const byId = new Map(variants.map((v) => [v.id, v]));
   const settings = await getSettings();
@@ -136,12 +139,14 @@ export async function quote(opts: {
 
   const r = applyPromotions(
     base.map(({ i, v, unit, noPromo }) => ({ key: i.variantId, productId: v.productId, categoryId: v.product.categoryId, qty: i.qty, unitPriceCents: unit, noPromo })),
-    promos as PromoInput[],
+    // Welcome gifts are for a member's first purchase; My Deals ride along as line deals.
+    [...(promos as (PromoInput & { firstPurchaseOnly: boolean })[]).filter((p) => !p.firstPurchaseOnly || customer?.visits === 0), ...offers.map(offerPromo)],
     opts.code,
   );
   const lines: QuoteLine[] = base.map(({ i, v, price, unit, noPromo, memberSavingsCents }, idx) => ({
     noEarn: noPromo,
     memberSavingsCents,
+    offerCents: Object.entries(r.lines[idx].byPromo).reduce((t, [id, c]) => t + (isOffer(id) ? c : 0), 0),
     variantId: v.id,
     productId: v.productId,
     categoryId: v.product.categoryId,
@@ -173,6 +178,7 @@ export async function quote(opts: {
     vatRegistered,
     memberSavingsCents: lines.reduce((s, l) => s + l.memberSavingsCents, 0), // "Rewards savings" on the receipt
     joinSavingsCents: base.reduce((s, b) => s + b.joinSavingsCents, 0), // "Join free and save R… today" for walk-ins
+    offerIds: r.applied.map((a) => a.id).filter(isOffer), // My Deals used (redeemed when the sale posts)
     pointsMultiplier: r.pointsMultiplier,
     applied: r.applied,
     suggestions: r.suggestions as Suggestion[],

@@ -379,6 +379,7 @@ async function main() {
     { id: uid(), name: "Welcome back: R75 off R400", description: "Win-back offer for members we haven't seen in a while.", code: "WELCOMEBACK", kind: "FIXED", value: 7500, minSpendCents: 40000, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], startsAt: daysAgo(20), endsAt: daysAgo(-10) },
     { id: uid(), name: "10% off your first online order", code: "WELCOME10", kind: "PERCENT", value: 10, categoryIds: [], productIds: [], channels: ["ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-120) },
     { id: uid(), name: "Sea Point: 10% off apparel", description: "Local offer for Atlantic Seaboard visitors.", code: "SEAPOINT10", kind: "PERCENT", value: 10, categoryIds: [cat("apparel")], productIds: [], channels: ["POS"], storeIds: [stores.find((s) => s.code === "CPT01")!.id], ownerStoreId: stores.find((s) => s.code === "CPT01")!.id, startsAt: daysAgo(30), endsAt: daysAgo(-30) },
+    { id: uid(), name: "Welcome gift: a free hemp wick", description: "New members: add a hemp wick to your first basket and it's on us.", kind: "BUY_X_GET_Y", value: 0, getQty: 1, rewardPercent: 100, rewardProductIds: pids("hemp-wick"), productIds: [], categoryIds: [], channels: ["POS", "ONLINE"], firstPurchaseOnly: true, startsAt: daysAgo(DAYS), endsAt: daysAgo(-60) },
   ];
   const promoInputs = promoDefs.map((p) => ({
     ...p, code: p.code ?? null, minSpendCents: p.minSpendCents ?? 0, buyQty: p.buyQty ?? null, getQty: p.getQty ?? null, rewardPercent: p.rewardPercent ?? null,
@@ -386,7 +387,7 @@ async function main() {
     storeIds: (p.storeIds as string[]) ?? [], channels: p.channels as string[], days: (p.days as number[]) ?? [],
   }));
   const promosAt = (ts: Date, channel: "POS" | "ONLINE", storeId: string) =>
-    promoInputs.filter((p) => p.channels.includes(channel) && ts >= (p.startsAt as Date) && ts <= (p.endsAt as Date) && (!p.storeIds.length || p.storeIds.includes(storeId)) && promoWindowOpen(p, ts)) as unknown as PromoInput[];
+    promoInputs.filter((p) => !p.firstPurchaseOnly && p.channels.includes(channel) && ts >= (p.startsAt as Date) && ts <= (p.endsAt as Date) && (!p.storeIds.length || p.storeIds.includes(storeId)) && promoWindowOpen(p, ts)) as unknown as PromoInput[];
   const heritagePromoId = promoDefs[0].id;
   const winbackPromoId = promoDefs[6].id;
 
@@ -1071,6 +1072,40 @@ async function main() {
     return { id: uid(), storeId: s.id, variantId: v.id, qty: int(4, 12), unitCostCents: Math.round(v.wholesale * 0.95), note: pick(["Overstocked after a slow month", "Surplus from a cancelled event", "Seasonal clear-out"]) };
   }));
   await db.counter.createMany({ data: [{ key: "MEMBER", value: memberSeq }, { key: "PO", value: poSeq }, { key: "ST", value: stSeq }] });
+
+  // ── Launch programme ─────────────────────────────────────────────────────
+  // The network opened when trading began; everyone who signed up before was on the waitlist.
+  const launchAt = daysAgo(DAYS);
+  await db.setting.create({ data: { key: "launch", value: { launchAt: launchAt.toISOString(), foundingCap: 10_000, foundingTier: "SPROUT", foundingMonths: 12, referralBoost: 250 } } });
+  const founding = await (await import("../src/server/launch")).assignFounding(NOW);
+  const nextAt = (dow: number, hh: number) => {
+    for (let i = 1; i <= 7; i++) {
+      const k = dayKey(new Date(NOW.getTime() + i * DAY));
+      if (new Date(`${k}T12:00:00+02:00`).getUTCDay() === dow) return new Date(`${k}T${String(hh).padStart(2, "0")}:00:00+02:00`);
+    }
+    return NOW;
+  };
+  const vids = (...slugs: string[]) => variants.filter((v) => slugs.includes(v.slug)).map((v) => v.id);
+  const hoodie = uid();
+  await db.drop.createMany({
+    data: [
+      { id: uid(), slug: "heritage-pin-and-hat", name: "Heritage Month: pin + bucket hat", blurb: "The windmill in hard enamel and our sun-ready bucket hat — a small run for Heritage Month.", variantIds: vids("windmill-enamel-pin", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
+      { id: hoodie, slug: "sunset-hoodie-no-1", name: "Sunset Hoodie No. 1", blurb: "A numbered first run of our brushed-fleece hoodie. One per member; Harvest members get in two hours early.", variantIds: vids("sunset-hoodie"), startsAt: nextAt(5, 9), earlyTier: "HARVEST", earlyMinutes: 120, perMemberLimit: 1 },
+    ],
+  });
+  const fans = customers.filter((c) => c.email && chance(0.03)).slice(0, 400);
+  await db.dropWatch.createMany({ data: fans.map((c) => ({ dropId: hoodie, customerId: c.id })) });
+  const events = [
+    ...stores.filter((x) => x.status === "OPENING_SOON").map((x) => ({ id: uid(), slug: `opening-${x.slug}`, storeId: x.id, title: `Windmill Days: ${x.name} opening weekend`, blurb: `Our ${x.name} store opens its doors — meet the team, taste Rooibos & CBD tea, and pick up a welcome gift. Adults 18+, ID at the door.`, startsAt: nextAt(6, 10), endsAt: nextAt(6, 18), capacity: 250 })),
+    { id: uid(), slug: "hatfield-members-evening", storeId: stores.find((x) => x.code === "PTA01")!.id, title: "Members' evening: heritage landraces", blurb: "An evening with our growers from Lusikisiki — the story behind Mpondo Gold. Rewards members only, adults 18+.", startsAt: nextAt(4, 18), endsAt: new Date(nextAt(4, 18).getTime() + 150 * 60_000), capacity: 80 },
+  ];
+  await db.storeEvent.createMany({ data: events });
+  const guests = customers.filter((c) => chance(0.01)).slice(0, 300);
+  await db.rsvp.createMany({ data: guests.map((c, i) => ({ eventId: events[i % events.length].id, customerId: c.id, code: uid().replace(/-/g, "").slice(0, 8).toUpperCase() })), skipDuplicates: true });
+  const offers = await (await import("../src/server/offers")).generateOffers(NOW);
+  console.log(`  founding members       ${founding.assigned.toLocaleString()}`);
+  console.log(`  drops · events         2 · ${events.length} (${guests.length} RSVPs, ${fans.length} drop watchers)`);
+  console.log(`  My Deals loaded        ${offers.created.toLocaleString()}`);
 
   const gross = sales.reduce((a, s) => a + (s.totalCents as number), 0);
   console.log(`\nDone. ${active.length} trading stores · ${customers.length.toLocaleString()} members · ${sales.length.toLocaleString()} sales · R${(gross / 100 / 1e6).toFixed(2)}m turnover.`);

@@ -8,6 +8,7 @@ export type StatementInput = {
   onlineCollectedCents: number; // paid online, collected by HQ on the store's behalf
   pointsIssuedCents: number; // value of points the store issued
   pointsRedeemedCents: number; // value of points redeemed at the store
+  offersFundedCents?: number; // My Deals discounts given at the store (HQ-funded from the marketing fund)
   wholesaleCents: number; // stock bought from HQ DCs on account (VAT incl.)
   networkSoldCents: number; // stock sold to other stores (VAT incl.)
   networkBoughtCents: number; // stock bought from other stores (VAT incl.)
@@ -27,6 +28,7 @@ export function buildStatement(i: StatementInput) {
   const lines: StatementLine[] = [
     { label: "Online sales collected by HQ", detail: "Paid online, fulfilled by your store", cents: i.onlineCollectedCents, kind: "credit" },
     { label: "Points redeemed in store", detail: "Reimbursed from the network loyalty pool", cents: i.pointsRedeemedCents, kind: "credit" },
+    { label: "My Deals given", detail: "Personal member offers, funded by the marketing fund", cents: i.offersFundedCents ?? 0, kind: "credit" },
     { label: "Stock sold to network stores", detail: "Network trading, cleared by HQ", cents: i.networkSoldCents, kind: "credit" },
     { label: "Royalty", detail: `${i.royaltyBps / 100}% of net sales`, cents: royalty, kind: "debit" },
     { label: "Marketing fund levy", detail: `${i.levyBps / 100}% of net sales`, cents: levy, kind: "debit" },

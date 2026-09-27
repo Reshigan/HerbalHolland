@@ -2,12 +2,14 @@
 //   SMS    MESSAGING_PROVIDER=smsportal (SMSPORTAL_CLIENT_ID, SMSPORTAL_API_SECRET, optional SMS_SENDER_ID).
 //          The default, "log", only records messages (development and demos).
 //   Email  SMTP_URL (email.ts). Campaign emails carry a signed one-click unsubscribe link (RFC 8058).
-//   WhatsApp and push have no provider: WhatsApp's commerce policy bans drug and medical products and Rewards push is
-//   on the roadmap, so with a live provider those messages are logged as FAILED rather than silently dropped.
+//   Push   Web Push to the Rewards app (push.ts; VAPID keys).
+//   WhatsApp has no provider (its commerce policy bans drug and medical products): with a live SMS provider, WhatsApp
+//   messages are logged as FAILED rather than silently dropped.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
 import { deliverEmail, emailLayout, esc } from "./email";
 import { APP_URL } from "./invoices";
+import { pushToCustomer } from "./push";
 import type { MsgChannel } from "@/generated/prisma/client";
 
 export type OutboundMessage = {
@@ -17,7 +19,8 @@ export type OutboundMessage = {
   kind: "MARKETING" | "TRANSACTIONAL";
   customerId?: string | null;
   campaignId?: string | null;
-  subject?: string; // email only
+  subject?: string; // email subject / push title
+  url?: string; // push: where a tap opens
   logBody?: string; // what the log keeps when the body carries a secret (sign-in codes)
 };
 
@@ -76,6 +79,12 @@ async function deliver(channel: MsgChannel, msgs: OutboundMessage[]): Promise<(s
       out.push(...(await Promise.all(msgs.slice(i, i + 10).map((m) => deliverEmail(marketingEmail(m)).then(() => null, reason)))));
     return out;
   }
+  if (channel === "PUSH")
+    return Promise.all(
+      msgs.map((m) =>
+        m.customerId ? pushToCustomer(m.customerId, { title: m.subject ?? "Herbal Holland", body: m.body, url: m.url }).then(() => null, reason) : "No member",
+      ),
+    );
   const provider = process.env.MESSAGING_PROVIDER ?? "log";
   if (provider === "log") return msgs.map(() => null);
   if (channel === "SMS" && provider === "smsportal")
@@ -107,10 +116,13 @@ export function notifyCustomer(c: { id: string; phone: string }, body: string) {
   return send({ channel, to: c.phone, body, kind: "TRANSACTIONAL", customerId: c.id });
 }
 
-/** Campaign batch (≤ 500, one channel). Returns how many were delivered; failures are logged per message. */
-export async function sendBulk(rows: { campaignId: string; customerId: string; to: string; channel: MsgChannel; body: string; subject?: string }[]) {
+/** A batch (≤ 500, one channel) — campaigns and alerts. Returns how many were delivered; failures are logged per message. */
+export async function sendBulk(
+  rows: { campaignId?: string; customerId: string; to: string; channel: MsgChannel; body: string; subject?: string; url?: string }[],
+  kind: OutboundMessage["kind"] = "MARKETING",
+) {
   if (!rows.length) return 0;
-  const msgs = rows.map((r): OutboundMessage => ({ ...r, kind: "MARKETING" }));
+  const msgs = rows.map((r): OutboundMessage => ({ ...r, kind }));
   const reasons = await deliver(rows[0].channel, msgs);
   await db.messageLog.createMany({ data: msgs.map((m, i) => logRow(m, reasons[i])) });
   return reasons.filter((r) => !r).length;

@@ -111,6 +111,7 @@ model Store {
   createdAt     DateTime    @default(now())
 
   users         User[]
+  events        StoreEvent[]
   devices       Device[]
   stock         StockLevel[]
   storeVariants StoreVariant[]
@@ -532,37 +533,41 @@ enum AgeCheck {
 }
 
 model Customer {
-  id              String    @id @default(cuid())
-  memberNo        String    @unique
-  phone           String    @unique
-  email           String?   @unique
-  firstName       String
-  lastName        String?
-  dob             DateTime?
-  idHash          String?   @unique
-  idLast4         String?
-  ageVerifiedAt   DateTime?
-  ageCheck        AgeCheck  @default(NONE)
-  tier            Tier      @default(SEED)
-  homeStore       Store?    @relation(fields: [homeStoreId], references: [id])
-  homeStoreId     String?
-  referralCode    String    @unique
-  referredById    String?
-  consentWhatsapp Boolean   @default(false)
-  consentSms      Boolean   @default(false)
-  consentEmail    Boolean   @default(false)
-  consentPush     Boolean   @default(false)
-  consentAt       DateTime?
-  source          String?
+  id                 String    @id @default(cuid())
+  memberNo           String    @unique
+  phone              String    @unique
+  email              String?   @unique
+  firstName          String
+  lastName           String?
+  dob                DateTime?
+  idHash             String?   @unique
+  idLast4            String?
+  ageVerifiedAt      DateTime?
+  ageCheck           AgeCheck  @default(NONE)
+  tier               Tier      @default(SEED)
+  tierFloor          Tier? // guaranteed minimum tier until tierFloorUntil (founding members start at Sprout)
+  tierFloorUntil     DateTime?
+  foundingNo         Int?      @unique // Founding Member number: waitlist place at launch
+  personalisedOffers Boolean   @default(true) // POPIA: members may object to personalised offers (My Deals)
+  homeStore          Store?    @relation(fields: [homeStoreId], references: [id])
+  homeStoreId        String?
+  referralCode       String    @unique
+  referredById       String?
+  consentWhatsapp    Boolean   @default(false)
+  consentSms         Boolean   @default(false)
+  consentEmail       Boolean   @default(false)
+  consentPush        Boolean   @default(false)
+  consentAt          DateTime?
+  source             String?
   // Denormalised stats (kept current on every purchase) so segmentation stays
   // cheap across millions of members.
-  points          Int       @default(0)
-  lifetimeCents   Int       @default(0)
-  visits          Int       @default(0)
-  firstPurchaseAt DateTime?
-  lastPurchaseAt  DateTime?
-  createdAt       DateTime  @default(now())
-  lastSeenAt      DateTime?
+  points             Int       @default(0)
+  lifetimeCents      Int       @default(0)
+  visits             Int       @default(0)
+  firstPurchaseAt    DateTime?
+  lastPurchaseAt     DateTime?
+  createdAt          DateTime  @default(now())
+  lastSeenAt         DateTime?
 
   sessions      Session[]
   loyalty       LoyaltyEntry[]
@@ -573,10 +578,16 @@ model Customer {
   reviews       Review[]
   consentEvents ConsentEvent[]
   patientAuths  PatientAuth[]
+  pushSubs      PushSubscription[]
+  offers        MemberOffer[]
+  rsvps         Rsvp[]
+  dropWatches   DropWatch[]
+  quests        QuestCompletion[]
 
   @@index([homeStoreId])
   @@index([lastPurchaseAt])
   @@index([tier])
+  @@index([referredById])
 }
 
 enum LoyaltyKind {
@@ -767,6 +778,7 @@ model SaleLine {
   unitPriceCents     Int
   discountCents      Int     @default(0)
   memberSavingsCents Int     @default(0) // instant Rewards savings vs the non-member price
+  offerCents         Int     @default(0) // My Deals discount (HQ-funded)
   totalCents         Int
   vatCents           Int
   costCents          Int
@@ -869,6 +881,7 @@ model OrderLine {
   qty                Int
   unitPriceCents     Int
   memberSavingsCents Int     @default(0)
+  offerCents         Int     @default(0)
   totalCents         Int
 
   @@index([orderId])
@@ -980,6 +993,7 @@ model Promotion {
   endMinute         Int?
   active            Boolean   @default(true)
   maxUses           Int?
+  firstPurchaseOnly Boolean   @default(false) // welcome gifts: a member's first purchase only
   createdAt         DateTime  @default(now())
 }
 
@@ -1079,6 +1093,7 @@ model DailyStoreStat {
   costCents          Int      @default(0)
   discountCents      Int      @default(0)
   memberSavingsCents Int      @default(0) // instant Rewards (tier/member) savings given
+  offerCents         Int      @default(0) // My Deals discounts given (HQ-funded, credited on the statement)
   cardCents          Int      @default(0)
   cashCents          Int      @default(0)
   payshapCents       Int      @default(0)
@@ -1157,4 +1172,123 @@ model Setting {
 model Counter {
   key   String @id
   value Int    @default(0)
+}
+
+// ── Launch & engagement ─────────────────────────────────────────────────────
+
+/**
+ * Web Push subscriptions for the Rewards app (one per browser/device).
+ */
+model PushSubscription {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  createdAt  DateTime @default(now())
+
+  @@index([customerId])
+}
+
+/**
+ * Limited releases (apparel, accessories, CBD). Never licensed medicines.
+ */
+model Drop {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  name            String
+  blurb           String
+  variantIds      String[]    @default([])
+  startsAt        DateTime
+  endsAt          DateTime?
+  earlyTier       Tier? // this tier and above get in `earlyMinutes` before everyone else
+  earlyMinutes    Int         @default(0)
+  perMemberLimit  Int         @default(1)
+  membersOnly     Boolean     @default(true)
+  notifiedEarlyAt DateTime?
+  notifiedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  watchers        DropWatch[]
+
+  @@index([startsAt])
+}
+
+/**
+ * "Notify me" for a drop.
+ */
+model DropWatch {
+  drop       Drop     @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  dropId     String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  createdAt  DateTime @default(now())
+
+  @@id([dropId, customerId])
+}
+
+/**
+ * In-store events (opening weekends, members' evenings) with RSVP tickets.
+ */
+model StoreEvent {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  title     String
+  blurb     String
+  startsAt  DateTime
+  endsAt    DateTime
+  capacity  Int
+  createdAt DateTime @default(now())
+  rsvps     Rsvp[]
+
+  @@index([storeId, startsAt])
+}
+
+model Rsvp {
+  id          String     @id @default(cuid())
+  event       StoreEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  customer    Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String
+  code        String     @unique // ticket QR: HHRSVP:{code}
+  checkedInAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@unique([eventId, customerId])
+}
+
+/**
+ * My Deals: personal, single-use offers loaded to a member's card (HQ-funded). Never on medicines.
+ */
+model MemberOffer {
+  id          String    @id @default(cuid())
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String
+  title       String
+  kind        PromoKind // PERCENT | FIXED, targeted at products/categories
+  value       Int
+  productIds  String[]  @default([])
+  categoryIds String[]  @default([])
+  startsAt    DateTime
+  endsAt      DateTime
+  redeemedAt  DateTime?
+  saleId      String?
+  orderId     String?
+  createdAt   DateTime  @default(now())
+
+  @@index([customerId, endsAt])
+}
+
+/**
+ * Learn quests: points once per article quiz.
+ */
+model QuestCompletion {
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  key        String
+  createdAt  DateTime @default(now())
+
+  @@id([customerId, key])
 }

@@ -32,7 +32,7 @@ export type PricedLine = { key: string; productId: string; categoryId: string; q
 export type Suggestion = { promoId: string; name: string; message: string; productIds: string[]; categoryIds: string[] };
 
 export type PromoResult = {
-  lines: { key: string; grossCents: number; discountCents: number; totalCents: number; promoId?: string }[];
+  lines: { key: string; grossCents: number; discountCents: number; totalCents: number; promoId?: string; byPromo: Record<string, number> }[];
   subtotalCents: number;
   discountCents: number;
   totalCents: number;
@@ -167,7 +167,9 @@ export function applyPromotions(lines: PricedLine[], promos: PromoInput[], code?
     const discount = mine.reduce((s, u) => s + u.discount, 0);
     const gross = l.qty * l.unitPriceCents;
     const promoId = mine.find((u) => u.promoId)?.promoId;
-    return { key: l.key, grossCents: gross, discountCents: discount, totalCents: gross - discount, promoId };
+    const byPromo: Record<string, number> = {}; // unit-level discount per promotion (funding attribution)
+    for (const u of mine) if (u.promoId) byPromo[u.promoId] = (byPromo[u.promoId] ?? 0) + u.discount;
+    return { key: l.key, grossCents: gross, discountCents: discount, totalCents: gross - discount, promoId, byPromo };
   });
 
   // 3. Basket-level fixed amount ("R50 off orders over R500").

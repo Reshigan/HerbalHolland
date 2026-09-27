@@ -1,5 +1,5 @@
 // Scheduled housekeeping, run by /api/cron/[job]. Every job is idempotent and bounded,
-// so a missed or doubled run is harmless.
+// so a missed or doubled run is harmless. (frequent: every 15 min · daily: 02:00 SAST)
 import { db, tx } from "./db";
 import { SYSTEM } from "./audit";
 import { advanceOrder } from "./orders";
@@ -8,6 +8,9 @@ import { emailSaleInvoice } from "./invoices";
 import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { addDays, dayKey } from "@/lib/format";
+import { assignFounding, expireTierFloors } from "./launch";
+import { notifyDrops } from "./drops";
+import { generateOffers } from "./offers";
 
 const MIN = 60_000;
 
@@ -65,6 +68,18 @@ export async function birthdayPoints(now = new Date()) {
 }
 
 export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
-  frequent: async () => ({ campaigns: (await runDueCampaigns()).length, unpaidOrders: await expireUnpaidOrders(), invoices: await retryInvoices() }),
-  daily: async () => ({ birthdays: await birthdayPoints(), uncollected: await releaseUncollected() }),
+  frequent: async () => ({
+    campaigns: (await runDueCampaigns()).length,
+    unpaidOrders: await expireUnpaidOrders(),
+    invoices: await retryInvoices(),
+    founding: await assignFounding(),
+    drops: await notifyDrops(),
+  }),
+  daily: async () => ({
+    birthdays: await birthdayPoints(),
+    uncollected: await releaseUncollected(),
+    tierFloors: await expireTierFloors(),
+    // My Deals refresh weekly, on Mondays (SAST).
+    offers: new Date(`${dayKey(new Date())}T12:00:00+02:00`).getUTCDay() === 1 ? await generateOffers() : { created: 0 },
+  }),
 };

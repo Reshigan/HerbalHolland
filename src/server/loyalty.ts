@@ -1,7 +1,7 @@
 // Herbal Holland Rewards ledger operations. Points are a network liability: the issuing store
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
-import { pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
+import { heldTier, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
 import type { LoyaltyKind } from "@/generated/prisma/client";
 
 export class LoyaltyError extends Error {}
@@ -38,7 +38,7 @@ export async function recordPurchase(
 ) {
   const before = await t.customer.findUniqueOrThrow({ where: { id: a.customerId } });
   const spend = await spend12m(t, a.customerId);
-  const tier = tierFor(spend).key as TierKey;
+  const tier = heldTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, a.at);
   const points = pointsFor(a.paidCents, tier, a.multiplier, a.earnPer100);
   await t.customer.update({
     where: { id: a.customerId },

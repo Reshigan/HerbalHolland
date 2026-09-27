@@ -24,6 +24,12 @@ export const EARN_PER_100 = 5;
 
 export const tierFor = (spend12mCents: number) => [...TIERS].reverse().find((t) => spend12mCents >= t.minCents)!;
 export const tierInfo = (key: TierKey) => TIERS.find((t) => t.key === key)!;
+export const tierRank = (key: TierKey) => TIERS.findIndex((t) => t.key === key);
+export const maxTier = (a: TierKey, b?: TierKey | null) => (b && tierRank(b) > tierRank(a) ? b : a);
+
+/** The tier a member holds: earned on 12-month spend, never below an active floor (e.g. Founding Members). */
+export const heldTier = (earned: TierKey, floor?: TierKey | null, until?: Date | null, at = new Date()) =>
+  floor && until && until > at ? maxTier(earned, floor) : earned;
 
 export function nextTier(spend12mCents: number) {
   const i = TIERS.findIndex((t) => t.key === tierFor(spend12mCents).key);

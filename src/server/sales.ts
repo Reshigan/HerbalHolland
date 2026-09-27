@@ -10,6 +10,8 @@ import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { shortCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
+import { redeemOffers } from "./offers";
+import { dropBlocks } from "./drops";
 import { evaluateBasket } from "./compliance";
 import { dayKey } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
@@ -41,7 +43,8 @@ type PostArgs = {
   deviceId?: string | null;
   customerId?: string | null;
   quote: {
-    lines: { variantId: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents: number; noEarn?: boolean; memberSavingsCents?: number }[];
+    lines: { variantId: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents: number; noEarn?: boolean; memberSavingsCents?: number; offerCents?: number }[];
+    offerIds?: string[]; // My Deals to mark redeemed (online orders redeem at placement)
   } & Pick<Quote, "subtotalCents" | "discountCents" | "totalCents" | "vatCents" | "pointsMultiplier" | "promotionId">;
   buyer?: { name: string; address: string; vatNumber?: string } | null;
   promoCode?: string | null;
@@ -64,6 +67,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   const lineVat = (cents: number, v: number) => (vendor ? v : 0);
   const vat = vendor ? a.quote.lines.reduce((s, l) => s + l.vatCents, 0) + vatOf(extra) : 0;
   const memberSavings = a.customerId ? a.quote.lines.reduce((s, l) => s + (l.memberSavingsCents ?? 0), 0) : 0;
+  const offers = a.customerId ? a.quote.lines.reduce((s, l) => s + (l.offerCents ?? 0), 0) : 0;
   const campaignId =
     a.campaignId ??
     (a.quote.promotionId
@@ -93,7 +97,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
     await t.saleLine.create({
       data: {
         saleId: sale.id, variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents, discountCents: l.discountCents,
-        memberSavingsCents: a.customerId ? (l.memberSavingsCents ?? 0) : 0, totalCents: l.totalCents, vatCents: lineVat(l.totalCents, l.vatCents), costCents: c, allocations,
+        memberSavingsCents: a.customerId ? (l.memberSavingsCents ?? 0) : 0, offerCents: a.customerId ? (l.offerCents ?? 0) : 0, totalCents: l.totalCents, vatCents: lineVat(l.totalCents, l.vatCents), costCents: c, allocations,
       },
     });
     vstats.push({ variantId: l.variantId, units: l.qty, netCents: l.totalCents - lineVat(l.totalCents, l.vatCents), costCents: c });
@@ -105,6 +109,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
 
   let pointsEarned = 0;
   if (a.customerId) {
+    if (a.quote.offerIds?.length) await redeemOffers(t, a.quote.offerIds, { saleId: sale.id });
     if (a.redeemNow && a.pointsRedeemed > 0) await redeemPoints(t, { customerId: a.customerId, points: a.pointsRedeemed, storeId: a.storeId, saleId: sale.id });
     const noEarn = a.quote.lines.filter((l) => l.noEarn).reduce((s, l) => s + l.totalCents, 0);
     const r = await recordPurchase(t, {
@@ -119,7 +124,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   const date = dayKey(a.createdAt);
   const delta: StoreStatDelta = {
     storeId: a.storeId, date, channel: a.channel, sales: 1, units, grossCents: total, vatCents: vat, costCents: cost,
-    discountCents: a.quote.discountCents, memberSavingsCents: memberSavings, members: a.customerId ? 1 : 0, pointsIssued: pointsEarned,
+    discountCents: a.quote.discountCents, memberSavingsCents: memberSavings, offerCents: offers, members: a.customerId ? 1 : 0, pointsIssued: pointsEarned,
   };
   for (const p of payments) {
     const col = paymentColumn(p.method) as "cardCents";
@@ -163,6 +168,8 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   });
   if (!q.lines.length) throw new SaleError("The sale has no items");
   if (q.codeError && !offline) throw new SaleError(q.codeError);
+  const dropped = offline ? [] : await dropBlocks(input.customerId, q.lines);
+  if (dropped.length) throw new SaleError(dropped[0]);
 
   const [store, staff] = await Promise.all([
     db.store.findUniqueOrThrow({ where: { id: ctx.storeId }, select: { licences: true } }),
@@ -248,13 +255,14 @@ export async function refundSale(a: {
       const left = line.qty - (refunded.get(line.id) ?? 0);
       if (x.qty > left) throw new SaleError(`Only ${left} left to refund on that line`);
       const share = x.qty / line.qty;
-      return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share), saved: Math.round(line.memberSavingsCents * share) };
+      return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share), saved: Math.round(line.memberSavingsCents * share), offer: Math.round(line.offerCents * share) };
     });
   if (!picks.length) throw new SaleError("Choose at least one item to refund");
 
   const amount = picks.reduce((s, p) => s + p.amount, 0);
   const vat = picks.reduce((s, p) => s + p.vat, 0);
   const saved = picks.reduce((s, p) => s + p.saved, 0);
+  const offer = picks.reduce((s, p) => s + p.offer, 0);
   const loyaltyPaid = orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0);
   const loyaltyBack = orig.totalCents > 0 ? Math.floor((amount * loyaltyPaid) / orig.totalCents / 100) * 100 : 0;
   const moneyBack = amount - loyaltyBack;
@@ -290,7 +298,7 @@ export async function refundSale(a: {
       units += p.x.qty;
       await t.saleLine.create({
         data: {
-          saleId: refund.id, variantId: p.line.variantId, qty: -p.x.qty, unitPriceCents: p.line.unitPriceCents, memberSavingsCents: -p.saved,
+          saleId: refund.id, variantId: p.line.variantId, qty: -p.x.qty, unitPriceCents: p.line.unitPriceCents, memberSavingsCents: -p.saved, offerCents: -p.offer,
           totalCents: -p.amount, vatCents: -p.vat, costCents: -c, allocations: back.length ? back : [{ batchId: "", qty: 0, unitCostCents: 0, lineId: p.line.id }],
         },
       });
@@ -311,7 +319,7 @@ export async function refundSale(a: {
     const date = dayKey(new Date());
     const delta: StoreStatDelta = {
       storeId: orig.storeId, date, channel: orig.channel, refunds: 1, units: -units, grossCents: -amount, vatCents: -vat,
-      costCents: -cost, memberSavingsCents: -saved, pointsIssued: -earnedBack,
+      costCents: -cost, memberSavingsCents: -saved, offerCents: -offer, pointsIssued: -earnedBack,
     };
     for (const p of payments) {
       const col = paymentColumn(p.method) as "cardCents";

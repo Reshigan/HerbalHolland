@@ -13,9 +13,13 @@ import { notifyCustomer } from "./messaging";
 import { audit, type Actor } from "./audit";
 import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
+import { redeemOffers, releaseOffers } from "./offers";
+import { dropBlocks } from "./drops";
+import { launchState } from "./launch";
 import { routeOrder, type Fulfil, type RouteCandidate } from "@/lib/routing";
 import { incentiveExcluded } from "@/lib/compliance";
 import { vatOf, zar } from "@/lib/money";
+import { fmtDate } from "@/lib/format";
 import type { OrderStatus, Prisma, Province } from "@/generated/prisma/client";
 
 export class OrderError extends Error {
@@ -60,9 +64,13 @@ type Event = { status: OrderStatus; at: string; note?: string };
 
 export async function placeOrder(input: CheckoutInput) {
   const settings = await getSettings();
+  const launch = await launchState();
+  if (launch.preLaunch) throw new OrderError(`We open on ${fmtDate(launch.at!)} — you're on the list`);
   const q = await quote({ channel: "ONLINE", items: input.items, code: input.code, customerId: input.customerId });
   if (!q.lines.length) throw new OrderError("Your bag is empty");
   if (q.codeError) throw new OrderError(q.codeError);
+  const dropped = await dropBlocks(input.customerId, q.lines);
+  if (dropped.length) throw new OrderError(dropped[0]);
   if (input.payMethod === "IN_STORE" && input.fulfilment !== "COLLECT") throw new OrderError("Pay in store is only available for click & collect");
   if (input.fulfilment !== "COLLECT" && !input.address) throw new OrderError("Add a delivery address");
 
@@ -123,11 +131,16 @@ export async function placeOrder(input: CheckoutInput) {
         promotionId: q.promotionId,
         campaignId: input.campaignId,
         events,
-        lines: { create: q.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents, memberSavingsCents: l.memberSavingsCents, totalCents: l.totalCents })) },
+        lines: {
+          create: q.lines.map((l) => ({
+            variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents, memberSavingsCents: l.memberSavingsCents, offerCents: l.offerCents, totalCents: l.totalCents,
+          })),
+        },
       },
       include: { store: true },
     });
     if (points) await redeemPoints(t, { customerId: customer.id, points, orderId: o.id, storeId: route.storeId });
+    await redeemOffers(t, q.offerIds, { orderId: o.id });
     await audit(t, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.place", {
       storeId: route.storeId, entity: "Order", entityId: o.id, data: { total, fulfilment: input.fulfilment },
     });
@@ -218,7 +231,7 @@ export async function advanceOrder(
       const lines = o.lines.map((l) => ({
         variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents,
         discountCents: l.qty * l.unitPriceCents - l.totalCents, totalCents: l.totalCents, vatCents: vatOf(l.totalCents),
-        noEarn: excluded.includes(l.variant.product.regClass), memberSavingsCents: l.memberSavingsCents,
+        noEarn: excluded.includes(l.variant.product.regClass), memberSavingsCents: l.memberSavingsCents, offerCents: l.offerCents,
       }));
       postedSaleId = randomUUID();
       await postSaleTx(t, {
@@ -252,6 +265,7 @@ export async function advanceOrder(
       });
     }
     if (to === "CANCELLED") {
+      await releaseOffers(t, o.id);
       if (o.pointsRedeemed) await addPoints(t, { customerId: o.customerId, points: o.pointsRedeemed, kind: "REVERSAL", orderId: o.id, note: `Order ${o.code} cancelled` });
     }
     const data: Prisma.OrderUpdateInput = { status: to, events };

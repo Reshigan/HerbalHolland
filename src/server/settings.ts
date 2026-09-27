@@ -19,6 +19,18 @@ export const DEFAULT_SETTINGS = {
     markdownPct: 20,
     minMarginPct: 25, // franchisee price-setting guardrail (warning only — never enforced)
   },
+  launch: {
+    launchAt: null as string | null, // ISO date-time; before it the storefront runs as a waitlist
+    foundingCap: 10_000, // the first N waitlist places become numbered Founding Members
+    foundingTier: "SPROUT" as TierKey, // …who hold at least this tier
+    foundingMonths: 12, // …for this long after launch
+    referralBoost: 250, // waitlist places gained per friend who joins before launch
+  },
+  offers: {
+    enabled: true, // My Deals: weekly personal offer on each opted-in member's favourite product (HQ-funded)
+    percent: 15,
+    validDays: 7,
+  },
   ecommerce: {
     sameDayFeeCents: 6_500,
     courierFeeCents: 9_900,
