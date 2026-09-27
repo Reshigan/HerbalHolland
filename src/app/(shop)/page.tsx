@@ -5,17 +5,22 @@ import { ArrowRight, BadgeCheck, FlaskConical, HandHeart, Leaf, Moon, QrCode, Sh
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
+import { launchState, waitlistPlace } from "@/server/launch";
 import { getClasses } from "@/server/shop/access";
 import { cardsWhere, listCatalogue } from "@/server/shop/catalogue";
 import { getPreferredStore, getRetailStores } from "@/server/shop/context";
+import { featuredDrop, upcomingEvents } from "@/server/shop/launch";
 import { Lockup, Mark, PETAL } from "@/components/brand/logo";
 import { ProductArt } from "@/components/product/art";
 import { ButtonLink } from "@/components/ui/button";
 import { ProductGrid } from "@/components/shop/product-card";
 import { StoreCard } from "@/components/shop/store-card";
 import { Container, Panel, SectionHead } from "@/components/shop/ui";
+import { Countdown } from "@/components/shop/countdown";
+import { DropCardView, EventCardView, fmtWhen } from "@/components/shop/launch-cards";
 import { ARTICLES } from "@/components/shop/learn/articles";
-import { TIERS, fmtPoints } from "@/lib/loyalty-rules";
+import { TIERS, fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
+import { fmtDay, num, weekdaySA } from "@/lib/format";
 import { zarWhole } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
@@ -39,21 +44,29 @@ const LANDRACES = [
   { name: "Mpondo Gold", origin: "Pondoland, Wild Coast", note: "The Eastern Cape's own heritage line — some growers believe Durban Poison partly descends from it." },
 ];
 
+const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
 export default async function Home() {
-  const [customer, store, classes, settings, stores, batches] = await Promise.all([
+  const [customer, store, classes, settings, stores, batches, launch] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getClasses(),
     getSettings(),
     getRetailStores(),
     db.batch.count({ where: { labName: { not: null }, status: "RELEASED" } }),
+    launchState(),
   ]);
   const who = { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name };
-  const [featured, heritage, facets, categories] = await Promise.all([
+  const pre = launch.preLaunch ? launch.at : null;
+  const [featured, heritage, facets, categories, events, drop, place, listSize] = await Promise.all([
     cardsWhere({}, classes.public, who),
     cardsWhere({ heritage: true }, classes.public, who, 3),
     listCatalogue("public", { page: 1 }, who),
     db.category.findMany({ orderBy: { sortOrder: "asc" }, include: { _count: { select: { products: { where: { status: "ACTIVE", regClass: { in: classes.public } } } } } } }),
+    upcomingEvents({ take: 3 }),
+    featuredDrop((customer?.tier ?? null) as TierKey | null),
+    pre && customer ? waitlistPlace(customer.id) : null,
+    pre ? db.customer.count({ where: { createdAt: { lt: pre } } }) : 0,
   ]);
   // Staff picks first, then the most-reviewed of the rest, so the grid is always full.
   const picks = [...featured].sort((a, b) => Number(b.featured) - Number(a.featured) || (b.rating?.count ?? 0) - (a.rating?.count ?? 0)).slice(0, 8);
@@ -69,6 +82,47 @@ export default async function Home() {
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute -right-40 top-10 h-[36rem] w-[36rem] rounded-full bg-brand-500/10 blur-3xl" />
         <Container className="relative grid grid-cols-1 items-center gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:py-20">
+          {pre ? (
+            <div className="order-2 animate-rise lg:order-1">
+              <div className="eyebrow mb-5 text-brand-500">Windmill Days · Founding Members</div>
+              <h1 className="font-display text-[2.6rem] font-semibold leading-[0.98] tracking-tight text-white sm:text-6xl xl:text-[4.6rem]">
+                Opening {WEEKDAY[weekdaySA(pre)]} {fmtDay(pre).replace(" ", "\u00a0")}.
+                <br />
+                <span className="text-brand-500">Join the waitlist.</span>
+              </h1>
+              <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">
+                The first {num(launch.foundingCap)} on the list become numbered Founding Members and start at {tierInfo(launch.foundingTier).name} — {loyalty.tierSavingsPct[launch.foundingTier]}% off instantly — for a year. Every friend who joins with your link moves you up {num(launch.referralBoost)} places. Adults 18+.
+              </p>
+              <Countdown to={pre} variant="blocks" label={`Opens ${fmtWhen(pre)}`} className="mt-8" />
+              <div className="mt-8 flex flex-wrap gap-3">
+                {place ? (
+                  <ButtonLink href="/club" size="xl">
+                    You&apos;re #{num(place.place)} in line <ArrowRight className="h-5 w-5" />
+                  </ButtonLink>
+                ) : (
+                  <ButtonLink href={customer ? "/club" : "/club/join"} size="xl">
+                    {customer ? "See your place in line" : "Join the waitlist"} <ArrowRight className="h-5 w-5" />
+                  </ButtonLink>
+                )}
+                <ButtonLink href="/shop" variant="outline-dark" size="xl">
+                  Browse the range
+                </ButtonLink>
+              </div>
+              <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
+                {[
+                  [num(listSize), "on the waitlist"],
+                  [num(launch.foundingCap), "Founding spots"],
+                  [String(trading.length), "stores opening"],
+                ].map(([v, l]) => (
+                  <div key={l}>
+                    <dt className="sr-only">{l}</dt>
+                    <dd className="tnum font-display text-3xl font-semibold text-white">{v}</dd>
+                    <dd className="mt-1 text-xs text-ink-400">{l}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
+          ) : (
           <div className="order-2 animate-rise lg:order-1">
             <div className="eyebrow mb-5 text-brand-500">Herbal Holland · South Africa</div>
             <h1 className="font-display text-[2.9rem] font-semibold leading-[0.95] tracking-tight text-white sm:text-6xl xl:text-[5.2rem]">
@@ -101,6 +155,7 @@ export default async function Home() {
               ))}
             </dl>
           </div>
+          )}
           <div className="order-1 lg:order-2">
             <div className="hh-frame relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
               <Lockup spin className="h-full w-full justify-center text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
@@ -128,6 +183,36 @@ export default async function Home() {
           ))}
         </Container>
       </section>
+
+      {/* ── Windmill Days: events and the featured drop ─────────────── */}
+      {(events.length > 0 || drop) && (
+        <Container className="pt-20">
+          <SectionHead
+            eyebrow="Windmill Days"
+            title="Opening weekends, members' evenings & drops"
+            description="Come and meet us in store — RSVP free, bring your ID (adults 18+). Limited drops go to Rewards members first."
+            action={
+              drop ? (
+                <ButtonLink href="/drops" variant="ghost-dark" size="sm">
+                  All drops <ArrowRight className="h-4 w-4" />
+                </ButtonLink>
+              ) : null
+            }
+          />
+          <div className={drop && events.length ? "grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"}>
+            {drop && <DropCardView d={drop} />}
+            {drop && events.length > 0 ? (
+              <div className="grid content-start gap-3">
+                {events.map((e) => (
+                  <EventCardView key={e.id} e={e} />
+                ))}
+              </div>
+            ) : (
+              events.map((e) => <EventCardView key={e.id} e={e} />)
+            )}
+          </div>
+        </Container>
+      )}
 
       {/* ── Shop by mood ──────────────────────────────────────────── */}
       {moods.length > 0 && (

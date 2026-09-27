@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BadgeCheck, LogOut, ShieldCheck } from "lucide-react";
+import { BadgeCheck, BadgePercent, Bell, LogOut, ShieldCheck } from "lucide-react";
+import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
+import { vapidPublicKey } from "@/server/push";
 import { signOut } from "@/server/shop/actions";
 import { consentTrail } from "@/server/shop/club";
 import { getFranchisor, getRetailStores } from "@/server/shop/context";
-import { setChannelConsent } from "../actions";
+import { disablePush, enablePush, setChannelConsent, setPersonalisedOffers } from "../actions";
 import { ConsentToggles } from "@/components/shop/club-client";
+import { PrefSwitch } from "@/components/shop/launch-forms";
+import { PushToggle } from "@/components/shop/push-toggle";
 import { ProfileForm } from "@/components/shop/profile-form";
 import { VerifyAge } from "@/components/shop/verify-age";
 import { Container, Panel } from "@/components/shop/ui";
@@ -22,7 +26,7 @@ const AGE: Record<string, string> = { ID_NUMBER: "SA ID number checked", ID_SIGH
 export default async function ClubSettings() {
   const customer = await getCustomer();
   if (!customer) redirect("/club/join?next=/club/settings");
-  const [trail, stores, company] = await Promise.all([consentTrail(customer.id), getRetailStores(), getFranchisor()]);
+  const [trail, stores, company, devices] = await Promise.all([consentTrail(customer.id), getRetailStores(), getFranchisor(), db.pushSubscription.count({ where: { customerId: customer.id } })]);
   const note = (ch: string, on: boolean) => {
     const e = trail.get(ch);
     return e ? `${on ? "On" : "Off"} since ${fmtDate(e.createdAt)}, ${SOURCE[e.source] ?? e.source.toLowerCase()}` : on ? "On" : "Off";
@@ -31,7 +35,7 @@ export default async function ClubSettings() {
     { key: "SMS" as const, label: "SMS", on: customer.consentSms, note: note("SMS", customer.consentSms) },
     { key: "WHATSAPP" as const, label: "WhatsApp", on: customer.consentWhatsapp, note: note("WHATSAPP", customer.consentWhatsapp) },
     { key: "EMAIL" as const, label: "Email", on: customer.consentEmail, note: note("EMAIL", customer.consentEmail), disabled: customer.email ? undefined : "Add an email address above first" },
-    { key: "PUSH" as const, label: "App notifications", on: customer.consentPush, note: note("PUSH", customer.consentPush) },
+    { key: "PUSH" as const, label: "App notifications", on: customer.consentPush, note: `${note("PUSH", customer.consentPush)} · only to devices you switch on below` },
   ];
 
   return (
@@ -58,6 +62,32 @@ export default async function ClubSettings() {
             <div className="mt-3">
               <ConsentToggles channels={channels} action={setChannelConsent} />
             </div>
+          </Panel>
+
+          <Panel className="scroll-mt-28 p-5 sm:p-6" id="notifications">
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+              <Bell className="h-5 w-5 text-brand-500" /> Notifications
+            </h2>
+            <p className="mb-3 mt-1 text-sm leading-relaxed text-ink-400">
+              A nudge on this phone when a drop you&apos;re watching opens for you, plus member news. Sent only in legal hours — switch off any time.
+            </p>
+            <PushToggle vapidKey={vapidPublicKey()} devices={devices} enable={enablePush} disable={disablePush} />
+          </Panel>
+
+          <Panel className="scroll-mt-28 p-5 sm:p-6" id="deals">
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+              <BadgePercent className="h-5 w-5 text-brand-500" /> My Deals
+            </h2>
+            <p className="mb-2 mt-1 text-sm leading-relaxed text-ink-400">My Deals are personal offers loaded to your card each week, on something you buy often. They apply automatically at the till and online.</p>
+            <PrefSwitch
+              label="Personalised deals"
+              on={customer.personalisedOffers}
+              action={setPersonalisedOffers}
+              note="We use your purchase history — what you buy, where and when — to pick your deals."
+            />
+            <p className="mt-3 text-xs leading-relaxed text-ink-500">
+              Turning this off stops new deals; any deal already on your card stays until it ends. It doesn&apos;t change your tier price or points. Medicines are never part of a deal.
+            </p>
           </Panel>
         </div>
 

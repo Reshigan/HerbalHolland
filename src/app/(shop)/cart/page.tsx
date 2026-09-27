@@ -1,21 +1,30 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AlertTriangle, ArrowRight, BadgePercent, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Trash2, Truck } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgePercent, CalendarClock, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Trash2, Truck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
+import { launchState } from "@/server/launch";
+import { dropBlocks, dropsFor } from "@/server/drops";
+import { isOffer } from "@/server/offers";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
 import { cardsWhere, getNetwork } from "@/server/shop/catalogue";
 import { getCart, getPreferredStore, getPromoCode } from "@/server/shop/context";
 import { setBagQty } from "@/server/shop/actions";
 import { tierMeta } from "@/server/shop/club";
+import { welcomeGifts } from "@/server/shop/launch";
+import { readableDropBlock } from "@/server/shop/launch-rules";
 import { ProductArt } from "@/components/product/art";
 import { ProductGrid } from "@/components/shop/product-card";
 import { PromoCode } from "@/components/shop/promo-code";
-import { Callout, Container, Panel } from "@/components/shop/ui";
+import { WelcomeGiftBanner } from "@/components/shop/club-launch";
+import { fmtWhen } from "@/components/shop/launch-cards";
+import { Callout, Container, Panel, Tag } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
+import { opensFor } from "@/lib/drops";
+import { fmtDate } from "@/lib/format";
 import { fmtPoints, pointsFor, type TierKey } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
 import { cn } from "@/lib/cn";
@@ -47,11 +56,27 @@ export default async function CartPage() {
 
   const net = await getNetwork();
   const variantIds = q.lines.map((l) => l.variantId);
-  const [variants, avail, access] = await Promise.all([
+  const [variants, avail, access, drops, dropMsgs, gifts, launch] = await Promise.all([
     db.variant.findMany({ where: { id: { in: variantIds } }, select: { id: true, product: { select: { slug: true, strain: true, regClass: true, name: true } } } }),
     availability(net.all, variantIds),
     q.lines.some((l) => classes.licensed.includes(l.regClass)) ? getDispensaryAccess() : null,
+    dropsFor(variantIds),
+    dropBlocks(customer?.id, q.lines),
+    welcomeGifts(customer, store?.id),
+    launchState(),
   ]);
+  // Limited drops in the bag: what's wrong (if anything), in plain words, before checkout.
+  const dropNotes = dropMsgs.map((m) => {
+    const d = drops.find((x) => m.startsWith(x.name));
+    const opens = d ? opensFor(d, (customer?.tier ?? null) as TierKey | null) : null;
+    return { slug: d?.slug, ...readableDropBlock(m, d && { name: d.name, perMemberLimit: d.perMemberLimit, opensLabel: opens ? `on ${fmtWhen(opens)}` : undefined }) };
+  });
+  const dropOf = (variantId: string) => drops.find((d) => d.variantIds.includes(variantId));
+  // Welcome gifts get their own hint (with an add button) instead of the generic deal nudge.
+  const giftIds = new Set(gifts.map((g) => g.id));
+  const inBagProducts = new Set(variants.map((v) => v.product.slug));
+  const giftHints = gifts.filter((g) => g.product && !inBagProducts.has(g.product.slug));
+  const suggestions = q.suggestions.filter((s) => !giftIds.has(s.promoId));
   const byId = new Map(variants.map((v) => [v.id, v]));
   const stockOf = (variantId: string) => net.all.reduce((s, id) => s + Math.max(0, avail.get(availKey(id, variantId))?.available ?? 0), 0);
   const licensedLines = q.lines.filter((l) => classes.licensed.includes(l.regClass));
@@ -63,8 +88,8 @@ export default async function CartPage() {
   const freeOver = settings.ecommerce.freeDeliveryOverCents;
   const toFree = Math.max(0, freeOver - q.totalCents);
 
-  const sIds = q.suggestions.flatMap((s) => s.productIds);
-  const sCats = q.suggestions.flatMap((s) => s.categoryIds);
+  const sIds = suggestions.flatMap((s) => s.productIds);
+  const sCats = suggestions.flatMap((s) => s.categoryIds);
   const inBag = new Set(q.lines.map((l) => l.productId));
   const prompts =
     sIds.length || sCats.length
@@ -77,9 +102,33 @@ export default async function CartPage() {
       <p className="mt-2 text-ink-400">
         {q.lines.reduce((s, l) => s + l.qty, 0)} item{q.lines.reduce((s, l) => s + l.qty, 0) === 1 ? "" : "s"} · prices include VAT
       </p>
+      {launch.preLaunch && launch.at && (
+        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} className="mt-6" title={`We open on ${fmtDate(launch.at)}`}>
+          Fill your bag now — it&apos;s saved on this device, and checkout opens on launch day.
+        </Callout>
+      )}
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
         <div className="space-y-4">
+          {dropNotes.map((n) => (
+            <Callout key={n.title} tone="warn" icon={<Sparkles className="h-5 w-5" />} title={n.title}>
+              {n.body}{" "}
+              {n.kind === "members" ? (
+                <Link href="/club/join?next=/cart" className="font-semibold text-white underline">
+                  Join free
+                </Link>
+              ) : (
+                n.slug && (
+                  <Link href={`/drops/${n.slug}`} className="font-semibold text-white underline">
+                    About the drop
+                  </Link>
+                )
+              )}
+            </Callout>
+          ))}
+          {giftHints.map((g) => (
+            <WelcomeGiftBanner key={g.id} gift={g} where="bag" />
+          ))}
           {blockedLicensed && (
             <Callout tone="warn" icon={<ShieldCheck className="h-5 w-5" />} title="Dispensary items need a registered patient">
               {access && !access.allowed && access.reason === "SIGN_IN" ? (
@@ -94,9 +143,9 @@ export default async function CartPage() {
               )}
             </Callout>
           )}
-          {q.suggestions.length > 0 && (
+          {suggestions.length > 0 && (
             <div className="space-y-2">
-              {q.suggestions.map((s) => (
+              {suggestions.map((s) => (
                 <div key={s.promoId + s.message} className="flex items-center gap-3 rounded-2xl border border-brand-500/35 bg-brand-500/[0.06] px-4 py-3 text-sm">
                   <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
                   <span className="text-ink-100">
@@ -112,6 +161,7 @@ export default async function CartPage() {
               const v = byId.get(l.variantId);
               const stock = stockOf(l.variantId);
               const licensed = classes.licensed.includes(l.regClass);
+              const drop = dropOf(l.variantId);
               return (
                 <li key={l.variantId} className="flex gap-4 p-4 sm:p-5">
                   <Link href={v ? `/p/${v.product.slug}?v=${l.variantId}` : "/shop"} className="shrink-0">
@@ -133,9 +183,15 @@ export default async function CartPage() {
                         {l.discountCents > 0 && <s className="tnum text-xs text-ink-500">{zar(l.grossCents)}</s>}
                       </div>
                     </div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+                      {drop && (
+                        <Link href={`/drops/${drop.slug}`} className="font-medium text-brand-300 hover:underline">
+                          Limited drop · {drop.perMemberLimit} per member
+                        </Link>
+                      )}
                       {l.priceRule && <span className="font-medium text-brand-300">{l.priceRule}</span>}
-                      {l.discountCents > 0 && <span className="font-medium text-leaf-100">You save {zar(l.discountCents)}</span>}
+                      {l.offerCents > 0 && <span className="font-medium text-brand-200">Your deal −{zar(l.offerCents)}</span>}
+                      {l.discountCents > l.offerCents && <span className="font-medium text-leaf-100">You save {zar(l.discountCents - l.offerCents)}</span>}
                       {stock < l.qty && (
                         <span className="flex items-center gap-1 font-medium text-amber-100">
                           <AlertTriangle className="h-3.5 w-3.5" /> {stock ? `Only ${stock} available online` : "Out of stock online"}
@@ -187,7 +243,14 @@ export default async function CartPage() {
               </div>
               {q.applied.filter((a) => a.discountCents > 0).map((a) => (
                 <div key={a.id} className="flex justify-between gap-3">
-                  <dt className="text-leaf-100">{a.name}</dt>
+                  <dt className="text-leaf-100">
+                    {isOffer(a.id) && (
+                      <Tag tone="orange" className="mr-1.5 align-[1px]">
+                        My Deal
+                      </Tag>
+                    )}
+                    {a.name}
+                  </dt>
                   <dd className="tnum shrink-0 text-leaf-100">−{zar(a.discountCents)}</dd>
                 </div>
               ))}

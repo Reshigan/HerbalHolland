@@ -2,7 +2,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Check, Copy, CreditCard, Download, History, Package, Receipt, Settings, Share2 } from "lucide-react";
+import { Check, Copy, CreditCard, Download, History, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
+import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
 
 const TABS = [
@@ -42,32 +43,34 @@ export function ClubNav() {
   );
 }
 
-export function ShareLink({ url, text }: { url: string; text: string }) {
+/** Invite link: the link itself with copy, the phone's share sheet where there is one, and WhatsApp. */
+export function ShareLink({ url, text, shareLabel = "Share your invite" }: { url: string; text: string; shareLabel?: string }) {
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(typeof navigator !== "undefined" && "share" in navigator), []);
   const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      window.prompt("Copy your link", url);
-    }
+    if (!(await copyText(url))) return;
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
   };
   return (
     <div>
       <div className="flex items-center gap-2 rounded-2xl border border-ink-700 bg-ink-950 p-1.5 pl-4">
         <span className="min-w-0 flex-1 truncate font-mono text-sm text-ink-200">{url.replace(/^https?:\/\//, "")}</span>
-        <button type="button" onClick={copy} className="flex h-10 shrink-0 items-center gap-1.5 rounded-xl bg-ink-850 px-3 text-sm font-semibold text-white hover:bg-ink-800" aria-live="polite">
+        <button type="button" onClick={copy} className="flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-ink-850 px-3 text-sm font-semibold text-white hover:bg-ink-800" aria-live="polite">
           {copied ? <Check className="h-4 w-4 text-leaf-500" /> : <Copy className="h-4 w-4" />} {copied ? "Copied" : "Copy"}
         </button>
       </div>
-      {canShare && (
-        <button type="button" onClick={() => navigator.share({ title: "Herbal Holland Rewards", text, url }).catch(() => undefined)} className="mt-3 flex h-11 items-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400">
-          <Share2 className="h-4 w-4" /> Share your invite
-        </button>
-      )}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {canShare && (
+          <button type="button" onClick={() => navigator.share({ title: "Herbal Holland Rewards", text, url }).catch(() => undefined)} className="flex h-11 items-center gap-2 rounded-full bg-brand-500 px-5 text-sm font-semibold text-ink-950 hover:bg-brand-400">
+            <Share2 className="h-4 w-4" /> {shareLabel}
+          </button>
+        )}
+        <a href={whatsappUrl(text, url)} target="_blank" rel="noopener noreferrer" className="flex h-11 items-center gap-2 rounded-full border border-ink-700 px-5 text-sm font-semibold text-ink-100 hover:border-leaf-500 hover:text-white">
+          <MessageCircle className="h-4 w-4 text-leaf-500" /> WhatsApp
+        </a>
+      </div>
     </div>
   );
 }

@@ -14,5 +14,5 @@ export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
   const { id } = await params;
   const b = await readBody(req, Body);
   await recordAgeCheck(id, b.method, actorOf(pos), b.method === "ID_NUMBER" ? b.idNumber!.replace(/\s/g, "") : undefined);
-  return json({ customer: await customerDetail(id) });
+  return json({ customer: await customerDetail(id, pos.device.storeId) });
 });

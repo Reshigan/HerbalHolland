@@ -1,6 +1,7 @@
 // Till-side pricing: the same pure rules the server's quote() uses (price lists, shelf
 // prices, near-expiry markdowns, promotions, s18A incentive exclusions), run against the
 // cached bootstrap. Used for instant feedback online and as the price of record offline.
+// Member-specific deals — My Deals and first-purchase welcome gifts — are online only.
 import { applyPromotions } from "@/lib/promotions";
 import { promoWindowOpen, resolvePrice, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { incentiveExcluded, type ComplianceSettings, type RegClass } from "@/lib/compliance";
@@ -37,9 +38,13 @@ const reviveList = (l: BootPriceList): PriceListRule => ({
   createdAt: new Date(l.createdAt),
 });
 
-/** Promotions live at `at`: inside their date range and happy-hour / weekday window. */
+/**
+ * Promotions the till can apply on its own at `at`: inside their date range and happy-hour /
+ * weekday window. Welcome gifts (first purchase only) are left to the server — only it can
+ * tell a member has never bought — so they never apply offline (offline sales are trust-mode).
+ */
 export function livePromotions(promos: BootPromotion[], at: Date) {
-  return promos.filter((p) => new Date(p.startsAt) <= at && new Date(p.endsAt) >= at && promoWindowOpen(p, at));
+  return promos.filter((p) => !p.firstPurchaseOnly && new Date(p.startsAt) <= at && new Date(p.endsAt) >= at && promoWindowOpen(p, at));
 }
 
 export function priceBasket(
@@ -93,6 +98,8 @@ export function priceBasket(
     promoId: r.lines[idx].promoId,
     noEarn: noPromo,
     memberSavingsCents,
+    offerCents: 0,
+    offerName: null,
   }));
 
   const earnable = lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
@@ -100,6 +107,7 @@ export function priceBasket(
     lines,
     subtotalCents: r.subtotalCents,
     discountCents: r.discountCents,
+    offerCents: 0,
     totalCents: r.totalCents,
     vatCents: lines.reduce((s, l) => s + l.vatCents, 0),
     pointsMultiplier: r.pointsMultiplier,

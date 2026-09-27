@@ -1,18 +1,23 @@
 import Link from "next/link";
-import { ArrowRight, BadgePercent, Cake, Gift, Pill, ShieldCheck, Sparkles, Trophy, Users } from "lucide-react";
+import { ArrowRight, BadgePercent, Cake, CalendarClock, Crown, Gift, Pill, ShieldCheck, Sparkles, Trophy, Users } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { CONSENT_WORDING } from "@/server/customers";
 import { APP_URL } from "@/server/invoices";
+import { launchState, waitlistPlace } from "@/server/launch";
+import { sharePath } from "@/server/share";
 import { LEDGER_LABEL, ledgerTitle, memberOverview, tierIndex } from "@/server/shop/club";
 import { getPreferredStore, getRetailStores } from "@/server/shop/context";
+import { memberDeals, memberTickets, upcomingEvents, welcomeGifts } from "@/server/shop/launch";
 import { MemberCard } from "@/components/shop/member-card";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { InstallPrompt, ShareLink } from "@/components/shop/club-client";
+import { DealsPanel, TicketsPanel, WaitlistCard, WelcomeGiftBanner } from "@/components/shop/club-launch";
+import { ShareButton } from "@/components/shop/share";
 import { Callout, Container, Meter, Panel, Tag, type TagTone } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
-import { fmtDate, timeAgo } from "@/lib/format";
-import { fmtPoints, tierBenefits, TIERS, type TierKey } from "@/lib/loyalty-rules";
+import { fmtDate, num, timeAgo } from "@/lib/format";
+import { fmtPoints, tierBenefits, tierInfo, TIERS, type TierKey } from "@/lib/loyalty-rules";
 import { zar, zarWhole } from "@/lib/money";
 import { cn } from "@/lib/cn";
 
@@ -28,22 +33,39 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   const [customer, settings] = await Promise.all([getCustomer(), getSettings()]);
   if (!customer) return <Landing />;
 
-  const m = await memberOverview(customer.id);
+  const store = await getPreferredStore();
+  const [m, launch, deals, tickets, gifts] = await Promise.all([
+    memberOverview(customer.id),
+    launchState(),
+    memberDeals(customer.id),
+    memberTickets(customer.id),
+    welcomeGifts(customer, store?.id),
+  ]);
+  const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2 })]);
   const savings = settings.loyalty.tierSavingsPct as Record<TierKey, number>;
   const idx = tierIndex(m.customer.tier);
-  const referUrl = `${APP_URL()}/club/join?ref=${m.customer.referralCode}`;
+  const base = APP_URL();
+  const referUrl = `${base}/club/join?ref=${m.customer.referralCode}`;
   const name = [m.customer.firstName, m.customer.lastName].filter(Boolean).join(" ");
+  // Signed share cards: first name, savings and tier only — never what the member bought.
+  const card = { referralCode: m.customer.referralCode, firstName: m.customer.firstName, tier: m.customer.tier as TierKey };
+  const shareSavings = m.savedCents >= 100 ? `${base}${sharePath({ ...card, savedCents: m.savedCents })}` : null;
+  const shareTier = `${base}${sharePath({ ...card, savedCents: 0 })}`;
+  // The floor line on the card only matters while it is what holds the tier.
+  const floorUntil = m.floor && m.floor.tier.key === m.customer.tier ? m.floor.until : null;
 
   return (
     <Container className="pt-8">
       {sp.welcome && (
         <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${m.customer.firstName}!`} className="mb-8">
-          Your card is ready — show the QR code at any till to earn points. We&apos;ve added {fmtPoints(settings.loyalty.signupBonus)} to get you started.
+          {launch.preLaunch && launch.at
+            ? `You're on the waitlist — we open ${fmtDate(launch.at)}. Share your link below to move up the line; ${fmtPoints(settings.loyalty.signupBonus)} are already on your card.`
+            : `Your card is ready — show the QR code at any till to earn points. We've added ${fmtPoints(settings.loyalty.signupBonus)} to get you started.`}
         </Callout>
       )}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
-          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} />
+          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} floorUntil={floorUntil} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <InstallPrompt />
         </div>
@@ -60,11 +82,35 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 <BadgePercent className="h-4 w-4 text-brand-400" /> You&apos;ve saved <strong className="tnum text-white">{zar(m.savedCents)}</strong> with Herbal Holland Rewards
               </p>
             )}
+            <div className="mt-4 flex flex-wrap gap-2">
+              {shareSavings && (
+                <ShareButton
+                  url={shareSavings}
+                  title="Herbal Holland Rewards"
+                  text={`I've saved ${zar(m.savedCents)} with Herbal Holland Rewards. Join free with my link (adults 18+):`}
+                  label="Share your savings"
+                />
+              )}
+              <ShareButton url={shareTier} title="Herbal Holland Rewards" text={`I'm a ${m.tier.name} member of Herbal Holland Rewards. Join free with my link (adults 18+):`} label="Share your tier" />
+            </div>
           </div>
 
+          {waitlist && launch.at && (
+            <WaitlistCard
+              w={waitlist}
+              cap={launch.foundingCap}
+              referUrl={referUrl}
+              firstName={m.customer.firstName}
+              shareText={`I'm on the Herbal Holland waitlist — we open ${fmtDate(launch.at)} and the first ${num(launch.foundingCap)} become Founding Members. Join free with my link (adults 18+):`}
+            />
+          )}
+          {gifts.map((g) => (
+            <WelcomeGiftBanner key={g.id} gift={g} />
+          ))}
+
           <Panel className="p-5">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+              <h2 className="flex shrink-0 items-center gap-2 font-display text-lg font-semibold text-white">
                 <Trophy className="h-5 w-5 text-brand-500" /> Your tier
               </h2>
               <span className="tnum text-sm text-ink-400">{zarWhole(m.spend)} in the last 12 months</span>
@@ -78,6 +124,14 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 </li>
               ))}
             </ol>
+            {m.floor && (
+              <p className="mt-5 flex items-start gap-2.5 rounded-xl border border-brand-500/30 bg-brand-500/[0.07] px-3.5 py-3 text-sm text-brand-100">
+                <Crown className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" />
+                <span>
+                  As a Founding Member you keep <strong className="font-semibold text-white">{m.floor.tier.name}</strong> until {fmtDate(m.floor.until)}, whatever you spend.
+                </span>
+              </p>
+            )}
             {m.goal ? (
               <div className="mt-5">
                 <div className="flex justify-between gap-3 text-sm">
@@ -123,6 +177,9 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
       </div>
 
       <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+        <DealsPanel deals={deals} personalised={m.customer.personalisedOffers} />
+        {(tickets.length > 0 || coming.length > 0) && <TicketsPanel tickets={tickets} suggestions={coming} />}
+
         <Panel className="p-5">
           <div className="flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-white">Recent points</h2>
@@ -193,19 +250,21 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
           )}
         </Panel>
 
-        <Panel className="scroll-mt-28 p-5" id="refer">
-          <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
-            <Users className="h-5 w-5 text-brand-500" /> Invite a friend
-          </h2>
-          <p className="mt-1 text-sm text-ink-300">
-            When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
-            {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
-          </p>
-          <div className="mt-4">
-            <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards — we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
-          </div>
-          <p className="mt-3 text-xs text-ink-500">Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span></p>
-        </Panel>
+        {!waitlist && (
+          <Panel className="scroll-mt-28 p-5" id="refer">
+            <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+              <Users className="h-5 w-5 text-brand-500" /> Invite a friend
+            </h2>
+            <p className="mt-1 text-sm text-ink-300">
+              When a friend (18+) joins with your link and makes their first purchase, you each get {fmtPoints(settings.loyalty.referralBonus)}.
+              {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
+            </p>
+            <div className="mt-4">
+              <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards — we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
+            </div>
+            <p className="mt-3 text-xs text-ink-500">Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span></p>
+          </Panel>
+        )}
 
         <Panel className="p-5">
           <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
@@ -269,10 +328,15 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
 }
 
 async function Landing() {
-  const [settings, stores, store] = await Promise.all([getSettings(), getRetailStores(), getPreferredStore()]);
+  const [settings, stores, store, launch] = await Promise.all([getSettings(), getRetailStores(), getPreferredStore(), launchState()]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   return (
     <Container className="pt-10 sm:pt-16">
+      {launch.preLaunch && launch.at && (
+        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`We open ${fmtDate(launch.at)} — join the waitlist`} className="mb-10">
+          The first {num(launch.foundingCap)} on the list become numbered Founding Members and start at {tierInfo(launch.foundingTier).name} for a year. Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
+        </Callout>
+      )}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-16">
         <div>
           <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>

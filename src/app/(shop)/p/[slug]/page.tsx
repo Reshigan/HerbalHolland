@@ -12,18 +12,27 @@ import { cardsWhere, currentBatch, dealsFor, directDeal, getNetwork, getPricing,
 import { getPreferredStore } from "@/server/shop/context";
 import { tierMeta } from "@/server/shop/club";
 import { openState, parseHours } from "@/server/shop/hours";
+import { dropsFor } from "@/server/drops";
+import { activeOffers, isOffer, offerPromo } from "@/server/offers";
+import { getDrop, isWatching } from "@/server/shop/launch";
 import { requestStockAlert, submitReview } from "./actions";
+import { watchDropAction } from "../../drops/actions";
 import { ProductArt } from "@/components/product/art";
 import { AddToBag } from "@/components/shop/add-to-bag";
 import { DispensaryGate } from "@/components/shop/dispensary-gate";
 import { ProductGrid } from "@/components/shop/product-card";
 import { NotifyMe, ReviewForm } from "@/components/shop/product-forms";
 import { asLab, asTerps, range, SafetyResult, SAFETY_PANELS, TerpeneBars } from "@/components/shop/product-parts";
+import { Countdown } from "@/components/shop/countdown";
+import { DropFacts, DropStatus, fmtWhen } from "@/components/shop/launch-cards";
+import { WatchDrop } from "@/components/shop/launch-forms";
 import { Callout, Container, Panel, Price, Stars, Tag } from "@/components/shop/ui";
+import { ButtonLink } from "@/components/ui/button";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { REG_CLASS_LABEL } from "@/lib/compliance";
-import { fmtDate } from "@/lib/format";
+import { fmtDate, fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
+import type { TierKey } from "@/lib/loyalty-rules";
 import { cn } from "@/lib/cn";
 
 type Params = { slug: string };
@@ -63,6 +72,18 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     customer ? db.review.findUnique({ where: { productId_customerId: { productId: product.id, customerId: customer.id } }, select: { id: true } }) : null,
   ]);
 
+  // Limited drops (never medicines) and the member's own My Deals offer for this product.
+  const tier = (customer?.tier ?? null) as TierKey | null;
+  const [dropRows, offers] = await Promise.all([licensed ? [] : dropsFor([variant.id]), customer && !licensed ? activeOffers(customer.id) : []]);
+  const [drop, watching, devices] = await Promise.all([
+    dropRows[0] ? getDrop(dropRows[0].slug, tier) : null,
+    dropRows[0] && customer ? isWatching(dropRows[0].id, customer.id) : false,
+    dropRows[0] && customer ? db.pushSubscription.count({ where: { customerId: customer.id } }) : 0,
+  ]);
+  const dropGated = !!drop && drop.membersOnly && !customer;
+  const dropWaiting = !!drop && drop.phase === "upcoming";
+  const myDeal = offers.find((o) => o.productIds.includes(product.id) || o.categoryIds.includes(product.categoryId));
+
   const q = quotes[product.variants.indexOf(variant)];
   const line = q.lines[0];
   // Members pay their instant tier price; the walk-in shelf price is shown struck through.
@@ -71,7 +92,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const tierName = customer ? tierMeta(customer.tier).name : null;
   const priceNote = [
     line.memberSavingsCents > 0 && tierName ? `${tierName} price` : !customer ? null : line.priceRule,
-    line.discountCents ? q.applied.find((a) => a.discountCents > 0)?.name : null,
+    line.discountCents ? q.applied.find((a) => a.discountCents > 0 && !isOffer(a.id))?.name : null, // My Deals show as their own badge
   ].filter(Boolean).join(" · ");
   const guestRewards = customer ? null : rewardsPrice(variant, product.regClass, pricing);
   const rewardsCents = guestRewards != null ? withDeal(guestRewards, directDeal(product, pricing)) : null;
@@ -198,6 +219,14 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
             <div className="mt-8">
               <Price cents={line.totalCents} was={was} size="lg" />
+              {myDeal && (
+                <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-ink-400">
+                  <Tag tone="orange" className="text-[0.75rem]">
+                    Your deal: {describePromo(offerPromo(myDeal))}
+                  </Tag>
+                  {line.offerCents > 0 ? "Already in this price" : "Applies automatically"} · one use · ends {fmtDay(myDeal.endsAt)}
+                </p>
+              )}
               <p className="mt-1.5 text-sm text-ink-400">
                 {priceNote ? <span className="font-semibold text-brand-300">{priceNote} · </span> : null}
                 {variant.name} · incl. VAT
@@ -237,13 +266,46 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </fieldset>
             )}
 
+            {drop && (
+              <Link href={`/drops/${drop.slug}`} className="group mt-6 block rounded-2xl border border-brand-500/40 bg-brand-500/[0.06] p-4 transition hover:border-brand-500">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="eyebrow text-brand-500">Limited drop</span>
+                  {!dropWaiting && <DropStatus d={drop} />}
+                </div>
+                <div className="mt-1.5 flex items-center gap-1.5 font-display text-lg font-semibold text-white group-hover:text-brand-100">
+                  {drop.name} <ChevronRight className="h-4 w-4 text-brand-400" />
+                </div>
+                {dropWaiting && (
+                  <p className="mt-1 text-sm text-ink-300">
+                    Opens for you {fmtWhen(drop.opensAt)} · <Countdown to={drop.opensAt} label={`Opens ${fmtWhen(drop.opensAt)}`} className="font-semibold text-white" />
+                  </p>
+                )}
+                <DropFacts d={drop} className="mt-3" />
+              </Link>
+            )}
+
             <div className="mt-6">
               {inStoreOnly ? (
                 <Callout tone="warn" icon={<Store className="h-5 w-5" />} title="In-store only">
                   Under current tobacco-products rules this item can only be bought in store.
                 </Callout>
+              ) : drop && dropGated && buyable && !dropWaiting ? (
+                <ButtonLink href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}?v=${variant.id}`)}`} size="xl" className="w-full">
+                  Join free to buy — members-only drop
+                </ButtonLink>
+              ) : drop && dropWaiting ? (
+                <WatchDrop
+                  action={watchDropAction.bind(null, drop.id)}
+                  signedIn={!!customer}
+                  next={`/p/${product.slug}?v=${variant.id}`}
+                  already={watching}
+                  reach={devices ? "push" : customer?.consentSms ? "sms" : "none"}
+                />
               ) : buyable ? (
-                <AddToBag variantId={variant.id} name={`${product.name} · ${variant.name}`} label={licensed ? "Add to dispensary order" : "Add to bag"} />
+                <>
+                  <AddToBag variantId={variant.id} name={`${product.name} · ${variant.name}`} label={licensed ? "Add to dispensary order" : "Add to bag"} />
+                  {drop && drop.phase !== "ended" && <p className="mt-2 text-center text-xs text-ink-500">Limit {drop.perMemberLimit} per member from this drop — checked at checkout.</p>}
+                </>
               ) : (
                 <NotifyMe action={requestStockAlert.bind(null, variant.id)} signedIn={!!customer} next={`/p/${product.slug}?v=${variant.id}`} already={!!alert && !alert.notifiedAt} />
               )}

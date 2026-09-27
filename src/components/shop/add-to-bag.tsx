@@ -6,8 +6,8 @@ import { addToBag, type BagState } from "@/server/shop/actions";
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
 
-/** Add-to-bag form. `compact` renders the round quick-add used on product cards. */
-export function AddToBag({ variantId, name, disabled, compact, label = "Add to bag", className }: { variantId: string; name: string; disabled?: boolean; compact?: boolean; label?: string; className?: string }) {
+/** Add-to-bag form. `compact` renders the round quick-add used on product cards; `plain` a single labelled button (qty 1). */
+export function AddToBag({ variantId, name, disabled, compact, plain, label = "Add to bag", className }: { variantId: string; name: string; disabled?: boolean; compact?: boolean; plain?: boolean; label?: string; className?: string }) {
   const [state, action, pending] = useActionState<BagState, FormData>(addToBag, {});
   const [qty, setQty] = useState(1);
   const [toast, setToast] = useState(false);
@@ -19,10 +19,15 @@ export function AddToBag({ variantId, name, disabled, compact, label = "Add to b
   }, [state.at]);
 
   return (
-    <form action={action} className={cn(compact ? "relative z-10" : "space-y-3", className)}>
+    <form action={action} className={cn(compact ? "relative z-10" : plain ? "relative" : "space-y-3", className)}>
       <input type="hidden" name="variantId" value={variantId} />
       <input type="hidden" name="qty" value={qty} />
-      {compact ? (
+      {plain ? (
+        <button disabled={pending || disabled} className={buttonClass("primary", "md", "h-11 w-full sm:w-auto")}>
+          {state.ok && toast ? <Check className="h-4 w-4" /> : <ShoppingBag className="h-4 w-4" strokeWidth={1.9} />}
+          {pending ? "Adding…" : state.ok && toast ? "Added" : label}
+        </button>
+      ) : compact ? (
         <button
           disabled={pending || disabled}
           aria-label={`Add ${name} to bag`}

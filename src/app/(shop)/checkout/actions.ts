@@ -9,6 +9,7 @@ import { CustomerError } from "@/server/customers";
 import { LoyaltyError } from "@/server/loyalty";
 import { getCart, getPromoCode, saveCart, savePromoCode } from "@/server/shop/context";
 import { redeemablePoints } from "@/server/shop/cart-codec";
+import { readableDropBlock } from "@/server/shop/launch-rules";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
 export type CheckoutState = { error?: string; alternatives?: { id: string; name: string }[]; fields?: Partial<Record<"addressLine" | "suburb" | "city" | "province" | "postalCode" | "storeId", string>> };
@@ -63,7 +64,11 @@ export async function placeOrderAction(_: CheckoutState, form: FormData): Promis
   try {
     order = await placeOrder({ customerId: customer.id, fulfilment, storeId, address, items, code, points, payMethod });
   } catch (e) {
-    if (e instanceof OrderError) return { error: e.message, alternatives: e.alternatives };
+    if (e instanceof OrderError) {
+      // Limited drops: turn the rule's short refusal into something a shopper can act on.
+      const drop = readableDropBlock(e.message);
+      return { error: drop.kind === "other" ? e.message : `${drop.title}. ${drop.body}`, alternatives: e.alternatives };
+    }
     if (e instanceof LoyaltyError || e instanceof CustomerError) return { error: e.message };
     throw e;
   }

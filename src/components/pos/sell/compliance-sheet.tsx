@@ -1,9 +1,10 @@
 "use client";
-// Pre-payment compliance: each block from the engine with the action that resolves it —
-// age check (ID sighted / SA ID number / passport), patient authorisation, authorised
-// quantity, dispenser required ("switch user"), licence.
+// Pre-payment checks: each block from the compliance engine with the action that resolves
+// it — age check (ID sighted / SA ID number / passport), patient authorisation, authorised
+// quantity, dispenser required ("switch user"), licence — and limited-drop rules (members
+// only, not open yet, per-member limit; offline, drops can't be checked at all).
 import { useMemo, useState } from "react";
-import { BadgeCheck, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
 import { checkSaId, ageOn } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
@@ -18,6 +19,7 @@ const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
   LICENCE: ShieldAlert,
   CHANNEL: ShieldAlert,
   DAILY_LIMIT: Pill,
+  DROP: Gem,
   OTHER: ShieldAlert,
 };
 
@@ -30,6 +32,7 @@ const TITLE: Record<BlockKind, string> = {
   LICENCE: "Not licensed at this store",
   CHANNEL: "Can't be sold here",
   DAILY_LIMIT: "Over the daily limit",
+  DROP: "Limited drop",
   OTHER: "Can't complete this sale yet",
 };
 
@@ -46,6 +49,7 @@ export function ComplianceSheet({
   onFindPatient,
   onRemoveLicensed,
   onRemoveRestricted,
+  onRemoveDrops,
   onSwitchUser,
 }: {
   open: boolean;
@@ -60,6 +64,7 @@ export function ComplianceSheet({
   onFindPatient: () => void;
   onRemoveLicensed: () => void;
   onRemoveRestricted: () => void;
+  onRemoveDrops: () => void;
   onSwitchUser: () => void;
 }) {
   const [idNumber, setIdNumber] = useState("");
@@ -72,7 +77,7 @@ export function ComplianceSheet({
 
   const blocks = result?.blocks ?? [];
   return (
-    <Sheet open={open} onClose={onClose} title="Before payment" subtitle="Compliance checks for this basket" size="md" anchorBottom footer={<PosButton variant="ghost" onClick={onClose}>Back to the basket</PosButton>}>
+    <Sheet open={open} onClose={onClose} title="Before payment" subtitle="Checks for this basket" size="md" anchorBottom footer={<PosButton variant="ghost" onClick={onClose}>Back to the basket</PosButton>}>
       {error && <Alert className="mb-4">{error}</Alert>}
       <ul className="space-y-3" aria-label="Compliance checks">
         {blocks.map((b, i) => {
@@ -150,6 +155,19 @@ export function ComplianceSheet({
                 </div>
               )}
 
+              {b.kind === "DROP" && (
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {!customer && online && (
+                    <PosButton variant="primary" onClick={onFindPatient}>
+                      <UserRound className="h-4 w-4" /> Add the member
+                    </PosButton>
+                  )}
+                  <PosButton variant="secondary" onClick={onRemoveDrops}>
+                    <Trash2 className="h-4 w-4" /> Remove drop items
+                  </PosButton>
+                </div>
+              )}
+
               {(b.kind === "LICENCE" || b.kind === "CHANNEL" || b.kind === "OTHER") && (
                 <div className="mt-4">
                   <PosButton variant="secondary" onClick={onRemoveLicensed}>
@@ -161,7 +179,7 @@ export function ComplianceSheet({
           );
         })}
       </ul>
-      {!online && <p className="mt-4 text-xs text-ink-400">Offline: checks run on this till with the rules it downloaded. Licensed medicines can&apos;t be sold without a connection.</p>}
+      {!online && <p className="mt-4 text-xs text-ink-400">Offline: checks run on this till with the rules it downloaded. Licensed medicines and limited drops can&apos;t be sold without a connection.</p>}
     </Sheet>
   );
 }

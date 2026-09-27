@@ -55,6 +55,21 @@ export type BootPromotion = PromoInput & {
   days: number[];
   startMinute: number | null;
   endMinute: number | null;
+  firstPurchaseOnly?: boolean; // welcome gift: only the server can tell a member has never bought (never applied offline)
+};
+
+/** Limited release governing some of this till's variants (live, or opening later). The server enforces its rules. */
+export type BootDrop = {
+  id: string;
+  slug: string;
+  name: string;
+  variantIds: string[];
+  startsAt: string;
+  endsAt: string | null;
+  earlyTier: TierKey | null;
+  earlyMinutes: number;
+  perMemberLimit: number;
+  membersOnly: boolean;
 };
 
 export type BootPriceList = Omit<PriceListRule, "startsAt" | "endsAt" | "createdAt"> & {
@@ -94,6 +109,7 @@ export type BootData = {
   products: BootProduct[];
   promotions: BootPromotion[];
   priceLists: BootPriceList[];
+  drops?: BootDrop[]; // optional: tills cached before drops existed
   settings: {
     compliance: ComplianceSettings;
     loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number; tierSavingsPct: Record<TierKey, number> };
@@ -119,12 +135,15 @@ export type QuoteLineDTO = {
   promoId?: string;
   noEarn: boolean;
   memberSavingsCents: number; // instant Rewards saving vs the walk-in price
+  offerCents: number; // My Deals part of discountCents (online only)
+  offerName: string | null; // e.g. "15% off Calm CBD Oil"
 };
 
 export type QuoteDTO = {
   lines: QuoteLineDTO[];
   subtotalCents: number;
-  discountCents: number;
+  discountCents: number; // all deals, My Deals included
+  offerCents: number; // My Deals total
   totalCents: number;
   vatCents: number;
   pointsMultiplier: number;
@@ -138,6 +157,7 @@ export type QuoteDTO = {
 
 // ── Customers ───────────────────────────────────────────────────────────────
 
+// Each store sees only its own trading: visits and last visit are counted at this till's store.
 export type CustomerHit = {
   id: string;
   memberNo: string;
@@ -146,6 +166,8 @@ export type CustomerHit = {
   tier: TierKey;
   points: number;
   patient: boolean;
+  visitsHere: number;
+  lastVisitHere: string | null;
 };
 
 export type CustomerDetail = {
@@ -161,8 +183,11 @@ export type CustomerDetail = {
   ageVerified: boolean;
   age: number | null;
   homeStore: string | null;
-  visits: number;
-  lastPurchaseAt: string | null;
+  visitsHere: number; // sales at this store only
+  lastVisitHere: string | null;
+  foundingNo: number | null; // Founding Member number
+  tierFloor: { tier: TierKey; until: string } | null; // active guaranteed minimum tier
+  offers: { id: string; title: string; endsAt: string }[]; // My Deals on the card (auto-apply online)
   patient: {
     authNumber: string;
     prescriber: string;
@@ -174,9 +199,16 @@ export type CustomerDetail = {
   } | null;
 };
 
+/** Door check-in from an event ticket (HHRSVP:{code}): the member to attach and their event. */
+export type CheckInDTO = {
+  customer: CustomerDetail;
+  event: { id: string; title: string; startsAt: string; endsAt: string };
+  first: boolean; // false = the ticket was already checked in
+};
+
 // ── Compliance ──────────────────────────────────────────────────────────────
 
-export type BlockKind = "AGE" | "UNDERAGE" | "PATIENT" | "QUANTITY" | "DISPENSER" | "LICENCE" | "CHANNEL" | "DAILY_LIMIT" | "OTHER";
+export type BlockKind = "AGE" | "UNDERAGE" | "PATIENT" | "QUANTITY" | "DISPENSER" | "LICENCE" | "CHANNEL" | "DAILY_LIMIT" | "DROP" | "OTHER";
 
 export type ComplianceDTO = {
   ok: boolean;
@@ -198,6 +230,7 @@ export type ReceiptLine = {
   qty: number;
   unitPriceCents: number;
   discountCents: number;
+  offerCents: number; // My Deals part of discountCents
   totalCents: number;
   vatCents: number;
   refundedQty: number;
@@ -228,7 +261,9 @@ export type ReceiptDTO = {
   customer: { id: string; name: string; memberNo: string; tier: TierKey; points: number } | null;
   lines: ReceiptLine[];
   subtotalCents: number;
-  discountCents: number;
+  discountCents: number; // all deals, My Deals included
+  offerCents: number; // My Deals
+  offers: string[]; // names of the My Deals used
   memberSavingsCents: number;
   totalCents: number;
   vatCents: number;

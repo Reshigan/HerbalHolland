@@ -5,12 +5,14 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { CONSENT_WORDING } from "@/server/customers";
+import { launchState } from "@/server/launch";
 import { getPreferredStore, getRetailStores } from "@/server/shop/context";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { Container, Panel } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { Mark } from "@/components/brand/logo";
-import { fmtPoints } from "@/lib/loyalty-rules";
+import { fmtPoints, tierInfo } from "@/lib/loyalty-rules";
+import { fmtDate, num } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
@@ -23,8 +25,9 @@ type SP = { ref?: string; store?: string; next?: string };
 export default async function JoinPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const next = sp.next && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/club";
-  const [customer, settings, stores, preferred] = await Promise.all([getCustomer(), getSettings(), getRetailStores(), getPreferredStore()]);
+  const [customer, settings, stores, preferred, launch] = await Promise.all([getCustomer(), getSettings(), getRetailStores(), getPreferredStore(), launchState()]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
+  const pre = launch.preLaunch && launch.at ? launch.at : null;
 
   if (customer)
     return (
@@ -55,12 +58,16 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         <div className="lg:pt-6">
           <Mark className="h-14 w-14 text-brand-500" />
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1] tracking-tight text-white">
-            {referrer ? `${referrer.firstName} invited you` : "Join in a minute."}
+            {referrer ? `${referrer.firstName} invited you` : pre ? "Join the waitlist." : "Join in a minute."}
           </h1>
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-300">
-            {referrer
-              ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)} — on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
-              : `Free, no passwords and no plastic. Your card lives on your phone and works in all ${trading.length} stores and online.`}
+            {pre
+              ? `We open ${fmtDate(pre)}. The first ${num(launch.foundingCap)} on the list become numbered Founding Members and start at ${tierInfo(launch.foundingTier).name} for a year.${
+                  referrer ? ` Joining with ${referrer.firstName}'s link moves them up ${num(launch.referralBoost)} places — and you'll both get ${fmtPoints(settings.loyalty.referralBonus)} after your first purchase.` : ""
+                }`
+              : referrer
+                ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)} — on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
+                : `Free, no passwords and no plastic. Your card lives on your phone and works in all ${trading.length} stores and online.`}
           </p>
           {qrStore && (
             <p className="mt-6 inline-flex items-center gap-2 rounded-full border border-brand-500/40 bg-brand-500/10 px-4 py-2 text-sm text-brand-200">

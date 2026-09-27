@@ -20,6 +20,11 @@ const receiptInclude = {
 export async function receipt(saleId: string, storeId: string): Promise<ReceiptDTO> {
   const s = await db.sale.findUnique({ where: { id: saleId }, include: receiptInclude });
   if (!s || s.storeId !== storeId) throw new PosError("Sale not found at this store", 404);
+  // My Deals used on this sale (looked up through the member's offers — that's the indexed path).
+  const offers =
+    s.customerId && s.kind === "SALE" && s.lines.some((l) => l.offerCents > 0)
+      ? await db.memberOffer.findMany({ where: { customerId: s.customerId, saleId: s.id }, select: { title: true }, orderBy: { title: "asc" } })
+      : [];
 
   // Quantities already refunded per original line (refund lines point back via allocations[].lineId).
   const refunded = new Map<string, number>();
@@ -57,12 +62,15 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
       qty: l.qty,
       unitPriceCents: l.unitPriceCents,
       discountCents: l.discountCents,
+      offerCents: l.offerCents,
       totalCents: l.totalCents,
       vatCents: l.vatCents,
       refundedQty: refunded.get(l.id) ?? 0,
     })),
     subtotalCents: s.subtotalCents,
     discountCents: s.discountCents,
+    offerCents: s.lines.reduce((a, l) => a + l.offerCents, 0),
+    offers: offers.map((o) => o.title),
     memberSavingsCents: s.memberSavingsCents ?? 0,
     totalCents: s.totalCents,
     vatCents: s.vatCents,

@@ -5,6 +5,7 @@ import { ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { activePromotions } from "@/server/pricing";
+import { launchState } from "@/server/launch";
 import { confirmAge, declineAge } from "@/server/shop/actions";
 import { getAgeState, getCartCount, getFranchisor, getPreferredStore, getRetailStores } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
@@ -16,10 +17,12 @@ import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { screenCopy } from "@/lib/compliance";
 import { zarWhole } from "@/lib/money";
+import { fmtDate, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 export const NAV: NavItem[] = [
   { href: "/shop", label: "Shop" },
+  { href: "/drops", label: "Drops" },
   { href: "/dispensary", label: "Dispensary" },
   { href: "/stores", label: "Stores" },
   { href: "/learn", label: "Learn" },
@@ -43,7 +46,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
       </>
     );
 
-  const [customer, store, count, stores, company, settings, promos] = await Promise.all([
+  const [customer, store, count, stores, company, settings, promos, launch] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getCartCount(),
@@ -51,6 +54,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
     getFranchisor(),
     getSettings(),
     activePromotions({ channel: "ONLINE" }),
+    launchState(),
   ]);
   const picker: PickerStore[] = stores.map((s) => {
     const o = openState(parseHours(s.hours));
@@ -59,11 +63,18 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   const current = store ? picker.find((p) => p.code === store.code) ?? null : null;
   // Headline the newest public deal (code-only offers stay private; copy is screened defensively).
   const headline = promos.find((p) => !p.code && !screenCopy(p.name).length);
-  const messages = [
-    ...(headline ? [{ text: headline.name, href: "/shop" }] : []),
-    { text: `Free delivery on orders over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)}`, href: "/shop" },
-    { text: "Click & collect at your nearest store", href: "/stores" },
-  ];
+  // Before launch the shop is a waitlist: lead with the date and the Founding Members offer.
+  const messages = launch.preLaunch && launch.at
+    ? [
+        { text: `Opening ${fmtDate(launch.at)} — join the waitlist`, href: customer ? "/club" : "/club/join" },
+        { text: `The first ${num(launch.foundingCap)} become Founding Members`, href: customer ? "/club" : "/club/join" },
+        { text: "Every friend you bring moves you up the list", href: customer ? "/club#waitlist" : "/club/join" },
+      ]
+    : [
+        ...(headline ? [{ text: headline.name, href: "/shop" }] : []),
+        { text: `Free delivery on orders over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)}`, href: "/shop" },
+        { text: "Click & collect at your nearest store", href: "/stores" },
+      ];
   const tier = customer ? tierMeta(customer.tier) : null;
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const provinces = [...new Set(trading.map((s) => s.province))];

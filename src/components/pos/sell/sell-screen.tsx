@@ -1,25 +1,26 @@
 "use client";
 // Sell: catalogue + basket, then compliance → payment → receipt. Prices come from the
 // server's quote when online (authoritative) and from the till's cached price book
-// offline; offline sales are cash only and queue in the outbox.
+// offline; offline sales are cash only and queue in the outbox. Member-only extras —
+// My Deals, welcome gifts, limited drops and event check-in — need the connection.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { checkCompliance } from "@/lib/compliance";
 import { zar, zarWhole } from "@/lib/money";
-import { api, errorText, OfflineError } from "../lib/api";
+import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
-import { classifyBlock, memberNoFrom, parseOrderQr, uuid } from "../lib/rules";
+import { classifyBlock, dropIndex, memberNoFrom, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
 import { EMPTY_CART, type Cart, type SalePayload } from "../lib/storage";
 import { usePos } from "../context";
 import { Confirm, PosButton, Sheet } from "../ui";
 import { Catalog, type Filter } from "./catalog";
-import { CartPanel, CustomerCard, type VariantIndex } from "./cart-panel";
+import { CartPanel, CustomerCard, WelcomeGiftButton, type VariantIndex, type WelcomeGift } from "./cart-panel";
 import { CustomerSheet } from "./customer-sheet";
 import { ComplianceSheet } from "./compliance-sheet";
 import { PaymentSheet, FULL_INVOICE_OVER_CENTS, type PaymentResult } from "./payment-sheet";
 import { ReceiptSheet } from "./receipt-sheet";
 import { CameraScanner, cameraScanSupported } from "./scanner";
-import type { ComplianceDTO, CustomerDetail, CustomerHit, QuoteDTO, ReceiptDTO } from "@/server/pos/types";
+import type { BootDrop, CheckInDTO, ComplianceDTO, CustomerDetail, CustomerHit, QuoteDTO, ReceiptDTO } from "@/server/pos/types";
 
 export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: () => void; scan: (code: string) => void; add: (variantId: string) => void };
 
@@ -58,6 +59,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     for (const p of boot.products) for (const v of p.variants) m.set(v.id, { product: p, variant: v });
     return m;
   }, [boot.products]);
+  const drops = useMemo(() => dropIndex(boot.drops), [boot.drops]);
 
   const pricing: PricingData = useMemo(
     () => ({
@@ -85,13 +87,15 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     [pricing, cart.lines, cart.code, cart.customer],
   );
   const key = JSON.stringify([cart.lines, cart.code, cart.customer?.id ?? null]);
-  const [server, setServer] = useState<{ key: string; q: QuoteDTO } | null>(null);
+  const [server, setServer] = useState<{ key: string; q: QuoteDTO; customerId: string | null } | null>(null);
   useEffect(() => {
-    if (!online || !cart.lines.length) return;
+    // An empty basket is still quoted for a member: the server may have a welcome gift for them.
+    if (!online || (!cart.lines.length && !cart.customer)) return;
     let live = true;
+    const customerId = cart.customer?.id ?? null;
     const t = setTimeout(() => {
-      api<QuoteDTO>("/api/pos/quote", { body: { items: cart.lines, code: cart.code, customerId: cart.customer?.id ?? null } })
-        .then((q) => live && setServer({ key, q }))
+      api<QuoteDTO>("/api/pos/quote", { body: { items: cart.lines, code: cart.code, customerId } })
+        .then((q) => live && setServer({ key, q, customerId }))
         .catch(() => undefined);
     }, 150);
     return () => {
@@ -103,18 +107,36 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const fresh = online && server?.key === key;
   const quote = fresh ? server!.q : local;
 
+  // Welcome gift: the server's suggestion for a member who has never bought (kept while re-quoting).
+  const welcomeIds = useMemo(() => new Set(boot.promotions.filter((p) => p.firstPurchaseOnly).map((p) => p.id)), [boot.promotions]);
+  const memberQuote = online && cart.customer && server?.customerId === cart.customer.id ? server.q : null;
+  const welcome: WelcomeGift | null = useMemo(() => {
+    const s = memberQuote?.suggestions.find((x) => welcomeIds.has(x.promoId) && /add it/.test(x.message));
+    if (!s) return null;
+    const product = boot.products.find((p) => s.productIds.includes(p.id)) ?? boot.products.find((p) => s.categoryIds.includes(p.categoryId));
+    if (!product || cart.lines.some((l) => index.get(l.variantId)?.product.id === product.id)) return null;
+    const variant = product.variants.find((v) => v.available > 0) ?? product.variants[0];
+    const pct = boot.promotions.find((p) => p.id === s.promoId)?.rewardPercent ?? 100;
+    return { promoId: s.promoId, variantId: variant.id, label: `Welcome gift: ${product.name} ${pct >= 100 ? "free" : `${pct}% off`} — add it` };
+  }, [memberQuote, welcomeIds, boot.products, boot.promotions, cart.lines, index]);
+
   // ── Basket ──────────────────────────────────────────────────────────────
   const add = useCallback(
     (variantId: string) => {
       const e = index.get(variantId);
       if (!e) return;
+      const drop = drops.get(variantId);
+      if (drop && !onlineRef.current) {
+        pos.toast(`${drop.name} is a limited drop — member limits can't be checked offline. Sell it when the till is back online.`, "warn");
+        return;
+      }
       setCart((c) => {
         const ex = c.lines.find((l) => l.variantId === variantId);
         return { ...c, lines: ex ? c.lines.map((l) => (l.variantId === variantId ? { ...l, qty: l.qty + 1 } : l)) : [...c.lines, { variantId, qty: 1 }] };
       });
       if (e.variant.available <= 0) pos.toast(`${e.product.name} shows none on hand here — check the shelf`, "warn");
     },
-    [index, setCart, pos],
+    [index, drops, setCart, pos],
   );
 
   const scan = useCallback(
@@ -123,6 +145,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       if (!code) return;
       if (parseOrderQr(code)) {
         pos.openOrderScan(code); // collection QR → that order's handover
+        return;
+      }
+      const ticket = rsvpTicketFrom(code);
+      if (ticket) {
+        void checkInRef.current(ticket); // event ticket QR → door check-in, member attached
         return;
       }
       const member = memberNoFrom(code);
@@ -143,7 +170,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const q = query.trim();
     if (!q) return;
     const exact = [...index.values()].find((e) => e.variant.barcode === q || e.variant.sku.toLowerCase() === q.toLowerCase());
-    if (exact || memberNoFrom(q) || parseOrderQr(q)) {
+    if (exact || memberNoFrom(q) || parseOrderQr(q) || rsvpTicketFrom(q)) {
       scan(q);
       setQuery("");
       return;
@@ -178,9 +205,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       const blocks = r.blocks.map((message) => ({ kind: classifyBlock(message), message }));
       if (items.some((i) => licensedClasses.includes(i.regClass)))
         blocks.push({ kind: "OTHER", message: "Licensed medicines need a connection to check the patient's authorisation — remove them or wait until you're back online" });
+      for (const d of new Set(c.lines.map((l) => drops.get(l.variantId)).filter((d): d is BootDrop => !!d)))
+        blocks.push({ kind: "DROP", message: `${d.name} is a limited drop — member limits can't be checked offline. Remove it, or sell it when the till is back online.` });
       return { ok: blocks.length === 0, blocks, needsAgeCheck: r.needsAgeCheck, needsPrescription: r.needsPrescription, gramsInCart: r.gramsInCart, staffCanDispense: me.canDispense };
     },
-    [index, boot, me.canDispense, licensedClasses],
+    [index, drops, boot, me.canDispense, licensedClasses],
   );
 
   const runCompliance = useCallback(
@@ -275,6 +304,10 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const c = cartRef.current;
     void recheckWith({ ...c, lines: c.lines.filter((l) => !classes.includes(index.get(l.variantId)?.product.regClass ?? "")) });
   };
+  const removeDrops = () => {
+    const c = cartRef.current;
+    void recheckWith({ ...c, lines: c.lines.filter((l) => !drops.has(l.variantId)) });
+  };
 
   // ── Completing the sale ─────────────────────────────────────────────────
   const localReceipt = (p: SalePayload, q: QuoteDTO, c: Cart): ReceiptDTO => ({
@@ -291,10 +324,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     customer: c.customer ? { id: c.customer.id, name: `${c.customer.firstName} ${c.customer.lastName ?? ""}`.trim(), memberNo: c.customer.memberNo, tier: c.customer.tier, points: c.customer.points } : null,
     lines: q.lines.map((l) => {
       const e = index.get(l.variantId)!;
-      return { id: l.variantId, variantId: l.variantId, name: e.product.name, variantName: e.variant.name, sku: e.variant.sku, qty: l.qty, unitPriceCents: l.unitPriceCents, discountCents: l.discountCents, totalCents: l.totalCents, vatCents: l.vatCents, refundedQty: 0 };
+      return { id: l.variantId, variantId: l.variantId, name: e.product.name, variantName: e.variant.name, sku: e.variant.sku, qty: l.qty, unitPriceCents: l.unitPriceCents, discountCents: l.discountCents, offerCents: 0, totalCents: l.totalCents, vatCents: l.vatCents, refundedQty: 0 };
     }),
     subtotalCents: q.subtotalCents,
     discountCents: q.discountCents,
+    offerCents: 0, // My Deals never apply offline
+    offers: [],
     memberSavingsCents: q.memberSavingsCents,
     totalCents: q.totalCents,
     vatCents: q.vatCents,
@@ -359,6 +394,13 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         finish(res.receipt, res.invoiceTo, c);
         return;
       } catch (e) {
+        // A limited drop refused the sale (e.g. the member bought their limit online a moment ago).
+        const drop = e instanceof ApiError && e.status === 422 ? (boot.drops ?? []).find((d) => e.message.startsWith(d.name)) : undefined;
+        if (drop)
+          throw new TillError(
+            "Limited drop — this sale can't go through",
+            `${errorText(e)}. Remove the payment below, then go back to the basket and take the drop items out or reduce them.`,
+          );
         if (!(e instanceof OfflineError)) throw e; // shown on the payment sheet
         payload.offline = true; // the customer has paid: keep the sale and sync it later
       }
@@ -401,15 +443,37 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const attachMemberRef = useRef(attachMember);
   attachMemberRef.current = attachMember;
 
-  const pickCustomer = (c: CustomerDetail) => {
+  const pickCustomer = (c: CustomerDetail, message = `${c.firstName} added to the sale`, tone: "ok" | "warn" = "ok") => {
     setCart((x) => ({ ...x, customer: c, ageCheck: null }));
     setCustSheet(null);
     setCustQuery(undefined);
-    pos.toast(`${c.firstName} added to the sale`);
+    pos.toast(message, tone);
     if (resumeCheckout.current) {
       resumeCheckout.current = false;
       void checkout({ ...cartRef.current, customer: c, ageCheck: null });
     }
+  };
+
+  /** Event ticket (HHRSVP:{code}) → door check-in at this store, today; the member joins the sale at their tier. */
+  const checkIn = async (ticket: string) => {
+    if (!onlineRef.current) {
+      pos.toast("Offline — event check-in needs a connection. Try again when the till is back online.", "warn");
+      return;
+    }
+    try {
+      const r = await api<CheckInDTO>("/api/pos/events/checkin", { body: { code: ticket } });
+      if (r.first) pickCustomer(r.customer, `Welcome to ${r.event.title} — ${r.customer.firstName} is checked in`);
+      else pickCustomer(r.customer, `Already checked in — ${r.customer.firstName}, ${r.event.title}`, "warn");
+    } catch (e) {
+      pos.toast(errorText(e), "error");
+    }
+  };
+  const checkInRef = useRef(checkIn);
+  checkInRef.current = checkIn;
+
+  const addGift = (g: WelcomeGift) => {
+    add(g.variantId);
+    pos.toast("Welcome gift added to the basket");
   };
 
   const payDisabledReason = !cart.lines.length ? "Charge" : !boot.shift ? "Open a shift to sell" : null;
@@ -422,6 +486,9 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       quote={quote}
       priced={fresh || !cart.lines.length ? "server" : "local"}
       licensedClasses={licensedClasses}
+      vatRegistered={boot.store.vatRegistered}
+      drops={drops}
+      hideSuggestions={welcome ? [welcome.promoId] : []}
       onQty={(id, qty) => setCart((c) => ({ ...c, lines: c.lines.map((l) => (l.variantId === id ? { ...l, qty } : l)) }))}
       onRemove={(id) => setCart((c) => ({ ...c, lines: c.lines.filter((l) => l.variantId !== id) }))}
       onClear={() => setConfirmClear(true)}
@@ -439,6 +506,10 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           customer={cart.customer}
           ageCheck={cart.ageCheck}
           joinSavingsCents={cart.lines.length ? quote.joinSavingsCents : 0}
+          online={online}
+          usedOffers={quote.lines.flatMap((l) => (l.offerCents > 0 && l.offerName ? [l.offerName] : []))}
+          welcome={welcome}
+          onAddGift={addGift}
           onFind={() => setCustSheet("find")}
           onNew={() => setCustSheet("new")}
           onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null }))}
@@ -463,6 +534,9 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             onAdd={add}
             onScanCamera={canCamera ? () => setScanning("product") : undefined}
             licensedClasses={licensedClasses}
+            drops={drops}
+            // Phones and portrait tablets: a first-time member's welcome gift is one tap from the catalogue.
+            notice={welcome && <WelcomeGiftButton gift={welcome} onAdd={addGift} />}
           />
         </div>
         {/* Phones and portrait tablets: the basket total and Charge are always one tap away. */}
@@ -512,7 +586,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
 
       <CameraScanner
         open={!!scanning}
-        title={scanning === "member" ? "Scan member QR" : "Scan a barcode"}
+        title={scanning === "member" ? "Scan member card or event ticket" : "Scan a barcode"}
         onClose={() => setScanning(null)}
         onResult={(code) => {
           setScanning(null);
@@ -537,6 +611,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         }}
         onRemoveLicensed={() => removeWhere(licensedClasses)}
         onRemoveRestricted={() => removeWhere(boot.settings.compliance.ageRestricted)}
+        onRemoveDrops={removeDrops}
         onSwitchUser={() => {
           setStage(null);
           pos.switchUser("dispenser", () => void checkoutRef.current());
@@ -550,6 +625,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           dueCents={payQuote.totalCents}
           savingsCents={payQuote.memberSavingsCents}
           discountCents={payQuote.discountCents}
+          offerCents={payQuote.offerCents ?? 0}
           reference={payRef}
           online={online}
           tapProvider={boot.tapProvider}

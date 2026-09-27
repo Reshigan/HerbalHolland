@@ -1,16 +1,22 @@
 "use client";
-// The basket: customer card, lines (qty steppers, price-rule labels, promotion discounts),
-// "complete the deal" suggestions, promo code, totals and the Pay button.
-import { useState } from "react";
-import { BadgeCheck, Gift, IdCard, Pill, ScanLine, ShieldAlert, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
+// The basket: customer card (tier, Founding Member, My Deals, welcome gift), lines (qty
+// steppers, price-rule labels, promotion and My Deals discounts, drop limits), "complete
+// the deal" suggestions, promo code, totals and the Pay button.
+import { useEffect, useRef, useState } from "react";
+import { Award, BadgeCheck, Gem, Gift, IdCard, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
+import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
+import { fmtDate, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { Chip, PosButton, TIER_CHIP, tierName, Stepper, TextInput } from "../ui";
-import type { BootProduct, BootVariant, QuoteDTO, CustomerDetail } from "@/server/pos/types";
+import type { BootDrop, BootProduct, BootVariant, QuoteDTO, CustomerDetail } from "@/server/pos/types";
 import type { Cart } from "../lib/storage";
 
 export type VariantIndex = Map<string, { product: BootProduct; variant: BootVariant }>;
+
+/** A first-time member's welcome gift, ready to add in one tap. */
+export type WelcomeGift = { promoId: string; label: string; variantId: string };
 
 function ruleTone(rule: string): "amber" | "blue" | "violet" {
   if (rule.startsWith("Near-expiry")) return "amber";
@@ -18,7 +24,62 @@ function ruleTone(rule: string): "amber" | "blue" | "violet" {
   return "violet";
 }
 
-export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind, onNew, onDetach, onScan }: { customer: CustomerDetail | null; ageCheck: Cart["ageCheck"]; joinSavingsCents?: number; onFind: () => void; onNew: () => void; onDetach: () => void; onScan?: () => void }) {
+export const foundingLabel = (n: number) => `Founding #${String(n).padStart(4, "0")}`;
+
+/** "12 Sep" for the last ten months or so, "12 Sep 2025" before that (never ambiguous). */
+export const visitDate = (iso: string) => (Date.now() - new Date(iso).getTime() < 300 * 86_400_000 ? fmtDay(iso) : fmtDate(iso));
+
+/** "Drop · limit 2" — plus when it opens, for a drop that hasn't started yet. */
+export function DropChip({ drop, detail, className }: { drop: BootDrop; detail?: boolean; className?: string }) {
+  const upcoming = new Date(drop.startsAt) > new Date();
+  return (
+    <Chip tone="violet" className={className} icon={<Gem className="h-3 w-3" />}>
+      Drop · limit {drop.perMemberLimit}
+      {detail && upcoming && ` · opens ${fmtDay(drop.startsAt)}`}
+    </Chip>
+  );
+}
+
+export function WelcomeGiftButton({ gift, onAdd, className }: { gift: WelcomeGift; onAdd: (g: WelcomeGift) => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onAdd(gift)}
+      className={cn("flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-brand-500/15 px-3 py-2 text-left ring-1 ring-brand-500/50 transition hover:bg-brand-500/25", className)}
+      data-testid="welcome-gift"
+    >
+      <Gift className="h-5 w-5 shrink-0 text-brand-400" />
+      <span className="min-w-0 flex-1 text-[0.85rem] font-semibold leading-snug text-brand-100">{gift.label}</span>
+      <Plus className="h-4 w-4 shrink-0 text-brand-300" aria-hidden />
+    </button>
+  );
+}
+
+export function CustomerCard({
+  customer,
+  ageCheck,
+  joinSavingsCents = 0,
+  online = true,
+  usedOffers = [],
+  welcome,
+  onAddGift,
+  onFind,
+  onNew,
+  onDetach,
+  onScan,
+}: {
+  customer: CustomerDetail | null;
+  ageCheck: Cart["ageCheck"];
+  joinSavingsCents?: number;
+  online?: boolean;
+  usedOffers?: string[]; // My Deals applied to the current basket (by name)
+  welcome?: WelcomeGift | null;
+  onAddGift?: (g: WelcomeGift) => void;
+  onFind: () => void;
+  onNew: () => void;
+  onDetach: () => void;
+  onScan?: () => void;
+}) {
   if (!customer)
     return (
       <div className="rounded-2xl bg-ink-900 p-3 ring-1 ring-ink-800">
@@ -50,12 +111,13 @@ export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind,
         </div>
         {onScan && (
           <button type="button" onClick={onScan} className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.8rem] font-semibold text-ink-300 hover:bg-ink-850">
-            <ScanLine className="h-4 w-4" /> Scan member QR
+            <ScanLine className="h-4 w-4" /> Scan member card or event ticket
           </button>
         )}
       </div>
     );
   const p = customer.patient;
+  const offers = customer.offers ?? []; // carts cached before My Deals have none
   return (
     <div className="rounded-2xl bg-ink-900 p-3 ring-1 ring-brand-500/30" data-testid="customer-card">
       <div className="flex items-start gap-3">
@@ -68,10 +130,21 @@ export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind,
               {customer.firstName} {customer.lastName}
             </span>
             <Chip tone={TIER_CHIP[customer.tier] ?? "neutral"}>{tierName(customer.tier)}</Chip>
+            {customer.foundingNo != null && (
+              <Chip tone="orange" icon={<Award className="h-3 w-3" />}>
+                <span data-testid="founding-badge">{foundingLabel(customer.foundingNo)}</span>
+              </Chip>
+            )}
           </div>
           <div className="mt-0.5 text-xs text-ink-400">
             {customer.memberNo} · {customer.phone}
           </div>
+          {customer.visitsHere != null && (
+            <div className="text-xs text-ink-400" data-testid="visits-here">
+              Visits here {customer.visitsHere}
+              {customer.lastVisitHere && ` · Last visit here ${visitDate(customer.lastVisitHere)}`}
+            </div>
+          )}
         </div>
         <button type="button" onClick={onDetach} aria-label="Remove customer from sale" className="-mr-2 -mt-2 grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
           <X className="h-4 w-4" />
@@ -95,12 +168,41 @@ export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind,
             Patient · {Math.round(p.remainingGrams * 10) / 10}g left this month
           </Chip>
         ) : null}
+        {customer.tierFloor && (
+          <Chip tone="neutral" icon={<ShieldCheck className="h-3 w-3" />}>
+            <span data-testid="tier-floor">
+              {tierName(customer.tierFloor.tier)} or higher until {fmtDate(customer.tierFloor.until)}
+            </span>
+          </Chip>
+        )}
       </div>
       {p && (
         <div className="mt-2 rounded-xl bg-ink-850 px-3 py-2 text-xs leading-relaxed text-ink-300">
           <span className="font-semibold text-ink-100">Authorisation {p.authNumber}</span> · {p.prescriber} ({p.prescriberRegNo}) · limit {p.monthlyLimitGrams}g / 30 days
         </div>
       )}
+      {offers.length > 0 && (
+        <div className="mt-2 rounded-xl bg-ink-850 px-3 py-2" data-testid="card-deals">
+          <div className="eyebrow text-[0.62rem] text-brand-400">Deals on this card</div>
+          <ul className="mt-1 space-y-1">
+            {offers.map((o) => (
+              <li key={o.id} className="flex items-start gap-2 text-[0.82rem] leading-snug">
+                <Tag className="mt-0.5 h-3.5 w-3.5 shrink-0 text-brand-400" />
+                <span className="min-w-0 flex-1 text-ink-100">
+                  {o.title}
+                  <span className={usedOffers.includes(o.title) ? "font-semibold text-[#7fd49a]" : "text-ink-400"}>
+                    {" · "}
+                    {usedOffers.includes(o.title) ? "applied" : online ? "auto-applies" : "online only"}
+                  </span>
+                </span>
+                <span className="shrink-0 text-[0.7rem] text-ink-500">ends {fmtDay(o.endsAt)}</span>
+              </li>
+            ))}
+          </ul>
+          {!online && <p className="mt-1 text-[0.7rem] leading-snug text-ink-400">My Deals need a connection — they aren&apos;t applied to offline sales.</p>}
+        </div>
+      )}
+      {welcome && onAddGift && <WelcomeGiftButton gift={welcome} onAdd={onAddGift} className="mt-2" />}
     </div>
   );
 }
@@ -111,6 +213,9 @@ export function CartPanel({
   quote,
   priced,
   licensedClasses,
+  vatRegistered,
+  drops,
+  hideSuggestions = [],
   onQty,
   onRemove,
   onClear,
@@ -126,6 +231,9 @@ export function CartPanel({
   quote: QuoteDTO;
   priced: "server" | "local";
   licensedClasses: string[];
+  vatRegistered: boolean;
+  drops: Map<string, BootDrop>;
+  hideSuggestions?: string[]; // promo ids shown elsewhere (the welcome gift)
   onQty: (variantId: string, qty: number) => void;
   onRemove: (variantId: string) => void;
   onClear: () => void;
@@ -142,14 +250,27 @@ export function CartPanel({
   const promoName = new Map(quote.applied.map((a) => [a.id, a.name]));
   const units = cart.lines.reduce((s, l) => s + l.qty, 0);
   const hasLicensed = cart.lines.some((l) => licensedClasses.includes(index.get(l.variantId)?.product.regClass ?? ""));
+  const offerCents = quote.offerCents ?? 0;
+  const suggestions = quote.suggestions.filter((s) => !hideSuggestions.includes(s.promoId));
+
+  // A new line scrolls into view (the member card above can be tall) — again once its price lands and it grows.
+  const scroller = useRef<HTMLDivElement>(null);
+  const count = cart.lines.length;
+  const seen = useRef(count);
+  const addedAt = useRef(0);
+  useEffect(() => {
+    if (count > seen.current) addedAt.current = Date.now();
+    seen.current = count;
+    if (Date.now() - addedAt.current < 3000) scroller.current?.querySelector("[data-testid=cart-line]:last-child")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+  }, [count, quote]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="shrink-0 p-3 pb-2">{customerCard}</div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3">
+      {/* The member card scrolls with the lines, so a member's deals never squeeze the basket; totals stay put. */}
+      <div ref={scroller} className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-3">
+        <div className="shrink-0 pb-2 pt-3">{customerCard}</div>
         {cart.lines.length === 0 ? (
-          <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-2xl border border-dashed border-ink-800 px-6 text-center text-ink-400">
+          <div className="flex min-h-40 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-ink-800 px-6 text-center text-ink-400">
             <ScanLine className="mb-2 h-7 w-7 text-ink-600" />
             <p className="font-semibold text-ink-200">Basket is empty</p>
             <p className="mt-1 text-sm">Tap a product or scan a barcode to start a sale.</p>
@@ -161,6 +282,10 @@ export function CartPanel({
               if (!e) return null;
               const q = byVariant.get(l.variantId);
               const licensed = licensedClasses.includes(e.product.regClass);
+              const drop = drops.get(l.variantId);
+              const offer = q?.offerCents ?? 0;
+              const deal = (q?.discountCents ?? 0) - offer;
+              const dealName = q?.promoId ? promoName.get(q.promoId) : undefined;
               return (
                 <li key={l.variantId} className="py-3" data-testid="cart-line">
                   <div className="flex gap-3">
@@ -180,14 +305,21 @@ export function CartPanel({
                       </div>
                       <div className="mt-1.5 flex min-w-0 flex-wrap gap-1">
                         {q?.priceRule && <Chip tone={ruleTone(q.priceRule)}>{q.priceRule}</Chip>}
+                        {drop && <DropChip drop={drop} detail />}
                         {licensed && (
                           <Chip tone="orange" icon={<Pill className="h-3 w-3" />}>
                             Medicine · no incentives
                           </Chip>
                         )}
-                        {!!q?.discountCents && (
+                        {offer > 0 && (
+                          <Chip tone="orange" wrap icon={<Tag className="h-3 w-3 shrink-0" />}>
+                            My Deals −{zar(offer)}
+                            {q?.offerName && q.offerName !== "My Deals" ? ` · ${q.offerName}` : ""}
+                          </Chip>
+                        )}
+                        {deal > 0 && (
                           <Chip tone="green" wrap icon={<Tag className="h-3 w-3 shrink-0" />}>
-                            −{zar(q.discountCents)} {q.promoId && promoName.get(q.promoId) ? `· ${promoName.get(q.promoId)}` : ""}
+                            −{zar(deal)} {dealName && dealName !== q?.offerName ? `· ${dealName}` : ""}
                           </Chip>
                         )}
                       </div>
@@ -205,10 +337,10 @@ export function CartPanel({
           </ul>
         )}
 
-        {quote.suggestions.length > 0 && cart.lines.length > 0 && (
+        {suggestions.length > 0 && cart.lines.length > 0 && (
           <div className="mb-3 mt-1 space-y-2">
             <div className="eyebrow text-[0.62rem] text-brand-400">Complete the deal</div>
-            {quote.suggestions.slice(0, 3).map((s) => (
+            {suggestions.slice(0, 3).map((s) => (
               <button
                 key={s.promoId + s.message}
                 type="button"
@@ -262,10 +394,16 @@ export function CartPanel({
               <dd className="tnum">{zar(quote.memberSavingsCents)}</dd>
             </div>
           )}
-          {quote.discountCents > 0 && (
+          {quote.discountCents - offerCents > 0 && (
             <div className="flex justify-between text-[#7fd49a]">
               <dt>Discounts</dt>
-              <dd className="tnum">−{zar(quote.discountCents)}</dd>
+              <dd className="tnum">−{zar(quote.discountCents - offerCents)}</dd>
+            </div>
+          )}
+          {offerCents > 0 && (
+            <div className="flex justify-between text-brand-300" data-testid="my-deals-total">
+              <dt>My Deals</dt>
+              <dd className="tnum">−{zar(offerCents)}</dd>
             </div>
           )}
           <div className="flex items-end justify-between pt-1">
@@ -276,8 +414,8 @@ export function CartPanel({
           </div>
           {cart.lines.length > 0 && (
             <div className="flex justify-between text-xs text-ink-400">
-              <dt>{quote.vatCents ? "Includes VAT (15%)" : "No VAT charged — store not VAT-registered"}</dt>
-              <dd className="tnum">{quote.vatCents ? zar(quote.vatCents) : ""}</dd>
+              <dt>{vatRegistered ? "Includes VAT (15%)" : "No VAT charged — store not VAT-registered"}</dt>
+              <dd className="tnum">{vatRegistered ? zar(quote.vatCents) : ""}</dd>
             </div>
           )}
           {cart.customer && quote.pointsEstimate > 0 && (
@@ -313,4 +451,3 @@ export function CartPanel({
     </div>
   );
 }
-

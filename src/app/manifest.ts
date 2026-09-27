@@ -22,6 +22,7 @@ export default function manifest(): MetadataRoute.Manifest {
     ],
     shortcuts: [
       { name: "Rewards card", short_name: "Card", url: "/club", icons: [{ src: "/pwa-icon/192", sizes: "192x192" }] },
+      { name: "Drops", url: "/drops", icons: [{ src: "/pwa-icon/192", sizes: "192x192" }] },
       { name: "Shop", url: "/shop", icons: [{ src: "/pwa-icon/192", sizes: "192x192" }] },
       { name: "Orders", url: "/club/orders", icons: [{ src: "/pwa-icon/192", sizes: "192x192" }] },
       { name: "Stores", url: "/stores", icons: [{ src: "/pwa-icon/192", sizes: "192x192" }] },

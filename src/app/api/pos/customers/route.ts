@@ -4,9 +4,9 @@ import { createCustomer } from "@/server/customers";
 import { json, readBody, withStaff, actorOf } from "@/server/pos/http";
 import { searchCustomers, customerDetail } from "@/server/pos/customers";
 
-export const GET = withStaff(async (req) => {
+export const GET = withStaff(async (req, pos) => {
   const q = new URL(req.url).searchParams.get("q") ?? "";
-  return json({ customers: await searchCustomers(q) });
+  return json({ customers: await searchCustomers(q, pos.device.storeId) });
 });
 
 const Body = z
@@ -37,5 +37,5 @@ export const POST = withStaff(async (req, pos) => {
     },
     actorOf(pos),
   );
-  return json({ customer: await customerDetail(c.id) }, 201);
+  return json({ customer: await customerDetail(c.id, pos.device.storeId) }, 201);
 });

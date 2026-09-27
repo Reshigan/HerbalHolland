@@ -5,6 +5,12 @@ export class ApiError extends Error {
     super(message);
   }
 }
+/** A failure the till explains under its own heading (e.g. a limited drop refusing the sale at the tender step). */
+export class TillError extends Error {
+  constructor(public title: string, message: string) {
+    super(message);
+  }
+}
 export class OfflineError extends Error {
   constructor(public timedOut = false) {
     super(timedOut ? "The server is taking too long to answer — try again" : "No connection — check the Wi-Fi or mobile data");

@@ -2,11 +2,16 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { db } from "@/server/db";
+import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
+import { completeQuestAction } from "./actions";
 import { ProductArt } from "@/components/product/art";
 import { Container } from "@/components/shop/ui";
+import { QuestQuiz } from "@/components/shop/quest-quiz";
 import { ARTICLES, articleBySlug } from "@/components/shop/learn/articles";
 import { ArticleBody } from "@/components/shop/learn/bodies";
+import { publicQuest } from "@/lib/quests";
 
 export function generateStaticParams() {
   return ARTICLES.map((a) => ({ slug: a.slug }));
@@ -22,7 +27,9 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
   const { slug } = await params;
   const a = articleBySlug(slug);
   if (!a) notFound();
-  const settings = await getSettings();
+  const [settings, customer] = await Promise.all([getSettings(), getCustomer()]);
+  const quest = publicQuest(a.slug);
+  const done = quest && customer ? !!(await db.questCompletion.findUnique({ where: { customerId_key: { customerId: customer.id, key: a.slug } } })) : false;
   const i = ARTICLES.indexOf(a);
   const next = ARTICLES[(i + 1) % ARTICLES.length];
   const more = ARTICLES.filter((x) => x.slug !== a.slug).slice(0, 3);
@@ -48,6 +55,15 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
         <div className="grid grid-cols-1 gap-12 py-8 lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-20">
           <div className="min-w-0">
             <ArticleBody slug={a.slug} settings={settings} />
+            {quest && (
+              <QuestQuiz
+                quest={quest}
+                signedIn={!!customer}
+                done={done}
+                joinHref={`/club/join?next=${encodeURIComponent(`/learn/${a.slug}#quest-title`)}`}
+                action={completeQuestAction.bind(null, a.slug)}
+              />
+            )}
             <Link href={`/learn/${next.slug}`} className="group mt-16 flex items-center justify-between gap-6 rounded-3xl border border-ink-800 bg-ink-900/60 p-6 transition hover:border-brand-500/60">
               <div>
                 <div className="eyebrow text-ink-400">Next</div>

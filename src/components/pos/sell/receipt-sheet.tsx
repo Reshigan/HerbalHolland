@@ -19,6 +19,8 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
   if (!receipt) return null;
   const change = receipt.payments.reduce((s, p) => s + (p.changeCents ?? 0), 0);
   const to = sentTo ?? invoiceTo;
+  const offer = Math.max(0, receipt.offerCents ?? 0);
+  const deals = receipt.discountCents - offer;
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -68,10 +70,14 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
           <div className="mt-3 font-display text-5xl font-semibold tracking-tight text-white tnum">{zar(receipt.totalCents)}</div>
         )}
         {(receipt.memberSavingsCents > 0 || receipt.discountCents > 0) && (
-          <div className="mt-2 text-sm font-semibold">
+          <div className="mt-2 flex flex-wrap justify-center gap-x-3 gap-y-1 text-sm font-semibold">
             {receipt.memberSavingsCents > 0 && <span className="text-brand-300">Rewards savings {zar(receipt.memberSavingsCents)}</span>}
-            {receipt.memberSavingsCents > 0 && receipt.discountCents > 0 && <span className="text-ink-500"> · </span>}
-            {receipt.discountCents > 0 && <span className="text-[#7fd49a]">Deals {zar(receipt.discountCents)}</span>}
+            {deals > 0 && <span className="text-[#7fd49a]">Deals −{zar(deals)}</span>}
+            {offer > 0 && (
+              <span className="text-brand-300" data-testid="receipt-my-deals">
+                My Deals −{zar(offer)}
+              </span>
+            )}
           </div>
         )}
         <div className="mt-2 text-sm text-ink-400">

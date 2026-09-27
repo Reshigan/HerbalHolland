@@ -152,6 +152,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
     );
   const refundable = r.kind === "SALE" && r.lines.some((l) => l.qty - l.refundedQty > 0);
   const saved = r.memberSavingsCents ?? 0;
+  const offer = Math.max(0, r.offerCents ?? 0);
   const actions = (
     <>
       <PosButton variant="outline" onClick={() => pos.print({ kind: "receipt", receipt: r })} aria-label="Print receipt">
@@ -222,10 +223,16 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
                 <dd className="tnum">{zar(saved)}</dd>
               </div>
             )}
-            {r.discountCents > 0 && (
+            {r.discountCents - offer > 0 && (
               <div className="flex justify-between text-[#7fd49a]">
                 <dt>Discounts</dt>
-                <dd className="tnum">−{zar(r.discountCents)}</dd>
+                <dd className="tnum">−{zar(r.discountCents - offer)}</dd>
+              </div>
+            )}
+            {offer > 0 && (
+              <div className="flex justify-between text-brand-300">
+                <dt>My Deals{r.offers?.length ? ` · ${r.offers.join(", ")}` : ""}</dt>
+                <dd className="tnum">−{zar(offer)}</dd>
               </div>
             )}
             <div className="flex justify-between font-display text-2xl font-semibold text-white">

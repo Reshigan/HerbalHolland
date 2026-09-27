@@ -7,6 +7,8 @@ import { getCustomer } from "@/server/auth";
 import { getPreferredStore, STORE_SELECT } from "@/server/shop/context";
 import { openState, parseHours, weekRows } from "@/server/shop/hours";
 import { storeDeals, storeMenu } from "@/server/shop/stores";
+import { upcomingEvents } from "@/server/shop/launch";
+import { EventCardView } from "@/components/shop/launch-cards";
 import { ProductArt } from "@/components/product/art";
 import { directionsUrl, StoreServices } from "@/components/shop/store-card";
 import { SetStoreButton } from "@/components/shop/set-store-button";
@@ -36,7 +38,12 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const soon = s.status !== "ACTIVE";
   const customer = await getCustomer();
   // Members see their member prices on top of the store's own shelf prices.
-  const [preferred, memberMenu, deals] = await Promise.all([getPreferredStore(), soon ? [] : storeMenu(s.id, { tier: customer?.tier ?? null }), soon ? [] : storeDeals(s.id)]);
+  const [preferred, memberMenu, deals, events] = await Promise.all([
+    getPreferredStore(),
+    soon ? [] : storeMenu(s.id, { tier: customer?.tier ?? null }),
+    soon ? [] : storeDeals(s.id),
+    upcomingEvents({ storeId: s.id, take: 6 }),
+  ]);
   const hours = parseHours(s.hours);
   const o = openState(hours);
   const total = memberMenu.reduce((n, c) => n + c.items.length, 0);
@@ -116,6 +123,21 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
           )}
         </aside>
       </div>
+
+      {events.length > 0 && (
+        <section className="mt-14" aria-labelledby="events">
+          <div className="eyebrow text-brand-500">Windmill Days</div>
+          <h2 id="events" className="mt-2 font-display text-2xl font-semibold text-white">
+            {soon ? "Come to the opening" : `What's on at ${s.name}`}
+          </h2>
+          <p className="mt-1 text-sm text-ink-400">Free for Rewards members — RSVP to hold your place. Adults 18+, bring your ID.</p>
+          <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {events.map((e) => (
+              <EventCardView key={e.id} e={e} showStore={false} />
+            ))}
+          </div>
+        </section>
+      )}
 
       {!soon && (
         <>

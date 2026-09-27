@@ -19,7 +19,8 @@ export function StockLine({ stock, className }: { stock: Card["stock"]; classNam
   return <p className={cn("flex items-center gap-1.5 text-xs font-medium", tone, className)}>{icon}{text}</p>;
 }
 
-export function ProductCardView({ p }: { p: Card }) {
+/** `buyable={false}` drops the quick-add (e.g. a limited drop that isn't open to this shopper yet). */
+export function ProductCardView({ p, buyable = true }: { p: Card; buyable?: boolean }) {
   const low = (p.stock.kind === "store" || p.stock.kind === "ships") && p.stock.low;
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition duration-300 hover:-translate-y-0.5 hover:border-ink-600 hover:shadow-[0_18px_40px_-20px_rgb(245_145_60/0.35)]">
@@ -48,13 +49,13 @@ export function ProductCardView({ p }: { p: Card }) {
         <div className="mt-auto pt-4">
           <div className="flex items-center justify-between gap-2">
             <Price cents={p.priceCents} was={p.wasCents} from={p.variantCount > 1} className="min-w-0" />
-            {p.variantCount === 1 && p.stock.kind !== "out" ? (
+            {buyable && p.variantCount === 1 && p.stock.kind !== "out" ? (
               <AddToBag compact variantId={p.firstVariantId} name={p.name} className="shrink-0" />
             ) : (
               // Not interactive on its own: clicks fall through to the card link underneath.
               <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full border border-ink-700 text-xs font-semibold text-ink-200 transition group-hover:border-brand-500 group-hover:text-brand-300 sm:flex sm:h-auto sm:w-auto sm:px-3 sm:py-1.5">
                 <ChevronRight className="h-5 w-5 sm:hidden" aria-hidden />
-                <span className="sr-only sm:not-sr-only">{p.stock.kind === "out" ? "View" : `${p.variantCount} options`}</span>
+                <span className="sr-only sm:not-sr-only">{p.stock.kind === "out" || p.variantCount === 1 ? "View" : `${p.variantCount} options`}</span>
               </span>
             )}
           </div>
@@ -71,11 +72,11 @@ export function ProductCardView({ p }: { p: Card }) {
   );
 }
 
-export function ProductGrid({ items, className }: { items: Card[]; className?: string }) {
+export function ProductGrid({ items, buyable, className }: { items: Card[]; buyable?: boolean; className?: string }) {
   return (
     <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
       {items.map((p) => (
-        <ProductCardView key={p.id} p={p} />
+        <ProductCardView key={p.id} p={p} buyable={buyable} />
       ))}
     </div>
   );

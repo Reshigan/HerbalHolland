@@ -1,7 +1,10 @@
 // Authoritative basket price for the till: price rules, member/volume prices, near-expiry
-// markdowns, promotions and "complete the deal" suggestions (domain: pricing.quote).
+// markdowns, promotions, the member's My Deals and welcome gift, and "complete the deal"
+// suggestions (domain: pricing.quote). An empty basket with a member still returns their
+// suggestions, so the till can offer a first-time member's welcome gift straight away.
 import { z } from "zod";
 import { quote } from "@/server/pricing";
+import { isOffer } from "@/server/offers";
 import { getSettings } from "@/server/settings";
 import { db } from "@/server/db";
 import { json, readBody, withStaff } from "@/server/pos/http";
@@ -23,6 +26,7 @@ export const POST = withStaff(async (req, pos) => {
     getSettings(),
   ]);
   const earnable = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
+  const names = new Map(q.applied.map((a) => [a.id, a.name]));
   const dto: QuoteDTO = {
     lines: q.lines.map((l) => ({
       variantId: l.variantId,
@@ -38,9 +42,12 @@ export const POST = withStaff(async (req, pos) => {
       promoId: l.promoId,
       noEarn: l.noEarn,
       memberSavingsCents: l.memberSavingsCents,
+      offerCents: l.offerCents,
+      offerName: l.offerCents ? ((isOffer(l.promoId) && names.get(l.promoId!)) || "My Deals") : null,
     })),
     subtotalCents: q.subtotalCents,
     discountCents: q.discountCents,
+    offerCents: q.lines.reduce((s, l) => s + l.offerCents, 0),
     totalCents: q.totalCents,
     vatCents: q.vatCents,
     pointsMultiplier: q.pointsMultiplier,

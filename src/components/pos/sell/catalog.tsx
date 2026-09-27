@@ -1,5 +1,6 @@
 "use client";
-// Catalogue: category rail, instant search + barcode entry, camera scan, product grid.
+// Catalogue: category rail, instant search + barcode entry, camera scan, product grid
+// (with licensed / markdown / deal / limited-drop badges).
 import { forwardRef, useMemo, useState } from "react";
 import { Camera, Cigarette, Cookie, Droplet, Flower2, Leaf, Pill, Search, Shirt, Sparkles, Sprout, Tag, Wind, X, LayoutGrid } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
@@ -7,7 +8,8 @@ import { cn } from "@/lib/cn";
 import { zarWhole, zar } from "@/lib/money";
 import { livePromotions } from "../lib/pricing";
 import { Chip, Sheet } from "../ui";
-import type { BootData, BootProduct, BootVariant } from "@/server/pos/types";
+import { DropChip } from "./cart-panel";
+import type { BootData, BootDrop, BootProduct, BootVariant } from "@/server/pos/types";
 
 const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { Flower2, Cigarette, Cookie, Wind, Droplet, Leaf, Sparkles, Sprout, Shirt };
 
@@ -31,9 +33,11 @@ type Props = {
   onAdd: (variantId: string) => void;
   onScanCamera?: () => void;
   licensedClasses: string[];
+  drops: Map<string, BootDrop>; // variant id → the drop governing it
+  notice?: React.ReactNode; // phones / portrait: a prompt under the search (e.g. a welcome gift)
 };
 
-export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ boot, filter, setFilter, query, setQuery, onSubmitSearch, onAdd, onScanCamera, licensedClasses }, searchRef) {
+export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ boot, filter, setFilter, query, setQuery, onSubmitSearch, onAdd, onScanCamera, licensedClasses, drops, notice }, searchRef) {
   const [picking, setPicking] = useState<BootProduct | null>(null);
 
   const deals = useMemo(() => {
@@ -126,6 +130,8 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
           )}
         </div>
 
+        {notice && <div className="mx-3 mb-2 lg:hidden">{notice}</div>}
+
         {filter.kind === "suggestion" && !query && (
           <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl bg-brand-500/10 px-4 py-1 text-sm text-brand-200 ring-1 ring-brand-500/30 lg:mx-4">
             <span>
@@ -152,13 +158,14 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                 const markdown = p.variants.some((v) => v.markdownPct > 0);
                 const licensed = licensedClasses.includes(p.regClass);
                 const deal = deals.products.has(p.id) || deals.cats.has(p.categoryId);
+                const drop = p.variants.map((v) => drops.get(v.id)).find(Boolean);
                 return (
                   <li key={p.id}>
                     <button
                       type="button"
                       onClick={() => pick(p)}
                       className="group flex h-full w-full flex-col overflow-hidden rounded-2xl bg-ink-900 text-left ring-1 ring-ink-800 transition hover:ring-brand-500/60 active:scale-[0.98]"
-                      aria-label={`${p.name}, ${p.variants.length > 1 ? `from ${zar(min)}` : zar(min)}, ${stock} in stock`}
+                      aria-label={`${p.name}, ${p.variants.length > 1 ? `from ${zar(min)}` : zar(min)}, ${stock} in stock${drop ? `, limited drop, ${drop.perMemberLimit} per member` : ""}`}
                     >
                       <div className="relative aspect-[16/10] w-full overflow-hidden">
                         <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} className="h-full w-full transition duration-300 group-hover:scale-105" label="" />
@@ -168,6 +175,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                               Licensed
                             </Chip>
                           )}
+                          {drop && <DropChip drop={drop} className="bg-ink-950/80 backdrop-blur" />}
                           {markdown && <Chip tone="amber" className="bg-ink-950/80 backdrop-blur">Markdown</Chip>}
                           {deal && !licensed && <Chip tone="green" className="bg-ink-950/80 backdrop-blur">Deal</Chip>}
                         </div>
@@ -203,8 +211,9 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                 >
                   <span>
                     <span className="block text-base font-semibold text-white">{v.name}</span>
-                    <span className="mt-1 flex items-center gap-2 text-xs text-ink-400">
+                    <span className="mt-1 flex flex-wrap items-center gap-2 text-xs text-ink-400">
                       <StockChip v={v} />
+                      {drops.get(v.id) && <DropChip drop={drops.get(v.id)!} detail />}
                       {v.markdownPct > 0 && <Chip tone="amber">Near expiry −{v.markdownPct}%</Chip>}
                       <span className="font-mono">{v.sku}</span>
                     </span>

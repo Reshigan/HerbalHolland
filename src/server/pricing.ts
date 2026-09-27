@@ -99,6 +99,8 @@ export async function quote(opts: {
   const at = opts.at ?? new Date();
   const items = opts.items.filter((i) => i.qty > 0);
   const variantIds = items.map((i) => i.variantId);
+  // Offline till sales (trusted client prices) never get My Deals or welcome gifts: the till couldn't apply them.
+  const memberDeals = !opts.trustClientPrices;
   const [variants, store, customer, lists, promos, marks, offers] = await Promise.all([
     db.variant.findMany({
       where: { id: { in: variantIds } },
@@ -112,7 +114,7 @@ export async function quote(opts: {
     activePriceLists(at),
     activePromotions({ storeId: opts.storeId, channel: opts.channel, at }),
     opts.storeId && opts.channel === "POS" ? markdowns(opts.storeId, variantIds, at) : Promise.resolve(new Map<string, number>()),
-    opts.customerId ? activeOffers(opts.customerId, at) : Promise.resolve([]),
+    opts.customerId && memberDeals ? activeOffers(opts.customerId, at) : Promise.resolve([]),
   ]);
   const byId = new Map(variants.map((v) => [v.id, v]));
   const settings = await getSettings();
@@ -140,7 +142,7 @@ export async function quote(opts: {
   const r = applyPromotions(
     base.map(({ i, v, unit, noPromo }) => ({ key: i.variantId, productId: v.productId, categoryId: v.product.categoryId, qty: i.qty, unitPriceCents: unit, noPromo })),
     // Welcome gifts are for a member's first purchase; My Deals ride along as line deals.
-    [...(promos as (PromoInput & { firstPurchaseOnly: boolean })[]).filter((p) => !p.firstPurchaseOnly || customer?.visits === 0), ...offers.map(offerPromo)],
+    [...(promos as (PromoInput & { firstPurchaseOnly: boolean })[]).filter((p) => !p.firstPurchaseOnly || (memberDeals && customer?.visits === 0)), ...offers.map(offerPromo)],
     opts.code,
   );
   const lines: QuoteLine[] = base.map(({ i, v, price, unit, noPromo, memberSavingsCents }, idx) => ({

@@ -1,8 +1,9 @@
 // End-to-end test of the till (Playwright + direct DB checks).
 //   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/pos.mjs [outdir]   (seeded demo data)
 // Pair PTA01 → PIN 1111 → open shift → walk-in CBD sale (ID sighted, cash) → patient flower
-// sale (card, tap on glass) → refund a line → offline cash sale → back online & sync →
-// hand over a READY click & collect order → close the shift (Z-report).
+// sale (card, tap on glass) → event check-in from a members' evening ticket (member attached,
+// welcome gift offered to a first-timer) → refund a line → offline cash sale → back online &
+// sync → hand over a READY click & collect order → close the shift (Z-report).
 import { chromium } from "@playwright/test";
 import pg from "pg";
 import { mkdirSync } from "node:fs";
@@ -31,6 +32,13 @@ const step = (s) => console.log(`\n▸ ${s}`);
 // The shared dev server recompiles/restarts now and then; wait until the till is back online.
 const waitOnline = () => page.getByTestId("connectivity").filter({ hasText: "Online" }).waitFor({ timeout: 90_000 });
 const receiptNo = async () => (await page.getByRole("dialog").filter({ has: page.getByTestId("receipt") }).textContent()).match(/PTA01-[A-Z]\d{5}(?:-[A-Z0-9]{3})?/)?.[0];
+const search = async (text) => {
+  const box = page.getByLabel("Search products or scan a barcode (F2)");
+  await box.fill(text);
+  await box.press("Enter");
+};
+const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+let tempEvent = null; // throwaway event for the check-in step (deleted at the end)
 
 try {
   step("Pair PTA01 with the manager's email + password");
@@ -105,6 +113,58 @@ try {
   assert(flower?.customerId === patient.id && flower.method === "CARD" && /^\d{4}$/.test(flower.cardLast4 ?? ""), `card sale ${patientNo} (•••• ${flower?.cardLast4}) linked to the patient`);
   assert(flower.pointsEarned === 0, "no points earned on a licensed medicine (s18A)");
   await page.getByTestId("new-sale").click();
+
+  step("Event check-in: scan a members' evening ticket (HHRSVP:{code}) at the till");
+  const seeded = (
+    await q(
+      `select r.code, r."customerId", c."firstName", c."memberNo", c.visits, e.title, e."startsAt", e."endsAt"
+       from "Rsvp" r join "StoreEvent" e on e.id = r."eventId" join "Store" s on s.id = e."storeId" join "Customer" c on c.id = r."customerId"
+       where s.code = 'PTA01' and e.slug = 'hatfield-members-evening' and r."checkedInAt" is null order by c.visits, r."createdAt" limit 1`,
+    )
+  )[0];
+  assert(seeded, `members' evening ticket ${seeded?.code} for ${seeded?.memberNo}`);
+  let ticket = seeded;
+  const opensAt = new Date(seeded.startsAt).getTime() - 2 * 3_600_000;
+  if (Date.now() < opensAt || Date.now() > new Date(seeded.endsAt).getTime()) {
+    await search(`HHRSVP:${seeded.code}`);
+    await page.getByText(/check-in opens 2 hours before it starts|the event is over/).waitFor();
+    ok(`the evening isn't today (${new Date(seeded.startsAt).toISOString().slice(0, 10)}): the till says so`);
+    // A throwaway event at PTA01 happening now, with a ticket for the same member.
+    tempEvent = (
+      await q(
+        `insert into "StoreEvent" (id, slug, "storeId", title, blurb, "startsAt", "endsAt", capacity)
+         select gen_random_uuid()::text, $1, id, 'E2E members'' evening', 'End-to-end check-in', now() - interval '30 minutes', now() + interval '2 hours', 10
+         from "Store" where code = 'PTA01' returning id, title`,
+        [`e2e-checkin-${Date.now()}`],
+      )
+    )[0];
+    const code = `E2E${Date.now().toString(36).toUpperCase().slice(-5)}`;
+    ticket = (await q(`insert into "Rsvp" (id, "eventId", "customerId", code) values (gen_random_uuid()::text, $1, $2, $3) returning code, "customerId"`, [tempEvent.id, seeded.customerId, code]))[0];
+    ticket.title = tempEvent.title;
+    ticket.firstName = seeded.firstName;
+  }
+  await waitOnline();
+  await search(`hhrsvp:${ticket.code.toLowerCase()}`); // typed in search, any case
+  await page.getByText(new RegExp(`^Welcome to ${esc(ticket.title)}`)).waitFor();
+  await page.getByTestId("customer-card").filter({ hasText: ticket.firstName }).waitFor();
+  const rsvp = (await q(`select "checkedInAt" from "Rsvp" where code = $1`, [ticket.code]))[0];
+  assert(rsvp?.checkedInAt, `${ticket.firstName} checked in (Rsvp.checkedInAt set) and attached to the sale`);
+  await shot("event-checkin");
+  // The same ticket again, from a keyboard-wedge scanner: already checked in, member still attached.
+  await page.evaluate(() => (document.activeElement instanceof HTMLElement ? document.activeElement.blur() : undefined));
+  await page.keyboard.type(`HHRSVP:${ticket.code}`);
+  await page.keyboard.press("Enter");
+  await page.getByText(/^Already checked in/).waitFor();
+  ok("second scan: already checked in");
+  const gift = (await q(`select name from "Promotion" where "firstPurchaseOnly" and active and 'POS' = any(channels) and "startsAt" <= now() and "endsAt" >= now() limit 1`))[0];
+  if (seeded.visits === 0 && gift) {
+    await page.locator("[data-testid=welcome-gift]:visible").first().click();
+    await page.getByTestId("cart-line").filter({ hasText: gift.name }).waitFor();
+    ok(`first-time member: welcome gift offered and added (${gift.name})`);
+    await page.getByRole("button", { name: "Clear the basket" }).click();
+    await page.getByRole("button", { name: "Clear basket", exact: true }).click();
+  } else await page.getByRole("button", { name: "Remove customer from sale" }).click();
+  await page.getByTestId("customer-card").waitFor({ state: "detached" });
 
   step("Refund the walk-in's balm (restock, cash)");
   await waitOnline();
@@ -222,6 +282,7 @@ try {
   await shot("FAILED").catch(() => undefined);
   process.exitCode = 1;
 } finally {
+  if (tempEvent) await q(`delete from "StoreEvent" where id = $1`, [tempEvent.id]).catch(() => undefined); // its tickets go with it
   if (problems.length) console.log("\nNotes:\n" + problems.join("\n"));
   await browser.close();
   await db.end();

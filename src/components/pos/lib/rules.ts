@@ -80,7 +80,20 @@ export function parseOrderQr(text: string): { orderCode: string; collectionCode:
 }
 
 /** Extracts a Herbal Holland Rewards member number (member card QR = the plain memberNo) from a scan or typed value. */
-export const memberNoFrom = (text: string) => (parseOrderQr(text) ? null : (text.toUpperCase().match(/\bHH\d{7}\b/)?.[0] ?? null));
+export const memberNoFrom = (text: string) => (parseOrderQr(text) || rsvpTicketFrom(text) ? null : (text.toUpperCase().match(/\bHH\d{7}\b/)?.[0] ?? null));
+
+/** Event ticket QR from the Rewards app, "HHRSVP:{code}" (scanned or typed) → normalised, or null. */
+export function rsvpTicketFrom(text: string) {
+  const m = text.trim().match(/^HHRSVP:\s*([A-Z0-9]{4,16})$/i);
+  return m ? `HHRSVP:${m[1].toUpperCase()}` : null;
+}
+
+/** Drops that still govern variants on this till (after a drop ends its stock sells normally), by variant id. */
+export function dropIndex<D extends { variantIds: string[]; endsAt: string | null }>(drops: D[] | undefined, at = new Date()) {
+  const out = new Map<string, D>();
+  for (const d of drops ?? []) if (!d.endsAt || new Date(d.endsAt) > at) for (const v of d.variantIds) if (!out.has(v)) out.set(v, d);
+  return out;
+}
 
 /** Parses "123.45" / "R 1 234,50" style amounts into cents; null when not a number. */
 export function parseRands(input: string): number | null {

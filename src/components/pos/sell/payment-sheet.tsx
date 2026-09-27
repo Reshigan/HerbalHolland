@@ -7,7 +7,7 @@ import { Banknote, CreditCard, Landmark, Nfc, QrCode, Sparkles, Trash2 } from "l
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { errorText } from "../lib/api";
+import { errorText, TillError } from "../lib/api";
 import { maxRedeemable, parseRands, quickCash } from "../lib/rules";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
 import { TapOverlay } from "./tap-overlay";
@@ -27,6 +27,7 @@ export function PaymentSheet({
   dueCents,
   savingsCents = 0,
   discountCents = 0,
+  offerCents = 0,
   reference,
   online,
   tapProvider,
@@ -40,7 +41,8 @@ export function PaymentSheet({
   title: string;
   dueCents: number;
   savingsCents?: number; // instant Rewards savings already in the prices
-  discountCents?: number; // promotions
+  discountCents?: number; // promotions, My Deals included
+  offerCents?: number; // My Deals (member's personal offers)
   reference: string;
   online: boolean;
   tapProvider: TapProviderKind;
@@ -57,6 +59,7 @@ export function PaymentSheet({
   const [tapping, setTapping] = useState<number | null>(null);
   const [buyer, setBuyer] = useState<Buyer>({ name: "", address: "", vatNumber: "" });
   const [error, setError] = useState<string | null>(null);
+  const [titled, setTitled] = useState<{ message: string; title: string } | null>(null); // heading for a TillError
   const [busy, setBusy] = useState(false);
   const [cashText, setCashText] = useState("");
   const [extRef, setExtRef] = useState("");
@@ -101,6 +104,7 @@ export function PaymentSheet({
       await onComplete({ tenders: tenders.map(({ key: _k, ...t }) => t), points: pts, buyer: needsBuyer ? { name: buyer.name.trim(), address: buyer.address.trim(), vatNumber: buyer.vatNumber?.trim() || undefined } : null });
     } catch (e) {
       setError(errorText(e));
+      setTitled(e instanceof TillError ? { message: e.message, title: e.title } : null);
     } finally {
       setBusy(false);
       completing.current = false;
@@ -145,7 +149,7 @@ export function PaymentSheet({
   return (
     <>
       <Sheet open={open && tapping == null} onClose={busy ? () => undefined : onClose} dismissable={!busy && tenders.length === 0} title={title} subtitle={`Ref ${reference}`} size="xl">
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)]">
           {/* Left: what's due and what's been tendered */}
           <div>
             <div className="rounded-3xl bg-ink-950 p-5 ring-1 ring-ink-800">
@@ -160,7 +164,12 @@ export function PaymentSheet({
               {(savingsCents > 0 || discountCents > 0) && (
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-800 pt-3 text-sm">
                   {savingsCents > 0 && <span className="font-semibold text-brand-300">Rewards savings {zar(savingsCents)}</span>}
-                  {discountCents > 0 && <span className="font-semibold text-[#7fd49a]">Deals {zar(discountCents)}</span>}
+                  {discountCents - offerCents > 0 && <span className="font-semibold text-[#7fd49a]">Deals −{zar(discountCents - offerCents)}</span>}
+                  {offerCents > 0 && (
+                    <span className="font-semibold text-brand-300" data-testid="pay-my-deals">
+                      My Deals −{zar(offerCents)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -210,7 +219,7 @@ export function PaymentSheet({
 
             {error && (
               <Alert className="mt-4">
-                <div className="font-semibold">The sale didn&apos;t go through</div>
+                <div className="font-semibold">{titled?.message === error ? titled.title : "The sale didn't go through"}</div>
                 <div>{error}</div>
                 <div className="mt-3 flex gap-2">
                   <PosButton variant="danger" size="sm" onClick={() => void complete()} disabled={remaining > 0 || !buyerOk}>

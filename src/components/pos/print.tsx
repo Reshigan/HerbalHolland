@@ -44,6 +44,7 @@ function StoreHeader({ boot }: { boot: BootData }) {
 
 function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
   const change = r.payments.reduce((s, p) => s + (p.changeCents ?? 0), 0);
+  const offer = Math.max(0, r.offerCents ?? 0);
   return (
     <div>
       <StoreHeader boot={boot} />
@@ -62,11 +63,12 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
             {l.name} · {l.variantName}
           </div>
           <Row l={`  ${Math.abs(l.qty)} × ${zar(l.unitPriceCents)}`} r={zar(l.totalCents)} />
-          {l.discountCents > 0 && <Row l="  Discount" r={`−${zar(l.discountCents)}`} />}
+          {l.discountCents > 0 && <Row l={l.offerCents === l.discountCents ? "  My Deals" : "  Discount"} r={`−${zar(l.discountCents)}`} />}
         </div>
       ))}
       <Rule />
-      {r.discountCents > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents)}`} />}
+      {r.discountCents - offer > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents - offer)}`} />}
+      {offer > 0 && <Row l={`My Deals${r.offers?.length ? ` (${r.offers.join(", ")})` : ""}`} r={`−${zar(offer)}`} />}
       <Row l="TOTAL" r={zar(r.totalCents)} bold />
       {r.memberSavingsCents > 0 && <Row l="Rewards savings in prices" r={zar(r.memberSavingsCents)} />}
       <Row l={r.vatCents ? "VAT included (15%)" : "No VAT charged"} r={r.vatCents ? zar(r.vatCents) : ""} />

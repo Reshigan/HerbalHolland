@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
-import { ChevronLeft, IdCard, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, CalendarClock, ChevronLeft, IdCard, ShieldCheck, Sparkles } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -9,18 +9,27 @@ import { quote } from "@/server/pricing";
 import { evaluateBasket } from "@/server/compliance";
 import { deliveryFee, routingCandidates } from "@/server/orders";
 import { CONSENT_WORDING } from "@/server/customers";
+import { launchState } from "@/server/launch";
+import { dropBlocks, dropsFor } from "@/server/drops";
+import { isOffer } from "@/server/offers";
 import { getCart, getPreferredStore, getPromoCode, getRetailStores } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { redeemablePoints } from "@/server/shop/cart-codec";
 import { tierMeta } from "@/server/shop/club";
+import { readableDropBlock } from "@/server/shop/launch-rules";
 import { CheckoutForm, type CollectStore, type FulfilOption } from "@/components/shop/checkout-form";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { VerifyAge } from "@/components/shop/verify-age";
+import { Countdown } from "@/components/shop/countdown";
+import { fmtWhen } from "@/components/shop/launch-cards";
 import { Callout, Container, Panel } from "@/components/shop/ui";
+import { ButtonLink } from "@/components/ui/button";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES } from "@/lib/sa";
 import { zar } from "@/lib/money";
-import { fmtPoints } from "@/lib/loyalty-rules";
+import { fmtDate, num } from "@/lib/format";
+import { opensFor } from "@/lib/drops";
+import { fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import type { SellChannel } from "@/lib/compliance";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
@@ -29,7 +38,7 @@ const AGE_BLOCK = /^Age verification required/;
 
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { welcome } = await searchParams;
-  const [items, code, customer, settings, store, stores] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores()]);
+  const [items, code, customer, settings, store, stores, launch] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores(), launchState()]);
   if (!items.length) redirect("/cart");
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
   if (!q.lines.length) redirect("/cart");
@@ -43,6 +52,39 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       <h1 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Checkout</h1>
     </div>
   );
+
+  // Before launch the shop is a waitlist: no pay step (placeOrder refuses too).
+  if (launch.preLaunch && launch.at)
+    return (
+      <Container className="pt-10 sm:pt-14">
+        {header}
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
+          <Panel className="p-6 sm:p-8">
+            <span className="grid h-12 w-12 place-items-center rounded-full bg-brand-500/10 text-brand-400">
+              <CalendarClock className="h-6 w-6" strokeWidth={1.8} />
+            </span>
+            <div className="eyebrow mt-6 text-brand-500">Windmill Days</div>
+            <h2 className="mt-2 font-display text-3xl font-semibold tracking-tight text-white sm:text-4xl">We open on {fmtDate(launch.at)}</h2>
+            <p className="mt-3 max-w-xl leading-relaxed text-ink-300">
+              Checkout opens when our doors do. Your bag is saved on this device — come back on launch day to order for click &amp; collect or delivery.
+            </p>
+            <Countdown to={launch.at} variant="blocks" label={`Opens ${fmtWhen(launch.at)}`} className="mt-6" />
+            <div className="mt-8 flex flex-wrap gap-3">
+              <ButtonLink href={customer ? "/club" : "/club/join?next=/club"} size="lg">
+                {customer ? "See your place in line" : "Join the waitlist"} <ArrowRight className="h-4 w-4" />
+              </ButtonLink>
+              <ButtonLink href="/shop" variant="outline-dark" size="lg">
+                Keep browsing
+              </ButtonLink>
+            </div>
+            <p className="mt-6 text-sm text-ink-400">
+              The first {num(launch.foundingCap)} on the waitlist become numbered Founding Members and start at {tierInfo(launch.foundingTier).name} for a year.
+            </p>
+          </Panel>
+          <Summary lines={q.lines} total={q.totalCents} joinSavings={0} />
+        </div>
+      </Container>
+    );
 
   if (!customer)
     return (
@@ -66,12 +108,20 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   const compItems = q.lines.map((l) => ({ name: l.name, regClass: l.regClass, grams: l.grams, qty: l.qty, tobaccoRelated: l.tobaccoRelated }));
   const keys: SellChannel[] = ["COLLECT", "SAME_DAY", "COURIER"];
-  const [comps, fees, cands, lastAddress] = await Promise.all([
+  const [comps, fees, cands, lastAddress, drops, dropMsgs] = await Promise.all([
     Promise.all(keys.map((channel) => evaluateBasket({ items: compItems, channel, customerId: customer.id, storeLicences: settings.compliance.licensedOnly }))),
     Promise.all(keys.map((f) => deliveryFee(f as "COLLECT", q.totalCents, customer.tier))),
     routingCandidates(q.lines.map((l) => l.variantId)),
     db.order.findFirst({ where: { customerId: customer.id, fulfilment: { not: "COLLECT" }, addressLine: { not: null } }, orderBy: { createdAt: "desc" }, select: { addressLine: true, suburb: true, city: true, province: true, postalCode: true } }),
+    dropsFor(q.lines.map((l) => l.variantId)),
+    dropBlocks(customer.id, q.lines),
   ]);
+  // Limited drops (members only, early access, per-member limits): say what's wrong in plain words, before paying.
+  const dropNotes = dropMsgs.map((m) => {
+    const d = drops.find((x) => m.startsWith(x.name));
+    const opens = d ? opensFor(d, customer.tier as TierKey) : null;
+    return { slug: d?.slug, ...readableDropBlock(m, d && { name: d.name, perMemberLimit: d.perMemberLimit, opensLabel: opens ? `on ${fmtWhen(opens)}` : undefined }) };
+  });
   const needsAge = comps.some((c) => c.blocks.some((b) => AGE_BLOCK.test(b)));
   const eligibleBase = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
   const options: FulfilOption[] = keys.map((k, i) => {
@@ -129,13 +179,29 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
           {shared}. Update your bag, or speak to our pharmacist in store.
         </Callout>
       )}
+      {dropNotes.map((n) => (
+        <Callout key={n.title} tone="warn" icon={<Sparkles className="h-5 w-5" />} title={n.title} className="mb-8">
+          {n.body}{" "}
+          <Link href="/cart" className="font-semibold text-white underline">
+            Update your bag
+          </Link>
+          {n.slug && (
+            <>
+              {" · "}
+              <Link href={`/drops/${n.slug}`} className="font-semibold text-white underline">
+                About the drop
+              </Link>
+            </>
+          )}
+        </Callout>
+      ))}
       <CheckoutForm
         options={options}
         stores={collect}
         defaultStoreId={defaultStore?.id ?? null}
         lines={q.lines.map((l) => ({ variantId: l.variantId, name: l.productName, variant: l.variantName, qty: l.qty, totalCents: l.totalCents }))}
         subtotalCents={q.subtotalCents}
-        discounts={q.applied.filter((a) => a.discountCents > 0).map((a) => ({ name: a.name, cents: a.discountCents }))}
+        discounts={q.applied.filter((a) => a.discountCents > 0).map((a) => ({ name: isOffer(a.id) ? `My Deal: ${a.name}` : a.name, cents: a.discountCents }))}
         totalCents={q.totalCents}
         vatCents={q.vatCents}
         memberSavingsCents={q.memberSavingsCents}
@@ -146,7 +212,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         provinces={Object.entries(PROVINCES)}
         sameDayNote={`order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
         courierNote={`2–4 working days nationwide, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}.`}
-        blocked={needsAge ? "Verify your age above to place this order." : shared}
+        blocked={needsAge ? "Verify your age above to place this order." : (shared ?? (dropNotes[0] ? `${dropNotes[0].title} — update your bag to continue.` : null))}
       />
     </Container>
   );

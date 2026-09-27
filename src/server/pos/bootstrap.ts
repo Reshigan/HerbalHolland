@@ -1,14 +1,16 @@
 // Everything a till needs to keep selling without a connection: store (licences, VAT
 // status), staff tiles, catalogue with this store's shelf prices and stock, the price
-// lists and promotions that may apply in the next 24 hours, and compliance/loyalty rules.
+// lists and promotions that may apply in the next 24 hours, the limited drops governing
+// its products (live or upcoming), and compliance/loyalty rules.
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { availability, availKey } from "@/server/inventory";
 import { tapProvider } from "@/server/payments";
+import { dropsFor } from "@/server/drops";
 import { addDays } from "@/lib/format";
 import { staffTiles } from "./session";
 import type { PosDevice } from "./http";
-import type { BootData, BootShift } from "./types";
+import type { BootData, BootShift, TierKey } from "./types";
 
 export async function currentShift(device: { id: string; storeId: string }): Promise<BootShift | null> {
   const s = await db.shift.findFirst({ where: { storeId: device.storeId, deviceId: device.id, closedAt: null }, orderBy: { openedAt: "desc" } });
@@ -112,6 +114,8 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
         }),
     }))
     .filter((p) => p.variants.length > 0);
+  const onTill = new Set(catalogue.flatMap((p) => p.variants.map((v) => v.id)));
+  const drops = await dropsFor([...onTill], now);
 
   return {
     version: 1,
@@ -159,6 +163,19 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       days: p.days ?? [],
       startMinute: p.startMinute,
       endMinute: p.endMinute,
+      firstPurchaseOnly: p.firstPurchaseOnly,
+    })),
+    drops: drops.map((d) => ({
+      id: d.id,
+      slug: d.slug,
+      name: d.name,
+      variantIds: d.variantIds.filter((id) => onTill.has(id)),
+      startsAt: d.startsAt.toISOString(),
+      endsAt: d.endsAt?.toISOString() ?? null,
+      earlyTier: (d.earlyTier as TierKey | null) ?? null,
+      earlyMinutes: d.earlyMinutes,
+      perMemberLimit: d.perMemberLimit,
+      membersOnly: d.membersOnly,
     })),
     priceLists: lists.map((l) => ({
       id: l.id,

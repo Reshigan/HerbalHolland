@@ -8,6 +8,7 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText, OfflineError } from "../lib/api";
 import { memberNoFrom } from "../lib/rules";
 import { Alert, CheckRow, Chip, Field, PosButton, Segmented, Sheet, Spinner, TextInput, TIER_CHIP, tierName } from "../ui";
+import { visitDate } from "./cart-panel";
 import type { CustomerDetail, CustomerHit } from "@/server/pos/types";
 
 export function CustomerSheet({
@@ -130,6 +131,10 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
                 </span>
                 <span className="mt-0.5 block text-xs text-ink-400">
                   {h.memberNo} · {h.phone} · {fmtPoints(h.points)}
+                </span>
+                <span className="block text-xs text-ink-400">
+                  Visits here {h.visitsHere}
+                  {h.lastVisitHere ? ` · Last visit here ${visitDate(h.lastVisitHere)}` : ""}
                 </span>
               </span>
               {opening === h.id ? <Spinner /> : <span className="text-sm font-semibold text-brand-400">Add</span>}

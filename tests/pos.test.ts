@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { priceBasket, redeemableCents, livePromotions, type PricingData } from "@/components/pos/lib/pricing";
 import {
-  classifyBlock, countCash, DENOMINATIONS, denomLabel, maskPhone, maxRedeemable, memberNoFrom, orderSla, parseOrderQr, parseRands, quickCash, receiptNumber, uuid,
+  classifyBlock, countCash, DENOMINATIONS, denomLabel, dropIndex, maskPhone, maxRedeemable, memberNoFrom, orderSla, parseOrderQr, parseRands, quickCash, receiptNumber,
+  rsvpTicketFrom, uuid,
 } from "@/components/pos/lib/rules";
 import { checkCompliance, DEFAULT_COMPLIANCE } from "@/lib/compliance";
 import type { BootPromotion } from "@/server/pos/types";
@@ -61,6 +62,17 @@ describe("till pricing (offline price book)", () => {
     expect(q.discountCents).toBe(59500 + 38500 - 80000);
     expect(q.applied.map((a) => a.id)).toContain("cbd2");
     expect(redeemableCents(q)).toBe(80000);
+  });
+
+  it("never applies a welcome gift (first purchase only) or My Deals offline", () => {
+    const gift = promo({ id: "gift", kind: "BUY_X_GET_Y", value: 0, getQty: 1, rewardPercent: 100, rewardProductIds: ["p-tray"], firstPurchaseOnly: true });
+    const d = data({ promotions: [gift] });
+    expect(livePromotions([gift], AT)).toHaveLength(0);
+    const q = priceBasket(d, [{ variantId: "balm", qty: 1 }, { variantId: "tray", qty: 1 }], { at: AT, member: true, tier: "SEED" });
+    expect(q.discountCents).toBe(0);
+    expect(q.suggestions).toHaveLength(0);
+    expect(q.offerCents).toBe(0);
+    expect(q.lines.every((l) => l.offerCents === 0 && l.offerName === null)).toBe(true);
   });
 
   it("skips promotions outside their happy-hour window and date range", () => {
@@ -174,6 +186,26 @@ describe("till rules", () => {
     expect(parseOrderQr("HHORDER:TC9D34:12AB01")).toBeNull();
     expect(parseOrderQr("HH0012345")).toBeNull();
     expect(memberNoFrom("HHORDER:HH00123:1234567")).toBeNull();
+  });
+
+  it("reads event ticket QR codes (HHRSVP:{code}) apart from member cards", () => {
+    expect(rsvpTicketFrom("HHRSVP:K7Q2M9XA")).toBe("HHRSVP:K7Q2M9XA");
+    expect(rsvpTicketFrom(" hhrsvp:k7q2m9xa ")).toBe("HHRSVP:K7Q2M9XA");
+    expect(rsvpTicketFrom("HHRSVP:")).toBeNull();
+    expect(rsvpTicketFrom("K7Q2M9XA")).toBeNull();
+    expect(rsvpTicketFrom("HHORDER:TC9D34:122801")).toBeNull();
+    expect(memberNoFrom("HHRSVP:HH234567")).toBeNull();
+  });
+
+  it("indexes the drops that still govern the till's variants", () => {
+    const at = new Date("2026-09-27T10:00:00Z");
+    const live = { id: "d1", variantIds: ["hat", "pin"], endsAt: "2026-10-02T00:00:00Z" };
+    const upcoming = { id: "d2", variantIds: ["hoodie"], endsAt: null };
+    const ended = { id: "d3", variantIds: ["tee"], endsAt: "2026-09-20T00:00:00Z" };
+    const idx = dropIndex([live, upcoming, ended], at);
+    expect([...idx.keys()].sort()).toEqual(["hat", "hoodie", "pin"]);
+    expect(idx.get("pin")?.id).toBe("d1");
+    expect(dropIndex(undefined, at).size).toBe(0);
   });
 
   it("masks phones, reads member QR codes and parses rand amounts", () => {

@@ -1,9 +1,11 @@
 "use server";
 import { refresh } from "next/cache";
+import { z } from "zod";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { audit } from "@/server/audit";
 import { setConsent } from "@/server/customers";
+import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
@@ -46,6 +48,45 @@ export async function setChannelConsent(channel: MsgChannel, granted: boolean): 
   if (!CHANNELS.includes(channel)) return { error: "Unknown channel" };
   if (channel === "EMAIL" && granted && !c.email) return { error: "Add an email address to your profile first" };
   await setConsent(c.id, channel, granted, "CLUB_APP");
+  refresh();
+  return {};
+}
+
+// ── App notifications (Web Push) ─────────────────────────────────────────────
+const PushSub = z.object({
+  endpoint: z.string().max(1000).refine((s) => s.startsWith("https://"), "Invalid endpoint"),
+  keys: z.object({ p256dh: z.string().min(16).max(200), auth: z.string().min(8).max(100) }),
+});
+
+/** Saves this device's subscription and records consent to app notifications (POPIA ledger). */
+export async function enablePush(sub: unknown): Promise<{ error?: string }> {
+  const c = await getCustomer();
+  if (!c) return { error: "Please sign in again" };
+  if (!vapidPublicKey()) return { error: "App notifications aren't available yet" };
+  const p = PushSub.safeParse(sub);
+  if (!p.success) return { error: "Your browser didn't send a complete subscription — please try again" };
+  await savePushSubscription(c.id, p.data);
+  await setConsent(c.id, "PUSH", true, "CLUB_APP");
+  refresh();
+  return {};
+}
+
+/** Turns notifications off: forgets this device's subscription and withdraws app-notification consent. */
+export async function disablePush(endpoint: string | null): Promise<{ error?: string }> {
+  const c = await getCustomer();
+  if (!c) return { error: "Please sign in again" };
+  if (endpoint) await db.pushSubscription.deleteMany({ where: { customerId: c.id, endpoint: String(endpoint).slice(0, 1000) } });
+  await setConsent(c.id, "PUSH", false, "CLUB_APP");
+  refresh();
+  return {};
+}
+
+// ── My Deals (POPIA s11(3): members may object to personalised offers) ───────
+export async function setPersonalisedOffers(on: boolean): Promise<{ error?: string }> {
+  const c = await getCustomer();
+  if (!c) return { error: "Please sign in again" };
+  await db.customer.update({ where: { id: c.id }, data: { personalisedOffers: !!on } });
+  await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.personalised_offers", { entity: "Customer", entityId: c.id, data: { on: !!on } });
   refresh();
   return {};
 }

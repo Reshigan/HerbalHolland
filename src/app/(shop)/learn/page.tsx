@@ -1,9 +1,11 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { Container } from "@/components/shop/ui";
 import { ARTICLES } from "@/components/shop/learn/articles";
+import { Tag } from "@/components/shop/ui";
+import { publicQuest } from "@/lib/quests";
 
 export const metadata: Metadata = {
   title: "Learn",
@@ -27,8 +29,11 @@ export default function LearnIndex() {
           <div className="eyebrow text-brand-500">{lead.kicker}</div>
           <h2 className="mt-3 font-display text-3xl font-semibold leading-tight text-white group-hover:text-brand-100 sm:text-4xl">{lead.title}</h2>
           <p className="mt-4 leading-relaxed text-ink-300">{lead.dek}</p>
-          <p className="mt-8 flex items-center gap-2 text-sm font-semibold text-brand-400">
-            Read · {lead.minutes} min <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+          <p className="mt-8 flex flex-wrap items-center gap-x-3 gap-y-2 text-sm font-semibold text-brand-400">
+            <span className="flex items-center gap-2">
+              Read · {lead.minutes} min <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
+            </span>
+            <QuestTag slug={lead.slug} />
           </p>
         </div>
       </Link>
@@ -41,11 +46,23 @@ export default function LearnIndex() {
               <div className="eyebrow text-brand-500">{a.kicker}</div>
               <h2 className="mt-2 font-display text-xl font-semibold leading-snug text-white group-hover:text-brand-100">{a.title}</h2>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-400">{a.dek}</p>
-              <p className="mt-5 text-xs font-medium text-ink-500">{a.minutes} min read</p>
+              <p className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-ink-500">
+                {a.minutes} min read <QuestTag slug={a.slug} />
+              </p>
             </div>
           </Link>
         ))}
       </div>
     </Container>
   );
+}
+
+/** Guides with a Learn quest: members earn points for passing the quiz at the end. */
+function QuestTag({ slug }: { slug: string }) {
+  const q = publicQuest(slug);
+  return q ? (
+    <Tag tone="orange" icon={<Sparkles className="h-3 w-3" />}>
+      Quiz · +{q.points} pts
+    </Tag>
+  ) : null;
 }
