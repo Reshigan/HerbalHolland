@@ -169,6 +169,10 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 
 ## 8. Launch plan
 
+> **Superseded for the first stores:** Herbal Holland now opens in Hillcrest and Hilton (KZN) on 1 December 2026,
+> online first. See [MARKETING-PLAN.md](MARKETING-PLAN.md) (draft for approval); this section is rewritten once that
+> plan is approved.
+
 | Phase | When | Outcomes |
 |---|---|---|
 | 0. Readiness | Weeks 0–6 | Legal sign-off on MEDICAL-mode flows and claims library; acquirer approvals per store (Halo Dot / bank), PayShap & EFT rails; courier allow-list; SMS/email providers; NCC registry registration; Information Officer & POPIA notices; staff training (dispensers, ID checks) |
