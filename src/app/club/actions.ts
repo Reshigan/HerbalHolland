@@ -12,7 +12,8 @@ import { HOME_STORE_STATUSES } from "@/server/shop/context";
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
-export type ProfileState = { ok?: boolean; error?: string; fields?: Partial<Record<"firstName" | "email" | "homeStoreId", string>> };
+// `values` echoes what was submitted: React resets the form after the action, so the member's input survives an error.
+export type ProfileState = { ok?: boolean; error?: string; fields?: Partial<Record<"firstName" | "email" | "homeStoreId", string>>; values?: Record<"firstName" | "lastName" | "email" | "homeStoreId", string> };
 
 export async function updateProfile(_: ProfileState, form: FormData): Promise<ProfileState> {
   const c = await getCustomer();
@@ -26,11 +27,12 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   if (email && !EMAIL.test(email)) fields.email = "That email address doesn't look right";
   const store = homeStoreId ? await db.store.findFirst({ where: { id: homeStoreId, kind: "RETAIL", status: { in: HOME_STORE_STATUSES } }, select: { id: true } }) : null;
   if (!store) fields.homeStoreId = "Choose your home store";
-  if (Object.keys(fields).length) return { fields };
+  const values = { firstName, lastName, email, homeStoreId };
+  if (Object.keys(fields).length) return { fields, values };
   try {
     await db.customer.update({ where: { id: c.id }, data: { firstName, lastName: lastName || null, email: email || null, homeStoreId: store!.id } });
   } catch (e) {
-    if ((e as { code?: string }).code === "P2002") return { fields: { email: "That email is already linked to another member" } };
+    if ((e as { code?: string }).code === "P2002") return { fields: { email: "That email is already linked to another member" }, values };
     throw e;
   }
   // Without an email address there is nowhere to send email marketing: withdraw that consent too.

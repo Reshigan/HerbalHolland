@@ -12,7 +12,7 @@ import { redeemablePoints } from "@/server/shop/cart-codec";
 import { readableDropBlock } from "@/server/shop/launch-rules";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
-export type CheckoutState = { error?: string; alternatives?: { id: string; name: string }[]; fields?: Partial<Record<"addressLine" | "suburb" | "city" | "province" | "postalCode" | "storeId", string>> };
+export type CheckoutState = { error?: string; alternatives?: { id: string; name: string }[]; fields?: Partial<Record<"addressLine" | "suburb" | "city" | "province" | "postalCode" | "storeId", string>>; values?: Record<string, string> };
 
 const Address = z.object({
   addressLine: z.string().trim().min(4, "Enter your street address").max(120),
@@ -23,7 +23,15 @@ const Address = z.object({
   notes: z.string().trim().max(200).optional(),
 });
 
+const ADDRESS_FIELDS = ["addressLine", "suburb", "city", "province", "postalCode", "notes"];
+
+/** React resets the form once the action returns: a delivery address comes back with any error, so it isn't lost. */
 export async function placeOrderAction(_: CheckoutState, form: FormData): Promise<CheckoutState> {
+  const r = await place(form);
+  return form.has("addressLine") ? { ...r, values: Object.fromEntries(ADDRESS_FIELDS.map((k) => [k, String(form.get(k) ?? "")])) } : r;
+}
+
+async function place(form: FormData): Promise<CheckoutState> {
   const customer = await getCustomer();
   if (!customer) return { error: "Your session has ended — please sign in again." };
   const items = await getCart();

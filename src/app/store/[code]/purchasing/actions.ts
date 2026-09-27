@@ -11,7 +11,7 @@ import type { StockOrder } from "@/generated/prisma/client";
 
 type Shipped = { batchId: string; qty: number }[];
 
-/** New wholesale order to the store's distribution centre, from the replenishment builder. */
+/** New wholesale order to the store's distribution centre, from the replenishment builder (intent=draft saves it unsubmitted). */
 export async function placeWholesaleOrder(code: string, _: ActionState, fd: FormData): Promise<ActionState> {
   let id = "";
   const res = await attempt(async () => {
@@ -32,9 +32,10 @@ export async function placeWholesaleOrder(code: string, _: ActionState, fd: Form
     const ok = new Set(ranged.map((r) => r.variantId));
     const bad = lines.filter((l) => !ok.has(l.variantId));
     if (bad.length) return fail(`${bad.length} item${bad.length > 1 ? "s are" : " is"} no longer ranged or available — refresh and try again`);
-    const order = await createStockOrder({ buyerId: store.id, sellerId: store.dcId, kind: "WHOLESALE", lines, notes: str(fd, "notes").slice(0, 500) || undefined, actor, submit: true });
+    const draft = str(fd, "intent") === "draft";
+    const order = await createStockOrder({ buyerId: store.id, sellerId: store.dcId, kind: "WHOLESALE", lines, notes: str(fd, "notes").slice(0, 500) || undefined, actor, submit: !draft });
     id = order.id;
-    return done(`Order ${order.number} submitted`);
+    return done(draft ? `Draft ${order.number} saved` : `Order ${order.number} submitted`);
   });
   if (id) {
     revalidatePath(`/store/${code}/purchasing`);

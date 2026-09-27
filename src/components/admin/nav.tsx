@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import {
   ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
   LayoutDashboard, Megaphone, Menu, Nfc, Package, Receipt, Rocket, Scale, Settings, ShieldCheck, ShoppingBag, Sparkles, Stethoscope, Store, Tag, Tags,
-  Truck, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
+  Truck, Tv, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { NavGroup } from "./nav-config";
@@ -14,7 +14,7 @@ import type { NavGroup } from "./nav-config";
 const ICONS: Record<string, LucideIcon> = {
   ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
   LayoutDashboard, Megaphone, Nfc, Package, Receipt, Rocket, Scale, Settings, ShieldCheck, ShoppingBag, Sparkles, Stethoscope, Store, Tag, Tags,
-  Truck, Users, UsersRound, Wallet, Warehouse,
+  Truck, Tv, Users, UsersRound, Wallet, Warehouse,
 };
 
 function Icon({ name, className }: { name: string; className?: string }) {
@@ -36,6 +36,7 @@ export function SideNav({ groups }: { groups: NavGroup[] }) {
                 <li key={i.href}>
                   <Link
                     href={i.href}
+                    {...(i.external && { target: "_blank", rel: "noopener" })}
                     className={cn(
                       "group flex items-center gap-3 rounded-xl px-3 py-2 text-[0.84rem] font-medium transition-colors",
                       active ? "bg-brand-500 text-ink-950" : "text-ink-300 hover:bg-ink-850 hover:text-white",

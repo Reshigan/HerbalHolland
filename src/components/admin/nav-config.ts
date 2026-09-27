@@ -1,7 +1,7 @@
-export type NavItem = { label: string; href: string; icon: string; exact?: boolean };
+export type NavItem = { label: string; href: string; icon: string; exact?: boolean; external?: boolean };
 export type NavGroup = { title?: string; items: NavItem[] };
 
-export const storeNav = (code: string): NavGroup[] => [
+export const storeNav = (code: string, slug: string): NavGroup[] => [
   {
     items: [
       { label: "Overview", href: `/store/${code}`, icon: "LayoutDashboard", exact: true },
@@ -50,6 +50,7 @@ export const storeNav = (code: string): NavGroup[] => [
     items: [
       { label: "Team", href: `/store/${code}/team`, icon: "UsersRound" },
       { label: "HQ updates", href: `/store/${code}/updates`, icon: "Bell" },
+      { label: "Menu board", href: `/menu/${slug}`, icon: "Tv", external: true },
       { label: "Settings", href: `/store/${code}/settings`, icon: "Settings" },
     ],
   },

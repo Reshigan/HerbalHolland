@@ -79,6 +79,18 @@ export const getNetwork = cache(async () => {
   return { all: rows.map((r) => r.id), dcs: rows.filter((r) => r.kind === "WAREHOUSE").map((r) => r.id) };
 });
 
+// Listing badges read stock across the whole network (~60k rows at 1,000 stores), so one read is shared for 30 seconds
+// per server. Badges only: the product page, cart and checkout read live stock.
+let networkStock: { at: number; stock: ReturnType<typeof availability> } | null = null;
+function networkAvailability() {
+  if (!networkStock || Date.now() - networkStock.at > 30_000) {
+    const stock = getNetwork().then((n) => availability(n.all));
+    stock.catch(() => (networkStock = null));
+    networkStock = { at: Date.now(), stock };
+  }
+  return networkStock.stock;
+}
+
 export type StockBadge =
   | { kind: "made" } // made to order by the merch partner: always available, ships by courier
   | { kind: "store"; store: string; low: boolean }
@@ -121,7 +133,7 @@ async function ratingsFor(productIds: string[]) {
 export async function buildCards(products: CatalogueProduct[], who: Shopper): Promise<ProductCard[]> {
   const variantIds = products.flatMap((p) => p.variants.map((v) => v.id));
   const [pr, net, ratings, classes] = await Promise.all([getPricing(who.tier), getNetwork(), ratingsFor(products.map((p) => p.id)), getClasses()]);
-  const avail = variantIds.length ? await availability(net.all, variantIds) : new Map();
+  const avail = variantIds.length ? await networkAvailability() : new Map();
   const qty = (storeId: string, variantId: string) => Math.max(0, avail.get(availKey(storeId, variantId))?.available ?? 0);
 
   return products

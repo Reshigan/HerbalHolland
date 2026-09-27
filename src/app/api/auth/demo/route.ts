@@ -9,5 +9,7 @@ export async function GET(req: Request) {
   const user = await db.user.findUnique({ where: { email: url.searchParams.get("email") ?? "" } });
   if (!user) return new NextResponse("Unknown demo user", { status: 404 });
   await startSession("staff", { userId: user.id }, 24);
-  return NextResponse.redirect(new URL(url.searchParams.get("next") || (await homeFor(user)), req.url));
+  const next = url.searchParams.get("next") ?? "";
+  // Relative Location (req.url names localhost in the standalone server); same-site paths only.
+  return new NextResponse(null, { status: 307, headers: { Location: next.startsWith("/") && !next.startsWith("//") ? next : await homeFor(user) } });
 }

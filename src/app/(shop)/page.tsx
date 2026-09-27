@@ -8,7 +8,7 @@ import { getSettings } from "@/server/settings";
 import { launchState, waitlistPlace } from "@/server/launch";
 import { getClasses } from "@/server/shop/access";
 import { cardsWhere, listCatalogue } from "@/server/shop/catalogue";
-import { getPreferredStore, getRetailStores } from "@/server/shop/context";
+import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { featuredDrop, upcomingEvents } from "@/server/shop/launch";
 import { Lockup, Mark, PETAL } from "@/components/brand/logo";
 import { ProductArt } from "@/components/product/art";
@@ -47,12 +47,12 @@ const LANDRACES = [
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default async function Home() {
-  const [customer, store, classes, settings, stores, batches, launch] = await Promise.all([
+  const [customer, store, classes, settings, footprint, batches, launch] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getClasses(),
     getSettings(),
-    getRetailStores(),
+    getStoreFootprint(),
     db.batch.count({ where: { labName: { not: null }, status: "RELEASED" } }),
     launchState(),
   ]);
@@ -70,8 +70,7 @@ export default async function Home() {
   ]);
   // Staff picks first, then the most-reviewed of the rest, so the grid is always full.
   const picks = [...featured].sort((a, b) => Number(b.featured) - Number(a.featured) || (b.rating?.count ?? 0) - (a.rating?.count ?? 0)).slice(0, 8);
-  const trading = stores.filter((s) => s.status === "ACTIVE");
-  const provinces = [...new Set(trading.map((s) => s.province))];
+  const { trading, provinces } = footprint;
   const moods = facets.moods.filter((m) => MOODS[m.key]);
   const publicCats = categories.filter((c) => c._count.products > 0);
   const loyalty = settings.loyalty;
@@ -114,7 +113,7 @@ export default async function Home() {
                 {[
                   [num(listSize), "members on the list"],
                   [num(launch.foundingCap), "Founding spots"],
-                  [String(stores.length), trading.length < stores.length ? "stores opening" : "stores"],
+                  [String(footprint.total), trading < footprint.total ? "stores opening" : "stores"],
                 ].map(([v, l]) => (
                   <div key={l}>
                     <dt className="sr-only">{l}</dt>
@@ -145,7 +144,7 @@ export default async function Home() {
             </div>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
               {[
-                [String(trading.length), "stores nationwide"],
+                [String(trading), "stores nationwide"],
                 [batches.toLocaleString(), "lab-tested batches"],
                 [String(loyalty.signupBonus), "welcome points"],
               ].map(([v, l]) => (
@@ -172,7 +171,7 @@ export default async function Home() {
           {[
             [<FlaskConical key="a" className="h-5 w-5" />, "Lab-tested, every batch", "Independent COA for potency and safety"],
             [<QrCode key="b" className="h-5 w-5" />, "Batch-traceable", "Scan the pack to see its lab result"],
-            [<Store key="c" className="h-5 w-5" />, "Click & collect", `At ${trading.length} stores in ${provinces.length} provinces`],
+            [<Store key="c" className="h-5 w-5" />, "Click & collect", `At ${trading} stores in ${provinces.length} provinces`],
             [<Truck key="d" className="h-5 w-5" />, "Nationwide delivery", `Free over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)} · ID checked`],
           ].map(([icon, title, sub]) => (
             <div key={String(title)} className="flex items-start gap-3">
@@ -377,14 +376,14 @@ export default async function Home() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
           <div>
             <div className="eyebrow text-brand-500">Find us</div>
-            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{trading.length} stores. One windmill.</h2>
+            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{trading} stores. One windmill.</h2>
             <p className="mt-4 max-w-md leading-relaxed text-ink-300">
               Walk in for advice from people who know the range, or order online and collect in store. Each store is independently owned and run by a local franchisee.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {provinces.map((p) => (
-                <Link key={p} href={`/stores#${p}`} className="rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
-                  {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-500">{trading.filter((s) => s.province === p).length}</span>
+                <Link key={p.code} href={`/stores?province=${p.code}#${p.code}`} className="rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
+                  {PROVINCES[p.code as ProvinceCode]} <span className="tnum text-ink-500">{p.stores}</span>
                 </Link>
               ))}
             </div>

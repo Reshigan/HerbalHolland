@@ -15,5 +15,6 @@ export async function POST(req: Request) {
 }
 
 export function GET(req: Request) {
-  return NextResponse.redirect(new URL(`/unsubscribe?${params(req)}`, req.url));
+  // Relative Location: in the standalone server req.url names localhost, not the host the browser used.
+  return new NextResponse(null, { status: 307, headers: { Location: `/unsubscribe?${params(req)}` } });
 }

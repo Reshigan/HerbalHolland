@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import { getRetailStores, getPreferredStore } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { StoreCard } from "@/components/shop/store-card";
-import { Container } from "@/components/shop/ui";
+import { Container, Pager } from "@/components/shop/ui";
+import { pageParam } from "@/components/ui/pagination";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
@@ -13,8 +14,12 @@ export const metadata: Metadata = {
   alternates: { canonical: "/stores" },
 };
 
-export default async function StoresPage() {
-  const [stores, preferred] = await Promise.all([getRetailStores(), getPreferredStore()]);
+// A big network shows one province, a page of stores at a time, instead of every store on one page.
+const ALL_ON_ONE_PAGE = 60;
+const PAGE = 30;
+
+export default async function StoresPage({ searchParams }: { searchParams: Promise<{ province?: string; page?: string }> }) {
+  const [stores, preferred, sp] = await Promise.all([getRetailStores(), getPreferredStore(), searchParams]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const soon = stores.filter((s) => s.status === "OPENING_SOON");
   const openNow = trading.filter((s) => openState(parseHours(s.hours)).open).length;
@@ -22,6 +27,9 @@ export default async function StoresPage() {
   const origin = preferred?.lat != null && preferred?.lng != null ? { lat: preferred.lat, lng: preferred.lng } : null;
   const km = (s: (typeof stores)[number]) => (origin && s.lat != null && s.lng != null ? distanceKm(origin, { lat: s.lat, lng: s.lng }) : null);
   const nearby = preferred ? trading.filter((s) => s.id !== preferred.id).map((s) => ({ s, km: km(s) ?? 1e9 })).sort((a, b) => a.km - b.km).slice(0, 3) : [];
+  const big = trading.length > ALL_ON_ONE_PAGE;
+  const chosen = big ? (provinces.find((p) => p === sp.province) ?? provinces.find((p) => p === preferred?.province) ?? provinces[0]) : null;
+  const page = pageParam(sp.page);
 
   return (
     <Container className="pt-10 sm:pt-14">
@@ -35,7 +43,12 @@ export default async function StoresPage() {
 
       <nav className="scrollbar-none -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Provinces">
         {provinces.map((p) => (
-          <a key={p} href={`#${p}`} className="shrink-0 rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
+          <a
+            key={p}
+            href={big ? `?province=${p}#${p}` : `#${p}`}
+            aria-current={p === chosen ? "true" : undefined}
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm hover:border-brand-500 hover:text-white ${p === chosen ? "border-brand-500 text-white" : "border-ink-700 text-ink-200"}`}
+          >
             {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-500">{trading.filter((s) => s.province === p).length}</span>
           </a>
         ))}
@@ -60,8 +73,9 @@ export default async function StoresPage() {
         </section>
       )}
 
-      {provinces.map((p) => {
-        const inProv = trading.filter((s) => s.province === p);
+      {(chosen ? [chosen] : provinces).map((p) => {
+        const all = trading.filter((s) => s.province === p);
+        const inProv = chosen ? all.slice((page - 1) * PAGE, page * PAGE) : all;
         const cities = [...new Set(inProv.map((s) => s.city))];
         return (
           <section key={p} id={p} className="mt-14 scroll-mt-32" aria-labelledby={`h-${p}`}>
@@ -80,6 +94,7 @@ export default async function StoresPage() {
                 </div>
               </div>
             ))}
+            {chosen && <Pager page={page} pageSize={PAGE} total={all.length} href={(n) => `/stores?province=${p}&page=${n}#${p}`} noun="stores" />}
           </section>
         );
       })}

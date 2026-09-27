@@ -611,7 +611,7 @@ async function main() {
       createdAt: new Date(ts.getTime() - 50 * 3_600_000), submittedAt: new Date(ts.getTime() - 48 * 3_600_000),
       approvedAt: status !== "SUBMITTED" ? new Date(ts.getTime() - 44 * 3_600_000) : null,
       shippedAt: status === "RECEIVED" || status === "SHIPPED" ? shippedTs : null, receivedAt: status === "RECEIVED" ? ts : null,
-      invoiceSentAt: status === "RECEIVED" ? ts : null, notes: kind === "NETWORK" ? "Network trade" : "Weekly replenishment",
+      invoiceSentAt: status === "RECEIVED" ? ts : null, notes: kind === "NETWORK" ? "Network trade" : "Replenishment",
     });
   }
   function replenish(s: SimStore, day: string, status: "RECEIVED" | "SUBMITTED" | "APPROVED" | "SHIPPED" = "RECEIVED") {
@@ -624,7 +624,7 @@ async function main() {
       const recent = (sold14.get(lk(s.id, v.id)) ?? []).filter((t) => t > ts.getTime() - 14 * DAY).length;
       const velocity = recent / 14;
       const target = Math.max(r.par, Math.ceil(velocity * 12));
-      if (pos <= Math.max(r.rp, Math.ceil(velocity * 4))) lines.push({ v, qty: target - pos, unit: v.wholesale });
+      if (pos <= Math.max(r.rp, Math.ceil(velocity * 6))) lines.push({ v, qty: target - pos, unit: v.wholesale }); // weekends/paydays sell ~1.5×
     }
     stockOrder("WHOLESALE", s, dcOf(s), lines.filter((l) => l.qty > 0), day, status);
   }
@@ -671,8 +671,9 @@ async function main() {
     const isToday = k === TODAY;
     const f = dayFactor(k, di);
     for (const s of active) {
-      // Replenishment day: receive before opening.
-      if (weekday(k) === replDay.get(s.id) && !isToday) replenish(s, k);
+      // Stock check every other day, received before opening. Weekly deliveries left a quarter of the network's shelves
+      // empty by the payday/weekend rush at month end (and a sold-out line stops selling, so its measured velocity shrinks).
+      if ((di + replDay.get(s.id)!) % 2 === 0 && !isToday) replenish(s, k);
       if (di === DAYS - 14) stockTake(s, k, true);
 
       const open = weekday(k) === 0 ? [10 * 60, 16 * 60] : [9 * 60, 20 * 60];
@@ -1121,6 +1122,9 @@ async function main() {
   console.log(`  drops · events         2 · ${events.length} (${guests.length} RSVPs, ${fans.length} drop watchers)`);
   console.log(`  My Deals loaded        ${offers.created.toLocaleString()}`);
 
+  // Fresh planner statistics, as autovacuum gives a live database (without them small tables like Product have none,
+  // and the planner picks network-wide scans for store-level queries).
+  await db.$executeRawUnsafe("ANALYZE");
   const gross = sales.reduce((a, s) => a + (s.totalCents as number), 0);
   console.log(`\nDone. ${active.length} trading stores · ${customers.length.toLocaleString()} members · ${sales.length.toLocaleString()} sales · R${(gross / 100 / 1e6).toFixed(2)}m turnover.`);
   console.log("Demo logins (password: holland) — HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444");

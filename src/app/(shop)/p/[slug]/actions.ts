@@ -5,10 +5,16 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { screenCopy } from "@/lib/compliance";
 
-export type ReviewState = { ok?: boolean; error?: string };
+export type ReviewState = { ok?: boolean; error?: string; values?: { rating: string; title: string; body: string } };
 
 /** Verified reviews only: the member must have bought the product (a posted sale). */
 export async function submitReview(productId: string, _: ReviewState, form: FormData): Promise<ReviewState> {
+  const r = await review(productId, form);
+  // React resets the form once the action returns: an error sends the rating and text back, so the member can edit it.
+  return r.ok ? r : { ...r, values: { rating: String(form.get("rating") ?? ""), title: String(form.get("title") ?? ""), body: String(form.get("body") ?? "") } };
+}
+
+async function review(productId: string, form: FormData): Promise<ReviewState> {
   const customer = await getCustomer();
   if (!customer) return { error: "Sign in to write a review" };
   const product = await db.product.findUnique({ where: { id: productId }, select: { slug: true, regClass: true } });

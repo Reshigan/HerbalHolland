@@ -34,7 +34,7 @@ type Panel =
 
 export default async function MenuBoard({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const store = await db.store.findFirst({ where: { slug, kind: "RETAIL", status: "ACTIVE" }, select: { id: true, code: true, name: true, hours: true } });
+  const store = await db.store.findFirst({ where: { slug, kind: "RETAIL", status: { in: ["ACTIVE", "OPENING_SOON"] } }, select: { id: true, code: true, name: true, hours: true } });
   if (!store) notFound();
   const classes = await getClasses();
   const showLicensed = classes.thcMode === "ADULT_USE";

@@ -18,6 +18,8 @@
 5. Create the first HQ admin (SQL or a one-off script) and set `DEMO_MODE=false`.
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
 7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences); Catalogue: products, variants, batches with COAs.
+   After any bulk import (catalogue, members, opening stock) run `ANALYZE;` — autovacuum is slow to gather statistics
+   on small tables, and without them the planner scans the whole network for single-store queries.
 8. Pair POS devices per store (`/pos/pair`), create staff with PINs, designate dispensers.
 9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min and
    `POST /api/cron/daily` at 02:00 SAST.
@@ -28,9 +30,11 @@
   them outside trading hours (after 22:00 SAST) — tills keep selling offline and sync afterwards. A load test showed a
   migration during peak posting stalls tills behind the lock.
 - Capacity (1,000-store dataset — 998 stores, 175k members, 425k sales — one app instance, 10 DB connections):
-  POS posting p50 ≈ 170 ms, p95 ≈ 440 ms, ≈ 45 sales/s; production-build pages: HQ console p50 ≈ 90 ms (slowest: the
-  network-wide age-check report ≈ 2 s, which reads raw sales), store back office p50 ≈ 30 ms (max < 0.4 s). Re-run
-  `scripts/bench.ts` and the e2e journeys against a production-sized copy before big releases.
+  POS posting p50 ≈ 170 ms, p95 ≈ 440 ms, ≈ 45 sales/s. `e2e/crawl.mjs` (every page as every role, production build):
+  storefront ≈ 50–130 ms (home ≈ 90 ms, store finder ≈ 140 ms), HQ console and store back office p50 ≈ 60 ms.
+  Network-wide HQ reports over 30 days are mostly < 1 s; slowest: age checks ≈ 2.5 s (reads raw sales — give it a
+  rollup if it matters), dispensing register ≈ 1.5 s, franchise statements ≈ 1.3 s. Re-run `scripts/bench.ts`,
+  `e2e/crawl.mjs` and the e2e journeys against a production-sized copy before big releases.
 
 ## Launch day
 

@@ -42,7 +42,7 @@ export default async function NewOrderPage({ params }: { params: Promise<{ code:
               ({o.status.toLowerCase()}, {fmtDate(o.createdAt)})
             </span>
           ))}{" "}
-          — its quantities are already counted in the suggestions below.
+          — submitted quantities are already counted in the suggestions below{open.some((o) => o.status === "DRAFT") ? "; drafts aren't until you submit them" : ""}.
         </Notice>
       )}
       {canManage ? (

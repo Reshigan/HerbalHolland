@@ -231,8 +231,10 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
             </button>
           ))}
         </div>
+        {/* Keyed: the ID number (controlled) and the date of birth are different inputs, not one input changing type. */}
         {idType === "sa" ? (
           <FieldRow
+            key="sa"
             label="SA ID number"
             htmlFor="reg-id"
             error={state.fields?.idNumber ?? (idCheck && !idCheck.valid ? idCheck.reason : undefined)}
@@ -241,14 +243,15 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
             <TextInput id="reg-id" name="idNumber" inputMode="numeric" autoComplete="off" maxLength={16} value={id} onChange={(e) => setId(e.target.value.replace(/[^\d\s]/g, ""))} aria-invalid={!!state.fields?.idNumber || (idCheck ? !idCheck.valid : false)} className="tnum tracking-wider" />
           </FieldRow>
         ) : (
-          <FieldRow label="Date of birth" htmlFor="reg-dob" error={state.fields?.dob} hint="Using a passport? Show it at your first store visit or collection and our team will verify it — until then, online orders need a verified age.">
+          <FieldRow key="passport" label="Date of birth" htmlFor="reg-dob" error={state.fields?.dob} hint="Using a passport? Show it at your first store visit or collection and our team will verify it — until then, online orders need a verified age.">
             <TextInput id="reg-dob" name="dob" type="date" max={maxDob} min="1900-01-01" defaultValue={v.dob} aria-invalid={!!state.fields?.dob} />
           </FieldRow>
         )}
       </fieldset>
 
       <FieldRow label="Home store" htmlFor="reg-store" error={state.fields?.homeStoreId} hint="Where you'll usually collect — you can change it any time.">
-        <SelectInput id="reg-store" name="homeStoreId" defaultValue={v.homeStoreId || defaultStoreId || ""} required aria-invalid={!!state.fields?.homeStoreId}>
+        {/* Keyed: a select keeps its first default through React's post-action form reset, so it remounts with the store sent. */}
+        <SelectInput key={v.homeStoreId} id="reg-store" name="homeStoreId" defaultValue={v.homeStoreId || defaultStoreId || ""} required aria-invalid={!!state.fields?.homeStoreId}>
           <option value="" disabled>
             Choose a store
           </option>
@@ -271,13 +274,13 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         <p className="mb-2 text-xs leading-relaxed text-ink-400">{consentWording}</p>
         <div className="grid grid-cols-2 gap-x-4">
           {CHANNELS.map((c) => (
-            <CheckRow key={c.key} name={`consent_${c.key}`} label={c.label} defaultChecked={false} />
+            <CheckRow key={c.key} name={`consent_${c.key}`} label={c.label} defaultChecked={v[`consent_${c.key}`] === "on"} />
           ))}
         </div>
         <div className="mt-3 text-[0.8rem] font-semibold text-ink-200">What are you into? (optional)</div>
         <div className="grid grid-cols-2 gap-x-4">
           {(Object.keys(INTERESTS) as InterestKey[]).map((k) => (
-            <CheckRow key={k} name="interest" value={k} label={INTERESTS[k]} defaultChecked={false} />
+            <CheckRow key={k} name="interest" value={k} label={INTERESTS[k]} defaultChecked={!!v.interests?.split(" ").includes(k)} />
           ))}
         </div>
       </fieldset>
@@ -295,7 +298,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
       </div>
 
       <div>
-        <CheckRow name="accept" required label={<>I&apos;m 18 or older and I accept the <Link href="/legal/terms" target="_blank" className="underline">membership terms</Link> and <Link href="/legal/privacy" target="_blank" className="underline">privacy notice</Link>.</>} />
+        <CheckRow name="accept" required defaultChecked={v.accept === "on"} label={<>I&apos;m 18 or older and I accept the <Link href="/legal/terms" target="_blank" className="underline">membership terms</Link> and <Link href="/legal/privacy" target="_blank" className="underline">privacy notice</Link>.</>} />
         {state.fields?.accept && <p className="mt-1 text-xs font-medium text-rose-100" role="alert">{state.fields.accept}</p>}
       </div>
 

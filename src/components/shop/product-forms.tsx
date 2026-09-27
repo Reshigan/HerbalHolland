@@ -50,7 +50,9 @@ export function ReviewForm({ action }: { action: (s: ReviewState, f: FormData) =
       </div>
       <fieldset>
         <legend className="mb-1.5 text-[0.8rem] font-semibold text-ink-200">Your rating</legend>
-        <div className="flex gap-1" onMouseLeave={() => setHover(0)}>
+        {/* Keyed by the rating sent: React's post-action form reset puts a checked radio back to how it mounted (unchecked),
+            while the stars still show the rating, so after an error they remount with it. */}
+        <div className="flex gap-1" key={state.values?.rating} onMouseLeave={() => setHover(0)}>
           {[1, 2, 3, 4, 5].map((n) => (
             <label key={n} className="cursor-pointer" onMouseEnter={() => setHover(n)}>
               <input type="radio" name="rating" value={n} className="peer sr-only" checked={rating === n} onChange={() => setRating(n)} aria-label={`${n} star${n > 1 ? "s" : ""}`} />
@@ -60,10 +62,10 @@ export function ReviewForm({ action }: { action: (s: ReviewState, f: FormData) =
         </div>
       </fieldset>
       <FieldRow label="Headline (optional)" htmlFor="rv-title">
-        <TextInput id="rv-title" name="title" maxLength={80} placeholder="Sum it up in a few words" />
+        <TextInput id="rv-title" name="title" maxLength={80} defaultValue={state.values?.title} placeholder="Sum it up in a few words" />
       </FieldRow>
       <FieldRow label="Your review" htmlFor="rv-body">
-        <textarea id="rv-body" name="body" required minLength={10} maxLength={1200} rows={4} className={cn(inputClass, "py-3")} placeholder="What did you like? How does it compare?" />
+        <textarea id="rv-body" name="body" required minLength={10} maxLength={1200} rows={4} defaultValue={state.values?.body} className={cn(inputClass, "py-3")} placeholder="What did you like? How does it compare?" />
       </FieldRow>
       {state.error && <p className="text-sm font-medium text-rose-100" role="alert">{state.error}</p>}
       <button disabled={pending || !rating} className={buttonClass("primary", "lg")}>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Check, ChevronDown, LocateFixed, MapPin, Menu, Search, X } from "lucide-react";
-import { choosePreferredStore } from "@/server/shop/actions";
+import { choosePreferredStore, pickerStores } from "@/server/shop/actions";
 import { cn } from "@/lib/cn";
 
 export type NavItem = { href: string; label: string };
@@ -91,7 +91,7 @@ function km(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
 }
 
 /** Preferred-store selector: a searchable dialog of stores (nearest first with location). */
-export function StorePicker({ stores, current, variant = "pill", className }: { stores: PickerStore[]; current: { code: string; name: string; openLabel: string; open: boolean } | null; variant?: "pill" | "bar"; className?: string }) {
+export function StorePicker({ current, variant = "pill", className }: { current: { code: string; name: string; openLabel: string; open: boolean } | null; variant?: "pill" | "bar"; className?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
   const router = useRouter();
   const [q, setQ] = useState("");
@@ -99,10 +99,21 @@ export function StorePicker({ stores, current, variant = "pill", className }: { 
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // The list is fetched on first hover/open rather than shipped with every page (the network can be 1,000 stores).
+  const [stores, setStores] = useState<PickerStore[] | null>(null);
+  const loading = useRef(false);
+  const load = () => {
+    if (stores || loading.current) return;
+    loading.current = true;
+    pickerStores()
+      .then(setStores)
+      .catch(() => setError("We couldn't load the stores — try again"))
+      .finally(() => (loading.current = false));
+  };
 
   const list = useMemo(() => {
     const s = q.trim().toLowerCase();
-    const rows = stores.filter((x) => !s || `${x.name} ${x.suburb} ${x.city} ${x.province}`.toLowerCase().includes(s));
+    const rows = (stores ?? []).filter((x) => !s || `${x.name} ${x.suburb} ${x.city} ${x.province}`.toLowerCase().includes(s));
     return here
       ? rows.map((x) => ({ ...x, km: x.lat != null && x.lng != null ? km(here, { lat: x.lat, lng: x.lng }) : null })).sort((a, b) => (a.km ?? 1e9) - (b.km ?? 1e9))
       : rows.map((x) => ({ ...x, km: null as number | null }));
@@ -135,8 +146,11 @@ export function StorePicker({ stores, current, variant = "pill", className }: { 
   return (
     <>
       <button
+        onPointerEnter={load}
+        onFocus={load}
         onClick={() => {
           setError(null);
+          load();
           ref.current?.showModal();
         }}
         className={cn(
@@ -219,7 +233,8 @@ export function StorePicker({ stores, current, variant = "pill", className }: { 
                 </li>
               );
             })}
-            {!list.length && <li className="px-4 py-10 text-center text-sm text-ink-400">No stores match “{q}”.</li>}
+            {!stores && <li className="px-4 py-10 text-center text-sm text-ink-400">Loading stores…</li>}
+            {stores && !list.length && <li className="px-4 py-10 text-center text-sm text-ink-400">No stores match “{q}”.</li>}
           </ul>
         </div>
       </dialog>

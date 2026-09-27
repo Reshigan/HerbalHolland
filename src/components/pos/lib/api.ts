@@ -44,11 +44,14 @@ export async function api<T>(path: string, opts: { method?: string; body?: unkno
     throw new OfflineError(timedOut);
   }
   emit("online");
-  const data = (await res.json().catch(() => ({}))) as T & { error?: string; code?: string };
+  const data = (await res.json().catch(() => null)) as (T & { error?: string; code?: string }) | null;
   if (!res.ok) {
-    if (res.status === 401 && !opts.quiet401) emit(data.code === "UNPAIRED" ? "unpaired" : data.code === "LOCKED" ? "locked" : "online");
-    throw new ApiError(data.error ?? `Request failed (${res.status})`, res.status, data.code);
+    if (res.status === 401 && !opts.quiet401) emit(data?.code === "UNPAIRED" ? "unpaired" : data?.code === "LOCKED" ? "locked" : "online");
+    throw new ApiError(data?.error ?? `Request failed (${res.status})`, res.status, data?.code);
   }
+  // A body cut off mid-read (e.g. by a reload) is no answer: callers get an OfflineError (a sale is queued and retried
+  // idempotently) rather than an empty object they'd cache as the session or catalogue.
+  if (data === null) throw new OfflineError(true);
   return data;
 }
 

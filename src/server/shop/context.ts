@@ -84,5 +84,18 @@ export const getRetailStores = cache(async () =>
   }),
 );
 
+/** Store counts for copy ("24 stores in 6 provinces") without loading every store (the network can be 1,000 stores). */
+export const getStoreFootprint = cache(async () => {
+  const rows = await db.store.groupBy({ by: ["province", "city", "status"], where: { kind: "RETAIL", status: { in: ["ACTIVE", "OPENING_SOON"] } }, _count: { _all: true } });
+  const trading = rows.filter((r) => r.status === "ACTIVE").sort((a, b) => a.province.localeCompare(b.province) || a.city.localeCompare(b.city));
+  const provinces = new Map<string, { code: string; stores: number; cities: string[] }>();
+  for (const r of trading) {
+    const p = provinces.get(r.province) ?? provinces.set(r.province, { code: r.province, stores: 0, cities: [] }).get(r.province)!;
+    p.stores += r._count._all;
+    p.cities.push(r.city);
+  }
+  return { total: rows.reduce((n, r) => n + r._count._all, 0), trading: trading.reduce((n, r) => n + r._count._all, 0), provinces: [...provinces.values()] };
+});
+
 /** Franchisor details for the footer, legal pages and emails. */
 export const getFranchisor = cache(async () => db.company.findFirst({ where: { kind: "FRANCHISOR" } }));

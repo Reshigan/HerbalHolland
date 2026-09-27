@@ -17,6 +17,10 @@ npm test               # vitest (pure domain rules)
 npm run typecheck
 ```
 
+User journeys (Playwright + DB checks, DEMO_MODE=true, seeded data; CI runs them against a production build):
+`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop>.mjs`, and `node e2e/crawl.mjs` visits every
+page as every role (fails on broken links, server errors and crashes; prints server and paint timings).
+
 Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev --name <change>` and commit the new
 folder in `prisma/migrations` (CI and deploys run `prisma migrate deploy`). Run `npx prisma generate` after pulls.
 
@@ -49,6 +53,8 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`.
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
   `zarCompact` from `@/lib/money`. Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
+- Consumer pages stay light at 1,000 stores: never render or serialise the whole store list on every page (the header
+  store picker loads it when opened; counts come from `getStoreFootprint`), and paginate anything per store.
 - Reporting at network scale reads the rollups (`DailyStoreStat`, `DailyVariantStat`), not raw sales. Raw-sales queries must be
   bounded by store(s) and date range. Every list is paginated (`Pagination`, `pageParam`).
 - Every sensitive action writes `audit(...)`.

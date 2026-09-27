@@ -178,9 +178,14 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
               <dd className="tnum font-display text-lg font-semibold leading-tight text-ink-950">{zar(subtotal + vat)}</dd>
             </div>
           </dl>
-          <SubmitButton size="lg" disabled={!chosen.length} pendingLabel="Submitting…">
-            Submit order
-          </SubmitButton>
+          <div className="flex gap-2">
+            <SubmitButton name="intent" value="draft" variant="outline" size="lg" disabled={!chosen.length} pendingLabel="Saving…">
+              Save draft
+            </SubmitButton>
+            <SubmitButton name="intent" value="submit" size="lg" disabled={!chosen.length} pendingLabel="Submitting…">
+              Submit order
+            </SubmitButton>
+          </div>
         </div>
         {chosen.some((r) => r.available > r.parLevel * 2 && r.parLevel > 0) && (
           <p className="mt-2 text-xs text-amber-700">

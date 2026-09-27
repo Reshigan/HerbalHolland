@@ -41,7 +41,8 @@ jobs:
       - run: npm run build
 
   e2e:
-    # Customer checkout (phone) and the full till journey against a production build with demo data.
+    # Every user journey (checkout, till, back office, HQ, shop & Rewards) and a crawl of every page, against a production
+    # build with demo data.
     needs: verify
     runs-on: ubuntu-latest
     services:
@@ -83,6 +84,19 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
       - run: node e2e/pos.mjs test-results/e2e-pos
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/backoffice.mjs test-results/e2e-backoffice
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/hq.mjs test-results/e2e-hq
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/shop.mjs test-results/e2e-shop
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - name: Crawl every page as every role (broken links, server errors, crashes, timings)
+        run: node e2e/crawl.mjs test-results/e2e-crawl
         env:
           BASE_URL: http://127.0.0.1:3000
       - uses: actions/upload-artifact@v4

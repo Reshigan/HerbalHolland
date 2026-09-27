@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Meter } from "@/components/ui/stat";
 import { Field, Input } from "@/components/ui/form";
-import { ButtonLink } from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button";
 import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
@@ -187,9 +187,9 @@ async function Register({ store, sp, path }: { store: StoreCtx; sp: SP; path: st
           <Input id="rg-to" type="date" name="to" defaultValue={r.to} max={today} />
         </Field>
         <button className="h-10 rounded-full bg-ink-900 px-4 text-sm font-semibold text-white hover:bg-ink-800">Show</button>
-        <ButtonLink href={hrefWith(`${path}/register`, {}, { from: r.from, to: r.to })} variant="outline" prefetch={false} className="ml-auto">
+        <a href={hrefWith(`${path}/register`, {}, { from: r.from, to: r.to })} className={buttonClass("outline", "md", "ml-auto")} download>
           <Download className="h-4 w-4" aria-hidden /> Download CSV
-        </ButtonLink>
+        </a>
       </form>
       {unauthorised > 0 && (
         <Notice tone="warn" className="mx-5 mt-4">

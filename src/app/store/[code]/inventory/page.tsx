@@ -10,7 +10,7 @@ import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
-import { ButtonLink } from "@/components/ui/button";
+import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { Table, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ProductArt } from "@/components/product/art";
@@ -70,9 +70,10 @@ export default async function InventoryPage({ params, searchParams }: { params: 
         description={`${ranged.length} ranged SKUs, valued at cost (FIFO by batch). Available = released stock less units reserved for open online orders.`}
         actions={
           <>
-            <ButtonLink href={exportHref} variant="outline" size="sm" prefetch={false}>
+            {/* A plain download link: a router <Link> fetches the CSV route once as RSC, then again as a hard navigation. */}
+            <a href={exportHref} className={buttonClass("outline", "sm")} download>
               <Download className="h-4 w-4" aria-hidden /> Export CSV
-            </ButtonLink>
+            </a>
             {canManage && (
               <>
                 <ButtonLink href={`/store/${store.code}/adjustments`} variant="outline" size="sm">

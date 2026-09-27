@@ -4,8 +4,9 @@ import { updateProfile, type ProfileState } from "@/app/club/actions";
 import { buttonClass } from "@/components/ui/button";
 import { FieldRow, SelectInput, TextInput } from "./ui";
 
-export function ProfileForm({ values, stores }: { values: { firstName: string; lastName: string; email: string; homeStoreId: string }; stores: { id: string; name: string; city: string }[] }) {
+export function ProfileForm({ values: saved, stores }: { values: { firstName: string; lastName: string; email: string; homeStoreId: string }; stores: { id: string; name: string; city: string }[] }) {
   const [state, action, pending] = useActionState<ProfileState, FormData>(updateProfile, {});
+  const values = state.values ?? saved; // after an error, what the member typed
   const cities = [...new Set(stores.map((s) => s.city))].sort();
   return (
     <form action={action} className="space-y-4">
@@ -20,7 +21,8 @@ export function ProfileForm({ values, stores }: { values: { firstName: string; l
           <TextInput id="pf-email" name="email" type="email" defaultValue={values.email} autoComplete="email" />
         </FieldRow>
         <FieldRow label="Home store" htmlFor="pf-store" error={state.fields?.homeStoreId}>
-          <SelectInput id="pf-store" name="homeStoreId" defaultValue={values.homeStoreId} required>
+          {/* Keyed: a select keeps its first default through React's post-action form reset, so it remounts when the default changes. */}
+          <SelectInput key={values.homeStoreId} id="pf-store" name="homeStoreId" defaultValue={values.homeStoreId} required>
             <option value="" disabled>
               Choose a store
             </option>

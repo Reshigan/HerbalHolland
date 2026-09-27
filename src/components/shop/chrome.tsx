@@ -7,12 +7,12 @@ import { getSettings } from "@/server/settings";
 import { activePromotions } from "@/server/pricing";
 import { launchState } from "@/server/launch";
 import { confirmAge, declineAge } from "@/server/shop/actions";
-import { getAgeState, getCartCount, getFranchisor, getPreferredStore, getRetailStores } from "@/server/shop/context";
+import { getAgeState, getCartCount, getFranchisor, getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { tierMeta } from "@/server/shop/club";
 import { Logo, Mark, Wordmark } from "@/components/brand/logo";
 import { buttonClass } from "@/components/ui/button";
-import { MobileMenu, NavLinks, StorePicker, type NavItem, type PickerStore } from "./nav-client";
+import { MobileMenu, NavLinks, StorePicker, type NavItem } from "./nav-client";
 import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { screenCopy } from "@/lib/compliance";
@@ -46,21 +46,18 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
       </>
     );
 
-  const [customer, store, count, stores, company, settings, promos, launch] = await Promise.all([
+  const [customer, store, count, footprint, company, settings, promos, launch] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getCartCount(),
-    getRetailStores(),
+    getStoreFootprint(),
     getFranchisor(),
     getSettings(),
     activePromotions({ channel: "ONLINE" }),
     launchState(),
   ]);
-  const picker: PickerStore[] = stores.map((s) => {
-    const o = openState(parseHours(s.hours));
-    return { code: s.code, name: s.name, suburb: s.suburb, city: s.city, province: s.province, lat: s.lat, lng: s.lng, status: s.status, sameDay: s.sameDay, open: o.open, openLabel: o.label };
-  });
-  const current = store ? picker.find((p) => p.code === store.code) ?? null : null;
+  const hours = store && openState(parseHours(store.hours));
+  const current = store && hours ? { code: store.code, name: store.name, open: hours.open, openLabel: hours.label } : null;
   // Headline the newest public deal (code-only offers stay private; copy is screened defensively).
   const headline = promos.find((p) => !p.code && !screenCopy(p.name).length);
   // While the Founding Members list is open, lead with its closing date.
@@ -76,8 +73,6 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         { text: "Click & collect at your nearest store", href: "/stores" },
       ];
   const tier = customer ? tierMeta(customer.tier) : null;
-  const trading = stores.filter((s) => s.status === "ACTIVE");
-  const provinces = [...new Set(trading.map((s) => s.province))];
 
   return (
     <>
@@ -118,7 +113,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             </Link>
             <NavLinks items={NAV} className="ml-4 hidden lg:flex" />
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
-              <StorePicker stores={picker} current={current} className="hidden md:flex" />
+              <StorePicker current={current} className="hidden md:flex" />
               <Link
                 href="/club"
                 className="flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
@@ -141,7 +136,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           </Container>
           <div className="border-t border-ink-850 md:hidden">
             <Container>
-              <StorePicker stores={picker} current={current} variant="bar" />
+              <StorePicker current={current} variant="bar" />
             </Container>
           </div>
         </header>
@@ -161,7 +156,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Dutch heritage. <span className="font-semibold text-white">African soil.</span>
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
-                Lab-tested, batch-traceable cannabis wellness, accessories and gear — in {trading.length} stores across {provinces.length} provinces and online.
+                Lab-tested, batch-traceable cannabis wellness, accessories and gear — in {footprint.trading} stores across {footprint.provinces.length} provinces and online.
               </p>
               <Link href="/club/join" className={buttonClass("outline-dark", "md", "mt-6")}>
                 Join Herbal Holland Rewards
@@ -178,11 +173,11 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           <Container className="py-6">
             <p className="text-xs leading-relaxed text-ink-400">
               <span className="font-semibold text-ink-200">Stores: </span>
-              {provinces.map((p, i) => (
-                <span key={p}>
+              {footprint.provinces.map((p, i) => (
+                <span key={p.code}>
                   {i > 0 && " · "}
-                  {PROVINCES[p as ProvinceCode]}{" "}
-                  <span className="text-ink-500">({[...new Set(trading.filter((s) => s.province === p).map((s) => s.city))].join(", ")})</span>
+                  {PROVINCES[p.code as ProvinceCode]}{" "}
+                  <span className="text-ink-500">({p.cities.join(", ")})</span>
                 </span>
               ))}
             </p>

@@ -39,6 +39,7 @@ export function CheckoutForm(props: {
   blocked: string | null;
 }) {
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrderAction, {});
+  const typed = state.values; // the address as typed, after an error (the form resets once the action returns)
   const first = props.options.find((o) => o.ok)?.key ?? "COLLECT";
   const [fulfilment, setFulfilment] = useState<Fulfil>(first);
   const [storeId, setStoreId] = useState(props.defaultStoreId ?? props.stores.find((s) => s.hasAll)?.id ?? "");
@@ -144,16 +145,16 @@ export function CheckoutForm(props: {
             </h2>
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldRow label="Street address" htmlFor="co-line" error={state.fields?.addressLine} className="sm:col-span-2">
-                <TextInput id="co-line" name="addressLine" autoComplete="address-line1" defaultValue={props.address?.addressLine} required aria-invalid={!!state.fields?.addressLine} />
+                <TextInput id="co-line" name="addressLine" autoComplete="address-line1" defaultValue={typed?.addressLine ?? props.address?.addressLine} required aria-invalid={!!state.fields?.addressLine} />
               </FieldRow>
               <FieldRow label="Suburb" htmlFor="co-suburb" error={state.fields?.suburb}>
-                <TextInput id="co-suburb" name="suburb" autoComplete="address-level3" defaultValue={props.address?.suburb} required aria-invalid={!!state.fields?.suburb} />
+                <TextInput id="co-suburb" name="suburb" autoComplete="address-level3" defaultValue={typed?.suburb ?? props.address?.suburb} required aria-invalid={!!state.fields?.suburb} />
               </FieldRow>
               <FieldRow label="Town or city" htmlFor="co-city" error={state.fields?.city}>
-                <TextInput id="co-city" name="city" autoComplete="address-level2" defaultValue={props.address?.city} required aria-invalid={!!state.fields?.city} />
+                <TextInput id="co-city" name="city" autoComplete="address-level2" defaultValue={typed?.city ?? props.address?.city} required aria-invalid={!!state.fields?.city} />
               </FieldRow>
               <FieldRow label="Province" htmlFor="co-prov" error={state.fields?.province}>
-                <SelectInput id="co-prov" name="province" defaultValue={props.address?.province ?? ""} required aria-invalid={!!state.fields?.province}>
+                <SelectInput key={typed?.province} id="co-prov" name="province" defaultValue={typed?.province ?? props.address?.province ?? ""} required aria-invalid={!!state.fields?.province}>
                   <option value="" disabled>
                     Choose…
                   </option>
@@ -165,10 +166,10 @@ export function CheckoutForm(props: {
                 </SelectInput>
               </FieldRow>
               <FieldRow label="Postal code" htmlFor="co-post" error={state.fields?.postalCode}>
-                <TextInput id="co-post" name="postalCode" inputMode="numeric" autoComplete="postal-code" maxLength={4} defaultValue={props.address?.postalCode} required aria-invalid={!!state.fields?.postalCode} />
+                <TextInput id="co-post" name="postalCode" inputMode="numeric" autoComplete="postal-code" maxLength={4} defaultValue={typed?.postalCode ?? props.address?.postalCode} required aria-invalid={!!state.fields?.postalCode} />
               </FieldRow>
               <FieldRow label="Delivery notes (optional)" htmlFor="co-notes" className="sm:col-span-2" hint="Gate code, complex name, where to leave the driver's details…">
-                <textarea id="co-notes" name="notes" rows={2} maxLength={200} className={cn(inputClass, "py-3")} />
+                <textarea id="co-notes" name="notes" rows={2} maxLength={200} defaultValue={typed?.notes} className={cn(inputClass, "py-3")} />
               </FieldRow>
             </div>
           </section>

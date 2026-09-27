@@ -10,11 +10,13 @@ import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
 import { createCustomer, CustomerError, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
 import { getDispensaryAccess, getClasses } from "./access";
-import { getCart, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
+import { getCart, getRetailStores, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
+import { openState, parseHours } from "./hours";
 import { cartCount, withItem, withQty } from "./cart-codec";
 import { readPhoneToken, signPhone } from "./phone-token";
 import { checkSaId } from "@/lib/sa";
 import type { MsgChannel } from "@/generated/prisma/client";
+import type { PickerStore } from "@/components/shop/nav-client";
 
 /** Only same-site relative paths are accepted as post-sign-in destinations. */
 function safeNext(raw: FormDataEntryValue | null) {
@@ -36,6 +38,14 @@ export async function choosePreferredStore(code: string) {
   if (!store) return { error: "That store isn't trading yet" };
   await savePreferredStore(store.code);
   return { ok: true as const };
+}
+
+/** The store picker's list, fetched when the picker opens — too big to put on every page at network scale. */
+export async function pickerStores(): Promise<PickerStore[]> {
+  return (await getRetailStores()).map((s) => {
+    const o = openState(parseHours(s.hours));
+    return { code: s.code, name: s.name, suburb: s.suburb, city: s.city, province: s.province, lat: s.lat, lng: s.lng, status: s.status, sameDay: s.sameDay, open: o.open, openLabel: o.label };
+  });
 }
 
 // ── Bag ──────────────────────────────────────────────────────────────────────
@@ -140,7 +150,9 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
   if (intent === "register") {
     const phone = readPhoneToken(jar.get(SHOP_COOKIE.phone)?.value);
     if (!phone) return { step: "phone", error: "Your verification expired — please confirm your number again" };
-    const v = Object.fromEntries(["firstName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref"].map((k) => [k, String(form.get(k) ?? "").trim()]));
+    // Everything comes back with an error, ticks too: React resets the form after the action, and a lost opt-in goes unnoticed.
+    const v = Object.fromEntries(["firstName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
+    v.interests = form.getAll("interest").map(String).join(" ");
     const fields: AuthState["fields"] = {};
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
     if (v.email && !EMAIL.test(v.email)) fields.email = "That email address doesn't look right";
