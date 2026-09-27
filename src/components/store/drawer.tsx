@@ -20,7 +20,9 @@ export function Drawer({ label, icon, title, description, children, defaultOpen 
   useEffect(() => {
     if (!open) return;
     const prev = document.activeElement as HTMLElement | null;
-    const first = panel.current?.querySelector<HTMLElement>("input:not([type=hidden]), select, textarea, button");
+    const first =
+      panel.current?.querySelector<HTMLElement>("[data-drawer-body] :is(input:not([type=hidden]):not([type=checkbox]):not([type=radio]), select, textarea)") ??
+      panel.current?.querySelector<HTMLElement>("button");
     first?.focus();
     const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     window.addEventListener("keydown", esc);
@@ -45,7 +47,9 @@ export function Drawer({ label, icon, title, description, children, defaultOpen 
                 <X className="h-5 w-5" aria-hidden />
               </button>
             </div>
-            <div className="p-5">{children}</div>
+            <div className="p-5" data-drawer-body>
+              {children}
+            </div>
           </div>
         </div>
       )}

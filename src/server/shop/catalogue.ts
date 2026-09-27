@@ -67,6 +67,10 @@ export const directDeal = (p: { id: string; categoryId: string; regClass: string
   dealsFor(p, pr).find((d) => (d.kind === "PERCENT" || d.kind === "FIXED") && !d.minSpendCents && qualifies(d, p));
 export const withDeal = (cents: number, d?: Promotion | null) => (!d ? cents : cents - (d.kind === "PERCENT" ? Math.round((cents * d.value) / 100) : Math.min(cents, d.value)));
 
+/** Plain headline for a deal; bonus buys with a different reward item read better by name. */
+export const dealHeadline = (d: Promotion) =>
+  d.kind === "BUY_X_GET_Y" && (d.rewardProductIds.length || d.rewardCategoryIds.length) ? d.name : describePromo(d as unknown as PromoInput);
+
 export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d as unknown as PromoInput));
 
 // ── Stock ────────────────────────────────────────────────────────────────────

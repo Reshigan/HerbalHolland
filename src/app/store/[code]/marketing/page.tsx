@@ -213,7 +213,7 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
   const segParam = sp1(sp.segment);
   const segments = [
     { value: "ALL", label: "All members" },
-    ...(Object.keys(SEGMENTS) as SegmentKey[]).map((k) => ({ value: k, label: `${SEGMENTS[k].name} — ${SEGMENTS[k].blurb.toLowerCase()}` })),
+    ...(Object.keys(SEGMENTS) as SegmentKey[]).map((k) => ({ value: k, label: SEGMENTS[k].name, hint: SEGMENTS[k].blurb })),
     ...["SEED", "SPROUT", "BLOOM", "HARVEST"].map((t) => ({ value: `tier:${t}`, label: `${t.charAt(0) + t.slice(1).toLowerCase()} tier` })),
   ];
 

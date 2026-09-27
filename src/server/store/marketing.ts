@@ -20,14 +20,25 @@ export async function storePromotions(store: { id: string }) {
   const [own, network] = await Promise.all([
     db.promotion.findMany({ where: { ownerStoreId: store.id }, orderBy: [{ active: "desc" }, { endsAt: "desc" }], take: 100 }),
     db.promotion.findMany({
-      where: { ownerStoreId: null, active: true, endsAt: { gte: now }, channels: { has: "POS" }, OR: [{ storeIds: { isEmpty: true } }, { storeIds: { has: store.id } }] },
+      // Network-wide promotions may store storeIds as NULL rather than '{}' (see server/pricing activePromotions).
+      where: { ownerStoreId: null, active: true, endsAt: { gte: now }, channels: { has: "POS" }, OR: [{ storeIds: { isEmpty: true } }, { storeIds: { equals: null } }, { storeIds: { has: store.id } }] },
       orderBy: { endsAt: "asc" },
     }),
   ]);
   const ids = [...own, ...network].map((p) => p.id);
   const usage = await db.sale.groupBy({ by: ["promotionId"], where: { storeId: store.id, promotionId: { in: ids } }, _count: true, _sum: { discountCents: true } });
   const used = new Map(usage.map((u) => [u.promotionId!, { sales: u._count, discountCents: u._sum.discountCents ?? 0 }]));
-  const withUse = <T extends Promotion>(p: T) => ({ ...p, state: promoState(p, now), use: used.get(p.id) ?? { sales: 0, discountCents: 0 } });
+  // Seeded rows can hold NULL arrays; normalise so describePromo and the UI can rely on them.
+  const withUse = <T extends Promotion>(p: T) => ({
+    ...p,
+    categoryIds: p.categoryIds ?? [],
+    productIds: p.productIds ?? [],
+    rewardCategoryIds: p.rewardCategoryIds ?? [],
+    rewardProductIds: p.rewardProductIds ?? [],
+    days: p.days ?? [],
+    state: promoState(p, now),
+    use: used.get(p.id) ?? { sales: 0, discountCents: 0 },
+  });
   return { own: own.map(withUse), network: network.map(withUse) };
 }
 

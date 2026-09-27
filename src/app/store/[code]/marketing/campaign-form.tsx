@@ -14,7 +14,7 @@ type Reach = { total: number; reachable: number };
 export function CampaignForm({ action, reach, segments, promos, initialSegment }: {
   action: FormAction;
   reach: (segment: string, channel: string) => Promise<Reach>;
-  segments: { value: string; label: string }[];
+  segments: { value: string; label: string; hint?: string }[];
   promos: { id: string; name: string; code: string | null }[];
   initialSegment?: string;
 }) {
@@ -58,7 +58,7 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
         <FieldError name="name" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
-        <Field label="Send to" htmlFor="cp-seg">
+        <Field label="Send to" htmlFor="cp-seg" hint={segments.find((s) => s.value === segment)?.hint}>
           <Select id="cp-seg" name="segment" value={segment} onChange={(e) => setSegment(e.target.value)}>
             {segments.map((s) => (
               <option key={s.value} value={s.value}>{s.label}</option>

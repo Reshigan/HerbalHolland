@@ -8,13 +8,31 @@ import { Heatmap } from "@/components/charts/heatmap";
 import { SERIES } from "@/components/charts/scale";
 import type { ReportChart as Spec } from "@/server/reports/types";
 
+// SVG charts scale with their box: on a phone keep a minimum width (scrolling sideways)
+// so axis labels stay legible instead of shrinking to a few pixels.
+function Scroll({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+      <div className="min-w-[34rem]">{children}</div>
+    </div>
+  );
+}
+
 export function ReportChart({ chart }: { chart: Spec }) {
   const format = chart.format ?? "number";
   switch (chart.kind) {
     case "area":
-      return <AreaChart labels={chart.labels} format={format} series={chart.series.map((s, i) => ({ ...s, color: SERIES[i % SERIES.length] }))} />;
+      return (
+        <Scroll>
+          <AreaChart labels={chart.labels} format={format} series={chart.series.map((s, i) => ({ ...s, color: SERIES[i % SERIES.length] }))} />
+        </Scroll>
+      );
     case "column":
-      return <ColumnChart data={chart.data} format={format} labelEvery={1} />;
+      return (
+        <Scroll>
+          <ColumnChart data={chart.data} format={format} labelEvery={1} />
+        </Scroll>
+      );
     case "bar":
       return <BarList rows={chart.rows} format={format} />;
     case "donut":

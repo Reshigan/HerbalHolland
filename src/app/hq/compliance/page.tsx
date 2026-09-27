@@ -24,6 +24,7 @@ import { ComplianceForm } from "./compliance-form";
 export const metadata = { title: "Compliance" };
 
 const CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
+const EVENT: Record<string, string> = { "compliance.block": "Sale blocked", "compliance.settings": "Rules changed", "compliance.licence": "Licence updated", "compliance.product": "Product compliance data changed" };
 
 // Regulatory watch-list — from docs/research/COMPLIANCE-RESEARCH.md (researched 27 Sep 2026; not legal advice).
 const WATCH: { item: string; status: string; tone: "amber" | "blue" | "neutral" | "red"; date: string; action: string }[] = [
@@ -204,7 +205,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
               return (
                 <li key={e.id} className="px-5 py-2.5 text-sm">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium text-ink-850">{e.action.replace("compliance.", "").replaceAll("_", " ")}</span>
+                    <span className="font-medium text-ink-850">{EVENT[e.action] ?? e.action.replace("compliance.", "").replaceAll("_", " ")}</span>
                     <span className="shrink-0 text-xs text-ink-500">{fmtDateTime(e.at)}</span>
                   </div>
                   <p className="truncate text-xs text-ink-500">

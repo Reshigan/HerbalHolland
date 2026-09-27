@@ -28,7 +28,7 @@ export function FilterBar({ path, query, controls }: { path: string; query: Reco
     <div role="search" aria-label="Report filters" className="mb-6 flex flex-wrap items-center gap-2 print:hidden">
       {range && (
         <>
-          <NavCapture className="scrollbar-none -mx-1 max-w-[calc(100%+0.5rem)] overflow-x-auto px-1 py-0.5">
+          <NavCapture className="scrollbar-none -mx-1 max-w-[calc(100%+0.5rem)] overflow-x-auto px-1 py-0.5 [&_a]:whitespace-nowrap">
             <RangeTabs path={path} current={range.preset} params={rest} />
           </NavCapture>
           <CustomRange key={`${range.from}:${range.to}`} from={range.from} to={range.to} active={range.preset === "custom"} onApply={(from, to) => nav({ range: undefined, from, to })} />
