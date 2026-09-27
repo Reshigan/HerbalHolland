@@ -1,0 +1,13 @@
+// DEMO_MODE only: sign in as a seeded user via GET (used by screenshots and smoke tests).
+import { NextResponse } from "next/server";
+import { db } from "@/server/db";
+import { homeFor, startSession } from "@/server/auth";
+
+export async function GET(req: Request) {
+  if (process.env.DEMO_MODE !== "true") return new NextResponse("Not found", { status: 404 });
+  const url = new URL(req.url);
+  const user = await db.user.findUnique({ where: { email: url.searchParams.get("email") ?? "" } });
+  if (!user) return new NextResponse("Unknown demo user", { status: 404 });
+  await startSession("staff", { userId: user.id }, 24);
+  return NextResponse.redirect(new URL(url.searchParams.get("next") || (await homeFor(user)), req.url));
+}
