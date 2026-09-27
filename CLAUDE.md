@@ -27,7 +27,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 
 | Surface | Route | Look |
 |---|---|---|
-| Storefront + Herbal Holland Rewards (consumer PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club/*`, `/batch/[code]` | dark brand |
+| Storefront + Herbal Holland Rewards (consumer PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club/*`, `/drops`, `/events/[slug]`, `/s/[ref]`, `/batch/[code]` | dark brand |
 | POS (offline-first, tap on glass) | `/pos`, `/api/pos/*` | dark, touch-first |
 | Store back office | `/store/[code]/*` | light content, dark sidebar |
 | HQ console | `/hq/*` | light content, dark sidebar |

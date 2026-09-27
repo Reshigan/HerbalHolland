@@ -37,7 +37,9 @@
 1. HQ → Launch: confirm the launch date-time (SAST). Until then the shop runs as a waitlist.
 2. After the launch time the scheduler numbers the first `foundingCap` waitlist places (or press "Assign founding
    numbers now"); spot-check a founder's card shows the number and Sprout.
-3. HQ → Drops / Events: first drop and opening weekends scheduled inside CPA send windows; stock allocated.
+3. HQ → Drops / Events: first drop and opening weekends scheduled inside CPA send windows; stock allocated. At the
+   door, the till checks guests in by scanning the ticket QR in their Rewards card (or typing `HHRSVP:` + code); the
+   event's door list (CSV) is the paper fallback.
 4. HQ → Rewards: My Deals on; welcome-gift promotion live (first purchase only).
 5. Watch the till member-attach rate, sign-ups per hour and SMS spend in the first 48 hours.
 

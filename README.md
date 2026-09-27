@@ -8,7 +8,7 @@ compliance-first by design.
 
 | Surface | Route | For |
 |---|---|---|
-| Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club` | Customers & patients |
+| Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club`, `/drops`, `/events/[slug]`, `/s/[ref]` (share cards) | Customers & patients |
 | Dispensary (licensed medicines) | `/dispensary` — visible only to signed-in patients with an active authorisation | Patients |
 | POS — offline-first, tap on glass | `/pos` | Budtenders & dispensers |
 | Store back office | `/store/[code]` | Store managers & franchise owners |
