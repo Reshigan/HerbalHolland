@@ -11,7 +11,7 @@ import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSecret } from "../src/server/crypto";
 import { allocate } from "../src/lib/fefo";
-import { pointsFor, tierFor, type TierKey } from "../src/lib/loyalty-rules";
+import { pointsFor, tierFor, DEFAULT_TIER_SAVINGS, type TierKey } from "../src/lib/loyalty-rules";
 import { vatOf } from "../src/lib/money";
 import { dayKey } from "../src/lib/format";
 import { applyPromotions, type PromoInput } from "../src/lib/promotions";
@@ -447,6 +447,18 @@ async function main() {
     return lines;
   }
 
+  // Instant Rewards pricing, as resolvePrice does it: members pay their tier % less, or this week's Rewards deal price
+  // when that's lower. Never on licensed medicines (s18A).
+  const DEAL_SLUGS = ["calm-cbd-oil-600", "rooibos-cbd-tea", "sunset-grinder", "windmill-rolling-tray", "hemp-hand-cream"];
+  const dealFrom = daysAgo(5);
+  const deals = new Map(variants.filter((v) => DEAL_SLUGS.includes(v.slug)).map((v) => [v.id, Math.round((v.price * 0.8) / 100) * 100 - 1]));
+  const memberUnit = (base: number, v: SimVariant, c: SimCustomer | null, ts: Date) => {
+    if (!c || v.reg === "THC") return base;
+    const tier = Math.round((base * (100 - DEFAULT_TIER_SAVINGS[c.tier])) / 100);
+    const deal = ts >= dealFrom ? deals.get(v.id) : undefined;
+    return deal != null && deal < tier ? deal : tier;
+  };
+
   type Tender = { method: "CARD" | "CASH" | "PAYSHAP" | "EFT" | "LOYALTY" | "ONLINE"; amountCents: number; tenderedCents?: number; changeCents?: number; provider?: string; reference?: string; cardBrand?: string; cardLast4?: string };
   function post(o: {
     store: SimStore; c: SimCustomer | null; ts: Date; lines: { v: SimVariant; qty: number }[]; channel: "POS" | "ONLINE"; orderId?: string; number: string;
@@ -454,13 +466,13 @@ async function main() {
   }) {
     const { store: s, c, ts } = o;
     const zone = o.channel === "POS" && s.code === "CPT01" ? 1.05 : 1;
-    const member = !!c && (c.tier === "BLOOM" || c.tier === "HARVEST");
     const priced = o.lines.map(({ v, qty }) => {
       const r = ranged.get(lk(s.id, v.id));
-      let unit = o.channel === "POS" ? (r?.price ?? Math.round(v.price * zone)) : v.price;
-      if (member && v.reg !== "THC") unit = Math.round(unit * 0.95);
-      return { v, qty, unit, noPromo: v.reg === "THC" };
+      const base = o.channel === "POS" ? (r?.price ?? Math.round(v.price * zone)) : v.price;
+      const unit = memberUnit(base, v, c, ts);
+      return { v, qty, unit, noPromo: v.reg === "THC", saved: (base - unit) * qty };
     });
+    const saved = priced.reduce((a, p) => a + p.saved, 0);
     const promos = promosAt(ts, o.channel, s.id);
     const pr = applyPromotions(priced.map((p) => ({ key: p.v.id, productId: p.v.productId, categoryId: catId[p.v.cat], qty: p.qty, unitPriceCents: p.unit, noPromo: p.noPromo })), promos, o.code);
     const code = o.code && !pr.codeError ? o.code : null;
@@ -477,7 +489,7 @@ async function main() {
       units += p.qty;
       const lt = pr.lines[i].totalCents;
       if (p.noPromo) thcTotal += lt;
-      saleLines.push({ id: uid(), saleId, variantId: p.v.id, qty: p.qty, unitPriceCents: p.unit, discountCents: pr.lines[i].discountCents, totalCents: lt, vatCents: lineVat(lt), costCents: lc, allocations });
+      saleLines.push({ id: uid(), saleId, variantId: p.v.id, qty: p.qty, unitPriceCents: p.unit, discountCents: pr.lines[i].discountCents, memberSavingsCents: p.saved, totalCents: lt, vatCents: lineVat(lt), costCents: lc, allocations });
       const vk = `${s.id}|${date}|${p.v.id}`;
       const vs = variantStats.get(vk) ?? { storeId: s.id, date, variantId: p.v.id, units: 0, netCents: 0, costCents: 0 };
       vs.units += p.qty;
@@ -548,11 +560,11 @@ async function main() {
     const vat = priced.reduce((a, _, i) => a + lineVat(pr.lines[i].totalCents), 0) + lineVat(extra);
     sales.push({
       id: saleId, number: o.number, storeId: s.id, channel: o.channel, orderId: o.orderId, shiftId: o.shiftId, staffId: o.staffId, deviceId: o.channel === "POS" ? s.deviceId : null,
-      customerId: c?.id, subtotalCents: pr.subtotalCents + extra, discountCents: pr.discountCents, totalCents: total, vatCents: vat, costCents: cost, pointsEarned: earned,
+      customerId: c?.id, subtotalCents: pr.subtotalCents + extra, discountCents: pr.discountCents, memberSavingsCents: saved, totalCents: total, vatCents: vat, costCents: cost, pointsEarned: earned,
       promoCode: code, promotionId: pr.applied[0]?.id ?? null, campaignId, ageCheck: !ageRestricted ? "NONE" : c ? c.ageCheck : "ID_SIGHTED",
       invoiceEmail: c?.email ?? null, invoiceSentAt: c?.email ? ts : null, createdAt: ts, syncedAt: ts,
     });
-    const d: Record<string, number> = { sales: 1, units, grossCents: total, vatCents: vat, costCents: cost, discountCents: pr.discountCents, members: c ? 1 : 0, pointsIssued: earned };
+    const d: Record<string, number> = { sales: 1, units, grossCents: total, vatCents: vat, costCents: cost, discountCents: pr.discountCents, memberSavingsCents: saved, members: c ? 1 : 0, pointsIssued: earned };
     const col = { CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents" } as const;
     for (const t of tenders) d[col[t.method]] = (d[col[t.method]] ?? 0) + t.amountCents;
     bump(s.id, date, o.channel, d);
@@ -698,11 +710,12 @@ async function main() {
             const refundId = uid();
             const amount = line.totalCents;
             const vat = line.vatCents;
+            const back = line.memberSavingsCents ?? 0;
             for (const a of line.allocations as { batchId: string; qty: number; unitCostCents: number }[]) put(s.id, line.variantId, a.batchId, a.qty, a.unitCostCents, "REFUND", rts, { saleId: refundId });
-            sales.push({ id: refundId, number: `${s.code}-A${String(++s.seq).padStart(5, "0")}`, kind: "REFUND", refundOfId: orig.id, storeId: s.id, channel: "POS", staffId: manager.id, customerId: orig.customerId, subtotalCents: -amount, totalCents: -amount, vatCents: -vat, costCents: -line.costCents, note: pick(["Faulty grinder thread", "Wrong size", "Changed mind (unopened)", "Damaged packaging"]), createdAt: rts, syncedAt: rts, invoiceEmail: orig.invoiceEmail });
-            saleLines.push({ id: uid(), saleId: refundId, variantId: line.variantId, qty: -line.qty, unitPriceCents: line.unitPriceCents, totalCents: -amount, vatCents: -vat, costCents: -line.costCents, allocations: (line.allocations as object[]).map((a) => ({ ...a, lineId: line.id })) });
+            sales.push({ id: refundId, number: `${s.code}-A${String(++s.seq).padStart(5, "0")}`, kind: "REFUND", refundOfId: orig.id, storeId: s.id, channel: "POS", staffId: manager.id, customerId: orig.customerId, subtotalCents: -amount, totalCents: -amount, vatCents: -vat, costCents: -line.costCents, memberSavingsCents: -back, note: pick(["Faulty grinder thread", "Wrong size", "Changed mind (unopened)", "Damaged packaging"]), createdAt: rts, syncedAt: rts, invoiceEmail: orig.invoiceEmail });
+            saleLines.push({ id: uid(), saleId: refundId, variantId: line.variantId, qty: -line.qty, unitPriceCents: line.unitPriceCents, memberSavingsCents: -back, totalCents: -amount, vatCents: -vat, costCents: -line.costCents, allocations: (line.allocations as object[]).map((a) => ({ ...a, lineId: line.id })) });
             payments.push({ id: uid(), saleId: refundId, method: "CARD", amountCents: -amount, createdAt: rts });
-            bump(s.id, dayKey(rts), "POS", { refunds: 1, units: -line.qty, grossCents: -amount, vatCents: -vat, costCents: -line.costCents, cardCents: -amount });
+            bump(s.id, dayKey(rts), "POS", { refunds: 1, units: -line.qty, grossCents: -amount, vatCents: -vat, costCents: -line.costCents, memberSavingsCents: -back, cardCents: -amount });
             const vs = variantStats.get(`${s.id}|${dayKey(rts)}|${line.variantId}`) ?? { storeId: s.id, date: dayKey(rts), variantId: line.variantId, units: 0, netCents: 0, costCents: 0 };
             vs.units -= line.qty;
             vs.netCents -= amount - vat;
@@ -759,7 +772,7 @@ async function main() {
       while (orderCodes.has(code));
       orderCodes.add(code);
       const payOnline = fulfil !== "COLLECT" || chance(0.62);
-      const sub = lines.reduce((a, l) => a + l.qty * l.v.price, 0);
+      const sub = lines.reduce((a, l) => a + l.qty * memberUnit(l.v.price, l.v, c, ts), 0);
       const fee = fulfil === "COLLECT" || sub >= 90000 ? 0 : fulfil === "SAME_DAY" ? (c.tier === "BLOOM" || c.tier === "HARVEST" ? 0 : 6500) : 9900;
       const steps = fulfil === "COLLECT" ? [["PICKING", int(5, 25)], ["READY", int(15, 45)], ["COMPLETED", int(60, 26 * 60)]] : [["PICKING", int(5, 25)], ["READY", int(15, 40)], ["OUT_FOR_DELIVERY", int(20, fulfil === "SAME_DAY" ? 90 : 20 * 60)], ["COMPLETED", fulfil === "SAME_DAY" ? int(40, 120) : int(24 * 60, 60 * 60)]];
       const events: { status: string; at: string; note?: string }[] = [{ status: "PLACED", at: ts.toISOString(), note: fulfil === "COURIER" ? `Ships from ${store.name}` : fulfil === "SAME_DAY" ? `Nearest same-day store with full stock (${store.name})` : "Customer's chosen store" }];
@@ -821,7 +834,10 @@ async function main() {
         trackingNo: postedAt && fulfil !== "COLLECT" ? `TCG${int(10000000, 99999999)}` : null, events, createdAt: ts, updatedAt: new Date(cursor > NOW.getTime() ? NOW : cursor),
         completedAt: status === "COMPLETED" ? new Date(Math.min(cursor, NOW.getTime())) : null,
       });
-      for (const l of lines) orderLines.push({ id: uid(), orderId, variantId: l.v.id, qty: l.qty, unitPriceCents: l.v.price, totalCents: l.qty * l.v.price });
+      for (const l of lines) {
+        const unit = memberUnit(l.v.price, l.v, c, ts);
+        orderLines.push({ id: uid(), orderId, variantId: l.v.id, qty: l.qty, unitPriceCents: unit, memberSavingsCents: (l.v.price - unit) * l.qty, totalCents: l.qty * unit });
+      }
     }
 
     // Win-back audience is defined at send time.
@@ -959,12 +975,13 @@ async function main() {
   const plZone = uid(), plMember = uid(), plVolume = uid(), plOct = uid();
   priceLists.push(
     { id: plZone, name: "Atlantic Seaboard tourist zone", kind: "ZONE", storeIds: [stores.find((s) => s.code === "CPT01")!.id], regionIds: [], adjustPct: 5, priority: 1 },
-    { id: plMember, name: "Rewards member price", kind: "MEMBER", tiers: ["BLOOM", "HARVEST"], storeIds: [], regionIds: [], adjustPct: -5, priority: 0 },
+    { id: plMember, name: "Rewards deal", kind: "MEMBER", tiers: [], storeIds: [], regionIds: [], priority: 0, startsAt: dealFrom, endsAt: new Date(dealFrom.getTime() + 7 * DAY) },
     { id: plVolume, name: "Volume pricing", kind: "ZONE", storeIds: [], regionIds: [], priority: 0 },
     { id: plOct, name: "October price update", kind: "ZONE", storeIds: [], regionIds: [], priority: 2, startsAt: midnight(`${NOW.getUTCFullYear()}-${String(NOW.getUTCMonth() + 2).padStart(2, "0")}-01`) },
   );
   const papers = variants.find((v) => v.slug === "king-size-papers")!;
   priceItems.push({ id: uid(), priceListId: plVolume, variantId: papers.id, priceCents: 3000, minQty: 10 }, { id: uid(), priceListId: plVolume, variantId: papers.id, priceCents: 2800, minQty: 24 });
+  for (const [variantId, priceCents] of deals) priceItems.push({ id: uid(), priceListId: plMember, variantId, priceCents, minQty: 1 });
   for (const v of variants.filter((x) => x.cat === "grow").slice(0, 3)) priceItems.push({ id: uid(), priceListId: plOct, variantId: v.id, priceCents: v.price + 1000, minQty: 1 });
 
   // Stock levels are the sum of the ledger.

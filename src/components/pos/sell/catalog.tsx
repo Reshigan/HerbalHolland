@@ -66,20 +66,20 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex shrink-0 items-center gap-2 rounded-2xl text-[0.8rem] font-semibold transition md:w-full md:flex-col md:justify-center md:gap-1.5 md:px-1 md:py-3",
-        "h-11 px-4 md:h-auto md:min-h-[4.5rem]",
-        active ? "bg-oranje-500 text-ink-950" : "bg-ink-900 text-ink-300 ring-1 ring-ink-800 hover:text-white md:bg-transparent md:ring-0 md:hover:bg-ink-900",
+        "flex shrink-0 items-center gap-2 rounded-2xl text-[0.8rem] font-semibold transition lg:w-full lg:flex-col lg:justify-center lg:gap-1.5 lg:px-1 lg:py-3",
+        "h-12 px-4 lg:h-auto lg:min-h-[4.5rem]",
+        active ? "bg-oranje-500 text-ink-950" : "bg-ink-900 text-ink-300 ring-1 ring-ink-800 hover:text-white lg:bg-transparent lg:ring-0 lg:hover:bg-ink-900",
       )}
     >
       {icon}
-      <span className="md:text-center md:leading-tight">{label}</span>
+      <span className="lg:text-center lg:leading-tight">{label}</span>
     </button>
   );
 
   return (
-    <div className="flex h-full min-h-0 flex-col md:flex-row">
+    <div className="flex h-full min-h-0 flex-col lg:flex-row">
       {/* Category rail (vertical on tablet, chips on phone) */}
-      <nav className="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-3 pt-3 md:w-[5.75rem] md:flex-col md:gap-1 md:overflow-y-auto md:border-r md:border-ink-850 md:px-2 md:py-3" aria-label="Categories">
+      <nav className="scrollbar-none flex shrink-0 gap-2 overflow-x-auto px-3 pt-3 lg:w-[5.75rem] lg:flex-col lg:gap-1 lg:overflow-y-auto lg:border-r lg:border-ink-850 lg:px-2 lg:py-3" aria-label="Categories">
         {railItem(filter.kind === "all" && !query, () => (setFilter({ kind: "all" }), setQuery("")), <LayoutGrid className="h-5 w-5" />, "All", "all")}
         {deals.any && railItem(filter.kind === "deals" && !query, () => (setFilter({ kind: "deals" }), setQuery("")), <Tag className="h-5 w-5" />, "Deals", "deals")}
         {boot.categories
@@ -91,7 +91,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
       </nav>
 
       <div className="flex min-h-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 px-3 pb-2 pt-3 md:px-4">
+        <div className="flex items-center gap-2 px-3 pb-2 pt-3 lg:px-4">
           <div className="relative flex-1">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
             <input
@@ -112,7 +112,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
               className="h-12 w-full rounded-full border border-ink-800 bg-ink-900 pl-12 pr-16 text-base text-white placeholder:text-ink-500 focus:border-oranje-500 focus:outline-none focus:ring-4 focus:ring-oranje-500/20"
             />
             {query ? (
-              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-2 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-800">
+              <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-800">
                 <X className="h-4 w-4" />
               </button>
             ) : (
@@ -127,24 +127,24 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
         </div>
 
         {filter.kind === "suggestion" && !query && (
-          <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl bg-oranje-500/10 px-4 py-2 text-sm text-oranje-200 ring-1 ring-oranje-500/30 md:mx-4">
+          <div className="mx-3 mb-2 flex items-center justify-between gap-3 rounded-2xl bg-oranje-500/10 px-4 py-1 text-sm text-oranje-200 ring-1 ring-oranje-500/30 lg:mx-4">
             <span>
               <b className="text-oranje-300">Complete the deal:</b> {filter.label}
             </span>
-            <button type="button" onClick={() => setFilter({ kind: "all" })} className="h-9 shrink-0 rounded-full px-3 font-semibold text-oranje-300 hover:bg-oranje-500/10">
+            <button type="button" onClick={() => setFilter({ kind: "all" })} className="h-12 shrink-0 rounded-full px-4 font-semibold text-oranje-300 hover:bg-oranje-500/10">
               Show all
             </button>
           </div>
         )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 md:px-4">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-4 lg:px-4">
           {products.length === 0 ? (
             <div className="py-16 text-center text-ink-400">
               <p className="font-semibold text-ink-200">No products match “{query}”.</p>
               <p className="mt-1 text-sm">Check the spelling, or scan the barcode.</p>
             </div>
           ) : (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 2xl:grid-cols-5" aria-label="Products">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5" aria-label="Products">
               {products.map((p) => {
                 const prices = p.variants.map(shelfPrice);
                 const min = Math.min(...prices);

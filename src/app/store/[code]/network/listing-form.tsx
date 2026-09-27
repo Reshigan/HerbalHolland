@@ -47,7 +47,7 @@ export function ListingForm({ items, action }: { items: ListableItem[]; action: 
           <Input id="list-qty" name="qty" inputMode="numeric" value={qty} onChange={(e) => setQty(e.target.value.replace(/[^\d]/g, ""))} />
           <FieldError name="qty" />
         </Field>
-        <Field label="Asking price per unit (ex VAT)" htmlFor="list-price">
+        <Field label="Price each, ex VAT" htmlFor="list-price">
           <div className="relative">
             <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-500">R</span>
             <Input id="list-price" name="price" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} className="pl-7" />

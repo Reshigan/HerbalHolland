@@ -8,7 +8,7 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import {
-  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, eachDay, isoDay, multi, n, ratio,
+  CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, multi, n, ratio,
   storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap,
 } from "./util";
 
@@ -25,17 +25,18 @@ export const salesOverview: ReportDef = {
   async run(ctx) {
     const r = ctx.range;
     const [days, cur, prev] = await Promise.all([
-      db.dailyStoreStat.groupBy({ by: ["date"], where: statWhere(ctx), _sum: STAT_SUMS, orderBy: { date: "asc" } }),
+      db.dailyStoreStat.groupBy({ by: ["date"], where: statWhere(ctx), _sum: { ...STAT_SUMS, memberSavingsCents: true }, orderBy: { date: "asc" } }),
       db.dailyStoreStat.aggregate({ where: statWhere(ctx), _sum: STAT_SUMS }),
       db.dailyStoreStat.aggregate({ where: statWhere(ctx, previousRange(r)), _sum: STAT_SUMS }),
     ]);
     const byDay = new Map(days.map((d) => [isoDay(d.date), summaryOf(d._sum)]));
+    const savedBy = new Map(days.map((d) => [isoDay(d.date), d._sum.memberSavingsCents ?? 0]));
     const line = (s: ReturnType<typeof summaryOf>) => ({
       sales: s.sales, refunds: s.refunds, units: s.units, gross: s.grossCents, discount: s.discountCents, vat: s.vatCents,
       net: s.netCents, cost: s.costCents, gp: s.grossProfitCents, margin: s.netCents ? s.marginPct : null,
       atv: s.sales ? s.atvCents : null, upt: s.sales ? s.upt : null, members: s.sales ? s.memberRate : null,
     });
-    const rows: Row[] = eachDay(r).map((date) => ({ date, ...line(byDay.get(date) ?? summaryOf(null)) }));
+    const rows: Row[] = eachDay(r).map((date) => ({ date, ...line(byDay.get(date) ?? summaryOf(null)), savings: savedBy.get(date) ?? 0 }));
     const t = summaryOf(cur._sum), p = summaryOf(prev._sum);
     // Today is still trading: keep the partial day off the trend line.
     const complete = r.days > 1 && r.to === dayKey(ctx.now) ? rows.slice(0, -1) : rows;
@@ -43,13 +44,14 @@ export const salesOverview: ReportDef = {
       columns: [
         { key: "date", label: "Day", format: "day" },
         { key: "sales", label: "Transactions", format: "number" },
-        { key: "refunds", label: "Refunds", format: "number" },
-        { key: "units", label: "Units", format: "number" },
+        { key: "refunds", label: "Refunds", format: "number", csvOnly: true },
+        { key: "units", label: "Units", format: "number", csvOnly: true },
         { key: "gross", label: "Sales incl VAT", format: "zar" },
         { key: "discount", label: "Discounts", format: "zar" },
+        { key: "savings", label: "Rewards savings", format: "zar" },
         { key: "vat", label: "VAT", format: "zar" },
         { key: "net", label: "Net sales", format: "zar" },
-        { key: "cost", label: "Cost of sales", format: "zar" },
+        { key: "cost", label: "Cost of sales", format: "zar", csvOnly: true },
         { key: "gp", label: "Gross profit", format: "zar" },
         { key: "margin", label: "Margin", format: "pct" },
         { key: "atv", label: "Avg basket", format: "zar" },
@@ -57,11 +59,12 @@ export const salesOverview: ReportDef = {
         { key: "members", label: "Member sales", format: "pct" },
       ],
       rows,
-      totals: { date: "Total", ...line(t) },
+      title: "Day by day",
+      totals: { date: "Total", ...line(t), savings: [...savedBy.values()].reduce((s, v) => s + v, 0) },
       summary: [
         { label: "Net sales (ex VAT)", value: t.netCents, format: "zar", delta: delta(t.netCents, p.netCents) },
         { label: "Transactions", value: t.sales, format: "number", delta: delta(t.sales, p.sales) },
-        { label: "Average basket", value: t.atvCents, format: "zar", delta: delta(t.atvCents, p.atvCents), sub: "incl VAT" },
+        { label: "Avg basket incl VAT", value: t.atvCents, format: "zar", delta: delta(t.atvCents, p.atvCents) },
         { label: "Units per sale", value: Math.round(t.upt * 100) / 100, format: "number", delta: delta(t.upt, p.upt) },
         { label: "Gross margin", value: t.marginPct, format: "pct", sub: `${zar(t.grossProfitCents)} profit` },
         { label: "Discounts given", value: t.discountCents, format: "zar", sub: t.grossCents ? `${((t.discountCents / (t.grossCents + t.discountCents)) * 100).toFixed(1)}% of sales` : undefined, upIsGood: false },
@@ -77,7 +80,7 @@ export const salesOverview: ReportDef = {
           { name: "Gross profit", values: complete.map((x) => x.gp as number) },
         ],
       },
-      note: "Net sales exclude VAT. Refunds are netted off on the day they are processed. Average basket includes VAT.",
+      note: "Net sales exclude VAT. Refunds are netted off on the day they are processed. Discounts are promotions; Rewards savings are members' instant tier prices. Average basket includes VAT.",
     };
   },
 };
@@ -120,7 +123,7 @@ export const salesByProduct: ReportDef = {
         { key: "units", label: "Units", format: "number" },
         { key: "net", label: "Net sales", format: "zar" },
         { key: "avg", label: "Avg price ex VAT", format: "zar" },
-        { key: "cost", label: "Cost", format: "zar" },
+        { key: "cost", label: "Cost", format: "zar", csvOnly: true },
         { key: "gp", label: "Gross profit", format: "zar" },
         { key: "margin", label: "Margin", format: "pct" },
         { key: "share", label: "Share of sales", format: "pct" },
@@ -136,6 +139,7 @@ export const salesByProduct: ReportDef = {
             rows: data.slice(0, 10).map((d) => ({ label: d.v?.name ?? "Unknown", value: d.net, sub: `${d.units.toLocaleString()} sold`, tip: `${d.v?.name}\n${d.units} units · margin ${((ratio(d.net - d.cost, d.net) ?? 0) * 100).toFixed(1)}%` })),
           }
         : null,
+      emptyTitle: "No sales",
       empty: "No products sold in this period.",
       note: "Online orders are included on the day they were handed over or dispatched. Refunds reduce the product's units and sales.",
     };
@@ -195,6 +199,7 @@ export const salesByStore: ReportDef = {
   description: "Which stores lead, and who is growing against the previous period?",
   group: "Sales",
   scopes: ["hq", "store"],
+  multiStore: true,
   filters: ["range", "channel"],
   async run(ctx) {
     const prevR = previousRange(ctx.range);
@@ -237,6 +242,7 @@ export const salesByStore: ReportDef = {
         { key: "online", label: "Online share", format: "pct" },
       ],
       rows,
+      title: "League table",
       totals: {
         rank: "", store: "Total", net: t.netCents, prev: prevTotal, growth: delta(t.netCents, prevTotal), sales: t.sales,
         atv: t.sales ? t.atvCents : null, margin: t.netCents ? t.marginPct : null, members: t.sales ? t.memberRate : null,
@@ -397,7 +403,8 @@ export const salesByStaff: ReportDef = {
       ],
       rows: list,
       totals: t,
-      chart: list.length > 1 ? { kind: "bar", title: "Net sales by staff member", description: "Ex VAT · top 10", format: "zar", rows: list.slice(0, 10).map((x) => ({ label: x.name, value: x.net, sub: `${n(x.sales)} sales` })) } : null,
+      chart: list.length > 1 ? { kind: "bar", title: "Net sales by staff member", description: "Ex VAT · top 10", format: "zar", rows: list.slice(0, 10).map((x) => ({ label: x.name, value: x.net, sub: count(x.sales, "sale") })) } : null,
+      emptyTitle: "No sales",
       empty: "No sales recorded in this period.",
       note: "Net sales are after refunds the staff member processed. Member attach = share of their transactions linked to a Herbal Holland Rewards member. Average basket includes VAT.",
     };
@@ -466,7 +473,8 @@ export const refunds: ReportDef = {
         { label: "Top reason", value: byReason[0]?.reason ?? "—", sub: byReason[0] ? `${n(byReason[0].n)} refunds` : undefined },
       ],
       chart: byReason.length ? { kind: "bar", title: "Refunds by reason", description: "Value incl VAT", format: "zar", rows: byReason.slice(0, 8).map((r) => ({ label: r.reason, value: r.value, sub: `${r.n}×` })) } : null,
-      empty: "No refunds in this period.",
+      emptyTitle: "No refunds",
+      empty: "Nothing was refunded in this period.",
     };
   },
 };
@@ -508,6 +516,7 @@ export const payments: ReportDef = {
     const rows: Row[] = eachDay(ctx.range).map((date) => ({ date, ...line(byDay.get(date) as Record<string, number | null> | undefined) }));
     const t = line(all._sum as Record<string, number | null>);
     return {
+      title: "Day by day",
       columns: [
         { key: "date", label: "Day", format: "day" },
         { key: "sales", label: "Transactions", format: "number" },
@@ -621,6 +630,7 @@ export const onlineOrders: ReportDef = {
         ? { kind: "donut", title: "Where orders are now", description: "Orders placed in the period", format: "number", data: [{ label: "Completed", value: t.completed as number }, { label: "In progress", value: inProgress }, { label: "Awaiting payment", value: t.unpaid as number }, { label: "Cancelled", value: t.cancelled as number }], center: `${t.orders}` }
         : null,
       extra: reasons.length ? [{ title: "Cancellations by reason", columns: [{ key: "reason", label: "Reason" }, { key: "n", label: "Orders", format: "number" }], rows: reasons }] : [],
+      emptyTitle: "No online orders",
       empty: "No online orders were placed in this period.",
       note: "Times run from the moment an order is placed (after payment for pay-online orders) to the first 'ready' and 'completed' events. Order value excludes cancelled and unpaid orders.",
     };

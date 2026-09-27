@@ -1,7 +1,7 @@
 // Finance reports: P&L, VAT201 working, cash-ups, franchise statements and the
 // Rewards points liability. Built on the finance domain service so every screen agrees.
 import { db } from "../db";
-import { expensesFor, franchiseFees, franchiseStatement, profitAndLoss, salesByStore, vatReport } from "../finance";
+import { expensesFor, franchiseFees, franchiseStatement, monthRange, profitAndLoss, salesByStore, vatReport } from "../finance";
 import { receivedValue } from "../stock-orders";
 import { delta, previousRange } from "@/lib/ranges";
 import { applyBps, zar } from "@/lib/money";
@@ -9,7 +9,7 @@ import { dayKey, fmtDay, fmtMonth } from "@/lib/format";
 import { POINT_VALUE_CENTS, fmtPoints } from "@/lib/loyalty-rules";
 import type { Option, ReportCtx, ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
-import { STAT_SUMS, bounds, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
+import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
 
 const EXPENSE_LABEL: Record<string, string> = {
   RENT: "Rent", SALARIES: "Salaries & wages", UTILITIES: "Electricity & water", SECURITY: "Security", MARKETING: "Local marketing",
@@ -50,6 +50,7 @@ export const pnl: ReportDef = {
       line("Net profit before tax", cur.netProfit, prev.netProfit, "strong"),
     ];
     return {
+      title: "Income statement",
       columns: [
         { key: "line", label: "" },
         { key: "cur", label: `${fmtDay(ctx.range.start)} – ${fmtDay(`${ctx.range.to}T12:00:00Z`)}`, format: "zar" },
@@ -136,7 +137,7 @@ export const vat: ReportDef = {
     const ids = retail.filter((id) => ctx.stores.get(id)?.vendor);
     const skipped = retail.length - ids.length;
     if (!ids.length)
-      return { columns: [{ key: "line", label: "" }], rows: [], empty: "Not registered for VAT — no output tax is charged and no VAT201 is due for this store's company." };
+      return { columns: [{ key: "line", label: "" }], rows: [], emptyTitle: "Not a VAT vendor", empty: "This store's company isn't registered for VAT, so no output tax is charged and no VAT201 is due." };
     const { start, end } = bounds(ctx);
     const [v, expenses, fees, received] = await Promise.all([
       vatReport(ids, ctx.range),
@@ -158,6 +159,7 @@ export const vat: ReportDef = {
       { line: refund ? "VAT refundable by SARS" : "VAT payable to SARS", field: "20", amount: null, vat: Math.abs(v.payable), _style: "strong" },
     ];
     return {
+      title: "VAT201 working",
       columns: [
         { key: "line", label: "" },
         { key: "field", label: "VAT201 field" },
@@ -229,8 +231,8 @@ export const cashUps: ReportDef = {
       columns: [
         { key: "day", label: "Day", format: "day" },
         ...storeCols(ctx),
-        { key: "opened", label: "Opened", format: "datetime" },
-        { key: "closed", label: "Closed", format: "datetime" },
+        { key: "opened", label: "Opened", format: "time" },
+        { key: "closed", label: "Closed", format: "time" },
         { key: "by", label: "Cashed up by" },
         { key: "float", label: "Float", format: "zar" },
         { key: "cash", label: "Cash sales", format: "zar" },
@@ -241,6 +243,7 @@ export const cashUps: ReportDef = {
         { key: "notes", label: "Notes" },
       ],
       rows,
+      title: "Shifts",
       totalRows: count,
       totals: { day: "Closed shifts", expected: c.expected, counted: c.counted, variance: c.counted - c.expected },
       summary: [
@@ -250,6 +253,7 @@ export const cashUps: ReportDef = {
         { label: "Net variance", value: c.over + c.short, format: "zar", sub: `${zar(c.over)} over` },
       ],
       chart: multi(ctx) && shortByStore.size ? { kind: "bar", title: "Cash short by store", description: "Shifts listed below", format: "zar", rows: [...shortByStore].sort((a, b) => b[1] - a[1]).slice(0, 10).map(([label, value]) => ({ label, value })) } : null,
+      emptyTitle: "No shifts",
       empty: "No shifts were opened in this period.",
       note: "Expected cash = opening float + cash taken on sales − cash refunded in the shift. A shortage should be explained in the shift notes.",
     };
@@ -278,18 +282,23 @@ export const statements: ReportDef = {
   async run(ctx) {
     const month = ctx.params.month;
     const stores = [...ctx.stores.values()].filter((s) => s.kind === "RETAIL" && s.status !== "OPENING_SOON").sort((a, b) => a.name.localeCompare(b.name));
-    const list = await mapLimit(stores, 6, (s) => franchiseStatement(s.id, month));
+    const r = monthRange(month);
+    const [list, saved] = await Promise.all([
+      mapLimit(stores, 6, (s) => franchiseStatement(s.id, month)),
+      db.dailyStoreStat.groupBy({ by: ["storeId"], where: { storeId: { in: stores.map((s) => s.id) }, date: { gte: r.fromDate, lte: r.toDate } }, _sum: { memberSavingsCents: true } }),
+    ]);
+    const savedBy = new Map(saved.map((x) => [x.storeId, x._sum.memberSavingsCents ?? 0]));
     const rows: Row[] = list.map((st) => {
       const i = st.input;
       return {
         store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents,
         online: i.onlineCollectedCents, redeemed: i.pointsRedeemedCents, netSold: i.networkSoldCents,
-        royalty: st.royalty, levy: st.levy, ecom: st.ecom, feesVat: st.feesVat, issued: i.pointsIssuedCents, wholesale: i.wholesaleCents, netBought: i.networkBoughtCents,
+        royalty: st.royalty, levy: st.levy, ecom: st.ecom, feesVat: st.feesVat, issued: i.pointsIssuedCents, savings: savedBy.get(st.store.id) ?? 0, wholesale: i.wholesaleCents, netBought: i.networkBoughtCents,
         credits: st.credits, debits: st.debits, net: st.net, position: st.net >= 0 ? "HQ pays store" : "Store pays HQ",
         _href: `/store/${st.store.code}/statement?month=${month}`,
       };
     });
-    const t = sumRows(rows, ["sales", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
+    const t = sumRows(rows, ["sales", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
     const due = rows.filter((r) => (r.net as number) < 0).reduce((s, r) => s - (r.net as number), 0);
     const pay = rows.filter((r) => (r.net as number) >= 0).reduce((s, r) => s + (r.net as number), 0);
     const current = month === dayKey(ctx.now).slice(0, 7);
@@ -299,16 +308,17 @@ export const statements: ReportDef = {
         { key: "code", label: "Code" },
         { key: "company", label: "Franchisee" },
         { key: "sales", label: "Net sales ex VAT", format: "zar" },
-        { key: "online", label: "Online collected", format: "zar" },
-        { key: "redeemed", label: "Points redeemed", format: "zar" },
-        { key: "netSold", label: "Sold to network", format: "zar" },
+        { key: "online", label: "Online collected", format: "zar", csvOnly: true },
+        { key: "redeemed", label: "Points redeemed", format: "zar", csvOnly: true },
+        { key: "netSold", label: "Sold to network", format: "zar", csvOnly: true },
         { key: "royalty", label: "Royalty", format: "zar" },
         { key: "levy", label: "Marketing levy", format: "zar" },
         { key: "ecom", label: "E-com commission", format: "zar" },
         { key: "feesVat", label: "VAT on fees", format: "zar" },
         { key: "issued", label: "Points issued", format: "zar" },
+        { key: "savings", label: "Rewards savings (memo)", format: "zar" },
         { key: "wholesale", label: "Wholesale stock", format: "zar" },
-        { key: "netBought", label: "Bought from network", format: "zar" },
+        { key: "netBought", label: "Bought from network", format: "zar", csvOnly: true },
         { key: "credits", label: "Credits", format: "zar" },
         { key: "debits", label: "Debits", format: "zar" },
         { key: "net", label: "Net", format: "zar" },
@@ -322,8 +332,9 @@ export const statements: ReportDef = {
         { label: "HQ pays out", value: pay, format: "zar", sub: `${n(rows.filter((r) => (r.net as number) >= 0).length)} stores` },
         { label: "Fees billed ex VAT", value: (t.royalty as number) + (t.levy as number) + (t.ecom as number), format: "zar" },
       ],
+      emptyTitle: "No statements",
       empty: "No trading stores in this selection.",
-      note: `${current ? "This month is still open — figures will change until month end. " : ""}Credits: online sales collected by HQ, points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Positive net = HQ pays the store.`,
+      note: `${current ? "This month is still open — figures will change until month end. " : ""}Credits: online sales collected by HQ, points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
     };
   },
 };
@@ -349,10 +360,14 @@ export const loyaltyLiability: ReportDef = {
         ? db.loyaltyEntry.groupBy({ by: ["kind"], where: { storeId: null, kind: { in: ["SIGNUP", "BIRTHDAY", "REFERRAL", "BONUS", "ADJUST"] }, createdAt: { gte: start, lt: end } }, _sum: { points: true }, _count: true })
         : Promise.resolve([]),
     ]);
+    const saved = await db.dailyStoreStat.groupBy({ by: [multi(ctx) ? "storeId" : "date"], where, _sum: { memberSavingsCents: true } });
+    const savedBy = new Map(saved.map((x) => [("storeId" in x ? (x.storeId as string) : isoDay((x as { date: Date }).date)), x._sum.memberSavingsCents ?? 0]));
+    const savings = saved.reduce((s, x) => s + (x._sum.memberSavingsCents ?? 0), 0);
     const issued = byStore.reduce((s, x) => s + (x._sum.pointsIssued ?? 0), 0);
     const redeemed = byStore.reduce((s, x) => s + Math.round((x._sum.loyaltyCents ?? 0) / POINT_VALUE_CENTS), 0);
     const days = new Map(byDay.map((d) => [isoDay(d.date), { issued: d._sum.pointsIssued ?? 0, redeemed: Math.round((d._sum.loyaltyCents ?? 0) / POINT_VALUE_CENTS) }]));
     const series = eachDay(ctx.range).map((date) => ({ date, ...(days.get(date) ?? { issued: 0, redeemed: 0 }) }));
+    const trend = completeDays(ctx, series);
     const value = (p: number) => p * POINT_VALUE_CENTS;
     let rows: Row[];
     let columns;
@@ -360,12 +375,12 @@ export const loyaltyLiability: ReportDef = {
       rows = byStore
         .map((x) => {
           const i = x._sum.pointsIssued ?? 0, r = Math.round((x._sum.loyaltyCents ?? 0) / POINT_VALUE_CENTS);
-          return { store: storeLabel(ctx, x.storeId), code: ctx.stores.get(x.storeId)?.code ?? "", issued: i, issuedValue: value(i), redeemed: r, redeemedValue: value(r), settlement: value(i - r), rate: ratio(r, i) };
+          return { store: storeLabel(ctx, x.storeId), code: ctx.stores.get(x.storeId)?.code ?? "", issued: i, issuedValue: value(i), savings: savedBy.get(x.storeId) ?? 0, redeemed: r, redeemedValue: value(r), settlement: value(i - r), rate: ratio(r, i) };
         })
         .sort((a, b) => b.issued - a.issued);
       columns = [{ key: "store", label: "Store" }, { key: "code", label: "Code" }];
     } else {
-      rows = series.map((d) => ({ date: d.date, issued: d.issued, issuedValue: value(d.issued), redeemed: d.redeemed, redeemedValue: value(d.redeemed), settlement: value(d.issued - d.redeemed), rate: ratio(d.redeemed, d.issued) }));
+      rows = series.map((d) => ({ date: d.date, issued: d.issued, issuedValue: value(d.issued), savings: savedBy.get(d.date) ?? 0, redeemed: d.redeemed, redeemedValue: value(d.redeemed), settlement: value(d.issued - d.redeemed), rate: ratio(d.redeemed, d.issued) }));
       columns = [{ key: "date", label: "Day", format: "day" as const }];
     }
     const hqRows = (hq as { kind: string; _sum: { points: number | null }; _count: number }[]).map((h) => ({ kind: KIND_LABEL[h.kind] ?? h.kind, n: h._count, points: h._sum.points ?? 0, value: value(h._sum.points ?? 0) })).sort((a, b) => b.points - a.points);
@@ -374,34 +389,36 @@ export const loyaltyLiability: ReportDef = {
         ...columns,
         { key: "issued", label: "Points issued", format: "points" },
         { key: "issuedValue", label: "Issued value", format: "zar" },
+        { key: "savings", label: "Instant savings", format: "zar" },
         { key: "redeemed", label: "Points redeemed", format: "points" },
         { key: "redeemedValue", label: "Redeemed value", format: "zar" },
         { key: "settlement", label: "Settlement", format: "zar" },
         { key: "rate", label: "Redeemed ÷ issued", format: "pct" },
       ],
       rows,
-      totals: { [multi(ctx) ? "store" : "date"]: "Total", issued, issuedValue: value(issued), redeemed, redeemedValue: value(redeemed), settlement: value(issued - redeemed), rate: ratio(redeemed, issued) },
+      totals: { [multi(ctx) ? "store" : "date"]: "Total", issued, issuedValue: value(issued), savings, redeemed, redeemedValue: value(redeemed), settlement: value(issued - redeemed), rate: ratio(redeemed, issued) },
       summary: [
         { label: "Outstanding liability", value: value(outstanding._sum.points ?? 0), format: "zar", sub: `${fmtPoints(outstanding._sum.points ?? 0)} held by ${n(outstanding._count)} members` },
         { label: "Issued in period", value: issued, format: "points", sub: zar(value(issued)) },
+        { label: "Instant savings given", value: savings, format: "zar", sub: "tier prices at the till" },
         { label: "Redeemed in period", value: redeemed, format: "points", sub: zar(value(redeemed)) },
         { label: "Net settlement", value: value(issued - redeemed), format: "zar", sub: issued - redeemed >= 0 ? "stores pay into the pool" : "pool reimburses stores" },
       ],
       chart: {
         kind: "area",
         title: "Points issued and redeemed",
-        description: "Daily, 1 point = R1",
+        description: `Daily, 1 point = R1${trend.length < series.length ? " · today excluded until trading closes" : ""}`,
         format: "number",
-        labels: series.map((d) => fmtDay(`${d.date}T12:00:00Z`)),
+        labels: trend.map((d) => fmtDay(`${d.date}T12:00:00Z`)),
         series: [
-          { name: "Issued", values: series.map((d) => d.issued) },
-          { name: "Redeemed", values: series.map((d) => d.redeemed) },
+          { name: "Issued", values: trend.map((d) => d.issued) },
+          { name: "Redeemed", values: trend.map((d) => d.redeemed) },
         ],
       },
       extra: hqRows.length
         ? [{ title: "Issued by HQ (not charged to stores)", description: "Sign-up, birthday and other network bonuses", columns: [{ key: "kind", label: "Type" }, { key: "n", label: "Entries", format: "number" }, { key: "points", label: "Points", format: "points" }, { key: "value", label: "Value", format: "zar" }], rows: hqRows, totals: sumRows(hqRows, ["n", "points", "value"], { kind: "Total" }) }]
         : [],
-      note: `1 point = R1. The issuing store funds the points it awards; the store where they're redeemed is reimbursed — both settle on the monthly franchise statement. Outstanding liability is every member's current balance${ctx.networkWide ? " across the network" : " for members whose home store is in this selection"}, as of today.`,
+      note: `1 point = R1. The issuing store funds the points it awards; the store where they're redeemed is reimbursed — both settle on the monthly franchise statement. Instant savings are the tier-price reductions members got at the till: already in net sales, not a liability and not settled between stores. Outstanding liability is every member's current balance${ctx.networkWide ? " across the network" : " for members whose home store is in this selection"}, as of today.`,
     };
   },
 };

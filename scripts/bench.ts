@@ -69,7 +69,7 @@ async function postingLoad(total: number, tills: number) {
       const [staff, stock] = await Promise.all([
         db.user.findFirst({ where: { storeId: d.storeId, active: true }, select: { id: true, name: true } }),
         db.stockLevel.findMany({
-          where: { storeId: d.storeId, qty: { gt: 50 }, variant: { product: { regClass: { not: "THC" } } } },
+          where: { storeId: d.storeId, onHand: { gt: 5 }, batch: { variant: { product: { regClass: { not: "THC" } } } } },
           select: { variantId: true }, distinct: ["variantId"], take: 3,
         }),
       ]);

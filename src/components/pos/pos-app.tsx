@@ -417,7 +417,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     <PosContext.Provider value={ctx}>
       <div className="fixed inset-0 flex flex-col bg-ink-950 text-ink-100 print:hidden">
         {/* Top bar */}
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-ink-850 bg-ink-950 px-3 sm:px-4">
+        <header className="box-content flex h-16 shrink-0 items-center gap-2 border-b border-ink-850 bg-ink-950 px-3 pt-[env(safe-area-inset-top)] sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5 text-oranje-500">
             <Mark className="h-9 w-9" />
             <div className="min-w-0 leading-tight">
@@ -435,7 +435,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
                 onClick={() => setTab(t.key)}
                 aria-current={tab === t.key ? "page" : undefined}
                 className={cn(
-                  "relative inline-flex h-11 items-center gap-2 rounded-full px-4 text-sm font-semibold transition",
+                  "relative inline-flex h-12 items-center gap-2 rounded-full px-4 text-sm font-semibold transition",
                   tab === t.key ? "bg-ink-800 text-white" : "text-ink-400 hover:bg-ink-900 hover:text-ink-100",
                 )}
               >
@@ -450,7 +450,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
               type="button"
               onClick={() => setOutboxOpen(true)}
               className={cn(
-                "inline-flex h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold ring-1 ring-inset transition",
+                "inline-flex h-12 items-center gap-2 rounded-full px-3 text-sm font-semibold ring-1 ring-inset transition",
                 online ? "text-[#7fd49a] ring-leaf-500/30 hover:bg-leaf-500/10" : "text-[#f3c65a] ring-amber-500/40 hover:bg-amber-500/10",
               )}
               aria-label={`${online ? "Online" : "Offline"}${outbox.length ? `, ${outbox.length} sales waiting to sync` : ""}`}
@@ -480,7 +480,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         {!boot.shift && tab !== "shift" && (
           <div className="flex shrink-0 items-center justify-between gap-3 bg-amber-500/10 px-4 py-2 text-sm text-[#f3c65a]">
             <span>No shift is open on this till — open one with a counted float to start selling.</span>
-            <button type="button" onClick={() => setTab("shift")} className="h-9 shrink-0 rounded-full bg-amber-500 px-4 text-[0.8rem] font-bold text-ink-950">
+            <button type="button" onClick={() => setTab("shift")} className="h-12 shrink-0 rounded-full bg-amber-500 px-5 text-sm font-bold text-ink-950">
               Open shift
             </button>
           </div>
@@ -488,7 +488,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
 
         <main className="relative min-h-0 flex-1">
           <div className={cn("h-full", tab !== "sell" && "hidden")}>
-            <SellScreen active={tab === "sell"} cart={cart} setCart={setCart} apiRef={sellApi} />
+            <SellScreen cart={cart} setCart={setCart} apiRef={sellApi} />
           </div>
           {tab === "orders" && <OrdersBoard />}
           {tab === "sales" && <SalesHistory />}

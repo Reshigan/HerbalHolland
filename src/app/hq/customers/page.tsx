@@ -7,7 +7,7 @@ import { crmKpis, memberWhere, segmentCounts, tierCounts } from "@/server/hq/crm
 import { qs } from "@/server/hq/form";
 import { TIERS, fmtPoints } from "@/lib/loyalty-rules";
 import { SEGMENTS } from "@/lib/rfm";
-import { zar, zarCompact, pct } from "@/lib/money";
+import { zarWhole, pct } from "@/lib/money";
 import { fmtDate, num, timeAgo } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -93,7 +93,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
           <Card>
             <CardHeader title="Tiers" description="Rolling 12-month spend" />
             <CardBody>
-              <Donut format="number" data={TIERS.map((t) => ({ label: t.name, value: tiers.get(t.key) ?? 0 }))} centerLabel={num(k.members)} layout="row" />
+              <Donut format="number" data={TIERS.map((t) => ({ label: t.name, value: tiers.get(t.key) ?? 0 }))} centerLabel={num(k.members)} />
             </CardBody>
           </Card>
           <Card>
@@ -170,7 +170,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 </Td>
                 <Td className="hidden text-ink-600 md:table-cell">{m.homeStore?.name ?? "—"}</Td>
                 <Td align="right" className="hidden sm:table-cell">{num(m.visits)}</Td>
-                <Td align="right">{m.lifetimeCents ? (m.lifetimeCents >= 1_000_000 ? zarCompact(m.lifetimeCents) : zar(m.lifetimeCents)) : "—"}</Td>
+                <Td align="right">{m.lifetimeCents ? zarWhole(Math.round(m.lifetimeCents / 100) * 100) : "—"}</Td>
                 <Td className="hidden whitespace-nowrap text-ink-600 lg:table-cell">{m.lastPurchaseAt ? timeAgo(m.lastPurchaseAt) : <span className="text-ink-400">Joined {fmtDate(m.createdAt)}</span>}</Td>
                 <Td align="right" className="hidden lg:table-cell">{num(m.points)}</Td>
                 <Td className="hidden xl:table-cell">

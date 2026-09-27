@@ -1,7 +1,7 @@
 // Small helpers shared by the report modules.
 import { db } from "../db";
 import { derived, type Totals } from "../finance";
-import type { DateRange } from "@/lib/format";
+import { dayKey, type DateRange } from "@/lib/format";
 import type { Column, ReportCtx, Row } from "./types";
 
 /** DailyStoreStat columns summed by every rollup query. */
@@ -33,6 +33,8 @@ export function eachDay(r: DateRange) {
   return Array.from({ length: r.days }, (_, i) => new Date(r.fromDate.getTime() + i * 86_400_000).toISOString().slice(0, 10));
 }
 export const isoDay = (d: Date) => d.toISOString().slice(0, 10);
+/** Trend lines leave off today while it is still trading (a partial day reads as a slump). */
+export const completeDays = <T>(ctx: ReportCtx, rows: T[]) => (ctx.range.days > 1 && ctx.range.to === dayKey(ctx.now) ? rows.slice(0, -1) : rows);
 
 export const multi = (ctx: ReportCtx) => ctx.storeIds.length > 1;
 export const retailIds = (ctx: ReportCtx) => ctx.storeIds.filter((id) => ctx.stores.get(id)?.kind === "RETAIL");
@@ -53,6 +55,8 @@ export const storeLabel = (ctx: ReportCtx, id: string | null | undefined) => {
 export const ratio = (a: number, b: number) => (b ? a / b : null);
 /** 12,345 */
 export const n = (v: number) => v.toLocaleString("en-US");
+/** "1 unit", "12 units" */
+export const count = (v: number, word: string, plural = `${word}s`) => `${n(v)} ${v === 1 ? word : plural}`;
 
 /** Column-wise sums for a totals row. */
 export function sumRows(rows: Row[], keys: string[], extra: Row = {}): Row {

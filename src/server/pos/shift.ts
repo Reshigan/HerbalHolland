@@ -57,7 +57,7 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       by: ["kind", "channel"],
       where: { shiftId },
       _count: { _all: true },
-      _sum: { totalCents: true, vatCents: true, discountCents: true, pointsEarned: true },
+      _sum: { totalCents: true, vatCents: true, discountCents: true, memberSavingsCents: true, pointsEarned: true },
     }),
     db.payment.groupBy({ by: ["method"], where: { sale: { shiftId } }, _sum: { amountCents: true }, _count: { _all: true } }),
     db.saleLine.aggregate({ where: { sale: { shiftId, kind: "SALE" } }, _sum: { qty: true } }),
@@ -91,6 +91,7 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       vatCents: vat,
       netCents: gross - vat,
       discountCents: sum(sales, (r) => r._sum.discountCents ?? 0),
+      memberSavingsCents: sum(kinds, (r) => r._sum.memberSavingsCents ?? 0),
       units: units._sum.qty ?? 0,
     },
     refunds: { count: sum(refunds, (r) => r._count._all), totalCents: -sum(refunds, (r) => r._sum.totalCents ?? 0) },
@@ -131,6 +132,7 @@ ${row("Sales", `${r.sales.count} · ${zar(r.sales.grossCents)}`, true)}
 ${row("VAT included", zar(r.sales.vatCents))}
 ${row("Net of VAT", zar(r.sales.netCents))}
 ${row("Discounts given", zar(r.sales.discountCents))}
+${row("Rewards savings given", zar(r.sales.memberSavingsCents))}
 ${row("Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`)}
 ${r.tenders.map((t) => row(t.label, zar(t.amountCents))).join("")}
 ${row("Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`)}

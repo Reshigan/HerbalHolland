@@ -142,7 +142,7 @@ export function PairScreen({
                     <MonitorSmartphone className="h-5 w-5" /> Pair this till
                   </PosButton>
                   {signedIn.via === "password" && (
-                    <button type="button" onClick={() => (setSignedIn(null), setStoreId(null))} className="h-11 text-sm font-semibold text-ink-400 hover:text-white">
+                    <button type="button" onClick={() => (setSignedIn(null), setStoreId(null))} className="h-12 text-sm font-semibold text-ink-400 hover:text-white">
                       Use a different account
                     </button>
                   )}

@@ -11,7 +11,7 @@ import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
 import { classifyBlock, memberNoFrom, uuid } from "../lib/rules";
 import { EMPTY_CART, type Cart, type SalePayload } from "../lib/storage";
 import { usePos } from "../context";
-import { Confirm, Sheet } from "../ui";
+import { Confirm, PosButton, Sheet } from "../ui";
 import { Catalog, type Filter } from "./catalog";
 import { CartPanel, CustomerCard, type VariantIndex } from "./cart-panel";
 import { CustomerSheet } from "./customer-sheet";
@@ -23,7 +23,7 @@ import type { ComplianceDTO, CustomerDetail, QuoteDTO, ReceiptDTO } from "@/serv
 
 export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: () => void; scan: (code: string) => void; add: (variantId: string) => void };
 
-export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean; cart: Cart; setCart: (c: Cart | ((c: Cart) => Cart)) => void; apiRef: React.RefObject<SellApi | null> }) {
+export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c: Cart | ((c: Cart) => Cart)) => void; apiRef: React.RefObject<SellApi | null> }) {
   const pos = usePos();
   const { boot, me, online } = pos;
   const searchRef = useRef<HTMLInputElement>(null);
@@ -66,6 +66,7 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
       vatRegistered: boot.store.vatRegistered,
       compliance: boot.settings.compliance,
       earnPer100: boot.settings.loyalty.earnPer100,
+      tierSavingsPct: boot.settings.loyalty.tierSavingsPct,
       variants: Object.fromEntries(
         [...index].map(([id, e]) => [
           id,
@@ -264,9 +265,9 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
     }
   };
 
-  const removeWhere = (pred: (regClass: string) => boolean) => {
+  const removeWhere = (classes: readonly string[]) => {
     const c = cartRef.current;
-    void recheckWith({ ...c, lines: c.lines.filter((l) => !pred(index.get(l.variantId)?.product.regClass ?? "")) });
+    void recheckWith({ ...c, lines: c.lines.filter((l) => !classes.includes(index.get(l.variantId)?.product.regClass ?? "")) });
   };
 
   // ── Completing the sale ─────────────────────────────────────────────────
@@ -288,6 +289,7 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
     }),
     subtotalCents: q.subtotalCents,
     discountCents: q.discountCents,
+    memberSavingsCents: q.memberSavingsCents,
     totalCents: q.totalCents,
     vatCents: q.vatCents,
     pointsEarned: 0,
@@ -382,7 +384,7 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
     }
   };
 
-  const payDisabledReason = !cart.lines.length ? "Pay" : !boot.shift ? "Open a shift to sell" : null;
+  const payDisabledReason = !cart.lines.length ? "Charge" : !boot.shift ? "Open a shift to sell" : null;
   const units = cart.lines.reduce((s, l) => s + l.qty, 0);
 
   const panel = (
@@ -408,6 +410,7 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
         <CustomerCard
           customer={cart.customer}
           ageCheck={cart.ageCheck}
+          joinSavingsCents={cart.lines.length ? quote.joinSavingsCents : 0}
           onFind={() => setCustSheet("find")}
           onNew={() => setCustSheet("new")}
           onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null }))}
@@ -419,37 +422,52 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
 
   return (
     <div className="flex h-full min-h-0">
-      <section className="min-w-0 flex-1" aria-label="Catalogue">
-        <Catalog
-          ref={searchRef}
-          boot={boot}
-          filter={filter}
-          setFilter={setFilter}
-          query={query}
-          setQuery={setQuery}
-          onSubmitSearch={submitSearch}
-          onAdd={add}
-          onScanCamera={canCamera ? () => setScanning("product") : undefined}
-          licensedClasses={licensedClasses}
-        />
+      <section className="flex min-w-0 flex-1 flex-col" aria-label="Catalogue">
+        <div className="min-h-0 flex-1">
+          <Catalog
+            ref={searchRef}
+            boot={boot}
+            filter={filter}
+            setFilter={setFilter}
+            query={query}
+            setQuery={setQuery}
+            onSubmitSearch={submitSearch}
+            onAdd={add}
+            onScanCamera={canCamera ? () => setScanning("product") : undefined}
+            licensedClasses={licensedClasses}
+          />
+        </div>
+        {/* Phones and portrait tablets: the basket total and Charge are always one tap away. */}
+        <div className="shrink-0 border-t border-ink-850 bg-ink-950 px-3 py-2.5 lg:hidden" data-testid="charge-bar">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setCartOpen(true)}
+              className="flex h-14 min-w-0 flex-1 items-center gap-3 rounded-2xl bg-ink-900 px-4 text-left ring-1 ring-ink-800 active:scale-[0.99]"
+              data-testid="open-basket"
+            >
+              <span className="relative">
+                <ShoppingBag className="h-6 w-6 text-ink-200" />
+                {units > 0 && <span className="tnum absolute -right-2 -top-2 grid h-5 min-w-5 place-items-center rounded-full bg-oranje-500 px-1 text-[0.65rem] font-bold text-ink-950">{units}</span>}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-white">{cart.customer ? `${cart.customer.firstName} ${cart.customer.lastName ?? ""}`.trim() : units ? "Basket" : "Basket is empty"}</span>
+                <span className="block truncate text-xs text-ink-400">{units ? `${units} item${units === 1 ? "" : "s"}${quote.discountCents + quote.memberSavingsCents ? ` · saved ${zar(quote.discountCents + quote.memberSavingsCents)}` : ""}` : "Tap products to add"}</span>
+              </span>
+              <span className="font-display text-lg font-semibold text-white tnum">{zar(quote.totalCents)}</span>
+            </button>
+            <PosButton variant="primary" className="h-14 px-6 text-base" disabled={!!payDisabledReason || checking} busy={checking} onClick={() => void checkout()} data-testid="charge">
+              Charge
+            </PosButton>
+          </div>
+        </div>
       </section>
-      <aside className="hidden w-[25rem] shrink-0 border-l border-ink-850 bg-ink-950 md:block xl:w-[27rem]" aria-label="Basket">
+      <aside className="hidden w-[25rem] shrink-0 border-l border-ink-850 bg-ink-950 lg:block xl:w-[27rem]" aria-label="Basket">
         {panel}
       </aside>
 
-      {/* Phone: basket bar + full-screen basket */}
-      {active && (
-        <div className="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 px-3 pb-2 md:hidden">
-          <button type="button" onClick={() => setCartOpen(true)} className="flex h-14 w-full items-center justify-between rounded-full bg-oranje-500 px-5 font-semibold text-ink-950 shadow-glow" data-testid="open-basket">
-            <span className="inline-flex items-center gap-2">
-              <ShoppingBag className="h-5 w-5" /> Basket · {units} item{units === 1 ? "" : "s"}
-            </span>
-            <span className="font-display text-lg tnum">{zar(quote.totalCents)}</span>
-          </button>
-        </div>
-      )}
-      <Sheet open={cartOpen} onClose={() => setCartOpen(false)} title="Basket" size="full" className="md:hidden">
-        <div className="-mx-5 -my-5 h-[calc(100dvh-5rem)]">{panel}</div>
+      <Sheet open={cartOpen} onClose={() => setCartOpen(false)} title="Basket" subtitle={units ? `${units} item${units === 1 ? "" : "s"}` : undefined} size="lg" className="lg:hidden sm:h-[min(56rem,calc(100dvh-2rem))]" bodyClassName="p-0 sm:p-0 overflow-hidden">
+        {panel}
       </Sheet>
 
       <CustomerSheet
@@ -489,8 +507,8 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
           resumeCheckout.current = true;
           setCustSheet("find");
         }}
-        onRemoveLicensed={() => removeWhere((rc) => licensedClasses.includes(rc))}
-        onRemoveRestricted={() => removeWhere((rc) => boot.settings.compliance.ageRestricted.includes(rc as never))}
+        onRemoveLicensed={() => removeWhere(licensedClasses)}
+        onRemoveRestricted={() => removeWhere(boot.settings.compliance.ageRestricted)}
         onSwitchUser={() => {
           setStage(null);
           pos.switchUser("dispenser", () => void checkoutRef.current());
@@ -502,6 +520,8 @@ export function SellScreen({ active, cart, setCart, apiRef }: { active: boolean;
           open={stage === "payment"}
           title="Take payment"
           dueCents={payQuote.totalCents}
+          savingsCents={payQuote.memberSavingsCents}
+          discountCents={payQuote.discountCents}
           reference={payRef}
           online={online}
           tapProvider={boot.tapProvider}

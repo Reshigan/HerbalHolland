@@ -144,7 +144,7 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
               name="code"
               inputMode="numeric"
               autoComplete="one-time-code"
-              pattern="\d{6}"
+              pattern="[0-9]*"
               maxLength={6}
               required
               value={code}

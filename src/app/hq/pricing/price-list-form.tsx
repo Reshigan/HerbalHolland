@@ -19,7 +19,7 @@ export type PriceListValues = {
 const HELP: Record<string, string> = {
   ZONE: "Regional or scheduled prices — e.g. a tourist-zone uplift, or next month's price update. Sets the shelf price.",
   CHANNEL: "Prices for one channel only — e.g. online-only prices.",
-  MEMBER: "Rewards member prices, optionally for certain tiers. Applies when it beats the shelf price.",
+  MEMBER: "Members-only prices on specific products (e.g. this week's Rewards deals), optionally for certain tiers. Applies when it beats the shelf price and the member's instant tier saving.",
 };
 
 export function PriceListForm({
@@ -126,7 +126,7 @@ export function PriceListForm({
                 <Select id="kind" name="kind" value={kind} onChange={(e) => setKind(e.target.value)}>
                   <option value="ZONE">Zone / scheduled</option>
                   <option value="CHANNEL">Channel</option>
-                  <option value="MEMBER">Member</option>
+                  <option value="MEMBER">Rewards deal (members only)</option>
                 </Select>
                 <FieldError name="kind" />
               </Field>

@@ -116,14 +116,14 @@ function OpenShift({ onOpened }: { onOpened: (s: BootShift) => void }) {
               </PosButton>
             ))}
           </div>
-          <button type="button" onClick={() => setCounting(true)} className="mt-3 h-11 text-sm font-semibold text-oranje-400 hover:underline">
+          <button type="button" onClick={() => setCounting(true)} className="mt-3 h-12 text-sm font-semibold text-oranje-400 hover:underline">
             Count the float by denomination instead
           </button>
         </>
       ) : (
         <div className="mt-5">
           <DenominationGrid counts={counts} onChange={setCounts} />
-          <button type="button" onClick={() => setCounting(false)} className="mt-2 h-11 text-sm font-semibold text-oranje-400 hover:underline">
+          <button type="button" onClick={() => setCounting(false)} className="mt-2 h-12 text-sm font-semibold text-oranje-400 hover:underline">
             Use a standard float instead
           </button>
         </div>
@@ -221,8 +221,11 @@ function DenominationGrid({ counts, onChange }: { counts: Record<string, number>
     const n = counts[String(d)] ?? 0;
     return (
       <div key={d} className="flex items-center gap-2 rounded-2xl bg-ink-850 px-2 py-1.5 ring-1 ring-ink-800">
-        <span className={cn("w-14 shrink-0 text-center font-display text-base font-semibold", isNote(d) ? "text-white" : "text-ink-300")}>{denomLabel(d)}</span>
-        <button type="button" aria-label={`One fewer ${denomLabel(d)}`} onClick={() => set(d, n - 1)} disabled={n <= 0} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink-800 text-lg font-semibold text-white active:scale-95 disabled:opacity-30">
+        <span className="w-16 shrink-0 text-center leading-tight">
+          <span className={cn("block font-display text-base font-semibold", isNote(d) ? "text-white" : "text-ink-300")}>{denomLabel(d)}</span>
+          <span className="block text-[0.7rem] text-ink-500 tnum">{n ? zar(d * n) : " "}</span>
+        </span>
+        <button type="button" aria-label={`One fewer ${denomLabel(d)}`} onClick={() => set(d, n - 1)} disabled={n <= 0} className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink-800 text-lg font-semibold text-white active:scale-95 disabled:opacity-30">
           −
         </button>
         <input
@@ -232,13 +235,12 @@ function DenominationGrid({ counts, onChange }: { counts: Record<string, number>
           value={n || ""}
           placeholder="0"
           onChange={(e) => set(d, Number(e.target.value.replace(/\D/g, "")) || 0)}
-          className="h-11 w-full min-w-0 rounded-xl border border-ink-700 bg-ink-900 text-center font-display text-lg font-semibold text-white tnum placeholder:text-ink-600 focus:border-oranje-500 focus:outline-none"
+          className="h-12 w-full min-w-0 flex-1 rounded-xl border border-ink-700 bg-ink-900 text-center font-display text-lg font-semibold text-white tnum placeholder:text-ink-600 focus:border-oranje-500 focus:outline-none"
           data-testid={`denom-${d}`}
         />
-        <button type="button" aria-label={`One more ${denomLabel(d)}`} onClick={() => set(d, n + 1)} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-ink-800 text-lg font-semibold text-white active:scale-95">
+        <button type="button" aria-label={`One more ${denomLabel(d)}`} onClick={() => set(d, n + 1)} className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-ink-800 text-lg font-semibold text-white active:scale-95">
           +
         </button>
-        <span className="w-24 shrink-0 text-right text-sm text-ink-400 tnum">{zar(d * n)}</span>
       </div>
     );
   };
@@ -291,6 +293,7 @@ function ReportFigures({ r }: { r: ZReport }) {
     ["Sales", `${r.sales.count} · ${zar(r.sales.grossCents)}`],
     ["VAT included", zar(r.sales.vatCents)],
     ["Discounts given", zar(r.sales.discountCents)],
+    ["Rewards savings given", zar(r.sales.memberSavingsCents)],
     ["Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`],
     ...(r.online.count ? ([["Online handovers", `${r.online.count} · ${zar(r.online.grossCents)}`]] as [string, string][]) : []),
     ...r.tenders.map((t) => [t.label, zar(t.amountCents)] as [string, string]),

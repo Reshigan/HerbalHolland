@@ -10,6 +10,7 @@ import { availability, availKey } from "@/server/inventory";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
 import { cardsWhere, currentBatch, dealsFor, getNetwork, getPricing, getProductBySlug, productReviews, storesWithStock } from "@/server/shop/catalogue";
 import { getPreferredStore } from "@/server/shop/context";
+import { tierMeta } from "@/server/shop/club";
 import { openState, parseHours } from "@/server/shop/hours";
 import { requestStockAlert, submitReview } from "./actions";
 import { ProductArt } from "@/components/product/art";
@@ -63,8 +64,15 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
 
   const q = quotes[product.variants.indexOf(variant)];
   const line = q.lines[0];
-  const was = Math.max(line.rrpCents, line.unitPriceCents) > line.totalCents ? Math.max(line.rrpCents, line.unitPriceCents) : null;
-  const priceNote = line.discountCents ? q.applied.find((a) => a.discountCents > 0)?.name : line.priceRule;
+  // Members pay their instant tier price; the walk-in shelf price is shown struck through.
+  const walkIn = Math.max(line.shelfCents, line.unitPriceCents);
+  const was = walkIn > line.totalCents ? walkIn : null;
+  const tierName = customer ? tierMeta(customer.tier).name : null;
+  const priceNote = [
+    line.memberSavingsCents > 0 && tierName ? `${tierName} price` : !customer ? null : line.priceRule,
+    line.discountCents ? q.applied.find((a) => a.discountCents > 0)?.name : null,
+  ].filter(Boolean).join(" · ");
+  const rewardsCents = !customer && q.joinSavingsCents > 0 ? line.totalCents - q.joinSavingsCents : null;
   const channels = settings.compliance.channels;
   const inStoreOnly = settings.compliance.tobaccoBillMode && product.tobaccoRelated;
   const canShip = !licensed && !inStoreOnly && channels.COURIER.includes(product.regClass);
@@ -181,10 +189,18 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <div className="mt-8">
               <Price cents={line.totalCents} was={was} size="lg" />
               <p className="mt-1.5 text-sm text-ink-400">
-                {priceNote ? <span className="font-medium text-oranje-300">{priceNote} · </span> : null}
+                {priceNote ? <span className="font-semibold text-oranje-300">{priceNote} · </span> : null}
                 {variant.name} · incl. VAT
                 {variant.grams && licensed ? ` · ${variant.grams} g dried-flower equivalent` : ""}
               </p>
+              {rewardsCents != null && (
+                <Link href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}?v=${variant.id}`)}`} className="mt-3 inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-oranje-500/40 bg-oranje-500/10 px-3.5 py-2 text-sm text-oranje-100 hover:border-oranje-500">
+                  <span>
+                    <strong className="tnum text-white">{zar(rewardsCents)}</strong> with Herbal Holland Rewards
+                  </span>
+                  <span className="font-semibold text-oranje-300">Join free →</span>
+                </Link>
+              )}
             </div>
 
             {product.variants.length > 1 && (

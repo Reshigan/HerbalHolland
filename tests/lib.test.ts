@@ -5,7 +5,7 @@ import { allocate } from "@/lib/fefo";
 import { checkCompliance, DEFAULT_COMPLIANCE, screenCopy, validateCbdProduct } from "@/lib/compliance";
 import { applyPromotions, describePromo, type PromoInput } from "@/lib/promotions";
 import { promoWindowOpen, resolvePrice, type PriceListRule } from "@/lib/pricing-rules";
-import { pointsFor, tierFor, nextTier } from "@/lib/loyalty-rules";
+import { pointsFor, tierFor, nextTier, tierBenefits, DEFAULT_TIER_SAVINGS } from "@/lib/loyalty-rules";
 import { routeOrder, type RouteCandidate } from "@/lib/routing";
 import { suggestQty } from "@/lib/replenish";
 import { segmentOf } from "@/lib/rfm";
@@ -246,6 +246,18 @@ describe("price rules", () => {
     expect(resolvePrice(v, [member, harvest], { ...ctx, member: true, tier: "SEED" })).toMatchObject({ unitCents: 61750, rule: "Member price" });
     expect(resolvePrice(v, [member, harvest], { ...ctx, member: true, tier: "HARVEST" })).toMatchObject({ unitCents: 58500, rule: "Harvest price" });
   });
+  it("gives members their tier's instant saving, unless a member deal or volume price is lower", () => {
+    const seed = { ...ctx, member: true, tier: "SEED" as const, tierPct: 3 };
+    const harvest = { ...ctx, member: true, tier: "HARVEST" as const, tierPct: 10 };
+    expect(resolvePrice(v, [], { ...ctx, tierPct: 10 }).unitCents).toBe(65000);
+    expect(resolvePrice(v, [], seed)).toMatchObject({ unitCents: 63050, rule: "Seed Rewards −3%" });
+    expect(resolvePrice({ ...v, storeShelfCents: 60000 }, [], harvest)).toMatchObject({ unitCents: 54000, rule: "Harvest Rewards −10%" });
+    const deal = mk({ id: "d", name: "Rewards deal", kind: "MEMBER", items: [{ variantId: "v", priceCents: 55000, minQty: 1 }] });
+    expect(resolvePrice(v, [deal], seed)).toMatchObject({ unitCents: 55000, rule: "Rewards deal" });
+    expect(resolvePrice(v, [deal], harvest)).toMatchObject({ unitCents: 55000, rule: "Rewards deal" });
+    expect(resolvePrice({ ...v, incentives: false }, [deal], harvest).unitCents).toBe(65000); // medicines: no incentives (s18A)
+    expect(resolvePrice({ ...v, markdownPct: 20 }, [], harvest).unitCents).toBe(46800); // clearance stacks on the member price
+  });
   it("applies quantity breaks and scheduled windows", () => {
     const breaks = mk({ id: "b", name: "Volume", items: [{ variantId: "v", priceCents: 60000, minQty: 3 }] });
     expect(resolvePrice({ ...v, qty: 2 }, [breaks], ctx).unitCents).toBe(65000);
@@ -269,10 +281,14 @@ describe("price rules", () => {
 });
 
 describe("loyalty", () => {
-  it("earns points with tier multipliers", () => {
+  it("earns the same points in every tier (tiers save instantly instead); promotions multiply", () => {
     expect(pointsFor(100_00, "SEED")).toBe(5);
-    expect(pointsFor(100_00, "HARVEST")).toBe(10);
+    expect(pointsFor(100_00, "HARVEST")).toBe(5);
     expect(pointsFor(100_00, "SEED", 2)).toBe(10);
+  });
+  it("lists a tier's benefits headline first", () => {
+    expect(tierBenefits("BLOOM", DEFAULT_TIER_SAVINGS, 5).slice(0, 2)).toEqual(["7% off instantly", "5 points per R100"]);
+    expect(tierBenefits("SEED", { ...DEFAULT_TIER_SAVINGS, SEED: 0 }, 0)[0]).toBe("Birthday bonus");
   });
   it("computes tiers and progress", () => {
     expect(tierFor(0).key).toBe("SEED");

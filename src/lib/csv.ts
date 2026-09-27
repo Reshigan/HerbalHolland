@@ -4,7 +4,7 @@
 // guarded against formula injection.
 import { TZ, dayKey } from "./format";
 
-export type CsvFormat = "zar" | "number" | "pct" | "date" | "day" | "datetime" | "text" | "badge" | "points";
+export type CsvFormat = "zar" | "number" | "pct" | "date" | "day" | "datetime" | "time" | "text" | "badge" | "points";
 export type CsvColumn = { key: string; label: string; format?: CsvFormat };
 export type CsvTable = { title?: string; columns: CsvColumn[]; rows: Record<string, unknown>[]; totals?: Record<string, unknown> | null };
 
@@ -43,7 +43,8 @@ export function csvValue(v: unknown, format: CsvFormat = "text"): string {
       const d = toDate(v);
       return d && !isNaN(d.getTime()) ? dayKey(d) : "";
     }
-    case "datetime": {
+    case "datetime":
+    case "time": {
       const d = toDate(v);
       return d && !isNaN(d.getTime()) ? sastStamp(d) : "";
     }

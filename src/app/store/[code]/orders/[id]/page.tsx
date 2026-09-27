@@ -47,6 +47,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
   const base = `/store/${store.code}`;
   const open = ["PLACED", "PICKING", "READY"].includes(o.status);
   const shortLines = lines.filter((l) => open && l.short > 0);
+  const units = lines.reduce((s, l) => s + l.qty, 0);
 
   return (
     <>
@@ -60,7 +61,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
             <StatusBadge status={o.paymentStatus} />
           </span>
         }
-        description={`${c.firstName} ${c.lastName ?? ""} · ${lines.reduce((s, l) => s + l.qty, 0)} items · ${zar(o.totalCents)}`}
+        description={`${c.firstName} ${c.lastName ?? ""} · ${units} item${units === 1 ? "" : "s"} · ${zar(o.totalCents)}`}
         actions={
           <ButtonLink href={`${base}/orders/${o.id}/pick-list`} variant="outline" size="sm">
             <Printer className="h-4 w-4" aria-hidden /> Pick list
@@ -181,13 +182,11 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
 
         <div className="min-w-0 space-y-6">
           {o.fulfilment === "COLLECT" && (
-            <Card className="bg-ink-950 text-white">
-              <CardBody>
-                <div className="eyebrow text-oranje-500">Collection code</div>
-                <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em]">{o.collectionCode}</div>
-                <p className="mt-2 text-xs text-ink-300">The customer shows this code and an ID document (18+) at the counter. Never read it out to them.</p>
-              </CardBody>
-            </Card>
+            <div className="rounded-2xl bg-ink-950 p-5 text-white shadow-card">
+              <div className="eyebrow text-oranje-500">Collection code</div>
+              <div className="mt-1 font-mono text-4xl font-bold tracking-[0.25em]">{o.collectionCode}</div>
+              <p className="mt-2 text-xs text-ink-300">The customer shows this code and an ID document (18+) at the counter. Never read it out to them.</p>
+            </div>
           )}
 
           <Card>

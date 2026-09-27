@@ -2,8 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   checkAdjustment,
   coverLabel,
-  csvCell,
-  csvLine,
   expiryState,
   hoursJson,
   hrefWith,
@@ -21,6 +19,7 @@ import {
   cashTone,
   toLocalInput,
   parseLocal,
+  scheduleLabel,
 } from "@/server/store/rules";
 
 describe("stock status", () => {
@@ -160,15 +159,18 @@ describe("form parsing", () => {
   });
 });
 
-describe("urls and csv", () => {
+describe("urls", () => {
   it("merges query params", () => {
     expect(hrefWith("/x", { q: "gum", page: "3" }, { page: null, status: "LOW" })).toBe("/x?q=gum&status=LOW");
     expect(hrefWith("/x", {}, {})).toBe("/x");
   });
-  it("escapes csv cells and blocks formula injection", () => {
-    expect(csvCell('say "hi", ok')).toBe('"say ""hi"", ok"');
-    expect(csvCell("=SUM(A1)")).toBe("'=SUM(A1)");
-    expect(csvCell("-3")).toBe("-3");
-    expect(csvLine(["a", 1, null])).toBe("a,1,");
+});
+
+describe("promotion schedules", () => {
+  it("describes days and happy hours", () => {
+    expect(scheduleLabel([])).toBe("Every day");
+    expect(scheduleLabel([5, 1, 2, 3, 4], 960, 1080)).toBe("Weekdays · 16:00–18:00");
+    expect(scheduleLabel([0, 6])).toBe("Weekends");
+    expect(scheduleLabel([0, 3, 1])).toBe("Mon, Wed, Sun");
   });
 });

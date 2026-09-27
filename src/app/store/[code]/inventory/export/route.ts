@@ -4,9 +4,10 @@ import { storeForUser } from "@/server/scope";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
 import { matchesSearch, sortStock, stockRows, STOCK_SORTS, type StockSort } from "@/server/store/inventory";
-import { STOCK_STATUS, csvLine } from "@/server/store/rules";
+import { STOCK_STATUS } from "@/server/store/rules";
 import { actorOf } from "@/server/store/context";
 import { REG_CLASS_LABEL } from "@/lib/compliance";
+import { csvFilename, toCsv } from "@/lib/csv";
 import { dayKey } from "@/lib/format";
 
 export async function GET(req: Request, { params }: { params: Promise<{ code: string }> }) {
@@ -27,19 +28,40 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
     sort,
     u.get("dir") === "desc" ? "desc" : "asc",
   );
-  const head = ["SKU", "Barcode", "Product", "Variant", "Category", "Class", "Ranged", "Status", "On hand", "Blocked", "Reserved", "Available", "Reorder point", "Par", "Sold 28d", "Days of cover", "Value at cost (R)"];
-  const body = rows.map((r) =>
-    csvLine([
-      r.sku, r.barcode, r.productName, r.variantName, r.category, REG_CLASS_LABEL[r.regClass], r.ranged ? "yes" : "no", STOCK_STATUS[r.status].label,
-      r.onHand, r.blocked, r.reserved, r.available, r.reorderPoint, r.parLevel, r.sold28,
-      Number.isFinite(r.cover) ? r.cover.toFixed(1) : "", (r.valueCents / 100).toFixed(2),
-    ]),
-  );
+  const csv = toCsv({
+    columns: [
+      { key: "sku", label: "SKU" },
+      { key: "barcode", label: "Barcode" },
+      { key: "productName", label: "Product" },
+      { key: "variantName", label: "Variant" },
+      { key: "category", label: "Category" },
+      { key: "cls", label: "Class" },
+      { key: "ranged", label: "Ranged" },
+      { key: "statusLabel", label: "Status" },
+      { key: "onHand", label: "On hand", format: "number" },
+      { key: "blocked", label: "Blocked", format: "number" },
+      { key: "reserved", label: "Reserved", format: "number" },
+      { key: "available", label: "Available", format: "number" },
+      { key: "reorderPoint", label: "Reorder point", format: "number" },
+      { key: "parLevel", label: "Par", format: "number" },
+      { key: "sold28", label: "Sold 28 days", format: "number" },
+      { key: "coverDays", label: "Days of cover", format: "number" },
+      { key: "nextExpiry", label: "Next expiry", format: "date" },
+      { key: "valueCents", label: "Value at cost (R)", format: "zar" },
+    ],
+    rows: rows.map((r) => ({
+      ...r,
+      cls: REG_CLASS_LABEL[r.regClass],
+      statusLabel: STOCK_STATUS[r.status].label,
+      coverDays: Number.isFinite(r.cover) ? r.cover : null,
+    })),
+    totals: { onHand: rows.reduce((s, r) => s + r.onHand, 0), valueCents: rows.reduce((s, r) => s + r.valueCents, 0) },
+  });
   await audit(db, actorOf(user), "inventory.export", { storeId: store.id, data: { rows: rows.length } });
-  return new Response([csvLine(head), ...body].join("\r\n"), {
+  return new Response(csv, {
     headers: {
       "content-type": "text/csv; charset=utf-8",
-      "content-disposition": `attachment; filename="stock-on-hand-${store.code}-${dayKey(new Date())}.csv"`,
+      "content-disposition": `attachment; filename="${csvFilename("herbal-holland", "stock-on-hand", store.code, dayKey(new Date()))}"`,
       "cache-control": "no-store",
     },
   });

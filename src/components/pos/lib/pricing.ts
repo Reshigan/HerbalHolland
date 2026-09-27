@@ -2,7 +2,7 @@
 // prices, near-expiry markdowns, promotions, s18A incentive exclusions), run against the
 // cached bootstrap. Used for instant feedback online and as the price of record offline.
 import { applyPromotions } from "@/lib/promotions";
-import { promoWindowOpen, resolvePrice, type PriceListRule, type Tier } from "@/lib/pricing-rules";
+import { promoWindowOpen, resolvePrice, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { incentiveExcluded, type ComplianceSettings, type RegClass } from "@/lib/compliance";
 import { pointsFor, type TierKey } from "@/lib/loyalty-rules";
 import { vatOf } from "@/lib/money";
@@ -24,6 +24,7 @@ export type PricingData = {
   vatRegistered: boolean;
   compliance: ComplianceSettings;
   earnPer100: number;
+  tierSavingsPct: Record<TierKey, number>; // instant Rewards price by tier (settings.loyalty.tierSavingsPct)
   variants: Record<string, PricingVariant>;
   promotions: BootPromotion[];
   priceLists: BootPriceList[];
@@ -49,19 +50,27 @@ export function priceBasket(
   const at = opts.at ?? new Date();
   const lists = data.priceLists.map(reviveList);
   const excluded = incentiveExcluded(data.compliance);
-  const ctx = { storeId: data.storeId, regionId: data.regionId, channel: "POS" as const, member: !!opts.member, tier: opts.tier ?? null, at };
+  const member = !!opts.member && !!opts.tier;
+  const ctx: PriceContext = { storeId: data.storeId, regionId: data.regionId, channel: "POS", member, tier: opts.tier ?? null, tierPct: member ? (data.tierSavingsPct[opts.tier!] ?? 0) : 0, at };
+  // Members are compared with the walk-in price; walk-ins with what joining (Seed) would save — as quote() does.
+  const other: PriceContext = member ? { ...ctx, member: false, tier: null, tierPct: 0 } : { ...ctx, member: true, tier: "SEED", tierPct: data.tierSavingsPct.SEED ?? 0 };
 
   const base = items
     .filter((i) => i.qty > 0 && data.variants[i.variantId])
     .map((i) => {
       const v = data.variants[i.variantId];
       const noPromo = excluded.includes(v.regClass);
-      const price = resolvePrice(
-        { variantId: v.id, rrpCents: v.rrpCents, storeShelfCents: v.shelfCents, qty: i.qty, markdownPct: v.markdownPct || null, incentives: !noPromo },
-        lists,
-        ctx,
-      );
-      return { i, v, price, noPromo };
+      const args = { variantId: v.id, rrpCents: v.rrpCents, storeShelfCents: v.shelfCents, qty: i.qty, markdownPct: v.markdownPct || null, incentives: !noPromo };
+      const price = resolvePrice(args, lists, ctx);
+      const alt = resolvePrice(args, lists, other).unitCents;
+      return {
+        i,
+        v,
+        price,
+        noPromo,
+        memberSavingsCents: member ? Math.max(0, alt - price.unitCents) * i.qty : 0,
+        joinSavingsCents: member ? 0 : Math.max(0, price.unitCents - alt) * i.qty,
+      };
     });
 
   const r = applyPromotions(
@@ -70,7 +79,7 @@ export function priceBasket(
     opts.code,
   );
 
-  const lines: QuoteLineDTO[] = base.map(({ i, v, price, noPromo }, idx) => ({
+  const lines: QuoteLineDTO[] = base.map(({ i, v, price, noPromo, memberSavingsCents }, idx) => ({
     variantId: v.id,
     qty: i.qty,
     unitPriceCents: price.unitCents,
@@ -83,6 +92,7 @@ export function priceBasket(
     vatCents: data.vatRegistered ? vatOf(r.lines[idx].totalCents) : 0,
     promoId: r.lines[idx].promoId,
     noEarn: noPromo,
+    memberSavingsCents,
   }));
 
   const earnable = lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
@@ -96,7 +106,9 @@ export function priceBasket(
     applied: r.applied,
     suggestions: r.suggestions,
     codeError: r.codeError,
-    pointsEstimate: opts.member && opts.tier ? pointsFor(earnable, opts.tier as TierKey, r.pointsMultiplier, data.earnPer100) : 0,
+    memberSavingsCents: lines.reduce((s, l) => s + l.memberSavingsCents, 0),
+    joinSavingsCents: base.reduce((s, b) => s + b.joinSavingsCents, 0),
+    pointsEstimate: member ? pointsFor(earnable, opts.tier as TierKey, r.pointsMultiplier, data.earnPer100) : 0,
   };
 }
 

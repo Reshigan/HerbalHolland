@@ -4,11 +4,15 @@ import { db, Prisma } from "../db";
 import { segmentWhere } from "../marketing";
 import { sast } from "../sql";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
-import { previousRange } from "@/lib/ranges";
+import { TIERS } from "@/lib/loyalty-rules";
+import { getSettings } from "../settings";
+import { delta, previousRange } from "@/lib/ranges";
 import { fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
-import { STAT_SUMS, bounds, eachDay, isoDay, multi, n, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
+import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, multi, n, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
+
+const channelSql = (c?: "POS" | "ONLINE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
 
 const ORDER: SegmentKey[] = ["CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
 const CONSENTED: Prisma.CustomerWhereInput = { OR: [{ consentSms: true }, { consentWhatsapp: true }, { consentEmail: true }, { consentPush: true }] };
@@ -63,7 +67,8 @@ export const segments: ReportDef = {
         { label: "Avg lifetime spend", value: t.avg as number | null, format: "zar", sub: "incl VAT" },
       ],
       chart: total ? { kind: "bar", title: "Members by segment", description: "As of today", format: "number", rows: data.map((d) => ({ label: SEGMENTS[d.seg].name, value: d.n, sub: `${((ratio(d.n, total) ?? 0) * 100).toFixed(0)}%` })) } : null,
-      empty: "No members in this selection yet.",
+      emptyTitle: "No members yet",
+      empty: "No Rewards members have this store as their home store yet.",
       note: `Segments are calculated as of today from each member's visits and last purchase — the same rules the campaign builder targets. ${ctx.networkWide ? "Covers every member in the network." : "Members are counted at their home store."} Marketing reach respects POPIA consent; do-not-contact suppression is applied again when a campaign sends.`,
     };
   },
@@ -195,7 +200,7 @@ export const memberAttach: ReportDef = {
       const s = by.get(date);
       return { date, sales: s?.sales ?? 0, members: s?.members ?? 0, rate: ratio(s?.members ?? 0, s?.sales ?? 0) };
     });
-    const withSales = rows.filter((r) => (r.sales as number) > 0);
+    const withSales = completeDays(ctx, rows).filter((r) => (r.sales as number) > 0);
     return {
       columns: [{ key: "date", label: "Day", format: "day" }, ...cols],
       rows,
@@ -204,6 +209,98 @@ export const memberAttach: ReportDef = {
       chart: withSales.length > 1 ? { kind: "area", title: "Daily attach rate", description: "Share of transactions with a member linked", format: "pct", labels: withSales.map((r) => fmtDay(`${r.date}T12:00:00Z`)), series: [{ name: "Attach rate", values: withSales.map((r) => (r.rate as number) ?? 0) }] } : null,
       empty: "No transactions in this period.",
       note,
+    };
+  },
+};
+
+// ── Instant Rewards savings (tier pricing) ──────────────────────────────────
+export const rewardsSavings: ReportDef = {
+  key: "rewards-savings",
+  title: "Rewards savings",
+  description: "How much do members save instantly at the till — and do they spend more than walk-ins?",
+  group: "Customers",
+  scopes: ["store", "hq"],
+  filters: ["range", "channel"],
+  async run(ctx) {
+    const { start, end } = bounds(ctx);
+    const byStore = multi(ctx);
+    const key = byStore ? Prisma.raw(`"storeId"`) : Prisma.sql`(${sast('"createdAt"')})::date`;
+    const [roll, split, prev, settings] = await Promise.all([
+      byStore
+        ? db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx), _sum: { memberSavingsCents: true } })
+        : db.dailyStoreStat.groupBy({ by: ["date"], where: statWhere(ctx), _sum: { memberSavingsCents: true }, orderBy: { date: "asc" } }),
+      db.$queryRaw<{ k: string | Date; memberTx: number; memberGross: number; walkTx: number; walkGross: number }[]>`
+        SELECT ${key} AS k,
+          COUNT(*) FILTER (WHERE kind = 'SALE' AND "customerId" IS NOT NULL)::int AS "memberTx",
+          COALESCE(SUM("totalCents") FILTER (WHERE kind = 'SALE' AND "customerId" IS NOT NULL), 0)::float8 AS "memberGross",
+          COUNT(*) FILTER (WHERE kind = 'SALE' AND "customerId" IS NULL)::int AS "walkTx",
+          COALESCE(SUM("totalCents") FILTER (WHERE kind = 'SALE' AND "customerId" IS NULL), 0)::float8 AS "walkGross"
+        FROM "Sale"
+        WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
+        GROUP BY 1`,
+      db.dailyStoreStat.aggregate({ where: statWhere(ctx, previousRange(ctx.range)), _sum: { memberSavingsCents: true } }),
+      getSettings(),
+    ]);
+    const keyOf = (k: string | Date) => (k instanceof Date ? isoDay(k) : k);
+    const savingsBy = new Map<string, number>(
+      roll.map((r) => ["storeId" in r ? (r.storeId as string) : isoDay((r as { date: Date }).date), r._sum.memberSavingsCents ?? 0]),
+    );
+    const splitBy = new Map(split.map((x) => [keyOf(x.k), x]));
+    const shape = (k: string) => {
+      const x = splitBy.get(k) ?? { memberTx: 0, memberGross: 0, walkTx: 0, walkGross: 0 };
+      const savings = savingsBy.get(k) ?? 0;
+      const memberAtv = x.memberTx ? Math.round(x.memberGross / x.memberTx) : null;
+      const walkAtv = x.walkTx ? Math.round(x.walkGross / x.walkTx) : null;
+      return {
+        memberTx: x.memberTx, memberGross: x.memberGross, savings, rate: ratio(savings, x.memberGross), memberAtv, walkAtv,
+        uplift: memberAtv != null && walkAtv ? memberAtv / walkAtv - 1 : null, share: ratio(x.memberGross, x.memberGross + x.walkGross),
+      };
+    };
+    const keys = byStore ? [...new Set([...savingsBy.keys(), ...splitBy.keys()])] : eachDay(ctx.range);
+    const rows = keys
+      .map((k) => (byStore ? { store: storeLabel(ctx, k), code: ctx.stores.get(k)?.code ?? "", ...shape(k) } : { date: k, ...shape(k) }))
+      .filter((r) => !byStore || r.memberTx > 0 || r.savings !== 0)
+      .sort((a, b) => (byStore ? b.savings - a.savings || b.memberGross - a.memberGross : 0));
+    const all = split.reduce((a, x) => ({ memberTx: a.memberTx + x.memberTx, memberGross: a.memberGross + x.memberGross, walkTx: a.walkTx + x.walkTx, walkGross: a.walkGross + x.walkGross }), { memberTx: 0, memberGross: 0, walkTx: 0, walkGross: 0 });
+    const savings = [...savingsBy.values()].reduce((s, v) => s + v, 0);
+    const memberAtv = all.memberTx ? Math.round(all.memberGross / all.memberTx) : null;
+    const walkAtv = all.walkTx ? Math.round(all.walkGross / all.walkTx) : null;
+    const tiers = TIERS.map((t) => `${t.name} ${settings.loyalty.tierSavingsPct?.[t.key] ?? 0}%`).join(" · ");
+    const trend = completeDays(ctx, rows as { date: string; savings: number }[]);
+    return {
+      title: byStore ? "By store" : "Day by day",
+      columns: [
+        ...(byStore ? [{ key: "store", label: "Store" }, { key: "code", label: "Code" }] : [{ key: "date", label: "Day", format: "day" as const }]),
+        { key: "memberTx", label: "Member sales", format: "number" },
+        { key: "memberGross", label: "Member sales incl VAT", format: "zar" },
+        { key: "savings", label: "Rewards savings", format: "zar" },
+        { key: "rate", label: "Savings rate", format: "pct" },
+        { key: "memberAtv", label: "Member basket", format: "zar" },
+        { key: "walkAtv", label: "Walk-in basket", format: "zar" },
+        { key: "uplift", label: "Member uplift", format: "pct" },
+        { key: "share", label: "Member share of sales", format: "pct" },
+      ],
+      rows,
+      totals: {
+        [byStore ? "store" : "date"]: "Total", memberTx: all.memberTx, memberGross: all.memberGross, savings, rate: ratio(savings, all.memberGross), memberAtv, walkAtv,
+        uplift: memberAtv != null && walkAtv ? memberAtv / walkAtv - 1 : null, share: ratio(all.memberGross, all.memberGross + all.walkGross),
+      },
+      summary: [
+        { label: "Rewards savings given", value: savings, format: "zar", delta: delta(savings, prev._sum.memberSavingsCents ?? 0), sub: "instant, incl VAT" },
+        { label: "Savings rate", value: ratio(savings, all.memberGross), format: "pct", sub: "of member sales" },
+        { label: "Member basket", value: memberAtv, format: "zar", sub: walkAtv ? `vs ${zar(walkAtv)} walk-in` : undefined },
+        { label: "Member share of sales", value: ratio(all.memberGross, all.memberGross + all.walkGross), format: "pct", sub: `${n(all.memberTx)} member sales` },
+      ],
+      chart: savings !== 0
+        ? byStore
+          ? { kind: "bar", title: "Savings given by store", description: "Instant Rewards savings, incl VAT", format: "zar", rows: rows.slice(0, 15).map((r) => ({ label: String((r as { store: string }).store), value: r.savings, sub: r.rate == null ? undefined : `${(r.rate * 100).toFixed(1)}% of member sales` })) }
+          : trend.length > 1
+            ? { kind: "area", title: "Savings given each day", description: "Instant Rewards savings, incl VAT", format: "zar", labels: trend.map((r) => fmtDay(`${r.date}T12:00:00Z`)), series: [{ name: "Rewards savings", values: trend.map((r) => r.savings) }] }
+            : null
+        : null,
+      emptyTitle: "No member sales",
+      empty: "No sales were linked to a Rewards member in this period.",
+      note: `Members pay their tier's Rewards price at the till (${tiers}); the saving is measured against the walk-in price and nets off refunds. It's a price reduction already reflected in net sales — not a points liability.${savings === 0 ? " No instant savings were recorded in this period — savings are captured from the launch of tier pricing." : ""}`,
     };
   },
 };

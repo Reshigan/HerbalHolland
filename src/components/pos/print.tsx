@@ -66,8 +66,9 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
         </div>
       ))}
       <Rule />
-      {r.discountCents > 0 && <Row l="Discounts" r={`−${zar(r.discountCents)}`} />}
+      {r.discountCents > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents)}`} />}
       <Row l="TOTAL" r={zar(r.totalCents)} bold />
+      {r.memberSavingsCents > 0 && <Row l="Rewards savings in prices" r={zar(r.memberSavingsCents)} />}
       <Row l={r.vatCents ? "VAT included (15%)" : "No VAT charged"} r={r.vatCents ? zar(r.vatCents) : ""} />
       <Rule />
       {r.payments.map((p, i) => (
@@ -131,6 +132,7 @@ function ZPrint({ z }: { z: ZReport }) {
       <Row l="  VAT included" r={zar(z.sales.vatCents)} />
       <Row l="  Net of VAT" r={zar(z.sales.netCents)} />
       <Row l="  Discounts given" r={zar(z.sales.discountCents)} />
+      <Row l="  Rewards savings given" r={zar(z.sales.memberSavingsCents)} />
       <Row l="  Units sold" r={z.sales.units} />
       {z.online.count > 0 && <Row l={`  Online handovers (${z.online.count})`} r={zar(z.online.grossCents)} />}
       <Row l={`Refunds (${z.refunds.count})`} r={`−${zar(z.refunds.totalCents)}`} />

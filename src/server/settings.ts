@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { db } from "./db";
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "@/lib/compliance";
+import { DEFAULT_TIER_SAVINGS, type TierKey } from "@/lib/loyalty-rules";
 
 export const DEFAULT_SETTINGS = {
   compliance: DEFAULT_COMPLIANCE as ComplianceSettings,
@@ -9,6 +10,7 @@ export const DEFAULT_SETTINGS = {
     signupBonus: 25,
     referralBonus: 50,
     birthdayBonus: 100,
+    tierSavingsPct: DEFAULT_TIER_SAVINGS as Record<TierKey, number>, // instant Rewards prices by tier
     minRedeem: 20,
     maxRedeemPct: 50,
   },

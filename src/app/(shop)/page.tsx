@@ -256,9 +256,9 @@ export default async function Home() {
           <div className="relative grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
             <div>
               <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
-              <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Every rand earns points.</h2>
+              <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Pay less. Earn more.</h2>
               <p className="mt-4 max-w-md text-[1.02rem] leading-relaxed text-ink-300">
-                Earn {loyalty.earnPer100} points for every R100 you spend in store and online. Each point is worth R1 off your next order — and the more you shop, the faster you earn. Free to join, with {fmtPoints(loyalty.signupBonus)} to welcome you.
+                Members get instant prices — {loyalty.tierSavingsPct.SEED}% off from day one, up to {loyalty.tierSavingsPct.HARVEST}% at Harvest — plus {loyalty.earnPer100} points for every R100, each worth R1. Free to join, with {fmtPoints(loyalty.signupBonus)} to welcome you.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href={customer ? "/club" : "/club/join"} size="lg">
@@ -274,10 +274,10 @@ export default async function Home() {
                 <li key={t.key} className={`rounded-2xl border p-4 ${i === TIERS.length - 1 ? "border-oranje-500/60 bg-oranje-500/10" : "border-ink-800 bg-ink-950/60"}`}>
                   <div className="flex items-center justify-between">
                     <span className="font-display text-lg font-semibold text-white">{t.name}</span>
-                    <span className="tnum text-xs font-bold text-oranje-400">{t.multiplier}×</span>
+                    <span className="tnum text-xs font-bold text-oranje-400">{loyalty.tierSavingsPct[t.key]}% off</span>
                   </div>
                   <p className="mt-1 text-xs text-ink-400">{t.minCents ? `From ${zarWhole(t.minCents)} a year` : "When you join"}</p>
-                  <p className="mt-3 text-xs leading-snug text-ink-200">{t.perks[t.minCents ? 1 : 2] ?? t.perks[0]}</p>
+                  <p className="mt-3 text-xs leading-snug text-ink-200">{t.perks[0]}</p>
                 </li>
               ))}
             </ol>

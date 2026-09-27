@@ -7,7 +7,7 @@ import { suggestQty, daysOfCover } from "@/lib/replenish";
 import { addDays, dateOnly, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ParamDef, ReportCtx, ReportDef, Row } from "./types";
-import { bounds, categoryVariantIds, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, userNames, variantMap } from "./util";
+import { bounds, categoryVariantIds, count, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, userNames, variantMap } from "./util";
 
 const catSql = (ctx: ReportCtx, alias = "p") => (ctx.category ? Prisma.sql`AND ${Prisma.raw(alias)}."categoryId" = ${ctx.category.id}` : Prisma.empty);
 const variantCatWhere = (ctx: ReportCtx) => (ctx.category ? { variant: { product: { categoryId: ctx.category.id } } } : {});
@@ -90,8 +90,9 @@ export const stockValuation: ReportDef = {
         { label: "Retail value", value: t.retail as number, format: "zar", sub: "at RRP incl VAT" },
         { label: "Unsellable", value: t.blockedValue as number, format: "zar", sub: "recalled, quarantined or expired", upIsGood: false },
       ],
-      chart: rows.length > 1 ? { kind: "bar", title: `Stock value by ${first.toLowerCase()}`, description: "At landed cost, ex VAT · top 12", format: "zar", rows: rows.slice(0, 12).map((r) => ({ label: String(r.name), value: r.value as number, sub: `${(r.units as number).toLocaleString()} units` })) } : null,
-      empty: "No stock on hand.",
+      chart: rows.length > 1 ? { kind: "bar", title: `Stock value by ${first.toLowerCase()}`, description: "At landed cost, ex VAT · top 12", format: "zar", rows: rows.slice(0, 12).map((r) => ({ label: String(r.name), value: r.value as number, sub: count(r.units as number, "unit") })) } : null,
+      emptyTitle: "No stock on hand",
+      empty: "There is no stock on hand for these filters.",
       note: `Valued at each batch lot's landed cost (ex VAT) — the cost the stock was received at, so the value follows FIFO by lot.${negLots ? ` ${negLots} lot${negLots === 1 ? " has" : "s have"} negative stock and ${negLots === 1 ? "is" : "are"} left out — see the Negative stock report.` : ""}`,
     };
   },
@@ -146,7 +147,9 @@ export const stockMovements: ReportDef = {
     ]);
     const ref = new Map([...salesRef, ...orderRef, ...takeRef].map((x) => [x.id, x.number]));
     const rows: Row[] = list.map((m) => ({
-      at: m.createdAt, ...storeVals(ctx, m.storeId), type: MOVEMENT_LABEL[m.type] ?? m.type, reason: m.reason ? REASON_LABEL[m.reason] ?? m.reason : "",
+      at: m.createdAt, ...storeVals(ctx, m.storeId),
+      movement: `${MOVEMENT_LABEL[m.type] ?? m.type}${m.reason ? ` · ${REASON_LABEL[m.reason] ?? m.reason}` : ""}`,
+      type: MOVEMENT_LABEL[m.type] ?? m.type, reason: m.reason ? REASON_LABEL[m.reason] ?? m.reason : "",
       product: `${m.variant.product.name} · ${m.variant.name}`, sku: m.variant.sku, batch: m.batch.code, qty: m.qty, cost: m.unitCostCents, value: m.qty * m.unitCostCents,
       user: m.userId ? users.get(m.userId)?.name ?? "" : "", ref: (m.saleId && ref.get(m.saleId)) || (m.stockOrderId && ref.get(m.stockOrderId)) || (m.stockTakeId && ref.get(m.stockTakeId)) || "", note: m.note ?? "",
     }));
@@ -156,19 +159,21 @@ export const stockMovements: ReportDef = {
       columns: [
         { key: "at", label: "When", format: "datetime" },
         ...storeCols(ctx),
-        { key: "type", label: "Movement" },
-        { key: "reason", label: "Reason" },
+        { key: "movement", label: "Movement" },
+        { key: "type", label: "Type", csvOnly: true },
+        { key: "reason", label: "Reason", csvOnly: true },
         { key: "product", label: "Product" },
-        { key: "sku", label: "SKU" },
+        { key: "sku", label: "SKU", csvOnly: true },
         { key: "batch", label: "Batch" },
         { key: "qty", label: "Qty", format: "number" },
-        { key: "cost", label: "Unit cost", format: "zar" },
+        { key: "cost", label: "Unit cost", format: "zar", csvOnly: true },
         { key: "value", label: "Value at cost", format: "zar" },
         { key: "user", label: "By" },
         { key: "ref", label: "Reference" },
         { key: "note", label: "Note" },
       ],
       rows,
+      title: "Movement ledger",
       totalRows: count,
       totals: { at: "Total", qty: unitsIn - unitsOut, value },
       summary: [
@@ -193,6 +198,7 @@ export const stockMovements: ReportDef = {
           totals: { type: "Total", n: count, units_in: unitsIn, units_out: unitsOut, net: unitsIn - unitsOut, value },
         },
       ],
+      emptyTitle: "No movements",
       empty: "No stock movements match these filters.",
       note: "Quantities are signed: positive into stock, negative out. Values use the unit cost recorded on each movement (ex VAT).",
     };
@@ -259,7 +265,8 @@ export const shrinkage: ReportDef = {
         { label: "Units lost", value: t.lost as number, format: "number", sub: `${n(t.found as number)} found again` },
         { label: `Biggest ${first.toLowerCase()}`, value: top ? String(top.name) : "—", sub: top ? zar(top.value as number) : undefined },
       ],
-      chart: rows.some((r) => (r.value as number) > 0) ? { kind: "bar", title: `Net shrinkage by ${first.toLowerCase()}`, description: "At cost, ex VAT", format: "zar", rows: rows.filter((r) => (r.value as number) > 0).slice(0, 10).map((r) => ({ label: String(r.name), value: r.value as number, sub: `${n(r.net as number)} units` })) } : null,
+      chart: rows.some((r) => (r.value as number) > 0) ? { kind: "bar", title: `Net shrinkage by ${first.toLowerCase()}`, description: "At cost, ex VAT", format: "zar", rows: rows.filter((r) => (r.value as number) > 0).slice(0, 10).map((r) => ({ label: String(r.name), value: r.value as number, sub: count(r.net as number, "unit") })) } : null,
+      emptyTitle: "No shrinkage",
       empty: "No adjustments or count variances in this period.",
       note: "Includes manual adjustments (with their reason codes) and approved stock-take variances. Units found in a count offset losses. The rate is net shrinkage at cost divided by net sales ex VAT.",
     };
@@ -288,7 +295,7 @@ export const expiry: ReportDef = {
     const days = Number(ctx.params.days) || 30;
     const until = addDays(ctx.now, days);
     const where: Prisma.StockLevelWhereInput = { storeId: { in: ctx.storeIds }, onHand: { gt: 0 }, batch: { expiresAt: { lte: until } }, ...variantCatWhere(ctx) };
-    const [lots, count, settings] = await Promise.all([
+    const [lots, lotCount, settings] = await Promise.all([
       db.stockLevel.findMany({
         where,
         orderBy: [{ batch: { expiresAt: "asc" } }, { onHand: "desc" }],
@@ -337,18 +344,19 @@ export const expiry: ReportDef = {
         { key: "retail", label: "Retail value (RRP)", format: "zar" },
       ],
       rows,
-      totalRows: count,
+      totalRows: lotCount,
       totals: { store: multi(ctx) ? "Total" : undefined, product: multi(ctx) ? undefined : "Total", onHand: sum(all, "units"), value: sum(all, "value"), retail: sum(all, "retail") },
       summary: [
-        { label: "Expired, still on hand", value: sum(["expired"], "value"), format: "zar", sub: `${n(sum(["expired"], "units"))} units to write off`, upIsGood: false },
-        { label: "Expiring within 7 days", value: sum(["d7"], "value"), format: "zar", sub: `${n(sum(["d7"], "units"))} units` },
-        { label: `Expiring within ${days} days`, value: sum(all.slice(1), "value"), format: "zar", sub: `${n(sum(all.slice(1), "units"))} units in ${n(sum(all.slice(1), "lots"))} lots` },
+        { label: "Expired, still on hand", value: sum(["expired"], "value"), format: "zar", sub: `${count(sum(["expired"], "units"), "unit")} to write off`, upIsGood: false },
+        { label: "Expiring within 7 days", value: sum(["d7"], "value"), format: "zar", sub: count(sum(["d7"], "units"), "unit") },
+        { label: `Expiring within ${days} days`, value: sum(all.slice(1), "value"), format: "zar", sub: `${count(sum(all.slice(1), "units"), "unit")} in ${count(sum(all.slice(1), "lots"), "lot")}` },
         { label: "Retail value at risk", value: sum(all, "retail"), format: "zar", sub: "at RRP incl VAT" },
       ],
-      chart: count
-        ? { kind: "column", title: "Stock value by time to expiry", description: "At cost, ex VAT", format: "zar", data: BUCKETS.filter((b) => b.key === "expired" || b.key === "d7" || Number(b.key.slice(1)) <= days).map((b) => ({ label: b.label, value: agg.get(b.key)?.value ?? 0, tip: `${b.label}\n${zar(agg.get(b.key)?.value ?? 0)} · ${n(agg.get(b.key)?.units ?? 0)} units` })) }
+      chart: lotCount
+        ? { kind: "bar", title: "Stock value by time to expiry", description: "At cost, ex VAT", format: "zar", rows: BUCKETS.filter((b) => b.key === "expired" || b.key === "d7" || Number(b.key.slice(1)) <= days).map((b) => ({ label: b.label, value: agg.get(b.key)?.value ?? 0, sub: count(agg.get(b.key)?.units ?? 0, "unit"), tip: `${b.label}\n${zar(agg.get(b.key)?.value ?? 0)} · ${count(agg.get(b.key)?.units ?? 0, "unit")}` })) }
         : null,
-      empty: `Nothing expires in the next ${days} days.`,
+      emptyTitle: "Nothing expiring",
+      empty: `No stock on hand expires in the next ${days} days.`,
       note: `Expired stock can't be sold (the till blocks it) — write it off as an EXPIRED adjustment. Stock within ${markdownDays} days of expiry is marked down ${markdownPct}% at the till.`,
     };
   },
@@ -426,9 +434,10 @@ export const deadStock: ReportDef = {
       summary: [
         { label: "Dead stock at cost", value, format: "zar", upIsGood: false },
         { label: "Share of stock value", value: ratio(value, stock[0]?.value ?? 0), format: "pct" },
-        { label: "Lines", value: data.length, format: "number", sub: `${n(units)} units` },
+        { label: "Lines", value: data.length, format: "number", sub: count(units, "unit") },
       ],
       chart: byCat.size ? { kind: "bar", title: "Dead stock by category", description: "At cost, ex VAT", format: "zar", rows: [...byCat].sort((a, b) => b[1] - a[1]).map(([label, v]) => ({ label, value: v })) } : null,
+      emptyTitle: "No dead stock",
       empty: `Everything on hand has sold in the last ${days} days.`,
       note: `Sellable stock on hand with no sales in the last ${days} days. "Last sold" looks back 12 months. Consider a network listing, a transfer or a promotion before it ages further.`,
     };
@@ -572,6 +581,7 @@ export const lowStock: ReportDef = {
         { key: "cost", label: "Est. cost ex VAT", format: "zar" },
       ],
       rows,
+      title: "Reorder list",
       totalRows: low.length,
       totals: { [multi(ctx) ? "store" : "product"]: "Total", onOrder: low.reduce((s, r) => s + r.oo, 0), suggested, cost },
       summary: [
@@ -580,6 +590,7 @@ export const lowStock: ReportDef = {
         { label: "Suggested units", value: suggested, format: "number" },
         { label: "Estimated order value", value: cost, format: "zar", sub: "at wholesale, ex VAT" },
       ],
+      emptyTitle: "Nothing to reorder",
       empty: "Nothing is at or below its reorder point.",
       note: "Available = sellable on hand less open online reservations. Suggestions use the Purchasing replenishment maths: 28-day sales pace, 3-day lead time, 14 days of cover and the par level, less stock already on order.",
     };
@@ -630,7 +641,8 @@ export const negativeStock: ReportDef = {
         { label: "Units short", value: -(agg[0]?.units ?? 0), format: "number" },
         { label: "Value at cost", value: agg[0]?.value ?? 0, format: "zar" },
       ],
-      empty: "No negative stock — every lot balances.",
+      emptyTitle: "No negative stock",
+      empty: "Every lot balances — nothing has been sold beyond what was on hand.",
       note: "The till never blocks a sale for stock, so a sale posted before a delivery was received (or a miscount) leaves a lot below zero. Receive outstanding deliveries, then run a cycle count on these items to correct them.",
     };
   },

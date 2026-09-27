@@ -25,7 +25,7 @@ export const metadata = { title: "Pricing" };
 
 type SP = { store?: string; channel?: string; tier?: string; variant?: string; qty?: string; at?: string };
 
-const KIND: Record<string, [string, Tone]> = { ZONE: ["Zone", "blue"], CHANNEL: ["Channel", "violet"], MEMBER: ["Member", "orange"] };
+const KIND: Record<string, [string, Tone]> = { ZONE: ["Zone", "blue"], CHANNEL: ["Channel", "violet"], MEMBER: ["Rewards deal", "orange"] };
 const tierName = (k: string) => TIERS.find((t) => t.key === k)?.name ?? k;
 
 export default async function PricingPage({ searchParams }: { searchParams: Promise<SP> }) {
@@ -61,7 +61,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
     ? explainPrice(
         { variantId: variant.id, rrpCents: variant.priceCents, storeShelfCents: shelf?.priceCents ?? null, qty, incentives: !excluded },
         lists as PriceListRule[],
-        { storeId: store?.id ?? null, regionId: store?.regionId ?? null, channel, member: !!tier, tier, at: simAt },
+        { storeId: store?.id ?? null, regionId: store?.regionId ?? null, channel, member: !!tier, tier, tierPct: tier ? settings.loyalty.tierSavingsPct[tier] : 0, at: simAt },
       )
     : null;
 

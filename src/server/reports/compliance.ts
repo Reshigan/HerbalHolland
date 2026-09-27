@@ -157,6 +157,7 @@ export const dispensingRegister: ReportDef = {
         { label: "Dispensed", value: `${n(Math.round(a.grams * 10) / 10)} g`, sub: `${n(a.units)} units` },
         { label: "Exceptions", value: exceptions, format: "number", sub: exceptions ? `${n(a.noAuth)} without authorisation · ${n(a.noDispenser)} without a dispenser` : "every sale authorised and dispensed", upIsGood: false },
       ],
+      emptyTitle: "Nothing dispensed",
       empty: "No licensed products were dispensed in this period.",
       note: "Contains health-related personal information (POPIA s26) — view and export only for SAHPRA record-keeping and inspections; exports are logged. The authorisation shown is the one valid at the time of sale. Clinical conditions are never stored.",
     };
@@ -219,7 +220,8 @@ export const complianceEvents: ReportDef = {
         ...(multi(ctx) ? [{ label: "Stores with events", value: stores, format: "number" as const }] : []),
       ],
       chart: top.length ? { kind: "bar", title: "Events by rule", description: "What the compliance engine caught", format: "number", rows: top.slice(0, 8).map(([label, value]) => ({ label, value })) } : null,
-      empty: "No compliance events in this period.",
+      emptyTitle: "No compliance events",
+      empty: "Nothing was blocked or flagged in this period.",
       note: "A block means the till or checkout refused the sale until the rule was met (age, patient authorisation, monthly quantity, dispenser, licence). Offline exceptions are sales a disconnected till posted anyway — each needs a manager's follow-up.",
     };
   },
@@ -294,7 +296,8 @@ export const recalls: ReportDef = {
         { label: "Members to contact", value: t.members as number, format: "number", sub: `${n(t.walkIn as number)} walk-in units untraceable` },
         { label: "Still on hand", value: t.onHand as number, format: "number", sub: "must be pulled from sale", upIsGood: false },
       ],
-      empty: "No batches are recalled or in quarantine. ",
+      emptyTitle: "No recalls",
+      empty: "No batches are recalled or in quarantine.",
       note: "The till and web shop never sell a recalled or quarantined batch. Pull any units still on hand, log returns as RECALL adjustments and open a batch to trace its customers.",
     };
   },
@@ -334,7 +337,7 @@ export const batchTrace: ReportDef = {
       { key: "email", label: "Email" },
       { key: "units", label: "Units", format: "number" as const },
     ];
-    if (!id) return { columns, rows: [], empty: "Choose a batch above to see where it went and who bought it." };
+    if (!id) return { columns, rows: [], emptyTitle: "Choose a batch", empty: "Pick a batch above to see where it went and who bought it." };
     const saleIds = Prisma.sql`SELECT DISTINCT "saleId" FROM "StockMovement" WHERE "batchId" = ${id} AND "saleId" IS NOT NULL AND "storeId" = ANY(${ctx.storeIds}::text[])`;
     const [batch, held, received, sales, agg] = await Promise.all([
       db.batch.findUnique({ where: { id }, include: { variant: { select: { name: true, product: { select: { name: true } } } } } }),
@@ -360,7 +363,7 @@ export const batchTrace: ReportDef = {
         FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id CROSS JOIN LATERAL jsonb_array_elements(l.allocations) a
         WHERE s.id IN (${saleIds}) AND a->>'batchId' = ${id}`,
     ]);
-    if (!batch) return { columns, rows: [], empty: "That batch no longer exists." };
+    if (!batch) return { columns, rows: [], emptyTitle: "Batch not found", empty: "That batch no longer exists." };
     const rec = new Map(received.map((r) => [r.storeId, r._sum.qty ?? 0]));
     const a = agg[0] ?? { lines: 0, sold: 0, returned: 0, members: 0, walkIn: 0 };
     const rows: Row[] = sales.map((x) => ({
@@ -393,7 +396,8 @@ export const batchTrace: ReportDef = {
           totals: { store: "Total", received: where.reduce((s, w) => s + w.received, 0), onHand },
         },
       ],
-      empty: "No sales of this batch in the stores you can see.",
+      emptyTitle: "No sales of this batch",
+      empty: "None of it has been sold in the stores you can see.",
       note: "Traced from each sale line's batch allocation. Contact details are personal information (POPIA) — use them only to manage this batch; exports are logged.",
     };
   },

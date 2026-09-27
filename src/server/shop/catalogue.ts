@@ -3,11 +3,12 @@
 // shopper's store or across the network, and verified-review ratings.
 import { cache } from "react";
 import { db } from "@/server/db";
-import { activePriceLists, activePromotions } from "@/server/pricing";
+import { activePriceLists, activePromotions, priceContext } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
 import { getClasses } from "./access";
 import { STORE_SELECT } from "./context";
-import { resolvePrice, type PriceContext } from "@/lib/pricing-rules";
+import { resolvePrice, type Tier } from "@/lib/pricing-rules";
+import { tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { distanceKm } from "@/lib/routing";
 import type { RegClass } from "@/lib/compliance";
@@ -22,17 +23,34 @@ export type CatalogueProduct = Prisma.ProductGetPayload<{ include: typeof PRODUC
 export type Shopper = { tier: string | null; storeId?: string | null; storeName?: string | null };
 
 // ── Pricing & deals ──────────────────────────────────────────────────────────
-/** Price lists, live online deals and the price context for a shopper (memoised per request). */
+/**
+ * Price lists, live online deals and price contexts for a shopper (memoised per request).
+ * Members get their instant tier price; guests also get the Seed price so we can show
+ * "Rewards R…" — what joining would save them today.
+ */
 export const getPricing = cache(async (tier: string | null) => {
-  const [lists, promos, classes] = await Promise.all([activePriceLists(), activePromotions({ channel: "ONLINE" }), getClasses()]);
-  const ctx: PriceContext = { storeId: null, regionId: null, channel: "ONLINE", member: tier != null, tier: tier as PriceContext["tier"], at: new Date() };
+  const t = (tier ?? null) as Tier | null;
+  const [lists, promos, classes, ctx, rewardsCtx] = await Promise.all([
+    activePriceLists(),
+    activePromotions({ channel: "ONLINE" }),
+    getClasses(),
+    priceContext({ channel: "ONLINE", tier: t }),
+    t ? null : priceContext({ channel: "ONLINE", tier: "SEED" }),
+  ]);
   // Code-only promotions are private to the people who were given the code.
-  return { lists, promos: promos.filter((p) => !p.code), ctx, noIncentives: classes.noIncentives };
+  return { lists, promos: promos.filter((p) => !p.code), ctx, rewardsCtx, tierName: t ? tierInfo(t as TierKey).name : null, noIncentives: classes.noIncentives };
 });
 export type Pricing = Awaited<ReturnType<typeof getPricing>>;
 
 export function variantPrice(v: { id: string; priceCents: number }, regClass: RegClass, pr: Pricing) {
   return resolvePrice({ variantId: v.id, rrpCents: v.priceCents, qty: 1, incentives: !pr.noIncentives.includes(regClass) }, pr.lists, pr.ctx);
+}
+
+/** Guests only: the instant Rewards (Seed) price, when it's lower than what they'd pay today. */
+export function rewardsPrice(v: { id: string; priceCents: number }, regClass: RegClass, pr: Pricing) {
+  if (!pr.rewardsCtx) return null;
+  const p = resolvePrice({ variantId: v.id, rrpCents: v.priceCents, qty: 1, incentives: !pr.noIncentives.includes(regClass) }, pr.lists, pr.rewardsCtx);
+  return p.unitCents < p.shelfCents ? p.unitCents : null;
 }
 
 const qualifies = (d: Promotion, p: { id: string; categoryId: string }) => d.productIds.includes(p.id) || d.categoryIds.includes(p.categoryId);
@@ -73,6 +91,8 @@ export type ProductCard = {
   priceCents: number;
   wasCents: number | null;
   priceNote: string | null;
+  /** Guests: the price a Rewards member pays (before any deal). */
+  rewardsCents: number | null;
   variantCount: number;
   firstVariantId: string;
   deal: { name: string; label: string } | null;
@@ -100,15 +120,17 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
       const priced = p.variants.map((v) => ({ v, price: variantPrice(v, p.regClass, pr) })).sort((a, b) => a.price.unitCents - b.price.unitCents);
       const cheapest = priced[0];
       let priceCents = cheapest.price.unitCents;
-      let wasCents: number | null = cheapest.price.rrpCents > priceCents ? cheapest.price.rrpCents : null;
-      let priceNote = cheapest.price.rule;
+      // Members: their tier price against the walk-in shelf price ("Bloom price").
+      let wasCents: number | null = cheapest.price.shelfCents > priceCents ? cheapest.price.shelfCents : null;
+      let priceNote = wasCents ? (pr.tierName && cheapest.price.rule?.startsWith(pr.tierName) ? `${pr.tierName} price` : cheapest.price.rule) : null;
+      const rewardsCents = rewardsPrice(cheapest.v, p.regClass, pr);
       const deals = dealsFor(p, pr);
       const direct = deals.find((d) => (d.kind === "PERCENT" || d.kind === "FIXED") && !d.minSpendCents && qualifies(d, p));
+      const withDeal = (x: number) => (!direct ? x : x - (direct.kind === "PERCENT" ? Math.round((x * direct.value) / 100) : Math.min(x, direct.value)));
       if (direct) {
-        const cut = direct.kind === "PERCENT" ? Math.round((priceCents * direct.value) / 100) : Math.min(priceCents, direct.value);
         wasCents = wasCents ?? priceCents;
-        priceCents -= cut;
-        priceNote = direct.name;
+        priceCents = withDeal(priceCents);
+        priceNote = priceNote ?? direct.name;
       }
       const deal = direct ?? deals[0];
 
@@ -138,6 +160,7 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
         priceCents,
         wasCents: wasCents && wasCents > priceCents ? wasCents : null,
         priceNote,
+        rewardsCents: rewardsCents != null ? withDeal(rewardsCents) : null,
         variantCount: p.variants.length,
         firstVariantId: cheapest.v.id,
         deal: deal ? { name: deal.name, label: dealLabel(deal) } : null,

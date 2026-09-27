@@ -96,7 +96,7 @@ export type BootData = {
   priceLists: BootPriceList[];
   settings: {
     compliance: ComplianceSettings;
-    loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number };
+    loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number; tierSavingsPct: Record<TierKey, number> };
   };
   shift: BootShift | null;
   tapProvider: TapProviderKind;
@@ -118,6 +118,7 @@ export type QuoteLineDTO = {
   vatCents: number;
   promoId?: string;
   noEarn: boolean;
+  memberSavingsCents: number; // instant Rewards saving vs the walk-in price
 };
 
 export type QuoteDTO = {
@@ -131,6 +132,8 @@ export type QuoteDTO = {
   suggestions: { promoId: string; name: string; message: string; productIds: string[]; categoryIds: string[] }[];
   codeError?: string;
   pointsEstimate: number;
+  memberSavingsCents: number; // "Rewards savings" on this basket (members)
+  joinSavingsCents: number; // walk-ins: what joining Rewards (Seed) would save on this basket now
 };
 
 // ── Customers ───────────────────────────────────────────────────────────────
@@ -226,6 +229,7 @@ export type ReceiptDTO = {
   lines: ReceiptLine[];
   subtotalCents: number;
   discountCents: number;
+  memberSavingsCents: number;
   totalCents: number;
   vatCents: number;
   pointsEarned: number;
@@ -265,7 +269,7 @@ export type ZReport = {
   closedAt: string | null;
   openedBy: string;
   closedBy: string | null;
-  sales: { count: number; grossCents: number; vatCents: number; netCents: number; discountCents: number; units: number };
+  sales: { count: number; grossCents: number; vatCents: number; netCents: number; discountCents: number; memberSavingsCents: number; units: number };
   refunds: { count: number; totalCents: number };
   online: { count: number; grossCents: number };
   tenders: { method: string; label: string; amountCents: number; count: number }[];

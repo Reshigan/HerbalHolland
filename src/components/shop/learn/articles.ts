@@ -54,7 +54,7 @@ export const ARTICLES: ArticleMeta[] = [
     slug: "points",
     kicker: "Rewards",
     title: "How Rewards points work",
-    dek: "Earn on every rand you spend, climb from Seed to Harvest, and spend points like cash in any store or online.",
+    dek: "Instant member prices from day one, points on every rand, and a climb from Seed to Harvest — in any store or online.",
     minutes: 3,
     art: { slug: "rewards-points", regClass: "APPAREL" },
   },

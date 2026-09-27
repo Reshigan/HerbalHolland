@@ -18,7 +18,8 @@ export function posBtn(variant: BtnVariant = "secondary", size: BtnSize = "md", 
       danger: "bg-rose-500 text-white hover:bg-rose-600",
       success: "bg-leaf-500 text-white hover:bg-leaf-600",
     }[variant],
-    { sm: "h-9 px-3.5 text-[0.8rem]", md: "h-11 px-5 text-sm", lg: "h-14 px-6 text-base", xl: "h-16 px-8 text-lg" }[size],
+    // Every size is a ≥ 48px touch target (phones and tablets are both first-class tills).
+    { sm: "h-12 px-4 text-sm", md: "h-12 px-5 text-[0.95rem]", lg: "h-14 px-6 text-base", xl: "h-16 px-8 text-lg" }[size],
     className,
   );
 }
@@ -38,7 +39,7 @@ export function IconButton({ label, className, children, ...props }: React.Butto
       type="button"
       aria-label={label}
       title={label}
-      className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-300 transition hover:bg-ink-800 hover:text-white active:scale-95 disabled:opacity-40", className)}
+      className={cn("grid h-12 w-12 shrink-0 place-items-center rounded-full text-ink-300 transition hover:bg-ink-800 hover:text-white active:scale-95 disabled:opacity-40", className)}
       {...props}
     >
       {children}
@@ -86,7 +87,7 @@ export function Field({ label, hint, error, children, className, htmlFor }: { la
 /** Large checkbox row (whole row is the touch target). */
 export function CheckRow({ checked, onChange, label, description, className, disabled }: { checked: boolean; onChange: (v: boolean) => void; label: React.ReactNode; description?: React.ReactNode; className?: string; disabled?: boolean }) {
   return (
-    <label className={cn("flex min-h-11 cursor-pointer items-start gap-3 rounded-xl px-1 py-2", disabled && "cursor-not-allowed opacity-50", className)}>
+    <label className={cn("flex min-h-12 cursor-pointer items-start gap-3 rounded-xl px-1 py-2.5", disabled && "cursor-not-allowed opacity-50", className)}>
       <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} className="mt-0.5 h-6 w-6 shrink-0 cursor-pointer rounded-md accent-oranje-500" />
       <span className="text-[0.95rem]">
         <span className="font-medium text-ink-50">{label}</span>
@@ -99,13 +100,13 @@ export function CheckRow({ checked, onChange, label, description, className, dis
 export function Stepper({ value, onChange, min = 0, max = 999, label }: { value: number; onChange: (v: number) => void; min?: number; max?: number; label: string }) {
   return (
     <div className="inline-flex items-center rounded-full bg-ink-800 p-0.5" role="group" aria-label={label}>
-      <button type="button" aria-label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(value - 1)} className="grid h-11 w-11 place-items-center rounded-full text-xl font-semibold text-ink-100 hover:bg-ink-700 active:scale-95 disabled:opacity-35">
+      <button type="button" aria-label={`Decrease ${label}`} disabled={value <= min} onClick={() => onChange(value - 1)} className="grid h-12 w-12 place-items-center rounded-full text-xl font-semibold text-ink-100 hover:bg-ink-700 active:scale-95 disabled:opacity-35">
         −
       </button>
       <span className="tnum min-w-8 text-center font-display text-lg font-semibold text-white" aria-live="polite">
         {value}
       </span>
-      <button type="button" aria-label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(value + 1)} className="grid h-11 w-11 place-items-center rounded-full text-xl font-semibold text-ink-100 hover:bg-ink-700 active:scale-95 disabled:opacity-35">
+      <button type="button" aria-label={`Increase ${label}`} disabled={value >= max} onClick={() => onChange(value + 1)} className="grid h-12 w-12 place-items-center rounded-full text-xl font-semibold text-ink-100 hover:bg-ink-700 active:scale-95 disabled:opacity-35">
         +
       </button>
     </div>
@@ -155,6 +156,7 @@ export function Sheet({
   size = "md",
   dismissable = true,
   className,
+  bodyClassName,
 }: {
   open: boolean;
   onClose: () => void;
@@ -165,6 +167,7 @@ export function Sheet({
   size?: "sm" | "md" | "lg" | "xl" | "full";
   dismissable?: boolean;
   className?: string;
+  bodyClassName?: string;
 }) {
   const id = useId();
   const ref = useRef<HTMLDivElement>(null);
@@ -193,8 +196,9 @@ export function Sheet({
         tabIndex={-1}
         className={cn(
           "flex max-h-[100dvh] w-full flex-col overflow-hidden bg-ink-900 text-ink-100 shadow-2xl ring-1 ring-ink-800 outline-none animate-rise sm:max-h-[calc(100dvh-2rem)] sm:rounded-3xl",
-          size !== "full" && "rounded-t-3xl",
-          { sm: "sm:max-w-md", md: "sm:max-w-xl", lg: "sm:max-w-3xl", xl: "sm:max-w-5xl", full: "h-[100dvh] sm:h-[calc(100dvh-2rem)] sm:max-w-6xl" }[size],
+          // Phones: small confirms are bottom sheets; everything else is full-screen for one-handed use.
+          size === "sm" ? "rounded-t-3xl pb-[env(safe-area-inset-bottom)] sm:pb-0" : "h-[100dvh] pt-[env(safe-area-inset-top)] sm:h-auto sm:pt-0",
+          { sm: "sm:max-w-md", md: "sm:max-w-xl", lg: "sm:max-w-3xl", xl: "sm:max-w-5xl", full: "sm:h-[calc(100dvh-2rem)] sm:max-w-6xl" }[size],
           className,
         )}
       >
@@ -211,7 +215,7 @@ export function Sheet({
             </IconButton>
           )}
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6">{children}</div>
+        <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6", bodyClassName)}>{children}</div>
         {footer && <div className="border-t border-ink-800 bg-ink-900 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6">{footer}</div>}
       </div>
     </div>
@@ -282,7 +286,7 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
           aria-selected={value === o.value}
           onClick={() => onChange(o.value)}
           className={cn(
-            "inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition",
+            "inline-flex h-12 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm font-semibold transition",
             value === o.value ? "bg-ink-700 text-white" : "text-ink-400 hover:text-ink-100",
           )}
         >

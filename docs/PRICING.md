@@ -14,13 +14,19 @@ Evaluated per line, in this order:
    tourist zones, online-only prices and **scheduled price changes** (set `startsAt`).
 3. **Franchisee shelf price** — `StoreVariant.priceCents`. In store it always wins over steps 1–2: franchisees set their
    own prices (Competition Act). Online orders use the network online price.
-4. **Member / tier prices** — `PriceList` kind `MEMBER` (optionally tier-specific) applies to identified members when it
-   beats the shelf price.
+4. **Instant Rewards price** (Checkers Xtra Savings style) — an identified member pays the lower of:
+   - their **tier saving** off the shelf price (`settings.loyalty.tierSavingsPct`: Seed 3%, Sprout 5%, Bloom 7%,
+     Harvest 10%), and
+   - a **Rewards deal** — a `PriceList` of kind `MEMBER` (all members or specific tiers, usually a weekly window).
+
+   `quote()` reports each line's `memberSavingsCents` (vs the walk-in price) and, for walk-ins, `joinSavingsCents` (what
+   joining at Seed would save on this basket now). Savings are stored on `SaleLine`/`Sale`/`OrderLine` and rolled up in
+   `DailyStoreStat.memberSavingsCents`; refunds reverse them.
 5. **Quantity breaks** — list items with `minQty > 1` ("papers: R30 each for 10+") when they beat the above.
 6. **Near-expiry markdown** (POS) — when the next lot to sell (FEFO) expires within `settings.pricing.markdownDays`,
    take `markdownPct` off.
 
-Each line reports the rule that set its price (e.g. "Rewards member price", "Volume pricing (10+)",
+Each line reports the rule that set its price (e.g. "Bloom Rewards −7%", "Rewards deal", "Volume pricing (10+)",
 "Near-expiry −20%"), shown on receipts and in carts.
 
 **Incentive exclusion:** when a line is excluded from incentives (licensed medicines in MEDICAL mode — Medicines Act

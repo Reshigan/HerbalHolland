@@ -123,7 +123,7 @@ export async function placeOrder(input: CheckoutInput) {
         promotionId: q.promotionId,
         campaignId: input.campaignId,
         events,
-        lines: { create: q.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents, totalCents: l.totalCents })) },
+        lines: { create: q.lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents, memberSavingsCents: l.memberSavingsCents, totalCents: l.totalCents })) },
       },
       include: { store: true },
     });
@@ -218,7 +218,7 @@ export async function advanceOrder(
       const lines = o.lines.map((l) => ({
         variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents,
         discountCents: l.qty * l.unitPriceCents - l.totalCents, totalCents: l.totalCents, vatCents: vatOf(l.totalCents),
-        noEarn: excluded.includes(l.variant.product.regClass),
+        noEarn: excluded.includes(l.variant.product.regClass), memberSavingsCents: l.memberSavingsCents,
       }));
       postedSaleId = randomUUID();
       await postSaleTx(t, {

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AlertTriangle, ArrowRight, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Trash2, Truck } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgePercent, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Trash2, Truck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -203,6 +203,16 @@ export default async function CartPage() {
                 </div>
               )}
             </dl>
+            {q.memberSavingsCents > 0 && (
+              <p className="mt-4 flex items-center gap-2 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-xs font-semibold text-oranje-100">
+                <BadgePercent className="h-4 w-4 shrink-0 text-oranje-400" /> You&apos;re saving {zar(q.memberSavingsCents)} with your {tierMeta(customer!.tier).name} price.
+              </p>
+            )}
+            {!customer && q.joinSavingsCents > 0 && (
+              <Link href="/club/join?next=/cart" className="mt-4 flex items-center gap-2 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-xs font-semibold text-oranje-100 hover:border-oranje-500">
+                <BadgePercent className="h-4 w-4 shrink-0 text-oranje-400" /> Join free and save {zar(q.joinSavingsCents)} on this order →
+              </Link>
+            )}
             {licensedLines.length === q.lines.length ? null : toFree > 0 ? (
               <p className="mt-4 flex items-center gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-xs text-ink-300">
                 <Truck className="h-4 w-4 shrink-0 text-oranje-500" /> Add {zar(toFree)} more for free delivery.
@@ -224,12 +234,12 @@ export default async function CartPage() {
             <div className="eyebrow text-oranje-500">Herbal Holland Rewards</div>
             {customer ? (
               <p className="mt-2 text-sm leading-relaxed text-ink-300">
-                You&apos;ll earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order as a {tierMeta(customer.tier).name} member
-                {q.pointsMultiplier > 1 ? ` (${q.pointsMultiplier}× today)` : ""}. You have <strong className="text-white">{fmtPoints(customer.points)}</strong> to spend at checkout.
+                You&apos;ll earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order
+                {q.pointsMultiplier > 1 ? ` (${q.pointsMultiplier}× points today)` : ""}. You have <strong className="text-white">{fmtPoints(customer.points)}</strong> to spend at checkout.
               </p>
             ) : (
               <p className="mt-2 text-sm leading-relaxed text-ink-300">
-                Members earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order, plus {fmtPoints(settings.loyalty.signupBonus)} for joining.{" "}
+                Members pay less instantly{q.joinSavingsCents > 0 ? ` (${zar(q.joinSavingsCents)} off this bag)` : ""} and earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order, plus {fmtPoints(settings.loyalty.signupBonus)} for joining.{" "}
                 <Link href="/club/join?next=/cart" className="font-semibold text-oranje-400 hover:underline">
                   Join free
                 </Link>

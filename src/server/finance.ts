@@ -8,7 +8,7 @@ import { rangeFromParams, type DateRange } from "@/lib/format";
 import { receivedValue } from "./stock-orders";
 
 const SUMS = {
-  sales: true, refunds: true, units: true, grossCents: true, vatCents: true, costCents: true, discountCents: true,
+  sales: true, refunds: true, units: true, grossCents: true, vatCents: true, costCents: true, discountCents: true, memberSavingsCents: true,
   cardCents: true, cashCents: true, payshapCents: true, eftCents: true, loyaltyCents: true, onlineCents: true,
   members: true, pointsIssued: true,
 } as const;
@@ -178,7 +178,8 @@ export async function franchiseStatement(storeId: string, month: string) {
     levyBps: store.levyBps,
     ecomBps: store.ecomBps,
   };
-  return { store, month, range: r, input, ...buildStatement(input) };
+  // Instant Rewards savings are already in the lower net sales; shown so owners see what the programme gave members.
+  return { store, month, range: r, input, memberSavingsCents: all.memberSavingsCents, ...buildStatement(input) };
 }
 
 /** Expected cash for a shift: float + cash tendered on sales and refunds in the shift. */

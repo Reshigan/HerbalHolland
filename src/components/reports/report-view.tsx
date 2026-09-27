@@ -149,7 +149,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
                 label={t.label}
                 value={tileValue(t.value, t.format)}
                 delta={t.delta}
-                deltaLabel={t.sub ? "vs prev." : "vs previous period"}
+                deltaLabel={t.sub || tiles.length > 4 ? "vs prev." : "vs previous period"}
                 upIsGood={t.upIsGood ?? true}
                 sub={t.sub}
                 className="break-inside-avoid"
@@ -160,18 +160,21 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
 
         {chart &&
           (aside ? (
-            <div className="grid gap-6 lg:grid-cols-3">
-              <Card className="break-inside-avoid lg:col-span-2">
-                <CardHeader title={chart.title} description={chart.description} />
-                <CardBody>
+            <Card className="break-inside-avoid">
+              <CardHeader title={chart.title} description={chart.description} />
+              <CardBody className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_19rem]">
+                <div className="min-w-0">
                   <ReportChart chart={chart} />
-                </CardBody>
-              </Card>
-              <Card className="flex flex-col break-inside-avoid">
-                <CardHeader title="About this report" />
-                <CardBody className="flex flex-1 flex-col gap-4">
-                  {note}
-                  <div className="mt-auto rounded-xl bg-ink-50 p-3 text-sm text-ink-600 print:hidden">
+                </div>
+                <aside aria-label="About this report" className="flex flex-col gap-4 border-t border-ink-100 pt-5 lg:border-l lg:border-t-0 lg:pl-6 lg:pt-0">
+                  <h3 className="eyebrow text-oranje-700">About this report</h3>
+                  {note || (
+                    <p className="flex items-start gap-2 text-sm leading-relaxed text-ink-500">
+                      <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" strokeWidth={1.9} aria-hidden />
+                      <span>Live figures. The filters above apply to the tiles, the chart and the table alike — and to the CSV.</span>
+                    </p>
+                  )}
+                  <div className="rounded-xl bg-ink-50 p-3 text-sm text-ink-600 print:hidden">
                     <div className="flex items-center gap-2 font-semibold text-ink-850">
                       <FileSpreadsheet className="h-4 w-4 text-oranje-700" strokeWidth={1.9} aria-hidden />
                       {total.toLocaleString("en-US")} row{total === 1 ? "" : "s"}
@@ -181,9 +184,9 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
                       Download CSV <ChevronRight className="h-3 w-3" aria-hidden />
                     </a>
                   </div>
-                </CardBody>
-              </Card>
-            </div>
+                </aside>
+              </CardBody>
+            </Card>
           ) : (
             <Card className="break-inside-avoid">
               <CardHeader title={chart.title} description={chart.description} />
@@ -206,7 +209,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
             {result.rows.length ? (
               <ReportTable columns={result.columns} rows={result.rows} totals={result.totals} limit={SCREEN_LIMIT} />
             ) : (
-              <EmptyState icon={<ReportIcon reportKey={def.key} className="h-5 w-5" />} title="Nothing to show yet" className="border-t border-ink-100">
+              <EmptyState icon={<ReportIcon reportKey={def.key} className="h-5 w-5" />} title={result.emptyTitle ?? "Nothing to show"} className="border-t border-ink-100">
                 {result.empty ?? "No data for these filters. Try a longer date range or another store."}
               </EmptyState>
             )}

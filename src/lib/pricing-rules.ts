@@ -1,8 +1,10 @@
 // Pure price resolution. Precedence (documented in docs/PRICING.md):
 //   shelf  = store's own price → else best matching ZONE/CHANNEL list (priority, then newest) → else RRP
-//   member = lowest applicable MEMBER list price (tier-aware) if it beats shelf
+//   member = instant Rewards price: the member's tier % off shelf, or a MEMBER list price (tier-aware), whichever is lower
 //   breaks = lowest quantity-break price with minQty ≤ qty if it beats the above
 //   markdown (POS) = % off for stock nearing expiry
+import { tierInfo } from "./loyalty-rules";
+
 export type Tier = "SEED" | "SPROUT" | "BLOOM" | "HARVEST";
 
 export type PriceListRule = {
@@ -28,6 +30,7 @@ export type PriceContext = {
   channel: "POS" | "ONLINE";
   member: boolean;
   tier?: Tier | null;
+  tierPct?: number; // the member's instant tier saving (settings.loyalty.tierSavingsPct)
   at: Date;
 };
 
@@ -67,6 +70,10 @@ export function resolvePrice(
 
   let unit = shelf;
   if (v.incentives === false) return { rrpCents: v.rrpCents, shelfCents: shelf, unitCents: unit, rule };
+  if (ctx.member && ctx.tier && ctx.tierPct) {
+    unit = Math.round((shelf * (100 - ctx.tierPct)) / 100);
+    rule = `${tierInfo(ctx.tier).name} Rewards −${ctx.tierPct}%`;
+  }
   for (const l of live) {
     const p = priceIn(l, v.variantId, v.rrpCents, v.qty);
     if (!p || p.price >= unit) continue;

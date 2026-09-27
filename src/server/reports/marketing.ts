@@ -76,6 +76,7 @@ export const promotions: ReportDef = {
         { label: "Live but unused", value: idle, format: "number", sub: "promotions with no sales" },
       ],
       chart: rows.some((r) => r.n > 0) ? { kind: "bar", title: "Revenue by promotion", description: "Sales incl VAT with the promotion applied", format: "zar", rows: rows.filter((r) => r.n > 0).slice(0, 10).map((r) => ({ label: r.name, value: r.revenue, sub: `${zar(r.discount)} off` })) } : null,
+      emptyTitle: "No promotions",
       empty: "No promotions ran in this period.",
       note: "Each sale is credited to the first promotion applied to it; the discount column includes every deal on those baskets. Licensed medicines never carry promotions (Medicines Act s18A), and franchisee shelf prices are unaffected.",
     };
@@ -155,6 +156,7 @@ export const campaigns: ReportDef = {
         { label: "ROI", value: t.roi as number | null, format: "pct", sub: cost ? `on ${zar(cost)} spend` : "no costed campaigns in view" },
       ],
       chart: rows.some((r) => (r.revenue as number) > 0) ? { kind: "bar", title: "Attributed revenue", description: "Sales incl VAT credited to each campaign", format: "zar", rows: rows.filter((r) => (r.revenue as number) > 0).map((r) => ({ label: String(r.name), value: r.revenue as number, sub: `${n(r.orders as number)} sale${r.orders === 1 ? "" : "s"}` })) } : null,
+      emptyTitle: "No campaigns",
       empty: "No campaigns were sent in this period.",
       note: `Last-touch attribution: sales that used the campaign's promo code or tracked link, or its promotion after the send. ROI = (attributed net sales − cost) ÷ cost${ctx.networkWide ? "" : ", shown only for campaigns whose whole audience is in this view; network campaigns show the sales and members at this store"}.`,
     };

@@ -4,6 +4,7 @@ import { ProductArt } from "@/components/product/art";
 import { AddToBag } from "./add-to-bag";
 import { Price, Stars, Tag } from "./ui";
 import { cn } from "@/lib/cn";
+import { zar } from "@/lib/money";
 import type { ProductCard as Card } from "@/server/shop/catalogue";
 
 export function StockLine({ stock, className }: { stock: Card["stock"]; className?: string }) {
@@ -47,7 +48,12 @@ export function ProductCardView({ p }: { p: Card }) {
         <div className="mt-auto flex items-end justify-between gap-3 pt-4">
           <div className="min-w-0">
             <Price cents={p.priceCents} was={p.wasCents} from={p.variantCount > 1} />
-            {p.priceNote && p.wasCents && !p.deal && <p className="mt-0.5 truncate text-[0.7rem] font-medium text-oranje-300">{p.priceNote}</p>}
+            {p.priceNote && p.wasCents && p.priceNote !== p.deal?.name && <p className="mt-0.5 truncate text-[0.7rem] font-semibold text-oranje-300">{p.priceNote}</p>}
+            {p.rewardsCents != null && (
+              <p className="mt-1 inline-flex items-center gap-1 rounded-md bg-oranje-500/15 px-1.5 py-0.5 text-[0.7rem] font-semibold text-oranje-200">
+                Rewards <span className="tnum">{zar(p.rewardsCents)}</span>
+              </p>
+            )}
           </div>
           {p.variantCount === 1 && p.stock.kind !== "out" ? (
             <AddToBag compact variantId={p.firstVariantId} name={p.name} />

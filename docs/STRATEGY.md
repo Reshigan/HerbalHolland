@@ -51,7 +51,7 @@ card acquiring, pharmacies, malls, landlords and investors.
 | # | Competitor reality (see market study) | Herbal Holland advantage | Where it lives |
 |---|---|---|---|
 | 1 | Paid memberships (R30–R250/month) valid at one venue | **Free** Herbal Holland Rewards membership, valid at every store and online; 2-minute sign-up | `/club/join`, POS quick-join, QR self-signup |
-| 2 | Flat 5% cashback at best | Tiered points (1×→2×), birthday, referral (50 + 50 points), double-points days; settled fairly between franchisees | Loyalty ledger + franchise statement |
+| 2 | Flat 5% cashback at best | Instant tier savings at the till and online (3% → 10%, Checkers Xtra Savings style), weekly member deals, points, birthday, referral (50 + 50 points), double-points days; settled fairly between franchisees | Loyalty ledger + franchise statement |
 | 3 | No lab results, fake COAs, contamination scares | Batch QR → public COA (potency, terpenes, microbials, pesticides, metals, solvents) | `/batch/[code]` |
 | 4 | Informal WhatsApp menus, stock-outs | One live catalogue: web, POS, in-store TV menu boards, all stock-aware | `/shop`, `/menu/[slug]` |
 | 5 | Card surcharges, cash-only, prepay-only | Surcharge-free tap-on-glass, PayShap, EFT, cash; pay online or on collection | POS payment sheet |
@@ -113,9 +113,15 @@ Segments come from RFM (`src/lib/rfm.ts`): Champions, Loyal, Promising, New, At 
 recommended play in the CRM.
 
 ### 5.4 Loyalty economics (Herbal Holland Rewards)
-- Earn 5 points per R100 paid (Seed 1×, Sprout 1.25×, Bloom 1.5×, Harvest 2×); 1 point = R1; redeem up to 50% of a
-  basket. Tiers on rolling 12-month spend (R2,500 / R7,500 / R15,000).
-- **Effective cost:** ~5–7% of eligible sales. Medicines earn nothing in MEDICAL mode (s18A).
+- **Instant savings, Checkers Xtra Savings style:** identify at the till (phone number or digital card) or sign in
+  online and prices drop on the spot — Seed 3%, Sprout 5%, Bloom 7%, Harvest 10% off eligible items, or the week's
+  **Rewards deal** price (member-only price list) when that is lower. Walk-ins see "members save R… on this basket —
+  join free", the cashier's sign-up hook. Percentages are HQ settings (`loyalty.tierSavingsPct`).
+- **Plus points:** 5 points per R100 paid in every tier; 1 point = R1; redeem up to 50% of a basket; promotions can
+  multiply (Double Points Fridays). Tiers on rolling 12-month spend (R2,500 / R7,500 / R15,000). Setting the earn rate
+  to 0 turns Rewards into a pure instant-savings programme.
+- **Effective cost:** ~8–15% of eligible member sales (instant savings are carried by the selling store as a price
+  reduction and reported as `memberSavingsCents`). Medicines get no savings, deals or points in MEDICAL mode (s18A).
 - **Fair across 1,000 owners:** the issuing store funds points, the redeeming store is reimbursed, both on the monthly
   franchise statement — so cross-store redemption never punishes a franchisee.
 - Liability is tracked live in HQ; expiry rules can be added before launch if finance requires them.

@@ -1,7 +1,7 @@
 // Icons for report groups and individual reports (lucide, 1.9 stroke).
 import {
   ArrowLeftRight, BadgePercent, Banknote, Boxes, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins,
-  Hourglass, IdCard, Landmark, Megaphone, PackageSearch, PackageX, Receipt, ReceiptText, Repeat, Route, Scale, ScanSearch, Send, ShieldAlert,
+  Hourglass, IdCard, Landmark, Megaphone, PackageSearch, PackageX, PiggyBank, Receipt, ReceiptText, Repeat, Route, Scale, ScanSearch, Send, ShieldAlert,
   ShieldCheck, ShoppingBag, Siren, Snowflake, Stethoscope, Tags, TrendingUp, Trophy, Truck, Undo2, UserCheck, Users, UsersRound, Wallet,
   type LucideIcon,
 } from "lucide-react";
@@ -45,6 +45,7 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   segments: UsersRound,
   "new-vs-returning": Repeat,
   "member-attach": IdCard,
+  "rewards-savings": PiggyBank,
   promotions: BadgePercent,
   campaigns: Send,
   "age-checks": ShieldCheck,

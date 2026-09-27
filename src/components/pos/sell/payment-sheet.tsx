@@ -25,6 +25,8 @@ export function PaymentSheet({
   open,
   title,
   dueCents,
+  savingsCents = 0,
+  discountCents = 0,
   reference,
   online,
   tapProvider,
@@ -37,6 +39,8 @@ export function PaymentSheet({
   open: boolean;
   title: string;
   dueCents: number;
+  savingsCents?: number; // instant Rewards savings already in the prices
+  discountCents?: number; // promotions
   reference: string;
   online: boolean;
   tapProvider: TapProviderKind;
@@ -49,7 +53,7 @@ export function PaymentSheet({
   const [tenders, setTenders] = useState<(QueuedTender & { key: number })[]>([]);
   const [pts, setPts] = useState(0);
   const [panel, setPanel] = useState<Panel>(null);
-  const [amountText, setAmountText] = useState("");
+  const [amountText, setAmountText] = useState<string | null>(null); // null = "whatever is still due"
   const [tapping, setTapping] = useState<number | null>(null);
   const [buyer, setBuyer] = useState<Buyer>({ name: "", address: "", vatNumber: "" });
   const [error, setError] = useState<string | null>(null);
@@ -63,7 +67,7 @@ export function PaymentSheet({
 
   const paid = tenders.reduce((s, t) => s + t.amountCents, 0) + pts * 100;
   const remaining = Math.max(0, dueCents - paid);
-  const amount = parseRands(amountText) ?? remaining;
+  const amount = (amountText != null ? parseRands(amountText) : null) ?? remaining;
   const charge = Math.min(Math.max(0, amount), remaining);
   const buyerOk = !needsBuyer || (buyer.name.trim().length > 1 && buyer.address.trim().length > 4);
   const change = tenders.reduce((s, t) => s + (t.changeCents ?? 0), 0);
@@ -74,17 +78,16 @@ export function PaymentSheet({
     setTenders([]);
     setPts(0);
     setPanel(online ? null : "cash");
-    setAmountText("");
+    setAmountText(null);
     setError(null);
     setBusy(false);
     setBuyer({ name: "", address: "", vatNumber: "" });
     completing.current = false;
   }, [open, online]);
 
-  useEffect(() => setAmountText(remaining ? (remaining / 100).toFixed(2) : ""), [remaining]);
-
   const add = (t: QueuedTender) => {
     setTenders((ts) => [...ts, { ...t, key: ++keySeq.current }]);
+    setAmountText(null);
     setPanel(null);
     setError(null);
   };
@@ -154,6 +157,12 @@ export function PaymentSheet({
                 Total {zar(dueCents)}
                 {paid > 0 && ` · paid ${zar(paid)}`}
               </div>
+              {(savingsCents > 0 || discountCents > 0) && (
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-800 pt-3 text-sm">
+                  {savingsCents > 0 && <span className="font-semibold text-oranje-300">Rewards savings {zar(savingsCents)}</span>}
+                  {discountCents > 0 && <span className="font-semibold text-[#7fd49a]">Deals {zar(discountCents)}</span>}
+                </div>
+              )}
             </div>
 
             {(tenders.length > 0 || pts > 0) && (
@@ -219,7 +228,7 @@ export function PaymentSheet({
             <Field label="Amount for this payment" htmlFor="pay-amount" hint={amount < remaining && remaining ? `Split payment — ${zar(remaining - charge)} will still be due` : undefined}>
               <div className="relative">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-display text-2xl text-ink-400">R</span>
-                <TextInput id="pay-amount" inputMode="decimal" value={amountText} onChange={(e) => setAmountText(e.target.value)} className="h-16 pl-10 font-display text-3xl font-semibold tnum" disabled={remaining === 0} />
+                <TextInput id="pay-amount" inputMode="decimal" value={amountText ?? (remaining ? (remaining / 100).toFixed(2) : "")} onChange={(e) => setAmountText(e.target.value)} onFocus={(e) => e.currentTarget.select()} className="h-16 pl-10 font-display text-3xl font-semibold tnum" disabled={remaining === 0} />
               </div>
             </Field>
 
@@ -370,7 +379,7 @@ function TenderRow({ icon, label, amount, onRemove }: { icon: React.ReactNode; l
       <span className="min-w-0 flex-1 truncate text-sm text-ink-200">{label}</span>
       <span className="font-semibold text-white tnum">{zar(amount)}</span>
       {onRemove && (
-        <button type="button" onClick={onRemove} aria-label={`Remove ${label}`} className="grid h-10 w-10 place-items-center rounded-full text-ink-400 hover:bg-rose-500/10 hover:text-rose-400">
+        <button type="button" onClick={onRemove} aria-label={`Remove ${label}`} className="grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-rose-500/10 hover:text-rose-400">
           <Trash2 className="h-4 w-4" />
         </button>
       )}

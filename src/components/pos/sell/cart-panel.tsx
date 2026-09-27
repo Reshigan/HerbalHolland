@@ -18,7 +18,7 @@ function ruleTone(rule: string): "amber" | "blue" | "violet" {
   return "violet";
 }
 
-export function CustomerCard({ customer, ageCheck, onFind, onNew, onDetach, onScan }: { customer: CustomerDetail | null; ageCheck: Cart["ageCheck"]; onFind: () => void; onNew: () => void; onDetach: () => void; onScan?: () => void }) {
+export function CustomerCard({ customer, ageCheck, joinSavingsCents = 0, onFind, onNew, onDetach, onScan }: { customer: CustomerDetail | null; ageCheck: Cart["ageCheck"]; joinSavingsCents?: number; onFind: () => void; onNew: () => void; onDetach: () => void; onScan?: () => void }) {
   if (!customer)
     return (
       <div className="rounded-2xl bg-ink-900 p-3 ring-1 ring-ink-800">
@@ -28,9 +28,17 @@ export function CustomerCard({ customer, ageCheck, onFind, onNew, onDetach, onSc
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-white">Walk-in customer</div>
-            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Add a Rewards member to earn points"}</div>
+            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members save instantly and earn points"}</div>
           </div>
         </div>
+        {joinSavingsCents > 0 && (
+          <button type="button" onClick={onFind} className="mt-3 flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-oranje-500/15 px-3 py-2 text-left ring-1 ring-oranje-500/40 transition hover:bg-oranje-500/20" data-testid="join-prompt">
+            <Sparkles className="h-5 w-5 shrink-0 text-oranje-400" />
+            <span className="text-[0.85rem] leading-snug text-oranje-100">
+              <b className="text-oranje-300">Members save {zar(joinSavingsCents)}</b> on this basket — add or sign up (free)
+            </span>
+          </button>
+        )}
         <div className="mt-3 grid grid-cols-2 gap-2">
           <PosButton variant="secondary" onClick={onFind} className="px-3">
             <UserRound className="h-4 w-4" /> Find member
@@ -41,7 +49,7 @@ export function CustomerCard({ customer, ageCheck, onFind, onNew, onDetach, onSc
           </PosButton>
         </div>
         {onScan && (
-          <button type="button" onClick={onScan} className="mt-2 inline-flex h-10 w-full items-center justify-center gap-2 rounded-full text-[0.8rem] font-semibold text-ink-300 hover:bg-ink-850">
+          <button type="button" onClick={onScan} className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.8rem] font-semibold text-ink-300 hover:bg-ink-850">
             <ScanLine className="h-4 w-4" /> Scan member QR
           </button>
         )}
@@ -65,7 +73,7 @@ export function CustomerCard({ customer, ageCheck, onFind, onNew, onDetach, onSc
             {customer.memberNo} · {customer.phone}
           </div>
         </div>
-        <button type="button" onClick={onDetach} aria-label="Remove customer from sale" className="-mr-1 -mt-1 grid h-10 w-10 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+        <button type="button" onClick={onDetach} aria-label="Remove customer from sale" className="-mr-2 -mt-2 grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
           <X className="h-4 w-4" />
         </button>
       </div>
@@ -185,7 +193,7 @@ export function CartPanel({
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <Stepper value={l.qty} min={1} onChange={(v) => onQty(l.variantId, v)} label={`quantity of ${e.product.name}`} />
-                        <button type="button" onClick={() => onRemove(l.variantId)} aria-label={`Remove ${e.product.name}`} className="grid h-11 w-11 place-items-center rounded-full text-ink-400 hover:bg-rose-500/10 hover:text-rose-400">
+                        <button type="button" onClick={() => onRemove(l.variantId)} aria-label={`Remove ${e.product.name}`} className="grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-rose-500/10 hover:text-rose-400">
                           <Trash2 className="h-[18px] w-[18px]" />
                         </button>
                       </div>
@@ -224,7 +232,7 @@ export function CartPanel({
               onCode(code.trim() ? code.trim().toUpperCase() : null);
             }}
           >
-            <TextInput value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Promo code" aria-label="Promo code" className="h-11 font-mono uppercase" aria-invalid={!!quote.codeError && !!cart.code} />
+            <TextInput value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} placeholder="Promo code" aria-label="Promo code" className="h-12 font-mono uppercase" aria-invalid={!!quote.codeError && !!cart.code} />
             <PosButton type="submit" variant="secondary">
               Apply
             </PosButton>
@@ -235,7 +243,7 @@ export function CartPanel({
             )}
           </form>
         ) : (
-          <button type="button" onClick={() => setCodeOpen(true)} className="mb-2 inline-flex h-10 items-center gap-2 rounded-full px-2 text-[0.8rem] font-semibold text-ink-300 hover:text-white">
+          <button type="button" onClick={() => setCodeOpen(true)} className="mb-1 inline-flex h-12 items-center gap-2 rounded-full px-2 text-[0.8rem] font-semibold text-ink-300 hover:text-white">
             <Tag className="h-4 w-4" /> Add promo code
           </button>
         )}
@@ -248,6 +256,12 @@ export function CartPanel({
             </dt>
             <dd className="tnum">{zar(quote.subtotalCents)}</dd>
           </div>
+          {quote.memberSavingsCents > 0 && (
+            <div className="flex justify-between text-oranje-300" data-testid="rewards-savings">
+              <dt>Rewards savings (in prices)</dt>
+              <dd className="tnum">{zar(quote.memberSavingsCents)}</dd>
+            </div>
+          )}
           {quote.discountCents > 0 && (
             <div className="flex justify-between text-[#7fd49a]">
               <dt>Discounts</dt>
@@ -260,10 +274,12 @@ export function CartPanel({
               {zar(quote.totalCents)}
             </dd>
           </div>
-          <div className="flex justify-between text-xs text-ink-400">
-            <dt>{quote.vatCents ? "Includes VAT (15%)" : "No VAT charged"}</dt>
-            <dd className="tnum">{quote.vatCents ? zar(quote.vatCents) : ""}</dd>
-          </div>
+          {cart.lines.length > 0 && (
+            <div className="flex justify-between text-xs text-ink-400">
+              <dt>{quote.vatCents ? "Includes VAT (15%)" : "No VAT charged — store not VAT-registered"}</dt>
+              <dd className="tnum">{quote.vatCents ? zar(quote.vatCents) : ""}</dd>
+            </div>
+          )}
           {cart.customer && quote.pointsEstimate > 0 && (
             <div className="flex justify-between text-xs text-oranje-300">
               <dt>Earns{quote.pointsMultiplier > 1 ? ` (${quote.pointsMultiplier}× points)` : ""}</dt>
@@ -286,7 +302,7 @@ export function CartPanel({
           <PosButton variant="primary" size="xl" className="flex-1" onClick={onPay} disabled={!!payDisabledReason || checking} busy={checking} data-testid="pay">
             {payDisabledReason ?? (
               <>
-                Pay {zar(quote.totalCents)}
+                Charge {zar(quote.totalCents)}
                 <kbd className="hidden rounded-md border border-ink-950/30 px-1.5 text-[0.65rem] font-bold lg:inline">F9</kbd>
               </>
             )}

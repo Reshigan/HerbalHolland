@@ -207,6 +207,12 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
             ))}
           </ul>
           <dl className="mt-4 space-y-1 px-1 text-sm">
+            {r.memberSavingsCents !== 0 && (
+              <div className="flex justify-between text-oranje-300">
+                <dt>Rewards savings (in prices)</dt>
+                <dd className="tnum">{zar(r.memberSavingsCents)}</dd>
+              </div>
+            )}
             {r.discountCents > 0 && (
               <div className="flex justify-between text-[#7fd49a]">
                 <dt>Discounts</dt>

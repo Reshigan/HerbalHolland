@@ -6,7 +6,8 @@ import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
 import { segmentOf, SEGMENTS } from "@/lib/rfm";
-import { fmtPoints, nextTier, tierInfo, type TierKey } from "@/lib/loyalty-rules";
+import { fmtPoints, tierInfo, tierBenefits, TIERS, type TierKey } from "@/lib/loyalty-rules";
+import { getSettings } from "@/server/settings";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, num, timeAgo, addDays } from "@/lib/format";
 import { ageOn, displayPhone } from "@/lib/sa";
@@ -36,7 +37,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
   const c = await db.customer.findUnique({ where: { id }, include: { homeStore: { select: { code: true, name: true } } } });
   if (!c || (scope.kind !== "HQ" && (!c.homeStoreId || !ids.includes(c.homeStoreId)))) notFound();
   const year = addDays(new Date(), -365);
-  const [ledger, consents, sales, byStore, spend12, auths, reviews, orders, referrer, referrals] = await Promise.all([
+  const [ledger, consents, sales, byStore, spend12, auths, reviews, orders, referrer, referrals, settings] = await Promise.all([
     db.loyaltyEntry.findMany({ where: { customerId: id }, include: { store: { select: { name: true } } }, orderBy: { createdAt: "desc" }, take: 15 }),
     db.consentEvent.findMany({ where: { customerId: id }, orderBy: { createdAt: "desc" }, take: 12 }),
     db.sale.findMany({ where: { customerId: id }, include: { store: { select: { name: true, code: true } }, lines: { select: { qty: true } } }, orderBy: { createdAt: "desc" }, take: 12 }),
@@ -47,12 +48,15 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
     db.order.findMany({ where: { customerId: id }, select: { code: true, status: true, createdAt: true, totalCents: true, fulfilment: true }, orderBy: { createdAt: "desc" }, take: 5 }),
     c.referredById ? db.customer.findUnique({ where: { id: c.referredById }, select: { id: true, firstName: true, memberNo: true } }) : null,
     db.customer.count({ where: { referredById: id } }),
+    getSettings(),
   ]);
   const storeNames = new Map((await db.store.findMany({ where: { id: { in: byStore.map((b) => b.storeId) } }, select: { id: true, name: true } })).map((s) => [s.id, s.name]));
   const anonymised = c.phone.startsWith("anon-");
   const segment = segmentOf(c);
   const tier = tierInfo(c.tier as TierKey);
-  const next = nextTier(spend12._sum.totalCents ?? 0);
+  const spend = spend12._sum.totalCents ?? 0;
+  const nt = TIERS[TIERS.findIndex((t) => t.key === c.tier) + 1];
+  const next = nt ? { tier: nt, remainingCents: Math.max(0, nt.minCents - spend), progress: Math.min(1, spend / nt.minCents) } : null;
   const admin = can(user, "admin");
   const now = new Date();
 
@@ -86,7 +90,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <MiniStat label="Lifetime spend" value={zar(c.lifetimeCents)} sub={`${num(c.visits)} visits`} className="border border-ink-150 bg-white shadow-card" />
-        <MiniStat label="Spend · 12 months" value={zar(spend12._sum.totalCents ?? 0)} sub={next ? `${zar(next.remainingCents)} to ${next.tier.name}` : "Top tier"} className="border border-ink-150 bg-white shadow-card" />
+        <MiniStat label="Spend · 12 months" value={zar(spend12._sum.totalCents ?? 0)} sub={next ? `${zar(next.remainingCents)} more for ${next.tier.name}` : "Top tier"} className="border border-ink-150 bg-white shadow-card" />
         <MiniStat label="Points balance" value={fmtPoints(c.points)} sub={`worth ${zar(c.points * 100)}`} className="border border-ink-150 bg-white shadow-card" />
         <MiniStat label="Last purchase" value={c.lastPurchaseAt ? timeAgo(c.lastPurchaseAt) : "Never"} sub={c.firstPurchaseAt ? `first ${fmtDate(c.firstPurchaseAt)}` : "Prospect"} className="border border-ink-150 bg-white shadow-card" />
       </div>
@@ -211,7 +215,7 @@ export default async function MemberPage({ params }: { params: Promise<{ id: str
                   <span className="text-ink-500">{next ? `${next.tier.name} at ${zar(next.tier.minCents)}` : "Top tier"}</span>
                 </div>
                 <Meter value={next ? next.progress : 1} max={1} />
-                <p className="mt-1.5 text-xs text-ink-500">{tier.perks.join(" · ")}</p>
+                <p className="mt-1.5 text-xs text-ink-500">{tierBenefits(c.tier as TierKey, settings.loyalty.tierSavingsPct, settings.loyalty.earnPer100).join(" · ")}</p>
               </div>
             </CardBody>
           </Card>

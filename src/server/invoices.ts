@@ -53,8 +53,9 @@ export async function emailSaleInvoice(saleId: string, to?: string) {
 <p style="margin:0 0 16px;font-size:14px"><b>${title} ${esc(s.number)}</b> · ${fmtDateTime(s.createdAt)}${s.refundOf ? ` · for ${esc(s.refundOf.number)}` : ""}</p>
 <table role="presentation" width="100%" style="font-size:14px">${rows}
 <tr><td style="padding:10px 0 0">Total${s.vatCents ? ` (incl. VAT ${zar(s.vatCents)})` : ""}</td><td align="right" style="padding:10px 0 0;font-size:18px"><b>${zar(s.totalCents)}</b></td></tr></table>
-<p style="margin:14px 0 0;color:#6B5F57;font-size:13px">${esc(pays)}${s.pointsEarned > 0 ? ` · You earned ${fmtPoints(s.pointsEarned)}` : ""}</p>`;
-  const text = `${title} ${s.number}\n${s.store.company.legalName} — ${s.store.name}\n${s.lines.map((l) => `${l.qty} x ${l.variant.product.name} ${l.variant.name}  ${zar(l.totalCents)}`).join("\n")}\nTotal ${zar(s.totalCents)}${s.vatCents ? ` (VAT ${zar(s.vatCents)})` : ""}\nView: ${invoiceUrl(s.id)}`;
+<p style="margin:14px 0 0;color:#6B5F57;font-size:13px">${esc(pays)}${s.pointsEarned > 0 ? ` · You earned ${fmtPoints(s.pointsEarned)}` : ""}</p>
+${s.memberSavingsCents > 0 ? `<p style="margin:10px 0 0;font-size:14px;color:#C05F18"><b>You saved ${zar(s.memberSavingsCents)} with Herbal Holland Rewards</b></p>` : ""}`;
+  const text = `${title} ${s.number}\n${s.store.company.legalName} — ${s.store.name}\n${s.lines.map((l) => `${l.qty} x ${l.variant.product.name} ${l.variant.name}  ${zar(l.totalCents)}`).join("\n")}\nTotal ${zar(s.totalCents)}${s.vatCents ? ` (VAT ${zar(s.vatCents)})` : ""}${s.memberSavingsCents > 0 ? `\nRewards savings ${zar(s.memberSavingsCents)}` : ""}\nView: ${invoiceUrl(s.id)}`;
   await sendEmail({
     to: email,
     customerId: s.customerId,

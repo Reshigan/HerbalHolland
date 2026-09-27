@@ -37,6 +37,7 @@ export const POST = withStaff(async (req, pos) => {
       vatCents: l.vatCents,
       promoId: l.promoId,
       noEarn: l.noEarn,
+      memberSavingsCents: l.memberSavingsCents,
     })),
     subtotalCents: q.subtotalCents,
     discountCents: q.discountCents,
@@ -46,6 +47,8 @@ export const POST = withStaff(async (req, pos) => {
     applied: q.applied,
     suggestions: q.suggestions,
     codeError: q.codeError,
+    memberSavingsCents: q.memberSavingsCents,
+    joinSavingsCents: q.joinSavingsCents,
     pointsEstimate: customer ? pointsFor(earnable, customer.tier as TierKey, q.pointsMultiplier, settings.loyalty.earnPer100) : 0,
   };
   return json(dto);

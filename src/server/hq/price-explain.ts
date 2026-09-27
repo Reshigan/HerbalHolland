@@ -3,6 +3,7 @@
 // the precedence in lib/pricing-rules (resolvePrice stays the single source of truth
 // for the final number).
 import { listApplies, resolvePrice, type PriceContext, type PriceListRule } from "@/lib/pricing-rules";
+import { tierInfo } from "@/lib/loyalty-rules";
 
 export type ExplainInput = { variantId: string; rrpCents: number; storeShelfCents?: number | null; qty: number; incentives: boolean };
 
@@ -68,7 +69,11 @@ export function explainPrice(v: ExplainInput, lists: PriceListRule[], ctx: Price
   const steps: { label: string; cents: number; note: string }[] = [{ label: "Recommended retail price", cents: v.rrpCents, note: "National RRP incl. VAT — a recommendation only" }];
   if (storeShelf) steps.push({ label: "Store shelf price", cents: v.storeShelfCents!, note: "The franchisee's own price always wins in store" });
   else if (zone) steps.push({ label: `Shelf price from “${zone.name}”`, cents: result.shelfCents, note: zone.kind === "CHANNEL" ? "Channel price list" : "Zone / scheduled price list — highest priority that applies" });
-  if (!v.incentives) steps.push({ label: "No incentives", cents: result.unitCents, note: "Licensed medicine in medical mode: member prices, quantity breaks and promotions don't apply (Medicines Act s18A)" });
-  else if (incentive) steps.push({ label: incentive.kind === "MEMBER" ? `Member price from “${incentive.name}”` : `Quantity break from “${incentive.name}”`, cents: result.unitCents, note: incentive.kind === "MEMBER" ? "Lowest member price that beats the shelf price" : "Quantity break reached at this quantity" });
+  const tierPct = v.incentives && ctx.member && ctx.tier && ctx.tierPct ? ctx.tierPct : 0;
+  if (!v.incentives) steps.push({ label: "No incentives", cents: result.unitCents, note: "Licensed medicine in medical mode: tier savings, member prices, quantity breaks and promotions don't apply (Medicines Act s18A)" });
+  else {
+    if (tierPct) steps.push({ label: `${tierInfo(ctx.tier!).name} Rewards price`, cents: Math.round((result.shelfCents * (100 - tierPct)) / 100), note: `Instant ${tierPct}% tier saving on the shelf price` });
+    if (incentive) steps.push({ label: incentive.kind === "MEMBER" ? `Member price from “${incentive.name}”` : `Quantity break from “${incentive.name}”`, cents: result.unitCents, note: incentive.kind === "MEMBER" ? "Lowest member price — beats the shelf and tier price" : "Quantity break reached at this quantity" });
+  }
   return { result, verdicts, steps, lineCents: result.unitCents * v.qty };
 }

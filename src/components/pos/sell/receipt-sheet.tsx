@@ -67,6 +67,13 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
         ) : (
           <div className="mt-3 font-display text-5xl font-semibold tracking-tight text-white tnum">{zar(receipt.totalCents)}</div>
         )}
+        {(receipt.memberSavingsCents > 0 || receipt.discountCents > 0) && (
+          <div className="mt-2 text-sm font-semibold">
+            {receipt.memberSavingsCents > 0 && <span className="text-oranje-300">Rewards savings {zar(receipt.memberSavingsCents)}</span>}
+            {receipt.memberSavingsCents > 0 && receipt.discountCents > 0 && <span className="text-ink-500"> · </span>}
+            {receipt.discountCents > 0 && <span className="text-[#7fd49a]">Deals {zar(receipt.discountCents)}</span>}
+          </div>
+        )}
         <div className="mt-2 text-sm text-ink-400">
           {receipt.payments.map((p) => `${TENDER_LABEL[p.method] ?? p.method} ${zar(p.amountCents)}`).join(" · ")}
           {receipt.pointsRedeemed > 0 && ` · Points ${fmtPoints(receipt.pointsRedeemed)}`}

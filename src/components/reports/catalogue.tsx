@@ -40,6 +40,7 @@ const KEYWORDS: Record<string, string> = {
   segments: "rfm champions lapsed at risk crm members",
   "new-vs-returning": "retention acquisition first time repeat",
   "member-attach": "rewards members linked sign in",
+  "rewards-savings": "tier pricing member prices instant savings discount basket walk-in",
   promotions: "discounts deals specials bonus buys",
   campaigns: "sms whatsapp email push roi marketing",
   "age-checks": "18+ id verification minors",
@@ -75,8 +76,8 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
 
   return (
     <div>
-      <div className="mb-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="relative w-full lg:max-w-md">
+      <div className="mb-6 space-y-3">
+        <div className="relative w-full lg:max-w-lg">
           <label htmlFor="report-search" className="sr-only">
             Find a report
           </label>
@@ -98,7 +99,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
             <kbd className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 rounded-md border border-ink-200 bg-ink-50 px-1.5 text-[0.7rem] font-semibold text-ink-500 sm:block">/</kbd>
           )}
         </div>
-        <nav aria-label="Report groups" className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 lg:pb-0">
+        <nav aria-label="Report groups" className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0">
           {groups.map((g) => {
             const Icon = GROUP_META[g.group].icon;
             return (

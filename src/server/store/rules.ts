@@ -2,6 +2,7 @@
 // components, and covered by tests/store-backoffice.test.ts.
 import type { Tone } from "@/components/ui/badge";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
+import type { SegmentKey } from "@/lib/rfm";
 
 // ── Stock health ─────────────────────────────────────────────────────────────
 
@@ -159,6 +160,22 @@ export function receiptCheck(lines: ReceiptLine[]) {
 
 export const FULFIL_LABEL = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier" } as const;
 
+// ── Promotions ───────────────────────────────────────────────────────────────
+
+const DAY = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+/** "Every day", "Weekdays · 16:00–18:00", "Sat, Sun". Days: 0 = Sunday … 6 = Saturday. */
+export function scheduleLabel(days: number[] | null | undefined, startMinute?: number | null, endMinute?: number | null) {
+  const set = [...new Set(days ?? [])].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7));
+  const key = set.join(",");
+  const d = !set.length || set.length === 7 ? "Every day" : key === "1,2,3,4,5" ? "Weekdays" : key === "6,0" ? "Weekends" : set.map((x) => DAY[x]).join(", ");
+  return startMinute != null && endMinute != null ? `${d} · ${clock(startMinute)}–${clock(endMinute)}` : d;
+}
+
+// ── Members ──────────────────────────────────────────────────────────────────
+
+export const SEGMENT_TONE: Record<SegmentKey, Tone> = { CHAMPION: "orange", LOYAL: "green", PROMISING: "blue", NEW: "violet", AT_RISK: "amber", LAPSED: "red", PROSPECT: "neutral" };
+
 // ── Cash ─────────────────────────────────────────────────────────────────────
 
 /** Cash-up variance colour: balanced, within R50, or over R50 out. */
@@ -270,7 +287,7 @@ export const clock = (minutes: number | null | undefined) =>
 
 export const isPin = (s: string) => /^\d{4}$/.test(s);
 
-// ── URLs & exports ───────────────────────────────────────────────────────────
+// ── URLs ───────────────────────────────────────────────────────────
 
 /** `path?…` keeping the current params, applying `patch` (null/"" removes a key). */
 export function hrefWith(path: string, params: Record<string, string | string[] | undefined>, patch: Record<string, string | number | null | undefined> = {}) {
@@ -284,13 +301,9 @@ export function hrefWith(path: string, params: Record<string, string | string[] 
   return s ? `${path}?${s}` : path;
 }
 
-/** One CSV cell: quoted when needed, and neutralised against spreadsheet formula injection. */
-export function csvCell(v: unknown) {
-  let s = v == null ? "" : String(v);
-  if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+(\.\d+)?$/.test(s)) s = `'${s}`;
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-export const csvLine = (cells: unknown[]) => cells.map(csvCell).join(",");
+
+/** "1 line", "3 lines". */
+export const plural = (n: number, word: string, many = `${word}s`) => `${n.toLocaleString()} ${n === 1 ? word : many}`;
 
 /** First value of a search param. */
 export const sp1 = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

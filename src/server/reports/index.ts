@@ -7,7 +7,7 @@ import { onlineOrders, payments, refunds, salesByCategory, salesByHour, salesByP
 import { deadStock, expiry, lowStock, negativeStock, sellThrough, shrinkage, stockMovements, stockValuation } from "./inventory";
 import { purchases, receiving } from "./purchasing";
 import { cashUps, loyaltyLiability, pnl, statements, vat } from "./finance";
-import { memberAttach, newVsReturning, segments } from "./customers";
+import { memberAttach, newVsReturning, rewardsSavings, segments } from "./customers";
 import { campaigns, promotions } from "./marketing";
 import { ageChecks, batchTrace, complianceEvents, dispensingRegister, recalls } from "./compliance";
 
@@ -23,7 +23,7 @@ export const REPORTS: ReportDef[] = [
   // Finance
   pnl, vat, cashUps, statements, loyaltyLiability,
   // Customers
-  segments, newVsReturning, memberAttach,
+  segments, newVsReturning, memberAttach, rewardsSavings,
   // Marketing
   promotions, campaigns,
   // Compliance
@@ -37,7 +37,7 @@ export const getReport = (key: string) => BY_KEY.get(key) ?? null;
 export const canRun = (def: ReportDef, role: Role) => !def.roles || def.roles.includes(role);
 
 /** Reports available in a scope to a role, grouped in catalogue order. */
-export function catalogue(scope: ReportScope, role: Role) {
-  const list = REPORTS.filter((r) => r.scopes.includes(scope) && canRun(r, role));
+export function catalogue(scope: ReportScope, role: Role, opts: { multiStore?: boolean } = {}) {
+  const list = REPORTS.filter((r) => r.scopes.includes(scope) && canRun(r, role) && (scope === "hq" || !r.multiStore || opts.multiStore));
   return GROUPS.map((group) => ({ group, reports: list.filter((r) => r.group === group) })).filter((g) => g.reports.length);
 }

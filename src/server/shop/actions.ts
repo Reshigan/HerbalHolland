@@ -110,7 +110,8 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       const r = await requestOtp(raw);
       return { step: "code", phone: r.phone, demoCode: r.demoCode };
     } catch (e) {
-      if (e instanceof CustomerError) return { step: "phone", fields: { phone: e.message }, values: { phone: raw } };
+      // Resending from the code step keeps the member where they are; a first send shows the error on the number.
+      if (e instanceof CustomerError) return prev.step === "code" ? { ...prev, error: e.message, fields: undefined } : { step: "phone", fields: { phone: e.message }, values: { phone: raw } };
       throw e;
     }
   }
@@ -174,6 +175,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       );
       jar.delete(SHOP_COOKIE.phone);
       await startSession("customer", { customerId: c.id }, 24 * 30);
+      await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.sign_in", { entity: "Customer", entityId: c.id, data: { firstVisit: true } });
     } catch (e) {
       if (e instanceof CustomerError) {
         const msg = e.message;
@@ -183,7 +185,12 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       if ((e as { code?: string }).code === "P2002") return { step: "register", phone, fields: { email: "That email is already linked to another member" }, values: v };
       throw e;
     }
-    if (next) redirect(next);
+    // New members land with a welcome message wherever they were heading.
+    if (next) {
+      const u = new URL(next, "http://local");
+      u.searchParams.set("welcome", "1");
+      redirect(`${u.pathname}${u.search}${u.hash}`);
+    }
     return { step: "done" };
   }
 

@@ -92,7 +92,7 @@ export function LockScreen({
   }, [picked]);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-ink-950 text-ink-100 lg:flex-row">
+    <div className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-ink-950 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink-100 print:hidden lg:flex-row">
       {/* Brand + store panel */}
       <section className="relative flex shrink-0 flex-col justify-between gap-6 border-b border-ink-850 px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
         <div className="flex items-center gap-3 text-oranje-500">
@@ -174,14 +174,14 @@ export function LockScreen({
             </div>
             {session.staff.length === 0 && <Alert tone="warn" className="mt-6">No staff at this store have a till PIN yet. A manager can set PINs in the back office.</Alert>}
             {onCancel && (
-              <button type="button" onClick={onCancel} className="mt-6 inline-flex h-11 items-center gap-2 self-start rounded-full px-4 text-sm font-semibold text-ink-300 hover:bg-ink-850">
+              <button type="button" onClick={onCancel} className="mt-6 inline-flex h-12 items-center gap-2 self-start rounded-full px-4 text-sm font-semibold text-ink-300 hover:bg-ink-850">
                 <ArrowLeft className="h-4 w-4" /> Back to the sale
               </button>
             )}
           </>
         ) : (
           <div className="mx-auto flex w-full max-w-sm flex-1 flex-col items-center justify-center">
-            <button type="button" onClick={() => (setPicked(null), setCode(""), setError(null))} className="mb-6 inline-flex h-11 items-center gap-2 self-start rounded-full px-3 text-sm font-semibold text-ink-300 hover:bg-ink-850">
+            <button type="button" onClick={() => (setPicked(null), setCode(""), setError(null))} className="mb-6 inline-flex h-12 items-center gap-2 self-start rounded-full px-3 text-sm font-semibold text-ink-300 hover:bg-ink-850">
               <ArrowLeft className="h-4 w-4" /> Not you?
             </button>
             <span className="grid h-20 w-20 place-items-center rounded-full bg-oranje-500 font-display text-2xl font-bold text-ink-950">{initials(picked.name)}</span>

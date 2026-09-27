@@ -710,41 +710,42 @@ model Shift {
 }
 
 model Sale {
-  id            String    @id // client-generated UUID (idempotent offline sync)
-  number        String    @unique
-  kind          SaleKind  @default(SALE)
-  refundOf      Sale?     @relation("refunds", fields: [refundOfId], references: [id])
-  refundOfId    String?
-  refunds       Sale[]    @relation("refunds")
-  channel       Channel   @default(POS)
-  order         Order?    @relation(fields: [orderId], references: [id])
-  orderId       String?   @unique
-  store         Store     @relation(fields: [storeId], references: [id])
-  storeId       String
-  shift         Shift?    @relation(fields: [shiftId], references: [id])
-  shiftId       String?
-  staff         User?     @relation(fields: [staffId], references: [id])
-  staffId       String?
-  deviceId      String?
-  customer      Customer? @relation(fields: [customerId], references: [id])
-  customerId    String?
-  subtotalCents Int
-  discountCents Int       @default(0)
-  totalCents    Int
-  vatCents      Int
-  costCents     Int
-  pointsEarned  Int       @default(0)
-  promoCode     String?
-  promotionId   String?
-  campaignId    String?
-  ageCheck      AgeCheck  @default(NONE)
-  buyer         Json? // full tax invoice (> R5,000): { name, address, vatNumber }
-  invoiceEmail  String? // where the tax invoice was emailed
-  invoiceSentAt DateTime?
-  offline       Boolean   @default(false)
-  note          String?
-  createdAt     DateTime  @default(now())
-  syncedAt      DateTime  @default(now())
+  id                 String    @id // client-generated UUID (idempotent offline sync)
+  number             String    @unique
+  kind               SaleKind  @default(SALE)
+  refundOf           Sale?     @relation("refunds", fields: [refundOfId], references: [id])
+  refundOfId         String?
+  refunds            Sale[]    @relation("refunds")
+  channel            Channel   @default(POS)
+  order              Order?    @relation(fields: [orderId], references: [id])
+  orderId            String?   @unique
+  store              Store     @relation(fields: [storeId], references: [id])
+  storeId            String
+  shift              Shift?    @relation(fields: [shiftId], references: [id])
+  shiftId            String?
+  staff              User?     @relation(fields: [staffId], references: [id])
+  staffId            String?
+  deviceId           String?
+  customer           Customer? @relation(fields: [customerId], references: [id])
+  customerId         String?
+  subtotalCents      Int
+  discountCents      Int       @default(0)
+  memberSavingsCents Int       @default(0)
+  totalCents         Int
+  vatCents           Int
+  costCents          Int
+  pointsEarned       Int       @default(0)
+  promoCode          String?
+  promotionId        String?
+  campaignId         String?
+  ageCheck           AgeCheck  @default(NONE)
+  buyer              Json? // full tax invoice (> R5,000): { name, address, vatNumber }
+  invoiceEmail       String? // where the tax invoice was emailed
+  invoiceSentAt      DateTime?
+  offline            Boolean   @default(false)
+  note               String?
+  createdAt          DateTime  @default(now())
+  syncedAt           DateTime  @default(now())
 
   lines    SaleLine[]
   payments Payment[]
@@ -755,18 +756,19 @@ model Sale {
 }
 
 model SaleLine {
-  id             String  @id @default(cuid())
-  sale           Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
-  saleId         String
-  variant        Variant @relation(fields: [variantId], references: [id])
-  variantId      String
-  qty            Int
-  unitPriceCents Int
-  discountCents  Int     @default(0)
-  totalCents     Int
-  vatCents       Int
-  costCents      Int
-  allocations    Json // [{ batchId, qty, unitCostCents }]
+  id                 String  @id @default(cuid())
+  sale               Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId             String
+  variant            Variant @relation(fields: [variantId], references: [id])
+  variantId          String
+  qty                Int
+  unitPriceCents     Int
+  discountCents      Int     @default(0)
+  memberSavingsCents Int     @default(0) // instant Rewards savings vs the non-member price
+  totalCents         Int
+  vatCents           Int
+  costCents          Int
+  allocations        Json // [{ batchId, qty, unitCostCents }]
 
   @@index([saleId])
   @@index([variantId])
@@ -857,14 +859,15 @@ model Order {
 }
 
 model OrderLine {
-  id             String  @id @default(cuid())
-  order          Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  orderId        String
-  variant        Variant @relation(fields: [variantId], references: [id])
-  variantId      String
-  qty            Int
-  unitPriceCents Int
-  totalCents     Int
+  id                 String  @id @default(cuid())
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId            String
+  variant            Variant @relation(fields: [variantId], references: [id])
+  variantId          String
+  qty                Int
+  unitPriceCents     Int
+  memberSavingsCents Int     @default(0)
+  totalCents         Int
 
   @@index([orderId])
 }
@@ -1062,25 +1065,26 @@ model Review {
 // DO UPDATE), so network reporting across 1,000 stores never scans raw sales.
 
 model DailyStoreStat {
-  store         Store    @relation(fields: [storeId], references: [id])
-  storeId       String
-  date          DateTime @db.Date
-  channel       Channel
-  sales         Int      @default(0)
-  refunds       Int      @default(0)
-  units         Int      @default(0)
-  grossCents    Int      @default(0) // VAT incl., after discounts
-  vatCents      Int      @default(0)
-  costCents     Int      @default(0)
-  discountCents Int      @default(0)
-  cardCents     Int      @default(0)
-  cashCents     Int      @default(0)
-  payshapCents  Int      @default(0)
-  eftCents      Int      @default(0)
-  loyaltyCents  Int      @default(0)
-  onlineCents   Int      @default(0)
-  members       Int      @default(0) // transactions linked to a member
-  pointsIssued  Int      @default(0)
+  store              Store    @relation(fields: [storeId], references: [id])
+  storeId            String
+  date               DateTime @db.Date
+  channel            Channel
+  sales              Int      @default(0)
+  refunds            Int      @default(0)
+  units              Int      @default(0)
+  grossCents         Int      @default(0) // VAT incl., after discounts
+  vatCents           Int      @default(0)
+  costCents          Int      @default(0)
+  discountCents      Int      @default(0)
+  memberSavingsCents Int      @default(0) // instant Rewards (tier/member) savings given
+  cardCents          Int      @default(0)
+  cashCents          Int      @default(0)
+  payshapCents       Int      @default(0)
+  eftCents           Int      @default(0)
+  loyaltyCents       Int      @default(0)
+  onlineCents        Int      @default(0)
+  members            Int      @default(0) // transactions linked to a member
+  pointsIssued       Int      @default(0)
 
   @@id([storeId, date, channel])
   @@index([date])

@@ -50,7 +50,8 @@ Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
   idempotent sync, click & collect handover, refunds, shifts and Z-reports.
 - **Omnichannel** — one national shop; orders routed to the right store or DC; stores are merchant of record and get
   credited; nationwide courier for non-medicinal items; 15-minute click & collect.
-- **Pricing & deals** — RRP, zones, scheduled changes, franchisee shelf prices, member/tier prices, quantity breaks,
+- **Pricing & deals** — RRP, zones, scheduled changes, franchisee shelf prices, instant Rewards prices by tier and weekly
+  member deals (Checkers Xtra Savings style), quantity breaks,
   near-expiry markdowns; % / R-off, bonus buys, BOGO, gifts with purchase, complementary deals, multi-buys, happy hours,
   Points multipliers.
 - **Herbal Holland Rewards** — free national membership, easy phone sign-up, digital card, tiers, referrals, consent centre,

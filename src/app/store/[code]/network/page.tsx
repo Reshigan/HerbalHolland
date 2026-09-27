@@ -238,8 +238,8 @@ async function MyListings({ store, canManage }: { store: StoreCtx; canManage: bo
                     <Td align="right" className={short ? "font-semibold text-amber-700" : undefined}>
                       {have}
                       {short && (
-                        <div className="flex items-center justify-end gap-1 text-xs font-medium">
-                          <TriangleAlert className="h-3 w-3" aria-hidden /> less than listed
+                        <div className="flex items-center justify-end gap-1 whitespace-nowrap text-xs font-medium">
+                          <TriangleAlert className="h-3 w-3" aria-hidden /> over-listed
                         </div>
                       )}
                     </Td>

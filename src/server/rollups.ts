@@ -13,6 +13,7 @@ export type StoreStatDelta = {
   vatCents?: number;
   costCents?: number;
   discountCents?: number;
+  memberSavingsCents?: number;
   cardCents?: number;
   cashCents?: number;
   payshapCents?: number;
@@ -24,7 +25,7 @@ export type StoreStatDelta = {
 };
 
 const COLS = [
-  "sales", "refunds", "units", "grossCents", "vatCents", "costCents", "discountCents", "cardCents",
+  "sales", "refunds", "units", "grossCents", "vatCents", "costCents", "discountCents", "memberSavingsCents", "cardCents",
   "cashCents", "payshapCents", "eftCents", "loyaltyCents", "onlineCents", "members", "pointsIssued",
 ] as const;
 

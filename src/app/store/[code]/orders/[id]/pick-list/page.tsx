@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { orderForStore } from "@/server/store/orders";
-import { FULFIL_LABEL } from "@/server/store/rules";
+import { FULFIL_LABEL, plural } from "@/server/store/rules";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { PROVINCES } from "@/lib/sa";
 import { Logo } from "@/components/brand/logo";
@@ -33,7 +33,7 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
             <div className="eyebrow text-ink-500">Pick list · {store.name}</div>
             <h1 className="mt-1 font-mono text-3xl font-bold tracking-wider text-ink-950">{o.code}</h1>
             <p className="mt-1 text-sm text-ink-600">
-              {FULFIL_LABEL[o.fulfilment]} · placed {fmtDateTime(o.createdAt)} · {lines.length} lines, {units} units
+              {FULFIL_LABEL[o.fulfilment]} · placed {fmtDateTime(o.createdAt)} · {plural(lines.length, "line")}, {plural(units, "unit")}
             </p>
           </div>
           <Logo className="text-ink-950 [&_svg]:text-oranje-500" />

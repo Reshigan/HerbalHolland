@@ -158,17 +158,17 @@ export function OrdersBoard() {
         label="Order status"
         value={col}
         onChange={setCol}
-        className="mx-4 mb-3 md:hidden"
+        className="mx-4 mb-3 lg:hidden"
         options={COLUMNS.map((c) => ({ value: c.key, label: c.label, count: grouped[c.key].length }))}
       />
-      <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto px-4 pb-4 md:grid-cols-4 md:overflow-hidden">
+      <div className="grid min-h-0 flex-1 gap-3 overflow-y-auto px-4 pb-4 lg:grid-cols-4 lg:overflow-hidden">
         {COLUMNS.map((c) => (
-          <section key={c.key} className={cn("flex min-h-0 flex-col rounded-3xl bg-ink-950 md:bg-ink-900/40 md:p-2 md:ring-1 md:ring-ink-850", col !== c.key && "hidden md:flex")} aria-label={`${c.label} orders`}>
-            <h2 className="hidden items-center justify-between px-2 pb-2 pt-1 md:flex">
+          <section key={c.key} className={cn("flex min-h-0 flex-col rounded-3xl bg-ink-950 lg:bg-ink-900/40 lg:p-2 lg:ring-1 lg:ring-ink-850", col !== c.key && "hidden lg:flex")} aria-label={`${c.label} orders`}>
+            <h2 className="hidden items-center justify-between px-2 pb-2 pt-1 lg:flex">
               <span className="eyebrow text-[0.65rem] text-ink-300">{c.label}</span>
               <span className="tnum rounded-full bg-ink-800 px-2 text-xs font-bold text-ink-200">{grouped[c.key].length}</span>
             </h2>
-            <ul className="min-h-0 flex-1 space-y-2 overflow-y-auto overscroll-contain">
+            <ul className="grid min-h-0 flex-1 content-start gap-2 overflow-y-auto overscroll-contain sm:grid-cols-2 lg:grid-cols-1">
               {grouped[c.key].map(card)}
               {grouped[c.key].length === 0 && <li className="rounded-2xl border border-dashed border-ink-800 px-4 py-8 text-center text-sm text-ink-500">{c.key === "handover" ? "Nothing handed over yet today" : "No orders here"}</li>}
             </ul>

@@ -178,7 +178,12 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
     })),
     settings: {
       compliance: settings.compliance,
-      loyalty: { earnPer100: settings.loyalty.earnPer100, minRedeem: settings.loyalty.minRedeem, maxRedeemPct: settings.loyalty.maxRedeemPct },
+      loyalty: {
+        earnPer100: settings.loyalty.earnPer100,
+        minRedeem: settings.loyalty.minRedeem,
+        maxRedeemPct: settings.loyalty.maxRedeemPct,
+        tierSavingsPct: settings.loyalty.tierSavingsPct,
+      },
     },
     shift,
     tapProvider: tapProvider(),

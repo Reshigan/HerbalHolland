@@ -41,7 +41,7 @@ type PostArgs = {
   deviceId?: string | null;
   customerId?: string | null;
   quote: {
-    lines: { variantId: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents: number; noEarn?: boolean }[];
+    lines: { variantId: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents: number; noEarn?: boolean; memberSavingsCents?: number }[];
   } & Pick<Quote, "subtotalCents" | "discountCents" | "totalCents" | "vatCents" | "pointsMultiplier" | "promotionId">;
   buyer?: { name: string; address: string; vatNumber?: string } | null;
   promoCode?: string | null;
@@ -63,6 +63,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   // Non-VAT-vendor franchisees (below the R2.3m threshold) charge no VAT.
   const lineVat = (cents: number, v: number) => (vendor ? v : 0);
   const vat = vendor ? a.quote.lines.reduce((s, l) => s + l.vatCents, 0) + vatOf(extra) : 0;
+  const memberSavings = a.customerId ? a.quote.lines.reduce((s, l) => s + (l.memberSavingsCents ?? 0), 0) : 0;
   const campaignId =
     a.campaignId ??
     (a.quote.promotionId
@@ -73,7 +74,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
     data: {
       id: a.id, number: a.number, storeId: a.storeId, channel: a.channel, orderId: a.orderId, shiftId: a.shiftId,
       staffId: a.staffId, deviceId: a.deviceId, customerId: a.customerId,
-      subtotalCents: a.quote.subtotalCents + extra, discountCents: a.quote.discountCents, totalCents: total, vatCents: vat,
+      subtotalCents: a.quote.subtotalCents + extra, discountCents: a.quote.discountCents, totalCents: total, vatCents: vat, memberSavingsCents: memberSavings,
       costCents: 0, promoCode: a.promoCode, promotionId: a.quote.promotionId, campaignId, ageCheck: a.ageCheck,
       buyer: a.buyer ?? undefined, offline: a.offline, createdAt: a.createdAt,
     },
@@ -92,7 +93,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
     await t.saleLine.create({
       data: {
         saleId: sale.id, variantId: l.variantId, qty: l.qty, unitPriceCents: l.unitPriceCents, discountCents: l.discountCents,
-        totalCents: l.totalCents, vatCents: lineVat(l.totalCents, l.vatCents), costCents: c, allocations,
+        memberSavingsCents: a.customerId ? (l.memberSavingsCents ?? 0) : 0, totalCents: l.totalCents, vatCents: lineVat(l.totalCents, l.vatCents), costCents: c, allocations,
       },
     });
     vstats.push({ variantId: l.variantId, units: l.qty, netCents: l.totalCents - lineVat(l.totalCents, l.vatCents), costCents: c });
@@ -118,7 +119,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   const date = dayKey(a.createdAt);
   const delta: StoreStatDelta = {
     storeId: a.storeId, date, channel: a.channel, sales: 1, units, grossCents: total, vatCents: vat, costCents: cost,
-    discountCents: a.quote.discountCents, members: a.customerId ? 1 : 0, pointsIssued: pointsEarned,
+    discountCents: a.quote.discountCents, memberSavingsCents: memberSavings, members: a.customerId ? 1 : 0, pointsIssued: pointsEarned,
   };
   for (const p of payments) {
     const col = paymentColumn(p.method) as "cardCents";
@@ -247,12 +248,13 @@ export async function refundSale(a: {
       const left = line.qty - (refunded.get(line.id) ?? 0);
       if (x.qty > left) throw new SaleError(`Only ${left} left to refund on that line`);
       const share = x.qty / line.qty;
-      return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share) };
+      return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share), saved: Math.round(line.memberSavingsCents * share) };
     });
   if (!picks.length) throw new SaleError("Choose at least one item to refund");
 
   const amount = picks.reduce((s, p) => s + p.amount, 0);
   const vat = picks.reduce((s, p) => s + p.vat, 0);
+  const saved = picks.reduce((s, p) => s + p.saved, 0);
   const loyaltyPaid = orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0);
   const loyaltyBack = orig.totalCents > 0 ? Math.floor((amount * loyaltyPaid) / orig.totalCents / 100) * 100 : 0;
   const moneyBack = amount - loyaltyBack;
@@ -263,7 +265,7 @@ export async function refundSale(a: {
       data: {
         id: a.id, number: a.number, kind: "REFUND", refundOfId: orig.id, channel: orig.channel, storeId: orig.storeId,
         shiftId: a.shiftId, staffId: a.staffId, deviceId: a.deviceId, customerId: orig.customerId,
-        subtotalCents: -amount, discountCents: 0, totalCents: -amount, vatCents: -vat, costCents: 0,
+        subtotalCents: -amount, discountCents: 0, totalCents: -amount, vatCents: -vat, costCents: 0, memberSavingsCents: -saved,
         pointsEarned: -earnedBack, note: a.reason,
       },
     });
@@ -288,7 +290,7 @@ export async function refundSale(a: {
       units += p.x.qty;
       await t.saleLine.create({
         data: {
-          saleId: refund.id, variantId: p.line.variantId, qty: -p.x.qty, unitPriceCents: p.line.unitPriceCents,
+          saleId: refund.id, variantId: p.line.variantId, qty: -p.x.qty, unitPriceCents: p.line.unitPriceCents, memberSavingsCents: -p.saved,
           totalCents: -p.amount, vatCents: -p.vat, costCents: -c, allocations: back.length ? back : [{ batchId: "", qty: 0, unitCostCents: 0, lineId: p.line.id }],
         },
       });
@@ -309,7 +311,7 @@ export async function refundSale(a: {
     const date = dayKey(new Date());
     const delta: StoreStatDelta = {
       storeId: orig.storeId, date, channel: orig.channel, refunds: 1, units: -units, grossCents: -amount, vatCents: -vat,
-      costCents: -cost, pointsIssued: -earnedBack,
+      costCents: -cost, memberSavingsCents: -saved, pointsIssued: -earnedBack,
     };
     for (const p of payments) {
       const col = paymentColumn(p.method) as "cardCents";

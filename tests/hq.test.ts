@@ -74,6 +74,16 @@ describe("pricing simulator explanation", () => {
     expect(e.steps[1].label).toBe("Store shelf price");
   });
 
+  it("applies the instant tier saving, and a member list only when it's lower", () => {
+    const t = explainPrice(v, [], ctx({ member: true, tier: "BLOOM", tierPct: 7 }));
+    expect(t.result.unitCents).toBe(36270);
+    expect(t.steps.at(-1)?.label).toBe("Bloom Rewards price");
+    const cheaper = list({ name: "Club special", kind: "MEMBER", items: [{ variantId: "v1", priceCents: 35000, minQty: 1 }] });
+    const m = explainPrice(v, [cheaper], ctx({ member: true, tier: "BLOOM", tierPct: 7 }));
+    expect(m.result.unitCents).toBe(35000);
+    expect(m.verdicts[0].won).toBe(true);
+  });
+
   it("applies member prices and quantity breaks, but not to excluded medicines", () => {
     const member = list({ name: "Rewards member price", kind: "MEMBER", tiers: ["BLOOM", "HARVEST"], adjustPct: -5 });
     const volume = list({ name: "Volume", items: [{ variantId: "v1", priceCents: 35000, minQty: 3 }] });

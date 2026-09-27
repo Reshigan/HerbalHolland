@@ -28,6 +28,8 @@ export function CheckoutForm(props: {
   discounts: { name: string; cents: number }[];
   totalCents: number;
   vatCents: number;
+  memberSavingsCents: number;
+  tierName: string;
   balance: number;
   minRedeem: number;
   address: { addressLine: string; suburb: string; city: string; province: string; postalCode: string } | null;
@@ -266,6 +268,11 @@ export function CheckoutForm(props: {
             </div>
             {props.vatCents > 0 && <p className="text-right text-xs text-ink-500">Prices include VAT</p>}
           </dl>
+          {props.memberSavingsCents > 0 && (
+            <p className="mt-4 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-xs font-semibold text-oranje-100">
+              Includes {zar(props.memberSavingsCents)} off with your {props.tierName} price.
+            </p>
+          )}
 
           {props.blocked && (
             <p className="mt-4 flex gap-2 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100" role="alert">

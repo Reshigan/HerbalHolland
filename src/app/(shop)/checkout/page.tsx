@@ -12,6 +12,7 @@ import { CONSENT_WORDING } from "@/server/customers";
 import { getCart, getPreferredStore, getPromoCode, getRetailStores } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { redeemablePoints } from "@/server/shop/cart-codec";
+import { tierMeta } from "@/server/shop/club";
 import { CheckoutForm, type CollectStore, type FulfilOption } from "@/components/shop/checkout-form";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { VerifyAge } from "@/components/shop/verify-age";
@@ -56,7 +57,7 @@ export default async function CheckoutPage() {
               intro="Members check out in seconds. New to Herbal Holland? You'll join Rewards in one short step — and earn points on this order."
             />
           </Panel>
-          <Summary lines={q.lines} total={q.totalCents} />
+          <Summary lines={q.lines} total={q.totalCents} joinSavings={q.joinSavingsCents} />
         </div>
       </Container>
     );
@@ -130,6 +131,8 @@ export default async function CheckoutPage() {
         discounts={q.applied.filter((a) => a.discountCents > 0).map((a) => ({ name: a.name, cents: a.discountCents }))}
         totalCents={q.totalCents}
         vatCents={q.vatCents}
+        memberSavingsCents={q.memberSavingsCents}
+        tierName={tierMeta(customer.tier).name}
         balance={customer.points}
         minRedeem={settings.loyalty.minRedeem}
         address={lastAddress ? { addressLine: lastAddress.addressLine ?? "", suburb: lastAddress.suburb ?? "", city: lastAddress.city ?? "", province: lastAddress.province ?? "", postalCode: lastAddress.postalCode ?? "" } : null}
@@ -142,7 +145,7 @@ export default async function CheckoutPage() {
   );
 }
 
-function Summary({ lines, total }: { lines: { variantId: string; productName: string; variantName: string; qty: number; totalCents: number }[]; total: number }) {
+function Summary({ lines, total, joinSavings }: { lines: { variantId: string; productName: string; variantName: string; qty: number; totalCents: number }[]; total: number; joinSavings: number }) {
   return (
     <aside className="lg:sticky lg:top-28 lg:self-start">
       <Panel className="p-5">
@@ -162,6 +165,11 @@ function Summary({ lines, total }: { lines: { variantId: string; productName: st
           <span className="tnum font-display text-2xl font-semibold text-white">{zar(total)}</span>
         </div>
         <p className="mt-1 text-xs text-ink-500">Before delivery and points · prices include VAT</p>
+        {joinSavings > 0 && (
+          <p className="mt-4 rounded-xl border border-oranje-500/35 bg-oranje-500/10 px-3 py-2.5 text-sm text-oranje-100">
+            Join free in the next step and save <strong className="text-white">{zar(joinSavings)}</strong> on this order with your instant Rewards price.
+          </p>
+        )}
       </Panel>
     </aside>
   );

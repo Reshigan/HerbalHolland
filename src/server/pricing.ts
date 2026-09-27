@@ -4,7 +4,7 @@
 import { db } from "./db";
 import { getSettings } from "./settings";
 import { applyPromotions, type PromoInput, type Suggestion } from "@/lib/promotions";
-import { resolvePrice, promoWindowOpen, type PriceListRule } from "@/lib/pricing-rules";
+import { resolvePrice, promoWindowOpen, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { vatOf } from "@/lib/money";
 import { addDays } from "@/lib/format";
 import type { Channel } from "@/generated/prisma/client";
@@ -24,6 +24,12 @@ export async function activePromotions(opts: { storeId?: string | null; channel:
     orderBy: { createdAt: "desc" },
   });
   return rows.filter((p) => promoWindowOpen(p, at));
+}
+
+/** Price context for a shopper with their instant tier saving; `tier: null` = walk-in, "SEED" = what joining saves. */
+export async function priceContext(c: { channel: Channel; storeId?: string | null; regionId?: string | null; tier?: Tier | null; at?: Date }): Promise<PriceContext> {
+  const tierPct = c.tier ? (await getSettings()).loyalty.tierSavingsPct[c.tier] : 0;
+  return { storeId: c.storeId ?? null, regionId: c.regionId ?? null, channel: c.channel, member: !!c.tier, tier: c.tier ?? null, tierPct, at: c.at ?? new Date() };
 }
 
 export async function activePriceLists(at = new Date()): Promise<PriceListRule[]> {
@@ -70,6 +76,7 @@ export type QuoteLine = {
   vatCents: number;
   promoId?: string;
   noEarn: boolean; // excluded from incentives incl. points earn
+  memberSavingsCents: number; // instant Rewards saving on this line vs the non-member price
 };
 
 export async function quote(opts: {
@@ -99,8 +106,12 @@ export async function quote(opts: {
     opts.storeId && opts.channel === "POS" ? markdowns(opts.storeId, variantIds, at) : Promise.resolve(new Map<string, number>()),
   ]);
   const byId = new Map(variants.map((v) => [v.id, v]));
-  const excluded = incentiveExcluded((await getSettings()).compliance);
-  const ctx = { storeId: opts.storeId, regionId: store?.regionId, channel: opts.channel, member: !!customer, tier: customer?.tier ?? null, at };
+  const settings = await getSettings();
+  const excluded = incentiveExcluded(settings.compliance);
+  const savings = settings.loyalty.tierSavingsPct;
+  const ctx = { storeId: opts.storeId, regionId: store?.regionId, channel: opts.channel, member: !!customer, tier: customer?.tier ?? null, tierPct: customer ? savings[customer.tier] : 0, at };
+  // Members' prices are compared with the walk-in price; walk-ins see what joining (Seed) would save them now.
+  const other = customer ? { ...ctx, member: false, tier: null, tierPct: 0 } : { ...ctx, member: true, tier: "SEED" as const, tierPct: savings.SEED };
   const vatRegistered = store ? !!store.company.vatNumber : true;
 
   const base = items
@@ -108,13 +119,13 @@ export async function quote(opts: {
     .map((i) => {
       const v = byId.get(i.variantId)!;
       const noPromo = excluded.includes(v.product.regClass);
-      const price = resolvePrice(
-        { variantId: v.id, rrpCents: v.priceCents, storeShelfCents: v.storeVariants?.[0]?.priceCents, qty: i.qty, markdownPct: marks.get(v.id), incentives: !noPromo },
-        lists,
-        ctx,
-      );
+      const args = { variantId: v.id, rrpCents: v.priceCents, storeShelfCents: v.storeVariants?.[0]?.priceCents, qty: i.qty, markdownPct: marks.get(v.id), incentives: !noPromo };
+      const price = resolvePrice(args, lists, ctx);
+      const alt = resolvePrice(args, lists, other).unitCents;
       const unit = opts.trustClientPrices && i.unitPriceCents != null ? i.unitPriceCents : price.unitCents;
-      return { i, v, price, unit, noPromo };
+      const memberSavingsCents = customer ? Math.max(0, alt - unit) * i.qty : 0;
+      const joinSavingsCents = customer ? 0 : Math.max(0, unit - alt) * i.qty;
+      return { i, v, price, unit, noPromo, memberSavingsCents, joinSavingsCents };
     });
 
   const r = applyPromotions(
@@ -122,8 +133,9 @@ export async function quote(opts: {
     promos as PromoInput[],
     opts.code,
   );
-  const lines: QuoteLine[] = base.map(({ i, v, price, unit, noPromo }, idx) => ({
+  const lines: QuoteLine[] = base.map(({ i, v, price, unit, noPromo, memberSavingsCents }, idx) => ({
     noEarn: noPromo,
+    memberSavingsCents,
     variantId: v.id,
     productId: v.productId,
     categoryId: v.product.categoryId,
@@ -153,6 +165,8 @@ export async function quote(opts: {
     totalCents: r.totalCents,
     vatCents: lines.reduce((s, l) => s + l.vatCents, 0),
     vatRegistered,
+    memberSavingsCents: lines.reduce((s, l) => s + l.memberSavingsCents, 0), // "Rewards savings" on the receipt
+    joinSavingsCents: base.reduce((s, b) => s + b.joinSavingsCents, 0), // "Join free and save R… today" for walk-ins
     pointsMultiplier: r.pointsMultiplier,
     applied: r.applied,
     suggestions: r.suggestions as Suggestion[],

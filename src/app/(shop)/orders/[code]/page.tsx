@@ -60,6 +60,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const current = order.status === "CANCELLED" ? -1 : order_.indexOf(order.status);
   const open = !["COMPLETED", "CANCELLED"].includes(order.status);
   const due = order.totalCents - order.pointsRedeemed * 100;
+  const saved = order.lines.reduce((s, l) => s + l.memberSavingsCents, 0);
   const [statusLabel, tone] = STATUS[order.status];
   const holdUntil = new Date(order.createdAt.getTime() + settings.ecommerce.unpaidHoldMinutes * 60_000);
   const readyAt = at("READY");
@@ -220,6 +221,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   <dd className="tnum font-display text-2xl font-semibold text-white">{zar(due)}</dd>
                 </div>
                 {order.vatCents > 0 && <p className="text-right text-xs text-ink-500">Includes VAT of {zar(order.vatCents)}</p>}
+                {saved > 0 && <p className="rounded-xl bg-oranje-500/10 px-3 py-2 text-sm font-semibold text-oranje-100">You saved {zar(saved)} with Herbal Holland Rewards</p>}
               </dl>
             </Panel>
           )}

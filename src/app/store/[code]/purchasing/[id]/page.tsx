@@ -6,6 +6,7 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { availability, availKey } from "@/server/inventory";
 import { receivedValue } from "@/server/stock-orders";
 import { stockOrderDetail } from "@/server/store/purchasing";
+import { plural } from "@/server/store/rules";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
 import { cancelOrder, receiveOrder, sellerAct, submitDraft } from "../actions";
@@ -48,7 +49,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
             <StatusBadge status={o.status} />
           </span>
         }
-        description={`${o.seller.name} → ${o.buyer.name} · ${lines.length} lines, ${units} units · created ${fmtDate(o.createdAt)}`}
+        description={`${o.seller.name} → ${o.buyer.name} · ${plural(lines.length, "line")}, ${plural(units, "unit")} · created ${fmtDate(o.createdAt)}`}
         actions={
           canManage && (
             <>

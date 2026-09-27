@@ -20,6 +20,8 @@ export type Column = {
   align?: "left" | "right" | "center";
   /** format "badge": value → tone. */
   tones?: Record<string, Tone>;
+  /** Exported in the CSV but left off the on-screen table (keeps wide reports readable). */
+  csvOnly?: boolean;
 };
 /** Reserved keys: `_href` links the first cell, `_style` emphasises the row. */
 export type Row = Record<string, unknown> & { _href?: string; _style?: "strong" | "muted" | "section" };
@@ -44,8 +46,9 @@ export type ReportResult = Table & {
   note?: string | null;
   /** Secondary tables (rendered below the main table and appended to the CSV). */
   extra?: Table[];
-  /** Empty-state message when there are no rows. */
+  /** Empty state when there are no rows (title defaults to "Nothing to show"). */
   empty?: string;
+  emptyTitle?: string;
 };
 
 export type Option = { value: string; label: string; group?: string };
@@ -106,6 +109,8 @@ export type ReportDef = {
   roles?: Role[];
   /** Contains customer personal information (POPIA): restricted roles, exports audited. */
   personal?: boolean;
+  /** Compares stores: only listed in a store's catalogue when the user can see several of its company's stores. */
+  multiStore?: boolean;
   run: (ctx: ReportCtx) => Promise<ReportResult>;
 };
 
