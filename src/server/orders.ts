@@ -30,7 +30,7 @@ export class OrderError extends Error {
 }
 
 /**
- * Delivery for a bag: the usual rules for stocked items (free over the threshold), plus the print partner's courier
+ * Delivery for a bag: the usual rules for stocked items (free over the threshold), plus the merch partner's courier
  * for made-to-order merch — always charged on top, since merch ships on its own from the partner.
  */
 export async function deliveryFee(fulfilment: Fulfil, lines: { variantId: string; totalCents: number }[], tier: string) {
@@ -94,7 +94,7 @@ export async function placeOrder(input: CheckoutInput) {
   const customer = comp.ctx.record!;
 
   const requiredLicences = [...new Set(q.lines.filter((l) => settings.compliance.licensedOnly.includes(l.regClass)).map((l) => l.regClass))];
-  // Made-to-order merch ships from the print partner: courier only, and it needs no stock to route.
+  // Made-to-order merch ships from the merch partner: courier only, and it needs no stock to route.
   const made = await madeToOrder(q.lines.map((l) => l.variantId));
   if (made.size && input.fulfilment !== "COURIER") throw new OrderError("Made-to-order merch ships by courier — choose delivery");
   const stocked = q.lines.filter((l) => !made.has(l.variantId));

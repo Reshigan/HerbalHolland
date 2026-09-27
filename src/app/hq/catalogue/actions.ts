@@ -105,7 +105,7 @@ export async function saveVariant(productId: string, variantId: string | null, _
   const barcode = str(fd, "barcode").replace(/\s/g, "") || null;
   if (barcode && !/^\d{8,14}$/.test(barcode)) fields.barcode = "8–14 digits (EAN/UPC)";
   else if (barcode && (await db.variant.count({ where: { barcode, ...(variantId && { id: { not: variantId } }) } }))) fields.barcode = "Barcode already in use";
-  const podSku = str(fd, "podSku").trim() || null; // made to order by the print partner
+  const podSku = str(fd, "podSku").trim() || null; // made to order by the merch partner
   if (podSku && !/^[A-Za-z0-9._\/-]{2,64}$/.test(podSku)) fields.podSku = "The partner's code: letters, digits, dots, dashes";
   const name = str(fd, "name");
   if (!name) fields.name = "Required";

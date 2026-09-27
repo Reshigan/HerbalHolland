@@ -78,6 +78,24 @@ const SHAPES: Record<Garment, Record<Side, Shape>> = {
     },
     back: { body: "M22 72 C21 44 38 27 60 27 C82 27 99 44 98 72 Z", place: {} },
   },
+  bucket: {
+    front: {
+      body: "M33 64 L37.5 31 C39 25.5 81 25.5 82.5 31 L87 64 Z",
+      trims: ["M31 62 L89 62 L106 80 C92 88 28 88 14 80 Z"],
+      seams: ["M34 66 L86 66", "M24 76 C40 81 80 81 96 76", "M19 79 C36 85 84 85 101 79", "M38.5 33 C45 30 75 30 81.5 33"],
+      place: { front: { cx: 60, top: 36, unitsPerMm: 0.4 } },
+    },
+    back: { body: "M33 64 L37.5 31 C39 25.5 81 25.5 82.5 31 L87 64 Z", place: {} },
+  },
+  beanie: {
+    front: {
+      body: "M30 70 C29 41 43 22 60 22 C77 22 91 41 90 70 Z",
+      trims: ["M27 63 L93 63 L94 89 C94 90.4 93 91 91.6 91 L28.4 91 C27 91 26 90.4 26 89 Z"],
+      seams: ["M44 30 L40 63", "M52 24.5 L50 63", "M60 22.5 L60 63", "M68 24.5 L70 63", "M76 30 L80 63"],
+      place: { front: { cx: 60, top: 67.5, unitsPerMm: 0.34 } },
+    },
+    back: { body: "M30 70 C29 41 43 22 60 22 C77 22 91 41 90 70 Z", place: {} },
+  },
   tote: {
     front: {
       body: "M25 38 L95 38 L96 111 C96 112.5 95 113 93.5 113 L26.5 113 C25 113 24 112.5 24 111 Z",
@@ -107,6 +125,13 @@ export function GarmentView({ item, side, id }: { item: MerchItem; side: Side; i
   return (
     <g>
       <defs>
+        <pattern id={`${id}-satin`} width="0.8" height="0.8" patternUnits="userSpaceOnUse" patternTransform="rotate(62)">
+          <rect width="0.4" height="0.8" fill="#fff" fillOpacity={0.2} />
+          <rect x="0.4" width="0.4" height="0.8" fill="#000" fillOpacity={0.14} />
+        </pattern>
+        <filter id={`${id}-raise`} x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="0.28" stdDeviation="0.2" floodColor="#000" floodOpacity="0.55" />
+        </filter>
         <linearGradient id={`${id}-fold`} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor="#fff" stopOpacity={item.colour === "black" ? 0.07 : 0.16} />
           <stop offset="0.55" stopColor="#fff" stopOpacity={0} />
@@ -121,8 +146,19 @@ export function GarmentView({ item, side, id }: { item: MerchItem; side: Side; i
         .filter((p) => p.side === side && shape.place[side])
         .map((p) => {
           const a = ART[p.art], pl = shape.place[side]!;
-          const w = a.w * pl.unitsPerMm, h = a.h * pl.unitsPerMm;
-          return <Artwork key={p.art} art={p.art} x={pl.cx - w / 2} y={pl.top} width={w} height={h} />;
+          const box = { x: pl.cx - (a.w * pl.unitsPerMm) / 2, y: pl.top, width: a.w * pl.unitsPerMm, height: a.h * pl.unitsPerMm };
+          if (p.technique !== "Embroidery") return <Artwork key={p.art} art={p.art} {...box} />;
+          // Embroidery: raised thread with a satin sheen across the stitches.
+          const mask = `${id}-${p.art}-thread`;
+          return (
+            <g key={p.art} filter={`url(#${id}-raise)`}>
+              <mask id={mask} maskUnits="userSpaceOnUse">
+                <Artwork art={p.art} ink="#fff" {...box} />
+              </mask>
+              <Artwork art={p.art} {...box} />
+              <rect {...box} fill={`url(#${id}-satin)`} mask={`url(#${mask})`} />
+            </g>
+          );
         })}
       {shape.seams?.map((d) => <path key={d} d={d} fill="none" stroke={t.seam} strokeWidth={0.45} strokeDasharray="1.2 0.9" strokeLinecap="round" />)}
       <path d={shape.body} fill={`url(#${id}-fold)`} />

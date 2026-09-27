@@ -80,7 +80,7 @@ export const getNetwork = cache(async () => {
 });
 
 export type StockBadge =
-  | { kind: "made" } // made to order by the print partner: always available, ships by courier
+  | { kind: "made" } // made to order by the merch partner: always available, ships by courier
   | { kind: "store"; store: string; low: boolean }
   | { kind: "ships"; low: boolean }
   | { kind: "collect"; store: string | null; stores: number }

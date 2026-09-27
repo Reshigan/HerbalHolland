@@ -112,7 +112,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                   <Input id="freeDeliveryOver" name="freeDeliveryOver" defaultValue={rand(e.freeDeliveryOverCents)} inputMode="decimal" />
                   <FieldError name="freeDeliveryOver" />
                 </Field>
-                <Field label="Merch courier (R)" htmlFor="merchCourier" hint="Made-to-order merch: the print partner's courier, always on top">
+                <Field label="Merch courier (R)" htmlFor="merchCourier" hint="Made-to-order merch: the merch partner's courier, always on top">
                   <Input id="merchCourier" name="merchCourier" defaultValue={rand(e.merchCourierCents)} inputMode="decimal" />
                   <FieldError name="merchCourier" />
                 </Field>

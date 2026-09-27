@@ -1,32 +1,60 @@
-// The made-to-order merch collection: which garment, colour and print each product carries. Our print partner (OTC
-// Printing, Oudtshoorn) prints each piece when it's ordered and couriers it, white-label, to the customer — no stock,
-// no minimums. Artwork lives in src/components/merch/art.tsx; print files are rendered by scripts/merch-export.tsx.
+// The made-to-order merch collection: which garment, colour and embroidery/print each product carries. The partner
+// makes each piece when it's ordered and couriers it, white-label, to the customer — no stock, no minimums.
+// Upmarket by design: the logos are embroidered; the big back graphics and the tote are printed (DTG).
+// Artwork lives in src/components/merch/art.tsx; the partner's files are rendered by scripts/merch-export.tsx.
 
-export type ArtKey = "chest-mark" | "window-back" | "sunset-back" | "heritage-front" | "tote-front" | "lockup-chest" | "cap-mark";
-export type Garment = "tee" | "hoodie" | "crew" | "cap" | "tote";
+export type ArtKey = "mark-stitch" | "lockup-stitch" | "heritage-stitch" | "window-back" | "sunset-back" | "tote-front";
+export type Garment = "tee" | "hoodie" | "crew" | "cap" | "bucket" | "beanie" | "tote";
 export type Side = "front" | "back";
-// DTG: printed straight onto the garment; transfer: printed film heat-pressed on (caps).
-export type Print = { art: ArtKey; side: Side; technique: "DTG" | "Transfer" };
+export type Print = { art: ArtKey; side: Side; technique: "Embroidery" | "DTG"; where: string };
 
 export type MerchItem = {
   slug: string; // Product.slug
   name: string;
-  blank: string; // the garment the partner prints on
+  blank: string; // the garment the partner makes it on
   garment: Garment;
-  colour: "black" | "sunset"; // garment colour; the print is always the other brand ink
+  colour: "black" | "sunset"; // garment colour; the thread/print is always the other brand colour
   hero: Side; // the view the shop shows
   prints: Print[];
 };
 
+const CHEST = { art: "mark-stitch", side: "front", technique: "Embroidery", where: "Left chest, 80 mm below the shoulder seam" } as const;
+
 export const MERCH: MerchItem[] = [
-  { slug: "windmill-tee", name: "Windmill Tee", blank: "Black heavyweight cotton tee (SA-made Vic Bay Heavy Weight)", garment: "tee", colour: "black", hero: "back", prints: [{ art: "chest-mark", side: "front", technique: "DTG" }, { art: "window-back", side: "back", technique: "DTG" }] },
-  { slug: "sunset-hoodie", name: "Sunset Hoodie", blank: "Orange fleece hoodie, closest to Sunset 500 on the partner's swatch", garment: "hoodie", colour: "sunset", hero: "back", prints: [{ art: "lockup-chest", side: "front", technique: "DTG" }, { art: "sunset-back", side: "back", technique: "DTG" }] },
-  { slug: "heritage-crewneck", name: "Heritage Crewneck", blank: "Black fleece crewneck sweatshirt", garment: "crew", colour: "black", hero: "front", prints: [{ art: "heritage-front", side: "front", technique: "DTG" }] },
-  { slug: "windmill-cap", name: "Windmill Cap", blank: "Black six-panel cap, adjustable strap", garment: "cap", colour: "black", hero: "front", prints: [{ art: "cap-mark", side: "front", technique: "Transfer" }] },
-  { slug: "windmill-tote", name: "Windmill Tote", blank: "Black cotton tote bag", garment: "tote", colour: "black", hero: "front", prints: [{ art: "tote-front", side: "front", technique: "DTG" }] },
+  {
+    slug: "windmill-tee", name: "Windmill Tee", blank: "Black heavyweight cotton tee (220 gsm+)", garment: "tee", colour: "black", hero: "back",
+    prints: [CHEST, { art: "window-back", side: "back", technique: "DTG", where: "Centre back, 75 mm below the collar" }],
+  },
+  {
+    slug: "sunset-hoodie", name: "Sunset Hoodie", blank: "Orange heavyweight fleece hoodie, closest to Sunset 500", garment: "hoodie", colour: "sunset", hero: "back",
+    prints: [
+      { art: "lockup-stitch", side: "front", technique: "Embroidery", where: "Left chest, 90 mm below the shoulder seam" },
+      { art: "sunset-back", side: "back", technique: "DTG", where: "Centre back, 70 mm below the hood seam" },
+    ],
+  },
+  {
+    slug: "heritage-crewneck", name: "Heritage Crewneck", blank: "Black heavyweight fleece crewneck", garment: "crew", colour: "black", hero: "front",
+    prints: [{ art: "heritage-stitch", side: "front", technique: "Embroidery", where: "Centre chest, 90 mm below the collar" }],
+  },
+  {
+    slug: "windmill-cap", name: "Windmill Cap", blank: "Black six-panel cotton-twill cap, adjustable strap", garment: "cap", colour: "black", hero: "front",
+    prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Front panels, centred over the seam" }],
+  },
+  {
+    slug: "sunset-bucket-hat", name: "Sunset Bucket Hat", blank: "Black cotton-twill bucket hat", garment: "bucket", colour: "black", hero: "front",
+    prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Front, centred, 20 mm above the brim seam" }],
+  },
+  {
+    slug: "windmill-beanie", name: "Windmill Beanie", blank: "Black rib-knit cuffed beanie", garment: "beanie", colour: "black", hero: "front",
+    prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Cuff, centred" }],
+  },
+  {
+    slug: "windmill-tote", name: "Windmill Tote", blank: "Black heavy cotton-canvas tote", garment: "tote", colour: "black", hero: "front",
+    prints: [{ art: "tote-front", side: "front", technique: "DTG", where: "Centre front, 70 mm below the top edge" }],
+  },
 ];
 
 export const merchFor = (slug: string) => MERCH.find((m) => m.slug === slug);
 
-/** How long the print partner takes to make and deliver an order (shown to shoppers). */
+/** How long the partner takes to make and deliver an order (shown to shoppers). */
 export const MADE_TO_ORDER_LEAD = "5–7 working days";

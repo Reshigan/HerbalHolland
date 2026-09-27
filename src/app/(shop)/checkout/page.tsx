@@ -129,7 +129,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   const eligibleBase = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
   const options: FulfilOption[] = keys.map((k, i) => {
     const blocks = comps[i].blocks.filter((b) => !AGE_BLOCK.test(b));
-    // Made-to-order merch is couriered by the print partner, so a bag with merch goes by courier.
+    // Made-to-order merch is couriered by the merch partner, so a bag with merch goes by courier.
     if (made.size && k !== "COURIER") blocks.unshift("Made-to-order merch ships by courier");
     return {
       key: k as FulfilOption["key"],
@@ -218,7 +218,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         sameDayNote={`order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
         courierNote={
           made.size
-            ? `Made-to-order merch is printed for you and couriered in ${MADE_TO_ORDER_LEAD} (${zar(settings.ecommerce.merchCourierCents)} courier, on top of the price)${made.size < q.lines.length ? `; the rest ships in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}` : ""}.`
+            ? `Made-to-order merch is made for you and couriered in ${MADE_TO_ORDER_LEAD} (${zar(settings.ecommerce.merchCourierCents)} courier, on top of the price)${made.size < q.lines.length ? `; the rest ships in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}` : ""}.`
             : `2–4 working days nationwide, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}.`
         }
         blocked={needsAge ? "Verify your age above to place this order." : (shared ?? (dropNotes[0] ? `${dropNotes[0].title} — update your bag to continue.` : null))}

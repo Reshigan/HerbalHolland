@@ -355,7 +355,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   <div className="text-sm">
                     <div className="font-semibold text-white">{made ? "Made to order · ships nationwide" : networkQty > 0 ? "Ships nationwide" : "Out of stock for delivery"}</div>
                     <div className="text-ink-400">
-                      {made && `Printed for you in South Africa and couriered to your door in ${MADE_TO_ORDER_LEAD}. Courier ${zar(settings.ecommerce.merchCourierCents)}, added at checkout. It ships on its own, separately from anything else in your order.`}
+                      {made && `Made for you in South Africa and couriered to your door in ${MADE_TO_ORDER_LEAD}. Courier ${zar(settings.ecommerce.merchCourierCents)}, added at checkout. It ships on its own, separately from anything else in your order.`}
                       {store?.sameDay && hereQty > 0 && channels.SAME_DAY.includes(product.regClass) ? `Same-day delivery from ${store.name} when you order by ${settings.ecommerce.sameDayCutoffHour}:00. ` : ""}
                       {!made && `Courier in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}. ID (18+) checked on delivery.`}
                     </div>

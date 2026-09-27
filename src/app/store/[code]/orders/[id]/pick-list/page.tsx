@@ -81,7 +81,7 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
                   </div>
                   <div className="font-mono text-xs text-ink-500">{l.variant.sku}</div>
                   {l.licensed && <div className="text-xs font-semibold text-ink-700">Licensed — dispenser to hand over</div>}
-                  {l.made && <div className="text-xs font-semibold text-ink-700">Made to order — the print partner ships it; nothing to pick</div>}
+                  {l.made && <div className="text-xs font-semibold text-ink-700">Made to order — the merch partner ships it; nothing to pick</div>}
                 </td>
                 <td className="py-3 pr-4">
                   {l.pick.map((p) => (

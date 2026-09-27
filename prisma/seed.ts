@@ -1101,7 +1101,7 @@ async function main() {
   const hoodie = uid();
   await db.drop.createMany({
     data: [
-      { id: uid(), slug: "heritage-cap", name: "Heritage Month: the Windmill Cap", blurb: "The Mark on a black six-panel cap — made to order for Heritage Month, while the month lasts.", variantIds: vids("windmill-cap"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
+      { id: uid(), slug: "heritage-cap-and-hat", name: "Heritage Month: cap + bucket hat", blurb: "The Mark, embroidered on our cap and our sun-ready bucket hat — made to order for Heritage Month.", variantIds: vids("windmill-cap", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
       { id: hoodie, slug: "sunset-hoodie-no-1", name: "Sunset Hoodie No. 1", blurb: "A numbered first run of our brushed-fleece hoodie. One per member; Harvest members get in two hours early.", variantIds: vids("sunset-hoodie"), startsAt: nextAt(5, 9), earlyTier: "HARVEST", earlyMinutes: 120, perMemberLimit: 1 },
     ],
   });

@@ -25,7 +25,7 @@ export async function madeToOrder(ids: string[], t: Tx | typeof db = db) {
 type Event = { status: string; at: string; note?: string };
 const withNote = (o: { events: unknown }, note: string) => [...((o.events as Event[] | null) ?? []), { status: "MERCH", at: new Date().toISOString(), note }];
 
-/** Sends paid orders with made-to-order lines to the print partner (once each). */
+/** Sends paid orders with made-to-order lines to the merch partner (once each). */
 export async function submitMerchOrders() {
   const due = await db.order.findMany({
     where: { podRef: null, paymentStatus: "PAID", status: { in: ["PLACED", "PICKING", "READY", "OUT_FOR_DELIVERY"] }, lines: { some: { variant: { podSku: { not: null } } } } },
@@ -48,15 +48,15 @@ export async function submitMerchOrders() {
             return {
               code: l.variant.podSku!, name: l.variant.product.name, blank: m?.blank ?? "", size: l.variant.name, qty: l.qty,
               prints: (m?.prints ?? []).map((p) => ({
-                placement: p.side === "front" ? "Front" : "Back", technique: p.technique, size: `${ART[p.art].w} × ${ART[p.art].h} mm`, note: ART[p.art].note,
-                url: `${APP_URL()}/merch/print/${p.art}.png`,
+                placement: p.where, technique: p.technique, size: `${ART[p.art].w} × ${ART[p.art].h} mm`, note: ART[p.art].note,
+                url: `${APP_URL()}/merch/print/${p.art}.png`, svg: `${APP_URL()}/merch/print/${p.art}.svg`,
               })),
             };
           }),
       });
       await db.order.update({ where: { id: o.id }, data: { podRef: o.code, podStatus: "sent", events: withNote(o, `Production order sent to ${partnerName()}`) } });
       // Merch-only orders have nothing for the distribution centre to pick: they're "being made" from here.
-      if (o.status === "PLACED" && o.lines.every((l) => l.variant.podSku)) await advanceOrder(o.id, "PICKING", SYSTEM, { note: "Being printed by our print partner" });
+      if (o.status === "PLACED" && o.lines.every((l) => l.variant.podSku)) await advanceOrder(o.id, "PICKING", SYSTEM, { note: "Being made by our merch partner" });
       done++;
     } catch (e) {
       failed++;
@@ -70,7 +70,7 @@ export async function submitMerchOrders() {
 export async function merchShipped(orderId: string, storeId: string, ship: { courier: string; trackingNo: string }, actor: Actor) {
   const o = await db.order.findFirst({ where: { id: orderId, storeId }, include: { customer: true, lines: { select: { variant: { select: { podSku: true } } } } } });
   if (!o) throw new OrderError("Order not found");
-  if (!o.podRef) throw new OrderError("This order hasn't gone to the print partner yet");
+  if (!o.podRef) throw new OrderError("This order hasn't gone to the merch partner yet");
   if (o.podStatus === "shipped") throw new OrderError("Already marked as shipped");
   const note = `Merch shipped by ${partnerName()}: ${ship.courier} ${ship.trackingNo}`;
   await db.order.update({ where: { id: o.id }, data: { podStatus: "shipped", events: withNote(o, note) } });

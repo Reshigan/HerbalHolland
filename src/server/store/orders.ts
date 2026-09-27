@@ -34,7 +34,7 @@ export async function orderForStore(storeId: string, id: string) {
       l.qty,
     );
     const code = new Map(mine.map((x) => [x.batchId, x.batch]));
-    const made = !!l.variant.podSku; // printed and shipped by the print partner: nothing to pick here
+    const made = !!l.variant.podSku; // printed and shipped by the merch partner: nothing to pick here
     return {
       ...l,
       made,

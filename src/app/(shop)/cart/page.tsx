@@ -88,7 +88,7 @@ export default async function CartPage() {
   const earnable = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
   const tier = (customer?.tier ?? "SEED") as TierKey;
   const earn = pointsFor(earnable, tier, q.pointsMultiplier, settings.loyalty.earnPer100);
-  // Free delivery counts stocked items only; made-to-order merch always carries the print partner's courier.
+  // Free delivery counts stocked items only; made-to-order merch always carries the merch partner's courier.
   const freeOver = settings.ecommerce.freeDeliveryOverCents;
   const stockedTotal = q.lines.filter((l) => !made.has(l.variantId)).reduce((s, l) => s + l.totalCents, 0);
   const toFree = Math.max(0, freeOver - stockedTotal);
@@ -286,7 +286,7 @@ export default async function CartPage() {
             )}
             {made.size > 0 && (
               <p className="mt-4 flex items-center gap-2 rounded-xl bg-ink-850 px-3 py-2.5 text-xs text-ink-300">
-                <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Made-to-order merch ships on its own from our print partner in {MADE_TO_ORDER_LEAD}: {zar(settings.ecommerce.merchCourierCents)} courier on top.
+                <Truck className="h-4 w-4 shrink-0 text-brand-500" /> Made-to-order merch ships on its own from our merch partner in {MADE_TO_ORDER_LEAD}: {zar(settings.ecommerce.merchCourierCents)} courier on top.
               </p>
             )}
             {licensedLines.length === q.lines.length || made.size === q.lines.length ? null : toFree > 0 ? (

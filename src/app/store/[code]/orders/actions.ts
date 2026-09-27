@@ -59,7 +59,7 @@ export async function moveOrder(code: string, id: string, _: ActionState, fd: Fo
   });
 }
 
-/** The print partner's shipping email: record the courier and tracking number for the merch on this order. */
+/** The merch partner's shipping email: record the courier and tracking number for the merch on this order. */
 export async function shipMerch(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
     const { store, actor } = await manage(code);

@@ -35,7 +35,7 @@ export const DEFAULT_SETTINGS = {
     sameDayFeeCents: 6_500,
     courierFeeCents: 9_900,
     freeDeliveryOverCents: 90_000,
-    merchCourierCents: 10_000, // made-to-order merch: the print partner's courier at cost (Aramex), always on top of the price
+    merchCourierCents: 10_000, // made-to-order merch: the merch partner's courier at cost (Aramex), always on top of the price
     sameDayCutoffHour: 15,
     unpaidHoldMinutes: 60, // unpaid online orders are cancelled (stock released) after this
     collectHoldDays: 7, // pay-in-store collections not picked up are cancelled after this

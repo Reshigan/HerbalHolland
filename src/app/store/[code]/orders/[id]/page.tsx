@@ -32,7 +32,7 @@ const EVENT_LABEL: Record<string, string> = {
   OUT_FOR_DELIVERY: "Out for delivery",
   COMPLETED: "Completed",
   CANCELLED: "Cancelled",
-  MERCH: "Print partner",
+  MERCH: "Merch partner",
 };
 
 export default async function OrderPage({ params }: { params: Promise<{ code: string; id: string }> }) {
@@ -85,11 +85,11 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
             <Card className={cn(o.podRef && o.podStatus !== "shipped" && "border-brand-300 ring-4 ring-brand-500/10")}>
               <CardHeader
                 title="Made-to-order merch"
-                description={`${merch.reduce((s, l) => s + l.qty, 0)} piece(s) printed and couriered by the print partner — nothing to pick here.`}
+                description={`${merch.reduce((s, l) => s + l.qty, 0)} piece(s) made and couriered by our merch partner — nothing to pick here.`}
               />
               <CardBody>
                 {!o.podRef ? (
-                  <p className="text-sm text-ink-600">The production order goes to the print partner as soon as the payment clears.</p>
+                  <p className="text-sm text-ink-600">The production order goes to the merch partner as soon as the payment clears.</p>
                 ) : o.podStatus === "shipped" ? (
                   <p className="text-sm text-ink-600">Shipped — the tracking number is in the timeline and was sent to the customer.</p>
                 ) : canManage ? (
@@ -105,7 +105,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
           )}
           {next.length > 0 && !(merchOnly && o.podStatus !== "shipped") && (
             <Card className="border-brand-300 ring-4 ring-brand-500/10">
-              <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : merchOnly ? "The print partner couriered it — mark delivered once the courier confirms." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the customer arrives." : "Pick, pack and dispatch."} />
+              <CardHeader title="Next step" description={o.status === "PENDING_PAYMENT" ? "Waiting for the online payment to clear." : merchOnly ? "The merch partner couriered it — mark delivered once the courier confirms." : o.fulfilment === "COLLECT" ? "Pick, pack, then hand over when the customer arrives." : "Pick, pack and dispatch."} />
               <CardBody>
                 {canManage ? (
                   <OrderActions
@@ -148,7 +148,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                       <div className="flex items-center gap-2 text-xs text-ink-400">
                         <span className="font-mono">{l.variant.sku}</span>
                         {l.licensed && <Badge tone="violet">Licensed</Badge>}
-                        {l.made && <Badge tone="orange">Made to order · ships from the print partner</Badge>}
+                        {l.made && <Badge tone="orange">Made to order · ships from the merch partner</Badge>}
                       </div>
                     </Td>
                     <Td align="right" className="font-semibold text-ink-950">{l.qty}</Td>

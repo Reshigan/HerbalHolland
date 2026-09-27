@@ -55,7 +55,7 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
           <Input id={`barcode-${k}`} name="barcode" defaultValue={v?.barcode ?? ""} inputMode="numeric" className="font-mono text-[0.8rem]" />
           <FieldError name="barcode" />
         </Field>
-        <Field label="Print partner code" hint="Made to order: the partner's product code. Leave empty for stocked items." htmlFor={`podSku-${k}`} className="col-span-2 md:col-span-1 xl:col-span-2">
+        <Field label="Merch partner code" hint="Made to order: the partner's product code. Leave empty for stocked items." htmlFor={`podSku-${k}`} className="col-span-2 md:col-span-1 xl:col-span-2">
           <Input id={`podSku-${k}`} name="podSku" defaultValue={v?.podSku ?? ""} className="font-mono text-[0.8rem]" />
           <FieldError name="podSku" />
         </Field>

@@ -1,6 +1,7 @@
-// Merch print artwork, drawn once at print size (millimetres) and used three ways: the print-ready files
-// (scripts/merch-export.tsx), the storefront mockups (MerchArt) and the brand book. Every design is one ink —
-// Sunset on black garments, black on Sunset garments — so the Mark keeps its only two colourways.
+// Merch artwork, drawn once at actual size (millimetres) and used three ways: the files the partner embroiders and
+// prints from (scripts/merch-export.tsx), the storefront mockups (MerchArt) and the brand book. Every design is one
+// colour — Sunset on black garments, black on the Sunset hoodie — so the Mark keeps its only two colourways.
+// Stitched designs use the heavy cut of the Mark and sturdier type: satin columns of 1 mm or more, lettering 7 mm+.
 import { MarkGlyph } from "@/components/brand/logo";
 import type { ArtKey } from "@/lib/merch";
 
@@ -31,12 +32,15 @@ function Line({ text, x, y, width, size, weight, anchor = "middle" }: { text: st
   );
 }
 
-/** Stacked wordmark (HERBAL light over HOLLAND extra-bold). `y` is HERBAL's cap top; returns nothing below HOLLAND's baseline. */
-function Words({ x, y, width, size, anchor = "middle" }: { x: number; y: number; width: number; size: number; anchor?: "start" | "middle" }) {
+/**
+ * Stacked wordmark (HERBAL light over HOLLAND extra-bold). `y` is HERBAL's cap top; nothing sits below HOLLAND's
+ * baseline. Embroidery sets HERBAL at 500 so its strokes are thick enough to stitch.
+ */
+function Words({ x, y, width, size, anchor = "middle", light = 300 }: { x: number; y: number; width: number; size: number; anchor?: "start" | "middle"; light?: number }) {
   const cap = size * 0.7;
   return (
     <>
-      <Line text="HERBAL" x={x} y={y + cap} width={width * 0.93} size={size} weight={300} anchor={anchor} />
+      <Line text="HERBAL" x={x} y={y + cap} width={width * 0.93} size={size} weight={light} anchor={anchor} />
       <Line text="HOLLAND" x={x} y={y + cap + size * 0.98} width={width} size={size} weight={800} anchor={anchor} />
     </>
   );
@@ -44,17 +48,46 @@ function Words({ x, y, width, size, anchor = "middle" }: { x: number; y: number;
 
 type Art = { w: number; h: number; ink: InkName; body: React.ReactNode; note: string };
 
-/** Artwork by key, at print size. */
+/** Artwork by key, at actual size. `note` describes the design; where it goes is per garment (lib/merch). */
 export const ART: Record<ArtKey, Art> = {
-  // Tee front, left chest.
-  "chest-mark": { w: 80, h: 80, ink: "sunset", note: "Left chest, 80 mm wide, 90 mm below the shoulder seam", body: <M x={0} y={0} size={80} /> },
+  // The stitch cut of the Mark: tee chest, cap, bucket hat and beanie — one design, one digitised file.
+  "mark-stitch": { w: 50, h: 50, ink: "sunset", note: "Stitch cut of the Mark, 50 mm", body: <M x={0} y={0} size={50} heavy /> },
+
+  // Hoodie chest (black thread on Sunset): the horizontal lock-up, cut for stitching.
+  "lockup-stitch": {
+    w: 102,
+    h: 30,
+    ink: "black",
+    note: "Horizontal lock-up, 102 mm wide",
+    body: (
+      <>
+        <M x={0} y={0} size={30} heavy />
+        <Words x={38} y={4.9} width={64} size={12} anchor="start" light={500} />
+      </>
+    ),
+  },
+
+  // Crewneck chest: the line we sign off with, set like the wordmark and cut for stitching.
+  "heritage-stitch": {
+    w: 180,
+    h: 71,
+    ink: "sunset",
+    note: "Mark over “Dutch heritage. African soil.”, 180 mm wide",
+    body: (
+      <>
+        <M x={77} y={0} size={26} heavy />
+        <Line text="DUTCH HERITAGE." x={90} y={45.1} width={180} size={13} weight={500} />
+        <Line text="AFRICAN SOIL." x={90} y={69.9} width={180} size={24} weight={800} />
+      </>
+    ),
+  },
 
   // Tee back: the store window — the poster lock-up inside the window-poster frame, tagline beneath.
   "window-back": {
     w: 250,
     h: 340,
     ink: "sunset",
-    note: "Centre back, 250 mm wide, 75 mm below the collar",
+    note: "Store-window poster, 250 mm wide",
     body: (() => {
       const t = 11, H = 312.5, mark = 124, size = 27, words = 150;
       const group = mark + 16 + size * 0.7 + size * 0.98;
@@ -75,7 +108,7 @@ export const ART: Record<ArtKey, Art> = {
     w: 290,
     h: 352,
     ink: "black",
-    note: "Centre back, 290 mm wide, 70 mm below the hood seam",
+    note: "Setting sun and lock-up, 290 mm wide",
     body: (() => {
       const cx = 145, r = 108, horizon = 320;
       // A setting sun in retro bands: each band thinner and each gap wider towards the horizon.
@@ -109,27 +142,12 @@ export const ART: Record<ArtKey, Art> = {
     })(),
   },
 
-  // Crewneck front: the line we sign off with, set like the wordmark (light over extra-bold).
-  "heritage-front": {
-    w: 240,
-    h: 126,
-    ink: "sunset",
-    note: "Centre front, 240 mm wide, 85 mm below the collar",
-    body: (
-      <>
-        <M x={98} y={0} size={44} />
-        <Line text="DUTCH HERITAGE." x={120} y={78} width={240} size={19} weight={300} />
-        <Line text="AFRICAN SOIL." x={120} y={124} width={240} size={32} weight={800} />
-      </>
-    ),
-  },
-
   // Tote: the horizontal lock-up with the tagline beneath.
   "tote-front": {
     w: 262,
     h: 124,
     ink: "sunset",
-    note: "Centre front, 262 mm wide, 70 mm below the top edge",
+    note: "Horizontal lock-up and tagline, 262 mm wide",
     body: (
       <>
         <M x={0} y={0} size={88} />
@@ -139,22 +157,6 @@ export const ART: Record<ArtKey, Art> = {
     ),
   },
 
-  // Hoodie front (black on Sunset): small horizontal lock-up on the left chest.
-  "lockup-chest": {
-    w: 96,
-    h: 32,
-    ink: "black",
-    note: "Left chest, 96 mm wide, 90 mm below the shoulder seam",
-    body: (
-      <>
-        <M x={0} y={0} size={32} />
-        <Words x={38} y={6.2} width={58} size={11} anchor="start" />
-      </>
-    ),
-  },
-
-  // Cap front: the heavy cut of the Mark (thicker lines, solid hub) so it holds up at cap size.
-  "cap-mark": { w: 55, h: 55, ink: "sunset", note: "Cap front panel, centred, 55 mm tall", body: <M x={0} y={0} size={55} heavy /> },
 };
 
 /** A design as a standalone SVG element: `ink` overrides the print colour (e.g. black for a proof on white). */
