@@ -187,8 +187,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             </section>
           )}
 
-          {/* The shelf list hydrates later, in small slices, after the shell (see ProductGrid). */}
-          <Suspense>
           <section className="mt-14" aria-labelledby="menu">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -214,7 +212,9 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                   <h3 className="font-display text-lg font-semibold text-white">{c.name}</h3>
                   <ul className="mt-3 grid grid-cols-1 gap-2 md:grid-cols-2">
                     {c.items.map((i) => (
-                      <li key={i.variantId}>
+                      // One boundary per line so the long list hydrates in slices (see ProductGrid).
+                      <Suspense key={i.variantId}>
+                      <li>
                         <Link href={`/p/${i.slug}?v=${i.variantId}`} className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/50 p-2.5 pr-4 transition hover:border-ink-600">
                           <ProductArt slug={i.slug} strain={i.strain} regClass={i.regClass} label={i.name} className="h-14 w-14 shrink-0 rounded-xl" />
                           <div className="min-w-0 flex-1">
@@ -227,6 +227,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                           <Price cents={i.priceCents} was={i.wasCents} size="sm" className="shrink-0 justify-end text-right" />
                         </Link>
                       </li>
+                      </Suspense>
                     ))}
                   </ul>
                 </div>
@@ -234,7 +235,6 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               {!memberMenu.length && <p className="text-ink-400">Stock information isn&apos;t available right now — give the store a call.</p>}
             </div>
           </section>
-          </Suspense>
         </>
       )}
     </Container>

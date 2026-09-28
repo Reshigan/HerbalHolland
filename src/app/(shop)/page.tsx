@@ -177,9 +177,9 @@ export default async function Home() {
         </Container>
       </section>
 
-      {/* Everything below the hero hydrates later, in small slices (see ProductGrid). */}
-      <Suspense>
+      {/* Each block below the hero is its own Suspense boundary: the HTML is unchanged, the browser hydrates them in slices (see ProductGrid). */}
       {/* ── Trust strip ───────────────────────────────────────────── */}
+      <Suspense>
       <section className="border-y border-ink-850 bg-ink-900/40">
         <Container className="grid grid-cols-2 gap-x-6 gap-y-5 py-6 lg:grid-cols-4">
           {[
@@ -198,6 +198,7 @@ export default async function Home() {
           ))}
         </Container>
       </section>
+      </Suspense>
 
       {/* ── Windmill Days: events and the featured drop ─────────────── */}
       {(events.length > 0 || drop) && (
@@ -215,15 +216,25 @@ export default async function Home() {
             }
           />
           <div className={drop && events.length ? "grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"}>
-            {drop && <DropCardView d={drop} />}
+            {drop && (
+              <Suspense>
+                <DropCardView d={drop} />
+              </Suspense>
+            )}
             {drop && events.length > 0 ? (
               <div className="grid content-start gap-3">
                 {events.map((e) => (
-                  <EventCardView key={e.id} e={e} />
+                  <Suspense key={e.id}>
+                    <EventCardView e={e} />
+                  </Suspense>
                 ))}
               </div>
             ) : (
-              events.map((e) => <EventCardView key={e.id} e={e} />)
+              events.map((e) => (
+                <Suspense key={e.id}>
+                  <EventCardView e={e} />
+                </Suspense>
+              ))
             )}
           </div>
         </Container>
@@ -231,6 +242,7 @@ export default async function Home() {
 
       {/* ── Shop by mood ──────────────────────────────────────────── */}
       {moods.length > 0 && (
+        <Suspense>
         <Container className="pt-20">
           <SectionHead eyebrow="Shop by mood" title="How do you want to feel?" description="Everyday CBD and hemp rituals, grouped by the moment they're made for." />
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -254,9 +266,11 @@ export default async function Home() {
             })}
           </div>
         </Container>
+        </Suspense>
       )}
 
       {/* ── Categories ────────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-20">
         <SectionHead eyebrow="The range" title="Shop by category" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Everything <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
@@ -279,6 +293,7 @@ export default async function Home() {
           </Link>
         </div>
       </Container>
+      </Suspense>
 
       {/* ── Featured ──────────────────────────────────────────────── */}
       {picks.length > 0 && (
@@ -289,6 +304,7 @@ export default async function Home() {
       )}
 
       {/* ── Heritage story ────────────────────────────────────────── */}
+      <Suspense>
       <section className="mt-24 border-y border-ink-850 bg-[radial-gradient(ellipse_at_top_left,rgb(245_145_60/0.08),transparent_60%)]">
         <Container className="grid grid-cols-1 gap-12 py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
           <div>
@@ -348,8 +364,10 @@ export default async function Home() {
           </div>
         </Container>
       </section>
+      </Suspense>
 
       {/* ── Rewards ─────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900 p-6 sm:p-10 lg:p-14">
           <Mark aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 h-80 w-80 text-brand-500/[0.07]" />
@@ -384,8 +402,10 @@ export default async function Home() {
           </div>
         </div>
       </Container>
+      </Suspense>
 
       {/* ── Stores ────────────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-24">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
           <div>
@@ -422,8 +442,10 @@ export default async function Home() {
           )}
         </div>
       </Container>
+      </Suspense>
 
       {/* ── Learn ─────────────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-24">
         <SectionHead eyebrow="Learn" title="Know what you're buying" action={<ButtonLink href="/learn" variant="ghost-dark" size="sm">All guides <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">

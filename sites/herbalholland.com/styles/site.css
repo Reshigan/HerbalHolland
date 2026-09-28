@@ -62,6 +62,8 @@ main:focus { outline: 0; }
 /* Below the opening scene, sections and the footer are laid out and painted as they near the screen, so the first
    paint does only the top of the page. Their words stay in the page for find-in-page, screen readers and links. */
 main > section ~ section, main > .marquee, .ftr { content-visibility: auto; contain-intrinsic-size: auto 60rem; }
+/* Until the first screen has painted (html.pre, set and cleared by the head script) they aren't rendered at all. */
+.pre main > section ~ section, .pre main > .marquee, .pre .ftr { content-visibility: hidden; }
 @media print { main > section ~ section, main > .marquee, .ftr { content-visibility: visible; } }
 .nw { white-space: nowrap; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
@@ -354,7 +356,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .gate.is-leaving { animation: fade-out .9s var(--ease-io) .35s both; }
 .gate.is-leaving .gate__card { animation: card-out .9s var(--ease-io) .15s both; }
 .gate.is-leaving .gust { animation: whirl 1.2s var(--ease-io) both; }
-@keyframes up-in { from { opacity: 0; transform: translateY(12%) scale(.97); } }
+@keyframes up-in { from { transform: translateY(12%) scale(.97); } }
 @keyframes card-out { to { opacity: 0; transform: translateY(-2.5rem) scale(1.03); } }
 @keyframes whirl { to { transform: rotate(720deg); } }
 @keyframes fade-out { to { opacity: 0; } }

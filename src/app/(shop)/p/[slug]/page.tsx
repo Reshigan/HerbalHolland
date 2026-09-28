@@ -473,11 +473,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           </div>
         </div>
 
-        {/* Details — below the fold, so they hydrate later, in small slices (see ProductGrid). */}
-        <Suspense>
+        {/* Details: each block is its own Suspense boundary so it hydrates in slices, after the buy box (see ProductGrid). */}
         <div className="mt-20 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14">
           <div className="space-y-14">
             {tested && batch && (
+              <Suspense>
               <section aria-labelledby="lab">
                 <div className="flex flex-wrap items-end justify-between gap-3">
                   <div>
@@ -518,9 +518,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   <FlaskConical className="h-3.5 w-3.5" /> Scan the QR code on your pack to see the certificate for the exact batch you bought.
                 </p>
               </section>
+              </Suspense>
             )}
 
             {(terps.length > 0 || product.effects.length > 0 || product.flavours.length > 0) && (
+              <Suspense>
               <section aria-labelledby="profile" className="grid grid-cols-1 gap-8 md:grid-cols-2">
                 {terps.length > 0 && (
                   <div>
@@ -573,9 +575,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   )}
                 </div>
               </section>
+              </Suspense>
             )}
 
             {(product.legalBasis || product.claims.length > 0) && (
+              <Suspense>
               <section aria-labelledby="legal">
                 <div className="eyebrow text-brand-500">Legal basis</div>
                 <h2 id="legal" className="mt-2 font-display text-2xl font-semibold text-white">What this product is — and isn&apos;t</h2>
@@ -644,6 +648,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   </p>
                 </Panel>
               </section>
+              </Suspense>
             )}
 
             {/* Reviews */}
@@ -673,7 +678,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     </div>
                     <ul className="space-y-4">
                       {reviews.rows.map((r) => (
-                        <li key={r.id} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
+                        <Suspense key={r.id}>
+                        <li className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <Stars value={r.rating} />
                             <span className="text-xs text-ink-450">{fmtDate(r.createdAt)}</span>
@@ -684,6 +690,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                             <BadgeCheck className="h-3.5 w-3.5 text-leaf-500" /> {r.customer.firstName} {r.customer.lastName ? `${r.customer.lastName[0]}.` : ""} · Verified purchase
                           </p>
                         </li>
+                        </Suspense>
                       ))}
                       {reviews.count > reviews.rows.length && (
                         <li>
@@ -717,6 +724,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           </div>
 
           {/* Side: stores + complete the deal */}
+          <Suspense>
           <aside className="space-y-6 lg:sticky lg:top-28 lg:self-start">
             {canCollect && (
               <Panel className="p-5">
@@ -762,8 +770,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </Panel>
             )}
           </aside>
+          </Suspense>
         </div>
-        </Suspense>
 
         {complete.length > 0 && (
           <section className="mt-20" aria-labelledby="complete">

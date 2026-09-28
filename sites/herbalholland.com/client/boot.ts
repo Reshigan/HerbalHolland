@@ -30,7 +30,9 @@
   const still = rm || !!n.connection?.saveData || (n.hardwareConcurrency || 8) <= 4;
   // A returning adult's opening (html.fast) keeps the headline in view from the first paint: the words lift softly
   // instead of rising from behind the dyke, which is the new visitor's entrance after the gate.
-  d.classList.add("js", ...(still ? [] : ["motion"]), ...(age === "ok" ? ["ready", "fast"] : []));
+  // html.pre: until the first screen has painted, the scenes below it aren't rendered at all (content-visibility:
+  // hidden; "auto" alone still lays them out on the first frame), so the first paint is only the first screen.
+  d.classList.add("js", "pre", ...(still ? [] : ["motion"]), ...(age === "ok" ? ["ready", "fast"] : []));
   d.setAttribute("data-age", age);
 
   // "I'm younger than 18": the card gives way to the respectful screen (stamped from its template).
@@ -81,8 +83,13 @@
   });
   if (age === "under") document.addEventListener("DOMContentLoaded", under);
 
-  // The rest of the stylesheet (everything below the first screen), then the page's module.
+  // The rest of the stylesheet (everything below the first screen), then the page's module: once the first screen has
+  // painted (a background tab paints nothing, so after a moment regardless).
+  let added = false;
   const rest = () => {
+    if (added) return;
+    added = true;
+    d.classList.remove("pre");
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = me.dataset.css!;
@@ -91,8 +98,12 @@
     s.src = me.dataset.js!;
     document.head.append(l, s);
   };
-  if (document.readyState === "complete") rest();
-  else addEventListener("load", rest);
+  try {
+    new PerformanceObserver((l, o) => l.getEntriesByName("first-contentful-paint").length && (o.disconnect(), setTimeout(rest, 0))).observe({ type: "paint", buffered: true });
+  } catch {
+    setTimeout(rest, 0);
+  }
+  setTimeout(rest, 2500);
 })();
 
 export {};

@@ -147,7 +147,7 @@ function Gate() {
             {GATE.body}
           </p>
           <div className="gate__actions">
-            <button type="button" className="btn btn--primary" data-age="yes" autoFocus>
+            <button type="button" className="btn btn--primary" data-age="yes">
               <span className="btn__fill" aria-hidden="true" />
               <span className="btn__label">{GATE.yes}</span>
             </button>

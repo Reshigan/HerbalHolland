@@ -40,10 +40,11 @@ export default function LearnIndex() {
         </div>
       </Link>
 
-      <Suspense>
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {rest.map((a) => (
-          <Link key={a.slug} href={`/learn/${a.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60">
+          // One boundary per card so the grid hydrates in slices (see ProductGrid).
+          <Suspense key={a.slug}>
+          <Link href={`/learn/${a.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60">
             <ProductArt slug={a.art.slug} strain={a.art.strain} regClass={a.art.regClass} label="" className="aspect-[16/9] w-full" />
             <div className="flex flex-1 flex-col p-6">
               <div className="eyebrow text-brand-500">{a.kicker}</div>
@@ -54,9 +55,9 @@ export default function LearnIndex() {
               </p>
             </div>
           </Link>
+          </Suspense>
         ))}
       </div>
-      </Suspense>
     </Container>
   );
 }

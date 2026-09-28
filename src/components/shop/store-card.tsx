@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Clock, Navigation, Phone, Pill, ShoppingBag, Truck } from "lucide-react";
 import { openState, parseHours } from "@/server/shop/hours";
 import type { ShopStore } from "@/server/shop/context";
@@ -33,10 +34,12 @@ export function StoreServices({ s, className }: { s: Pick<ShopStore, "clickColle
   );
 }
 
+/** Each card is its own Suspense boundary so a page of them hydrates in slices, not in one long task (see ProductGrid). */
 export function StoreCard({ s, preferred, km, className }: { s: ShopStore; preferred?: boolean; km?: number | null; className?: string }) {
   const soon = s.status !== "ACTIVE";
   const o = openState(parseHours(s.hours));
   return (
+    <Suspense>
     <Panel className={cn("flex flex-col p-5", preferred && "border-brand-500/60 bg-brand-500/[0.04]", className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -72,5 +75,6 @@ export function StoreCard({ s, preferred, km, className }: { s: ShopStore; prefe
         )}
       </div>
     </Panel>
+    </Suspense>
   );
 }

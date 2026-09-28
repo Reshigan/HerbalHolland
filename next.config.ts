@@ -29,12 +29,10 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   serverExternalPackages: ["pg", "nodemailer"],
-  experimental: {
-    // Banking slips (photos or PDFs up to 10 MB) are posted through a server action.
-    serverActions: { bodySizeLimit: "11mb" },
-    // Tailwind's CSS is small enough to ship inline: first paint no longer waits for a stylesheet round trip.
-    inlineCss: true,
-  },
+  // Banking slips (photos or PDFs up to 10 MB) are posted through a server action.
+  // (experimental.inlineCss was tried and rejected: Next also copies the 130 KB stylesheet into the RSC payload, so the
+  // HTML more than doubled; the external, cached stylesheet is cheaper.)
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

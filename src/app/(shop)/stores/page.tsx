@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { Suspense } from "react";
 import { getRetailStores, getPreferredStore } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { StoreCard } from "@/components/shop/store-card";
@@ -74,8 +73,6 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         </section>
       )}
 
-      {/* The store lists hydrate later, in small slices, after the shell (see ProductGrid). */}
-      <Suspense>
       {(chosen ? [chosen] : provinces).map((p) => {
         const all = trading.filter((s) => s.province === p);
         const inProv = chosen ? all.slice((page - 1) * PAGE, page * PAGE) : all;
@@ -115,7 +112,6 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
           </div>
         </section>
       )}
-      </Suspense>
 
       <p className="mt-14 text-sm text-ink-400">
         Can&apos;t get to a store?{" "}
