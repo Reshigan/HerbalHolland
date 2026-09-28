@@ -19,6 +19,7 @@ services:
     environment:
       DATABASE_URL: postgresql://hh:hh@db:5432/herbalholland
     command: sh -c "npx prisma migrate deploy && (test \"$$SEED\" = \"true\" && npx tsx prisma/seed.ts || true)"
+    volumes: [uploads:/data/uploads] # the seed's demo deposit slip
     depends_on:
       db: { condition: service_healthy }
 
@@ -30,8 +31,10 @@ services:
       APP_URL: http://localhost:3000
       DEMO_MODE: "true"
     ports: ["3000:3000"]
+    volumes: [uploads:/data/uploads] # banking slips (unless S3_BUCKET is set)
     depends_on:
       migrate: { condition: service_completed_successfully }
 
 volumes:
   pgdata:
+  uploads:

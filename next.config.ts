@@ -29,6 +29,8 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   serverExternalPackages: ["pg", "nodemailer"],
+  // Banking slips (photos or PDFs up to 10 MB) are posted through a server action.
+  experimental: { serverActions: { bodySizeLimit: "11mb" } },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

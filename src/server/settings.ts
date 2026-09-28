@@ -2,6 +2,8 @@ import { cache } from "react";
 import { db } from "./db";
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "@/lib/compliance";
 import { DEFAULT_TIER_SAVINGS, type TierKey } from "@/lib/loyalty-rules";
+import { DEFAULT_LOSS } from "@/lib/loss";
+import type { RegClass } from "@/lib/compliance";
 
 export const DEFAULT_SETTINGS = {
   compliance: DEFAULT_COMPLIANCE as ComplianceSettings,
@@ -40,6 +42,15 @@ export const DEFAULT_SETTINGS = {
     sameDayCutoffHour: 15,
     unpaidHoldMinutes: 60, // unpaid online orders are cancelled (stock released) after this
     collectHoldDays: 7, // pay-in-store collections not picked up are cancelled after this
+  },
+  banking: {
+    dueBusinessDays: 1, // cash from a cash-up is in the bank by the end of this many business days
+    shortToleranceCents: 5_000, // a deposit more than this under its cash-ups raises an alert
+  },
+  loss: DEFAULT_LOSS,
+  commission: {
+    // Basis points of net sales ex VAT, by product class. Licensed medicines never earn commission (s18A), whatever is set.
+    bps: { THC: 0, CBD: 200, HEMP: 200, ACCESSORY: 200, APPAREL: 200, GROW: 200 } as Record<RegClass, number>,
   },
 };
 export type Settings = typeof DEFAULT_SETTINGS;

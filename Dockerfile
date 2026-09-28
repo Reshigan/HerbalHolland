@@ -9,17 +9,19 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV NEXT_TELEMETRY_DISABLED=1
-RUN npx prisma generate && npm run build
+ENV NEXT_TELEMETRY_DISABLED=1 UPLOAD_DIR=/data/uploads
+RUN npx prisma generate && npm run build && mkdir -p /data/uploads && chown 1001 /data/uploads
 
 FROM node:22-bookworm-slim AS runner
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0
-RUN useradd --system --uid 1001 app
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 UPLOAD_DIR=/data/uploads
+RUN useradd --system --uid 1001 app && mkdir -p /data/uploads && chown app /data/uploads
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 # Migrations run from a separate one-off container using the build stage (see docker-compose.yml).
+# Banking slips live in /data/uploads when no S3/R2 bucket is set: mount a volume there and back it up.
+VOLUME /data/uploads
 USER app
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"

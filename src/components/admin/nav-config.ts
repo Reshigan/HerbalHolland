@@ -40,11 +40,19 @@ export const storeNav = (code: string, slug: string): NavGroup[] => [
     items: [
       { label: "Finance", href: `/store/${code}/finance`, icon: "Wallet" },
       { label: "Cash-ups", href: `/store/${code}/cash-ups`, icon: "Banknote" },
+      { label: "Banking", href: `/store/${code}/banking`, icon: "PiggyBank" },
       { label: "Expenses", href: `/store/${code}/expenses`, icon: "Receipt" },
+      { label: "Commission", href: `/store/${code}/commission`, icon: "HandCoins" },
       { label: "Franchise statement", href: `/store/${code}/statement`, icon: "Landmark" },
     ],
   },
-  { title: "Insight", items: [{ label: "Reports", href: `/store/${code}/reports`, icon: "ChartColumn" }] },
+  {
+    title: "Insight",
+    items: [
+      { label: "Reports", href: `/store/${code}/reports`, icon: "ChartColumn" },
+      { label: "Loss prevention", href: `/store/${code}/loss-prevention`, icon: "ShieldAlert" },
+    ],
+  },
   {
     title: "Store",
     items: [
@@ -100,12 +108,14 @@ export const hqNav: NavGroup[] = [
     items: [
       { label: "Finance", href: "/hq/finance", icon: "Wallet" },
       { label: "Statements", href: "/hq/statements", icon: "Landmark" },
+      { label: "Commission", href: "/hq/commission", icon: "HandCoins" },
     ],
   },
   { title: "Insight", items: [{ label: "Reports", href: "/hq/reports", icon: "ChartColumn" }] },
   {
     title: "Governance",
     items: [
+      { label: "Loss prevention", href: "/hq/loss-prevention", icon: "ShieldAlert" },
       { label: "Compliance", href: "/hq/compliance", icon: "ShieldCheck" },
       { label: "Audit log", href: "/hq/audit", icon: "History" },
       { label: "Announcements", href: "/hq/announcements", icon: "Bell" },

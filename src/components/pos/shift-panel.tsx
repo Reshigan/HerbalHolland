@@ -1,7 +1,7 @@
 "use client";
 // Shift: open with a counted float (default R1,000); close with a denomination count —
 // expected vs counted (finance.shiftCash), variance and a Z-report that prints at the till
-// and is emailed to the store. Also this till's device details.
+// and is emailed to the store. Also this till's device details and the signed-in person's commission.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudOff, LogOut, Printer, RefreshCw, Tablet, Wallet } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -11,6 +11,7 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText } from "./lib/api";
 import { countCash, DENOMINATIONS, denomLabel, isNote } from "./lib/rules";
 import { usePos } from "./context";
+import { CommissionTile } from "./commission-tile";
 import { Alert, Confirm, EmptyPanel, Field, PosButton, Spinner, TextArea } from "./ui";
 import type { BootShift, ZReport } from "@/server/pos/types";
 
@@ -53,6 +54,7 @@ export function ShiftPanel() {
           )}
         </div>
         <div className="space-y-5">
+          <CommissionTile />
           {shift && x && !closed && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
           {!shift && !closed && <LastShift />}
           <DeviceCard />

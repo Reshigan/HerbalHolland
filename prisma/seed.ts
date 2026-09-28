@@ -6,7 +6,8 @@
 //   npm run db:seed                      # 24 named stores, 60 days
 //   SEED_DAYS=90 SEED_STORES=200 npm run db:seed   # scale test (synthetic stores)
 import "dotenv/config";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSecret } from "../src/server/crypto";
@@ -14,6 +15,7 @@ import { allocate } from "../src/lib/fefo";
 import { pointsFor, tierFor, DEFAULT_TIER_SAVINGS, type TierKey } from "../src/lib/loyalty-rules";
 import { vatOf } from "../src/lib/money";
 import { dayKey } from "../src/lib/format";
+import { bankBy, cashToBank } from "../src/lib/banking";
 import { applyPromotions, type PromoInput } from "../src/lib/promotions";
 import { promoWindowOpen } from "../src/lib/pricing-rules";
 import { CATEGORIES, DCS, FIRST_NAMES, HQ_COMPANY, LAST_NAMES, OWNERS, PRODUCTS, REGIONS, STORES, type StoreSeed } from "./seed-data";
@@ -975,7 +977,8 @@ async function main() {
     reviewed.add(`${v.productId}|${sale.customerId}`);
     const rating = weighted([[5, 0.56], [4, 0.29], [3, 0.1], [2, 0.04], [1, 0.01]] as const);
     const [title, body] = pick(REVIEW[rating] as readonly (readonly [string, string])[]);
-    reviewRows.push({ id: uid(), productId: v.productId, customerId: sale.customerId, rating, title, body, verified: true, createdAt: new Date((sale.createdAt as Date).getTime() + int(1, 5) * DAY) });
+    const writtenAt = new Date((sale.createdAt as Date).getTime() + int(1, 5) * DAY);
+    if (writtenAt <= NOW) reviewRows.push({ id: uid(), productId: v.productId, customerId: sale.customerId, rating, title, body, verified: true, createdAt: writtenAt });
   }
   const alertRows: Prisma.StockAlertCreateManyInput[] = [];
   const reserve = variants.find((v) => v.slug === "reserve-gelato-cake")!;
@@ -1057,6 +1060,51 @@ async function main() {
   await insert("promotions", db.promotion, promoDefs);
   await insert("price lists", db.priceList, priceLists);
   await insert("price list items", db.priceListItem, priceItems);
+  // ── Cash banking: each cash-up's cash goes in by the next business day and owners check deposits against the
+  // statement. One store is running late (overdue alert) and one recent deposit came up short (queried).
+  const { putObject } = await import("../src/server/storage");
+  const slip = readFileSync(new URL("./demo/deposit-slip.jpg", import.meta.url));
+  await putObject("demo/deposit-slip.jpg", new Uint8Array(slip), "image/jpeg");
+  const slipSha = createHash("sha256").update(slip).digest("hex");
+  const uploadRows: Prisma.UploadCreateManyInput[] = [];
+  const depositRows: Prisma.CashDepositCreateManyInput[] = [];
+  const hqAdmin = users.find((u) => u.role === "HQ_ADMIN")!;
+  const lateStore = active[active.length - 1];
+  const shortStore = active.find((x) => x.code === "JHB01") ?? active[1];
+  let shortDeposit: Prisma.CashDepositCreateManyInput | null = null;
+  for (const st of active) {
+    const owner = users.find((u) => u.role === "OWNER" && u.companyId === companyId[st.companyKey]) ?? hqAdmin;
+    const byDue = new Map<string, typeof shifts>();
+    for (const x of shifts)
+      if (x.storeId === st.id && x.closedAt && cashToBank({ countedCashCents: x.countedCashCents as number, openingFloatCents: x.openingFloatCents }) > 0) {
+        const due = bankBy(x.closedAt as Date, 1);
+        byDue.set(due, [...(byDue.get(due) ?? []), x]);
+      }
+    const dues = [...byDue.keys()].filter((d) => d < TODAY && !(st.id === lateStore.id && d >= keyOf(5))).sort();
+    for (const due of dues) {
+      const list = byDue.get(due)!;
+      const id = uid();
+      const slipId = uid();
+      const expected = list.reduce((t, x) => t + cashToBank({ countedCashCents: x.countedCashCents as number, openingFloatCents: x.openingFloatCents }), 0);
+      const bankedOn = at(due, 11 * 60);
+      const short = st.id === shortStore.id && due === dues[dues.length - 2] ? 20_000 : 0;
+      const checked = !short && bankedOn < daysAgo(3);
+      uploadRows.push({ id: slipId, key: "demo/deposit-slip.jpg", fileName: "deposit-slip.jpg", contentType: "image/jpeg", sizeBytes: slip.length, sha256: slipSha, storeId: st.id, uploadedById: st.staff[0].id, createdAt: bankedOn });
+      const d: Prisma.CashDepositCreateManyInput = {
+        id, number: `DEP-${String(depositRows.length + 1).padStart(6, "0")}`, storeId: st.id, bankedOn, amountCents: expected - short, expectedCents: expected,
+        reference: `${st.code}-${due.replaceAll("-", "").slice(2)}`, slipId, createdById: st.staff[0].id, createdAt: bankedOn,
+        status: short ? "QUERIED" : checked ? "VERIFIED" : "RECORDED",
+        reviewedById: short || checked ? owner.id : null, reviewedAt: short || checked ? new Date(Math.min(bankedOn.getTime() + 2 * DAY, NOW.getTime())) : null,
+        reviewNote: short ? "R200 short against the cash-ups — the manager to explain and bank the difference" : null,
+      };
+      depositRows.push(d);
+      if (short) shortDeposit = d;
+      for (const x of list) x.depositId = id;
+    }
+  }
+  await insert("uploads", db.upload, uploadRows);
+  await insert("deposits", db.cashDeposit, depositRows);
+  await db.counter.create({ data: { key: "DEPOSIT", value: depositRows.length } });
   await insert("shifts", db.shift, shifts);
   await insert("orders", db.order, orders);
   await insert("order lines", db.orderLine, orderLines);
@@ -1125,6 +1173,22 @@ async function main() {
   // Fresh planner statistics, as autovacuum gives a live database (without them small tables like Product have none,
   // and the planner picks network-wide scans for store-level queries).
   await db.$executeRawUnsafe("ANALYZE");
+
+  // Commission: Mokoena Retail pays it at Hatfield and Brooklyn; last month is approved at Hatfield.
+  const { approveMonth, thisMonth } = await import("../src/server/commission");
+  await db.store.updateMany({ where: { code: { in: ["PTA01", "PTA02"] } }, data: { commissionOn: true } });
+  const pta01 = active.find((x) => x.code === "PTA01")!;
+  const thabo = users.find((u) => u.role === "OWNER" && u.companyId === companyId[pta01.companyKey])!;
+  const lastMonth = dayKey(new Date(new Date(`${thisMonth(NOW)}-01T12:00:00+02:00`).getTime() - 5 * DAY)).slice(0, 7);
+  await approveMonth(pta01.id, lastMonth, { type: "USER", id: thabo.id as string, name: thabo.name });
+
+  // Loss prevention: the nightly rules over the demo's trading (+ the short deposit, raised when it was recorded).
+  const { runLossRules, raiseAlerts } = await import("../src/server/loss");
+  const { shortDepositAlert } = await import("../src/server/banking");
+  if (shortDeposit)
+    await raiseAlerts([shortDepositAlert(shortDeposit as Parameters<typeof shortDepositAlert>[0], shortStore.code, shifts.filter((x) => x.depositId === shortDeposit!.id).length)]);
+  const loss = await runLossRules(NOW);
+  console.log(`  banking · alerts       ${depositRows.length} deposits · ${loss.raised} loss-prevention alerts`);
   const gross = sales.reduce((a, s) => a + (s.totalCents as number), 0);
   console.log(`\nDone. ${active.length} trading stores · ${customers.length.toLocaleString()} members · ${sales.length.toLocaleString()} sales · R${(gross / 100 / 1e6).toFixed(2)}m turnover.`);
   console.log("Demo logins (password: holland) — HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444");

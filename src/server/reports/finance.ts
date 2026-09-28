@@ -1,15 +1,18 @@
-// Finance reports: P&L, VAT201 working, cash-ups, franchise statements and the
+// Finance reports: P&L, VAT201 working, cash-ups, cash banking, franchise statements and the
 // Rewards points liability. Built on the finance domain service so every screen agrees.
 import { db } from "../db";
 import { expensesFor, franchiseFees, franchiseStatement, monthRange, profitAndLoss, salesByStore, vatReport } from "../finance";
 import { receivedValue } from "../stock-orders";
+import { getSettings } from "../settings";
+import { sast } from "../sql";
 import { delta, previousRange } from "@/lib/ranges";
 import { applyBps, zar } from "@/lib/money";
-import { dayKey, fmtDay, fmtMonth } from "@/lib/format";
+import { addDays, dayKey, fmtDay, fmtMonth } from "@/lib/format";
+import { lastDueDay } from "@/lib/banking";
 import { POINT_VALUE_CENTS, fmtPoints } from "@/lib/loyalty-rules";
 import type { Column, Option, ReportCtx, ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
-import { bounds, completeDays, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
+import { bounds, completeDays, count, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
 
 const EXPENSE_LABEL: Record<string, string> = {
   RENT: "Rent", SALARIES: "Salaries & wages", UTILITIES: "Electricity & water", SECURITY: "Security", MARKETING: "Local marketing",
@@ -256,6 +259,145 @@ export const cashUps: ReportDef = {
       emptyTitle: "No shifts",
       empty: "No shifts were opened in this period.",
       note: "Expected cash = opening float + cash taken on sales − cash refunded in the shift. A shortage should be explained in the shift notes.",
+    };
+  },
+};
+
+// ── Cash banking ────────────────────────────────────────────────────────────
+/**
+ * Cash not banked yet, one row per store that has any: how much, how much is past its bank-by day, and the oldest
+ * cash-up. Aggregated in SQL so it stays small at network scale (used by this report and HQ finance).
+ */
+export async function cashWaitingByStore(storeIds: string[], now = new Date()) {
+  if (!storeIds.length) return [];
+  const { banking } = await getSettings();
+  const overdueBefore = addDays(new Date(`${lastDueDay(now, banking.dueBusinessDays)}T00:00:00+02:00`), 1);
+  return db.$queryRaw<{ storeId: string; n: number; cash: number; overdueN: number; overdue: number; oldest: Date }[]>`
+    SELECT "storeId", COUNT(*)::int AS n, SUM("countedCashCents" - "openingFloatCents")::float8 AS cash,
+      COUNT(*) FILTER (WHERE "closedAt" < ${overdueBefore})::int AS "overdueN",
+      COALESCE(SUM("countedCashCents" - "openingFloatCents") FILTER (WHERE "closedAt" < ${overdueBefore}), 0)::float8 AS overdue,
+      MIN("closedAt") AS oldest
+    FROM "Shift"
+    WHERE "storeId" = ANY(${storeIds}::text[]) AND "depositId" IS NULL AND "closedAt" IS NOT NULL AND "countedCashCents" > "openingFloatCents"
+    GROUP BY 1`;
+}
+
+export const cashBanking: ReportDef = {
+  key: "cash-banking",
+  title: "Cash banking",
+  description: "Did each day's cash reach the bank, in full and on time?",
+  group: "Finance",
+  scopes: ["store", "hq"],
+  filters: ["range"],
+  roles: MANAGERS,
+  async run(ctx) {
+    const { start, end } = bounds(ctx);
+    const { fromDate, toDate } = ctx.range;
+    const ids = ctx.storeIds;
+    // Per store per day: cash-ups by the SAST day they closed, deposits by the day they were banked.
+    const [{ banking }, days, cashDays, bankDays, waiting] = await Promise.all([
+      getSettings(),
+      db.$queryRaw<{ storeId: string; day: string; cashUps: number; cash: number; waiting: number; deposits: number; banked: number; shortOver: number | null; numbers: string | null; pending: number; queried: number; total: number }[]>`
+        WITH c AS (
+          SELECT "storeId", to_char(${sast('"closedAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n,
+            SUM(GREATEST("countedCashCents" - "openingFloatCents", 0))::float8 AS cash,
+            COALESCE(SUM(GREATEST("countedCashCents" - "openingFloatCents", 0)) FILTER (WHERE "depositId" IS NULL), 0)::float8 AS waiting
+          FROM "Shift"
+          WHERE "storeId" = ANY(${ids}::text[]) AND "closedAt" >= ${start} AND "closedAt" < ${end} AND "countedCashCents" IS NOT NULL
+          GROUP BY 1, 2
+        ), d AS (
+          SELECT "storeId", to_char("bankedOn", 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM("amountCents")::float8 AS banked,
+            SUM("amountCents" - "expectedCents")::float8 AS diff, string_agg(number, ', ' ORDER BY number) AS numbers,
+            COUNT(*) FILTER (WHERE status = 'RECORDED')::int AS pending, COUNT(*) FILTER (WHERE status = 'QUERIED')::int AS queried
+          FROM "CashDeposit"
+          WHERE "storeId" = ANY(${ids}::text[]) AND "bankedOn" >= ${fromDate} AND "bankedOn" <= ${toDate}
+          GROUP BY 1, 2
+        )
+        SELECT COALESCE(c."storeId", d."storeId") AS "storeId", COALESCE(c.day, d.day) AS day,
+          COALESCE(c.n, 0) AS "cashUps", COALESCE(c.cash, 0) AS cash, COALESCE(c.waiting, 0) AS waiting,
+          COALESCE(d.n, 0) AS deposits, COALESCE(d.banked, 0) AS banked, d.diff AS "shortOver", d.numbers,
+          COALESCE(d.pending, 0) AS pending, COALESCE(d.queried, 0) AS queried, COUNT(*) OVER ()::int AS total
+        FROM c FULL JOIN d ON d."storeId" = c."storeId" AND d.day = c.day
+        ORDER BY 2 DESC, 1
+        LIMIT ${ctx.rowLimit}`,
+      db.$queryRaw<{ day: string; n: number; cash: number; waiting: number }[]>`
+        SELECT to_char(${sast('"closedAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n,
+          SUM(GREATEST("countedCashCents" - "openingFloatCents", 0))::float8 AS cash,
+          COALESCE(SUM(GREATEST("countedCashCents" - "openingFloatCents", 0)) FILTER (WHERE "depositId" IS NULL), 0)::float8 AS waiting
+        FROM "Shift"
+        WHERE "storeId" = ANY(${ids}::text[]) AND "closedAt" >= ${start} AND "closedAt" < ${end} AND "countedCashCents" IS NOT NULL
+        GROUP BY 1`,
+      db.$queryRaw<{ day: string; n: number; banked: number; diff: number }[]>`
+        SELECT to_char("bankedOn", 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM("amountCents")::float8 AS banked, SUM("amountCents" - "expectedCents")::float8 AS diff
+        FROM "CashDeposit"
+        WHERE "storeId" = ANY(${ids}::text[]) AND "bankedOn" >= ${fromDate} AND "bankedOn" <= ${toDate}
+        GROUP BY 1`,
+      cashWaitingByStore(ids, ctx.now),
+    ]);
+
+    const lastDue = lastDueDay(ctx.now, banking.dueBusinessDays);
+    const name = (id: string) => ctx.stores.get(id)?.name ?? "";
+    const rows: Row[] = days
+      .sort((a, b) => (a.day === b.day ? name(a.storeId).localeCompare(name(b.storeId)) : a.day < b.day ? 1 : -1))
+      .map((r) => {
+        const code = ctx.stores.get(r.storeId)?.code;
+        return {
+          day: r.day, ...storeVals(ctx, r.storeId), cashUps: r.cashUps, cash: r.cash, banked: r.banked, diff: r.banked - r.cash, waiting: r.waiting,
+          status: r.cash <= 0 ? "" : r.waiting <= 0 ? "Banked" : r.day <= lastDue ? "Overdue" : "Waiting",
+          deposits: r.numbers ?? "", shortOver: r.shortOver,
+          check: !r.deposits ? "" : r.queried ? "Queried" : r.pending ? "Awaiting check" : "Verified",
+          ...(multi(ctx) && code ? { _href: `/store/${code}/banking`, _link: "store" } : {}),
+        };
+      });
+
+    const sum = <T>(xs: T[], f: (x: T) => number) => xs.reduce((s, x) => s + f(x), 0);
+    const cash = sum(cashDays, (d) => d.cash), banked = sum(bankDays, (d) => d.banked);
+    const cashUps = sum(cashDays, (d) => d.n), deposits = sum(bankDays, (d) => d.n);
+    const overdue = sum(waiting, (w) => w.overdue), overdueN = sum(waiting, (w) => w.overdueN), lateStores = waiting.filter((w) => w.overdue > 0).length;
+    const byDay = { cash: new Map(cashDays.map((d) => [d.day, d.cash])), banked: new Map(bankDays.map((d) => [d.day, d.banked])) };
+    const series = completeDays(ctx, eachDay(ctx.range));
+    const due = banking.dueBusinessDays === 1 ? "by the next business day" : `within ${banking.dueBusinessDays} business days`;
+    return {
+      title: multi(ctx) ? "By store and day" : "By day",
+      columns: [
+        { key: "day", label: "Day", format: "day" },
+        ...storeCols(ctx),
+        { key: "cashUps", label: "Cash-ups", format: "number", csvOnly: true },
+        { key: "cash", label: "Cash to bank", format: "zar" },
+        { key: "banked", label: "Banked", format: "zar" },
+        { key: "diff", label: "Difference", format: "zar" },
+        { key: "waiting", label: "Not banked yet", format: "zar" },
+        { key: "status", label: "Status", format: "badge", tones: { Banked: "green", Waiting: "blue", Overdue: "red" } },
+        { key: "deposits", label: "Deposits" },
+        { key: "shortOver", label: "Deposit short / over", format: "zar" },
+        { key: "check", label: "Deposit check", format: "badge", tones: { Verified: "green", "Awaiting check": "amber", Queried: "red" } },
+      ],
+      rows,
+      totalRows: days[0]?.total ?? 0,
+      totals: { day: "Total", cashUps, cash, banked, diff: banked - cash, waiting: sum(cashDays, (d) => d.waiting), shortOver: sum(bankDays, (d) => d.diff) },
+      summary: [
+        { label: "Cash to bank", value: cash, format: "zar", sub: `from ${count(cashUps, "cash-up")}` },
+        { label: "Banked", value: banked, format: "zar", sub: count(deposits, "deposit") },
+        { label: "Difference", value: banked - cash, format: "zar", sub: "banked less cash to bank" },
+        { label: "Overdue now", value: overdue, format: "zar", upIsGood: false, sub: overdue ? `${count(overdueN, "cash-up")}${multi(ctx) ? ` at ${count(lateStores, "store")}` : ""} past the bank-by day` : "nothing overdue" },
+      ],
+      chart:
+        series.length > 1 && (cash || banked)
+          ? {
+              kind: "area",
+              title: "Cash to bank and banked",
+              description: `By day${multi(ctx) ? ", all selected stores" : ""}${series.length < ctx.range.days ? " · today excluded until trading closes" : ""}`,
+              format: "zar",
+              labels: series.map((d) => fmtDay(`${d}T12:00:00Z`)),
+              series: [
+                { name: "Cash to bank", values: series.map((d) => byDay.cash.get(d) ?? 0) },
+                { name: "Banked", values: series.map((d) => byDay.banked.get(d) ?? 0) },
+              ],
+            }
+          : null,
+      emptyTitle: "Nothing to bank",
+      empty: "No cash-ups closed and no deposits were banked in this period.",
+      note: `Cash to bank is what each cash-up counted, less the float that stays in the till, on the day it closed. Banked is the deposits on the day they went into the bank. Cash is due ${due}, so a day's cash usually shows as banked on a later row, and the totals at the edges of the period don't line up exactly. Not banked yet is cash from that day's cash-ups that no deposit covers; deposit short / over compares each deposit with the cash-ups it covers. Overdue now counts every unbanked cash-up, not only this period's.`,
     };
   },
 };

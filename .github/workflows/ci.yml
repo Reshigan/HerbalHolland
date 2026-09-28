@@ -60,6 +60,7 @@ jobs:
       SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
       APP_URL: http://127.0.0.1:3000
       DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
+      UPLOAD_DIR: ${{ github.workspace }}/.data/uploads # shared by the seed and the standalone server (its own cwd)
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4

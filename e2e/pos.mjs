@@ -280,9 +280,13 @@ try {
     `order ${ready.code} completed${needsId ? ", ID checked" : " (no 18+ items: no ID check)"}, posted as ${done?.number}`,
   );
 
-  step("Close the shift with a count → Z-report");
+  step("Close the shift with a count → Z-report (the Shift view shows my commission this month)");
   await waitOnline();
   await page.getByRole("button", { name: "Shift" }).first().click();
+  const tile = page.getByTestId("my-commission"); // PTA01 pays commission in the demo
+  await tile.waitFor();
+  const mine = (await tile.textContent()).replace("Your commission this month", "");
+  assert(/^R[\d,]+\.\d\d$|^Held — see your manager$/.test(mine), `commission tile: ${mine}`);
   await page.getByTestId("denom-20000").fill("7");
   await page.getByTestId("close-shift").click();
   await page.getByRole("button", { name: "Close shift", exact: true }).click();

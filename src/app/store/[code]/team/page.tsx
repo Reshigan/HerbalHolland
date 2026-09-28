@@ -1,9 +1,10 @@
-import { KeyRound, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
+import { CreditCard, KeyRound, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
+import { sp1 } from "@/server/store/rules";
 import { timeAgo } from "@/lib/format";
-import { addStaff, resetPin, setActive, setDispenser } from "./actions";
+import { addStaff, resetPin, setActive, setDispenser, setMemberCard } from "./actions";
 import { PageHeader, EmptyState, Notice } from "@/components/ui/page";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,12 +15,13 @@ import { ReadOnlyNote } from "@/components/store/ui";
 import { Select } from "@/components/store/select";
 import { Drawer } from "@/components/store/drawer";
 import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { Flash } from "@/components/hq/flash";
 
 export const metadata = { title: "Team" };
 const ROLE: Record<string, string> = { MANAGER: "Store manager", BUDTENDER: "Budtender", OWNER: "Owner" };
 
-export default async function TeamPage({ params }: { params: Promise<{ code: string }> }) {
-  const { code } = await params;
+export default async function TeamPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
+  const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff();
   const store = await storeForUser(user, code);
   const canManage = canManageStore(user);
@@ -31,14 +33,18 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
   const active = staff.filter((s) => s.active);
   // lastLoginAt isn't written by sign-in, so "last active" also looks at sessions (back office or till PIN) and sales rung up here.
   const ids = staff.map((s) => s.id);
-  const [sessions, sold] = await Promise.all([
+  const [sessions, sold, cards] = await Promise.all([
     db.session.groupBy({ by: ["userId"], where: { userId: { in: ids } }, _max: { createdAt: true } }),
     db.sale.groupBy({ by: ["staffId"], where: { storeId: store.id, staffId: { in: ids } }, _max: { createdAt: true } }),
+    db.customer.findMany({ where: { id: { in: staff.flatMap((s) => (s.memberId ? [s.memberId] : [])) } }, select: { id: true, memberNo: true } }),
   ]);
+  const cardNo = new Map(cards.map((c) => [c.id, c.memberNo]));
   const seen = new Map<string, Date>();
   for (const [id, at] of [...sessions.map((r) => [r.userId, r._max.createdAt] as const), ...sold.map((r) => [r.staffId, r._max.createdAt] as const), ...staff.map((s) => [s.id, s.lastLoginAt] as const)])
     if (id && at && (!seen.has(id) || seen.get(id)! < at)) seen.set(id, at);
   const may = (t: (typeof staff)[number]) => ownerLevel || (user.role === "MANAGER" && (t.role === "BUDTENDER" || t.id === user.id));
+  // A manager may link their own card, but only the owner can change or clear it once it's linked.
+  const mayLinkCard = (t: (typeof staff)[number]) => may(t) && (ownerLevel || t.id !== user.id || !t.memberId);
 
   return (
     <>
@@ -87,6 +93,7 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
         }
       />
 
+      <Flash message={sp1(sp.m) || undefined} />
       <Notice tone="info" className="mb-6">
         {active.filter((s) => s.canDispense).length} of {active.length} active staff are authorised dispensers. Licensed medicines can only be sold when one of them is signed in at the till.
       </Notice>
@@ -118,6 +125,11 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
                           {s.id === user.id && <span className="ml-1.5 text-xs font-normal text-ink-400">(you)</span>}
                         </div>
                         <div className="text-xs text-ink-500">{s.email ?? "Till PIN only"}</div>
+                        {s.memberId && cardNo.get(s.memberId) && (
+                          <div className="mt-0.5 inline-flex items-center gap-1 text-xs text-ink-500">
+                            <CreditCard className="h-3 w-3" aria-hidden /> Own Rewards card <span className="font-mono text-ink-700">{cardNo.get(s.memberId)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </Td>
@@ -146,6 +158,23 @@ export default async function TeamPage({ params }: { params: Promise<{ code: str
                               <Field label="New 4-digit PIN" htmlFor={`pin-${s.id}`}>
                                 <Input id={`pin-${s.id}`} name="pin" inputMode="numeric" maxLength={4} autoComplete="off" className="tnum tracking-[0.4em]" />
                                 <FieldError name="pin" />
+                              </Field>
+                            </ConfirmAction>
+                          )}
+                          {s.active && mayLinkCard(s) && (
+                            <ConfirmAction
+                              action={setMemberCard.bind(null, store.code, s.id)}
+                              label={s.memberId ? "Change card" : "Link card"}
+                              icon={<CreditCard className="h-3.5 w-3.5" aria-hidden />}
+                              title={`${s.name}'s own Rewards card`}
+                              confirmLabel="Save card"
+                              variant="dark"
+                              className="min-w-72"
+                            >
+                              <p>Sales they ring onto their own card are flagged and don&apos;t earn commission.</p>
+                              <Field label="Member number" htmlFor={`card-${s.id}`} hint={s.memberId ? "Clear it to unlink the card" : "Optional — from their Rewards card or app"}>
+                                <Input id={`card-${s.id}`} name="memberNo" defaultValue={(s.memberId && cardNo.get(s.memberId)) || ""} placeholder="HH0123456" autoComplete="off" maxLength={24} className="font-mono uppercase" />
+                                <FieldError name="memberNo" />
                               </Field>
                             </ConfirmAction>
                           )}

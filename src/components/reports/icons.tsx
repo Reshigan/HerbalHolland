@@ -40,6 +40,7 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   pnl: ChartColumn,
   vat: ReceiptText,
   "cash-ups": Banknote,
+  "cash-banking": PiggyBank,
   statements: Receipt,
   "loyalty-liability": HandCoins,
   segments: UsersRound,

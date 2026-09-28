@@ -107,29 +107,33 @@ model Store {
   levyBps       Int         @default(200)
   ecomBps       Int         @default(1000)
   receiptFooter String?
+  commissionOn  Boolean     @default(false) // staff commission, switched on by the owner (who pays it)
   openedAt      DateTime?
   createdAt     DateTime    @default(now())
 
-  users         User[]
-  events        StoreEvent[]
-  devices       Device[]
-  stock         StockLevel[]
-  storeVariants StoreVariant[]
-  movements     StockMovement[]
-  sales         Sale[]
-  shifts        Shift[]
-  orders        Order[]
-  purchases     StockOrder[]       @relation("buyer")
-  supplies      StockOrder[]       @relation("seller")
-  listings      Listing[]
-  stockTakes    StockTake[]
-  expenses      Expense[]
-  customers     Customer[]
-  loyalty       LoyaltyEntry[]
-  campaigns     Campaign[]
-  dailyStats    DailyStoreStat[]
-  variantStats  DailyVariantStat[]
-  acks          AnnouncementAck[]
+  users          User[]
+  events         StoreEvent[]
+  devices        Device[]
+  stock          StockLevel[]
+  storeVariants  StoreVariant[]
+  movements      StockMovement[]
+  sales          Sale[]
+  shifts         Shift[]
+  orders         Order[]
+  purchases      StockOrder[]       @relation("buyer")
+  supplies       StockOrder[]       @relation("seller")
+  listings       Listing[]
+  stockTakes     StockTake[]
+  expenses       Expense[]
+  customers      Customer[]
+  loyalty        LoyaltyEntry[]
+  campaigns      Campaign[]
+  dailyStats     DailyStoreStat[]
+  variantStats   DailyVariantStat[]
+  acks           AnnouncementAck[]
+  deposits       CashDeposit[]
+  alerts         Alert[]
+  commissionRuns CommissionRun[]
 
   @@index([regionId])
   @@index([companyId])
@@ -152,6 +156,7 @@ model User {
   mustChangePassword Boolean   @default(false) // set with a temporary password; cleared when they choose their own
   pinHash            String?
   canDispense        Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
+  memberId           String?   @unique // their own Rewards membership: sales they ring onto it are flagged and earn no commission
   role               Role
   company            Company?  @relation(fields: [companyId], references: [id])
   companyId          String?
@@ -712,19 +717,24 @@ enum PayMethod {
 }
 
 model Shift {
-  id                String    @id @default(cuid())
-  store             Store     @relation(fields: [storeId], references: [id])
+  id                String       @id @default(cuid())
+  store             Store        @relation(fields: [storeId], references: [id])
   storeId           String
   deviceId          String?
   openedById        String
-  openedAt          DateTime  @default(now())
+  openedAt          DateTime     @default(now())
   openingFloatCents Int
   closedById        String?
   closedAt          DateTime?
   expectedCashCents Int?
   countedCashCents  Int?
   notes             String?
+  deposit           CashDeposit? @relation(fields: [depositId], references: [id])
+  depositId         String? // the bank deposit its cash went into
   sales             Sale[]
+
+  @@index([storeId, closedAt])
+  @@index([depositId, storeId]) // cash waiting to be banked (depositId null), and a deposit's cash-ups
 }
 
 model Sale {
@@ -1315,4 +1325,103 @@ model SocialPost {
   createdAt   DateTime  @default(now())
 
   @@index([createdAt])
+}
+
+// ── Cash banking ────────────────────────────────────────────────────────────
+// Cash from closed cash-ups is banked; every deposit carries a photo or PDF of the stamped slip.
+model Upload {
+  id           String       @id @default(cuid())
+  key          String // object key in R2 / S3, or a file under UPLOAD_DIR
+  fileName     String
+  contentType  String
+  sizeBytes    Int
+  sha256       String
+  storeId      String?
+  uploadedById String?
+  createdAt    DateTime     @default(now())
+  deposit      CashDeposit?
+}
+
+enum DepositStatus {
+  RECORDED
+  VERIFIED
+  QUERIED
+}
+
+model CashDeposit {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  store         Store         @relation(fields: [storeId], references: [id])
+  storeId       String
+  bankedOn      DateTime      @db.Date
+  amountCents   Int
+  expectedCents Int // cash to bank from the cash-ups it covers (counted less float)
+  reference     String // deposit reference printed on the slip
+  slip          Upload        @relation(fields: [slipId], references: [id])
+  slipId        String        @unique
+  status        DepositStatus @default(RECORDED)
+  note          String?
+  createdById   String
+  createdAt     DateTime      @default(now())
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewNote    String?
+  shifts        Shift[]
+
+  @@index([storeId, bankedOn])
+  @@index([status])
+}
+
+// ── Loss prevention ─────────────────────────────────────────────────────────
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AlertStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  key         String        @unique // rule + subject + period: a rule never raises the same alert twice
+  rule        String
+  severity    AlertSeverity
+  store       Store         @relation(fields: [storeId], references: [id])
+  storeId     String
+  userId      String? // the person it's about — never shown to them
+  title       String
+  detail      String
+  amountCents Int? // value at risk
+  evidence    Json // [{ label, href }]
+  status      AlertStatus   @default(OPEN)
+  note        String?
+  closedById  String?
+  closedAt    DateTime?
+  notifiedAt  DateTime? // high severity: emailed at once; the rest: in the daily digest
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([storeId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+// ── Commission ──────────────────────────────────────────────────────────────
+// An owner's approval freezes a month; `lines` keeps what each person earned (held lines wait for alerts to close).
+model CommissionRun {
+  id           String   @id @default(cuid())
+  store        Store    @relation(fields: [storeId], references: [id])
+  storeId      String
+  month        String // YYYY-MM (SAST)
+  totalCents   Int // payable: excludes held lines
+  lines        Json // [{ userId, name, salesCents, refundsCents, commissionCents, held }]
+  approvedById String
+  approvedAt   DateTime @default(now())
+
+  @@unique([storeId, month])
 }

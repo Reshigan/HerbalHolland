@@ -50,7 +50,9 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Reuse the domain services instead of writing new business logic in pages:
   `sales` (postPosSale, refundSale), `orders` (placeOrder, advanceOrder), `inventory` (availability, adjustStock, stock takes),
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
-  `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`.
+  `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`,
+  `banking` (recordDeposit, reviewDeposit), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
+  alert about themselves), `commission`, `storage` (putObject/getObject: R2/S3 or `UPLOAD_DIR`; serve files through the app).
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
   `zarCompact` from `@/lib/money`. Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
 - Consumer pages stay light at 1,000 stores: never render or serialise the whole store list on every page (the header

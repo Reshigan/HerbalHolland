@@ -3,6 +3,7 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { franchiseFees, salesByDay, salesByStore, salesSummary } from "@/server/finance";
+import { cashWaitingByStore } from "@/server/reports/finance";
 import { resolveRange } from "@/lib/ranges";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { zar, zarCompact, pct, vatOnExcl } from "@/lib/money";
@@ -29,7 +30,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const r = resolveRange(sp, "mtd");
   const retail = await db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { id: true, code: true, name: true, region: { select: { name: true } }, company: { select: { vatNumber: true } } } });
   const rids = retail.map((s) => s.id);
-  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved] = await Promise.all([
+  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks] = await Promise.all([
     salesSummary(rids, r),
     salesByStore(rids, r),
     franchiseFees(rids, r),
@@ -41,6 +42,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       WHERE o.kind = 'WHOLESALE' AND o.status = 'RECEIVED' AND o."receivedAt" >= ${r.start} AND o."receivedAt" < ${r.end} AND o."buyerId" = ANY(${rids}::text[])`,
     db.customer.aggregate({ where: scope.kind === "HQ" ? {} : { homeStoreId: { in: rids } }, _sum: { points: true } }),
     db.$queryRaw<{ cents: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS cents FROM "DailyStoreStat" WHERE "storeId" = ANY(${rids}::text[]) AND "date" >= ${r.fromDate} AND "date" <= ${r.toDate}`,
+    // Cash banking, as of now: one aggregated row per store with unbanked cash, and deposit checks by status.
+    cashWaitingByStore(rids),
+    db.cashDeposit.groupBy({ by: ["status"], where: { storeId: { in: rids }, status: { in: ["RECORDED", "QUERIED"] } }, _count: true, _sum: { amountCents: true } }),
   ]);
 
   const regions = new Map<string, number>();
@@ -61,6 +65,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const nonVat = retail.filter((s) => !s.company.vatNumber);
   const nonVatSales = nonVat.reduce((a, s) => a + (byStore.get(s.id)?.grossCents ?? 0), 0);
   const feesVat = vatOnExcl(fees.total);
+  const storeOf = new Map(retail.map((s) => [s.id, s]));
+  const unbankedCents = unbanked.reduce((a, w) => a + w.cash, 0);
+  const unbankedN = unbanked.reduce((a, w) => a + w.n, 0);
+  const late = unbanked.filter((w) => w.overdue > 0).sort((a, b) => b.overdue - a.overdue);
+  const lateCents = late.reduce((a, w) => a + w.overdue, 0);
+  const check = (s: "RECORDED" | "QUERIED") => checks.find((c) => c.status === s);
 
   return (
     <>
@@ -166,6 +176,61 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
           </CardBody>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="Cash banking"
+          description="As of now · every cash-up's cash goes to the bank with a photo of the slip, and owners check each deposit against the bank statement"
+          action={
+            <Link href="/hq/reports/cash-banking" className="text-xs font-semibold text-brand-700 hover:underline">
+              Cash banking report →
+            </Link>
+          }
+        />
+        <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniStat label="Cash waiting to be banked" value={zarCompact(unbankedCents)} sub={unbankedN ? `${num(unbankedN)} cash-ups at ${num(unbanked.length)} stores` : "Everything is banked"} />
+          <MiniStat label="Stores with overdue cash" value={<span className={late.length ? "text-rose-600" : undefined}>{num(late.length)}</span>} sub={late.length ? `${zarCompact(lateCents)} overdue` : "None — all banked on time"} />
+          <MiniStat label="Deposits awaiting a check" value={num(check("RECORDED")?._count ?? 0)} sub={`${zarCompact(check("RECORDED")?._sum.amountCents ?? 0)} to match to bank statements`} />
+          <MiniStat label="Queried deposits" value={num(check("QUERIED")?._count ?? 0)} sub={check("QUERIED") ? `${zarCompact(check("QUERIED")?._sum.amountCents ?? 0)} not matching the statement yet` : "None open"} />
+        </CardBody>
+        {late.length > 0 ? (
+          <Table className="border-t border-ink-100">
+            <thead>
+              <tr>
+                <Th>Most overdue</Th>
+                <Th className="hidden sm:table-cell">Region</Th>
+                <Th align="right">Overdue</Th>
+                <Th align="right" className="hidden md:table-cell">Cash-ups</Th>
+                <Th className="hidden md:table-cell">Oldest cash-up</Th>
+                <Th align="right">Waiting in all</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {late.slice(0, 6).map((w) => {
+                const s = storeOf.get(w.storeId);
+                if (!s) return null;
+                return (
+                  <Tr key={w.storeId}>
+                    <Td>
+                      <Link href={`/store/${s.code}/banking`} className="font-medium text-ink-850 hover:text-brand-700">
+                        {s.name}
+                      </Link>
+                    </Td>
+                    <Td className="hidden text-ink-600 sm:table-cell">{s.region.name}</Td>
+                    <Td align="right" className="font-semibold text-rose-600">{zar(w.overdue)}</Td>
+                    <Td align="right" className="hidden md:table-cell">{num(w.overdueN)}</Td>
+                    <Td className="hidden whitespace-nowrap text-ink-600 md:table-cell">{fmtDate(w.oldest)}</Td>
+                    <Td align="right">{zar(w.cash)}</Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        ) : (
+          <p className="border-t border-ink-100 px-5 py-4 text-sm text-ink-500">No store has overdue cash.</p>
+        )}
+        {late.length > 6 && <p className="border-t border-ink-100 px-5 py-3 text-xs text-ink-500">{num(late.length - 6)} more stores have overdue cash — see the report.</p>}
+      </Card>
 
       <Card className="mt-6">
         <CardHeader title="Stores" description="Net sales and gross profit this period" />

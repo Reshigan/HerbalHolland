@@ -1,16 +1,19 @@
 import Link from "next/link";
-import { Banknote } from "lucide-react";
+import { Banknote, PiggyBank } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { shiftCash } from "@/server/finance";
+import { getSettings } from "@/server/settings";
 import { cashTone, hrefWith, sp1 } from "@/server/store/rules";
+import { cashToBank, isOverdue } from "@/lib/banking";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtTime, timeAgo } from "@/lib/format";
 import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
+import { ButtonLink } from "@/components/ui/button";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips } from "@/components/store/ui";
@@ -42,7 +45,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
 
   const [total, shifts, recent, counts] = await Promise.all([
     db.shift.count({ where }),
-    db.shift.findMany({ where, orderBy: { openedAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { _count: { select: { sales: true } } } }),
+    db.shift.findMany({ where, orderBy: { openedAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { _count: { select: { sales: true } }, deposit: { select: { number: true } } } }),
     db.shift.findMany({ where: { storeId: store.id, closedAt: { gte: since } }, select: { expectedCashCents: true, countedCashCents: true } }),
     Promise.all([
       db.shift.count({ where: { storeId: store.id } }),
@@ -50,10 +53,11 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
       db.$queryRaw<{ n: number }[]>`SELECT COUNT(*)::int AS n FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS DISTINCT FROM "expectedCashCents"`,
     ]),
   ]);
-  const [users, devices, live] = await Promise.all([
+  const [users, devices, live, { banking }] = await Promise.all([
     db.user.findMany({ where: { id: { in: [...new Set(shifts.flatMap((s) => [s.openedById, s.closedById]).filter((x): x is string => !!x))] } }, select: { id: true, name: true } }),
     db.device.findMany({ where: { storeId: store.id }, select: { id: true, name: true } }),
     Promise.all(shifts.filter((s) => !s.closedAt).map((s) => shiftCash(s.id))),
+    getSettings(),
   ]);
   const name = new Map(users.map((u) => [u.id, u.name]));
   const device = new Map(devices.map((d) => [d.id, d.name]));
@@ -64,7 +68,16 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
 
   return (
     <>
-      <PageHeader overline={`Money · ${store.name}`} title="Cash-ups" description="Every till shift: opening float, cash taken, what was counted at close and the difference. Variances over R50 are flagged red." />
+      <PageHeader
+        overline={`Money · ${store.name}`}
+        title="Cash-ups"
+        description="Every till shift: opening float, cash taken, what was counted at close and the difference. Variances over R50 are flagged red."
+        actions={
+          <ButtonLink href={`/store/${store.code}/banking`} variant="outline" size="sm">
+            <PiggyBank className="h-4 w-4" strokeWidth={1.9} aria-hidden /> Banking
+          </ButtonLink>
+        }
+      />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Shifts closed, 30 days" value={recent.length.toLocaleString()} sub={`${counts[1]} open now`} />
         <Stat label="Net cash variance, 30 days" value={<span className={net < 0 ? "text-rose-600" : net > 0 ? "text-amber-700" : "text-leaf-700"}>{zar(net)}</span>} sub={net === 0 ? "balanced" : net < 0 ? "short overall" : "over overall"} />
@@ -101,6 +114,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
                 <Th align="right">Expected cash</Th>
                 <Th align="right">Counted</Th>
                 <Th align="right">Variance</Th>
+                <Th>Banked</Th>
               </tr>
             </thead>
             <tbody>
@@ -131,6 +145,21 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
                         <span className="text-ink-300">—</span>
                       ) : (
                         <Badge tone={tone}>{variance === 0 ? "Balanced" : `${variance > 0 ? "+" : "−"}${zar(Math.abs(variance))}`}</Badge>
+                      )}
+                    </Td>
+                    <Td className="whitespace-nowrap">
+                      {s.deposit ? (
+                        <Link href={`/store/${store.code}/banking?dep=${s.deposit.number}#${s.deposit.number}`} className="font-medium text-ink-800 hover:text-brand-700">
+                          {s.deposit.number}
+                        </Link>
+                      ) : s.closedAt && s.countedCashCents != null && cashToBank(s) > 0 ? (
+                        isOverdue(s.closedAt, banking.dueBusinessDays) ? (
+                          <Badge tone="red" dot>Overdue</Badge>
+                        ) : (
+                          <Badge tone="blue" dot>Waiting</Badge>
+                        )
+                      ) : (
+                        <span className="text-ink-300">—</span>
                       )}
                     </Td>
                   </Tr>

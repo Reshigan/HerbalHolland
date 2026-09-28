@@ -12,3 +12,4 @@ next-env.d.ts
 .env.local
 src/generated
 .DS_Store
+.data/

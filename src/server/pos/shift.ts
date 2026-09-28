@@ -10,6 +10,8 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { countCash, denomLabel, DENOMINATIONS, TENDER_LABEL } from "@/components/pos/lib/rules";
 import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
+import { getSettings } from "@/server/settings";
+import { checkShifts, raiseAlerts } from "@/server/loss";
 
 const actor = (pos: PosStaff): Actor => ({ type: "USER", id: pos.user.id, name: pos.user.name });
 
@@ -41,6 +43,9 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
     entityId: shift.id,
     data: { expected: cash.expectedCents, counted, variance: counted - cash.expectedCents, counts: clean },
   });
+  checkShifts({ id: shift.id }, (await getSettings()).loss)
+    .then(raiseAlerts)
+    .catch((e) => console.error("[pos] cash-short check failed", shift.id, e));
   const report = await zReport(shift.id);
   const to = pos.device.store.email;
   if (to) {

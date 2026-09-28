@@ -12,6 +12,7 @@ import { assignFounding, expireTierFloors } from "./launch";
 import { notifyDrops } from "./drops";
 import { generateOffers } from "./offers";
 import { submitMerchOrders } from "./merch";
+import { runLossRules } from "./loss";
 
 const MIN = 60_000;
 
@@ -81,6 +82,7 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     birthdays: await birthdayPoints(),
     uncollected: await releaseUncollected(),
     tierFloors: await expireTierFloors(),
+    lossPrevention: await runLossRules(),
     // My Deals refresh weekly, on Mondays (SAST).
     offers: new Date(`${dayKey(new Date())}T12:00:00+02:00`).getUTCDay() === 1 ? await generateOffers() : { created: 0 },
   }),

@@ -9,14 +9,15 @@
 // and close our own) → online orders (collect handover, courier with merch shipped, cancel) → marketing
 // (promotion create/edit/end; campaigns to a tier and to an "Into …" interest audience, CPA send window,
 // cancel) → pricing (shelf price, category bulk change) → settings (hours, till revoke) → statement email →
-// team (add, PIN, deactivate/reactivate) → HQ updates → scope check, then the owner's consolidated view,
-// store switching and dispenser rights. Every action is timed from the submit click to its visible result
+// team (add, PIN, own member card, deactivate/reactivate) → banking (deposit with its slip) → an alert about the
+// manager hidden from them → HQ updates → scope check, then the owner's consolidated view, store switching, dispenser
+// rights, checking the deposit (slip, query, verify), working the alert, and approving commission. Every action is timed from the submit click to its visible result
 // (table at the end). Re-runnable: everything it creates carries a run suffix and is cleaned up or reversed
 // at the end; the new member and the sales, deliveries and messages it posts stay, like real trading records.
 import { chromium } from "@playwright/test";
 import pg from "pg";
 import { mkdirSync, readFileSync } from "node:fs";
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-backoffice";
@@ -934,6 +935,64 @@ try {
   assert(!(await one(`select active from "User" where id = $1`, [staff.id])).active, "deactivated");
   await act(page, "setActive · reactivate", () => row(page, staffName).getByRole("button", { name: "Reactivate" }).click(), () => row(page, staffName).getByRole("button", { name: "Deactivate" }).waitFor());
   assert((await one(`select active from "User" where id = $1`, [staff.id])).active, "reactivated");
+  const ownCard = await one(`select c.id, c."memberNo" from "Customer" c where c."memberNo" is not null and not exists (select 1 from "User" u where u."memberId" = c.id) order by c."createdAt" limit 1`);
+  await row(page, staffName).getByRole("button", { name: "Link card" }).click();
+  const cardGroup = page.getByRole("group", { name: `${staffName}'s own Rewards card` });
+  await cardGroup.getByLabel("Member number").fill("HH9999999");
+  await act(page, "setMemberCard · unknown number", () => cardGroup.getByRole("button", { name: "Save card" }).click(), () => alert(cardGroup, "No Rewards member has the number HH9999999").waitFor());
+  await cardGroup.getByLabel("Member number").fill(ownCard.memberNo);
+  await act(page, "setMemberCard", () => cardGroup.getByRole("button", { name: "Save card" }).click(), () => status(page, `Linked ${ownCard.memberNo}`).waitFor());
+  assert((await one(`select "memberId" from "User" where id = $1`, [staff.id])).memberId === ownCard.id, `${staffName}'s own card ${ownCard.memberNo} linked (their sales on it earn no commission and are flagged)`);
+
+  // ───────────────────────────────────────────────────────────────────────────
+  step("Banking: record a deposit with its stamped slip (a file that isn't a photo or PDF is refused)");
+  const cashUp = await one(
+    `insert into "Shift" (id, "storeId", "openedById", "openedAt", "openingFloatCents", "closedById", "closedAt", "expectedCashCents", "countedCashCents")
+     values (gen_random_uuid()::text, $1, $2, now() - interval '9 hours', 100000, $2, now() - interval '1 hour', 342050, 342050) returning id`,
+    [store.id, me.id],
+  );
+  later("remove the test cash-up", () => q(`delete from "Shift" where id = $1`, [cashUp.id]));
+  const slipBytes = readFileSync(new URL("../prisma/demo/deposit-slip.jpg", import.meta.url));
+  const depForm = page.getByRole("form", { name: "Record a deposit" });
+  await visit(page, `/store/${CODE}/banking`, depForm.locator(`input[name="shift"][value="${cashUp.id}"]`));
+  if (await depForm.getByRole("button", { name: "Clear" }).count()) await depForm.getByRole("button", { name: "Clear" }).click();
+  await depForm.locator(`input[name="shift"][value="${cashUp.id}"]`).check();
+  await depForm.getByText("Ticked 1 of").waitFor();
+  await depForm.locator("#dep-amount").fill("2420.50");
+  await depForm.getByText("Matches the ticked cash-ups.").waitFor();
+  await depForm.locator("#dep-ref").fill(`E2E-${run}`);
+  await depForm.locator("#dep-slip").setInputFiles({ name: "slip.jpg", mimeType: "image/jpeg", buffer: Buffer.from("not really a photo") });
+  await act(page, "addDeposit · not a slip", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => alert(depForm, "must be a photo").waitFor());
+  await depForm.locator("#dep-slip").setInputFiles({ name: "slip.jpg", mimeType: "image/jpeg", buffer: slipBytes });
+  t0 = new Date();
+  await act(page, "addDeposit", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => status(page, "it matches the cash counted").waitFor());
+  const dep = await one(
+    `select d.id, d.number, d."amountCents", d."expectedCents", d.status, d."slipId", u.sha256, u."contentType" from "CashDeposit" d join "Upload" u on u.id = d."slipId" where d.reference = $1`,
+    [`E2E-${run}`],
+  );
+  if (dep)
+    later(`remove ${dep.number}`, async () => {
+      await q(`update "Shift" set "depositId" = null where "depositId" = $1`, [dep.id]);
+      await q(`delete from "CashDeposit" where id = $1`, [dep.id]);
+      await q(`delete from "Upload" where id = $1`, [dep.slipId]);
+    });
+  assert(
+    dep?.amountCents === 242050 && dep.expectedCents === 242050 && dep.status === "RECORDED" && dep.contentType === "image/jpeg" && dep.sha256 === createHash("sha256").update(slipBytes).digest("hex"),
+    `${dep?.number}: R2,420.50 banked against R2,420.50 counted less float, slip stored (SHA-256 matches)`,
+  );
+  assert((await one(`select "depositId" from "Shift" where id = $1`, [cashUp.id])).depositId === dep.id && (await audits("deposit.record", me.id, t0)) === 1, "the cash-up is banked; audited");
+  await row(page, dep.number).first().waitFor();
+  assert(!(await row(page, dep.number).getByRole("button", { name: "Verify" }).count()), "the manager can't check the deposit (owner, area manager or HQ do)");
+
+  step("Loss prevention: an alert about the manager is hidden from them, even by its address");
+  const lpAlert = await one(
+    `insert into "Alert" (id, key, rule, severity, "storeId", "userId", title, detail, "amountCents", evidence, "updatedAt")
+     values (gen_random_uuid()::text, $1, 'REFUND', 'HIGH', $2, $3, $4, 'A card sale refunded in cash (test alert).', 42000, '[]'::jsonb, now()) returning id, title`,
+    [`E2E:${run}`, store.id, me.id, `E2E refund check ${run}`],
+  );
+  later("delete the test alert", () => q(`delete from "Alert" where id = $1`, [lpAlert.id]));
+  const hidden = await page.goto(`${BASE}/store/${CODE}/loss-prevention/${lpAlert.id}`);
+  assert(hidden.status() === 404, "404 for the manager");
 
   // ───────────────────────────────────────────────────────────────────────────
   step("HQ updates: acknowledge an update for the store");
@@ -987,6 +1046,69 @@ try {
   assert((await one(`select "canDispense" from "User" where id = $1`, [staff.id])).canDispense, `${staffName} authorised to dispense`);
   await act(op, "setDispenser · off", () => row(op, staffName).getByRole("button", { name: "Remove dispenser" }).click(), () => status(op, `${staffName} can no longer dispense`).waitFor());
   assert(!(await one(`select "canDispense" from "User" where id = $1`, [staff.id])).canDispense, "dispenser rights removed");
+
+  step("Banking: the owner opens the slip, queries the deposit, then verifies it (locked)");
+  const ownerUser = await one(`select id, name from "User" where email = $1`, [OWNER]);
+  t0 = new Date();
+  // Fetched from the page, like opening the link (the session cookie is Secure on a production build).
+  const slip = await op.evaluate(async (u) => {
+    const r = await fetch(u);
+    return { status: r.status, type: r.headers.get("content-type"), bytes: [...new Uint8Array(await r.arrayBuffer())] };
+  }, `${BASE}/store/${CODE}/banking/${dep.id}/slip`);
+  assert(slip.status === 200 && slip.type === "image/jpeg" && Buffer.from(slip.bytes).equals(slipBytes), "slip served to the owner, byte for byte");
+  assert((await audits("deposit.slip_view", ownerUser.id, t0)) === 1, "slip view audited");
+  await visit(op, `/store/${CODE}/banking?dep=${dep.number}`, row(op, dep.number).getByRole("button", { name: "Query" }));
+  await row(op, dep.number).getByRole("button", { name: "Query" }).click();
+  const qg = op.getByRole("group", { name: `Query ${dep.number}` });
+  await act(op, "queryDeposit · no note", () => qg.getByRole("button", { name: "Send query" }).click(), () => alert(qg, /Say what doesn.t match/).waitFor());
+  await qg.getByLabel("What doesn't match the bank statement?").fill("Not on the statement yet");
+  await act(op, "queryDeposit", () => qg.getByRole("button", { name: "Send query" }).click(), () => row(op, dep.number).getByText("Queried", { exact: true }).waitFor());
+  assert((await one(`select status from "CashDeposit" where id = $1`, [dep.id])).status === "QUERIED", `${dep.number} queried`);
+  await row(op, dep.number).getByRole("button", { name: "Verify" }).click();
+  await act(op, "verifyDeposit", () => op.getByRole("group", { name: `Verify ${dep.number}?` }).getByRole("button", { name: "Verify and lock" }).click(), () => row(op, dep.number).getByText("Verified", { exact: true }).waitFor());
+  const checked = await one(`select status, "reviewedById" from "CashDeposit" where id = $1`, [dep.id]);
+  assert(checked.status === "VERIFIED" && checked.reviewedById === ownerUser.id && !(await row(op, dep.number).getByRole("button", { name: "Verify" }).count()), `${dep.number} verified by ${ownerUser.name} and locked`);
+
+  step("Loss prevention: the owner investigates the alert, then resolves it with a note");
+  await visit(op, `/store/${CODE}/loss-prevention/${lpAlert.id}`, op.getByRole("button", { name: "Investigating" }));
+  t0 = new Date();
+  await op.getByRole("button", { name: "Investigating" }).click();
+  const inv = op.getByRole("group", { name: "Mark as investigating" });
+  await inv.getByLabel("Note (optional)").fill("Checking the card machine slips");
+  await act(op, "updateAlert · investigating", () => inv.getByRole("button", { name: "Mark as investigating" }).click(), () => status(op, "Marked as investigating").waitFor());
+  await hydrated(op.getByRole("button", { name: "Resolve" }));
+  await op.getByRole("button", { name: "Resolve" }).click();
+  const res = op.getByRole("group", { name: "Resolve this alert" });
+  await res.getByLabel("How was it resolved?").fill("The card refund was reversed; spoke to the team");
+  await act(op, "updateAlert · resolve", () => res.getByRole("button", { name: "Resolve" }).click(), () => status(op, "Resolved").waitFor());
+  const closed = await one(`select status, "closedById", note from "Alert" where id = $1`, [lpAlert.id]);
+  assert(closed.status === "RESOLVED" && closed.closedById === ownerUser.id && (await audits("alert.update", ownerUser.id, t0)) === 2, "investigating → resolved, with the note; both audited");
+
+  step(`Commission: the owner switches it on at ${other.name}, approves last month for payroll, downloads it, then switches it off`);
+  const cs = await one(`select id, code, "commissionOn" from "Store" where code = $1`, [other.code]);
+  const lastMonth = dayKey(new Date(new Date(`${dayKey().slice(0, 7)}-01T12:00:00+02:00`).getTime() - 5 * 86_400_000)).slice(0, 7);
+  later(`put ${cs.code}'s commission back`, () => q(`update "Store" set "commissionOn" = $2 where id = $1`, [cs.id, cs.commissionOn]));
+  later(`un-approve ${cs.code} ${lastMonth}`, () => q(`delete from "CommissionRun" where "storeId" = $1 and month = $2`, [cs.id, lastMonth]));
+  await q(`update "Store" set "commissionOn" = false where id = $1`, [cs.id]);
+  await q(`delete from "CommissionRun" where "storeId" = $1 and month = $2`, [cs.id, lastMonth]);
+  t0 = new Date();
+  await visit(op, `/store/${cs.code}/commission`, op.getByRole("button", { name: "Switch commission on" }));
+  await op.getByRole("button", { name: "Switch commission on" }).click();
+  await act(op, "commission · on", () => op.getByRole("group", { name: "Switch commission on?" }).getByRole("button", { name: "Switch on" }).click(), () => status(op, "Commission is on").waitFor());
+  assert((await one(`select "commissionOn" from "Store" where id = $1`, [cs.id])).commissionOn && (await audits("commission.switch", ownerUser.id, t0)) === 1, "switched on (audited)");
+  await visit(op, `/store/${cs.code}/commission?month=${lastMonth}`, op.getByRole("button", { name: "Approve for payroll" }));
+  await op.getByRole("button", { name: "Approve for payroll" }).click();
+  await act(op, "approve commission", () => op.getByRole("group", { name: /^Approve .+ for payroll\?$/ }).getByRole("button", { name: "Approve", exact: true }).click(), () => status(op, "approved:").waitFor());
+  const cr = await one(`select "totalCents", lines, "approvedById" from "CommissionRun" where "storeId" = $1 and month = $2`, [cs.id, lastMonth]);
+  // (A short CI seed may have no sales last month: the month is still approved, with nobody to pay.)
+  assert(cr?.approvedById === ownerUser.id && (await audits("commission.approve", ownerUser.id, t0)) === 1, `${lastMonth} approved: R${(cr?.totalCents / 100).toFixed(2)} for ${cr?.lines.length} people (audited)`);
+  const [csvDl] = await Promise.all([op.waitForEvent("download"), op.getByRole("link", { name: "Export CSV" }).click()]);
+  const csvRows = parseCsv(readFileSync(await csvDl.path(), "utf8")).filter((r) => r.length > 1);
+  assert(csvRows.length === cr.lines.length + 1 && csvRows[0][0] === "Name", `${csvDl.suggestedFilename()}: a row per person (${cr.lines.length})`);
+  await visit(op, `/store/${cs.code}/commission`, op.getByRole("button", { name: "Switch commission off" }));
+  await op.getByRole("button", { name: "Switch commission off" }).click();
+  await act(op, "commission · off", () => op.getByRole("group", { name: "Switch commission off?" }).getByRole("button", { name: "Switch off" }).click(), () => status(op, "Commission is off").waitFor());
+  assert(!(await one(`select "commissionOn" from "Store" where id = $1`, [cs.id])).commissionOn, "switched off again");
 
   passed = true;
 } catch (e) {

@@ -6,7 +6,7 @@ import { GROUPS, type ReportDef, type ReportScope } from "./types";
 import { onlineOrders, payments, refunds, salesByCategory, salesByHour, salesByProduct, salesByStaff, salesByStore, salesOverview } from "./sales";
 import { deadStock, expiry, lowStock, negativeStock, sellThrough, shrinkage, stockMovements, stockValuation } from "./inventory";
 import { purchases, receiving } from "./purchasing";
-import { cashUps, loyaltyLiability, pnl, statements, vat } from "./finance";
+import { cashBanking, cashUps, loyaltyLiability, pnl, statements, vat } from "./finance";
 import { joinSources, memberAttach, newVsReturning, rewardsSavings, segments } from "./customers";
 import { campaigns, promotions } from "./marketing";
 import { ageChecks, batchTrace, complianceEvents, dispensingRegister, recalls } from "./compliance";
@@ -21,7 +21,7 @@ export const REPORTS: ReportDef[] = [
   // Purchasing
   purchases, receiving,
   // Finance
-  pnl, vat, cashUps, statements, loyaltyLiability,
+  pnl, vat, cashUps, cashBanking, statements, loyaltyLiability,
   // Members
   segments, newVsReturning, memberAttach, rewardsSavings, joinSources,
   // Marketing

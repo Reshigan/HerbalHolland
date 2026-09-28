@@ -132,7 +132,7 @@ const freePhone = async () => {
 };
 
 // Settings are shared with everyone using this database: remember them exactly (row or no row) and put them back.
-const SETTING_KEYS = ["compliance", "loyalty", "offers", "pricing", "ecommerce", "launch"];
+const SETTING_KEYS = ["compliance", "loyalty", "offers", "pricing", "ecommerce", "launch", "loss", "banking", "commission"];
 const originalSettings = new Map((await q(`select key, value from "Setting" where key = any($1)`, [SETTING_KEYS])).map((r) => [r.key, r.value]));
 const setting = async (key) => (await one(`select value from "Setting" where key = $1`, [key]))?.value ?? null;
 async function restoreSetting(key) {
@@ -932,6 +932,40 @@ try {
   await page.getByText(`Not yet acknowledged (${express})`).waitFor();
   ok(`read receipts list the ${express} Express stores`);
   await q(`delete from "Announcement" where id = $1`, [ann.id]);
+
+  // ── Loss prevention & commission ──────────────────────────────────────────
+  step("Loss prevention: thresholds (validation, change, restore), run the checks now; commission rates (THC locked at 0%)");
+  await open("/hq/loss-prevention", formWith("#lp-cashShort"));
+  const lossForm = formWith("#lp-cashShort");
+  const lossWas = { short: await lossForm.locator("#lp-cashShort").inputValue(), high: await lossForm.locator("#lp-cashShortHigh").inputValue() };
+  await lossForm.locator("#lp-cashShortHigh").fill(lossWas.short);
+  await act("loss.saveLossRules · invalid", () => lossForm.getByRole("button", { name: "Save rules" }).click(), () => alertIn(lossForm, "Must be more than the amount that raises an alert").waitFor());
+  await lossForm.locator("#lp-cashShortHigh").fill(lossWas.high);
+  const short = String(Number(lossWas.short) + 10);
+  await lossForm.locator("#lp-cashShort").fill(short);
+  await act("loss.saveLossRules", () => lossForm.getByRole("button", { name: "Save rules" }).click(), () => notice(/^Saved 1 change/).waitFor());
+  assert((await setting("loss"))?.cashShortCents === Number(short) * 100, `cash-up short alert from R${lossWas.short} → R${short}`);
+  await lossForm.locator("#lp-cashShort").fill(lossWas.short);
+  await act("loss.saveLossRules (restore)", () => lossForm.getByRole("button", { name: "Save rules" }).click(), () => notice(/^Saved 1 change/).waitFor());
+  assert((await setting("loss"))?.cashShortCents === Number(lossWas.short) * 100, "restored");
+  await restoreSetting("loss");
+  await restoreSetting("banking");
+  const ranAt = (await one(`select now() t`)).t;
+  await act("loss.runChecks", () => page.getByRole("button", { name: "Run checks now" }).click(), () => notice(/^Checks run/).waitFor());
+  assert((await one(`select count(*)::int n from "AuditLog" where action = 'loss.run' and "actorId" = $1 and at >= $2`, [admin.id, ranAt])).n === 1, "checks run (audited)");
+  await open("/hq/commission", formWith("#rate_CBD"));
+  const rateForm = formWith("#rate_CBD");
+  const cbd = await rateForm.locator("#rate_CBD").inputValue();
+  assert(!(await rateForm.locator("#rate_THC").count()) && (await rateForm.getByText("Medicines Act s18A").count()), "THC has no rate field: 0% by law (Medicines Act s18A)");
+  await rateForm.locator("#rate_CBD").fill("12");
+  await act("commission.saveRates · invalid", () => rateForm.getByRole("button", { name: "Save rates" }).click(), () => alertIn(rateForm, "0–10%").waitFor());
+  const cbdNew = String(Number(cbd) + 0.5);
+  await rateForm.locator("#rate_CBD").fill(cbdNew);
+  await act("commission.saveRates", () => rateForm.getByRole("button", { name: "Save rates" }).click(), () => notice(/^Rates saved/).waitFor());
+  assert((await setting("commission"))?.bps?.CBD === Math.round(Number(cbdNew) * 100), `CBD commission ${cbd}% → ${cbdNew}%`);
+  await rateForm.locator("#rate_CBD").fill(cbd);
+  await act("commission.saveRates (restore)", () => rateForm.getByRole("button", { name: "Save rates" }).click(), () => notice(/^Rates saved/).waitFor());
+  await restoreSetting("commission");
 
   // ── Reports ───────────────────────────────────────────────────────────────
   step("Reports centre: open reports with different ranges and store filters, download a CSV");

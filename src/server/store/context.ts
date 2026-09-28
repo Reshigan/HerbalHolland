@@ -11,6 +11,8 @@ import { OrderError } from "@/server/orders";
 import { CustomerError } from "@/server/customers";
 import { CampaignError } from "@/server/marketing";
 import type { Actor } from "@/server/audit";
+import { BankingError } from "@/server/banking";
+import { CommissionError } from "@/server/commission";
 
 export type ActionState = { ok?: string; error?: string; fields?: Record<string, string>; at?: number };
 
@@ -34,7 +36,7 @@ export async function manage(code: string) {
   return { user, store, actor: actorOf(user) };
 }
 
-const EXPECTED = [UserError, StockError, PurchaseError, OrderError, CustomerError, CampaignError];
+const EXPECTED = [UserError, StockError, PurchaseError, OrderError, CustomerError, CampaignError, BankingError, CommissionError];
 
 /** Runs an action body; expected errors become inline messages, redirects pass through. */
 export async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
