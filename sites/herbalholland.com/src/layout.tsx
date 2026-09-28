@@ -2,9 +2,9 @@
 // file, the tiny boot script and the page's ES module), the header and its full-screen menu, the 18+ gate and the
 // footer with the giant wordmark. build.ts fills `site` (fingerprinted asset names, the build date) before rendering.
 import { BRAND, CHROME, EMAIL, GATE, LEGAL } from "../content";
-import { FACTS, joinLink } from "../facts";
+import { FACTS, joinLink, shopLink } from "../facts";
 import { AgeBadge, Mark, SCENES, Scene, Sprite, Wordmark, cx } from "./art";
-import { Btn, Icon, Index, MailTo, Rich, ShopDoor, Soon } from "./ui";
+import { Btn, Icon, Index, MailTo, Rich, ShopNow, Soon } from "./ui";
 
 export const site = {
   assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[] },
@@ -42,7 +42,7 @@ function Brand({ className, vt }: { className?: string; vt?: boolean }) {
 }
 
 function Header({ page }: { page: string }) {
-  const join = joinLink();
+  const shop = shopLink("/");
   return (
     <header className="hdr" data-hdr="">
       <div className="hdr__bg" aria-hidden="true" />
@@ -60,15 +60,8 @@ function Header({ page }: { page: string }) {
           </ul>
         </nav>
         <div className="hdr__end">
-          {join ? (
-            <Btn href={join} kind="primary" className="btn--sm hdr__cta" icon="out" magnetic>
-              {CHROME.cta.join}
-            </Btn>
-          ) : (
-            <Btn href={page === "home" ? "#founding" : "/#founding"} kind="primary" className="btn--sm hdr__cta" magnetic>
-              {CHROME.cta.founding}
-            </Btn>
-          )}
+          {/* "Get first access" until the online shop is live, then "Shop online". */}
+          <ShopNow page={page} label={shop ? CHROME.cta.shop : CHROME.cta.access} className="btn--sm hdr__cta" magnetic />
           <button type="button" className="burger burger--js" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false" data-menu-open="">
             <Icon name="menu" size={18} />
             <span>{CHROME.menu.open}</span>
@@ -110,7 +103,7 @@ function Menu({ page }: { page: string }) {
         </nav>
         <div className="wrap menu__foot">
           <div className="menu__doors">
-            <ShopDoor path="/" label={CHROME.cta.shop} />
+            <ShopNow page={page} className="btn--sm" />
             <JoinDoor />
           </div>
           <p className="menu__meta">
@@ -176,13 +169,12 @@ function Gate() {
   );
 }
 
-function Footer() {
+function Footer({ page }: { page: string }) {
   const f = CHROME.footer;
   const c = FACTS.company;
   const details = [c.legalName, c.regNumber && `Reg. ${c.regNumber}`, c.vatNumber && `VAT ${c.vatNumber}`, c.address, c.phone].filter(Boolean);
   return (
     <footer className="ftr">
-      <div className="band" aria-hidden="true" />
       <div className="wrap ftr__top">
         <div className="ftr__brand">
           <a href="/" className="ftr__logo" aria-label={CHROME.home}>
@@ -219,7 +211,7 @@ function Footer() {
             <h2 className="ftr__h">{f.cols.members}</h2>
             <ul>
               <li>
-                <ShopDoor path="/" label={CHROME.cta.shop} kind="link" />
+                <ShopNow page={page} link />
               </li>
               <li>
                 <JoinDoor kind="link" />
@@ -328,7 +320,7 @@ export function Page({ page, meta, jsonLd, free, children }: { page: string; met
         <main id="main" tabIndex={-1}>
           {children}
         </main>
-        <Footer />
+        <Footer page={page} />
         <Menu page={page} />
         {!free && <Gate />}
       </body>

@@ -1,9 +1,9 @@
-// The share card (og.png, 1200 × 630: the storefront at dusk, its sign lit) and the home-screen icon, drawn with the
-// site's own art and styles. build.ts --images renders them to PNG with Chromium, as scripts/merch-export.tsx does for
-// the merch files.
+// The share card (og.png, 1200 × 630) and the home-screen icon, drawn with the site's own art and styles. build.ts
+// --images renders them to PNG with Chromium, as scripts/merch-export.tsx does for the merch files.
 import { BRAND } from "../content";
-import { AgeBadge, Mark, Sprite, Wordmark } from "./art";
-import { Storefront } from "./storefront";
+import { AgeBadge, Mark, Scene, Sprite, Wordmark, type SceneSpec } from "./art";
+
+const OG_SCENE: SceneSpec = { sun: { x: 1175, y: 560, r: 250 }, mill: true, hills: ["hl1", "hl2", "hl3", "hl4"] };
 
 export function OgCard() {
   return (
@@ -11,7 +11,7 @@ export function OgCard() {
       <Sprite />
       <div className="og">
         <div className="og__frame">
-          <Storefront className="og__sf" />
+          <Scene kind="og" spec={OG_SCENE} />
           <div className="og__text">
             <Wordmark className="og__wm" />
             <p className="og__line">
@@ -44,7 +44,7 @@ export const OG_CSS = `
 html,body{margin:0;background:var(--ink-950)}body::after{display:none}
 .og{width:1200px;height:630px;padding:22px;background:var(--ink-950)}
 .og__frame{position:relative;height:100%;border:16px solid var(--brand-500);border-radius:40px;overflow:hidden;background:radial-gradient(70% 80% at 76% 62%,color-mix(in oklab,var(--brand-800) 45%,var(--ink-950)),var(--ink-950) 72%)}
-.og .og__sf{width:560px}
+.og .sc{position:absolute;inset:0}
 .og__text{position:absolute;left:64px;top:62px;display:grid;gap:22px;justify-items:start}
 .og__wm{font-size:58px;color:var(--brand-500)}
 .og__line{margin-top:18px;font:300 46px/1.08 var(--display);letter-spacing:-.02em;color:var(--ink-200)}

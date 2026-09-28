@@ -17,7 +17,6 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { dayKey } from "@/lib/format";
 import { FACTS, firstStores, greatCircleKm } from "./facts";
 import { site } from "./src/layout";
-import { patternUrl } from "./src/art";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
 import { literals, mangleClasses, precomputeColors, shortenTokens, tighten } from "./src/optimize";
 import { AboutPage } from "./src/pages/about";
@@ -154,14 +153,14 @@ async function main() {
     outfit: emit("outfit", "woff2", readFileSync(FONTS.outfit)),
     inter: emit("inter", "woff2", readFileSync(FONTS.inter)),
   };
-  const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter).replace("__PATTERN__", patternUrl());
+  const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter);
   const css = await styles(shortenTokens(precomputeColors(cssSource)));
   const mainSrc = readFileSync(join(ROOT, "client/main.ts"), "utf8");
   const bootSrc = readFileSync(join(ROOT, "client/boot.ts"), "utf8");
   const js = await script("client/main.ts", "esm");
   const boot = await script("client/boot.ts", "iife");
   const CSS_HREF = "/assets/__site_css__";
-  // The store concept renders (WebP, cropped to our own storefront), fingerprinted like the rest.
+  // The store concept renders (WebP, cropped to the owner's storefront renders), fingerprinted like the rest.
   const concept = readdirSync(join(STATIC, "concept"))
     .filter((f) => f.endsWith(".webp"))
     .sort()

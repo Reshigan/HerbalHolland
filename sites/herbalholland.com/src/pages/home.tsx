@@ -1,22 +1,23 @@
-// herbalholland.com — the home page, brand-first: the storefront at dusk (its sign switches on as the page opens),
-// what Herbal Holland stands for, what's on the shelf, the 9,475 km from Amsterdam to South Africa, the first stores in
-// the KwaZulu-Natal hills, the map of stores as they open across the country, and Founding Members. Every count, date,
-// place and pin comes from the stores list in ../../facts.
+// herbalholland.com — the home page: the windmill at sunset over the hills ("Holland, meet South Africa."), with
+// "Shop online" first and the promise bar beneath it; what we are; what's in store, a "Shop" on every category; the
+// early-access sign-up; the kinetic marquee; the 9,475 km story from Amsterdam; our standards; the first chapter in
+// numbers; the first stores ("Holland, meet the Hills."); the map as stores open across the country; Founding Members;
+// and the doors in. Every count, date, place and pin comes from the stores list in ../../facts, and every way to shop
+// leads to the online shop once it's live, or to the early-access sign-up until then.
 import { num } from "@/lib/format";
 import { PROVINCES } from "@/lib/sa";
-import { BRAND, CHROME, EMAIL, HOME, fill, plural } from "../../content";
+import { BRAND, CHROME, EMAIL, HOME, fill } from "../../content";
 import { FACTS, firstStores, greatCircleKm, joinLink, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, shopLink, shortDay, storeProvinces } from "../../facts";
+import { EarlyAccess } from "../access";
 import { AgeBadge, Globe, Mark, MiniScene, SCENES, Sails, Scene, cx } from "../art";
 import { JoinDoor, Page } from "../layout";
 import { ZaMap } from "../map";
-import { ShelfArt } from "../shelf";
-import { Storefront } from "../storefront";
-import { Btn, Head, Icon, Index, Keep, Reel, Words } from "../ui";
+import { Btn, Head, Icon, Index, Keep, Reel, ShopNow, Soon, Words } from "../ui";
 
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
 export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S")} · ${dms(p.lon, "E", "W")}`;
 
-/** "Our first stores open in KwaZulu-Natal on Tuesday 1 December 2026…", or, once every store is open, the plain line. */
+/** "Our first stores open in KwaZulu-Natal on Tuesday 1 December 2026…", or, once a store is open, where stores are. */
 export function openingLine(soon: string, open: string) {
   const next = nextOpening();
   // Before the first opening day: where and when. From then on: where stores are open (the next ones show on /stores).
@@ -30,9 +31,10 @@ export const OpeningLine = ({ soon, open }: { soon: string; open: string }) => <
 
 function Hero() {
   const h = HOME.hero;
+  const p = HOME.promise;
   return (
     <section className="hero" data-sp="exit" aria-labelledby="hero-title">
-      <Storefront className="hero__sf" />
+      <Scene kind="home" spec={SCENES.home} className="hero__scene" />
       <div className="wrap hero__in">
         <p className="eyebrow" data-in="1">
           {h.eyebrow}
@@ -46,23 +48,22 @@ function Hero() {
           </span>
         </p>
         <div className="ctas" data-in="3">
-          <Btn href="#founding" magnetic className="btn--hero">
-            {h.primary}
-          </Btn>
-          <Btn href="/stores" kind="ghost" className="btn--hero">
+          <ShopNow page="home" magnetic />
+          <Btn href="/stores" kind="ghost">
             {h.secondary}
           </Btn>
         </div>
-        <p className="hero__age" data-in="4">
-          <AgeBadge />
-          <span>{h.note}</span>
-        </p>
       </div>
-      <div className="wrap hero__foot" data-in="4">
-        <a className="cue" href="#brand">
-          <span className="cue__line" aria-hidden="true" />
-          <span>{h.cue}</span>
-        </a>
+      {/* The promise bar: what shopping with us comes with, where the hero meets the page. */}
+      <div className="hero__foot" data-in="4">
+        <ul className="wrap promise" aria-label={p.label}>
+          {p.items.map((it) => (
+            <li key={it.key} className="promise__item">
+              {it.key === "adults" ? <AgeBadge /> : <Icon name={it.key === "members" ? "rewards" : it.key} className="promise__ico" />}
+              <span>{it.text}</span>
+            </li>
+          ))}
+        </ul>
       </div>
     </section>
   );
@@ -71,7 +72,7 @@ function Hero() {
 /** What we are, in one sentence, big: each word lights up as it's read on the way down. */
 function Statement() {
   return (
-    <section className="statement" id="brand" data-sp="center">
+    <section className="statement" data-sp="center">
       <div className="wrap">
         <p className="statement__p" data-words="">
           {HOME.statement.split(" ").map((w, i) => (
@@ -85,77 +86,46 @@ function Statement() {
   );
 }
 
-/** What Herbal Holland stands for: four cards, each with its own small picture. */
-function Brand() {
-  const b = HOME.brand;
-  const visual: Record<string, React.ReactNode> = {
-    heritage: (
-      <div className="rx" aria-hidden="true">
-        <Mark className="rx__mark" sails="spin" />
-      </div>
-    ),
-    lab: (
-      <div className="lab" aria-hidden="true">
-        <span className="lab__k">
-          {b.demo.label} <em>{b.demo.example}</em>
-        </span>
-        <span className="lab__code">
-          <span data-type="">{b.demo.code}</span>
-          <span className="caret" />
-        </span>
-        <span className="lab__ok">
-          <svg viewBox="0 0 24 24" className="tick" focusable="false">
-            <circle cx="12" cy="12" r="10" />
-            <path d="m7.5 12.5 3 3 6-7" />
-          </svg>
-          {b.demo.check}
-        </span>
-      </div>
-    ),
-    members: (
-      <div className="rx" aria-hidden="true">
-        <Icon name="members" size={30} />
-        <span>{b.members.id}</span>
-      </div>
-    ),
-    rewards: (
-      <div className="rx" aria-hidden="true">
-        <div className="rcard">
-          <Mark className="rcard__mark" />
-          <p className="rcard__t">
-            {BRAND.name}
-            <b>{b.rewards}</b>
-          </p>
-        </div>
-      </div>
-    ),
-  };
+/** What's in store: a tile per category, each with its "Shop"; the online shop's tile last. Categories only. */
+function Range() {
+  const r = HOME.range;
+  const shop = shopLink("/");
   return (
-    <section className="sheet sec standards" aria-labelledby="brand-title">
+    <section className="sheet sec range" id="range" aria-labelledby="range-title">
       <div className="wrap">
         <div className="split">
-          <Head id="brand-title" eyebrow={b.eyebrow} title={b.title} intro={b.intro} />
-          <div className="split__end" data-r="">
-            <Btn href="/about" kind="dark">
-              {b.cta}
-            </Btn>
-          </div>
+          <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro} />
+          <p className="range__note muted" data-r="">
+            <Icon name="medicines" size={16} /> {r.note}
+          </p>
         </div>
-        <ul className="cards" data-rs="">
-          {b.items.map((it, i) => (
-            <li key={it.key} className={cx("card", `card--${it.key}`)} data-tilt="" data-r="">
-              <div className="card__in">
-                <div className="card__top">
-                  <Index n={i + 1} />
-                  <Icon name={it.key} className="card__ico" />
-                </div>
-                <div className="card__vis">{visual[it.key]}</div>
-                <h3 className="card__title">{it.title}</h3>
-                <p className="card__body">{fill(it.body, { cap: num(FACTS.founding.cap) })}</p>
-                <span className="glare" aria-hidden="true" />
-              </div>
-            </li>
-          ))}
+        <ul className="tiles" data-rs="">
+          {r.items.map((it, i) => {
+            const live = shopLink(FACTS.shelf[it.key] ?? "/shop");
+            return (
+              <li key={it.key} className="tile tile--cat" data-r="">
+                <Index n={i + 1} />
+                <h3 className="tile__t">{it.title}</h3>
+                <p className="tile__b">{it.body}</p>
+                <a className="tile__go stretch" href={live ?? "#first-access"}>
+                  {r.shop}
+                  <span className="sr-only"> {it.title}</span>
+                  <Icon name={live ? "out" : "arrow"} size={18} />
+                </a>
+              </li>
+            );
+          })}
+          <li className="tile tile--online" data-r="">
+            <span className="door__ico">
+              <Icon name="shop" />
+            </span>
+            <h3 className="tile__t">{r.online.title}</h3>
+            <p className="tile__b">{shop ? r.online.body : r.online.soon}</p>
+            <a className="tile__go stretch" href={shop ?? "#first-access"}>
+              {shop ? r.online.cta : CHROME.cta.access}
+              <Icon name={shop ? "out" : "arrow"} size={18} />
+            </a>
+          </li>
         </ul>
       </div>
     </section>
@@ -186,77 +156,6 @@ function Marquee() {
             ))}
           </div>
         ))}
-      </div>
-    </section>
-  );
-}
-
-/** On the shelf: a cubby per category, each with one illustrated product on an oak shelf; the shop's door last. */
-function Shelf() {
-  const s = HOME.shelf;
-  const shop = shopLink("/");
-  const Cubby = ({ kind }: { kind: string }) => (
-    <div className="cat__cubby" aria-hidden="true">
-      <span className="cat__plank" />
-      <ShelfArt kind={kind} className="cat__art" />
-    </div>
-  );
-  return (
-    <section className="sheet sec shelf" aria-labelledby="shelf-title">
-      <div className="wrap">
-        <div className="split">
-          <Head id="shelf-title" eyebrow={s.eyebrow} title={s.title} intro={s.intro} />
-          <p className="shelf__note muted" data-r="">
-            <Icon name="medicines" size={16} /> {s.note}
-          </p>
-        </div>
-        <ul className="cats" data-rs="">
-          {s.items.map((it) => {
-            const href = shopLink(FACTS.shelf[it.key] ?? "/shop");
-            return (
-              <li key={it.key} className="cat" data-r="" data-cursor={href ? undefined : CHROME.cursorSoon}>
-                <Cubby kind={it.key} />
-                <h3 className="cat__t">
-                  {href ? (
-                    <a className="stretch" href={href}>
-                      {it.title}
-                    </a>
-                  ) : (
-                    <>
-                      {it.title}
-                      <span className="sr-only">{CHROME.soonSr}</span>
-                    </>
-                  )}
-                </h3>
-                <p className="cat__b">{it.body}</p>
-                {href && (
-                  <span className="cat__go" aria-hidden="true">
-                    {fill(s.go, { name: it.title })} <Icon name="arrow" size={16} />
-                  </span>
-                )}
-              </li>
-            );
-          })}
-          <li className="cat cat--shop" data-r="" data-cursor={shop ? undefined : CHROME.cursorSoon}>
-            <Cubby kind="shop" />
-            <h3 className="cat__t">
-              {shop ? (
-                <a className="stretch" href={shop}>
-                  {s.shop.title}
-                </a>
-              ) : (
-                s.shop.title
-              )}
-            </h3>
-            <p className="cat__b">{shop ? s.shop.body : s.shop.soon}</p>
-            {!shop && (
-              <span className="soon__badge" aria-hidden="true">
-                <span className="soon__dot" />
-                {FACTS.shop.opensLabel}
-              </span>
-            )}
-          </li>
-        </ul>
       </div>
     </section>
   );
@@ -341,30 +240,128 @@ function Journey() {
   );
 }
 
-/** The first chapter: Holland, meet the Hills. The sunset over the hill towns, and a card for each first store. */
+function Standards() {
+  const s = HOME.standards;
+  const visual: Record<string, React.ReactNode> = {
+    lab: (
+      <div className="lab" aria-hidden="true">
+        <span className="lab__k">
+          {s.demo.label} <em>{s.demo.example}</em>
+        </span>
+        <span className="lab__code">
+          <span data-type="">{s.demo.code}</span>
+          <span className="caret" />
+        </span>
+        <span className="lab__ok">
+          <svg viewBox="0 0 24 24" className="tick" focusable="false">
+            <circle cx="12" cy="12" r="10" />
+            <path d="m7.5 12.5 3 3 6-7" />
+          </svg>
+          {s.demo.check}
+        </span>
+      </div>
+    ),
+    members: (
+      <div className="rx" aria-hidden="true">
+        <Icon name="members" size={30} />
+        <span>{s.members.id}</span>
+      </div>
+    ),
+    adults: (
+      <div className="rx" aria-hidden="true">
+        <AgeBadge />
+      </div>
+    ),
+    medicines: (
+      <div className="rx" aria-hidden="true">
+        <Icon name="medicines" size={30} />
+        <span>{s.pharmacist}</span>
+      </div>
+    ),
+  };
+  return (
+    <section className="sheet sec standards" aria-labelledby="standards-title">
+      <div className="wrap">
+        <div className="split">
+          <Head id="standards-title" eyebrow={s.eyebrow} title={s.title} intro={s.intro} />
+          <div className="split__end" data-r="">
+            <Btn href="/about" kind="dark">
+              {s.cta}
+            </Btn>
+          </div>
+        </div>
+        <ul className="cards" data-rs="">
+          {s.items.map((it, i) => (
+            <li key={it.key} className={cx("card", `card--${it.key}`)} data-tilt="" data-r="">
+              <div className="card__in">
+                <div className="card__top">
+                  <Index n={i + 1} />
+                  {it.key === "adults" ? <AgeBadge /> : <Icon name={it.key} className="card__ico" />}
+                </div>
+                <div className="card__vis">{visual[it.key]}</div>
+                <h3 className="card__title">{it.title}</h3>
+                <p className="card__body">{it.body}</p>
+                <span className="glare" aria-hidden="true" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/** The first opening day, in numbers: its stores, the day, the Founding Members places and how far apart they are. */
+function Numbers() {
+  const n = HOME.numbers;
+  const stores = firstStores();
+  const day0 = stores[0].opens;
+  const done = stores.every((s) => s.status === "open");
+  const [day, mon] = shortDay(day0).split(" ");
+  const apart = stores.length >= 2 ? Math.round(greatCircleKm(stores[0], stores[1])) : 0;
+  const provinces = provinceNames(storeProvinces(stores));
+  const value: Record<string, React.ReactNode> = {
+    stores: <Reel value={String(stores.length)} />,
+    date: (
+      <>
+        <Reel value={day} /> <span className="stat__unit">{mon}</span>
+      </>
+    ),
+    founding: <Reel value={num(FACTS.founding.cap)} />,
+    km: <Reel value={String(apart)} />,
+  };
+  const label = (it: (typeof n.items)[number]) => fill(done && "done" in it ? it.done : it.label, { provinces, year: day0.slice(0, 4), a: stores[0].name, b: stores[1]?.name ?? "" });
+  return (
+    <section className="sec numbers" aria-labelledby="numbers-title">
+      <div className="wrap">
+        <Head id="numbers-title" eyebrow={n.eyebrow} title={fill(n.title, { count: n.count[stores.length] ?? num(stores.length) })} />
+        <dl className="stats" data-rs="">
+          {n.items
+            .filter((it) => it.key !== "km" || apart > 0)
+            .map((it) => (
+              <div key={it.key} className="stat" data-r="">
+                <dt>{label(it)}</dt>
+                <dd>{value[it.key]}</dd>
+              </div>
+            ))}
+        </dl>
+      </div>
+    </section>
+  );
+}
+
+/** The first chapter: Holland, meet the Hills. A card for each first store, how far apart they are, and all stores. */
 function First() {
   const f = HOME.first;
   const stores = firstStores();
   const opening = longDate(stores[0].opens);
   const apart = stores.length === 2 ? Math.round(greatCircleKm(stores[0], stores[1])) : 0;
   const cards = [SCENES.storeA, SCENES.storeB];
+  const lede = fill(stores.every((s) => s.status === "open") ? f.ledeOpen : f.lede, { names: listOf(stores.map((s) => s.name)), opening });
   return (
-    <section className="first" id="first" aria-labelledby="first-title">
-      <div className="first__stage" data-sp="cover">
-        <div className="wrap first__in">
-          <p className="eyebrow" data-r="">
-            {f.eyebrow}
-          </p>
-          <h2 id="first-title" className="first__title" data-r="words">
-            <Words text={f.title} accent />
-          </h2>
-          <p className="lede first__lede" data-r="">
-            {fill(stores.every((s) => s.status === "open") ? f.ledeOpen : f.lede, { names: listOf(stores.map((s) => s.name)), opening })}
-          </p>
-        </div>
-        <Scene kind="first" spec={SCENES.first} className="first__scene" />
-      </div>
+    <section className="sec stores" id="first" aria-labelledby="first-title">
       <div className="wrap">
+        <Head id="first-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede} />
         <div className="stores__grid" data-rs="">
           {stores.map((st, i) => {
             const c = f.stores.find((x) => x.key === st.key);
@@ -393,20 +390,19 @@ function First() {
             </p>
           )}
         </div>
+        <div className="stores__finder" data-r="">
+          <Btn href="/stores" kind="ghost">
+            {f.all}
+          </Btn>
+        </div>
       </div>
-      <div className="band" aria-hidden="true" />
     </section>
   );
 }
 
-/** Opening nationally: the map, the numbers so far, and the door to opening a store. */
+/** Opening nationally: the map, and the door to opening a store. */
 function National() {
   const n = HOME.national;
-  const opening = openingStores();
-  const open = openStores();
-  const provinces = storeProvinces();
-  const next = nextOpening();
-  const [day, mon] = next ? shortDay(next).split(" ") : ["", ""];
   return (
     <section className="sheet sec nation" id="national" aria-labelledby="national-title">
       <div className="wrap nation__grid">
@@ -415,38 +411,6 @@ function National() {
           <p className="nation__body" data-r="">
             {n.body}
           </p>
-          <dl className="stats stats--nation" data-rs="">
-            {open.length > 0 && (
-              <div className="stat" data-r="">
-                <dt>{plural(open.length, n.stats.open)}</dt>
-                <dd>
-                  <Reel value={String(open.length)} />
-                </dd>
-              </div>
-            )}
-            {opening.length > 0 && (
-              <div className="stat" data-r="">
-                <dt>{plural(opening.length, n.stats.stores)}</dt>
-                <dd>
-                  <Reel value={String(opening.length)} />
-                </dd>
-              </div>
-            )}
-            <div className="stat" data-r="">
-              <dt>{plural(provinces.length, n.stats.provinces)}</dt>
-              <dd>
-                <Reel value={String(provinces.length)} />
-              </dd>
-            </div>
-            {next && (
-              <div className="stat" data-r="">
-                <dt>{fill(n.stats.day, { year: next.slice(0, 4) })}</dt>
-                <dd>
-                  <Reel value={day} /> <span className="stat__unit">{mon}</span>
-                </dd>
-              </div>
-            )}
-          </dl>
           <div className="ctas" data-r="">
             <Btn href="/franchise" kind="dark" magnetic>
               {n.cta}
@@ -467,6 +431,7 @@ function National() {
 function Founding() {
   const f = HOME.founding;
   const v = { cap: num(FACTS.founding.cap), tier: FACTS.founding.tier, months: FACTS.founding.months };
+  const join = joinLink();
   return (
     <section className="sec founding" id="founding" aria-labelledby="founding-title">
       <div className="wrap founding__grid">
@@ -484,8 +449,17 @@ function Founding() {
             ))}
           </ul>
           <div className="founding__cta" data-r="">
-            <JoinDoor kind="btn" label={f.cta} />
-            {!joinLink() && <p className="muted">{f.soon}</p>}
+            {join ? (
+              <JoinDoor kind="btn" label={f.cta} />
+            ) : (
+              <>
+                {/* Until Rewards opens, the early-access list is the way in. */}
+                <Btn href="#first-access" magnetic>
+                  {CHROME.cta.access}
+                </Btn>
+                <p className="muted">{f.soon}</p>
+              </>
+            )}
           </div>
         </div>
         <div className="founding__art">
@@ -516,6 +490,84 @@ function Founding() {
   );
 }
 
+function Doors() {
+  const d = HOME.doors;
+  const shop = shopLink("/");
+  const join = joinLink();
+  return (
+    <section className="sheet sec doors" aria-labelledby="doors-title">
+      <div className="wrap">
+        <Head id="doors-title" eyebrow={d.eyebrow} title={d.title} />
+        <ul className="doors__grid" data-rs="">
+          {/* Shop: the online shop once it's live, the early-access sign-up until then. */}
+          <li className="door" data-r="">
+            <DoorTop icon="shop" label={d.shop.label} />
+            <h3 className="door__title">
+              <a href={shop ?? "#first-access"} className="stretch">
+                {d.shop.title}
+              </a>
+            </h3>
+            <p className="door__body">{shop ? fill(d.shop.body, { shop: new URL(shop).host }) : d.shop.soon}</p>
+            <DoorCta label={shop ? d.shop.cta : CHROME.cta.access} />
+          </li>
+          <li className={cx("door", !join && "door--soon")} data-r="">
+            <DoorTop icon="join" label={d.join.label} soon={!join} />
+            <h3 className="door__title">{join ? <a href={join} className="stretch">{d.join.title}</a> : d.join.title}</h3>
+            <p className="door__body">{join ? d.join.body : d.join.soon}</p>
+            {join ? <DoorCta label={d.join.cta} /> : <Soon label={CHROME.cta.join} className="door__soon" />}
+          </li>
+          <li className="door door--go" data-r="">
+            <DoorTop icon="franchise" label={d.franchise.label} />
+            <h3 className="door__title">
+              <a href="/franchise" className="stretch">
+                {d.franchise.title}
+              </a>
+            </h3>
+            <p className="door__body">{d.franchise.body}</p>
+            <DoorCta label={d.franchise.cta} />
+          </li>
+        </ul>
+        <div className="more">
+          <p className="eyebrow" data-r="">
+            {HOME.more.eyebrow}
+          </p>
+          <ul className="more__list" data-rs="">
+            {HOME.more.items.map((i) => (
+              <li key={i.key} data-r="">
+                <a href={`/${i.key}`} className="more__link">
+                  <span className="more__t">{i.title}</span>
+                  <span className="more__b">{i.body}</span>
+                  <span className="more__go" aria-hidden="true">
+                    <Icon name="arrow" size={28} />
+                  </span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function DoorTop({ icon, label, soon }: { icon: string; label: string; soon?: boolean }) {
+  return (
+    <div className="door__top">
+      <span className="door__ico">
+        <Icon name={icon} />
+      </span>
+      <span className="door__label">{label}</span>
+      {soon && <span className="sr-only">{CHROME.soonSr}</span>}
+    </div>
+  );
+}
+
+const DoorCta = ({ label }: { label: string }) => (
+  <span className="door__cta" aria-hidden="true">
+    {label} <Icon name="arrow" size={18} />
+  </span>
+);
+
 export function HomePage() {
   const shop = shopLink("/");
   const org = {
@@ -540,13 +592,16 @@ export function HomePage() {
     <Page page="home" meta={{ path: "/", title: HOME.meta.title, description, absolute: true }} jsonLd={org}>
       <Hero />
       <Statement />
-      <Brand />
+      <Range />
+      <EarlyAccess />
       <Marquee />
-      <Shelf />
       <Journey />
+      <Standards />
+      <Numbers />
       <First />
       <National />
       <Founding />
+      <Doors />
     </Page>
   );
 }

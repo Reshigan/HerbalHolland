@@ -1,22 +1,31 @@
 // herbalholland.com/stores — every store by province with its status, the national map, the store concept (the
-// owner's two renders, cropped to our own storefront) and the door to opening one. All from the stores list in
-// ../../facts; the online shop's store finder (hours and directions) appears here once the shop is live.
+// owner's two renders, cropped to the storefront), the door to opening one, and the early-access sign-up for the online
+// shop, which delivers wherever there's no store yet. All from the stores list in ../../facts; the online shop's store
+// finder (hours and directions) appears here once the shop is live.
 import { PROVINCES } from "@/lib/sa";
 import { STORES, fill, plural } from "../../content";
 import { FACTS, longDate, shopLink, storeProvinces } from "../../facts";
-import { MiniScene } from "../art";
+import { EarlyAccess } from "../access";
+import { SCENES, Scene } from "../art";
 import { Page, site } from "../layout";
 import { ZaMap } from "../map";
-import { Btn, Head, Icon } from "../ui";
+import { Btn, Head, Icon, ShopNow } from "../ui";
 import { OpeningLine, openingLine } from "./home";
 import { PageHero } from "./parts";
 
 export function StoresPage() {
   const s = STORES;
   const finder = shopLink("/stores");
+  const cards = [SCENES.storeA, SCENES.storeB];
+  let n = 0;
   return (
     <Page page="stores" meta={{ path: "/stores", title: s.meta.title, description: openingLine(s.meta.description, s.hero.ledeOpen) }}>
-      <PageHero kind="stores" eyebrow={s.hero.eyebrow} title={s.hero.title} lede={<OpeningLine soon={s.hero.lede} open={s.hero.ledeOpen} />} />
+      <PageHero kind="stores" eyebrow={s.hero.eyebrow} title={s.hero.title} lede={<OpeningLine soon={s.hero.lede} open={s.hero.ledeOpen} />}>
+        <div className="ctas">
+          <ShopNow page="stores" magnetic />
+        </div>
+        <p className="phero__note">{s.hero.shopNote}</p>
+      </PageHero>
 
       <section className="sheet sec" aria-labelledby="list-h">
         <div className="wrap nation__grid">
@@ -29,22 +38,26 @@ export function StoresPage() {
                   <h3 id={`prov-${p}`} className="prov__h" data-r="">
                     {PROVINCES[p]} <span>{plural(here.length, s.list.count)}</span>
                   </h3>
-                  <ul className="stcs" data-rs="">
-                    {here.map((st) => (
-                      <li key={st.key} id={st.key} className="stc" data-r="">
-                        <MiniScene className="stc__art" />
-                        <div className="stc__copy">
-                          <h4 className="stc__name">{st.name}</h4>
-                          <p className="stc__where">
-                            {st.city}, {PROVINCES[st.province]}
-                          </p>
-                          <p className="stc__status">
-                            <Icon name="calendar" size={16} /> {st.status === "open" ? s.card.open : fill(s.card.opens, { opening: longDate(st.opens) })}
-                          </p>
-                          <p className="stc__owned">{s.card.owned}</p>
-                        </div>
-                      </li>
-                    ))}
+                  <ul className="prov__list" data-rs="">
+                    {here.map((st) => {
+                      const i = n++;
+                      return (
+                        <li key={st.key} id={st.key} className="store" data-r="" data-tilt="">
+                          <div className="store__in">
+                            <Scene kind={`store${i}`} spec={cards[i % 2]} className="store__art" />
+                            <div className="store__copy">
+                              <p className="eyebrow">{`${st.city} · ${PROVINCES[st.province]}`}</p>
+                              <h4 className="store__name">{st.name}</h4>
+                              <p className="store__opens">
+                                <Icon name="calendar" size={16} /> {st.status === "open" ? s.card.open : fill(s.card.opens, { opening: longDate(st.opens) })}
+                              </p>
+                              <p className="store__owned">{s.card.owned}</p>
+                            </div>
+                            <span className="glare" aria-hidden="true" />
+                          </div>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </section>
               );
@@ -65,7 +78,7 @@ export function StoresPage() {
               <p className="eyebrow">{s.map.eyebrow}</p>
               <h3 className="h3">{s.map.title}</h3>
               <p>{s.map.body}</p>
-              <Btn href="/franchise" kind="dark" magnetic>
+              <Btn href="/franchise" magnetic>
                 {s.map.cta}
               </Btn>
             </div>
@@ -88,6 +101,8 @@ export function StoresPage() {
           </div>
         </div>
       </section>
+
+      <EarlyAccess tone="sheet" />
     </Page>
   );
 }
