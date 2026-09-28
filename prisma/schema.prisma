@@ -1,0 +1,1473 @@
+// Herbal Holland commerce platform — data model.
+// Money is stored in integer cents (ZAR). Retail prices are VAT-inclusive,
+// wholesale/cost prices are VAT-exclusive. Stock is tracked per batch so every
+// unit is traceable (FEFO picking, FIFO valuation, recalls).
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Network ─────────────────────────────
+
+enum CompanyKind {
+  FRANCHISOR
+  FRANCHISEE
+}
+
+enum StoreKind {
+  RETAIL
+  WAREHOUSE
+}
+
+enum StoreStatus {
+  ACTIVE
+  OPENING_SOON
+  CLOSED
+}
+
+enum StoreFormat {
+  FLAGSHIP
+  STANDARD
+  EXPRESS
+}
+
+enum Province {
+  GP
+  WC
+  KZN
+  EC
+  FS
+  LP
+  MP
+  NW
+  NC
+}
+
+// Area-manager territories. A 1,000-store network is managed region by region.
+model Region {
+  id     String  @id @default(cuid())
+  code   String  @unique
+  name   String
+  stores Store[]
+  users  User[]
+}
+
+model Company {
+  id          String      @id @default(cuid())
+  kind        CompanyKind
+  name        String
+  legalName   String
+  regNumber   String?
+  vatNumber   String?
+  contactName String?
+  email       String?
+  phone       String?
+  address     String?
+  stores      Store[]
+  users       User[]
+  createdAt   DateTime    @default(now())
+}
+
+model Store {
+  id            String      @id @default(cuid())
+  code          String      @unique
+  slug          String      @unique
+  name          String
+  kind          StoreKind   @default(RETAIL)
+  status        StoreStatus @default(ACTIVE)
+  format        StoreFormat @default(STANDARD)
+  company       Company     @relation(fields: [companyId], references: [id])
+  companyId     String
+  region        Region      @relation(fields: [regionId], references: [id])
+  regionId      String
+  dc            Store?      @relation("dc", fields: [dcId], references: [id])
+  dcId          String? // serving distribution centre (WAREHOUSE)
+  served        Store[]     @relation("dc")
+  addressLine   String
+  suburb        String
+  city          String
+  province      Province
+  postalCode    String
+  lat           Float?
+  lng           Float?
+  phone         String?
+  whatsapp      String?
+  email         String?
+  hours         Json?
+  clickCollect  Boolean     @default(true)
+  sameDay       Boolean     @default(false)
+  licences      RegClass[]  @default([]) // classes this store is licensed/permitted to sell
+  licenceRef    String? // e.g. SAHPRA licence / permit numbers, printed on receipts
+  royaltyBps    Int         @default(600)
+  levyBps       Int         @default(200)
+  ecomBps       Int         @default(1000)
+  receiptFooter String?
+  commissionOn  Boolean     @default(false) // staff commission, switched on by the owner (who pays it)
+  openedAt      DateTime?
+  createdAt     DateTime    @default(now())
+
+  users          User[]
+  events         StoreEvent[]
+  devices        Device[]
+  stock          StockLevel[]
+  storeVariants  StoreVariant[]
+  movements      StockMovement[]
+  sales          Sale[]
+  shifts         Shift[]
+  orders         Order[]
+  purchases      StockOrder[]       @relation("buyer")
+  supplies       StockOrder[]       @relation("seller")
+  listings       Listing[]
+  stockTakes     StockTake[]
+  expenses       Expense[]
+  customers      Customer[]
+  loyalty        LoyaltyEntry[]
+  campaigns      Campaign[]
+  dailyStats     DailyStoreStat[]
+  variantStats   DailyVariantStat[]
+  acks           AnnouncementAck[]
+  deposits       CashDeposit[]
+  alerts         Alert[]
+  commissionRuns CommissionRun[]
+
+  @@index([regionId])
+  @@index([companyId])
+}
+
+enum Role {
+  HQ_ADMIN
+  HQ_STAFF
+  AREA_MANAGER
+  OWNER
+  MANAGER
+  BUDTENDER
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  name               String
+  email              String?   @unique
+  passwordHash       String?
+  mustChangePassword Boolean   @default(false) // set with a temporary password; cleared when they choose their own
+  pinHash            String?
+  canDispense        Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
+  memberId           String?   @unique // their own Rewards membership: sales they ring onto it are flagged and earn no commission
+  role               Role
+  company            Company?  @relation(fields: [companyId], references: [id])
+  companyId          String?
+  store              Store?    @relation(fields: [storeId], references: [id])
+  storeId            String?
+  region             Region?   @relation(fields: [regionId], references: [id])
+  regionId           String?
+  active             Boolean   @default(true)
+  lastLoginAt        DateTime?
+  createdAt          DateTime  @default(now())
+
+  sessions Session[]
+  sales    Sale[]
+
+  @@index([storeId])
+  @@index([companyId])
+}
+
+model Session {
+  id         String    @id // sha256(token)
+  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String?
+  storeId    String? // POS store context
+  deviceId   String?
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  @@index([userId])
+  @@index([customerId])
+}
+
+model Device {
+  id         String    @id @default(cuid())
+  store      Store     @relation(fields: [storeId], references: [id])
+  storeId    String
+  name       String
+  prefix     String // receipt-number prefix, unique per store
+  seq        Int       @default(0)
+  tokenHash  String    @unique
+  active     Boolean   @default(true)
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([storeId, prefix])
+}
+
+// ───────────────────────────── Catalogue ─────────────────────────────
+
+enum StrainType {
+  INDICA
+  SATIVA
+  HYBRID
+  CBD
+}
+
+enum RegClass {
+  THC // licence-gated: unsellable until a store holds a licence under a future regime
+  CBD // CBD supplements — Schedule 0 complementary medicines (oils, softgels): ≤ 20 mg a day, ≤ 600 mg a pack
+  CBD_FOOD // CBD food & drink (coffee, tea, protein): ≤ 0.0075% CBD, naturally occurring only (GN 586 of 2020)
+  CBD_TOPICAL // CBD skin care (creams, balms)
+  HEMP
+  SUPPLEMENT // supplements without cannabis (collagen, protein)
+  ACCESSORY
+  APPAREL
+  GROW
+}
+
+enum ProductStatus {
+  ACTIVE
+  DRAFT
+  ARCHIVED
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  blurb     String?
+  icon      String
+  sortOrder Int       @default(0)
+  products  Product[]
+}
+
+model Product {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  tagline        String?
+  brand          String        @default("Herbal Holland")
+  line           String? // HOUSE | HERITAGE | CLASSIC | PARTNER
+  category       Category      @relation(fields: [categoryId], references: [id])
+  categoryId     String
+  description    String
+  strain         StrainType?
+  thcMin         Float?
+  thcMax         Float?
+  cbdMin         Float?
+  cbdMax         Float?
+  terpenes       Json? // [{ name, pct }]
+  effects        String[]      @default([])
+  flavours       String[]      @default([])
+  lineage        String?
+  origin         String?
+  heritage       Boolean       @default(false)
+  regClass       RegClass
+  // Compliance master data
+  legalBasis     String? // e.g. "Schedule 0 CBD — GN 586 of 2020"
+  cbdMgPerPack   Int? // Schedule 0: ≤ 600 mg per sales pack
+  cbdMgPerDay    Float? // Schedule 0: ≤ 20 mg maximum daily dose
+  claims         String[]      @default([]) // approved low-risk claims only
+  // Food, supplement and skin-care facts (members see them on the product page and at the till)
+  netContent     Float? // one pack, in netUnit
+  netUnit        String? // "g" | "ml"
+  ingredients    String?
+  allergens      String[]      @default([]) // keys from @/lib/compliance ALLERGENS
+  naturalCbd     Boolean       @default(false) // CBD food & drink: only the CBD naturally in the ingredients
+  tobaccoRelated Boolean       @default(false) // pipes, water-pipes, papers, vapes (Tobacco Bill B33-2022)
+  featured       Boolean       @default(false)
+  status         ProductStatus @default(ACTIVE)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  variants Variant[]
+  reviews  Review[]
+}
+
+model Variant {
+  id             String  @id @default(cuid())
+  product        Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId      String
+  sku            String  @unique
+  barcode        String? @unique
+  name           String
+  grams          Float? // dried-flower equivalent grams, used for purchase limits
+  priceCents     Int // national RRP, VAT incl.
+  wholesaleCents Int // price to stores, VAT excl.
+  costCents      Int // HQ landed cost, VAT excl. (made to order: the print partner's price)
+  podSku         String? // print partner's product code: set = made to order (no stock; ships from the partner)
+  active         Boolean @default(true)
+  sortOrder      Int     @default(0)
+
+  batches         Batch[]
+  stock           StockLevel[]
+  storeVariants   StoreVariant[]
+  movements       StockMovement[]
+  saleLines       SaleLine[]
+  orderLines      OrderLine[]
+  stockOrderLines StockOrderLine[]
+  listings        Listing[]
+  stockTakeLines  StockTakeLine[]
+  alerts          StockAlert[]
+}
+
+enum BatchStatus {
+  RELEASED
+  QUARANTINE
+  RECALLED
+}
+
+model Batch {
+  id           String      @id @default(cuid())
+  code         String      @unique
+  variant      Variant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId    String
+  supplier     String
+  packedAt     DateTime
+  expiresAt    DateTime?
+  thc          Float?
+  cbd          Float?
+  labName      String?
+  coaRef       String?
+  labResults   Json? // { microbials, pesticides, heavyMetals, residualSolvents, terpenes: [{ name, pct }] }
+  status       BatchStatus @default(RELEASED)
+  statusReason String?
+  createdAt    DateTime    @default(now())
+
+  stock     StockLevel[]
+  movements StockMovement[]
+
+  @@index([variantId])
+}
+
+// ───────────────────────────── Inventory ─────────────────────────────
+
+model StockLevel {
+  id            String   @id @default(cuid())
+  store         Store    @relation(fields: [storeId], references: [id])
+  storeId       String
+  variant       Variant  @relation(fields: [variantId], references: [id])
+  variantId     String
+  batch         Batch    @relation(fields: [batchId], references: [id])
+  batchId       String
+  onHand        Int      @default(0)
+  unitCostCents Int // landed cost of this batch at this store, VAT excl.
+  updatedAt     DateTime @updatedAt
+
+  @@unique([storeId, variantId, batchId])
+  @@index([storeId, variantId])
+  @@index([variantId])
+}
+
+model StoreVariant {
+  store        Store   @relation(fields: [storeId], references: [id])
+  storeId      String
+  variant      Variant @relation(fields: [variantId], references: [id])
+  variantId    String
+  priceCents   Int? // local shelf price (franchisees set their own prices)
+  reorderPoint Int     @default(4)
+  parLevel     Int     @default(12)
+
+  // A row here means the variant is ranged at the store.
+  @@id([storeId, variantId])
+  @@index([variantId])
+}
+
+enum MovementType {
+  RECEIVE
+  SALE
+  REFUND
+  ONLINE
+  ADJUST
+  COUNT
+  TRANSFER_OUT
+  TRANSFER_IN
+}
+
+enum AdjustReason {
+  DAMAGED
+  EXPIRED
+  THEFT
+  LOST
+  SAMPLE
+  QUALITY
+  FOUND
+  RECALL
+  DESTROYED
+  CORRECTION
+}
+
+model StockMovement {
+  id            String        @id @default(cuid())
+  store         Store         @relation(fields: [storeId], references: [id])
+  storeId       String
+  variant       Variant       @relation(fields: [variantId], references: [id])
+  variantId     String
+  batch         Batch         @relation(fields: [batchId], references: [id])
+  batchId       String
+  qty           Int // signed
+  type          MovementType
+  reason        AdjustReason?
+  unitCostCents Int
+  note          String?
+  saleId        String?
+  orderId       String?
+  stockOrderId  String?
+  stockTakeId   String?
+  userId        String?
+  createdAt     DateTime      @default(now())
+
+  @@index([storeId, createdAt])
+  @@index([variantId])
+  @@index([batchId])
+}
+
+enum StockTakeStatus {
+  COUNTING
+  APPROVED
+  CANCELLED
+}
+
+model StockTake {
+  id           String          @id @default(cuid())
+  number       String          @unique
+  store        Store           @relation(fields: [storeId], references: [id])
+  storeId      String
+  scope        String // "FULL" or a category slug for cycle counts
+  blind        Boolean         @default(true)
+  status       StockTakeStatus @default(COUNTING)
+  createdById  String?
+  approvedById String?
+  notes        String?
+  createdAt    DateTime        @default(now())
+  approvedAt   DateTime?
+  lines        StockTakeLine[]
+}
+
+model StockTakeLine {
+  id            String    @id @default(cuid())
+  stockTake     StockTake @relation(fields: [stockTakeId], references: [id], onDelete: Cascade)
+  stockTakeId   String
+  variant       Variant   @relation(fields: [variantId], references: [id])
+  variantId     String
+  batchId       String
+  expectedQty   Int
+  countedQty    Int?
+  varianceQty   Int?
+  unitCostCents Int
+
+  @@unique([stockTakeId, variantId, batchId])
+}
+
+// Stores buy stock from HQ (WHOLESALE) or from each other (NETWORK).
+enum StockOrderKind {
+  WHOLESALE
+  NETWORK
+}
+
+enum StockOrderStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  SHIPPED
+  RECEIVED
+  REJECTED
+  CANCELLED
+}
+
+model StockOrder {
+  id            String           @id @default(cuid())
+  number        String           @unique
+  kind          StockOrderKind
+  status        StockOrderStatus @default(DRAFT)
+  buyer         Store            @relation("buyer", fields: [buyerId], references: [id])
+  buyerId       String
+  seller        Store            @relation("seller", fields: [sellerId], references: [id])
+  sellerId      String
+  subtotalCents Int              @default(0)
+  vatCents      Int              @default(0)
+  totalCents    Int              @default(0)
+  notes         String?
+  createdById   String?
+  createdAt     DateTime         @default(now())
+  submittedAt   DateTime?
+  approvedAt    DateTime?
+  shippedAt     DateTime?
+  receivedAt    DateTime?
+  invoiceSentAt DateTime?
+  lines         StockOrderLine[]
+
+  @@index([buyerId, status])
+  @@index([sellerId, status])
+}
+
+model StockOrderLine {
+  id            String     @id @default(cuid())
+  stockOrder    StockOrder @relation(fields: [stockOrderId], references: [id], onDelete: Cascade)
+  stockOrderId  String
+  variant       Variant    @relation(fields: [variantId], references: [id])
+  variantId     String
+  qty           Int
+  unitCostCents Int // VAT excl.
+  shipped       Json? // [{ batchId, qty }]
+  receivedQty   Int?
+
+  @@index([stockOrderId])
+}
+
+model Listing {
+  id            String   @id @default(cuid())
+  store         Store    @relation(fields: [storeId], references: [id])
+  storeId       String
+  variant       Variant  @relation(fields: [variantId], references: [id])
+  variantId     String
+  qty           Int
+  unitCostCents Int // asking price, VAT excl.
+  note          String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+
+  @@index([active, variantId])
+}
+
+// ───────────────────────────── Customers & loyalty ─────────────────────────────
+
+enum Tier {
+  SEED
+  SPROUT
+  BLOOM
+  HARVEST
+}
+
+enum AgeCheck {
+  NONE
+  ID_SIGHTED // document sighted by staff (SA ID, passport)
+  ID_NUMBER // number format + checksum only
+  VERIFIED // live Home Affairs / vendor verification
+}
+
+model Customer {
+  id                 String    @id @default(cuid())
+  memberNo           String    @unique
+  phone              String    @unique
+  email              String?   @unique
+  firstName          String
+  lastName           String?
+  dob                DateTime?
+  idHash             String?   @unique
+  idLast4            String?
+  ageVerifiedAt      DateTime?
+  ageCheck           AgeCheck  @default(NONE)
+  tier               Tier      @default(SEED)
+  tierFloor          Tier? // guaranteed minimum tier until tierFloorUntil (founding members start at Sprout)
+  tierFloorUntil     DateTime?
+  foundingNo         Int?      @unique // Founding Member number: waitlist place at launch
+  personalisedOffers Boolean   @default(true) // POPIA: members may object to personalised offers (My Deals)
+  homeStore          Store?    @relation(fields: [homeStoreId], references: [id])
+  homeStoreId        String?
+  referralCode       String    @unique
+  referredById       String?
+  consentWhatsapp    Boolean   @default(false)
+  consentSms         Boolean   @default(false)
+  consentEmail       Boolean   @default(false)
+  consentPush        Boolean   @default(false)
+  consentAt          DateTime?
+  source             String?
+  joinedVia          String? // ?src= tag on the join link or QR code (e.g. qr-window-hillcrest)
+  termsVersion       String? // membership terms accepted (TERMS_VERSION)
+  termsAcceptedAt    DateTime?
+  interests          String[]  @default([]) // what they told us they're into (INTERESTS), for relevant deals
+  // Denormalised stats (kept current on every purchase) so segmentation stays
+  // cheap across millions of members.
+  points             Int       @default(0)
+  lifetimeCents      Int       @default(0)
+  visits             Int       @default(0)
+  firstPurchaseAt    DateTime?
+  lastPurchaseAt     DateTime?
+  createdAt          DateTime  @default(now())
+  lastSeenAt         DateTime?
+
+  sessions      Session[]
+  loyalty       LoyaltyEntry[]
+  sales         Sale[]
+  orders        Order[]
+  messages      MessageLog[]
+  alerts        StockAlert[]
+  reviews       Review[]
+  consentEvents ConsentEvent[]
+  patientAuths  PatientAuth[]
+  pushSubs      PushSubscription[]
+  offers        MemberOffer[]
+  rsvps         Rsvp[]
+  dropWatches   DropWatch[]
+  quests        QuestCompletion[]
+
+  @@index([homeStoreId])
+  @@index([lastPurchaseAt])
+  @@index([tier])
+  @@index([referredById])
+  @@index([createdAt])
+}
+
+enum LoyaltyKind {
+  EARN
+  REDEEM
+  SIGNUP
+  REFERRAL
+  BIRTHDAY
+  BONUS
+  REVERSAL
+  EXPIRE
+  ADJUST
+}
+
+// Points ledger. Points are a network-wide liability settled between stores
+// on the monthly franchise statement (issuing store funds, redeeming store is reimbursed).
+model LoyaltyEntry {
+  id         String      @id @default(cuid())
+  customer   Customer    @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  store      Store?      @relation(fields: [storeId], references: [id])
+  storeId    String?
+  points     Int
+  kind       LoyaltyKind
+  saleId     String?
+  orderId    String?
+  note       String?
+  createdAt  DateTime    @default(now())
+
+  @@index([customerId])
+  @@index([storeId, createdAt])
+}
+
+// Medical pathway: SAHPRA Section 21 authorisation / prescription on file.
+// The clinical condition is deliberately NOT stored (POPIA s26 special personal information).
+enum AuthStatus {
+  ACTIVE
+  REVOKED
+}
+
+model PatientAuth {
+  id                String     @id @default(cuid())
+  customer          Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId        String
+  authNumber        String
+  prescriber        String
+  prescriberRegNo   String // HPCSA registration number
+  scope             String // authorised products, e.g. "Dried flower, oils"
+  monthlyLimitGrams Float
+  validFrom         DateTime
+  validTo           DateTime
+  documentRef       String? // reference to the scanned authorisation in document storage
+  status            AuthStatus @default(ACTIVE)
+  verifiedById      String?
+  createdAt         DateTime   @default(now())
+
+  @@index([customerId])
+}
+
+// POPIA s69 evidence: every grant/withdrawal of marketing consent, per channel.
+model ConsentEvent {
+  id         String     @id @default(cuid())
+  customer   Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  channel    MsgChannel
+  granted    Boolean
+  source     String // SIGNUP_WEB | POS | CLUB_APP | STOP_REPLY | ADMIN
+  wording    String?
+  createdAt  DateTime   @default(now())
+
+  @@index([customerId])
+}
+
+// Do-not-contact list: NCC opt-out registry imports + refusals. Checked before every send.
+model Suppression {
+  id        String   @id @default(cuid())
+  value     String // E.164 phone or lower-case email
+  channel   String? // null = all channels
+  source    String // NCC_REGISTRY | REFUSED | STOP_REPLY | COMPLAINT
+  createdAt DateTime @default(now())
+
+  @@unique([value, source])
+  @@index([value])
+}
+
+model Otp {
+  id        String   @id @default(cuid())
+  phone     String
+  codeHash  String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([phone])
+}
+
+// ───────────────────────────── Selling ─────────────────────────────
+
+enum SaleKind {
+  SALE
+  REFUND
+}
+
+enum Channel {
+  POS
+  ONLINE
+}
+
+enum PayMethod {
+  CARD
+  CASH
+  PAYSHAP
+  EFT
+  LOYALTY
+  ONLINE
+}
+
+model Shift {
+  id                String       @id @default(cuid())
+  store             Store        @relation(fields: [storeId], references: [id])
+  storeId           String
+  deviceId          String?
+  openedById        String
+  openedAt          DateTime     @default(now())
+  openingFloatCents Int
+  closedById        String?
+  closedAt          DateTime?
+  expectedCashCents Int?
+  countedCashCents  Int?
+  notes             String?
+  deposit           CashDeposit? @relation(fields: [depositId], references: [id])
+  depositId         String? // the bank deposit its cash went into
+  sales             Sale[]
+
+  @@index([storeId, closedAt])
+  @@index([depositId, storeId]) // cash waiting to be banked (depositId null), and a deposit's cash-ups
+}
+
+model Sale {
+  id                 String    @id // client-generated UUID (idempotent offline sync)
+  number             String    @unique
+  kind               SaleKind  @default(SALE)
+  refundOf           Sale?     @relation("refunds", fields: [refundOfId], references: [id])
+  refundOfId         String?
+  refunds            Sale[]    @relation("refunds")
+  channel            Channel   @default(POS)
+  order              Order?    @relation(fields: [orderId], references: [id])
+  orderId            String?   @unique
+  store              Store     @relation(fields: [storeId], references: [id])
+  storeId            String
+  shift              Shift?    @relation(fields: [shiftId], references: [id])
+  shiftId            String?
+  staff              User?     @relation(fields: [staffId], references: [id])
+  staffId            String?
+  deviceId           String?
+  customer           Customer? @relation(fields: [customerId], references: [id])
+  customerId         String?
+  subtotalCents      Int
+  discountCents      Int       @default(0)
+  memberSavingsCents Int       @default(0)
+  totalCents         Int
+  vatCents           Int
+  costCents          Int
+  pointsEarned       Int       @default(0)
+  promoCode          String?
+  promotionId        String?
+  campaignId         String?
+  ageCheck           AgeCheck  @default(NONE)
+  buyer              Json? // full tax invoice (> R5,000): { name, address, vatNumber }
+  invoiceEmail       String? // where the tax invoice was emailed
+  invoiceSentAt      DateTime?
+  offline            Boolean   @default(false)
+  note               String?
+  createdAt          DateTime  @default(now())
+  syncedAt           DateTime  @default(now())
+
+  lines    SaleLine[]
+  payments Payment[]
+
+  @@index([storeId, createdAt])
+  @@index([customerId])
+  @@index([createdAt])
+  @@index([promotionId]) // promotion usage caps (maxUses) and redemption reporting
+}
+
+model SaleLine {
+  id                 String  @id @default(cuid())
+  sale               Sale    @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId             String
+  variant            Variant @relation(fields: [variantId], references: [id])
+  variantId          String
+  qty                Int
+  unitPriceCents     Int
+  discountCents      Int     @default(0)
+  memberSavingsCents Int     @default(0) // instant Rewards savings vs the non-member price
+  offerCents         Int     @default(0) // My Deals discount (HQ-funded)
+  totalCents         Int
+  vatCents           Int
+  costCents          Int
+  allocations        Json // [{ batchId, qty, unitCostCents }]
+
+  @@index([saleId])
+  @@index([variantId])
+}
+
+model Payment {
+  id            String    @id @default(cuid())
+  sale          Sale      @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  saleId        String
+  method        PayMethod
+  amountCents   Int
+  tenderedCents Int?
+  changeCents   Int?
+  provider      String?
+  reference     String?
+  cardBrand     String?
+  cardLast4     String?
+  createdAt     DateTime  @default(now())
+
+  @@index([saleId])
+}
+
+enum Fulfilment {
+  COLLECT
+  SAME_DAY
+  COURIER
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PLACED
+  PICKING
+  READY
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID
+  REFUNDED
+}
+
+model Order {
+  id             String        @id @default(cuid())
+  code           String        @unique
+  customer       Customer      @relation(fields: [customerId], references: [id])
+  customerId     String
+  store          Store         @relation(fields: [storeId], references: [id])
+  storeId        String
+  status         OrderStatus   @default(PLACED)
+  fulfilment     Fulfilment
+  routingNote    String?
+  addressLine    String?
+  suburb         String?
+  city           String?
+  province       Province?
+  postalCode     String?
+  deliveryNotes  String?
+  subtotalCents  Int
+  discountCents  Int           @default(0)
+  deliveryCents  Int           @default(0)
+  pointsRedeemed Int           @default(0)
+  totalCents     Int
+  vatCents       Int
+  payMethod      PayMethod
+  paymentStatus  PaymentStatus @default(UNPAID)
+  paymentRef     String?
+  collectionCode String
+  idChecked      Boolean       @default(false) // 18+ ID check recorded at handover / proof of delivery
+  courier        String?
+  trackingNo     String?
+  podRef         String? // print partner's order id for made-to-order lines
+  podStatus      String? // partner's last reported status
+  podTracking    String? // merch parcel's courier and tracking number ("Aramex · ARX123")
+  promoCode      String?
+  promotionId    String?
+  campaignId     String?
+  events         Json // [{ status, at, note }]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  completedAt    DateTime?
+
+  lines OrderLine[]
+  sale  Sale?
+
+  @@index([storeId, status])
+  @@index([customerId])
+  @@index([createdAt])
+}
+
+model OrderLine {
+  id                 String  @id @default(cuid())
+  order              Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderId            String
+  variant            Variant @relation(fields: [variantId], references: [id])
+  variantId          String
+  qty                Int
+  unitPriceCents     Int
+  memberSavingsCents Int     @default(0)
+  offerCents         Int     @default(0)
+  totalCents         Int
+
+  @@index([orderId])
+}
+
+// ───────────────────────────── Finance ─────────────────────────────
+
+enum ExpenseCategory {
+  RENT
+  SALARIES
+  UTILITIES
+  SECURITY
+  MARKETING
+  SUPPLIES
+  BANK_FEES
+  OTHER
+}
+
+model Expense {
+  id          String          @id @default(cuid())
+  store       Store           @relation(fields: [storeId], references: [id])
+  storeId     String
+  date        DateTime
+  category    ExpenseCategory
+  description String
+  supplier    String?
+  amountCents Int // VAT incl.
+  vatCents    Int             @default(0)
+  createdById String?
+  createdAt   DateTime        @default(now())
+
+  @@index([storeId, date])
+}
+
+// ───────────────────────────── Pricing ─────────────────────────────
+// Price lists layer on top of the national RRP: regional zones and scheduled
+// changes, channel prices, member/tier prices and quantity breaks. A franchisee's
+// own shelf price (StoreVariant.priceCents) always wins in store.
+
+enum PriceListKind {
+  ZONE // regional / scheduled price changes (stores or regions; empty = network)
+  CHANNEL // e.g. online-only prices
+  MEMBER // Rewards member prices, optionally tier-specific
+}
+
+model PriceList {
+  id        String          @id @default(cuid())
+  name      String
+  kind      PriceListKind
+  channel   Channel?
+  tiers     Tier[]          @default([]) // MEMBER: empty = all members
+  storeIds  String[]        @default([])
+  regionIds String[]        @default([])
+  adjustPct Float? // blanket adjustment on RRP for items without an explicit price (e.g. -5)
+  startsAt  DateTime?
+  endsAt    DateTime?
+  active    Boolean         @default(true)
+  priority  Int             @default(0)
+  createdAt DateTime        @default(now())
+  items     PriceListItem[]
+}
+
+model PriceListItem {
+  id          String    @id @default(cuid())
+  priceList   PriceList @relation(fields: [priceListId], references: [id], onDelete: Cascade)
+  priceListId String
+  variantId   String
+  priceCents  Int // VAT incl.
+  minQty      Int       @default(1) // quantity breaks
+
+  @@unique([priceListId, variantId, minQty])
+  @@index([variantId])
+}
+
+// ───────────────────────────── Marketing ─────────────────────────────
+
+enum PromoKind {
+  PERCENT // % off qualifying items
+  FIXED // R off per qualifying item, or off the basket when untargeted
+  MULTIPLIER // Points multiplier (x100)
+  BUY_X_GET_Y // bonus buys, BOGO, gifts with purchase, complementary deals
+  MULTIBUY // mix & match: any N qualifying items for a set price
+}
+
+model Promotion {
+  id                String    @id @default(cuid())
+  name              String
+  description       String?
+  code              String?   @unique
+  kind              PromoKind
+  value             Int // PERCENT: whole %, FIXED: cents, MULTIPLIER: x100, MULTIBUY: bundle price in cents
+  // Qualifying items (both empty = everything)
+  categoryIds       String[]  @default([])
+  productIds        String[]  @default([])
+  minSpendCents     Int       @default(0)
+  // BUY_X_GET_Y / MULTIBUY
+  buyQty            Int? // qualifying units needed (null = the min spend alone triggers)
+  getQty            Int? // reward units per trigger
+  rewardPercent     Int? // % off reward units (100 = free)
+  rewardCategoryIds String[]  @default([]) // reward items (both empty = same as qualifying items)
+  rewardProductIds  String[]  @default([])
+  channels          Channel[] @default([])
+  storeIds          String[]  @default([]) // empty = whole network
+  ownerStoreId      String? // null = HQ promotion
+  startsAt          DateTime
+  endsAt            DateTime
+  days              Int[]     @default([]) // 0 = Sunday … 6 = Saturday; empty = every day
+  startMinute       Int? // happy hours: minutes after midnight SAST
+  endMinute         Int?
+  active            Boolean   @default(true)
+  maxUses           Int?
+  firstPurchaseOnly Boolean   @default(false) // welcome gifts: a member's first purchase only
+  createdAt         DateTime  @default(now())
+}
+
+enum MsgChannel {
+  WHATSAPP
+  SMS
+  EMAIL
+  PUSH
+}
+
+enum CampaignStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  CANCELLED
+}
+
+model Campaign {
+  id              String         @id @default(cuid())
+  name            String
+  channel         MsgChannel
+  segment         String
+  store           Store?         @relation(fields: [storeId], references: [id])
+  storeId         String?
+  message         String
+  promotionId     String?
+  status          CampaignStatus @default(DRAFT)
+  scheduledAt     DateTime?
+  sentAt          DateTime?
+  costCents       Int            @default(0) // spend drawn from the marketing fund
+  audienceCount   Int            @default(0)
+  sentCount       Int            @default(0)
+  suppressedCount Int            @default(0)
+  createdAt       DateTime       @default(now())
+  messages        MessageLog[]
+}
+
+model MessageLog {
+  id         String     @id @default(cuid())
+  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaignId String?
+  customer   Customer?  @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  customerId String?
+  to         String
+  channel    MsgChannel
+  kind       String // MARKETING | TRANSACTIONAL
+  status     String // SENT | SUPPRESSED | FAILED
+  reason     String?
+  body       String
+  createdAt  DateTime   @default(now())
+
+  @@index([campaignId])
+  @@index([customerId])
+}
+
+model StockAlert {
+  id         String    @id @default(cuid())
+  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  variant    Variant   @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  variantId  String
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime?
+
+  @@unique([customerId, variantId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId  String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  rating     Int
+  title      String?
+  body       String?
+  verified   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  @@unique([productId, customerId])
+}
+
+// ───────────────────────────── Rollups ─────────────────────────────
+// Maintained in the same transaction as every sale/refund (INSERT … ON CONFLICT
+// DO UPDATE), so network reporting across 1,000 stores never scans raw sales.
+
+model DailyStoreStat {
+  store              Store    @relation(fields: [storeId], references: [id])
+  storeId            String
+  date               DateTime @db.Date
+  channel            Channel
+  sales              Int      @default(0)
+  refunds            Int      @default(0)
+  units              Int      @default(0)
+  grossCents         Int      @default(0) // VAT incl., after discounts
+  vatCents           Int      @default(0)
+  costCents          Int      @default(0)
+  discountCents      Int      @default(0)
+  memberSavingsCents Int      @default(0) // instant Rewards (tier/member) savings given
+  offerCents         Int      @default(0) // My Deals discounts given (HQ-funded, credited on the statement)
+  cardCents          Int      @default(0)
+  cashCents          Int      @default(0)
+  payshapCents       Int      @default(0)
+  eftCents           Int      @default(0)
+  loyaltyCents       Int      @default(0)
+  onlineCents        Int      @default(0)
+  members            Int      @default(0) // transactions linked to a member
+  pointsIssued       Int      @default(0)
+
+  @@id([storeId, date, channel])
+  @@index([date])
+}
+
+model DailyVariantStat {
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  date      DateTime @db.Date
+  variantId String
+  units     Int      @default(0)
+  netCents  Int      @default(0) // VAT excl.
+  costCents Int      @default(0)
+
+  @@id([storeId, date, variantId])
+  @@index([date])
+  @@index([variantId, date])
+}
+
+// ───────────────────────────── Network comms ─────────────────────────────
+
+model Announcement {
+  id          String            @id @default(cuid())
+  title       String
+  body        String
+  kind        String // NEWS | LAUNCH | POLICY | RECALL
+  audience    String // ALL | region:<code> | format:<FORMAT>
+  requiresAck Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  acks        AnnouncementAck[]
+}
+
+model AnnouncementAck {
+  announcement   Announcement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  announcementId String
+  store          Store        @relation(fields: [storeId], references: [id])
+  storeId        String
+  userId         String?
+  at             DateTime     @default(now())
+
+  @@id([announcementId, storeId])
+}
+
+// ───────────────────────────── Platform ─────────────────────────────
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  at        DateTime @default(now())
+  actorType String // USER | CUSTOMER | DEVICE | SYSTEM
+  actorId   String?
+  actorName String?
+  storeId   String?
+  action    String
+  entity    String?
+  entityId  String?
+  data      Json?
+
+  @@index([storeId, at])
+  @@index([action])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+}
+
+model Counter {
+  key   String @id
+  value Int    @default(0)
+}
+
+// ── Launch & engagement ─────────────────────────────────────────────────────
+
+/**
+ * Web Push subscriptions for the Rewards app (one per browser/device).
+ */
+model PushSubscription {
+  id         String   @id @default(cuid())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  createdAt  DateTime @default(now())
+
+  @@index([customerId])
+}
+
+/**
+ * Limited releases (apparel, accessories, CBD). Never licensed medicines.
+ */
+model Drop {
+  id              String      @id @default(cuid())
+  slug            String      @unique
+  name            String
+  blurb           String
+  variantIds      String[]    @default([])
+  startsAt        DateTime
+  endsAt          DateTime?
+  earlyTier       Tier? // this tier and above get in `earlyMinutes` before everyone else
+  earlyMinutes    Int         @default(0)
+  perMemberLimit  Int         @default(1)
+  membersOnly     Boolean     @default(true)
+  notifiedEarlyAt DateTime?
+  notifiedAt      DateTime?
+  createdAt       DateTime    @default(now())
+  watchers        DropWatch[]
+
+  @@index([startsAt])
+}
+
+/**
+ * "Notify me" for a drop.
+ */
+model DropWatch {
+  drop       Drop     @relation(fields: [dropId], references: [id], onDelete: Cascade)
+  dropId     String
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  createdAt  DateTime @default(now())
+
+  @@id([dropId, customerId])
+}
+
+/**
+ * In-store events (opening weekends, members' evenings) with RSVP tickets.
+ */
+model StoreEvent {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  store     Store    @relation(fields: [storeId], references: [id])
+  storeId   String
+  title     String
+  blurb     String
+  startsAt  DateTime
+  endsAt    DateTime
+  capacity  Int
+  createdAt DateTime @default(now())
+  rsvps     Rsvp[]
+
+  @@index([storeId, startsAt])
+}
+
+model Rsvp {
+  id          String     @id @default(cuid())
+  event       StoreEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId     String
+  customer    Customer   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String
+  code        String     @unique // ticket QR: HHRSVP:{code}
+  checkedInAt DateTime?
+  createdAt   DateTime   @default(now())
+
+  @@unique([eventId, customerId])
+}
+
+/**
+ * My Deals: personal, single-use offers loaded to a member's card (HQ-funded). Never on medicines.
+ */
+model MemberOffer {
+  id          String    @id @default(cuid())
+  customer    Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId  String
+  title       String
+  kind        PromoKind // PERCENT | FIXED, targeted at products/categories
+  value       Int
+  productIds  String[]  @default([])
+  categoryIds String[]  @default([])
+  startsAt    DateTime
+  endsAt      DateTime
+  redeemedAt  DateTime?
+  saleId      String?
+  orderId     String?
+  createdAt   DateTime  @default(now())
+
+  @@index([customerId, endsAt])
+}
+
+/**
+ * Learn quests: points once per article quiz.
+ */
+model QuestCompletion {
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId String
+  key        String
+  createdAt  DateTime @default(now())
+
+  @@id([customerId, key])
+}
+
+// Posts handed to Postiz for the brand's social accounts (HQ → Campaigns → Social).
+model SocialPost {
+  id          String    @id @default(cuid())
+  content     String
+  image       String? // public/social/<image>.jpg
+  channels    String[]  @default([]) // "Instagram · herbalholland", as posted; empty when Postiz isn't connected
+  mode        String // now | schedule | draft
+  scheduledAt DateTime?
+  postizIds   String[]  @default([])
+  createdBy   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
+}
+
+// ── Cash banking ────────────────────────────────────────────────────────────
+// Cash from closed cash-ups is banked; every deposit carries a photo or PDF of the stamped slip.
+model Upload {
+  id           String       @id @default(cuid())
+  key          String // object key in R2 / S3, or a file under UPLOAD_DIR
+  fileName     String
+  contentType  String
+  sizeBytes    Int
+  sha256       String
+  storeId      String?
+  uploadedById String?
+  createdAt    DateTime     @default(now())
+  deposit      CashDeposit?
+}
+
+enum DepositStatus {
+  RECORDED
+  VERIFIED
+  QUERIED
+}
+
+model CashDeposit {
+  id            String        @id @default(cuid())
+  number        String        @unique
+  store         Store         @relation(fields: [storeId], references: [id])
+  storeId       String
+  bankedOn      DateTime      @db.Date
+  amountCents   Int
+  expectedCents Int // cash to bank from the cash-ups it covers (counted less float)
+  reference     String // deposit reference printed on the slip
+  slip          Upload        @relation(fields: [slipId], references: [id])
+  slipId        String        @unique
+  status        DepositStatus @default(RECORDED)
+  note          String?
+  createdById   String
+  createdAt     DateTime      @default(now())
+  reviewedById  String?
+  reviewedAt    DateTime?
+  reviewNote    String?
+  shifts        Shift[]
+
+  @@index([storeId, bankedOn])
+  @@index([status])
+}
+
+// ── Loss prevention ─────────────────────────────────────────────────────────
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum AlertStatus {
+  OPEN
+  INVESTIGATING
+  RESOLVED
+  DISMISSED
+}
+
+model Alert {
+  id          String        @id @default(cuid())
+  key         String        @unique // rule + subject + period: a rule never raises the same alert twice
+  rule        String
+  severity    AlertSeverity
+  store       Store         @relation(fields: [storeId], references: [id])
+  storeId     String
+  userId      String? // the person it's about — never shown to them
+  title       String
+  detail      String
+  amountCents Int? // value at risk
+  evidence    Json // [{ label, href }]
+  status      AlertStatus   @default(OPEN)
+  note        String?
+  closedById  String?
+  closedAt    DateTime?
+  notifiedAt  DateTime? // high severity: emailed at once; the rest: in the daily digest
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  @@index([storeId, status, createdAt])
+  @@index([status, createdAt])
+  @@index([userId])
+}
+
+// ── Commission ──────────────────────────────────────────────────────────────
+// An owner's approval freezes a month; `lines` keeps what each person earned (held lines wait for alerts to close).
+model CommissionRun {
+  id           String   @id @default(cuid())
+  store        Store    @relation(fields: [storeId], references: [id])
+  storeId      String
+  month        String // YYYY-MM (SAST)
+  totalCents   Int // payable: excludes held lines
+  lines        Json // [{ userId, name, salesCents, refundsCents, commissionCents, held }]
+  approvedById String
+  approvedAt   DateTime @default(now())
+
+  @@unique([storeId, month])
+}
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INFO_EVENING
+  DISCLOSURE_SENT
+  SIGNED
+  NOT_A_FIT
+}
+
+/// A franchise enquiry from herbalholland.com/franchise, worked by HQ. Personal information (POPIA): HQ only, and
+/// not-a-fit enquiries are deleted a year after their last change.
+model FranchiseLead {
+  id               String     @id @default(cuid())
+  number           String     @unique // FL-000123
+  name             String
+  email            String
+  phone            String
+  area             String // where they'd like to open
+  province         String? // ProvinceCode
+  experience       String // their retail or business background
+  capital          String // the band they chose (@/lib/leads)
+  pharmacist       Boolean // access to a pharmacist partner
+  message          String?
+  source           String? // ?src= on the enquiry link
+  ipHash           String? // keyed hash of the IP, to limit repeat submissions — never the IP itself
+  status           LeadStatus @default(NEW)
+  ownerId          String? // the HQ person following it up
+  notes            String?
+  disclosureSentAt DateTime? // CPA franchise regulations: signing no sooner than 14 days after
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([ipHash, createdAt])
+}
