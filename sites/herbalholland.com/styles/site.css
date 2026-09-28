@@ -56,6 +56,7 @@ main:focus { outline: 0; }
 /* Below the opening section, sections and the footer are laid out and painted as they near the screen, so the first
    paint does only the top of the page. Their words stay in the page for find-in-page, screen readers and links. */
 main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-size: auto 60rem; }
+@media print { main > section ~ section, .ftr { content-visibility: visible; } }
 .nw { white-space: nowrap; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: fixed; z-index: 1200; left: 1rem; top: 1rem; padding: .8rem 1.2rem; border-radius: 99px; background: var(--brand-500); color: var(--ink-950); font: 600 .95rem var(--display); transform: translateY(-200%); }
@@ -343,6 +344,9 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .story__head { grid-area: head; display: grid; gap: .9rem; justify-items: start; }
 .story__title { display: grid; font-family: var(--display); color: var(--ink-50); }
 .story__big { display: flex; align-items: baseline; gap: .12em; padding-bottom: .1em; font-size: clamp(4.2rem, 13vw, 11.5rem); font-weight: 600; line-height: .84; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+.count { display: inline-grid; }
+.count > * { grid-area: 1 / 1; text-align: end; }
+.count__hold { visibility: hidden; }
 .story__unit { font-size: .36em; font-weight: 500; letter-spacing: -.02em; color: var(--brand-500); }
 .story__sub { margin-top: .35rem; font-size: clamp(1.3rem, 2.3vw, 2rem); font-weight: 500; letter-spacing: -.02em; line-height: 1.1; color: var(--ink-200); }
 .story__lede { max-width: 30rem; font-size: .98rem; color: var(--ink-400); }
