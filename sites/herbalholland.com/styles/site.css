@@ -456,14 +456,16 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .za__k::before { content: ""; flex: none; width: .8rem; height: .8rem; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 0 2px var(--ink-950); transform: translateY(.1rem); }
 .za__k--opening::before { background: var(--ink-50); box-shadow: inset 0 0 0 3px var(--brand-600); }
 @media (max-width: 639px) { .za__names text { font-size: 26px; } .za__names .za__nbname { font-size: 21px; } }
-.prov { margin-top: clamp(2rem, 4vw, 3rem); }
+/* Cards two to a row only where each card has room for a long town name ("Pietermaritzburg") at a readable size;
+   the name then scales with its card. */
+.prov { margin-top: clamp(2rem, 4vw, 3rem); container-type: inline-size; }
 .prov__h { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--hair); font: 600 clamp(1.4rem, 2.2vw, 1.9rem)/1.1 var(--display); letter-spacing: -.02em; color: var(--ink-950); }
 .prov__h span { font: 500 .85rem var(--sans); color: var(--ink-500); }
 .prov__list { display: grid; gap: 1rem; margin-top: 1.25rem; }
-@media (min-width: 640px) { .prov__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@container (min-width: 30rem) { .prov__list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .prov .store__art { height: clamp(8rem, 12vw, 11rem); }
-.prov .store__name { font-size: clamp(1.6rem, 2.25vw, 2.2rem); overflow-wrap: anywhere; }
-@media (min-width: 640px) and (max-width: 959px) { .prov .store__name { font-size: clamp(1.6rem, 4.2vw, 2.4rem); } }
+.prov .store__in { container-type: inline-size; }
+.prov .store__name { font-size: 1.6rem; font-size: clamp(1.5rem, 11cqi, 2.4rem); overflow-wrap: anywhere; }
 .stc__finder { margin-top: 2rem; }
 .nation__side { display: grid; gap: .7rem; justify-items: start; margin-top: 1.75rem; padding: clamp(1.4rem, 3vw, 2rem); border-radius: 1.5rem; background: var(--ink-950); color: var(--ink-300); }
 .sheet .nation__side .h3 { color: var(--ink-50); }

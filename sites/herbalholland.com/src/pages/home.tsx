@@ -169,7 +169,7 @@ function Marquee() {
   );
 }
 
-/** A number the story counts up to: an unseen copy of the final value holds its width, so nothing beside it moves. */
+/** The readout's distance: an unseen copy of the final value holds its width, so the readout never moves. */
 function Count({ value, attr }: { value: string; attr: "data-km" | "data-km-big" }) {
   return (
     <span className="count">
@@ -197,7 +197,9 @@ function Journey() {
             <h2 id="story-title" className="story__title">
               <span className="sr-only">{fill(j.sr, { km, city: first.city })}</span>
               <span className="story__big" aria-hidden="true">
-                <Count value={km} attr="data-km-big" />
+                <span className="story__km" data-km-big="">
+                  {km}
+                </span>
                 <span className="story__unit">{j.unit}</span>
               </span>
               <span className="story__sub" aria-hidden="true">

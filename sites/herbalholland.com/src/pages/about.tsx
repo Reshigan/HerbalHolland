@@ -4,7 +4,8 @@ import { ABOUT, CHROME, HOME, fill } from "../../content";
 import { greatCircleKm, listOf, longDate, newStores, openStores, provinceNames, shopLink, storeProvinces } from "../../facts";
 import { Mark, MiniScene, cx } from "../art";
 import { Page } from "../layout";
-import { Btn, Head, Icon, Index, ShopDoor, ShopNow } from "../ui";
+import { PROVINCES } from "@/lib/sa";
+import { Btn, Head, Icon, Index, Keep, ShopDoor, ShopNow } from "../ui";
 import { towns } from "./home";
 import { PageHero } from "./parts";
 
@@ -57,7 +58,9 @@ export function AboutPage() {
                 <div className="chap__copy">
                   <p className="eyebrow">{c.label}</p>
                   <h3 className="h3 chap__t">{c.title}</h3>
-                  <p className="chap__b">{fill("bodyOpen" in c && fresh.every((s) => s.status === "open") ? c.bodyOpen : c.body, chapter)}</p>
+                  <p className="chap__b">
+                    <Keep text={fill("bodyOpen" in c && fresh.every((s) => s.status === "open") ? c.bodyOpen : c.body, chapter)} names={Object.values(PROVINCES)} />
+                  </p>
                   {c.key === "open" && (
                     <Btn href="/stores" kind="dark" className="btn--sm">
                       {chapters.stores}

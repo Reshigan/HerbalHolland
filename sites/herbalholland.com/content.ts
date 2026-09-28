@@ -411,7 +411,7 @@ export const ABOUT = {
         key: "hills",
         label: "Next",
         title: "The hill towns",
-        body: "Holland is flat. KwaZulu-Natal isn't. Our two new stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
+        body: "Holland is flat. KwaZulu-Natal isn't. Our {count} new stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
         bodyOpen: "Holland is flat. KwaZulu-Natal isn't. Our newest stores, in {names}, are {km}\u00a0km apart in the {provinces} hills.",
       },
       { key: "more", label: "After that", title: "More towns", body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards. More stores are to be announced." },
@@ -662,7 +662,7 @@ export const PRESS = {
         date: "2026-10-01",
         title: "Herbal Holland opens online for adults 18+ across South Africa",
         summary:
-          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first 2,026 people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining our stores in Pietermaritzburg and Umhlanga.",
+          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first 2,026 people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and Umhlanga.",
       },
     ] satisfies Release[],
   },
