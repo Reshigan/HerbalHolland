@@ -19,7 +19,9 @@ export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S
 /** "Our first stores open in KwaZulu-Natal on Tuesday 1 December 2026…", or, once every store is open, the plain line. */
 export function openingLine(soon: string, open: string) {
   const next = nextOpening();
-  if (!next) return fill(open, { provinces: provinceNames(storeProvinces()) });
+  // Before the first opening day: where and when. From then on: where stores are open (the next ones show on /stores).
+  const trading = openStores();
+  if (trading.length || !next) return fill(open, { provinces: provinceNames(storeProvinces(trading.length ? trading : undefined)) });
   return fill(soon, { provinces: provinceNames(storeProvinces(openingStores())), opening: longDate(next) });
 }
 
@@ -357,7 +359,7 @@ function First() {
             <Words text={f.title} accent />
           </h2>
           <p className="lede first__lede" data-r="">
-            {fill(f.lede, { names: listOf(stores.map((s) => s.name)), opening })}
+            {fill(stores.every((s) => s.status === "open") ? f.ledeOpen : f.lede, { names: listOf(stores.map((s) => s.name)), opening })}
           </p>
         </div>
         <Scene kind="first" spec={SCENES.first} className="first__scene" />

@@ -15,7 +15,7 @@ import { gzipSync } from "node:zlib";
 import { createElement, type FunctionComponent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { dayKey } from "@/lib/format";
-import { FACTS, greatCircleKm } from "./facts";
+import { FACTS, firstStores, greatCircleKm } from "./facts";
 import { site } from "./src/layout";
 import { patternUrl } from "./src/art";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
@@ -138,7 +138,13 @@ async function main() {
   const [s1, s2] = FACTS.stores;
   if (s1 && s2 && Math.round(greatCircleKm(s1, s2)) !== FACTS.kmBetweenStores)
     off.push(`${s1.name} → ${s2.name} is ${greatCircleKm(s1, s2).toFixed(1)} km by great circle, but facts.ts says ${FACTS.kmBetweenStores}`);
+  const first = firstStores()[0];
+  if (first && !(first.key in FACTS.km)) off.push(`facts.ts needs the Amsterdam distance for ${first.name}, the first store (km.${first.key})`);
+  for (const s of FACTS.stores) if (!/^\d{4}-\d{2}-\d{2}$/.test(s.opens)) off.push(`facts.ts: ${s.name} opens "${s.opens}", not a YYYY-MM-DD date`);
   if (off.length) throw new Error(off.join("\n"));
+  // A store still marked "opening" after its day: the pages would go on saying when it opens.
+  for (const s of FACTS.stores)
+    if (s.status === "opening" && s.opens < day) console.warn(`  ⚠ facts.ts: ${s.name} was due to open on ${s.opens} but is still marked "opening": set its status to "open".`);
 
   rmSync(DIST, { recursive: true, force: true });
   mkdirSync(join(DIST, "assets"), { recursive: true });
@@ -164,7 +170,8 @@ async function main() {
   site.day = day;
   site.year = Number(day.slice(0, 4));
 
-  if (process.argv.includes("--images")) await renderImages(css);
+  // The images are drawn with the stylesheet's own token names (OG_CSS uses them), so before tokens are shortened.
+  if (process.argv.includes("--images")) await renderImages(await styles(precomputeColors(cssSource)));
 
   // Pages.
   const problems: string[] = [];

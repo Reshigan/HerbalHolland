@@ -108,7 +108,7 @@ export const HOME = {
   brand: {
     eyebrow: "Our brand",
     title: "What Herbal Holland stands for",
-    intro: "It's built into the platform every store runs on, so it holds on a busy Saturday as well as a quiet Tuesday.",
+    intro: "Every store runs on one shared platform, so our standards hold on a busy Saturday as well as a quiet Tuesday.",
     items: [
       { key: "heritage", title: "Dutch heritage", body: "The Amsterdam coffee-shop tradition: a warm welcome, and someone who can tell you exactly what's on offer." },
       { key: "lab", title: "Lab-tested and traceable", body: "An independent lab tests every batch before it's sold, and the code on the pack traces it back to the farm." },
@@ -183,6 +183,8 @@ export const HOME = {
     eyebrow: "First stores",
     title: ["Holland, meet", "the Hills."],
     lede: "Holland is flat. KwaZulu-Natal isn't. Our first stores open in the hill towns of {names} on {opening}, each owned and run by a local franchisee.",
+    // Once they're open.
+    ledeOpen: "Holland is flat. KwaZulu-Natal isn't. Our first stores opened in the hill towns of {names} on {opening}, each owned and run by a local franchisee.",
     stores: [
       { key: "hillcrest", area: "Upper Highway, eThekwini", line: "From the flatlands to the Valley of a Thousand Hills." },
       { key: "hilton", area: "KZN Midlands", line: "From the polders to the Midlands." },
@@ -290,7 +292,13 @@ export const ABOUT = {
     title: "Holland, meet South Africa",
     intro: "A national network of local stores, opening one town at a time.",
     items: [
-      { key: "first", label: "Chapter one", title: "The hill towns", body: "Holland is flat. KwaZulu-Natal isn't. Our first stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills." },
+      {
+        key: "first",
+        label: "Chapter one",
+        title: "The hill towns",
+        body: "Holland is flat. KwaZulu-Natal isn't. Our first stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
+        bodyOpen: "Holland is flat. KwaZulu-Natal isn't. Our first stores opened in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
+      },
       { key: "next", label: "Next", title: "More towns", body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards. More stores are to be announced." },
     ],
     stores: "See our stores",

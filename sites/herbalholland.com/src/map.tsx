@@ -7,6 +7,12 @@ import { FACTS, shortDay, storeProvinces } from "../facts";
 import { cx } from "./art";
 import { NEIGHBOUR_SHAPES, PROVINCE_SHAPES, ZA_BOX, project } from "./za";
 
+type Code = ProvinceCode | keyof typeof NEIGHBOUR_SHAPES;
+/** Where a name sits, where Natural Earth's label point would crowd a neighbour's name or a store's (legibility only;
+ * the shapes are untouched). */
+const NAME_AT: Partial<Record<Code, readonly [x: number, y: number]>> = { MP: [838, 248], NW: [525, 300], LS: [692, 556], SZ: [902, 320] };
+const nameAt = (k: Code, [x, y]: readonly [number, number], dy = 0) => NAME_AT[k] ?? ([x, y + dy] as const);
+
 export function ZaMap({ id, className }: { id: string; className?: string }) {
   const lit = new Set(storeProvinces());
   const pins = FACTS.stores.map((s) => ({ s, at: project(s.lat, s.lon) }));
@@ -30,12 +36,12 @@ export function ZaMap({ id, className }: { id: string; className?: string }) {
         ))}
         <g className="za__names" aria-hidden="true">
           {(Object.keys(PROVINCE_SHAPES) as ProvinceCode[]).map((k) => (
-            <text key={k} className={cx(lit.has(k) && "on")} x={PROVINCE_SHAPES[k].label[0]} y={PROVINCE_SHAPES[k].label[1]}>
+            <text key={k} className={cx(lit.has(k) && "on")} x={nameAt(k, PROVINCE_SHAPES[k].label)[0]} y={nameAt(k, PROVINCE_SHAPES[k].label)[1]}>
               {PROVINCES[k]}
             </text>
           ))}
           {(Object.keys(NEIGHBOUR_SHAPES) as (keyof typeof NEIGHBOUR_SHAPES)[]).map((k) => (
-            <text key={k} className="za__nbname" x={NEIGHBOUR_SHAPES[k].label[0]} y={NEIGHBOUR_SHAPES[k].label[1] + 6}>
+            <text key={k} className="za__nbname" x={nameAt(k, NEIGHBOUR_SHAPES[k].label, 6)[0]} y={nameAt(k, NEIGHBOUR_SHAPES[k].label, 6)[1]}>
               {MAP.neighbours[k]}
             </text>
           ))}

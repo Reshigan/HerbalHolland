@@ -533,6 +533,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 :is(.sc--first, .sc--notfound) .sc__pos { transform-origin: 1150px 565px; }
 .first .stores__grid { position: relative; z-index: 3; margin-top: clamp(-5rem, -5vw, -2rem); }
 .first > .band { margin-top: clamp(4.5rem, 9vw, 8rem); }
+.first + .sheet { margin-top: 0; border-radius: 0; }
 @media (max-aspect-ratio: 1 / 1) {
   /* On a phone the words come first and the sunset below them, never on top of each other. */
   .first__stage { display: block; min-height: 0; }
@@ -567,7 +568,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .za__k { display: inline-flex; align-items: center; gap: .5rem; }
 .za__k::before { content: ""; width: .75rem; height: .75rem; border-radius: 50%; background: var(--brand-500); }
 .za__k--opening::before { background: var(--ink-50); border: 3px solid var(--brand-600); }
-@media (max-width: 639px) { .za__names text { font-size: 26px; } .za-pin__name { font-size: 34px; } }
+@media (max-width: 639px) { .za__names text { font-size: 26px; } .za__names .za__nbname { font-size: 21px; } .za-pin__name { font-size: 34px; } }
 
 /* ── Stores ────────────────────────────────────────────────────────────── */
 .prov { margin-top: clamp(2rem, 4vw, 3rem); }
@@ -593,13 +594,14 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .concept__fig img { width: 100%; height: auto; border-radius: 1.5rem; background: var(--ink-800); }
 .concept__fig figcaption { font-size: .85rem; color: var(--ink-400); }
 .concept__fig b { margin-right: .5rem; font: 600 .72rem var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--brand-400); }
-.concept > .band { margin-top: clamp(4.5rem, 9vw, 8rem); }
 
 /* ── About: the chapters ───────────────────────────────────────────────── */
 .chaps { margin-top: clamp(4rem, 8vw, 7rem); }
 .chaps__list { display: grid; gap: 1rem; margin-top: clamp(2rem, 4vw, 3rem); }
 @media (min-width: 900px) { .chaps__list { grid-template-columns: 1.2fr 1fr; } }
-.chap--next { display: grid; align-content: end; background: var(--ink-950); color: var(--ink-300); }
+.chap--next { position: relative; display: grid; align-content: end; background: var(--ink-950); color: var(--ink-300); }
+/* Beside the first chapter's hills, the next one has the stores' panel pattern, fading into the dark. */
+@media (min-width: 900px) { .chap--next::before { content: ""; position: absolute; inset: 0 0 auto; height: 6.5rem; background: var(--pat) 0 0 / 20px 20px; opacity: .2; -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); } }
 .chap__b { max-width: 34rem; }
 .sheet .chap--next .chap__t { color: var(--ink-50); }
 

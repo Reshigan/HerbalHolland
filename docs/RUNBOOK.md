@@ -25,7 +25,10 @@ reports) and Postgres can't live on Cloudflare.
    TLS ≥ 1.2 (1.3 on), SSL Full (strict), HSTS (1 year, include subdomains, no preload; the site's `_headers` sends
    the same, so keep them in step), Email Routing forwarding hello@, franchise@, press@ and careers@ to the team. To
    release a change: `npx tsx sites/herbalholland.com/build.ts`, then from `sites/herbalholland.com`
-   `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. Rebuild and deploy on or
+   `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. For a change the owner
+   should see first: `npx wrangler@4 versions upload --preview-alias preview` (→ `https://preview-herbalholland-com.<account>.workers.dev`,
+   same database and email as live, so don't send test enquiries), then `npx wrangler@4 versions deploy <version-id>`
+   to make that exact version live. Rebuild and deploy on or
    after a press release's date (the site is static), and set `facts.ts` `shop.url` when the shop opens. Once the
    platform is live, give the Worker `APP_ENQUIRY_URL` (`https://herbalholland.co.za/api/site/enquiries`) and
    `APP_ENQUIRY_SECRET` (= the app's `SITE_ENQUIRY_SECRET`) with `wrangler secret put`, so enquiries land in HQ →

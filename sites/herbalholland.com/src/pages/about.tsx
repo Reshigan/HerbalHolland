@@ -51,7 +51,7 @@ export function AboutPage() {
                 <div className="chap__copy">
                   <p className="eyebrow">{c.label}</p>
                   <h3 className="h3 chap__t">{c.title}</h3>
-                  <p className="chap__b">{fill(c.body, chapter)}</p>
+                  <p className="chap__b">{fill("bodyOpen" in c && first.every((s) => s.status === "open") ? c.bodyOpen : c.body, chapter)}</p>
                   {i === 0 ? (
                     <Btn href="/stores" kind="dark" className="btn--sm">
                       {chapters.stores}

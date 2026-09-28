@@ -87,7 +87,6 @@ export function StoresPage() {
             ))}
           </div>
         </div>
-        <div className="band" aria-hidden="true" />
       </section>
     </Page>
   );
