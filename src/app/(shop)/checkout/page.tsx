@@ -169,6 +169,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       <CheckoutForm
         options={options}
         deliveryOnly={offered.deliveryOnly}
+        payInStoreOnly={required.length > 0}
         onlineNote={onlineGateway() === "PEACH" ? "Card and more, secured by Peach Payments" : onlineGateway() === "YOCO" ? "Card or Instant EFT, secured by Yoco" : "Card, Instant EFT or PayShap"}
         stores={collect}
         defaultStoreId={defaultStore?.id ?? null}

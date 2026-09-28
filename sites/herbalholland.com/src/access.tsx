@@ -47,6 +47,16 @@ export function EarlyAccess({ tone = "dark" }: { tone?: "dark" | "sheet" }) {
               <input id={`${P}-website`} name="website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
             </div>
             <div className="form__grid">
+              <Field p={P} name="email" label={f.email.label}>
+                <input className="input" id={`${P}-email`} name="email" type="email" inputMode="email" autoComplete="email" maxLength={LEAD_LIMITS.email} spellCheck={false} {...contact} />
+              </Field>
+              <Field p={P} name="mobile" label={f.mobile.label} hint={f.mobile.hint}>
+                <input className="input" id={`${P}-mobile`} name="mobile" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} aria-describedby={`${P}-mobile-hint ${P}-contact-hint`} />
+              </Field>
+              {/* Email or mobile: at least one. The hint sits under both, and so does the error when neither is given. */}
+              <div className="field field--wide field--note" data-field="contact">
+                <Help p={P} name="contact" hint={f.contact} />
+              </div>
               <Field p={P} name="firstName" label={f.firstName.label} optional={f.firstName.optional}>
                 <input className="input" id={`${P}-firstName`} name="firstName" type="text" autoComplete="given-name" maxLength={EARLY_ACCESS_LIMITS.firstName} />
               </Field>
@@ -60,16 +70,6 @@ export function EarlyAccess({ tone = "dark" }: { tone?: "dark" | "sheet" }) {
                   ))}
                 </select>
               </Field>
-              <Field p={P} name="email" label={f.email.label}>
-                <input className="input" id={`${P}-email`} name="email" type="email" inputMode="email" autoComplete="email" maxLength={LEAD_LIMITS.email} spellCheck={false} {...contact} />
-              </Field>
-              <Field p={P} name="mobile" label={f.mobile.label} hint={f.mobile.hint}>
-                <input className="input" id={`${P}-mobile`} name="mobile" type="tel" inputMode="tel" autoComplete="tel" maxLength={20} aria-describedby={`${P}-mobile-hint ${P}-contact-hint`} />
-              </Field>
-              {/* Email or mobile: at least one. The hint sits under both, and so does the error when neither is given. */}
-              <div className="field field--wide field--note" data-field="contact">
-                <Help p={P} name="contact" hint={f.contact} />
-              </div>
               <div className="field field--wide field--check" data-field="adult">
                 <label className="check" htmlFor={`${P}-adult`}>
                   <input type="checkbox" id={`${P}-adult`} name="adult" required />

@@ -293,7 +293,7 @@ export const ACCESS = {
   fields: {
     firstName: { label: "First name", optional: "(optional)" },
     email: { label: "Email" },
-    mobile: { label: "Mobile", hint: "A South African mobile number, like 082 123 4567." },
+    mobile: { label: "Mobile", hint: "A South African mobile number, like 082\u00a0123\u00a04567." },
     contact: "An email address, a mobile number or both: we'll use whichever you give us.",
     province: { label: "Province", optional: "(optional)", placeholder: "Choose your province" },
     adult: "I'm 18 or older",
@@ -307,7 +307,7 @@ export const ACCESS = {
   errors: {
     firstName: "Enter your first name in letters.",
     email: "Enter an email address like name@example.co.za.",
-    mobile: "Enter a South African mobile number, like 082 123 4567.",
+    mobile: "Enter a South African mobile number, like 082\u00a0123\u00a04567.",
     contact: "Give us an email address or a mobile number, so we can tell you.",
     province: "Choose a province from the list.",
     adult: "Please confirm that you're 18 or older.",
@@ -325,7 +325,7 @@ export const ACCESS = {
 
 // ── The store map (home and /stores) ─────────────────────────────────────────
 export const MAP = {
-  caption: "A map of South Africa's nine provinces, with a pin for each Herbal Holland store.",
+  caption: "A map of South Africa's nine provinces, with a pin for each Herbal Holland store: a solid pin where a store is open, a ring where one is still to open.",
   neighbours: { LS: "Lesotho", SZ: "Eswatini" },
   // The key names the stores, so the pins' shape and colour are never the only way to tell them apart.
   legend: { open: "Open now", opening: "Opening {date}" },

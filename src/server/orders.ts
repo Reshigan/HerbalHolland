@@ -97,6 +97,8 @@ export async function placeOrder(input: CheckoutInput) {
   const customer = comp.ctx.record!;
 
   const requiredLicences = [...new Set(q.lines.filter((l) => settings.compliance.licensedOnly.includes(l.regClass)).map((l) => l.regClass))];
+  // No online payment provider accepts licensed cannabis (Peach and Yoco both prohibit it): those orders are paid at the counter.
+  if (requiredLicences.length && input.payMethod === "ONLINE") throw new OrderError("Licensed medicines are paid for in store, when you collect");
   // Made-to-order merch ships from the merch partner: courier only, and it needs no stock to route.
   const made = await madeToOrder(q.lines.map((l) => l.variantId));
   if (made.size && input.fulfilment !== "COURIER") throw new OrderError("Made-to-order merch ships by courier — choose delivery");

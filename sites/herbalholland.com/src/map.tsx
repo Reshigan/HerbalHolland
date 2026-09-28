@@ -1,8 +1,8 @@
 // The store map: South Africa's nine provinces (real boundaries, from ./za), Lesotho and Eswatini, and a pin for every
 // store in ../facts — a solid pin for a store that's open, a ring for one that's still to open — with a key that names
-// them (so neither shape nor colour is the only signal). A store is one line in facts.ts, so a new store puts itself on
-// the map. Stores a few kilometres apart (Pietermaritzburg and Hilton) are nudged apart just enough to tell the pins
-// apart, and each name is placed where it clears the other pins and names.
+// them by town (so neither shape nor colour is the only signal, and close neighbours never crowd each other's names).
+// A store is one line in facts.ts, so a new store puts itself on the map. Stores a few kilometres apart
+// (Pietermaritzburg and Hilton) are nudged apart just enough to tell the pins apart.
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { MAP, fill } from "../content";
 import { FACTS, listOf, shortDay, type Store } from "../facts";
@@ -15,14 +15,10 @@ type Code = ProvinceCode | keyof typeof NEIGHBOUR_SHAPES;
 const NAME_AT: Partial<Record<Code, readonly [x: number, y: number]>> = { MP: [838, 248], NW: [525, 300], LS: [692, 556], SZ: [902, 320] };
 const nameAt = (k: Code, [x, y]: readonly [number, number], dy = 0) => NAME_AT[k] ?? ([x, y + dy] as const);
 
-/** Pins at least this far apart (map units), so each one reads on its own. */
-const GAP = 22;
-/** A pin's name: its size on the map (it's hidden on small screens, where the key names the stores). */
-const FS = 22;
-
+/** A pin's radius, and how far apart pins are kept (map units), so each one reads on its own. */
+const R = 10;
+const GAP = 27;
 type Pin = { s: Store; x: number; y: number };
-type Box = { x0: number; y0: number; x1: number; y1: number };
-const hits = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
 
 /** Pins in map units, pushed apart (a few gentle passes) where two would overlap. */
 function pinsFor(stores: readonly Store[]): Pin[] {
@@ -53,43 +49,9 @@ function pinsFor(stores: readonly Store[]): Pin[] {
   return pins;
 }
 
-/** Each pin's name, on the first side (right, left, above, below, then the corners) that clears the pins and names. */
-function namesFor(pins: Pin[]) {
-  const w = (t: string) => t.length * FS * 0.6;
-  const dots: Box[] = pins.map((p) => ({ x0: p.x - 12, y0: p.y - 12, x1: p.x + 12, y1: p.y + 12 }));
-  const placed: Box[] = [];
-  return pins.map((p) => {
-    const t = p.s.name;
-    const W = w(t);
-    const sides = [
-      { dx: 16, dy: 7, a: "start" },
-      { dx: -16, dy: 7, a: "end" },
-      { dx: 0, dy: -18, a: "middle" },
-      { dx: 0, dy: 34, a: "middle" },
-      { dx: 12, dy: -12, a: "start" },
-      { dx: -12, dy: -12, a: "end" },
-      { dx: 12, dy: 28, a: "start" },
-      { dx: -12, dy: 28, a: "end" },
-    ] as const;
-    const box = (o: (typeof sides)[number]): Box => {
-      const x = p.x + o.dx;
-      const x0 = o.a === "start" ? x : o.a === "end" ? x - W : x - W / 2;
-      return { x0, y0: p.y + o.dy - FS * 0.8, x1: x0 + W, y1: p.y + o.dy + FS * 0.2 };
-    };
-    const own = dots[pins.indexOf(p)];
-    const pick = sides.find((o) => {
-      const b = box(o);
-      return b.x0 >= 0 && b.x1 <= ZA_BOX.w + 40 && !placed.some((q) => hits(b, q)) && !dots.some((d) => d !== own && hits(b, d));
-    }) ?? sides[0];
-    placed.push(box(pick));
-    return { x: p.x + pick.dx, y: p.y + pick.dy, a: pick.a };
-  });
-}
-
 export function ZaMap({ id, className }: { id: string; className?: string }) {
   const lit = new Set(FACTS.stores.map((s) => s.province));
   const pins = pinsFor(FACTS.stores);
-  const names = namesFor(pins);
   const open = FACTS.stores.filter((s) => s.status === "open");
   const days = [...new Set(FACTS.stores.filter((s) => s.status === "opening" && s.opens).map((s) => s.opens!))].sort();
   const towns = (stores: readonly Store[]) => listOf(stores.map((s) => s.city));
@@ -118,14 +80,9 @@ export function ZaMap({ id, className }: { id: string; className?: string }) {
         <g aria-hidden="true">
           {pins.map(({ s, x, y }) => (
             <g key={s.key} className={cx("za-pin", `za-pin--${s.status}`)} transform={`translate(${Math.round(x)} ${Math.round(y)})`}>
-              {s.status === "opening" && <circle className="za-pin__pulse" r="12" />}
-              <circle className="za-pin__dot" r="8" />
+              {s.status === "opening" && <circle className="za-pin__pulse" r={R + 4} />}
+              <circle className="za-pin__dot" r={R} />
             </g>
-          ))}
-          {pins.map(({ s }, i) => (
-            <text key={s.key} className="za-pin__name" x={Math.round(names[i].x)} y={Math.round(names[i].y)} textAnchor={names[i].a}>
-              {s.name}
-            </text>
           ))}
         </g>
       </svg>

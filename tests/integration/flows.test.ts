@@ -187,6 +187,10 @@ describe("Omnichannel", () => {
     expect(after.onHand).toBe(before - 2);
   });
 
+  it("takes payment for licensed products in store, never online", async () => {
+    await expect(placeOrder({ customerId: w.patient.id, fulfilment: "COLLECT", storeId: w.store.id, items: [{ variantId: w.flowerV.id, qty: 1 }], payMethod: "ONLINE" })).rejects.toThrow(/paid for in store/);
+  });
+
   it("never routes licensed products to courier delivery", async () => {
     await expect(
       placeOrder({ customerId: w.patient.id, fulfilment: "COURIER", items: [{ variantId: w.flowerV.id, qty: 1 }], payMethod: "ONLINE", address: { addressLine: "1 Main", suburb: "Hatfield", city: "Pretoria", province: "GP", postalCode: "0083" } }),

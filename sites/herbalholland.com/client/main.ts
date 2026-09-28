@@ -493,7 +493,7 @@ const FORMS: Record<string, FormSpec> = {
   },
   // The early-access sign-up (home, /stores): an email address or a mobile number (or both), 18+, and consent.
   ea: {
-    order: ["firstName", "email", "mobile", "contact", "province", "adult", "consent"],
+    order: ["email", "mobile", "contact", "firstName", "province", "adult", "consent"],
     group: { contact: ["email", "mobile"] },
     values: (get, ticked) => ({ firstName: get("firstName").trim(), email: get("email").trim(), mobile: get("mobile").trim(), province: get("province"), adult: ticked("adult"), consent: ticked("consent") }),
     check: (v, E) => {

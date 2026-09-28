@@ -51,11 +51,61 @@ reports) and Postgres can't live on Cloudflare.
    `http://localhost:3000`), not through Cloudflare: Cloudflare cuts requests at 100 s, and the daily job at 1,000
    stores takes about 30 s for the loss-prevention rules alone.
 
-## Yoco go-live (online payments and in-store card machines)
+## Peach Payments go-live (online payments)
 
-How it works: [INTEGRATIONS.md → Online payments](INTEGRATIONS.md#online-payments--yoco-checkout-api-built). First,
-Yoco's **written approval** of the business and product mix for every account (Vantax (Pty) Ltd online, each store's
-own account in store) — see the acceptable-use note in INTEGRATIONS.md. Don't take live payments without it.
+How it works: [INTEGRATIONS.md → Online payments](INTEGRATIONS.md#online-payments--peach-payments-chosen-and-yoco).
+
+**Before anything else:** Peach's **written approval** of the business and product mix for Vantax (Pty) Ltd. Peach
+restricts CBD, drug stores and pharmacies (prior written approval) and doesn't permit cannabis dispensaries. Describe
+the business honestly and ask explicitly about licensed medicinal THC on click & collect. THC orders are paid in store
+(the app enforces it: no online payment for baskets with licensed products). Don't take live payments without
+the approval.
+
+1. **Set up the sandbox** (staging, or production before launch):
+   - HQ company record (the `FRANCHISOR` company): legal name **Vantax (Pty) Ltd**. The pay page names it as the payee.
+   - Sandbox Dashboard → **Peach Orchestration**: copy the secret API key (`snd_…`) into `PEACH_API_KEY`.
+   - Set `PEACH_ENV=test` and `ONLINE_GATEWAY=PEACH`. If the account has more than one business profile, also set
+     `PEACH_PROFILE_ID=pro_…`.
+   - `APP_URL` must be the public HTTPS address: Peach sends members back to it.
+   - Hash key: `curl -H "api-key: $PEACH_API_KEY" https://app.sandbox-next.peachpayments.com/api/account/<merchant_id>/business_profile/<profile_id>`,
+     then copy `payment_response_hash_key` into `PEACH_PAYMENT_RESPONSE_HASH_KEY`. Both ids are in the Dashboard, and on
+     any payment (`…/api/payments/list?limit=1`). Peach support can also give you the key.
+   - Profile: keep `redirect_to_merchant_with_http_post` off, so members come back with a GET.
+   - Payment methods: switch on only methods Peach can refund (cards, Apple Pay, Google Pay, PayShap…), not Peach EFT,
+     Capitec Pay or ZeroPay. The app refunds a paid order before cancelling it, so an unrefundable order can't be
+     cancelled in the app.
+   - Webhook: Dashboard → Peach Orchestration → Webhooks → **+ Add webhook URL** →
+     `https://herbalholland.co.za/api/payments/peach` (payment succeeded / failed, refund succeeded / failed).
+   - Cloudflare: a WAF custom rule that skips bot protection and challenges for `POST /api/payments/peach` (the route
+     checks Peach's signature itself). A challenged webhook never lands.
+   - Restart the app.
+2. **Test it with a sandbox card** (the playground's **Test credentials**):
+   - A courier order → Peach's page → pay → the order page says **Payment received**.
+   - HQ → Audit log has `order.pay_online` by Peach Payments, and the member's "order received" SMS is in HQ → Messages.
+   - Leave Peach's page without paying → **Payment cancelled** → Try again opens the same page.
+   - Cancel the paid order in the back office: it's refunded (`pending` or `succeeded`; the refund id is on the order),
+     and `payment.refunded` appears in the audit log once Peach confirms.
+3. **Stuck on "Waiting for payment confirmation…"?** The app log shows why:
+   - 401: the wrong `PEACH_PAYMENT_RESPONSE_HASH_KEY`, or a webhook from the other environment;
+   - 503: the key isn't set;
+   - nothing at all: Cloudflare, or a wrong URL.
+
+   Meanwhile, if the member opens the pay page again, the app asks Peach for the payment's status and confirms the
+   order.
+4. **Go live**, only once the written approval is in: repeat step 1 in the live Dashboard (`prd_…` key, profile, hash key,
+   webhook). Set `PEACH_ENV=live` together with the three Peach values, then restart. Remove any sandbox webhook that
+   points at production.
+5. **Live smoke test:** a small real order paid by card on a phone → Payment received. Cancel it from the store back
+   office → refunded. Check the refund in the Peach Dashboard, and `payment.refunded` in the audit log.
+6. **From then on, daily:** match Peach's settlements to orders (merchant reference = order code, payment id = the
+   order's payment reference). Use Dashboard → Reporting.
+
+## Yoco go-live (in-store card machines; online only with `ONLINE_GATEWAY=YOCO`)
+
+How it works: [INTEGRATIONS.md → Yoco Checkout API](INTEGRATIONS.md#yoco-checkout-api-built-kept-but-yocos-policy-bans-cbd).
+Online payments go through Peach (above): steps 1–4 apply only if the shop is switched back to Yoco online. First,
+Yoco's **written approval** of the business and product mix for every account (each store's own account in store, and
+Vantax (Pty) Ltd if online) — see the acceptable-use note in INTEGRATIONS.md. Don't take live payments without it.
 
 1. **Test mode** (staging, or production before launch):
    - HQ company record (the `FRANCHISOR` company): legal name **Vantax (Pty) Ltd**. The pay page names it as the payee.
@@ -136,6 +186,12 @@ connectivity returns. Do not clear browser storage on a till with queued sales. 
 
 **Card acquiring down.** Use the External terminal tender (owner's bank device) or cash/PayShap. Record references.
 
+**Online payments down (Peach).** Members see "We couldn't open Peach Payments' payment page", and unpaid orders are
+released after `unpaidHoldMinutes` as usual. Peach retries webhooks we didn't answer with 2xx for 24 hours (1 min,
+5 min, 10 min, 1 h, 6 h, 24 h), so payments made during an outage of ours still land. After that, replay the
+deliveries from the Peach Dashboard. A payment that lands after its order was released is logged as `payment.review`
+(see below).
+
 **Online payments down (Yoco).** Members see "We couldn't open Yoco's payment page"; unpaid orders are released after
 `unpaidHoldMinutes` as usual. Webhooks we didn't answer with 2xx are retried by Yoco (5 s, 5 min, 30 min, 2 h, 5 h,
 10 h, 10 h), so payments made during an outage of ours still land. After 5 days without a successful delivery Yoco
@@ -166,8 +222,8 @@ rebuilt from movements if ever required (see the reconciliation queries in `pris
 | `compliance.offline_exception` | An offline till sale broke a compliance rule the till couldn't check — including a member number that didn't match a member (members only) | Review with the store manager; find the member if you can; retrain if needed |
 | `sale.tender_variance` | Payments didn't match the total on a synced sale | Reconcile against the terminal report |
 | `drop.limit_after_payment` | A card was charged before a drop limit tripped (race with an online order); the sale stands | Decide whether to contact the member; no refund needed unless they ask |
-| `payment.review` | A Yoco payment didn't fit its order — another amount, another checkout, or paid after the order was cancelled. The order was **not** marked paid | Find the payment in the Yoco portal; refund it there (or sort it out with the member) and note what you did |
-| `payment.refund_failed` | Yoco couldn't complete the refund of a cancelled order; the order shows paid again | Refund the member by hand (Yoco portal or EFT) and note it |
+| `payment.review` | A Peach or Yoco payment didn't fit its order — another amount, another checkout (payment), or paid after the order was cancelled. The order was **not** marked paid | Find the payment in the Peach Dashboard (or the Yoco portal); refund it there (or sort it out with the member) and note what you did |
+| `payment.refund_failed` | Peach or Yoco couldn't complete the refund of a cancelled order; the order shows paid again | Refund the member by hand (Peach Dashboard, Yoco portal or EFT) and note it |
 
 ## Loss prevention (Store / HQ → Loss prevention)
 
