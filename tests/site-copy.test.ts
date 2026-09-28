@@ -1,8 +1,8 @@
 // Every string on herbalholland.com passes the platform's copy screen — the same one that guards campaigns and product
 // claims (ARB Code, Medicines Act s20) — with no allow-list: rephrase whatever it flags. Plus the site's own voice rules.
 import { describe, expect, it } from "vitest";
-import * as content from "@/components/site/content";
-import { fill, plural, releasesOn } from "@/components/site/content";
+import * as content from "../sites/herbalholland.com/content";
+import { fill, plural, releasesOn } from "../sites/herbalholland.com/content";
 import { screenCopy } from "@/lib/compliance";
 
 /** Every string in the module, with where it lives ("PRESS.releases.items[0].title"). */

@@ -13,3 +13,8 @@ next-env.d.ts
 src/generated
 .DS_Store
 .data/
+
+# herbalholland.com static site: build output and wrangler state
+sites/*/dist/
+.wrangler/
+e2e/.tmp-*
