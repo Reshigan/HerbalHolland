@@ -235,7 +235,8 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .w { display: inline-block; overflow: hidden; vertical-align: top; padding: .02em .04em .12em; margin: -.02em -.04em -.12em; }
 .w > span { display: inline-block; }
 .hero__kicker { gap: .7rem; font: 500 clamp(.95rem, 1.2vw, 1.1rem)/1.45 var(--display); color: var(--ink-200); text-wrap: balance; }
-.hero__kicker::before { content: ""; width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 0 5px color-mix(in oklab, var(--brand-500) 18%, transparent); }
+.hero__kicker { align-items: flex-start; max-width: 34rem; }
+.hero__kicker::before { content: ""; width: .55rem; height: .55rem; flex: none; margin-top: .45em; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 0 5px color-mix(in oklab, var(--brand-500) 18%, transparent); }
 /* The promise bar, where the hero meets the page: a row of beadwork, then what shopping with us comes with. */
 .hero__foot { position: relative; z-index: 2; background: linear-gradient(color-mix(in oklab, var(--ink-950) 62%, transparent), var(--ink-950)); }
 .hero__foot::before { content: ""; display: block; height: 12px; background: var(--pat) 0 0 / 12px 12px repeat-x; }
