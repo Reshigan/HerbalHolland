@@ -3,7 +3,8 @@
  * Holland orange on warm black, cream reading sheets, Outfit for display and Inter for text; tokens copied from the
  * platform's @theme (src/app/globals.css). Motion moves only transform and opacity. Scroll-linked values arrive as the
  * registered custom property --p: from CSS scroll-driven animations where supported, from the page's script otherwise.
- * The build precomputes color-mix() from the tokens and shortens token and class names (src/optimize.ts).
+ * The beadwork tile (src/art.tsx) edges the promise bar, the marquee, the category tiles and the footer, and frames
+ * the 18+ gate. The build precomputes color-mix() from the tokens and shortens token and class names (src/optimize.ts).
  */
 
 /* ── Fonts ─────────────────────────────────────────────────────────────── */
@@ -21,9 +22,7 @@
   --ink-50: #fbf7f3; --ink-100: #f4eee8; --ink-150: #ece5dd; --ink-200: #ddd5cc; --ink-300: #bdb3a9; --ink-400: #968a80;
   --ink-500: #6b5f57; --ink-600: #4a403a; --ink-700: #2f2824; --ink-800: #211c19; --ink-900: #141110; --ink-950: #0c0a09;
   --rose-50: #fdf0ef; --rose-500: #d03b3b; --rose-600: #b32f2f;
-  /* Plants in the storefront art only (aloes and proteas): not brand colours. */
-  --sage-400: #8f9d7c; --sage-600: #66775a; --sage-800: #3f4c38; --protea-300: #e3a7ae; --protea-500: #c47887;
-  /* The signature tile (src/art.tsx), filled in by the build. */
+  /* The beadwork tile (src/art.tsx), filled in by the build. */
   --pat: __PATTERN__;
   --display: "Outfit Variable", "Outfit Fallback", system-ui, sans-serif;
   --sans: "Inter Variable", "Inter Fallback", system-ui, sans-serif;
@@ -65,14 +64,14 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .wrap { width: 100%; max-width: 92rem; margin-inline: auto; padding-inline: var(--g); }
 
 /* Shared shapes, used across the pages. */
-.soon, .soon__badge, .hero__kicker, .hero__age, .ticks li, .door__top, .door__cta, .store__opens, .stores__apart, .release__date, .inbox__link, .menu__age, .menu__close, .burger, .form__privacy, .lab__ok, .chapter__n, .ftr__age, .rule__head, .role, .apply li, .done__steps li, .field__err, .form__alert, .empty, .shelf__note, .cat__go, .stc__status { display: flex; align-items: center; }
+.soon, .soon__badge, .hero__kicker, .promise__item, .tile__go, .ticks li, .door__top, .door__cta, .store__opens, .stores__apart, .release__date, .inbox__link, .menu__age, .menu__close, .burger, .form__privacy, .lab__ok, .chapter__n, .ftr__age, .rule__head, .role, .apply li, .done__steps li, .field__err, .form__alert, .empty, .range__note { display: flex; align-items: center; }
 .age, .card__vis, .door__ico, .inbox__ico, .empty__ico, .rule__ico, .feat__ico, .tile__ico, .step__node, .poster, .logo__art, .rx, .more__go { display: grid; place-items: center; }
 .door__ico, .inbox__ico, .empty__ico, .rule__ico, .feat__ico { width: 2.8rem; height: 2.8rem; flex: none; border-radius: 50%; background: var(--brand-100); color: var(--brand-800); }
 .feat__ico, .door--go .door__ico { background: color-mix(in oklab, var(--brand-500) 15%, transparent); color: var(--brand-400); }
 .card__in, .door, .tile, .logo, .note, .inbox, .enq { background: #fff; border-radius: 1.5rem; box-shadow: var(--shadow); }
 .feat, .panel, .roles__group, .store__in { background: var(--ink-900); border: 1px solid var(--line); border-radius: 1.5rem; }
 .tile, .feat, .inbox, .note, .door, .panel { display: grid; gap: .8rem; align-content: start; padding: 1.6rem; }
-.eyebrow, .chapter__n, .readout dt, .lab__k, .rx span, .stores__apart, .fcard__label, .door__label, .offer__h, .badge, .facts dt, .ftr__h, .role__aka, .soon__badge, .hero__coords, .cue, .fcard__brand, .pin text { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
+.eyebrow, .chapter__n, .readout dt, .lab__k, .rx span, .stores__apart, .fcard__label, .door__label, .offer__h, .badge, .facts dt, .ftr__h, .role__aka, .soon__badge, .fcard__brand, .pin text { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
 .grid4, .grid3, .cards, .doors__grid, .inboxes, .logos, .panels, .stores__grid, .roles { display: grid; gap: 1rem; }
 
 /* ── Type ──────────────────────────────────────────────────────────────── */
@@ -104,12 +103,14 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .sheet .lede { color: var(--ink-600); }
 .sheet .muted { color: var(--ink-500); }
 .sheet :focus-visible { outline-color: var(--brand-800); }
+.sheet .btn--ghost { --fg: var(--ink-950); --bd: color-mix(in oklab, var(--ink-950) 28%, transparent); }
 .split, .sticky-split { display: grid; gap: clamp(2.5rem, 6vw, 6rem); }
 @media (min-width: 960px) {
   .split { grid-template-columns: 1.1fr .9fr; align-items: start; }
   .sticky-split { grid-template-columns: .8fr 1.2fr; align-items: start; }
   .sticky-split__side { position: sticky; top: calc(var(--hh) + 2.5rem); }
-  .standards .split, .shelf .split { grid-template-columns: 1fr auto; align-items: end; }
+  .standards .split, .range .split { grid-template-columns: 1fr auto; align-items: end; }
+  .range .split { grid-template-columns: 1fr 1fr; }
 }
 @media (min-width: 640px) { .grid4, .grid3, .cards, .inboxes, .logos { grid-template-columns: 1fr 1fr; } }
 @media (min-width: 900px) { .doors__grid { grid-template-columns: repeat(3, 1fr); } .panels { grid-template-columns: 1fr 1fr; } }
@@ -221,115 +222,72 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .mill { stroke: var(--ink-950); color: var(--ink-950); }
 .mill__sails use { fill: var(--ink-950); stroke: none; }
 
-/* ── Hero: the storefront at dusk ─────────────────────────────────────── */
+/* ── Hero ──────────────────────────────────────────────────────────────── */
 .hero, .phero, .nf { position: relative; display: flex; flex-direction: column; overflow: clip; }
-.hero { min-height: 100svh; background: radial-gradient(75% 70% at 74% 78%, color-mix(in oklab, var(--brand-800) 34%, var(--ink-950)), color-mix(in oklab, var(--brand-900) 14%, var(--ink-950)) 42%, var(--ink-950) 74%); }
+.hero { --at: 72% 58%; min-height: 100svh; background: radial-gradient(80% 65% at var(--at), color-mix(in oklab, var(--brand-800) 40%, var(--ink-950)), color-mix(in oklab, var(--brand-900) 18%, var(--ink-950)) 38%, var(--ink-950) 72%); }
 .hero__in, .phero__in, .nf__in { position: relative; z-index: 2; display: flex; flex-direction: column; align-items: flex-start; gap: 1.4rem; }
 .hero__in { flex: 1; justify-content: center; padding-block: calc(var(--hh) + 2.5rem) 2rem; }
 .hero__in, .phero__in { transform: translateY(calc(var(--p) * 20vh)); opacity: calc(1 - var(--p) * 1.5); }
-.hero__title { max-width: 8.4em; font: 600 clamp(2.85rem, min(6.4vw, 11svh), 8.6rem)/.9 var(--display); letter-spacing: -.05em; color: var(--ink-50); margin-left: -.04em; }
+/* Three lines, like the first design's: "South Africa." is the longest, so it's sized to end before the sun. */
+.hero__title { font: 600 clamp(3.2rem, min(9.4vw, 15svh), 10rem)/.84 var(--display); letter-spacing: -.055em; color: var(--ink-50); margin-left: -.05em; }
 .line { display: block; }
 .line--accent { color: var(--brand-500); }
 .w { display: inline-block; overflow: hidden; vertical-align: top; padding: .02em .04em .12em; margin: -.02em -.04em -.12em; }
 .w > span { display: inline-block; }
-.hero__kicker { max-width: 30rem; gap: .7rem; font: 500 clamp(.95rem, 1.2vw, 1.1rem)/1.45 var(--display); color: var(--ink-200); text-wrap: balance; }
+.hero__kicker { gap: .7rem; font: 500 clamp(.95rem, 1.2vw, 1.1rem)/1.45 var(--display); color: var(--ink-200); text-wrap: balance; }
 .hero__kicker::before { content: ""; width: .55rem; height: .55rem; flex: none; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 0 5px color-mix(in oklab, var(--brand-500) 18%, transparent); }
-.hero__foot { position: relative; z-index: 2; display: flex; padding-bottom: clamp(1rem, 2.5vh, 2rem); }
-.hero__foot > * { opacity: calc(1 - var(--p) * 4); }
-.hero__age { gap: .7rem; font-size: .85rem; color: var(--ink-300); }
-.cue { display: grid; justify-items: center; gap: .6rem; min-width: 44px; padding: .5rem; font-size: .68rem; letter-spacing: .24em; color: var(--ink-200); }
-.cue__line { position: relative; width: 1px; height: 3.25rem; overflow: hidden; background: color-mix(in oklab, var(--ink-50) 18%, transparent); }
-.cue__line::after { content: ""; position: absolute; inset: 0; background: var(--brand-500); transform: translateY(-100%); animation: cue 2.2s var(--ease-io) infinite; }
-@keyframes cue { 55% { transform: none; } 100% { transform: translateY(100%); } }
-/* The storefront: one box (1000 × 900) holding the building, the sign's light and the pots, anchored bottom right. */
-.sf { position: absolute; z-index: 1; right: 0; bottom: 0; width: min(55vw, 104svh); aspect-ratio: 10 / 9; pointer-events: none; }
-.sf > svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-.sf__base { transform: translateY(calc(var(--p) * 6vh)); }
-.sf__on { transform: translateY(calc(var(--p) * 6vh)); }
-.sf__front { transform: translateY(calc(var(--p) * -3vh)); }
+/* The promise bar, where the hero meets the page: a row of beadwork, then what shopping with us comes with. */
+.hero__foot { position: relative; z-index: 2; background: linear-gradient(color-mix(in oklab, var(--ink-950) 62%, transparent), var(--ink-950)); }
+.hero__foot::before { content: ""; display: block; height: 12px; background: var(--pat) 0 0 / 12px 12px repeat-x; }
+.promise { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .85rem 2rem; padding-block: 1.05rem 1.25rem; }
+.promise__item { gap: .65rem; font: 600 clamp(.92rem, 1.15vw, 1.08rem)/1.2 var(--display); letter-spacing: -.01em; color: var(--ink-50); }
+.promise__ico { flex: none; color: var(--brand-500); }
+.promise .age { width: 2rem; height: 2rem; border-width: 1.5px; font-size: .58rem; }
+@media (max-width: 759px) { .promise { display: grid; grid-template-columns: 1fr 1fr; } .promise__item { font-size: .88rem; } }
+/* Parallax: nearer layers move less, and the sun sinks behind the hills as the page scrolls. */
+.hero .sc__sun, .nf .sc__sun { transform: translateY(calc(var(--p) * 30vh)); }
+.hero .sc__hl1 { transform: translateY(calc(var(--p) * 19vh)); }
+.hero .sc__hl2 { transform: translateY(calc(var(--p) * 12vh)); }
+.hero .sc__mill { transform: translateY(calc(var(--p) * 9vh)); }
+.hero .sc__hl3 { transform: translateY(calc(var(--p) * 4vh)); }
+:is(.sc--home, .sc--notfound) .sc__pos { transform-origin: 1150px 565px; }
 @media (max-aspect-ratio: 1 / 1) {
-  .hero__in { flex: none; justify-content: flex-start; gap: 1.1rem; padding-top: calc(var(--hh) + 1.5rem); }
-  .hero__in .ctas { flex-wrap: nowrap; gap: .5rem; }
-  .btn--hero { min-height: 2.9rem; padding: .6rem 1.05rem; font-size: .92rem; }
-  .btn--hero .btn__icon { display: none; }
-  .hero__foot { display: none; }
-  .hero__in > .hero__age { display: none; }
-  .sf { right: auto; left: -.25rem; width: min(max(132vw, 69svh), calc((100svh - 23rem) * 1.11)); }
+  .hero { --at: 50% 72%; }
+  .hero__in { justify-content: flex-start; padding-top: calc(var(--hh) + 1.25rem); }
+  :is(.sc--home, .sc--notfound) .sc__pos { transform: translate(-350px, 175px) scale(.72); }
+  :is(.sc--home, .sc--notfound) :is(.f-hl1, .f-hl2) { transform: translateY(140px); }
+  :is(.sc--home, .sc--notfound) :is(.f-hl3, .f-hl4) { transform: translateY(70px); }
 }
-/* The storefront's paints (src/storefront.tsx), shared by the shelf's products (src/shelf.tsx). */
-.sf-wall { fill: color-mix(in oklab, var(--ink-800) 70%, var(--ink-700)); }
-.sf-cap, .sf-soffit, .sf-plinth { fill: var(--ink-700); }
-.sf-soffit { fill: var(--ink-900); }
-.sf-oak { fill: color-mix(in oklab, var(--brand-700) 50%, var(--ink-500)); }
-.pa-oak { fill: color-mix(in oklab, var(--brand-700) 62%, var(--ink-400)); }
-.sf-oak3, .sf-counter { fill: color-mix(in oklab, var(--brand-800) 58%, var(--ink-600)); }
-.sf-counter { fill: color-mix(in oklab, var(--brand-600) 45%, var(--ink-300)); }
-.sf-groove { fill: none; stroke: color-mix(in oklab, var(--brand-900) 55%, var(--ink-950)); stroke-width: 2.5; opacity: .6; }
-.sf-lamp { fill: var(--brand-100); }
-.sf-mortar { fill: var(--ink-900); }
-.sf-s1 { fill: color-mix(in oklab, var(--ink-500) 70%, var(--brand-800)); } .sf-s2 { fill: var(--ink-600); } .sf-s3 { fill: color-mix(in oklab, var(--ink-400) 60%, var(--ink-600)); }
-.sf-pillar, .sf-frame { fill: var(--ink-900); }
-.sf-plate { fill: var(--ink-950); stroke: var(--ink-700); stroke-width: 2; }
-.sf-ring { fill: none; stroke: var(--ink-700); stroke-width: 9; }
-.sf-mark { stroke: var(--brand-900); }
-.sf-mark circle { fill: none; }
-.sf-words { fill: var(--ink-600); font-family: var(--display); text-transform: uppercase; }
-.sf-t1 { font-size: 19px; font-weight: 300; letter-spacing: .16em; }
-.sf-t2 { font-size: 22px; font-weight: 800; letter-spacing: .06em; }
-.sf-ring--on { stroke: var(--brand-500); }
-.sf-mark--on { stroke: var(--brand-500); }
-.sf-words--on { fill: var(--ink-50); }
-.st-sg0 { stop-color: var(--brand-500); stop-opacity: .5; } .st-sg1 { stop-color: var(--brand-500); stop-opacity: 0; }
-.st-wash0 { stop-color: var(--brand-200); stop-opacity: .16; } .st-wash1 { stop-color: var(--brand-200); stop-opacity: 0; }
-.st-back0 { stop-color: color-mix(in oklab, var(--brand-200) 40%, var(--ink-400)); } .st-back1 { stop-color: color-mix(in oklab, var(--brand-100) 50%, var(--ink-300)); } .st-back2 { stop-color: color-mix(in oklab, var(--brand-300) 35%, var(--ink-400)); }
-.st-cone0 { stop-color: var(--brand-50); stop-opacity: .5; } .st-cone1 { stop-color: var(--brand-50); stop-opacity: 0; }
-.st-floor0 { stop-color: var(--ink-400); } .st-floor1 { stop-color: var(--ink-500); }
-.st-pool0 { stop-color: var(--brand-300); stop-opacity: .34; } .st-pool1 { stop-color: var(--brand-300); stop-opacity: 0; }
-.sf-ceil { fill: color-mix(in oklab, var(--ink-600) 70%, var(--brand-900)); }
-.sf-track, .sf-spot { fill: var(--ink-950); }
-.sf-lens { fill: var(--brand-100); }
-.sf-shelfback { fill: color-mix(in oklab, var(--brand-900) 40%, var(--ink-500)); }
-.sf-glasstop { fill: color-mix(in oklab, var(--ink-50) 70%, var(--brand-100)); opacity: .85; }
-.sf-leather { fill: color-mix(in oklab, var(--brand-600) 75%, var(--brand-800)); }
-.sf-leather2 { fill: color-mix(in oklab, var(--brand-700) 70%, var(--brand-900)); }
-.sf-hi { fill: none; stroke: var(--brand-300); stroke-width: 3; stroke-linecap: round; opacity: .5; }
-.sf-metal, .pa-spout, .pa-handle, .pa-hook, .pa-cup { fill: none; stroke: var(--ink-950); stroke-width: 5; stroke-linecap: round; }
-.pa-spout, .pa-handle { stroke: var(--ink-300); }
-.sf-metal2 { fill: var(--ink-950); }
-.sf-glass { fill: var(--ink-50); opacity: .06; }
-.sf-pave { fill: color-mix(in oklab, var(--ink-800) 80%, var(--ink-700)); }
-.sf-joint { stroke: var(--ink-900); stroke-width: 2; }
-.pa-kraft { fill: color-mix(in oklab, var(--brand-200) 55%, var(--ink-400)); } .pa-kraft2 { fill: color-mix(in oklab, var(--brand-300) 45%, var(--ink-500)); }
-.pa-cream { fill: var(--ink-100); }
-.pa-amber { fill: var(--brand-700); } .pa-amber2 { fill: var(--brand-800); }
-.pa-char { fill: var(--ink-800); } .pa-cap { fill: var(--ink-600); } .pa-bulb { fill: var(--ink-500); }
-.pa-org, .pa-bloom { fill: var(--brand-500); }
-.pa-bloom2 { fill: none; stroke: var(--brand-700); stroke-width: 2.5; }
-.pa-terra { fill: color-mix(in oklab, var(--brand-700) 72%, var(--brand-900)); }
-.pa-terra2 { fill: color-mix(in oklab, var(--brand-800) 75%, var(--ink-950)); }
-.pa-terra3 { fill: color-mix(in oklab, var(--brand-600) 62%, var(--brand-800)); }
-.pa-sage { fill: var(--sage-600); } .pa-sage2 { fill: var(--sage-800); }
-.pa-stalk { fill: none; stroke: var(--sage-400); stroke-width: 4; stroke-linecap: round; }
-.pa-pro { fill: var(--protea-500); } .pa-pro2 { fill: var(--protea-300); } .pa-pro3 { fill: var(--ink-100); }
-.pa-print { stroke: var(--brand-500); }
-.pa-print .hub { fill: var(--brand-500); }
-.pa-glass { fill: color-mix(in oklab, var(--ink-50) 60%, var(--brand-100)); opacity: .55; stroke: var(--ink-50); stroke-width: 3; }
-.pa-shine { stroke: var(--ink-50); stroke-width: 4; stroke-linecap: round; opacity: .7; }
-.pa-bean, .pa-soil { fill: var(--brand-900); }
-.pa-hanger { fill: none; stroke: var(--ink-400); stroke-width: 4; stroke-linejoin: round; }
-.pa-hook { stroke: var(--ink-400); stroke-width: 4; }
-.pa-shadow { fill: var(--ink-950); opacity: .35; }
-/* The sign switches on as the page opens (for a new visitor, after the 18+ gate): the ring flickers, then holds. */
-.sf__on { will-change: opacity; }
-.js .sf__on { animation: sign-on 1.6s linear .75s both; }
-@keyframes sign-on { 0% { opacity: 0; } 12% { opacity: .85; } 18% { opacity: .15; } 30% { opacity: 1; } 38% { opacity: .45; } 50%, 100% { opacity: 1; } }
-
 /* The statement: each word lights up as it's read. */
 .statement { padding-block: clamp(5rem, 12vw, 10rem) clamp(5rem, 10vw, 8rem); }
 .statement__p { max-width: 21em; font: 500 clamp(1.7rem, 4.1vw, 3.6rem)/1.14 var(--display); letter-spacing: -.03em; color: var(--ink-50); text-wrap: pretty; }
 .js .sw { opacity: clamp(.16, calc(var(--p) * 1.7 * var(--n, 40) - var(--i, 0)), 1); }
+/* What's in store: the categories, big. */
+.range__note { align-items: flex-start; gap: .6rem; max-width: 30rem; font-size: .9rem; }
+.range__note .ico { flex: none; margin-top: .2rem; color: var(--brand-800); }
+/* A tile per category, each with its "Shop" and a row of beadwork along its foot; the online shop's tile last, dark. */
+.tiles { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: clamp(2.25rem, 5vw, 3.75rem); }
+@media (min-width: 1100px) { .tiles { grid-template-columns: repeat(4, 1fr); gap: 1rem; } }
+.tile--cat, .tile--online { position: relative; display: flex; flex-direction: column; gap: .55rem; min-height: clamp(11rem, 17vw, 15rem); padding: clamp(1.05rem, 2vw, 1.6rem); padding-bottom: calc(clamp(1.05rem, 2vw, 1.6rem) + 10px); overflow: hidden; transition: transform .8s var(--ease); }
+.tile--cat::after { content: ""; position: absolute; inset: auto 0 0; height: 10px; background: var(--pat) 0 0 / 10px 10px repeat-x; }
+.tile__t { margin-top: .35rem; font: 600 clamp(1.2rem, 2.1vw, 1.9rem)/1.04 var(--display); letter-spacing: -.035em; color: var(--ink-950); text-wrap: balance; }
+.tile .tile__b { font-size: .9rem; }
+.tile__go { gap: .45rem; margin-top: auto; padding-top: .5rem; font: 600 .98rem var(--display); color: var(--brand-800); }
+.tile__go .ico { transition: transform .6s var(--ease); }
+.tile:has(.stretch):hover { transform: translateY(-6px); }
+.tile:has(.stretch):hover .tile__go .ico { transform: translateX(6px); }
+.tile:has(.stretch:focus-visible) { outline: 2px solid var(--brand-700); outline-offset: 4px; }
+.tile--online { background: var(--ink-950); }
+.tile--online .tile__t { color: var(--ink-50); }
+.tile--online .tile__b { color: var(--ink-300); }
+.tile--online .tile__go { color: var(--brand-400); }
+.tile--online .door__ico { background: color-mix(in oklab, var(--brand-500) 15%, transparent); color: var(--brand-400); }
+@media (max-width: 559px) { .tile .tile__b { font-size: .82rem; } }
+
 /* ── Marquee ───────────────────────────────────────────────────────────── */
-.marquee { position: relative; overflow: hidden; padding-block: clamp(1rem, 3vw, 2.5rem); background: var(--ink-950); border-block: 1px solid var(--line); }
+.marquee { position: relative; overflow: hidden; padding-block: calc(clamp(1rem, 3vw, 2.5rem) + 12px); background: var(--ink-950); }
+.marquee::before, .marquee::after { content: ""; position: absolute; inset: 0 0 auto; height: 12px; background: var(--pat) 0 0 / 12px 12px repeat-x; }
+.marquee::after { inset: auto 0 0; }
 .marquee__track, .marquee__set, .marquee__item { display: flex; align-items: center; }
 .marquee__track { width: max-content; will-change: transform; }
 .marquee__set { flex: none; }
@@ -344,6 +302,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .story__head { grid-area: head; display: grid; gap: .9rem; justify-items: start; }
 .story__title { display: grid; font-family: var(--display); color: var(--ink-50); }
 .story__big { display: flex; align-items: baseline; gap: .12em; padding-bottom: .1em; font-size: clamp(4.2rem, 13vw, 11.5rem); font-weight: 600; line-height: .84; letter-spacing: -.06em; font-variant-numeric: tabular-nums; }
+/* A number the story counts up to holds the final value's width (an unseen copy), so nothing beside it moves. */
 .count { display: inline-grid; }
 .count > * { grid-area: 1 / 1; text-align: end; }
 .count__hold { visibility: hidden; }
@@ -416,6 +375,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .tilting > * { transition-duration: .15s; }
 .card__in { display: flex; flex-direction: column; min-height: 25rem; padding: 1.5rem; }
 .card__top { display: flex; justify-content: space-between; align-items: center; height: 1.25rem; color: var(--brand-800); }
+.card .age { width: 2.2rem; height: 2.2rem; font-size: .66rem; }
 .card__vis { height: 9.5rem; margin-block: 1.25rem 1.5rem; border-radius: 1rem; background: var(--ink-950); color: var(--ink-100); }
 .card__title { font: 600 1.3rem/1.15 var(--display); letter-spacing: -.02em; color: var(--ink-950); }
 .card__body { margin-top: .6rem; font-size: .95rem; color: var(--ink-600); }
@@ -429,11 +389,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 @keyframes blink { 50% { opacity: 0; } }
 .lab__ok { gap: .45rem; font-size: .78rem; font-weight: 600; color: var(--ink-100); transition: opacity .6s var(--ease), transform .8s var(--ease); }
 .js .card--lab:not(.typed) .lab__ok { opacity: 0; transform: translateY(6px); }
-.rx__mark { width: 5.5rem; height: 5.5rem; color: var(--brand-500); }
-.rcard { display: flex; align-items: center; gap: .7rem; padding: .75rem 1rem; border: 3px solid var(--brand-500); border-radius: .9rem; }
-.rcard__mark { width: 2.4rem; height: 2.4rem; color: var(--brand-500); }
-.rcard__t { display: grid; font: 300 .56rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--ink-300); }
-.rcard__t b { font-size: .78rem; font-weight: 800; letter-spacing: .12em; color: var(--brand-500); }
+.rx .age { width: 5.5rem; height: 5.5rem; border-width: 3px; font-size: 1.6rem; color: var(--brand-500); }
 .rx { gap: .6rem; color: var(--brand-400); }
 .rx span { padding: .35rem .75rem; border: 1px solid var(--ink-700); border-radius: 99px; font-size: .64rem; color: var(--ink-200); }
 
@@ -459,9 +415,11 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .store__name { font: 600 clamp(2.4rem, 5vw, 4rem)/.95 var(--display); letter-spacing: -.045em; color: var(--ink-50); }
 .store__line { font: clamp(1.05rem, 1.4vw, 1.25rem)/1.4 var(--display); color: var(--ink-200); }
 .store__opens { gap: .5rem; margin-top: .35rem; font-size: .9rem; font-weight: 500; color: var(--brand-400); }
+.store__owned { font-size: .85rem; color: var(--ink-400); }
 .stores__apart { justify-content: center; gap: 1rem; color: var(--ink-300); }
 .stores__rule { flex: 1; border-top: 1px dashed var(--brand-700); }
 .stores__km { white-space: nowrap; }
+.stores__finder { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.5rem; margin-top: 2rem; }
 @media (max-width: 899px) { .stores__apart { order: 1; } .store--1 { order: 2; } }
 @media (min-width: 900px) {
   .stores__grid { grid-template-columns: 1fr 7rem 1fr; align-items: center; }
@@ -470,6 +428,53 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
   .stores__km { writing-mode: vertical-rl; transform: rotate(180deg); }
   .store--0 { grid-area: 1 / 1; } .store--1 { grid-area: 1 / 3; }
 }
+
+/* ── Opening nationally, the store map and /stores ─────────────────────── */
+.nation__grid { display: grid; gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
+@media (min-width: 960px) { .nation__grid { grid-template-columns: 1fr 1.1fr; } }
+.nation__body { max-width: 34rem; margin-block: 1.25rem 2rem; }
+.za { display: grid; gap: .9rem; }
+.za__map { width: 100%; height: auto; overflow: visible; }
+.za__p { fill: var(--ink-150); stroke: var(--ink-50); stroke-width: 2.4; stroke-linejoin: round; }
+.za__p--on { fill: color-mix(in oklab, var(--brand-500) 34%, var(--ink-50)); }
+.za__nb { fill: var(--ink-50); stroke: var(--ink-300); stroke-width: 1.6; stroke-dasharray: 4 5; }
+.za__names text { font: 600 16px var(--display); letter-spacing: .14em; text-transform: uppercase; fill: var(--ink-500); text-anchor: middle; }
+.za__names .on { fill: var(--brand-800); }
+.za__names .za__nbname { font-weight: 500; letter-spacing: .04em; text-transform: none; fill: var(--ink-400); }
+.za-pin__dot { fill: var(--brand-500); stroke: var(--ink-950); stroke-width: 3; }
+.za-pin--opening .za-pin__dot { fill: var(--ink-50); stroke: var(--brand-600); stroke-width: 5; }
+.za-pin__pulse { fill: none; stroke: var(--brand-500); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: pin 2.6s var(--ease) infinite; }
+.za-pin__name { font: 700 22px var(--display); fill: var(--ink-950); paint-order: stroke; stroke: var(--ink-50); stroke-width: 6px; stroke-linejoin: round; }
+.za__key { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; font: 500 .82rem var(--display); color: var(--ink-600); }
+.za__k { display: inline-flex; align-items: center; gap: .5rem; }
+.za__k::before { content: ""; width: .75rem; height: .75rem; border-radius: 50%; background: var(--brand-500); }
+.za__k--opening::before { background: var(--ink-50); border: 3px solid var(--brand-600); }
+@media (max-width: 639px) { .za__names text { font-size: 26px; } .za__names .za__nbname { font-size: 21px; } .za-pin__name { font-size: 34px; } }
+.prov { margin-top: clamp(2rem, 4vw, 3rem); }
+.prov__h { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--hair); font: 600 clamp(1.4rem, 2.2vw, 1.9rem)/1.1 var(--display); letter-spacing: -.02em; color: var(--ink-950); }
+.prov__h span { font: 500 .85rem var(--sans); color: var(--ink-500); }
+.prov__list { display: grid; gap: 1rem; margin-top: 1.25rem; }
+@media (min-width: 640px) { .prov__list { grid-template-columns: 1fr 1fr; } }
+.prov .store__art { height: clamp(8rem, 12vw, 11rem); }
+.prov .store__name { font-size: clamp(2rem, 3.4vw, 2.9rem); }
+.stc__finder { margin-top: 2rem; }
+.nation__side { display: grid; gap: .7rem; justify-items: start; margin-top: 1.75rem; padding: clamp(1.4rem, 3vw, 2rem); border-radius: 1.5rem; background: var(--ink-950); color: var(--ink-300); }
+.sheet .nation__side .h3 { color: var(--ink-50); }
+.nation__side .eyebrow { color: var(--brand-500); }
+.concept__grid { display: grid; gap: 1rem; margin-top: clamp(2rem, 4vw, 3rem); }
+@media (min-width: 760px) { .concept__grid { grid-template-columns: 1fr 1fr; } }
+.concept__fig { display: grid; gap: .8rem; }
+.concept__fig img { width: 100%; height: auto; border-radius: 1.5rem; background: var(--ink-800); }
+.concept__fig figcaption { font-size: .85rem; color: var(--ink-400); }
+.concept__fig b { margin-right: .5rem; font: 600 .72rem var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--brand-400); }
+
+/* ── Early access: "Get first access" ──────────────────────────────────── */
+.access--dark { background: radial-gradient(60% 70% at 20% 35%, color-mix(in oklab, var(--brand-900) 38%, var(--ink-950)), var(--ink-950) 70%); }
+.access__grid { display: grid; gap: clamp(2.5rem, 5vw, 4.5rem); align-items: start; }
+@media (min-width: 960px) { .access__grid { grid-template-columns: .85fr 1.15fr; } .access__copy { position: sticky; top: calc(var(--hh) + 2.5rem); } }
+.access .ticks { margin-top: 1.75rem; }
+.field--note .field__hint { margin-top: -.5rem; }
+.done__body { max-width: 32rem; color: var(--ink-700); }
 
 /* ── Founding Members ──────────────────────────────────────────────────── */
 .founding { overflow: clip; background: radial-gradient(60% 70% at 78% 50%, color-mix(in oklab, var(--brand-900) 40%, var(--ink-950)), var(--ink-950) 70%); }
@@ -491,119 +496,33 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .fcard__of { font: 500 clamp(.72rem, 1.3vw, .85rem) var(--display); letter-spacing: .08em; color: var(--ink-400); }
 .fcard__art { position: absolute; inset: auto 0 0; width: 100%; height: 52%; }
 
-/* A card that is one big link (the shelf): the link's ::after covers the card. */
+/* ── Doors ─────────────────────────────────────────────────────────────── */
+.door { position: relative; display: flex; flex-direction: column; gap: .9rem; min-height: 21rem; border-radius: 1.75rem; }
+.door__top { gap: .8rem; }
+.door__label { color: var(--ink-500); }
+.door__title { margin-top: auto; font: 600 clamp(1.7rem, 2.6vw, 2.3rem)/1.02 var(--display); letter-spacing: -.035em; color: var(--ink-950); }
+.door__cta { gap: .5rem; font: 600 1rem var(--display); color: var(--brand-800); }
+.door__cta .ico, .inbox__link .ico { transition: transform .6s var(--ease); }
+.door--soon, .inbox--members, .empty { background: transparent; box-shadow: none; border: 1.5px dashed color-mix(in oklab, var(--ink-950) 22%, transparent); }
+.door--soon .door__ico { background: var(--ink-150); color: var(--ink-600); }
+.door--go { background: var(--ink-950); color: var(--ink-300); }
+.door--go .door__title { color: var(--ink-50); }
+.door--go :is(.door__label, .door__cta) { color: var(--brand-400); }
+.door:has(.stretch) { transition: transform .8s var(--ease); }
+.door:has(.stretch):hover { transform: translateY(-6px); }
+.door:has(.stretch):hover .door__cta .ico, .inbox__link:hover .ico { transform: translateX(6px); }
 .stretch::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
 .stretch:focus-visible { outline: 0; }
-.cat:has(.stretch:focus-visible) { outline: 2px solid var(--brand-700); outline-offset: 4px; border-radius: 1.25rem; }
-
-/* ── The pattern band: the site's signature between sections ───────────── */
-.band { height: 16px; background: var(--pat) 0 0 / 16px 16px repeat-x; }
-
-/* ── On the shelf: a cubby per category ────────────────────────────────── */
-.shelf .split { margin-bottom: clamp(2.5rem, 5vw, 3.5rem); }
-.shelf__note { align-items: flex-start; gap: .6rem; max-width: 24rem; font-size: .88rem; }
-.shelf__note .ico { flex: none; margin-top: .2rem; color: var(--brand-800); }
-.cats { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(1.1rem, 2vw, 1.5rem) clamp(.75rem, 1.6vw, 1.25rem); }
-@media (min-width: 760px) { .cats { grid-template-columns: repeat(4, 1fr); } }
-.cat { position: relative; display: grid; gap: .3rem; align-content: start; justify-items: start; }
-.cat__cubby { position: relative; width: 100%; aspect-ratio: 1; margin-bottom: .55rem; overflow: hidden; border-radius: 1.25rem; background: radial-gradient(75% 60% at 50% 0%, color-mix(in oklab, var(--brand-300) 30%, var(--ink-800)), var(--ink-900) 72%); }
-.cat__cubby::before { content: ""; position: absolute; left: 34%; right: 34%; top: 0; height: 5px; border-radius: 0 0 6px 6px; background: var(--ink-950); }
-.cat__plank { position: absolute; inset: auto 0 12% 0; height: 12%; background: linear-gradient(color-mix(in oklab, var(--brand-600) 55%, var(--ink-400)), color-mix(in oklab, var(--brand-800) 60%, var(--ink-600))) 0 0 / 100% 58% no-repeat, var(--pat) 0 100% / 12px 12px repeat-x; }
-.cat__cubby::after { content: ""; position: absolute; inset: 88% 0 0; background: var(--ink-950); }
-.cat__art { position: absolute; left: 10%; bottom: 18.3%; width: 80%; height: auto; transition: transform .8s var(--ease); }
-.cat__t { font: 600 clamp(1rem, 1.3vw, 1.15rem)/1.2 var(--display); letter-spacing: -.01em; color: var(--ink-950); }
-.cat__b { font-size: .86rem; line-height: 1.45; color: var(--ink-600); }
-.cat__go { gap: .4rem; margin-top: .3rem; font: 600 .88rem var(--display); color: var(--brand-800); }
-.cat .soon__badge { margin-top: .45rem; }
-.cat:has(.stretch):hover .cat__art { transform: translateY(-6px); }
-
-/* ── First stores: Holland, meet the Hills ─────────────────────────────── */
-.first { position: relative; overflow: clip; background: var(--ink-950); }
-.first__stage { position: relative; display: flex; min-height: min(100svh, 64rem); background: radial-gradient(80% 65% at 72% 62%, color-mix(in oklab, var(--brand-800) 40%, var(--ink-950)), color-mix(in oklab, var(--brand-900) 18%, var(--ink-950)) 38%, var(--ink-950) 72%); }
-.first__in { position: relative; z-index: 2; display: grid; gap: 1.2rem; align-content: start; justify-items: start; padding-top: clamp(3.5rem, 7vw, 6rem); }
-.first__title { font: 600 clamp(3rem, 7.2vw, 8rem)/.88 var(--display); letter-spacing: -.055em; color: var(--ink-50); margin-left: -.05em; }
-.first__lede { max-width: 30rem; }
-/* As the section passes, the sun rises behind the hills; nearer layers move less. */
-.first .sc__sun { transform: translateY(calc((.55 - var(--p)) * 26vh)); }
-.first .sc__hl1 { transform: translateY(calc((.55 - var(--p)) * 14vh)); }
-.first .sc__hl2 { transform: translateY(calc((.55 - var(--p)) * 9vh)); }
-.first .sc__mill { transform: translateY(calc((.55 - var(--p)) * 7vh)); }
-.first .sc__hl3 { transform: translateY(calc((.55 - var(--p)) * 3vh)); }
-.nf .sc__sun { transform: translateY(calc(var(--p) * 30vh)); }
-:is(.sc--first, .sc--notfound) .sc__pos { transform-origin: 1150px 565px; }
-.first .stores__grid { position: relative; z-index: 3; margin-top: clamp(-5rem, -5vw, -2rem); }
-.first > .band { margin-top: clamp(4.5rem, 9vw, 8rem); }
-.first + .sheet { margin-top: 0; border-radius: 0; }
-@media (max-aspect-ratio: 1 / 1) {
-  /* On a phone the words come first and the sunset below them, never on top of each other. */
-  .first__stage { display: block; min-height: 0; }
-  .first__scene { position: relative; height: min(110vw, 34rem); margin-top: -4rem; }
-  .sc--notfound .sc__pos { transform: translate(-350px, 175px) scale(.72); }
-  .sc--notfound :is(.f-hl1, .f-hl2) { transform: translateY(140px); }
-  .sc--notfound :is(.f-hl3, .f-hl4) { transform: translateY(70px); }
-  .sc--first .sc__pos { transform: translate(-350px, 30px); }
-}
-
-/* ── Opening nationally, and the store map ─────────────────────────────── */
-.nation__grid { display: grid; gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
-@media (min-width: 960px) { .nation__grid { grid-template-columns: 1fr 1.1fr; } }
-.nation__body { max-width: 34rem; margin-top: 1.25rem; }
-.stats--nation { grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr)); margin-block: 2rem 2.25rem; padding-top: 1.75rem; border-color: var(--hair); }
-.sheet .stat dd { font-size: clamp(2.6rem, 4.6vw, 4.4rem); color: var(--ink-950); }
-.sheet .stat dt { color: var(--ink-600); }
-.sheet .btn--ghost { --fg: var(--ink-950); --bd: color-mix(in oklab, var(--ink-950) 28%, transparent); }
-.za { display: grid; gap: .9rem; }
-.za__map { width: 100%; height: auto; overflow: visible; }
-.za__p { fill: var(--ink-150); stroke: var(--ink-50); stroke-width: 2.4; stroke-linejoin: round; }
-.za__p--on { fill: color-mix(in oklab, var(--brand-500) 34%, var(--ink-50)); }
-.za__nb { fill: var(--ink-50); stroke: var(--ink-300); stroke-width: 1.6; stroke-dasharray: 4 5; }
-.za__names text { font: 600 16px var(--display); letter-spacing: .14em; text-transform: uppercase; fill: var(--ink-500); text-anchor: middle; }
-.za__names .on { fill: var(--brand-800); }
-.za__names .za__nbname { font-weight: 500; letter-spacing: .04em; text-transform: none; fill: var(--ink-400); }
-.za-pin__dot { fill: var(--brand-500); stroke: var(--ink-950); stroke-width: 3; }
-.za-pin--opening .za-pin__dot { fill: var(--ink-50); stroke: var(--brand-600); stroke-width: 5; }
-.za-pin__pulse { fill: none; stroke: var(--brand-500); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: pin 2.6s var(--ease) infinite; }
-.za-pin__name { font: 700 22px var(--display); fill: var(--ink-950); paint-order: stroke; stroke: var(--ink-50); stroke-width: 6px; stroke-linejoin: round; }
-.za__key { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; font: 500 .82rem var(--display); color: var(--ink-600); }
-.za__k { display: inline-flex; align-items: center; gap: .5rem; }
-.za__k::before { content: ""; width: .75rem; height: .75rem; border-radius: 50%; background: var(--brand-500); }
-.za__k--opening::before { background: var(--ink-50); border: 3px solid var(--brand-600); }
-@media (max-width: 639px) { .za__names text { font-size: 26px; } .za__names .za__nbname { font-size: 21px; } .za-pin__name { font-size: 34px; } }
-
-/* ── Stores ────────────────────────────────────────────────────────────── */
-.prov { margin-top: clamp(2rem, 4vw, 3rem); }
-.prov__h { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--hair); font: 600 clamp(1.4rem, 2.2vw, 1.9rem)/1.1 var(--display); letter-spacing: -.02em; color: var(--ink-950); }
-.prov__h span { font: 500 .85rem var(--sans); color: var(--ink-500); }
-.stcs { display: grid; gap: 1rem; margin-top: 1.25rem; }
-@media (min-width: 640px) { .stcs { grid-template-columns: 1fr 1fr; } }
-.stc, .chap { overflow: hidden; border-radius: 1.5rem; background: #fff; box-shadow: var(--shadow); }
-.stc__art, .chap__art { display: block; width: 100%; height: 6.5rem; background: radial-gradient(90% 90% at 80% 100%, color-mix(in oklab, var(--brand-800) 45%, var(--ink-950)), var(--ink-950) 75%); }
-.stc__copy, .chap__copy { display: grid; gap: .45rem; justify-items: start; padding: 1.15rem 1.3rem 1.4rem; }
-.stc__name { font: 600 1.7rem/1 var(--display); letter-spacing: -.03em; color: var(--ink-950); }
-.stc__where { font-size: .92rem; color: var(--ink-600); }
-.stc__status { gap: .45rem; font: 600 .88rem var(--display); color: var(--brand-800); }
-.stc__owned { font-size: .8rem; color: var(--ink-500); }
-.stc__finder { margin-top: 2rem; }
-.nation__side { display: grid; gap: .7rem; justify-items: start; margin-top: 1.75rem; padding: clamp(1.4rem, 3vw, 2rem); border-radius: 1.5rem; background: var(--ink-950); color: var(--ink-300); }
-.sheet .nation__side .h3 { color: var(--ink-50); }
-.nation__side .eyebrow, .chap--next .eyebrow { color: var(--brand-500); }
-.nation__side .btn--dark, .chap--next .btn { --bg: var(--brand-500); --fg: var(--ink-950); --fill: var(--ink-50); }
-.concept__grid { display: grid; gap: 1rem; margin-top: clamp(2rem, 4vw, 3rem); }
-@media (min-width: 760px) { .concept__grid { grid-template-columns: 1fr 1fr; } }
-.concept__fig { display: grid; gap: .8rem; }
-.concept__fig img { width: 100%; height: auto; border-radius: 1.5rem; background: var(--ink-800); }
-.concept__fig figcaption { font-size: .85rem; color: var(--ink-400); }
-.concept__fig b { margin-right: .5rem; font: 600 .72rem var(--display); letter-spacing: .2em; text-transform: uppercase; color: var(--brand-400); }
-
-/* ── About: the chapters ───────────────────────────────────────────────── */
-.chaps { margin-top: clamp(4rem, 8vw, 7rem); }
-.chaps__list { display: grid; gap: 1rem; margin-top: clamp(2rem, 4vw, 3rem); }
-@media (min-width: 900px) { .chaps__list { grid-template-columns: 1.2fr 1fr; } }
-.chap--next { position: relative; display: grid; align-content: end; background: var(--ink-950); color: var(--ink-300); }
-/* Beside the first chapter's hills, the next one has the stores' panel pattern, fading into the dark. */
-@media (min-width: 900px) { .chap--next::before { content: ""; position: absolute; inset: 0 0 auto; height: 6.5rem; background: var(--pat) 0 0 / 20px 20px; opacity: .2; -webkit-mask-image: linear-gradient(#000, transparent); mask-image: linear-gradient(#000, transparent); } }
-.chap__b { max-width: 34rem; }
-.sheet .chap--next .chap__t { color: var(--ink-50); }
+.door:has(.stretch:focus-visible) { outline: 2px solid var(--brand-700); outline-offset: 4px; }
+.more { margin-top: clamp(3.5rem, 7vw, 6rem); }
+.more__list { margin-top: 1.25rem; border-top: 1px solid var(--hair); }
+.more__link { display: grid; grid-template-columns: 1fr auto; gap: .35rem 1.5rem; align-items: center; padding-block: 1.6rem; border-bottom: 1px solid var(--hair); color: var(--ink-950); }
+.more__t { font: 600 clamp(1.7rem, 4vw, 3.2rem)/1 var(--display); letter-spacing: -.04em; }
+.more__b { grid-row: 2; color: var(--ink-600); }
+.more__t, .more__b, .more__go { transition: transform .7s var(--ease); }
+.more__go { grid-area: 1 / 2 / 3; width: 3.6rem; height: 3.6rem; border-radius: 50%; border: 1px solid var(--hair); }
+.more__link:hover :is(.more__t, .more__b) { transform: translateX(.6rem); }
+.more__link:hover .more__go { transform: rotate(-45deg); }
 
 /* ── Inner-page header ─────────────────────────────────────────────────── */
 .phero { min-height: min(96svh, 60rem); background: radial-gradient(90% 60% at 50% 100%, color-mix(in oklab, var(--brand-800) 30%, var(--ink-950)), var(--ink-950) 70%); }
@@ -652,6 +571,17 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .panel__body { max-width: 32rem; color: var(--ink-300); }
 .panel__doors { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; }
 .panel--soon { background: transparent; border-style: dashed; }
+
+.chaps { margin-top: clamp(4rem, 8vw, 7rem); }
+.chaps__list { display: grid; gap: 1rem; margin-top: clamp(2rem, 4vw, 3rem); }
+@media (min-width: 900px) { .chaps__list { grid-template-columns: 1.2fr 1fr; } }
+.chap { overflow: hidden; border-radius: 1.5rem; background: #fff; box-shadow: var(--shadow); }
+.chap__art { display: block; width: 100%; height: 6.5rem; background: radial-gradient(90% 90% at 80% 100%, color-mix(in oklab, var(--brand-800) 45%, var(--ink-950)), var(--ink-950) 75%); }
+.chap__copy { display: grid; gap: .45rem; justify-items: start; padding: 1.15rem 1.3rem 1.4rem; }
+.chap__b { max-width: 34rem; }
+.chap--next { background: var(--ink-950); color: var(--ink-300); }
+.chap--next .eyebrow { color: var(--brand-500); }
+.sheet .chap--next .chap__t { color: var(--ink-50); }
 
 /* ── Franchise ─────────────────────────────────────────────────────────── */
 .tile p, .inbox p, .note p, .logo__meta p { font-size: .95rem; color: var(--ink-600); }
@@ -786,6 +716,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 
 /* ── Footer ────────────────────────────────────────────────────────────── */
 .ftr { position: relative; overflow: clip; background: var(--ink-950); }
+.band { height: 16px; background: var(--pat) 0 0 / 16px 16px repeat-x; }
 .ftr > .band { height: 20px; margin-bottom: clamp(4.5rem, 9vw, 8rem); background-size: 20px 20px; }
 .ftr__top { display: grid; gap: 3rem; }
 @media (min-width: 960px) { .ftr__top { grid-template-columns: 1fr 1.7fr; } }
@@ -828,7 +759,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .gate .sc__l { animation: up-in 1.6s var(--ease) both; }
 .gate .sc__hl1 { animation-delay: .1s; } .gate .sc__hl2 { animation-delay: .2s; } .gate .sc__hl3 { animation-delay: .3s; }
 .gate__stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100%; padding: 1.25rem; }
-/* The card's frame is the site's pattern: one row of the tile along each edge. */
+/* The card's frame is beadwork: one row of the tile along each edge. */
 .gate__card { width: min(100%, 28rem); padding: 2.25rem 1.5rem 1.75rem; border: 16px solid transparent; border-radius: 1.75rem; background: linear-gradient(var(--ink-950) 0 0) padding-box, var(--pat) 0 0 / 16px 16px border-box; text-align: center; box-shadow: 0 40px 100px -30px #000; animation: up-in 1.2s var(--ease) .05s both; }
 @media (min-width: 640px) { .gate__card { border-width: 20px; background-size: auto, 20px 20px; padding: 3rem 2.75rem 2.25rem; } }
 .gate__mark { width: 5.5rem; height: 5.5rem; margin-inline: auto; color: var(--brand-500); }
@@ -873,10 +804,7 @@ body::after { content: ""; position: fixed; inset: -8rem; z-index: 1050; pointer
 .js [data-r] { transition: opacity 1.1s var(--ease), transform 1.3s var(--ease); transition-delay: calc(var(--i, 0) * 85ms); }
 .js [data-r]:not(.in) { opacity: 0; transform: translateY(2.25rem); }
 .js [data-r="scale"]:not(.in) { transform: translateY(2rem) scale(.94); }
-.js :is([data-r="build"], [data-r="words"]):not(.in) { opacity: 1; transform: none; }
-/* A heading whose words rise in, in reading order, as it comes into view. */
-.js [data-r="words"] .w > span { transition: transform 1.2s var(--ease) calc((var(--l, 0) + var(--k, 0)) * 85ms); }
-.js [data-r="words"]:not(.in) .w > span { transform: translateY(112%); }
+.js [data-r="build"]:not(.in) { opacity: 1; transform: none; }
 /* Each page's opening plays from the first paint for a returning adult (the head script marks html.ready at once), and
    for a new visitor after "I'm 18 or older": until then it waits on its first frame. Words rise in reading order. */
 .js .rise .w > span { animation: rise 1.3s var(--ease) calc((var(--l, 0) + var(--k, 0)) * 85ms + 80ms) both; }
@@ -885,16 +813,15 @@ body::after { content: ""; position: fixed; inset: -8rem; z-index: 1050; pointer
 .js [data-in] { animation: in 1.3s var(--ease) .1s both; }
 .js [data-in="2"] { animation-delay: .45s; } .js [data-in="3"] { animation-delay: .6s; } .js [data-in="4"] { animation-delay: .9s; }
 /* The scene rises into place (the `translate` property, so the parallax transforms still compose). */
-.js :is(.phero, .nf) .sc__l { animation: in-l 1.8s var(--ease) both; }
-.js .nf .sc__sun { animation-name: in-sun; }
-.js .hero .sf { animation: in 1.5s var(--ease) .1s both; }
-.js:not(.ready) :is([data-in], .rise .w > span, .phero .sc__l, .nf .sc__l, .hero .sf, .sf__on) { animation-play-state: paused; }
+.js :is(.hero, .phero, .nf) .sc__l { animation: in-l 1.8s var(--ease) both; }
+.js :is(.hero, .nf) .sc__sun { animation-name: in-sun; }
+.js:not(.ready) :is([data-in], .rise .w > span, .hero .sc__l, .phero .sc__l, .nf .sc__l) { animation-play-state: paused; }
 @keyframes rise { from { transform: translateY(112%); } }
 @keyframes in { from { opacity: 0; transform: translateY(1.5rem); } }
 @keyframes in-l { from { opacity: 0; translate: 0 8%; } }
 @keyframes in-sun { from { opacity: 0; translate: 0 16%; } }
 /* If the script never arrives, show everything anyway. */
-.js:not(.m) [data-r], .js:not(.m):not(.ready) :is([data-in], .rise .w > span, .phero .sc__l, .nf .sc__l, .hero .sf, .sf__on) { animation: failsafe 0s 3s forwards; }
+.js:not(.m) [data-r], .js:not(.m):not(.ready) :is([data-in], .rise .w > span, .hero .sc__l, .phero .sc__l, .nf .sc__l) { animation: failsafe 0s 3s forwards; }
 @keyframes failsafe { to { opacity: 1; transform: none; translate: none; } }
 
 /* ── Scroll-driven animations where the browser has them ───────────────── */
@@ -905,7 +832,6 @@ body::after { content: ""; position: fixed; inset: -8rem; z-index: 1050; pointer
     [data-sp="exit"] { animation-range: exit 0% exit 100%; }
     [data-sp="enter"] { animation-range: entry 0% entry 100%; }
     [data-sp="center"] { animation-range: cover 50vh cover calc(100% - 50vh); }
-    [data-sp="cover"] { animation-range: cover 0% cover 100%; }
   }
 }
 
@@ -926,5 +852,4 @@ body::after { content: ""; position: fixed; inset: -8rem; z-index: 1050; pointer
   .marquee__track { padding-inline: var(--g); }
   .marquee__set + .marquee__set { display: none; }
   .marquee__w { font-size: clamp(2.2rem, 6vw, 5rem); }
-  .first :is(.sc__sun, .sc__hl1, .sc__hl2, .sc__mill, .sc__hl3) { transform: none; }
 }

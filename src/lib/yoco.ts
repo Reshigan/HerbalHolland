@@ -5,7 +5,9 @@
 // signed content = `${webhook-id}.${webhook-timestamp}.${raw body}`, key = the base64 part of the `whsec_…` secret,
 // signature = base64(HMAC-SHA256). `webhook-signature` holds space-separated `v1,<signature>` entries; any may match.
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { zar } from "./money";
+import { cardLabel, decidePayment, type OrderDue, type PaymentEventKind, type PaymentFacts } from "./online-payments";
+
+export type { PaymentDecision } from "./online-payments";
 
 /** Webhook timestamps more than this far from our clock (either way) are refused: replays. */
 export const YOCO_TOLERANCE_SECONDS = 5 * 60;
@@ -54,10 +56,8 @@ export function parseYocoEvent(rawBody: string): YocoEvent | null {
   }
 }
 
-const SCHEMES: Record<string, string> = { visa: "Visa", visaelectron: "Visa Electron", mastercard: "Mastercard", maestro: "Maestro", amex: "Amex" };
-
 /** What an event says, in our terms. Card details are only the scheme and last four digits. */
-export function yocoFacts(e: YocoEvent) {
+export function yocoFacts(e: YocoEvent): PaymentFacts {
   const m = e.payload.metadata ?? {};
   const text = (v: unknown) => (typeof v === "string" && v ? v : null);
   const card = e.payload.paymentMethodDetails?.card;
@@ -70,29 +70,18 @@ export function yocoFacts(e: YocoEvent) {
     amountCents: typeof e.payload.amount === "number" ? e.payload.amount : null,
     currency: e.payload.currency ?? null,
     mode: e.payload.mode ?? null,
-    method: last4 ? `${SCHEMES[card?.scheme ?? ""] ?? "Card"} •••• ${last4}` : method === "instant_eft" ? "Instant EFT" : (method ?? null),
+    method: last4 ? cardLabel(card?.scheme, last4) : method === "instant_eft" ? "Instant EFT" : (method ?? null),
     failureReason: text(e.payload.failureReason),
   };
 }
-export type YocoFacts = ReturnType<typeof yocoFacts>;
+export type YocoFacts = PaymentFacts;
 
-export type PaymentDecision = { action: "pay" | "repeat" | "ignore" | "review"; reason: string };
+const KINDS = new Map<string, PaymentEventKind>([["payment.succeeded", "paid"], ["payment.failed", "payment.failed"], ["refund.succeeded", "payment.refunded"], ["refund.failed", "payment.refund_failed"]]);
+/** The Yoco events we act on (payment.succeeded) or log; any other type is ignored. */
+export const yocoEventKind = (type: string) => KINDS.get(type);
 
-/**
- * What a payment.succeeded event does to an order. "pay": mark it paid. "repeat": already recorded (Yoco redelivered).
- * "ignore": not one of our orders (the webhook sees every payment on the Yoco account). "review": money that doesn't fit
- * the order — another checkout, another amount, or paid after the order was cancelled — for a person to sort out.
- */
-export function paymentDecision(f: YocoFacts, o: { status: string; paymentStatus: string; paymentRef: string | null; dueCents: number } | null): PaymentDecision {
-  if (!o) return { action: "ignore", reason: "No Herbal Holland order for this payment" };
-  if (!f.checkoutId || f.checkoutId !== o.paymentRef) return { action: "review", reason: `Paid on checkout ${f.checkoutId ?? "(none)"}, but the order's checkout is ${o.paymentRef ?? "(none)"}` };
-  if (o.paymentStatus !== "UNPAID") return { action: "repeat", reason: `Payment already recorded (${o.paymentStatus.toLowerCase()})` };
-  if (f.currency !== "ZAR" || f.amountCents !== o.dueCents)
-    return { action: "review", reason: `Paid ${f.amountCents == null ? "an unknown amount" : f.currency === "ZAR" ? zar(f.amountCents) : `${f.amountCents} ${f.currency}`}, but ${zar(o.dueCents)} is due` };
-  if (o.status === "CANCELLED") return { action: "review", reason: "Paid after the order was cancelled: refund the member in the Yoco portal" };
-  if (o.status !== "PENDING_PAYMENT") return { action: "review", reason: `Paid while the order was ${o.status.toLowerCase()}` };
-  return { action: "pay", reason: "Checkout and amount match the order" };
-}
+/** What a payment.succeeded event does to an order: the shared rules (@/lib/online-payments), refunds in the Yoco portal. */
+export const paymentDecision = (f: YocoFacts, o: OrderDue | null) => decidePayment(f, o, "the Yoco portal");
 
 /**
  * The checkout we ask Yoco for: the amount due after points (in cents, ZAR), the member's order page on our own site

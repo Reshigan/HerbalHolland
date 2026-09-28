@@ -4,7 +4,7 @@ import { ABOUT, CHROME, fill } from "../../content";
 import { firstStores, greatCircleKm, listOf, longDate, nextOpening, provinceNames, shopLink, storeProvinces } from "../../facts";
 import { Mark, MiniScene, cx } from "../art";
 import { Page } from "../layout";
-import { Btn, Head, Icon, Index, ShopDoor } from "../ui";
+import { Btn, Head, Icon, Index, ShopDoor, ShopNow } from "../ui";
 import { PageHero } from "./parts";
 
 export function AboutPage() {
@@ -47,7 +47,7 @@ export function AboutPage() {
           <ol className="chaps__list" data-rs="">
             {chapters.items.map((c, i) => (
               <li key={c.key} className={cx("chap", `chap--${c.key}`)} data-r="">
-                {i === 0 && <MiniScene className="chap__art" />}
+                <MiniScene className="chap__art" />
                 <div className="chap__copy">
                   <p className="eyebrow">{c.label}</p>
                   <h3 className="h3 chap__t">{c.title}</h3>
@@ -141,7 +141,10 @@ export function AboutPage() {
             <h2 className="h2 panel__title">{visit.title}</h2>
             <p className="panel__body">{live || !next ? visit.body : fill(visit.soon, { opening: longDate(next) })}</p>
             <div className="panel__doors">
-              <Btn href="/stores">{visit.stores}</Btn>
+              <ShopNow page="about" />
+              <Btn href="/stores" kind="ghost">
+                {visit.stores}
+              </Btn>
               <ShopDoor path="/learn" label={visit.learn} kind="chip" />
             </div>
           </div>

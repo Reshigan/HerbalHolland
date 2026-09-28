@@ -301,7 +301,7 @@ export const ACCESS = {
   privacy: "We use your details only to tell you when our online shop opens and about the launch, and keep them until it opens, for 12 months at most. Read our {privacy}.",
   noscript: "This form needs JavaScript. You can also ask for first access by email:",
   errors: {
-    firstName: "Please shorten your first name.",
+    firstName: "Enter your first name in letters.",
     email: "Enter an email address like name@example.co.za.",
     mobile: "Enter a South African mobile number, like 082 123 4567.",
     contact: "Give us an email address or a mobile number, so we can tell you.",
@@ -479,8 +479,8 @@ export const ABOUT = {
   },
   visit: {
     title: "See for yourself",
-    body: "Find a store near you, or read our plain-English guides to lab results, Schedule 0 and Section 21 on Learn.",
-    soon: "Our stores open on {opening}, and Learn, our plain-English guides to lab results, Schedule 0 and Section 21, is on its way.",
+    body: "Shop online, find a store near you, or read our plain-English guides to lab results, Schedule 0 and Section 21 on Learn.",
+    soon: "Our online shop opens soon, and our stores on {opening}. Get first access, and we'll tell you the day the shop opens. Learn, our plain-English guides to lab results, Schedule 0 and Section 21, is on its way too.",
     stores: "Find a store",
     learn: "Read Learn",
   },

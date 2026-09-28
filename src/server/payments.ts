@@ -11,9 +11,11 @@
 //   EXTERNAL      any bank/fintech terminal the owner already has; the POS records the approval code.
 //   Offline: tap on glass is disabled (SoftPOS needs connectivity); cash is queued and synced idempotently.
 //
-// Online — the shop's checkout (ONLINE_GATEWAY): YOCO, the Yoco Checkout API. One Yoco account for the online shop:
-// the merchant is the company that owns the online business (Vantax (Pty) Ltd), not the fulfilling store.
+// Online — the shop's checkout (ONLINE_GATEWAY): PEACH, Peach Payments' Hosted Checkout (Peach Orchestration), or
+// YOCO, the Yoco Checkout API. One account for the online shop: the merchant is the company that owns the online
+// business (Vantax (Pty) Ltd), not the fulfilling store.
 import type { TapProviderKind } from "./pos/types";
+import type { PeachPayment, PeachRefund } from "@/lib/peach";
 
 export type CardResult =
   | { status: "APPROVED"; provider: string; reference: string; cardBrand?: string; cardLast4?: string }
@@ -36,9 +38,32 @@ export async function createHaloSession(opts: { merchantId: string; amountCents:
   return (await res.json()) as { url: string; transactionId?: string };
 }
 
-// Online checkout (e-commerce). SIMULATED (demo and tests) or YOCO; other adapters would slot in beside it.
+// Online checkout (e-commerce). SIMULATED (demo and tests), PEACH or YOCO; other adapters would slot in beside them.
 export type OnlineGateway = "SIMULATED" | "YOCO" | "PAYFAST" | "PAYSTACK" | "PEACH" | "OZOW";
 export const onlineGateway = (): OnlineGateway => (process.env.ONLINE_GATEWAY as OnlineGateway) || "SIMULATED";
+/** The gateways with a hosted payment page, and how members see them. */
+export const HOSTED_GATEWAYS = { PEACH: "Peach Payments", YOCO: "Yoco" } as const;
+export type HostedGateway = keyof typeof HOSTED_GATEWAYS;
+export const hostedGateway = (): HostedGateway | null => {
+  const g = onlineGateway();
+  return g === "PEACH" || g === "YOCO" ? g : null;
+};
+
+export class PaymentError extends Error {
+  constructor(message: string, public status?: number) {
+    super(message);
+  }
+}
+
+/**
+ * The gateway holding a paid online order's money, from its checkout id (paymentRef): Peach payments are pay_…, Yoco
+ * checkouts ch_… (so orders paid before a switch of ONLINE_GATEWAY still refund where they were paid). Simulated
+ * payments (SIM-…) have none.
+ */
+export function paidOnlineWith(o: { payMethod: string; paymentStatus: string; paymentRef: string | null }): HostedGateway | null {
+  if (o.payMethod !== "ONLINE" || o.paymentStatus !== "PAID" || !o.paymentRef || o.paymentRef.startsWith("SIM-")) return null;
+  return o.paymentRef.startsWith("pay_") ? "PEACH" : o.paymentRef.startsWith("ch_") ? "YOCO" : hostedGateway();
+}
 
 // ── Yoco Checkout API ─────────────────────────────────────────────────────────
 // YOCO_SECRET_KEY (sk_test_… or sk_live_…) authenticates every call; YOCO_WEBHOOK_SECRET (whsec_…) verifies the webhook
@@ -46,8 +71,6 @@ export const onlineGateway = (): OnlineGateway => (process.env.ONLINE_GATEWAY as
 // response, so a retry never creates a second checkout or a second refund.
 
 const YOCO_API = "https://payments.yoco.com/api";
-
-export class PaymentError extends Error {}
 
 /** Test keys: Yoco doesn't refund test payments, and they never reach the sales history. */
 export const yocoTestMode = () => (process.env.YOCO_SECRET_KEY ?? "").startsWith("sk_test_");
@@ -87,6 +110,56 @@ export async function refundYocoCheckout(checkoutId: string, amountCents: number
   return { refundId: r.refundId, status: r.status };
 }
 
-/** Online orders paid through Yoco keep its checkout id as paymentRef (simulated payments have SIM- references). */
-export const paidWithYoco = (o: { payMethod: string; paymentStatus: string; paymentRef: string | null }) =>
-  onlineGateway() === "YOCO" && o.payMethod === "ONLINE" && o.paymentStatus === "PAID" && !!o.paymentRef && !o.paymentRef.startsWith("SIM-");
+// ── Peach Payments: Peach Orchestration, Hosted Checkout ──────────────────────
+// PEACH_API_KEY (the merchant's secret API key, snd_… in the sandbox, prd_… live) goes in the api-key header of every
+// call; PEACH_ENV picks the API: test (the sandbox, the default) or live. PEACH_PROFILE_ID names the business profile
+// if the account has more than one. The webhook (/api/payments/peach) is verified with the profile's
+// payment_response_hash_key (PEACH_PAYMENT_RESPONSE_HASH_KEY). A payment is created with our own payment_id, which
+// Peach never creates twice (peachPaymentId), and a refund first checks what's already been refunded.
+
+const PEACH_API = { test: "https://app.sandbox-next.peachpayments.com/api", live: "https://app.next.peachpayments.com/api" };
+export const peachMode = () => (process.env.PEACH_ENV === "live" ? "live" : "test");
+
+async function peach<T>(method: "GET" | "POST", path: string, body?: object): Promise<T> {
+  const key = process.env.PEACH_API_KEY;
+  if (!key) throw new PaymentError("Peach Payments isn't set up (PEACH_API_KEY)");
+  const res = await fetch(`${PEACH_API[peachMode()]}${path}`, {
+    method,
+    headers: { "api-key": key, "Content-Type": "application/json", Accept: "application/json" },
+    body: body && JSON.stringify(body),
+    signal: AbortSignal.timeout(20_000),
+  }).catch((e: Error) => {
+    throw new PaymentError(`Couldn't reach Peach Payments (${e.message})`);
+  });
+  const data = (await res.json().catch(() => null)) as (T & { error?: { message?: string }; message?: string }) | null;
+  if (!res.ok || !data) throw new PaymentError(`Peach ${res.status}: ${data?.error?.message ?? data?.message ?? (res.statusText || "no details")}`, res.status);
+  return data;
+}
+
+/** POST /payments — a Hosted Checkout payment for one order; payment_link.link is Peach's page. */
+export const createPeachPayment = (body: object) => peach<PeachPayment>("POST", "/payments", body);
+
+/** GET /payments/{id}?force_sync=true — the payment's status, checked with the processor (Peach allows 2 a minute per payment). Null: no such payment. */
+export async function peachPayment(id: string): Promise<PeachPayment | null> {
+  return peach<PeachPayment>("GET", `/payments/${encodeURIComponent(id)}?force_sync=true`).catch((e) => {
+    if (e instanceof PaymentError && e.status === 404) return null;
+    throw e;
+  });
+}
+
+const REFUNDING = ["succeeded", "pending", "review"];
+
+/**
+ * Refunds a Peach payment in full, at most once: refunds already made (a retried cancel, or part refunded in the
+ * Peach Dashboard) count first, and only the rest is refunded (POST /refunds). "succeeded", or "pending"/"review"
+ * (Peach then reports the outcome by webhook).
+ */
+export async function refundPeachPayment(paymentId: string, amountCents: number, reason: string, metadata: Record<string, string>) {
+  const { data = [] } = await peach<{ data?: PeachRefund[] }>("POST", "/refunds/list", { payment_id: paymentId });
+  const made = data.filter((r) => r.payment_id === paymentId && REFUNDING.includes(r.status));
+  const left = amountCents - made.reduce((s, r) => s + r.amount, 0);
+  const all = left > 0 ? [...made, await peach<PeachRefund>("POST", "/refunds", { payment_id: paymentId, amount: left, reason, metadata })] : made;
+  const failed = all.find((r) => !REFUNDING.includes(r.status) || !r.refund_id);
+  if (failed) throw new PaymentError(failed.error_message || `Peach refund ${failed.status ?? "failed"}`);
+  return { refundId: all.map((r) => r.refund_id).join(", "), status: all.every((r) => r.status === "succeeded") ? "succeeded" : "pending" };
+}

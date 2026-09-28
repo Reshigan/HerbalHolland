@@ -432,54 +432,148 @@ function faq() {
   });
 }
 
-// ── The franchise enquiry form: JSON to /api/enquiry ──────────────────────────────────────────────────────────
+// ── Forms: the franchise enquiry (JSON to /api/enquiry) and the early-access sign-up (JSON to /api/early-access) ──
+// One pattern for both: checks before sending, errors under each field and a summary above, a busy button, the server's
+// own field errors (422), "too many tries" (429) and anything else, then a thank-you that takes the focus.
 type FormCopy = { email: string; sending: string; errors: Record<string, string> };
-const ORDER = ["name", "email", "phone", "area", "province", "capital", "experience", "pharmacist", "message", "consent"];
+type Vals = Record<string, string | boolean>;
+type FormSpec = {
+  /** The fields in the order their errors are read and focused. */
+  order: string[];
+  /** Errors that stand for more than one control ("contact": an email address or a mobile number). */
+  group?: Record<string, string[]>;
+  values: (get: (n: string) => string, ticked: (n: string) => boolean) => Vals;
+  check: (v: Vals, E: Record<string, string>) => Record<string, string>;
+  /** What goes in the request (the ?src tag and the honeypot are added to it). */
+  body?: (v: Vals) => Vals;
+};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** A South African mobile number, as the platform reads one (src/lib/sa.ts normalisePhone). */
+const saMobile = (raw: string) => {
+  let d = raw.replace(/[^\d+]/g, "");
+  if (d.startsWith("+27")) d = d.slice(3);
+  else if (d.startsWith("27") && d.length === 11) d = d.slice(2);
+  else if (d.startsWith("0")) d = d.slice(1);
+  return /^[6-8]\d{8}$/.test(d);
+};
+const str = (v: string | boolean | undefined) => (typeof v === "string" ? v.trim() : "");
 
-function form() {
-  const f = $<HTMLFormElement>("[data-form]");
-  const copyEl = $("#form-copy");
-  if (!f || !copyEl) return;
+const FORMS: Record<string, FormSpec> = {
+  // The franchise enquiry (/franchise).
+  f: {
+    order: ["name", "email", "phone", "area", "province", "capital", "experience", "pharmacist", "message", "consent"],
+    values: (get, ticked) => ({
+      name: get("name"),
+      email: get("email"),
+      phone: get("phone"),
+      area: get("area"),
+      province: get("province"),
+      experience: get("experience"),
+      capital: get("capital"),
+      pharmacist: get("pharmacist"),
+      message: get("message"),
+      consent: ticked("consent") ? "on" : "",
+    }),
+    check: (v, E) => {
+      const e: Record<string, string> = {};
+      const min = Number($("#f-experience")?.dataset.min) || 0;
+      if (!str(v.name)) e.name = E.name;
+      if (!str(v.email)) e.email = E.email;
+      else if (!EMAIL_RE.test(str(v.email))) e.email = E.emailShape;
+      if (!str(v.phone)) e.phone = E.phone;
+      if (str(v.area).length < 2) e.area = E.area;
+      if (!v.province) e.province = E.province;
+      if (!v.capital) e.capital = E.capital;
+      if (!str(v.experience)) e.experience = E.experience;
+      else if (str(v.experience).length < min) e.experience = E.experienceShort.replace("{n}", String(min));
+      if (!v.pharmacist) e.pharmacist = E.pharmacist;
+      if (!v.consent) e.consent = E.consent;
+      return e;
+    },
+  },
+  // The early-access sign-up (home, /stores): an email address or a mobile number (or both), 18+, and consent.
+  ea: {
+    order: ["firstName", "email", "mobile", "contact", "province", "adult", "consent"],
+    group: { contact: ["email", "mobile"] },
+    values: (get, ticked) => ({ firstName: get("firstName").trim(), email: get("email").trim(), mobile: get("mobile").trim(), province: get("province"), adult: ticked("adult"), consent: ticked("consent") }),
+    check: (v, E) => {
+      const e: Record<string, string> = {};
+      if (str(v.firstName) && !/\p{L}/u.test(str(v.firstName))) e.firstName = E.firstName;
+      if (!str(v.email) && !str(v.mobile)) e.contact = E.contact;
+      if (str(v.email) && !EMAIL_RE.test(str(v.email))) e.email = E.email;
+      if (str(v.mobile) && !saMobile(str(v.mobile))) e.mobile = E.mobile;
+      if (!v.adult) e.adult = E.adult;
+      if (!v.consent) e.consent = E.consent;
+      return e;
+    },
+    // Only what was given: the optional fields are left out when empty.
+    body: (v) => Object.fromEntries(Object.entries(v).filter(([, x]) => x !== "")),
+  },
+};
+
+function forms() {
+  $$<HTMLFormElement>("form[data-form]").forEach((f) => {
+    const p = f.dataset.form || "";
+    if (FORMS[p]) wireForm(f, p, FORMS[p]);
+  });
+}
+
+function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
+  const copyEl = $(`#${p}-copy`);
+  const done = f.parentElement && $("[data-form-done]", f.parentElement);
+  if (!copyEl || !done) return;
   const C = JSON.parse(copyEl.textContent || "{}") as FormCopy;
   const submit = $<HTMLButtonElement>("[data-submit]", f)!;
   const alertBox = $("[data-form-alert]", f)!;
   const live = $("[data-form-live]", f)!;
-  const done = $("[data-form-done]")!;
-  const input = (n: string) => f.elements.namedItem(n) as HTMLInputElement | null;
   const src = (new URLSearchParams(location.search).get("src") || "").trim().slice(0, 64);
   const fill = (s: string) => s.replace("{email}", C.email);
   let busy = false;
   submit.disabled = false;
 
-  const values = () => ({
-    name: input("name")?.value ?? "",
-    email: input("email")?.value ?? "",
-    phone: input("phone")?.value ?? "",
-    area: input("area")?.value ?? "",
-    province: input("province")?.value ?? "",
-    experience: input("experience")?.value ?? "",
-    capital: input("capital")?.value ?? "",
-    pharmacist: $<HTMLInputElement>("input[name=pharmacist]:checked", f)?.value ?? "",
-    message: input("message")?.value ?? "",
-    consent: $<HTMLInputElement>("#f-consent", f)?.checked ? "on" : "",
-  });
-
-  const controls = (n: string) => (n === "pharmacist" ? $$<HTMLInputElement>("input[name=pharmacist]", f) : [$<HTMLElement>(`#f-${n}`, f)].filter(Boolean)) as HTMLElement[];
-  const hintId = (n: string) => ($(`#f-${n}-hint`, f) ? `f-${n}-hint` : "");
+  const get = (n: string) => {
+    const radio = $<HTMLInputElement>(`input[type=radio][name="${n}"]:checked`, f);
+    if (radio) return radio.value;
+    return ($<HTMLInputElement>(`#${p}-${n}`, f)?.value ?? "") as string;
+  };
+  const ticked = (n: string) => !!$<HTMLInputElement>(`#${p}-${n}`, f)?.checked;
+  // The controls behind an error: a field's own input (or its radios), or every control a group stands for.
+  const controls = (n: string): HTMLElement[] => {
+    const g = spec.group?.[n];
+    if (g) return g.flatMap(controls);
+    const radios = $$<HTMLInputElement>(`input[type=radio][name="${n}"]`, f);
+    return radios.length ? radios : ([$<HTMLElement>(`#${p}-${n}`, f)].filter(Boolean) as HTMLElement[]);
+  };
+  // What carries aria-describedby: a radio group's fieldset, otherwise the controls themselves.
+  const described = (n: string): HTMLElement[] => {
+    const box = $<HTMLElement>(`[data-field="${n}"]`, f);
+    return box?.tagName === "FIELDSET" ? [box] : controls(n);
+  };
+  // Each one's own descriptions (its hints), kept so an error can be put in front and taken away again.
+  const base = new Map<HTMLElement, string>();
+  $$<HTMLElement>("input, select, textarea, fieldset", f).forEach((c) => base.set(c, c.getAttribute("aria-describedby") || ""));
+  const errOf = (n: string) => $(`#${p}-${n}-err`, f);
+  const boxes = (n: string) => [n, ...(spec.group?.[n] ?? [])].map((m) => $(`[data-field="${m}"]`, f)).filter(Boolean) as HTMLElement[];
+  const showing = (n: string) => !!errOf(n) && !errOf(n)!.hidden;
+  const redescribe = (c: HTMLElement) => {
+    const errs = spec.order.filter((n) => showing(n) && described(n).includes(c)).map((n) => `${p}-${n}-err`);
+    const d = [...errs, base.get(c)].filter(Boolean).join(" ");
+    d ? c.setAttribute("aria-describedby", d) : c.removeAttribute("aria-describedby");
+    const invalid = spec.order.some((n) => showing(n) && controls(n).includes(c));
+    invalid ? c.setAttribute("aria-invalid", "true") : c.removeAttribute("aria-invalid");
+  };
+  const refresh = (n: string) => {
+    boxes(n).forEach((b) => b.classList.toggle("has-err", spec.order.some((m) => showing(m) && boxes(m).includes(b))));
+    new Set([...controls(n), ...described(n)]).forEach(redescribe);
+  };
   const clearField = (n: string) => {
-    const box = $(`[data-field="${n}"]`, f);
-    if (!box?.classList.contains("has-err")) return;
-    box.classList.remove("has-err");
-    $(`#f-${n}-err`, f)!.hidden = true;
-    for (const c of controls(n)) {
-      c.removeAttribute("aria-invalid");
-      const h = hintId(n);
-      if (n === "pharmacist") continue;
-      h ? c.setAttribute("aria-describedby", h) : c.removeAttribute("aria-describedby");
-    }
+    const err = errOf(n);
+    if (!err || err.hidden) return;
+    err.hidden = true;
+    refresh(n);
   };
   const clearAll = () => {
-    ORDER.forEach(clearField);
+    spec.order.forEach(clearField);
     alertBox.hidden = true;
   };
   const showAlert = (msg: string, focus = true) => {
@@ -488,51 +582,29 @@ function form() {
     if (focus) alertBox.focus();
   };
   const showErrors = (fields: Record<string, string>, summary: string) => {
-    const bad = ORDER.filter((n) => fields[n]);
+    const bad = spec.order.filter((n) => fields[n]);
     if (!bad.length) return showAlert(summary);
     for (const n of bad) {
-      $(`[data-field="${n}"]`, f)?.classList.add("has-err");
-      const err = $(`#f-${n}-err`, f)!;
+      const err = errOf(n);
+      if (!err) continue;
       err.hidden = false;
       $("span", err)!.textContent = fields[n];
-      for (const c of controls(n)) {
-        c.setAttribute("aria-invalid", "true");
-        if (n !== "pharmacist") c.setAttribute("aria-describedby", [`f-${n}-err`, hintId(n)].filter(Boolean).join(" "));
-      }
     }
+    bad.forEach(refresh);
     showAlert(summary, false);
     const first = controls(bad[0])[0];
-    if (bad[0] === "pharmacist") $("[data-field=pharmacist]", f)?.setAttribute("aria-describedby", "f-pharmacist-err f-pharmacist-hint");
     first?.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" });
     first?.focus({ preventScroll: true });
   };
 
-  const check = (v: ReturnType<typeof values>) => {
-    const e: Record<string, string> = {};
-    const E = C.errors;
-    const min = Number($("#f-experience", f)?.dataset.min) || 0;
-    if (!v.name.trim()) e.name = E.name;
-    if (!v.email.trim()) e.email = E.email;
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email.trim())) e.email = E.emailShape;
-    if (!v.phone.trim()) e.phone = E.phone;
-    if (v.area.trim().length < 2) e.area = E.area;
-    if (!v.province) e.province = E.province;
-    if (!v.capital) e.capital = E.capital;
-    if (!v.experience.trim()) e.experience = E.experience;
-    else if (v.experience.trim().length < min) e.experience = E.experienceShort.replace("{n}", String(min));
-    if (!v.pharmacist) e.pharmacist = E.pharmacist;
-    if (!v.consent) e.consent = E.consent;
-    return e;
-  };
-
-  ORDER.forEach((n) => controls(n).forEach((c) => (on(c, "input", () => clearField(n)), on(c, "change", () => clearField(n)))));
+  spec.order.forEach((n) => controls(n).forEach((c) => (on(c, "input", () => clearField(n)), on(c, "change", () => clearField(n)))));
 
   on(f, "submit", async (e: Event) => {
     e.preventDefault();
     if (busy) return;
     clearAll();
-    const v = values();
-    const local = check(v);
+    const v = spec.values(get, ticked);
+    const local = spec.check(v, C.errors);
     if (Object.keys(local).length) return showErrors(local, C.errors.summary);
     busy = true;
     submit.disabled = true;
@@ -540,10 +612,11 @@ function form() {
     f.setAttribute("aria-busy", "true");
     live.textContent = C.sending;
     try {
-      const res = await fetch(f.dataset.endpoint || "/api/enquiry", {
+      const body = { ...(spec.body ? spec.body(v) : v), ...(src || !spec.body ? { source: src } : {}), website: ($<HTMLInputElement>(`#${p}-website`, f)?.value ?? "") as string };
+      const res = await fetch(f.dataset.endpoint || "/", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ ...v, source: src, website: input("website")?.value ?? "" }),
+        body: JSON.stringify(body),
       });
       let data: { ok?: boolean; reference?: string; error?: string; fields?: Record<string, string> } | null = null;
       try {
@@ -567,14 +640,17 @@ function form() {
   });
 
   function success(ref: string) {
-    $("[data-ref]", done)!.textContent = ref;
-    $("[data-ref-line]", done)!.hidden = !ref;
-    f!.hidden = true;
-    done.hidden = false;
-    const title = $("#done-title", done)!;
+    const refEl = $("[data-ref]", done!);
+    if (refEl) {
+      refEl.textContent = ref;
+      $("[data-ref-line]", done!)!.hidden = !ref;
+    }
+    f.hidden = true;
+    done!.hidden = false;
+    const title = $("[data-done-title]", done!)!;
     title.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" });
     title.focus({ preventScroll: true });
-    requestAnimationFrame(() => requestAnimationFrame(() => done.classList.add("in")));
+    requestAnimationFrame(() => requestAnimationFrame(() => done!.classList.add("in")));
   }
 }
 
@@ -660,7 +736,7 @@ gate();
 reveals();
 menu();
 faq();
-form();
+forms();
 header();
 // Reduced motion: scroll-linked pieces show their finished state (the hero stays as it is at the top).
 if (RM) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));

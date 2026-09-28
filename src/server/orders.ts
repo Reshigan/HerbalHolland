@@ -16,10 +16,14 @@ import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
-import { createYocoCheckout, paidWithYoco, PaymentError, refundYocoCheckout, yocoTestMode } from "./payments";
+import {
+  createPeachPayment, createYocoCheckout, paidOnlineWith, PaymentError, peachMode, peachPayment, refundPeachPayment, refundYocoCheckout, yocoTestMode, type HostedGateway,
+} from "./payments";
 import { routeOrder, type Fulfil, type RouteCandidate } from "@/lib/routing";
 import { incentiveExcluded } from "@/lib/compliance";
-import { paymentDecision, yocoCheckoutRequest, yocoFacts, YOCO_MIN_CENTS, type PaymentDecision, type YocoEvent } from "@/lib/yoco";
+import { decidePayment, type PaymentDecision, type PaymentEventKind, type PaymentFacts } from "@/lib/online-payments";
+import { yocoCheckoutRequest, yocoEventKind, yocoFacts, YOCO_MIN_CENTS, type YocoEvent } from "@/lib/yoco";
+import { peachEventKind, peachFacts, peachNextStep, peachPaymentFacts, peachPaymentId, peachPaymentRequest, PEACH_MIN_SESSION_SECONDS, type PeachEvent } from "@/lib/peach";
 import { addDays } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import type { OrderStatus, Prisma, Province } from "@/generated/prisma/client";
