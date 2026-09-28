@@ -1,6 +1,6 @@
 // Illustration for herbalholland.com, all SVG and all drawn from the mark: the windmill (ring, tower, four petals),
-// the striped sunset (the Sunset Hoodie print), KwaZulu-Natal's rolling hills and the globe. The province map has its
-// own file (./map). No photos, no people.
+// the striped sunset (the Sunset Hoodie print), KwaZulu-Natal's rolling hills, the globe and the beadwork tile. The
+// province map has its own file (./map). No photos, no people.
 // Colours come from CSS classes (site.css), never from attributes, so every tone stays on the brand tokens.
 import { PETAL } from "@/components/brand/logo";
 import { FACTS, firstStores } from "../facts";
@@ -8,6 +8,27 @@ import { coasts, equator, graticule, ortho, route, routePath, type LL } from "./
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
 const r0 = (n: number) => Math.round(n);
+
+// ── The beadwork ─────────────────────────────────────────────────────────────
+/**
+ * The site's beadwork: one small African geometric tile, a chain of diamonds in cream, orange and charcoal (after the
+ * panel beside the door in the store concept). It frames the 18+ gate and edges the section dividers, the footer, the
+ * promise bar and the category tiles. The CSS gets it as a data: URL (build.ts puts it in place of __PATTERN__). Its
+ * colours are the token values ink-900, ink-50 and brand-500 — the one place colours are written into art rather than
+ * set by CSS.
+ */
+export const TILE = [
+  { fill: "#141110", d: "M0 0h24v24H0z" },
+  { fill: "#fbf7f3", d: "M12 3l9 9-9 9-9-9z" },
+  { fill: "#141110", d: "M12 6.5l5.5 5.5-5.5 5.5-5.5-5.5z" },
+  { fill: "#f5913c", d: "M12 9l3 3-3 3-3-3zM0 0h5L0 5zm24 0v5l-5-5zM0 24v-5l5 5zm24 0h-5l5-5z" },
+] as const;
+
+/** The tile as a CSS url() (a data: URL, which the CSP's img-src allows). */
+export const patternUrl = () => {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'>${TILE.map((s) => `<path fill='${s.fill}' d='${s.d}'/>`).join("")}</svg>`;
+  return `url("data:image/svg+xml,${svg.replace(/[<>#]/g, encodeURIComponent)}")`;
+};
 
 // ── Hills ────────────────────────────────────────────────────────────────────
 // Rolling hill silhouettes in a 1600 × 1000 scene: overlapping rounded hills (a soft maximum of Gaussian bumps), the

@@ -175,6 +175,7 @@ function Footer({ page }: { page: string }) {
   const details = [c.legalName, c.regNumber && `Reg. ${c.regNumber}`, c.vatNumber && `VAT ${c.vatNumber}`, c.address, c.phone].filter(Boolean);
   return (
     <footer className="ftr">
+      <div className="band" aria-hidden="true" />
       <div className="wrap ftr__top">
         <div className="ftr__brand">
           <a href="/" className="ftr__logo" aria-label={CHROME.home}>

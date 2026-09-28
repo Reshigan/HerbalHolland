@@ -16,6 +16,7 @@ import { createElement, type FunctionComponent } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { dayKey } from "@/lib/format";
 import { FACTS, firstStores, greatCircleKm } from "./facts";
+import { patternUrl } from "./src/art";
 import { site } from "./src/layout";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
 import { literals, mangleClasses, precomputeColors, shortenTokens, tighten } from "./src/optimize";
@@ -153,7 +154,7 @@ async function main() {
     outfit: emit("outfit", "woff2", readFileSync(FONTS.outfit)),
     inter: emit("inter", "woff2", readFileSync(FONTS.inter)),
   };
-  const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter);
+  const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter).replace("__PATTERN__", patternUrl());
   const css = await styles(shortenTokens(precomputeColors(cssSource)));
   const mainSrc = readFileSync(join(ROOT, "client/main.ts"), "utf8");
   const bootSrc = readFileSync(join(ROOT, "client/boot.ts"), "utf8");
