@@ -5,7 +5,7 @@ import { Words } from "../ui";
 
 export function PageHero({ kind, eyebrow, title, lede, crumbs, children }: { kind: string; eyebrow: string; title: string; lede: React.ReactNode; crumbs: readonly Crumb[]; children?: React.ReactNode }) {
   return (
-    <section className={`phero phero--${kind}`} data-sp="exit" aria-labelledby="page-title">
+    <section className={`phero phero--${kind}`} data-sp="exit" data-mill="" aria-labelledby="page-title">
       <div className="wrap phero__in">
         <div data-in="1">
           <Crumbs crumbs={crumbs} />

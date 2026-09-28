@@ -7,9 +7,10 @@ import { PageHero } from "./parts";
 
 export function CareersPage() {
   const { why, roles, apply } = CAREERS;
+  const crumbs = [{ label: CAREERS.meta.title, path: "/careers" }];
   return (
-    <Page page="careers" meta={{ path: "/careers", ...CAREERS.meta }}>
-      <PageHero kind="careers" eyebrow={CAREERS.hero.eyebrow} title={CAREERS.hero.title} lede={CAREERS.hero.lede}>
+    <Page page="careers" stage="dusk" meta={{ path: "/careers", ...CAREERS.meta, crumbs }}>
+      <PageHero kind="careers" eyebrow={CAREERS.hero.eyebrow} title={CAREERS.hero.title} lede={CAREERS.hero.lede} crumbs={crumbs}>
         <div className="ctas">
           <Btn href={`mailto:${EMAIL.careers}`} icon="mail" magnetic>
             {apply.cta}

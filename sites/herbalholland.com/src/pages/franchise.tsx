@@ -154,9 +154,12 @@ function EnquiryForm() {
 
 export function FranchisePage() {
   const { hero, who, offer, steps, faq, enquire } = FRANCHISE;
+  const crumbs = [{ label: FRANCHISE.meta.title, path: "/franchise" }];
+  // The FAQ as FAQPage data, so the answers can show in search.
+  const faqLd = { "@type": "FAQPage", mainEntity: faq.items.map((q) => ({ "@type": "Question", name: q.q, acceptedAnswer: { "@type": "Answer", text: q.a } })) };
   return (
-    <Page page="franchise" meta={{ path: "/franchise", ...FRANCHISE.meta }}>
-      <PageHero kind="franchise" eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede}>
+    <Page page="franchise" stage="dusk" meta={{ path: "/franchise", ...FRANCHISE.meta, crumbs }} jsonLd={faqLd}>
+      <PageHero kind="franchise" eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede} crumbs={crumbs}>
         <div className="ctas">
           <Btn href="#enquire" magnetic>
             {hero.enquire}
@@ -165,7 +168,12 @@ export function FranchisePage() {
             {hero.how}
           </Btn>
         </div>
-        <p className="phero__note">{hero.timing}</p>
+        <p className="phero__note">
+          {hero.timing}{" "}
+          <a className="link" href="/stores">
+            {hero.stores}
+          </a>
+        </p>
       </PageHero>
 
       <section className="sheet sec" aria-labelledby="who-h">

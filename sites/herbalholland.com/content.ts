@@ -98,9 +98,9 @@ export const HOME = {
     updated: "2026-09-28",
     // The page description, in the same three states as the hero's line (below); {opening} is the day without its weekday.
     description: {
-      soon: "South Africa's members-only cannabis wellness stores for adults 18+. Opening in {next} on {opening}, with more towns to come.",
-      both: "South Africa's members-only cannabis wellness stores for adults 18+. Open now in {open}; opening in {next} on {opening}.",
-      open: "South Africa's members-only cannabis wellness stores for adults 18+. Open in {open}, with more towns to come.",
+      soon: "Herbal Holland: members-only cannabis wellness stores for adults 18+. Opening {opening} in {next}, with more towns to come.",
+      both: "Herbal Holland: members-only cannabis wellness stores for adults 18+. Open now in {open}; opening {opening}: {next}.",
+      open: "Herbal Holland: members-only cannabis wellness stores for adults 18+. Open in {open}, with more towns to come.",
     },
   },
   // Scene 1: a Dutch polder at golden hour, one windmill in the wind.

@@ -44,7 +44,6 @@ function StoreFrame({ store, n }: { store: Store; n: number }) {
 export function StoresPage() {
   const s = STORES;
   const finder = shopLink("/stores");
-  const cards = [SCENE_CONCEPT_A, SCENE_CONCEPT_B];
   const open = openStores();
   const days = [...new Set(openingStores().map((st) => st.opens!))];
   const groups: { key: string; title: string; stores: Store[] }[] = [
@@ -124,8 +123,6 @@ export function StoresPage() {
     </Page>
   );
 }
-const SCENE_CONCEPT_A = 0;
-const SCENE_CONCEPT_B = 1;
 
 /** A store's own page. */
 export function StorePage({ store }: { store: Store }) {
@@ -142,7 +139,6 @@ export function StorePage({ store }: { store: Store }) {
     { label: t.meta.title, path: "/stores" },
     { label: store.name, path: `/stores/${store.key}` },
   ];
-  const shop = shopLink("/");
   const schema = {
     "@type": "Store",
     "@id": `${abs(`/stores/${store.key}`)}#store`,
@@ -253,7 +249,6 @@ export function StorePage({ store }: { store: Store }) {
           </Btn>
         </div>
       </section>
-      {shop ? null : null}
     </Page>
   );
 }

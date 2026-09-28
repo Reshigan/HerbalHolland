@@ -129,7 +129,7 @@ export function Sprite() {
         <g id="crux" transform={`translate(${CRUX.at[0]} ${CRUX.at[1]})`}>
           {[...CRUX.stars, ...CRUX.pointers].map(([x, y, r], i) => (
             <g key={i} transform={`translate(${x} ${y})`}>
-              <circle className="star__glow" r={r * 3.2} />
+              <circle className="star__glow" r={r * 4} />
               <circle r={r} />
             </g>
           ))}
@@ -202,6 +202,10 @@ export function Sprite() {
             <path key={i} fill={s.fill} d={s.d} />
           ))}
         </pattern>
+        <radialGradient id="starglow">
+          <stop offset="0" className="st-star0" />
+          <stop offset="1" className="st-star1" />
+        </radialGradient>
         <linearGradient id="shopglow" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" className="st-shop0" />
           <stop offset="1" className="st-shop1" />

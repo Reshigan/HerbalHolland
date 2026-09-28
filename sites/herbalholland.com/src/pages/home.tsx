@@ -49,7 +49,7 @@ export function StorePicture({ store, n, alt }: { store: Store; n: number; alt: 
 function Hero() {
   const h = HOME.hero;
   return (
-    <section className="scene scene--hero" id="hero" data-sp="exit" aria-labelledby="hero-title">
+    <section className="scene scene--hero" id="hero" data-sp="exit" data-mill="" aria-labelledby="hero-title">
       <div className="wrap hero__in">
         <p className="eyebrow" data-in="1">
           {h.eyebrow}
@@ -94,7 +94,7 @@ function Journey() {
   const km = num(FACTS.km[first.key] ?? 0);
   const here = coords(first).split(" · ");
   return (
-    <section className="scene scene--sea story" id="journey" data-scene="1" aria-labelledby="story-title" data-story="">
+    <section className="scene scene--sea story" id="journey" data-scene="1" data-mill="" data-story="" aria-labelledby="story-title">
       <Still kind="sea" />
       <div className="story__pin">
         <div className="wrap story__grid">
@@ -168,7 +168,7 @@ function Hills() {
   const all = [...openStores(), ...openingStores()];
   const shop = shopLink("/");
   return (
-    <section className="scene scene--hills" id="hills" data-scene="2" aria-labelledby="hills-title">
+    <section className="scene scene--hills" id="hills" data-scene="2" data-mill="" aria-labelledby="hills-title">
       <Still kind="dusk" />
       <div className="wrap hills__in">
         <Head id="hills-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede && <Keep text={lede} names={FACTS.stores.map((st) => st.name)} />} />
@@ -226,7 +226,7 @@ function Hills() {
 function Range() {
   const r = HOME.range;
   return (
-    <section className="scene scene--range" id="range" data-scene="3" aria-labelledby="range-title">
+    <section className="scene scene--range" id="range" data-scene="3" data-mill="" aria-labelledby="range-title">
       <Still kind="late" />
       <div className="wrap">
         <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro} />
@@ -295,7 +295,7 @@ function Night() {
   const v = { cap: num(FACTS.founding.cap), tier: FACTS.founding.tier, months: FACTS.founding.months };
   const join = joinLink();
   return (
-    <section className="scene scene--night" id="night" data-scene="4" aria-labelledby="founding-title">
+    <section className="scene scene--night" id="night" data-scene="4" data-mill="" aria-labelledby="founding-title">
       <Still kind="night" />
       <div className="wrap night__in">
         <div className="night__copy">

@@ -44,7 +44,7 @@ export const OG_CSS = `
 html,body{margin:0;background:var(--ink-950)}body::after{display:none}
 .og{width:1200px;height:630px;padding:22px;background:var(--ink-950)}
 .og__frame{position:relative;height:100%;border:16px solid var(--brand-500);border-radius:40px;overflow:hidden;background:radial-gradient(70% 80% at 76% 62%,color-mix(in oklab,var(--brand-800) 45%,var(--ink-950)),var(--ink-950) 72%)}
-.og .sc{position:absolute;inset:0}
+.og .sc{position:absolute;inset:0;overflow:hidden}.sc__l{position:absolute;inset:0;width:100%;height:100%}.og .mill{color:var(--ink-950);stroke:var(--ink-950)}
 .og__text{position:absolute;left:64px;top:62px;display:grid;gap:22px;justify-items:start}
 .og__wm{font-size:58px;color:var(--brand-500)}
 .og__line{margin-top:18px;font:300 46px/1.08 var(--display);letter-spacing:-.02em;color:var(--ink-200)}

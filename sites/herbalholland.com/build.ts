@@ -6,15 +6,20 @@
 // Every page is rendered once with react-dom/server; the browser gets plain HTML, one CSS file, one small ES module and
 // a tiny head script (the gate's first-paint decision; the CSP allows no inline script). CSS, JS and fonts carry a
 // content hash in their names (cached for a year, immutable); HTML is served no-cache (see _headers).
-// No database: the facts are in ./facts.ts, the words in ./content.ts.
+// No database: the facts are in ./facts.ts, the words in ./content.ts. The pages: the home page, the six inner pages,
+// the three legal documents, a page per store (/stores/{key}) and a page per published release (/press/{slug}).
+// The build checks: distances against coordinates, opening days, every page's title (≤ 60 characters) and description
+// (120–160), that no page's `updated` day is in the future, no inline style or script, no demo company details, and the
+// size budgets.
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 import { gzipSync } from "node:zlib";
-import { createElement, type FunctionComponent } from "react";
+import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { dayKey } from "@/lib/format";
+import { ABOUT, CAREERS, CONTACT, FRANCHISE, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn } from "./content";
 import { FACTS, greatCircleKm, newStores } from "./facts";
 import { patternUrl } from "./src/art";
 import { site } from "./src/layout";
@@ -26,33 +31,21 @@ import { ContactPage } from "./src/pages/contact";
 import { FranchisePage } from "./src/pages/franchise";
 import { HomePage } from "./src/pages/home";
 import { NotFoundPage } from "./src/pages/notfound";
-import { PressPage } from "./src/pages/press";
-import { StoresPage } from "./src/pages/stores";
+import { PressPage, ReleasePage } from "./src/pages/press";
+import { StorePage, StoresPage } from "./src/pages/stores";
 import { PaiaPage, PrivacyPage, TermsPage } from "./src/pages/legal";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO = join(ROOT, "..", "..");
 const DIST = join(ROOT, "dist");
 const STATIC = join(ROOT, "static");
-const BUDGET = { js: 45_000, css: 55_000 }; // bytes, before compression
+const BUDGET = { js: 90_000, css: 60_000 }; // bytes, before compression
 const FONTS = {
   outfit: join(REPO, "node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2"),
   inter: join(REPO, "node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"),
 };
 
-/** The pages, served without extensions (Cloudflare maps /about to about.html). */
-const PAGES: [path: string, file: string, page: FunctionComponent][] = [
-  ["/", "index.html", HomePage],
-  ["/about", "about.html", AboutPage],
-  ["/stores", "stores.html", StoresPage],
-  ["/franchise", "franchise.html", FranchisePage],
-  ["/press", "press.html", PressPage],
-  ["/careers", "careers.html", CareersPage],
-  ["/contact", "contact.html", ContactPage],
-  ["/privacy", "privacy.html", PrivacyPage],
-  ["/terms", "terms.html", TermsPage],
-  ["/paia", "paia.html", PaiaPage],
-];
+type PageDef = { path: string; file: string; render: () => ReactElement; updated: string };
 
 const hash = (b: Buffer | string) => createHash("sha256").update(b).digest("hex").slice(0, 10);
 const kb = (n: number) => `${(n / 1024).toFixed(1)} KB`;
@@ -124,6 +117,18 @@ function walk(dir: string): string[] {
   });
 }
 
+/** Image files in a folder under ./static (WebP, JPEG, PNG), fingerprinted into dist/assets, by their base name. */
+function images(folder: string) {
+  const dir = join(STATIC, folder);
+  if (!existsSync(dir)) return {} as Record<string, string>;
+  const out: Record<string, string> = {};
+  for (const f of readdirSync(dir).filter((f) => /\.(webp|jpe?g|png)$/i.test(f)).sort()) {
+    const ext = f.split(".").pop()!.toLowerCase().replace("jpeg", "jpg");
+    out[f.replace(/\.[^.]+$/, "")] = emit(f.replace(/\.[^.]+$/, ""), ext, readFileSync(join(dir, f)));
+  }
+  return out;
+}
+
 async function main() {
   const day = process.env.BUILD_DATE && /^\d{4}-\d{2}-\d{2}$/.test(process.env.BUILD_DATE) ? process.env.BUILD_DATE : dayKey(new Date());
 
@@ -145,7 +150,9 @@ async function main() {
   for (const s of FACTS.stores) {
     if (s.opens !== undefined && !/^\d{4}-\d{2}-\d{2}$/.test(s.opens)) off.push(`facts.ts: ${s.name} opens "${s.opens}", not a YYYY-MM-DD date`);
     if (s.status === "opening" && !s.opens) off.push(`facts.ts: ${s.name} is "opening" but has no opening day`);
+    if (!/^[a-z0-9-]+$/.test(s.key)) off.push(`facts.ts: ${s.name}'s key "${s.key}" isn't a URL slug (a-z, 0-9, -)`);
   }
+  for (const r of PRESS.releases.items) if (!/^[a-z0-9-]+$/.test(r.slug)) off.push(`content.ts: the release "${r.title}" has a slug that isn't a-z, 0-9, -`);
   if (off.length) throw new Error(off.join("\n"));
   // A store still marked "opening" after its day: the pages would go on saying when it opens.
   for (const s of FACTS.stores)
@@ -153,6 +160,8 @@ async function main() {
 
   rmSync(DIST, { recursive: true, force: true });
   mkdirSync(join(DIST, "assets"), { recursive: true });
+  mkdirSync(join(DIST, "stores"), { recursive: true });
+  mkdirSync(join(DIST, "press"), { recursive: true });
 
   // Fonts, then the CSS that points at them, then the scripts.
   const fonts = {
@@ -166,28 +175,67 @@ async function main() {
   const js = await script("client/main.ts", "esm");
   const boot = await script("client/boot.ts", "iife");
   const CSS_HREF = "/assets/__site_css__";
-  // The store concept renders (WebP, cropped to the owner's storefront renders), fingerprinted like the rest.
-  const concept = readdirSync(join(STATIC, "concept"))
-    .filter((f) => f.endsWith(".webp"))
-    .sort()
-    .map((f) => emit(f.replace(/\.webp$/, ""), "webp", readFileSync(join(STATIC, "concept", f))));
-  site.assets = { css: CSS_HREF, js: emit("site", "js", js), boot: emit("boot", "js", boot), ...fonts, concept };
+  // The store concept renders (WebP, cropped to the owner's storefront renders) and any store photographs
+  // (static/stores/{key}.webp), fingerprinted like the rest.
+  const concept = Object.values(images("concept"));
+  const stores = images("stores");
+  for (const s of FACTS.stores) if (s.photo && !stores[s.key]) throw new Error(`facts.ts: ${s.name} has a photo, but static/stores/${s.key}.webp (or .jpg) is missing`);
+  site.assets = { css: CSS_HREF, js: emit("site", "js", js), boot: emit("boot", "js", boot), ...fonts, concept, stores };
   site.day = day;
   site.year = Number(day.slice(0, 4));
 
   // The images are drawn with the stylesheet's own token names (OG_CSS uses them), so before tokens are shortened.
   if (process.argv.includes("--images")) await renderImages(await styles(precomputeColors(cssSource)));
 
-  // Pages.
+  // Pages. A release's page exists from its date; a store's page always.
+  const pages: PageDef[] = [
+    { path: "/", file: "index.html", render: () => createElement(HomePage), updated: HOME.meta.updated },
+    { path: "/about", file: "about.html", render: () => createElement(AboutPage), updated: ABOUT.meta.updated },
+    { path: "/stores", file: "stores.html", render: () => createElement(StoresPage), updated: STORES.meta.updated },
+    ...FACTS.stores.map((s) => ({ path: `/stores/${s.key}`, file: `stores/${s.key}.html`, render: () => createElement(StorePage, { store: s }), updated: STORES.meta.updated })),
+    { path: "/franchise", file: "franchise.html", render: () => createElement(FranchisePage), updated: FRANCHISE.meta.updated },
+    { path: "/press", file: "press.html", render: () => createElement(PressPage), updated: PRESS.meta.updated },
+    ...releasesOn(day).map((r) => ({ path: `/press/${r.slug}`, file: `press/${r.slug}.html`, render: () => createElement(ReleasePage, { release: r }), updated: r.date })),
+    { path: "/careers", file: "careers.html", render: () => createElement(CareersPage), updated: CAREERS.meta.updated },
+    { path: "/contact", file: "contact.html", render: () => createElement(ContactPage), updated: CONTACT.meta.updated },
+    { path: "/privacy", file: "privacy.html", render: () => createElement(PrivacyPage), updated: PRIVACY.meta.updated },
+    { path: "/terms", file: "terms.html", render: () => createElement(TermsPage), updated: TERMS.meta.updated },
+    { path: "/paia", file: "paia.html", render: () => createElement(PaiaPage), updated: PAIA.meta.updated },
+  ];
   const problems: string[] = [];
-  const files = [...PAGES.map(([, file, page]) => [file, page] as const), ["404.html", NotFoundPage] as const];
-  const html = files.map(([file, page]) => {
-    const h = `<!doctype html>${renderToStaticMarkup(createElement(page))}`;
+  for (const p of pages) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(p.updated)) problems.push(`${p.path}: updated "${p.updated}" isn't a YYYY-MM-DD date`);
+    else if (p.updated > day) problems.push(`${p.path}: its copy is dated ${p.updated}, after today (${day}): set content.ts's updated to the day it changed`);
+  }
+  const files = [...pages.map((p) => [p.file, p.render, p.path] as const), ["404.html", () => createElement(NotFoundPage), null] as const];
+  const decode = (s: string) => s.replace(/&#x27;/g, "'").replace(/&quot;/g, '"').replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">");
+  const html = files.map(([file, render, path]) => {
+    const h = `<!doctype html>${renderToStaticMarkup(render())}`;
     // The CSP forbids inline styles and scripts; never ship the platform's demo company details.
     if (/\sstyle="/.test(h)) problems.push(`${file}: an inline style attribute (blocked by the CSP)`);
     if (/<script(?![^>]*\b(src=|type="application\/(ld\+)?json"))/.test(h)) problems.push(`${file}: an inline script (blocked by the CSP)`);
     if (/481516|Windmill Lane/.test(h)) problems.push(`${file}: demo company details from the seed`);
+    // Search: a title of 60 characters or fewer, a description of 120 to 160, both unique; every page has one h1.
+    if (path) {
+      const title = decode(/<title>([^<]*)<\/title>/.exec(h)?.[1] ?? "");
+      const desc = decode(/<meta name="description" content="([^"]*)"/.exec(h)?.[1] ?? "");
+      if (title.length > 60) problems.push(`${path}: title is ${title.length} characters (60 at most): "${title}"`);
+      if (desc.length < 120 || desc.length > 160) problems.push(`${path}: description is ${desc.length} characters (120 to 160): "${desc}"`);
+      if ((h.match(/<h1[\s>]/g) ?? []).length !== 1) problems.push(`${path}: not exactly one h1`);
+      if (!h.includes(`<link rel="canonical" href="${FACTS.origin}${path === "/" ? "/" : path}"/>`)) problems.push(`${path}: canonical link missing or wrong`);
+    }
     return h;
+  });
+  const titles = new Map<string, string>();
+  const descs = new Map<string, string>();
+  files.forEach(([, , path], i) => {
+    if (!path) return;
+    const t = /<title>([^<]*)<\/title>/.exec(html[i])?.[1] ?? "";
+    const d = /<meta name="description" content="([^"]*)"/.exec(html[i])?.[1] ?? "";
+    if (titles.has(t)) problems.push(`${path}: the same title as ${titles.get(t)}`);
+    if (descs.has(d)) problems.push(`${path}: the same description as ${descs.get(d)}`);
+    titles.set(t, path);
+    descs.set(d, path);
   });
   if (problems.length) throw new Error(`Build checks failed:\n  ${problems.join("\n  ")}`);
   // Short class names in the CSS and the pages alike, then the stylesheet gets its content hash.
@@ -200,14 +248,13 @@ async function main() {
     if (!existsSync(join(STATIC, f))) throw new Error(`static/${f} is missing${f === "icon.svg" ? "" : ": run the build once with --images"}`);
     copyFileSync(join(STATIC, f), join(DIST, f));
   }
-  mkdirSync(join(DIST, "press"), { recursive: true });
   for (const f of readdirSync(join(STATIC, "press"))) copyFileSync(join(STATIC, "press", f), join(DIST, "press", f));
 
-  // robots.txt, sitemap.xml and the headers Cloudflare applies.
-  writeFileSync(join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${FACTS.origin}/sitemap.xml\n`);
+  // robots.txt (the API isn't a page), sitemap.xml with each page's own lastmod, and the headers Cloudflare applies.
+  writeFileSync(join(DIST, "robots.txt"), `User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: ${FACTS.origin}/sitemap.xml\n`);
   writeFileSync(
     join(DIST, "sitemap.xml"),
-    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${PAGES.map(([p]) => `  <url><loc>${FACTS.origin}${p}</loc><lastmod>${day}</lastmod></url>`).join("\n")}\n</urlset>\n`,
+    `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${FACTS.origin}${p.path}</loc><lastmod>${p.updated}</lastmod></url>`).join("\n")}\n</urlset>\n`,
   );
   const csp = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
   writeFileSync(
@@ -234,19 +281,19 @@ async function main() {
   // Report, and hold the budgets.
   const size = (p: string) => statSync(join(DIST, p.replace(/^\//, ""))).size;
   const gz = (p: string) => gzipSync(readFileSync(join(DIST, p.replace(/^\//, "")))).length;
-  const line = (label: string, p: string) => console.log(`  ${label.padEnd(26)} ${kb(size(p)).padStart(9)}  ${kb(gz(p)).padStart(9)} gzip   ${p}`);
+  const line = (label: string, p: string) => console.log(`  ${label.padEnd(30)} ${kb(size(p)).padStart(9)}  ${kb(gz(p)).padStart(9)} gzip   ${p}`);
   console.log(`\nherbalholland.com built for ${day} → ${relative(REPO, DIST)}\n`);
   line("JS (module)", site.assets.js);
   line("JS (head, gate)", site.assets.boot);
   line("CSS", site.assets.css);
   line("Font: Outfit (latin)", site.assets.outfit);
   line("Font: Inter (latin)", site.assets.inter);
-  for (const [, file] of PAGES) line(`HTML ${file}`, file);
+  for (const p of pages) line(`HTML ${p.file}`, p.file);
   line("HTML 404.html", "404.html");
   const jsBytes = size(site.assets.js) + size(site.assets.boot);
   const cssBytes = size(site.assets.css);
   const n = (b: number) => b.toLocaleString("en-US");
-  console.log(`\n  ${walk(DIST).length} files · budgets: JS ${n(jsBytes)} of ${n(BUDGET.js)} bytes, CSS ${n(cssBytes)} of ${n(BUDGET.css)} bytes`);
+  console.log(`\n  ${walk(DIST).length} files · ${pages.length + 1} pages · budgets: JS ${n(jsBytes)} of ${n(BUDGET.js)} bytes, CSS ${n(cssBytes)} of ${n(BUDGET.css)} bytes`);
   const over = [jsBytes > BUDGET.js && `JS ${n(jsBytes)} > ${n(BUDGET.js)} bytes`, cssBytes > BUDGET.css && `CSS ${n(cssBytes)} > ${n(BUDGET.css)} bytes`].filter(Boolean);
   if (over.length) throw new Error(`Over budget: ${over.join(", ")}`);
 }

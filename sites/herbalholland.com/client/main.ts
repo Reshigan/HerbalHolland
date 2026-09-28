@@ -1,31 +1,43 @@
 // herbalholland.com — the page's one script: a small ES module, no libraries. What it does:
-//   the 18+ gate (a modal dialog: focus trapped, the page inert), the menu dialog, the FAQ, the franchise form;
-//   and the motion: one requestAnimationFrame loop drives scroll velocity (the windmill's sails and the marquee),
-//   the pinned 9,475 km story, and scroll-linked --p where CSS scroll-driven animations aren't supported, while
-//   IntersectionObserver starts one-shot reveals. Only transform and opacity move; nothing reads layout while it writes.
-//   With prefers-reduced-motion everything is still, and the content is all there.
+//   the 18+ gate (a modal card over the opening scene: focus trapped, the page inert), the menu dialog, the FAQ, the
+//   two forms; and the motion: one requestAnimationFrame loop drives scroll velocity (the wind that turns every
+//   windmill's sails and drifts the marquee), the pinned 9,475 km story, the stage (each scene's entry, --t1 … --t4,
+//   where CSS scroll-driven animations aren't supported; and the windmill's flight from scene to scene, always), and
+//   scroll-linked --p elsewhere, while IntersectionObserver starts one-shot reveals. Only transform and opacity move;
+//   nothing reads layout while it writes. The loop sleeps when nothing moves, drops to 30 fps when the page is idle
+//   and stops in a background tab. Without html.motion (reduced motion, Save-Data, four cores or fewer) the page is
+//   still, and the content is all there.
 
 const d = document;
 const html = d.documentElement;
 const mq = (q: string) => matchMedia(q).matches;
 const RM = mq("(prefers-reduced-motion: reduce)");
+const MOTION = html.classList.contains("motion");
 const FINE = mq("(hover: hover) and (pointer: fine)");
-const SDA = typeof CSS !== "undefined" && CSS.supports("animation-timeline: view()");
+const SDA = typeof CSS !== "undefined" && CSS.supports("animation-timeline: view()") && CSS.supports("timeline-scope: --a");
 const $ = <T extends Element = HTMLElement>(s: string, r: ParentNode = d) => r.querySelector<T>(s);
 const $$ = <T extends Element = HTMLElement>(s: string, r: ParentNode = d) => Array.from(r.querySelectorAll<T>(s));
 const clamp = (v: number, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
+const smooth = (t: number) => t * t * (3 - 2 * t);
 const on = <K extends keyof HTMLElementEventMap>(el: EventTarget | null | undefined, ev: K | string, fn: (e: never) => void, o?: AddEventListenerOptions) => el?.addEventListener(ev, fn as EventListener, o);
 const setVar = (el: HTMLElement | SVGElement, k: string, v: string | number) => el.style.setProperty(k, String(v));
 const fmt = (n: number) => n.toLocaleString("en-US");
 
 // ── One loop ────────────────────────────────────────────────────────────────
 // Each job runs every frame while the loop is awake and says whether it still needs frames; the loop sleeps when none
-// do, and scroll, pointer and visibility events wake it.
+// do, and scroll, pointer and visibility events wake it. After a moment without input it runs every other frame.
 type Job = (dt: number) => boolean;
 const jobs: Job[] = [];
 let raf = 0;
 let last = 0;
+let lastInput = 0;
+let tick = 0;
 function frame(now: number) {
+  tick++;
+  if (now - lastInput > 500 && tick % 2) {
+    raf = requestAnimationFrame(frame);
+    return;
+  }
   const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
   last = now;
   let more = false;
@@ -33,12 +45,15 @@ function frame(now: number) {
   raf = more ? requestAnimationFrame(frame) : 0;
 }
 function wake() {
-  if (raf) return;
-  last = performance.now();
+  lastInput = performance.now();
+  if (raf || d.hidden) return;
+  last = lastInput;
   raf = requestAnimationFrame(frame);
 }
+on(d, "visibilitychange", () => (d.hidden ? (cancelAnimationFrame(raf), (raf = 0)) : wake()));
 
-// Scroll: position, smoothed velocity (px/s), direction, and "wind" — rises with a fast scroll, dies away slowly.
+// Scroll: position, smoothed velocity (px/s), direction, and "wind" — rises with a fast scroll (or a quick cursor),
+// dies away slowly.
 let sy = scrollY;
 let prevY = sy;
 let vel = 0;
@@ -59,14 +74,18 @@ on(window, "scroll", wake, { passive: true });
 
 // Geometry, measured once and on resize (never inside the loop).
 let vh = innerHeight;
+let vw = innerWidth;
 const geo = new Map<Element, { top: number; h: number }>();
+const measurers: (() => void)[] = [];
 const measure = () => {
   vh = innerHeight;
+  vw = innerWidth;
   const y = scrollY;
   geo.forEach((_, el) => {
     const r = el.getBoundingClientRect();
     geo.set(el, { top: r.top + y, h: r.height });
   });
+  measurers.forEach((m) => m());
   wake();
 };
 
@@ -127,6 +146,7 @@ function gate() {
       g.classList.remove("is-leaving");
       $("#main")?.focus({ preventScroll: true });
     };
+    // The card leaves, then the scene's entrance plays: the sun rises into place, the headline lifts from the dyke.
     if (RM) return done(), ready();
     g.classList.add("is-leaving");
     setTimeout(ready, 380);
@@ -179,13 +199,30 @@ function motion() {
     for (const s of sails) if (visible.has(s)) s.style.transform = t;
     return false;
   });
+  // A quick cursor is a gust too.
+  if (FINE) {
+    let px = -1;
+    let py = -1;
+    on(
+      window,
+      "pointermove",
+      (e: PointerEvent) => {
+        if (e.pointerType !== "mouse") return;
+        if (px >= 0) wind = Math.min(2600, wind + Math.hypot(e.clientX - px, e.clientY - py) * 4);
+        px = e.clientX;
+        py = e.clientY;
+        wake();
+      },
+      { passive: true },
+    );
+  }
 
   const m = $("[data-marquee]");
   const track = m && $(".marquee__track", m);
   const set = m && $(".marquee__set", m);
   if (!m || !track || !set) return;
   let w = set.getBoundingClientRect().width;
-  on(window, "resize", () => (w = set.getBoundingClientRect().width));
+  measurers.push(() => (w = set.getBoundingClientRect().width));
   seen.observe(m);
   let x = 0;
   let heading = -1;
@@ -200,7 +237,7 @@ function motion() {
   });
 }
 
-// ── Scroll-linked --p where CSS scroll-driven animations aren't supported ────────────────────────────────────
+// ── Scroll-linked --p, and each scene's entry (--t1 …) for the stage, where CSS scroll-driven animations aren't supported
 function progress() {
   if (SDA) return;
   const els = $$("[data-sp]");
@@ -224,9 +261,27 @@ function progress() {
     }
     return false;
   });
+  // A scene has entered as far as its top has climbed from the bottom of the screen to the top: 0 → 1.
+  const stage = $("[data-stage]");
+  const scenes = $$("[data-scene]");
+  if (!stage || !scenes.length) return;
+  scenes.forEach((s) => geo.set(s, { top: 0, h: 0 }));
+  const done = new Map<Element, string>();
+  jobs.push(() => {
+    for (const s of scenes) {
+      const g = geo.get(s);
+      if (!g) continue;
+      const t = clamp((sy - (g.top - vh)) / vh).toFixed(4);
+      if (done.get(s) !== t) done.set(s, t), setVar(stage, `--t${s.dataset.scene}`, t);
+    }
+    return false;
+  });
 }
 
-// ── The 9,475 km story: pinned while an arc draws from Amsterdam to our first store ──────────────────────────
+// ── The 9,475 km story: pinned while the windmill flies the arc from Amsterdam to the hills ──────────────────────
+/** Where the story is, for the stage: its progress, and where the flying marker is on screen. */
+const flight = { active: false, x: 0, y: 0, p: 0 };
+
 function story() {
   const s = $("[data-story]");
   const svg = s && $<SVGSVGElement>("[data-globe]", s);
@@ -268,6 +323,18 @@ function story() {
   const km = Number(kmEls[0]?.textContent?.replace(/\D/g, "")) || 0;
   const dms = (n: number, p: string, q: string) => `${Math.abs(n).toFixed(4)}° ${n >= 0 ? p : q}`;
   watch(s);
+  // The globe's place inside the pinned frame (its own units → pixels), so the flight can be drawn on the stage.
+  const pin = s.firstElementChild as HTMLElement;
+  let gl = 0;
+  let gt = 0;
+  let gk = 1;
+  measurers.push(() => {
+    const r = svg.getBoundingClientRect();
+    const q = pin.getBoundingClientRect();
+    gl = r.left - q.left;
+    gt = r.top - q.top;
+    gk = r.width / 600;
+  });
   let lastP = -1;
   let lastKm = "";
   const W8 = 0.075;
@@ -277,6 +344,7 @@ function story() {
   let flat = false;
   on(tall, "change", () => ((lastP = -1), wake()));
   jobs.push(() => {
+    flight.active = false;
     if (!tall.matches) {
       if (!flat) {
         flat = true;
@@ -287,19 +355,24 @@ function story() {
       return false;
     }
     flat = false;
-    if (!visible.has(s)) return false;
     const g = geo.get(s);
     if (!g || !g.h) return false;
     const p = clamp((sy - g.top) / (g.h - vh || 1));
-    if (Math.abs(p - lastP) < 0.0002) return false;
-    lastP = p;
     const ap = clamp((p - 0.03) / 0.72);
+    // The marker on screen: the pinned frame's top is where the section is until it pins, 0 while pinned, then it leaves.
+    const pt = at(ap);
+    const z = clamp((p - 0.78) / 0.22);
+    const sc = 1 + 0.5 * smooth(z);
+    const top = sy < g.top ? g.top - sy : sy > g.top + g.h - vh ? g.top + g.h - vh - sy : 0;
+    flight.active = true;
+    flight.p = p;
+    flight.x = gl + (ex + (pt.x - ex) * sc) * gk;
+    flight.y = gt + top + (ey + (pt.y - ey) * sc) * gk;
+    if (!visible.has(s) || Math.abs(p - lastP) < 0.0002) return false;
+    lastP = p;
     setVar(s, "--p", p.toFixed(4));
     setVar(s, "--ap", ap.toFixed(4));
-    const pt = at(ap);
     plane.style.transform = `translate(${pt.x.toFixed(1)}px,${pt.y.toFixed(1)}px)`;
-    const z = clamp((p - 0.78) / 0.22);
-    const sc = 1 + 0.5 * z * z * (3 - 2 * z);
     const zt = `translate(${ex}px,${ey}px) scale(${sc.toFixed(4)}) translate(${-ex}px,${-ey}px)`;
     zooms.forEach((z) => (z.style.transform = zt));
     // Amsterdam leaves the frame as the map closes in on South Africa.
@@ -326,41 +399,68 @@ function story() {
   });
 }
 
-// ── One-shot reveals, rolling numbers and the typed batch code ───────────────────────────────────────────────
+// ── The stage: the windmill's flight from scene to scene ─────────────────────────────────────────────────────────
+// Each scene says where the windmill stands while the scene fills the screen (--mill: x y scale, fractions of the
+// viewport, in its CSS, so it can differ by screen). Between two scenes the windmill moves as the next one enters; over
+// the sea it rides the story's arc, from the Amsterdam pin to the hills.
+function stage() {
+  const st = $("[data-stage]");
+  const mill = st && $("[data-mill-stage]", st);
+  if (!st || !mill) return;
+  const scenes = $$("[data-mill]");
+  if (!scenes.length) return;
+  type K = { x: number; y: number; s: number };
+  const keys: (K | null)[] = [];
+  const sea = scenes.findIndex((s) => s.hasAttribute("data-story"));
+  scenes.forEach((s) => geo.set(s, { top: 0, h: 0 }));
+  measurers.push(() => {
+    scenes.forEach((s, i) => {
+      const [x, y, sc] = getComputedStyle(s).getPropertyValue("--mill").trim().split(/\s+/).map(Number);
+      keys[i] = Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(sc) ? { x, y, s: sc } : null;
+    });
+  });
+  const px = (k: K): K => ({ x: k.x * vw, y: k.y * vh, s: k.s });
+  const flying = (): K => ({ x: flight.x, y: flight.y, s: 0.16 });
+  const mix = (a: K, b: K, u: number): K => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, s: a.s + (b.s - a.s) * u });
+  let lastT = "";
+  jobs.push(() => {
+    // The scene in charge: the last whose top has reached the top of the screen.
+    let i = 0;
+    for (let j = 1; j < scenes.length; j++) if ((geo.get(scenes[j])?.top ?? Infinity) <= sy) i = j;
+    const from = i === sea && flight.active ? flying() : keys[i] ? px(keys[i]!) : null;
+    const next = scenes[i + 1];
+    const gn = next && geo.get(next);
+    let k = from;
+    if (from && gn && gn.h) {
+      const to = i + 1 === sea && flight.active ? flying() : keys[i + 1] ? px(keys[i + 1]!) : null;
+      if (to) k = mix(from, to, smooth(clamp((sy - (gn.top - vh)) / vh)));
+    }
+    if (!k) return false;
+    const t = `translate3d(${k.x.toFixed(1)}px,${k.y.toFixed(1)}px,0) scale(${k.s.toFixed(3)})`;
+    if (t !== lastT) (lastT = t), (mill.style.transform = t), st.classList.add("is-placed");
+    // Over the sea the windmill is the marker.
+    st.classList.toggle("is-flying", i === sea && flight.active && flight.p < 0.99);
+    return false;
+  });
+}
+
+// ── One-shot reveals and rolling numbers ─────────────────────────────────────────────────────────────────────────
 function reveals() {
   $$("[data-rs]").forEach((g) => $$("[data-r]", g).forEach((el, i) => setVar(el, "--i", i % 8)));
   $$(".reel__v").forEach((r) => $$(".reel__d", r).reverse().forEach((dd, i) => setVar(dd, "--i", i)));
-  const words = $$("[data-words] .sw");
-  words.forEach((w, i) => setVar(w, "--i", i));
-  const wp = $("[data-words]");
-  if (wp) setVar(wp, "--n", words.length);
-  const typed = $$("[data-type]");
-  const all = $$("[data-r], .reel__v, [data-type], .step");
-  if (RM || !("IntersectionObserver" in window)) return all.forEach((el) => el.classList.add("in")), $$(".card--lab").forEach((c) => c.classList.add("typed"));
-  typed.forEach((t) => ((t.dataset.full = t.textContent || ""), (t.textContent = "")));
+  const all = $$("[data-r], .reel__v, .step");
+  if (RM || !("IntersectionObserver" in window)) return all.forEach((el) => el.classList.add("in"));
   const io = new IntersectionObserver(
     (es) => {
       for (const e of es) {
         if (!e.isIntersecting) continue;
-        const el = e.target as HTMLElement;
-        io.unobserve(el);
-        el.classList.add("in");
-        if (el.dataset.type !== undefined) type(el);
+        io.unobserve(e.target);
+        e.target.classList.add("in");
       }
     },
     { rootMargin: "0px 0px -10% 0px", threshold: 0.1 },
   );
   all.forEach((el) => io.observe(el));
-}
-
-function type(el: HTMLElement) {
-  const full = el.dataset.full || "";
-  let i = 0;
-  const card = el.closest(".card");
-  const t = setInterval(() => {
-    el.textContent = full.slice(0, ++i);
-    if (i >= full.length) clearInterval(t), setTimeout(() => card?.classList.add("typed"), 220);
-  }, 75);
 }
 
 // ── Menu: a full-screen modal dialog ─────────────────────────────────────────────────────────────────────────
@@ -656,7 +756,7 @@ function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
 
 // ── Pointer niceties on desktop: tilt, magnetic buttons and the cursor ─────────────────────────────────────────
 function pointer() {
-  if (!FINE || RM) return;
+  if (!FINE || !MOTION) return;
   $$("[data-tilt]").forEach((el) => {
     let r: DOMRect | null = null;
     on(el, "pointerenter", () => ((r = el.getBoundingClientRect()), el.classList.add("tilting")));
@@ -738,12 +838,13 @@ menu();
 faq();
 forms();
 header();
-// Reduced motion: scroll-linked pieces show their finished state (the hero stays as it is at the top).
-if (RM) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
-if (!RM) {
+// Without motion, scroll-linked pieces show their finished state (the hero stays as it is at the top).
+if (!MOTION) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
+if (MOTION) {
   motion();
   progress();
   story();
+  stage();
   pointer();
 }
 measure();

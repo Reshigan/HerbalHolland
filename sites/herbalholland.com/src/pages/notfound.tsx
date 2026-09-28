@@ -1,14 +1,12 @@
-// herbalholland.com 404 — the sun nearly down behind the hills, and the way back.
+// herbalholland.com 404 — night over the hills, and the way back.
 import { CHROME, NOT_FOUND } from "../../content";
-import { SCENES, Scene } from "../art";
 import { Page } from "../layout";
 import { Btn, Words } from "../ui";
 
 export function NotFoundPage() {
   return (
-    <Page page="notfound" meta={{ path: "/404", ...NOT_FOUND.meta, noindex: true }}>
-      <section className="nf" data-sp="exit" aria-labelledby="nf-title">
-        <Scene kind="notfound" spec={SCENES.notfound} className="nf__scene" />
+    <Page page="notfound" stage="night" meta={{ path: "/404", ...NOT_FOUND.meta, noindex: true }}>
+      <section className="nf" data-sp="exit" data-mill="" aria-labelledby="nf-title">
         <div className="wrap nf__in">
           <p className="eyebrow" data-in="1">
             {NOT_FOUND.eyebrow}
