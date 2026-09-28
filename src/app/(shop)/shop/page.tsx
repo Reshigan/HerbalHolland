@@ -146,6 +146,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           </Callout>
         ) : res.items.length ? (
           <>
+            <h2 className="sr-only">Products</h2>
             <ProductGrid items={res.items} />
             <Pager page={query.page} pageSize={PAGE_SIZE} total={res.total} href={(p) => href({ page: String(p) })} noun="products" />
           </>
@@ -167,7 +168,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     return (
       <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap gap-2" aria-label="Mood">
-          <span className="self-center pr-1 text-xs font-semibold uppercase tracking-wider text-ink-500">Mood</span>
+          <span className="self-center pr-1 text-xs font-semibold uppercase tracking-wider text-ink-450">Mood</span>
           {res.moods.map((m) => (
             <Chip key={m.key} href={href({ mood: query.mood === m.key ? undefined : m.key, page: undefined })} active={query.mood === m.key}>
               {cap(m.key)}

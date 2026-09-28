@@ -81,7 +81,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             Complete payment by {fmtTime(holdUntil)} ({settings.ecommerce.unpaidHoldMinutes} minutes) or the order is released and the stock goes back on the shelf.
           </p>
           {name ? <HostedPayForm action={payOnline.bind(null, order.id)} amount={zar(due)} gateway={name} /> : <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />}
-          <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-ink-500">
+          <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-ink-450">
             <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" />
             {gateway === "PEACH"
               ? "You pay on Peach Payments' secure page. We never see your card details. Your order is confirmed the moment Peach Payments tells us the payment went through."

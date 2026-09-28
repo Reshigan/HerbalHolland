@@ -47,8 +47,8 @@ export function MarkGlyph({ detail = true, heavy = false, spin = false }: { deta
 export function Wordmark({ className, stacked = true }: { className?: string; stacked?: boolean }) {
   return (
     <span className={cn("font-display uppercase leading-[0.9]", stacked ? "inline-flex flex-col" : "inline-flex items-baseline gap-2", className)}>
-      <span className="font-light tracking-[0.14em]">Herbal</span>
-      <span className="font-extrabold tracking-[0.06em]">Holland</span>
+      {/* The space between the words is collapsed by the flex layout but keeps the text "Herbal Holland" for assistive tech. */}
+      <span className="font-light tracking-[0.14em]">Herbal</span> <span className="font-extrabold tracking-[0.06em]">Holland</span>
     </span>
   );
 }

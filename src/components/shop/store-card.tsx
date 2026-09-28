@@ -47,14 +47,14 @@ export function StoreCard({ s, preferred, km, className }: { s: ShopStore; prefe
           </h3>
           <p className="mt-0.5 text-sm text-ink-400">
             {s.addressLine}, {s.suburb}, {s.city}
-            {km != null && <span className="text-ink-500"> · {km < 10 ? km.toFixed(1) : Math.round(km)} km</span>}
+            {km != null && <span className="text-ink-450"> · {km < 10 ? km.toFixed(1) : Math.round(km)} km</span>}
           </p>
         </div>
         {soon ? <Tag tone="amber">Opening soon</Tag> : <Tag tone={o.open ? "green" : "neutral"}>{o.open ? "Open now" : "Closed"}</Tag>}
       </div>
       {!soon && (
         <p className="mt-3 flex items-center gap-2 text-sm text-ink-300">
-          <Clock className="h-4 w-4 text-ink-500" />
+          <Clock className="h-4 w-4 text-ink-450" />
           {o.label}
           {s.format === "FLAGSHIP" && <Tag tone="orange" className="ml-auto">Flagship</Tag>}
         </p>

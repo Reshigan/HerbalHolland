@@ -107,7 +107,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                       <ButtonLink href={`/club/join?next=${encodeURIComponent(next)}`} size="xl" className="w-full">
                         Sign in to RSVP
                       </ButtonLink>
-                      <p className="mt-3 text-center text-xs text-ink-500">New here? Joining Rewards is free and takes a minute.</p>
+                      <p className="mt-3 text-center text-xs text-ink-450">New here? Joining Rewards is free and takes a minute.</p>
                     </>
                   )}
                 </div>

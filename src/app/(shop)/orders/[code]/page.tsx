@@ -207,7 +207,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                         )}
                       </span>
                       <div className="min-w-0">
-                        <div className={cn("font-semibold", done || now ? "text-white" : "text-ink-500")}>{s.label}</div>
+                        <div className={cn("font-semibold", done || now ? "text-white" : "text-ink-450")}>{s.label}</div>
                         <div className="text-sm text-ink-400">
                           {when && (done || now) ? `${fmtDateTime(when)} · ` : ""}
                           {s.sub}
@@ -259,7 +259,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   <dt className="font-semibold text-white">{order.paymentStatus === "PAID" ? "Paid" : collect && order.payMethod !== "ONLINE" ? "To pay in store" : "Total"}</dt>
                   <dd className="tnum font-display text-2xl font-semibold text-white">{zar(due)}</dd>
                 </div>
-                {order.vatCents > 0 && <p className="text-right text-xs text-ink-500">Includes VAT of {zar(order.vatCents)}</p>}
+                {order.vatCents > 0 && <p className="text-right text-xs text-ink-450">Includes VAT of {zar(order.vatCents)}</p>}
                 {saved > 0 && <p className="rounded-xl bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-100">You saved {zar(saved)} with Herbal Holland Rewards</p>}
               </dl>
             </Panel>
@@ -355,7 +355,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
           <Panel className="p-5 text-sm text-ink-400">
             <p>
-              <Package className="mr-1.5 inline h-4 w-4 align-[-3px] text-ink-500" />
+              <Package className="mr-1.5 inline h-4 w-4 align-[-3px] text-ink-450" />
               Questions about this order? Quote <strong className="text-ink-100">{order.code}</strong>{" "}
               {order.store.phone ? (
                 <>

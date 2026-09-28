@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { AlertTriangle, ArrowRight, BadgeCheck, ChevronRight, FlaskConical, Info, MapPin, Package, ShieldCheck, Sparkles, Store, Truck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -351,7 +352,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               ) : buyable ? (
                 <>
                   <AddToBag variantId={variant.id} name={`${product.name} · ${variant.name}`} label={licensed ? "Add to dispensary order" : "Add to bag"} />
-                  {drop && drop.phase !== "ended" && <p className="mt-2 text-center text-xs text-ink-500">Limit {drop.perMemberLimit} per member from this drop — checked at checkout.</p>}
+                  {drop && drop.phase !== "ended" && <p className="mt-2 text-center text-xs text-ink-450">Limit {drop.perMemberLimit} per member from this drop — checked at checkout.</p>}
                 </>
               ) : (
                 <NotifyMe action={requestStockAlert.bind(null, variant.id)} signedIn={!!customer} next={`/p/${product.slug}?v=${variant.id}`} already={!!alert && !alert.notifiedAt} />
@@ -362,7 +363,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <Panel className="mt-6 divide-y divide-ink-800">
               {canCollect && (
                 <div className="flex items-start gap-3 p-4">
-                  <Store className={cn("mt-0.5 h-5 w-5 shrink-0", hereQty > 0 ? "text-leaf-500" : "text-ink-500")} />
+                  <Store className={cn("mt-0.5 h-5 w-5 shrink-0", hereQty > 0 ? "text-leaf-500" : "text-ink-450")} />
                   <div className="min-w-0 flex-1 text-sm">
                     {store ? (
                       hereQty > 0 ? (
@@ -395,7 +396,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               )}
               {canShip && (
                 <div className="flex items-start gap-3 p-4">
-                  <Truck className={cn("mt-0.5 h-5 w-5 shrink-0", networkQty > 0 ? "text-leaf-500" : "text-ink-500")} />
+                  <Truck className={cn("mt-0.5 h-5 w-5 shrink-0", networkQty > 0 ? "text-leaf-500" : "text-ink-450")} />
                   <div className="text-sm">
                     <div className="font-semibold text-white">{made ? "Made to order · ships nationwide" : networkQty > 0 ? "Ships nationwide" : "Out of stock for delivery"}</div>
                     <div className="text-ink-400">
@@ -472,7 +473,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           </div>
         </div>
 
-        {/* Details */}
+        {/* Details — below the fold, so they hydrate later, in small slices (see ProductGrid). */}
+        <Suspense>
         <div className="mt-20 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-14">
           <div className="space-y-14">
             {tested && batch && (
@@ -674,7 +676,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                         <li key={r.id} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
                           <div className="flex flex-wrap items-center justify-between gap-2">
                             <Stars value={r.rating} />
-                            <span className="text-xs text-ink-500">{fmtDate(r.createdAt)}</span>
+                            <span className="text-xs text-ink-450">{fmtDate(r.createdAt)}</span>
                           </div>
                           {r.title && <h3 className="mt-2 font-semibold text-white">{r.title}</h3>}
                           {r.body && <p className="mt-1 text-sm leading-relaxed text-ink-300">{r.body}</p>}
@@ -729,12 +731,12 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                       <li key={x.store.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                         <Link href={`/stores/${x.store.slug}`} className="min-w-0 hover:text-white">
                           <span className={cn("block truncate font-medium", x.store.id === store?.id ? "text-brand-300" : "text-ink-100")}>{x.store.name}</span>
-                          <span className="block truncate text-xs text-ink-500">
+                          <span className="block truncate text-xs text-ink-450">
                             {x.store.city}
                             {x.km != null && ` · ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} km`}
                           </span>
                         </Link>
-                        <span className={cn("shrink-0 text-xs font-semibold", n > 3 ? "text-leaf-100" : n > 0 ? "text-amber-100" : "text-ink-500")}>{n > 3 ? "In stock" : n > 0 ? `${n} left` : "Out of stock"}</span>
+                        <span className={cn("shrink-0 text-xs font-semibold", n > 3 ? "text-leaf-100" : n > 0 ? "text-amber-100" : "text-ink-450")}>{n > 3 ? "In stock" : n > 0 ? `${n} left` : "Out of stock"}</span>
                       </li>
                     );
                   })}
@@ -761,6 +763,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             )}
           </aside>
         </div>
+        </Suspense>
 
         {complete.length > 0 && (
           <section className="mt-20" aria-labelledby="complete">

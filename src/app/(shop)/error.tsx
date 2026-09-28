@@ -23,7 +23,7 @@ export default function ShopError({ error, retry }: { error: Error & { digest?: 
           Back to the shop
         </Link>
       </div>
-      {error.digest && <p className="tnum mt-8 font-mono text-xs text-ink-500">Reference {error.digest}</p>}
+      {error.digest && <p className="tnum mt-8 font-mono text-xs text-ink-450">Reference {error.digest}</p>}
     </div>
   );
 }

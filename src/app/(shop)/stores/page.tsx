@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { getRetailStores, getPreferredStore } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { StoreCard } from "@/components/shop/store-card";
@@ -49,12 +50,12 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
             aria-current={p === chosen ? "true" : undefined}
             className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm hover:border-brand-500 hover:text-white ${p === chosen ? "border-brand-500 text-white" : "border-ink-700 text-ink-200"}`}
           >
-            {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-500">{trading.filter((s) => s.province === p).length}</span>
+            {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-450">{trading.filter((s) => s.province === p).length}</span>
           </a>
         ))}
         {soon.length > 0 && (
           <a href="#soon" className="shrink-0 rounded-full border border-dashed border-ink-700 px-3.5 py-1.5 text-sm text-ink-300 hover:border-brand-500">
-            Opening soon <span className="tnum text-ink-500">{soon.length}</span>
+            Opening soon <span className="tnum text-ink-450">{soon.length}</span>
           </a>
         )}
       </nav>
@@ -73,6 +74,8 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         </section>
       )}
 
+      {/* The store lists hydrate later, in small slices, after the shell (see ProductGrid). */}
+      <Suspense>
       {(chosen ? [chosen] : provinces).map((p) => {
         const all = trading.filter((s) => s.province === p);
         const inProv = chosen ? all.slice((page - 1) * PAGE, page * PAGE) : all;
@@ -112,6 +115,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
           </div>
         </section>
       )}
+      </Suspense>
 
       <p className="mt-14 text-sm text-ink-400">
         Can&apos;t get to a store?{" "}

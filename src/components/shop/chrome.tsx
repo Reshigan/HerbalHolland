@@ -1,6 +1,7 @@
 // Storefront chrome (server): announcement bar, header, footer and the 18+ age gate.
 // Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
 import Link from "next/link";
+import { Suspense } from "react";
 import { ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -147,6 +148,8 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
           {children}
         </main>
 
+        {/* Already-rendered content inside a Suspense boundary hydrates later, in small slices, instead of in the first long task. */}
+        <Suspense>
         <footer className="mt-24 border-t border-ink-850 bg-ink-950">
           <Container className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
@@ -181,7 +184,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 <span key={p.code}>
                   {i > 0 && " · "}
                   {PROVINCES[p.code as ProvinceCode]}{" "}
-                  <span className="text-ink-500">({p.cities.join(", ")})</span>
+                  <span className="text-ink-450">({p.cities.join(", ")})</span>
                 </span>
               ))}
             </p>
@@ -203,6 +206,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             </Container>
           </div>
         </footer>
+        </Suspense>
       </div>
       {age === "unknown" && <AgeGate />}
     </>

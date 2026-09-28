@@ -9,7 +9,10 @@ import { AgeBadge, Mark, Sprite, Stage, Wordmark, cx, type StageState } from "./
 import { Btn, Icon, Index, MailTo, Rich, ShopNow, Soon } from "./ui";
 
 export const site = {
-  assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[], stores: {} as Record<string, string> },
+  assets: { css: "/assets/site.css", js: "/assets/site.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[], stores: {} as Record<string, string> },
+  /** Placeholders the build fills once every page is rendered: the page's critical CSS (inlined) and the head script. */
+  critical: "__CRITICAL__",
+  boot: "__BOOT__",
   /** The build day in SAST (YYYY-MM-DD) and its year. */
   day: "2026-01-01",
   year: 2026,
@@ -39,13 +42,13 @@ export function JoinDoor({ kind = "chip", className, label = CHROME.cta.join }: 
 function Brand({ className, vt }: { className?: string; vt?: boolean }) {
   return (
     <a href="/" className={cx("brand", vt && "brand--vt", className)} aria-label={CHROME.home}>
-      <Mark className="brand__mark" sails="wind" />
+      <Mark className="brand__mark" sails={vt ? "wind" : undefined} use={!vt} />
       <Wordmark className="brand__wm" />
     </a>
   );
 }
 
-function Header({ page }: { page: string }) {
+function Header({ page, nav }: { page: string; nav: string }) {
   const shop = shopLink("/");
   return (
     <header className="hdr" data-hdr="">
@@ -56,7 +59,7 @@ function Header({ page }: { page: string }) {
           <ul>
             {CHROME.nav.map((n) => (
               <li key={n.key}>
-                <a href={`/${n.key}`} className="hdr__link" aria-current={page === n.key ? "page" : undefined}>
+                <a href={`/${n.key}`} className="hdr__link" aria-current={nav === n.key ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>
@@ -81,9 +84,11 @@ function Header({ page }: { page: string }) {
   );
 }
 
-function Menu({ page }: { page: string }) {
+/** The full-screen menu, stamped from this template the first time it's opened (it needs script to open at all). */
+function Menu({ page, nav }: { page: string; nav: string }) {
   const items = [{ key: "", label: CHROME.menu.home }, ...CHROME.nav];
   return (
+    <template id="menu-t">
     <dialog id="menu" className="menu" aria-label={CHROME.menu.label}>
       <div className="menu__in">
         <div className="wrap menu__bar">
@@ -97,7 +102,7 @@ function Menu({ page }: { page: string }) {
           <ol>
             {items.map((n, i) => (
               <li key={n.key}>
-                <a href={`/${n.key}`} className="menu__link" aria-current={page === (n.key || "home") ? "page" : undefined}>
+                <a href={`/${n.key}`} className="menu__link" aria-current={nav === (n.key || "home") ? "page" : undefined}>
                   <Index n={i + 1} />
                   <span className="menu__word">{n.label}</span>
                 </a>
@@ -119,6 +124,7 @@ function Menu({ page }: { page: string }) {
         </div>
       </div>
     </dialog>
+    </template>
   );
 }
 
@@ -129,7 +135,7 @@ function Menu({ page }: { page: string }) {
  */
 function Gate() {
   return (
-    <dialog id="gate" className="gate" aria-labelledby="gate-title" aria-describedby="gate-desc" {...{ closedby: "none" }}>
+    <dialog id="gate" className="gate" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-desc">
       <div className="gate__stage">
         <div className="gate__card" data-gate-ask="">
           <Mark className="gate__mark" sails="gust" />
@@ -141,7 +147,7 @@ function Gate() {
             {GATE.body}
           </p>
           <div className="gate__actions">
-            <button type="button" className="btn btn--primary" data-age="yes">
+            <button type="button" className="btn btn--primary" data-age="yes" autoFocus>
               <span className="btn__fill" aria-hidden="true" />
               <span className="btn__label">{GATE.yes}</span>
             </button>
@@ -154,7 +160,8 @@ function Gate() {
             {GATE.remember} <Rich text={GATE.accept} />
           </p>
         </div>
-        <div className="gate__card gate__under" data-gate-under="" hidden>
+        <template id="gate-under-t">
+        <div className="gate__card gate__under" data-gate-under="">
           <Mark className="gate__mark" />
           <h2 id="gate-under" className="gate__title" tabIndex={-1}>
             {GATE.under.title}
@@ -172,6 +179,7 @@ function Gate() {
             .
           </p>
         </div>
+        </template>
       </div>
     </dialog>
   );
@@ -214,7 +222,7 @@ function Footer({ page }: { page: string }) {
       <div className="wrap ftr__top">
         <div className="ftr__brand">
           <a href="/" className="ftr__logo" aria-label={CHROME.home}>
-            <Mark className="ftr__mark" sails="spin" />
+            <Mark className="ftr__mark" use />
             <Wordmark />
           </a>
           <p className="ftr__line">
@@ -305,7 +313,7 @@ function Footer({ page }: { page: string }) {
  * 18+ gate: the gate asks visitors to accept them, so they must be readable first. `jsonLd` is one or more schema.org
  * graphs; a page with `meta.crumbs` gets a BreadcrumbList as well.
  */
-export function Page({ page, meta, stage, jsonLd, free, children }: { page: string; meta: Meta; stage?: StageState; jsonLd?: Record<string, unknown> | Record<string, unknown>[]; free?: boolean; children: React.ReactNode }) {
+export function Page({ page, nav = page, meta, stage, jsonLd, free, children }: { page: string; nav?: string; meta: Meta; stage?: StageState; jsonLd?: Record<string, unknown> | Record<string, unknown>[]; free?: boolean; children: React.ReactNode }) {
   const title = meta.absolute ? meta.title : `${meta.title} · ${BRAND.name}`;
   const url = abs(meta.path);
   const img = `${FACTS.origin}/og.png`;
@@ -338,11 +346,16 @@ export function Page({ page, meta, stage, jsonLd, free, children }: { page: stri
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* The display font (the headline is the largest paint) is preloaded; Inter loads with the text that needs it. */}
         <link rel="preload" href={site.assets.outfit} as="font" type="font/woff2" crossOrigin="" />
-        <link rel="preload" href={site.assets.inter} as="font" type="font/woff2" crossOrigin="" />
-        <script src={site.assets.boot} />
-        <link rel="stylesheet" href={site.assets.css} />
-        <script type="module" src={site.assets.js} />
+        {/* The first screen's CSS, inline (allowed by its hash in the CSP). The head script adds the rest of the
+            stylesheet and the page's module once the page has loaded, so nothing competes with the first paint; without
+            script, the noscript link loads the stylesheet the plain way. */}
+        <style dangerouslySetInnerHTML={{ __html: site.critical }} />
+        <script data-boot="" data-css={site.assets.css} data-js={site.assets.js} dangerouslySetInnerHTML={{ __html: site.boot }} />
+        <noscript>
+          <link rel="stylesheet" href={site.assets.css} />
+        </noscript>
         {graphs.map((g, i) => (
           <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(g) }} />
         ))}
@@ -357,13 +370,13 @@ export function Page({ page, meta, stage, jsonLd, free, children }: { page: stri
             <AgeBadge /> {GATE.noscript}
           </p>
         </noscript>
-        <Header page={page} />
+        <Header page={page} nav={nav} />
         <main id="main" tabIndex={-1}>
           <Stage state={stage} />
           {children}
         </main>
         <Footer page={page} />
-        <Menu page={page} />
+        <Menu page={page} nav={nav} />
         {!free && <Gate />}
       </body>
     </html>

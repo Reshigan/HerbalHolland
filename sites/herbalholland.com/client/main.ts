@@ -22,6 +22,13 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 const on = <K extends keyof HTMLElementEventMap>(el: EventTarget | null | undefined, ev: K | string, fn: (e: never) => void, o?: AddEventListenerOptions) => el?.addEventListener(ev, fn as EventListener, o);
 const setVar = (el: HTMLElement | SVGElement, k: string, v: string | number) => el.style.setProperty(k, String(v));
 const fmt = (n: number) => n.toLocaleString("en-US");
+/** Stamps a <template>'s first element into the page (before `before`, or at the end of `parent`). */
+const stamp = (t: HTMLTemplateElement | null, parent: Element, before?: Element | null) => {
+  const el = t?.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
+  if (el) parent.insertBefore(el, before ?? null);
+  return el ?? null;
+};
+const modal = (open: boolean) => html.classList.toggle("modal", open);
 
 // ── One loop ────────────────────────────────────────────────────────────────
 // Each job runs every frame while the loop is awake and says whether it still needs frames; the loop sleeps when none
@@ -66,7 +73,7 @@ jobs.push((dt) => {
   if (dy) dir = dy > 0 ? 1 : -1;
   vel += (dy / dt - vel) * Math.min(1, dt * 14);
   const a = Math.abs(vel);
-  wind += (a - wind) * (a > wind ? Math.min(1, dt * 9) : Math.min(1, dt * 1.6));
+  wind += (a - wind) * (a > wind ? Math.min(1, dt * 9) : Math.min(1, dt * 2.6));
   if (wind < 0.5) wind = 0;
   return Math.abs(vel) > 1 || wind > 0;
 });
@@ -101,65 +108,18 @@ const seen = new IntersectionObserver(
 const watch = (el: Element) => (geo.set(el, { top: 0, h: 0 }), seen.observe(el));
 
 // ── The 18+ gate ────────────────────────────────────────────────────────────
-const ready = () => html.classList.add("ready");
-
+// The head script shows the gate and takes its answers (so the first screen works before this module arrives); the page
+// behind it is hidden. Here: the keyboard stays in the card.
+const gated = () => html.dataset.age !== "ok";
 function gate() {
-  const g = $<HTMLDialogElement>("#gate");
-  const age = html.dataset.age;
-  if (!g || age === "ok") return ready();
-  const ask = $("[data-gate-ask]", g)!;
-  const under = $("[data-gate-under]", g)!;
-  const open = () => {
-    if (g.open) return;
-    try {
-      g.showModal();
-    } catch {
-      g.setAttribute("open", "");
-    }
-  };
-  const showUnder = (focus: boolean) => {
-    ask.hidden = true;
-    under.hidden = false;
-    g.setAttribute("aria-labelledby", "gate-under");
-    g.removeAttribute("aria-describedby");
-    if (focus) $("#gate-under", g)?.focus();
-  };
-  open();
-  if (age === "under") showUnder(true);
-  else $<HTMLButtonElement>("[data-age=yes]", g)?.focus();
-  // Esc doesn't dismiss it: an answer does.
-  on(g, "cancel", (e: Event) => e.preventDefault());
-  on(g, "close", () => html.dataset.age !== "ok" && open());
-  on($("[data-age=yes]", g), "click", () => {
-    try {
-      localStorage.setItem("hh_age", String(Date.now()));
-    } catch {
-      try {
-        sessionStorage.setItem("hh_age", "ok");
-      } catch {
-        // Nothing to remember with: this page still opens.
-      }
-    }
-    html.dataset.age = "ok";
-    const done = () => {
-      g.close();
-      g.classList.remove("is-leaving");
-      $("#main")?.focus({ preventScroll: true });
-    };
-    // The card leaves, then the scene's entrance plays: the sun rises into place, the headline lifts from the dyke.
-    if (RM) return done(), ready();
-    g.classList.add("is-leaving");
-    setTimeout(ready, 380);
-    setTimeout(done, 1300);
-  });
-  on($("[data-age=no]", g), "click", () => {
-    try {
-      sessionStorage.setItem("hh_age", "under");
-    } catch {
-      // The screen still shows for this page.
-    }
-    html.dataset.age = "under";
-    showUnder(true);
+  const g = $("#gate");
+  if (!g || !gated()) return;
+  ($("#gate-under", g) ?? $("[data-age=yes]", g))?.focus({ preventScroll: true });
+  on(g, "keydown", (e: KeyboardEvent) => {
+    if (e.key !== "Tab" || !gated()) return;
+    const f = $$("button, a[href]", g).filter((el) => el.offsetParent);
+    const [a, z] = [f[0], f[f.length - 1]];
+    if (e.shiftKey ? d.activeElement === a : d.activeElement === z) (e.preventDefault(), (e.shiftKey ? z : a).focus());
   });
 }
 
@@ -313,8 +273,6 @@ function story() {
   const plane = $<SVGGElement>("[data-plane]", svg)!;
   const zooms = $$<SVGGElement>(".globe__zoom", svg);
   const pinA = $<SVGGElement>(".pin--a", svg);
-  const dots = $$<SVGCircleElement>(".dot", svg);
-  dots.forEach((c) => setVar(c, "--t", c.dataset.t!));
   const chapters = $$("[data-chapter]", s);
   const bars = $$(".story__bar i", s);
   const latEl = $("[data-lat]", s);
@@ -323,18 +281,25 @@ function story() {
   const km = Number(kmEls[0]?.textContent?.replace(/\D/g, "")) || 0;
   const dms = (n: number, p: string, q: string) => `${Math.abs(n).toFixed(4)}° ${n >= 0 ? p : q}`;
   watch(s);
-  // The globe's place inside the pinned frame (its own units → pixels), so the flight can be drawn on the stage.
+  // The globe's place inside the pinned frame (its own units → pixels), so the flight can be drawn on the stage; and the
+  // route's length, for the reveal. Measured once the story is on screen (the section's contents are skipped until then).
   const pin = s.firstElementChild as HTMLElement;
+  const rt = $<SVGGeometryElement>("#rt", svg)!;
   let gl = 0;
   let gt = 0;
   let gk = 1;
-  measurers.push(() => {
+  let len = 0;
+  let stale = true;
+  measurers.push(() => (stale = true));
+  const place = () => {
     const r = svg.getBoundingClientRect();
     const q = pin.getBoundingClientRect();
     gl = r.left - q.left;
     gt = r.top - q.top;
     gk = r.width / 600;
-  });
+    len ||= rt.getTotalLength();
+    stale = false;
+  };
   let lastP = -1;
   let lastKm = "";
   const W8 = 0.075;
@@ -357,6 +322,7 @@ function story() {
     flat = false;
     const g = geo.get(s);
     if (!g || !g.h) return false;
+    if (stale && visible.has(s)) place();
     const p = clamp((sy - g.top) / (g.h - vh || 1));
     const ap = clamp((p - 0.03) / 0.72);
     // The marker on screen: the pinned frame's top is where the section is until it pins, 0 while pinned, then it leaves.
@@ -371,7 +337,7 @@ function story() {
     if (!visible.has(s) || Math.abs(p - lastP) < 0.0002) return false;
     lastP = p;
     setVar(s, "--p", p.toFixed(4));
-    setVar(s, "--ap", ap.toFixed(4));
+    setVar(s, "--ap", (ap * len).toFixed(1));
     plane.style.transform = `translate(${pt.x.toFixed(1)}px,${pt.y.toFixed(1)}px)`;
     const zt = `translate(${ex}px,${ey}px) scale(${sc.toFixed(4)}) translate(${-ex}px,${-ey}px)`;
     zooms.forEach((z) => (z.style.transform = zt));
@@ -439,7 +405,7 @@ function stage() {
     const t = `translate3d(${k.x.toFixed(1)}px,${k.y.toFixed(1)}px,0) scale(${k.s.toFixed(3)})`;
     if (t !== lastT) (lastT = t), (mill.style.transform = t), st.classList.add("is-placed");
     // Over the sea the windmill is the marker.
-    st.classList.toggle("is-flying", i === sea && flight.active && flight.p < 0.99);
+    st.classList.toggle("is-flying", i === sea && flight.active);
     return false;
   });
 }
@@ -465,36 +431,46 @@ function reveals() {
 
 // ── Menu: a full-screen modal dialog ─────────────────────────────────────────────────────────────────────────
 function menu() {
-  const m = $<HTMLDialogElement>("#menu");
+  const t = $<HTMLTemplateElement>("#menu-t");
   const btn = $<HTMLButtonElement>("[data-menu-open]");
-  if (!m || !btn) return;
-  $$(".menu__word", m).forEach((w, i) => setVar(w, "--i", i));
+  if (!t || !btn) return;
+  let m: HTMLDialogElement | null = null;
   let closing = 0;
-  const open = () => {
-    clearTimeout(closing);
-    if (!m.open) m.showModal();
-    html.classList.add("menu-open");
-    btn.setAttribute("aria-expanded", "true");
-    requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add("open")));
-    $<HTMLButtonElement>("[data-menu-close]", m)?.focus();
-  };
   const close = () => {
+    if (!m) return;
     m.classList.remove("open");
     html.classList.remove("menu-open");
     btn.setAttribute("aria-expanded", "false");
     closing = window.setTimeout(
       () => {
-        m.close();
+        m!.close();
+        modal(false);
         btn.focus();
       },
       RM ? 0 : 420,
     );
   };
+  // The dialog is stamped from its template the first time the menu opens.
+  const make = () => {
+    m = stamp(t, d.body) as HTMLDialogElement;
+    $$(".menu__word", m).forEach((w, i) => setVar(w, "--i", i));
+    on($("[data-menu-close]", m), "click", close);
+    on(m, "cancel", (e: Event) => (e.preventDefault(), close()));
+    $$<HTMLAnchorElement>("a[href^='#'], a[href^='/#']", m).forEach((a) => on(a, "click", close));
+    return m;
+  };
+  const open = () => {
+    clearTimeout(closing);
+    const el = m ?? make();
+    if (!el.open) el.showModal();
+    modal(true);
+    html.classList.add("menu-open");
+    btn.setAttribute("aria-expanded", "true");
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("open")));
+    $<HTMLButtonElement>("[data-menu-close]", el)?.focus();
+  };
   on(btn, "click", open);
-  on($("[data-menu-close]", m), "click", close);
-  on(m, "cancel", (e: Event) => (e.preventDefault(), close()));
-  $$<HTMLAnchorElement>("a[href^='#'], a[href^='/#']", m).forEach((a) => on(a, "click", close));
-  on(window, "resize", () => m.open && innerWidth >= 1100 && close());
+  on(window, "resize", () => m?.open && innerWidth >= 1100 && close());
 }
 
 // ── FAQ: native <details>, with the answers easing in and the questions below gliding (FLIP, transform only) ──────
@@ -620,8 +596,8 @@ function forms() {
 
 function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
   const copyEl = $(`#${p}-copy`);
-  const done = f.parentElement && $("[data-form-done]", f.parentElement);
-  if (!copyEl || !done) return;
+  const doneT = f.parentElement && $<HTMLTemplateElement>("[data-form-done]", f.parentElement);
+  if (!copyEl || !doneT) return;
   const C = JSON.parse(copyEl.textContent || "{}") as FormCopy;
   const submit = $<HTMLButtonElement>("[data-submit]", f)!;
   const alertBox = $("[data-form-alert]", f)!;
@@ -740,17 +716,18 @@ function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
   });
 
   function success(ref: string) {
-    const refEl = $("[data-ref]", done!);
+    // The thank-you arrives from its template, in the form's place.
+    const done = stamp(doneT, f.parentElement!, f)!;
+    const refEl = $("[data-ref]", done);
     if (refEl) {
       refEl.textContent = ref;
-      $("[data-ref-line]", done!)!.hidden = !ref;
+      $("[data-ref-line]", done)!.hidden = !ref;
     }
     f.hidden = true;
-    done!.hidden = false;
-    const title = $("[data-done-title]", done!)!;
+    const title = $("[data-done-title]", done)!;
     title.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" });
     title.focus({ preventScroll: true });
-    requestAnimationFrame(() => requestAnimationFrame(() => done!.classList.add("in")));
+    requestAnimationFrame(() => requestAnimationFrame(() => done.classList.add("in")));
   }
 }
 
@@ -792,7 +769,9 @@ function pointer() {
   c.setAttribute("aria-hidden", "true");
   c.innerHTML = '<span class="cursor__ring"><i></i></span><span class="cursor__dot"></span>';
   d.body.append(c);
-  html.classList.add("has-cursor");
+  const show = () => html.classList.add("has-cursor");
+  if (gated()) on($("[data-age=yes]"), "click", () => setTimeout(show, RM ? 0 : 1300));
+  else show();
   const ring = c.firstElementChild as HTMLElement;
   const dot = c.lastElementChild as HTMLElement;
   const label = ring.firstElementChild as HTMLElement;
@@ -832,26 +811,36 @@ function pointer() {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// The gate at once (a new visitor is looking at it); everything else once the page has loaded, in small pieces, so
+// nothing runs before the first paint and no task grows long.
 gate();
-reveals();
-menu();
-faq();
-forms();
-header();
-// Without motion, scroll-linked pieces show their finished state (the hero stays as it is at the top).
-if (!MOTION) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
-if (MOTION) {
-  motion();
-  progress();
-  story();
-  stage();
-  pointer();
+const later = (fn: () => void) => ("requestIdleCallback" in window ? (window as Window & { requestIdleCallback: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback(fn, { timeout: 400 }) : setTimeout(fn, 0));
+function start() {
+  reveals();
+  html.classList.add("m");
+  later(() => {
+    menu();
+    faq();
+    forms();
+    header();
+  });
+  later(() => {
+    // Without motion, scroll-linked pieces show their finished state (the hero stays as it is at the top).
+    if (!MOTION) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
+    if (MOTION) {
+      motion();
+      progress();
+      story();
+      stage();
+    }
+    measure();
+    on(window, "resize", measure);
+    d.fonts?.ready.then(measure);
+    new ResizeObserver(() => measure()).observe(d.body);
+    if (MOTION) later(pointer);
+  });
 }
-measure();
-on(window, "resize", measure);
-on(window, "load", measure);
-d.fonts?.ready.then(measure);
-new ResizeObserver(() => measure()).observe(d.body);
-html.classList.add("m");
+if (d.readyState === "complete") later(start);
+else on(window, "load", () => later(start));
 
 export {};

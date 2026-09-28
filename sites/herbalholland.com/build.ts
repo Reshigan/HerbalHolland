@@ -8,9 +8,12 @@
 // content hash in their names (cached for a year, immutable); HTML is served no-cache (see _headers).
 // No database: the facts are in ./facts.ts, the words in ./content.ts. The pages: the home page, the six inner pages,
 // the three legal documents, a page per store (/stores/{key}) and a page per published release (/press/{slug}).
+// The CSS: the first screen's rules (styles/site.css above its @@rest marker) are inlined in every page, allowed by their
+// sha256 hash in the CSP; the rest is a stylesheet per page, pruned to the rules that page can use, loaded without
+// blocking the first paint. The head script is inlined the same way (hashed). No nonces, no 'unsafe-inline'.
 // The build checks: distances against coordinates, opening days, every page's title (≤ 60 characters) and description
-// (120–160), that no page's `updated` day is in the future, no inline style or script, no demo company details, and the
-// size budgets.
+// (120–160), that no page's `updated` day is in the future, no inline style attribute or unhashed script, no demo company
+// details, and the size budgets.
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -24,7 +27,7 @@ import { FACTS, greatCircleKm, newStores } from "./facts";
 import { patternUrl } from "./src/art";
 import { site } from "./src/layout";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
-import { literals, mangleClasses, precomputeColors, shortenTokens, tighten } from "./src/optimize";
+import { classesIn, literals, mangleClasses, precomputeColors, pruneCss, shortenTokens, tighten } from "./src/optimize";
 import { AboutPage } from "./src/pages/about";
 import { CareersPage } from "./src/pages/careers";
 import { ContactPage } from "./src/pages/contact";
@@ -39,7 +42,7 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO = join(ROOT, "..", "..");
 const DIST = join(ROOT, "dist");
 const STATIC = join(ROOT, "static");
-const BUDGET = { js: 90_000, css: 60_000 }; // bytes, before compression
+const BUDGET = { js: 90_000, css: 60_000 }; // bytes, before compression: the scripts; a page's inline CSS plus its own stylesheet
 const FONTS = {
   outfit: join(REPO, "node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2"),
   inter: join(REPO, "node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"),
@@ -48,6 +51,8 @@ const FONTS = {
 type PageDef = { path: string; file: string; render: () => ReactElement; updated: string };
 
 const hash = (b: Buffer | string) => createHash("sha256").update(b).digest("hex").slice(0, 10);
+/** A CSP source for an inline block: 'sha256-<base64>' of its exact text. */
+const cspHash = (text: string) => `'sha256-${createHash("sha256").update(text, "utf8").digest("base64")}'`;
 const kb = (n: number) => `${(n / 1024).toFixed(1)} KB`;
 
 // esbuild ships with tsx (already installed); if it's ever missing, TypeScript strips the types and the output is
@@ -169,18 +174,23 @@ async function main() {
     inter: emit("inter", "woff2", readFileSync(FONTS.inter)),
   };
   const cssSource = readFileSync(join(ROOT, "styles/site.css"), "utf8").replace("__OUTFIT__", fonts.outfit).replace("__INTER__", fonts.inter).replace("__PATTERN__", patternUrl());
-  const css = await styles(shortenTokens(precomputeColors(cssSource)));
+  // The first screen's CSS and the rest, split at the marker (tokens are shortened across both, so they agree).
+  const whole = shortenTokens(precomputeColors(cssSource));
+  const mark = whole.indexOf("/* @@rest");
+  if (mark < 0) throw new Error("styles/site.css: the @@rest marker is missing");
+  const critical = await styles(whole.slice(0, mark));
+  const rest = await styles(whole.slice(whole.indexOf("*/", mark) + 2));
   const mainSrc = readFileSync(join(ROOT, "client/main.ts"), "utf8");
   const bootSrc = readFileSync(join(ROOT, "client/boot.ts"), "utf8");
   const js = await script("client/main.ts", "esm");
-  const boot = await script("client/boot.ts", "iife");
+  const boot = (await script("client/boot.ts", "iife")).trim();
   const CSS_HREF = "/assets/__site_css__";
   // The store concept renders (WebP, cropped to the owner's storefront renders) and any store photographs
   // (static/stores/{key}.webp), fingerprinted like the rest.
   const concept = Object.values(images("concept"));
   const stores = images("stores");
   for (const s of FACTS.stores) if (s.photo && !stores[s.key]) throw new Error(`facts.ts: ${s.name} has a photo, but static/stores/${s.key}.webp (or .jpg) is missing`);
-  site.assets = { css: CSS_HREF, js: emit("site", "js", js), boot: emit("boot", "js", boot), ...fonts, concept, stores };
+  site.assets = { css: CSS_HREF, js: emit("site", "js", js), ...fonts, concept, stores };
   site.day = day;
   site.year = Number(day.slice(0, 4));
 
@@ -213,7 +223,8 @@ async function main() {
     const h = `<!doctype html>${renderToStaticMarkup(render())}`;
     // The CSP forbids inline styles and scripts; never ship the platform's demo company details.
     if (/\sstyle="/.test(h)) problems.push(`${file}: an inline style attribute (blocked by the CSP)`);
-    if (/<script(?![^>]*\b(src=|type="application\/(ld\+)?json"))/.test(h)) problems.push(`${file}: an inline script (blocked by the CSP)`);
+    if (/<script(?![^>]*\b(src=|data-boot|type="application\/(ld\+)?json"))/.test(h)) problems.push(`${file}: an inline script (blocked by the CSP)`);
+    if ((h.match(/<style>/g) ?? []).length !== 1) problems.push(`${file}: expected one inline <style> (the critical CSS)`);
     if (/481516|Windmill Lane/.test(h)) problems.push(`${file}: demo company details from the seed`);
     // Search: a title of 60 characters or fewer, a description of 120 to 160, both unique; every page has one h1.
     if (path) {
@@ -238,10 +249,20 @@ async function main() {
     descs.set(d, path);
   });
   if (problems.length) throw new Error(`Build checks failed:\n  ${problems.join("\n  ")}`);
-  // Short class names in the CSS and the pages alike, then the stylesheet gets its content hash.
-  const small = mangleClasses(css, html, [mainSrc, bootSrc].flatMap(literals));
-  site.assets.css = emit("site", "css", small.css);
-  files.forEach(([file], i) => writeFileSync(join(DIST, file), small.pages[i].replace(CSS_HREF, site.assets.css)));
+  // Short class names in the CSS and the pages alike; then each page gets its own CSS: the critical rules it can use,
+  // inline, and the rest it can use as its stylesheet (pages with the same needs share a file).
+  const small = mangleClasses([critical, rest], html, [mainSrc, bootSrc].flatMap(literals));
+  const styleHashes = new Set<string>();
+  const sizes = new Map<string, { inline: number; sheet: number; href: string }>();
+  files.forEach(([file], i) => {
+    const present = new Set([...classesIn(small.pages[i]), ...small.keep]);
+    const crit = pruneCss(small.css[0], present);
+    const own = pruneCss(small.css[1], present);
+    const href = emit("site", "css", own);
+    styleHashes.add(cspHash(crit));
+    sizes.set(file, { inline: Buffer.byteLength(crit), sheet: Buffer.byteLength(own), href });
+    writeFileSync(join(DIST, file), small.pages[i].replace("__CRITICAL__", () => crit).replace("__BOOT__", () => boot).replaceAll(CSS_HREF, href));
+  });
 
   // Static files from ./static (the site keeps its own copies): the icon, share image, press logos.
   for (const f of ["icon.svg", "og.png", "apple-touch-icon.png", "favicon.ico"]) {
@@ -256,7 +277,9 @@ async function main() {
     join(DIST, "sitemap.xml"),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${FACTS.origin}${p.path}</loc><lastmod>${p.updated}</lastmod></url>`).join("\n")}\n</urlset>\n`,
   );
-  const csp = "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'";
+  // The inline blocks are allowed by hash: every page's critical CSS (they differ a little, so all are listed) and the
+  // one head script. Nothing else inline runs.
+  const csp = `default-src 'self'; img-src 'self' data:; style-src 'self' ${[...styleHashes].join(" ")}; script-src 'self' ${cspHash(boot)}; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
   writeFileSync(
     join(DIST, "_headers"),
     [
@@ -284,16 +307,14 @@ async function main() {
   const line = (label: string, p: string) => console.log(`  ${label.padEnd(30)} ${kb(size(p)).padStart(9)}  ${kb(gz(p)).padStart(9)} gzip   ${p}`);
   console.log(`\nherbalholland.com built for ${day} → ${relative(REPO, DIST)}\n`);
   line("JS (module)", site.assets.js);
-  line("JS (head, gate)", site.assets.boot);
-  line("CSS", site.assets.css);
-  line("Font: Outfit (latin)", site.assets.outfit);
+  console.log(`  ${"JS (head, inline)".padEnd(30)} ${kb(Buffer.byteLength(boot)).padStart(9)}`);
+  line("Font: Outfit (latin, preloaded)", site.assets.outfit);
   line("Font: Inter (latin)", site.assets.inter);
-  for (const p of pages) line(`HTML ${p.file}`, p.file);
-  line("HTML 404.html", "404.html");
-  const jsBytes = size(site.assets.js) + size(site.assets.boot);
-  const cssBytes = size(site.assets.css);
+  for (const [file, s] of sizes) console.log(`  ${`HTML ${file}`.padEnd(30)} ${kb(size(file)).padStart(9)}  ${kb(gz(file)).padStart(9)} gzip   CSS inline ${kb(s.inline)} + ${kb(s.sheet)} ${s.href}`);
+  const jsBytes = size(site.assets.js) + Buffer.byteLength(boot);
+  const cssBytes = Math.max(...[...sizes.values()].map((s) => s.inline + s.sheet));
   const n = (b: number) => b.toLocaleString("en-US");
-  console.log(`\n  ${walk(DIST).length} files · ${pages.length + 1} pages · budgets: JS ${n(jsBytes)} of ${n(BUDGET.js)} bytes, CSS ${n(cssBytes)} of ${n(BUDGET.css)} bytes`);
+  console.log(`\n  ${walk(DIST).length} files · ${pages.length + 1} pages · budgets: JS ${n(jsBytes)} of ${n(BUDGET.js)} bytes, CSS (largest page, inline + sheet) ${n(cssBytes)} of ${n(BUDGET.css)} bytes`);
   const over = [jsBytes > BUDGET.js && `JS ${n(jsBytes)} > ${n(BUDGET.js)} bytes`, cssBytes > BUDGET.css && `CSS ${n(cssBytes)} > ${n(BUDGET.css)} bytes`].filter(Boolean);
   if (over.length) throw new Error(`Over budget: ${over.join(", ")}`);
 }

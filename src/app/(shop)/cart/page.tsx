@@ -177,7 +177,7 @@ export default async function CartPage() {
                       </div>
                       <div className="text-right">
                         <div className="tnum font-display font-semibold text-white">{zar(l.totalCents)}</div>
-                        {l.discountCents > 0 && <s className="tnum text-xs text-ink-500">{zar(l.grossCents)}</s>}
+                        {l.discountCents > 0 && <s className="tnum text-xs text-ink-450">{zar(l.grossCents)}</s>}
                       </div>
                     </div>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs">
@@ -260,7 +260,7 @@ export default async function CartPage() {
                 <dd className="tnum font-display text-2xl font-semibold text-white">{zar(q.totalCents)}</dd>
               </div>
               {q.vatCents > 0 && (
-                <div className="flex justify-between text-xs text-ink-500">
+                <div className="flex justify-between text-xs text-ink-450">
                   <dt>Includes VAT</dt>
                   <dd className="tnum">{zar(q.vatCents)}</dd>
                 </div>
@@ -297,7 +297,7 @@ export default async function CartPage() {
               Checkout <ArrowRight className="h-5 w-5" />
             </ButtonLink>
             {!customer && <p className="mt-3 text-center text-xs text-ink-400">We sell to members only. Joining is free and takes a minute at checkout (adults 18+).</p>}
-            <p className="mt-3 text-center text-xs text-ink-500">Adults 18+ · ID checked on collection and delivery</p>
+            <p className="mt-3 text-center text-xs text-ink-450">Adults 18+ · ID checked on collection and delivery</p>
           </Panel>
           <Panel className="p-5">
             <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
@@ -314,7 +314,7 @@ export default async function CartPage() {
                 </Link>
               </p>
             )}
-            {licensedLines.length > 0 && <p className="mt-2 text-xs text-ink-500">Medicines don&apos;t earn points and can&apos;t be discounted.</p>}
+            {licensedLines.length > 0 && <p className="mt-2 text-xs text-ink-450">Medicines don&apos;t earn points and can&apos;t be discounted.</p>}
           </Panel>
         </aside>
       </div>

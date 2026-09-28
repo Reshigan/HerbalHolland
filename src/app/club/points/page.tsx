@@ -32,7 +32,7 @@ export default async function ClubPoints({ searchParams }: { searchParams: Promi
                   <li key={e.id} className="flex items-center justify-between gap-4 px-5 py-3.5">
                     <div className="min-w-0">
                       <div className="truncate font-medium text-ink-100">{ledgerTitle(e)}</div>
-                      <div className="truncate text-xs text-ink-500">
+                      <div className="truncate text-xs text-ink-450">
                         {LEDGER_LABEL[e.kind] ?? e.kind} · {fmtDateTime(e.createdAt)}
                       </div>
                     </div>

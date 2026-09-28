@@ -118,9 +118,8 @@ function EnquiryForm() {
             <span className="btn__label">{F.submit}</span>
             <span className="btn__icon" aria-hidden="true">
               <Icon name="arrow" size={18} />
-              <Icon name="arrow" size={18} />
             </span>
-            <Mark className="btn__mill" sails="spin" />
+            <Mark className="btn__mill" use />
           </button>
           <p className="form__email">
             {FRANCHISE.enquire.email} <MailTo email={EMAIL.franchise} />
@@ -128,7 +127,8 @@ function EnquiryForm() {
         </div>
         <p className="sr-only" aria-live="polite" data-form-live="" />
       </form>
-      <div className="done" data-form-done="" hidden>
+      <template data-form-done="">
+        <div className="done">
         <div className="done__mill" aria-hidden="true">
           <Mark sails="gust" />
         </div>
@@ -147,7 +147,8 @@ function EnquiryForm() {
             </li>
           ))}
         </ol>
-      </div>
+        </div>
+      </template>
     </div>
   );
 }
@@ -279,7 +280,7 @@ export function FranchisePage() {
           <div className="sticky-split__side">
             <Head id="enquire-h" eyebrow={enquire.eyebrow} title={enquire.title} intro={enquire.body} />
             <div className="poster" data-r="scale" aria-hidden="true">
-              <Mark className="poster__mark" sails="js" />
+              <Mark className="poster__mark" use />
             </div>
           </div>
           <EnquiryForm />

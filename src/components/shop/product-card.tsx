@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { Truck, Store, Package, CircleOff, ChevronRight, Shirt } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { AddToBag } from "./add-to-bag";
@@ -74,12 +75,15 @@ export function ProductCardView({ p, buyable = true }: { p: Card; buyable?: bool
   );
 }
 
+/** The grid is server-rendered; the Suspense boundary lets the browser hydrate it in small slices after the shell, keeping the main thread free. */
 export function ProductGrid({ items, buyable, className }: { items: Card[]; buyable?: boolean; className?: string }) {
   return (
-    <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
-      {items.map((p) => (
-        <ProductCardView key={p.id} p={p} buyable={buyable} />
-      ))}
-    </div>
+    <Suspense>
+      <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
+        {items.map((p) => (
+          <ProductCardView key={p.id} p={p} buyable={buyable} />
+        ))}
+      </div>
+    </Suspense>
   );
 }

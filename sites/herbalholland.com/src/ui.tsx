@@ -151,7 +151,6 @@ export function Btn({ href, kind = "primary", children, icon = "arrow", magnetic
       {icon && (
         <span className="btn__icon" aria-hidden="true">
           <Icon name={icon} size={18} />
-          <Icon name={icon} size={18} />
         </span>
       )}
     </a>

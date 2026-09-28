@@ -59,6 +59,10 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 :focus-visible { outline: 2px solid var(--brand-500); outline-offset: 3px; }
 main { position: relative; }
 main:focus { outline: 0; }
+/* Below the opening scene, sections and the footer are laid out and painted as they near the screen, so the first
+   paint does only the top of the page. Their words stay in the page for find-in-page, screen readers and links. */
+main > section ~ section, main > .marquee, .ftr { content-visibility: auto; contain-intrinsic-size: auto 60rem; }
+@media print { main > section ~ section, main > .marquee, .ftr { content-visibility: visible; } }
 .nw { white-space: nowrap; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: fixed; z-index: 1200; left: 1rem; top: 1rem; padding: .8rem 1.2rem; border-radius: 99px; background: var(--brand-500); color: var(--ink-950); font: 600 .95rem var(--display); transform: translateY(-200%); }
@@ -137,10 +141,8 @@ main:focus { outline: 0; }
 .btn:is(:hover, :focus-visible) { color: var(--ink-950); }
 .btn__label { transform: translate3d(calc(var(--mx, 0px) * .3), calc(var(--my, 0px) * .3), 0); transition: transform .7s var(--ease); }
 .btn__icon { display: grid; width: 18px; height: 18px; overflow: hidden; margin-right: -.2rem; }
-.btn__icon .ico { grid-area: 1 / 1; transition: transform .55s var(--ease); }
-.btn__icon .ico + .ico { transform: translateX(-150%); }
-.btn:hover .btn__icon .ico:first-child { transform: translateX(150%); }
-.btn:hover .btn__icon .ico + .ico { transform: none; }
+.btn:hover .btn__icon .ico { animation: btn-go .6s var(--ease); }
+@keyframes btn-go { 45% { transform: translateX(160%); } 46% { transform: translateX(-160%); } }
 .btn--ghost { --bg: transparent; --fg: var(--ink-50); --bd: color-mix(in oklab, var(--ink-50) 32%, transparent); }
 .btn--dark { --bg: var(--ink-950); --fg: var(--ink-50); --fill: var(--brand-500); }
 .btn--sm { min-height: 2.75rem; padding: .55rem 1.1rem; font-size: .92rem; }
@@ -169,7 +171,7 @@ main:focus { outline: 0; }
 /* Named on the inner row, not the header: a named element is a backdrop root, which would switch off the blur. */
 .hdr__in { view-transition-name: hdr; }
 .hdr.is-hidden { transform: translateY(-110%); }
-.js[data-age="new"] .hdr, .js[data-age="under"] .hdr { opacity: 0; }
+.js[data-age="new"] .hdr, .js[data-age="under"] .hdr { opacity: 0; visibility: hidden; }
 .hdr__bg { position: absolute; inset: 0; background: color-mix(in oklab, var(--ink-950) 86%, transparent); border-bottom: 1px solid var(--line); opacity: 0; transition: opacity .5s; }
 .hdr.is-solid .hdr__bg { opacity: 1; }
 .hdr__in, .menu__bar { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: var(--hh); }
@@ -192,23 +194,6 @@ main:focus { outline: 0; }
 @media (min-width: 1100px) { .hdr__nav { display: block; } .burger { display: none; } }
 @media (min-width: 1024px) { .hdr__bg { background: color-mix(in oklab, var(--ink-950) 78%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3); } }
 .menu, .gate { position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; padding: 0; border: 0; color: var(--ink-200); overflow: hidden auto; }
-.menu { background: var(--ink-950); opacity: 0; transition: opacity .45s var(--ease); }
-.menu::backdrop { background: var(--ink-950); }
-.menu.open { opacity: 1; }
-.menu__in { position: relative; display: flex; flex-direction: column; min-height: 100%; isolation: isolate; }
-.menu__nav { flex: 1; display: flex; align-items: center; padding-block: 1.5rem; }
-.menu__nav ol { width: 100%; }
-.menu__link { display: flex; align-items: baseline; gap: 1rem; padding-block: .3rem; overflow: hidden; font: 600 clamp(2.5rem, 11vw, 5rem)/1.02 var(--display); letter-spacing: -.045em; color: var(--ink-50); }
-.menu__link .idx { transform: translateY(-.9em); }
-.menu__word { display: inline-block; transform: translateY(110%); transition: transform .9s var(--ease) calc(var(--i, 0) * 50ms), color .3s; }
-.menu.open .menu__word { transform: none; }
-.menu__link:is(:hover, [aria-current]) .menu__word { color: var(--brand-500); }
-.menu__foot { display: grid; gap: 1.25rem; padding-block: 1.5rem 2rem; border-top: 1px solid var(--line); opacity: 0; transition: opacity .8s var(--ease) .25s; }
-.menu.open .menu__foot { opacity: 1; }
-.menu__doors, .menu__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.75rem; }
-.menu__meta { justify-content: space-between; }
-.menu__age { gap: .6rem; font-size: .85rem; }
-
 /* ── Illustration: paint ───────────────────────────────────────────────── */
 .mark { overflow: visible; }
 .hub { fill: currentColor; }
@@ -230,7 +215,8 @@ main:focus { outline: 0; }
 .f-canal { fill: url(#canal); }
 .f-sea { fill: url(#seafill); }
 .s-ripple { fill: none; stroke: var(--brand-400); stroke-width: 2; stroke-linecap: round; opacity: .35; }
-.f-star, #stars, #crux { fill: var(--ink-50); }
+.f-star, #stars, #stars2, #crux { fill: var(--ink-50); }
+#stars2 { opacity: .45; }
 .star__glow { fill: url(#starglow); }
 .c-dark, .mill--dark { color: var(--ink-950); }
 .c-warm, .mill--warm { color: var(--brand-500); }
@@ -331,6 +317,130 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 @keyframes cue { 0% { transform: scaleX(0); } 50% { transform: scaleX(1); transform-origin: left; } 51% { transform-origin: right; } 100% { transform: scaleX(0); transform-origin: right; } }
 @media (max-aspect-ratio: 1 / 1) { .hero__in { justify-content: flex-start; padding-top: calc(var(--hh) + 1.25rem); } }
 
+/* ── Inner-page header: over the stage, in the state the page belongs to ── */
+.phero { --p: 0; }
+.phero__in { padding-block: calc(var(--hh) + clamp(2.5rem, 8vh, 6rem)) clamp(16rem, 42vh, 28rem); }
+.phero__title { max-width: 13em; }
+.phero__more { display: grid; gap: 1rem; justify-items: start; margin-top: .4rem; }
+.phero__note { max-width: 34rem; font-size: .92rem; color: var(--ink-400); }
+.phero .crumbs { margin-bottom: .25rem; }
+.pg--home .crumbs { display: none; }
+
+/* ── 404 ───────────────────────────────────────────────────────────────── */
+.nf { position: relative; z-index: 1; }
+.nf__in { padding-top: calc(var(--hh) + clamp(3rem, 12vh, 8rem)); }
+.nf__try { color: var(--ink-400); }
+
+/* ── The 18+ gate: the opening scene's question ────────────────────────── */
+/* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives); the page behind
+   it is hidden, so it can't take focus or be read, and the header's fade covers its return. */
+.js[data-age="new"] .gate, .js[data-age="under"] .gate, .gate.is-leaving { display: grid; }
+.js[data-age="new"], .js[data-age="under"] { overflow: hidden; }
+.js[data-age="new"] :is(.skip, .ftr, main > :not([data-stage])), .js[data-age="under"] :is(.skip, .ftr, main > :not([data-stage])) { visibility: hidden; }
+.gate { z-index: 1000; background: linear-gradient(color-mix(in oklab, var(--ink-950) 55%, transparent), color-mix(in oklab, var(--ink-950) 20%, transparent)); }
+.gate__stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100%; padding: 1.25rem; }
+/* The card's frame is beadwork: one row of the tile along each edge. */
+.gate__card { width: min(100%, 28rem); padding: 2.25rem 1.5rem 1.75rem; border: 16px solid transparent; border-radius: 1.75rem; background: linear-gradient(var(--ink-950) 0 0) padding-box, var(--pat) 0 0 / 16px 16px border-box; text-align: center; box-shadow: 0 40px 100px -30px #000; animation: up-in 1.2s var(--ease) .05s both; }
+@media (min-width: 640px) { .gate__card { border-width: 20px; background-size: auto, 20px 20px; padding: 3rem 2.75rem 2.25rem; } }
+.gate__mark { width: 5.5rem; height: 5.5rem; margin-inline: auto; color: var(--brand-500); }
+.gate__wm { align-items: center; margin-top: .8rem; font-size: 1.15rem; color: var(--brand-500); }
+.gate__title { margin-top: 1.75rem; font: 600 clamp(1.85rem, 5vw, 2.4rem)/1.04 var(--display); letter-spacing: -.035em; color: var(--ink-50); }
+.gate__title:focus { outline: 0; }
+.gate__body { margin-top: .75rem; font-size: .96rem; color: var(--ink-300); }
+.gate__actions { display: grid; gap: .7rem; margin-top: 1.9rem; }
+.gate__actions .btn { width: 100%; min-height: 3.5rem; font-size: 1.05rem; }
+.gate__fine { margin-top: 1.25rem; font-size: .8rem; line-height: 1.55; color: var(--ink-400); }
+.gate__under .gate__mark { color: var(--ink-600); }
+.gate.is-leaving { animation: fade-out .9s var(--ease-io) .35s both; }
+.gate.is-leaving .gate__card { animation: card-out .9s var(--ease-io) .15s both; }
+.gate.is-leaving .gust { animation: whirl 1.2s var(--ease-io) both; }
+@keyframes up-in { from { opacity: 0; transform: translateY(12%) scale(.97); } }
+@keyframes card-out { to { opacity: 0; transform: translateY(-2.5rem) scale(1.03); } }
+@keyframes whirl { to { transform: rotate(720deg); } }
+@keyframes fade-out { to { opacity: 0; } }
+.nojs-age { position: fixed; z-index: 80; inset: auto 0 0; display: flex; align-items: center; justify-content: center; gap: .7rem; padding: .6rem 1rem; background: var(--brand-500); color: var(--ink-950); font: 600 .9rem var(--display); }
+.nojs-age .age { width: 2.1rem; height: 2.1rem; font-size: .62rem; color: var(--ink-950); }
+
+/* ── Entrances: one-shot reveals, and each page's opening ─────────────── */
+.js [data-r] { transition: opacity 1.1s var(--ease), transform 1.3s var(--ease); transition-delay: calc(var(--i, 0) * 85ms); }
+.js [data-r]:not(.in) { opacity: 0; transform: translateY(2.25rem); }
+.js [data-r="scale"]:not(.in) { transform: translateY(2rem) scale(.94); }
+.js [data-r="build"]:not(.in) { opacity: 1; transform: none; }
+/* Each page's opening plays from the first paint for a returning adult (the head script marks html.ready at once), and
+   for a new visitor after "I'm 18 or older": until then it waits on its first frame. Words rise in reading order; the
+   sun rises into place and the ground settles. */
+.js .rise .w > span { animation: rise 1.3s var(--ease) calc((var(--l, 0) + var(--k, 0)) * 85ms + 80ms) both; }
+.fast .w { overflow: visible; }
+.fast .rise .w > span { animation-name: rise-soft; }
+.w:nth-child(2) { --k: 1; } .w:nth-child(3) { --k: 2; } .w:nth-child(4) { --k: 3; } .w:nth-child(5) { --k: 4; } .w:nth-child(6) { --k: 5; } .w:nth-child(7) { --k: 6; }
+.line:nth-child(2) { --l: 2; } .line:nth-child(3) { --l: 4; }
+.js [data-in] { animation: in 1.3s var(--ease) .1s both; }
+.js [data-in="2"] { animation-delay: .45s; } .js [data-in="3"] { animation-delay: .6s; } .js [data-in="4"] { animation-delay: .9s; }
+.js .stage__sun svg { animation: in-sun 2s var(--ease) both; }
+.js .stage__mill svg { animation: in-mill 1.8s var(--ease) .15s both; }
+.js .stage__l { animation: in-l 1.6s var(--ease) both; }
+.js:not(.ready) :is([data-in], .rise .w > span, .stage__sun svg, .stage__mill svg, .stage__l) { animation-play-state: paused; }
+.js:not(.ready) [data-in] { visibility: hidden; }
+@keyframes rise { from { transform: translateY(112%); } }
+@keyframes rise-soft { from { transform: translateY(.3em); } }
+@keyframes in { from { transform: translateY(1.5rem); } }
+@keyframes in-l { from { transform: translateY(5%); } }
+@keyframes in-sun { from { opacity: 0; transform: translateY(18%); } }
+@keyframes in-mill { from { opacity: 0; transform: translateY(14%); } }
+/* If the script never arrives, show everything anyway. */
+.js:not(.m) [data-r], .js:not(.m):not(.ready) :is([data-in], .rise .w > span, .stage__sun svg, .stage__mill svg, .stage__l) { animation: failsafe 0s 3s forwards; }
+@keyframes failsafe { to { opacity: 1; transform: none; translate: none; visibility: visible; } }
+
+/* ── Scroll-driven animations where the browser has them ───────────────── */
+@keyframes sp { from { --p: 0; } to { --p: 1; } }
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .motion [data-sp] { animation: sp linear both; animation-timeline: view(); }
+    .motion [data-sp="exit"] { animation-range: exit 0% exit 100%; }
+    .motion [data-sp="enter"] { animation-range: entry 0% entry 100%; }
+    .motion [data-sp="center"] { animation-range: cover 50vh cover calc(100% - 50vh); }
+  }
+}
+
+/* ── Page transitions (cross-document view transitions): the stage persists ── */
+@view-transition { navigation: auto; }
+::view-transition-old(root) { animation: vt-out .45s var(--ease-io) both; }
+::view-transition-new(root) { animation: vt-in .9s var(--ease) .1s both; }
+::view-transition-group(*) { animation-duration: .6s; animation-timing-function: var(--ease); }
+::view-transition-old(stage), ::view-transition-new(stage) { animation-duration: 1.1s; mix-blend-mode: normal; }
+@keyframes vt-out { to { opacity: 0; transform: translateY(-2.5vh) scale(.985); } }
+@keyframes vt-in { from { opacity: 0; transform: translateY(4vh); } }
+
+/* ── Reduced motion: still, and just as considered ─────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+  *, ::before, ::after { animation: none !important; transition: none !important; }
+  .js [data-r] { opacity: 1 !important; transform: none !important; }
+}
+
+/* @@rest ─────────────────────────────────────────────────────────────────
+   Everything above is the critical CSS, inlined in every page (the first screen: the header, the stage, the opening
+   scene, the gate). Everything below loads after the first paint, pruned to what each page uses. */
+
+/* ── Menu ─────────────────────────────────────────────────────────────── */
+.menu { background: var(--ink-950); opacity: 0; transition: opacity .45s var(--ease); }
+.menu::backdrop { background: var(--ink-950); }
+.menu.open { opacity: 1; }
+.menu__in { position: relative; display: flex; flex-direction: column; min-height: 100%; isolation: isolate; }
+.menu__nav { flex: 1; display: flex; align-items: center; padding-block: 1.5rem; }
+.menu__nav ol { width: 100%; }
+.menu__link { display: flex; align-items: baseline; gap: 1rem; padding-block: .3rem; overflow: hidden; font: 600 clamp(2.5rem, 11vw, 5rem)/1.02 var(--display); letter-spacing: -.045em; color: var(--ink-50); }
+.menu__link .idx { transform: translateY(-.9em); }
+.menu__word { display: inline-block; transform: translateY(110%); transition: transform .9s var(--ease) calc(var(--i, 0) * 50ms), color .3s; }
+.menu.open .menu__word { transform: none; }
+.menu__link:is(:hover, [aria-current]) .menu__word { color: var(--brand-500); }
+.menu__foot { display: grid; gap: 1.25rem; padding-block: 1.5rem 2rem; border-top: 1px solid var(--line); opacity: 0; transition: opacity .8s var(--ease) .25s; }
+.menu.open .menu__foot { opacity: 1; }
+.menu__doors, .menu__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 1rem 1.75rem; }
+.menu__meta { justify-content: space-between; }
+.menu__age { gap: .6rem; font-size: .85rem; }
+
+/* ── Scenes 2 to 5 ────────────────────────────────────────────────────── */
 /* Scene 2: across the sea (the 9,475 km story). */
 .story__pin { position: relative; padding-block: clamp(4rem, 9vw, 7rem); }
 .story__grid { position: relative; z-index: 1; display: grid; gap: 1.5rem; grid-template-areas: "head" "globe" "read" "chap"; }
@@ -353,7 +463,8 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .globe__route { stroke: var(--brand-500); stroke-width: 1.2; stroke-dasharray: 2 6; opacity: .35; }
 .globe__rim { stroke: color-mix(in oklab, var(--brand-500) 42%, transparent); stroke-width: 1.2; }
 .globe__zoom { transform-box: view-box; }
-.dot { fill: var(--brand-500); }
+.globe__dots { stroke: var(--brand-500); stroke-width: 4.6; stroke-linecap: round; stroke-dasharray: 0 9; opacity: .95; }
+.globe__reveal { stroke: #fff; stroke-width: 14; stroke-dasharray: var(--ap, 9999) 9999; }
 .pin circle { fill: var(--ink-50); }
 .pin text { fill: var(--ink-100); font-size: 17px; letter-spacing: .12em; }
 .pin__pulse { fill: none !important; stroke: var(--brand-500); stroke-width: 1.5; transform-box: fill-box; transform-origin: center; animation: pin 2.6s var(--ease) infinite; }
@@ -389,7 +500,6 @@ html:not(.motion) .marquee { background: var(--ink-950); }
   .motion .chapter + .chapter { opacity: 0; }
   .motion .plane { display: block; }
   .motion .is-flying ~ .story .plane { display: none; }
-  .motion .dot { opacity: clamp(0, calc((var(--ap, 1) - var(--t, 0)) * 30), 1); }
   @media (min-width: 900px) { .motion .story__bar { grid-area: bar; display: flex; align-self: end; } }
   @media (max-width: 899px) {
     .motion .story__globe { width: clamp(9rem, calc(100svh - 470px), min(78vw, 40svh)); }
@@ -429,23 +539,26 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .frame__k { color: var(--brand-500); font-size: .62rem; }
 .frame__t { font: 600 clamp(1.05rem, 1.6vw, 1.45rem)/1.08 var(--display); letter-spacing: -.03em; color: var(--ink-50); overflow-wrap: anywhere; }
 .frame__s { gap: .4rem; font-size: .84rem; color: var(--ink-300); }
-.frame__s .ico { flex: none; color: var(--brand-400); }
+.frame__s::before { content: ""; flex: none; width: 15px; height: 15px; background: var(--brand-400); -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; }
+.frame__s--open { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='m9 12 2 2 4-4'/%3E%3C/svg%3E"); }
+.frame__s--opening { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M8 2v4M16 2v4'/%3E%3Crect width='18' height='18' x='3' y='4' rx='2'/%3E%3Cpath d='M3 10h18'/%3E%3C/svg%3E"); }
 .frame__addr { font-size: .82rem; color: var(--ink-400); }
 .frame__go { gap: .4rem; margin-top: .3rem; font: 600 .92rem var(--display); color: var(--brand-400); }
-.frame__go .ico { transition: transform .6s var(--ease); }
-.frame:has(.stretch):hover { transform: translateY(-5px); border-color: color-mix(in oklab, var(--brand-500) 40%, transparent); }
-.frame:has(.stretch):hover .frame__go .ico { transform: translateX(5px); }
-.frame:has(.stretch:focus-visible) { outline: 2px solid var(--brand-500); outline-offset: 3px; }
+.frame__go::after { content: ""; width: 16px; height: 16px; background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; transition: transform .6s var(--ease); --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12h14M12 5l7 7-7 7'/%3E%3C/svg%3E"); }
+.frame__go--out::after { --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M7 17 17 7M7 7h10v10'/%3E%3C/svg%3E"); }
+.frame--link:hover { transform: translateY(-5px); border-color: color-mix(in oklab, var(--brand-500) 40%, transparent); }
+.frame--link:hover .frame__go::after { transform: translateX(5px); }
+.frame--link:focus-within { outline: 2px solid var(--brand-500); outline-offset: 3px; }
 .frame--single { max-width: 34rem; margin-top: clamp(1.5rem, 3vw, 2.25rem); }
 .frame--single .frame__media { aspect-ratio: 4 / 3; }
 .sheet .frame { background: var(--ink-950); border-color: transparent; }
-.sheet .frame:has(.stretch:focus-visible) { outline-color: var(--brand-800); }
+.sheet .frame--link:focus-within { outline-color: var(--brand-800); }
 @media (max-width: 559px) { .frame__copy { padding: .75rem .8rem .9rem; } .frame__s { font-size: .78rem; } }
 /* The drawn storefront. */
 .sf-wall { fill: var(--ink-900); }
 .sf-band { fill: var(--ink-800); }
 .sf-window { fill: url(#shopglow); }
-.sf-window, .sf-doorlight { fill: color-mix(in oklab, var(--brand-600) 34%, var(--ink-900)); }
+.sf-window, .sf-doorlight { fill: var(--win, color-mix(in oklab, var(--brand-600) 34%, var(--ink-900))); }
 .sf-shelf { fill: var(--brand-800); }
 .sf-jar { fill: color-mix(in oklab, var(--brand-300) 60%, var(--ink-900)); }
 .sf-frame { fill: none; stroke: var(--ink-700); stroke-width: 4; }
@@ -457,11 +570,11 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .sf-step { fill: var(--ink-800); }
 .sf-pot { fill: var(--brand-700); }
 .sf-leaf { fill: none; stroke: var(--brand-300); stroke-width: 3; stroke-linecap: round; }
-.frame--opening .sf-window, .frame--opening .sf-doorlight { fill: var(--ink-800); }
+.frame--opening .shopfront { --win: var(--ink-800); }
 /* The still-lifes. */
-.catart { background: var(--ink-900); }
-.catart__line { fill: none; stroke: var(--brand-500); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
-.catart__line .thin { stroke-width: 1.6; stroke: var(--brand-300); }
+.frame--cat .frame__media { background: radial-gradient(circle at 50% 56%, color-mix(in oklab, var(--brand-700) 55%, transparent), transparent 42%) var(--ink-900); }
+.catart { fill: none; stroke: var(--brand-500); stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.catart .thin { stroke-width: 1.6; stroke: var(--brand-300); }
 
 /* Scene 4: what's in store. */
 .scene--range { padding-block: clamp(5rem, 10vw, 9rem); }
@@ -479,6 +592,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .marquee__w, .giant__o { color: transparent; -webkit-text-stroke: 3px var(--brand-500); paint-order: stroke fill; }
 .marquee__w { font: 700 clamp(3.4rem, 10vw, 9.5rem)/1.05 var(--display); letter-spacing: -.035em; white-space: nowrap; }
 .marquee__sep { width: clamp(2rem, 4.2vw, 3.8rem); height: auto; flex: none; color: var(--brand-500); overflow: visible; }
+.marquee__sep use { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; transform-box: fill-box; transform-origin: center; }
 
 /* Scene 5: night. Founding Members and the sign-up under the Southern Cross. */
 .scene--night { padding-block: clamp(6rem, 12vw, 10rem) clamp(5rem, 10vw, 8rem); }
@@ -516,15 +630,6 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 @media (min-width: 960px) { .access__grid { grid-template-columns: .85fr 1.15fr; } .access__copy { position: sticky; top: calc(var(--hh) + 2.5rem); } }
 .field--note .field__hint { margin-top: -.5rem; }
 .done__body { max-width: 32rem; color: var(--ink-700); }
-
-/* ── Inner-page header: over the stage, in the state the page belongs to ── */
-.phero { --p: 0; }
-.phero__in { padding-block: calc(var(--hh) + clamp(2.5rem, 8vh, 6rem)) clamp(16rem, 42vh, 28rem); }
-.phero__title { max-width: 13em; }
-.phero__more { display: grid; gap: 1rem; justify-items: start; margin-top: .4rem; }
-.phero__note { max-width: 34rem; font-size: .92rem; color: var(--ink-400); }
-.phero .crumbs { margin-bottom: .25rem; }
-.pg--home .crumbs { display: none; }
 
 /* ── About ─────────────────────────────────────────────────────────────── */
 .build { display: grid; gap: 1.75rem; padding: clamp(1.5rem, 3vw, 2.5rem); border-radius: 1.75rem; background: var(--ink-950); color: var(--ink-300); }
@@ -614,7 +719,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .select:invalid { color: var(--ink-500); }
 .field__hint { margin-top: .45rem; font-size: .8rem; line-height: 1.5; color: var(--ink-500); }
 .field__err { align-items: flex-start; gap: .45rem; margin-top: .5rem; font-size: .84rem; font-weight: 600; line-height: 1.4; color: var(--rose-600); }
-.field__err svg, .form__alert svg { width: 16px; height: 16px; flex: none; margin-top: .1rem; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+.field__err::before, .form__alert::before { content: ""; width: 16px; height: 16px; flex: none; margin-top: .1rem; background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 7v6M12 16.5v.5'/%3E%3C/svg%3E"); }
 .has-err :is(.input, .radio) { border-color: var(--rose-600); }
 .has-err .input { box-shadow: 0 0 0 3px color-mix(in oklab, var(--rose-500) 14%, transparent); }
 .radios { display: flex; gap: .75rem; }
@@ -643,7 +748,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .done__steps li { align-items: flex-start; gap: .9rem; color: var(--ink-700); }
 .done__steps .idx, .apply .idx { margin-top: .35rem; }
 .done > * { transition: opacity .8s var(--ease) .2s, transform 1s var(--ease) .2s; }
-.js .done:not(.in) > * { opacity: 0; transform: translateY(1rem); }
+.done:not(.in) > * { opacity: 0; transform: translateY(1rem); }
 
 /* ── Stores list, the map, the store page ──────────────────────────────── */
 .nation__grid { display: grid; gap: clamp(2.5rem, 6vw, 5rem); align-items: start; }
@@ -772,39 +877,6 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .ftr__age .age { width: 2.4rem; height: 2.4rem; font-size: .66rem; }
 .ftr__top-link { justify-self: start; font-weight: 600; color: var(--ink-200); }
 
-/* ── 404 ───────────────────────────────────────────────────────────────── */
-.nf { position: relative; z-index: 1; }
-.nf__in { padding-top: calc(var(--hh) + clamp(3rem, 12vh, 8rem)); }
-.nf__try { color: var(--ink-400); }
-
-/* ── The 18+ gate: the opening scene's question ────────────────────────── */
-.js[data-age="new"] .gate, .js[data-age="under"] .gate, .gate[open] { display: grid; }
-.js[data-age="new"], .js[data-age="under"] { overflow: hidden; }
-.gate { z-index: 1000; background: transparent; }
-.gate::backdrop { background: linear-gradient(color-mix(in oklab, var(--ink-950) 55%, transparent), color-mix(in oklab, var(--ink-950) 20%, transparent)); }
-.gate__stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100%; padding: 1.25rem; }
-/* The card's frame is beadwork: one row of the tile along each edge. */
-.gate__card { width: min(100%, 28rem); padding: 2.25rem 1.5rem 1.75rem; border: 16px solid transparent; border-radius: 1.75rem; background: linear-gradient(var(--ink-950) 0 0) padding-box, var(--pat) 0 0 / 16px 16px border-box; text-align: center; box-shadow: 0 40px 100px -30px #000; animation: up-in 1.2s var(--ease) .05s both; }
-@media (min-width: 640px) { .gate__card { border-width: 20px; background-size: auto, 20px 20px; padding: 3rem 2.75rem 2.25rem; } }
-.gate__mark { width: 5.5rem; height: 5.5rem; margin-inline: auto; color: var(--brand-500); }
-.gate__wm { align-items: center; margin-top: .8rem; font-size: 1.15rem; color: var(--brand-500); }
-.gate__title { margin-top: 1.75rem; font: 600 clamp(1.85rem, 5vw, 2.4rem)/1.04 var(--display); letter-spacing: -.035em; color: var(--ink-50); }
-.gate__title:focus { outline: 0; }
-.gate__body { margin-top: .75rem; font-size: .96rem; color: var(--ink-300); }
-.gate__actions { display: grid; gap: .7rem; margin-top: 1.9rem; }
-.gate__actions .btn { width: 100%; min-height: 3.5rem; font-size: 1.05rem; }
-.gate__fine { margin-top: 1.25rem; font-size: .8rem; line-height: 1.55; color: var(--ink-400); }
-.gate__under .gate__mark { color: var(--ink-600); }
-.gate.is-leaving { animation: fade-out .9s var(--ease-io) .35s both; }
-.gate.is-leaving .gate__card { animation: card-out .9s var(--ease-io) .15s both; }
-.gate.is-leaving .gust { animation: whirl 1.2s var(--ease-io) both; }
-@keyframes up-in { from { opacity: 0; transform: translateY(12%) scale(.97); } }
-@keyframes card-out { to { opacity: 0; transform: translateY(-2.5rem) scale(1.03); } }
-@keyframes whirl { to { transform: rotate(720deg); } }
-@keyframes fade-out { to { opacity: 0; } }
-.nojs-age { position: fixed; z-index: 80; inset: auto 0 0; display: flex; align-items: center; justify-content: center; gap: .7rem; padding: .6rem 1rem; background: var(--brand-500); color: var(--ink-950); font: 600 .9rem var(--display); }
-.nojs-age .age { width: 2.1rem; height: 2.1rem; font-size: .62rem; color: var(--ink-950); }
-
 /* ── Cursor ────────────────────────────────────────────────────────────── */
 .cursor { position: fixed; inset: 0; z-index: 1100; pointer-events: none; transition: opacity .3s; }
 .cursor > span { position: absolute; left: 0; top: 0; will-change: transform; }
@@ -815,64 +887,15 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 :is(.is-link, .is-soon) .cursor__dot::before { transform: scale(0); }
 .is-down .cursor__ring > i { transform: scale(.8); }
 .cursor.is-off { opacity: 0; }
-.has-cursor:not(:has(dialog[open])), .has-cursor:not(:has(dialog[open])) :is(a, button, summary, label, [data-cursor], [data-tilt]) { cursor: none; }
-:has(dialog[open]) .cursor { display: none; }
+.has-cursor:not(.modal), .has-cursor:not(.modal) :is(a, button, summary, label, [data-cursor], [data-tilt]) { cursor: none; }
+.modal .cursor { display: none; }
 
 /* ── Film grain ────────────────────────────────────────────────────────── */
 .motion body::after { content: ""; position: fixed; inset: -8rem; z-index: 1050; pointer-events: none; opacity: .06; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .45 0 0 0 0 .4 0 0 0 1.6 -.3'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)'/%3E%3C/svg%3E") 0 0 / 200px; animation: grain .9s steps(3) infinite; }
 @keyframes grain { 33% { transform: translate(-3rem, 2rem); } 66% { transform: translate(2.5rem, -2.5rem); } }
 
-/* ── Entrances: one-shot reveals, and each page's opening ─────────────── */
-.js [data-r] { transition: opacity 1.1s var(--ease), transform 1.3s var(--ease); transition-delay: calc(var(--i, 0) * 85ms); }
-.js [data-r]:not(.in) { opacity: 0; transform: translateY(2.25rem); }
-.js [data-r="scale"]:not(.in) { transform: translateY(2rem) scale(.94); }
-.js [data-r="build"]:not(.in) { opacity: 1; transform: none; }
-/* Each page's opening plays from the first paint for a returning adult (the head script marks html.ready at once), and
-   for a new visitor after "I'm 18 or older": until then it waits on its first frame. Words rise in reading order; the
-   sun rises into place and the ground settles. */
-.js .rise .w > span { animation: rise 1.3s var(--ease) calc((var(--l, 0) + var(--k, 0)) * 85ms + 80ms) both; }
-.w:nth-child(2) { --k: 1; } .w:nth-child(3) { --k: 2; } .w:nth-child(4) { --k: 3; } .w:nth-child(5) { --k: 4; } .w:nth-child(6) { --k: 5; } .w:nth-child(7) { --k: 6; }
-.line:nth-child(2) { --l: 2; } .line:nth-child(3) { --l: 4; }
-.js [data-in] { animation: in 1.3s var(--ease) .1s both; }
-.js [data-in="2"] { animation-delay: .45s; } .js [data-in="3"] { animation-delay: .6s; } .js [data-in="4"] { animation-delay: .9s; }
-.js .stage__sun svg { animation: in-sun 2s var(--ease) both; }
-.js .stage__mill svg { animation: in-mill 1.8s var(--ease) .15s both; }
-.js .stage__l { animation: in-l 1.6s var(--ease) both; }
-.js:not(.ready) :is([data-in], .rise .w > span, .stage__sun svg, .stage__mill svg, .stage__l) { animation-play-state: paused; }
-@keyframes rise { from { transform: translateY(112%); } }
-@keyframes in { from { opacity: 0; transform: translateY(1.5rem); } }
-@keyframes in-l { from { transform: translateY(5%); } }
-@keyframes in-sun { from { opacity: 0; transform: translateY(18%); } }
-@keyframes in-mill { from { opacity: 0; transform: translateY(14%); } }
-/* If the script never arrives, show everything anyway. */
-.js:not(.m) [data-r], .js:not(.m):not(.ready) :is([data-in], .rise .w > span, .stage__sun svg, .stage__mill svg, .stage__l) { animation: failsafe 0s 3s forwards; }
-@keyframes failsafe { to { opacity: 1; transform: none; translate: none; } }
-
-/* ── Scroll-driven animations where the browser has them ───────────────── */
-@keyframes sp { from { --p: 0; } to { --p: 1; } }
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    .motion [data-sp] { animation: sp linear both; animation-timeline: view(); }
-    .motion [data-sp="exit"] { animation-range: exit 0% exit 100%; }
-    .motion [data-sp="enter"] { animation-range: entry 0% entry 100%; }
-    .motion [data-sp="center"] { animation-range: cover 50vh cover calc(100% - 50vh); }
-  }
-}
-
-/* ── Page transitions (cross-document view transitions): the stage persists ── */
-@view-transition { navigation: auto; }
-::view-transition-old(root) { animation: vt-out .45s var(--ease-io) both; }
-::view-transition-new(root) { animation: vt-in .9s var(--ease) .1s both; }
-::view-transition-group(*) { animation-duration: .6s; animation-timing-function: var(--ease); }
-::view-transition-old(stage), ::view-transition-new(stage) { animation-duration: 1.1s; mix-blend-mode: normal; }
-@keyframes vt-out { to { opacity: 0; transform: translateY(-2.5vh) scale(.985); } }
-@keyframes vt-in { from { opacity: 0; transform: translateY(4vh); } }
-
-/* ── Reduced motion: still, and just as considered ─────────────────────── */
+/* ── Reduced motion, for what loads later ─────────────────────────── */
 @media (prefers-reduced-motion: reduce) {
-  @view-transition { navigation: none; }
-  *, ::before, ::after { animation: none !important; transition: none !important; }
-  .js [data-r] { opacity: 1 !important; transform: none !important; }
   .marquee__track, .marquee__set { flex-wrap: wrap; justify-content: center; width: auto; }
   .marquee__track { padding-inline: var(--g); }
   .marquee__set + .marquee__set { display: none; }

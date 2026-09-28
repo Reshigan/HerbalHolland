@@ -1,4 +1,4 @@
-import { cache } from "react";
+import { cache, Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -126,7 +126,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                 </div>
               ))}
             </dl>
-            <p className="mt-3 text-xs text-ink-500">Public holiday hours may differ — call ahead.</p>
+            <p className="mt-3 text-xs text-ink-450">Public holiday hours may differ — call ahead.</p>
           </Panel>
           {!soon && (
             <Panel className="space-y-2.5 p-5 text-sm">
@@ -145,7 +145,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
                   <Mail className="h-4 w-4 text-brand-500" /> {s.email}
                 </a>
               )}
-              <p className="border-t border-ink-800 pt-2.5 text-xs text-ink-500">Operated by {s.company.legalName}, an independent Herbal Holland franchisee.</p>
+              <p className="border-t border-ink-800 pt-2.5 text-xs text-ink-450">Operated by {s.company.legalName}, an independent Herbal Holland franchisee.</p>
             </Panel>
           )}
         </aside>
@@ -187,6 +187,8 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
             </section>
           )}
 
+          {/* The shelf list hydrates later, in small slices, after the shell (see ProductGrid). */}
+          <Suspense>
           <section className="mt-14" aria-labelledby="menu">
             <div className="flex flex-wrap items-end justify-between gap-3">
               <div>
@@ -232,6 +234,7 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
               {!memberMenu.length && <p className="text-ink-400">Stock information isn&apos;t available right now — give the store a call.</p>}
             </div>
           </section>
+          </Suspense>
         </>
       )}
     </Container>

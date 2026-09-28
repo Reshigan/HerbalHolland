@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { FileText } from "lucide-react";
 import { getFranchisor } from "@/server/shop/context";
 import { getSettings } from "@/server/settings";
@@ -52,6 +53,8 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
         ))}
       </nav>
 
+      {/* The long document hydrates later, in small slices, after the shell (see ProductGrid). */}
+      <Suspense>
       <div className="pb-8">
         {slug === "terms" && <MembershipTerms c={c} s={settings} />}
         {slug === "returns" && <PolicyBody blocks={returnsPolicy(facts)} />}
@@ -77,6 +80,7 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
           </>
         )}
       </div>
+      </Suspense>
     </Container>
   );
 }

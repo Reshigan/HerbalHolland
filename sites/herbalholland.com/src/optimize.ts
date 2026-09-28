@@ -1,8 +1,10 @@
 // Build-time size work on the shipped CSS and HTML; the sources stay readable and token-based.
 //   1. color-mix() of design tokens → the exact colour (OKLab maths, as the browser would), so the CSS ships hex;
 //   2. design-token custom properties (:root) → short names;
-//   3. class names → short names, identically in the CSS and in every page. A class any script names (adds, toggles
-//      or queries) keeps its name, so the scripts need no mapping.
+//   3. class names → short names, identically in the CSS (all its chunks) and in every page. A class any script names
+//      (adds, toggles or queries) keeps its name, so the scripts need no mapping;
+//   4. a page's CSS → only the rules that page can use (a rule whose selector needs a class the page never has, and no
+//      script adds, is left out), so each page ships its own stylesheet and nothing it doesn't need.
 
 import ts from "typescript";
 
@@ -98,7 +100,17 @@ export function literals(src: string) {
   return out;
 }
 
-export function mangleClasses(css: string, pages: string[], scriptStrings: string[]) {
+const hideUrls = (css: string) => {
+  const urls: string[] = [];
+  return { text: css.replace(/url\([^)]*\)/g, (u) => `\u0000${urls.push(u) - 1}\u0000`), restore: (s: string) => s.replace(/\u0000(\d+)\u0000/g, (_, i: string) => urls[Number(i)]) };
+};
+
+/**
+ * Short class names, identically in every CSS chunk and every page. Returns the chunks and pages renamed, and the set
+ * of names the scripts use (kept as they are, and treated as present on every page when pruning).
+ */
+export function mangleClasses(chunks: string[], pages: string[], scriptStrings: string[]) {
+  const css = chunks.join("\n");
   const count = new Map<string, number>();
   const bump = (c: string, k = 1) => count.set(c, (count.get(c) ?? 0) + k);
   for (const h of pages) for (const m of h.matchAll(/\sclass="([^"]*)"/g)) for (const c of m[1].split(/\s+/)) if (c) bump(c);
@@ -118,16 +130,74 @@ export function mangleClasses(css: string, pages: string[], scriptStrings: strin
   }
   // Classes in the pages that no CSS rule uses are dropped from the markup.
   const unused = new Set([...count.keys()].filter((c) => !inCss.has(c) && !keep.has(c)));
-  const urls: string[] = [];
-  const out = css
-    .replace(/url\([^)]*\)/g, (u) => `\u0000${urls.push(u) - 1}\u0000`)
-    .replace(/\.(-?[_a-zA-Z][\w-]*)/g, (m, c: string) => (map.has(c) ? `.${map.get(c)}` : m))
-    .replace(/\u0000(\d+)\u0000/g, (_, i: string) => urls[Number(i)]);
+  const out = chunks.map((chunk) => {
+    const { text, restore } = hideUrls(chunk);
+    return restore(text.replace(/\.(-?[_a-zA-Z][\w-]*)/g, (m, c: string) => (map.has(c) ? `.${map.get(c)}` : m)));
+  });
   const html = pages.map((h) =>
     h.replace(/\sclass="([^"]*)"/g, (_, v: string) => {
       const cls = v.split(/\s+/).filter((c) => c && !unused.has(c)).map((c) => map.get(c) ?? c);
       return cls.length ? ` class="${cls.join(" ")}"` : "";
     }),
   );
-  return { css: out, pages: html, renamed: map.size, kept: keep.size };
+  return { css: out, pages: html, keep, renamed: map.size };
+}
+
+// ── 4. A page's own CSS ──────────────────────────────────────────────────────
+/** The class names a page's markup carries. */
+export const classesIn = (html: string) => new Set([...html.matchAll(/\sclass="([^"]*)"/g)].flatMap((m) => m[1].split(/\s+/)).filter(Boolean));
+
+/** Splits a selector list at its top-level commas. */
+function selectors(list: string) {
+  const out: string[] = [];
+  let depth = 0;
+  let cur = "";
+  for (const ch of list) {
+    if (ch === "(" || ch === "[") depth++;
+    else if (ch === ")" || ch === "]") depth--;
+    if (ch === "," && depth === 0) (out.push(cur), (cur = ""));
+    else cur += ch;
+  }
+  out.push(cur);
+  return out.map((s) => s.trim()).filter(Boolean);
+}
+
+/**
+ * The rules of a minified stylesheet that a page can use: a selector that names a class the page doesn't have (and no
+ * script adds) is dropped; a rule with no selector left is dropped; an empty at-rule block is dropped. @font-face,
+ * @property, @keyframes, @view-transition and the like are kept as they are.
+ */
+export function pruneCss(css: string, present: Set<string>) {
+  const { text, restore } = hideUrls(css);
+  const usable = (sel: string) => [...sel.replace(/\[[^\]]*\]/g, "").matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].every((m) => present.has(m[1]));
+  const walk = (src: string): string => {
+    let out = "";
+    let i = 0;
+    while (i < src.length) {
+      const open = src.indexOf("{", i);
+      if (open < 0) break;
+      const head = src.slice(i, open).trim();
+      // Find the matching close brace.
+      let depth = 1;
+      let j = open + 1;
+      while (j < src.length && depth) {
+        if (src[j] === "{") depth++;
+        else if (src[j] === "}") depth--;
+        j++;
+      }
+      const body = src.slice(open + 1, j - 1);
+      i = j;
+      if (head.startsWith("@")) {
+        if (/^@(media|supports|container|layer)\b/.test(head)) {
+          const inner = walk(body);
+          if (inner) out += `${head}{${inner}}`;
+        } else out += `${head}{${body}}`; // @font-face, @property, @keyframes, @view-transition, @page …
+        continue;
+      }
+      const kept = selectors(head).filter(usable);
+      if (kept.length) out += `${kept.join(",")}{${body}}`;
+    }
+    return out;
+  };
+  return restore(walk(text));
 }

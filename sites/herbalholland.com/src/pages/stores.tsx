@@ -10,7 +10,7 @@ import { EarlyAccess } from "../access";
 import { cx } from "../art";
 import { Page, abs, site } from "../layout";
 import { ZaMap } from "../map";
-import { Btn, Head, Icon, ShopNow } from "../ui";
+import { Btn, Head, ShopNow } from "../ui";
 import { OpeningLine, StorePicture, openingLine, storeStatus } from "./home";
 import { PageHero } from "./parts";
 
@@ -20,7 +20,7 @@ const allStores = () => [...openStores(), ...openingStores()];
 function StoreFrame({ store, n }: { store: Store; n: number }) {
   const s = STORES;
   return (
-    <li className={cx("frame", "frame--store", `frame--${store.status}`)} id={store.key} data-r="">
+    <li className={cx("frame", "frame--store", "frame--link", `frame--${store.status}`)} id={store.key} data-r="">
       <div className="frame__media">
         <StorePicture store={store} n={n} alt={fill(s.store.photo, { name: store.name })} />
       </div>
@@ -32,9 +32,7 @@ function StoreFrame({ store, n }: { store: Store; n: number }) {
             <span className="sr-only"> {s.card.page}</span>
           </a>
         </h4>
-        <p className="frame__s">
-          <Icon name={store.status === "open" ? "open" : "calendar"} size={15} /> {storeStatus(store, s.card)}
-        </p>
+        <p className={cx("frame__s", `frame__s--${store.status}`)}>{storeStatus(store, s.card)}</p>
         {store.address && <p className="frame__addr">{store.address}</p>}
       </div>
     </li>
@@ -154,7 +152,7 @@ export function StorePage({ store }: { store: Store }) {
     ...(store.photo ? { image: abs(site.assets.stores[store.key]) } : {}),
   };
   return (
-    <Page page="stores" stage="dusk" meta={{ path: `/stores/${store.key}`, title: fill(s.meta.title, { name: store.name }), description: fill(s.meta.description, { name: store.name, province, status }), crumbs }} jsonLd={schema}>
+    <Page page="store" nav="stores" stage="dusk" meta={{ path: `/stores/${store.key}`, title: fill(s.meta.title, { name: store.name }), description: fill(s.meta.description, { name: store.name, province, status }), crumbs }} jsonLd={schema}>
       <PageHero kind="store" eyebrow={fill(s.eyebrow, { province })} title={store.name} lede={lede} crumbs={crumbs}>
         <div className="ctas">
           <ShopNow page="store" magnetic />

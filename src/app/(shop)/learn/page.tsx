@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { Container } from "@/components/shop/ui";
@@ -39,6 +40,7 @@ export default function LearnIndex() {
         </div>
       </Link>
 
+      <Suspense>
       <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {rest.map((a) => (
           <Link key={a.slug} href={`/learn/${a.slug}`} className="group flex flex-col overflow-hidden rounded-3xl border border-ink-800 bg-ink-900/60 transition hover:border-brand-500/60">
@@ -47,13 +49,14 @@ export default function LearnIndex() {
               <div className="eyebrow text-brand-500">{a.kicker}</div>
               <h2 className="mt-2 font-display text-xl font-semibold leading-snug text-white group-hover:text-brand-100">{a.title}</h2>
               <p className="mt-2 flex-1 text-sm leading-relaxed text-ink-400">{a.dek}</p>
-              <p className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-ink-500">
+              <p className="mt-5 flex flex-wrap items-center gap-x-3 gap-y-2 text-xs font-medium text-ink-450">
                 {a.minutes} min read <QuestTag slug={a.slug} />
               </p>
             </div>
           </Link>
         ))}
       </div>
+      </Suspense>
     </Container>
   );
 }

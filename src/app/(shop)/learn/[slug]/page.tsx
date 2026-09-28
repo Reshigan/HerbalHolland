@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ArrowLeft, ArrowRight, BadgeCheck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -92,7 +93,10 @@ export default async function Article({ params }: { params: Promise<{ slug: stri
       <Container>
         <div className="grid grid-cols-1 gap-12 py-8 lg:grid-cols-[minmax(0,42rem)_minmax(0,1fr)] lg:gap-20">
           <div className="min-w-0">
-            <ArticleBody slug={a.slug} settings={settings} />
+            {/* The long article body hydrates later, in small slices, after the shell (see ProductGrid). */}
+            <Suspense>
+              <ArticleBody slug={a.slug} settings={settings} />
+            </Suspense>
             {quest && (
               <QuestQuiz
                 quest={quest}

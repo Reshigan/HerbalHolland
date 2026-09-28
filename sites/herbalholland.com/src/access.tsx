@@ -94,22 +94,23 @@ export function EarlyAccess({ box }: { box?: boolean }) {
             <span className="btn__label">{a.submit}</span>
             <span className="btn__icon" aria-hidden="true">
               <Icon name="arrow" size={18} />
-              <Icon name="arrow" size={18} />
             </span>
-            <Mark className="btn__mill" sails="spin" />
+            <Mark className="btn__mill" use />
           </button>
         </div>
         <p className="sr-only" aria-live="polite" data-form-live="" />
       </form>
-      <div className="done" data-form-done="" hidden>
-        <div className="done__mill" aria-hidden="true">
-          <Mark sails="gust" />
+      <template data-form-done="">
+        <div className="done">
+          <div className="done__mill" aria-hidden="true">
+            <Mark sails="gust" />
+          </div>
+          <h3 className="done__title" id={`${P}-done-title`} tabIndex={-1} data-done-title="">
+            {a.done.title}
+          </h3>
+          <p className="done__body">{a.done.body}</p>
         </div>
-        <h3 className="done__title" id={`${P}-done-title`} tabIndex={-1} data-done-title="">
-          {a.done.title}
-        </h3>
-        <p className="done__body">{a.done.body}</p>
-      </div>
+      </template>
     </div>
   );
   if (box) return inner;

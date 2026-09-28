@@ -124,7 +124,7 @@ export default async function DropPage({ params }: { params: Promise<{ slug: str
                 <ButtonLink href="#shop" size="xl" className="w-full">
                   Shop the drop <ArrowDown className="h-5 w-5" />
                 </ButtonLink>
-                <p className="text-center text-xs text-ink-500">Limit {d.perMemberLimit} per member, counting what you&apos;ve already bought from this drop.</p>
+                <p className="text-center text-xs text-ink-450">Limit {d.perMemberLimit} per member, counting what you&apos;ve already bought from this drop.</p>
               </>
             ) : null}
           </div>

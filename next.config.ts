@@ -29,8 +29,12 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   serverExternalPackages: ["pg", "nodemailer"],
-  // Banking slips (photos or PDFs up to 10 MB) are posted through a server action.
-  experimental: { serverActions: { bodySizeLimit: "11mb" } },
+  experimental: {
+    // Banking slips (photos or PDFs up to 10 MB) are posted through a server action.
+    serverActions: { bodySizeLimit: "11mb" },
+    // Tailwind's CSS is small enough to ship inline: first paint no longer waits for a stylesheet round trip.
+    inlineCss: true,
+  },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

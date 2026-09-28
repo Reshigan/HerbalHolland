@@ -119,8 +119,8 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               {TIERS.map((t, i) => (
                 <li key={t.key} className="text-center">
                   <div className={cn("h-1.5 rounded-full", i <= idx ? "bg-brand-500" : "bg-ink-800")} />
-                  <div className={cn("mt-2 text-xs font-semibold", i === idx ? "text-white" : i < idx ? "text-ink-300" : "text-ink-500")}>{t.name}</div>
-                  <div className="text-[0.68rem] text-ink-500">{savings[t.key]}% off</div>
+                  <div className={cn("mt-2 text-xs font-semibold", i === idx ? "text-white" : i < idx ? "text-ink-300" : "text-ink-450")}>{t.name}</div>
+                  <div className="text-[0.68rem] text-ink-450">{savings[t.key]}% off</div>
                 </li>
               ))}
             </ol>
@@ -138,10 +138,10 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                   <span className="text-ink-300">
                     Spend <strong className="text-white">{zarWhole(Math.max(0, m.goal.remainingCents))}</strong> more {m.goal.mode === "keep" ? "to keep" : "to reach"} <strong className="text-white">{m.goal.tier.name}</strong>
                   </span>
-                  <span className="tnum shrink-0 text-ink-500">{Math.min(99, Math.floor((m.spend / m.goal.tier.minCents) * 100))}%</span>
+                  <span className="tnum shrink-0 text-ink-450">{Math.min(99, Math.floor((m.spend / m.goal.tier.minCents) * 100))}%</span>
                 </div>
                 <Meter value={m.spend} max={m.goal.tier.minCents} className="mt-2" label={`Progress to ${m.goal.tier.name}`} />
-                <p className="mt-2 text-xs text-ink-500">
+                <p className="mt-2 text-xs text-ink-450">
                   {m.goal.mode === "keep" ? "Your tier is reviewed with every purchase against your last 12 months of spend in store and online." : "Tiers follow your rolling 12-month spend in store and online."}
                 </p>
               </div>
@@ -193,7 +193,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 <li key={e.id} className="flex items-center justify-between gap-3 py-3 text-sm">
                   <div className="min-w-0">
                     <div className="truncate font-medium text-ink-100">{ledgerTitle(e)}</div>
-                    <div className="truncate text-xs text-ink-500">
+                    <div className="truncate text-xs text-ink-450">
                       {LEDGER_LABEL[e.kind] ?? e.kind} · {timeAgo(e.createdAt)}
                     </div>
                   </div>
@@ -227,7 +227,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                         <div className="font-medium text-ink-100">
                           Order {o.code} · {o._count.lines} item{o._count.lines === 1 ? "" : "s"}
                         </div>
-                        <div className="truncate text-xs text-ink-500">
+                        <div className="truncate text-xs text-ink-450">
                           {o.fulfilment === "COLLECT" ? `Collect at ${o.store.name}` : "Delivery"} · {fmtDate(o.createdAt)}
                         </div>
                       </div>
@@ -262,7 +262,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             <div className="mt-4">
               <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards — we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
             </div>
-            <p className="mt-3 text-xs text-ink-500">Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span></p>
+            <p className="mt-3 text-xs text-ink-450">Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span></p>
           </Panel>
         )}
 
@@ -280,15 +280,15 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               </div>
               <dl className="grid grid-cols-2 gap-3">
                 <div>
-                  <dt className="text-xs text-ink-500">Prescriber</dt>
+                  <dt className="text-xs text-ink-450">Prescriber</dt>
                   <dd className="text-ink-100">{m.auth.prescriber}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-ink-500">Valid until</dt>
+                  <dt className="text-xs text-ink-450">Valid until</dt>
                   <dd className="text-ink-100">{fmtDate(m.auth.validTo)}</dd>
                 </div>
                 <div className="col-span-2">
-                  <dt className="text-xs text-ink-500">Scope</dt>
+                  <dt className="text-xs text-ink-450">Scope</dt>
                   <dd className="text-ink-100">{m.auth.scope}</dd>
                 </div>
               </dl>
@@ -369,7 +369,7 @@ async function Landing() {
                 <div className={cn("mx-auto h-2 w-8 rounded-full", ["bg-ink-300", "bg-leaf-500", "bg-series-4", "bg-brand-500"][i])} />
                 <div className="mt-2 font-display font-semibold text-white">{t.name}</div>
                 <div className="text-xs font-semibold text-brand-300">{settings.loyalty.tierSavingsPct[t.key]}% off</div>
-                <div className="text-[0.7rem] text-ink-500">{t.minCents ? `${zarWhole(t.minCents)}+ a year` : "When you join"}</div>
+                <div className="text-[0.7rem] text-ink-450">{t.minCents ? `${zarWhole(t.minCents)}+ a year` : "When you join"}</div>
               </li>
             ))}
           </ol>

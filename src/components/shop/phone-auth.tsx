@@ -84,7 +84,7 @@ export function PhoneAuth({
           <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
             {pending ? "Sending…" : "Send my code"} <ArrowRight className="h-5 w-5" />
           </button>
-          <p className="text-center text-xs text-ink-500">
+          <p className="text-center text-xs text-ink-450">
             Adults 18+ only. By continuing you accept our <Link href="/legal/terms" className="underline hover:text-ink-300">terms</Link> and <Link href="/legal/privacy" className="underline hover:text-ink-300">privacy notice</Link>.
           </p>
         </form>
@@ -108,7 +108,7 @@ function Steps({ step }: { step: AuthState["step"] }) {
           <span className={cn("grid h-6 w-6 place-items-center rounded-full text-[0.68rem]", n < i ? "bg-leaf-500 text-ink-950" : n === i ? "bg-brand-500 text-ink-950" : "bg-ink-800 text-ink-400")} aria-current={n === i ? "step" : undefined}>
             {n + 1}
           </span>
-          <span className={n === i ? "text-white" : "text-ink-500"}>{l}</span>
+          <span className={n === i ? "text-white" : "text-ink-450"}>{l}</span>
           {n < 2 && <span className="mx-1 h-px w-6 bg-ink-700" />}
         </li>
       ))}
@@ -292,7 +292,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
             <li key={t}>{t}</li>
           ))}
         </ul>
-        <p className="mt-2 text-[0.7rem] text-ink-500">
+        <p className="mt-2 text-[0.7rem] text-ink-450">
           Read the full <Link href="/legal/terms" target="_blank" className="underline hover:text-ink-300">membership terms</Link> ({TERMS_LABEL}) and the <Link href="/legal/privacy" target="_blank" className="underline hover:text-ink-300">privacy notice</Link>.
         </p>
       </div>

@@ -50,7 +50,7 @@ export default async function ClubInvoices({ searchParams }: { searchParams: Pro
                       {s.kind === "REFUND" && <Tag tone="amber">Refund</Tag>}
                       {s.channel === "ONLINE" && <Tag>Online</Tag>}
                     </div>
-                    <div className="truncate text-xs text-ink-500">
+                    <div className="truncate text-xs text-ink-450">
                       {fmtDate(s.createdAt)} · {s.store.name} · {s._count.lines} item{s._count.lines === 1 ? "" : "s"}
                       {s.pointsEarned > 0 && ` · earned ${fmtPoints(s.pointsEarned)}`}
                     </div>

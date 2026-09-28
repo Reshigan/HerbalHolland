@@ -53,7 +53,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
                 <li key={s.title} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
                   <div className="flex items-center gap-3">
                     <span className="grid h-10 w-10 place-items-center rounded-full bg-brand-500/10 text-brand-400">{s.icon}</span>
-                    <span className="tnum font-display text-sm font-semibold text-ink-500">Step {i + 1}</span>
+                    <span className="tnum font-display text-sm font-semibold text-ink-450">Step {i + 1}</span>
                   </div>
                   <h2 className="mt-4 font-display text-lg font-semibold text-white">{s.title}</h2>
                   <p className="mt-1.5 text-sm leading-relaxed text-ink-400">{s.body}</p>

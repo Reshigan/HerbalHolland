@@ -97,7 +97,10 @@ export const SEA = { water: "M-240 1100V706H1840V1100Z", shimmer: "M640 745h120M
 // they stand in the evening sky over KwaZulu-Natal (Crux upright, the Pointers to its left).
 const stars = (() => {
   const rand = rng(2026);
-  return Array.from({ length: 110 }, () => ({ x: r0(rand() * 1600), y: r0(rand() * 640), r: +(0.7 + rand() * 1.5).toFixed(1), o: +(0.35 + rand() * 0.65).toFixed(2) }));
+  const all = Array.from({ length: 110 }, () => ({ x: r0(rand() * 1600), y: r0(rand() * 640), r: +(0.7 + rand() * 1.5).toFixed(1), bright: rand() > 0.45 }));
+  // One path per brightness: each star is a tiny circle drawn with two arcs.
+  const path = (list: typeof all) => list.map((s) => `M${s.x - s.r} ${s.y}a${s.r} ${s.r} 0 1 0 ${s.r * 2} 0a${s.r} ${s.r} 0 1 0 -${s.r * 2} 0`).join("");
+  return { bright: path(all.filter((s) => s.bright)), dim: path(all.filter((s) => !s.bright)) };
 })();
 const CRUX = { at: [700, 250] as const, stars: [[0, -62, 5], [4, 58, 5.5], [-46, 10, 5], [40, -8, 4.2], [-18, 26, 2.6]] as const, pointers: [[-190, 78, 5], [-140, 60, 4.2]] as const };
 
@@ -121,11 +124,8 @@ export function Sprite() {
           <path className="f-sea" d={SEA.water} />
           <path className="s-ripple" d={SEA.shimmer} />
         </g>
-        <g id="stars">
-          {stars.map((s, i) => (
-            <circle key={i} cx={s.x} cy={s.y} r={s.r} opacity={s.o} />
-          ))}
-        </g>
+        <path id="stars" d={stars.bright} />
+        <path id="stars2" d={stars.dim} />
         <g id="crux" transform={`translate(${CRUX.at[0]} ${CRUX.at[1]})`}>
           {[...CRUX.stars, ...CRUX.pointers].map(([x, y, r], i) => (
             <g key={i} transform={`translate(${x} ${y})`}>
@@ -134,6 +134,41 @@ export function Sprite() {
             </g>
           ))}
         </g>
+        <symbol id="sails" viewBox="-36 -36 72 72">
+          {[-45, 45, 135, 225].map((r) => (
+            <use key={r} href="#petal" transform={`rotate(${r})`} strokeWidth="3.6" />
+          ))}
+          <circle r="3.4" strokeWidth="2.4" />
+        </symbol>
+        <symbol id="shopfront" viewBox="0 0 400 300">
+          <rect className="sf-wall" width="400" height="300" />
+          <rect className="sf-band" y="34" width="400" height="18" />
+          <rect className="sf-window" x="40" y="86" width="176" height="172" rx="6" />
+          <path className="sf-shelf" d="M58 128h140v6H58zM58 172h140v6H58zM58 216h140v6H58z" />
+          <path className="sf-jar" d="M70 108h18v20H70zM102 108h18v20h-18zM134 108h18v20h-18zM166 108h18v20h-18zM76 150h22v22H76zM118 150h22v22h-22zM160 150h22v22h-22z" />
+          <rect className="sf-frame" x="40" y="86" width="176" height="172" rx="6" />
+          <rect className="sf-door" x="250" y="118" width="80" height="182" rx="4" />
+          <rect className="sf-doorlight" x="262" y="132" width="56" height="112" rx="3" />
+          <circle className="sf-handle" cx="316" cy="214" r="3.5" />
+          <rect className="sf-beads" x="344" y="118" width="30" height="182" fill="url(#beads)" />
+          <rect className="sf-frame" x="344" y="118" width="30" height="182" />
+          <circle className="sf-sign" cx="290" cy="76" r="26" />
+          <g transform="translate(268 54) scale(.44)" className="sf-mark">
+            <path d="M36.2 82.6A40 40 0 1 1 63.8 82.6M33 91 50 44.5 67 91" strokeWidth="6" />
+            <use href="#sails" x="14" y="4" width="72" height="72" strokeWidth="4" />
+          </g>
+          <rect className="sf-step" y="272" width="400" height="28" />
+          <path className="sf-pot" d="M218 272l4-30h26l4 30zM378 272l3-22h20l3 22z" />
+          <path className="sf-leaf" d="M232 244c-4-18 4-30 10-36M232 244c2-14 12-22 20-26M232 244c-8-10-20-12-26-12M391 250c-3-14 3-22 8-26M391 250c-6-8-14-10-18-10" />
+        </symbol>
+        <symbol id="mark" viewBox="0 0 100 100">
+          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M36.2 82.6A40 40 0 1 1 63.8 82.6M33 91 50 44.5 67 91" strokeWidth="5.5" />
+            <path d="M42.5 91 50 69 57.5 91" strokeWidth="3.2" />
+            <use href="#sails" x="14" y="4" width="72" height="72" />
+            <circle cx="50" cy="40" r=".9" className="hub" stroke="none" />
+          </g>
+        </symbol>
         <symbol id="mill" viewBox="0 0 100 100">
           <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
             <path d="M33 91 50 44.5 67 91" strokeWidth="5.5" />
@@ -171,19 +206,22 @@ export function Sprite() {
         </linearGradient>
         <mask id="stripes" maskContentUnits="objectBoundingBox">
           <rect width="1" height="1" fill="#fff" />
-          {[
-            [0.43, 0.01],
-            [0.505, 0.015],
-            [0.575, 0.021],
-            [0.643, 0.027],
-            [0.708, 0.033],
-            [0.77, 0.039],
-            [0.83, 0.045],
-            [0.887, 0.051],
-            [0.942, 0.058],
-          ].map(([y, h]) => (
-            <rect key={y} y={y} width="1" height={h} fill="#000" />
-          ))}
+          <path
+            fill="#000"
+            d={[
+              [0.43, 0.01],
+              [0.505, 0.015],
+              [0.575, 0.021],
+              [0.643, 0.027],
+              [0.708, 0.033],
+              [0.77, 0.039],
+              [0.83, 0.045],
+              [0.887, 0.051],
+              [0.942, 0.058],
+            ]
+              .map(([y, h]) => `M0 ${y}h1v${h}H0z`)
+              .join("")}
+          />
         </mask>
         <radialGradient id="sphere" cx=".38" cy=".3" r=".8">
           <stop offset="0" className="st-sph0" />
@@ -250,7 +288,14 @@ export function Sails({ className, js }: { className?: string; js?: "" | "wind" 
  * them (a steady turn, faster with the scroll); "wind" turns them only while the page scrolls; "gust" spins with CSS
  * inside a second group that the gate and the enquiry form spin up for a moment.
  */
-export function Mark({ className, title, sails, ring = true }: { className?: string; title?: string; sails?: "spin" | "js" | "wind" | "gust"; ring?: boolean }) {
+export function Mark({ className, title, sails, ring = true, use }: { className?: string; title?: string; sails?: "spin" | "js" | "wind" | "gust"; ring?: boolean; use?: boolean }) {
+  // A copy that never moves is one <use> of the symbol in the sprite.
+  if (use)
+    return (
+      <svg viewBox="0 0 100 100" className={cx("mark", className)} role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : "true"} focusable="false">
+        <use href="#mark" />
+      </svg>
+    );
   const s = <Sails className={sails === "spin" ? "sails--spin" : undefined} js={sails === "js" ? "" : sails === "wind" ? "wind" : undefined} />;
   return (
     <svg viewBox="0 0 100 100" className={cx("mark", className)} role={title ? "img" : undefined} aria-label={title} aria-hidden={title ? undefined : "true"} focusable="false">
@@ -439,44 +484,9 @@ export function MiniScene({ className }: { className?: string }) {
  * owner's photograph replaces it; the frame is the same either way. `n` varies the window (which side the door is on).
  */
 export function Storefront({ n = 0, className }: { n?: number; className?: string }) {
-  const flip = n % 2 === 1;
   return (
     <svg className={cx("shopfront", className)} viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
-      <g transform={flip ? "matrix(-1 0 0 1 400 0)" : undefined}>
-        <rect className="sf-wall" width="400" height="300" />
-        <rect className="sf-band" y="34" width="400" height="18" />
-        <rect className="sf-window" x="40" y="86" width="176" height="172" rx="6" />
-        <rect className="sf-shelf" x="58" y="128" width="140" height="6" rx="3" />
-        <rect className="sf-shelf" x="58" y="172" width="140" height="6" rx="3" />
-        <rect className="sf-shelf" x="58" y="216" width="140" height="6" rx="3" />
-        {[70, 102, 134, 166].map((x) => (
-          <rect key={x} className="sf-jar" x={x} y="108" width="18" height="20" rx="3" />
-        ))}
-        {[76, 118, 160].map((x) => (
-          <rect key={x} className="sf-jar" x={x} y="150" width="22" height="22" rx="3" />
-        ))}
-        <rect className="sf-frame" x="40" y="86" width="176" height="172" rx="6" />
-        <rect className="sf-door" x="250" y="118" width="80" height="182" rx="4" />
-        <rect className="sf-doorlight" x="262" y="132" width="56" height="112" rx="3" />
-        <circle className="sf-handle" cx="316" cy="214" r="3.5" />
-        <rect className="sf-beads" x="344" y="118" width="30" height="182" fill="url(#beads)" />
-        <rect className="sf-frame" x="344" y="118" width="30" height="182" />
-        <circle className="sf-sign" cx="290" cy="76" r="26" />
-        <g transform="translate(268 54) scale(.44)" className="sf-mark">
-          <path d="M36.2 82.6A40 40 0 1 1 63.8 82.6" strokeWidth="6" />
-          <path d="M33 91 50 44.5 67 91" strokeWidth="6" />
-          <g transform="translate(50 40)">
-            {[-45, 45, 135, 225].map((r) => (
-              <use key={r} href="#petal" transform={`rotate(${r})`} strokeWidth="4" />
-            ))}
-          </g>
-        </g>
-        <rect className="sf-step" y="272" width="400" height="28" />
-        <path className="sf-pot" d="M218 272l4-30h26l4 30z" />
-        <path className="sf-leaf" d="M232 244c-4-18 4-30 10-36M232 244c2-14 12-22 20-26M232 244c-8-10-20-12-26-12" />
-        <path className="sf-pot" d="M378 272l3-22h20l3 22z" />
-        <path className="sf-leaf" d="M391 250c-3-14 3-22 8-26M391 250c-6-8-14-10-18-10" />
-      </g>
+      <use href="#shopfront" width="400" height="300" transform={n % 2 === 1 ? "matrix(-1 0 0 1 400 0)" : undefined} />
     </svg>
   );
 }
@@ -546,14 +556,13 @@ const CATS: Record<string, React.ReactNode> = {
 export function CatArt({ kind }: { kind: string }) {
   return (
     <svg className="catart" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
-      <circle className="catart__glow" cx="50" cy="56" r="34" fill="url(#shopglow)" />
-      <g className="catart__line">{CATS[kind] ?? CATS.cbd}</g>
+      {CATS[kind] ?? CATS.cbd}
     </svg>
   );
 }
 
 // ── The globe ────────────────────────────────────────────────────────────────
-const G = { c: [6, 0] as LL, R: 270, lift: 0.12, dots: 56 };
+const G = { c: [6, 0] as LL, R: 270, lift: 0.12 };
 
 export function Globe({ label }: { label: string }) {
   const P = ortho(G.c, G.R, 300, 300);
@@ -561,8 +570,7 @@ export function Globe({ label }: { label: string }) {
   const first = newStores()[0] ?? FACTS.stores[0];
   const a: LL = [FACTS.places.amsterdam.lat, FACTS.places.amsterdam.lon];
   const b: LL = [first.lat, first.lon];
-  const pts = route(P, a, b, 96, G.lift);
-  const dots = route(P, a, b, G.dots, G.lift);
+  const pts = route(P, a, b, 48, G.lift);
   const pa = P(a);
   const pb = P(b);
   const f = (n: number) => Math.round(n * 10) / 10;
@@ -595,12 +603,16 @@ export function Globe({ label }: { label: string }) {
           <path className="globe__grat" d={graticule(P)} vectorEffect="non-scaling-stroke" />
           <path className="globe__eq" d={equator(P)} vectorEffect="non-scaling-stroke" />
           <path className="globe__coast" d={coasts(P)} vectorEffect="non-scaling-stroke" />
-          <path className="globe__route" d={routePath(pts)} vectorEffect="non-scaling-stroke" />
-          <g className="globe__dots">
-            {dots.map((p, i) => (
-              <circle key={i} className="dot" cx={f(p.x)} cy={f(p.y)} r="2.3" data-t={p.t.toFixed(3)} />
-            ))}
-          </g>
+          {/* The route, drawn once: as the dotted line, as the beads that follow the windmill, and as the mask that
+              reveals them as far as it has flown (--ap, in the route's own length; the script measures it). */}
+          <defs>
+            <path id="rt" d={routePath(pts)} fill="none" vectorEffect="non-scaling-stroke" />
+          </defs>
+          <use href="#rt" className="globe__route" />
+          <mask id="reveal">
+            <use href="#rt" className="globe__reveal" />
+          </mask>
+          <use href="#rt" className="globe__dots" mask="url(#reveal)" />
         </g>
       </g>
       <circle className="globe__rim" cx="300" cy="300" r="270" fill="none" />

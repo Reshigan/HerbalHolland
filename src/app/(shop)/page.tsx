@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ArrowRight, BadgeCheck, FlaskConical, HandHeart, Leaf, Moon, QrCode, ShieldCheck, Sprout, Store, Sun, Truck, Dumbbell } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -176,6 +177,8 @@ export default async function Home() {
         </Container>
       </section>
 
+      {/* Everything below the hero hydrates later, in small slices (see ProductGrid). */}
+      <Suspense>
       {/* ── Trust strip ───────────────────────────────────────────── */}
       <section className="border-y border-ink-850 bg-ink-900/40">
         <Container className="grid grid-cols-2 gap-x-6 gap-y-5 py-6 lg:grid-cols-4">
@@ -394,7 +397,7 @@ export default async function Home() {
             <div className="mt-6 flex flex-wrap gap-2">
               {provinces.map((p) => (
                 <Link key={p.code} href={`/stores?province=${p.code}#${p.code}`} className="rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
-                  {PROVINCES[p.code as ProvinceCode]} <span className="tnum text-ink-500">{p.stores}</span>
+                  {PROVINCES[p.code as ProvinceCode]} <span className="tnum text-ink-450">{p.stores}</span>
                 </Link>
               ))}
             </div>
@@ -431,12 +434,13 @@ export default async function Home() {
                 <div className="eyebrow text-brand-500">{a.kicker}</div>
                 <h3 className="mt-2 font-display text-xl font-semibold leading-snug text-white group-hover:text-brand-200">{a.title}</h3>
                 <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-400">{a.dek}</p>
-                <p className="mt-4 text-xs font-medium text-ink-500">{a.minutes} min read</p>
+                <p className="mt-4 text-xs font-medium text-ink-450">{a.minutes} min read</p>
               </div>
             </Link>
           ))}
         </div>
       </Container>
+      </Suspense>
     </>
   );
 }

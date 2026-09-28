@@ -3,13 +3,6 @@
 // forms could share a page; the page's script (client/main.ts) fills and clears the errors.
 import { cx } from "./art";
 
-const ErrIcon = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-    <circle cx="12" cy="12" r="10" />
-    <path d="M12 7v6M12 16.5v.5" />
-  </svg>
-);
-
 /** Hint and error lines under a field; the script swaps aria-describedby to the error when there is one. */
 export function Help({ p, name, hint }: { p: string; name: string; hint?: React.ReactNode }) {
   return (
@@ -20,7 +13,6 @@ export function Help({ p, name, hint }: { p: string; name: string; hint?: React.
         </p>
       )}
       <p className="field__err" id={`${p}-${name}-err`} hidden>
-        <ErrIcon />
         <span />
       </p>
     </>
@@ -47,7 +39,6 @@ export const described = (p: string, name: string, hint?: unknown) => (hint ? { 
 export function FormAlert() {
   return (
     <div className="form__alert" role="alert" tabIndex={-1} hidden data-form-alert="">
-      <ErrIcon />
       <p />
     </div>
   );

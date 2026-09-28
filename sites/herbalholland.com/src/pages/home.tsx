@@ -9,7 +9,7 @@ import { PROVINCES } from "@/lib/sa";
 import { BRAND, CHROME, EMAIL, HOME, STORES, fill } from "../../content";
 import { FACTS, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, shopLink, storeProvinces, type Store } from "../../facts";
 import { EarlyAccess } from "../access";
-import { CatArt, Globe, Mark, Sails, Still, Storefront, cx } from "../art";
+import { CatArt, Globe, Mark, Still, Storefront, cx } from "../art";
 import { JoinDoor, Page, site } from "../layout";
 import { Head, Icon, Index, Keep, Reel, ShopNow, Words } from "../ui";
 
@@ -184,7 +184,7 @@ function Hills() {
         </div>
         <ul className="frames frames--stores" data-rs="">
           {all.map((st, i) => (
-            <li key={st.key} className={cx("frame", "frame--store", `frame--${st.status}`)} data-r="">
+            <li key={st.key} className={cx("frame", "frame--store", "frame--link", `frame--${st.status}`)} data-r="">
               <div className="frame__media">
                 <StorePicture store={st} n={i} alt={fill(STORES.store.photo, { name: st.name })} />
               </div>
@@ -196,9 +196,7 @@ function Hills() {
                     <span className="sr-only"> {s.page}</span>
                   </a>
                 </h4>
-                <p className="frame__s">
-                  <Icon name={st.status === "open" ? "open" : "calendar"} size={15} /> {storeStatus(st, { open: s.open, opens: s.opening.replace("{date}", "{opening}") })}
-                </p>
+                <p className={cx("frame__s", `frame__s--${st.status}`)}>{storeStatus(st, { open: s.open, opens: s.opening.replace("{date}", "{opening}") })}</p>
               </div>
             </li>
           ))}
@@ -234,17 +232,16 @@ function Range() {
           {r.items.map((it) => {
             const live = shopLink(FACTS.shelf[it.key] ?? "/shop");
             return (
-              <li key={it.key} className="frame frame--cat" data-r="">
+              <li key={it.key} className="frame frame--cat frame--link" data-r="">
                 <div className="frame__media">
                   <CatArt kind={it.key} />
                 </div>
                 <div className="frame__copy">
                   <h3 className="frame__t">{it.title}</h3>
                   <p className="frame__s">{it.body}</p>
-                  <a className="frame__go stretch" href={live ?? "#first-access"}>
+                  <a className={cx("frame__go stretch", live && "frame__go--out")} href={live ?? "#first-access"}>
                     {r.shop}
                     <span className="sr-only"> {it.title}</span>
-                    <Icon name={live ? "out" : "arrow"} size={16} />
                   </a>
                 </div>
               </li>
@@ -276,9 +273,7 @@ function Marquee() {
               <span key={w} className="marquee__item">
                 <span className="marquee__w">{w}</span>
                 <svg className="marquee__sep" viewBox="-36 -36 72 72" focusable="false">
-                  <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                    <Sails js="wind" />
-                  </g>
+                  <use href="#sails" x="-36" y="-36" width="72" height="72" className="sails" data-sails="wind" />
                 </svg>
               </span>
             ))}
@@ -310,7 +305,7 @@ function Night() {
           <div className="fcard" data-tilt="" data-r="scale" aria-hidden="true">
             <div className="fcard__in">
               <div className="fcard__top">
-                <Mark className="fcard__mark" sails="spin" />
+                <Mark className="fcard__mark" use />
                 <span className="fcard__brand">
                   {BRAND.name}
                   <b>{f.card.brand}</b>
