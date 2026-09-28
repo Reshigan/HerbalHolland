@@ -28,7 +28,11 @@ reports) and Postgres can't live on Cloudflare.
    `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. For a change the owner
    should see first: `npx wrangler@4 versions upload --preview-alias preview` (→ `https://preview-herbalholland-com.<account>.workers.dev`,
    same database and email as live, so don't send test enquiries), then `npx wrangler@4 versions deploy <version-id>`
-   to make that exact version live. Rebuild and deploy on or
+   to make that exact version live. The early-access list (`early_access` in the same database; the Worker deletes
+   sign-ups after 12 months): export it for the launch message with `npx wrangler@4 d1 execute herbalholland-com-eu
+   --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`,
+   send only through the platform's consent-checked messaging (every message with an opt-out), and delete anyone who
+   asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. Rebuild and deploy on or
    after a press release's date (the site is static), and set `facts.ts` `shop.url` when the shop opens. Once the
    platform is live, give the Worker `APP_ENQUIRY_URL` (`https://herbalholland.co.za/api/site/enquiries`) and
    `APP_ENQUIRY_SECRET` (= the app's `SITE_ENQUIRY_SECRET`) with `wrangler secret put`, so enquiries land in HQ →
