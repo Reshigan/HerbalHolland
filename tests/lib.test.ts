@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { allocateProportionally, exVat, vatOf, zar, zarCompact } from "@/lib/money";
 import { checkSaId, normalisePhone, publicHolidays, marketingWindow, nextMarketingSlot, ageOn } from "@/lib/sa";
 import { allocate } from "@/lib/fefo";
-import { checkCompliance, DEFAULT_COMPLIANCE, screenCopy, validateCbdProduct } from "@/lib/compliance";
+import { checkCompliance, DEFAULT_COMPLIANCE, screenCopy, validateProduct } from "@/lib/compliance";
 import { applyPromotions, describePromo, type PromoInput } from "@/lib/promotions";
 import { promoWindowOpen, resolvePrice, type PriceListRule } from "@/lib/pricing-rules";
 import { pointsFor, tierFor, nextTier, tierBenefits, DEFAULT_TIER_SAVINGS } from "@/lib/loyalty-rules";
@@ -147,9 +147,10 @@ describe("compliance", () => {
     expect(checkCompliance({ items: [papers], channel: "POS", customer: adult, settings }).ok).toBe(true);
   });
   it("validates Schedule 0 CBD master data", () => {
-    expect(validateCbdProduct({ regClass: "CBD", cbdMgPerPack: 600, cbdMgPerDay: 20, claims: ["Supports everyday calm"] })).toEqual([]);
-    expect(validateCbdProduct({ regClass: "CBD", cbdMgPerPack: 1000, cbdMgPerDay: 40 })).toHaveLength(2);
-    expect(validateCbdProduct({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: ["Cures anxiety"] }).length).toBeGreaterThan(0);
+    const facts = { ingredients: "MCT oil, broad-spectrum hemp extract", allergens: ["none"] }; // CBD supplements declare these too
+    expect(validateProduct({ regClass: "CBD", cbdMgPerPack: 600, cbdMgPerDay: 20, claims: ["Supports everyday calm"], ...facts })).toEqual([]);
+    expect(validateProduct({ regClass: "CBD", cbdMgPerPack: 1000, cbdMgPerDay: 40, ...facts })).toHaveLength(2);
+    expect(validateProduct({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: ["Cures anxiety"], ...facts }).length).toBeGreaterThan(0);
   });
   it("screens marketing copy", () => {
     expect(screenCopy("Double Points this weekend on all CBD wellness")).toEqual([]);

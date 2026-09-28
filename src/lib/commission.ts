@@ -1,5 +1,6 @@
 // Staff commission: basis points of net sales ex VAT per product class, clawed back when a sale is refunded.
-// Licensed medicines never earn commission (Medicines Act s18A: no incentive schemes for supplying medicine).
+// Medicines never earn commission (Medicines Act s18A: no incentive schemes for supplying medicine) — the classes
+// incentiveExcluded() returns: licensed products in medical mode, and noIncentives (CBD supplements by default).
 import type { RegClass } from "./compliance";
 
 export type CommissionLine = { regClass: RegClass; netCents: number }; // ex VAT; refunds are negative

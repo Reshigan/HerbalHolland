@@ -4,6 +4,7 @@ import {
   ArrowRight,
   ArrowUpRight,
   BadgeCheck,
+  Boxes,
   Building2,
   CalendarDays,
   CalendarHeart,
@@ -19,6 +20,7 @@ import {
   IdCard,
   KeyRound,
   Mail,
+  Menu,
   MessageCircle,
   MonitorSmartphone,
   Newspaper,
@@ -31,6 +33,7 @@ import {
   Truck,
   UserRound,
   UsersRound,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { CHROME } from "../content";
@@ -64,6 +67,7 @@ const ICONS: Record<string, LucideIcon> = {
   online: Package,
   compliance: BadgeCheck,
   brand: Frame,
+  range: Boxes,
   playbook: Rocket,
   events: CalendarHeart,
   training: GraduationCap,
@@ -77,6 +81,8 @@ const ICONS: Record<string, LucideIcon> = {
   pictures: Camera,
   name: PenLine,
   file: FileText,
+  menu: Menu,
+  close: X,
 };
 
 export function Icon({ name, className, size = 20 }: { name: string; className?: string; size?: number }) {
@@ -188,18 +194,20 @@ export function MailTo({ email, className }: { email: string; className?: string
   );
 }
 
-/** Rolling digits (an odometer) that settle on `value` when they come into view. Screen readers get the plain value. */
+/**
+ * Rolling digits (an odometer) that settle on `value` when they come into view. Each digit's strip counts up through a
+ * full turn to the digit, which sits first, so without the script (or with reduced motion) the number simply shows.
+ * Screen readers get the plain value.
+ */
 export function Reel({ value, className }: { value: string; className?: string }) {
-  const strip = "0123456789".repeat(2).split("").join("\n");
+  const strip = (d: number) => Array.from({ length: 11 }, (_, k) => (d - k + 20) % 10).join("\n");
   return (
     <span className={cx("reel", className)}>
       <span className="reel__v" data-reel="" aria-hidden="true">
         {[...value].map((ch, i) =>
           /\d/.test(ch) ? (
             <span key={i} className="reel__d">
-              <span className="reel__s" data-d={ch}>
-                {strip}
-              </span>
+              <span className="reel__s">{strip(Number(ch))}</span>
             </span>
           ) : (
             <i key={i} className="reel__sep">

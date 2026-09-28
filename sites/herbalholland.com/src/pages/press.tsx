@@ -22,6 +22,7 @@ export function PressPage() {
   const rows: [string, React.ReactNode][] = [
     [facts.rows.company, c.legalName ?? BRAND.name],
     [facts.rows.what, facts.values.what],
+    [facts.rows.range, facts.values.range],
     [facts.rows.line, BRAND.line],
     [facts.rows.stores, stores],
     [facts.rows.model, facts.values.model],
@@ -47,7 +48,7 @@ export function PressPage() {
   return (
     <Page page="press" meta={{ path: "/press", ...PRESS.meta }}>
       <PageHero kind="press" eyebrow={PRESS.hero.eyebrow} title={PRESS.hero.title} lede={PRESS.hero.lede}>
-        <div className="phero__ctas">
+        <div className="ctas">
           <Btn href={`mailto:${EMAIL.press}`} icon="mail" magnetic>
             {EMAIL.press}
           </Btn>
@@ -104,11 +105,11 @@ export function PressPage() {
         <div className="wrap split split--assets">
           <div>
             <Head id="assets-h" eyebrow={assets.eyebrow} title={assets.title} intro={assets.body} />
-            <div className="media" data-r="">
+            <div className="note note--warn media" data-r="">
               <p className="eyebrow">{media.eyebrow}</p>
               <h3 className="h3">{media.title}</h3>
               <p>{media.body}</p>
-              <p className="media__mail">
+              <p>
                 <MailTo email={EMAIL.press} />
               </p>
             </div>

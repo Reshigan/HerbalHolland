@@ -18,7 +18,7 @@ import { dayKey } from "@/lib/format";
 import { FACTS, greatCircleKm } from "./facts";
 import { site } from "./src/layout";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
-import { mangleClasses, precomputeColors, shortenTokens } from "./src/optimize";
+import { literals, mangleClasses, precomputeColors, shortenTokens, tighten } from "./src/optimize";
 import { AboutPage } from "./src/pages/about";
 import { CareersPage } from "./src/pages/careers";
 import { ContactPage } from "./src/pages/contact";
@@ -31,7 +31,7 @@ const ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO = join(ROOT, "..", "..");
 const DIST = join(ROOT, "dist");
 const STATIC = join(ROOT, "static");
-const BUDGET = { js: 25 * 1024, css: 45 * 1024 };
+const BUDGET = { js: 25_000, css: 45_000 }; // bytes, before compression (the stricter reading of "25 KB" and "45 KB")
 const FONTS = {
   outfit: join(REPO, "node_modules/@fontsource-variable/outfit/files/outfit-latin-wght-normal.woff2"),
   inter: join(REPO, "node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2"),
@@ -64,8 +64,8 @@ async function script(file: string, format: "esm" | "iife") {
 }
 
 async function styles(src: string) {
-  if (esbuild) return (await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none" })).code;
-  return src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ").replace(/\s*([{};])\s*/g, "$1").trim();
+  if (esbuild) return tighten((await esbuild.transform(src, { loader: "css", minify: true, legalComments: "none" })).code);
+  return tighten(src.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\s+/g, " ").replace(/\s*([{};])\s*/g, "$1").trim());
 }
 
 function emit(name: string, ext: string, body: Buffer | string) {
@@ -158,7 +158,7 @@ async function main() {
   });
   if (problems.length) throw new Error(`Build checks failed:\n  ${problems.join("\n  ")}`);
   // Short class names in the CSS and the pages alike, then the stylesheet gets its content hash.
-  const small = mangleClasses(css, html, [mainSrc, bootSrc]);
+  const small = mangleClasses(css, html, [mainSrc, bootSrc].flatMap(literals));
   site.assets.css = emit("site", "css", small.css);
   files.forEach(([file], i) => writeFileSync(join(DIST, file), small.pages[i].replace(CSS_HREF, site.assets.css)));
 
@@ -208,9 +208,12 @@ async function main() {
   line("Font: Inter (latin)", site.assets.inter);
   for (const [, file] of PAGES) line(`HTML ${file}`, file);
   line("HTML 404.html", "404.html");
-  console.log(`\n  ${walk(DIST).length} files`);
-  const over = [size(site.assets.js) + size(site.assets.boot) > BUDGET.js && `JS ${kb(size(site.assets.js) + size(site.assets.boot))} > ${kb(BUDGET.js)}`, size(site.assets.css) > BUDGET.css && `CSS ${kb(size(site.assets.css))} > ${kb(BUDGET.css)}`].filter(Boolean);
-  if (over.length) console.warn(`  OVER BUDGET: ${over.join(", ")}`); // TEMP while iterating on the design
+  const jsBytes = size(site.assets.js) + size(site.assets.boot);
+  const cssBytes = size(site.assets.css);
+  const n = (b: number) => b.toLocaleString("en-US");
+  console.log(`\n  ${walk(DIST).length} files · budgets: JS ${n(jsBytes)} of ${n(BUDGET.js)} bytes, CSS ${n(cssBytes)} of ${n(BUDGET.css)} bytes`);
+  const over = [jsBytes > BUDGET.js && `JS ${n(jsBytes)} > ${n(BUDGET.js)} bytes`, cssBytes > BUDGET.css && `CSS ${n(cssBytes)} > ${n(BUDGET.css)} bytes`].filter(Boolean);
+  if (over.length) throw new Error(`Over budget: ${over.join(", ")}`);
 }
 
 await main();

@@ -8,6 +8,7 @@ import { ProductArt } from "@/components/product/art";
 import { asLab, SafetyResult, SAFETY_PANELS, TerpeneBars } from "@/components/shop/product-parts";
 import { Callout, Container, Panel, Tag } from "@/components/shop/ui";
 import { fmtDate } from "@/lib/format";
+import { CBD_CLASSES } from "@/lib/compliance";
 
 export const metadata: Metadata = { title: "Lab certificate", robots: { index: false, follow: false } };
 
@@ -108,9 +109,9 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
                     <dd className="tnum font-semibold text-white">{p.cbdMgPerDay} mg</dd>
                   </div>
                 )}
-                {p.regClass === "CBD" && (
+                {CBD_CLASSES.includes(p.regClass) && (
                   <div className="flex justify-between py-2.5">
-                    <dt className="text-ink-400">THC limit (Schedule 0)</dt>
+                    <dt className="text-ink-400">{p.regClass === "CBD_TOPICAL" ? "THC limit" : "THC limit (Schedule 0)"}</dt>
                     <dd className="tnum font-semibold text-white">≤ 0.001%</dd>
                   </div>
                 )}

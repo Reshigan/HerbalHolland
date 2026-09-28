@@ -45,7 +45,11 @@ export type BootProduct = {
   tobaccoRelated: boolean;
   featured: boolean;
   variants: BootVariant[];
+  facts?: BootFacts | null; // food, supplements and skin care (tills cached before product facts have none)
 };
+
+/** What's in a pack, for members who ask at the counter: net content, ingredients and declared allergens. */
+export type BootFacts = { netContent: number | null; netUnit: string | null; ingredients: string | null; allergens: string[] };
 
 /** Promotion as cached on the till: engine input plus its schedule (evaluated at sale time offline). */
 export type BootPromotion = PromoInput & {

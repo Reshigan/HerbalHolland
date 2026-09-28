@@ -4,7 +4,7 @@
 import { BRAND, CHROME, EMAIL, GATE } from "../content";
 import { FACTS, joinLink } from "../facts";
 import { AgeBadge, Mark, SCENES, Scene, Sprite, Wordmark, cx } from "./art";
-import { Btn, Index, MailTo, ShopDoor, Soon } from "./ui";
+import { Btn, Icon, Index, MailTo, ShopDoor, Soon } from "./ui";
 
 export const site = {
   assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2" },
@@ -69,13 +69,15 @@ function Header({ page }: { page: string }) {
               {CHROME.cta.founding}
             </Btn>
           )}
-          <button type="button" className="burger" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false" data-menu-open="">
-            <span className="burger__lines" aria-hidden="true">
-              <i />
-              <i />
-            </span>
-            <span className="burger__label">{CHROME.menu.open}</span>
+          <button type="button" className="burger burger--js" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false" data-menu-open="">
+            <Icon name="menu" size={18} />
+            <span>{CHROME.menu.open}</span>
           </button>
+          {/* Without scripts there's no menu to open: the same control leads to the links in the footer. */}
+          <a className="burger burger--nojs" href="#ftr-co">
+            <Icon name="menu" size={18} />
+            <span>{CHROME.menu.open}</span>
+          </a>
         </div>
       </div>
     </header>
@@ -91,7 +93,7 @@ function Menu({ page }: { page: string }) {
           <Brand />
           <button type="button" className="menu__close" data-menu-close="">
             <span>{CHROME.menu.close}</span>
-            <span className="menu__x" aria-hidden="true" />
+            <Icon name="close" size={16} />
           </button>
         </div>
         <nav className="wrap menu__nav" aria-label={CHROME.menu.label}>
@@ -118,7 +120,6 @@ function Menu({ page }: { page: string }) {
             </span>
           </p>
         </div>
-        <Mark className="menu__mill" sails="spin" />
       </div>
     </dialog>
   );
@@ -272,6 +273,7 @@ export function Page({ page, meta, jsonLd, children }: { page: string; meta: Met
         <meta name="description" content={meta.description} />
         {meta.noindex ? <meta name="robots" content="noindex" /> : <link rel="canonical" href={url} />}
         <meta name="theme-color" content="#0c0a09" />
+        <meta name="color-scheme" content="dark" />
         <meta property="og:type" content="website" />
         <meta property="og:site_name" content={BRAND.name} />
         <meta property="og:locale" content="en_ZA" />

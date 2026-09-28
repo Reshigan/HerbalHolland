@@ -42,7 +42,7 @@ export function PromotionForm({
   categories,
   products,
   stores,
-  medicalMode,
+  excluded,
   readOnly,
 }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>;
@@ -50,7 +50,7 @@ export function PromotionForm({
   categories: PickOption[];
   products: PickOption[];
   stores: PickOption[];
-  medicalMode: boolean;
+  excluded: string[]; // labels of the classes that never get deals (Medicines Act s18A: incentiveExcluded)
   readOnly?: boolean;
 }) {
   const [v, setV] = useState(values);
@@ -298,10 +298,12 @@ export function PromotionForm({
                 {v.firstPurchaseOnly && <Row k="Who">A member&apos;s first purchase only — welcome gift</Row>}
               </dl>
             </div>
-            {(medicalMode || preview.longReduction) && (
+            {(excluded.length > 0 || preview.longReduction) && (
               <div className="space-y-2">
-                {medicalMode && (
-                  <p className="rounded-xl border border-sky-500/20 bg-sky-50 px-3 py-2.5 text-xs text-sky-700">Licensed medicines never qualify or get discounted while THC is in medical mode (Medicines Act s18A) — they&apos;re excluded automatically.</p>
+                {excluded.length > 0 && (
+                  <p className="rounded-xl border border-sky-500/20 bg-sky-50 px-3 py-2.5 text-xs text-sky-700">
+                    Medicines never qualify or get discounted (Medicines Act s18A): {excluded.join(" and ")} are excluded automatically.
+                  </p>
                 )}
                 {preview.longReduction && (
                   <p className="flex gap-2 rounded-xl border border-amber-500/30 bg-amber-50 px-3 py-2.5 text-xs text-amber-700">

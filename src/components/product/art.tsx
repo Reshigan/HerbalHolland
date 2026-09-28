@@ -11,6 +11,10 @@ const FAMILY: Record<string, { bg: [string, string]; fg: string; ring: string }>
   INDICA: { bg: ["#2b1848", "#120a1f"], fg: "#c9b6ff", ring: "#8e6cd6" },
   HYBRID: { bg: ["#0f302a", "#07130f"], fg: "#86e0c6", ring: "#1baf7a" },
   CBD: { bg: ["#223019", "#0e150b"], fg: "#c3e2a8", ring: "#7fb069" },
+  // Wellness families re-use the palette above: roast browns with CBD green, cream with leaf, ink with cream.
+  CBD_FOOD: { bg: ["#3a1d0b", "#150b05"], fg: "#c3e2a8", ring: "#7fb069" },
+  CBD_TOPICAL: { bg: ["#efe6da", "#dccbb5"], fg: "#223019", ring: "#7fb069" },
+  SUPPLEMENT: { bg: ["#211c19", "#0c0a09"], fg: "#efe6da", ring: "#b08452" },
   HEMP: { bg: ["#efe6da", "#dccbb5"], fg: "#7a5a3a", ring: "#b08452" },
   ACCESSORY: { bg: ["#211c19", "#0c0a09"], fg: "#f5913c", ring: "#f5913c" },
   APPAREL: { bg: ["#f79f52", "#e27623"], fg: "#0c0a09", ring: "#0c0a09" },

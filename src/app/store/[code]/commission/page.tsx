@@ -347,7 +347,10 @@ function HowItWorks({ rates, code }: { rates: { cls: RegClass; label: string; me
         </dl>
         <ul className="mt-4 list-disc space-y-2 pl-5 text-sm text-ink-700 marker:text-brand-500">
           <li>Everyone earns their product&apos;s rate on their own till sales, ex VAT. Online orders don&apos;t count.</li>
-          <li>Licensed medicines never earn commission: the Medicines Act (s18A) bans incentives for supplying medicine.</li>
+          <li>
+            {rates.filter((r) => r.medicine).map((r) => r.label).join(" and ") || "Medicines"} never earn commission: the Medicines Act (s18A) bans incentives for supplying medicine
+            {rates.some((r) => r.cls === "CBD" && r.medicine) ? ", and CBD supplements count as medicine until counsel clears them" : ""}.
+          </li>
           <li>A refund claws back from whoever made the original sale, in the month of the refund.</li>
           <li>
             Sales rung onto the seller&apos;s own Rewards card don&apos;t count —{" "}

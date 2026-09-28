@@ -2,16 +2,17 @@
 // Catalogue: category rail, instant search + barcode entry, camera scan, product grid
 // (with licensed / markdown / deal / limited-drop badges).
 import { forwardRef, useMemo, useState } from "react";
-import { Camera, Cigarette, Cookie, Droplet, Flower2, Leaf, Pill, Search, Shirt, Sparkles, Sprout, Tag, Wind, X, LayoutGrid } from "lucide-react";
+import { Camera, Pill, Search, Sparkles, Tag, X, LayoutGrid } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
+import { incentiveExcluded } from "@/lib/compliance";
+import { categoryIcon } from "@/components/product/category-icons";
 import { cn } from "@/lib/cn";
 import { zarWhole, zar } from "@/lib/money";
 import { livePromotions } from "../lib/pricing";
 import { Chip, Sheet } from "../ui";
 import { DropChip } from "./cart-panel";
+import { factsLine } from "./facts-sheet";
 import type { BootData, BootDrop, BootProduct, BootVariant } from "@/server/pos/types";
-
-const ICONS: Record<string, React.ComponentType<{ className?: string }>> = { Flower2, Cigarette, Cookie, Wind, Droplet, Leaf, Sparkles, Sprout, Shirt };
 
 export type Filter = { kind: "all" } | { kind: "category"; id: string } | { kind: "deals" } | { kind: "suggestion"; label: string; productIds: string[]; categoryIds: string[] };
 
@@ -44,8 +45,11 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
     const live = livePromotions(boot.promotions, new Date());
     const products = new Set(live.flatMap((p) => p.productIds));
     const cats = new Set(live.flatMap((p) => p.categoryIds));
-    return { products, cats, any: live.some((p) => p.productIds.length || p.categoryIds.length) };
-  }, [boot.promotions]);
+    // Medicines never carry a deal (s18A: licensed products, and CBD supplements by default), even in a deal's category.
+    const excluded = incentiveExcluded(boot.settings.compliance);
+    const has = (p: BootProduct) => !excluded.includes(p.regClass) && (products.has(p.id) || cats.has(p.categoryId));
+    return { has, any: boot.products.some(has) };
+  }, [boot.promotions, boot.products, boot.settings.compliance]);
 
   const products = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -55,7 +59,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
         return q.split(/\s+/).every((w) => hay.includes(w));
       }
       if (filter.kind === "category") return p.categoryId === filter.id;
-      if (filter.kind === "deals") return deals.products.has(p.id) || deals.cats.has(p.categoryId);
+      if (filter.kind === "deals") return deals.has(p);
       if (filter.kind === "suggestion") return filter.productIds.includes(p.id) || filter.categoryIds.includes(p.categoryId);
       return true;
     });
@@ -89,7 +93,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
         {boot.categories
           .filter((c) => boot.products.some((p) => p.categoryId === c.id))
           .map((c) => {
-            const Icon = ICONS[c.icon] ?? Sparkles;
+            const Icon = categoryIcon(c.icon, Sparkles);
             return railItem(filter.kind === "category" && filter.id === c.id && !query, () => (setFilter({ kind: "category", id: c.id }), setQuery("")), <Icon className="h-5 w-5" />, c.name.replace("CBD ", ""), c.id);
           })}
       </nav>
@@ -157,7 +161,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
                 const stock = p.variants.reduce((s, v) => s + Math.max(0, v.available), 0);
                 const markdown = p.variants.some((v) => v.markdownPct > 0);
                 const licensed = licensedClasses.includes(p.regClass);
-                const deal = deals.products.has(p.id) || deals.cats.has(p.categoryId);
+                const deal = deals.has(p);
                 const drop = p.variants.map((v) => drops.get(v.id)).find(Boolean);
                 return (
                   <li key={p.id}>
@@ -199,7 +203,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
         </div>
       </div>
 
-      <Sheet open={!!picking} onClose={() => setPicking(null)} title={picking?.name ?? ""} subtitle="Choose a size" size="sm">
+      <Sheet open={!!picking} onClose={() => setPicking(null)} title={picking?.name ?? ""} subtitle={["Choose a size", picking && factsLine(picking)].filter(Boolean).join(" · ")} size="sm">
         {picking && (
           <ul className="space-y-2">
             {picking.variants.map((v) => (

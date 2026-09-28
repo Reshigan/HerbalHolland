@@ -1,6 +1,5 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import * as Icons from "lucide-react";
 import { ArrowRight, BadgeCheck, FlaskConical, HandHeart, Leaf, Moon, QrCode, ShieldCheck, Sprout, Store, Sun, Truck, Dumbbell } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -12,6 +11,7 @@ import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { featuredDrop, upcomingEvents } from "@/server/shop/launch";
 import { Lockup, Mark, PETAL } from "@/components/brand/logo";
 import { ProductArt } from "@/components/product/art";
+import { categoryIcon } from "@/components/product/category-icons";
 import { ButtonLink } from "@/components/ui/button";
 import { ProductGrid } from "@/components/shop/product-card";
 import { StoreCard } from "@/components/shop/store-card";
@@ -247,7 +247,7 @@ export default async function Home() {
         <SectionHead eyebrow="The range" title="Shop by category" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Everything <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           {publicCats.map((c) => {
-            const Icon = (Icons as unknown as Record<string, Icons.LucideIcon>)[c.icon] ?? Leaf;
+            const Icon = categoryIcon(c.icon, Leaf);
             return (
               <Link key={c.id} href={`/shop?category=${c.slug}`} className="group flex flex-col rounded-2xl border border-ink-800 bg-ink-900/60 p-5 transition hover:border-brand-500/60 hover:bg-ink-900">
                 <Icon className="h-7 w-7 text-brand-500" strokeWidth={1.6} />

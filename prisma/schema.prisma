@@ -216,8 +216,11 @@ enum StrainType {
 
 enum RegClass {
   THC // licence-gated: unsellable until a store holds a licence under a future regime
-  CBD // Schedule 0 CBD wellness
+  CBD // CBD supplements — Schedule 0 complementary medicines (oils, softgels): ≤ 20 mg a day, ≤ 600 mg a pack
+  CBD_FOOD // CBD food & drink (coffee, tea, protein): ≤ 0.0075% CBD, naturally occurring only (GN 586 of 2020)
+  CBD_TOPICAL // CBD skin care (creams, balms)
   HEMP
+  SUPPLEMENT // supplements without cannabis (collagen, protein)
   ACCESSORY
   APPAREL
   GROW
@@ -266,6 +269,12 @@ model Product {
   cbdMgPerPack   Int? // Schedule 0: ≤ 600 mg per sales pack
   cbdMgPerDay    Float? // Schedule 0: ≤ 20 mg maximum daily dose
   claims         String[]      @default([]) // approved low-risk claims only
+  // Food, supplement and skin-care facts (members see them on the product page and at the till)
+  netContent     Float? // one pack, in netUnit
+  netUnit        String? // "g" | "ml"
+  ingredients    String?
+  allergens      String[]      @default([]) // keys from @/lib/compliance ALLERGENS
+  naturalCbd     Boolean       @default(false) // CBD food & drink: only the CBD naturally in the ingredients
   tobaccoRelated Boolean       @default(false) // pipes, water-pipes, papers, vapes (Tobacco Bill B33-2022)
   featured       Boolean       @default(false)
   status         ProductStatus @default(ACTIVE)

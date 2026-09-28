@@ -27,16 +27,7 @@ export function AboutPage() {
             </div>
           </div>
           <figure className="build" data-r="build">
-            <div className="build__art">
-              <Mark className="build__mark" sails="spin" title={story.windmill.label} />
-              <ol className="build__parts" aria-hidden="true">
-                {story.windmill.parts.map((p, i) => (
-                  <li key={p}>
-                    <Index n={i + 1} /> {p}
-                  </li>
-                ))}
-              </ol>
-            </div>
+            <Mark className="build__mark" sails="spin" title={story.windmill.label} />
             <figcaption>
               <h3 className="h3">{story.windmill.title}</h3>
               <p>{story.windmill.body}</p>

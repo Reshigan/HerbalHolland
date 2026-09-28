@@ -189,12 +189,14 @@ export type SceneSpec = {
   /** The visible band of the scene: "0 0 1600 1000" for a full scene, a lower strip for page headers. */
   view?: string;
   hills?: (keyof typeof HILLS)[];
+  /** Keep the top of the band (the sun, the sails) and let wide screens crop the ground instead. */
+  top?: boolean;
 };
 
 export function Scene({ kind, spec, className }: { kind: string; spec: SceneSpec; className?: string }) {
-  const { sun, mill, view = "0 0 1600 1000", hills = ["hl1", "hl2", "hl3", "hl4"] } = spec;
+  const { sun, mill, view = "0 0 1600 1000", hills = ["hl1", "hl2", "hl3", "hl4"], top } = spec;
   const svg = (cls: string, body: React.ReactNode, key?: string) => (
-    <svg key={key} className={cx("sc__l", cls)} viewBox={view} preserveAspectRatio="xMidYMax slice" focusable="false">
+    <svg key={key} className={cx("sc__l", cls)} viewBox={view} preserveAspectRatio={`xMidY${top ? "Min" : "Max"} slice`} focusable="false">
       {body}
     </svg>
   );
@@ -231,17 +233,29 @@ export function Scene({ kind, spec, className }: { kind: string; spec: SceneSpec
   );
 }
 
+/** A small sunset for wide, short spaces (the Founding Member card): the sun low at the right, three gentle ridges. */
+export function MiniScene({ className }: { className?: string }) {
+  return (
+    <svg className={cx("mini", className)} viewBox="0 0 480 150" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+      <circle cx="392" cy="112" r="120" fill="url(#glow)" />
+      <circle cx="392" cy="112" r="46" fill="url(#sunfill)" mask="url(#stripes)" />
+      <path className="f-hl1" d="M0 112C60 92 120 96 170 104S270 86 330 98 430 88 480 100V150H0Z" />
+      <path className="f-hl2" d="M0 126C70 112 140 118 210 123S330 108 400 118 460 112 480 116V150H0Z" />
+      <path className="f-hl3" d="M0 140C90 130 180 134 260 137S400 126 480 134V150H0Z" />
+    </svg>
+  );
+}
+
 // Scene set-ups for each page. The home hero is the full picture; page headers get a lower strip at dusk.
 export const SCENES: Record<string, SceneSpec> = {
   home: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
-  about: { sun: { x: 420, y: 735, r: 150 }, view: "0 470 1600 530", hills: ["hl1", "hl2", "hl3", "hl4"] },
-  franchise: { sun: { x: 1190, y: 700, r: 175 }, view: "0 470 1600 530", mill: true, hills: ["hl1", "hl2", "hl3", "hl4"] },
-  press: { sun: { x: 800, y: 770, r: 190 }, view: "0 470 1600 530" },
-  careers: { sun: { x: 300, y: 720, r: 140 }, view: "0 470 1600 530" },
-  contact: { sun: { x: 1260, y: 760, r: 165 }, view: "0 470 1600 530" },
+  about: { sun: { x: 420, y: 735, r: 150 }, view: "0 470 1600 530", top: true },
+  franchise: { sun: { x: 1190, y: 700, r: 175 }, view: "0 470 1600 530", mill: true, top: true },
+  press: { sun: { x: 800, y: 770, r: 190 }, view: "0 470 1600 530", top: true },
+  careers: { sun: { x: 300, y: 720, r: 140 }, view: "0 470 1600 530", top: true },
+  contact: { sun: { x: 1260, y: 760, r: 165 }, view: "0 470 1600 530", top: true },
   gate: { sun: { x: 800, y: 790, r: 210 }, view: "0 380 1600 620", hills: ["hl1", "hl2", "hl3"] },
-  notfound: { sun: { x: 800, y: 900, r: 250 }, mill: true },
-  card: { sun: { x: 800, y: 720, r: 230 }, view: "240 430 1120 570", hills: ["hl1", "hl2", "hl3"] },
+  notfound: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
   storeA: { sun: { x: 1010, y: 700, r: 150 }, view: "260 470 1200 530" },
   storeB: { sun: { x: 560, y: 735, r: 135 }, view: "180 480 1200 520" },
 };

@@ -2,7 +2,7 @@
 // scripts run (html.js: motion styles apply) and settles the 18+ gate before anything is drawn, so a new visitor never
 // glimpses the page behind it and a returning adult never sees it flash. The page's module does the rest.
 //   localStorage hh_age   = the time "I'm 18 or older" was chosen; valid for 365 days
-//   sessionStorage hh_age = "under" after "I'm not 18 yet" (for this session), or "ok" where localStorage is blocked
+//   sessionStorage hh_age = "under" after "I'm younger than 18" (for this session), or "ok" where localStorage is blocked
 (() => {
   const d = document.documentElement;
   let age = "new";
@@ -18,7 +18,8 @@
   } catch {
     // Nothing to remember with: the gate asks on each page.
   }
-  d.classList.add("js");
+  // A returning adult sees the page's opening straight away (html.ready starts it); a new visitor sees it after the gate.
+  d.classList.add("js", ...(age === "ok" ? ["ready"] : []));
   d.setAttribute("data-age", age);
 })();
 

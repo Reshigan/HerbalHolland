@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { ArrowRight, BadgeCheck, ChevronRight, FlaskConical, Info, MapPin, Package, ShieldCheck, Sparkles, Store, Truck } from "lucide-react";
+import { AlertTriangle, ArrowRight, BadgeCheck, ChevronRight, FlaskConical, Info, MapPin, Package, ShieldCheck, Sparkles, Store, Truck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -29,7 +29,7 @@ import { WatchDrop } from "@/components/shop/launch-forms";
 import { Callout, Container, Panel, Price, Stars, Tag } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { describePromo, type PromoInput } from "@/lib/promotions";
-import { REG_CLASS_LABEL } from "@/lib/compliance";
+import { PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, THC_CAP_PCT, allergenStatement, cbdFoodLimitMg, declaresAllergens, netContentLabel } from "@/lib/compliance";
 import { fmtDate, fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { TierKey } from "@/lib/loyalty-rules";
@@ -130,10 +130,25 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const lab = asLab(batch?.labResults);
   const terps = lab?.terpenes?.length ? lab.terpenes : asTerps(product.terpenes);
   const tested = !!batch?.labName;
+  // CBD classes show their THC cap rather than a batch reading.
+  const thcCapped = CBD_CLASSES.includes(product.regClass);
   const potency = [
-    { label: "THC", value: batch?.thc != null && product.regClass !== "CBD" ? `${batch.thc}%` : range(product.thcMin, product.thcMax) },
+    { label: "THC", value: thcCapped ? `≤ ${product.thcMax ?? THC_CAP_PCT}%` : batch?.thc != null ? `${batch.thc}%` : range(product.thcMin, product.thcMax) },
     { label: "CBD", value: batch?.cbd != null ? `${batch.cbd}%` : range(product.cbdMin, product.cbdMax) },
   ].filter((p) => p.value);
+
+  // Product facts (food, supplements, skin care, CBD supplements): what's in it and the allergens it declares.
+  const facts = PRODUCT_FACTS[product.regClass];
+  const netLabel = netContentLabel(product.netContent, product.netUnit);
+  const allergenText = allergenStatement(product.allergens);
+  const cbdPackNote =
+    product.cbdMgPerPack == null
+      ? null
+      : product.regClass === "CBD"
+        ? `${product.cbdMgPerPack} mg (Schedule 0 limit: 600 mg)`
+        : product.regClass === "CBD_FOOD" && product.netContent
+          ? `${product.cbdMgPerPack} mg in ${netLabel} (limit: ${Math.round(cbdFoodLimitMg(product.netContent) * 100) / 100} mg, 0.0075%)`
+          : `${product.cbdMgPerPack} mg`;
 
   const jsonLd = !licensed && {
     "@context": "https://schema.org",
@@ -396,6 +411,35 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             <div className="mt-8 space-y-4 text-[1.02rem] leading-relaxed text-ink-300">
               <p>{product.description}</p>
             </div>
+
+            {facts && (netLabel || product.ingredients || allergenText) && (
+              <section aria-labelledby="facts" className="mt-8">
+                <h2 id="facts" className="eyebrow text-brand-500">Product facts</h2>
+                <Panel className="mt-3 divide-y divide-ink-800 text-sm">
+                  {netLabel && (
+                    <div className="flex justify-between gap-4 px-5 py-3">
+                      <span className="text-ink-400">Net content</span>
+                      <span className="tnum font-medium text-ink-100">{netLabel}</span>
+                    </div>
+                  )}
+                  {product.ingredients && (
+                    <div className="px-5 py-3">
+                      <div className="text-ink-400">Ingredients</div>
+                      <p className="mt-1 leading-relaxed text-ink-100">{product.ingredients}</p>
+                    </div>
+                  )}
+                  {allergenText && (
+                    <p className={cn("flex items-start gap-2 px-5 py-3 font-medium", declaresAllergens(product.allergens) ? "text-amber-100" : "text-ink-200")}>
+                      {declaresAllergens(product.allergens) ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />}
+                      <span>
+                        <span className="sr-only">Allergens: </span>
+                        {allergenText}
+                      </span>
+                    </p>
+                  )}
+                </Panel>
+              </section>
+            )}
           </div>
         </div>
 
@@ -516,10 +560,16 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                         <dd className="mt-0.5 font-medium text-ink-100">{product.legalBasis}</dd>
                       </div>
                     )}
-                    {product.cbdMgPerPack != null && (
+                    {cbdPackNote && (
                       <div>
                         <dt className="text-ink-400">CBD per pack</dt>
-                        <dd className="tnum mt-0.5 font-medium text-ink-100">{product.cbdMgPerPack} mg (Schedule 0 limit: 600 mg)</dd>
+                        <dd className="tnum mt-0.5 font-medium text-ink-100">{cbdPackNote}</dd>
+                      </div>
+                    )}
+                    {product.regClass === "CBD_FOOD" && product.naturalCbd && (
+                      <div>
+                        <dt className="text-ink-400">CBD source</dt>
+                        <dd className="mt-0.5 font-medium text-ink-100">Only what&apos;s naturally in its hemp ingredients — none added</dd>
                       </div>
                     )}
                     {product.cbdMgPerDay != null && (
@@ -528,7 +578,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                         <dd className="tnum mt-0.5 font-medium text-ink-100">{product.cbdMgPerDay} mg CBD (limit: 20 mg)</dd>
                       </div>
                     )}
-                    {product.regClass === "CBD" && (
+                    {thcCapped && (
                       <div>
                         <dt className="text-ink-400">THC</dt>
                         <dd className="mt-0.5 font-medium text-ink-100">No more than 0.001%</dd>
@@ -551,9 +601,15 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     <Info className="mt-px h-3.5 w-3.5 shrink-0" />
                     {product.regClass === "CBD"
                       ? "Use as directed and don't exceed the daily serving. Not intended to diagnose, treat, cure or prevent any disease. If you're pregnant, breastfeeding or take medication, speak to a pharmacist or doctor first. Adults 18+."
-                      : licensed
-                        ? "A medicine supplied on a SAHPRA Section 21 authorisation. Use only as directed by your prescriber."
-                        : "For adults 18+. Keep out of reach of children."}
+                      : product.regClass === "CBD_FOOD"
+                        ? "A food, not a medicine: it holds only the CBD naturally present in its hemp ingredients. Not intended to diagnose, treat, cure or prevent any disease. If you're pregnant, breastfeeding or take medication, speak to a pharmacist or doctor first. Adults 18+."
+                        : product.regClass === "CBD_TOPICAL"
+                          ? "For use on the skin only. Patch-test first and stop if irritation develops. Not intended to diagnose, treat, cure or prevent any disease. Adults 18+."
+                          : product.regClass === "SUPPLEMENT"
+                            ? "A food supplement: don't take more than the serving on the label, and use it alongside a varied diet. If you're pregnant, breastfeeding or take medication, speak to a pharmacist or doctor first."
+                            : licensed
+                              ? "A medicine supplied on a SAHPRA Section 21 authorisation. Use only as directed by your prescriber."
+                              : "For adults 18+. Keep out of reach of children."}
                   </p>
                 </Panel>
               </section>

@@ -3,7 +3,7 @@
 import { num } from "@/lib/format";
 import { BRAND, CHROME, EMAIL, HOME, fill } from "../../content";
 import { FACTS, joinLink, longDate, shopLink, shortDay } from "../../facts";
-import { AgeBadge, Globe, Mark, SCENES, Sails, Scene, cx } from "../art";
+import { AgeBadge, Globe, Mark, MiniScene, SCENES, Sails, Scene, cx } from "../art";
 import { JoinDoor, Page } from "../layout";
 import { Btn, Head, Icon, Index, Reel, ShopDoor, Soon, Words } from "../ui";
 
@@ -17,12 +17,16 @@ function Hero() {
     <section className="hero" data-sp="exit" aria-labelledby="hero-title">
       <Scene kind="home" spec={SCENES.home} className="hero__scene" />
       <div className="wrap hero__in">
-        <p className="eyebrow hero__eyebrow">{h.eyebrow}</p>
+        <p className="eyebrow" data-in="1">
+          {h.eyebrow}
+        </p>
         <h1 id="hero-title" className="hero__title rise">
           <Words text={h.title} accent />
         </h1>
-        <p className="hero__kicker">{fill(h.kicker, { opening })}</p>
-        <div className="hero__ctas">
+        <p className="hero__kicker" data-in="2">
+          {fill(h.kicker, { opening })}
+        </p>
+        <div className="ctas" data-in="3">
           <Btn href="#founding" magnetic>
             {h.primary}
           </Btn>
@@ -31,7 +35,7 @@ function Hero() {
           </Btn>
         </div>
       </div>
-      <div className="wrap hero__foot">
+      <div className="wrap hero__foot" data-in="4">
         <p className="hero__age">
           <AgeBadge />
           <span>{h.note}</span>
@@ -60,6 +64,30 @@ function Statement() {
             </span>
           ))}
         </p>
+      </div>
+    </section>
+  );
+}
+
+/** What's in store, by category: big words, each on its own line. Categories only; no products. */
+function Range() {
+  const r = HOME.range;
+  return (
+    <section className="sheet sec range" aria-labelledby="range-title">
+      <div className="wrap split">
+        <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro}>
+          <p className="range__note muted" data-r="">
+            <Icon name="medicines" size={16} /> {r.note}
+          </p>
+        </Head>
+        <ol className="range__list" data-rs="">
+          {r.items.map((it, i) => (
+            <li key={it} className="range__item" data-r="">
+              <Index n={i + 1} />
+              <span className="range__w">{it}</span>
+            </li>
+          ))}
+        </ol>
       </div>
     </section>
   );
@@ -183,23 +211,14 @@ function Standards() {
       </div>
     ),
     members: (
-      <div className="mcard" aria-hidden="true">
-        <Mark className="mcard__mark" />
-        <span className="mcard__k">{s.members.card}</span>
-        <span className="mcard__line" />
-        <span className="mcard__line mcard__line--s" />
-        <span className="mcard__id">
-          <Icon name="members" size={14} /> {s.members.id}
-        </span>
+      <div className="rx" aria-hidden="true">
+        <Icon name="members" size={30} />
+        <span>{s.members.id}</span>
       </div>
     ),
     adults: (
-      <div className="ring18" aria-hidden="true">
-        <svg viewBox="0 0 120 120" focusable="false">
-          <circle cx="60" cy="60" r="54" className="ring18__dash" />
-          <circle cx="60" cy="60" r="44" className="ring18__solid" />
-        </svg>
-        <span>18+</span>
+      <div className="rx" aria-hidden="true">
+        <AgeBadge />
       </div>
     ),
     medicines: (
@@ -356,7 +375,7 @@ function Founding() {
                 </span>
                 <span className="fcard__of">{fill(f.card.of, v)}</span>
               </div>
-              <Scene kind="fcard" spec={SCENES.card} className="fcard__art" />
+              <MiniScene className="fcard__art" />
               <span className="glare" />
             </div>
           </div>
@@ -464,6 +483,7 @@ export function HomePage() {
     <Page page="home" meta={{ path: "/", title: HOME.meta.title, description: fill(HOME.meta.description, { opening }), absolute: true }} jsonLd={org}>
       <Hero />
       <Statement />
+      <Range />
       <Marquee />
       <Journey />
       <Standards />

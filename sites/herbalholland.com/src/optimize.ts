@@ -4,6 +4,8 @@
 //   3. class names → short names, identically in the CSS and in every page. A class any script names (adds, toggles
 //      or queries) keeps its name, so the scripts need no mapping.
 
+import ts from "typescript";
+
 // ── 1. color-mix() ───────────────────────────────────────────────────────────
 type RGB = [number, number, number];
 const lin = (c: number) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
@@ -49,9 +51,25 @@ export function precomputeColors(css: string) {
 // ── 2. Tokens ────────────────────────────────────────────────────────────────
 export function shortenTokens(css: string) {
   const root = css.match(/:root\s*\{([^}]*)\}/)?.[1] ?? "";
-  const names = [...root.matchAll(/--([\w-]+)\s*:/g)].map((m) => m[1]);
-  const map = new Map(names.map((n, i) => [n, `z${i.toString(36)}`]));
-  return css.replace(/--([\w-]+)/g, (m, n: string) => (map.has(n) ? `--${map.get(n)}` : m));
+  const decl = new Map([...root.matchAll(/--([\w-]+)\s*:\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+  const uses = (n: string) => css.split(`var(--${n})`).length - 1;
+  // A plain colour token used only once is cheaper written out where it's used.
+  const inline = new Set([...decl].filter(([n, v]) => /^#[0-9a-f]+$/i.test(v) && uses(n) <= 1).map(([n]) => n));
+  let out = css;
+  for (const n of inline) out = out.replace(`var(--${n})`, decl.get(n)!).replace(new RegExp(`--${n}\\s*:[^;]+;\\s*`), "");
+  const map = new Map([...decl.keys()].filter((n) => !inline.has(n)).map((n, i) => [n, `z${i.toString(36)}`]));
+  return out.replace(/--([\w-]+)/g, (m, n: string) => (map.has(n) ? `--${map.get(n)}` : m));
+}
+
+/** What the minifier leaves: the space after a custom property's colon, "transparent" (#0000) and spaced slashes. */
+export function tighten(css: string) {
+  const urls: string[] = [];
+  return css
+    .replace(/url\([^)]*\)/g, (u) => `\u0000${urls.push(u) - 1}\u0000`)
+    .replace(/([{;]--[\w-]+):\s+/g, "$1:")
+    .replace(/\btransparent\b/g, "#0000")
+    .replace(/ \/ /g, "/")
+    .replace(/\u0000(\d+)\u0000/g, (_, i: string) => urls[Number(i)]);
 }
 
 // ── 3. Class names ───────────────────────────────────────────────────────────
@@ -65,13 +83,28 @@ const shortName = (n: number) => {
   return s;
 };
 
-export function mangleClasses(css: string, pages: string[], scripts: string[]) {
+/** Every string literal (and template-literal text) in a script, read with TypeScript's scanner. */
+export function literals(src: string) {
+  const sc = ts.createScanner(ts.ScriptTarget.Latest, true, ts.LanguageVariant.Standard, src);
+  const out: string[] = [];
+  const braces: boolean[] = []; // true = the brace that closes a template's ${ … }
+  const K = ts.SyntaxKind;
+  for (let k = sc.scan(); k !== K.EndOfFileToken; k = sc.scan()) {
+    if (k === K.OpenBraceToken) braces.push(false);
+    else if (k === K.CloseBraceToken && braces.pop()) k = sc.reScanTemplateToken(false);
+    if (k === K.TemplateHead || k === K.TemplateMiddle) braces.push(true);
+    if (k === K.StringLiteral || k === K.NoSubstitutionTemplateLiteral || k === K.TemplateHead || k === K.TemplateMiddle || k === K.TemplateTail) out.push(sc.getTokenValue());
+  }
+  return out;
+}
+
+export function mangleClasses(css: string, pages: string[], scriptStrings: string[]) {
   const count = new Map<string, number>();
   const bump = (c: string, k = 1) => count.set(c, (count.get(c) ?? 0) + k);
   for (const h of pages) for (const m of h.matchAll(/\sclass="([^"]*)"/g)) for (const c of m[1].split(/\s+/)) if (c) bump(c);
   const inCss = new Set([...css.replace(/url\([^)]*\)/g, "").matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((m) => m[1]));
-  // Every string literal in the scripts: a class named there keeps its name.
-  const strings = scripts.flatMap((s) => [...s.matchAll(/(["'`])((?:\\.|(?!\1)[^\\])*?)\1/g)].map((m) => m[2])).join(" ");
+  // A class any script names (in a string: a selector, or a class it adds or toggles) keeps its name.
+  const strings = scriptStrings.join(" ");
   const named = (c: string) => new RegExp(`(^|[^\\w-])${c.replace(/[-]/g, "\\-")}(?![\\w-])`).test(strings);
   const keep = new Set([...count.keys(), ...inCss].filter(named));
   const taken = new Set([...count.keys(), ...inCss]);

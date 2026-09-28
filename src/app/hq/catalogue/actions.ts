@@ -4,12 +4,14 @@ import { redirect } from "next/navigation";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
-import { str, opt, bool, parseNum, parseRand, parseInt10, splitList, slugify } from "@/server/hq/form";
+import { str, opt, bool, list, parseNum, parseRand, parseInt10, splitList, slugify } from "@/server/hq/form";
 import { PRODUCT_STATUSES, REG_CLASSES } from "@/server/hq/catalogue";
-import { screenCopy, validateCbdProduct } from "@/lib/compliance";
+import { ALLERGENS, PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, screenCopy, validateProduct } from "@/lib/compliance";
 import type { Prisma, ProductStatus, RegClass, StoreFormat, StrainType } from "@/generated/prisma/client";
 
 const STRAINS: StrainType[] = ["INDICA", "SATIVA", "HYBRID", "CBD"];
+// Changes to these are compliance changes (audited as compliance.product), as is a THC cap on a class that has one.
+const COMPLIANCE_KEYS = ["legalBasis", "cbdMgPerPack", "cbdMgPerDay", "claims", "tobaccoRelated", "netContent", "netUnit", "ingredients", "allergens", "naturalCbd"];
 
 export async function saveProduct(productId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("network");
@@ -45,19 +47,37 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   const terpenes = terpNames.map((n, i) => ({ name: n, pct: terpPcts[i] })).filter((t) => t.name);
   if (terpenes.some((t) => t.pct == null || t.pct < 0 || t.pct > 10)) fields.terpenes = "Each terpene needs a % between 0 and 10";
 
-  const cbdMgPerPack = parseInt10(str(fd, "cbdMgPerPack"));
+  const cbdPackRaw = str(fd, "cbdMgPerPack");
+  const cbdMgPerPack = parseInt10(cbdPackRaw);
+  if (cbdPackRaw && cbdMgPerPack == null) fields.cbdMgPerPack = "Whole milligrams";
   const cbdMgPerDay = parseNum(str(fd, "cbdMgPerDay"));
   const claims = fd.getAll("claim").map((v) => String(v).trim()).filter(Boolean);
   for (const c of claims) {
     const flags = screenCopy(c);
     if (flags.length) fields.claims = `"${c}" — ${flags[0].reason}`;
   }
-  const cbdIssues = validateCbdProduct({ regClass, cbdMgPerPack, cbdMgPerDay, thcMax, claims });
-  if (cbdIssues.length) fields.compliance = cbdIssues.join(" · ");
+
+  // Product facts (food, supplements, skin care, CBD supplements): stored only for the classes that carry them.
+  const facts = PRODUCT_FACTS[regClass] ?? [];
+  const netRaw = str(fd, "netContent");
+  const netContent = parseNum(netRaw);
+  if (netRaw && (netContent == null || netContent <= 0 || netContent > 100_000)) fields.netContent = "A number above 0, e.g. 250";
+  const netUnit = ["g", "ml"].includes(str(fd, "netUnit")) ? str(fd, "netUnit") : null;
+  const ingredients = opt(fd, "ingredients");
+  if (ingredients && ingredients.length > 2_000) fields.ingredients = "Keep it under 2,000 characters";
+  const allergens = list(fd, "allergens");
+  const naturalCbd = bool(fd, "naturalCbd");
+
+  const issues = validateProduct({ regClass, cbdMgPerPack, cbdMgPerDay, thcMax, claims, netContent, netUnit, ingredients, allergens, naturalCbd });
+  if (issues.length) fields.compliance = issues.join(" · ");
   const copy = [name, str(fd, "tagline"), description].join(" ");
   const copyFlags = screenCopy(copy);
   if (copyFlags.length) fields.description = `"${copyFlags[0].term}" — ${copyFlags[0].reason}`;
-  if (Object.keys(fields).length) return fail(fields.compliance ? "This product doesn't meet Schedule 0 CBD rules — fix it before saving." : "Check the highlighted fields.", fields);
+  if (Object.keys(fields).length)
+    return fail(
+      !fields.compliance ? "Check the highlighted fields." : regClass === "CBD" ? "This product doesn't meet Schedule 0 CBD rules — fix it before saving." : `This product doesn't meet the rules for ${REG_CLASS_LABEL[regClass]} — fix it before saving.`,
+      fields,
+    );
 
   const data = {
     name, slug, description, categoryId, regClass, status, strain, thcMin, thcMax, cbdMin, cbdMax,
@@ -72,10 +92,15 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
     heritage: bool(fd, "heritage"),
     featured: bool(fd, "featured"),
     legalBasis: opt(fd, "legalBasis"),
-    cbdMgPerPack: regClass === "CBD" ? cbdMgPerPack : null,
+    cbdMgPerPack: CBD_CLASSES.includes(regClass) ? cbdMgPerPack : null,
     cbdMgPerDay: regClass === "CBD" ? cbdMgPerDay : null,
     claims,
     tobaccoRelated: bool(fd, "tobaccoRelated"),
+    netContent: facts.includes("netContent") ? netContent : null,
+    netUnit: facts.includes("netContent") && netContent != null ? netUnit : null,
+    ingredients: facts.includes("ingredients") ? ingredients : null,
+    allergens: facts.includes("allergens") ? allergens.filter((a) => a in ALLERGENS) : [],
+    naturalCbd: regClass === "CBD_FOOD" && naturalCbd,
   };
 
   if (!productId) {
@@ -87,7 +112,8 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   const before = await db.product.findUniqueOrThrow({ where: { id: productId } });
   await db.product.update({ where: { id: productId }, data: { ...data, terpenes: terpenes.length ? (terpenes as Prisma.InputJsonValue) : [] } });
   const changed = (Object.keys(data) as (keyof typeof data)[]).filter((k) => JSON.stringify(before[k] ?? null) !== JSON.stringify(data[k] ?? null));
-  await audit(db, g.actor, before.regClass !== regClass || changed.some((k) => ["legalBasis", "cbdMgPerPack", "cbdMgPerDay", "claims", "tobaccoRelated"].includes(k)) ? "compliance.product" : "product.update", {
+  const compliance = before.regClass !== regClass || changed.some((k) => COMPLIANCE_KEYS.includes(k) || (k === "thcMax" && CBD_CLASSES.includes(regClass)));
+  await audit(db, g.actor, compliance ? "compliance.product" : "product.update", {
     entity: "Product", entityId: productId, data: { changed },
   });
   revalidatePath(`/hq/catalogue/${productId}`);

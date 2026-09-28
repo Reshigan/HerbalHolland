@@ -10,17 +10,21 @@ export function NotFoundPage() {
       <section className="nf" data-sp="exit" aria-labelledby="nf-title">
         <Scene kind="notfound" spec={SCENES.notfound} className="nf__scene" />
         <div className="wrap nf__in">
-          <p className="eyebrow">{NOT_FOUND.eyebrow}</p>
+          <p className="eyebrow" data-in="1">
+            {NOT_FOUND.eyebrow}
+          </p>
           <h1 id="nf-title" className="h1 rise">
             <Words text={NOT_FOUND.title} />
           </h1>
-          <p className="lede">{NOT_FOUND.body}</p>
-          <div className="phero__ctas">
+          <p className="lede" data-in="2">
+            {NOT_FOUND.body}
+          </p>
+          <div className="ctas" data-in="3">
             <Btn href="/" magnetic>
               {NOT_FOUND.home}
             </Btn>
           </div>
-          <p className="nf__try">
+          <p className="nf__try" data-in="3">
             {NOT_FOUND.try}{" "}
             {CHROME.nav.map((n, i) => (
               <span key={n.key}>

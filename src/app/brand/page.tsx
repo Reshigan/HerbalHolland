@@ -333,6 +333,9 @@ export default function BrandBook() {
             ["Indica", "THC", "INDICA"],
             ["Hybrid", "THC", "HYBRID"],
             ["CBD", "CBD", "CBD"],
+            ["CBD food & drink", "CBD_FOOD", null],
+            ["CBD skin care", "CBD_TOPICAL", null],
+            ["Supplements", "SUPPLEMENT", null],
             ["Hemp", "HEMP", null],
             ["Accessories", "ACCESSORY", null],
             ["Apparel", "APPAREL", null],
@@ -376,7 +379,8 @@ export default function BrandBook() {
             <ul className="mt-4 space-y-3 text-sm text-ink-700">
               <Rule ok={false}>Any claim to treat, cure or prevent a condition — or naming one.</Rule>
               <Rule ok={false}>Slang that glamorises getting high, or copy that could appeal to under-18s.</Rule>
-              <Rule ok={false}>Promotions, member prices or points on licensed medicines.</Rule>
+              <Rule ok={false}>Promotions, member prices or points on medicines: licensed products, and CBD supplements (oils, softgels) until counsel clears them.</Rule>
+              <Rule ok={false}>Food and supplement health claims: “boosts”, “detox”, “fat-burning”, “anti-ageing”, “immunity”, “weight loss”.</Rule>
               <Rule ok={false}>“Guaranteed”, “100% safe”, “miracle”, “clinically proven”.</Rule>
               <Rule ok={false}>Retired names: the old loyalty and product names, or royal Dutch references.</Rule>
             </ul>

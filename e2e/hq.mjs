@@ -108,7 +108,8 @@ const SFX = sfx.toUpperCase();
 const created = { announcements: [], offers: [], mails: [], campaigns: [] };
 const T = {
   storeName: `E2E Store ${sfx}`,
-  productName: `E2E Calm Balm ${sfx}`,
+  productName: `E2E Calm Tonic ${sfx}`,
+  categoryName: `E2E Tonics ${sfx}`,
   sku: `E2E-${SFX}-30`,
   batchCode: `E2E${SFX}`,
   listName: `E2E list ${sfx}`,
@@ -238,7 +239,7 @@ try {
   await shot("store-detail");
 
   // ── Catalogue ─────────────────────────────────────────────────────────────
-  step("Catalogue: new draft CBD product (validation first), edit it, add + edit a variant, range and unrange it");
+  step("Catalogue: new draft CBD supplement (validation first: Schedule 0 limits and product facts), reclassify it as CBD food & drink (0.0075% limit), add + edit a variant, range and unrange it");
   const cat = await one(`select c.id, c.name from "Category" c where exists (select 1 from "Product" p where p."categoryId" = c.id and p."regClass" = 'CBD') order by c."sortOrder" limit 1`);
   await open("/hq/catalogue", page.getByRole("link", { name: /New product/ }));
   await page.getByRole("link", { name: /New product/ }).click();
@@ -252,17 +253,39 @@ try {
   assert(await pf.getByRole("button", { name: "Create product" }).isDisabled(), "Create is blocked until the Schedule 0 fields are filled");
   await pf.locator("#cbdMgPerPack").fill("300");
   await pf.locator("#cbdMgPerDay").fill("10");
+  await pf.getByText("List the ingredients").waitFor();
+  assert(await pf.getByRole("button", { name: "Create product" }).isDisabled(), "…and until its ingredients and allergens are declared");
+  await pf.locator("#ingredients").fill("MCT oil (from coconut), broad-spectrum hemp extract (300 mg CBD), natural peppermint oil");
+  await pf.getByRole("checkbox", { name: "No major allergens" }).check();
   await pf.getByText("Within Schedule 0 limits").waitFor();
   await act("catalogue.saveProduct · invalid", () => pf.getByRole("button", { name: "Create product" }).click(), () => alertIn(pf, "Write at least a sentence").waitFor());
-  await pf.locator("#description").fill("A whipped shea and CBD balm for the end of a long day. Small-batch, made in the Western Cape.");
+  await pf.locator("#description").fill("A peppermint and hemp tonic for the end of a long day. Small-batch, made in the Western Cape.");
   await act("catalogue.saveProduct (create)", () => pf.getByRole("button", { name: "Create product" }).click(), () => page.getByText("Product created", { exact: true }).waitFor());
-  product = await one(`select id, slug, status, "regClass", "cbdMgPerPack", "cbdMgPerDay", "legalBasis" from "Product" where name = $1`, [T.productName]);
+  product = await one(`select id, slug, status, "regClass", "cbdMgPerPack", "cbdMgPerDay", "legalBasis", ingredients, allergens from "Product" where name = $1`, [T.productName]);
   assert(page.url().includes(`/hq/catalogue/${product?.id}?created=1`) && product.status === "DRAFT" && product.regClass === "CBD" && product.cbdMgPerPack === 300, `draft product /p/${product?.slug} created (CBD, 300 mg per pack, "${product?.legalBasis}")`);
+  assert(product.ingredients?.startsWith("MCT oil") && JSON.stringify(product.allergens) === '["none"]', "ingredients and “No major allergens” saved");
   pf = formWith("#regClass");
   await hydrated(pf);
   await pf.locator("#tagline").fill(`Small-batch calm (${sfx}).`);
   await act("catalogue.saveProduct (update)", () => pf.getByRole("button", { name: "Save product" }).click(), () => notice("Product saved.").waitFor());
   assert((await one(`select tagline from "Product" where id = $1`, [product.id])).tagline === `Small-batch calm (${sfx}).`, "tagline updated");
+  // Reclassify as CBD food & drink (a 30 ml tonic): at most 0.0075% CBD of the net content, only what the hemp brings.
+  await pf.locator("#regClass").selectOption("CBD_FOOD");
+  await pf.locator("#netContent").fill("30");
+  await pf.locator('select[name="netUnit"]').selectOption("ml");
+  await pf.getByText("CBD food & drink may hold at most 2.25 mg CBD in 30 ml (0.0075%)").waitFor();
+  assert(await pf.getByRole("button", { name: "Save product" }).isDisabled(), "300 mg in 30 ml is over the CBD food limit: Save is blocked");
+  await pf.locator("#cbdMgPerPack").fill("2");
+  await pf.locator("#thcMax").fill("0.001");
+  await pf.getByRole("checkbox", { name: "Only the CBD naturally in its ingredients" }).check();
+  await pf.getByText("Within the CBD food limit: 2 mg of the 2.25 mg allowed in 30 ml").waitFor();
+  await act("catalogue.saveProduct (reclassify)", () => pf.getByRole("button", { name: "Save product" }).click(), () => notice("Product saved.").waitFor());
+  const tonic = await one(`select "regClass", "netContent", "netUnit", "cbdMgPerPack", "cbdMgPerDay", "naturalCbd", "thcMax", "legalBasis" from "Product" where id = $1`, [product.id]);
+  assert(
+    tonic.regClass === "CBD_FOOD" && tonic.netContent === 30 && tonic.netUnit === "ml" && tonic.cbdMgPerPack === 2 && tonic.cbdMgPerDay == null && tonic.naturalCbd && tonic.thcMax === 0.001 && tonic.legalBasis.startsWith("CBD food"),
+    "now CBD food & drink: 2 mg in 30 ml, natural CBD only, THC ≤ 0.001%, no daily dose",
+  );
+  assert(await one(`select 1 from "AuditLog" where action = 'compliance.product' and "entityId" = $1`, [product.id]), "reclassification audited as compliance.product");
   const vnew = formWith("#sku-new");
   await vnew.locator("#sku-new").fill(T.sku.toLowerCase());
   await vnew.locator("#name-new").fill("30ml");
@@ -296,6 +319,34 @@ try {
   await act("catalogue.rangeVariant (unrange)", () => rf.getByRole("button", { name: "Unrange" }).click(), () => notice(`${T.sku} unranged at ${matching} store`).waitFor());
   assert(!(await one(`select 1 from "StoreVariant" where "variantId" = $1`, [variant.id])), "unranged again");
   await shot("product");
+
+  step("Catalogue: a category — add it (slug from the name, copy screened), edit it, move it up, delete it once empty");
+  await open("/hq/catalogue/categories", formWith("#cat-name"));
+  let catForm = formWith("#cat-name");
+  await catForm.locator("#cat-name").fill(T.categoryName);
+  assert((await catForm.locator("#cat-slug").inputValue()) === `e2e-tonics-${sfx}`, "slug follows the name");
+  await catForm.locator("#cat-blurb").fill("Detox tonics for the weekend");
+  await act("categories.saveCategory · health claim", () => catForm.getByRole("button", { name: "Add category" }).click(), () => alertIn(catForm, "Health claim").waitFor());
+  await catForm.locator("#cat-blurb").fill("Rooibos and hemp tonics, served cold.");
+  await catForm.getByRole("radio", { name: "Drink" }).check({ force: true });
+  await act("categories.saveCategory (create)", () => catForm.getByRole("button", { name: "Add category" }).click(), () => notice(`“${T.categoryName}” added`).waitFor());
+  const category = await one(`select id, slug, icon, "sortOrder" from "Category" where name = $1`, [T.categoryName]);
+  assert(category?.slug === `e2e-tonics-${sfx}` && category.icon === "CupSoda" && (await one(`select 1 from "AuditLog" where action = 'category.create' and "entityId" = $1`, [category.id])), `category /shop?category=${category?.slug} added (audited)`);
+  const catRow = () => page.locator("tr").filter({ hasText: `/shop?category=e2e-tonics-${sfx}` });
+  await catRow().getByRole("link", { name: "Edit" }).click();
+  await page.waitForURL(/edit=/);
+  catForm = formWith("#cat-name");
+  await hydrated(catForm);
+  await catForm.locator("#cat-name").fill(`${T.categoryName} & more`);
+  await act("categories.saveCategory (update)", () => catForm.getByRole("button", { name: "Save category" }).click(), () => notice(`“${T.categoryName} & more” saved.`).waitFor());
+  assert((await one(`select name, slug from "Category" where id = $1`, [category.id])).slug === `e2e-tonics-${sfx}`, "renamed; the URL slug stays");
+  await act("categories.moveCategory", () => catRow().getByRole("button", { name: /up$/ }).click(), async () => {
+    if (!(await until(async () => (await one(`select "sortOrder" from "Category" where id = $1`, [category.id])).sortOrder < category.sortOrder))) fail("category didn't move up");
+  });
+  ok("moved up one place (audited as category.reorder)");
+  await catRow().getByRole("button", { name: "Delete" }).click();
+  await act("categories.deleteCategory", () => page.getByRole("group", { name: /^Delete E2E Tonics/ }).getByRole("button", { name: "Delete", exact: true }).click(), () => notice(`“${T.categoryName} & more” deleted.`).waitFor());
+  assert(!(await one(`select 1 from "Category" where id = $1`, [category.id])), "deleted (it was empty)");
 
   // ── Fixtures (SQL) for the rest of the run ────────────────────────────────
   step(`Fixtures: a batch of ${T.sku} at ${dc.name}, a throwaway member homed at the test store, an unpaid order`);
@@ -953,17 +1004,21 @@ try {
   const ranAt = (await one(`select now() t`)).t;
   await act("loss.runChecks", () => page.getByRole("button", { name: "Run checks now" }).click(), () => notice(/^Checks run/).waitFor());
   assert((await one(`select count(*)::int n from "AuditLog" where action = 'loss.run' and "actorId" = $1 and at >= $2`, [admin.id, ranAt])).n === 1, "checks run (audited)");
-  await open("/hq/commission", formWith("#rate_CBD"));
-  const rateForm = formWith("#rate_CBD");
-  const cbd = await rateForm.locator("#rate_CBD").inputValue();
-  assert(!(await rateForm.locator("#rate_THC").count()) && (await rateForm.getByText("Medicines Act s18A").count()), "THC has no rate field: 0% by law (Medicines Act s18A)");
-  await rateForm.locator("#rate_CBD").fill("12");
+  await open("/hq/commission", formWith("#rate_CBD_FOOD"));
+  const rateForm = formWith("#rate_CBD_FOOD");
+  const food = await rateForm.locator("#rate_CBD_FOOD").inputValue();
+  assert(
+    !(await rateForm.locator("#rate_THC").count()) && !(await rateForm.locator("#rate_CBD").count()) && (await rateForm.getByText("Medicines Act s18A").count()) >= 2,
+    "THC and CBD supplements have no rate field: 0% (Medicines Act s18A)",
+  );
+  await rateForm.locator("#rate_CBD_FOOD").fill("12");
   await act("commission.saveRates · invalid", () => rateForm.getByRole("button", { name: "Save rates" }).click(), () => alertIn(rateForm, "0–10%").waitFor());
-  const cbdNew = String(Number(cbd) + 0.5);
-  await rateForm.locator("#rate_CBD").fill(cbdNew);
+  const foodNew = String(Number(food) + 0.5);
+  await rateForm.locator("#rate_CBD_FOOD").fill(foodNew);
   await act("commission.saveRates", () => rateForm.getByRole("button", { name: "Save rates" }).click(), () => notice(/^Rates saved/).waitFor());
-  assert((await setting("commission"))?.bps?.CBD === Math.round(Number(cbdNew) * 100), `CBD commission ${cbd}% → ${cbdNew}%`);
-  await rateForm.locator("#rate_CBD").fill(cbd);
+  const bps = (await setting("commission"))?.bps;
+  assert(bps?.CBD_FOOD === Math.round(Number(foodNew) * 100) && bps?.CBD === 0, `CBD food & drink commission ${food}% → ${foodNew}%; CBD supplements stay at 0%`);
+  await rateForm.locator("#rate_CBD_FOOD").fill(food);
   await act("commission.saveRates (restore)", () => rateForm.getByRole("button", { name: "Save rates" }).click(), () => notice(/^Rates saved/).waitFor());
   await restoreSetting("commission");
 
@@ -1113,6 +1168,7 @@ async function cleanup() {
     await run("variant stats", `delete from "DailyVariantStat" where "variantId" = $1`, [variant.id]);
   }
   await run("product", `delete from "Product" where name = $1`, [T.productName]); // variants and batches go with it
+  await run("category", `delete from "Category" where name like $1 and not exists (select 1 from "Product" p where p."categoryId" = "Category".id)`, [`${T.categoryName}%`]);
   if (store) {
     await run("store range", `delete from "StoreVariant" where "storeId" = $1`, [store.id]);
     await run("store stats", `delete from "DailyStoreStat" where "storeId" = $1`, [store.id]);

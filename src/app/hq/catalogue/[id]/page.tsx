@@ -17,6 +17,7 @@ import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ProductArt } from "@/components/product/art";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { CLASS_TONE } from "@/components/hq/tones";
+import { incentiveExcluded } from "@/lib/compliance";
 import { saveProduct } from "../actions";
 import { ProductForm, type ProductInput } from "../product-form";
 import { VariantEditor } from "../variant-editor";
@@ -77,7 +78,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       {sp.created && <Notice tone="success" className="mb-6" title="Product created">Add its variants below, then range them at stores. It stays out of the shop while in draft.</Notice>}
       {!edit && <ViewOnly className="mb-6">View only — the catalogue is managed by the HQ merchandising team.</ViewOnly>}
 
-      <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} readOnly={!edit} />
+      <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} readOnly={!edit} />
 
       <Card className="mt-6">
         <CardHeader

@@ -49,8 +49,9 @@ export const DEFAULT_SETTINGS = {
   },
   loss: DEFAULT_LOSS,
   commission: {
-    // Basis points of net sales ex VAT, by product class. Licensed medicines never earn commission (s18A), whatever is set.
-    bps: { THC: 0, CBD: 200, HEMP: 200, ACCESSORY: 200, APPAREL: 200, GROW: 200 } as Record<RegClass, number>,
+    // Basis points of net sales ex VAT, by product class. Classes in compliance.noIncentives and licensed medicines never
+    // earn commission (s18A), whatever is set.
+    bps: { THC: 0, CBD: 200, CBD_FOOD: 200, CBD_TOPICAL: 200, HEMP: 200, SUPPLEMENT: 200, ACCESSORY: 200, APPAREL: 200, GROW: 200 } as Record<RegClass, number>,
   },
 };
 export type Settings = typeof DEFAULT_SETTINGS;

@@ -78,7 +78,7 @@ export const promotions: ReportDef = {
       chart: rows.some((r) => r.n > 0) ? { kind: "bar", title: "Revenue by promotion", description: "Sales incl VAT with the promotion applied", format: "zar", rows: rows.filter((r) => r.n > 0).slice(0, 10).map((r) => ({ label: r.name, value: r.revenue, sub: `${zar(r.discount)} off` })) } : null,
       emptyTitle: "No promotions",
       empty: "No promotions ran in this period.",
-      note: "Each sale is credited to the first promotion applied to it; the discount column includes every deal on those baskets. Licensed medicines never carry promotions (Medicines Act s18A), and franchisee shelf prices are unaffected.",
+      note: "Each sale is credited to the first promotion applied to it; the discount column includes every deal on those baskets. Medicines never carry promotions (Medicines Act s18A): licensed products, and CBD supplements while they're on the no-incentives list. Franchisee shelf prices are unaffected.",
     };
   },
 };

@@ -1,7 +1,7 @@
 // Compliance engine. Rules are data (HQ settings) so the network can adapt as South
 // African regulation evolves — e.g. switching on licensed sales per store when a
 // Cannabis Bill commences, or the Tobacco Bill's online-sales ban — without code changes.
-export type RegClass = "THC" | "CBD" | "HEMP" | "ACCESSORY" | "APPAREL" | "GROW";
+export type RegClass = "THC" | "CBD" | "CBD_FOOD" | "CBD_TOPICAL" | "HEMP" | "SUPPLEMENT" | "ACCESSORY" | "APPAREL" | "GROW";
 export type SellChannel = "POS" | "COLLECT" | "SAME_DAY" | "COURIER";
 
 export type ThcMode = "MEDICAL" | "ADULT_USE";
@@ -17,22 +17,26 @@ export type ComplianceSettings = {
   channels: Record<SellChannel, RegClass[]>;
   tobaccoBillMode: boolean; // B33-2022 in force: related products in-store only, no loyalty
   membersOnly: boolean; // every sale needs a registered member (online and at the till)
+  // Classes that never get promotions, points or commission — Medicines Act s18A covers every medicine, including
+  // Schedule 0 complementary medicines (CBD supplements) until counsel says otherwise. Licensed classes are always out.
+  noIncentives: RegClass[];
 };
 
 export const DEFAULT_COMPLIANCE: ComplianceSettings = {
   minAge: 18,
-  ageRestricted: ["THC", "CBD", "HEMP", "ACCESSORY", "GROW"],
+  ageRestricted: ["THC", "CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "ACCESSORY", "GROW"],
   licensedOnly: ["THC"],
   thcMode: "MEDICAL",
   dailyLimitGrams: 30,
   channels: {
-    POS: ["THC", "CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"],
-    COLLECT: ["THC", "CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"],
-    SAME_DAY: ["CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"],
-    COURIER: ["CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"],
+    POS: ["THC", "CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "ACCESSORY", "APPAREL", "GROW"],
+    COLLECT: ["THC", "CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "ACCESSORY", "APPAREL", "GROW"],
+    SAME_DAY: ["CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "ACCESSORY", "APPAREL", "GROW"],
+    COURIER: ["CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "ACCESSORY", "APPAREL", "GROW"],
   },
   tobaccoBillMode: false,
   membersOnly: true,
+  noIncentives: ["CBD"],
 };
 
 export type ComplianceItem = { name: string; regClass: RegClass; grams?: number | null; qty: number; tobaccoRelated?: boolean };
@@ -95,35 +99,156 @@ export function checkCompliance(input: {
 }
 
 /**
- * Classes excluded from incentives (promotions, member/volume prices, markdowns, points earn).
- * In MEDICAL mode licensed products are medicines: Medicines Act s18A prohibits supplying
- * medicine under a bonus, rebate or other incentive scheme.
+ * Classes excluded from incentives (promotions, member/volume prices, markdowns, points earn, commission).
+ * Medicines Act s18A prohibits supplying medicine under a bonus, rebate or other incentive scheme: licensed products in
+ * MEDICAL mode, and the classes HQ lists in `noIncentives` (CBD supplements — Schedule 0 complementary medicines — by
+ * default, until counsel clears them).
  */
-export const incentiveExcluded = (s: ComplianceSettings): RegClass[] => (s.thcMode === "MEDICAL" ? s.licensedOnly : []);
+export const incentiveExcluded = (s: ComplianceSettings): RegClass[] => [...new Set([...(s.thcMode === "MEDICAL" ? s.licensedOnly : []), ...(s.noIncentives ?? [])])];
 
 /** Loyalty earn is switched off for Tobacco-Bill related products when that regime is active. */
 export const earnsLoyalty = (item: { tobaccoRelated?: boolean }, s: ComplianceSettings) => !(s.tobaccoBillMode && item.tobaccoRelated);
 
-// ── Schedule 0 CBD master-data validation (GN 586 of 2020) ───────────────────
-export function validateCbdProduct(p: { regClass: RegClass; cbdMgPerPack?: number | null; cbdMgPerDay?: number | null; thcMax?: number | null; claims?: string[] }) {
+// ── Product facts: net content, ingredients and allergens ────────────────────
+/** The major allergens foodstuff labels must declare (R146 of 2010), plus an explicit "none" that stands alone. */
+export const ALLERGENS = {
+  gluten: "Cereals containing gluten",
+  crustaceans: "Crustaceans",
+  molluscs: "Molluscs",
+  eggs: "Eggs",
+  fish: "Fish",
+  milk: "Milk",
+  peanuts: "Peanuts",
+  soybeans: "Soybeans",
+  tree_nuts: "Tree nuts",
+  none: "No major allergens",
+} as const;
+export type AllergenKey = keyof typeof ALLERGENS;
+export const ALLERGEN_KEYS = Object.keys(ALLERGENS) as AllergenKey[];
+
+export type ProductFact = "netContent" | "ingredients" | "allergens";
+/**
+ * The facts each class carries — all required before it can be listed, and shown to members on the product page and at
+ * the till. Food and supplements declare allergens; skin care lists its ingredients; CBD supplements keep the pack
+ * size in their variants.
+ */
+export const PRODUCT_FACTS: Partial<Record<RegClass, readonly ProductFact[]>> = {
+  CBD: ["ingredients", "allergens"],
+  CBD_FOOD: ["netContent", "ingredients", "allergens"],
+  CBD_TOPICAL: ["netContent", "ingredients"],
+  SUPPLEMENT: ["netContent", "ingredients", "allergens"],
+};
+export const carriesFact = (c: RegClass, f: ProductFact) => !!PRODUCT_FACTS[c]?.includes(f);
+
+/** Classes that hold CBD: they state CBD per pack and keep THC at or under 0.001%. */
+export const CBD_CLASSES: RegClass[] = ["CBD", "CBD_FOOD", "CBD_TOPICAL"];
+export const THC_CAP_PCT = 0.001;
+/** GN 586 of 2020: CBD food & drink may hold at most 0.0075% CBD, i.e. 0.075 mg per gram (a millilitre counted as a gram). */
+export const cbdFoodLimitMg = (netContent: number) => (netContent * 75) / 1000;
+
+const mg = (n: number) => String(Math.round(n * 100) / 100);
+/** "250 g", "1 kg", "50 ml", "1.5 l" — null when no net content is recorded. */
+export function netContentLabel(netContent?: number | null, netUnit?: string | null) {
+  if (netContent == null || netContent <= 0 || (netUnit !== "g" && netUnit !== "ml")) return null;
+  if (netContent >= 1000) return `${mg(netContent / 1000)} ${netUnit === "g" ? "kg" : "l"}`;
+  return `${mg(netContent)} ${netUnit}`;
+}
+
+/** "Contains: milk, soybeans", "No major allergens declared", or null when nothing has been declared. */
+export function allergenStatement(allergens?: readonly string[] | null) {
+  if (!allergens?.length) return null;
+  if (allergens.includes("none")) return "No major allergens declared";
+  const named = ALLERGEN_KEYS.filter((k) => k !== "none" && allergens.includes(k)).map((k) => ALLERGENS[k].toLowerCase());
+  return named.length ? `Contains: ${named.join(", ")}` : null;
+}
+export const declaresAllergens = (allergens?: readonly string[] | null) => !!allergens?.some((a) => a !== "none" && a in ALLERGENS);
+
+export type ProductMaster = {
+  regClass: RegClass;
+  cbdMgPerPack?: number | null;
+  cbdMgPerDay?: number | null;
+  thcMax?: number | null;
+  claims?: string[];
+  netContent?: number | null;
+  netUnit?: string | null;
+  ingredients?: string | null;
+  allergens?: readonly string[] | null;
+  naturalCbd?: boolean | null;
+};
+
+const CANNABIS_WORDS = /\b(cbd|cannabidiol|cannabis|cannabinoids?|hemp|thc|dagga|marijuana)\b/i;
+
+/**
+ * Product master-data rules by regulatory class. Returns plain, fixable messages; empty means it may be listed.
+ *   CBD — Schedule 0 complementary medicine (GN 586 of 2020): ≤ 600 mg a pack, ≤ 20 mg a day, ≤ 0.001% THC.
+ *   CBD_FOOD — GN 586 of 2020: ≤ 0.0075% CBD, only what's naturally in the ingredients, ≤ 0.001% THC.
+ *   CBD_TOPICAL — ≤ 0.001% THC, applied not taken (no daily dose).
+ *   SUPPLEMENT — no cannabis or CBD at all.
+ * Every class that carries product facts needs them (PRODUCT_FACTS), and every claim is screened. Other classes: no rules.
+ */
+export function validateProduct(p: ProductMaster): string[] {
   const issues: string[] = [];
-  if (p.regClass !== "CBD") return issues;
-  if (p.cbdMgPerPack == null) issues.push("CBD per pack (mg) is required");
-  else if (p.cbdMgPerPack > 600) issues.push("Schedule 0 allows at most 600 mg CBD per sales pack");
-  if (p.cbdMgPerDay == null) issues.push("Maximum daily dose (mg) is required");
-  else if (p.cbdMgPerDay > 20) issues.push("Schedule 0 allows a maximum daily dose of 20 mg CBD");
-  if (p.thcMax != null && p.thcMax > 0.001) issues.push("Consumable products may contain at most 0.001% THC");
-  for (const c of p.claims ?? []) for (const f of screenCopy(c)) issues.push(`Claim "${c}": ${f.reason}`);
+  const c = p.regClass;
+  if (!PRODUCT_FACTS[c]) return issues;
+  const label = REG_CLASS_LABEL[c];
+  const net = p.netContent != null && p.netContent > 0 ? p.netContent : null;
+  const unit = p.netUnit === "g" || p.netUnit === "ml" ? p.netUnit : null;
+  if ((p.cbdMgPerPack != null && p.cbdMgPerPack < 0) || (p.cbdMgPerDay != null && p.cbdMgPerDay < 0)) issues.push("CBD amounts can't be negative");
+
+  if (c === "CBD") {
+    if (p.cbdMgPerPack == null) issues.push("CBD per pack (mg) is required");
+    else if (p.cbdMgPerPack > 600) issues.push("Schedule 0 allows at most 600 mg CBD per sales pack");
+    if (p.cbdMgPerDay == null) issues.push("Maximum daily dose (mg) is required");
+    else if (p.cbdMgPerDay > 20) issues.push("Schedule 0 allows a maximum daily dose of 20 mg CBD");
+    if (p.thcMax != null && p.thcMax > THC_CAP_PCT) issues.push("Consumable products may contain at most 0.001% THC");
+  }
+  if (c === "CBD_FOOD") {
+    if (p.cbdMgPerPack == null) issues.push("CBD per pack (mg) is required");
+    else if (net != null && unit && p.cbdMgPerPack > cbdFoodLimitMg(net) + 1e-9)
+      issues.push(`CBD food & drink may hold at most ${mg(cbdFoodLimitMg(net))} mg CBD in ${mg(net)} ${unit} (0.0075%)`);
+    if (!p.naturalCbd) issues.push("CBD food & drink may only hold the CBD naturally in its ingredients: tick to confirm none is added");
+  }
+  if (c === "CBD_FOOD" || c === "CBD_TOPICAL") {
+    if (p.thcMax == null) issues.push(`Maximum THC (%) is required: ${label} may contain at most 0.001%`);
+    else if (p.thcMax > THC_CAP_PCT) issues.push(`${label} may contain at most 0.001% THC`);
+  }
+  if (c === "CBD_TOPICAL" && p.cbdMgPerDay != null) issues.push("Skin care is applied, not taken: remove the daily dose");
+  if (c === "SUPPLEMENT") {
+    if (p.cbdMgPerPack != null || p.cbdMgPerDay != null || p.naturalCbd)
+      issues.push("Supplements contain no CBD: remove the CBD amounts, or choose CBD food & drink or CBD supplements");
+    const word = p.ingredients?.match(CANNABIS_WORDS)?.[0];
+    if (word) issues.push(`Supplements are cannabis-free, but the ingredients mention “${word}”: choose a CBD class instead`);
+  }
+
+  // Product facts.
+  if (carriesFact(c, "netContent")) {
+    if (net == null) issues.push(c === "CBD_FOOD" ? "Net content is required (g or ml): the CBD limit is worked out from it" : "Net content is required (g or ml)");
+    else if (!unit) issues.push("Choose g or ml for the net content");
+  }
+  if (carriesFact(c, "ingredients") && !p.ingredients?.trim()) issues.push("List the ingredients: members see them on the product page and at the till");
+  if (carriesFact(c, "allergens")) {
+    const a = p.allergens ?? [];
+    const unknown = a.filter((k) => !(k in ALLERGENS));
+    if (unknown.length) issues.push(`Unknown allergen: ${unknown.join(", ")}`);
+    if (!a.some((k) => k in ALLERGENS)) issues.push("Declare allergens: tick each major allergen it contains, or “No major allergens”");
+    else if (a.includes("none") && declaresAllergens(a)) issues.push("“No major allergens” can't be ticked together with an allergen");
+  }
+
+  for (const claim of p.claims ?? []) for (const f of screenCopy(claim)) issues.push(`Claim "${claim}": ${f.reason}`);
   return issues;
 }
 
-// ── Marketing copy screening (ARB Code, Medicines Act s20, CfPPA "advertise for sale") ─
+// ── Marketing copy screening (ARB Code, Medicines Act s20, CfPPA "advertise for sale", R146 for foodstuffs) ─
 const RULES: { re: RegExp; reason: string }[] = [
   { re: /\b(cure[sd]?|treat(s|ment)?|heal(s|ing)?|prevent(s|ion)?|remed(y|ies))\b/i, reason: "Medicinal claim — Schedule 0 CBD may only make low-risk wellness claims" },
   { re: /\b(anxiety|depression|cancer|epilepsy|seizures?|insomnia|arthritis|ptsd|diabetes|chronic pain)\b/i, reason: "Names a medical condition" },
   { re: /\b(get(ting)? high|stoned|baked|wasted|zooted|faded|blazed)\b/i, reason: "Glamorises intoxication — keep copy responsible (ARB Code 3.3)" },
   { re: /\b(kids?|children|teens?|school|students?|under ?18)\b/i, reason: "May appeal to or reference minors" },
   { re: /\b(100% safe|no side[- ]effects|guaranteed|miracle|clinically proven)\b/i, reason: "Absolute or unsubstantiated claim (ARB Code 4.1–4.2)" },
+  {
+    re: /\b(boost(s|ed|er|ers|ing)?|detox(es|ed|ing|ify|ifies|ifying|ification)?|fat[- ]?burn(s|er|ers|ing)?|burn(s|ing)? (body |belly )?fat|anti[- ]?age?ing|immun(e|ity)|weight[- ]?loss|los(e|es|ing) weight|slimming|metaboli(sm|c))\b/i,
+    reason: "Health claim — foods and supplements can't promise to boost, detox, burn fat, slow ageing, help immunity or cause weight loss (R146)",
+  },
 ];
 
 export function screenCopy(text: string) {
@@ -141,9 +266,38 @@ export const channelLabel = (c: SellChannel) =>
 
 export const REG_CLASS_LABEL: Record<RegClass, string> = {
   THC: "Licensed (THC)",
-  CBD: "CBD wellness (Schedule 0)",
+  CBD: "CBD supplements (Schedule 0)",
+  CBD_FOOD: "CBD food & drink",
+  CBD_TOPICAL: "CBD skin care",
   HEMP: "Hemp",
+  SUPPLEMENT: "Supplements",
   ACCESSORY: "Accessory",
   APPAREL: "Apparel",
   GROW: "Grow",
+};
+
+/** Every class, in display order — the one list pickers, filters and settings forms use. */
+export const REG_CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
+
+/** The legal-basis line a new product starts with (HQ can edit it; it's shown on the product page and in audits). */
+export const DEFAULT_LEGAL_BASIS: Partial<Record<RegClass, string>> = {
+  THC: "SAHPRA licence — medical pathway (Section 21 authorisation required)",
+  CBD: "Schedule 0 CBD — GN 586 of 22 May 2020",
+  CBD_FOOD: "CBD food — GN 586 of 22 May 2020 (≤ 0.0075% CBD, naturally occurring)",
+  CBD_TOPICAL: "Cosmetic — Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972",
+  HEMP: "Hemp — Plant Improvement Act 2018 (≤ 2% THC)",
+  SUPPLEMENT: "Foodstuff — Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972 (labelling: R146)",
+};
+
+/** One line per class for pickers: what belongs in it and the rule that decides it. */
+export const REG_CLASS_HINT: Record<RegClass, string> = {
+  THC: "Licensed medicines: sold only where the store holds the licence; in medical mode to patients, by a dispenser",
+  CBD: "Oils and softgels (complementary medicines): at most 20 mg a day and 600 mg a pack, approved claims only",
+  CBD_FOOD: "Coffee, tea and protein: at most 0.0075% CBD, only what's naturally in the ingredients; THC at most 0.001%",
+  CBD_TOPICAL: "Creams and balms: THC at most 0.001%, no daily dose, claims screened",
+  HEMP: "Hemp seed and fibre products with no CBD claims (hemp at most 2% THC)",
+  SUPPLEMENT: "Collagen, plain protein and other supplements with no cannabis or CBD at all",
+  ACCESSORY: "Grinders, glass, papers and other gear",
+  APPAREL: "Clothing and merch",
+  GROW: "Soil, nutrients, lights and seeds",
 };

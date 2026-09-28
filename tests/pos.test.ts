@@ -30,8 +30,11 @@ const data = (over: Partial<PricingData> = {}): PricingData => ({
   earnPer100: 5,
   tierSavingsPct: { SEED: 3, SPROUT: 5, BLOOM: 7, HARVEST: 10 },
   variants: {
-    oil: { id: "oil", productId: "p-oil", categoryId: "wellness", regClass: "CBD", rrpCents: 59500, shelfCents: null, markdownPct: 0 },
-    balm: { id: "balm", productId: "p-balm", categoryId: "wellness", regClass: "CBD", rrpCents: 38500, shelfCents: null, markdownPct: 0 },
+    // A CBD supplement (Schedule 0): no promotions, member prices, markdowns or points by default (s18A).
+    oil: { id: "oil", productId: "p-oil", categoryId: "wellness", regClass: "CBD", rrpCents: 59500, shelfCents: null, markdownPct: 20 },
+    // CBD skin care may be promoted.
+    balm: { id: "balm", productId: "p-balm", categoryId: "skin-care", regClass: "CBD_TOPICAL", rrpCents: 38500, shelfCents: null, markdownPct: 0 },
+    cream: { id: "cream", productId: "p-cream", categoryId: "skin-care", regClass: "CBD_TOPICAL", rrpCents: 39500, shelfCents: null, markdownPct: 0 },
     flower: { id: "flower", productId: "p-flower", categoryId: "flower", regClass: "THC", rrpCents: 62000, shelfCents: null, markdownPct: 0 },
     grinder: { id: "grinder", productId: "p-grinder", categoryId: "accessories", regClass: "ACCESSORY", rrpCents: 35000, shelfCents: 32900, markdownPct: 0 },
     tray: { id: "tray", productId: "p-tray", categoryId: "accessories", regClass: "ACCESSORY", rrpCents: 28000, shelfCents: null, markdownPct: 20 },
@@ -53,15 +56,24 @@ describe("till pricing (offline price book)", () => {
     expect(q.vatCents).toBe(Math.round((32900 * 15) / 115) + Math.round((22400 * 15) / 115));
   });
 
-  it("applies multi-buys and never discounts licensed medicines (s18A)", () => {
-    const d = data({ promotions: [promo({ id: "cbd2", kind: "MULTIBUY", value: 80000, buyQty: 2, categoryIds: ["wellness"] }), promo({ id: "all10", kind: "PERCENT", value: 10 })] });
-    const q = priceBasket(d, [{ variantId: "oil", qty: 1 }, { variantId: "balm", qty: 1 }, { variantId: "flower", qty: 1 }], { at: AT });
-    const flower = q.lines.find((l) => l.variantId === "flower")!;
-    expect(flower.discountCents).toBe(0);
-    expect(flower.noEarn).toBe(true);
-    expect(q.discountCents).toBe(59500 + 38500 - 80000);
-    expect(q.applied.map((a) => a.id)).toContain("cbd2");
-    expect(redeemableCents(q)).toBe(80000);
+  it("applies multi-buys and never discounts medicines (s18A): licensed, or CBD supplements by default", () => {
+    const d = data({
+      promotions: [
+        promo({ id: "skin2", kind: "MULTIBUY", value: 65000, buyQty: 2, categoryIds: ["skin-care", "wellness"] }),
+        promo({ id: "all10", kind: "PERCENT", value: 10 }),
+      ],
+    });
+    const q = priceBasket(d, [{ variantId: "oil", qty: 1 }, { variantId: "balm", qty: 1 }, { variantId: "cream", qty: 1 }, { variantId: "flower", qty: 1 }], { at: AT });
+    const line = (id: string) => q.lines.find((l) => l.variantId === id)!;
+    for (const medicine of ["flower", "oil"]) {
+      expect(line(medicine).discountCents, medicine).toBe(0);
+      expect(line(medicine).noEarn, medicine).toBe(true);
+    }
+    // The CBD oil neither joins the multi-buy (it's in a qualifying category) nor gets its near-expiry markdown.
+    expect(line("oil").unitPriceCents).toBe(59500);
+    expect(q.discountCents).toBe(38500 + 39500 - 65000);
+    expect(q.applied.map((a) => a.id)).toEqual(["skin2"]);
+    expect(redeemableCents(q)).toBe(65000);
   });
 
   it("never applies a welcome gift (first purchase only) or My Deals offline", () => {
@@ -121,6 +133,24 @@ describe("till pricing (offline price book)", () => {
     expect(walkIn.joinSavingsCents).toBe(38500 - 37345);
     expect(bloom.pointsEstimate).toBeGreaterThan(0);
     expect(walkIn.pointsEstimate).toBe(0);
+  });
+
+  it("gives CBD supplements no member price, deal, markdown or points (s18A), until HQ clears them", () => {
+    const member = {
+      id: "m", name: "Rewards deal", kind: "MEMBER" as const, channel: null, tiers: [], storeIds: [], regionIds: [], adjustPct: null, startsAt: null, endsAt: null, active: true, priority: 0,
+      items: [{ variantId: "oil", priceCents: 49900, minQty: 1 }], createdAt: "2026-01-01T00:00:00Z",
+    };
+    const d = data({ priceLists: [member], promotions: [promo({ id: "oil10", kind: "PERCENT", value: 10, productIds: ["p-oil"] }), promo({ id: "x2", kind: "MULTIPLIER", value: 200 })] });
+    const items = [{ variantId: "oil", qty: 1 }];
+    const harvest = priceBasket(d, items, { at: AT, member: true, tier: "HARVEST" });
+    expect(harvest.lines[0]).toMatchObject({ unitPriceCents: 59500, priceRule: null, discountCents: 0, memberSavingsCents: 0, noEarn: true });
+    expect(harvest.pointsEstimate).toBe(0);
+    expect(priceBasket(d, items, { at: AT }).joinSavingsCents).toBe(0); // nothing to promise a walk-in either
+    // Counsel clears CBD supplements: HQ unticks them and the member deal, the 10% and points apply again.
+    const cleared = priceBasket({ ...d, compliance: { ...DEFAULT_COMPLIANCE, noIncentives: [] } }, items, { at: AT, member: true, tier: "HARVEST" });
+    expect(cleared.lines[0].unitPriceCents).toBeLessThan(59500);
+    expect(cleared.lines[0].noEarn).toBe(false);
+    expect(cleared.pointsEstimate).toBeGreaterThan(0);
   });
 
   it("reports invalid promo codes and charges no VAT for non-VAT vendors", () => {

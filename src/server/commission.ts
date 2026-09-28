@@ -1,7 +1,8 @@
 // Staff commission, switched on per store by the owner (the employer, who pays it): HQ's rates × each person's net
 // till sales ex VAT, less refunds of their sales — whoever processes the refund — never below zero for the month.
-// None on licensed medicines (Medicines Act s18A) or on sales rung onto their own member card; anyone with an open
-// loss-prevention alert at the store is held until it's closed. An owner's approval freezes the month for payroll.
+// None on medicines (Medicines Act s18A: licensed, and the noIncentives classes) or on sales rung onto their own member
+// card; anyone with an open loss-prevention alert at the store is held until it's closed. An owner's approval freezes
+// the month for payroll.
 import { db } from "./db";
 import { audit, type Actor } from "./audit";
 import { getSettings } from "./settings";

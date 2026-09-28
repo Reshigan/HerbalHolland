@@ -64,6 +64,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Compliance is data-driven (`@/lib/compliance` + HQ settings): licence-gated THC (medical mode by default: SAHPRA patient
   authorisation + authorised dispenser), 18+ checks, Schedule 0 CBD limits, Medicines Act s18A (no incentives on medicines),
   POPIA consent + CPA send windows for marketing. Don't bypass it in UI code.
+  Classes: `THC`, `CBD` (supplements; no incentives by default via `noIncentives`), `CBD_FOOD` (≤ 0.0075%, naturally occurring), `CBD_TOPICAL`, `HEMP`, `SUPPLEMENT` (no cannabis), `ACCESSORY`, `APPAREL`, `GROW` — rules and product facts (net content, ingredients, R146 allergens) in `validateProduct()`.
 - No new dependencies without a strong reason. Pure logic goes in `src/lib` with a vitest test in `tests/`.
 
 ## Design language

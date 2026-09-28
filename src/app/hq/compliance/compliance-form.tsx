@@ -1,13 +1,12 @@
 "use client";
 import { useState } from "react";
-import { AlertTriangle, Lock, Stethoscope, Users } from "lucide-react";
+import { AlertTriangle, BadgePercent, Lock, Stethoscope, Users } from "lucide-react";
 import { Field, Input, Checkbox, Label } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
-import { REG_CLASS_LABEL, channelLabel, type ComplianceSettings, type RegClass, type SellChannel } from "@/lib/compliance";
+import { REG_CLASS_LABEL, REG_CLASSES as CLASSES, channelLabel, type ComplianceSettings, type SellChannel } from "@/lib/compliance";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/server/hq/guard";
 
-const CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
 const CHANNELS: SellChannel[] = ["POS", "COLLECT", "SAME_DAY", "COURIER"];
 
 export function ComplianceForm({ action, value, readOnly }: { action: (s: ActionState, fd: FormData) => Promise<ActionState>; value: ComplianceSettings; readOnly: boolean }) {
@@ -121,6 +120,30 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
             </table>
           </div>
         </div>
+
+        <fieldset className="rounded-2xl border border-ink-150 p-4">
+          <legend className="sr-only">No promotions, points or commission (Medicines Act s18A)</legend>
+          <input type="hidden" name="noIncentivesShown" value="1" />
+          <div className="flex items-center gap-2 font-display text-sm font-semibold text-ink-900" aria-hidden>
+            <BadgePercent className="h-4 w-4 text-brand-700" /> No promotions, points or commission (Medicines Act s18A)
+          </div>
+          <p className="mt-1 text-xs leading-relaxed text-ink-600">
+            CBD supplements are on this list by default: s18A bans incentives on any medicine, and Schedule 0 CBD counts until counsel clears it. Ticked classes get no deals, member prices, markdowns, points or staff commission, online or at the till.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2.5">
+            {CLASSES.map((cl) =>
+              mode === "MEDICAL" && value.licensedOnly.includes(cl) ? (
+                <span key={cl} className="inline-flex items-center gap-2 text-sm text-ink-600" title="Licensed medicines never get incentives in medical mode">
+                  {(value.noIncentives ?? []).includes(cl) && <input type="hidden" name="noIncentives" value={cl} />}
+                  <Lock className="h-4 w-4 text-ink-400" aria-hidden />
+                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-400">— always, in medical mode</span>
+                </span>
+              ) : (
+                <Checkbox key={cl} name="noIncentives" value={cl} defaultChecked={(value.noIncentives ?? []).includes(cl)} label={REG_CLASS_LABEL[cl]} />
+              ),
+            )}
+          </div>
+        </fieldset>
 
         <div className={cn("rounded-2xl border p-4", members ? "border-ink-150" : "border-amber-500/40 bg-amber-50")}>
           <Checkbox

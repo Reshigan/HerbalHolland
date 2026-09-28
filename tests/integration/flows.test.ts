@@ -16,6 +16,8 @@ import { dayKey } from "@/lib/format";
 import { buildWorld, onHand, resetDb, type World } from "./world";
 
 let w: World;
+const COFFEE = 22_900; // CBD food & drink: member prices, deals and points allowed
+const OIL = 59_500; // CBD supplement: none of those by default (Medicines Act s18A)
 const actor = () => ({ type: "USER" as const, id: w.manager.id, name: w.manager.name });
 const pos = (staffId = w.manager.id) => ({ storeId: w.store.id, deviceId: w.device.id, staffId, staffName: "Staff" });
 let seq = 0;
@@ -41,26 +43,38 @@ afterAll(async () => {
 });
 
 describe("POS", () => {
-  it("posts a CBD sale at the member's instant Rewards price: FEFO lots, VAT, rollups and points", async () => {
-    const unit = Math.round(59_500 * 0.97); // Seed members save 3% instantly
+  it("posts a CBD coffee sale at the member's instant Rewards price: FEFO lots, VAT, rollups and points", async () => {
+    const unit = Math.round(COFFEE * 0.97); // Seed members save 3% instantly
     const total = 2 * unit;
     const r = await postPosSale(
-      saleInput({ customerId: w.walkIn.id, lines: [{ variantId: w.oilV.id, qty: 2 }], payments: [{ method: "CASH", amountCents: total, tenderedCents: 120_000, changeCents: 1_000 }], ageCheck: "ID_SIGHTED" }),
+      saleInput({ customerId: w.walkIn.id, lines: [{ variantId: w.coffeeV.id, qty: 2 }], payments: [{ method: "CASH", amountCents: total, tenderedCents: 50_000, changeCents: 50_000 - total }], ageCheck: "ID_SIGHTED" }),
       pos(),
     );
     expect(r.sale.totalCents).toBe(total);
     expect(r.sale.vatCents).toBe(vatOf(total));
-    expect(r.sale.memberSavingsCents).toBe(2 * (59_500 - unit));
+    expect(r.sale.memberSavingsCents).toBe(2 * (COFFEE - unit));
     // The earliest-expiring lot goes first.
-    expect(await onHand(w.store.id, w.oilOld.id)).toBe(0);
-    expect(await onHand(w.store.id, w.oilNew.id)).toBe(10);
+    expect(await onHand(w.store.id, w.coffeeOld.id)).toBe(0);
+    expect(await onHand(w.store.id, w.coffeeNew.id)).toBe(10);
     const stat = await db.dailyStoreStat.findFirst({ where: { storeId: w.store.id, date: new Date(`${dayKey(new Date())}T00:00:00Z`), channel: "POS" } });
     expect(stat?.grossCents).toBe(total);
     expect(stat?.cashCents).toBe(total);
-    expect(stat?.memberSavingsCents).toBe(2 * (59_500 - unit));
+    expect(stat?.memberSavingsCents).toBe(2 * (COFFEE - unit));
     const c = await db.customer.findUniqueOrThrow({ where: { id: w.walkIn.id } });
     expect(c.points).toBe(200 + pointsFor(total, "SEED"));
     expect(c.visits).toBe(1);
+  });
+
+  it("sells CBD supplements at the walk-in price with no points (s18A), still FEFO", async () => {
+    const m = await member(4);
+    const r = await postPosSale(saleInput({ customerId: m.id, lines: [{ variantId: w.oilV.id, qty: 2 }], payments: [{ method: "CARD", amountCents: 2 * OIL }], ageCheck: "ID_SIGHTED" }), pos());
+    expect(r.sale.totalCents).toBe(2 * OIL);
+    expect(r.sale.memberSavingsCents).toBe(0);
+    expect(r.sale.discountCents).toBe(0);
+    expect(r.sale.pointsEarned).toBe(0);
+    expect(await db.loyaltyEntry.count({ where: { customerId: m.id, kind: "EARN" } })).toBe(0);
+    expect(await onHand(w.store.id, w.oilOld.id)).toBe(0);
+    expect(await onHand(w.store.id, w.oilNew.id)).toBe(10);
   });
 
   it("makes members accept the membership terms, and records the version", async () => {
@@ -134,16 +148,17 @@ describe("POS", () => {
 
   it("refunds a line back into the same batch and reverses points", async () => {
     const sale = await postPosSale(
-      saleInput({ customerId: w.walkIn.id, lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: Math.round(59_500 * 0.97) }], ageCheck: "ID_SIGHTED" }),
+      saleInput({ customerId: w.walkIn.id, lines: [{ variantId: w.coffeeV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: Math.round(COFFEE * 0.97) }], ageCheck: "ID_SIGHTED" }),
       pos(),
     );
+    expect(sale.sale.pointsEarned).toBeGreaterThan(0);
     const before = await db.customer.findUniqueOrThrow({ where: { id: w.walkIn.id } });
     const line = await db.saleLine.findFirstOrThrow({ where: { saleId: sale.sale.id } });
-    const lotBefore = await onHand(w.store.id, w.oilNew.id);
+    const lotBefore = await onHand(w.store.id, w.coffeeNew.id);
     const refund = await refundSale({ id: randomUUID(), number: `TST01-A${String(++seq).padStart(5, "0")}`, saleId: sale.sale.id, lines: [{ saleLineId: line.id, qty: 1, restock: true }], method: "CARD", reason: "Changed mind", staffId: w.manager.id, staffName: "Mia" });
-    expect(refund.totalCents).toBe(-Math.round(59_500 * 0.97));
+    expect(refund.totalCents).toBe(-Math.round(COFFEE * 0.97));
     expect(refund.memberSavingsCents).toBe(-sale.sale.memberSavingsCents);
-    expect(await onHand(w.store.id, w.oilNew.id)).toBe(lotBefore + 1);
+    expect(await onHand(w.store.id, w.coffeeNew.id)).toBe(lotBefore + 1);
     const after = await db.customer.findUniqueOrThrow({ where: { id: w.walkIn.id } });
     expect(after.points).toBe(before.points - sale.sale.pointsEarned);
     await expect(
@@ -154,10 +169,10 @@ describe("POS", () => {
 
 describe("Omnichannel", () => {
   it("reserves stock for a click & collect order and posts it at handover with an ID check", async () => {
-    const before = (await availability([w.store.id], [w.oilV.id])).get(availKey(w.store.id, w.oilV.id))!.available;
-    const order = await placeOrder({ customerId: w.walkIn.id, fulfilment: "COLLECT", storeId: w.store.id, items: [{ variantId: w.oilV.id, qty: 2 }], payMethod: "IN_STORE" });
+    const before = (await availability([w.store.id], [w.coffeeV.id])).get(availKey(w.store.id, w.coffeeV.id))!.available;
+    const order = await placeOrder({ customerId: w.walkIn.id, fulfilment: "COLLECT", storeId: w.store.id, items: [{ variantId: w.coffeeV.id, qty: 2 }], payMethod: "IN_STORE" });
     expect(order.storeId).toBe(w.store.id);
-    const reserved = (await availability([w.store.id], [w.oilV.id])).get(availKey(w.store.id, w.oilV.id))!;
+    const reserved = (await availability([w.store.id], [w.coffeeV.id])).get(availKey(w.store.id, w.coffeeV.id))!;
     expect(reserved.available).toBe(before - 2);
 
     for (const s of ["PICKING", "READY"] as const) await advanceOrder(order.id, s, actor());
@@ -166,8 +181,8 @@ describe("Omnichannel", () => {
     const sale = await db.sale.findUniqueOrThrow({ where: { orderId: order.id } });
     expect(sale.channel).toBe("ONLINE");
     expect(sale.totalCents).toBe(order.totalCents);
-    expect(sale.memberSavingsCents).toBe(2 * (59_500 - Math.round(59_500 * 0.97))); // Rewards price carried from order to sale
-    const after = (await availability([w.store.id], [w.oilV.id])).get(availKey(w.store.id, w.oilV.id))!;
+    expect(sale.memberSavingsCents).toBe(2 * (COFFEE - Math.round(COFFEE * 0.97))); // Rewards price carried from order to sale
+    const after = (await availability([w.store.id], [w.coffeeV.id])).get(availKey(w.store.id, w.coffeeV.id))!;
     expect(after.reserved).toBe(0);
     expect(after.onHand).toBe(before - 2);
   });
@@ -219,29 +234,34 @@ describe("Purchasing & stock control", () => {
 });
 
 describe("Pricing & promotions", () => {
-  it("applies a bonus buy on non-medicinal items but never on medicines", async () => {
+  it("applies a bonus buy on non-medicinal items but never on medicines (licensed, or CBD supplements)", async () => {
     await db.promotion.create({
-      data: { name: "Buy 1 oil get 1 half price", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 50, productIds: [w.oilV.productId], categoryIds: [], rewardProductIds: [], rewardCategoryIds: [], channels: ["POS"], storeIds: [], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000), days: [] },
+      data: { name: "Buy 1 coffee get 1 half price", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 50, productIds: [w.coffeeV.productId, w.oilV.productId], categoryIds: [], rewardProductIds: [], rewardCategoryIds: [], channels: ["POS"], storeIds: [], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000), days: [] },
     });
     await db.promotion.create({
       data: { name: "10% off everything", kind: "PERCENT", value: 10, productIds: [], categoryIds: [], rewardProductIds: [], rewardCategoryIds: [], channels: ["POS"], storeIds: [], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000), days: [] },
     });
-    const q = await quote({ storeId: w.store.id, channel: "POS", items: [{ variantId: w.oilV.id, qty: 2 }, { variantId: w.flowerV.id, qty: 1 }] });
+    const q = await quote({ storeId: w.store.id, channel: "POS", items: [{ variantId: w.coffeeV.id, qty: 2 }, { variantId: w.oilV.id, qty: 2 }, { variantId: w.flowerV.id, qty: 1 }] });
+    const coffee = q.lines.find((l) => l.variantId === w.coffeeV.id)!;
     const oil = q.lines.find((l) => l.variantId === w.oilV.id)!;
     const flower = q.lines.find((l) => l.variantId === w.flowerV.id)!;
     // Half price on the reward unit; the trigger unit is claimed by the deal, so the 10% doesn't stack on it.
-    expect(oil.discountCents).toBe(Math.round(59_500 / 2));
-    expect(flower.discountCents).toBe(0);
-    expect(flower.noEarn).toBe(true);
+    expect(coffee.discountCents).toBe(Math.round(COFFEE / 2));
+    expect(coffee.noEarn).toBe(false);
+    for (const medicine of [flower, oil]) {
+      expect(medicine.discountCents).toBe(0);
+      expect(medicine.noEarn).toBe(true);
+    }
+    expect(q.applied.map((a) => a.discountCents)).toEqual([Math.round(COFFEE / 2)]);
   });
 
   it("stops a promotion once it reaches its maximum uses", async () => {
     await db.promotion.updateMany({ data: { active: false } });
     const promo = await db.promotion.create({
-      data: { name: "First sale R20 off", kind: "FIXED", value: 2_000, maxUses: 1, productIds: [w.oilV.productId], channels: ["POS"], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) },
+      data: { name: "First sale R20 off", kind: "FIXED", value: 2_000, maxUses: 1, productIds: [w.coffeeV.productId], channels: ["POS"], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) },
     });
     const m = await member(3);
-    const basket = { storeId: w.store.id, channel: "POS" as const, items: [{ variantId: w.oilV.id, qty: 1 }], customerId: m.id };
+    const basket = { storeId: w.store.id, channel: "POS" as const, items: [{ variantId: w.coffeeV.id, qty: 1 }], customerId: m.id };
     const first = await quote(basket);
     expect(first.promotionId).toBe(promo.id);
     await postPosSale(saleInput({ customerId: m.id, lines: basket.items, payments: [{ method: "CARD", amountCents: first.totalCents }], ageCheck: "ID_SIGHTED" }), pos());

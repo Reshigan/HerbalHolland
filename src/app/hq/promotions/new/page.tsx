@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { getSettings } from "@/server/settings";
+import { incentiveExcluded, REG_CLASS_LABEL } from "@/lib/compliance";
 import { can } from "@/server/hq/guard";
 import { PageHeader } from "@/components/ui/page";
 import { BackLink } from "@/components/hq/ui";
@@ -21,7 +22,7 @@ export default async function NewPromotionPage() {
     <>
       <BackLink href="/hq/promotions">Promotions</BackLink>
       <PageHeader overline="Network promotion" title="New promotion" description="Deals apply automatically at every till and in the web shop — close-but-not-quite baskets get a nudge to add the complementary item." />
-      <PromotionForm action={savePromotion.bind(null, null)} values={promoValues(null)} {...opts} medicalMode={settings.compliance.thcMode === "MEDICAL"} />
+      <PromotionForm action={savePromotion.bind(null, null)} values={promoValues(null)} {...opts} excluded={incentiveExcluded(settings.compliance).map((c) => REG_CLASS_LABEL[c])} />
     </>
   );
 }

@@ -10,11 +10,11 @@ export function CareersPage() {
   return (
     <Page page="careers" meta={{ path: "/careers", ...CAREERS.meta }}>
       <PageHero kind="careers" eyebrow={CAREERS.hero.eyebrow} title={CAREERS.hero.title} lede={CAREERS.hero.lede}>
-        <div className="phero__ctas">
+        <div className="ctas">
           <Btn href={`mailto:${EMAIL.careers}`} icon="mail" magnetic>
             {apply.cta}
           </Btn>
-          <p className="phero__mail">
+          <p className="phero__note">
             <MailTo email={EMAIL.careers} />
           </p>
         </div>

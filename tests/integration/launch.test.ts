@@ -83,21 +83,21 @@ describe("Founding Members list", () => {
 describe("Drops", () => {
   it("opens early for higher tiers, is members-only and limits each member", async () => {
     await db.drop.create({
-      data: { slug: "oil-drop", name: "Calm Oil drop", blurb: "x", variantIds: [w.oilV.id], startsAt: new Date(Date.now() + 30 * 60_000), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 1 },
+      data: { slug: "coffee-drop", name: "Coffee drop", blurb: "x", variantIds: [w.coffeeV.id], startsAt: new Date(Date.now() + 30 * 60_000), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 1 },
     });
-    const line = [{ variantId: w.oilV.id, qty: 1 }];
+    const line = [{ variantId: w.coffeeV.id, qty: 1 }];
     expect(await dropBlocks(w.walkIn.id, line)).toEqual([expect.stringMatching(/isn't open yet/)]);
     await db.customer.update({ where: { id: w.walkIn.id }, data: { tier: "BLOOM", tierFloor: "BLOOM", tierFloorUntil: new Date(Date.now() + 86_400_000) } });
     expect(await dropBlocks(w.walkIn.id, line)).toEqual([]);
     expect(await dropBlocks(null, line)).toEqual([expect.stringMatching(/members/)]);
-    expect(await dropBlocks(w.walkIn.id, [{ variantId: w.oilV.id, qty: 2 }])).toEqual([expect.stringMatching(/limit 1/)]);
+    expect(await dropBlocks(w.walkIn.id, [{ variantId: w.coffeeV.id, qty: 2 }])).toEqual([expect.stringMatching(/limit 1/)]);
 
     const q = await quote({ storeId: w.store.id, channel: "POS", items: line, customerId: w.walkIn.id });
-    await sell(w.walkIn.id, w.oilV.id, 1, q.totalCents);
-    await expect(sell(w.walkIn.id, w.oilV.id, 1, q.totalCents)).rejects.toThrow(/limit 1/);
+    await sell(w.walkIn.id, w.coffeeV.id, 1, q.totalCents);
+    await expect(sell(w.walkIn.id, w.coffeeV.id, 1, q.totalCents)).rejects.toThrow(/limit 1/);
     // A card that was already charged (race with an online order): the sale stands and HQ is told.
     const raced = await postPosSale(
-      { id: randomUUID(), number: `TST01-L${String(++n).padStart(5, "0")}`, customerId: w.walkIn.id, lines: [{ variantId: w.oilV.id, qty: 1 }], ageCheck: "ID_SIGHTED", payments: [{ method: "CARD", amountCents: q.totalCents, provider: "HALO", reference: "TAP-123" }] },
+      { id: randomUUID(), number: `TST01-L${String(++n).padStart(5, "0")}`, customerId: w.walkIn.id, lines: [{ variantId: w.coffeeV.id, qty: 1 }], ageCheck: "ID_SIGHTED", payments: [{ method: "CARD", amountCents: q.totalCents, provider: "HALO", reference: "TAP-123" }] },
       pos(),
     );
     expect(await db.auditLog.count({ where: { action: "drop.limit_after_payment", entityId: raced.sale.id } })).toBe(1);
@@ -123,26 +123,31 @@ describe("Opening events", () => {
 describe("Welcome gift & My Deals", () => {
   it("gives a welcome gift on a member's first purchase only", async () => {
     await db.promotion.create({
-      data: { name: "Welcome gift", kind: "BUY_X_GET_Y", value: 0, getQty: 1, rewardPercent: 100, rewardProductIds: [w.oilV.productId], channels: ["POS"], firstPurchaseOnly: true, startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) },
+      data: { name: "Welcome gift", kind: "BUY_X_GET_Y", value: 0, getQty: 1, rewardPercent: 100, rewardProductIds: [w.coffeeV.productId, w.oilV.productId], channels: ["POS"], firstPurchaseOnly: true, startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) },
     });
     const fresh = await member(50);
-    const items = [{ variantId: w.oilV.id, qty: 1 }];
+    const items = [{ variantId: w.coffeeV.id, qty: 1 }];
     expect((await quote({ storeId: w.store.id, channel: "POS", items, customerId: fresh.id })).totalCents).toBe(0);
     expect((await quote({ storeId: w.store.id, channel: "POS", items })).totalCents).toBeGreaterThan(0); // walk-ins: no gift
     expect((await quote({ storeId: w.store.id, channel: "POS", items, customerId: w.walkIn.id })).totalCents).toBeGreaterThan(0); // has bought before
+    // Never a CBD supplement, even when the gift names it (s18A).
+    expect((await quote({ storeId: w.store.id, channel: "POS", items: [{ variantId: w.oilV.id, qty: 1 }], customerId: fresh.id })).totalCents).toBe(59_500);
     await db.promotion.deleteMany();
   });
 
   it("loads a weekly offer on the member's favourite, applies it once and credits the store", async () => {
+    const oilFan = await member(60); // only ever bought a CBD supplement: no My Deals on medicines (s18A)
+    await sell(oilFan.id, w.oilV.id, 2, 2 * 59_500);
     expect((await generateOffers()).created).toBeGreaterThan(0);
+    expect(await db.memberOffer.count({ where: { customerId: oilFan.id } })).toBe(0);
     const offer = await db.memberOffer.findFirstOrThrow({ where: { customerId: w.walkIn.id } });
-    expect(offer.productIds).toEqual([w.oilV.productId]);
+    expect(offer.productIds).toEqual([w.coffeeV.productId]);
 
-    const items = [{ variantId: w.oilV.id, qty: 1 }];
+    const items = [{ variantId: w.coffeeV.id, qty: 1 }];
     const q = await quote({ storeId: w.store.id, channel: "POS", items, customerId: w.walkIn.id });
     expect(q.lines[0].offerCents).toBe(Math.round(q.lines[0].unitPriceCents * 0.15));
     expect(q.offerIds).toHaveLength(1);
-    const { sale } = await sell(w.walkIn.id, w.oilV.id, 1, q.totalCents);
+    const { sale } = await sell(w.walkIn.id, w.coffeeV.id, 1, q.totalCents);
     expect((await db.memberOffer.findUniqueOrThrow({ where: { id: offer.id } })).saleId).toBe(sale.id);
     expect((await quote({ storeId: w.store.id, channel: "POS", items, customerId: w.walkIn.id })).offerIds).toEqual([]); // single use
 

@@ -5,10 +5,8 @@ import { cache } from "react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { customerContext } from "@/server/compliance";
-import { incentiveExcluded, type RegClass, type ThcMode } from "@/lib/compliance";
+import { incentiveExcluded, REG_CLASSES, type ThcMode } from "@/lib/compliance";
 import type { PatientAuth } from "@/generated/prisma/client";
-
-export const ALL_CLASSES: RegClass[] = ["THC", "CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"];
 
 export type DispensaryAccess =
   | { allowed: true; mode: "MEDICAL"; auth: PatientAuth; remainingGrams: number }
@@ -33,7 +31,7 @@ export const getClasses = cache(async () => {
   const s = (await getSettings()).compliance;
   return {
     licensed: s.licensedOnly,
-    public: ALL_CLASSES.filter((c) => !s.licensedOnly.includes(c)),
+    public: REG_CLASSES.filter((c) => !s.licensedOnly.includes(c)),
     noIncentives: incentiveExcluded(s),
     thcMode: s.thcMode,
   };

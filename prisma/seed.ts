@@ -19,6 +19,7 @@ import { bankBy, cashToBank } from "../src/lib/banking";
 import { applyPromotions, type PromoInput } from "../src/lib/promotions";
 import { promoWindowOpen } from "../src/lib/pricing-rules";
 import { appendNote, leadNumber, noteLine, type LeadStatusKey } from "../src/lib/leads";
+import { DEFAULT_COMPLIANCE, DEFAULT_LEGAL_BASIS, PRODUCT_FACTS, CBD_CLASSES, THC_CAP_PCT, incentiveExcluded, type RegClass } from "../src/lib/compliance";
 import { CATEGORIES, DCS, FIRST_NAMES, HQ_COMPANY, LAST_NAMES, OWNERS, PRODUCTS, REGIONS, STORES, type StoreSeed } from "./seed-data";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
@@ -162,7 +163,13 @@ async function main() {
 
   // ── Catalogue ───────────────────────────────────────────────────────────
   const catId = Object.fromEntries(CATEGORIES.map((c) => [c.slug, uid()]));
-  const CAT_CODE: Record<string, string> = { flower: "FLW", "pre-rolls": "PRE", edibles: "EDB", vapes: "VAP", concentrates: "CON", wellness: "WEL", accessories: "ACC", grow: "GRW", apparel: "APP" };
+  const CAT_CODE: Record<string, string> = {
+    flower: "FLW", "pre-rolls": "PRE", edibles: "EDB", vapes: "VAP", concentrates: "CON", wellness: "WEL", "coffee-drinks": "COF", "protein-nutrition": "PRO",
+    "skin-care": "SKN", "collagen-supplements": "SUP", accessories: "ACC", grow: "GRW", apparel: "APP",
+  };
+  // The same s18A exclusions the platform applies by default (licensed medicines, and CBD supplements until counsel
+  // clears them): no member prices, deals, markdowns or points on these.
+  const NO_INCENTIVES = incentiveExcluded(DEFAULT_COMPLIANCE) as string[];
   type SimVariant = { id: string; sku: string; productId: string; slug: string; name: string; label: string; grams: number | null; price: number; wholesale: number; cost: number; reg: string; cat: string; heritage: boolean; featured: boolean; tobacco: boolean; line?: string; shelfMonths: number; supplier: string; thc?: [number, number]; cbd?: [number, number]; terps?: [string, number][] };
   const variants: SimVariant[] = [];
   const productRows: Prisma.ProductCreateManyInput[] = [];
@@ -176,13 +183,17 @@ async function main() {
   PRODUCTS.forEach((p, pi) => {
     const pid = uid();
     productIdBySlug[p.slug] = pid;
-    const legalBasis = p.reg === "THC" ? "SAHPRA licence — medical pathway (Section 21 authorisation required)" : p.reg === "CBD" ? "Schedule 0 CBD — GN 586 of 22 May 2020" : p.reg === "HEMP" ? "Hemp — Plant Improvement Act 2018 (≤ 2% THC)" : null;
+    const legalBasis = DEFAULT_LEGAL_BASIS[p.reg] ?? null;
+    const capped = CBD_CLASSES.includes(p.reg as RegClass); // CBD classes: THC at most 0.001%
+    const facts = PRODUCT_FACTS[p.reg] ?? [];
     productRows.push({
       id: pid, slug: p.slug, name: p.name, tagline: p.tagline, line: p.line, categoryId: catId[p.cat], description: p.desc, strain: p.strain,
-      thcMin: p.thc?.[0] ?? (p.reg === "CBD" ? 0 : null), thcMax: p.thc?.[1] ?? (p.reg === "CBD" ? 0.001 : null), cbdMin: p.cbd?.[0], cbdMax: p.cbd?.[1],
+      thcMin: p.thc?.[0] ?? (capped ? 0 : null), thcMax: p.thc?.[1] ?? (capped ? THC_CAP_PCT : null), cbdMin: p.cbd?.[0], cbdMax: p.cbd?.[1],
       terpenes: p.terps ? p.terps.map(([name, pct]) => ({ name, pct })) : undefined, effects: p.effects ?? [], flavours: p.flavours ?? [],
-      lineage: p.lineage, origin: p.origin, heritage: !!p.heritage, regClass: p.reg, legalBasis, cbdMgPerPack: p.cbdPack, cbdMgPerDay: p.cbdDay,
+      lineage: p.lineage, origin: p.origin, heritage: !!p.heritage, regClass: p.reg, legalBasis, cbdMgPerPack: p.cbdPack, cbdMgPerDay: p.reg === "CBD" ? p.cbdDay : null,
       claims: p.claims ?? [], tobaccoRelated: !!p.tobacco, featured: !!p.featured, status: "ACTIVE", createdAt: daysAgo(int(120, 400)),
+      netContent: facts.includes("netContent") ? p.net?.[0] : null, netUnit: facts.includes("netContent") ? p.net?.[1] : null,
+      ingredients: facts.includes("ingredients") ? p.ingredients : null, allergens: facts.includes("allergens") ? (p.allergens ?? []) : [], naturalCbd: p.reg === "CBD_FOOD" && !!p.naturalCbd,
     });
     const code = p.slug.split("-").slice(0, 2).map((w) => w.slice(0, 2).toUpperCase()).join("");
     p.variants.forEach(([label, grams, rand$], vi) => {
@@ -204,7 +215,7 @@ async function main() {
   type SimBatch = { id: string; code: string; variantId: string; packedAt: Date; expiresAt: Date | null; unsellableFrom?: Date; status: "RELEASED" | "QUARANTINE" | "RECALLED"; reason?: string };
   const batches: SimBatch[] = [];
   const batchRows: Prisma.BatchCreateManyInput[] = [];
-  const tested = new Set(["THC", "CBD", "HEMP"]);
+  const tested = new Set(["THC", "CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP"]); // every class with hemp in it gets a COA
   for (const v of variants) {
     const cannabis = tested.has(v.reg);
     const packs = cannabis ? [DAYS + 110, DAYS + 25, Math.round(DAYS / 3)] : [DAYS + 90, Math.round(DAYS / 2)];
@@ -220,7 +231,7 @@ async function main() {
       if (v.slug === "rooibos-honey-gummies" && i === 1) Object.assign(b, { status: "RECALLED", unsellableFrom: daysAgo(10), reason: "Voluntary recall: potency label misprint (actual 7.5 mg per piece)" });
       if (v.slug === "tulip-og" && v.label === "3.5g" && i === 2) Object.assign(b, { status: "QUARANTINE", unsellableFrom: daysAgo(3), reason: "Awaiting microbial re-test" });
       batches.push(b);
-      const thc = v.thc ? +rand(v.thc[0], v.thc[1]).toFixed(1) : v.reg === "CBD" ? 0 : null;
+      const thc = v.thc ? +rand(v.thc[0], v.thc[1]).toFixed(1) : CBD_CLASSES.includes(v.reg as RegClass) ? 0 : null;
       batchRows.push({
         id: b.id, code: b.code, variantId: v.id, supplier: v.supplier, packedAt, expiresAt, status: b.status, statusReason: b.reason,
         thc, cbd: v.cbd ? +rand(v.cbd[0], v.cbd[1]).toFixed(2) : v.reg === "THC" ? +rand(0.05, 0.6).toFixed(2) : null,
@@ -239,7 +250,10 @@ async function main() {
 
   // ── Ranging & local prices ──────────────────────────────────────────────
   const EXPRESS_SKIP = new Set(["grow-tent", "led-grow-light", "kite-vaporiser", "delft-water-pipe", "sunset-hoodie", "reserve-gelato-cake"]);
-  const PAR: Record<string, number> = { flower: 14, "pre-rolls": 16, edibles: 10, vapes: 8, concentrates: 5, wellness: 8, accessories: 8, grow: 3, apparel: 4 };
+  const PAR: Record<string, number> = {
+    flower: 14, "pre-rolls": 16, edibles: 10, vapes: 8, concentrates: 5, wellness: 8, "coffee-drinks": 8, "protein-nutrition": 4, "skin-care": 6, "collagen-supplements": 4,
+    accessories: 8, grow: 3, apparel: 4,
+  };
   const ranged = new Map<string, { par: number; rp: number; price?: number }>();
   const svRows: Prisma.StoreVariantCreateManyInput[] = [];
   const overrides: { storeId: string; variantId: string; price: number }[] = [];
@@ -377,7 +391,8 @@ async function main() {
   const pids = (...slugs: string[]) => slugs.map((s) => productIdBySlug[s]);
   const promoDefs: (Prisma.PromotionCreateManyInput & { id: string })[] = [
     { id: uid(), name: "Heritage Month: 15% off apparel & accessories", description: "Celebrating Heritage Month with 15% off the windmill range all September.", kind: "PERCENT", value: 15, categoryIds: [cat("apparel"), cat("accessories")], productIds: [], channels: ["POS", "ONLINE"], startsAt: sep1, endsAt: midnight(`${NOW.getUTCFullYear()}-10-01`) },
-    { id: uid(), name: "Any 2 CBD wellness for R800", description: "Mix and match any two CBD oils, softgels, balms or teas.", kind: "MULTIBUY", value: 80000, buyQty: 2, categoryIds: [cat("wellness")], productIds: [], channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-45) },
+    // CBD skin care may be promoted; CBD supplements (oils, softgels) may not until counsel clears them (s18A).
+    { id: uid(), name: "Any 2 CBD creams or balms for R650", description: "Mix and match the CBD body cream and the Recover muscle balm.", kind: "MULTIBUY", value: 65000, buyQty: 2, categoryIds: [], productIds: pids("cbd-body-cream", "recover-cbd-balm"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-45) },
     { id: uid(), name: "Rolling essentials: tray + free papers", description: "Buy a Windmill rolling tray and get a booklet of papers free.", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 100, productIds: pids("windmill-rolling-tray"), categoryIds: [], rewardProductIds: pids("king-size-papers"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-60) },
     { id: uid(), name: "Spend R600, get the Sunset grinder free", description: "Gift with purchase on non-medicinal items.", kind: "BUY_X_GET_Y", value: 0, minSpendCents: 60000, getQty: 1, rewardPercent: 100, productIds: [], categoryIds: [], rewardProductIds: pids("sunset-grinder"), channels: ["POS"], startsAt: daysAgo(21), endsAt: daysAgo(-21) },
     { id: uid(), name: "Happy hour: 10% off accessories", description: "Weekdays 16:00–18:00.", kind: "PERCENT", value: 10, categoryIds: [cat("accessories")], productIds: [], channels: ["POS"], days: [1, 2, 3, 4, 5], startMinute: 16 * 60, endMinute: 18 * 60, startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
@@ -409,7 +424,10 @@ async function main() {
   const variantStats = new Map<string, { storeId: string; date: string; variantId: string; units: number; netCents: number; costCents: number }>();
   const sold14 = new Map<string, number[]>(); // store|variant → units per day index
   const THC_CATS = ["flower", "pre-rolls", "edibles", "vapes", "concentrates"];
-  const CAT_W: [string, number][] = [["flower", 0.5], ["pre-rolls", 0.15], ["edibles", 0.08], ["vapes", 0.08], ["concentrates", 0.04], ["wellness", 0.11], ["accessories", 0.09], ["grow", 0.02], ["apparel", 0.025]];
+  const CAT_W: [string, number][] = [
+    ["flower", 0.5], ["pre-rolls", 0.15], ["edibles", 0.08], ["vapes", 0.08], ["concentrates", 0.04], ["wellness", 0.065], ["coffee-drinks", 0.035], ["protein-nutrition", 0.015],
+    ["skin-care", 0.03], ["collagen-supplements", 0.01], ["accessories", 0.09], ["grow", 0.02], ["apparel", 0.025],
+  ];
   const variantsIn = (catSlug: string) => variants.filter((v) => v.cat === catSlug);
   const campaignSends: { id: string; ts: Date; promoId?: string }[] = [];
   const heritageCampaignId = uid(), winbackCampaignId = uid(), balmCampaignId = uid();
@@ -455,12 +473,12 @@ async function main() {
   }
 
   // Instant Rewards pricing, as resolvePrice does it: members pay their tier % less, or this week's Rewards deal price
-  // when that's lower. Never on licensed medicines (s18A).
-  const DEAL_SLUGS = ["calm-cbd-oil-600", "rooibos-cbd-tea", "sunset-grinder", "windmill-rolling-tray", "hemp-hand-cream"];
+  // when that's lower. Never on medicines (s18A): licensed products, and CBD supplements until counsel clears them.
+  const DEAL_SLUGS = ["herbal-holland-cbd-coffee", "rooibos-cbd-tea", "sunset-grinder", "windmill-rolling-tray", "hemp-hand-cream"];
   const dealFrom = daysAgo(5);
   const deals = new Map(variants.filter((v) => DEAL_SLUGS.includes(v.slug)).map((v) => [v.id, Math.round((v.price * 0.8) / 100) * 100 - 1]));
   const memberUnit = (base: number, v: SimVariant, c: SimCustomer | null, ts: Date) => {
-    if (!c || v.reg === "THC") return base;
+    if (!c || NO_INCENTIVES.includes(v.reg)) return base;
     const tier = Math.round((base * (100 - DEFAULT_TIER_SAVINGS[c.tier])) / 100);
     const deal = ts >= dealFrom ? deals.get(v.id) : undefined;
     return deal != null && deal < tier ? deal : tier;
@@ -477,7 +495,7 @@ async function main() {
       const r = ranged.get(lk(s.id, v.id));
       const base = o.channel === "POS" ? (r?.price ?? Math.round(v.price * zone)) : v.price;
       const unit = memberUnit(base, v, c, ts);
-      return { v, qty, unit, noPromo: v.reg === "THC", saved: (base - unit) * qty };
+      return { v, qty, unit, noPromo: NO_INCENTIVES.includes(v.reg), saved: (base - unit) * qty };
     });
     const saved = priced.reduce((a, p) => a + p.saved, 0);
     const promos = promosAt(ts, o.channel, s.id);
@@ -487,7 +505,7 @@ async function main() {
     const total = pr.totalCents + extra;
     const lineVat = (cents: number) => (s.vendor ? vatOf(cents) : 0);
     const saleId = uid();
-    let cost = 0, units = 0, thcTotal = 0;
+    let cost = 0, units = 0, noEarnTotal = 0;
     const date = dayKey(ts);
     for (const [i, p] of priced.entries()) {
       const allocations = take(s.id, p.v.id, p.qty, o.channel === "POS" ? "SALE" : "ONLINE", ts, { saleId, orderId: o.orderId, userId: o.staffId ?? undefined });
@@ -495,7 +513,7 @@ async function main() {
       cost += lc;
       units += p.qty;
       const lt = pr.lines[i].totalCents;
-      if (p.noPromo) thcTotal += lt;
+      if (p.noPromo) noEarnTotal += lt;
       saleLines.push({ id: uid(), saleId, variantId: p.v.id, qty: p.qty, unitPriceCents: p.unit, discountCents: pr.lines[i].discountCents, memberSavingsCents: p.saved, totalCents: lt, vatCents: lineVat(lt), costCents: lc, allocations });
       const vk = `${s.id}|${date}|${p.v.id}`;
       const vs = variantStats.get(vk) ?? { storeId: s.id, date, variantId: p.v.id, units: 0, netCents: 0, costCents: 0 };
@@ -542,7 +560,7 @@ async function main() {
       const spend12 = c.prior12m + c.spend.reduce((a, x) => a + x.cents, 0);
       const before = c.tier;
       c.tier = tierFor(spend12).key;
-      earned = pointsFor(Math.max(0, total - loyaltyPts * 100 - thcTotal), c.tier, pr.pointsMultiplier);
+      earned = pointsFor(Math.max(0, total - loyaltyPts * 100 - noEarnTotal), c.tier, pr.pointsMultiplier);
       if (earned) {
         c.points += earned;
         loyalty.push({ id: uid(), customerId: c.id, storeId: s.id, points: earned, kind: "EARN", saleId, orderId: o.orderId, createdAt: ts });
@@ -563,7 +581,7 @@ async function main() {
       c.last = ts;
     }
     const campaignId = o.campaignId ?? campaignSends.find((x) => x.promoId && pr.applied.some((a) => a.id === x.promoId) && ts >= x.ts)?.id ?? null;
-    const ageRestricted = priced.some((p) => ["THC", "CBD", "HEMP", "ACCESSORY", "GROW"].includes(p.v.reg));
+    const ageRestricted = priced.some((p) => (DEFAULT_COMPLIANCE.ageRestricted as string[]).includes(p.v.reg));
     const vat = priced.reduce((a, _, i) => a + lineVat(pr.lines[i].totalCents), 0) + lineVat(extra);
     sales.push({
       id: saleId, number: o.number, storeId: s.id, channel: o.channel, orderId: o.orderId, shiftId: o.shiftId, staffId: o.staffId, deviceId: o.channel === "POS" ? s.deviceId : null,
@@ -575,7 +593,7 @@ async function main() {
     const col = { CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents" } as const;
     for (const t of tenders) d[col[t.method]] = (d[col[t.method]] ?? 0) + t.amountCents;
     bump(s.id, date, o.channel, d);
-    return { saleId, total, pr, thcTotal, payRows };
+    return { saleId, total, pr, noEarnTotal, payRows };
   }
 
   // Replenishment, adjustments and stock takes run on the same clock as sales.
@@ -953,8 +971,8 @@ async function main() {
         messageRows.push({ id: uid(), campaignId: id, customerId: c.id, to: channel === "EMAIL" ? c.email! : c.phone, channel, kind: "MARKETING", status: "SENT", body: message.replaceAll("{{firstName}}", c.firstName).replaceAll("{{code}}", "WELCOMEBACK") + footer, createdAt: sentAt! });
   }
   if (sep1 > daysAgo(DAYS)) campaign(heritageCampaignId, "Heritage Month launch", "SMS", "ALL", "Hi {{firstName}}, happy Heritage Month from Herbal Holland! 15% off apparel & accessories all September, in store and online.", customers.filter((c) => c.createdAt < sep1), at(dayKey(sep1), 9 * 60 + 30), "SENT", heritagePromoId, 1_850_000);
-  campaign(winbackCampaignId, "We miss you — R75 off", "SMS", "AT_RISK", "Hi {{firstName}}, it's been a while! Here's R75 off when you spend R400 on wellness, accessories or apparel. Use code {{code}} by the end of the month.", customers.filter((c) => c.atRisk), winbackSend, "SENT", winbackPromoId, 240_000);
-  campaign(balmCampaignId, "New: Recover CBD Muscle Balm", "PUSH", "LOYAL", "New in the wellness range: Recover CBD Muscle Balm — arnica, wintergreen and 500 mg CBD for after the gym.", customers.filter((c) => c.visits >= 5 && c.last && c.last > daysAgo(60)), at(keyOf(8), 11 * 60), "SENT");
+  campaign(winbackCampaignId, "We miss you — R75 off", "SMS", "AT_RISK", "Hi {{firstName}}, it's been a while! Here's R75 off when you spend R400 on coffee, skin care, accessories or apparel. Use code {{code}} by the end of the month.", customers.filter((c) => c.atRisk), winbackSend, "SENT", winbackPromoId, 240_000);
+  campaign(balmCampaignId, "New: Recover CBD Muscle Balm", "PUSH", "LOYAL", "New in skin care: Recover CBD Muscle Balm — arnica, wintergreen and 500 mg CBD for after the gym.", customers.filter((c) => c.visits >= 5 && c.last && c.last > daysAgo(60)), at(keyOf(8), 11 * 60), "SENT");
   const nextFriday = new Date(NOW.getTime() + ((5 - NOW.getUTCDay() + 7) % 7 || 7) * DAY);
   campaign(uid(), "Double Points Friday", "SMS", "ALL", "Hi {{firstName}}, it's Double Points Friday at Herbal Holland — every rand counts twice today.", [], at(dayKey(nextFriday), 10 * 60), "SCHEDULED");
   campaign(uid(), "Spring grow season", "EMAIL", "PROSPECT", "Hi {{firstName}}, spring is planting season. Everything for the home grow — living soil, nutrients and heritage seeds — is in store now.", [], null, "DRAFT");

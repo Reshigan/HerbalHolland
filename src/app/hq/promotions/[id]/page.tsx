@@ -4,6 +4,7 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
+import { incentiveExcluded, REG_CLASS_LABEL } from "@/lib/compliance";
 import { can } from "@/server/hq/guard";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { zar, zarCompact } from "@/lib/money";
@@ -83,7 +84,7 @@ export default async function PromotionPage({ params, searchParams }: { params: 
         action={savePromotion.bind(null, promo.id)}
         values={promoValues(promo)}
         {...opts}
-        medicalMode={settings.compliance.thcMode === "MEDICAL"}
+        excluded={incentiveExcluded(settings.compliance).map((c) => REG_CLASS_LABEL[c])}
         readOnly={!edit}
       />
     </>

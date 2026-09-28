@@ -59,11 +59,11 @@ export const POST = withStaff(async (req, pos) => {
     shiftId = given?.id ?? open?.id ?? null;
   }
 
-  // Medicines Act s18A: points (an incentive) can't pay for licensed medicines.
+  // Medicines Act s18A: points (an incentive) can't pay for medicines (licensed, or the noIncentives classes).
   if (!b.offline && b.pointsRedeemed) {
     const q = await quote({ storeId, channel: "POS", items: b.lines, code: b.promoCode, customerId: b.customerId });
     const eligible = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
-    if (b.pointsRedeemed * 100 > eligible) throw new PosError("Points can't be used towards licensed medicines", 422);
+    if (b.pointsRedeemed * 100 > eligible) throw new PosError("Points can't be used towards medicines (licensed or CBD supplements)", 422);
   }
 
   const now = Date.now();

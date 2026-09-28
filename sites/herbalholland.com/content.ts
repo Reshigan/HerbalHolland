@@ -38,11 +38,11 @@ export const GATE = {
   title: "Are you 18 or older?",
   body: "Herbal Holland is for adults only. Please confirm your age to continue.",
   yes: "I'm 18 or older",
-  no: "I'm not 18 yet",
+  no: "I'm younger than 18",
   remember: "We remember your answer on this device for a year.",
   under: {
     title: "Sorry, this site is for adults",
-    body: "You need to be 18 or older to visit Herbal Holland. Thanks for being honest — we look forward to welcoming you when you're older.",
+    body: "You need to be 18 or older to visit Herbal Holland. Thanks for being honest.",
     help: "Looking for support, or someone to talk to? Visit",
     or: "or",
     sadag: "SADAG",
@@ -97,6 +97,14 @@ export const HOME = {
     secondary: "Our story",
     cue: "Scroll",
   },
+  // What's in store: categories only (no product names, prices or anything a product does).
+  range: {
+    eyebrow: "What's in store",
+    title: "Wellness, tested",
+    intro: "CBD wellness, functional coffee and protein, skin care and collagen: all lab-tested and batch-traceable, for members aged 18 and over.",
+    items: ["CBD wellness", "Functional coffee", "Protein", "Skin care", "Collagen"],
+    note: "Licensed medicines are a separate pharmacist service, only for registered patients with a SAHPRA authorisation.",
+  },
   marquee: {
     label: "What we stand for",
     words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Pharmacist-led"],
@@ -105,13 +113,13 @@ export const HOME = {
     eyebrow: "Holland, meet the Hills",
     unit: "km",
     title: "from Amsterdam to the hills",
-    sr: "{km} km — from Amsterdam to the hills",
+    sr: "{km}\u00a0km — from Amsterdam to the hills",
     lede: "Holland is famously flat. Both our first towns are hill towns. This is how the windmill came to the hills.",
     from: "Amsterdam",
     to: "Hillcrest",
     toBoth: "Hillcrest · Hilton",
     readout: { lat: "Latitude", lon: "Longitude", dist: "Distance" },
-    caption: "A globe showing the great circle from Amsterdam ({from}) to Hillcrest, KwaZulu-Natal ({to}): {km} km.",
+    caption: "A globe showing the great circle from Amsterdam ({from}) to Hillcrest, KwaZulu-Natal ({to}): {km}\u00a0km.",
     chapters: [
       {
         key: "tradition",
@@ -135,7 +143,7 @@ export const HOME = {
         key: "welcome",
         label: "The welcome",
         title: "Welkom. Sawubona.",
-        body: "Our first two stores open in Hillcrest and Hilton on {opening}, {apart} km apart in the KwaZulu-Natal hills.",
+        body: "Our first two stores open in Hillcrest and Hilton on {opening}, {apart}\u00a0km apart in the KwaZulu-Natal hills.",
       },
     ],
   },
@@ -184,7 +192,7 @@ export const HOME = {
     cta: "Our story and standards",
     // The lab card types an example batch code, then ticks it.
     demo: { label: "Batch code", code: "HH-2612-0001", check: "Tested before sale", example: "Example" },
-    members: { card: "Member", id: "ID checked" },
+    members: { id: "Members · ID checked" },
     pharmacist: "Pharmacist",
   },
   numbers: {
@@ -206,7 +214,7 @@ export const HOME = {
       { key: "hilton", area: "KZN Midlands", line: "From the polders to the Midlands." },
     ],
     opens: "Opens {opening}",
-    apart: "{km} km apart",
+    apart: "{km}\u00a0km apart",
     finder: "Find a store",
     finderSoon: "Store pages, with directions and opening hours, are on their way.",
   },
@@ -262,12 +270,12 @@ export const ABOUT = {
     paragraphs: [
       "Our name nods to Amsterdam, where many of Southern Africa's landraces became famous. Our roots, and our growers, are here.",
       "Dutch heritage is the coffee-shop tradition of hospitality: a warm welcome, and knowing exactly what you're offering. African soil is the bigger half: South African growers, makers and places.",
+      "In store and online, that means CBD wellness, functional coffee and protein, skin care and collagen, all lab-tested and batch-traceable, for members aged 18 and over.",
     ],
     windmill: {
       label: "The Herbal Holland windmill",
       title: "Why a windmill?",
       body: "It's two things at once: a Dutch windmill and a four-petal flower. The ring is open at the bottom, where the tower stands. We drew it from our first store-window poster.",
-      parts: ["The ring", "The tower", "Four petals"],
     },
   },
   heritage: {
@@ -395,6 +403,7 @@ export const FRANCHISE = {
         title: "The brand and the launch",
         items: [
           { key: "brand", title: "The brand", body: "The windmill, the orange frame and the standards behind them, with artwork for your windows, signs and in-store screens." },
+          { key: "range", title: "The range", body: "CBD wellness, functional coffee and protein, skin care and collagen, supplied through HQ, with every batch lab-tested and traceable." },
           { key: "playbook", title: "A launch playbook", body: "A ten-week opening plan: meeting the neighbours, hiring, the reveal, press, the opening evening and Open Day." },
           { key: "events", title: "Drops and events", body: "Members' evenings, open days and limited drops, planned with HQ and announced to members." },
           { key: "training", title: "Training", body: "Training for you and your team before you open: the platform, ID checks, compliance and the dispensary. HQ stays on hand after that." },
@@ -521,6 +530,7 @@ export const PRESS = {
     rows: {
       company: "Company",
       what: "What we are",
+      range: "What's in store",
       line: "Brand line",
       stores: "Stores",
       provinces: "Provinces",
@@ -536,6 +546,7 @@ export const PRESS = {
     },
     values: {
       what: "A South African network of cannabis wellness stores and an online shop, for members aged 18 and over.",
+      range: "CBD wellness, functional coffee and protein, skin care and collagen, all lab-tested and batch-traceable.",
       model: "Franchise: each store is independently owned and run by a local franchisee, on one shared platform.",
       membership: "Members only. Herbal Holland Rewards is free to join and works in every store and online.",
       founding: "The first {cap} members of Herbal Holland Rewards get a numbered Founding Member card.",
@@ -545,7 +556,7 @@ export const PRESS = {
       storesNone: "Our first stores are on their way.",
       trading: "{n} trading",
       soon: "{n} opening soon",
-      opening: "{n} opening on {opening}: {names}, KwaZulu-Natal, about {km} km apart",
+      opening: "{n} opening on {opening}: {names}, KwaZulu-Natal, about {km}\u00a0km apart",
     },
   },
   media: {

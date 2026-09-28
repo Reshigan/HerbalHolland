@@ -8,6 +8,7 @@ import { can } from "@/server/hq/guard";
 import { qs, clock } from "@/server/hq/form";
 import { welcomeLine } from "@/server/hq/launch-rules";
 import { describePromo, type PromoInput } from "@/lib/promotions";
+import { incentiveExcluded, REG_CLASS_LABEL } from "@/lib/compliance";
 import { zarCompact } from "@/lib/money";
 import { fmtDate, num } from "@/lib/format";
 import { PageHeader, Notice } from "@/components/ui/page";
@@ -99,9 +100,10 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
           )
         }
       />
-      {settings.compliance.thcMode === "MEDICAL" && (
+      {incentiveExcluded(settings.compliance).length > 0 && (
         <Notice tone="info" className="mb-6">
-          Licensed medicines are excluded from every promotion, member price and points earn while THC is in medical mode (Medicines Act s18A) — the till and web shop apply this automatically.
+          Medicines are excluded from every promotion, member price and points earn (Medicines Act s18A):{" "}
+          {incentiveExcluded(settings.compliance).map((c) => REG_CLASS_LABEL[c]).join(" and ")}. The till and web shop apply this automatically; the list is on the Compliance page.
         </Notice>
       )}
       <TabLinks

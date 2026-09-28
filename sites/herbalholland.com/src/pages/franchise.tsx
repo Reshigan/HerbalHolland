@@ -123,7 +123,6 @@ function EnquiryForm() {
               {(["yes", "no"] as const).map((v) => (
                 <label key={v} className="radio">
                   <input type="radio" id={`f-pharmacist-${v}`} name="pharmacist" value={v} required />
-                  <span className="radio__dot" aria-hidden="true" />
                   <span>{f.pharmacist[v]}</span>
                 </label>
               ))}
@@ -136,12 +135,7 @@ function EnquiryForm() {
           <div className="field field--wide field--check" data-field="consent">
             <label className="check" htmlFor="f-consent">
               <input type="checkbox" id="f-consent" name="consent" required />
-              <span className="check__box" aria-hidden="true">
-                <svg viewBox="0 0 24 24" focusable="false">
-                  <path d="m6 12.5 4 4 8-9" />
-                </svg>
-              </span>
-              <span className="check__label">{f.consent.label}</span>
+              <span>{f.consent.label}</span>
             </label>
             <Help name="consent" />
           </div>
@@ -177,8 +171,8 @@ function EnquiryForm() {
         <h3 className="done__title" id="done-title" tabIndex={-1}>
           {F.done.title}
         </h3>
-        <p className="done__ref">
-          {F.done.reference} <strong data-ref="" /> {F.done.keep}
+        <p className="done__ref" data-ref-line="">
+          {F.done.reference} <strong data-ref="" />. {F.done.keep}
         </p>
         <p className="eyebrow">{F.done.next}</p>
         <ol className="done__steps">
@@ -199,7 +193,7 @@ export function FranchisePage() {
   return (
     <Page page="franchise" meta={{ path: "/franchise", ...FRANCHISE.meta }}>
       <PageHero kind="franchise" eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede}>
-        <div className="phero__ctas">
+        <div className="ctas">
           <Btn href="#enquire" magnetic>
             {hero.enquire}
           </Btn>

@@ -40,7 +40,7 @@ export async function saveDrop(dropId: string | null, _: ActionState, fd: FormDa
     ]);
     const bad = found.find((v) => blocked.includes(v.product.regClass));
     if (found.length !== variantIds.length) fields.variantIds = "Some products no longer exist — refresh and pick again";
-    else if (bad) fields.variantIds = `${bad.product.name} is a ${REG_CLASS_LABEL[bad.product.regClass]} product — licensed medicines can't be part of a drop`;
+    else if (bad) fields.variantIds = `${bad.product.name} is in ${REG_CLASS_LABEL[bad.product.regClass]} — medicines can't be part of a drop (Medicines Act s18A)`;
   }
 
   const startsAt = parseLocal(str(fd, "startsAt"));

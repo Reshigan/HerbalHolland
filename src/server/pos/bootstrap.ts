@@ -8,6 +8,7 @@ import { availability, availKey } from "@/server/inventory";
 import { tapProvider } from "@/server/payments";
 import { dropsFor } from "@/server/drops";
 import { addDays } from "@/lib/format";
+import { PRODUCT_FACTS } from "@/lib/compliance";
 import { staffTiles } from "./session";
 import type { PosDevice } from "./http";
 import type { BootData, BootShift, TierKey } from "./types";
@@ -95,6 +96,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       strain: p.strain,
       tobaccoRelated: p.tobaccoRelated,
       featured: p.featured,
+      facts: PRODUCT_FACTS[p.regClass] ? { netContent: p.netContent, netUnit: p.netUnit, ingredients: p.ingredients, allergens: p.allergens } : null,
       variants: p.variants
         .filter((v) => shelf.has(v.id) || (avail.get(availKey(store.id, v.id))?.onHand ?? 0) !== 0)
         .map((v) => {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Package, Plus } from "lucide-react";
+import { LayoutGrid, Package, Plus } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
@@ -8,7 +8,7 @@ import { productList, PRODUCT_STATUSES, REG_CLASSES } from "@/server/hq/catalogu
 import { titleCase } from "@/server/hq/stores";
 import { qs } from "@/server/hq/form";
 import { zarWhole } from "@/lib/money";
-import { REG_CLASS_LABEL } from "@/lib/compliance";
+import { REG_CLASS_LABEL, validateProduct, type RegClass } from "@/lib/compliance";
 import { PageHeader } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
@@ -47,11 +47,16 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
         title="Catalogue"
         description={`${count("ACTIVE")} active products · ${count("DRAFT")} in draft · ${count("ARCHIVED")} archived. One national range with recommended retail prices; stores range what suits them.`}
         actions={
-          can(user, "network") && (
-            <ButtonLink href="/hq/catalogue/new">
-              <Plus className="h-4 w-4" /> New product
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/hq/catalogue/categories" variant="outline">
+              <LayoutGrid className="h-4 w-4" /> Categories
             </ButtonLink>
-          )
+            {can(user, "network") && (
+              <ButtonLink href="/hq/catalogue/new">
+                <Plus className="h-4 w-4" /> New product
+              </ButtonLink>
+            )}
+          </div>
         }
       />
       <Card>
@@ -95,6 +100,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
                         {p.heritage && <Badge tone="orange">Heritage</Badge>}
                         {p.featured && <Badge tone="dark">Featured</Badge>}
                         {p.tobaccoRelated && <Badge tone="amber">Tobacco Bill</Badge>}
+                        {p.status !== "ARCHIVED" && validateProduct({ ...p, regClass: p.regClass as RegClass }).length > 0 && <Badge tone="red">Compliance data incomplete</Badge>}
                       </span>
                     </span>
                   </Link>

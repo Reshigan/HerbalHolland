@@ -5,11 +5,14 @@ import { audit } from "@/server/audit";
 import { getSettings, saveSetting } from "@/server/settings";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
 import { str, list, bool, opt, parseInt10, parseNum } from "@/server/hq/form";
-import type { ComplianceSettings, RegClass, SellChannel, ThcMode } from "@/lib/compliance";
+import { REG_CLASSES as CLASSES, type ComplianceSettings, type RegClass, type SellChannel, type ThcMode } from "@/lib/compliance";
 
-const CLASSES: RegClass[] = ["THC", "CBD", "HEMP", "ACCESSORY", "APPAREL", "GROW"];
 const CHANNELS: SellChannel[] = ["POS", "COLLECT", "SAME_DAY", "COURIER"];
 const classes = (fd: FormData, name: string) => list(fd, name).filter((c): c is RegClass => CLASSES.includes(c as RegClass));
+/** Order-insensitive form for comparing settings: jsonb stores object keys in its own order, and class lists are sets. */
+const canon = (v: unknown): unknown =>
+  Array.isArray(v) ? v.map(canon).sort() : v && typeof v === "object" ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, canon(x)])) : v;
+const same = (a: unknown, b: unknown) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
 export async function saveCompliance(_: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("admin");
@@ -34,12 +37,13 @@ export async function saveCompliance(_: ActionState, fd: FormData): Promise<Acti
     channels: Object.fromEntries(CHANNELS.map((c) => [c, classes(fd, `ch_${c}`)])) as ComplianceSettings["channels"],
     tobaccoBillMode: bool(fd, "tobaccoBillMode"),
     membersOnly: bool(fd, "membersOnly"),
+    noIncentives: fd.has("noIncentivesShown") ? classes(fd, "noIncentives") : (before.noIncentives ?? []),
   };
   // Guardrails: the licence gate and the 18+ check on licensed classes can't be switched off from here.
   if (!next.licensedOnly.includes("THC")) return fail("THC must stay licence-gated. Commercial THC trade needs a licence under any current or proposed regime.");
   for (const c of next.licensedOnly) if (!next.ageRestricted.includes(c)) next.ageRestricted.push(c);
 
-  const changed = (Object.keys(next) as (keyof ComplianceSettings)[]).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(next[k]));
+  const changed = (Object.keys(next) as (keyof ComplianceSettings)[]).filter((k) => !same(before[k], next[k]));
   if (!changed.length) return done("No changes to save.");
   await saveSetting("compliance", next);
   await audit(db, g.actor, "compliance.settings", {

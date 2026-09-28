@@ -350,7 +350,7 @@ export function PaymentSheet({
             {panel === "points" && points && (
               <div className="mt-4 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800">
                 <p className="text-sm text-ink-300">
-                  {fmtPoints(points.balance)} available · 1 point = R1. Points can&apos;t be used on licensed medicines.
+                  {fmtPoints(points.balance)} available · 1 point = R1. Points can&apos;t be used on medicines (licensed or CBD supplements).
                 </p>
                 <PosButton
                   variant="primary"

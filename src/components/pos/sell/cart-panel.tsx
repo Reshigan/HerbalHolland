@@ -3,13 +3,14 @@
 // steppers, price-rule labels, promotion and My Deals discounts, drop limits), "complete
 // the deal" suggestions, promo code, totals and the Pay button.
 import { useEffect, useRef, useState } from "react";
-import { Award, BadgeCheck, Gem, Gift, IdCard, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
+import { Award, BadgeCheck, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { Chip, PosButton, TIER_CHIP, tierName, Stepper, TextInput } from "../ui";
+import { FactsChips, FactsSheet, hasFacts } from "./facts-sheet";
 import type { BootDrop, BootProduct, BootVariant, QuoteDTO, CustomerDetail } from "@/server/pos/types";
 import type { Cart } from "../lib/storage";
 
@@ -246,6 +247,7 @@ export function CartPanel({
 }) {
   const [codeOpen, setCodeOpen] = useState(!!cart.code);
   const [code, setCode] = useState(cart.code ?? "");
+  const [factsOf, setFactsOf] = useState<BootProduct | null>(null);
   const byVariant = new Map(quote.lines.map((l) => [l.variantId, l]));
   const promoName = new Map(quote.applied.map((a) => [a.id, a.name]));
   const units = cart.lines.reduce((s, l) => s + l.qty, 0);
@@ -311,6 +313,7 @@ export function CartPanel({
                             Medicine · no incentives
                           </Chip>
                         )}
+                        {!licensed && q?.noEarn && <Chip tone="neutral">No deals or points · s18A</Chip>}
                         {offer > 0 && (
                           <Chip tone="orange" wrap icon={<Tag className="h-3 w-3 shrink-0" />}>
                             My Deals −{zar(offer)}
@@ -322,12 +325,20 @@ export function CartPanel({
                             −{zar(deal)} {dealName && dealName !== q?.offerName ? `· ${dealName}` : ""}
                           </Chip>
                         )}
+                        <FactsChips product={e.product} />
                       </div>
                       <div className="mt-2 flex items-center justify-between">
                         <Stepper value={l.qty} min={1} onChange={(v) => onQty(l.variantId, v)} label={`quantity of ${e.product.name}`} />
-                        <button type="button" onClick={() => onRemove(l.variantId)} aria-label={`Remove ${e.product.name}`} className="grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-rose-500/10 hover:text-rose-400">
-                          <Trash2 className="h-[18px] w-[18px]" />
-                        </button>
+                        <div className="flex items-center">
+                          {hasFacts(e.product) && (
+                            <button type="button" onClick={() => setFactsOf(e.product)} aria-label={`Product facts: ${e.product.name}`} title="Product facts" className="grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+                              <Info className="h-[18px] w-[18px]" />
+                            </button>
+                          )}
+                          <button type="button" onClick={() => onRemove(l.variantId)} aria-label={`Remove ${e.product.name}`} className="grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-rose-500/10 hover:text-rose-400">
+                            <Trash2 className="h-[18px] w-[18px]" />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -448,6 +459,7 @@ export function CartPanel({
         </div>
         {priced === "local" && cart.lines.length > 0 && <p className="mt-2 text-center text-[0.7rem] text-ink-500">Prices from this till&apos;s offline price book</p>}
       </div>
+      <FactsSheet product={factsOf} onClose={() => setFactsOf(null)} />
     </div>
   );
 }

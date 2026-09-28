@@ -82,10 +82,7 @@ const seen = new IntersectionObserver(
 const watch = (el: Element) => (geo.set(el, { top: 0, h: 0 }), seen.observe(el));
 
 // ── The 18+ gate ────────────────────────────────────────────────────────────
-function ready() {
-  $$(".rise .w").forEach((w, i) => setVar(w as HTMLElement, "--i", i));
-  requestAnimationFrame(() => requestAnimationFrame(() => html.classList.add("ready")));
-}
+const ready = () => html.classList.add("ready");
 
 function gate() {
   const g = $<HTMLDialogElement>("#gate");
@@ -259,6 +256,7 @@ function story() {
   };
   const plane = $<SVGGElement>("[data-plane]", svg)!;
   const zooms = $$<SVGGElement>(".globe__zoom", svg);
+  const pinA = $<SVGGElement>(".pin--a", svg);
   const dots = $$<SVGCircleElement>(".dot", svg);
   dots.forEach((c) => setVar(c, "--t", c.dataset.t!));
   const chapters = $$("[data-chapter]", s);
@@ -268,12 +266,26 @@ function story() {
   const kmEls = $$("[data-km], [data-km-big]", s);
   const km = Number(kmEls[0]?.textContent?.replace(/\D/g, "")) || 0;
   const dms = (n: number, p: string, q: string) => `${Math.abs(n).toFixed(4)}° ${n >= 0 ? p : q}`;
-  s.classList.add("is-live");
   watch(s);
   let lastP = -1;
   let lastKm = "";
   const W8 = 0.075;
+  // Pinned only on a screen tall enough for it (the CSS decides the same way); otherwise a plain, finished section.
+  const tall = matchMedia("(min-height: 600px)");
+  const shown = [...kmEls, latEl, lonEl].map((e) => e?.textContent ?? "");
+  let flat = false;
+  on(tall, "change", () => ((lastP = -1), wake()));
   jobs.push(() => {
+    if (!tall.matches) {
+      if (!flat) {
+        flat = true;
+        lastKm = "";
+        [...kmEls, latEl, lonEl].forEach((e, i) => e && (e.textContent = shown[i]));
+        [s, pinA, ...zooms, ...chapters, ...bars].forEach((e) => e?.removeAttribute("style"));
+      }
+      return false;
+    }
+    flat = false;
     if (!visible.has(s)) return false;
     const g = geo.get(s);
     if (!g || !g.h) return false;
@@ -289,6 +301,8 @@ function story() {
     const sc = 1 + 0.5 * z * z * (3 - 2 * z);
     const zt = `translate(${ex}px,${ey}px) scale(${sc.toFixed(4)}) translate(${-ex}px,${-ey}px)`;
     zooms.forEach((z) => (z.style.transform = zt));
+    // Amsterdam leaves the frame as the map closes in on the hills.
+    if (pinA) pinA.style.opacity = clamp(1 - z * 2.5).toFixed(3);
     const k = fmt(Math.round(km * ap));
     if (k !== lastKm) {
       lastKm = k;
@@ -299,8 +313,9 @@ function story() {
     chapters.forEach((c, i) => {
       const a = i / chapters.length;
       const b = (i + 1) / chapters.length;
-      const fin = i === 0 ? 1 : clamp((p - a + W8 / 2) / W8);
-      const fout = i === chapters.length - 1 ? 1 : clamp((b + W8 / 2 - p) / W8);
+      // One chapter at a time: the last one leaves before the next arrives.
+      const fin = i === 0 ? 1 : clamp((p - a) / W8);
+      const fout = i === chapters.length - 1 ? 1 : clamp((b - p) / W8);
       const o = Math.min(fin, fout);
       c.style.opacity = o.toFixed(3);
       c.style.transform = `translate3d(0,${((1 - o) * (fin < 1 ? 26 : -26)).toFixed(1)}px,0)`;
@@ -352,6 +367,7 @@ function menu() {
   const m = $<HTMLDialogElement>("#menu");
   const btn = $<HTMLButtonElement>("[data-menu-open]");
   if (!m || !btn) return;
+  $$(".menu__word", m).forEach((w, i) => setVar(w, "--i", i));
   let closing = 0;
   const open = () => {
     clearTimeout(closing);
@@ -551,6 +567,7 @@ function form() {
 
   function success(ref: string) {
     $("[data-ref]", done)!.textContent = ref;
+    $("[data-ref-line]", done)!.hidden = !ref;
     f!.hidden = true;
     done.hidden = false;
     const title = $("#done-title", done)!;
@@ -644,6 +661,8 @@ menu();
 faq();
 form();
 header();
+// Reduced motion: scroll-linked pieces show their finished state (the hero stays as it is at the top).
+if (RM) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
 if (!RM) {
   motion();
   progress();

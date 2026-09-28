@@ -130,21 +130,23 @@ describe("Commission", () => {
     await db.user.updateMany({ where: { memberId: w.walkIn.id }, data: { memberId: null } });
     const cara = await db.user.create({ data: { name: "Cara Commission", role: "BUDTENDER", storeId: w.store.id, memberId: w.walkIn.id, canDispense: true } });
     await db.store.update({ where: { id: w.store.id }, data: { commissionOn: true } });
-    const oil = await sell(cara, w.patient.id, w.oilV.id);
+    const coffee = await sell(cara, w.patient.id, w.coffeeV.id); // CBD food & drink: commissionable
     await sell(cara, w.patient.id, w.flowerV.id); // licensed medicine: never commission (s18A)
-    await sell(cara, w.walkIn.id, w.oilV.id); // her own member card: doesn't count
-    const net = oil.lines[0].totalCents - oil.lines[0].vatCents;
-    expect(oil.lines[0].vatCents).toBe(vatOf(oil.lines[0].totalCents));
+    const oil = await sell(cara, w.patient.id, w.oilV.id); // CBD supplement: no commission until counsel clears it (s18A)
+    await sell(cara, w.walkIn.id, w.coffeeV.id); // her own member card: doesn't count
+    const net = coffee.lines[0].totalCents - coffee.lines[0].vatCents;
+    expect(coffee.lines[0].vatCents).toBe(vatOf(coffee.lines[0].totalCents));
+    expect(oil.lines[0].totalCents).toBe(59_500); // and no member price on it either
     const month = thisMonth();
     let [line] = await monthCommission(w.store.id, month, cara.id);
     expect(line).toMatchObject({ salesCents: net, refundsCents: 0, commissionCents: Math.round(net * 0.02), held: false });
 
-    await refund(oil, w.manager, "CARD"); // someone else processes it — still clawed back from Cara
+    await refund(coffee, w.manager, "CARD"); // someone else processes it — still clawed back from Cara
     [line] = await monthCommission(w.store.id, month, cara.id);
     expect(line).toMatchObject({ refundsCents: -net, commissionCents: 0 });
 
     // Last month: one sale, with an open alert about her at approval time.
-    const past = await sell(cara, w.patient.id, w.oilV.id);
+    const past = await sell(cara, w.patient.id, w.coffeeV.id);
     const lastMonth = dayKey(new Date(new Date(`${month}-01T12:00:00+02:00`).getTime() - 5 * 86_400_000)).slice(0, 7);
     await db.sale.update({ where: { id: past.id }, data: { createdAt: new Date(`${lastMonth}-15T10:00:00+02:00`) } });
     const alert = await db.alert.create({ data: { key: `TEST:${cara.id}`, rule: "REFUND", severity: "MEDIUM", storeId: w.store.id, userId: cara.id, title: "Test", detail: "Test", evidence: [] } });
