@@ -25,6 +25,13 @@ export type Store = {
   /** Its opening day, YYYY-MM-DD: required while it's "opening"; left out for a store that's open when we don't have it. */
   opens?: string;
   status: "opening" | "open";
+  /** Its street address, phone number and trading hours: shown on /stores and its own page only once we have them. */
+  address?: string;
+  phone?: string;
+  /** Trading hours as the schema.org OpeningHoursSpecification expects them, e.g. "Mo-Fr 09:00-18:00", "Sa 09:00-14:00". */
+  hours?: readonly string[];
+  /** A photograph of the store (a file in ./static/stores), once the owner has shot it. Until then the store is drawn. */
+  photo?: string;
 };
 
 /**
@@ -50,6 +57,9 @@ export const FACTS = {
 
   shop: { url: null, opensLabel: "Opening soon" } as Shop,
 
+  /** Herbal Holland's own profiles elsewhere (Instagram, Facebook, LinkedIn…), for the Organization's sameAs. Empty until the owner supplies the URLs. */
+  social: [] as readonly string[],
+
   company: { legalName: "Vantax (Pty) Ltd", regNumber: null, vatNumber: null, address: null, phone: null } as Company,
   /** The Information Officer (POPIA, and PAIA requests), reached at email.hello. */
   officer: "Reshigan Govender",
@@ -59,7 +69,7 @@ export const FACTS = {
    * addresses or hours for them, so none are shown); Hillcrest and Hilton, two new stores in the KwaZulu-Natal hills,
    * open on the same day. The open stores' points are their towns' own (OpenStreetMap: Pietermaritzburg, and Umhlanga
    * Rocks), as is Hilton's, which gives the published 9,438 km from Amsterdam and 51 km from Hillcrest. Adding a store
-   * is one line here.
+   * is one line here; its address, phone, hours and photo appear on the site as soon as they're filled in.
    */
   stores: [
     { key: "pietermaritzburg", name: "Pietermaritzburg", city: "Pietermaritzburg", province: "KZN", lat: -29.6, lon: 30.3789, status: "open" },

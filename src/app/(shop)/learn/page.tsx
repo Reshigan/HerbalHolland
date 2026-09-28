@@ -8,9 +8,10 @@ import { Tag } from "@/components/shop/ui";
 import { publicQuest } from "@/lib/quests";
 
 export const metadata: Metadata = {
-  title: "Learn",
-  description: "Plain-English guides from Herbal Holland: heritage landraces, reading lab results, CBD and Schedule 0, Section 21 for patients, responsible use and how Rewards points work.",
+  title: "Learn: plain-English guides",
+  description: "Plain-English guides from Herbal Holland: heritage landraces, reading lab results, CBD and Schedule 0, Section 21 for patients, responsible use and Rewards points.",
   alternates: { canonical: "/learn" },
+  openGraph: { title: "Learn · Herbal Holland", description: "Straight answers about where our products come from, what the lab found, and what the law says.", url: "/learn", type: "website" },
 };
 
 export default function LearnIndex() {

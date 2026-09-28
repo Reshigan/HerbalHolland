@@ -42,3 +42,25 @@ export function project(lat: number, lon: number): [x: number, y: number] {
   const y = rho0 - rho * Math.cos(th);
   return [FIT.pad + (x - FIT.minx) * FIT.s, FIT.h - FIT.pad - (y - FIT.miny) * FIT.s];
 }
+
+/** The box round a shape's path (the paths use only M, l and z, from the generator). */
+export function bbox(d: string) {
+  let x = 0;
+  let y = 0;
+  let minx = Infinity;
+  let miny = Infinity;
+  let maxx = -Infinity;
+  let maxy = -Infinity;
+  for (const cmd of d.matchAll(/([Mlz])([^Mlz]*)/g)) {
+    const nums = cmd[2].trim().split(/[\s,]+|(?=-)/).filter(Boolean).map(Number);
+    for (let i = 0; i + 1 < nums.length; i += 2) {
+      if (cmd[1] === "M" && i === 0) (x = nums[i]), (y = nums[i + 1]);
+      else (x += nums[i]), (y += nums[i + 1]);
+      minx = Math.min(minx, x);
+      miny = Math.min(miny, y);
+      maxx = Math.max(maxx, x);
+      maxy = Math.max(maxy, y);
+    }
+  }
+  return { x: minx, y: miny, w: maxx - minx, h: maxy - miny };
+}

@@ -27,7 +27,9 @@ import { Countdown } from "@/components/shop/countdown";
 import { DropFacts, DropStatus, fmtWhen } from "@/components/shop/launch-cards";
 import { WatchDrop } from "@/components/shop/launch-forms";
 import { Callout, Container, Panel, Price, Stars, Tag } from "@/components/shop/ui";
+import { JsonLd } from "@/components/shop/json-ld";
 import { ButtonLink } from "@/components/ui/button";
+import { breadcrumbJsonLd, LOCALE, metaDescription, pageTitle, productJsonLd, SITE_NAME, siteUrl, type Availability } from "@/lib/seo";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, THC_CAP_PCT, allergenStatement, cbdFoodLimitMg, declaresAllergens, netContentLabel } from "@/lib/compliance";
 import { fmtDate, fmtDay } from "@/lib/format";
@@ -45,8 +47,19 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   if (!p || p.status !== "ACTIVE") return { title: "Not found" };
   // Licensed medicines are never advertised: generic title, kept out of search.
   if (classes.licensed.includes(p.regClass)) return { title: "Dispensary", robots: { index: false, follow: false } };
-  const description = `${p.tagline ?? ""} ${p.description}`.trim().slice(0, 158);
-  return { title: p.name, description, alternates: { canonical: `/p/${p.slug}` }, openGraph: { title: `${p.name} · Herbal Holland`, description, type: "website" } };
+  const description = metaDescription(
+    p.tagline,
+    p.description,
+    `${p.category.name} from ${SITE_NAME}: click & collect in store or delivered nationwide. Adults 18+.`,
+    "Every consumable we sell is lab-tested and traceable by batch.",
+  );
+  const path = `/p/${p.slug}`;
+  return {
+    title: pageTitle(p.name),
+    description,
+    alternates: { canonical: path },
+    openGraph: { title: `${p.name} · ${SITE_NAME}`, description, type: "website", url: path, siteName: SITE_NAME, locale: LOCALE },
+  };
 }
 
 export default async function ProductPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<SP> }) {
@@ -59,6 +72,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   if (access && !access.allowed) return <DispensaryGate access={access} next={`/p/${slug}`} />;
 
   const variant = product.variants.find((v) => v.id === sp.v) ?? product.variants[0];
+  const variantIds = product.variants.map((v) => v.id);
   const net = await getNetwork();
   const [quotes, batch, stores, reviews, networkAvail, pricing, alert, bought, reviewed] = await Promise.all([
     Promise.all(product.variants.map((v) => quote({ channel: "ONLINE", items: [{ variantId: v.id, qty: 1 }], customerId: customer?.id }))),
@@ -66,7 +80,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
     storesWithStock([variant.id], store),
     // No testimonials for medicines (Medicines Act advertising rules): licensed products show no reviews.
     licensed ? { avg: 0, count: 0, rows: [], distribution: [] } : productReviews(product.id, sp.reviews === "all" ? 60 : 6),
-    availability(net.all, [variant.id]),
+    // Every variant, so the structured data's availability comes from real network stock too.
+    availability(net.all, variantIds),
     getPricing(customer?.tier ?? null),
     customer ? db.stockAlert.findUnique({ where: { customerId_variantId: { customerId: customer.id, variantId: variant.id } } }) : null,
     customer ? db.saleLine.findFirst({ where: { sale: { customerId: customer.id, kind: "SALE" }, variant: { productId: product.id } }, select: { id: true } }) : null,
@@ -103,7 +118,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const made = !!variant.podSku;
   const canShip = !licensed && !inStoreOnly && (made || channels.COURIER.includes(product.regClass));
   const canCollect = !made && !inStoreOnly && channels.COLLECT.includes(product.regClass);
-  const networkQty = made ? 99 : net.all.reduce((s, id) => s + Math.max(0, networkAvail.get(availKey(id, variant.id))?.available ?? 0), 0);
+  const stockOf = (variantId: string) => net.all.reduce((s, id) => s + Math.max(0, networkAvail.get(availKey(id, variantId))?.available ?? 0), 0);
+  const networkQty = made ? 99 : stockOf(variant.id);
   const here = store ? stores.find((x) => x.store.id === store.id) : undefined;
   const hereQty = here?.qty[variant.id] ?? 0;
   const withStock = stores.filter((x) => (x.qty[variant.id] ?? 0) > 0);
@@ -150,28 +166,41 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           ? `${product.cbdMgPerPack} mg in ${netLabel} (limit: ${Math.round(cbdFoodLimitMg(product.netContent) * 100) / 100} mg, 0.0075%)`
           : `${product.cbdMgPerPack} mg`;
 
-  const jsonLd = !licensed && {
-    "@context": "https://schema.org",
-    "@type": "Product",
-    name: product.name,
-    description: product.description,
-    sku: variant.sku,
-    brand: { "@type": "Brand", name: product.brand },
-    category: product.category.name,
-    offers: product.variants.map((v, i) => ({
-      "@type": "Offer",
-      sku: v.sku,
-      name: v.name,
-      priceCurrency: "ZAR",
-      price: (quotes[i].lines[0]?.totalCents ?? v.priceCents) / 100,
-      availability: networkQty > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-    })),
-    ...(reviews.count ? { aggregateRating: { "@type": "AggregateRating", ratingValue: reviews.avg.toFixed(1), reviewCount: reviews.count } } : {}),
-  };
+  // Structured data (never for licensed medicines, which are also noindex and out of the sitemap): prices as shown on
+  // this page, availability from real network stock, ratings and reviews only from verified member reviews.
+  const base = siteUrl();
+  const reviewRows: Awaited<ReturnType<typeof productReviews>>["rows"] = reviews.rows;
+  const availabilityOf = (v: (typeof product.variants)[number]): Availability => (inStoreOnly ? "InStoreOnly" : v.podSku || stockOf(v.id) > 0 ? "InStock" : "OutOfStock");
+  const jsonLd = !licensed && [
+    productJsonLd({
+      base,
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      brand: product.brand,
+      category: product.category.name,
+      variants: product.variants.map((v, i) => ({
+        id: v.id,
+        sku: v.sku,
+        name: v.name,
+        barcode: v.barcode,
+        priceCents: quotes[i].lines[0]?.totalCents ?? v.priceCents,
+        availability: availabilityOf(v),
+        priceValidUntil: quotes[i].lines[0]?.priceValidUntil ?? null,
+      })),
+      rating: reviews.count > 0 ? { avg: reviews.avg, count: reviews.count } : null,
+      reviews: reviewRows.map((r) => ({ rating: r.rating, title: r.title, body: r.body, createdAt: r.createdAt, author: `${r.customer.firstName} ${r.customer.lastName ? `${r.customer.lastName[0]}.` : ""}`.trim() })),
+    }),
+    breadcrumbJsonLd(base, [
+      { name: "Shop", path: "/shop" },
+      { name: product.category.name, path: `/shop?category=${product.category.slug}` },
+      { name: product.name, path: `/p/${product.slug}` },
+    ]),
+  ];
 
   return (
     <>
-      {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
+      {jsonLd && <JsonLd data={jsonLd} />}
       <Container className="pt-6">
         <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-ink-400">
           <Link href={licensed ? "/dispensary" : "/shop"} className="hover:text-white">

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -13,21 +14,36 @@ import { ProductArt } from "@/components/product/art";
 import { directionsUrl, StoreServices } from "@/components/shop/store-card";
 import { SetStoreButton } from "@/components/shop/set-store-button";
 import { Callout, Container, Panel, Price, Tag } from "@/components/shop/ui";
+import { JsonLd } from "@/components/shop/json-ld";
 import { describePromo, type PromoInput } from "@/lib/promotions";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
+import { breadcrumbJsonLd, clampWords, LOCALE, metaDescription, SITE_NAME, siteUrl, storeJsonLd, TITLE_MAX } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 
-async function load(slug: string) {
-  return db.store.findFirst({ where: { slug, kind: "RETAIL", status: { in: ["ACTIVE", "OPENING_SOON"] } }, select: { ...STORE_SELECT, company: { select: { legalName: true } }, openedAt: true } });
-}
+// generateMetadata and the page share one lookup per request.
+const load = cache(async (slug: string) =>
+  db.store.findFirst({ where: { slug, kind: "RETAIL", status: { in: ["ACTIVE", "OPENING_SOON"] } }, select: { ...STORE_SELECT, company: { select: { legalName: true } }, openedAt: true } }),
+);
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const s = await load((await params).slug);
   if (!s) return { title: "Store not found" };
+  const soon = s.status !== "ACTIVE";
+  // "Herbal Holland Umhlanga, Durban": the first of city, suburb or province that isn't already the store's name.
+  const place = [s.city, s.suburb, PROVINCES[s.province as ProvinceCode]].find((p) => p && p !== s.name);
+  const title = clampWords(`${SITE_NAME} ${s.name}${place ? `, ${place}` : ""}`, TITLE_MAX);
+  const address = [s.addressLine, s.suburb, s.city].filter((v, i, a) => a.indexOf(v) === i).join(", ");
+  const path = `/stores/${s.slug}`;
+  const description = metaDescription(
+    `${SITE_NAME} ${s.name}${soon ? " (opening soon)" : ""}: ${address}.`,
+    soon ? "Join Rewards to hear the day the doors open." : `Opening hours, what's in stock, click & collect${s.sameDay ? ", same-day delivery" : ""} and directions.`,
+    "Adults 18+.",
+  );
   return {
-    title: `Herbal Holland ${s.name}, ${s.city}`,
-    description: `Herbal Holland ${s.name}: ${s.addressLine}, ${s.suburb}, ${s.city}. Opening hours, what's in stock, click & collect${s.sameDay ? ", same-day delivery" : ""} and directions.`,
-    alternates: { canonical: `/stores/${s.slug}` },
+    title: { absolute: title }, // the brand is already in the name: no " · Herbal Holland" suffix
+    description,
+    alternates: { canonical: path },
+    openGraph: { title, description, type: "website", url: path, siteName: SITE_NAME, locale: LOCALE },
   };
 }
 
@@ -47,16 +63,27 @@ export default async function StorePage({ params }: { params: Promise<{ slug: st
   const hours = parseHours(s.hours);
   const o = openState(hours);
   const total = memberMenu.reduce((n, c) => n + c.items.length, 0);
+  const province = PROVINCES[s.province as ProvinceCode];
+  const base = siteUrl();
+  const jsonLd = [
+    storeJsonLd({ base, slug: s.slug, name: s.name, addressLine: s.addressLine, suburb: s.suburb, city: s.city, province, postalCode: s.postalCode, lat: s.lat, lng: s.lng, phone: s.phone, email: s.email, hours }),
+    breadcrumbJsonLd(base, [
+      { name: "Stores", path: "/stores" },
+      { name: province, path: `/stores?province=${s.province}` },
+      { name: s.name, path: `/stores/${s.slug}` },
+    ]),
+  ];
 
   return (
     <Container className="pt-6">
+      <JsonLd data={jsonLd} />
       <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-ink-400">
         <Link href="/stores" className="hover:text-white">
           Stores
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
-        <Link href={`/stores#${s.province}`} className="hover:text-white">
-          {PROVINCES[s.province as ProvinceCode]}
+        <Link href={`/stores?province=${s.province}#${s.province}`} className="hover:text-white">
+          {province}
         </Link>
         <ChevronRight className="h-3.5 w-3.5" />
         <span className="text-ink-200">{s.name}</span>

@@ -1,7 +1,14 @@
 // Illustration for herbalholland.com, all SVG and all drawn from the mark: the windmill (ring, tower, four petals),
-// the striped sunset (the Sunset Hoodie print), KwaZulu-Natal's rolling hills, the globe and the beadwork tile. The
-// province map has its own file (./map). No photos, no people.
+// the striped sunset (the Sunset Hoodie print), a Dutch polder (dyke and canal), the sea, KwaZulu-Natal's rolling
+// hills, the stars and the Southern Cross, the globe, the drawn storefront and the beadwork tile. The province map has
+// its own file (./map). No photos, no people.
 // Colours come from CSS classes (site.css), never from attributes, so every tone stays on the brand tokens.
+//
+// The home page is one journey, and its landscape lives on the Stage: a fixed layer behind the page that holds the
+// sky, the sun, the stars, the polder, the sea, the hills and the windmill. The page's scroll (CSS scroll-driven
+// animations where the browser has them, the page's script otherwise) moves the sky from gold to night and the ground
+// from Holland to the hills, and the script flies the windmill from scene to scene. Every scene also has a Still: the
+// same landscape at that scene's time of day, drawn once, for reduced motion, low-power devices and no script.
 import { PETAL } from "@/components/brand/logo";
 import { PROVINCES } from "@/lib/sa";
 import { FACTS, newStores } from "../facts";
@@ -13,10 +20,10 @@ const r0 = (n: number) => Math.round(n);
 // ── The beadwork ─────────────────────────────────────────────────────────────
 /**
  * The site's beadwork: one small African geometric tile, a chain of diamonds in cream, orange and charcoal (after the
- * panel beside the door in the store concept). It frames the 18+ gate and edges the section dividers, the footer, the
- * promise bar and the category tiles. The CSS gets it as a data: URL (build.ts puts it in place of __PATTERN__). Its
- * colours are the token values ink-900, ink-50 and brand-500 — the one place colours are written into art rather than
- * set by CSS.
+ * panel beside the door in the store concept). It frames the 18+ gate, edges the frames and the scene dividers, and
+ * bands the footer. The CSS gets it as a data: URL (build.ts puts it in place of __PATTERN__); the SVG sprite has it as
+ * a pattern (#beads) for the drawn storefront. Its colours are the token values ink-900, ink-50 and brand-500 — the one
+ * place colours are written into art rather than set by CSS.
  */
 export const TILE = [
   { fill: "#141110", d: "M0 0h24v24H0z" },
@@ -31,9 +38,7 @@ export const patternUrl = () => {
   return `url("data:image/svg+xml,${svg.replace(/[<>#]/g, encodeURIComponent)}")`;
 };
 
-// ── Hills ────────────────────────────────────────────────────────────────────
-// Rolling hill silhouettes in a 1600 × 1000 scene: overlapping rounded hills (a soft maximum of Gaussian bumps), the
-// "Valley of a Thousand Hills" look. Seeded, so the art is the same on every build.
+// ── Seeded randomness (the art is the same on every build) ───────────────────
 function rng(seed: number) {
   let a = seed;
   return () => {
@@ -45,6 +50,9 @@ function rng(seed: number) {
   };
 }
 
+// ── Hills ────────────────────────────────────────────────────────────────────
+// Rolling hill silhouettes in a 1600 × 1000 scene: overlapping rounded hills (a soft maximum of Gaussian bumps), the
+// "Valley of a Thousand Hills" look.
 function ridge(seed: number, base: number, [hMin, hMax]: [number, number], [wMin, wMax]: [number, number], count: number) {
   const rand = rng(seed);
   const x0 = -240;
@@ -72,7 +80,28 @@ export const HILLS = {
   hl4: ridge(94, 968, [16, 40], [300, 480], 5), // front
 };
 
-/** Shared shapes and paint for every picture on the page: hills, the petal, the sun's paint and stripes. */
+// ── The polder and the sea ───────────────────────────────────────────────────
+// Holland is flat: a far field, a long dyke, a canal that catches the sun, and the near bank. All in the same 1600 ×
+// 1000 units as the hills, with the horizon at the same height (y 700), so one ground gives way to the next.
+export const POLDER = {
+  far: "M-240 1100V712C200 704 600 700 1000 704S1500 708 1840 704V1100Z",
+  dyke: "M-240 1100V752L300 748C700 744 1100 744 1840 750V1100Z",
+  canal: "M-240 812H1840V872H-240Z",
+  near: "M-240 1100V880C300 868 800 868 1840 878V1100Z",
+  ripples: "M120 830h210M560 852h160M880 826h280M1280 846h170",
+};
+export const SEA = { water: "M-240 1100V706H1840V1100Z", shimmer: "M640 745h120M700 780h190M760 820h110M900 745h180M980 790h80M1120 760h140" };
+
+// ── The stars ────────────────────────────────────────────────────────────────
+// A field of small stars over the top two thirds of the scene, and the Southern Cross with its two Pointers, drawn as
+// they stand in the evening sky over KwaZulu-Natal (Crux upright, the Pointers to its left).
+const stars = (() => {
+  const rand = rng(2026);
+  return Array.from({ length: 110 }, () => ({ x: r0(rand() * 1600), y: r0(rand() * 640), r: +(0.7 + rand() * 1.5).toFixed(1), o: +(0.35 + rand() * 0.65).toFixed(2) }));
+})();
+const CRUX = { at: [700, 250] as const, stars: [[0, -62, 5], [4, 58, 5.5], [-46, 10, 5], [40, -8, 4.2], [-18, 26, 2.6]] as const, pointers: [[-190, 78, 5], [-140, 60, 4.2]] as const };
+
+/** Shared shapes and paint for every picture on the page: the ground, the petal, the sun's paint, the beadwork. */
 export function Sprite() {
   return (
     <svg className="sprite" aria-hidden="true" focusable="false" width="0" height="0">
@@ -81,6 +110,46 @@ export function Sprite() {
           <path key={id} id={id} d={d} />
         ))}
         <path id="petal" d={PETAL} />
+        <g id="polder">
+          <path className="f-hl1" d={POLDER.far} />
+          <path className="f-hl2" d={POLDER.dyke} />
+          <path className="f-canal" d={POLDER.canal} />
+          <path className="s-ripple" d={POLDER.ripples} />
+          <path className="f-hl3" d={POLDER.near} />
+        </g>
+        <g id="sea">
+          <path className="f-sea" d={SEA.water} />
+          <path className="s-ripple" d={SEA.shimmer} />
+        </g>
+        <g id="stars">
+          {stars.map((s, i) => (
+            <circle key={i} cx={s.x} cy={s.y} r={s.r} opacity={s.o} />
+          ))}
+        </g>
+        <g id="crux" transform={`translate(${CRUX.at[0]} ${CRUX.at[1]})`}>
+          {[...CRUX.stars, ...CRUX.pointers].map(([x, y, r], i) => (
+            <g key={i} transform={`translate(${x} ${y})`}>
+              <circle className="star__glow" r={r * 3.2} />
+              <circle r={r} />
+            </g>
+          ))}
+        </g>
+        <symbol id="mill" viewBox="0 0 100 100">
+          <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M33 91 50 44.5 67 91" strokeWidth="5.5" />
+            <path d="M42.5 91 50 69 57.5 91" strokeWidth="3.2" />
+            <g transform="translate(50 40)">
+              {[-45, 45, 135, 225].map((r) => (
+                <use key={r} href="#petal" transform={`rotate(${r})`} strokeWidth="3.6" fill="currentColor" />
+              ))}
+              <circle r="3.4" strokeWidth="2.4" />
+            </g>
+          </g>
+        </symbol>
+        <symbol id="sun" viewBox="-120 -120 240 240">
+          <circle r="112" fill="url(#glow)" />
+          <circle r="42" fill="url(#sunfill)" mask="url(#stripes)" />
+        </symbol>
         <linearGradient id="sunfill" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" className="st-sun0" />
           <stop offset=".55" className="st-sun1" />
@@ -91,6 +160,15 @@ export function Sprite() {
           <stop offset=".35" className="st-glow1" />
           <stop offset="1" className="st-glow2" />
         </radialGradient>
+        <linearGradient id="canal" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0" className="st-canal0" />
+          <stop offset=".62" className="st-canal1" />
+          <stop offset="1" className="st-canal0" />
+        </linearGradient>
+        <linearGradient id="seafill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" className="st-sea0" />
+          <stop offset="1" className="st-sea1" />
+        </linearGradient>
         <mask id="stripes" maskContentUnits="objectBoundingBox">
           <rect width="1" height="1" fill="#fff" />
           {[
@@ -119,6 +197,15 @@ export function Sprite() {
         <clipPath id="disc">
           <circle cx="300" cy="300" r="270" />
         </clipPath>
+        <pattern id="beads" width="24" height="24" patternUnits="userSpaceOnUse">
+          {TILE.map((s, i) => (
+            <path key={i} fill={s.fill} d={s.d} />
+          ))}
+        </pattern>
+        <linearGradient id="shopglow" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" className="st-shop0" />
+          <stop offset="1" className="st-shop1" />
+        </linearGradient>
       </defs>
     </svg>
   );
@@ -199,22 +286,94 @@ export function AgeBadge({ className }: { className?: string }) {
   );
 }
 
-// ── The sunset scene ─────────────────────────────────────────────────────────
+// ── The stage ────────────────────────────────────────────────────────────────
 /**
- * Layered sunset: the striped sun with its glow, hills, and (optionally) the windmill standing on its own knoll in
- * front of the sun, so the mark becomes the landscape: the ring is the sun, the tower stands in the gap. Each layer is
- * its own <svg> so parallax moves whole layers on the compositor; `.sc__pos` groups are placed per breakpoint in CSS.
+ * The landscape behind the whole page (position: fixed; still, and positioned inside the opening scene, without
+ * motion). Its state is five numbers, --t1 … --t4 (how far each later scene has entered the screen) and the time of
+ * day they add up to; the CSS turns them into the sky, the sun's place, the ground and the stars. `state` fixes them
+ * for an inner page: "gold" (the polder), "sea", "dusk" (the hills, sun low), "late" (the hills, sun gone) or "night".
+ * The windmill is placed by the script (each scene says where it stands, in --mill), and drawn with a dark stroke and
+ * a warm one over it that shows as the sky darkens.
  */
-export type SceneSpec = {
-  /** Sun centre and radius in scene units (1600 × 1000). */
-  sun: { x: number; y: number; r: number };
-  mill?: boolean;
-  /** The visible band of the scene: "0 0 1600 1000" for a full scene, a lower strip for page headers. */
-  view?: string;
-  hills?: (keyof typeof HILLS)[];
-  /** Keep the top of the band (the sun, the sails) and let wide screens crop the ground instead. */
-  top?: boolean;
-};
+export type StageState = "gold" | "sea" | "dusk" | "late" | "night";
+
+export function Stage({ state }: { state?: StageState }) {
+  const layer = (cls: string, body: React.ReactNode) => (
+    <svg className={cx("stage__l", cls)} viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice" focusable="false">
+      {body}
+    </svg>
+  );
+  const mill = (cls: string) => (
+    <g className={cls} fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M33 91 50 44.5 67 91" strokeWidth="5.5" />
+      <path d="M42.5 91 50 69 57.5 91" strokeWidth="3.2" />
+      <g transform="translate(50 40)" className="mill__sails">
+        <Sails js="" />
+      </g>
+    </g>
+  );
+  return (
+    <div className="stage" data-stage={state ?? "home"} aria-hidden="true">
+      <div className="stage__sky stage__sky--gold" />
+      <div className="stage__sky stage__sky--dusk" />
+      <div className="stage__sky stage__sky--night" />
+      <svg className="stage__stars" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice" focusable="false">
+        <use href="#stars" />
+        <use href="#crux" />
+      </svg>
+      <div className="stage__sun">
+        <svg viewBox="-120 -120 240 240" focusable="false">
+          <use href="#sun" x="-120" y="-120" width="240" height="240" />
+        </svg>
+      </div>
+      {layer("stage__polder", <use href="#polder" />)}
+      {layer("stage__sea", <use href="#sea" />)}
+      {layer("stage__hl1", <use href="#hl1" className="f-hl1" />)}
+      {layer("stage__hl2", <use href="#hl2" className="f-hl2" />)}
+      <div className="stage__mill" data-mill-stage="">
+        <svg viewBox="0 0 100 100" focusable="false">
+          {mill("mill mill--dark")}
+          {mill("mill mill--warm")}
+        </svg>
+      </div>
+      {layer("stage__hl3", <use href="#hl3" className="f-hl3" />)}
+      {layer("stage__hl4", <use href="#hl4" className="f-hl4" />)}
+    </div>
+  );
+}
+
+/**
+ * A scene's still picture: the landscape at that time of day, drawn once for reduced motion, low-power devices and
+ * pages without script. The opening scene needs none (the stage stands still inside it).
+ */
+export function Still({ kind }: { kind: "sea" | "dusk" | "late" | "night" }) {
+  const sun = { sea: [1120, 560, 150], dusk: [560, 700, 210], late: null, night: null }[kind];
+  return (
+    <svg className={cx("still", `still--${kind}`)} viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMax slice" aria-hidden="true" focusable="false">
+      {kind === "night" && (
+        <>
+          <use href="#stars" className="f-star" />
+          <use href="#crux" className="f-star" />
+        </>
+      )}
+      {sun && <use href="#sun" x={sun[0] - sun[2] * 2.86} y={sun[1] - sun[2] * 2.86} width={sun[2] * 5.72} height={sun[2] * 5.72} />}
+      {kind === "sea" ? (
+        <use href="#sea" />
+      ) : (
+        <>
+          <use href="#hl1" className="f-hl1" />
+          <use href="#hl2" className="f-hl2" />
+          <use href="#mill" x="1010" y="590" width="260" height="260" className={kind === "night" ? "c-warm" : "c-dark"} />
+          <use href="#hl3" className="f-hl3" />
+          <use href="#hl4" className="f-hl4" />
+        </>
+      )}
+    </svg>
+  );
+}
+
+// ── The sunset scene (the share image only) ──────────────────────────────────
+export type SceneSpec = { sun: { x: number; y: number; r: number }; mill?: boolean; view?: string; hills?: (keyof typeof HILLS)[]; top?: boolean };
 
 export function Scene({ kind, spec, className }: { kind: string; spec: SceneSpec; className?: string }) {
   const { sun, mill, view = "0 0 1600 1000", hills = ["hl1", "hl2", "hl3", "hl4"], top } = spec;
@@ -223,9 +382,9 @@ export function Scene({ kind, spec, className }: { kind: string; spec: SceneSpec
       {body}
     </svg>
   );
-  const s = sun.r / 40; // the mark's ring has radius 40
+  const s = sun.r / 40;
   const tx = sun.x - 50 * s;
-  const ty = sun.y - 45.06 * s; // the ring's centre sits at (50, 45.06) in the mark
+  const ty = sun.y - 45.06 * s;
   const [back, front] = mill ? [hills.slice(0, 2), hills.slice(2)] : [hills.slice(0, -1), hills.slice(-1)];
   return (
     <div className={cx("sc", `sc--${kind}`, className)} aria-hidden="true">
@@ -269,24 +428,125 @@ export function MiniScene({ className }: { className?: string }) {
   );
 }
 
-// Scene set-ups for each page. The home hero is the full picture; page headers get a lower strip at dusk.
-export const SCENES: Record<string, SceneSpec> = {
-  home: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
-  stores: { sun: { x: 860, y: 690, r: 160 }, view: "0 470 1600 530", mill: true, top: true },
-  about: { sun: { x: 420, y: 735, r: 150 }, view: "0 470 1600 530", top: true },
-  franchise: { sun: { x: 1190, y: 700, r: 175 }, view: "0 470 1600 530", mill: true, top: true },
-  press: { sun: { x: 800, y: 770, r: 190 }, view: "0 470 1600 530", top: true },
-  careers: { sun: { x: 300, y: 720, r: 140 }, view: "0 470 1600 530", top: true },
-  contact: { sun: { x: 1260, y: 760, r: 165 }, view: "0 470 1600 530", top: true },
-  // Placed where phones see it too (x 490–1110 of the band), so it needs no per-breakpoint rule.
-  privacy: { sun: { x: 700, y: 680, r: 150 }, view: "0 470 1600 530", top: true },
-  terms: { sun: { x: 950, y: 665, r: 140 }, view: "0 470 1600 530", top: true },
-  paia: { sun: { x: 560, y: 690, r: 130 }, view: "0 470 1600 530", top: true },
-  gate: { sun: { x: 800, y: 790, r: 210 }, view: "0 380 1600 620", hills: ["hl1", "hl2", "hl3"] },
-  notfound: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
-  storeA: { sun: { x: 1010, y: 700, r: 150 }, view: "260 470 1200 530" },
-  storeB: { sun: { x: 560, y: 735, r: 135 }, view: "180 480 1200 520" },
+// ── The drawn storefront ─────────────────────────────────────────────────────
+/**
+ * A Herbal Holland store, drawn from the concept renders: a charcoal front, the round windmill sign lit above the door,
+ * the beadwork panel beside it, warm light in the window and two pots at the step. It fills a store's frame until the
+ * owner's photograph replaces it; the frame is the same either way. `n` varies the window (which side the door is on).
+ */
+export function Storefront({ n = 0, className }: { n?: number; className?: string }) {
+  const flip = n % 2 === 1;
+  return (
+    <svg className={cx("shopfront", className)} viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false">
+      <g transform={flip ? "matrix(-1 0 0 1 400 0)" : undefined}>
+        <rect className="sf-wall" width="400" height="300" />
+        <rect className="sf-band" y="34" width="400" height="18" />
+        <rect className="sf-window" x="40" y="86" width="176" height="172" rx="6" />
+        <rect className="sf-shelf" x="58" y="128" width="140" height="6" rx="3" />
+        <rect className="sf-shelf" x="58" y="172" width="140" height="6" rx="3" />
+        <rect className="sf-shelf" x="58" y="216" width="140" height="6" rx="3" />
+        {[70, 102, 134, 166].map((x) => (
+          <rect key={x} className="sf-jar" x={x} y="108" width="18" height="20" rx="3" />
+        ))}
+        {[76, 118, 160].map((x) => (
+          <rect key={x} className="sf-jar" x={x} y="150" width="22" height="22" rx="3" />
+        ))}
+        <rect className="sf-frame" x="40" y="86" width="176" height="172" rx="6" />
+        <rect className="sf-door" x="250" y="118" width="80" height="182" rx="4" />
+        <rect className="sf-doorlight" x="262" y="132" width="56" height="112" rx="3" />
+        <circle className="sf-handle" cx="316" cy="214" r="3.5" />
+        <rect className="sf-beads" x="344" y="118" width="30" height="182" fill="url(#beads)" />
+        <rect className="sf-frame" x="344" y="118" width="30" height="182" />
+        <circle className="sf-sign" cx="290" cy="76" r="26" />
+        <g transform="translate(268 54) scale(.44)" className="sf-mark">
+          <path d="M36.2 82.6A40 40 0 1 1 63.8 82.6" strokeWidth="6" />
+          <path d="M33 91 50 44.5 67 91" strokeWidth="6" />
+          <g transform="translate(50 40)">
+            {[-45, 45, 135, 225].map((r) => (
+              <use key={r} href="#petal" transform={`rotate(${r})`} strokeWidth="4" />
+            ))}
+          </g>
+        </g>
+        <rect className="sf-step" y="272" width="400" height="28" />
+        <path className="sf-pot" d="M218 272l4-30h26l4 30z" />
+        <path className="sf-leaf" d="M232 244c-4-18 4-30 10-36M232 244c2-14 12-22 20-26M232 244c-8-10-20-12-26-12" />
+        <path className="sf-pot" d="M378 272l3-22h20l3 22z" />
+        <path className="sf-leaf" d="M391 250c-3-14 3-22 8-26M391 250c-6-8-14-10-18-10" />
+      </g>
+    </svg>
+  );
+}
+
+// ── What's in store: seven still-lifes ───────────────────────────────────────
+// One object per category, drawn in the mark's line (round caps, orange on charcoal): a dropper bottle, a coffee cup,
+// a tin of balm, a tub with its scoop, a storage jar, a tee with the windmill, and a seedling in a pot. Each fills a
+// frame until the owner's product photographs replace it.
+const CATS: Record<string, React.ReactNode> = {
+  cbd: (
+    <>
+      <rect x="36" y="38" width="28" height="44" rx="6" />
+      <path d="M44 38v-8h12v8M50 14v8M46 22h8" />
+      <path d="M42 62h16" className="thin" />
+    </>
+  ),
+  food: (
+    <>
+      <path d="M28 46h44v18a14 14 0 0 1-14 14H42a14 14 0 0 1-14-14z" />
+      <path d="M72 50h6a8 8 0 0 1 0 16h-6" />
+      <path d="M22 84h56" className="thin" />
+      <path d="M42 36c0-6 4-6 4-12M54 36c0-6 4-6 4-12" className="thin" />
+    </>
+  ),
+  skin: (
+    <>
+      <rect x="24" y="44" width="40" height="30" rx="8" />
+      <path d="M22 44h44" />
+      <path d="M32 44v-8a12 12 0 0 1 24 0v8" className="thin" />
+      <rect x="70" y="30" width="12" height="44" rx="4" />
+      <path d="M72 30v-6h8v6" className="thin" />
+    </>
+  ),
+  supplements: (
+    <>
+      <rect x="30" y="34" width="40" height="46" rx="8" />
+      <path d="M26 34h48" />
+      <rect x="36" y="22" width="28" height="12" rx="4" />
+      <path d="M40 58h20" className="thin" />
+      <path d="M76 82l8-16a4 4 0 0 1 6 4l-4 8" className="thin" />
+    </>
+  ),
+  accessories: (
+    <>
+      <rect x="32" y="36" width="36" height="46" rx="7" />
+      <rect x="28" y="28" width="44" height="10" rx="4" />
+      <path d="M40 54h20M40 64h20" className="thin" />
+    </>
+  ),
+  apparel: (
+    <>
+      <path d="M36 26l14-6 14 6 12 10-8 8-4-3v41H36V41l-4 3-8-8z" />
+      <path d="M43.5 60.6A6.5 6.5 0 1 1 56.5 60.6" className="thin" />
+      <path d="M46 68 50 57 54 68" className="thin" />
+    </>
+  ),
+  grow: (
+    <>
+      <path d="M34 54h32l-4 28H38z" />
+      <path d="M30 54h40" />
+      <path d="M50 54V36" />
+      <path d="M50 42c0-10 8-14 16-14 0 10-6 16-16 16zM50 38c0-8-6-12-14-12 0 8 4 14 14 14z" />
+    </>
+  ),
 };
+
+export function CatArt({ kind }: { kind: string }) {
+  return (
+    <svg className="catart" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
+      <circle className="catart__glow" cx="50" cy="56" r="34" fill="url(#shopglow)" />
+      <g className="catart__line">{CATS[kind] ?? CATS.cbd}</g>
+    </svg>
+  );
+}
 
 // ── The globe ────────────────────────────────────────────────────────────────
 const G = { c: [6, 0] as LL, R: 270, lift: 0.12, dots: 56 };
@@ -322,6 +582,7 @@ export function Globe({ label }: { label: string }) {
       data-route={`${a.join(" ")} ${b.join(" ")}`}
       data-view={`${G.c.join(" ")} ${G.R} ${G.lift}`}
       data-end={`${f(pb.x)} ${f(pb.y)}`}
+      data-start={`${f(pa.x)} ${f(pa.y)}`}
     >
       <circle className="globe__halo" cx="300" cy="300" r="300" fill="url(#halo)" />
       <circle className="globe__disc" cx="300" cy="300" r="270" fill="url(#sphere)" />

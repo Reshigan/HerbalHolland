@@ -1,18 +1,17 @@
-// herbalholland.com — the home page: the windmill at sunset over the hills ("Holland, meet South Africa."), with
-// "Shop online" first and the promise bar beneath it; what we are; what's in store, a "Shop" on every category; the
-// early-access sign-up; the kinetic marquee; the 9,475 km story from Amsterdam to the hills; our standards; the new
-// stores ("Holland, meet the Hills."); the map and the counts as stores open across the country; Founding Members; and
-// the doors in. Every count, date, place and pin comes from the stores list in ../../facts, and every way to shop leads
-// to the online shop once it's live, or to the early-access sign-up until then.
+// herbalholland.com — the home page: one journey. It opens on a Dutch polder at golden hour with one windmill in the
+// wind ("Holland, meet South Africa."), crosses the sea along the 9,475 km great circle, arrives in the KwaZulu-Natal
+// hills as the sun drops ("Holland, meet the Hills."), passes the stores, shows what's in store as dusk deepens, and
+// ends at night under the Southern Cross with Founding Members and the one early-access sign-up. The landscape is the
+// Stage (../art) behind the page; each scene here is what scrolls over it, and each carries a Still of its own for
+// readers without motion. Every count, date, place and pin comes from the stores list in ../../facts.
 import { num } from "@/lib/format";
 import { PROVINCES } from "@/lib/sa";
-import { BRAND, CHROME, EMAIL, HOME, fill, plural } from "../../content";
-import { FACTS, greatCircleKm, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, shopLink, shortDay, storeProvinces, type Store } from "../../facts";
+import { BRAND, CHROME, EMAIL, HOME, STORES, fill } from "../../content";
+import { FACTS, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, shopLink, storeProvinces, type Store } from "../../facts";
 import { EarlyAccess } from "../access";
-import { AgeBadge, Globe, Mark, MiniScene, SCENES, Sails, Scene, cx } from "../art";
-import { JoinDoor, Page } from "../layout";
-import { ZaMap } from "../map";
-import { Btn, Head, Icon, Index, Keep, Reel, ShopNow, Soon, Words } from "../ui";
+import { CatArt, Globe, Mark, Sails, Still, Storefront, cx } from "../art";
+import { JoinDoor, Page, site } from "../layout";
+import { Head, Icon, Index, Keep, Reel, ShopNow, Words } from "../ui";
 
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
 export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S")} · ${dms(p.lon, "E", "W")}`;
@@ -26,23 +25,31 @@ type Line = { soon: string; both: string; open: string };
  * Where we are, from the stores list: "Open now in Pietermaritzburg and Umhlanga, and opening in Hillcrest and Hilton on
  * Tuesday 1 December 2026…" — or only what's opening (before any store is open), or only what's open (once all are).
  */
-export function openingLine(t: Line) {
+export function openingLine(t: Line, { weekday = true } = {}) {
   const open = openStores();
   const next = nextOpening();
   const coming = openingStores().filter((s) => s.opens === next);
-  const v = { open: towns(open), next: towns(coming), opening: next ? longDate(next) : "" };
+  const v = { open: towns(open), next: towns(coming), opening: next ? longDate(next, { weekday }) : "" };
   return fill(!next ? t.open : open.length ? t.both : t.soon, v);
 }
 
 /** The same line for the page, with place names kept whole across line breaks. */
 export const OpeningLine = ({ t }: { t: Line }) => <Keep text={openingLine(t)} names={[...Object.values(PROVINCES), ...FACTS.stores.map((s) => s.city)]} />;
 
+/** A store's status line: "Open now" or "Opening Tuesday 1 December 2026". */
+export const storeStatus = (s: Store, t: { open: string; opens: string }) => (s.status === "open" || !s.opens ? t.open : fill(t.opens, { opening: longDate(s.opens) }));
+
+/** A store's picture: the owner's photograph once there is one, the drawn storefront until then. */
+export function StorePicture({ store, n, alt }: { store: Store; n: number; alt: string }) {
+  const photo = store.photo && site.assets.stores[store.key];
+  return photo ? <img src={photo} alt={alt} width="800" height="600" loading="lazy" decoding="async" /> : <Storefront n={n} />;
+}
+
+// ── Scene 1: the polder ──────────────────────────────────────────────────────
 function Hero() {
   const h = HOME.hero;
-  const p = HOME.promise;
   return (
-    <section className="hero" data-sp="exit" aria-labelledby="hero-title">
-      <Scene kind="home" spec={SCENES.home} className="hero__scene" />
+    <section className="scene scene--hero" id="hero" data-sp="exit" aria-labelledby="hero-title">
       <div className="wrap hero__in">
         <p className="eyebrow" data-in="1">
           {h.eyebrow}
@@ -57,118 +64,17 @@ function Hero() {
         </p>
         <div className="ctas" data-in="3">
           <ShopNow page="home" magnetic />
-          <Btn href="/stores" kind="ghost">
-            {h.secondary}
-          </Btn>
         </div>
       </div>
-      {/* The promise bar: what shopping with us comes with, where the hero meets the page. */}
-      <div className="hero__foot" data-in="4">
-        <ul className="wrap promise" aria-label={p.label}>
-          {p.items.map((it) => (
-            <li key={it.key} className="promise__item">
-              {it.key === "adults" ? <AgeBadge /> : <Icon name={it.key === "members" ? "rewards" : it.key} className="promise__ico" />}
-              <span>{it.text}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
+      <p className="cue" data-in="4" aria-hidden="true">
+        <span>{h.cue}</span>
+        <i />
+      </p>
     </section>
   );
 }
 
-/** What we are, in one sentence, big: each word lights up as it's read on the way down. */
-function Statement() {
-  return (
-    <section className="statement" data-sp="center">
-      <div className="wrap">
-        <p className="statement__p" data-words="">
-          {HOME.statement.split(" ").map((w, i) => (
-            <span key={i} className="sw">
-              {w}{" "}
-            </span>
-          ))}
-        </p>
-      </div>
-    </section>
-  );
-}
-
-/** What's in store: a tile per category, each with its "Shop"; the online shop's tile last. Categories only. */
-function Range() {
-  const r = HOME.range;
-  const shop = shopLink("/");
-  return (
-    <section className="sheet sec range" id="range" aria-labelledby="range-title">
-      <div className="wrap">
-        <div className="split">
-          <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro} />
-          <p className="range__note muted" data-r="">
-            <Icon name="medicines" size={16} /> {r.note}
-          </p>
-        </div>
-        <ul className="tiles" data-rs="">
-          {r.items.map((it, i) => {
-            const live = shopLink(FACTS.shelf[it.key] ?? "/shop");
-            return (
-              <li key={it.key} className="tile tile--cat" data-r="">
-                <Index n={i + 1} />
-                <h3 className="tile__t">{it.title}</h3>
-                <p className="tile__b">{it.body}</p>
-                <a className="tile__go stretch" href={live ?? "#first-access"}>
-                  {r.shop}
-                  <span className="sr-only"> {it.title}</span>
-                  <Icon name={live ? "out" : "arrow"} size={18} />
-                </a>
-              </li>
-            );
-          })}
-          <li className="tile tile--online" data-r="">
-            <span className="door__ico">
-              <Icon name="shop" />
-            </span>
-            <h3 className="tile__t">{r.online.title}</h3>
-            <p className="tile__b">{shop ? r.online.body : r.online.soon}</p>
-            <a className="tile__go stretch" href={shop ?? "#first-access"}>
-              {shop ? r.online.cta : CHROME.cta.access}
-              <Icon name={shop ? "out" : "arrow"} size={18} />
-            </a>
-          </li>
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-function Marquee() {
-  const words = HOME.marquee.words;
-  return (
-    <section className="marquee" aria-label={HOME.marquee.label} data-marquee="">
-      <ul className="sr-only">
-        {words.map((w) => (
-          <li key={w}>{w}</li>
-        ))}
-      </ul>
-      <div className="marquee__track" aria-hidden="true">
-        {[0, 1].map((k) => (
-          <div key={k} className="marquee__set">
-            {words.map((w) => (
-              <span key={w} className="marquee__item">
-                <span className="marquee__w">{w}</span>
-                <svg className="marquee__sep" viewBox="-36 -36 72 72" focusable="false">
-                  <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-                    <Sails js="wind" />
-                  </g>
-                </svg>
-              </span>
-            ))}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
+// ── Scene 2: across the sea ──────────────────────────────────────────────────
 /** The readout's distance: an unseen copy of the final value holds its width, so the readout never moves. */
 function Count({ value, attr }: { value: string; attr: "data-km" | "data-km-big" }) {
   return (
@@ -181,15 +87,15 @@ function Count({ value, attr }: { value: string; attr: "data-km" | "data-km-big"
   );
 }
 
-/** The 9,475 km story: pinned while an arc draws from Amsterdam to the hills (the first of the new stores). */
+/** The 9,475 km story: pinned while the windmill flies the arc from Amsterdam to the hills (the first of the new stores). */
 function Journey() {
   const j = HOME.journey;
-  const fresh = newStores();
-  const first = fresh[0] ?? FACTS.stores[0];
+  const first = newStores()[0] ?? FACTS.stores[0];
   const km = num(FACTS.km[first.key] ?? 0);
   const here = coords(first).split(" · ");
   return (
-    <section className="story" id="journey" aria-labelledby="story-title" data-story="">
+    <section className="scene scene--sea story" id="journey" data-scene="1" aria-labelledby="story-title" data-story="">
+      <Still kind="sea" />
       <div className="story__pin">
         <div className="wrap story__grid">
           <div className="story__head">
@@ -206,7 +112,6 @@ function Journey() {
                 {j.title}
               </span>
             </h2>
-            <p className="story__lede">{fill(j.lede, { count: HOME.hills.count[fresh.length] ?? num(fresh.length) })}</p>
           </div>
           <div className="story__globe">
             <Globe label={fill(j.caption, { from: coords(FACTS.places.amsterdam), to: coords(first), city: first.city, km })} />
@@ -251,219 +156,157 @@ function Journey() {
   );
 }
 
-function Standards() {
-  const s = HOME.standards;
-  const visual: Record<string, React.ReactNode> = {
-    lab: (
-      <div className="lab" aria-hidden="true">
-        <span className="lab__k">
-          {s.demo.label} <em>{s.demo.example}</em>
-        </span>
-        <span className="lab__code">
-          <span data-type="">{s.demo.code}</span>
-          <span className="caret" />
-        </span>
-        <span className="lab__ok">
-          <svg viewBox="0 0 24 24" className="tick" focusable="false">
-            <circle cx="12" cy="12" r="10" />
-            <path d="m7.5 12.5 3 3 6-7" />
-          </svg>
-          {s.demo.check}
-        </span>
-      </div>
-    ),
-    members: (
-      <div className="rx" aria-hidden="true">
-        <Icon name="members" size={30} />
-        <span>{s.members.id}</span>
-      </div>
-    ),
-    adults: (
-      <div className="rx" aria-hidden="true">
-        <AgeBadge />
-      </div>
-    ),
-    medicines: (
-      <div className="rx" aria-hidden="true">
-        <Icon name="medicines" size={30} />
-        <span>{s.pharmacist}</span>
-      </div>
-    ),
-  };
+// ── Scene 3: the hills, and the stores ───────────────────────────────────────
+function Hills() {
+  const f = HOME.hills;
+  const s = HOME.stores;
+  const fresh = newStores();
+  const opening = fresh[0]?.opens ? longDate(fresh[0].opens) : "";
+  const lede = fresh.length
+    ? fill(fresh.every((st) => st.status === "open") ? f.ledeOpen : f.lede, { count: f.count[fresh.length] ?? num(fresh.length), names: listOf(fresh.map((st) => st.name)), opening })
+    : undefined;
+  const all = [...openStores(), ...openingStores()];
+  const shop = shopLink("/");
   return (
-    <section className="sheet sec standards" aria-labelledby="standards-title">
-      <div className="wrap">
-        <div className="split">
-          <Head id="standards-title" eyebrow={s.eyebrow} title={s.title} intro={s.intro} />
-          <div className="split__end" data-r="">
-            <Btn href="/about" kind="dark">
-              {s.cta}
-            </Btn>
-          </div>
+    <section className="scene scene--hills" id="hills" data-scene="2" aria-labelledby="hills-title">
+      <Still kind="dusk" />
+      <div className="wrap hills__in">
+        <Head id="hills-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede && <Keep text={lede} names={FACTS.stores.map((st) => st.name)} />} />
+      </div>
+      <div className="wrap stores" aria-labelledby="stores-h">
+        <div className="stores__head" data-r="">
+          <h3 id="stores-h" className="eyebrow">
+            {s.eyebrow}
+          </h3>
+          <a className="link" href="/stores">
+            {s.all}
+          </a>
         </div>
-        <ul className="cards" data-rs="">
-          {s.items.map((it, i) => (
-            <li key={it.key} className={cx("card", `card--${it.key}`)} data-tilt="" data-r="">
-              <div className="card__in">
-                <div className="card__top">
-                  <Index n={i + 1} />
-                  {it.key === "adults" ? <AgeBadge /> : <Icon name={it.key} className="card__ico" />}
-                </div>
-                <div className="card__vis">{visual[it.key]}</div>
-                <h3 className="card__title">{it.title}</h3>
-                <p className="card__body">{it.body}</p>
-                <span className="glare" aria-hidden="true" />
+        <ul className="frames frames--stores" data-rs="">
+          {all.map((st, i) => (
+            <li key={st.key} className={cx("frame", "frame--store", `frame--${st.status}`)} data-r="">
+              <div className="frame__media">
+                <StorePicture store={st} n={i} alt={fill(STORES.store.photo, { name: st.name })} />
+              </div>
+              <div className="frame__copy">
+                <p className="frame__k">{PROVINCES[st.province]}</p>
+                <h4 className="frame__t">
+                  <a href={`/stores/${st.key}`} className="stretch">
+                    {st.name}
+                    <span className="sr-only"> {s.page}</span>
+                  </a>
+                </h4>
+                <p className="frame__s">
+                  <Icon name={st.status === "open" ? "open" : "calendar"} size={15} /> {storeStatus(st, { open: s.open, opens: s.opening.replace("{date}", "{opening}") })}
+                </p>
               </div>
             </li>
           ))}
         </ul>
+        <div className="stores__foot" data-r="">
+          <p className="stores__more">
+            {s.more}{" "}
+            <a className="link" href="/franchise">
+              {s.own}
+            </a>
+          </p>
+          <p className="stores__shop muted">
+            {s.shop}{" "}
+            <a className="link" href={shop ?? "#first-access"}>
+              {shop ? CHROME.cta.shop : CHROME.cta.access}
+            </a>
+          </p>
+        </div>
       </div>
     </section>
   );
 }
 
-/** The new stores' chapter: Holland, meet the Hills. A card for each, how far apart they are, and all our stores. */
-function Hills() {
-  const f = HOME.hills;
-  const stores = newStores();
-  if (!stores.length) return null;
-  const opening = stores[0].opens ? longDate(stores[0].opens) : "";
-  const apart = stores.length === 2 ? Math.round(greatCircleKm(stores[0], stores[1])) : 0;
-  const cards = [SCENES.storeA, SCENES.storeB];
-  const lede = fill(stores.every((s) => s.status === "open") ? f.ledeOpen : f.lede, { count: f.count[stores.length] ?? num(stores.length), names: listOf(stores.map((s) => s.name)), opening });
+// ── Scene 4: what's in store ─────────────────────────────────────────────────
+function Range() {
+  const r = HOME.range;
   return (
-    <section className="sec stores" id="hills" aria-labelledby="hills-title">
+    <section className="scene scene--range" id="range" data-scene="3" aria-labelledby="range-title">
+      <Still kind="late" />
       <div className="wrap">
-        <Head id="hills-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede} />
-        <div className="stores__grid" data-rs="">
-          {stores.map((st, i) => {
-            const c = f.stores.find((x) => x.key === st.key);
+        <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro} />
+        <ul className="frames frames--cats" data-rs="">
+          {r.items.map((it) => {
+            const live = shopLink(FACTS.shelf[it.key] ?? "/shop");
             return (
-              <article key={st.key} className={cx("store", `store--${i}`)} data-r="" data-tilt="">
-                <div className="store__in">
-                  <Scene kind={`store${i}`} spec={cards[i % 2]} className="store__art" />
-                  <div className="store__copy">
-                    {c && <p className="eyebrow">{c.area}</p>}
-                    <h3 className="store__name">{st.name}</h3>
-                    {c && <p className="store__line">{c.line}</p>}
-                    <p className="store__opens">
-                      <Icon name="calendar" size={16} /> {st.status === "open" || !st.opens ? f.open : fill(f.opens, { opening: longDate(st.opens) })}
-                    </p>
-                  </div>
-                  <span className="glare" aria-hidden="true" />
+              <li key={it.key} className="frame frame--cat" data-r="">
+                <div className="frame__media">
+                  <CatArt kind={it.key} />
                 </div>
-              </article>
+                <div className="frame__copy">
+                  <h3 className="frame__t">{it.title}</h3>
+                  <p className="frame__s">{it.body}</p>
+                  <a className="frame__go stretch" href={live ?? "#first-access"}>
+                    {r.shop}
+                    <span className="sr-only"> {it.title}</span>
+                    <Icon name={live ? "out" : "arrow"} size={16} />
+                  </a>
+                </div>
+              </li>
             );
           })}
-          {apart > 0 && (
-            <p className="stores__apart" data-r="">
-              <span className="stores__rule" aria-hidden="true" />
-              <span className="stores__km">{fill(f.apart, { km: apart })}</span>
-              <span className="stores__rule" aria-hidden="true" />
-            </p>
-          )}
-        </div>
-        <div className="stores__finder" data-r="">
-          <Btn href="/stores" kind="ghost">
-            {f.all}
-          </Btn>
-        </div>
+        </ul>
+        <p className="range__note muted" data-r="">
+          <Icon name="medicines" size={16} /> {r.note}
+        </p>
       </div>
     </section>
   );
 }
 
-/** Opening nationally: where we are (open, opening, provinces), the map, and the door to opening a store. */
-function National() {
-  const n = HOME.national;
-  const open = openStores();
-  const opening = openingStores();
-  const next = nextOpening();
-  const provinces = storeProvinces();
+/** Between dusk and night: what we stand for, in five words, drifting with the scroll. */
+function Marquee() {
+  const words = HOME.marquee.words;
   return (
-    <section className="sheet sec nation" id="national" aria-labelledby="national-title">
-      <div className="wrap nation__grid">
-        <div className="nation__copy">
-          <Head id="national-title" eyebrow={n.eyebrow} title={n.title} intro={<OpeningLine t={HOME.hero.line} />} />
-          <p className="nation__body" data-r="">
-            {n.body}
-          </p>
-          <dl className="stats stats--nation" data-rs="">
-            {open.length > 0 && (
-              <div className="stat" data-r="">
-                <dt>{plural(open.length, n.stats.open)}</dt>
-                <dd>
-                  <Reel value={String(open.length)} />
-                </dd>
-              </div>
-            )}
-            {opening.length > 0 && next && (
-              <div className="stat" data-r="">
-                <dt>{fill(plural(opening.length, n.stats.opening), { date: `${shortDay(next)} ${next.slice(0, 4)}` })}</dt>
-                <dd>
-                  <Reel value={String(opening.length)} />
-                </dd>
-              </div>
-            )}
-            <div className="stat" data-r="">
-              <dt>{plural(provinces.length, n.stats.provinces)}</dt>
-              <dd>
-                <Reel value={String(provinces.length)} />
-              </dd>
-            </div>
-          </dl>
-          <div className="ctas" data-r="">
-            <Btn href="/franchise" kind="dark" magnetic>
-              {n.cta}
-            </Btn>
-            <Btn href="/stores" kind="ghost">
-              {n.all}
-            </Btn>
+    <div className="marquee" aria-label={HOME.marquee.label} data-marquee="" role="region">
+      <ul className="sr-only">
+        {words.map((w) => (
+          <li key={w}>{w}</li>
+        ))}
+      </ul>
+      <div className="marquee__track" aria-hidden="true">
+        {[0, 1].map((k) => (
+          <div key={k} className="marquee__set">
+            {words.map((w) => (
+              <span key={w} className="marquee__item">
+                <span className="marquee__w">{w}</span>
+                <svg className="marquee__sep" viewBox="-36 -36 72 72" focusable="false">
+                  <g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
+                    <Sails js="wind" />
+                  </g>
+                </svg>
+              </span>
+            ))}
           </div>
-        </div>
-        <div className="nation__map" data-r="scale">
-          <ZaMap id="map-home" />
-        </div>
+        ))}
       </div>
-    </section>
+    </div>
   );
 }
 
-function Founding() {
+// ── Scene 5: night ───────────────────────────────────────────────────────────
+function Night() {
   const f = HOME.founding;
   const v = { cap: num(FACTS.founding.cap), tier: FACTS.founding.tier, months: FACTS.founding.months };
   const join = joinLink();
   return (
-    <section className="sec founding" id="founding" aria-labelledby="founding-title">
-      <div className="wrap founding__grid">
-        <div className="founding__copy">
+    <section className="scene scene--night" id="night" data-scene="4" aria-labelledby="founding-title">
+      <Still kind="night" />
+      <div className="wrap night__in">
+        <div className="night__copy">
           <Head id="founding-title" eyebrow={f.eyebrow} title={fill(f.title, v)} intro={fill(f.body, v)} />
-          <ul className="ticks" data-rs="">
-            {f.points.map((p) => (
-              <li key={p} data-r="">
-                <svg viewBox="0 0 24 24" className="tick" aria-hidden="true" focusable="false">
-                  <circle cx="12" cy="12" r="10" />
-                  <path d="m7.5 12.5 3 3 6-7" />
-                </svg>
-                {fill(p, v)}
-              </li>
-            ))}
-          </ul>
-          <div className="founding__cta" data-r="">
+          <div className="night__join" data-r="">
             {join ? (
               <JoinDoor kind="btn" label={f.cta} />
             ) : (
-              <>
-                {/* Until Rewards opens, the early-access list is the way in. */}
-                <Btn href="#first-access" magnetic>
-                  {CHROME.cta.access}
-                </Btn>
-                <p className="muted">{f.soon}</p>
-              </>
+              <p className="muted">{f.soon}</p>
             )}
           </div>
-        </div>
-        <div className="founding__art">
           <div className="fcard" data-tilt="" data-r="scale" aria-hidden="true">
             <div className="fcard__in">
               <div className="fcard__top">
@@ -481,105 +324,28 @@ function Founding() {
                 </span>
                 <span className="fcard__of">{fill(f.card.of, v)}</span>
               </div>
-              <MiniScene className="fcard__art" />
+              <span className="fcard__beads" />
               <span className="glare" />
             </div>
           </div>
         </div>
+        <EarlyAccess box />
       </div>
     </section>
   );
 }
-
-function Doors() {
-  const d = HOME.doors;
-  const shop = shopLink("/");
-  const join = joinLink();
-  return (
-    <section className="sheet sec doors" aria-labelledby="doors-title">
-      <div className="wrap">
-        <Head id="doors-title" eyebrow={d.eyebrow} title={d.title} />
-        <ul className="doors__grid" data-rs="">
-          {/* Shop: the online shop once it's live, the early-access sign-up until then. */}
-          <li className="door" data-r="">
-            <DoorTop icon="shop" label={d.shop.label} />
-            <h3 className="door__title">
-              <a href={shop ?? "#first-access"} className="stretch">
-                {d.shop.title}
-              </a>
-            </h3>
-            <p className="door__body">{shop ? fill(d.shop.body, { shop: new URL(shop).host }) : d.shop.soon}</p>
-            <DoorCta label={shop ? d.shop.cta : CHROME.cta.access} />
-          </li>
-          <li className={cx("door", !join && "door--soon")} data-r="">
-            <DoorTop icon="join" label={d.join.label} soon={!join} />
-            <h3 className="door__title">{join ? <a href={join} className="stretch">{d.join.title}</a> : d.join.title}</h3>
-            <p className="door__body">{join ? d.join.body : d.join.soon}</p>
-            {join ? <DoorCta label={d.join.cta} /> : <Soon label={CHROME.cta.join} className="door__soon" />}
-          </li>
-          <li className="door door--go" data-r="">
-            <DoorTop icon="franchise" label={d.franchise.label} />
-            <h3 className="door__title">
-              <a href="/franchise" className="stretch">
-                {d.franchise.title}
-              </a>
-            </h3>
-            <p className="door__body">{d.franchise.body}</p>
-            <DoorCta label={d.franchise.cta} />
-          </li>
-        </ul>
-        <div className="more">
-          <p className="eyebrow" data-r="">
-            {HOME.more.eyebrow}
-          </p>
-          <ul className="more__list" data-rs="">
-            {HOME.more.items.map((i) => (
-              <li key={i.key} data-r="">
-                <a href={`/${i.key}`} className="more__link">
-                  <span className="more__t">{i.title}</span>
-                  <span className="more__b">{i.body}</span>
-                  <span className="more__go" aria-hidden="true">
-                    <Icon name="arrow" size={28} />
-                  </span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DoorTop({ icon, label, soon }: { icon: string; label: string; soon?: boolean }) {
-  return (
-    <div className="door__top">
-      <span className="door__ico">
-        <Icon name={icon} />
-      </span>
-      <span className="door__label">{label}</span>
-      {soon && <span className="sr-only">{CHROME.soonSr}</span>}
-    </div>
-  );
-}
-
-const DoorCta = ({ label }: { label: string }) => (
-  <span className="door__cta" aria-hidden="true">
-    {label} <Icon name="arrow" size={18} />
-  </span>
-);
 
 export function HomePage() {
   const shop = shopLink("/");
   const org = {
-    "@context": "https://schema.org",
     "@type": "Organization",
+    "@id": `${FACTS.origin}/#organization`,
     name: BRAND.name,
     url: `${FACTS.origin}/`,
     logo: `${FACTS.origin}/press/herbal-holland-logo.png`,
     slogan: BRAND.line,
     email: EMAIL.hello,
-    ...(shop ? { sameAs: [shop] } : {}),
+    ...(FACTS.social.length || shop ? { sameAs: [...FACTS.social, ...(shop ? [shop] : [])] } : {}),
     contactPoint: (["hello", "franchise", "press", "careers"] as const).map((k) => ({
       "@type": "ContactPoint",
       contactType: HOME.org[k],
@@ -588,20 +354,23 @@ export function HomePage() {
       availableLanguage: "en",
     })),
   };
-  const description = openingLine(HOME.meta.description);
+  const website = {
+    "@type": "WebSite",
+    "@id": `${FACTS.origin}/#website`,
+    name: BRAND.name,
+    url: `${FACTS.origin}/`,
+    inLanguage: "en-ZA",
+    publisher: { "@id": org["@id"] },
+  };
+  const description = openingLine(HOME.meta.description, { weekday: false });
   return (
-    <Page page="home" meta={{ path: "/", title: HOME.meta.title, description, absolute: true }} jsonLd={org}>
+    <Page page="home" meta={{ path: "/", title: HOME.meta.title, description, absolute: true }} jsonLd={[org, website]}>
       <Hero />
-      <Statement />
-      <Range />
-      <EarlyAccess />
-      <Marquee />
       <Journey />
-      <Standards />
       <Hills />
-      <National />
-      <Founding />
-      <Doors />
+      <Range />
+      <Marquee />
+      <Night />
     </Page>
   );
 }

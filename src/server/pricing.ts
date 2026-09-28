@@ -77,6 +77,7 @@ export type QuoteLine = {
   shelfCents: number;
   unitPriceCents: number;
   priceRule: string | null;
+  priceValidUntil: Date | null; // end of the price list behind the unit price, when it has one (Offer.priceValidUntil)
   grossCents: number;
   discountCents: number;
   totalCents: number;
@@ -164,6 +165,7 @@ export async function quote(opts: {
     shelfCents: price.shelfCents,
     unitPriceCents: unit,
     priceRule: price.rule,
+    priceValidUntil: price.validUntil,
     grossCents: r.lines[idx].grossCents,
     discountCents: r.lines[idx].discountCents,
     totalCents: r.lines[idx].totalCents,

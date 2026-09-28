@@ -9,25 +9,35 @@ import { db } from "@/server/db";
 import { ProductGrid } from "@/components/shop/product-card";
 import { AutoSubmitSelect } from "@/components/shop/auto-submit";
 import { Callout, Chip, Container, Pager, inputClass } from "@/components/shop/ui";
+import { JsonLd } from "@/components/shop/json-ld";
 import { buttonClass } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
+import { breadcrumbJsonLd, LOCALE, metaDescription, pageTitle, SITE_NAME, siteUrl } from "@/lib/seo";
 import { cn } from "@/lib/cn";
 
 type SP = { category?: string; mood?: string; sort?: string; min?: string; max?: string; q?: string; page?: string };
 
+const num = (v?: string) => (v && /^\d{1,6}$/.test(v) ? Number(v) : undefined);
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+const RANGE = "CBD wellness, accessories, grow and apparel — lab-tested, batch-traceable, delivered nationwide or ready to collect in store. Adults 18+.";
+
+/** One indexable URL per category (or mood); searches and filtered/sorted views canonicalise to it and stay out of the index. */
 export async function generateMetadata({ searchParams }: { searchParams: Promise<SP> }): Promise<Metadata> {
   const sp = await searchParams;
   const cat = sp.category ? await db.category.findUnique({ where: { slug: sp.category }, select: { name: true, blurb: true } }) : null;
-  const title = cat ? `${cat.name}` : "Shop the range";
+  const mood = !cat && sp.mood && /^[a-z]{1,20}$/.test(sp.mood) ? sp.mood : null;
+  const title = cat ? cat.name : mood ? `For ${mood}` : "Shop the range";
+  const description = cat ? metaDescription(cat.blurb, `${cat.name} from ${SITE_NAME}: ${RANGE}`) : mood ? metaDescription(`Everyday CBD and hemp rituals for ${mood}, grouped by the moment they're made for.`, RANGE) : RANGE;
+  const path = cat ? `/shop?category=${sp.category}` : mood ? `/shop?mood=${mood}` : "/shop";
+  const filtered = !!(sp.q || sp.min || sp.max || sp.sort || (sp.category && !cat));
   return {
-    title,
-    description: cat?.blurb ?? "CBD wellness, accessories, grow and apparel — lab-tested, batch-traceable, delivered nationwide or ready to collect in store. Adults 18+.",
-    alternates: { canonical: sp.category ? `/shop?category=${sp.category}` : "/shop" },
+    title: pageTitle(title),
+    description,
+    alternates: { canonical: path },
+    openGraph: { title: `${title} · ${SITE_NAME}`, description, type: "website", url: path, siteName: SITE_NAME, locale: LOCALE },
+    ...(filtered ? { robots: { index: false, follow: true } } : {}),
   };
 }
-
-const num = (v?: string) => (v && /^\d{1,6}$/.test(v) ? Number(v) : undefined);
-const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export default async function ShopPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -40,6 +50,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
     query.category ? db.category.findUnique({ where: { slug: query.category } }) : null,
   ]);
   const licensedCategory = !!cat && !res.categories.some((c) => c.slug === cat.slug);
+  const crumbs = cat && !licensedCategory ? [{ name: "Shop", path: "/shop" }, { name: cat.name, path: `/shop?category=${cat.slug}` }] : null;
 
   const href = (o: Partial<Record<keyof SP, string | undefined>>) => {
     const p = new URLSearchParams();
@@ -57,6 +68,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
 
   return (
     <Container className="pt-10 sm:pt-14">
+      {crumbs && <JsonLd data={breadcrumbJsonLd(siteUrl(), crumbs)} />}
       <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
           <div className="eyebrow text-brand-500">Shop</div>

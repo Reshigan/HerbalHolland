@@ -6,13 +6,17 @@
 // deals or health claims; licensed medicines only as a pharmacist service for registered patients; facts only from
 // ./facts (no invented numbers, founders, partners, awards or dates).
 // In running text, {email}, {privacy}, {terms}, {press} and {regulator} become links (see Rich in ./src/ui).
+// Every page's `meta.updated` (YYYY-MM-DD) is the day its copy last changed: set it by hand when you edit a page's words.
+// It becomes the sitemap's lastmod, and the build refuses a date in the future.
 import { num } from "@/lib/format";
 import { FACTS } from "./facts";
 
 export type Item = { key: string; title: string; body: string };
 export type Faq = { q: string; a: string };
-/** A press release. `date` is YYYY-MM-DD (SAST); a release shows from that day on. */
-export type Release = { date: string; title: string; summary: string };
+/** A press release, on its own page at /press/{slug}. `date` is YYYY-MM-DD (SAST); a release shows from that day on. */
+export type Release = { slug: string; date: string; title: string; description: string; summary: string; body: readonly string[] };
+/** A page's title (the build checks it's 60 characters or fewer with " · Herbal Holland"), its description (120–160) and the day its copy last changed. */
+export type PageMeta = { title: string; description: string; updated: string };
 
 /** Fills `{name}` placeholders with live values; unknown names are left as they are. */
 export const fill = (text: string, values: Record<string, string | number>) =>
@@ -33,7 +37,7 @@ export const BRAND = {
   og: { alt: "Herbal Holland — Dutch heritage. African soil.", sub: "Our story · Franchise · Press · Careers", age: "Adults 18+ only" },
 } as const;
 
-// ── The 18+ gate ─────────────────────────────────────────────────────────────
+// ── The 18+ gate: the first scene ────────────────────────────────────────────
 export const GATE = {
   title: "Are you 18 or older?",
   body: "Herbal Holland is for adults only. Please confirm your age to continue.",
@@ -72,6 +76,8 @@ export const CHROME = {
   soonSr: ", opening soon",
   /** The desktop cursor's label over a door that isn't open yet. */
   cursorSoon: "Soon",
+  /** The breadcrumb trail on every page below the home page. */
+  crumbs: { label: "You are here", home: "Home" },
   footer: {
     line: ["Dutch heritage.", "African soil."],
     cols: { company: "Herbal Holland", members: "Members", contact: "Talk to us" },
@@ -83,19 +89,21 @@ export const CHROME = {
   },
 } as const;
 
-// ── Home ─────────────────────────────────────────────────────────────────────
+// ── Home: one journey, from a Dutch polder to the KwaZulu-Natal hills at night ─
 // Counts, dates, places and provinces come from the stores list in ./facts, filled in at build time. Every way to shop
 // leads to the online shop once FACTS.shop.url is set, and to the early-access sign-up (ACCESS, below) until then.
 export const HOME = {
   meta: {
     title: "Herbal Holland — Dutch heritage. African soil.",
-    // The page description, in the same three states as the hero's line (below).
+    updated: "2026-09-28",
+    // The page description, in the same three states as the hero's line (below); {opening} is the day without its weekday.
     description: {
-      soon: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+, opening in {next} on {opening}, with more to be announced.",
-      both: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+: open now in {open}, and opening in {next} on {opening}. More to be announced.",
-      open: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+: open in {open}, with more stores to be announced.",
+      soon: "South Africa's members-only cannabis wellness stores for adults 18+. Opening in {next} on {opening}, with more towns to come.",
+      both: "South Africa's members-only cannabis wellness stores for adults 18+. Open now in {open}; opening in {next} on {opening}.",
+      open: "South Africa's members-only cannabis wellness stores for adults 18+. Open in {open}, with more towns to come.",
     },
   },
+  // Scene 1: a Dutch polder at golden hour, one windmill in the wind.
   hero: {
     eyebrow: "Herbal Holland · South Africa",
     title: ["Holland,", "meet", "South Africa."],
@@ -106,194 +114,97 @@ export const HOME = {
       both: "Open now in {open}, and opening in {next} on {opening}. More stores to be announced.",
       open: "Open in {open}, with more stores to be announced.",
     },
-    note: "For adults 18+ only.",
-    secondary: "Find a store",
     cue: "Scroll",
   },
   // Towns in running text: listed by name up to four, then counted ("12 towns in Gauteng and KwaZulu-Natal").
   towns: "{n} towns in {provinces}",
-  // Under the hero: what shopping with us comes with. Plain facts, never an amount or an offer.
-  promise: {
-    label: "Shopping with Herbal Holland",
-    items: [
-      { key: "delivery", text: "Delivered nationwide" },
-      { key: "lab", text: "Lab-tested" },
-      { key: "members", text: "Members' prices" },
-      { key: "adults", text: "Adults 18+" },
+  // Scene 2: across the sea. The windmill flies the great circle from Amsterdam to the hills.
+  journey: {
+    eyebrow: "Amsterdam to the hills",
+    unit: "km",
+    title: "from Amsterdam to the hills",
+    sr: "{km} km — from Amsterdam to {city}, one of our new stores in the hills",
+    readout: { lat: "Latitude", lon: "Longitude", dist: "Distance" },
+    caption: "A globe showing the great circle from Amsterdam ({from}) to {city} ({to}), one of our new stores: {km} km, with a pin for each Herbal Holland store.",
+    chapters: [
+      { key: "tradition", label: "The tradition", title: "A warm welcome, and knowing what we offer", body: "Amsterdam's coffee shops made one idea famous: a warm welcome at the door, and someone who can tell you exactly what's on offer." },
+      { key: "soil", label: "The soil", title: "Rooted in Southern Africa", body: "Southern Africa's landraces were shaped on its hillsides over generations, long before Amsterdam knew their names. African soil is the bigger half of who we are." },
+      // The hero's line, as it stands.
+      { key: "welcome", label: "The welcome", title: "Welkom. Sawubona.", body: "" },
     ],
   },
-  // What we are, in one sentence, lit word by word as it's read.
-  statement:
-    "A South African, members-only network of cannabis wellness stores for adults 18+: the Amsterdam coffee-shop tradition of a warm welcome and knowing exactly what we offer, rooted in Southern Africa's own growers.",
-  // What's in store: categories only (no product names, prices or anything a product does).
+  // Scene 3: the hills. The new stores (the next opening day's: for now Hillcrest and Hilton), then every store.
+  hills: {
+    eyebrow: "New stores",
+    title: ["Holland, meet", "the Hills."],
+    lede: "Holland is famously flat. Our {count} new stores are in hill towns: {names}, opening on {opening}.",
+    ledeOpen: "Holland is famously flat. Our {count} newest stores are in hill towns: {names}.",
+    // How the lede says how many.
+    count: ["no", "one", "two", "three", "four", "five", "six"],
+  },
+  stores: {
+    eyebrow: "Our stores",
+    open: "Open now",
+    opening: "Opening {date}",
+    all: "All our stores",
+    // Read after a store's name by screen readers.
+    page: "store page",
+    // Beneath the stores: the one door to opening one, and the shop for everyone else.
+    more: "More towns to come.",
+    own: "Own the first one in yours",
+    shop: "Not near a store? Our online shop delivers nationwide.",
+  },
+  // Scene 4: what's in store, as dusk deepens. Categories only (no product names, prices or anything a product does).
   range: {
     eyebrow: "What's in store",
     title: "Wellness, tested",
-    intro: "CBD wellness, coffee and food, skin care and supplements, all lab-tested and batch-traceable, for members aged 18 and over.",
+    intro: "CBD wellness, coffee and food, skin care and supplements, every batch lab-tested and traceable to the farm, for members aged 18 and over.",
     items: [
       { key: "cbd", title: "CBD wellness", body: "Every batch lab-tested." },
       { key: "food", title: "CBD coffee & food", body: "Ingredients and allergens on every pack." },
-      { key: "skin", title: "CBD skin care", body: "Creams and balms, lab-tested." },
-      { key: "supplements", title: "Collagen & protein supplements", body: "Clearly labelled, batch by batch." },
+      { key: "skin", title: "CBD skin care", body: "Creams and balms." },
+      { key: "supplements", title: "Collagen & protein", body: "Clearly labelled, batch by batch." },
       { key: "accessories", title: "Accessories", body: "Storage, tools and everyday extras." },
       { key: "apparel", title: "Apparel", body: "Wear the windmill." },
       { key: "grow", title: "Grow", body: "Soil, pots and tools." },
     ] satisfies Item[],
-    // Each tile's link ("Shop", then the category's name for screen readers).
+    // Each frame's link ("Shop", then the category's name for screen readers).
     shop: "Shop",
-    online: {
-      title: "Shop online",
-      body: "Delivered nationwide, with ID checked at every delivery.",
-      soon: "Our online shop opens soon. Get first access, and we'll tell you the day it does.",
-      cta: "Visit the shop",
-    },
     note: "Licensed medicines are a separate pharmacist service, only for registered patients with a SAHPRA authorisation.",
   },
+  // Between dusk and night: what we stand for, in five words.
   marquee: {
     label: "What we stand for",
     words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Pharmacist-led"],
   },
-  journey: {
-    eyebrow: "Amsterdam to South Africa",
-    unit: "km",
-    title: "from Amsterdam to the hills",
-    sr: "{km} km — from Amsterdam to {city}, one of our new stores in the hills",
-    lede: "Holland is famously flat, and our {count} new stores are in hill towns. This is how the windmill came to the hills.",
-    readout: { lat: "Latitude", lon: "Longitude", dist: "Distance" },
-    caption: "A globe showing the great circle from Amsterdam ({from}) to {city} ({to}), one of our new stores: {km} km, with a pin for each Herbal Holland store.",
-    chapters: [
-      {
-        key: "tradition",
-        label: "The tradition",
-        title: "A warm welcome, and knowing what we offer",
-        body: "Amsterdam's coffee shops made one idea famous: a warm welcome at the door, and someone who can tell you exactly what's on offer. That's the Dutch heritage we carry.",
-      },
-      {
-        key: "soil",
-        label: "The soil",
-        title: "Rooted in Southern Africa",
-        body: "Southern Africa's landraces were shaped over generations on its hillsides, long before Amsterdam knew their names. African soil is the bigger half of who we are.",
-      },
-      {
-        key: "standard",
-        label: "The standard",
-        title: "Tested, traceable, members only",
-        body: "An independent lab tests every batch before it's sold, and the code on the pack traces it back to the farm. We sell to members only, and check ID every time.",
-      },
-      {
-        key: "welcome",
-        label: "The welcome",
-        title: "Welkom. Sawubona.",
-        // The hero's line, as it stands.
-        body: "",
-      },
-    ],
-  },
-  standards: {
-    eyebrow: "Our standards",
-    title: "The same standards in every store",
-    intro: "They're built into the software every store runs on, so they hold on a busy Saturday as well as a quiet Tuesday.",
-    items: [
-      { key: "lab", title: "Lab-tested and batch-traceable", body: "An independent lab tests every batch before it's sold. The code on the pack opens that batch's result and traces it back to the farm." },
-      { key: "members", title: "Members only", body: "We sell to members only, in store and online. Joining Herbal Holland Rewards is free, and the key terms are shown in plain language first." },
-      { key: "adults", title: "Adults 18+", body: "We check ID at the till and at every collection and delivery. Everything we do is for adults." },
-      { key: "medicines", title: "A pharmacist-led medical route", body: "Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through our pharmacists. They're never advertised or discounted." },
-    ] satisfies Item[],
-    cta: "Our story and standards",
-    // The lab card types an example batch code, then ticks it.
-    demo: { label: "Batch code", code: "HH-2612-0001", check: "Tested before sale", example: "Example" },
-    members: { id: "Members · ID checked" },
-    pharmacist: "Pharmacist",
-  },
-  // The new stores: the next opening day's (for now, Hillcrest and Hilton, two hill towns).
-  hills: {
-    eyebrow: "New stores",
-    title: ["Holland, meet", "the Hills."],
-    lede: "Holland is famously flat. Our {count} new stores are in hill towns: {names}, opening on {opening}, each owned and run by a local franchisee.",
-    // Once they're open.
-    ledeOpen: "Holland is famously flat. Our {count} newest stores are in hill towns: {names}, each owned and run by a local franchisee.",
-    // How the lede says how many.
-    count: ["no", "one", "two", "three", "four", "five", "six"],
-    stores: [
-      { key: "hillcrest", area: "Upper Highway, eThekwini", line: "From the flatlands to the Valley of a Thousand Hills." },
-      { key: "hilton", area: "KZN Midlands", line: "From the polders to the Midlands." },
-    ],
-    opens: "Opens {opening}",
-    open: "Open",
-    apart: "{km} km apart",
-    all: "See all our stores",
-  },
-  national: {
-    eyebrow: "Opening nationally",
-    title: "South Africa, one town at a time",
-    body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards.",
-    stats: {
-      open: ["store open now", "stores open now"],
-      opening: ["store opening {date}", "stores opening {date}"],
-      provinces: ["province so far", "provinces so far"],
-    },
-    cta: "Open the first one in your town",
-    all: "See our stores",
-  },
+  // Scene 5: night under the Southern Cross. Founding Members, and the one early-access sign-up.
   founding: {
     eyebrow: "Herbal Holland Rewards",
     title: "Be one of the first {cap}",
-    body: "The first {cap} members of Herbal Holland Rewards, wherever they are in South Africa, become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free, for adults 18+.",
-    points: ["A numbered Founding Member card", "The {tier} tier for {months} months", "Free to join, adults 18+"],
+    body: "The first {cap} members of Herbal Holland Rewards become Founding Members, with a numbered card and our {tier} tier for {months} months. Joining is free, for adults 18+, and opens with our online shop.",
+    // Until Rewards opens: the early-access list is first in line.
+    soon: "The early-access list is first in line.",
     cta: "Join Rewards",
-    // Until Rewards opens: the early-access list is the way in.
-    soon: "Joining opens with our online shop. Get first access, and you'll be first in line.",
     card: { brand: "Rewards", label: "Founding Member", no: "No.", of: "of {cap}" },
-  },
-  doors: {
-    eyebrow: "Three ways in",
-    title: "Shop with us, join us, or own a store",
-    shop: {
-      label: "Shop",
-      title: "Shop online",
-      body: "Our online shop is at {shop}, delivering nationwide. ID is checked at every delivery.",
-      cta: "Visit the shop",
-      soon: "Our online shop is on its way, delivering nationwide to adults 18+, with ID checked at every delivery. Get first access, and we'll tell you the day it opens.",
-    },
-    join: {
-      label: "Rewards",
-      title: "Join Herbal Holland Rewards",
-      body: "One free membership for every Herbal Holland store and our online shop. We sell to members only, and joining takes about a minute.",
-      cta: "Join free",
-      soon: "One free membership for every Herbal Holland store and our online shop. We sell to members only. Joining opens soon.",
-    },
-    franchise: {
-      label: "Franchise",
-      title: "Own a store",
-      body: "Every Herbal Holland store is owned and run by a local franchisee. If you know retail and your community, we'd like to hear from you.",
-      cta: "About franchising",
-    },
-  },
-  more: {
-    eyebrow: "More from Herbal Holland",
-    items: [
-      { key: "press", title: "News and media", body: "Releases, our fact sheet, brand assets and how to write about us." },
-      { key: "careers", title: "Work with us", body: "Warm people who like explaining things simply, in our stores and at HQ." },
-    ] satisfies Item[],
+    sky: "The Southern Cross",
   },
   // Organization structured data.
   org: { franchise: "franchise enquiries", press: "media enquiries", careers: "careers", hello: "general enquiries" },
 } as const;
 
-// ── Early access: "Get first access" (home and /stores) ──────────────────────
+// ── Early access: "Get first access" (the home page's last scene, and /stores) ─
 // Until the online shop opens, every "Shop online" leads here. The form posts JSON to /api/early-access (the Worker):
 // first name, email and/or mobile, province (a code from src/lib/sa), the 18+ and consent ticks, the ?src tag and the
 // "website" honeypot. What happens to the details is in the Privacy Policy (PRIVACY): change both together.
 export const ACCESS = {
   eyebrow: "Early access",
   title: "Get first access",
-  intro: "Our online shop opens soon, delivering nationwide to members aged 18 and over. Leave your email or mobile number and we'll tell you first, and you'll be first in line for one of our {cap} numbered Founding Member cards.",
-  points: ["First to hear when the shop opens", "First in line to become a Founding Member", "Free, for adults 18+, and you can unsubscribe any time"],
+  intro: "Leave your email or mobile number and we'll tell you the day our online shop opens, nationwide, for members aged 18 and over.",
   label: "Get first access to our online shop",
   fields: {
     firstName: { label: "First name", optional: "(optional)" },
     email: { label: "Email" },
-    mobile: { label: "Mobile", hint: "A South African mobile number, like 082\u00a0123\u00a04567." },
+    mobile: { label: "Mobile", hint: "A South African mobile number, like 082 123 4567." },
     contact: "An email address, a mobile number or both: we'll use whichever you give us.",
     province: { label: "Province", optional: "(optional)", placeholder: "Choose your province" },
     adult: "I'm 18 or older",
@@ -307,7 +218,7 @@ export const ACCESS = {
   errors: {
     firstName: "Enter your first name in letters.",
     email: "Enter an email address like name@example.co.za.",
-    mobile: "Enter a South African mobile number, like 082\u00a0123\u00a04567.",
+    mobile: "Enter a South African mobile number, like 082 123 4567.",
     contact: "Give us an email address or a mobile number, so we can tell you.",
     province: "Choose a province from the list.",
     adult: "Please confirm that you're 18 or older.",
@@ -323,20 +234,29 @@ export const ACCESS = {
   },
 } as const;
 
-// ── The store map (home and /stores) ─────────────────────────────────────────
+// ── The store map (home, /stores and each store's page) ──────────────────────
 export const MAP = {
-  caption: "A map of South Africa's nine provinces, with a pin for each Herbal Holland store: a solid pin where a store is open, a ring where one is still to open.",
+  // Until stores are in three or more provinces, the map shows only the provinces with a store.
+  caption: {
+    national: "A map of South Africa's nine provinces, with a pin for each Herbal Holland store: a solid pin where a store is open, a ring where one is still to open.",
+    provinces: "A map of {provinces}, with a pin for each Herbal Holland store: a solid pin where a store is open, a ring where one is still to open.",
+  },
   neighbours: { LS: "Lesotho", SZ: "Eswatini" },
   // The key names the stores, so the pins' shape and colour are never the only way to tell them apart.
-  legend: { open: "Open now", opening: "Opening {date}" },
+  legend: { open: "Open now", opening: "Opening {date}", here: "This store" },
 } as const;
 
 // ── Stores ───────────────────────────────────────────────────────────────────
 export const STORES = {
   meta: {
     title: "Stores",
-    // The stores' line (HOME.hero.line) follows it.
-    description: "Every Herbal Holland store.",
+    updated: "2026-09-28",
+    // In the same three states as the home page's line; {opening} is the day without its weekday.
+    description: {
+      soon: "Every Herbal Holland store: opening in {next} on {opening}, with more towns to come. Members only, adults 18+.",
+      both: "Every Herbal Holland store: open now in {open}, opening in {next} on {opening}, with more towns to come. Adults 18+.",
+      open: "Every Herbal Holland store: open in {open}, with more towns to come. Members only, for adults 18 and over.",
+    },
   },
   hero: {
     eyebrow: "Stores",
@@ -345,21 +265,14 @@ export const STORES = {
     shopNote: "Not near a store yet? Our online shop delivers nationwide.",
   },
   // Open stores first, then each opening day's.
-  list: { eyebrow: "Our stores", title: "Where we are", open: "Open now", opening: "Opening {date}", count: ["{n} store", "{n} stores"] },
-  card: {
-    open: "Open now",
-    opens: "Opening {opening}",
-    // An open store, until the shop's store finder has its hours and directions: the town, nothing we don't know.
-    visit: "Visit us in {town}.",
-    finder: "Hours and directions",
-    owned: "Owned and run by a local franchisee.",
-  },
+  list: { open: "Open now", opening: "Opening {date}", count: ["{n} store", "{n} stores"] },
+  card: { open: "Open now", opens: "Opening {opening}", page: "store page" },
   finder: { title: "Opening hours and directions", body: "Each store's opening hours and directions are on our online shop's store finder.", cta: "Find a store" },
-  map: {
-    eyebrow: "Opening nationally",
-    title: "More stores to be announced",
-    body: "Every Herbal Holland store is owned and run by a local franchisee. If you know retail and your community, you could open the first one in your town.",
-    cta: "Open the first one in your town",
+  more: {
+    eyebrow: "More towns to come",
+    title: "Own the first one in your town",
+    body: "Every Herbal Holland store is owned and run by a local franchisee. If you know retail and your community, we'd like to hear from you.",
+    cta: "About franchising",
   },
   concept: {
     eyebrow: "Store concept",
@@ -372,19 +285,39 @@ export const STORES = {
       "Store concept render: the round Herbal Holland sign above a panel of orange, cream and charcoal geometric bands, with light oak shelves under track lights, a leather chair and a glass display counter inside.",
     ],
   },
+  // Each store's own page, /stores/{key}. Only what ./facts knows: the town, the province, its status and, once we have
+  // them, its address, phone and hours.
+  store: {
+    meta: {
+      title: "{name}",
+      description: "Herbal Holland {name}, {province}: {status}. A members-only cannabis wellness store for adults 18+, owned and run by a local franchisee.",
+    },
+    eyebrow: "Herbal Holland · {province}",
+    status: { open: "open now", opens: "opening {opening}" },
+    lede: { open: "Open now in {town}, {province}.", opens: "Opening in {town}, {province}, on {opening}." },
+    details: { title: "Visiting", address: "Address", phone: "Phone", hours: "Hours" },
+    // While we have no address or hours for an open store.
+    pending: "This store's address and hours will appear here as soon as we have them.",
+    pendingOpening: "This store's address and hours will appear here before it opens.",
+    art: "The Herbal Holland storefront, drawn: a charcoal front, the round windmill sign lit above the door and a beadwork panel beside it.",
+    photo: "Herbal Holland {name}",
+    nearby: { title: "Our other stores", all: "All our stores" },
+    shop: { title: "Not near {town}?", body: "Our online shop delivers nationwide, to members aged 18 and over." },
+    own: { title: "Own the next one", body: "Every Herbal Holland store is owned and run by a local franchisee. If you know retail and your community, we'd like to hear from you.", cta: "About franchising" },
+  },
 } as const;
 
 // ── About ────────────────────────────────────────────────────────────────────
 export const ABOUT = {
   meta: {
     title: "Our story and standards",
-    description:
-      "Where Herbal Holland comes from and the standards we keep: lab-tested batches with public results, members only, adults 18+, CBD wellness under Schedule 0, and licensed medicines only through a pharmacist.",
+    updated: "2026-09-28",
+    description: "Where Herbal Holland comes from and the standards we keep: every batch lab-tested, members only, adults 18+, and licensed medicines only through a pharmacist.",
   },
   hero: {
     eyebrow: "About Herbal Holland",
     title: "Our story, and the standards we keep",
-    lede: "We bring the Amsterdam coffee-shop tradition of a warm welcome and knowing exactly what you're offering to South Africa, and root it in Southern Africa's own landraces and growers.",
+    lede: "The Amsterdam coffee-shop tradition of a warm welcome and knowing exactly what you're offering, rooted in Southern Africa's own landraces and growers.",
   },
   story: {
     eyebrow: "Our story",
@@ -400,25 +333,6 @@ export const ABOUT = {
       body: "It's two things at once: a Dutch windmill and a four-petal flower. The ring is open at the bottom, where the tower stands. We drew it from our first store-window poster.",
     },
   },
-  // The national story: the stores that are open, then the hill towns, then more towns.
-  chapters: {
-    eyebrow: "Our story so far",
-    title: "Holland, meet South Africa",
-    intro: "A national network of local stores, opening one town at a time.",
-    items: [
-      { key: "open", label: "Where we are", title: "Open now", body: "Our stores in {open} are open now, in {openProvinces}. Come in, say hello, and see what's on the shelf." },
-      {
-        key: "hills",
-        label: "Next",
-        title: "The hill towns",
-        body: "Holland is flat. KwaZulu-Natal isn't. Our {count} new stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
-        bodyOpen: "Holland is flat. KwaZulu-Natal isn't. Our newest stores, in {names}, are {km}\u00a0km apart in the {provinces} hills.",
-      },
-      { key: "more", label: "After that", title: "More towns", body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards. More stores are to be announced." },
-    ],
-    stores: "See our stores",
-    own: "Own a store",
-  },
   heritage: {
     eyebrow: "Our heritage",
     title: "Shaped by hillsides, kept by growers",
@@ -426,7 +340,6 @@ export const ABOUT = {
       "Long before Amsterdam's coffee shops made them famous, Southern Africa's landraces were shaped by generations of growers on the hillsides of KwaZulu-Natal, Eswatini, Malawi and the Wild Coast.",
       "A landrace is a local variety that has adapted to its place over generations: the soil, the sun, the rain and the hands that kept its seed. That's what we mean by African soil.",
     ],
-    promises: ["Southern African growers, makers and places first", "Every batch lab-tested and traceable to the farm", "Licensed products only through lawful channels"],
     landraces: [
       { name: "Durban Poison", origin: "Hills behind Durban, KwaZulu-Natal", note: "The one that travelled: its seeds left South Africa in the 1970s for the United States and Amsterdam's seed banks, and it became a global benchmark." },
       { name: "Swazi Gold", origin: "Eswatini highlands", note: "Traditionally dried in the sun on the mountain slopes, which gives it the golden colour in its name." },
@@ -484,19 +397,14 @@ export const ABOUT = {
       },
     ],
   },
-  owners: {
-    eyebrow: "Owned locally",
-    title: "Every store is run by someone local",
-    body: "Each Herbal Holland store is independently owned and run by a local franchisee, on one shared platform and one set of standards.",
-    cta: "Own a store",
-  },
   visit: {
-    title: "See for yourself",
-    body: "Shop online, find a store near you, or read our plain-English guides to lab results, Schedule 0 and Section 21 on Learn.",
+    eyebrow: "See for yourself",
+    title: "Come in, or shop from anywhere",
+    body: "Shop online, or find a store near you. Every Herbal Holland store is owned and run by a local franchisee.",
     // Until the online shop is live: where the stores are open, and first access to the shop.
-    soon: "Our stores in {open} are open now, and our online shop opens soon: get first access, and we'll tell you the day it does. Learn, our plain-English guides to lab results, Schedule 0 and Section 21, is on its way too.",
+    soon: "Our stores in {open} are open now, and our online shop opens soon: get first access, and we'll tell you the day it does.",
     stores: "Find a store",
-    learn: "Read Learn",
+    own: "Own a store",
   },
 } as const;
 
@@ -504,8 +412,8 @@ export const ABOUT = {
 export const FRANCHISE = {
   meta: {
     title: "Own a store",
-    description:
-      "Own a Herbal Holland store: who we're looking for, what owners get, how it works from enquiry to opening day, and how to register your interest.",
+    updated: "2026-09-28",
+    description: "Own a Herbal Holland store: who we're looking for, what owners get, how it works from enquiry to opening day, and how to register your interest.",
   },
   hero: {
     eyebrow: "Franchise with Herbal Holland",
@@ -514,6 +422,7 @@ export const FRANCHISE = {
     timing: "We open in new towns in stages. Register your interest now, and we'll be in touch as we come to yours.",
     enquire: "Register your interest",
     how: "How it works",
+    stores: "See our stores",
   },
   who: {
     eyebrow: "Who we're looking for",
@@ -535,9 +444,7 @@ export const FRANCHISE = {
         items: [
           { key: "tills", title: "Offline-first tills", body: "Tap-on-glass tills that keep trading through load-shedding and dropped connections, and sync when they're back." },
           { key: "stock", title: "Stock and ordering", body: "Suggested orders filled from HQ distribution centres, batch tracking from delivery to sale, and simple stock counts." },
-          { key: "finance", title: "Finance and reports", body: "Cash-ups and banking, one monthly statement, and live reports for your store." },
           { key: "rewards", title: "Herbal Holland Rewards", body: "One national membership that works in every store and online, so members can come back to yours." },
-          { key: "online", title: "Online orders", body: "Click & collect and delivery orders from the online shop, fulfilled by your store and credited to it." },
           { key: "compliance", title: "Compliance built in", body: "ID checks, the patient register, Schedule 0 limits and screened marketing are part of the software, not an afterthought." },
         ] satisfies Item[],
       },
@@ -545,9 +452,7 @@ export const FRANCHISE = {
         title: "The brand and the launch",
         items: [
           { key: "brand", title: "The brand", body: "The windmill, the orange frame and the standards behind them, with artwork for your windows, signs and in-store screens." },
-          { key: "range", title: "The range", body: "CBD wellness, functional coffee and protein, skin care and collagen, supplied through HQ, with every batch lab-tested and traceable." },
           { key: "playbook", title: "A launch playbook", body: "A ten-week opening plan: meeting the neighbours, hiring, the reveal, press, the opening evening and Open Day." },
-          { key: "events", title: "Drops and events", body: "Members' evenings, open days and limited drops, planned with HQ and announced to members." },
           { key: "training", title: "Training", body: "Training for you and your team before you open: the platform, ID checks, compliance and the dispensary. HQ stays on hand after that." },
         ] satisfies Item[],
       },
@@ -578,9 +483,7 @@ export const FRANCHISE = {
       { q: "How much will I earn?", a: "We don't publish earnings projections. What a store earns depends on its site, its team and how it's run, and we'll only ever share figures we can back up." },
       { q: "When can I open a store?", a: "We open in new towns in stages, so each new store gets the playbook, the training and HQ beside it. Register your interest now and we'll invite you to an information evening when the time comes." },
       { q: "Do I need to be a pharmacist?", a: "No, but you need a pharmacist partner. Licensed medicines are dispensed only by a pharmacist, to registered patients with a SAHPRA authorisation, so every store needs one." },
-      { q: "Where can I open?", a: "Tell us the area you have in mind. Every site is checked against the licences it needs and against our own siting rules, which are stricter than the law." },
       { q: "Can I set my own prices?", a: "Yes. HQ recommends retail prices, and you set your own." },
-      { q: "What happens after opening day?", a: "The platform, the reports and HQ stay with you, and so does the calendar of members' evenings, drops and events." },
       { q: "What happens to my enquiry?", a: "Only our head-office team reads it, and we use it only to reply to you. If it doesn't go ahead, we delete it within 12 months of it arriving. If it moves into our franchise system, we delete the website's copy within 30 days. You can ask us to delete it sooner at any time." },
     ] satisfies Faq[],
   },
@@ -646,7 +549,8 @@ export const FRANCHISE = {
 export const PRESS = {
   meta: {
     title: "Press",
-    description: "Herbal Holland press releases, fact sheet, brand assets, style notes and media contact.",
+    updated: "2026-09-28",
+    description: "Herbal Holland's press room: releases, the fact sheet, logo downloads, notes on how to write about us, and the media contact for interviews and pictures.",
   },
   hero: {
     eyebrow: "Press",
@@ -657,15 +561,26 @@ export const PRESS = {
     eyebrow: "Press releases",
     title: "Latest news",
     empty: "No releases yet: our first one is on its way. For news in the meantime, email",
+    read: "Read the release",
     items: [
       {
+        slug: "online-shop-opens",
         date: "2026-10-01",
         title: "Herbal Holland opens online for adults 18+ across South Africa",
+        description: "Herbal Holland's online shop opens nationwide for adults 18+, with its Founding Members list; two new stores open in Hillcrest and Hilton on 1 December 2026.",
         summary:
-          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first 2,026 people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and Umhlanga.",
+          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first {cap} people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and Umhlanga.",
+        body: [
+          "Herbal Holland's online shop opens across South Africa today, delivering nationwide to members aged 18 and over, with ID checked at every delivery.",
+          "Joining Herbal Holland Rewards is free. The first {cap} members become Founding Members, with a numbered card and the {tier} tier for {months} months.",
+          "Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining the stores already open in Pietermaritzburg and Umhlanga. Every Herbal Holland store is owned and run by a local franchisee.",
+          "Every batch is tested by an independent laboratory before it's sold, and the code on each pack opens that batch's result. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
+        ],
       },
     ] satisfies Release[],
   },
+  // A release's own page.
+  release: { eyebrow: "Press release", back: "All releases", contact: "Media contact", about: "About Herbal Holland", facts: "Fact sheet", published: "Published" },
   facts: {
     eyebrow: "Fact sheet",
     title: "Herbal Holland at a glance",
@@ -739,6 +654,7 @@ export const releasesOn = (day: string): Release[] => PRESS.releases.items.filte
 export const CAREERS = {
   meta: {
     title: "Careers",
+    updated: "2026-09-28",
     description: "Work with Herbal Holland: member advisors, store managers and pharmacists in our stores, and teams at HQ. What we look for and how to apply.",
   },
   hero: {
@@ -799,7 +715,8 @@ export const CAREERS = {
 export const CONTACT = {
   meta: {
     title: "Contact",
-    description: "Contact Herbal Holland: general enquiries, franchising, press, careers and members.",
+    updated: "2026-09-28",
+    description: "How to reach Herbal Holland: the right inbox for general questions, franchising, press, careers and membership, and our company details.",
   },
   hero: {
     eyebrow: "Contact",
@@ -826,7 +743,7 @@ export const CONTACT = {
     intro: "Our details, as section 43 of the Electronic Communications and Transactions Act requires.",
     rows: { legalName: "Registered name", regNumber: "Registration number", vatNumber: "VAT number", address: "Address", phone: "Telephone", email: "Email", name: "Name" },
     franchisees: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details are on the store finder.",
-    franchiseesSoon: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details will be on its store page.",
+    franchiseesSoon: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details are on its store page.",
     stores: "Store finder",
     legal: { title: "Legal" },
   },
@@ -838,7 +755,7 @@ export const CONTACT = {
 export type LegalPara = string | readonly [lead: string, text: string];
 export type LegalSection = { key: string; title: string; body: readonly LegalPara[] };
 export type LegalDoc = {
-  meta: { title: string; description: string };
+  meta: PageMeta;
   version: string;
   /** YYYY-MM-DD: shown as "Last updated …". Change it, and the version, whenever the text changes. */
   updated: string;
@@ -868,6 +785,7 @@ export const PRIVACY = {
   meta: {
     title: "Privacy Policy",
     description: "How herbalholland.com collects, uses, stores and protects personal information under POPIA: who sees it, how long we keep it and how to use your rights.",
+    updated: "2026-09-28",
   },
   version: "1.2",
   updated: "2026-09-28",
@@ -994,7 +912,8 @@ export const PRIVACY = {
 export const TERMS = {
   meta: {
     title: "Terms of Use",
-    description: "The terms for using herbalholland.com: who we are, what the site is for, franchise and careers information, our name and content, acceptable use and the law that applies.",
+    description: "The terms for using herbalholland.com: who we are, what the site is for, franchise and careers information, our content, and the law that applies.",
+    updated: "2026-09-28",
   },
   version: "1.1",
   updated: "2026-09-28",
@@ -1112,7 +1031,8 @@ export const TERMS = {
 export const PAIA = {
   meta: {
     title: "PAIA manual",
-    description: "How to request records held by the company that owns Herbal Holland's online business, under the Promotion of Access to Information Act, and how it handles personal information.",
+    description: "How to request the records we hold under the Promotion of Access to Information Act (PAIA), the fees and timelines, and how we handle personal information.",
+    updated: "2026-09-28",
   },
   version: "1.1",
   updated: "2026-09-28",
@@ -1310,7 +1230,7 @@ export const PAIA = {
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 export const NOT_FOUND = {
-  meta: { title: "Page not found", description: "This page isn't here. Find your way back to Herbal Holland." },
+  meta: { title: "Page not found", description: "This page isn't here. Find your way back to Herbal Holland.", updated: "2026-09-28" },
   eyebrow: "404 · Page not found",
   title: "Lost in the hills",
   body: "This page has blown away on the wind. Let's get you back on the path.",

@@ -7,9 +7,11 @@ import { getSettings } from "@/server/settings";
 import { launchState, waitlistPlace } from "@/server/launch";
 import { getClasses } from "@/server/shop/access";
 import { cardsWhere, listCatalogue } from "@/server/shop/catalogue";
-import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
+import { getFranchisor, getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { featuredDrop, upcomingEvents } from "@/server/shop/launch";
 import { Lockup, Mark, PETAL } from "@/components/brand/logo";
+import { JsonLd } from "@/components/shop/json-ld";
+import { LOCALE, organizationJsonLd, parseSameAs, SITE_NAME, siteUrl, websiteJsonLd } from "@/lib/seo";
 import { ProductArt } from "@/components/product/art";
 import { categoryIcon } from "@/components/product/category-icons";
 import { ButtonLink } from "@/components/ui/button";
@@ -26,8 +28,9 @@ import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
 export const metadata: Metadata = {
   title: { absolute: "Herbal Holland — Dutch heritage. African soil." },
-  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel with click & collect at stores across South Africa and nationwide delivery. Adults 18+.",
-  openGraph: { title: "Herbal Holland — Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+." },
+  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel. Click & collect at stores across South Africa or nationwide delivery. Adults 18+.",
+  alternates: { canonical: "/" },
+  openGraph: { title: "Herbal Holland — Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+.", url: "/", type: "website", siteName: SITE_NAME, locale: LOCALE },
 };
 
 const MOODS: Record<string, { label: string; line: string; icon: React.ReactNode; hue: string }> = {
@@ -47,7 +50,7 @@ const LANDRACES = [
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default async function Home() {
-  const [customer, store, classes, settings, footprint, batches, launch] = await Promise.all([
+  const [customer, store, classes, settings, footprint, batches, launch, franchisor] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getClasses(),
@@ -55,7 +58,14 @@ export default async function Home() {
     getStoreFootprint(),
     db.batch.count({ where: { labName: { not: null }, status: "RELEASED" } }),
     launchState(),
+    getFranchisor(),
   ]);
+  // Organization + WebSite for search engines: the franchisor's registered details, profiles only from ORG_SAME_AS.
+  const base = siteUrl();
+  const jsonLd = [
+    organizationJsonLd({ base, legalName: franchisor?.legalName, email: franchisor?.email, telephone: franchisor?.phone, sameAs: parseSameAs(process.env.ORG_SAME_AS) }),
+    websiteJsonLd(base),
+  ];
   const who = { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name };
   const pre = launch.preLaunch ? launch.at : null;
   const [featured, heritage, facets, categories, events, drop, place, listSize] = await Promise.all([
@@ -77,6 +87,7 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd data={jsonLd} />
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute -right-40 top-10 h-[36rem] w-[36rem] rounded-full bg-brand-500/10 blur-3xl" />

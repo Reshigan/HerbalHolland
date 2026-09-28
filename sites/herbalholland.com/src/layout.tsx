@@ -1,21 +1,25 @@
 // The page shell for every herbalholland.com page: <head> (title, description, canonical, Open Graph, fonts, one CSS
-// file, the tiny boot script and the page's ES module), the header and its full-screen menu, the 18+ gate and the
-// footer with the giant wordmark. build.ts fills `site` (fingerprinted asset names, the build date) before rendering.
+// file, the tiny boot script and the page's ES module, the structured data), the header and its full-screen menu, the
+// stage (the landscape behind the page: ./art Stage), the 18+ gate (the opening scene's question, a modal card over the
+// stage), the breadcrumbs on inner pages and the footer with the giant wordmark. build.ts fills `site` (fingerprinted
+// asset names, the build date) before rendering.
 import { BRAND, CHROME, EMAIL, GATE, LEGAL } from "../content";
 import { FACTS, joinLink, shopLink } from "../facts";
-import { AgeBadge, Mark, SCENES, Scene, Sprite, Wordmark, cx } from "./art";
+import { AgeBadge, Mark, Sprite, Stage, Wordmark, cx, type StageState } from "./art";
 import { Btn, Icon, Index, MailTo, Rich, ShopNow, Soon } from "./ui";
 
 export const site = {
-  assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[] },
+  assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[], stores: {} as Record<string, string> },
   /** The build day in SAST (YYYY-MM-DD) and its year. */
   day: "2026-01-01",
   year: 2026,
 };
 
-export type Meta = { path: string; title: string; description: string; absolute?: boolean; noindex?: boolean };
+export type Crumb = { label: string; path: string };
+export type Meta = { path: string; title: string; description: string; absolute?: boolean; noindex?: boolean; crumbs?: readonly Crumb[] };
 
-const abs = (path: string) => `${FACTS.origin}${path === "/" ? "/" : path}`;
+export const abs = (path: string) => `${FACTS.origin}${path === "/" ? "/" : path}`;
+const ld = (o: Record<string, unknown>) => JSON.stringify({ "@context": "https://schema.org", ...o }).replace(/</g, "\\u003c");
 
 /** Join Rewards: a link once Rewards is live, otherwise its "opening soon" state. */
 export function JoinDoor({ kind = "chip", className, label = CHROME.cta.join }: { kind?: "chip" | "btn" | "link"; className?: string; label?: string }) {
@@ -118,10 +122,14 @@ function Menu({ page }: { page: string }) {
   );
 }
 
+/**
+ * The 18+ question: the first thing a new visitor meets, as a card framed in beadwork over the opening scene (the stage
+ * shows behind it, the sun still below the dyke; on "I'm 18 or older" the card leaves, the sun rises into place and the
+ * headline lifts from behind the dyke). A modal dialog, so the page behind is inert until it's answered.
+ */
 function Gate() {
   return (
     <dialog id="gate" className="gate" aria-labelledby="gate-title" aria-describedby="gate-desc" {...{ closedby: "none" }}>
-      <Scene kind="gate" spec={SCENES.gate} />
       <div className="gate__stage">
         <div className="gate__card" data-gate-ask="">
           <Mark className="gate__mark" sails="gust" />
@@ -168,6 +176,33 @@ function Gate() {
     </dialog>
   );
 }
+
+/** Where a page sits: Home › Stores › Hillcrest. Visible in the page's header, and BreadcrumbList data for search. */
+export function Crumbs({ crumbs }: { crumbs: readonly Crumb[] }) {
+  const all = [{ label: CHROME.crumbs.home, path: "/" }, ...crumbs];
+  return (
+    <nav className="crumbs" aria-label={CHROME.crumbs.label}>
+      <ol>
+        {all.map((c, i) => (
+          <li key={c.path}>
+            {i < all.length - 1 ? (
+              <a href={c.path} className="crumbs__link">
+                {c.label}
+              </a>
+            ) : (
+              <span aria-current="page">{c.label}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+const breadcrumbLd = (crumbs: readonly Crumb[]) => ({
+  "@type": "BreadcrumbList",
+  itemListElement: [{ label: CHROME.crumbs.home, path: "/" }, ...crumbs].map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.label, item: abs(c.path) })),
+});
 
 function Footer({ page }: { page: string }) {
   const f = CHROME.footer;
@@ -265,13 +300,16 @@ function Footer({ page }: { page: string }) {
 }
 
 /**
- * A whole page. `page` names the nav item it belongs to ("home", "about", …). A `free` page (the legal documents) opens
- * without the 18+ gate: the gate asks visitors to accept them, so they must be readable first.
+ * A whole page. `page` names the nav item it belongs to ("home", "about", …); `stage` is the landscape's state behind
+ * an inner page (the home page's stage moves with the scroll). A `free` page (the legal documents) opens without the
+ * 18+ gate: the gate asks visitors to accept them, so they must be readable first. `jsonLd` is one or more schema.org
+ * graphs; a page with `meta.crumbs` gets a BreadcrumbList as well.
  */
-export function Page({ page, meta, jsonLd, free, children }: { page: string; meta: Meta; jsonLd?: Record<string, unknown>; free?: boolean; children: React.ReactNode }) {
+export function Page({ page, meta, stage, jsonLd, free, children }: { page: string; meta: Meta; stage?: StageState; jsonLd?: Record<string, unknown> | Record<string, unknown>[]; free?: boolean; children: React.ReactNode }) {
   const title = meta.absolute ? meta.title : `${meta.title} · ${BRAND.name}`;
   const url = abs(meta.path);
   const img = `${FACTS.origin}/og.png`;
+  const graphs = [...(Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []), ...(meta.crumbs ? [breadcrumbLd(meta.crumbs)] : [])];
   return (
     <html lang="en-ZA" dir="ltr" id="top" data-free={free ? "" : undefined}>
       <head>
@@ -305,7 +343,9 @@ export function Page({ page, meta, jsonLd, free, children }: { page: string; met
         <script src={site.assets.boot} />
         <link rel="stylesheet" href={site.assets.css} />
         <script type="module" src={site.assets.js} />
-        {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
+        {graphs.map((g, i) => (
+          <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(g) }} />
+        ))}
       </head>
       <body className={`pg pg--${page}`}>
         <a className="skip" href="#main">
@@ -319,6 +359,7 @@ export function Page({ page, meta, jsonLd, free, children }: { page: string; met
         </noscript>
         <Header page={page} />
         <main id="main" tabIndex={-1}>
+          <Stage state={stage} />
           {children}
         </main>
         <Footer page={page} />
