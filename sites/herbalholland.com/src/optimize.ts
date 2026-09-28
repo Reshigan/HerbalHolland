@@ -169,7 +169,30 @@ function selectors(list: string) {
  */
 export function pruneCss(css: string, present: Set<string>) {
   const { text, restore } = hideUrls(css);
-  const usable = (sel: string) => [...sel.replace(/\[[^\]]*\]/g, "").matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].every((m) => present.has(m[1]));
+  /** The span of the first `:name(` … `)` group in a selector, parentheses balanced. */
+  const group = (sel: string, name: string) => {
+    const i = sel.indexOf(`${name}(`);
+    if (i < 0) return null;
+    let depth = 0;
+    for (let j = i + name.length; j < sel.length; j++) {
+      if (sel[j] === "(") depth++;
+      else if (sel[j] === ")" && --depth === 0) return { start: i, end: j + 1, inner: sel.slice(i + name.length + 1, j) };
+    }
+    return null;
+  };
+  // A selector can match when every class it names is present — except inside :not(), which needs nothing, and inside
+  // :is() / :where(), where one alternative is enough.
+  const usable = (sel: string): boolean => {
+    let s = sel.replace(/\[[^\]]*\]/g, "");
+    for (let g = group(s, ":not"); g; g = group(s, ":not")) s = s.slice(0, g.start) + s.slice(g.end);
+    for (const name of [":is", ":where"]) {
+      for (let g = group(s, name); g; g = group(s, name)) {
+        if (!selectors(g.inner).some(usable)) return false;
+        s = s.slice(0, g.start) + s.slice(g.end);
+      }
+    }
+    return [...s.matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].every((m) => present.has(m[1]));
+  };
   const walk = (src: string): string => {
     let out = "";
     let i = 0;

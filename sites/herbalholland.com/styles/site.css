@@ -336,11 +336,14 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 /* ── The 18+ gate: the opening scene's question ────────────────────────── */
 /* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives). Until the
    first paint (html.pre) nothing but the landscape is drawn behind it, so the first screen needs one font (Outfit: the
-   card is set in it entirely); then the page appears behind the veil, inert (the head script), until the answer. */
+   card is set in it entirely); then the page is laid out behind the veil, unpainted and inert, until the answer. */
 .js[data-age="new"] .gate, .js[data-age="under"] .gate, .gate.is-leaving { display: grid; }
 .js[data-age="new"], .js[data-age="under"] { overflow: hidden; }
 .js[data-age="new"] .skip, .js[data-age="under"] .skip { display: none; }
 .js[data-age="new"] main, .js[data-age="under"] main { min-height: 100svh; }
+/* Behind the veil the page is laid out but not painted (so nothing there is a "largest paint" after the first), and
+   inert (the head script), until the answer. */
+.js[data-age="new"] :is(.hdr, .ftr, main > :not([data-stage])), .js[data-age="under"] :is(.hdr, .ftr, main > :not([data-stage])) { visibility: hidden; }
 .pre[data-age="new"] :is(.hdr, .ftr, main > :not([data-stage])), .pre[data-age="under"] :is(.hdr, .ftr, main > :not([data-stage])) { display: none; }
 .gate { z-index: 1000; background: linear-gradient(color-mix(in oklab, var(--ink-950) 55%, transparent), color-mix(in oklab, var(--ink-950) 20%, transparent)); }
 .gate__stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100%; padding: 1.25rem; }
@@ -865,10 +868,10 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .ftr__cols { display: grid; gap: 2.5rem 2rem; grid-template-columns: 1fr 1fr; }
 .ftr__cols > :last-child { grid-column: 1 / -1; }
 @media (min-width: 640px) { .ftr__cols { grid-template-columns: .8fr .9fr 1.3fr; } .ftr__cols > :last-child { grid-column: auto; } }
-.ftr__h { margin-bottom: .75rem; color: var(--ink-500); }
+.ftr__h { margin-bottom: .75rem; color: var(--ink-400); }
 .ftr__cols li { display: flex; flex-wrap: wrap; align-items: center; min-height: 44px; }
 .ftr__mail li { flex-direction: column; align-items: flex-start; justify-content: center; min-height: 3.25rem; }
-.ftr__k { font-size: .72rem; color: var(--ink-500); }
+.ftr__k { font-size: .72rem; color: var(--ink-400); }
 .giant { --p: 1; position: relative; display: grid; justify-items: center; margin-top: clamp(3.5rem, 8vw, 6.5rem); padding-inline: var(--g); font-family: var(--display); text-transform: uppercase; line-height: .8; user-select: none; }
 .motion .giant { --p: 0; }
 .giant__row { position: relative; }
