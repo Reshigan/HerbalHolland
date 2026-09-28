@@ -1,6 +1,6 @@
 // herbalholland.com/contact — the right inbox for each question, and the company's details (ECT Act s43): only those
 // known in ./facts are shown; the registration, VAT number and address appear once they're filled in there.
-import { BRAND, CONTACT, EMAIL } from "../../content";
+import { BRAND, CONTACT, EMAIL, LEGAL } from "../../content";
 import { FACTS, joinLink } from "../../facts";
 import { cx } from "../art";
 import { Page } from "../layout";
@@ -34,6 +34,18 @@ export function ContactPage() {
         ]
       : []),
     [co.rows.email, <MailTo key="mail" email={EMAIL.hello} />],
+    [
+      co.legal.title,
+      <span key="legal">
+        <a className="link" href="/privacy">
+          {LEGAL.links.privacy}
+        </a>
+        {" · "}
+        <a className="link" href="/terms">
+          {LEGAL.links.terms}
+        </a>
+      </span>,
+    ],
   ];
   const known = c.legalName && c.regNumber && c.address;
 

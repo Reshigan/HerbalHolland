@@ -18,7 +18,7 @@ npm run typecheck
 ```
 
 User journeys (Playwright + DB checks, DEMO_MODE=true, seeded data; CI runs them against a production build):
-`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop|site>.mjs`, and `node e2e/crawl.mjs` visits every
+`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop>.mjs`, and `node e2e/crawl.mjs` visits every
 page as every role (fails on broken links, server errors and crashes; prints server and paint timings).
 
 Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev --name <change>` and commit the new
@@ -37,7 +37,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 | HQ console | `/hq/*` | light content, dark sidebar |
 | Menu board (in-store TV) | `/menu/[slug]` | dark, 16:9 |
 | Tax invoice (public, signed link) | `/invoice/[id]?t=` | print-friendly |
-| Corporate site herbalholland.com (about, franchise enquiries, press, careers, contact) | `/site/*` locally; `/` on `SITE_URL`'s host (`src/proxy.ts`, `@/lib/site`) | dark brand, cream reading sections |
+| Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com` — static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
 
 ## Engineering rules
 

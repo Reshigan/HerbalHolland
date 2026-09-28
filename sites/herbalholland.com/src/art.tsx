@@ -254,6 +254,9 @@ export const SCENES: Record<string, SceneSpec> = {
   press: { sun: { x: 800, y: 770, r: 190 }, view: "0 470 1600 530", top: true },
   careers: { sun: { x: 300, y: 720, r: 140 }, view: "0 470 1600 530", top: true },
   contact: { sun: { x: 1260, y: 760, r: 165 }, view: "0 470 1600 530", top: true },
+  // Placed where phones see it too (x 490–1110 of the band), so it needs no per-breakpoint rule.
+  privacy: { sun: { x: 700, y: 680, r: 150 }, view: "0 470 1600 530", top: true },
+  terms: { sun: { x: 950, y: 665, r: 140 }, view: "0 470 1600 530", top: true },
   gate: { sun: { x: 800, y: 790, r: 210 }, view: "0 380 1600 620", hills: ["hl1", "hl2", "hl3"] },
   notfound: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
   storeA: { sun: { x: 1010, y: 700, r: 150 }, view: "260 470 1200 530" },

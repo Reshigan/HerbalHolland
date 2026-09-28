@@ -19,10 +19,17 @@ reports) and Postgres can't live on Cloudflare.
 1. Server: Docker + Postgres 16 (or `docker compose up -d db`), a `cloudflared` tunnel to `http://localhost:3000`, and
    the environment variables in [INTEGRATIONS.md](INTEGRATIONS.md#environment-variables). Cloudflare: proxied DNS
    record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
-   herbalholland.com (the corporate site) is served by the same app: add it as a second Cloudflare zone, point the
-   tunnel's public hostnames `herbalholland.com` and `www.herbalholland.com` at the same `http://localhost:3000`
-   (the tunnel passes the original Host header, which the app routes on), and set `SITE_URL=https://herbalholland.com`.
-   Create the mailboxes hello@, franchise@, press@ and careers@herbalholland.com.
+   herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
+   (`sites/herbalholland.com`: static pages plus `/api/enquiry`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
+   up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
+   TLS ≥ 1.2 (1.3 on), SSL Full (strict), HSTS (1 year, include subdomains, no preload; the site's `_headers` sends
+   the same, so keep them in step), Email Routing forwarding hello@, franchise@, press@ and careers@ to the team. To
+   release a change: `npx tsx sites/herbalholland.com/build.ts`, then from `sites/herbalholland.com`
+   `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. Rebuild and deploy on or
+   after a press release's date (the site is static), and set `facts.ts` `shop.url` when the shop opens. Once the
+   platform is live, give the Worker `APP_ENQUIRY_URL` (`https://herbalholland.co.za/api/site/enquiries`) and
+   `APP_ENQUIRY_SECRET` (= the app's `SITE_ENQUIRY_SECRET`) with `wrangler secret put`, so enquiries land in HQ →
+   Franchise leads instead of email.
 2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location — record the cross-border
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.

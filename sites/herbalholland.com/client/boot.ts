@@ -19,6 +19,8 @@
     // Nothing to remember with: the gate asks on each page.
   }
   // A returning adult sees the page's opening straight away (html.ready starts it); a new visitor sees it after the gate.
+  // The legal pages (html[data-free]) open without the gate, and remember nothing.
+  if (d.hasAttribute("data-free")) age = "ok";
   d.classList.add("js", ...(age === "ok" ? ["ready"] : []));
   d.setAttribute("data-age", age);
 })();

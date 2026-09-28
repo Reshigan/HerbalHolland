@@ -8,7 +8,7 @@ import { num } from "@/lib/format";
 import { EMAIL, FRANCHISE, fill } from "../../content";
 import { Mark, cx } from "../art";
 import { Page } from "../layout";
-import { Btn, Head, Icon, Index, MailTo } from "../ui";
+import { Btn, Head, Icon, Index, MailTo, Rich } from "../ui";
 import { PageHero } from "./parts";
 
 const F = FRANCHISE.form;
@@ -135,13 +135,16 @@ function EnquiryForm() {
           <div className="field field--wide field--check" data-field="consent">
             <label className="check" htmlFor="f-consent">
               <input type="checkbox" id="f-consent" name="consent" required />
-              <span>{f.consent.label}</span>
+              <span>
+                <Rich text={f.consent.label} />
+              </span>
             </label>
             <Help name="consent" />
           </div>
         </div>
         <p className="form__privacy">
-          <Icon name="medicines" size={16} /> {F.privacy}
+          <Icon name="medicines" size={16} />
+          <span>{F.privacy}</span>
         </p>
         <noscript>
           <p className="form__nojs">

@@ -1,6 +1,5 @@
 // Storefront chrome (server): announcement bar, header, footer and the 18+ age gate.
-// Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame; the corporate site
-// (src/app/site) reuses the age gate and footer columns.
+// Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
 import Link from "next/link";
 import { ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
@@ -20,7 +19,8 @@ import { screenCopy } from "@/lib/compliance";
 import { zarWhole } from "@/lib/money";
 import { fmtDate, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
-import { siteLinks } from "@/lib/site";
+
+const SITE = "https://herbalholland.com";
 
 export const NAV: NavItem[] = [
   { href: "/shop", label: "Shop" },
@@ -75,7 +75,6 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         { text: "Click & collect at your nearest store", href: "/stores" },
       ];
   const tier = customer ? tierMeta(customer.tier) : null;
-  const site = siteLinks(process.env);
 
   return (
     <>
@@ -170,8 +169,8 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${company?.email ?? "hello@herbalholland.co.za"}`]]} />
               <FooterCol title="Rewards" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"]]} />
               <FooterCol title="Legal" links={[["Terms of use", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["PAIA manual", "/legal/paia"], ["Responsible use", "/learn/responsible-use"]]} />
-              {/* The corporate site, herbalholland.com */}
-              <FooterCol title="About Herbal Holland" links={[["About us", site.abs("/about")], ["Own a store", site.abs("/franchise")], ["Press", site.abs("/press")], ["Careers", site.abs("/careers")]]} />
+              {/* The corporate site (sites/herbalholland.com, on Cloudflare) */}
+              <FooterCol title="About Herbal Holland" links={[["About us", `${SITE}/about`], ["Own a store", `${SITE}/franchise`], ["Press", `${SITE}/press`], ["Careers", `${SITE}/careers`]]} />
             </div>
           </Container>
           <div className="border-t border-ink-850">

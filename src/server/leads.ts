@@ -9,7 +9,7 @@ import { db, tx, type Tx } from "./db";
 import { audit, SYSTEM, type Actor } from "./audit";
 import { nextNumber } from "./counters";
 import { deliverEmail, emailLayout, esc, type Email } from "./email";
-import { siteLinks } from "@/lib/site";
+import { APP_URL } from "./invoices";
 import { PROVINCES } from "@/lib/sa";
 import { dayKey, fmtDate, startOfDaySA } from "@/lib/format";
 import {
@@ -126,7 +126,7 @@ const para = (s: string) => `<p style="margin:0 0 14px;font-size:15px;line-heigh
 
 async function notify(l: FranchiseLead) {
   const where = `${l.area}${l.province && Object.hasOwn(PROVINCES, l.province) ? `, ${PROVINCES[l.province as keyof typeof PROVINCES]}` : ""}`;
-  const link = siteLinks(process.env).shop(`/hq/franchise/${l.id}`);
+  const link = `${APP_URL()}/hq/franchise/${l.id}`;
   const team = franchiseEmail();
   const facts: [string, string][] = [
     ["Where", where],

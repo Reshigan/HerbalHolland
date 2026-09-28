@@ -36,7 +36,8 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { CHROME } from "../content";
+import { Fragment } from "react";
+import { CHROME, EMAIL, LEGAL } from "../content";
 import { FACTS, shopLink } from "../facts";
 import { cx } from "./art";
 
@@ -191,6 +192,43 @@ export function MailTo({ email, className }: { email: string; className?: string
     <a href={`mailto:${email}`} className={cx("link", "mail", className)}>
       {email}
     </a>
+  );
+}
+
+/** The links that running text in ../content can carry, as {email}, {privacy}, {terms}, {press} and {regulator}. */
+const LINKS: Record<string, () => React.ReactNode> = {
+  email: () => <MailTo email={EMAIL.hello} />,
+  privacy: () => (
+    <a className="link" href="/privacy">
+      {LEGAL.links.privacy}
+    </a>
+  ),
+  terms: () => (
+    <a className="link" href="/terms">
+      {LEGAL.links.terms}
+    </a>
+  ),
+  press: () => (
+    <a className="link" href="/press">
+      {LEGAL.links.press}
+    </a>
+  ),
+  regulator: () => (
+    <a className="link" href={LEGAL.regulator.href} rel="noopener noreferrer">
+      {LEGAL.regulator.label}
+    </a>
+  ),
+};
+
+/** Text with its {link} placeholders turned into links. */
+export function Rich({ text }: { text: string }) {
+  return (
+    <>
+      {text.split(/(\{\w+\})/).map((part, i) => {
+        const key = /^\{(\w+)\}$/.exec(part)?.[1];
+        return <Fragment key={i}>{key && LINKS[key] ? LINKS[key]() : part}</Fragment>;
+      })}
+    </>
   );
 }
 

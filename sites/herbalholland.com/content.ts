@@ -4,8 +4,7 @@
 // What .com may say (docs/MARKETING-PLAN.md §1, docs/COMPLIANCE.md): brand, standards, franchise, press and careers —
 // no products, prices, deals or health claims; licensed medicines only as a pharmacist service for registered patients;
 // facts only from ./facts (no invented numbers, founders, partners, awards or dates).
-// The retiring React pages in src/app/site still import this module (through src/components/site/content.ts), so keep
-// the keys they use; the static site adds its own.
+// In running text, {email}, {privacy}, {terms}, {press} and {regulator} become links (see Rich in ./src/ui).
 import { num } from "@/lib/format";
 import { FACTS } from "./facts";
 
@@ -40,6 +39,7 @@ export const GATE = {
   yes: "I'm 18 or older",
   no: "I'm younger than 18",
   remember: "We remember your answer on this device for a year.",
+  accept: "By entering you accept our {terms} and {privacy}.",
   under: {
     title: "Sorry, this site is for adults",
     body: "You need to be 18 or older to visit Herbal Holland. Thanks for being honest.",
@@ -439,7 +439,7 @@ export const FRANCHISE = {
       { q: "Where can I open?", a: "Tell us the area you have in mind. Every site is checked against the licences it needs and against our own siting rules, which are stricter than the law." },
       { q: "Can I set my own prices?", a: "Yes. HQ recommends retail prices, and you set your own." },
       { q: "What happens after opening day?", a: "The platform, the reports and HQ stay with you, and so does the calendar of members' evenings, drops and events." },
-      { q: "What happens to my enquiry?", a: "Only our HQ team sees it, and we use it only to reply to you. If it doesn't go further, we delete it a year after we last worked on it, and you can ask us to delete it sooner." },
+      { q: "What happens to my enquiry?", a: "Only our head-office team reads it, and we use it only to reply to you. If it doesn't go ahead, we delete it within 12 months of it arriving. If it moves into our franchise system, we delete the website's copy within 30 days. You can ask us to delete it sooner at any time." },
     ] satisfies Faq[],
   },
   enquire: {
@@ -462,10 +462,10 @@ export const FRANCHISE = {
       experience: { label: "Your retail or business experience", hint: "A few lines on what you've run or managed, and for how long." },
       pharmacist: { label: "Do you have access to a pharmacist partner?", yes: "Yes", no: "No", hint: "Our stores need a pharmacist for licensed medicines. No partner yet? That's fine: say no." },
       message: { label: "Anything else you'd like us to know?", optional: "(optional)", hint: "Up to {n} characters." },
-      consent: { label: "Herbal Holland may use these details to reply to my franchise enquiry." },
+      consent: { label: "Herbal Holland may use these details to reply to my franchise enquiry, as set out in the {privacy}." },
       website: { label: "Website (leave this empty)" },
     },
-    privacy: "We keep your enquiry only to reply to you, and we delete enquiries that don't go ahead within a year.",
+    privacy: "We keep your enquiry only to reply to you, and we delete enquiries that don't go ahead within 12 months.",
     submit: "Send my enquiry",
     sending: "Sending your enquiry…",
     noscript: "Please enable JavaScript to send this form, or email us at",
@@ -687,9 +687,277 @@ export const CONTACT = {
     franchisees: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details are on the store finder.",
     franchiseesSoon: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details will be on its store page.",
     stores: "Store finder",
+    // title labels the site's legal links; the other keys are still read by the retiring React pages in src/app/site.
     legal: { title: "Legal", privacy: "Privacy notice (POPIA)", paia: "PAIA manual", terms: "Membership terms" },
   },
 } as const;
+
+// ── Legal: the Privacy Policy and the Terms of Use ───────────────────────────
+/** A paragraph in a legal document: plain text, or [a bold lead-in, the text]. "{company}" alone stands for the
+ *  company's registered details from ./facts (or LEGAL.company.pending while they aren't filled in). */
+export type LegalPara = string | readonly [lead: string, text: string];
+export type LegalSection = { key: string; title: string; body: readonly LegalPara[] };
+export type LegalDoc = {
+  meta: { title: string; description: string };
+  version: string;
+  /** YYYY-MM-DD: shown as "Last updated …". Change it, and the version, whenever the text changes. */
+  updated: string;
+  hero: { eyebrow: string; title: string; lede: string };
+  summary: { title: string; points: readonly string[]; scope?: string };
+  sections: readonly LegalSection[];
+};
+
+export const LEGAL = {
+  version: "Version {version} · Last updated {date}",
+  contents: "Contents",
+  links: { privacy: "Privacy Policy", terms: "Terms of Use", press: "press page" },
+  regulator: { label: "inforegulator.org.za", href: "https://inforegulator.org.za" },
+  company: {
+    // Shown in place of the registered details until they're filled in ./facts. Never invent them.
+    pending: "Our registered company details (registered name, registration number and address) aren't published yet. Until they are, you can reach us at {email}.",
+  },
+} as const;
+
+/**
+ * The Privacy Policy for herbalholland.com (POPIA, Act 4 of 2013). It describes what the pages and ./worker.ts do: the
+ * enquiry form and its fields, the ?src tag, the scrambled connection code, Cloudflare's EU region and email routing, how
+ * long enquiries are kept, and the 18+ answer kept in the browser. Change how any of that works, and change this too.
+ */
+export const PRIVACY = {
+  meta: {
+    title: "Privacy Policy",
+    description: "How herbalholland.com collects, uses, stores and protects personal information under POPIA: who sees it, how long we keep it and how to use your rights.",
+  },
+  version: "1.0",
+  updated: "2026-09-28",
+  hero: {
+    eyebrow: "Legal",
+    title: "Privacy Policy",
+    lede: "How herbalholland.com handles personal information, under the Protection of Personal Information Act 4 of 2013 (POPIA).",
+  },
+  summary: {
+    title: "In short",
+    points: [
+      "We collect only what you send us: a franchise enquiry or an email.",
+      "We use it to reply to you and to keep the site secure, and for nothing else.",
+      "No tracking or advertising cookies, no analytics, and we never sell your details.",
+      "Enquiries are stored with Cloudflare in the EU, and deleted within 12 months if they don't go ahead.",
+      "You can ask to see, correct or delete your details at any time.",
+    ],
+    scope: "This policy covers herbalholland.com only. Our online shop and Herbal Holland Rewards have their own privacy policy, which applies when you use them.",
+  },
+  sections: [
+    {
+      key: "who",
+      title: "Who we are and how to reach us",
+      body: [
+        "Herbal Holland is the responsible party for the personal information collected through this website: we decide why and how it's used.",
+        "{company}",
+        ["Information Officer.", "Our Information Officer looks after privacy at Herbal Holland. You can reach them at {email}."],
+      ],
+    },
+    {
+      key: "collect",
+      title: "What this site collects",
+      body: [
+        ["The franchise enquiry form.", "If you send us an enquiry: your name, email address and mobile number, the area and province where you'd like to open, your retail or business experience, the band of capital you could put in, whether you have a pharmacist partner, and any message you add. If you reached the form through a link with a campaign tag (such as ?src=linkedin), we note the tag, so we know where enquiries come from."],
+        ["Your connection address.", "When you send the form, we use your connection (IP) address only to stop the same enquiry being sent over and over, and we keep it only as a scrambled code, never the address itself."],
+        ["Routine security logs.", "Like any website, our host keeps routine logs of requests to the site, such as the connection address, the browser used and the time, to keep the site secure and working."],
+        ["Emails.", "If you email us, we receive your email address, your message and anything you attach."],
+        ["Your answer to the 18+ question.", "It stays in your own browser's local storage: for a year if you confirm you're 18 or older, and only until you close the tab if you're younger. It's never sent to us."],
+        ["What we don't do.", "This site sets no tracking or advertising cookies, runs no analytics and builds no profiles, and sending an enquiry never signs you up for marketing."],
+      ],
+    },
+    {
+      key: "why",
+      title: "Why we use it, and on what basis",
+      body: [
+        ["To reply to you.", "You send us your details so that we can answer your enquiry or email, and you consent to us using them for that (POPIA section 11(1)(a)). If your enquiry goes further, we use them to take your franchise application forward with you, as steps you've asked for before any agreement (section 11(1)(b))."],
+        ["To keep the site secure.", "We use the scrambled connection code and the security logs because we have a legitimate interest in protecting the site, and the people who use it, from abuse (section 11(1)(f))."],
+        ["It's your choice.", "Giving us your details is voluntary. Without them we can't reply to you, and nothing else happens."],
+        "We don't use your details for anything else.",
+      ],
+    },
+    {
+      key: "sharing",
+      title: "Who sees it",
+      body: [
+        ["Our head-office team.", "The people at Herbal Holland's head office who answer franchise enquiries and emails."],
+        ["Operators who process it for us.", "Cloudflare, which hosts the site, stores enquiries and routes our email, and our email provider. Under POPIA (sections 20 and 21) they may process it only on our instructions, and must keep it secure."],
+        ["Our franchise system.", "Once it's live, enquiries that go further move into the system our head office uses to manage franchise applications."],
+        ["No one else.", "We never sell your details. We disclose them to anyone else only when the law requires us to."],
+      ],
+    },
+    {
+      key: "where",
+      title: "Where it's stored",
+      body: [
+        "Enquiries are stored in Cloudflare's European Union region. That's a transfer outside South Africa, which POPIA allows (section 72) because EU law gives personal information an adequate level of protection.",
+        "When you visit the site, your requests pass through Cloudflare's global network, so they may be handled in data centres in South Africa and elsewhere.",
+        "Emails are kept by our email provider. If it stores them outside South Africa, it's only where POPIA allows.",
+      ],
+    },
+    {
+      key: "keep",
+      title: "How long we keep it",
+      body: [
+        ["Enquiries.", "If an enquiry doesn't go ahead, we delete it within 12 months. Once an enquiry moves into our franchise system, we delete the website's copy within 30 days."],
+        ["The scrambled connection code.", "It's deleted together with the enquiry it belongs to."],
+        ["Emails.", "We keep emails only as long as we need them for the reason you wrote to us."],
+        ["Security logs.", "Our host keeps them only as long as it needs to protect the site."],
+      ],
+    },
+    {
+      key: "security",
+      title: "How we protect it",
+      body: [
+        "Everything between your browser and this site is encrypted (HTTPS), and the site tells browsers to connect to it only that way.",
+        "Only the people who need your details for their work can see them, and connection addresses are kept only as scrambled codes.",
+        "If your details are ever accessed by someone who shouldn't have them, we'll tell you and the Information Regulator as soon as reasonably possible, as POPIA requires (section 22).",
+      ],
+    },
+    {
+      key: "rights",
+      title: "Your rights",
+      body: [
+        ["See your details.", "Ask us whether we hold details about you, and for a copy. Our PAIA manual, which explains how to request records, is available on request."],
+        ["Correct or delete them.", "Ask us to correct details that are wrong, out of date or incomplete, or to delete them."],
+        ["Object.", "Object to us using your details, for example to keep the site secure."],
+        ["Withdraw your consent.", "You can withdraw your consent at any time. It doesn't affect what we did before, but we'll stop using your details for your enquiry."],
+        ["Complain.", "Complain to the Information Regulator at {regulator}. You don't have to come to us first, but we'd welcome the chance to put things right."],
+        ["How to ask.", "Email {email} and tell us what you'd like. We'll check it's you, then answer within 30 days."],
+      ],
+    },
+    {
+      key: "adults",
+      title: "This site is for adults",
+      body: ["Herbal Holland is for adults aged 18 and over. We don't knowingly collect information from anyone younger than 18, and if we find we have, we delete it."],
+    },
+    {
+      key: "changes",
+      title: "Changes to this policy",
+      body: ["When we change this policy, we'll publish the new version on this page, with a new version number and date at the top."],
+    },
+    {
+      key: "contact",
+      title: "Contact",
+      body: ["Questions about this policy or your details: email {email}, for the attention of our Information Officer.", "The Information Regulator: {regulator}."],
+    },
+  ],
+} as const satisfies LegalDoc;
+
+/** The Terms of Use for herbalholland.com. The company's details (ECT Act s43) come from ./facts: never invent them. */
+export const TERMS = {
+  meta: {
+    title: "Terms of Use",
+    description: "The terms for using herbalholland.com: who we are, what the site is for, franchise and careers information, our name and content, acceptable use and the law that applies.",
+  },
+  version: "1.0",
+  updated: "2026-09-28",
+  hero: { eyebrow: "Legal", title: "Terms of Use", lede: "The terms for using herbalholland.com, in plain English." },
+  summary: {
+    title: "In short",
+    points: [
+      "This site is for adults 18 and over, and by using it you accept these terms.",
+      "It's information only: nothing is sold here, and nothing on it is medical advice.",
+      "Franchise information is general, not an offer: any franchise depends on our disclosure document and a signed agreement.",
+      "Our name, windmill and content are ours. Press may use our logos, unaltered, to refer to us.",
+      "South African law applies.",
+    ],
+  },
+  sections: [
+    {
+      key: "about",
+      title: "About these terms",
+      body: ["These terms apply when you use herbalholland.com. By using the site you accept them; if you don't, please don't use it.", "The site is for adults aged 18 and over only."],
+    },
+    {
+      key: "who",
+      title: "Who we are",
+      body: ["This website is run by Herbal Holland. Section 43 of the Electronic Communications and Transactions Act asks us to publish these details:", "{company}", ["Email:", "{email}"], ["Website:", "herbalholland.com"]],
+    },
+    {
+      key: "what",
+      title: "What this site is",
+      body: ["It's information about Herbal Holland: who we are, franchising, press and careers.", "Nothing is sold on this site. Our online shop and Herbal Holland Rewards have their own terms, which apply when you use them."],
+    },
+    {
+      key: "medical",
+      title: "No medical advice",
+      body: [
+        "Nothing on this site is medical advice. For advice about your health, speak to a doctor or pharmacist.",
+        "Licensed medicines are supplied only by our pharmacists, to registered patients with a SAHPRA authorisation.",
+        "Nothing on this site is an offer to supply any product.",
+      ],
+    },
+    {
+      key: "franchise",
+      title: "Franchise information",
+      body: [
+        "What we say about franchising on this site is general information. It isn't an offer, a disclosure document or a contract, and we make no representations about earnings.",
+        "Any franchise depends on our disclosure document, which you'll receive at least 14 days before you sign anything, as the Consumer Protection Act's franchise regulations require, and on a franchise agreement signed by both sides.",
+        "Sending an enquiry creates no obligation for you or for us.",
+      ],
+    },
+    {
+      key: "careers",
+      title: "Careers",
+      body: ["The roles on our careers page show the kind of people we hire. They don't mean a position is open.", "Applying doesn't create employment or a promise of it. Store roles are with the franchisee who owns the store."],
+    },
+    {
+      key: "ip",
+      title: "Our name, marks and content",
+      body: [
+        "The Herbal Holland name, the windmill mark and the content of this site (its words, pictures and design) belong to Herbal Holland or are used with permission.",
+        "Journalists and publishers may use the logos on our {press} to refer to Herbal Holland accurately, as long as they're not altered.",
+        "Anything else needs our written permission first: ask us at {email}.",
+      ],
+    },
+    {
+      key: "use",
+      title: "Using the site properly",
+      body: ["Please use the site lawfully. Don't scrape it or collect contact details from it to send unsolicited messages, don't try to get around its security or interfere with how it works, and don't send false or automated enquiries."],
+    },
+    {
+      key: "links",
+      title: "Links to other sites",
+      body: ["We link to a few other sites, such as the Information Regulator and support services. We don't control them, and we aren't responsible for their content or how they handle your information."],
+    },
+    {
+      key: "accuracy",
+      title: "Accuracy and changes to the site",
+      body: ["We work to keep the site accurate and up to date, but information on it, including opening dates, may change without notice.", "We may change, suspend or remove any part of the site at any time."],
+    },
+    {
+      key: "liability",
+      title: "Liability",
+      body: [
+        "To the extent the law allows, Herbal Holland isn't liable for any loss that comes from using this site or relying on its information.",
+        "Nothing in these terms limits any right you have under the Consumer Protection Act or any other law that can't be excluded, or our liability for gross negligence.",
+      ],
+    },
+    {
+      key: "privacy",
+      title: "Privacy",
+      body: ["How we handle personal information is set out in our {privacy}."],
+    },
+    {
+      key: "law",
+      title: "Governing law",
+      body: ["These terms are governed by the law of the Republic of South Africa, and South African courts have jurisdiction."],
+    },
+    {
+      key: "changes",
+      title: "Changes to these terms",
+      body: ["We may update these terms. The version and date at the top show when they last changed, and using the site after a change means you accept the new version."],
+    },
+    {
+      key: "contact",
+      title: "Contact",
+      body: ["Questions about these terms: email {email}."],
+    },
+  ],
+} as const satisfies LegalDoc;
 
 // ── 404 ──────────────────────────────────────────────────────────────────────
 export const NOT_FOUND = {

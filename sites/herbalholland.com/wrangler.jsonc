@@ -1,6 +1,6 @@
 // herbalholland.com: static pages from dist/ (npx tsx sites/herbalholland.com/build.ts) + worker.ts for /api/*.
 // Deploy from this folder with CLOUDFLARE_ACCOUNT_ID and credentials in the environment:
-//   npx wrangler@4 d1 migrations apply herbalholland-com --remote && npx wrangler@4 deploy
+//   npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy
 // Secrets (wrangler secret put): NOTIFY_TO (a verified Email Routing destination), IP_SALT; once the platform is live,
 // APP_ENQUIRY_URL (https://herbalholland.co.za/api/site/enquiries) and APP_ENQUIRY_SECRET (= the app's SITE_ENQUIRY_SECRET).
 {
@@ -16,7 +16,7 @@
     "run_worker_first": ["/api/*"]
   },
   "d1_databases": [
-    { "binding": "DB", "database_name": "herbalholland-com", "database_id": "b872b49d-ae33-44b7-a668-5949ea875397", "migrations_dir": "migrations" }
+    { "binding": "DB", "database_name": "herbalholland-com-eu", "database_id": "8e145c20-d05a-4c4f-84f1-013a82b8846f", "migrations_dir": "migrations" }
   ],
   "send_email": [{ "name": "MAILER" }],
   "triggers": { "crons": ["15 0 * * *"] }, // 02:15 SAST: delete enquiries kept long enough (worker.ts scheduled)

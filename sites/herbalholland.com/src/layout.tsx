@@ -1,10 +1,10 @@
 // The page shell for every herbalholland.com page: <head> (title, description, canonical, Open Graph, fonts, one CSS
 // file, the tiny boot script and the page's ES module), the header and its full-screen menu, the 18+ gate and the
 // footer with the giant wordmark. build.ts fills `site` (fingerprinted asset names, the build date) before rendering.
-import { BRAND, CHROME, EMAIL, GATE } from "../content";
+import { BRAND, CHROME, EMAIL, GATE, LEGAL } from "../content";
 import { FACTS, joinLink } from "../facts";
 import { AgeBadge, Mark, SCENES, Scene, Sprite, Wordmark, cx } from "./art";
-import { Btn, Icon, Index, MailTo, ShopDoor, Soon } from "./ui";
+import { Btn, Icon, Index, MailTo, Rich, ShopDoor, Soon } from "./ui";
 
 export const site = {
   assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2" },
@@ -149,7 +149,9 @@ function Gate() {
               <span className="btn__label">{GATE.no}</span>
             </button>
           </div>
-          <p className="gate__fine">{GATE.remember}</p>
+          <p className="gate__fine">
+            {GATE.remember} <Rich text={GATE.accept} />
+          </p>
         </div>
         <div className="gate__card gate__under" data-gate-under="" hidden>
           <Mark className="gate__mark" />
@@ -200,6 +202,13 @@ function Footer() {
                 <li key={n.key}>
                   <a className="link" href={`/${n.key}`}>
                     {n.label}
+                  </a>
+                </li>
+              ))}
+              {(["privacy", "terms"] as const).map((k) => (
+                <li key={k}>
+                  <a className="link" href={`/${k}`}>
+                    {LEGAL.links[k]}
                   </a>
                 </li>
               ))}
@@ -259,13 +268,16 @@ function Footer() {
   );
 }
 
-/** A whole page. `page` names the nav item it belongs to ("home", "about", …). */
-export function Page({ page, meta, jsonLd, children }: { page: string; meta: Meta; jsonLd?: Record<string, unknown>; children: React.ReactNode }) {
+/**
+ * A whole page. `page` names the nav item it belongs to ("home", "about", …). A `free` page (the legal documents) opens
+ * without the 18+ gate: the gate asks visitors to accept them, so they must be readable first.
+ */
+export function Page({ page, meta, jsonLd, free, children }: { page: string; meta: Meta; jsonLd?: Record<string, unknown>; free?: boolean; children: React.ReactNode }) {
   const title = meta.absolute ? meta.title : `${meta.title} · ${BRAND.name}`;
   const url = abs(meta.path);
   const img = `${FACTS.origin}/og.png`;
   return (
-    <html lang="en-ZA" dir="ltr" id="top">
+    <html lang="en-ZA" dir="ltr" id="top" data-free={free ? "" : undefined}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -315,7 +327,7 @@ export function Page({ page, meta, jsonLd, children }: { page: string; meta: Met
         </main>
         <Footer />
         <Menu page={page} />
-        <Gate />
+        {!free && <Gate />}
       </body>
     </html>
   );

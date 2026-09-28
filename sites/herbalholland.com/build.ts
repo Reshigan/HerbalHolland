@@ -26,6 +26,7 @@ import { FranchisePage } from "./src/pages/franchise";
 import { HomePage } from "./src/pages/home";
 import { NotFoundPage } from "./src/pages/notfound";
 import { PressPage } from "./src/pages/press";
+import { PrivacyPage, TermsPage } from "./src/pages/legal";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO = join(ROOT, "..", "..");
@@ -45,6 +46,8 @@ const PAGES: [path: string, file: string, page: FunctionComponent][] = [
   ["/press", "press.html", PressPage],
   ["/careers", "careers.html", CareersPage],
   ["/contact", "contact.html", ContactPage],
+  ["/privacy", "privacy.html", PrivacyPage],
+  ["/terms", "terms.html", TermsPage],
 ];
 
 const hash = (b: Buffer | string) => createHash("sha256").update(b).digest("hex").slice(0, 10);
@@ -93,7 +96,7 @@ async function renderImages(css: string) {
   await shoot(1200, 630, renderToStaticMarkup(createElement(OgCard)), "og.png");
   await shoot(180, 180, renderToStaticMarkup(createElement(AppIcon, { size: 180 })), "apple-touch-icon.png");
   // favicon.ico: one 32 px PNG inside an ICO container (for browsers and crawlers that ask for /favicon.ico).
-  const icon = readFileSync(join(REPO, "src/app/icon.svg"), "utf8");
+  const icon = readFileSync(join(STATIC, "icon.svg"), "utf8");
   const png = await shoot(32, 32, `<style>body{background:transparent}</style>${icon.replace("<svg ", '<svg width="32" height="32" ')}`, "", true);
   const ico = Buffer.alloc(22);
   ico.writeUInt16LE(0, 0);
@@ -162,14 +165,13 @@ async function main() {
   site.assets.css = emit("site", "css", small.css);
   files.forEach(([file], i) => writeFileSync(join(DIST, file), small.pages[i].replace(CSS_HREF, site.assets.css)));
 
-  // Static files: icons, share image, press logos.
-  copyFileSync(join(REPO, "src/app/icon.svg"), join(DIST, "icon.svg"));
-  for (const f of ["og.png", "apple-touch-icon.png", "favicon.ico"]) {
-    if (!existsSync(join(STATIC, f))) throw new Error(`static/${f} is missing: run the build once with --images`);
+  // Static files from ./static (the site keeps its own copies): the icon, share image, press logos.
+  for (const f of ["icon.svg", "og.png", "apple-touch-icon.png", "favicon.ico"]) {
+    if (!existsSync(join(STATIC, f))) throw new Error(`static/${f} is missing${f === "icon.svg" ? "" : ": run the build once with --images"}`);
     copyFileSync(join(STATIC, f), join(DIST, f));
   }
   mkdirSync(join(DIST, "press"), { recursive: true });
-  for (const f of readdirSync(join(REPO, "public/press"))) copyFileSync(join(REPO, "public/press", f), join(DIST, "press", f));
+  for (const f of readdirSync(join(STATIC, "press"))) copyFileSync(join(STATIC, "press", f), join(DIST, "press", f));
 
   // robots.txt, sitemap.xml and the headers Cloudflare applies.
   writeFileSync(join(DIST, "robots.txt"), `User-agent: *\nAllow: /\n\nSitemap: ${FACTS.origin}/sitemap.xml\n`);
@@ -183,6 +185,9 @@ async function main() {
     [
       "/*",
       `  Content-Security-Policy: ${csp}`,
+      // HTTPS only, for a year, subdomains included: the same policy the herbalholland.com zone sends at Cloudflare's
+      // edge, so browsers never see two different ones. (Not on the preload list.)
+      "  Strict-Transport-Security: max-age=31536000; includeSubDomains",
       "  X-Content-Type-Options: nosniff",
       "  Referrer-Policy: strict-origin-when-cross-origin",
       "  Permissions-Policy: camera=(), microphone=(), geolocation=()",
