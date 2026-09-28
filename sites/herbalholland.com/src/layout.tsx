@@ -347,15 +347,15 @@ export function Page({ page, nav = page, meta, stage, jsonLd, free, children }: 
             browsers without SVG icons fall back to /favicon.ico by convention. */}
         <link rel="icon" href={site.assets.icon} type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {/* The display font is preloaded: it's the only font on a new visitor's first screen (the 18+ card) and the
-            headline's. Inter, the text face, is preloaded by the head script — at once for a returning adult (the
-            first screen uses it), after the first paint for a new visitor. */}
+        {/* Both faces are on every first screen (the headline and the 18+ card in Outfit; the header, the lede and
+            the buttons in Inter), so both are preloaded and the first layout has them. */}
         <link rel="preload" href={site.assets.outfit} as="font" type="font/woff2" crossOrigin="" />
+        <link rel="preload" href={site.assets.inter} as="font" type="font/woff2" crossOrigin="" />
         {/* The first screen's CSS, inline (allowed by its hash in the CSP). The head script adds the rest of the
             stylesheet and the page's module once the page has loaded, so nothing competes with the first paint; without
             script, the noscript link loads the stylesheet the plain way. */}
         <style dangerouslySetInnerHTML={{ __html: site.critical }} />
-        <script data-boot="" data-css={site.assets.css} data-js={site.assets.js} data-inter={site.assets.inter} dangerouslySetInnerHTML={{ __html: site.boot }} />
+        <script data-boot="" data-css={site.assets.css} data-js={site.assets.js} dangerouslySetInnerHTML={{ __html: site.boot }} />
         <noscript>
           <link rel="stylesheet" href={site.assets.css} />
         </noscript>

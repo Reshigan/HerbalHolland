@@ -173,7 +173,6 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 /* Named on the inner row, not the header: a named element is a backdrop root, which would switch off the blur. */
 .hdr__in { view-transition-name: hdr; }
 .hdr.is-hidden { transform: translateY(-110%); }
-.js[data-age="new"] .hdr, .js[data-age="under"] .hdr { opacity: 0; }
 .hdr__bg { position: absolute; inset: 0; background: color-mix(in oklab, var(--ink-950) 86%, transparent); border-bottom: 1px solid var(--line); opacity: 0; transition: opacity .5s; }
 .hdr.is-solid .hdr__bg { opacity: 1; }
 .hdr__in, .menu__bar { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: var(--hh); }
@@ -334,17 +333,15 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .nf__try { color: var(--ink-400); }
 
 /* ── The 18+ gate: the opening scene's question ────────────────────────── */
-/* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives). Until the
-   first paint (html.pre) nothing but the landscape is drawn behind it, so the first screen needs one font (Outfit: the
-   card is set in it entirely); then the page is laid out behind the veil, unpainted and inert, until the answer. */
+/* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives). The page
+   behind it is in the document as on any page — drawn from the first paint, nothing hidden by display or visibility,
+   so a crawler that never answers reads it whole. Until the answer it is inert (the head script), the scroll is
+   locked, and the landscape stands above it as an opaque first scene: only the sky, the polder and the card show. The
+   answer (html.ready) lets the landscape back down as the scene's entrance plays. */
 .js[data-age="new"] .gate, .js[data-age="under"] .gate, .gate.is-leaving { display: grid; }
 .js[data-age="new"], .js[data-age="under"] { overflow: hidden; }
 .js[data-age="new"] .skip, .js[data-age="under"] .skip { display: none; }
-.js[data-age="new"] main, .js[data-age="under"] main { min-height: 100svh; }
-/* Behind the veil the page is laid out but not painted (so nothing there is a "largest paint" after the first), and
-   inert (the head script), until the answer. */
-.js[data-age="new"] :is(.hdr, .ftr, main > :not([data-stage])), .js[data-age="under"] :is(.hdr, .ftr, main > :not([data-stage])) { visibility: hidden; }
-.pre[data-age="new"] :is(.hdr, .ftr, main > :not([data-stage])), .pre[data-age="under"] :is(.hdr, .ftr, main > :not([data-stage])) { display: none; }
+.js:not(.ready) .stage { z-index: 900; }
 .gate { z-index: 1000; background: linear-gradient(color-mix(in oklab, var(--ink-950) 55%, transparent), color-mix(in oklab, var(--ink-950) 20%, transparent)); }
 .gate__stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100%; padding: 1.25rem; }
 /* The card's frame is beadwork: one row of the tile along each edge. */
@@ -390,7 +387,6 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .js .stage__mill svg { animation: in-mill 1.8s var(--ease) .15s both; }
 .js .stage__l { animation: in-l 1.6s var(--ease) both; }
 .js:not(.ready) :is([data-in], .rise .w > span, .stage__sun svg, .stage__mill svg, .stage__l) { animation-play-state: paused; }
-.js:not(.ready) [data-in] { visibility: hidden; }
 @keyframes rise { from { transform: translateY(112%); } }
 @keyframes rise-soft { from { transform: translateY(.3em); } }
 @keyframes in { from { transform: translateY(1.5rem); } }

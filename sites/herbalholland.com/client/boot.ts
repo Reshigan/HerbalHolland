@@ -2,8 +2,9 @@
 // that scripts run (html.js), decides whether the page moves (html.motion: not with reduced motion, Save-Data or a
 // device with four cores or fewer, which get the still pictures instead), and settles the 18+ gate before anything is
 // drawn, so a new visitor never glimpses the page behind it and a returning adult never sees it flash. The gate's
-// answers are handled here too, so the first screen works before the page's module arrives (or without it). Once the
-// page has loaded it adds the rest of the stylesheet and the module, so nothing competes with the first paint.
+// answers are handled here too, so the first screen works before the page's module arrives (or without it); the page
+// behind the gate stays in the document, only inert. Once the first screen has painted it adds the rest of the
+// stylesheet and the module, so nothing competes with the first paint.
 //   localStorage hh_age   = the time "I'm 18 or older" was chosen; valid for 365 days
 //   sessionStorage hh_age = "under" after "I'm younger than 18" (for this session), or "ok" where localStorage is blocked
 (() => {
@@ -34,19 +35,10 @@
   // hidden; "auto" alone still lays them out on the first frame), so the first paint is only the first screen.
   d.classList.add("js", "pre", ...(still ? [] : ["motion"]), ...(age === "ok" ? ["ready", "fast"] : []));
   d.setAttribute("data-age", age);
-  // The text face: a returning adult's first screen is set in it, so it's fetched at once (a new visitor's first
-  // screen, the 18+ card, isn't: for them it's fetched once that has painted, below).
-  const inter = () => {
-    const l = document.createElement("link");
-    l.rel = "preload";
-    l.as = "font";
-    l.type = "font/woff2";
-    l.crossOrigin = "";
-    l.href = me.dataset.inter!;
-    document.head.append(l);
-  };
-  if (age === "ok") inter();
+  // The page behind the gate: in the document as on any page, but inert until the answer (set as soon as it's parsed,
+  // before the first render, so it costs no restyle).
   const behind = () => document.querySelectorAll<HTMLElement>("header, main, footer");
+  if (age !== "ok") document.addEventListener("DOMContentLoaded", () => d.getAttribute("data-age") !== "ok" && behind().forEach((el) => (el.inert = true)));
 
   // "I'm younger than 18": the card gives way to the respectful screen (stamped from its template).
   const under = () => {
@@ -98,14 +90,12 @@
   if (age === "under") document.addEventListener("DOMContentLoaded", under);
 
   // Once the first screen has painted (a background tab paints nothing, so after a moment regardless): the rest of the
-  // stylesheet is fetched, and for a new visitor the text face; when both are here the page behind the gate is drawn
-  // (inert) — or, for a returning adult, the scenes below the first — so it's laid out once, with the right font; then
-  // the page's module. After a moment regardless, should either not arrive.
+  // stylesheet is fetched; when it's here the scenes below the first are let through (html.pre off) and the page's
+  // module is added, so the page is laid out once more, not twice. After a moment regardless, should it not arrive.
   let added = false;
   const rest = () => {
     if (added) return;
     added = true;
-    const gated = d.getAttribute("data-age") !== "ok";
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = me.dataset.css!;
@@ -113,17 +103,13 @@
     const show = () => {
       if (shown) return;
       shown = true;
-      // (The answer may already have been given while the font was on its way.)
-      if (d.getAttribute("data-age") !== "ok") behind().forEach((el) => (el.inert = true));
       d.classList.remove("pre");
       const s = document.createElement("script");
       s.type = "module";
       s.src = me.dataset.js!;
       document.head.append(s);
     };
-    const sheet = new Promise((r) => (l.onload = l.onerror = r));
-    const font = gated && document.fonts ? document.fonts.load('1rem "Inter Variable"').catch(() => 0) : Promise.resolve(0);
-    Promise.all([sheet, font]).then(show);
+    l.onload = l.onerror = show;
     setTimeout(show, 1500);
     document.head.append(l);
   };
