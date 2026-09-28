@@ -18,6 +18,7 @@ import { dayKey } from "../src/lib/format";
 import { bankBy, cashToBank } from "../src/lib/banking";
 import { applyPromotions, type PromoInput } from "../src/lib/promotions";
 import { promoWindowOpen } from "../src/lib/pricing-rules";
+import { appendNote, leadNumber, noteLine, type LeadStatusKey } from "../src/lib/leads";
 import { CATEGORIES, DCS, FIRST_NAMES, HQ_COMPANY, LAST_NAMES, OWNERS, PRODUCTS, REGIONS, STORES, type StoreSeed } from "./seed-data";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
@@ -1169,6 +1170,82 @@ async function main() {
   console.log(`  founding members       ${founding.assigned.toLocaleString()}`);
   console.log(`  drops · events         2 · ${events.length} (${guests.length} RSVPs, ${fans.length} drop watchers)`);
   console.log(`  My Deals loaded        ${offers.created.toLocaleString()}`);
+
+  // ── Franchise leads (HQ → Franchise leads): enquiries from herbalholland.com/franchise at each stage, numbered through
+  // the counter (the next real enquiry continues the sequence), with the audit history working them would have left.
+  // Demo people with example.co.za addresses.
+  const { nextNumber } = await import("../src/server/counters");
+  const hqPerson = (name: string) => users.find((u) => u.name === name)!;
+  const naledi = hqPerson("Naledi Khumalo");
+  const ayesha = hqPerson("Ayesha Patel");
+  type LeadMove = [daysAgo: number, to: LeadStatusKey, by: typeof naledi, note: string];
+  const demoLeads: {
+    name: string; area: string; province: string; capital: string; pharmacist: boolean; experience: string; message?: string; source?: string;
+    received: number; owner?: typeof naledi; moves: LeadMove[]; disclosure?: number;
+  }[] = [
+    {
+      name: "Riaan Swanepoel", area: "Durbanville, Cape Town", province: "WC", capital: "under-1.5m", pharmacist: false, received: 52, owner: naledi,
+      experience: "Managed a sports store at Canal Walk for six years; before that, assistant manager at a garden centre in Durbanville.",
+      message: "Could I start smaller, with a kiosk in a centre?",
+      moves: [[50, "CONTACTED", naledi, "Called him: keen, but the capital is well short of a store for now."], [31, "NOT_A_FIT", naledi, "Agreed to talk again next year; he'll keep saving."]],
+    },
+    {
+      name: "Chanelle Pillay", area: "Ballito", province: "KZN", capital: "1.5-3m", pharmacist: true, received: 44, owner: naledi, source: "linkedin", disclosure: 9,
+      experience: "I've owned a pharmacy in Salt Rock for nine years and I'm its responsible pharmacist. Before that I ran a health shop at Ballito Junction.",
+      message: "We have a unit in mind at the Ballito Lifestyle Centre.",
+      moves: [
+        [43, "CONTACTED", naledi, "Called; she'd run it next to her pharmacy, with her husband managing the store."],
+        [30, "INFO_EVENING", naledi, "Came to the Durban information evening with her husband."],
+        [9, "DISCLOSURE_SENT", naledi, "Disclosure document and draft agreement emailed."],
+      ],
+    },
+    {
+      name: "Sibusiso Ndlovu", area: "Rosebank, Johannesburg", province: "GP", capital: "3-5m", pharmacist: false, received: 27, owner: ayesha, source: "fasa",
+      experience: "Twelve years in retail banking, the last five running a branch in Sandton. I co-own two fast-food franchises in Soweto.",
+      moves: [[25, "CONTACTED", ayesha, "Spoke for 40 minutes; he's looking at Rosebank or Parkhurst."], [12, "INFO_EVENING", ayesha, "Booked for the Johannesburg information evening."]],
+    },
+    {
+      name: "Fatima Moosa", area: "Pietermaritzburg", province: "KZN", capital: "discuss", pharmacist: true, received: 13, owner: naledi,
+      experience: "My brother and I run the family pharmacy in Scottsville that our father opened in 1994. I manage the front shop and the team of nine.",
+      message: "We'd like to talk about converting part of the shop.",
+      moves: [[11, "CONTACTED", naledi, "Her brother is the pharmacist; they'd like to come to the Durban evening."]],
+    },
+    {
+      name: "Johan van der Merwe", area: "Menlyn, Pretoria", province: "GP", capital: "over-5m", pharmacist: false, received: 3, moves: [],
+      experience: "I own two franchised coffee shops, in Menlyn and Brooklyn, and ran a hardware store in Silverton for ten years before that.",
+    },
+    {
+      name: "Lindiwe Mthembu", area: "Morningside, Durban", province: "KZN", capital: "1.5-3m", pharmacist: false, received: 0.3, source: "linkedin", moves: [],
+      experience: "Area manager for a national pharmacy chain in eThekwini for eight years: fifteen stores and about 120 people.",
+      message: "Is there space for a store near Florida Road?",
+    },
+  ];
+  const leadRows: Prisma.FranchiseLeadCreateManyInput[] = [];
+  const leadAudit: Prisma.AuditLogCreateManyInput[] = [];
+  for (const [i, d] of demoLeads.entries()) {
+    const id = uid();
+    const number = leadNumber(await nextNumber(db, "FRANCHISE_LEAD"));
+    const at = (days: number) => new Date(NOW.getTime() - days * DAY);
+    const user = (u: typeof naledi) => ({ actorType: "USER", actorId: u.id as string, actorName: u.name });
+    leadAudit.push({ id: uid(), at: at(d.received), actorType: "SYSTEM", actorName: "herbalholland.com", action: "lead.create", entity: "FranchiseLead", entityId: id, data: { number, area: d.area } });
+    let status: LeadStatusKey = "NEW";
+    let notes: string | null = null;
+    if (d.owner) leadAudit.push({ id: uid(), at: at(d.moves[0]?.[0] ?? d.received - 0.1), ...user(d.owner), action: "lead.update", entity: "FranchiseLead", entityId: id, data: { number, owner: { from: null, to: d.owner.name } } });
+    for (const [days, to, by, note] of d.moves) {
+      const sent = to === "DISCLOSURE_SENT" && d.disclosure != null ? dayKey(at(d.disclosure)) : null;
+      notes = appendNote(notes, noteLine({ at: at(days), by: by.name, from: status, to, note }));
+      leadAudit.push({ id: uid(), at: new Date(at(days).getTime() + 60_000), ...user(by), action: "lead.update", entity: "FranchiseLead", entityId: id, data: { number, status: { from: status, to }, note: "added", ...(sent && { disclosureSentAt: { from: null, to: sent } }) } });
+      status = to;
+    }
+    leadRows.push({
+      id, number, name: d.name, email: `${d.name.toLowerCase().replace(/[^a-z]+/g, ".")}@example.co.za`, phone: `+2782555${String(1100 + i).padStart(4, "0")}`,
+      area: d.area, province: d.province, experience: d.experience, capital: d.capital, pharmacist: d.pharmacist, message: d.message ?? null, source: d.source ?? null,
+      status, ownerId: (d.owner?.id as string | undefined) ?? null, notes, disclosureSentAt: d.disclosure != null ? midnight(keyOf(d.disclosure)) : null,
+      createdAt: at(d.received), updatedAt: at(d.moves.at(-1)?.[0] ?? d.received),
+    });
+  }
+  await insert("franchise leads", db.franchiseLead, leadRows);
+  await insert("franchise lead history", db.auditLog, leadAudit);
 
   // Fresh planner statistics, as autovacuum gives a live database (without them small tables like Product have none,
   // and the planner picks network-wide scans for store-level queries).

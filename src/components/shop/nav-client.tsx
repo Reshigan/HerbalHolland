@@ -21,7 +21,13 @@ export type PickerStore = {
   sameDay: boolean;
 };
 
-const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
+// The corporate site is rendered at /site/* but browsed at /* on its own host (src/proxy.ts): compare without the prefix
+// so the server's and the browser's answers match.
+const bare = (p: string) => p.replace(/^\/site(?=\/|$)/, "") || "/";
+const isActive = (path: string, href: string) => {
+  const [p, h] = [bare(path), bare(href)];
+  return h === "/" ? p === "/" : p === h || p.startsWith(`${h}/`);
+};
 
 export function NavLinks({ items, className }: { items: NavItem[]; className?: string }) {
   const path = usePathname();

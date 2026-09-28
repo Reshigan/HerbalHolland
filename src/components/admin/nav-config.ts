@@ -1,4 +1,4 @@
-export type NavItem = { label: string; href: string; icon: string; exact?: boolean; external?: boolean };
+export type NavItem = { label: string; href: string; icon: string; exact?: boolean; external?: boolean; roles?: string[] /* only these roles see it */ };
 export type NavGroup = { title?: string; items: NavItem[] };
 
 export const storeNav = (code: string, slug: string): NavGroup[] => [
@@ -69,6 +69,7 @@ export const hqNav: NavGroup[] = [
     items: [
       { label: "Network overview", href: "/hq", icon: "LayoutDashboard", exact: true },
       { label: "Stores", href: "/hq/stores", icon: "Store" },
+      { label: "Franchise leads", href: "/hq/franchise", icon: "Handshake", roles: ["HQ_ADMIN", "HQ_STAFF"] },
     ],
   },
   {

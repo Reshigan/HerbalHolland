@@ -19,6 +19,10 @@ reports) and Postgres can't live on Cloudflare.
 1. Server: Docker + Postgres 16 (or `docker compose up -d db`), a `cloudflared` tunnel to `http://localhost:3000`, and
    the environment variables in [INTEGRATIONS.md](INTEGRATIONS.md#environment-variables). Cloudflare: proxied DNS
    record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
+   herbalholland.com (the corporate site) is served by the same app: add it as a second Cloudflare zone, point the
+   tunnel's public hostnames `herbalholland.com` and `www.herbalholland.com` at the same `http://localhost:3000`
+   (the tunnel passes the original Host header, which the app routes on), and set `SITE_URL=https://herbalholland.com`.
+   Create the mailboxes hello@, franchise@, press@ and careers@herbalholland.com.
 2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location — record the cross-border
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.

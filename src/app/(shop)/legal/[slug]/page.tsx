@@ -62,6 +62,8 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
             </P>
             <H2>Marketing</H2>
             <P>We only send marketing on the channels you opt into, only in permitted hours, with an opt-out in every message. Every consent change is recorded. You can change your choices any time in Rewards settings or by replying STOP.</P>
+            <H2>Franchise enquiries</H2>
+            <P>If you enquire about owning a Herbal Holland store on herbalholland.com, we use your name, contact details, where you&apos;d like to open, your experience, the capital band you chose and your message only to reply and take your enquiry forward, with your consent. Only our head-office team sees it. We keep your connection&apos;s address only as a scrambled code, to stop repeated submissions. If we don&apos;t go ahead, we delete the enquiry a year after we last worked on it — or sooner if you ask.</P>
             <H2>Sharing and storage</H2>
             <P>We share information with the store that fulfils your order, our payment and messaging providers, and couriers for delivery — only what each needs. We don&apos;t sell personal information. Information is stored securely and kept only as long as needed for the purposes above and our legal obligations (for example, tax records).</P>
             <H2>Your rights</H2>

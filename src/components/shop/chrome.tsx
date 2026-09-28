@@ -1,5 +1,6 @@
 // Storefront chrome (server): announcement bar, header, footer and the 18+ age gate.
-// Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
+// Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame; the corporate site
+// (src/app/site) reuses the age gate and footer columns.
 import Link from "next/link";
 import { ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
@@ -19,6 +20,7 @@ import { screenCopy } from "@/lib/compliance";
 import { zarWhole } from "@/lib/money";
 import { fmtDate, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
+import { siteLinks } from "@/lib/site";
 
 export const NAV: NavItem[] = [
   { href: "/shop", label: "Shop" },
@@ -73,6 +75,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         { text: "Click & collect at your nearest store", href: "/stores" },
       ];
   const tier = customer ? tierMeta(customer.tier) : null;
+  const site = siteLinks(process.env);
 
   return (
     <>
@@ -162,11 +165,13 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Join Herbal Holland Rewards
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-8 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
               <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Dispensary (patients)", "/dispensary"]]} />
               <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${company?.email ?? "hello@herbalholland.co.za"}`]]} />
               <FooterCol title="Rewards" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"]]} />
               <FooterCol title="Legal" links={[["Terms of use", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["PAIA manual", "/legal/paia"], ["Responsible use", "/learn/responsible-use"]]} />
+              {/* The corporate site, herbalholland.com */}
+              <FooterCol title="About Herbal Holland" links={[["About us", site.abs("/about")], ["Own a store", site.abs("/franchise")], ["Press", site.abs("/press")], ["Careers", site.abs("/careers")]]} />
             </div>
           </Container>
           <div className="border-t border-ink-850">
@@ -207,7 +212,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
 
 const TIER_DOT: Record<string, string> = { SEED: "bg-ink-300", SPROUT: "bg-leaf-500", BLOOM: "bg-series-4", HARVEST: "bg-brand-500" };
 
-function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
+export function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
       <h3 className="eyebrow mb-4 text-ink-300">{title}</h3>
@@ -225,7 +230,7 @@ function FooterCol({ title, links }: { title: string; links: [string, string][] 
 }
 
 /** Full-screen 18+ confirmation over server-rendered content. Works without JavaScript. */
-function AgeGate() {
+export function AgeGate() {
   return (
     <div role="dialog" aria-modal="true" aria-labelledby="age-title" aria-describedby="age-desc" className="fixed inset-0 z-[100] overflow-y-auto bg-ink-950/90 backdrop-blur-xl">
       <style>{"body{overflow:hidden}"}</style>
@@ -260,7 +265,7 @@ function AgeGate() {
 }
 
 /** Neutral page for visitors who said they're under 18 — no products, no promotion. */
-function UnderAge() {
+export function UnderAge() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-ink-950 p-6 text-center text-ink-100">
       <div className="max-w-md">

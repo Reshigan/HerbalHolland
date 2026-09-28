@@ -138,6 +138,8 @@ five networks, so they're used by hand, outside this platform.
 | `DATABASE_POOL_MAX` | Connections per app instance (default 10); keep instances × pool under the database's limit (or use PgBouncer) |
 | `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers |
 | `APP_URL` | Public base URL (links in emails) |
+| `SITE_URL` | The corporate site's own address, e.g. `https://herbalholland.com`: requests for that host get the site (`src/app/site`), shop links opened there go to `APP_URL`, and `www.` redirects to the bare domain. Unset, the site is at `/site` |
+| `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |

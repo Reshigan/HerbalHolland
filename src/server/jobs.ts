@@ -13,6 +13,7 @@ import { notifyDrops } from "./drops";
 import { generateOffers } from "./offers";
 import { submitMerchOrders } from "./merch";
 import { runLossRules } from "./loss";
+import { purgeLeads } from "./leads";
 
 const MIN = 60_000;
 
@@ -83,6 +84,8 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     uncollected: await releaseUncollected(),
     tierFloors: await expireTierFloors(),
     lossPrevention: await runLossRules(),
+    // POPIA: not-a-fit franchise enquiries are deleted a year after their last change (audited as lead.purge).
+    franchiseLeads: await purgeLeads(),
     // My Deals refresh weekly, on Mondays (SAST).
     offers: new Date(`${dayKey(new Date())}T12:00:00+02:00`).getUTCDay() === 1 ? await generateOffers() : { created: 0 },
   }),

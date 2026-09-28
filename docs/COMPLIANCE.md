@@ -61,6 +61,9 @@ change without a deploy.
 | Product safety & recalls | Batch status (quarantine/recall) blocks sale instantly network-wide; trace to stores and customers; announcement with acknowledgement; customer notification |
 | Cannabis waste destruction | Adjustment reason `DESTROYED` with witness, in the movement ledger |
 | Audit | `AuditLog` for sales exceptions, price overrides, stock takes, recalls, settings, campaigns, logins |
+| herbalholland.com (corporate site) — advertising | Brand, standards, franchise, press and careers only: no products, prices, deals or health claims; licensed medicines appear only as a pharmacist service for registered patients (Medicines Act s20); 18+ gate as on the shop; every string in `src/components/site/content.ts` passes `screenCopy()` in a unit test |
+| CPA franchise regulations — disclosure and fair marketing | The franchise page names no earnings, projections or investment figures (CPA s41); the disclosure document goes out at least 14 days before signing — HQ records the date and a lead can't be marked signed sooner (`src/lib/leads.ts`). Counsel reviews the franchise copy and the disclosure document |
+| POPIA — franchise enquiries | Consent to reply ticked on the form; only HQ admin and HQ team see leads; IPs are kept only as a keyed hash to limit repeat submissions; not-a-fit leads are deleted a year after their last change (daily job); HQ admin can delete a lead on request (audited) |
 
 ## Operating procedures the software assumes
 

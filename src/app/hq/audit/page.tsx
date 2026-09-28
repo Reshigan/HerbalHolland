@@ -34,6 +34,7 @@ const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "ranging.", label: "Ranging", tone: "orange" },
   { prefix: "campaign.", label: "Campaigns", tone: "amber" },
   { prefix: "marketing.", label: "Marketing lists", tone: "amber" },
+  { prefix: "lead.", label: "Franchise leads", tone: "violet" },
   { prefix: "store.", label: "Stores", tone: "neutral" },
   { prefix: "company.", label: "Owner companies", tone: "neutral" },
   { prefix: "settings.", label: "Settings", tone: "neutral" },

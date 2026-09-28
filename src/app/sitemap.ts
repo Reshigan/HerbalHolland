@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
+import { headers } from "next/headers";
 import { db } from "@/server/db";
+import { onSiteHost, siteLinks, SITE_PAGES } from "@/lib/site";
 import { getClasses } from "@/server/shop/access";
 import { ARTICLES } from "@/components/shop/learn/articles";
 
@@ -10,6 +12,11 @@ const base = () => (process.env.APP_URL ?? "http://localhost:3000").replace(/\/$
 
 // Public pages only: licensed (medicine) products are never listed.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const h = await headers();
+  if (onSiteHost(h.get("x-forwarded-host") ?? h.get("host"), process.env.SITE_URL)) {
+    const l = siteLinks(process.env);
+    return SITE_PAGES.map((p) => ({ url: l.abs(p), changeFrequency: "monthly" as const, priority: p === "/" ? 1 : 0.7 }));
+  }
   const b = base();
   const classes = await getClasses();
   const now = new Date();

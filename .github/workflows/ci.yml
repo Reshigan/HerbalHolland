@@ -61,6 +61,7 @@ jobs:
       APP_URL: http://127.0.0.1:3000
       DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
       UPLOAD_DIR: ${{ github.workspace }}/.data/uploads # shared by the seed and the standalone server (its own cwd)
+      SITE_URL: http://herbalholland.test:3000 # the corporate site's host; e2e/site.mjs maps it to 127.0.0.1 in Chromium
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -94,6 +95,9 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
       - run: node e2e/shop.mjs test-results/e2e-shop
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/site.mjs test-results/e2e-site
         env:
           BASE_URL: http://127.0.0.1:3000
       - name: Crawl every page as every role (broken links, server errors, crashes, timings)

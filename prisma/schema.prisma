@@ -1425,3 +1425,40 @@ model CommissionRun {
 
   @@unique([storeId, month])
 }
+
+enum LeadStatus {
+  NEW
+  CONTACTED
+  INFO_EVENING
+  DISCLOSURE_SENT
+  SIGNED
+  NOT_A_FIT
+}
+
+/// A franchise enquiry from herbalholland.com/franchise, worked by HQ. Personal information (POPIA): HQ only, and
+/// not-a-fit enquiries are deleted a year after their last change.
+model FranchiseLead {
+  id               String     @id @default(cuid())
+  number           String     @unique // FL-000123
+  name             String
+  email            String
+  phone            String
+  area             String // where they'd like to open
+  province         String? // ProvinceCode
+  experience       String // their retail or business background
+  capital          String // the band they chose (@/lib/leads)
+  pharmacist       Boolean // access to a pharmacist partner
+  message          String?
+  source           String? // ?src= on the enquiry link
+  ipHash           String? // keyed hash of the IP, to limit repeat submissions — never the IP itself
+  status           LeadStatus @default(NEW)
+  ownerId          String? // the HQ person following it up
+  notes            String?
+  disclosureSentAt DateTime? // CPA franchise regulations: signing no sooner than 14 days after
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+  @@index([ipHash, createdAt])
+}
