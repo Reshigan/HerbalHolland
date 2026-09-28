@@ -9,9 +9,10 @@
 /* ── Fonts ─────────────────────────────────────────────────────────────── */
 @font-face { font-family: "Outfit Variable"; font-style: normal; font-display: swap; font-weight: 100 900; src: url(__OUTFIT__) format("woff2"); }
 @font-face { font-family: "Inter Variable"; font-style: normal; font-display: swap; font-weight: 100 900; src: url(__INTER__) format("woff2"); }
-/* Metric-matched fallbacks (next/font's maths), so swapping in the web fonts moves nothing. */
-@font-face { font-family: "Outfit Fallback"; src: local("Arial"); ascent-override: 100.18%; descent-override: 26.05%; line-gap-override: 0%; size-adjust: 99.82%; }
-@font-face { font-family: "Inter Fallback"; src: local("Arial"); ascent-override: 90.44%; descent-override: 22.52%; line-gap-override: 0%; size-adjust: 107.12%; }
+/* Metric-matched fallbacks (next/font's maths), so swapping in the web fonts moves nothing: Arial, or the faces made to
+   Arial's metrics (Liberation Sans on Linux, Arimo on ChromeOS). */
+@font-face { font-family: "Outfit Fallback"; src: local("Arial"), local("Liberation Sans"), local("Arimo"); ascent-override: 100.18%; descent-override: 26.05%; line-gap-override: 0%; size-adjust: 99.82%; }
+@font-face { font-family: "Inter Fallback"; src: local("Arial"), local("Liberation Sans"), local("Arimo"); ascent-override: 90.44%; descent-override: 22.52%; line-gap-override: 0%; size-adjust: 107.12%; }
 
 /* ── Tokens ────────────────────────────────────────────────────────────── */
 :root {
@@ -24,8 +25,8 @@
   --sage-400: #8f9d7c; --sage-600: #66775a; --sage-800: #3f4c38; --protea-300: #e3a7ae; --protea-500: #c47887;
   /* The signature tile (src/art.tsx), filled in by the build. */
   --pat: __PATTERN__;
-  --display: "Outfit Variable", "Outfit Fallback", ui-sans-serif, system-ui, sans-serif;
-  --sans: "Inter Variable", "Inter Fallback", ui-sans-serif, system-ui, sans-serif;
+  --display: "Outfit Variable", "Outfit Fallback", system-ui, sans-serif;
+  --sans: "Inter Variable", "Inter Fallback", system-ui, sans-serif;
   --ease: cubic-bezier(.19, 1, .22, 1);
   --ease-io: cubic-bezier(.77, 0, .18, 1);
   --g: clamp(1.15rem, 5vw, 4.5rem);
@@ -52,6 +53,9 @@ button { cursor: pointer; background: none; border: 0; padding: 0; }
 ::selection { background: var(--brand-300); color: var(--ink-950); }
 :focus-visible { outline: 2px solid var(--brand-500); outline-offset: 3px; }
 main:focus { outline: 0; }
+/* Below the opening section, sections and the footer are laid out and painted as they near the screen, so the first
+   paint does only the top of the page. Their words stay in the page for find-in-page, screen readers and links. */
+main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-size: auto 60rem; }
 .nw { white-space: nowrap; }
 .sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: fixed; z-index: 1200; left: 1rem; top: 1rem; padding: .8rem 1.2rem; border-radius: 99px; background: var(--brand-500); color: var(--ink-950); font: 600 .95rem var(--display); transform: translateY(-200%); }
