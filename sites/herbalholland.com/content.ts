@@ -14,7 +14,8 @@ import { FACTS } from "./facts";
 export type Item = { key: string; title: string; body: string };
 export type Faq = { q: string; a: string };
 /** A press release, on its own page at /press/{slug}. `date` is YYYY-MM-DD (SAST); a release shows from that day on. */
-export type Release = { slug: string; date: string; title: string; description: string; summary: string; body: readonly string[] };
+/** A press release: its own page at /press/{slug} from its date. `pageTitle` is the browser/search title (60 characters with the brand); the headline stays whole. */
+export type Release = { slug: string; date: string; title: string; pageTitle: string; description: string; summary: string; body: readonly string[] };
 /** A page's title (the build checks it's 60 characters or fewer with " · Herbal Holland"), its description (120–160) and the day its copy last changed. */
 export type PageMeta = { title: string; description: string; updated: string };
 
@@ -567,6 +568,7 @@ export const PRESS = {
         slug: "online-shop-opens",
         date: "2026-10-01",
         title: "Herbal Holland opens online for adults 18+ across South Africa",
+        pageTitle: "Online shop opens for adults 18+",
         description: "Herbal Holland's online shop opens nationwide for adults 18+, with its Founding Members list; two new stores open in Hillcrest and Hilton on 1 December 2026.",
         summary:
           "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first {cap} people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining its stores already open in Pietermaritzburg and Umhlanga.",

@@ -210,7 +210,7 @@ export function ReleasePage({ release }: { release: Release }) {
     articleBody: release.body.map((p) => fill(p, V)).join("\n\n"),
   };
   return (
-    <Page page="press" stage="late" meta={{ path, title: release.title, description: release.description, crumbs: trail }} jsonLd={article}>
+    <Page page="press" stage="late" meta={{ path, title: release.pageTitle, description: release.description, crumbs: trail }} jsonLd={article}>
       <PageHero kind="release" eyebrow={`${r.eyebrow} · ${longDate(release.date, { weekday: false })}`} title={release.title} lede={fill(release.summary, V)} crumbs={trail}>
         <div className="ctas">
           <Btn href={`mailto:${EMAIL.press}`} icon="mail" magnetic>
