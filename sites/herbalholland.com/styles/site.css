@@ -173,7 +173,7 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 /* Named on the inner row, not the header: a named element is a backdrop root, which would switch off the blur. */
 .hdr__in { view-transition-name: hdr; }
 .hdr.is-hidden { transform: translateY(-110%); }
-.js[data-age="new"] .hdr, .js[data-age="under"] .hdr { opacity: 0; visibility: hidden; }
+.js[data-age="new"] .hdr, .js[data-age="under"] .hdr { opacity: 0; }
 .hdr__bg { position: absolute; inset: 0; background: color-mix(in oklab, var(--ink-950) 86%, transparent); border-bottom: 1px solid var(--line); opacity: 0; transition: opacity .5s; }
 .hdr.is-solid .hdr__bg { opacity: 1; }
 .hdr__in, .menu__bar { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 1rem; height: var(--hh); }
@@ -334,24 +334,29 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .nf__try { color: var(--ink-400); }
 
 /* ── The 18+ gate: the opening scene's question ────────────────────────── */
-/* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives); the page behind
-   it is hidden, so it can't take focus or be read, and the header's fade covers its return. */
+/* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives). Until the
+   first paint (html.pre) nothing but the landscape is drawn behind it, so the first screen needs one font (Outfit: the
+   card is set in it entirely); then the page appears behind the veil, inert (the head script), until the answer. */
 .js[data-age="new"] .gate, .js[data-age="under"] .gate, .gate.is-leaving { display: grid; }
 .js[data-age="new"], .js[data-age="under"] { overflow: hidden; }
-.js[data-age="new"] :is(.skip, .ftr, main > :not([data-stage])), .js[data-age="under"] :is(.skip, .ftr, main > :not([data-stage])) { visibility: hidden; }
+.js[data-age="new"] .skip, .js[data-age="under"] .skip { display: none; }
+.js[data-age="new"] main, .js[data-age="under"] main { min-height: 100svh; }
+.pre[data-age="new"] :is(.hdr, .ftr, main > :not([data-stage])), .pre[data-age="under"] :is(.hdr, .ftr, main > :not([data-stage])) { display: none; }
 .gate { z-index: 1000; background: linear-gradient(color-mix(in oklab, var(--ink-950) 55%, transparent), color-mix(in oklab, var(--ink-950) 20%, transparent)); }
 .gate__stage { position: relative; z-index: 1; display: grid; place-items: center; min-height: 100%; padding: 1.25rem; }
 /* The card's frame is beadwork: one row of the tile along each edge. */
-.gate__card { width: min(100%, 28rem); padding: 2.25rem 1.5rem 1.75rem; border: 16px solid transparent; border-radius: 1.75rem; background: linear-gradient(var(--ink-950) 0 0) padding-box, var(--pat) 0 0 / 16px 16px border-box; text-align: center; box-shadow: 0 40px 100px -30px #000; animation: up-in 1.2s var(--ease) .05s both; }
+/* The card is set in the display face throughout (its font-family too: an inline box in a block needs the block's font
+   for its line, and the text face is the body's), so a new visitor's first screen fetches one font. */
+.gate__card { width: min(100%, 28rem); padding: 2.25rem 1.5rem 1.75rem; border: 16px solid transparent; border-radius: 1.75rem; background: linear-gradient(var(--ink-950) 0 0) padding-box, var(--pat) 0 0 / 16px 16px border-box; font-family: var(--display); text-align: center; box-shadow: 0 40px 100px -30px #000; animation: up-in 1.2s var(--ease) .05s both; }
 @media (min-width: 640px) { .gate__card { border-width: 20px; background-size: auto, 20px 20px; padding: 3rem 2.75rem 2.25rem; } }
 .gate__mark { width: 5.5rem; height: 5.5rem; margin-inline: auto; color: var(--brand-500); }
 .gate__wm { align-items: center; margin-top: .8rem; font-size: 1.15rem; color: var(--brand-500); }
 .gate__title { margin-top: 1.75rem; font: 600 clamp(1.85rem, 5vw, 2.4rem)/1.04 var(--display); letter-spacing: -.035em; color: var(--ink-50); }
 .gate__title:focus { outline: 0; }
-.gate__body { margin-top: .75rem; font-size: .96rem; color: var(--ink-300); }
+.gate__body { margin-top: .75rem; font: 400 1.02rem/1.5 var(--display); color: var(--ink-300); }
 .gate__actions { display: grid; gap: .7rem; margin-top: 1.9rem; }
 .gate__actions .btn { width: 100%; min-height: 3.5rem; font-size: 1.05rem; }
-.gate__fine { margin-top: 1.25rem; font-size: .8rem; line-height: 1.55; color: var(--ink-400); }
+.gate__fine { margin-top: 1.25rem; font: 400 .84rem/1.55 var(--display); color: var(--ink-400); }
 .gate__under .gate__mark { color: var(--ink-600); }
 .gate.is-leaving { animation: fade-out .9s var(--ease-io) .35s both; }
 .gate.is-leaving .gate__card { animation: card-out .9s var(--ease-io) .15s both; }

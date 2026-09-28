@@ -34,6 +34,19 @@
   // hidden; "auto" alone still lays them out on the first frame), so the first paint is only the first screen.
   d.classList.add("js", "pre", ...(still ? [] : ["motion"]), ...(age === "ok" ? ["ready", "fast"] : []));
   d.setAttribute("data-age", age);
+  // The text face: a returning adult's first screen is set in it, so it's fetched at once (a new visitor's first
+  // screen, the 18+ card, isn't: for them it's fetched once that has painted, below).
+  const inter = () => {
+    const l = document.createElement("link");
+    l.rel = "preload";
+    l.as = "font";
+    l.type = "font/woff2";
+    l.crossOrigin = "";
+    l.href = me.dataset.inter!;
+    document.head.append(l);
+  };
+  if (age === "ok") inter();
+  const behind = () => document.querySelectorAll<HTMLElement>("header, main, footer");
 
   // "I'm younger than 18": the card gives way to the respectful screen (stamped from its template).
   const under = () => {
@@ -73,6 +86,7 @@
     const ready = () => d.classList.add("ready");
     const done = () => {
       g.classList.remove("is-leaving");
+      behind().forEach((el) => (el.inert = false));
       document.getElementById("main")?.focus({ preventScroll: true });
     };
     if (rm) return ready(), done();
@@ -83,20 +97,35 @@
   });
   if (age === "under") document.addEventListener("DOMContentLoaded", under);
 
-  // The rest of the stylesheet (everything below the first screen), then the page's module: once the first screen has
-  // painted (a background tab paints nothing, so after a moment regardless).
+  // Once the first screen has painted (a background tab paints nothing, so after a moment regardless): the rest of the
+  // stylesheet is fetched, and for a new visitor the text face; when both are here the page behind the gate is drawn
+  // (inert) — or, for a returning adult, the scenes below the first — so it's laid out once, with the right font; then
+  // the page's module. After a moment regardless, should either not arrive.
   let added = false;
   const rest = () => {
     if (added) return;
     added = true;
-    d.classList.remove("pre");
+    const gated = d.getAttribute("data-age") !== "ok";
     const l = document.createElement("link");
     l.rel = "stylesheet";
     l.href = me.dataset.css!;
-    const s = document.createElement("script");
-    s.type = "module";
-    s.src = me.dataset.js!;
-    document.head.append(l, s);
+    let shown = false;
+    const show = () => {
+      if (shown) return;
+      shown = true;
+      // (The answer may already have been given while the font was on its way.)
+      if (d.getAttribute("data-age") !== "ok") behind().forEach((el) => (el.inert = true));
+      d.classList.remove("pre");
+      const s = document.createElement("script");
+      s.type = "module";
+      s.src = me.dataset.js!;
+      document.head.append(s);
+    };
+    const sheet = new Promise((r) => (l.onload = l.onerror = r));
+    const font = gated && document.fonts ? document.fonts.load('1rem "Inter Variable"').catch(() => 0) : Promise.resolve(0);
+    Promise.all([sheet, font]).then(show);
+    setTimeout(show, 1500);
+    document.head.append(l);
   };
   try {
     new PerformanceObserver((l, o) => l.getEntriesByName("first-contentful-paint").length && (o.disconnect(), setTimeout(rest, 0))).observe({ type: "paint", buffered: true });

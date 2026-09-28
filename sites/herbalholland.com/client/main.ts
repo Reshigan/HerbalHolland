@@ -1,5 +1,6 @@
 // herbalholland.com — the page's one script: a small ES module, no libraries. What it does:
-//   the 18+ gate (a modal card over the opening scene: focus trapped, the page inert), the menu dialog, the FAQ, the
+//   the 18+ gate's focus (the head script shows it, takes its answers and keeps the page behind it inert), the menu
+//   dialog, the FAQ, the
 //   two forms; and the motion: one requestAnimationFrame loop drives scroll velocity (the wind that turns every
 //   windmill's sails and drifts the marquee), the pinned 9,475 km story, the stage (each scene's entry, --t1 … --t4,
 //   where CSS scroll-driven animations aren't supported; and the windmill's flight from scene to scene, always), and
@@ -108,19 +109,13 @@ const seen = new IntersectionObserver(
 const watch = (el: Element) => (geo.set(el, { top: 0, h: 0 }), seen.observe(el));
 
 // ── The 18+ gate ────────────────────────────────────────────────────────────
-// The head script shows the gate and takes its answers (so the first screen works before this module arrives); the page
-// behind it is hidden. Here: the keyboard stays in the card.
+// The head script shows the gate and takes its answers (so the first screen works before this module arrives), and
+// makes the page behind it inert. Here: focus starts on the answer.
 const gated = () => html.dataset.age !== "ok";
 function gate() {
   const g = $("#gate");
   if (!g || !gated()) return;
   ($("#gate-under", g) ?? $("[data-age=yes]", g))?.focus({ preventScroll: true });
-  on(g, "keydown", (e: KeyboardEvent) => {
-    if (e.key !== "Tab" || !gated()) return;
-    const f = $$("button, a[href]", g).filter((el) => el.offsetParent);
-    const [a, z] = [f[0], f[f.length - 1]];
-    if (e.shiftKey ? d.activeElement === a : d.activeElement === z) (e.preventDefault(), (e.shiftKey ? z : a).focus());
-  });
 }
 
 // ── Header: solid once scrolled, tucked away while reading down, back on the way up ─────────────────────────────

@@ -190,7 +190,9 @@ async function main() {
   const concept = Object.values(images("concept"));
   const stores = images("stores");
   for (const s of FACTS.stores) if (s.photo && !stores[s.key]) throw new Error(`facts.ts: ${s.name} has a photo, but static/stores/${s.key}.webp (or .jpg) is missing`);
-  site.assets = { css: CSS_HREF, js: emit("site", "js", js), ...fonts, concept, stores };
+  const iconSvg = readFileSync(join(STATIC, "icon.svg"), "utf8").replace(/\s+/g, " ").trim();
+  const icon = `data:image/svg+xml,${iconSvg.replace(/[<>#"%{}]/g, encodeURIComponent)}`;
+  site.assets = { css: CSS_HREF, js: emit("site", "js", js), ...fonts, icon, concept, stores };
   site.day = day;
   site.year = Number(day.slice(0, 4));
 
