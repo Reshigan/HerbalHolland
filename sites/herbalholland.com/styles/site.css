@@ -69,7 +69,7 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 .sr-only { position: absolute !important; width: 1px; height: 1px; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .skip { position: fixed; z-index: 1200; left: 1rem; top: 1rem; padding: .8rem 1.2rem; border-radius: 99px; background: var(--brand-500); color: var(--ink-950); font: 600 .95rem var(--display); transform: translateY(-200%); }
 .skip:focus { transform: none; }
-.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+.sprite { display: none; }
 .wrap { width: 100%; max-width: 92rem; margin-inline: auto; padding-inline: var(--g); }
 
 /* Shared shapes, used across the pages. */

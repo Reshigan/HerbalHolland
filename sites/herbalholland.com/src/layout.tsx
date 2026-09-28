@@ -346,8 +346,10 @@ export function Page({ page, nav = page, meta, stage, jsonLd, free, children }: 
         <link rel="icon" href="/icon.svg" type="image/svg+xml" />
         <link rel="icon" href="/favicon.ico" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-        {/* The display font (the headline is the largest paint) is preloaded; Inter loads with the text that needs it. */}
+        {/* Both fonts are on the first screen (the headline and the gate's question in Outfit, its copy and the buttons
+            in Inter), so both are preloaded: the first layout then has them, instead of laying the text out twice. */}
         <link rel="preload" href={site.assets.outfit} as="font" type="font/woff2" crossOrigin="" />
+        <link rel="preload" href={site.assets.inter} as="font" type="font/woff2" crossOrigin="" />
         {/* The first screen's CSS, inline (allowed by its hash in the CSP). The head script adds the rest of the
             stylesheet and the page's module once the page has loaded, so nothing competes with the first paint; without
             script, the noscript link loads the stylesheet the plain way. */}
