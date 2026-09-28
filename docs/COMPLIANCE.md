@@ -79,7 +79,7 @@ change without a deploy.
 3. Dispensers designated per store (`canDispense`) and trained.
 4. Patient authorisation documents stored in document storage (`documentRef`), verified by a dispenser.
 5. Direct-marketing registration with the NCC; monthly registry import into Suppression.
-6. Information Officer registered; privacy notice and PAIA manual published (links in the storefront footer).
+6. Information Officer (Reshigan Govender) registered with the Information Regulator; privacy notice published; PAIA manual for Vantax (Pty) Ltd, which owns the online business, published at herbalholland.com/paia (`sites/herbalholland.com/content.ts` → `PAIA`; linked from the storefront footer and Rewards settings; review it yearly).
 7. Before switching to `ADULT_USE`: confirm the commencement notice, limits and channel rules, then update settings per
    region/store.
 8. Counsel to confirm before the wellness range launches: whether Schedule 0 CBD supplements may carry incentives

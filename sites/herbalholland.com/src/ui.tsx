@@ -195,7 +195,7 @@ export function MailTo({ email, className }: { email: string; className?: string
   );
 }
 
-/** The links that running text in ../content can carry, as {email}, {privacy}, {terms}, {press} and {regulator}. */
+/** The links that running text in ../content can carry, as {email}, {privacy}, {terms}, {paia}, {press} and {regulator}. */
 const LINKS: Record<string, () => React.ReactNode> = {
   email: () => <MailTo email={EMAIL.hello} />,
   privacy: () => (
@@ -206,6 +206,11 @@ const LINKS: Record<string, () => React.ReactNode> = {
   terms: () => (
     <a className="link" href="/terms">
       {LEGAL.links.terms}
+    </a>
+  ),
+  paia: () => (
+    <a className="link" href="/paia">
+      {LEGAL.links.paia}
     </a>
   ),
   press: () => (

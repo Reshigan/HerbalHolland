@@ -709,11 +709,11 @@ export type LegalDoc = {
 export const LEGAL = {
   version: "Version {version} · Last updated {date}",
   contents: "Contents",
-  links: { privacy: "Privacy Policy", terms: "Terms of Use", press: "press page" },
+  links: { privacy: "Privacy Policy", terms: "Terms of Use", paia: "PAIA manual", press: "press page" },
   regulator: { label: "inforegulator.org.za", href: "https://inforegulator.org.za" },
   company: {
-    // Shown in place of the registered details until they're filled in ./facts. Never invent them.
-    pending: "Our registered company details (registered name, registration number and address) aren't published yet. Until they are, you can reach us at {email}.",
+    // Shown while the registration number or address isn't filled in ./facts. Never invent them.
+    pending: "Our registration number and registered address aren't published yet. Until they are, you can reach us at {email}.",
   },
 } as const;
 
@@ -727,7 +727,7 @@ export const PRIVACY = {
     title: "Privacy Policy",
     description: "How herbalholland.com collects, uses, stores and protects personal information under POPIA: who sees it, how long we keep it and how to use your rights.",
   },
-  version: "1.0",
+  version: "1.1",
   updated: "2026-09-28",
   hero: {
     eyebrow: "Legal",
@@ -750,9 +750,9 @@ export const PRIVACY = {
       key: "who",
       title: "Who we are and how to reach us",
       body: [
-        "Herbal Holland is the responsible party for the personal information collected through this website: we decide why and how it's used.",
+        "Herbal Holland's online business, including this website, is owned by {legalName}, the responsible party for the personal information collected here: we decide why and how it's used.",
         "{company}",
-        ["Information Officer.", "Our Information Officer looks after privacy at Herbal Holland. You can reach them at {email}."],
+        ["Information Officer.", "Our Information Officer, {officer}, looks after privacy and access to information. You can reach them at {email}."],
       ],
     },
     {
@@ -819,7 +819,7 @@ export const PRIVACY = {
       key: "rights",
       title: "Your rights",
       body: [
-        ["See your details.", "Ask us whether we hold details about you, and for a copy. Our PAIA manual, which explains how to request records, is available on request."],
+        ["See your details.", "Ask us whether we hold details about you, and for a copy. Our {paia} explains how to request records."],
         ["Correct or delete them.", "Ask us to correct details that are wrong, out of date or incomplete, or to delete them."],
         ["Object.", "Object to us using your details, for example to keep the site secure."],
         ["Withdraw your consent.", "You can withdraw your consent at any time. It doesn't affect what we did before, but we'll stop using your details for your enquiry."],
@@ -840,7 +840,7 @@ export const PRIVACY = {
     {
       key: "contact",
       title: "Contact",
-      body: ["Questions about this policy or your details: email {email}, for the attention of our Information Officer.", "The Information Regulator: {regulator}."],
+      body: ["Questions about this policy or your details: email {email}, for the attention of our Information Officer, {officer}.", "The Information Regulator: {regulator}."],
     },
   ],
 } as const satisfies LegalDoc;
@@ -851,7 +851,7 @@ export const TERMS = {
     title: "Terms of Use",
     description: "The terms for using herbalholland.com: who we are, what the site is for, franchise and careers information, our name and content, acceptable use and the law that applies.",
   },
-  version: "1.0",
+  version: "1.1",
   updated: "2026-09-28",
   hero: { eyebrow: "Legal", title: "Terms of Use", lede: "The terms for using herbalholland.com, in plain English." },
   summary: {
@@ -873,7 +873,7 @@ export const TERMS = {
     {
       key: "who",
       title: "Who we are",
-      body: ["This website is run by Herbal Holland. Section 43 of the Electronic Communications and Transactions Act asks us to publish these details:", "{company}", ["Email:", "{email}"], ["Website:", "herbalholland.com"]],
+      body: ["This website is run by {legalName}, which owns Herbal Holland's online business. Section 43 of the Electronic Communications and Transactions Act asks us to publish these details:", "{company}", ["Email:", "{email}"], ["Website:", "herbalholland.com"]],
     },
     {
       key: "what",
@@ -938,7 +938,7 @@ export const TERMS = {
     {
       key: "privacy",
       title: "Privacy",
-      body: ["How we handle personal information is set out in our {privacy}."],
+      body: ["How we handle personal information is set out in our {privacy}, and how to request records we hold in our {paia}."],
     },
     {
       key: "law",
@@ -954,6 +954,210 @@ export const TERMS = {
       key: "contact",
       title: "Contact",
       body: ["Questions about these terms: email {email}."],
+    },
+  ],
+} as const satisfies LegalDoc;
+
+/**
+ * The PAIA manual: what section 51 of the Promotion of Access to Information Act asks a private body to publish, with
+ * the personal-information details POPIA added to it (s51(1)(c)). It covers the company in ./facts (company.legalName)
+ * and names its Information Officer (officer). The forms and fees are the ones the PAIA and POPIA Regulations prescribe,
+ * so no amounts are quoted. Change what the business holds, or who it shares with, and change this too.
+ */
+export const PAIA = {
+  meta: {
+    title: "PAIA manual",
+    description: "How to request records held by the company that owns Herbal Holland's online business, under the Promotion of Access to Information Act, and how it handles personal information.",
+  },
+  version: "1.0",
+  updated: "2026-09-28",
+  hero: {
+    eyebrow: "Legal",
+    title: "PAIA manual",
+    lede: "How to request the records we hold, under the Promotion of Access to Information Act 2 of 2000 (PAIA), and how we handle personal information.",
+  },
+  summary: {
+    title: "In short",
+    points: [
+      "This manual covers {legalName}, which owns Herbal Holland's online business: this website, the online shop and Herbal Holland Rewards.",
+      "Some records are open to everyone. For the rest, send the prescribed form to our Information Officer, {officer}, at {email}.",
+      "There's no request fee when you ask for your own personal information.",
+      "We decide within 30 days. If we refuse, we tell you why, and you can complain to the Information Regulator.",
+      "Stores are owned by franchisees, who keep their own records: ask the store.",
+    ],
+  },
+  sections: [
+    {
+      key: "about",
+      title: "About this manual",
+      body: [
+        "Section 51 of the Promotion of Access to Information Act 2 of 2000 (PAIA) asks every private body to publish a manual like this one. It explains what records we hold, which of them anyone can see without asking, and how to request the rest.",
+        "It also sets out how we handle personal information, as the Protection of Personal Information Act 4 of 2013 (POPIA) requires, and how to use your rights under it.",
+        ["Who it covers.", "{legalName}, which owns and runs Herbal Holland's online business: this website, the online shop and Herbal Holland Rewards."],
+        ["Stores.", "Herbal Holland stores are owned and run by franchisees: separate businesses that keep their own records. To request a store's records, contact the store. If you're not sure who holds a record, write to us and we'll point you to the right place."],
+      ],
+    },
+    {
+      key: "contact",
+      title: "Contact details",
+      body: [["Information Officer:", "{officer}"], ["Email:", "{email}, for the attention of the Information Officer"], "{company}", ["Website:", "herbalholland.com"]],
+    },
+    {
+      key: "guide",
+      title: "The Information Regulator's guide",
+      body: [
+        "The Information Regulator publishes a guide to using PAIA and POPIA, as section 10 of PAIA requires. It explains your rights, how to make a request, and the help available to you.",
+        "You'll find it on the Regulator's website, {regulator}. You can also ask us for a copy.",
+      ],
+    },
+    {
+      key: "open",
+      title: "Records anyone can see",
+      body: [
+        "These records are available without a PAIA request (section 52):",
+        ["On this website.", "Information about Herbal Holland, franchising, careers and our stores; press releases and our logos; and our Privacy Policy, Terms of Use and this manual."],
+        ["In the online shop, once it opens.", "Product information and labels, laboratory results for each product batch, store locations and trading hours, our articles, and the membership terms and privacy notice."],
+      ],
+    },
+    {
+      key: "laws",
+      title: "Records we keep under other laws",
+      body: [
+        "We keep records under these laws, among others. Where one of them gives you a right to see a record, you can use it; otherwise, ask under PAIA.",
+        ["Companies Act 71 of 2008:", "our memorandum of incorporation, registers of shareholders and directors, minutes, and annual financial statements."],
+        ["Income Tax Act 58 of 1962, Value-Added Tax Act 89 of 1991 and Tax Administration Act 28 of 2011:", "tax and VAT returns, invoices, and the records behind them."],
+        ["Basic Conditions of Employment Act 75 of 1997, Labour Relations Act 66 of 1995 and Employment Equity Act 55 of 1998:", "employment contracts, pay, working time and leave, and employment equity records."],
+        ["Unemployment Insurance Act 63 of 2001, Skills Development Levies Act 9 of 1999 and Compensation for Occupational Injuries and Diseases Act 130 of 1993:", "contributions, levies and claims."],
+        ["Occupational Health and Safety Act 85 of 1993:", "health and safety records."],
+        ["Consumer Protection Act 68 of 2008:", "membership terms, franchise disclosure documents and agreements, and records of returns and complaints."],
+        ["Electronic Communications and Transactions Act 25 of 2002:", "records of online transactions."],
+        ["Medicines and Related Substances Act 101 of 1965:", "records of the CBD supplements and licensed medicines supplied, with their batches and suppliers and, for licensed medicines, patients' authorisations."],
+        ["Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972:", "labelling and ingredient records for food, drink and skin care."],
+        ["Protection of Personal Information Act 4 of 2013:", "records of consent, of requests about personal information, and of security compromises."],
+        ["Promotion of Access to Information Act 2 of 2000:", "this manual, and records of requests made under it."],
+      ],
+    },
+    {
+      key: "records",
+      title: "What we keep records about",
+      body: [
+        "These are the subjects we hold records on, and the kinds of record in each. A listed record isn't automatically released: every request is weighed against the grounds for refusal below.",
+        ["The company:", "incorporation documents, statutory registers, minutes and resolutions, shareholding, and licences and permits."],
+        ["Finance and tax:", "financial statements, accounting records, budgets, banking records, invoices, and tax and VAT records."],
+        ["Our people:", "employment contracts, pay and benefits, leave, performance and conduct, training, health and safety, and job applications."],
+        ["Members:", "membership and age checks, the membership terms each member accepted, orders and invoices, payments, deliveries and collections, Rewards points and tiers, referrals, communication preferences and marketing consents, and messages with us."],
+        ["Registered patients:", "for licensed medicines, SAHPRA authorisation details, prescribers, and what was supplied and when."],
+        ["Products:", "product details and labels, suppliers' certificates, batches and laboratory results, and recalls."],
+        ["Franchising:", "franchise enquiries, disclosure documents and franchise agreements, and the trading and compliance records of franchisee stores."],
+        ["Stores and stock:", "stock, purchasing, sales and cash-banking records from the platform our stores use."],
+        ["Suppliers and partners:", "contracts, orders, invoices and contact details."],
+        ["Marketing and media:", "campaigns, consent records, press releases and media contacts."],
+        ["Systems and security:", "user accounts, access and activity logs, backups, and records of security incidents."],
+        ["Legal:", "contracts, disputes and legal advice."],
+      ],
+    },
+    {
+      key: "request",
+      title: "How to request a record",
+      body: [
+        ["Use the prescribed form.", "Fill in Form 2 of the PAIA Regulations (Request for access to record). It's on the Information Regulator's website, {regulator}, or we can send it to you."],
+        ["Send it to our Information Officer.", "Email it to {email}, for the attention of the Information Officer."],
+        ["Describe what you want.", "Give enough detail for us to find the record, say how you'd like to receive it (a copy by email or on paper, or to view it), and tell us how to reach you."],
+        ["Say which right it serves.", "PAIA gives access to a private body's records that you need to exercise or protect a right (section 50). Tell us which right, and why you need the record for it."],
+        ["Show who you are.", "We'll ask for proof of identity and, if you're asking on someone else's behalf, proof that you may act for them."],
+        ["Your own personal information.", "To ask what personal information we hold about you, and for a copy (POPIA section 23), use the same form."],
+      ],
+    },
+    {
+      key: "fees",
+      title: "Fees",
+      body: [
+        "The PAIA Regulations set the fees a private body may charge, and we charge no more than those.",
+        ["A request fee,", "payable when you send your request, unless you're asking for your own personal information."],
+        ["An access fee,", "if we give you access: for copies or transcriptions, by the page or the item, and for the time it takes to search for and prepare the record beyond the first hour, up to a set maximum."],
+        ["A deposit,", "if the search and preparation will take more than six hours: a third of the access fee, paid before we start. If we then refuse your request, we refund it."],
+        "We tell you what applies, in writing, before we do the work.",
+      ],
+    },
+    {
+      key: "decision",
+      title: "Our decision, and how long it takes",
+      body: [
+        "We decide within 30 days of receiving your request, and tell you in writing (Form 3 of the PAIA Regulations): whether you'll get access, any fee, and the form access will take.",
+        "We may extend that once, by up to 30 days, if your request covers many records, needs a search of records held elsewhere, or needs us to consult others. If we do, we'll tell you why before the first 30 days are up.",
+        "If a record holds information about someone else, we tell them about your request and consider what they say before we decide (section 71).",
+        "If we can't find a record, or it doesn't exist, we tell you so in an affidavit (section 55).",
+        "If you don't hear from us in time, your request counts as refused (section 58), and you can complain to the Information Regulator.",
+      ],
+    },
+    {
+      key: "refusal",
+      title: "When we may refuse",
+      body: [
+        "We may refuse access, in full or in part, only on the grounds PAIA sets out. They include:",
+        ["Someone else's privacy.", "The record holds personal information about another person (section 63)."],
+        ["Others' business information.", "It holds a third party's trade secrets, or financial, commercial or technical information that could harm them (section 64), or information a third party gave us in confidence (section 65)."],
+        ["Safety.", "Releasing it could put someone's life or physical safety, or the security of property, at risk (section 66)."],
+        ["Legal privilege.", "It's privileged from production in legal proceedings (section 67)."],
+        ["Our business information.", "It holds our trade secrets, or financial, commercial or technical information that could harm our business if released (section 68)."],
+        ["Research.", "It holds research by us or a third party that releasing it would seriously disadvantage (section 69)."],
+        "Even then, we must release a record if it would reveal a substantial breach of the law, or a serious and imminent risk to public safety or the environment, and the public interest in releasing it clearly outweighs the harm (section 70).",
+      ],
+    },
+    {
+      key: "disagree",
+      title: "If you disagree with our decision",
+      body: [
+        "There's no internal appeal against a private body's decision. If you're unhappy with our decision, including a refusal, the fees or the time we take, you can complain to the Information Regulator within 180 days, on its prescribed form (Part 4A of PAIA). After that, you can apply to court (section 78).",
+        "The Information Regulator: {regulator}.",
+      ],
+    },
+    {
+      key: "personal",
+      title: "The personal information we process, and why",
+      body: [
+        "We process personal information to run membership and Herbal Holland Rewards; to sell, deliver and hand over orders with our franchisee stores; to check age and, for licensed medicines, authorisation; to take payments and issue invoices; to send marketing only to members who agree to it; to answer questions and complaints; to recruit and support franchisees; to employ our people; to work with suppliers; to keep our systems, members and stores secure and stop fraud and theft; and to meet our legal obligations, such as tax, medicine and recall records.",
+        ["Members:", "name, mobile number, email address, date of birth or a secure fingerprint of their ID number, home store, orders, payments, delivery addresses, Rewards activity, and communication preferences and consents."],
+        ["Registered patients:", "SAHPRA authorisation details, prescriber, and what was supplied; never a diagnosis."],
+        ["Franchise applicants and franchisees:", "contact details, where they'd like to open, experience, available capital, what's needed to assess and agree a franchise, and their stores' trading records."],
+        ["Our people and job applicants:", "identity and contact details, qualifications, and employment, pay, tax and banking records."],
+        ["People who use our systems,", "at head office and in franchisee stores: account details, role, and a record of what they do in the system."],
+        ["Suppliers and service providers:", "company details, contact people, banking details and contracts."],
+        ["Website visitors and people who contact us:", "what they send us, and routine security logs."],
+      ],
+    },
+    {
+      key: "sharing",
+      title: "Who we share it with, and where it goes",
+      body: [
+        ["Recipients.", "Franchisee stores that serve our members; payment, messaging and delivery providers; the hosting and cloud providers that run our systems; professional advisers such as auditors and lawyers; and authorities such as the South African Revenue Service, the South African Health Products Regulatory Authority and the Information Regulator, when the law requires it. Each gets only what it needs, and operators may process it only on our instructions (POPIA sections 20 and 21). We never sell personal information."],
+        ["Across borders.", "Some providers store or process information outside South Africa: enquiries from this website, for example, are stored in Cloudflare's European Union region. We send personal information across borders only as POPIA section 72 allows, such as to countries whose laws protect it adequately, or under binding agreements that do."],
+      ],
+    },
+    {
+      key: "security",
+      title: "How we protect it",
+      body: [
+        "Encryption between your browser or app and our systems (HTTPS); access limited by role and by store, with a record of sensitive actions; ID numbers kept only as keyed fingerprints, with the last four digits readable; passwords and PINs stored only in scrambled form; backups; and agreements that hold our operators to the same standards.",
+        "If personal information is ever accessed by someone who shouldn't have it, we tell the Information Regulator and the people affected as soon as reasonably possible (POPIA section 22).",
+      ],
+    },
+    {
+      key: "rights",
+      title: "Your rights over your personal information",
+      body: [
+        "You can ask whether we hold personal information about you, and for a copy (POPIA section 23); ask us to correct or delete it (section 24); and object to our processing it (section 11(3)).",
+        "For a copy, use Form 2 of the PAIA Regulations. To object, use Form 1 of the POPIA Regulations; to ask for a correction or deletion, Form 2 of the POPIA Regulations. Send them to {email}.",
+        "You can also complain to the Information Regulator, at {regulator}.",
+      ],
+    },
+    {
+      key: "manual",
+      title: "Where to find this manual",
+      body: [
+        "This manual is published on this website. It's also available at our head office, and from our Information Officer on request.",
+        "We review it at least once a year, and whenever what we hold, or how we handle it, changes. The version and date at the top show when it last changed.",
+      ],
     },
   ],
 } as const satisfies LegalDoc;

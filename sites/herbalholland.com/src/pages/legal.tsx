@@ -1,15 +1,19 @@
-// herbalholland.com/privacy and /terms — the Privacy Policy (POPIA) and the Terms of Use, as complete documents: title,
+// herbalholland.com/privacy, /terms and /paia — the Privacy Policy (POPIA), the Terms of Use and the PAIA manual: title,
 // version and date, a short summary, contents with anchor links, then numbered sections (#who, #rights, …). The words
-// are in ../../content (LEGAL, PRIVACY, TERMS). The company's registered details come from ../../facts wherever the law
-// expects them, and a neutral line stands in until they're filled in. Both pages open without the 18+ gate: they're
-// what the gate asks visitors to accept, so they have to be readable first.
-import { CONTACT, LEGAL, PRIVACY, TERMS, fill, type LegalDoc, type LegalPara } from "../../content";
+// are in ../../content (LEGAL, PRIVACY, TERMS, PAIA); {legalName} and {officer} in them come from ../../facts, as do the
+// registered details wherever the law expects them (a neutral line stands in for any not filled in yet). The pages open
+// without the 18+ gate: the gate asks visitors to accept them, so they have to be readable first.
+import { CONTACT, LEGAL, PAIA, PRIVACY, TERMS, fill, type LegalDoc, type LegalPara } from "../../content";
 import { FACTS, longDate } from "../../facts";
 import { Page } from "../layout";
 import { Index, Rich } from "../ui";
 import { PageHero } from "./parts";
 
-/** The company's registered details from ../../facts, or the neutral line while there are none. */
+/** The facts legal text names. Its links ({email}, {privacy}, …) are Rich's. */
+const VARS = { legalName: FACTS.company.legalName ?? FACTS.brand, officer: FACTS.officer };
+const Text = ({ t }: { t: string }) => <Rich text={fill(t, VARS)} />;
+
+/** The company's registered details from ../../facts, and the neutral line while any the law expects is missing. */
 function Company() {
   const c = FACTS.company;
   const r = CONTACT.company.rows;
@@ -22,12 +26,6 @@ function Company() {
       [r.phone, c.phone],
     ] as [string, string | null][]
   ).filter((row): row is [string, string] => !!row[1]);
-  if (!rows.length)
-    return (
-      <p>
-        <Rich text={LEGAL.company.pending} />
-      </p>
-    );
   return (
     <>
       {rows.map(([k, v]) => (
@@ -35,6 +33,11 @@ function Company() {
           <b>{k}:</b> {v}
         </p>
       ))}
+      {(!c.regNumber || !c.address) && (
+        <p>
+          <Rich text={LEGAL.company.pending} />
+        </p>
+      )}
     </>
   );
 }
@@ -44,17 +47,17 @@ function Para({ p }: { p: LegalPara }) {
   if (typeof p === "string")
     return (
       <p>
-        <Rich text={p} />
+        <Text t={p} />
       </p>
     );
   return (
     <p>
-      <b>{p[0]}</b> <Rich text={p[1]} />
+      <b>{fill(p[0], VARS)}</b> <Text t={p[1]} />
     </p>
   );
 }
 
-function LegalPage({ page, doc }: { page: "privacy" | "terms"; doc: LegalDoc }) {
+function LegalPage({ page, doc }: { page: "privacy" | "terms" | "paia"; doc: LegalDoc }) {
   const { hero, summary, sections } = doc;
   return (
     <Page page={page} meta={{ path: `/${page}`, ...doc.meta }} free>
@@ -74,11 +77,17 @@ function LegalPage({ page, doc }: { page: "privacy" | "terms"; doc: LegalDoc }) 
                       <circle cx="12" cy="12" r="10" />
                       <path d="m7.5 12.5 3 3 6-7" />
                     </svg>
-                    {t}
+                    <span>
+                      <Text t={t} />
+                    </span>
                   </li>
                 ))}
               </ul>
-              {summary.scope && <p>{summary.scope}</p>}
+              {summary.scope && (
+                <p>
+                  <Text t={summary.scope} />
+                </p>
+              )}
             </div>
             <nav aria-labelledby="toc-h">
               <h2 id="toc-h" className="eyebrow">
@@ -119,3 +128,4 @@ function LegalPage({ page, doc }: { page: "privacy" | "terms"; doc: LegalDoc }) 
 
 export const PrivacyPage = () => <LegalPage page="privacy" doc={PRIVACY} />;
 export const TermsPage = () => <LegalPage page="terms" doc={TERMS} />;
+export const PaiaPage = () => <LegalPage page="paia" doc={PAIA} />;

@@ -205,7 +205,7 @@ function Footer() {
                   </a>
                 </li>
               ))}
-              {(["privacy", "terms"] as const).map((k) => (
+              {(["privacy", "terms", "paia"] as const).map((k) => (
                 <li key={k}>
                   <a className="link" href={`/${k}`}>
                     {LEGAL.links[k]}

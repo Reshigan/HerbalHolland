@@ -26,7 +26,7 @@ import { FranchisePage } from "./src/pages/franchise";
 import { HomePage } from "./src/pages/home";
 import { NotFoundPage } from "./src/pages/notfound";
 import { PressPage } from "./src/pages/press";
-import { PrivacyPage, TermsPage } from "./src/pages/legal";
+import { PaiaPage, PrivacyPage, TermsPage } from "./src/pages/legal";
 
 const ROOT = dirname(fileURLToPath(import.meta.url));
 const REPO = join(ROOT, "..", "..");
@@ -48,6 +48,7 @@ const PAGES: [path: string, file: string, page: FunctionComponent][] = [
   ["/contact", "contact.html", ContactPage],
   ["/privacy", "privacy.html", PrivacyPage],
   ["/terms", "terms.html", TermsPage],
+  ["/paia", "paia.html", PaiaPage],
 ];
 
 const hash = (b: Buffer | string) => createHash("sha256").update(b).digest("hex").slice(0, 10);

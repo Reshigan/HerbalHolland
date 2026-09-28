@@ -14,7 +14,7 @@ export type Store = { key: "hillcrest" | "hilton"; name: string; province: strin
  */
 export type Shop = { url: string | null; opensLabel: string };
 
-/** The company's registered details (ECT Act s43). Unknown for now: fill them in when they are, and they appear. */
+/** The registered details (ECT Act s43) of the company that owns the online business. Fill in the rest when known. */
 export type Company = { legalName: string | null; regNumber: string | null; vatNumber: string | null; address: string | null; phone: string | null };
 
 export const FACTS = {
@@ -30,7 +30,9 @@ export const FACTS = {
 
   shop: { url: null, opensLabel: "Opening soon" } as Shop,
 
-  company: { legalName: null, regNumber: null, vatNumber: null, address: null, phone: null } as Company,
+  company: { legalName: "Vantax (Pty) Ltd", regNumber: null, vatNumber: null, address: null, phone: null } as Company,
+  /** The Information Officer (POPIA, and PAIA requests), reached at email.hello. */
+  officer: "Reshigan Govender",
 
   /** The first two stores: both in KwaZulu-Natal, both opening on the same day. None is trading yet. */
   stores: [

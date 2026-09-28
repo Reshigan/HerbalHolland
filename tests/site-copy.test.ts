@@ -35,7 +35,8 @@ describe("site copy", () => {
       [/\b(customers?|shoppers?|clients?)\b/i, "say members"],
       [/\bhigh(er|est)?\b/i, "no 'high' language"],
       [/\b(weed|dagga|ganja|dank|stoner|munchies|4\/?20)\b/i, "no stoner clichés"],
-      [/\bR ?\d|%|\b(deals?|specials?|promo(tion)?s?|coupons?|vouchers?|bargains?)\b/i, "no prices or deals on .com"],
+      // (A statute's name isn't a deal: the PAIA manual cites the Promotion of Access to Information Act.)
+      [/\bR ?\d|%|\b(deals?|specials?|promo(tion)?s?(?! of access to information)|coupons?|vouchers?|bargains?)\b/i, "no prices or deals on .com"],
       [/\b(proven|projected returns?|return on investment)\b/i, "no earnings or performance claims"],
     ];
     const broken = ALL.flatMap(([path, text]) => RULES.filter(([re]) => re.test(text)).map(([re, why]) => `${path}: "${text.match(re)![0]}" — ${why}`));

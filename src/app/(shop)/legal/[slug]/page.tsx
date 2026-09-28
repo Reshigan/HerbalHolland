@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import type { Metadata } from "next";
 import { FileText } from "lucide-react";
 import { getFranchisor } from "@/server/shop/context";
@@ -11,7 +11,6 @@ import { H2, P } from "@/components/shop/learn/bodies";
 const DOCS = {
   terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member — online, in the Rewards app or at the till." },
   privacy: { title: "Privacy notice", dek: "How we collect, use and protect your personal information under POPIA." },
-  paia: { title: "PAIA manual", dek: "How to request access to records held by Herbal Holland under the Promotion of Access to Information Act." },
 } as const;
 type Slug = keyof typeof DOCS;
 
@@ -26,6 +25,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
+  // The PAIA manual is published once, on herbalholland.com, for the company that owns the online business.
+  if (slug === "paia") permanentRedirect("https://herbalholland.com/paia");
   const doc = DOCS[slug as Slug];
   if (!doc) notFound();
   const [c, settings] = await Promise.all([getFranchisor(), getSettings()]);
@@ -68,21 +69,6 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
             <P>We share information with the store that fulfils your order, our payment and messaging providers, and couriers for delivery — only what each needs. We don&apos;t sell personal information. Information is stored securely and kept only as long as needed for the purposes above and our legal obligations (for example, tax records).</P>
             <H2>Your rights</H2>
             <P>You may ask to see, correct or delete your information, object to processing, and complain to the Information Regulator (inforegulator.org.za). Email our Information Officer to make a request.</P>
-          </>
-        )}
-        {slug === "paia" && (
-          <>
-            <H2>About this manual</H2>
-            <P>This manual is published under section 51 of the Promotion of Access to Information Act, 2000 (PAIA), and describes the records held by {entity} and how to request access to them.</P>
-            <H2>Contact details</H2>
-            <P>
-              Information Officer: {c?.contactName ?? "Information Officer"}, {entity}, {address}. Email <a className="text-brand-400 underline" href="mailto:privacy@herbalholland.co.za">privacy@herbalholland.co.za</a>
-              {c?.phone ? `, telephone ${c.phone}` : ""}.
-            </P>
-            <H2>Records we hold</H2>
-            <P>Company and statutory records; franchise agreements; product, batch and laboratory records; sales, stock and financial records; member and Rewards records; marketing consent records; and employee records.</P>
-            <H2>How to request access</H2>
-            <P>Complete the prescribed request form (Form 2) and send it to the Information Officer. Prescribed fees may apply. We&apos;ll respond within 30 days, as required by PAIA. Some records may be refused on the grounds set out in the Act, including to protect the privacy of others.</P>
           </>
         )}
       </div>

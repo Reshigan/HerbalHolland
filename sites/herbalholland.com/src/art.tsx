@@ -257,6 +257,7 @@ export const SCENES: Record<string, SceneSpec> = {
   // Placed where phones see it too (x 490–1110 of the band), so it needs no per-breakpoint rule.
   privacy: { sun: { x: 700, y: 680, r: 150 }, view: "0 470 1600 530", top: true },
   terms: { sun: { x: 950, y: 665, r: 140 }, view: "0 470 1600 530", top: true },
+  paia: { sun: { x: 560, y: 690, r: 130 }, view: "0 470 1600 530", top: true },
   gate: { sun: { x: 800, y: 790, r: 210 }, view: "0 380 1600 620", hills: ["hl1", "hl2", "hl3"] },
   notfound: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
   storeA: { sun: { x: 1010, y: 700, r: 150 }, view: "260 470 1200 530" },
