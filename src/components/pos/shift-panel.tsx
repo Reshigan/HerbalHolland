@@ -416,7 +416,7 @@ function DeviceCard() {
         </div>
         <div className="flex justify-between py-2">
           <dt className="text-ink-400">Card payments</dt>
-          <dd className="text-white">{boot.tapProvider === "SIMULATED" ? "Tap on glass (simulated)" : boot.tapProvider === "HALO_APPLINK" ? "Halo Dot tap on glass" : "Bank terminal"}</dd>
+          <dd className="text-white">{{ SIMULATED: "Tap on glass (simulated)", HALO_APPLINK: "Halo Dot tap on glass", YOCO: "Yoco card machine", EXTERNAL: "Bank terminal" }[boot.tapProvider] ?? "Bank terminal"}</dd>
         </div>
       </dl>
       <div className="mt-3 flex flex-wrap gap-2">

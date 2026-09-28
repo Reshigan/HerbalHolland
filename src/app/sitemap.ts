@@ -2,6 +2,7 @@ import type { MetadataRoute } from "next";
 import { db } from "@/server/db";
 import { getClasses } from "@/server/shop/access";
 import { ARTICLES } from "@/components/shop/learn/articles";
+import { LEGAL_DOCS } from "@/lib/policies";
 
 // Rendered per request: always current, and the build (e.g. in Docker) needs no database.
 export const dynamic = "force-dynamic";
@@ -33,6 +34,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${b}/learn`, lastModified: now, changeFrequency: "monthly", priority: 0.6 },
     ...ARTICLES.map((a) => ({ url: `${b}/learn/${a.slug}`, lastModified: now, changeFrequency: "monthly" as const, priority: 0.5 })),
     { url: `${b}/club/join`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
-    ...["terms", "privacy"].map((s) => ({ url: `${b}/legal/${s}`, lastModified: now, changeFrequency: "yearly" as const, priority: 0.2 })),
+    ...Object.keys(LEGAL_DOCS).map((s) => ({ url: `${b}/legal/${s}`, lastModified: now, changeFrequency: "yearly" as const, priority: 0.2 })),
   ];
 }

@@ -30,6 +30,17 @@ export type RouteResult =
 
 const canFill = (c: RouteCandidate, lines: RouteRequest["lines"]) => lines.every((l) => (c.available[l.variantId] ?? 0) >= l.qty);
 
+/**
+ * The fulfilment options checkout offers: only what some store can serve. Click & collect needs a trading (ACTIVE)
+ * retail store that takes collections, same-day a trading retail store with its own drivers. Courier is always on offer
+ * (it ships from a distribution centre first). Before the first store opens that leaves delivery only.
+ */
+export function offeredFulfilment(stores: Pick<RouteCandidate, "kind" | "active" | "clickCollect" | "sameDay">[]): { options: Fulfil[]; deliveryOnly: boolean } {
+  const trading = stores.filter((s) => s.kind === "RETAIL" && s.active);
+  const options: Fulfil[] = [...(trading.some((s) => s.clickCollect) ? ["COLLECT" as const] : []), ...(trading.some((s) => s.sameDay) ? ["SAME_DAY" as const] : []), "COURIER"];
+  return { options, deliveryOnly: options.length === 1 };
+}
+
 export function distanceKm(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   const R = 6371, toRad = (x: number) => (x * Math.PI) / 180;
   const dLat = toRad(b.lat - a.lat), dLng = toRad(b.lng - a.lng);

@@ -7,21 +7,23 @@ Tick every line before the first store trades on the platform.
 - [ ] SAHPRA licence details captured per store (`licences`, `licenceRef`); dispensers designated and trained
 - [ ] Patient-authorisation intake procedure and document storage agreed
 - [ ] CBD master data validated (≤ 600 mg/pack, ≤ 20 mg/day, approved claims, COAs per batch)
-- [ ] Information Officer (Reshigan Govender) registered with the Information Regulator; privacy notice and returns policy (incl. ECTA cooling-off) published (PAIA manual: done, herbalholland.com/paia; add the registration number and address to `sites/herbalholland.com/facts.ts`)
+- [ ] Information Officer (Reshigan Govender) registered with the Information Regulator; privacy notice published (PAIA manual: done, herbalholland.com/paia; add the registration number and address to `sites/herbalholland.com/facts.ts`)
 - [ ] Counsel signs off the membership terms (`/legal/terms`) and fills in the directors' names; bump `TERMS_VERSION` for any change after launch
+- [ ] Returns & refunds (`/legal/returns`) and delivery (`/legal/delivery`) policies: drafted (CPA s56, ECTA s44 cooling-off and s46, delivery only to the member named on the order, fees and cut-off from HQ → Online orders) — counsel to review, above all the ECTA s42 exclusions line marked "For counsel" (made-to-order merch; opened food, drink, supplements and skin care) and the failed-delivery terms (two attempts, redelivery at the courier fee, goods refunded without the delivery fee); confirm the attempts with the courier
 - [ ] HQ → Compliance: **Members only** on; tills trained on signing up walk-ins (key terms read, box ticked) and on member numbers while offline
 - [ ] NCC direct-marketing registration done; first opt-out registry import loaded
 - [ ] Franchise agreements reference the separate marketing fund and statement settlement
 
 ## Money
-- [ ] Each store onboarded with its acquirer (honest MCC, written approval for the product mix) and Halo Dot merchant ID
-- [ ] Online gateway chosen per acceptable-use policy; webhooks tested; PayShap/EFT rails live
+- [ ] Each store onboarded with Yoco for its card machine (honest description, written approval for the product mix); tills on `NEXT_PUBLIC_TAP_PROVIDER=YOCO`, cashiers trained to key in the machine's reference
+- [ ] Online payments on Yoco (Vantax (Pty) Ltd): written approval for the product mix, domain verified, live keys and live webhook set, a live payment and a refund tested ([RUNBOOK → Yoco go-live](RUNBOOK.md#yoco-go-live-online-payments-and-in-store-card-machines))
 - [ ] VAT numbers per franchisee captured (non-vendors marked); invoice templates checked against SARS requirements
 - [ ] Royalty / levy / e-commerce commission rates confirmed per store; first statement dry-run reconciled
 - [ ] Accounting export (Sage/Xero daily journal) agreed with each owner's bookkeeper
 
 ## Stock
-- [ ] Catalogue, variants, barcodes (GS1 600-prefix) and RRPs loaded; ranging by format
+- [ ] Catalogue, variants, barcodes (GS1 600-prefix) and RRPs loaded; ranging by format. The loader is ready: HQ → Catalogue → Import (CSV template, dry-run preview, create or update by SKU, every product checked against its class's rules)
+- [ ] Warehouse opening stock loaded with the import (stock, batch and expiry columns; received at HQ cost) and checked against a physical count
 - [ ] Opening stock counted per store (full blind stock take) and approved
 - [ ] DC replenishment cadence and lead times set; par/reorder levels reviewed
 

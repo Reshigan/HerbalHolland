@@ -16,8 +16,11 @@ import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
+import { createYocoCheckout, paidWithYoco, PaymentError, refundYocoCheckout, yocoTestMode } from "./payments";
 import { routeOrder, type Fulfil, type RouteCandidate } from "@/lib/routing";
 import { incentiveExcluded } from "@/lib/compliance";
+import { paymentDecision, yocoCheckoutRequest, yocoFacts, YOCO_MIN_CENTS, type PaymentDecision, type YocoEvent } from "@/lib/yoco";
+import { addDays } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import type { OrderStatus, Prisma, Province } from "@/generated/prisma/client";
 
@@ -165,14 +168,80 @@ async function notifyPlaced(orderId: string) {
   await notifyCustomer(o.customer, `Herbal Holland: order ${o.code} received ${how}. We'll let you know when it's ready. Track: /orders/${o.code}`);
 }
 
-/** Simulated gateway confirmation (real gateways call this from their webhook). */
-export async function markOrderPaid(orderId: string, reference: string) {
+/** Confirms an online payment (the simulated gateway, or a gateway's verified webhook): the order goes to the store. Safe to repeat. */
+export async function markOrderPaid(orderId: string, reference: string, note = "Payment received") {
   const o = await db.order.findUniqueOrThrow({ where: { id: orderId } });
   if (o.status !== "PENDING_PAYMENT") return o;
-  const events = [...(o.events as Event[]), { status: "PLACED" as const, at: new Date().toISOString(), note: "Payment received" }];
-  const updated = await db.order.update({ where: { id: orderId }, data: { status: "PLACED", paymentStatus: "PAID", paymentRef: reference, events } });
-  await notifyPlaced(orderId);
-  return updated;
+  const events = [...(o.events as Event[]), { status: "PLACED" as const, at: new Date().toISOString(), note }];
+  // Compare-and-set: when the same confirmation arrives twice at once, only one moves the order (and texts the member).
+  const { count } = await db.order.updateMany({ where: { id: orderId, status: "PENDING_PAYMENT" }, data: { status: "PLACED", paymentStatus: "PAID", paymentRef: reference, events } });
+  if (count) await notifyPlaced(orderId);
+  return db.order.findUniqueOrThrow({ where: { id: orderId } });
+}
+
+// ── Yoco (ONLINE_GATEWAY=YOCO) ───────────────────────────────────────────────
+
+/**
+ * The member's Yoco checkout for an unpaid order. The order id is the Idempotency-Key, so asking again (a retry, or after
+ * cancelling on Yoco's page) replays the same checkout instead of opening a second one. Its id becomes the order's
+ * paymentRef: the webhook must name it, and a refund goes back to it.
+ */
+export async function yocoCheckoutFor(o: { id: string; code: string; totalCents: number; pointsRedeemed: number; paymentRef: string | null }, appUrl: string) {
+  const dueCents = o.totalCents - o.pointsRedeemed * 100;
+  if (dueCents < YOCO_MIN_CENTS) throw new PaymentError(`Online payments start at ${zar(YOCO_MIN_CENTS)}`);
+  const checkout = await createYocoCheckout(yocoCheckoutRequest({ id: o.id, code: o.code, dueCents }, appUrl), o.id);
+  if (!checkout.id || !/^https:\/\//.test(checkout.redirectUrl ?? "")) throw new PaymentError("Yoco didn't return a payment page");
+  const created = checkout.id !== o.paymentRef;
+  if (created) await db.order.updateMany({ where: { id: o.id, status: "PENDING_PAYMENT" }, data: { paymentRef: checkout.id } });
+  return { checkout, created, dueCents };
+}
+
+/** Refunds a Yoco order in full before it's cancelled. Idempotency-Key "<order id>:refund": a retried cancel can't refund twice. */
+async function refundWithYoco(o: { id: string; code: string; paymentRef: string | null }, amountCents: number) {
+  if (yocoTestMode()) return { refundId: null, status: "test", note: "Yoco test payment: nothing to refund" }; // Yoco can't refund test payments
+  try {
+    const r = await refundYocoCheckout(o.paymentRef!, amountCents, `${o.id}:refund`, { orderId: o.id, orderCode: o.code });
+    return { ...r, note: `Refunded ${zar(amountCents)} by Yoco (refund ${r.refundId}, ${r.status})` };
+  } catch (e) {
+    throw new OrderError(`Yoco didn't refund ${zar(amountCents)}, so the order hasn't been cancelled. ${(e as Error).message}`);
+  }
+}
+
+const YOCO: Actor = { type: "SYSTEM", name: "Yoco" };
+
+/**
+ * A verified Yoco webhook event (/api/payments/yoco). payment.succeeded marks the order paid once the checkout and the
+ * amount match it; a redelivery changes nothing. Money that doesn't fit the order is logged for a person
+ * (payment.review in HQ → Audit log), never guessed at. A failed refund puts the payment back on the cancelled order
+ * so staff refund it by hand. Other events about our orders are logged; the rest are ignored.
+ */
+export async function applyYocoEvent(e: YocoEvent): Promise<PaymentDecision | { action: "logged"; reason: string }> {
+  const f = yocoFacts(e);
+  const order = f.orderId
+    ? await db.order.findUnique({ where: { id: f.orderId } })
+    : f.checkoutId // paymentRef has no index: bound the look-up to recent orders
+      ? await db.order.findFirst({ where: { paymentRef: f.checkoutId, createdAt: { gte: addDays(new Date(), -120) } } })
+      : null;
+  const log = (action: string, extra: Record<string, string | null> = {}) =>
+    audit(db, YOCO, action, { storeId: order?.storeId, entity: "Order", entityId: order?.id, data: { event: e.id, type: e.type, checkoutId: f.checkoutId, id: f.id, amount: f.amountCents, mode: f.mode, ...extra } });
+
+  if (e.type === "payment.succeeded") {
+    const d = paymentDecision(f, order && { ...order, dueCents: order.totalCents - order.pointsRedeemed * 100 });
+    if (d.action === "pay") {
+      await markOrderPaid(order!.id, f.checkoutId!, `Paid with Yoco${f.method ? ` · ${f.method}` : ""} · payment ${f.id}`);
+      await log("order.pay_online", { gateway: "YOCO", method: f.method });
+    } else if (d.action === "review") await log("payment.review", { reason: d.reason });
+    return d;
+  }
+  if (!order || (f.checkoutId && f.checkoutId !== order.paymentRef)) return { action: "ignore", reason: "Not one of our checkouts" };
+  if (e.type === "refund.failed" && order.status === "CANCELLED" && order.paymentStatus === "REFUNDED") {
+    const note = `Yoco refund failed${f.failureReason ? ` (${f.failureReason})` : ""}: refund the member by hand`;
+    await db.order.update({ where: { id: order.id }, data: { paymentStatus: "PAID", events: [...(order.events as Event[]), { status: order.status, at: new Date().toISOString(), note }] } });
+  }
+  const action = ({ "payment.failed": "payment.failed", "refund.succeeded": "payment.refunded", "refund.failed": "payment.refund_failed" } as Record<string, string | undefined>)[e.type];
+  if (!action) return { action: "ignore", reason: `${e.type} isn't used` };
+  await log(action, { reason: f.failureReason });
+  return { action: "logged", reason: action };
 }
 
 const FLOW: Record<OrderStatus, OrderStatus[]> = {
@@ -223,7 +292,7 @@ export async function advanceOrder(
   const due = o.totalCents - o.pointsRedeemed * 100;
   let payments: TenderInput[] | { method: "ONLINE"; amountCents: number; provider: string; reference?: string }[] = [];
   if (handover || dispatch) {
-    if (o.paymentStatus === "PAID") payments = due > 0 ? [{ method: "ONLINE", amountCents: due, provider: "GATEWAY", reference: o.paymentRef ?? undefined }] : [];
+    if (o.paymentStatus === "PAID") payments = due > 0 ? [{ method: "ONLINE", amountCents: due, provider: paidWithYoco(o) ? "YOCO" : "GATEWAY", reference: o.paymentRef ?? undefined }] : [];
     else {
       if (dispatch) throw new OrderError("Delivery orders must be paid before dispatch");
       const paid = (opts.payments ?? []).reduce((s, p) => s + p.amountCents, 0);
@@ -232,7 +301,9 @@ export async function advanceOrder(
     }
   }
 
-  const events = [...(o.events as Event[]), { status: to, at: new Date().toISOString(), note: opts.note }];
+  // A paid Yoco order is refunded in full before it's cancelled. If Yoco refuses, nothing changes and staff see why.
+  const refund = to === "CANCELLED" && paidWithYoco(o) ? await refundWithYoco(o, due) : null;
+  const events = [...(o.events as Event[]), { status: to, at: new Date().toISOString(), note: [opts.note, refund?.note].filter(Boolean).join(" · ") || undefined }];
   let postedSaleId: string | null = null;
   const updated = await tx(async (t) => {
     if (handover || dispatch) {
@@ -282,7 +353,7 @@ export async function advanceOrder(
     if (to === "CANCELLED" && o.paymentStatus === "PAID") data.paymentStatus = "REFUNDED";
     if (to === "COMPLETED") (data.completedAt = new Date()), (data.idChecked = !!opts.idChecked);
     if (dispatch) (data.courier = opts.courier ?? (o.fulfilment === "SAME_DAY" ? "Herbal Holland driver" : "Courier")), (data.trackingNo = opts.trackingNo ?? `HH${shortCode(8)}`);
-    await audit(t, actor, `order.${to.toLowerCase()}`, { storeId: o.storeId, entity: "Order", entityId: o.id });
+    await audit(t, actor, `order.${to.toLowerCase()}`, { storeId: o.storeId, entity: "Order", entityId: o.id, data: refund ? { refundId: refund.refundId, refundStatus: refund.status, amount: due } : undefined });
     return t.order.update({ where: { id: o.id }, data });
   });
 

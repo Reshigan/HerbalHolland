@@ -7,7 +7,7 @@ import { AgeBadge, Mark, SCENES, Scene, Sprite, Wordmark, cx } from "./art";
 import { Btn, Icon, Index, MailTo, Rich, ShopDoor, Soon } from "./ui";
 
 export const site = {
-  assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2" },
+  assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[] },
   /** The build day in SAST (YYYY-MM-DD) and its year. */
   day: "2026-01-01",
   year: 2026,
@@ -182,6 +182,7 @@ function Footer() {
   const details = [c.legalName, c.regNumber && `Reg. ${c.regNumber}`, c.vatNumber && `VAT ${c.vatNumber}`, c.address, c.phone].filter(Boolean);
   return (
     <footer className="ftr">
+      <div className="band" aria-hidden="true" />
       <div className="wrap ftr__top">
         <div className="ftr__brand">
           <a href="/" className="ftr__logo" aria-label={CHROME.home}>
@@ -224,7 +225,9 @@ function Footer() {
                 <JoinDoor kind="link" />
               </li>
               <li>
-                <ShopDoor path="/stores" label={CHROME.cta.finder} kind="link" />
+                <a className="link" href="/stores">
+                  {CHROME.cta.finder}
+                </a>
               </li>
             </ul>
           </div>

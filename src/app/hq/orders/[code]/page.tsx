@@ -222,7 +222,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                     <Textarea id="cancel-reason" name="reason" className="min-h-16" placeholder="e.g. Member asked to cancel by phone" />
                     <FieldError name="reason" />
                   </Field>
-                  {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online — refund is marked automatically</Badge>}
+                  {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online — cancelling refunds it in full</Badge>}
                 </ConfirmAction>
               </CardBody>
             </Card>

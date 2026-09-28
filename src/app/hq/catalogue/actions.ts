@@ -6,12 +6,10 @@ import { audit } from "@/server/audit";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
 import { str, opt, bool, list, parseNum, parseRand, parseInt10, splitList, slugify } from "@/server/hq/form";
 import { PRODUCT_STATUSES, REG_CLASSES } from "@/server/hq/catalogue";
-import { ALLERGENS, PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, screenCopy, validateProduct } from "@/lib/compliance";
+import { ALLERGENS, PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, complianceChange, screenCopy, validateProduct } from "@/lib/compliance";
 import type { Prisma, ProductStatus, RegClass, StoreFormat, StrainType } from "@/generated/prisma/client";
 
 const STRAINS: StrainType[] = ["INDICA", "SATIVA", "HYBRID", "CBD"];
-// Changes to these are compliance changes (audited as compliance.product), as is a THC cap on a class that has one.
-const COMPLIANCE_KEYS = ["legalBasis", "cbdMgPerPack", "cbdMgPerDay", "claims", "tobaccoRelated", "netContent", "netUnit", "ingredients", "allergens", "naturalCbd"];
 
 export async function saveProduct(productId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("network");
@@ -112,7 +110,7 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   const before = await db.product.findUniqueOrThrow({ where: { id: productId } });
   await db.product.update({ where: { id: productId }, data: { ...data, terpenes: terpenes.length ? (terpenes as Prisma.InputJsonValue) : [] } });
   const changed = (Object.keys(data) as (keyof typeof data)[]).filter((k) => JSON.stringify(before[k] ?? null) !== JSON.stringify(data[k] ?? null));
-  const compliance = before.regClass !== regClass || changed.some((k) => COMPLIANCE_KEYS.includes(k) || (k === "thcMax" && CBD_CLASSES.includes(regClass)));
+  const compliance = complianceChange(changed, regClass);
   await audit(db, g.actor, compliance ? "compliance.product" : "product.update", {
     entity: "Product", entityId: productId, data: { changed },
   });

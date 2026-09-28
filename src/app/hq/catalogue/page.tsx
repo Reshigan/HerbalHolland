@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { LayoutGrid, Package, Plus } from "lucide-react";
+import { LayoutGrid, Package, Plus, Upload } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
@@ -52,9 +52,14 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
               <LayoutGrid className="h-4 w-4" /> Categories
             </ButtonLink>
             {can(user, "network") && (
-              <ButtonLink href="/hq/catalogue/new">
-                <Plus className="h-4 w-4" /> New product
-              </ButtonLink>
+              <>
+                <ButtonLink href="/hq/catalogue/import" variant="outline">
+                  <Upload className="h-4 w-4" /> Import
+                </ButtonLink>
+                <ButtonLink href="/hq/catalogue/new">
+                  <Plus className="h-4 w-4" /> New product
+                </ButtonLink>
+              </>
             )}
           </div>
         }

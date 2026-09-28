@@ -4,8 +4,10 @@ import { Clock, Lock, ShieldCheck } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
-import { simulatePayment } from "./actions";
-import { PayForm } from "@/components/shop/pay-form";
+import { getFranchisor } from "@/server/shop/context";
+import { onlineGateway } from "@/server/payments";
+import { payWithYoco, simulatePayment } from "./actions";
+import { PayForm, YocoPayForm } from "@/components/shop/pay-form";
 import { Container, Panel } from "@/components/shop/ui";
 import { Mark } from "@/components/brand/logo";
 import { fmtTime } from "@/lib/format";
@@ -17,14 +19,18 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
   const { orderId } = await params;
   const customer = await getCustomer();
   if (!customer) redirect(`/club/join?next=${encodeURIComponent(`/checkout/pay/${orderId}`)}`);
-  const [order, settings] = await Promise.all([
+  const yoco = onlineGateway() === "YOCO";
+  const [order, settings, company] = await Promise.all([
     db.order.findFirst({ where: { id: orderId, customerId: customer.id }, include: { store: { select: { name: true, company: { select: { legalName: true } } } }, lines: { include: { variant: { include: { product: { select: { name: true } } } } } } } }),
     getSettings(),
+    yoco ? getFranchisor() : null,
   ]);
   if (!order) notFound();
   if (order.status !== "PENDING_PAYMENT") redirect(`/orders/${order.code}`);
   const due = order.totalCents - order.pointsRedeemed * 100;
   const holdUntil = new Date(order.createdAt.getTime() + settings.ecommerce.unpaidHoldMinutes * 60_000);
+  // Yoco: online payments go to the company that owns the online shop. Simulated: the fulfilling store, as before.
+  const merchant = yoco ? (company?.legalName ?? "Herbal Holland") : order.store.company.legalName;
 
   return (
     <Container className="max-w-xl pt-10 sm:pt-16">
@@ -33,13 +39,13 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
           <span className="flex items-center gap-2 text-sm font-semibold text-white">
             <Lock className="h-4 w-4 text-leaf-500" /> Secure payment
           </span>
-          <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider text-sky-50">Simulated gateway</span>
+          <span className="rounded-full bg-sky-500/15 px-2.5 py-0.5 text-[0.68rem] font-bold uppercase tracking-wider text-sky-50">{yoco ? "Yoco" : "Simulated gateway"}</span>
         </div>
         <div className="p-6 sm:p-8">
           <div className="flex items-center gap-3">
             <Mark className="h-10 w-10 text-brand-500" />
             <div>
-              <div className="text-sm text-ink-400">Paying {order.store.company.legalName}</div>
+              <div className="text-sm text-ink-400">Paying {merchant}</div>
               <div className="font-semibold text-white">Herbal Holland order {order.code}</div>
             </div>
           </div>
@@ -73,10 +79,12 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
             Complete payment by {fmtTime(holdUntil)} ({settings.ecommerce.unpaidHoldMinutes} minutes) or the order is released and the stock goes back on the shelf.
           </p>
-          <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />
+          {yoco ? <YocoPayForm action={payWithYoco.bind(null, order.id)} amount={zar(due)} /> : <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />}
           <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-ink-500">
             <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" />
-            Demo environment: no money moves. In production this page is your bank or payment partner, and the store that fulfils your order is the merchant of record.
+            {yoco
+              ? "You pay on Yoco's secure page, by card or Instant EFT. We never see your card details. Your order is confirmed the moment Yoco tells us the payment went through."
+              : "Demo environment: no money moves. In production this page is your bank or payment partner, and the store that fulfils your order is the merchant of record."}
           </p>
         </div>
       </Panel>

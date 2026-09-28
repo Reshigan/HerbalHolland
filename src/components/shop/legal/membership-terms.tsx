@@ -12,7 +12,7 @@ import type { Settings } from "@/server/settings";
 
 type Company = { legalName: string; regNumber: string | null; vatNumber: string | null; address: string | null; phone: string | null; email: string | null } | null;
 
-function List({ items }: { items: React.ReactNode[] }) {
+export function List({ items }: { items: React.ReactNode[] }) {
   return (
     <ul className="mt-4 list-disc space-y-2 pl-6 text-[1.02rem] leading-[1.75] text-ink-300">
       {items.map((x, i) => (
@@ -22,7 +22,7 @@ function List({ items }: { items: React.ReactNode[] }) {
   );
 }
 
-function Important({ children }: { children: React.ReactNode }) {
+export function Important({ children }: { children: React.ReactNode }) {
   return (
     <aside className="mt-5 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-5 text-[1.02rem] leading-[1.75] text-amber-50">
       <div className="eyebrow text-amber-200">Important</div>

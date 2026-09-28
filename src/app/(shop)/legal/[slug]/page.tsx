@@ -5,21 +5,19 @@ import { FileText } from "lucide-react";
 import { getFranchisor } from "@/server/shop/context";
 import { getSettings } from "@/server/settings";
 import { MembershipTerms } from "@/components/shop/legal/membership-terms";
+import { PolicyBody } from "@/components/shop/legal/policy";
 import { Callout, Container } from "@/components/shop/ui";
 import { H2, P } from "@/components/shop/learn/bodies";
+import { LEGAL_DOCS as DOCS, deliveryPolicy, returnsPolicy, type LegalSlug as Slug } from "@/lib/policies";
 
-const DOCS = {
-  terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member — online, in the Rewards app or at the till." },
-  privacy: { title: "Privacy notice", dek: "How we collect, use and protect your personal information under POPIA." },
-} as const;
-type Slug = keyof typeof DOCS;
+const docOf = (slug: string) => (Object.hasOwn(DOCS, slug) ? DOCS[slug as Slug] : null);
 
 export function generateStaticParams() {
   return Object.keys(DOCS).map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const d = DOCS[(await params).slug as Slug];
+  const d = docOf((await params).slug);
   return d ? { title: d.title, description: d.dek } : { title: "Not found" };
 }
 
@@ -27,11 +25,12 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   // The PAIA manual is published once, on herbalholland.com, for the company that owns the online business.
   if (slug === "paia") permanentRedirect("https://herbalholland.com/paia");
-  const doc = DOCS[slug as Slug];
+  const doc = docOf(slug);
   if (!doc) notFound();
   const [c, settings] = await Promise.all([getFranchisor(), getSettings()]);
   const entity = c?.legalName ?? "Herbal Holland (Pty) Ltd";
   const address = c?.address ?? "";
+  const facts = { entity, email: c?.email ?? "hello@herbalholland.co.za", phone: c?.phone ?? null, minAge: settings.compliance.minAge, ecommerce: settings.ecommerce };
 
   return (
     <Container className="max-w-3xl pt-10 sm:pt-14">
@@ -51,6 +50,8 @@ export default async function LegalPage({ params }: { params: Promise<{ slug: st
 
       <div className="pb-8">
         {slug === "terms" && <MembershipTerms c={c} s={settings} />}
+        {slug === "returns" && <PolicyBody blocks={returnsPolicy(facts)} />}
+        {slug === "delivery" && <PolicyBody blocks={deliveryPolicy(facts)} />}
         {slug === "privacy" && (
           <>
             <H2>Responsible party</H2>

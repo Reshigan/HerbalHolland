@@ -1,14 +1,14 @@
 "use client";
-// Payment: amount due and split tenders — card (tap on glass), a separate bank terminal,
-// cash (quick amounts, change due), PayShap (payment-request QR) and points. Over R5,000
-// the buyer's details are captured for a full tax invoice. Reused for order handovers.
+// Payment: amount due and split tenders — card (tap on glass, or the store's Yoco card machine),
+// a separate bank terminal, cash (quick amounts, change due), PayShap (payment-request QR) and
+// points. Over R5,000 the buyer's details are captured for a full tax invoice. Reused for order handovers.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banknote, CreditCard, Landmark, Nfc, QrCode, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { errorText, TillError } from "../lib/api";
-import { maxRedeemable, parseRands, quickCash } from "../lib/rules";
+import { cardMachineTender, maxRedeemable, parseRands, quickCash } from "../lib/rules";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
 import { TapOverlay } from "./tap-overlay";
 import type { QueuedTender } from "../lib/storage";
@@ -17,7 +17,7 @@ import type { TapProviderKind } from "@/server/pos/types";
 export type Buyer = { name: string; address: string; vatNumber?: string };
 export type PaymentResult = { tenders: QueuedTender[]; points: number; buyer: Buyer | null };
 
-type Panel = "cash" | "external" | "payshap" | "points" | null;
+type Panel = "cash" | "external" | "yoco" | "payshap" | "points" | null;
 
 export const FULL_INVOICE_OVER_CENTS = 500_000;
 
@@ -190,7 +190,9 @@ export function PaymentSheet({
                           ? `PayShap · ref ${t.reference}`
                           : t.provider === "EXTERNAL"
                             ? `Bank terminal · auth ${t.reference}`
-                            : `${t.cardBrand ?? "Card"} •••• ${t.cardLast4 ?? ""} · auth ${t.reference}`
+                            : t.provider === "YOCO"
+                              ? `Yoco machine${t.cardLast4 ? ` •••• ${t.cardLast4}` : ""} · ref ${t.reference}`
+                              : `${t.cardBrand ?? "Card"} •••• ${t.cardLast4 ?? ""} · auth ${t.reference}`
                     }
                     amount={t.amountCents}
                     onRemove={busy ? undefined : () => setTenders((ts) => ts.filter((x) => x.key !== t.key))}
@@ -246,10 +248,16 @@ export function PaymentSheet({
               </div>
             </Field>
 
-            {!online && <Alert tone="warn" className="mt-3">Offline — cash only. Card, PayShap and points need a connection.</Alert>}
+            {!online && (
+              <Alert tone="warn" className="mt-3">
+                {tapProvider === "YOCO" ? "Offline — cash, or card on the Yoco machine. PayShap and points need a connection." : "Offline — cash only. Card, PayShap and points need a connection."}
+              </Alert>
+            )}
 
             <div className="mt-4 grid grid-cols-2 gap-2">
-              {method("card", "Card · tap", <Nfc className="h-5 w-5" />, !online || tapProvider === "EXTERNAL", "Card, phone or watch")}
+              {tapProvider === "YOCO"
+                ? method("yoco", "Card · Yoco", <CreditCard className="h-5 w-5" />, false, "Charge it on the Yoco machine")
+                : method("card", "Card · tap", <Nfc className="h-5 w-5" />, !online || tapProvider === "EXTERNAL", "Card, phone or watch")}
               {method("external", "Bank terminal", <Landmark className="h-5 w-5" />, !online, "Enter the approval code")}
               {method("cash", "Cash", <Banknote className="h-5 w-5" />, false, "Change calculated")}
               {method("payshap", "PayShap", <QrCode className="h-5 w-5" />, !online, "Instant EFT by QR")}
@@ -284,25 +292,35 @@ export function PaymentSheet({
               </div>
             )}
 
-            {panel === "external" && (
+            {(panel === "external" || panel === "yoco") && (
               <form
                 className="mt-4 space-y-3 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800"
+                data-testid={`${panel}-panel`}
                 onSubmit={(e) => {
                   e.preventDefault();
-                  if (!/^[A-Za-z0-9-]{4,20}$/.test(extRef.trim())) return setError("Enter the approval code printed on the terminal slip");
-                  add({ method: "CARD", amountCents: charge, provider: "EXTERNAL", reference: extRef.trim().toUpperCase(), cardLast4: /^\d{4}$/.test(extLast4) ? extLast4 : undefined });
+                  const r = cardMachineTender(panel === "yoco" ? "YOCO" : "EXTERNAL", charge, extRef, extLast4);
+                  if ("error" in r) return setError(r.error);
+                  add(r.tender);
                   setExtRef("");
                   setExtLast4("");
                 }}
               >
                 <p className="text-sm text-ink-300">
-                  Charge <b className="text-white">{zar(charge)}</b> on the bank&apos;s card machine, then key in its approval code.
+                  {panel === "yoco" ? (
+                    <>
+                      Charge <b className="text-white">{zar(charge)}</b> on the Yoco card machine. Once it&apos;s approved, key in the reference the machine shows.
+                    </>
+                  ) : (
+                    <>
+                      Charge <b className="text-white">{zar(charge)}</b> on the bank&apos;s card machine, then key in its approval code.
+                    </>
+                  )}
                 </p>
                 <div className="grid grid-cols-[1fr_7rem] gap-2">
-                  <Field label="Approval / auth code" htmlFor="ext-ref">
-                    <TextInput id="ext-ref" autoComplete="off" value={extRef} onChange={(e) => setExtRef(e.target.value)} className="font-mono uppercase" />
+                  <Field label={panel === "yoco" ? "Yoco reference" : "Approval / auth code"} htmlFor="ext-ref">
+                    <TextInput id="ext-ref" autoComplete="off" value={extRef} onChange={(e) => setExtRef(e.target.value)} className={cn("font-mono", panel === "external" && "uppercase")} />
                   </Field>
-                  <Field label="Card last 4" htmlFor="ext-4">
+                  <Field label={panel === "yoco" ? "Last 4 (optional)" : "Card last 4"} htmlFor="ext-4">
                     <TextInput id="ext-4" inputMode="numeric" maxLength={4} value={extLast4} onChange={(e) => setExtLast4(e.target.value.replace(/\D/g, ""))} />
                   </Field>
                 </div>

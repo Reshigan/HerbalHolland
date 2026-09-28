@@ -23,7 +23,8 @@ import { PhoneAuth } from "@/components/shop/phone-auth";
 import { VerifyAge } from "@/components/shop/verify-age";
 import { fmtWhen } from "@/components/shop/launch-cards";
 import { Callout, Container, Panel } from "@/components/shop/ui";
-import { distanceKm } from "@/lib/routing";
+import { onlineGateway } from "@/server/payments";
+import { distanceKm, offeredFulfilment } from "@/lib/routing";
 import { PROVINCES } from "@/lib/sa";
 import { zar } from "@/lib/money";
 import { opensFor } from "@/lib/drops";
@@ -90,6 +91,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
   });
   const needsAge = comps.some((c) => c.blocks.some((b) => AGE_BLOCK.test(b)));
   const eligibleBase = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
+  // Only what some store can serve: no trading store yet (launch) → courier delivery only, from the distribution centre.
+  const offered = offeredFulfilment(cands);
   const options: FulfilOption[] = keys.map((k, i) => {
     const blocks = comps[i].blocks.filter((b) => !AGE_BLOCK.test(b));
     // Made-to-order merch is couriered by the merch partner, so a bag with merch goes by courier.
@@ -105,7 +108,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       feeCents: fees[i],
       maxPoints: redeemablePoints({ balance: customer.points, eligibleCents: eligibleBase + fees[i], maxPct: settings.loyalty.maxRedeemPct, min: settings.loyalty.minRedeem }),
     };
-  });
+  }).filter((o) => offered.options.includes(o.key));
   // A licensed-product problem (e.g. quantity headroom) applies to every channel — show it once, clearly.
   const shared = options.every((o) => !o.ok) ? comps[0].blocks.find((b) => !AGE_BLOCK.test(b)) ?? null : null;
 
@@ -165,6 +168,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       ))}
       <CheckoutForm
         options={options}
+        deliveryOnly={offered.deliveryOnly}
+        onlineNote={onlineGateway() === "YOCO" ? "Card or Instant EFT, secured by Yoco" : "Card, Instant EFT or PayShap"}
         stores={collect}
         defaultStoreId={defaultStore?.id ?? null}
         lines={q.lines.map((l) => ({ variantId: l.variantId, name: l.productName, variant: l.variantName, qty: l.qty, totalCents: l.totalCents }))}

@@ -1,11 +1,30 @@
 // herbalholland.com — the real-world facts the pages use, and only these. The site builds without a database, so
 // nothing here comes from the platform's demo data or seed: no demo registration numbers, addresses or partners.
 // Change a fact here and rebuild (npx tsx sites/herbalholland.com/build.ts); the words around it live in ./content.
+import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
 /** A place on the globe, in decimal degrees (north and east positive). */
 export type Place = { name: string; lat: number; lon: number };
 
-export type Store = { key: "hillcrest" | "hilton"; name: string; province: string; opens: string; trading: boolean };
+/**
+ * A store. One line each in `stores`, and everything follows from the list: the home page's globe pins and map, the
+ * store pages, the first-stores story and every count and date the site mentions.
+ */
+export type Store = {
+  /** Stable id, and the store's anchor on /stores (/stores#hillcrest). */
+  key: string;
+  /** The store's name, as on its sign. */
+  name: string;
+  /** The town or city it's in. */
+  city: string;
+  province: ProvinceCode;
+  /** Where it is, in decimal degrees, for the map and the globe. */
+  lat: number;
+  lon: number;
+  /** Its opening day, YYYY-MM-DD. */
+  opens: string;
+  status: "opening" | "open";
+};
 
 /**
  * The online shop and Herbal Holland Rewards. While `url` is null neither is live: every "Shop online", "Join Rewards"
@@ -34,20 +53,38 @@ export const FACTS = {
   /** The Information Officer (POPIA, and PAIA requests), reached at email.hello. */
   officer: "Reshigan Govender",
 
-  /** The first two stores: both in KwaZulu-Natal, both opening on the same day. None is trading yet. */
+  /**
+   * Every store, in the order the site lists them. The first two open on the same day in the KwaZulu-Natal hills.
+   * Hilton's point is the town's own (OpenStreetMap), which gives the published 9,438 km from Amsterdam and 51 km
+   * from Hillcrest. Adding a store is one line here.
+   */
   stores: [
-    { key: "hillcrest", name: "Hillcrest", province: "KwaZulu-Natal", opens: "2026-12-01", trading: false },
-    { key: "hilton", name: "Hilton", province: "KwaZulu-Natal", opens: "2026-12-01", trading: false },
+    { key: "hillcrest", name: "Hillcrest", city: "Hillcrest", province: "KZN", lat: -29.781, lon: 30.7596, opens: "2026-12-01", status: "opening" },
+    { key: "hilton", name: "Hilton", city: "Hilton", province: "KZN", lat: -29.5522, lon: 30.3017, opens: "2026-12-01", status: "opening" },
   ] as Store[],
-  opening: "2026-12-01", // Tuesday 1 December 2026
-  kmBetweenStores: 51, // Hillcrest to Hilton, about
 
-  /** Amsterdam to our first store, by great circle. */
+  /** Where the story starts. */
   places: {
     amsterdam: { name: "Amsterdam", lat: 52.3676, lon: 4.9041 },
-    hillcrest: { name: "Hillcrest", lat: -29.781, lon: 30.7596 },
   } satisfies Record<string, Place>,
-  km: { hillcrest: 9475, hilton: 9438 },
+  /** Published distances, by great circle: from Amsterdam to a store (by key), and between the first two stores. The
+   *  build checks each against the coordinates above. */
+  km: { hillcrest: 9475, hilton: 9438 } as Record<string, number>,
+  kmBetweenStores: 51,
+
+  /**
+   * Where each category on the home page's shelf opens in the online shop once it's live: the shop's category slugs.
+   * Check them against the live catalogue when the shop opens.
+   */
+  shelf: {
+    cbd: "/shop?category=wellness",
+    food: "/shop?category=coffee-drinks",
+    skin: "/shop?category=skin-care",
+    supplements: "/shop?category=collagen-supplements",
+    accessories: "/shop?category=accessories",
+    apparel: "/shop?category=apparel",
+    grow: "/shop?category=grow",
+  } as Record<string, string>,
 
   /** Founding Members: the first 2,026 members of Herbal Holland Rewards. Joining is free, adults 18+. */
   founding: {
@@ -81,6 +118,31 @@ export const shortDay = (day: string) => {
   const [, m, d] = day.split("-").map(Number);
   return `${d} ${MONTHS[m - 1].slice(0, 3)}`;
 };
+
+// ── From the stores list ─────────────────────────────────────────────────────
+const byDay = (a: Store, b: Store) => a.opens.localeCompare(b.opens);
+
+/** Stores that are open, and stores still to open, each soonest first. */
+export const openStores = () => FACTS.stores.filter((s) => s.status === "open").sort(byDay);
+export const openingStores = () => FACTS.stores.filter((s) => s.status === "opening").sort(byDay);
+
+/** The next opening day (YYYY-MM-DD), or null when every store is open. */
+export const nextOpening = () => openingStores()[0]?.opens ?? null;
+
+/** The first chapter: the stores that opened (or open) on the network's first day. */
+export const firstStores = () => {
+  const day = [...FACTS.stores].sort(byDay)[0]?.opens;
+  return FACTS.stores.filter((s) => s.opens === day);
+};
+
+/** Provinces with a store, in the order they first appear in the list. */
+export const storeProvinces = (stores: readonly Store[] = FACTS.stores) => [...new Set(stores.map((s) => s.province))];
+
+/** "KwaZulu-Natal", "Gauteng and KwaZulu-Natal", "Gauteng, Western Cape and KwaZulu-Natal". */
+export const provinceNames = (codes: readonly ProvinceCode[]) => listOf(codes.map((c) => PROVINCES[c]));
+
+/** "Hillcrest", "Hillcrest and Hilton", "Hillcrest, Hilton and Durban". */
+export const listOf = (items: readonly string[]) => (items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} and ${items[items.length - 1]}`);
 
 /** Great-circle distance in km (mean Earth radius), to check the published figures against the coordinates. */
 export function greatCircleKm(a: { lat: number; lon: number }, b: { lat: number; lon: number }) {

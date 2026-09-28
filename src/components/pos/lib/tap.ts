@@ -1,8 +1,9 @@
-// Card-present payments ("tap on glass"). One interface, three providers:
+// Card-present payments ("tap on glass"). One interface, two tap providers:
 //   SIMULATED     — demo flow that approves (or declines on request) after a short tap animation
 //   HALO_APPLINK  — Halo Dot Halo.Link: the server creates a session (payments.createHaloSession)
 //                   and the till hands over to the Halo app via the returned app link
-//   EXTERNAL      — a separate bank terminal; the cashier keys in its auth code (see payment sheet)
+// Stand-alone machines don't come through here: with YOCO (the store's Yoco card machine) or EXTERNAL (a bank
+// terminal) the cashier charges the machine and keys in its reference on the payment sheet (rules.cardMachineTender).
 import { api } from "./api";
 import type { TapProviderKind } from "@/server/pos/types";
 

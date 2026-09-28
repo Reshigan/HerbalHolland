@@ -5,7 +5,7 @@ import { REG_CLASSES } from "@/lib/compliance";
 import type { Prisma, ProductStatus, RegClass, StoreFormat } from "@/generated/prisma/client";
 
 export const PRODUCT_STATUSES: ProductStatus[] = ["ACTIVE", "DRAFT", "ARCHIVED"];
-export const LINES = ["HOUSE", "HERITAGE", "CLASSIC", "RESERVE", "PARTNER"] as const;
+export { PRODUCT_LINES as LINES } from "@/lib/catalogue-import";
 export { REG_CLASSES };
 
 export type CatalogueFilters = { q?: string; category?: string; cls?: string; status?: string; flag?: string };

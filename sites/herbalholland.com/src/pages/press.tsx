@@ -2,7 +2,7 @@
 // the media contact, logo downloads and notes on how to write about us.
 import { num } from "@/lib/format";
 import { BRAND, EMAIL, PRESS, fill, releasesOn } from "../../content";
-import { FACTS, longDate, shopLink } from "../../facts";
+import { FACTS, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, shopLink, storeProvinces } from "../../facts";
 import { AgeBadge, cx } from "../art";
 import { Page, site } from "../layout";
 import { Btn, Head, Icon, MailTo, Soon } from "../ui";
@@ -13,18 +13,23 @@ export function PressPage() {
   const releases = releasesOn(site.day);
   const shop = shopLink("/");
   const c = FACTS.company;
-  const stores = fill(facts.values.opening, {
-    n: FACTS.stores.length,
-    opening: longDate(FACTS.opening),
-    names: FACTS.stores.map((s) => s.name).join(" and "),
-    km: FACTS.kmBetweenStores,
-  });
+  // "2 opening on Tuesday 1 December 2026: Hillcrest and Hilton, in KwaZulu-Natal. More to be announced." Open
+  // stores are counted first once there are any.
+  const soon = openingStores();
+  const next = nextOpening();
+  const stores = [
+    openStores().length ? fill(facts.values.trading, { n: openStores().length }) : "",
+    next ? fill(facts.values.opening, { n: soon.length, opening: longDate(next), names: listOf(soon.map((s) => s.name)), provinces: provinceNames(storeProvinces(soon)) }) : "",
+  ]
+    .filter(Boolean)
+    .join(" · ");
   const rows: [string, React.ReactNode][] = [
     [facts.rows.company, c.legalName ?? BRAND.name],
     [facts.rows.what, facts.values.what],
     [facts.rows.range, facts.values.range],
     [facts.rows.line, BRAND.line],
-    [facts.rows.stores, stores],
+    [facts.rows.stores, stores || facts.values.storesNone],
+    [facts.rows.provinces, provinceNames(storeProvinces())],
     [facts.rows.model, facts.values.model],
     [facts.rows.membership, facts.values.membership],
     [facts.rows.founding, fill(facts.values.founding, { cap: num(FACTS.founding.cap) })],

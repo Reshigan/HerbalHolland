@@ -3,27 +3,80 @@
 Adapters are thin and swappable; the demo runs on simulators. Research, fees and acceptable-use quotes:
 [research/PAYMENTS-LOGISTICS-RESEARCH.md](research/PAYMENTS-LOGISTICS-RESEARCH.md).
 
-## Card present — tap on glass (`src/server/payments.ts`)
+## Card present — the till's card tender (`src/server/payments.ts`, `NEXT_PUBLIC_TAP_PROVIDER`)
 
 | Option | Status | Notes |
 |---|---|---|
-| **Halo Dot Halo.Link** (recommended) | Adapter slot `HALO_APPLINK` | PCI MPoC-certified SoftPOS. Backend creates a session per transaction with **that store's merchant ID** (`/consumer/applink` or `/consumer/intentTransaction`), the POS hands off to Halo.Go and receives the result. Fits multi-owner networks. Android 11+ with Google services; no developer options. |
-| External terminal | Built | Any bank/fintech device the owner already has; the POS records the reference. |
-| Simulated | Default | `NEXT_PUBLIC_TAP_PROVIDER=SIMULATED` — full UI flow for training and demos. |
+| **Yoco card machine, stand-alone** (chosen) | **Built** — `YOCO` | The store's own Yoco machine next to the till. The payment sheet's **Card · Yoco** tells the cashier to charge the amount on the machine, then takes the machine's reference (required) and the card's last 4 (optional), and records `Payment { method: CARD, provider: "YOCO", reference, cardLast4 }` (`cardMachineTender` in `src/components/pos/lib/rules.ts`). The machine has its own connection, so it works while the till is **offline**: the sale queues and syncs like a cash sale. Each store is merchant of record on its own Yoco account. |
+| **Yoco Payment SDK till app** (next) | Planned | An Android till app that drives the Yoco machine itself (`YocoSDK.charge(amountInCents, …)` → `PaymentResult` with `transactionId` / `clientTransactionId`), so nobody keys references and the amount can't be mistyped. Yoco gives SDK integration keys to a limited number of partners: apply through Yoco's SDK integration form; needs a Yoco merchant account and a paired machine. |
+| Halo Dot Halo.Link | Adapter slot `HALO_APPLINK` (kept) | PCI MPoC-certified SoftPOS. Backend creates a session per transaction with **that store's merchant ID** (`/consumer/applink` or `/consumer/intentTransaction`), the POS hands off to Halo.Go and receives the result. Android 11+ with Google services; no developer options. Tap on glass needs a connection. |
+| External terminal | Built — `EXTERNAL` | Any bank/fintech device the owner already has; the POS records the approval code. |
+| Simulated | Default | `NEXT_PUBLIC_TAP_PROVIDER=SIMULATED` — full tap-on-glass UI flow for training and demos. |
 
-**Acceptable use:** Yoco prohibits cannabis and CBD; Peach restricts CBD (prior approval) and prohibits cannabis
-dispensaries; PayFast allows CBD only via EFT; Paystack bans drugs and paraphernalia. Onboard every store as its own
-merchant with an honest description of a **SAHPRA-licensed medical dispensary + CBD/wellness retail** and written
-approval. Never mis-code the MCC.
+Set `NEXT_PUBLIC_TAP_PROVIDER` in the app's runtime environment (the server reads it and sends it to the tills). Don't
+set it where the image is built: Next freezes `NEXT_PUBLIC_` values that exist at build time.
 
-Env: `HALO_API_URL`, `HALO_API_KEY`, per-store merchant IDs (store settings, roadmap field).
+**Acceptable use — clear this with Yoco in writing before go-live.** The owner has chosen Yoco, online and in store.
+Our research ([research/PAYMENTS-LOGISTICS-RESEARCH.md](research/PAYMENTS-LOGISTICS-RESEARCH.md)) found that Yoco's
+published prohibited-business list names cannabis and CBD products, and card-not-present sales by drug stores and
+pharmacies. Describe the business honestly (**SAHPRA-licensed medical dispensary + CBD/wellness retail; licensed THC
+is collect-only, never couriered**) and get Yoco's written approval for each account — Vantax (Pty) Ltd online and
+every store's account in store — before taking live payments. Never mis-code the MCC. For reference: Peach restricts CBD (prior
+approval) and prohibits cannabis dispensaries; PayFast allows CBD only via EFT; Paystack bans drugs and paraphernalia.
 
-## Online payments
+Env: `NEXT_PUBLIC_TAP_PROVIDER`; for Halo also `HALO_API_URL`, `HALO_API_KEY` and per-store merchant IDs (roadmap field).
 
-Slot: `ONLINE_GATEWAY` = `SIMULATED` | `PAYFAST` | `PAYSTACK` | `PEACH` | `OZOW`. Recommended: bank rails first
-(instant EFT, **PayShap Request** via Ozow/Stitch/Peach), cards only with written approval. Each franchisee is merchant
-of record; split payments (PayFast split / Paystack subaccounts) can route the store's share directly. Webhooks call
-`markOrderPaid(orderId, reference)`.
+## Online payments — Yoco Checkout API (built)
+
+`ONLINE_GATEWAY=YOCO` (`SIMULATED`, the default, keeps the demo pay page for demos and tests). One Yoco account for the
+online shop: **Vantax (Pty) Ltd is the merchant**, and the pay page names the HQ company record (the `FRANCHISOR`
+company's legal name) as the payee. The sale still posts at the fulfilling location on dispatch (the distribution
+centre at launch) with an `ONLINE` payment, provider `YOCO`, reference = the Yoco checkout id.
+
+1. **Checkout** places the order (`PENDING_PAYMENT`, stock reserved for `unpaidHoldMinutes`) and sends the member to
+   `/checkout/pay/[orderId]`.
+2. **Pay page** (`payWithYoco` in `src/app/(shop)/checkout/pay/[orderId]/actions.ts` → `yocoCheckoutFor` in
+   `src/server/orders.ts`): `POST https://payments.yoco.com/api/checkouts`, `Authorization: Bearer $YOCO_SECRET_KEY`,
+   `Idempotency-Key: <order id>`, body `{ amount: <amount due in cents, after points>, currency: "ZAR", successUrl,
+   cancelUrl, failureUrl, metadata: { orderId, orderCode }, externalId: <order code> }`. The three URLs are
+   `${APP_URL}/orders/<code>?pay=success|cancelled|failed`. The checkout id is saved as `Order.paymentRef`. Asking again
+   (a retry, or **Try again** after cancelling) sends the same key, and Yoco replays the same checkout (keys live 24 hours;
+   unpaid orders are released long before). Yoco doesn't take payments under R2.00.
+3. The browser then leaves **our** page for the checkout's `redirectUrl` (a script navigation that replaces the pay page
+   in the history). Live payments must come from a verified domain: Yoco checks where the member came from, so keep
+   `Referrer-Policy: strict-origin-when-cross-origin` (next.config.ts) and never send members a raw Yoco link.
+4. **Webhook** `POST /api/payments/yoco` (`src/app/api/payments/yoco/route.ts`): reads the raw body and verifies it the way
+   Yoco documents (Standard Webhooks): `webhook-signature` holds `v1,<base64 HMAC-SHA256>` entries over
+   `${webhook-id}.${webhook-timestamp}.${raw body}`, keyed with the base64-decoded part of `whsec_…` after the prefix;
+   constant-time compare; timestamps more than 5 minutes off are refused (`src/lib/yoco.ts`). Then `applyYocoEvent`:
+   `payment.succeeded` → the order from `metadata.orderId`, whose `paymentRef` must equal `metadata.checkoutId`, and the
+   amount must equal the amount due → `markOrderPaid` (compare-and-set, so a redelivery is a no-op). A mismatch is never
+   marked paid: it's logged as `payment.review` for a person. `payment.failed`, `refund.succeeded`, `refund.failed` about
+   our orders are logged; anything else, or another business's payment on the account, gets 200 and is ignored. Bad
+   signature → 400; no `YOCO_WEBHOOK_SECRET` → 503 (Yoco retries each event for about a day, so nothing is lost while
+   it's set up). Audit entries carry ids, amounts, mode, card scheme + last 4 and reasons only — no keys, signatures or
+   raw bodies.
+5. **Back on the order page:** "Payment received" once the webhook has landed; before that "Waiting for payment
+   confirmation…", refreshing itself every 3 seconds (10 times, then it says we'll SMS); after cancel or failure
+   "Payment cancelled" with **Try again** (same checkout). `successUrl` is never taken as proof of payment.
+6. **Refunds:** cancelling a paid Yoco order (store back office, POS, HQ) first calls
+   `POST https://payments.yoco.com/api/checkouts/{checkoutId}/refund` with the full amount due and
+   `Idempotency-Key: <order id>:refund`. `succeeded` or `pending` → the order is cancelled as `REFUNDED`, with the refund
+   id in its events and the audit entry. Any error → the order isn't cancelled and staff see Yoco's message. If a
+   pending refund later fails (`refund.failed`), the cancelled order goes back to `PAID`, with a note to refund by hand
+   (`payment.refund_failed` in the audit log). Partial refunds: in the Yoco portal. Test keys: Yoco can't refund test
+   payments, so the refund call is skipped (noted on the order).
+
+**Webhook URL to register:** `https://<APP_URL host>/api/payments/yoco` (e.g. `https://herbalholland.co.za/api/payments/yoco`).
+Register it once per mode with that mode's secret key: `POST https://payments.yoco.com/api/webhooks` with
+`{ "name": "herbal-holland", "url": "…/api/payments/yoco" }`. The response's `secret` (`whsec_…`) is shown **once**:
+it's `YOCO_WEBHOOK_SECRET`. Yoco allows 5 webhooks per account; `GET /api/webhooks` lists them.
+
+**Test vs live keys:** `sk_test_…` keys are available at once (Yoco app → Checkout API integration → How to connect →
+Test keys; test card details are on the same page). Test payments don't reach the sales history and can't be refunded.
+`sk_live_…` keys unlock once a domain is verified there (**Verified Domains**), and live payments must start on a
+verified domain. A test and a live webhook have different secrets: switch `YOCO_SECRET_KEY` and `YOCO_WEBHOOK_SECRET`
+together.
 
 ## Couriers
 
@@ -143,8 +196,11 @@ five networks, so they're used by hand, outside this platform.
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
-| `NEXT_PUBLIC_TAP_PROVIDER`, `HALO_API_URL`, `HALO_API_KEY` | Tap on glass |
-| `ONLINE_GATEWAY` | Online payments adapter |
+| `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (default) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL`. Runtime environment only (see Card present) |
+| `HALO_API_URL`, `HALO_API_KEY` | Halo Dot tap on glass (`HALO_APPLINK`) |
+| `ONLINE_GATEWAY` | Online payments: `SIMULATED` (default: demo pay page) \| `YOCO` |
+| `YOCO_SECRET_KEY` | Yoco Checkout API secret key: `sk_test_…` while testing, `sk_live_…` once a domain is verified. Server only |
+| `YOCO_WEBHOOK_SECRET` | The `whsec_…` secret Yoco returned when the webhook (`/api/payments/yoco`) was registered with that same mode's key. Unset: the webhook answers 503 |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |

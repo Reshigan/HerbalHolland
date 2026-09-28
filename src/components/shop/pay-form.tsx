@@ -1,5 +1,6 @@
 "use client";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Building2, CreditCard, Zap } from "lucide-react";
 import type { PayState } from "@/app/(shop)/checkout/pay/[orderId]/actions";
 import { buttonClass } from "@/components/ui/button";
@@ -44,4 +45,36 @@ export function PayForm({ action, amount }: { action: (s: PayState, f: FormData)
       </button>
     </form>
   );
+}
+
+/** Yoco: one button to Yoco's secure page, pressed for the member as the page opens (it stays, with any error, if that fails). */
+export function YocoPayForm({ action, amount }: { action: (s: PayState) => Promise<PayState>; amount: string }) {
+  const [state, submit, pending] = useActionState(action, {});
+  const form = useRef<HTMLFormElement>(null);
+  const started = useRef(false);
+  useEffect(() => {
+    if (started.current) return;
+    started.current = true;
+    form.current?.requestSubmit();
+  }, []);
+  return (
+    <form ref={form} action={submit} className="mt-6 space-y-3">
+      {state.error && <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-100" role="alert">{state.error}</p>}
+      <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
+        {pending ? "Opening Yoco's secure page…" : `Pay ${amount} with Yoco`}
+      </button>
+    </form>
+  );
+}
+
+/** Back from Yoco before its webhook has landed: refresh a few times until the order shows as paid. */
+export function AwaitPayment({ every = 3000, times = 10 }: { every?: number; times?: number }) {
+  const router = useRouter();
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (n >= times) return;
+    const t = setTimeout(() => (router.refresh(), setN(n + 1)), every);
+    return () => clearTimeout(t);
+  }, [n, every, times, router]);
+  return n >= times ? <p className="mt-2">This is taking longer than usual. We&apos;ll SMS you as soon as Yoco confirms your payment, so there&apos;s no need to pay again.</p> : null;
 }

@@ -75,8 +75,7 @@ export const clock = (minutes: number | null | undefined) =>
 /** Comma or newline separated text → trimmed unique values. */
 export const splitList = (raw: string) => [...new Set(raw.split(/[\n,]/).map((s) => s.trim()).filter(Boolean))];
 
-export const slugify = (s: string) =>
-  s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+export { slugify } from "@/lib/format";
 
 /** Builds a query string from params, dropping empty values. */
 export function qs(params: Record<string, string | number | null | undefined>) {

@@ -130,7 +130,7 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
 
       {next.includes("CANCELLED") && (
         <ConfirmAction action={action} label="Cancel order" title="Cancel this order?" confirmLabel="Cancel order" fields={{ to: "CANCELLED" }}>
-          <p>Reserved stock is released and the member is told. Paid orders are marked for refund and points used are returned.</p>
+          <p>Reserved stock is released and the member is told. Paid orders are refunded in full and points used are returned.</p>
           <Field label="Reason (shared with the team)" htmlFor="cancel-note">
             <Input id="cancel-note" name="note" maxLength={300} placeholder="e.g. Member asked to cancel" />
           </Field>

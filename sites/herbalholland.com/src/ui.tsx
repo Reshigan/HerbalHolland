@@ -9,6 +9,7 @@ import {
   CalendarDays,
   CalendarHeart,
   Camera,
+  CreditCard,
   ChartColumn,
   Download,
   FileText,
@@ -16,6 +17,7 @@ import {
   Frame,
   GraduationCap,
   HandCoins,
+  HandHeart,
   Handshake,
   IdCard,
   KeyRound,
@@ -64,7 +66,8 @@ const ICONS: Record<string, LucideIcon> = {
   tills: MonitorSmartphone,
   stock: Truck,
   finance: ChartColumn,
-  rewards: IdCard,
+  rewards: CreditCard,
+  heritage: HandHeart,
   online: Package,
   compliance: BadgeCheck,
   brand: Frame,
@@ -224,6 +227,25 @@ const LINKS: Record<string, () => React.ReactNode> = {
     </a>
   ),
 };
+
+/** Text with each of `names` kept on one line (place names such as "KwaZulu-Natal" shouldn't break at a hyphen). */
+export function Keep({ text, names }: { text: string; names: readonly string[] }) {
+  const words = names.filter(Boolean).map((n) => n.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  if (!words.length) return <>{text}</>;
+  return (
+    <>
+      {text.split(new RegExp(`(${words.join("|")})`)).map((part, i) =>
+        names.includes(part) ? (
+          <span key={i} className="nw">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  );
+}
 
 /** Text with its {link} placeholders turned into links. */
 export function Rich({ text }: { text: string }) {

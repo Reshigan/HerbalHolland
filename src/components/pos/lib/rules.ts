@@ -1,6 +1,7 @@
 // Small pure rules for the till: receipt numbering, cash handling, compliance block
 // types, order SLAs and points redemption. Isomorphic and unit-tested (tests/pos.test.ts).
 import type { BlockKind, CustomerDetail } from "@/server/pos/types";
+import type { QueuedTender } from "./storage";
 
 /** Device-local receipt number, e.g. PTA01-B00042 (store code · device prefix · sequence). */
 export const receiptNumber = (storeCode: string, prefix: string, seq: number) => `${storeCode}-${prefix}${String(seq).padStart(5, "0")}`;
@@ -64,6 +65,18 @@ export const TENDER_LABEL: Record<string, string> = {
   LOYALTY: "Points",
   ONLINE: "Paid online",
 };
+
+/**
+ * A card payment taken on a stand-alone card machine: the store's Yoco machine, or any bank terminal. The cashier charges
+ * the amount on the machine, then keys in its reference (required) and, if they like, the card's last 4 digits. The
+ * machine has its own connection, so the till only records the payment: it works offline and syncs with the sale.
+ */
+export function cardMachineTender(provider: "YOCO" | "EXTERNAL", amountCents: number, reference: string, last4 = ""): { tender: QueuedTender } | { error: string } {
+  const ref = reference.trim().replace(/^#/, "");
+  if (!/^[A-Za-z0-9-]{4,40}$/.test(ref)) return { error: provider === "YOCO" ? "Key in the reference from the Yoco machine" : "Enter the approval code printed on the terminal slip" };
+  if (last4 && !/^\d{4}$/.test(last4)) return { error: "The card's last 4 digits, or leave it blank" };
+  return { tender: { method: "CARD", amountCents, provider, reference: provider === "EXTERNAL" ? ref.toUpperCase() : ref, cardLast4: last4 || undefined } };
+}
 
 /** 082 ••• 1234 — enough for the cashier to confirm who they're serving. */
 export function maskPhone(e164: string) {

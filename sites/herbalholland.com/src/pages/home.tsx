@@ -1,21 +1,36 @@
-// herbalholland.com — the home page: the windmill at sunset over the KwaZulu-Natal hills, the kinetic marquee, the
-// 9,475 km story from Amsterdam, our standards, the numbers, the first two stores, Founding Members and the doors in.
+// herbalholland.com — the home page, brand-first: the storefront at dusk (its sign switches on as the page opens),
+// what Herbal Holland stands for, what's on the shelf, the 9,475 km from Amsterdam to South Africa, the first stores in
+// the KwaZulu-Natal hills, the map of stores as they open across the country, and Founding Members. Every count, date,
+// place and pin comes from the stores list in ../../facts.
 import { num } from "@/lib/format";
-import { BRAND, CHROME, EMAIL, HOME, fill } from "../../content";
-import { FACTS, joinLink, longDate, shopLink, shortDay } from "../../facts";
+import { PROVINCES } from "@/lib/sa";
+import { BRAND, CHROME, EMAIL, HOME, fill, plural } from "../../content";
+import { FACTS, firstStores, greatCircleKm, joinLink, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, shopLink, shortDay, storeProvinces } from "../../facts";
 import { AgeBadge, Globe, Mark, MiniScene, SCENES, Sails, Scene, cx } from "../art";
 import { JoinDoor, Page } from "../layout";
-import { Btn, Head, Icon, Index, Reel, ShopDoor, Soon, Words } from "../ui";
+import { ZaMap } from "../map";
+import { ShelfArt } from "../shelf";
+import { Storefront } from "../storefront";
+import { Btn, Head, Icon, Index, Keep, Reel, Words } from "../ui";
 
-const opening = longDate(FACTS.opening);
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
 export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S")} · ${dms(p.lon, "E", "W")}`;
+
+/** "Our first stores open in KwaZulu-Natal on Tuesday 1 December 2026…", or, once every store is open, the plain line. */
+export function openingLine(soon: string, open: string) {
+  const next = nextOpening();
+  if (!next) return fill(open, { provinces: provinceNames(storeProvinces()) });
+  return fill(soon, { provinces: provinceNames(storeProvinces(openingStores())), opening: longDate(next) });
+}
+
+/** The same line for the page, with province names kept whole across line breaks. */
+export const OpeningLine = ({ soon, open }: { soon: string; open: string }) => <Keep text={openingLine(soon, open)} names={Object.values(PROVINCES)} />;
 
 function Hero() {
   const h = HOME.hero;
   return (
     <section className="hero" data-sp="exit" aria-labelledby="hero-title">
-      <Scene kind="home" spec={SCENES.home} className="hero__scene" />
+      <Storefront className="hero__sf" />
       <div className="wrap hero__in">
         <p className="eyebrow" data-in="1">
           {h.eyebrow}
@@ -24,29 +39,28 @@ function Hero() {
           <Words text={h.title} accent />
         </h1>
         <p className="hero__kicker" data-in="2">
-          {fill(h.kicker, { opening })}
+          <span>
+            <OpeningLine soon={h.kicker} open={h.kickerOpen} />
+          </span>
         </p>
         <div className="ctas" data-in="3">
-          <Btn href="#founding" magnetic>
+          <Btn href="#founding" magnetic className="btn--hero">
             {h.primary}
           </Btn>
-          <Btn href="/about" kind="ghost">
+          <Btn href="/stores" kind="ghost" className="btn--hero">
             {h.secondary}
           </Btn>
         </div>
-      </div>
-      <div className="wrap hero__foot" data-in="4">
-        <p className="hero__age">
+        <p className="hero__age" data-in="4">
           <AgeBadge />
           <span>{h.note}</span>
         </p>
-        <a className="cue" href="#journey">
+      </div>
+      <div className="wrap hero__foot" data-in="4">
+        <a className="cue" href="#brand">
           <span className="cue__line" aria-hidden="true" />
           <span>{h.cue}</span>
         </a>
-        <p className="hero__coords" aria-hidden="true">
-          {coords(FACTS.places.hillcrest)}
-        </p>
       </div>
     </section>
   );
@@ -55,10 +69,10 @@ function Hero() {
 /** What we are, in one sentence, big: each word lights up as it's read on the way down. */
 function Statement() {
   return (
-    <section className="statement" data-sp="center">
+    <section className="statement" id="brand" data-sp="center">
       <div className="wrap">
         <p className="statement__p" data-words="">
-          {HOME.hero.lede.split(" ").map((w, i) => (
+          {HOME.statement.split(" ").map((w, i) => (
             <span key={i} className="sw">
               {w}{" "}
             </span>
@@ -69,25 +83,78 @@ function Statement() {
   );
 }
 
-/** What's in store, by category: big words, each on its own line. Categories only; no products. */
-function Range() {
-  const r = HOME.range;
-  return (
-    <section className="sheet sec range" aria-labelledby="range-title">
-      <div className="wrap split">
-        <Head id="range-title" eyebrow={r.eyebrow} title={r.title} intro={r.intro}>
-          <p className="range__note muted" data-r="">
-            <Icon name="medicines" size={16} /> {r.note}
+/** What Herbal Holland stands for: four cards, each with its own small picture. */
+function Brand() {
+  const b = HOME.brand;
+  const visual: Record<string, React.ReactNode> = {
+    heritage: (
+      <div className="rx" aria-hidden="true">
+        <Mark className="rx__mark" sails="spin" />
+      </div>
+    ),
+    lab: (
+      <div className="lab" aria-hidden="true">
+        <span className="lab__k">
+          {b.demo.label} <em>{b.demo.example}</em>
+        </span>
+        <span className="lab__code">
+          <span data-type="">{b.demo.code}</span>
+          <span className="caret" />
+        </span>
+        <span className="lab__ok">
+          <svg viewBox="0 0 24 24" className="tick" focusable="false">
+            <circle cx="12" cy="12" r="10" />
+            <path d="m7.5 12.5 3 3 6-7" />
+          </svg>
+          {b.demo.check}
+        </span>
+      </div>
+    ),
+    members: (
+      <div className="rx" aria-hidden="true">
+        <Icon name="members" size={30} />
+        <span>{b.members.id}</span>
+      </div>
+    ),
+    rewards: (
+      <div className="rx" aria-hidden="true">
+        <div className="rcard">
+          <Mark className="rcard__mark" />
+          <p className="rcard__t">
+            {BRAND.name}
+            <b>{b.rewards}</b>
           </p>
-        </Head>
-        <ol className="range__list" data-rs="">
-          {r.items.map((it, i) => (
-            <li key={it} className="range__item" data-r="">
-              <Index n={i + 1} />
-              <span className="range__w">{it}</span>
+        </div>
+      </div>
+    ),
+  };
+  return (
+    <section className="sheet sec standards" aria-labelledby="brand-title">
+      <div className="wrap">
+        <div className="split">
+          <Head id="brand-title" eyebrow={b.eyebrow} title={b.title} intro={b.intro} />
+          <div className="split__end" data-r="">
+            <Btn href="/about" kind="dark">
+              {b.cta}
+            </Btn>
+          </div>
+        </div>
+        <ul className="cards" data-rs="">
+          {b.items.map((it, i) => (
+            <li key={it.key} className={cx("card", `card--${it.key}`)} data-tilt="" data-r="">
+              <div className="card__in">
+                <div className="card__top">
+                  <Index n={i + 1} />
+                  <Icon name={it.key} className="card__ico" />
+                </div>
+                <div className="card__vis">{visual[it.key]}</div>
+                <h3 className="card__title">{it.title}</h3>
+                <p className="card__body">{fill(it.body, { cap: num(FACTS.founding.cap) })}</p>
+                <span className="glare" aria-hidden="true" />
+              </div>
             </li>
           ))}
-        </ol>
+        </ul>
       </div>
     </section>
   );
@@ -122,10 +189,83 @@ function Marquee() {
   );
 }
 
+/** On the shelf: a cubby per category, each with one illustrated product on an oak shelf; the shop's door last. */
+function Shelf() {
+  const s = HOME.shelf;
+  const shop = shopLink("/");
+  const Cubby = ({ kind }: { kind: string }) => (
+    <div className="cat__cubby" aria-hidden="true">
+      <span className="cat__plank" />
+      <ShelfArt kind={kind} className="cat__art" />
+    </div>
+  );
+  return (
+    <section className="sheet sec shelf" aria-labelledby="shelf-title">
+      <div className="wrap">
+        <div className="split">
+          <Head id="shelf-title" eyebrow={s.eyebrow} title={s.title} intro={s.intro} />
+          <p className="shelf__note muted" data-r="">
+            <Icon name="medicines" size={16} /> {s.note}
+          </p>
+        </div>
+        <ul className="cats" data-rs="">
+          {s.items.map((it) => {
+            const href = shopLink(FACTS.shelf[it.key] ?? "/shop");
+            return (
+              <li key={it.key} className="cat" data-r="" data-cursor={href ? undefined : CHROME.cursorSoon}>
+                <Cubby kind={it.key} />
+                <h3 className="cat__t">
+                  {href ? (
+                    <a className="stretch" href={href}>
+                      {it.title}
+                    </a>
+                  ) : (
+                    <>
+                      {it.title}
+                      <span className="sr-only">{CHROME.soonSr}</span>
+                    </>
+                  )}
+                </h3>
+                <p className="cat__b">{it.body}</p>
+                {href && (
+                  <span className="cat__go" aria-hidden="true">
+                    {fill(s.go, { name: it.title })} <Icon name="arrow" size={16} />
+                  </span>
+                )}
+              </li>
+            );
+          })}
+          <li className="cat cat--shop" data-r="" data-cursor={shop ? undefined : CHROME.cursorSoon}>
+            <Cubby kind="shop" />
+            <h3 className="cat__t">
+              {shop ? (
+                <a className="stretch" href={shop}>
+                  {s.shop.title}
+                </a>
+              ) : (
+                s.shop.title
+              )}
+            </h3>
+            <p className="cat__b">{shop ? s.shop.body : s.shop.soon}</p>
+            {!shop && (
+              <span className="soon__badge" aria-hidden="true">
+                <span className="soon__dot" />
+                {FACTS.shop.opensLabel}
+              </span>
+            )}
+          </li>
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+/** The 9,475 km story: pinned while an arc draws from Amsterdam to our first store, with a pin for every store. */
 function Journey() {
   const j = HOME.journey;
-  const km = num(FACTS.km.hillcrest);
-  const { amsterdam, hillcrest } = FACTS.places;
+  const first = firstStores()[0];
+  const km = num(FACTS.km[first.key]);
+  const here = coords(first).split(" · ");
   return (
     <section className="story" id="journey" aria-labelledby="story-title" data-story="">
       <div className="story__pin">
@@ -133,7 +273,7 @@ function Journey() {
           <div className="story__head">
             <p className="eyebrow">{j.eyebrow}</p>
             <h2 id="story-title" className="story__title">
-              <span className="sr-only">{fill(j.sr, { km })}</span>
+              <span className="sr-only">{fill(j.sr, { km, city: first.city })}</span>
               <span className="story__big" aria-hidden="true">
                 <span className="story__km" data-km-big="">
                   {km}
@@ -147,16 +287,16 @@ function Journey() {
             <p className="story__lede">{j.lede}</p>
           </div>
           <div className="story__globe">
-            <Globe label={fill(j.caption, { from: coords(amsterdam), to: coords(hillcrest), km })} />
+            <Globe label={fill(j.caption, { from: coords(FACTS.places.amsterdam), to: coords(first), city: first.city, km })} />
           </div>
           <dl className="readout" aria-hidden="true">
             <div>
               <dt>{j.readout.lat}</dt>
-              <dd data-lat="">{coords(hillcrest).split(" · ")[0]}</dd>
+              <dd data-lat="">{here[0]}</dd>
             </div>
             <div>
               <dt>{j.readout.lon}</dt>
-              <dd data-lon="">{coords(hillcrest).split(" · ")[1]}</dd>
+              <dd data-lon="">{here[1]}</dd>
             </div>
             <div>
               <dt>{j.readout.dist}</dt>
@@ -172,7 +312,7 @@ function Journey() {
                   <Index n={i + 1} /> {c.label}
                 </p>
                 <h3 className="chapter__title">{c.title}</h3>
-                <p className="chapter__body">{fill(c.body, { opening, apart: FACTS.kmBetweenStores })}</p>
+                <p className="chapter__body">{c.key === "welcome" ? <OpeningLine soon={c.body} open={HOME.hero.kickerOpen} /> : c.body}</p>
               </li>
             ))}
           </ol>
@@ -189,128 +329,43 @@ function Journey() {
   );
 }
 
-function Standards() {
-  const s = HOME.standards;
-  const visual: Record<string, React.ReactNode> = {
-    lab: (
-      <div className="lab" aria-hidden="true">
-        <span className="lab__k">
-          {s.demo.label} <em>{s.demo.example}</em>
-        </span>
-        <span className="lab__code">
-          <span data-type="">{s.demo.code}</span>
-          <span className="caret" />
-        </span>
-        <span className="lab__ok">
-          <svg viewBox="0 0 24 24" className="tick" focusable="false">
-            <circle cx="12" cy="12" r="10" />
-            <path d="m7.5 12.5 3 3 6-7" />
-          </svg>
-          {s.demo.check}
-        </span>
-      </div>
-    ),
-    members: (
-      <div className="rx" aria-hidden="true">
-        <Icon name="members" size={30} />
-        <span>{s.members.id}</span>
-      </div>
-    ),
-    adults: (
-      <div className="rx" aria-hidden="true">
-        <AgeBadge />
-      </div>
-    ),
-    medicines: (
-      <div className="rx" aria-hidden="true">
-        <Icon name="medicines" size={30} />
-        <span>{s.pharmacist}</span>
-      </div>
-    ),
-  };
-  return (
-    <section className="sheet sec standards" aria-labelledby="standards-title">
-      <div className="wrap">
-        <div className="split">
-          <Head id="standards-title" eyebrow={s.eyebrow} title={s.title} intro={s.intro} />
-          <div className="split__end" data-r="">
-            <Btn href="/about" kind="dark">
-              {s.cta}
-            </Btn>
-          </div>
-        </div>
-        <ul className="cards" data-rs="">
-          {s.items.map((it, i) => (
-            <li key={it.key} className={cx("card", `card--${it.key}`)} data-tilt="" data-r="">
-              <div className="card__in">
-                <div className="card__top">
-                  <Index n={i + 1} />
-                  {it.key === "adults" ? <AgeBadge /> : <Icon name={it.key} className="card__ico" />}
-                </div>
-                <div className="card__vis">{visual[it.key]}</div>
-                <h3 className="card__title">{it.title}</h3>
-                <p className="card__body">{it.body}</p>
-                <span className="glare" aria-hidden="true" />
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
-  );
-}
-
-function Numbers() {
-  const n = HOME.numbers;
-  const year = FACTS.opening.slice(0, 4);
-  const [day, mon] = shortDay(FACTS.opening).split(" ");
-  const value: Record<string, React.ReactNode> = {
-    stores: <Reel value={String(FACTS.stores.length)} />,
-    date: (
-      <>
-        <Reel value={day} /> <span className="stat__unit">{mon}</span>
-      </>
-    ),
-    founding: <Reel value={num(FACTS.founding.cap)} />,
-    km: <Reel value={String(FACTS.kmBetweenStores)} />,
-  };
-  return (
-    <section className="sec numbers" aria-labelledby="numbers-title">
-      <div className="wrap">
-        <Head id="numbers-title" eyebrow={n.eyebrow} title={n.title} />
-        <dl className="stats" data-rs="">
-          {n.items.map((it) => (
-            <div key={it.key} className="stat" data-r="">
-              <dt>{fill(it.label, { year })}</dt>
-              <dd>{value[it.key]}</dd>
-            </div>
-          ))}
-        </dl>
-      </div>
-    </section>
-  );
-}
-
-function Stores() {
-  const s = HOME.stores;
+/** The first chapter: Holland, meet the Hills. The sunset over the hill towns, and a card for each first store. */
+function First() {
+  const f = HOME.first;
+  const stores = firstStores();
+  const opening = longDate(stores[0].opens);
+  const apart = stores.length === 2 ? Math.round(greatCircleKm(stores[0], stores[1])) : 0;
   const cards = [SCENES.storeA, SCENES.storeB];
   return (
-    <section className="sec stores" aria-labelledby="stores-title">
+    <section className="first" id="first" aria-labelledby="first-title">
+      <div className="first__stage" data-sp="cover">
+        <div className="wrap first__in">
+          <p className="eyebrow" data-r="">
+            {f.eyebrow}
+          </p>
+          <h2 id="first-title" className="first__title" data-r="words">
+            <Words text={f.title} accent />
+          </h2>
+          <p className="lede first__lede" data-r="">
+            {fill(f.lede, { names: listOf(stores.map((s) => s.name)), opening })}
+          </p>
+        </div>
+        <Scene kind="first" spec={SCENES.first} className="first__scene" />
+      </div>
       <div className="wrap">
-        <Head id="stores-title" eyebrow={s.eyebrow} title={s.title} intro={s.intro} />
         <div className="stores__grid" data-rs="">
-          {FACTS.stores.map((st, i) => {
-            const c = s.items.find((x) => x.key === st.key)!;
+          {stores.map((st, i) => {
+            const c = f.stores.find((x) => x.key === st.key);
             return (
               <article key={st.key} className={cx("store", `store--${i}`)} data-r="" data-tilt="">
                 <div className="store__in">
-                  <Scene kind={`store${i}`} spec={cards[i]} className="store__art" />
+                  <Scene kind={`store${i}`} spec={cards[i % 2]} className="store__art" />
                   <div className="store__copy">
-                    <p className="eyebrow">{c.area}</p>
+                    {c && <p className="eyebrow">{c.area}</p>}
                     <h3 className="store__name">{st.name}</h3>
-                    <p className="store__line">{c.line}</p>
+                    {c && <p className="store__line">{c.line}</p>}
                     <p className="store__opens">
-                      <Icon name="calendar" size={16} /> {fill(s.opens, { opening })}
+                      <Icon name="calendar" size={16} /> {st.status === "open" ? f.open : fill(f.opens, { opening: longDate(st.opens) })}
                     </p>
                   </div>
                   <span className="glare" aria-hidden="true" />
@@ -318,15 +373,79 @@ function Stores() {
               </article>
             );
           })}
-          <p className="stores__apart" data-r="">
-            <span className="stores__rule" aria-hidden="true" />
-            <span className="stores__km">{fill(s.apart, { km: FACTS.kmBetweenStores })}</span>
-            <span className="stores__rule" aria-hidden="true" />
-          </p>
+          {apart > 0 && (
+            <p className="stores__apart" data-r="">
+              <span className="stores__rule" aria-hidden="true" />
+              <span className="stores__km">{fill(f.apart, { km: apart })}</span>
+              <span className="stores__rule" aria-hidden="true" />
+            </p>
+          )}
         </div>
-        <div className="stores__finder" data-r="">
-          <ShopDoor path="/stores" label={s.finder} kind="btn" />
-          {!shopLink("/stores") && <p className="muted">{s.finderSoon}</p>}
+      </div>
+      <div className="band" aria-hidden="true" />
+    </section>
+  );
+}
+
+/** Opening nationally: the map, the numbers so far, and the door to opening a store. */
+function National() {
+  const n = HOME.national;
+  const opening = openingStores();
+  const open = openStores();
+  const provinces = storeProvinces();
+  const next = nextOpening();
+  const [day, mon] = next ? shortDay(next).split(" ") : ["", ""];
+  return (
+    <section className="sheet sec nation" id="national" aria-labelledby="national-title">
+      <div className="wrap nation__grid">
+        <div className="nation__copy">
+          <Head id="national-title" eyebrow={n.eyebrow} title={n.title} intro={<OpeningLine soon={HOME.hero.kicker} open={HOME.hero.kickerOpen} />} />
+          <p className="nation__body" data-r="">
+            {n.body}
+          </p>
+          <dl className="stats stats--nation" data-rs="">
+            {open.length > 0 && (
+              <div className="stat" data-r="">
+                <dt>{plural(open.length, n.stats.open)}</dt>
+                <dd>
+                  <Reel value={String(open.length)} />
+                </dd>
+              </div>
+            )}
+            {opening.length > 0 && (
+              <div className="stat" data-r="">
+                <dt>{plural(opening.length, n.stats.stores)}</dt>
+                <dd>
+                  <Reel value={String(opening.length)} />
+                </dd>
+              </div>
+            )}
+            <div className="stat" data-r="">
+              <dt>{plural(provinces.length, n.stats.provinces)}</dt>
+              <dd>
+                <Reel value={String(provinces.length)} />
+              </dd>
+            </div>
+            {next && (
+              <div className="stat" data-r="">
+                <dt>{fill(n.stats.day, { year: next.slice(0, 4) })}</dt>
+                <dd>
+                  <Reel value={day} /> <span className="stat__unit">{mon}</span>
+                </dd>
+              </div>
+            )}
+          </dl>
+          <div className="ctas" data-r="">
+            <Btn href="/franchise" kind="dark" magnetic>
+              {n.cta}
+            </Btn>
+            <Btn href="/stores" kind="ghost">
+              {n.all}
+            </Btn>
+          </div>
+        </div>
+        <div className="nation__map" data-r="scale">
+          <ZaMap id="map-home" />
         </div>
       </div>
     </section>
@@ -385,81 +504,6 @@ function Founding() {
   );
 }
 
-function Doors() {
-  const d = HOME.doors;
-  const shop = shopLink("/");
-  const join = joinLink();
-  return (
-    <section className="sheet sec doors" aria-labelledby="doors-title">
-      <div className="wrap">
-        <Head id="doors-title" eyebrow={d.eyebrow} title={d.title} />
-        <ul className="doors__grid" data-rs="">
-          <li className={cx("door", !shop && "door--soon")} data-r="">
-            <DoorTop icon="shop" label={d.shop.label} soon={!shop} />
-            <h3 className="door__title">{shop ? <a href={shop} className="stretch">{d.shop.title}</a> : d.shop.title}</h3>
-            <p className="door__body">{shop ? fill(d.shop.bodyOnline, { shop: new URL(shop).host }) : d.shop.soon}</p>
-            {shop ? <DoorCta label={d.shop.cta} /> : <Soon label={CHROME.cta.shop} className="door__soon" />}
-          </li>
-          <li className={cx("door", !join && "door--soon")} data-r="">
-            <DoorTop icon="join" label={d.join.label} soon={!join} />
-            <h3 className="door__title">{join ? <a href={join} className="stretch">{d.join.title}</a> : d.join.title}</h3>
-            <p className="door__body">{join ? d.join.body : d.join.soon}</p>
-            {join ? <DoorCta label={d.join.cta} /> : <Soon label={CHROME.cta.join} className="door__soon" />}
-          </li>
-          <li className="door door--go" data-r="">
-            <DoorTop icon="franchise" label={d.franchise.label} />
-            <h3 className="door__title">
-              <a href="/franchise" className="stretch">
-                {d.franchise.title}
-              </a>
-            </h3>
-            <p className="door__body">{d.franchise.body}</p>
-            <DoorCta label={d.franchise.cta} />
-          </li>
-        </ul>
-        <div className="more">
-          <p className="eyebrow" data-r="">
-            {HOME.more.eyebrow}
-          </p>
-          <ul className="more__list" data-rs="">
-            {HOME.more.items
-              .filter((i) => i.key !== "franchise")
-              .map((i) => (
-                <li key={i.key} data-r="">
-                  <a href={`/${i.key}`} className="more__link">
-                    <span className="more__t">{i.title}</span>
-                    <span className="more__b">{i.body}</span>
-                    <span className="more__go" aria-hidden="true">
-                      <Icon name="arrow" size={28} />
-                    </span>
-                  </a>
-                </li>
-              ))}
-          </ul>
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function DoorTop({ icon, label, soon }: { icon: string; label: string; soon?: boolean }) {
-  return (
-    <div className="door__top">
-      <span className="door__ico">
-        <Icon name={icon} />
-      </span>
-      <span className="door__label">{label}</span>
-      {soon && <span className="sr-only">{CHROME.soonSr}</span>}
-    </div>
-  );
-}
-
-const DoorCta = ({ label }: { label: string }) => (
-  <span className="door__cta" aria-hidden="true">
-    {label} <Icon name="arrow" size={18} />
-  </span>
-);
-
 export function HomePage() {
   const shop = shopLink("/");
   const org = {
@@ -479,18 +523,18 @@ export function HomePage() {
       availableLanguage: "en",
     })),
   };
+  const description = openingLine(HOME.meta.description, HOME.meta.descriptionOpen);
   return (
-    <Page page="home" meta={{ path: "/", title: HOME.meta.title, description: fill(HOME.meta.description, { opening }), absolute: true }} jsonLd={org}>
+    <Page page="home" meta={{ path: "/", title: HOME.meta.title, description, absolute: true }} jsonLd={org}>
       <Hero />
       <Statement />
-      <Range />
+      <Brand />
       <Marquee />
+      <Shelf />
       <Journey />
-      <Standards />
-      <Numbers />
-      <Stores />
+      <First />
+      <National />
       <Founding />
-      <Doors />
     </Page>
   );
 }

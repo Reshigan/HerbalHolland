@@ -1,5 +1,6 @@
 "use client";
 import { useActionState, useMemo, useState } from "react";
+import Link from "next/link";
 import { AlertTriangle, ArrowRight, Check, CreditCard, IdCard, Lock, MapPin, Store, Truck, Zap } from "lucide-react";
 import { placeOrderAction, type CheckoutState } from "@/app/(shop)/checkout/actions";
 import { buttonClass } from "@/components/ui/button";
@@ -18,9 +19,12 @@ const META: Record<Fulfil, { label: string; icon: React.ReactNode }> = {
   SAME_DAY: { label: "Same-day delivery", icon: <Zap className="h-5 w-5" /> },
   COURIER: { label: "Courier delivery", icon: <Truck className="h-5 w-5" /> },
 };
+const COLS = ["", "sm:grid-cols-2", "sm:grid-cols-2", "sm:grid-cols-3"]; // a lone option keeps a card's width
 
 export function CheckoutForm(props: {
-  options: FulfilOption[];
+  options: FulfilOption[]; // only what some store can serve (never an empty list: courier is always there)
+  deliveryOnly: boolean; // no store trading yet
+  onlineNote: string; // how "Pay online now" pays
   stores: CollectStore[];
   defaultStoreId: string | null;
   lines: SummaryLine[];
@@ -40,7 +44,8 @@ export function CheckoutForm(props: {
 }) {
   const [state, action, pending] = useActionState<CheckoutState, FormData>(placeOrderAction, {});
   const typed = state.values; // the address as typed, after an error (the form resets once the action returns)
-  const first = props.options.find((o) => o.ok)?.key ?? "COLLECT";
+  const first = props.options.find((o) => o.ok)?.key ?? props.options[0].key;
+  const canCollect = props.options.some((o) => o.key === "COLLECT");
   const [fulfilment, setFulfilment] = useState<Fulfil>(first);
   const [storeId, setStoreId] = useState(props.defaultStoreId ?? props.stores.find((s) => s.hasAll)?.id ?? "");
   const [pay, setPay] = useState<"ONLINE" | "IN_STORE">("ONLINE");
@@ -65,7 +70,8 @@ export function CheckoutForm(props: {
           <h2 id="co-how" className="font-display text-xl font-semibold text-white">
             <span className="tnum mr-2 text-brand-500">1</span>How would you like it?
           </h2>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3" role="radiogroup" aria-labelledby="co-how">
+          {props.deliveryOnly && <p className="mt-1 text-sm text-ink-400">Delivery only for now. Our stores open soon.</p>}
+          <div className={cn("mt-4 grid grid-cols-1 gap-3", COLS[props.options.length])} role="radiogroup" aria-labelledby="co-how">
             {props.options.map((o) => {
               const on = o.key === fulfilment;
               return (
@@ -183,10 +189,10 @@ export function CheckoutForm(props: {
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2" role="radiogroup" aria-labelledby="co-pay">
             {(
               [
-                ["ONLINE", "Pay online now", "Card, Instant EFT or PayShap", <CreditCard key="c" className="h-5 w-5" />],
+                ["ONLINE", "Pay online now", props.onlineNote, <CreditCard key="c" className="h-5 w-5" />],
                 ["IN_STORE", "Pay when you collect", "Card or cash at the counter", <Store key="s" className="h-5 w-5" />],
               ] as const
-            ).map(([k, l, sub, icon]) => {
+            ).filter(([k]) => k === "ONLINE" || canCollect).map(([k, l, sub, icon]) => {
               const disabled = k === "IN_STORE" && fulfilment !== "COLLECT";
               const on = payIn === k;
               return (
@@ -307,6 +313,15 @@ export function CheckoutForm(props: {
           </button>
           <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-500">
             <Lock className="h-3.5 w-3.5" /> {fulfilment === "COLLECT" && chosen ? `Collect at ${chosen.name} · ID (18+) required` : "Secure checkout · ID (18+) checked on delivery"}
+          </p>
+          <p className="mt-1 text-center text-xs text-ink-400">
+            <Link href="/legal/returns" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center px-1 underline underline-offset-2 hover:text-white">
+              Returns &amp; refunds
+            </Link>
+            {" · "}
+            <Link href="/legal/delivery" target="_blank" rel="noopener" className="inline-flex min-h-11 items-center px-1 underline underline-offset-2 hover:text-white">
+              Delivery policy
+            </Link>
           </p>
         </div>
       </aside>

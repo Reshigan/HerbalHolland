@@ -8,7 +8,7 @@ export type { TierKey } from "@/lib/loyalty-rules";
 import type { TierKey } from "@/lib/loyalty-rules";
 export type AgeCheckKind = "NONE" | "ID_SIGHTED" | "ID_NUMBER" | "VERIFIED";
 export type TenderMethod = "CARD" | "CASH" | "PAYSHAP" | "EFT";
-export type TapProviderKind = "SIMULATED" | "HALO_APPLINK" | "EXTERNAL";
+export type TapProviderKind = "SIMULATED" | "HALO_APPLINK" | "YOCO" | "EXTERNAL";
 
 export type StaffTile = { id: string; name: string; role: string; canDispense: boolean };
 

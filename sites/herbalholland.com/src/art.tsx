@@ -1,17 +1,48 @@
 // Illustration for herbalholland.com, all SVG and all drawn from the mark: the windmill (ring, tower, four petals),
-// the striped sunset (the Sunset Hoodie print) and KwaZulu-Natal's rolling hills. No photos, no people.
+// the striped sunset (the Sunset Hoodie print), KwaZulu-Natal's rolling hills, the globe and the site's pattern. The
+// storefront (./storefront), the shelf (./shelf) and the map (./map) have their own files. No photos, no people.
 // Colours come from CSS classes (site.css), never from attributes, so every tone stays on the brand tokens.
 import { PETAL } from "@/components/brand/logo";
-import { FACTS } from "../facts";
+import { FACTS, firstStores } from "../facts";
 import { coasts, equator, graticule, ortho, route, routePath, type LL } from "./geo";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
-const r0 = (n: number) => Math.round(n);
+export const r0 = (n: number) => Math.round(n);
+
+// ── The pattern ──────────────────────────────────────────────────────────────
+/**
+ * The site's signature: one small African geometric tile, a beadwork chain of diamonds in cream, orange and charcoal
+ * (after the panel beside the door in the store concept). It frames the 18+ gate and edges the section dividers, the
+ * footer and the shelf; the storefront's panel is the same tile, larger. It tiles both ways. The CSS gets it as a
+ * data: URL (build.ts puts it in place of __PATTERN__); SVG art draws it as a <pattern>. Its colours are the token
+ * values ink-900, ink-50 and brand-500 — the one place colours are written into art rather than set by CSS.
+ */
+export const TILE = [
+  { fill: "#141110", d: "M0 0h24v24H0z" },
+  { fill: "#fbf7f3", d: "M12 3l9 9-9 9-9-9z" },
+  { fill: "#141110", d: "M12 6.5l5.5 5.5-5.5 5.5-5.5-5.5z" },
+  { fill: "#f5913c", d: "M12 9l3 3-3 3-3-3zM0 0h5L0 5zm24 0v5l-5-5zM0 24v-5l5 5zm24 0h-5l5-5z" },
+] as const;
+
+/** The tile as a CSS url() (a data: URL, which the CSP's img-src allows). */
+export const patternUrl = () => {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'>${TILE.map((s) => `<path fill='${s.fill}' d='${s.d}'/>`).join("")}</svg>`;
+  return `url("data:image/svg+xml,${svg.replace(/[<>#]/g, encodeURIComponent)}")`;
+};
+
+/** The tile as an SVG <pattern>, for art. */
+export const TilePattern = ({ id, scale = 1 }: { id: string; scale?: number }) => (
+  <pattern id={id} width="24" height="24" patternUnits="userSpaceOnUse" patternTransform={scale === 1 ? undefined : `scale(${scale})`}>
+    {TILE.map((s) => (
+      <path key={s.d} fill={s.fill} d={s.d} />
+    ))}
+  </pattern>
+);
 
 // ── Hills ────────────────────────────────────────────────────────────────────
 // Rolling hill silhouettes in a 1600 × 1000 scene: overlapping rounded hills (a soft maximum of Gaussian bumps), the
 // "Valley of a Thousand Hills" look. Seeded, so the art is the same on every build.
-function rng(seed: number) {
+export function rng(seed: number) {
   let a = seed;
   return () => {
     a |= 0;
@@ -248,7 +279,8 @@ export function MiniScene({ className }: { className?: string }) {
 
 // Scene set-ups for each page. The home hero is the full picture; page headers get a lower strip at dusk.
 export const SCENES: Record<string, SceneSpec> = {
-  home: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
+  first: { sun: { x: 1150, y: 565, r: 225 }, mill: true },
+  stores: { sun: { x: 860, y: 690, r: 160 }, view: "0 470 1600 530", mill: true, top: true },
   about: { sun: { x: 420, y: 735, r: 150 }, view: "0 470 1600 530", top: true },
   franchise: { sun: { x: 1190, y: 700, r: 175 }, view: "0 470 1600 530", mill: true, top: true },
   press: { sun: { x: 800, y: 770, r: 190 }, view: "0 470 1600 530", top: true },
@@ -269,13 +301,22 @@ const G = { c: [6, 0] as LL, R: 270, lift: 0.12, dots: 56 };
 
 export function Globe({ label }: { label: string }) {
   const P = ortho(G.c, G.R, 300, 300);
+  const first = firstStores()[0];
   const a: LL = [FACTS.places.amsterdam.lat, FACTS.places.amsterdam.lon];
-  const b: LL = [FACTS.places.hillcrest.lat, FACTS.places.hillcrest.lon];
+  const b: LL = [first.lat, first.lon];
   const pts = route(P, a, b, 96, G.lift);
   const dots = route(P, a, b, G.dots, G.lift);
   const pa = P(a);
   const pb = P(b);
   const f = (n: number) => Math.round(n * 10) / 10;
+  // A pin for every store; stores a few pixels apart on the globe share one, and its label names them all.
+  const pins: { x: number; y: number; names: string[]; end: boolean }[] = [];
+  for (const s of FACTS.stores) {
+    const p = P([s.lat, s.lon]);
+    const near = pins.find((q) => Math.hypot(q.x - p.x, q.y - p.y) < 14);
+    if (near) (near.names.push(s.name), (near.end ||= s.key === first.key));
+    else pins.push({ x: p.x, y: p.y, names: [s.name], end: s.key === first.key });
+  }
   return (
     <svg
       className="globe"
@@ -312,13 +353,15 @@ export function Globe({ label }: { label: string }) {
             {FACTS.places.amsterdam.name}
           </text>
         </g>
-        <g className="pin pin--b" transform={`translate(${f(pb.x)} ${f(pb.y)})`}>
-          <circle className="pin__pulse" r="12" />
-          <circle r="5" />
-          <text x="-14" y="30" textAnchor="end">
-            {FACTS.stores.map((s) => s.name).join(" · ")}
-          </text>
-        </g>
+        {pins.map((q) => (
+          <g key={q.names[0]} className={cx("pin", q.end && "pin--b")} transform={`translate(${f(q.end ? pb.x : q.x)} ${f(q.end ? pb.y : q.y)})`}>
+            {q.end && <circle className="pin__pulse" r="12" />}
+            <circle r="5" />
+            <text x={q.end ? -14 : 12} y={q.end ? 30 : 6} textAnchor={q.end ? "end" : "start"}>
+              {q.names.join(" · ")}
+            </text>
+          </g>
+        ))}
         <g className="plane" data-plane="">
           <circle className="plane__ring" r="13" />
           <circle className="plane__dot" r="5.5" />

@@ -46,6 +46,10 @@ export function timeAgo(d: Date | string, now = new Date()) {
 
 export const num = (n: number) => new Intl.NumberFormat("en-US").format(n);
 
+/** "Rooibos & Honey Gummies" → "rooibos-and-honey-gummies" (URL slugs for products, categories, events…). */
+export const slugify = (s: string) =>
+  s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "").replace(/&/g, " and ").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
+
 /** Inclusive date range → [from 00:00 SAST, to+1 00:00 SAST). Accepts YYYY-MM-DD strings. */
 export function rangeFromParams(sp: { from?: string; to?: string }, defaultDays = 30, now = new Date()) {
   const to = sp.to && /^\d{4}-\d{2}-\d{2}$/.test(sp.to) ? sp.to : dayKey(now);

@@ -1,7 +1,7 @@
 // End-to-end test of the HQ console (Playwright + direct DB checks).
 //   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/hq.mjs [outdir]   (seeded demo data)
 // Signs in as the HQ administrator and drives every HQ form through the UI: onboard a store (profile, fees, status,
-// owner) → new product, variants, ranging → batch lab results, quarantine/release → DC orders (approve + ship,
+// owner) → new product, variants, ranging → catalogue import (template → preview → import) → batch lab results, quarantine/release → DC orders (approve + ship,
 // reject, cancel) → recall → compliance rules and licences → pricing → promotions → drops → events → campaigns
 // (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
 // connected) → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
@@ -10,7 +10,8 @@
 // Prints how long each action took, from the click to its visible result.
 import { chromium } from "@playwright/test";
 import pg from "pg";
-import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-hq";
@@ -122,6 +123,9 @@ const T = {
   staffName: `E2E Staffer ${sfx}`,
   staffEmail: `e2e.staff.${sfx}@herbalholland.co.za`,
   annTitle: `E2E notice ${sfx}`,
+  importName: `E2E Import Jar ${sfx}`,
+  importSku: `E2E-${SFX}-IMP`,
+  importFile: `e2e-import-${sfx}.csv`,
   memberEmail: `e2e.member.${sfx}@example.com`,
   dncEmail: `e2e.dnc.${sfx}@example.com`,
 };
@@ -347,6 +351,52 @@ try {
   await catRow().getByRole("button", { name: "Delete" }).click();
   await act("categories.deleteCategory", () => page.getByRole("group", { name: /^Delete E2E Tonics/ }).getByRole("button", { name: "Delete", exact: true }).click(), () => notice(`“${T.categoryName} & more” deleted.`).waitFor());
   assert(!(await one(`select 1 from "Category" where id = $1`, [category.id])), "deleted (it was empty)");
+
+  step(`Catalogue import: download the template, upload three rows (two new, one with an unknown category) with opening stock at ${dc.name}, check the dry run, import`);
+  await open("/hq/catalogue", page.getByRole("link", { name: "Import", exact: true }));
+  await page.getByRole("link", { name: "Import", exact: true }).click();
+  await page.waitForURL(/\/hq\/catalogue\/import$/);
+  const uf = formWith("#import-file");
+  await hydrated(uf);
+  let tpl;
+  await act("catalogue import template (download)", async () => {
+    [tpl] = await Promise.all([page.waitForEvent("download"), page.getByRole("link", { name: "Download the template" }).click()]);
+  }, async () => tpl.saveAs(`${out}/catalogue-template.csv`), { action: false });
+  const header = readFileSync(`${out}/catalogue-template.csv`, "utf8").replace(/^﻿/, "").split(/\r?\n/)[0];
+  const cols = header.split(",");
+  assert(tpl.suggestedFilename() === "herbal-holland_catalogue-import-template.csv" && header.startsWith("sku,product,variant,category,class,rrp_incl_vat,wholesale_excl_vat,cost_excl_vat") && cols.includes("stock"), `template ${tpl.suggestedFilename()}: ${cols.length} columns, required first`);
+  const shelf = (await one(`select name from "Category" order by (slug = 'accessories') desc, "sortOrder" limit 1`)).name;
+  const noSuchCategory = `E2E No Such Category ${sfx}`;
+  const cell = (v = "") => (/[",\r\n]/.test(v) ? `"${v.replaceAll('"', '""')}"` : v);
+  const importRows = [
+    { sku: `${T.importSku}-250`, product: T.importName, variant: "250 ml", category: shelf, class: "ACCESSORY", rrp_incl_vat: "189.00", wholesale_excl_vat: "85.00", cost_excl_vat: "45.00", description: "An airtight glass jar with a bamboo lid, for keeping things fresh.", stock: "12" },
+    { sku: `${T.importSku}-500`, product: T.importName, variant: "500 ml", category: shelf, class: "ACCESSORY", rrp_incl_vat: "R249", wholesale_excl_vat: "112", cost_excl_vat: "60", stock: "6" },
+    { sku: `${T.importSku}-X`, product: `E2E Import Mystery ${sfx}`, variant: "One size", category: noSuchCategory, class: "ACCESSORY", rrp_incl_vat: "99", wholesale_excl_vat: "40", cost_excl_vat: "20", description: "A category that doesn't exist, so this row is refused." },
+  ];
+  const importCsv = [header, ...importRows.map((r) => cols.map((c) => cell(r[c])).join(","))].join("\r\n");
+  await uf.locator("#import-file").setInputFiles({ name: T.importFile, mimeType: "text/csv", buffer: Buffer.from(importCsv) });
+  await uf.locator("#import-at").selectOption(dc.id);
+  await act("catalogueImport.uploadCatalogue (dry run)", () => uf.getByRole("button", { name: "Check the file" }).click(), () => page.getByText(`Unknown category “${noSuchCategory}”`).first().waitFor());
+  const tabCount = async (name) => Number(await page.getByRole("link", { name: new RegExp(`^${name}\\s*\\d+$`) }).locator("span").last().textContent());
+  assert(page.url().includes("file=") && (await tabCount("New")) === 2 && (await tabCount("Errors")) === 1, "dry run: 2 new rows, 1 error (unknown category, never created)");
+  assert(!(await one(`select 1 from "Product" where name = $1`, [T.importName])), "nothing written by the dry run");
+  await shot("catalogue-import-preview");
+  await act("catalogueImport.importCatalogue", () => page.getByRole("button", { name: "Import", exact: true }).click(), () => notice(`Imported: 1 new product, 2 new variants; 18 units of opening stock at ${dc.name}. 1 row with errors was skipped.`).waitFor());
+  const imported = await one(`select p.id, p.status, p."regClass", c.name category from "Product" p join "Category" c on c.id = p."categoryId" where p.name = $1`, [T.importName]);
+  const importedVariants = await q(
+    `select v.sku, v."priceCents", v."wholesaleCents", v."costCents",
+       (select coalesce(sum(sl."onHand"), 0) from "StockLevel" sl where sl."variantId" = v.id and sl."storeId" = $2)::int "atDc",
+       (select count(*) from "StockMovement" m where m."variantId" = v.id and m.type = 'RECEIVE' and m.reason = 'CORRECTION' and m."storeId" = $2)::int moves
+     from "Variant" v where v."productId" = $1 order by v."sortOrder"`,
+    [imported?.id ?? "", dc.id],
+  );
+  assert(
+    imported?.status === "DRAFT" && imported.category === shelf && JSON.stringify(importedVariants.map((v) => [v.sku, v.priceCents, v.wholesaleCents, v.costCents, v.atDc, v.moves])) === JSON.stringify([[`${T.importSku}-250`, 18900, 8500, 4500, 12, 1], [`${T.importSku}-500`, 24900, 11200, 6000, 6, 1]]),
+    `“${T.importName}” created in draft: RRP R189 and R249 in cents; 12 + 6 received at ${dc.code} (reason Correction)`,
+  );
+  const importLog = await one(`select a.data from "AuditLog" a join "Upload" u on u.id = a."entityId" where a.action = 'catalogue.import' and u."fileName" = $1`, [T.importFile]);
+  assert(importLog?.data.created.products === 1 && importLog.data.created.variants === 2 && importLog.data.skipped === 1 && importLog.data.stock?.units === 18 && !(await one(`select 1 from "Category" where name = $1`, [noSuchCategory])), "one catalogue.import audit entry with the counts; the unknown category wasn't created");
+  assert(await page.getByRole("button", { name: "Import", exact: true }).count() === 0 && (await page.getByText(/^Imported \d/).count()) === 1, "the file shows as imported (it can't be imported twice)");
 
   // ── Fixtures (SQL) for the rest of the run ────────────────────────────────
   step(`Fixtures: a batch of ${T.sku} at ${dc.name}, a throwaway member homed at the test store, an unpaid order`);
@@ -1168,6 +1218,14 @@ async function cleanup() {
     await run("variant stats", `delete from "DailyVariantStat" where "variantId" = $1`, [variant.id]);
   }
   await run("product", `delete from "Product" where name = $1`, [T.productName]); // variants and batches go with it
+  const importVariants = `select v.id from "Variant" v join "Product" p on p.id = v."productId" where p.name = $1`;
+  await run("import movements", `delete from "StockMovement" where "variantId" in (${importVariants})`, [T.importName]);
+  await run("import stock", `delete from "StockLevel" where "variantId" in (${importVariants})`, [T.importName]);
+  await run("import product", `delete from "Product" where name = $1`, [T.importName]);
+  for (const u of await q(`select id, key from "Upload" where "fileName" = $1`, [T.importFile]).catch(() => [])) {
+    if (!process.env.S3_BUCKET) rmSync(resolve(process.env.UPLOAD_DIR ?? ".data/uploads", u.key), { force: true });
+    await run("import file", `delete from "Upload" where id = $1`, [u.id]);
+  }
   await run("category", `delete from "Category" where name like $1 and not exists (select 1 from "Product" p where p."categoryId" = "Category".id)`, [`${T.categoryName}%`]);
   if (store) {
     await run("store range", `delete from "StoreVariant" where "storeId" = $1`, [store.id]);

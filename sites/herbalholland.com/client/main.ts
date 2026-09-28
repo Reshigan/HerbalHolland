@@ -217,6 +217,7 @@ function progress() {
       let b: number;
       if (mode === "exit") (a = Math.max(T, T + H - vh)), (b = T + H);
       else if (mode === "enter") (a = T - vh), (b = Math.min(T, T + H - vh));
+      else if (mode === "cover") (a = T - vh), (b = T + H);
       else (a = T - vh / 2), (b = T + H - vh / 2);
       const p = clamp((sy - a) / (b - a || 1)).toFixed(4);
       if (last.get(el) !== p) last.set(el, p), setVar(el, "--p", p);
@@ -225,7 +226,7 @@ function progress() {
   });
 }
 
-// ── The 9,475 km story: pinned while an arc draws from Amsterdam to Hillcrest ────────────────────────────────
+// ── The 9,475 km story: pinned while an arc draws from Amsterdam to our first store ──────────────────────────
 function story() {
   const s = $("[data-story]");
   const svg = s && $<SVGSVGElement>("[data-globe]", s);
@@ -301,7 +302,7 @@ function story() {
     const sc = 1 + 0.5 * z * z * (3 - 2 * z);
     const zt = `translate(${ex}px,${ey}px) scale(${sc.toFixed(4)}) translate(${-ex}px,${-ey}px)`;
     zooms.forEach((z) => (z.style.transform = zt));
-    // Amsterdam leaves the frame as the map closes in on the hills.
+    // Amsterdam leaves the frame as the map closes in on South Africa.
     if (pinA) pinA.style.opacity = clamp(1 - z * 2.5).toFixed(3);
     const k = fmt(Math.round(km * ap));
     if (k !== lastKm) {

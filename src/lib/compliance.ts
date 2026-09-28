@@ -146,6 +146,12 @@ export const THC_CAP_PCT = 0.001;
 /** GN 586 of 2020: CBD food & drink may hold at most 0.0075% CBD, i.e. 0.075 mg per gram (a millilitre counted as a gram). */
 export const cbdFoodLimitMg = (netContent: number) => (netContent * 75) / 1000;
 
+/** Product fields that are compliance master data. */
+export const COMPLIANCE_FIELDS: readonly string[] = ["legalBasis", "cbdMgPerPack", "cbdMgPerDay", "claims", "tobaccoRelated", "netContent", "netUnit", "ingredients", "allergens", "naturalCbd"];
+/** A product edit that changes its class, a compliance field or a CBD class's THC cap is a compliance change (audited as compliance.product). */
+export const complianceChange = (changed: readonly string[], regClass: RegClass) =>
+  changed.some((k) => k === "regClass" || COMPLIANCE_FIELDS.includes(k) || (k === "thcMax" && CBD_CLASSES.includes(regClass)));
+
 const mg = (n: number) => String(Math.round(n * 100) / 100);
 /** "250 g", "1 kg", "50 ml", "1.5 l" — null when no net content is recorded. */
 export function netContentLabel(netContent?: number | null, netUnit?: string | null) {
