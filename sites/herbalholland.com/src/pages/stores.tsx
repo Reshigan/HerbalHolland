@@ -1,12 +1,12 @@
-// herbalholland.com/stores — every store by province with its status, the national map, the store concept (the
-// owner's two renders, cropped to the storefront), the door to opening one, and the early-access sign-up for the online
-// shop, which delivers wherever there's no store yet. All from the stores list in ../../facts; the online shop's store
-// finder (hours and directions) appears here once the shop is live.
+// herbalholland.com/stores — the stores that are open now, then each opening day's; the national map; the store
+// concept (the owner's two renders, cropped to the storefront); the door to opening one; and the early-access sign-up
+// for the online shop, which delivers wherever there's no store yet. All from the stores list in ../../facts, and only
+// what we know: an open store shows its town, and the online shop's store finder (hours and directions) once it's live.
 import { PROVINCES } from "@/lib/sa";
-import { STORES, fill, plural } from "../../content";
-import { FACTS, longDate, shopLink, storeProvinces } from "../../facts";
+import { HOME, STORES, fill, plural } from "../../content";
+import { longDate, openStores, openingStores, shopLink, type Store } from "../../facts";
 import { EarlyAccess } from "../access";
-import { SCENES, Scene } from "../art";
+import { SCENES, Scene, cx } from "../art";
 import { Page, site } from "../layout";
 import { ZaMap } from "../map";
 import { Btn, Head, Icon, ShopNow } from "../ui";
@@ -17,10 +17,17 @@ export function StoresPage() {
   const s = STORES;
   const finder = shopLink("/stores");
   const cards = [SCENES.storeA, SCENES.storeB];
+  // Open now first, then each opening day, soonest first.
+  const open = openStores();
+  const days = [...new Set(openingStores().map((st) => st.opens!))];
+  const groups: { key: string; title: string; stores: Store[] }[] = [
+    ...(open.length ? [{ key: "open", title: s.list.open, stores: open }] : []),
+    ...days.map((d) => ({ key: d, title: fill(s.list.opening, { date: longDate(d) }), stores: openingStores().filter((st) => st.opens === d) })),
+  ];
   let n = 0;
   return (
-    <Page page="stores" meta={{ path: "/stores", title: s.meta.title, description: openingLine(s.meta.description, s.hero.ledeOpen) }}>
-      <PageHero kind="stores" eyebrow={s.hero.eyebrow} title={s.hero.title} lede={<OpeningLine soon={s.hero.lede} open={s.hero.ledeOpen} />}>
+    <Page page="stores" meta={{ path: "/stores", title: s.meta.title, description: `${s.meta.description} ${openingLine(HOME.hero.line)}` }}>
+      <PageHero kind="stores" eyebrow={s.hero.eyebrow} title={s.hero.title} lede={<OpeningLine t={HOME.hero.line} />}>
         <div className="ctas">
           <ShopNow page="stores" magnetic />
         </div>
@@ -31,37 +38,45 @@ export function StoresPage() {
         <div className="wrap nation__grid">
           <div>
             <Head id="list-h" eyebrow={s.list.eyebrow} title={s.list.title} />
-            {storeProvinces().map((p) => {
-              const here = FACTS.stores.filter((st) => st.province === p);
-              return (
-                <section key={p} className="prov" aria-labelledby={`prov-${p}`}>
-                  <h3 id={`prov-${p}`} className="prov__h" data-r="">
-                    {PROVINCES[p]} <span>{plural(here.length, s.list.count)}</span>
-                  </h3>
-                  <ul className="prov__list" data-rs="">
-                    {here.map((st) => {
-                      const i = n++;
-                      return (
-                        <li key={st.key} id={st.key} className="store" data-r="" data-tilt="">
-                          <div className="store__in">
-                            <Scene kind={`store${i}`} spec={cards[i % 2]} className="store__art" />
-                            <div className="store__copy">
-                              <p className="eyebrow">{`${st.city} · ${PROVINCES[st.province]}`}</p>
-                              <h4 className="store__name">{st.name}</h4>
-                              <p className="store__opens">
-                                <Icon name="calendar" size={16} /> {st.status === "open" ? s.card.open : fill(s.card.opens, { opening: longDate(st.opens) })}
+            {groups.map((g) => (
+              <section key={g.key} className="prov" aria-labelledby={`grp-${g.key}`}>
+                <h3 id={`grp-${g.key}`} className="prov__h" data-r="">
+                  {g.title} <span>{plural(g.stores.length, s.list.count)}</span>
+                </h3>
+                <ul className="prov__list" data-rs="">
+                  {g.stores.map((st) => {
+                    const i = n++;
+                    return (
+                      <li key={st.key} id={st.key} className={cx("store", `store--${st.status}`)} data-r="" data-tilt="">
+                        <div className="store__in">
+                          <Scene kind={`store${i}`} spec={cards[i % 2]} className="store__art" />
+                          <div className="store__copy">
+                            <p className="eyebrow">{PROVINCES[st.province]}</p>
+                            <h4 className="store__name">{st.name}</h4>
+                            <p className="store__opens">
+                              <Icon name={st.status === "open" ? "open" : "calendar"} size={16} />{" "}
+                              {st.status === "open" || !st.opens ? s.card.open : fill(s.card.opens, { opening: longDate(st.opens) })}
+                            </p>
+                            {st.status === "open" && (
+                              <p className="store__visit">
+                                {fill(s.card.visit, { town: st.city })}{" "}
+                                {finder && (
+                                  <a className="link" href={finder}>
+                                    {s.card.finder}
+                                  </a>
+                                )}
                               </p>
-                              <p className="store__owned">{s.card.owned}</p>
-                            </div>
-                            <span className="glare" aria-hidden="true" />
+                            )}
+                            <p className="store__owned">{s.card.owned}</p>
                           </div>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </section>
-              );
-            })}
+                          <span className="glare" aria-hidden="true" />
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
             {finder && (
               <div className="note stc__finder" data-r="">
                 <h3 className="h3">{s.finder.title}</h3>

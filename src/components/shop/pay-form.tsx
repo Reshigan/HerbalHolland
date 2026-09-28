@@ -5,6 +5,7 @@ import { Building2, CreditCard, Zap } from "lucide-react";
 import type { PayState } from "@/app/(shop)/checkout/pay/[orderId]/actions";
 import { buttonClass } from "@/components/ui/button";
 import { cn } from "@/lib/cn";
+import { possessive } from "@/lib/online-payments";
 
 const METHODS = [
   { key: "EFT", label: "Instant EFT", sub: "Pay from your banking app", icon: <Building2 className="h-5 w-5" /> },
@@ -47,8 +48,8 @@ export function PayForm({ action, amount }: { action: (s: PayState, f: FormData)
   );
 }
 
-/** Yoco: one button to Yoco's secure page, pressed for the member as the page opens (it stays, with any error, if that fails). */
-export function YocoPayForm({ action, amount }: { action: (s: PayState) => Promise<PayState>; amount: string }) {
+/** Peach Payments or Yoco: one button to the gateway's secure page, pressed for the member as the page opens (it stays, with any error, if that fails). */
+export function HostedPayForm({ action, amount, gateway }: { action: (s: PayState) => Promise<PayState>; amount: string; gateway: string }) {
   const [state, submit, pending] = useActionState(action, {});
   const form = useRef<HTMLFormElement>(null);
   const started = useRef(false);
@@ -61,14 +62,14 @@ export function YocoPayForm({ action, amount }: { action: (s: PayState) => Promi
     <form ref={form} action={submit} className="mt-6 space-y-3">
       {state.error && <p className="rounded-xl border border-rose-500/40 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-100" role="alert">{state.error}</p>}
       <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
-        {pending ? "Opening Yoco's secure page…" : `Pay ${amount} with Yoco`}
+        {pending ? `Opening ${possessive(gateway)} secure page…` : `Pay ${amount} with ${gateway}`}
       </button>
     </form>
   );
 }
 
-/** Back from Yoco before its webhook has landed: refresh a few times until the order shows as paid. */
-export function AwaitPayment({ every = 3000, times = 10 }: { every?: number; times?: number }) {
+/** Back from the gateway before its webhook has landed: refresh a few times until the order shows as paid. */
+export function AwaitPayment({ gateway, every = 3000, times = 10 }: { gateway: string; every?: number; times?: number }) {
   const router = useRouter();
   const [n, setN] = useState(0);
   useEffect(() => {
@@ -76,5 +77,5 @@ export function AwaitPayment({ every = 3000, times = 10 }: { every?: number; tim
     const t = setTimeout(() => (router.refresh(), setN(n + 1)), every);
     return () => clearTimeout(t);
   }, [n, every, times, router]);
-  return n >= times ? <p className="mt-2">This is taking longer than usual. We&apos;ll SMS you as soon as Yoco confirms your payment, so there&apos;s no need to pay again.</p> : null;
+  return n >= times ? <p className="mt-2">This is taking longer than usual. We&apos;ll SMS you as soon as {gateway} confirms your payment, so there&apos;s no need to pay again.</p> : null;
 }

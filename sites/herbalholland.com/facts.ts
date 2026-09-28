@@ -7,8 +7,9 @@ import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 export type Place = { name: string; lat: number; lon: number };
 
 /**
- * A store. One line each in `stores`, and everything follows from the list: the home page's globe pins and map, the
- * store pages, the first-stores story and every count and date the site mentions.
+ * A store. One line each in `stores`, and everything follows from the list: the globe's pins and the map, /stores, the
+ * new-stores chapter, and every count, place and date the site mentions. Only what we know goes in: the town, never
+ * an address, hours or phone number we haven't been given.
  */
 export type Store = {
   /** Stable id, and the store's anchor on /stores (/stores#hillcrest). */
@@ -21,14 +22,14 @@ export type Store = {
   /** Where it is, in decimal degrees, for the map and the globe. */
   lat: number;
   lon: number;
-  /** Its opening day, YYYY-MM-DD. */
-  opens: string;
+  /** Its opening day, YYYY-MM-DD: required while it's "opening"; left out for a store that's open when we don't have it. */
+  opens?: string;
   status: "opening" | "open";
 };
 
 /**
- * The online shop and Herbal Holland Rewards. While `url` is null neither is live: every "Shop online", "Join Rewards"
- * and store-finder door on the site shows an "opening soon" state instead of a link. Set it (e.g.
+ * The online shop and Herbal Holland Rewards. While `url` is null neither is live: every "Shop online" leads to the
+ * early-access sign-up, and "Join Rewards" and the store finder show an "opening soon" state. Set it (e.g.
  * "https://herbalholland.co.za") and those doors link there; joining goes to `${url}/club/join?src=site`.
  */
 export type Shop = { url: string | null; opensLabel: string };
@@ -54,11 +55,15 @@ export const FACTS = {
   officer: "Reshigan Govender",
 
   /**
-   * Every store, in the order the site lists them. The first two open on the same day in the KwaZulu-Natal hills.
-   * Hilton's point is the town's own (OpenStreetMap), which gives the published 9,438 km from Amsterdam and 51 km
-   * from Hillcrest. Adding a store is one line here.
+   * Every store, in the order the site lists them. Pietermaritzburg and Umhlanga are open (we have no opening dates,
+   * addresses or hours for them, so none are shown); Hillcrest and Hilton, two new stores in the KwaZulu-Natal hills,
+   * open on the same day. The open stores' points are their towns' own (OpenStreetMap: Pietermaritzburg, and Umhlanga
+   * Rocks), as is Hilton's, which gives the published 9,438 km from Amsterdam and 51 km from Hillcrest. Adding a store
+   * is one line here.
    */
   stores: [
+    { key: "pietermaritzburg", name: "Pietermaritzburg", city: "Pietermaritzburg", province: "KZN", lat: -29.6, lon: 30.3789, status: "open" },
+    { key: "umhlanga", name: "Umhlanga", city: "Umhlanga", province: "KZN", lat: -29.73, lon: 31.0828, status: "open" },
     { key: "hillcrest", name: "Hillcrest", city: "Hillcrest", province: "KZN", lat: -29.781, lon: 30.7596, opens: "2026-12-01", status: "opening" },
     { key: "hilton", name: "Hilton", city: "Hilton", province: "KZN", lat: -29.5522, lon: 30.3017, opens: "2026-12-01", status: "opening" },
   ] as Store[],
@@ -67,8 +72,8 @@ export const FACTS = {
   places: {
     amsterdam: { name: "Amsterdam", lat: 52.3676, lon: 4.9041 },
   } satisfies Record<string, Place>,
-  /** Published distances, by great circle: from Amsterdam to a store (by key), and between the first two stores. The
-   *  build checks each against the coordinates above. */
+  /** Published distances, by great circle: from Amsterdam to a store (by key), and between the two new stores (the
+   *  next opening day's). The build checks each against the coordinates above. */
   km: { hillcrest: 9475, hilton: 9438 } as Record<string, number>,
   kmBetweenStores: 51,
 
@@ -120,19 +125,24 @@ export const shortDay = (day: string) => {
 };
 
 // ── From the stores list ─────────────────────────────────────────────────────
-const byDay = (a: Store, b: Store) => a.opens.localeCompare(b.opens);
+/** Soonest first; a store without a date (open before we had one) keeps its place in the list, ahead of dated ones. */
+const byDay = (a: Store, b: Store) => (a.opens ?? "").localeCompare(b.opens ?? "");
 
-/** Stores that are open, and stores still to open, each soonest first. */
-export const openStores = () => FACTS.stores.filter((s) => s.status === "open").sort(byDay);
+/** Stores that are open (in the list's order), and stores still to open (soonest first). */
+export const openStores = () => FACTS.stores.filter((s) => s.status === "open");
 export const openingStores = () => FACTS.stores.filter((s) => s.status === "opening").sort(byDay);
 
 /** The next opening day (YYYY-MM-DD), or null when every store is open. */
 export const nextOpening = () => openingStores()[0]?.opens ?? null;
 
-/** The first chapter: the stores that opened (or open) on the network's first day. */
-export const firstStores = () => {
-  const day = [...FACTS.stores].sort(byDay)[0]?.opens;
-  return FACTS.stores.filter((s) => s.opens === day);
+/**
+ * The new stores: the ones opening on the next opening day (Hillcrest and Hilton, in the hills) — or, once every store
+ * is open, the ones that opened last. The home page's "Holland, meet the Hills." chapter and the km story are theirs.
+ */
+export const newStores = () => {
+  const next = nextOpening();
+  const day = next ?? [...FACTS.stores].filter((s) => s.opens).sort(byDay).at(-1)?.opens;
+  return FACTS.stores.filter((s) => s.opens && s.opens === day);
 };
 
 /** Provinces with a store, in the order they first appear in the list. */

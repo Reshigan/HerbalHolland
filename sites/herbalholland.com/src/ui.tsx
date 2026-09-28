@@ -3,6 +3,7 @@
 import {
   ArrowRight,
   ArrowUpRight,
+  CircleCheck,
   BadgeCheck,
   Boxes,
   Building2,
@@ -57,6 +58,7 @@ const ICONS: Record<string, LucideIcon> = {
   mail: Mail,
   download: Download,
   calendar: CalendarDays,
+  open: CircleCheck,
   operator: Store,
   capital: HandCoins,
   standing: UsersRound,

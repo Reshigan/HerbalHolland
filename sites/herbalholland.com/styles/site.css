@@ -415,6 +415,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .store__name { font: 600 clamp(2.4rem, 5vw, 4rem)/.95 var(--display); letter-spacing: -.045em; color: var(--ink-50); }
 .store__line { font: clamp(1.05rem, 1.4vw, 1.25rem)/1.4 var(--display); color: var(--ink-200); }
 .store__opens { gap: .5rem; margin-top: .35rem; font-size: .9rem; font-weight: 500; color: var(--brand-400); }
+.store__visit { font-size: .95rem; color: var(--ink-200); }
 .store__owned { font-size: .85rem; color: var(--ink-400); }
 .stores__apart { justify-content: center; gap: 1rem; color: var(--ink-300); }
 .stores__rule { flex: 1; border-top: 1px dashed var(--brand-700); }
@@ -432,7 +433,10 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 /* ── Opening nationally, the store map and /stores ─────────────────────── */
 .nation__grid { display: grid; gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
 @media (min-width: 960px) { .nation__grid { grid-template-columns: 1fr 1.1fr; } }
-.nation__body { max-width: 34rem; margin-block: 1.25rem 2rem; }
+.nation__body { max-width: 34rem; margin-top: 1.25rem; }
+.stats--nation { grid-template-columns: repeat(3, minmax(0, 1fr)); margin-block: 2rem 2.25rem; padding-top: 1.75rem; border-color: var(--hair); }
+.sheet .stat dd { font-size: clamp(2.6rem, 4.6vw, 4.4rem); color: var(--ink-950); }
+.sheet .stat dt { color: var(--ink-600); }
 .za { display: grid; gap: .9rem; }
 .za__map { width: 100%; height: auto; overflow: visible; }
 .za__p { fill: var(--ink-150); stroke: var(--ink-50); stroke-width: 2.4; stroke-linejoin: round; }
@@ -441,15 +445,18 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 .za__names text { font: 600 16px var(--display); letter-spacing: .14em; text-transform: uppercase; fill: var(--ink-500); text-anchor: middle; }
 .za__names .on { fill: var(--brand-800); }
 .za__names .za__nbname { font-weight: 500; letter-spacing: .04em; text-transform: none; fill: var(--ink-400); }
+/* Open: a solid pin. Still to open: a ring. The key says which is which, in words. */
 .za-pin__dot { fill: var(--brand-500); stroke: var(--ink-950); stroke-width: 3; }
 .za-pin--opening .za-pin__dot { fill: var(--ink-50); stroke: var(--brand-600); stroke-width: 5; }
 .za-pin__pulse { fill: none; stroke: var(--brand-500); stroke-width: 2.5; transform-box: fill-box; transform-origin: center; animation: pin 2.6s var(--ease) infinite; }
 .za-pin__name { font: 700 22px var(--display); fill: var(--ink-950); paint-order: stroke; stroke: var(--ink-50); stroke-width: 6px; stroke-linejoin: round; }
-.za__key { display: flex; flex-wrap: wrap; gap: .4rem 1.25rem; font: 500 .82rem var(--display); color: var(--ink-600); }
-.za__k { display: inline-flex; align-items: center; gap: .5rem; }
-.za__k::before { content: ""; width: .75rem; height: .75rem; border-radius: 50%; background: var(--brand-500); }
-.za__k--opening::before { background: var(--ink-50); border: 3px solid var(--brand-600); }
-@media (max-width: 639px) { .za__names text { font-size: 26px; } .za__names .za__nbname { font-size: 21px; } .za-pin__name { font-size: 34px; } }
+.za__key { display: grid; gap: .45rem; font: 500 .86rem/1.4 var(--display); color: var(--ink-600); }
+.za__k { display: flex; align-items: baseline; gap: .55rem; }
+.za__k b { font-weight: 700; color: var(--ink-950); }
+.za__k::before { content: ""; flex: none; width: .8rem; height: .8rem; border-radius: 50%; background: var(--brand-500); box-shadow: 0 0 0 2px var(--ink-950); transform: translateY(.1rem); }
+.za__k--opening::before { background: var(--ink-50); box-shadow: inset 0 0 0 3px var(--brand-600); }
+/* On a small screen the pins' names would crowd the map: the key names the stores instead. */
+@media (max-width: 639px) { .za__names text { font-size: 26px; } .za__names .za__nbname { font-size: 21px; } .za-pin__name { display: none; } }
 .prov { margin-top: clamp(2rem, 4vw, 3rem); }
 .prov__h { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding-bottom: .75rem; border-bottom: 1px solid var(--hair); font: 600 clamp(1.4rem, 2.2vw, 1.9rem)/1.1 var(--display); letter-spacing: -.02em; color: var(--ink-950); }
 .prov__h span { font: 500 .85rem var(--sans); color: var(--ink-500); }
@@ -574,7 +581,7 @@ main > section ~ section, .ftr { content-visibility: auto; contain-intrinsic-siz
 
 .chaps { margin-top: clamp(4rem, 8vw, 7rem); }
 .chaps__list { display: grid; gap: 1rem; margin-top: clamp(2rem, 4vw, 3rem); }
-@media (min-width: 900px) { .chaps__list { grid-template-columns: 1.2fr 1fr; } }
+@media (min-width: 900px) { .chaps__list { grid-template-columns: repeat(3, 1fr); } }
 .chap { overflow: hidden; border-radius: 1.5rem; background: #fff; box-shadow: var(--shadow); }
 .chap__art { display: block; width: 100%; height: 6.5rem; background: radial-gradient(90% 90% at 80% 100%, color-mix(in oklab, var(--brand-800) 45%, var(--ink-950)), var(--ink-950) 75%); }
 .chap__copy { display: grid; gap: .45rem; justify-items: start; padding: 1.15rem 1.3rem 1.4rem; }

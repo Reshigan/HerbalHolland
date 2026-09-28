@@ -3,7 +3,8 @@
 // province map has its own file (./map). No photos, no people.
 // Colours come from CSS classes (site.css), never from attributes, so every tone stays on the brand tokens.
 import { PETAL } from "@/components/brand/logo";
-import { FACTS, firstStores } from "../facts";
+import { PROVINCES } from "@/lib/sa";
+import { FACTS, newStores } from "../facts";
 import { coasts, equator, graticule, ortho, route, routePath, type LL } from "./geo";
 
 export const cx = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(" ");
@@ -292,7 +293,8 @@ const G = { c: [6, 0] as LL, R: 270, lift: 0.12, dots: 56 };
 
 export function Globe({ label }: { label: string }) {
   const P = ortho(G.c, G.R, 300, 300);
-  const first = firstStores()[0];
+  // The story ends at the first of the new stores (Hillcrest, in the hills).
+  const first = newStores()[0] ?? FACTS.stores[0];
   const a: LL = [FACTS.places.amsterdam.lat, FACTS.places.amsterdam.lon];
   const b: LL = [first.lat, first.lon];
   const pts = route(P, a, b, 96, G.lift);
@@ -300,13 +302,14 @@ export function Globe({ label }: { label: string }) {
   const pa = P(a);
   const pb = P(b);
   const f = (n: number) => Math.round(n * 10) / 10;
-  // A pin for every store; stores a few pixels apart on the globe share one, and its label names them all.
-  const pins: { x: number; y: number; names: string[]; end: boolean }[] = [];
+  // A pin for every store; stores a few pixels apart on the globe share one, labelled with their names (two), or with
+  // their province (more).
+  const pins: { x: number; y: number; names: string[]; province: string; end: boolean }[] = [];
   for (const s of FACTS.stores) {
     const p = P([s.lat, s.lon]);
     const near = pins.find((q) => Math.hypot(q.x - p.x, q.y - p.y) < 14);
     if (near) (near.names.push(s.name), (near.end ||= s.key === first.key));
-    else pins.push({ x: p.x, y: p.y, names: [s.name], end: s.key === first.key });
+    else pins.push({ x: p.x, y: p.y, names: [s.name], province: PROVINCES[s.province], end: s.key === first.key });
   }
   return (
     <svg
@@ -349,7 +352,7 @@ export function Globe({ label }: { label: string }) {
             {q.end && <circle className="pin__pulse" r="12" />}
             <circle r="5" />
             <text x={q.end ? -14 : 12} y={q.end ? 30 : 6} textAnchor={q.end ? "end" : "start"}>
-              {q.names.join(" · ")}
+              {q.names.length > 2 ? q.province : q.names.join(" · ")}
             </text>
           </g>
         ))}

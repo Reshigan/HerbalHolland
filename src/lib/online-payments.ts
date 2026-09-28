@@ -42,5 +42,8 @@ const SCHEMES = new Map(
   Object.entries({ visa: "Visa", visaelectron: "Visa Electron", mastercard: "Mastercard", maestro: "Maestro", amex: "Amex", americanexpress: "Amex", diners: "Diners", dinersclub: "Diners" }),
 );
 
+/** "Yoco's page", "Peach Payments' page". */
+export const possessive = (name: string) => `${name}${name.endsWith("s") ? "'" : "'s"}`;
+
 /** Card details we keep: only the scheme and the last four digits. */
 export const cardLabel = (scheme: string | null | undefined, last4: string) => `${SCHEMES.get((scheme ?? "").toLowerCase()) ?? "Card"} •••• ${last4}`;

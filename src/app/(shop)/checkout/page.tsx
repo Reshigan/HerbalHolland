@@ -169,7 +169,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       <CheckoutForm
         options={options}
         deliveryOnly={offered.deliveryOnly}
-        onlineNote={onlineGateway() === "YOCO" ? "Card or Instant EFT, secured by Yoco" : "Card, Instant EFT or PayShap"}
+        onlineNote={onlineGateway() === "PEACH" ? "Card and more, secured by Peach Payments" : onlineGateway() === "YOCO" ? "Card or Instant EFT, secured by Yoco" : "Card, Instant EFT or PayShap"}
         stores={collect}
         defaultStoreId={defaultStore?.id ?? null}
         lines={q.lines.map((l) => ({ variantId: l.variantId, name: l.productName, variant: l.variantName, qty: l.qty, totalCents: l.totalCents }))}

@@ -89,20 +89,29 @@ export const CHROME = {
 export const HOME = {
   meta: {
     title: "Herbal Holland — Dutch heritage. African soil.",
-    description:
-      "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+. Our first stores open in {provinces} on {opening}, with more to be announced.",
-    descriptionOpen: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+, in {provinces}, with more stores to be announced.",
+    // The page description, in the same three states as the hero's line (below).
+    description: {
+      soon: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+, opening in {next} on {opening}, with more to be announced.",
+      both: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+: open now in {open}, and opening in {next} on {opening}. More to be announced.",
+      open: "Herbal Holland is a South African, members-only network of cannabis wellness stores for adults 18+: open in {open}, with more stores to be announced.",
+    },
   },
   hero: {
     eyebrow: "Herbal Holland · South Africa",
     title: ["Holland,", "meet", "South Africa."],
-    kicker: "Our first stores open in {provinces} on {opening}. More stores to be announced.",
-    // Once a store is open.
-    kickerOpen: "Stores open in {provinces}, with more to be announced.",
+    // Where we are, from the stores list: before any store is open, with stores open and more opening, and once every
+    // store is open. {open} and {next} are towns ("Pietermaritzburg and Umhlanga"), {opening} the next opening day.
+    line: {
+      soon: "Opening in {next} on {opening}. More stores to be announced.",
+      both: "Open now in {open}, and opening in {next} on {opening}. More stores to be announced.",
+      open: "Open in {open}, with more stores to be announced.",
+    },
     note: "For adults 18+ only.",
     secondary: "Find a store",
     cue: "Scroll",
   },
+  // Towns in running text: listed by name up to four, then counted ("12 towns in Gauteng and KwaZulu-Natal").
+  towns: "{n} towns in {provinces}",
   // Under the hero: what shopping with us comes with. Plain facts, never an amount or an offer.
   promise: {
     label: "Shopping with Herbal Holland",
@@ -147,11 +156,11 @@ export const HOME = {
   journey: {
     eyebrow: "Amsterdam to South Africa",
     unit: "km",
-    title: "from Amsterdam to our first store",
-    sr: "{km} km — from Amsterdam to our first store, in {city}",
-    lede: "Holland is famously flat, and our first towns are hill towns. This is how the windmill came to South Africa.",
+    title: "from Amsterdam to the hills",
+    sr: "{km} km — from Amsterdam to {city}, one of our new stores in the hills",
+    lede: "Holland is famously flat, and our {count} new stores are in hill towns. This is how the windmill came to the hills.",
     readout: { lat: "Latitude", lon: "Longitude", dist: "Distance" },
-    caption: "A globe showing the great circle from Amsterdam ({from}) to our first store, in {city} ({to}): {km} km, with a pin for each Herbal Holland store.",
+    caption: "A globe showing the great circle from Amsterdam ({from}) to {city} ({to}), one of our new stores: {km} km, with a pin for each Herbal Holland store.",
     chapters: [
       {
         key: "tradition",
@@ -175,7 +184,8 @@ export const HOME = {
         key: "welcome",
         label: "The welcome",
         title: "Welkom. Sawubona.",
-        body: "Our first stores open in {provinces} on {opening}. More stores to be announced.",
+        // The hero's line, as it stands.
+        body: "",
       },
     ],
   },
@@ -195,26 +205,15 @@ export const HOME = {
     members: { id: "Members · ID checked" },
     pharmacist: "Pharmacist",
   },
-  // The first opening day, in numbers (from ./facts).
-  numbers: {
-    eyebrow: "The first chapter",
-    title: "{count} stores, one opening day",
-    // How the title says the number of stores.
-    count: ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten"],
-    items: [
-      { key: "stores", label: "stores opening in {provinces}", done: "stores opened in {provinces}" },
-      { key: "date", label: "{year}: the doors open", done: "{year}: the doors opened" },
-      { key: "founding", label: "Founding Members places" },
-      { key: "km", label: "km between {a} and {b}" },
-    ],
-  },
-  // The first chapter: the stores that open on the first day (for now, the two hill towns).
-  first: {
-    eyebrow: "First stores",
+  // The new stores: the next opening day's (for now, Hillcrest and Hilton, two hill towns).
+  hills: {
+    eyebrow: "New stores",
     title: ["Holland, meet", "the Hills."],
-    lede: "Holland is flat. KwaZulu-Natal isn't. Our first stores open in the hill towns of {names} on {opening}, each owned and run by a local franchisee.",
+    lede: "Holland is famously flat. Our {count} new stores are in hill towns: {names}, opening on {opening}, each owned and run by a local franchisee.",
     // Once they're open.
-    ledeOpen: "Holland is flat. KwaZulu-Natal isn't. Our first stores opened in the hill towns of {names} on {opening}, each owned and run by a local franchisee.",
+    ledeOpen: "Holland is famously flat. Our {count} newest stores are in hill towns: {names}, each owned and run by a local franchisee.",
+    // How the lede says how many.
+    count: ["no", "one", "two", "three", "four", "five", "six"],
     stores: [
       { key: "hillcrest", area: "Upper Highway, eThekwini", line: "From the flatlands to the Valley of a Thousand Hills." },
       { key: "hilton", area: "KZN Midlands", line: "From the polders to the Midlands." },
@@ -228,6 +227,11 @@ export const HOME = {
     eyebrow: "Opening nationally",
     title: "South Africa, one town at a time",
     body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards.",
+    stats: {
+      open: ["store open now", "stores open now"],
+      opening: ["store opening {date}", "stores opening {date}"],
+      provinces: ["province so far", "provinces so far"],
+    },
     cta: "Open the first one in your town",
     all: "See our stores",
   },
@@ -323,25 +327,33 @@ export const ACCESS = {
 export const MAP = {
   caption: "A map of South Africa's nine provinces, with a pin for each Herbal Holland store.",
   neighbours: { LS: "Lesotho", SZ: "Eswatini" },
-  legend: { opening: "Opening {date}", open: "Open" },
+  // The key names the stores, so the pins' shape and colour are never the only way to tell them apart.
+  legend: { open: "Open now", opening: "Opening {date}" },
 } as const;
 
 // ── Stores ───────────────────────────────────────────────────────────────────
 export const STORES = {
   meta: {
     title: "Stores",
-    description: "Herbal Holland stores by province. Our first stores open in {provinces} on {opening}, with more to be announced.",
+    // The stores' line (HOME.hero.line) follows it.
+    description: "Every Herbal Holland store.",
   },
   hero: {
     eyebrow: "Stores",
     title: "Our stores",
-    lede: "Our first stores open in {provinces} on {opening}. More stores to be announced.",
-    ledeOpen: "Stores in {provinces}, with more to be announced.",
     // Beside "Shop online": the shop delivers wherever the stores aren't yet.
     shopNote: "Not near a store yet? Our online shop delivers nationwide.",
   },
-  list: { eyebrow: "By province", title: "Where we're opening", count: ["{n} store", "{n} stores"] },
-  card: { opens: "Opening {opening}", open: "Open", owned: "Owned and run by a local franchisee." },
+  // Open stores first, then each opening day's.
+  list: { eyebrow: "Our stores", title: "Where we are", open: "Open now", opening: "Opening {date}", count: ["{n} store", "{n} stores"] },
+  card: {
+    open: "Open now",
+    opens: "Opening {opening}",
+    // An open store, until the shop's store finder has its hours and directions: the town, nothing we don't know.
+    visit: "Visit us in {town}.",
+    finder: "Hours and directions",
+    owned: "Owned and run by a local franchisee.",
+  },
   finder: { title: "Opening hours and directions", body: "Each store's opening hours and directions are on our online shop's store finder.", cta: "Find a store" },
   map: {
     eyebrow: "Opening nationally",
@@ -388,20 +400,21 @@ export const ABOUT = {
       body: "It's two things at once: a Dutch windmill and a four-petal flower. The ring is open at the bottom, where the tower stands. We drew it from our first store-window poster.",
     },
   },
-  // The national story, with the hill towns as its first chapter.
+  // The national story: the stores that are open, then the hill towns, then more towns.
   chapters: {
     eyebrow: "Our story so far",
     title: "Holland, meet South Africa",
     intro: "A national network of local stores, opening one town at a time.",
     items: [
+      { key: "open", label: "Where we are", title: "Open now", body: "Our stores in {open} are open now, in {openProvinces}. Come in, say hello, and see what's on the shelf." },
       {
-        key: "first",
-        label: "Chapter one",
+        key: "hills",
+        label: "Next",
         title: "The hill towns",
-        body: "Holland is flat. KwaZulu-Natal isn't. Our first stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
-        bodyOpen: "Holland is flat. KwaZulu-Natal isn't. Our first stores opened in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
+        body: "Holland is flat. KwaZulu-Natal isn't. Our two new stores open in {names} on {opening}, {km}\u00a0km apart in the {provinces} hills.",
+        bodyOpen: "Holland is flat. KwaZulu-Natal isn't. Our newest stores, in {names}, are {km}\u00a0km apart in the {provinces} hills.",
       },
-      { key: "next", label: "Next", title: "More towns", body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards. More stores are to be announced." },
+      { key: "more", label: "After that", title: "More towns", body: "Every Herbal Holland store is owned and run by a local franchisee, on one shared platform and one set of standards. More stores are to be announced." },
     ],
     stores: "See our stores",
     own: "Own a store",
@@ -480,7 +493,8 @@ export const ABOUT = {
   visit: {
     title: "See for yourself",
     body: "Shop online, find a store near you, or read our plain-English guides to lab results, Schedule 0 and Section 21 on Learn.",
-    soon: "Our online shop opens soon, and our stores on {opening}. Get first access, and we'll tell you the day the shop opens. Learn, our plain-English guides to lab results, Schedule 0 and Section 21, is on its way too.",
+    // Until the online shop is live: where the stores are open, and first access to the shop.
+    soon: "Our stores in {open} are open now, and our online shop opens soon: get first access, and we'll tell you the day it does. Learn, our plain-English guides to lab results, Schedule 0 and Section 21, is on its way too.",
     stores: "Find a store",
     learn: "Read Learn",
   },
@@ -497,7 +511,7 @@ export const FRANCHISE = {
     eyebrow: "Franchise with Herbal Holland",
     title: "Own a Herbal Holland store",
     lede: "Every Herbal Holland store is owned and run by a local franchisee. We're growing carefully, with owner-operators who know retail and their community, and who want to do this properly.",
-    timing: "Our first stores open first, and franchising opens once they have traded. Register your interest now and we'll be in touch when it does.",
+    timing: "We open in new towns in stages. Register your interest now, and we'll be in touch as we come to yours.",
     enquire: "Register your interest",
     how: "How it works",
   },
@@ -561,8 +575,8 @@ export const FRANCHISE = {
     intro: "Can't see yours? Ask us at",
     items: [
       { q: "What does it cost to open a store?", a: "The full investment and fees are set out in the disclosure document, which you receive at least 14 days before anything is signed. We're glad to talk them through on the call and at the information evening." },
-      { q: "How much will I earn?", a: "We don't publish earnings projections. What a store earns depends on its site, its team and how it's run. Once our first stores have a trading history, we'll share only figures we can back up." },
-      { q: "When can I open a store?", a: "Our own first stores open first. Franchising opens once they have traded, so the playbook and the figures are real rather than a forecast. Register your interest now and we'll invite you to an information evening when the time comes." },
+      { q: "How much will I earn?", a: "We don't publish earnings projections. What a store earns depends on its site, its team and how it's run, and we'll only ever share figures we can back up." },
+      { q: "When can I open a store?", a: "We open in new towns in stages, so each new store gets the playbook, the training and HQ beside it. Register your interest now and we'll invite you to an information evening when the time comes." },
       { q: "Do I need to be a pharmacist?", a: "No, but you need a pharmacist partner. Licensed medicines are dispensed only by a pharmacist, to registered patients with a SAHPRA authorisation, so every store needs one." },
       { q: "Where can I open?", a: "Tell us the area you have in mind. Every site is checked against the licences it needs and against our own siting rules, which are stricter than the law." },
       { q: "Can I set my own prices?", a: "Yes. HQ recommends retail prices, and you set your own." },
@@ -648,7 +662,7 @@ export const PRESS = {
         date: "2026-10-01",
         title: "Herbal Holland opens online for adults 18+ across South Africa",
         summary:
-          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first 2,026 people on the list get a numbered Founding Member card. The first two stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026.",
+          "Herbal Holland's online shop opens nationwide today, and so does its Founding Members list: joining Herbal Holland Rewards is free, and the first 2,026 people on the list get a numbered Founding Member card. Two new stores, in Hillcrest and Hilton in KwaZulu-Natal, open on Tuesday 1 December 2026, joining our stores in Pietermaritzburg and Umhlanga.",
       },
     ] satisfies Release[],
   },
@@ -681,9 +695,8 @@ export const PRESS = {
       age: "Adults 18+ only, with ID checked at the till and at every collection and delivery.",
       quality: "Every batch tested by an independent lab, with a public result behind the code on every pack.",
       medicines: "Only for registered patients with a SAHPRA authorisation, through a pharmacist. Never advertised.",
-      storesNone: "Our first stores are on their way.",
-      trading: "{n} trading",
-      soon: "{n} opening soon",
+      storesNone: "Our stores are on their way.",
+      trading: "{n} trading: {names}",
       opening: "{n} opening on {opening}: {names}, in {provinces}. More to be announced.",
     },
   },

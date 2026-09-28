@@ -1,13 +1,13 @@
 // herbalholland.com — the home page: the windmill at sunset over the hills ("Holland, meet South Africa."), with
 // "Shop online" first and the promise bar beneath it; what we are; what's in store, a "Shop" on every category; the
-// early-access sign-up; the kinetic marquee; the 9,475 km story from Amsterdam; our standards; the first chapter in
-// numbers; the first stores ("Holland, meet the Hills."); the map as stores open across the country; Founding Members;
-// and the doors in. Every count, date, place and pin comes from the stores list in ../../facts, and every way to shop
-// leads to the online shop once it's live, or to the early-access sign-up until then.
+// early-access sign-up; the kinetic marquee; the 9,475 km story from Amsterdam to the hills; our standards; the new
+// stores ("Holland, meet the Hills."); the map and the counts as stores open across the country; Founding Members; and
+// the doors in. Every count, date, place and pin comes from the stores list in ../../facts, and every way to shop leads
+// to the online shop once it's live, or to the early-access sign-up until then.
 import { num } from "@/lib/format";
 import { PROVINCES } from "@/lib/sa";
-import { BRAND, CHROME, EMAIL, HOME, fill } from "../../content";
-import { FACTS, firstStores, greatCircleKm, joinLink, listOf, longDate, nextOpening, openStores, openingStores, provinceNames, shopLink, shortDay, storeProvinces } from "../../facts";
+import { BRAND, CHROME, EMAIL, HOME, fill, plural } from "../../content";
+import { FACTS, greatCircleKm, joinLink, listOf, longDate, newStores, nextOpening, openStores, openingStores, provinceNames, shopLink, shortDay, storeProvinces, type Store } from "../../facts";
 import { EarlyAccess } from "../access";
 import { AgeBadge, Globe, Mark, MiniScene, SCENES, Sails, Scene, cx } from "../art";
 import { JoinDoor, Page } from "../layout";
@@ -17,17 +17,25 @@ import { Btn, Head, Icon, Index, Keep, Reel, ShopNow, Soon, Words } from "../ui"
 const dms = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(4)}° ${v >= 0 ? pos : neg}`;
 export const coords = (p: { lat: number; lon: number }) => `${dms(p.lat, "N", "S")} · ${dms(p.lon, "E", "W")}`;
 
-/** "Our first stores open in KwaZulu-Natal on Tuesday 1 December 2026…", or, once a store is open, where stores are. */
-export function openingLine(soon: string, open: string) {
+/** Towns in running text: by name, up to four ("Pietermaritzburg and Umhlanga"), then counted by province. */
+export const towns = (stores: readonly Store[]) =>
+  stores.length <= 4 ? listOf(stores.map((s) => s.city)) : fill(HOME.towns, { n: num(stores.length), provinces: provinceNames(storeProvinces(stores)) });
+
+type Line = { soon: string; both: string; open: string };
+/**
+ * Where we are, from the stores list: "Open now in Pietermaritzburg and Umhlanga, and opening in Hillcrest and Hilton on
+ * Tuesday 1 December 2026…" — or only what's opening (before any store is open), or only what's open (once all are).
+ */
+export function openingLine(t: Line) {
+  const open = openStores();
   const next = nextOpening();
-  // Before the first opening day: where and when. From then on: where stores are open (the next ones show on /stores).
-  const trading = openStores();
-  if (trading.length || !next) return fill(open, { provinces: provinceNames(storeProvinces(trading.length ? trading : undefined)) });
-  return fill(soon, { provinces: provinceNames(storeProvinces(openingStores())), opening: longDate(next) });
+  const coming = openingStores().filter((s) => s.opens === next);
+  const v = { open: towns(open), next: towns(coming), opening: next ? longDate(next) : "" };
+  return fill(!next ? t.open : open.length ? t.both : t.soon, v);
 }
 
-/** The same line for the page, with province names kept whole across line breaks. */
-export const OpeningLine = ({ soon, open }: { soon: string; open: string }) => <Keep text={openingLine(soon, open)} names={Object.values(PROVINCES)} />;
+/** The same line for the page, with place names kept whole across line breaks. */
+export const OpeningLine = ({ t }: { t: Line }) => <Keep text={openingLine(t)} names={[...Object.values(PROVINCES), ...FACTS.stores.map((s) => s.city)]} />;
 
 function Hero() {
   const h = HOME.hero;
@@ -44,7 +52,7 @@ function Hero() {
         </h1>
         <p className="hero__kicker" data-in="2">
           <span>
-            <OpeningLine soon={h.kicker} open={h.kickerOpen} />
+            <OpeningLine t={h.line} />
           </span>
         </p>
         <div className="ctas" data-in="3">
@@ -173,11 +181,12 @@ function Count({ value, attr }: { value: string; attr: "data-km" | "data-km-big"
   );
 }
 
-/** The 9,475 km story: pinned while an arc draws from Amsterdam to our first store, with a pin for every store. */
+/** The 9,475 km story: pinned while an arc draws from Amsterdam to the hills (the first of the new stores). */
 function Journey() {
   const j = HOME.journey;
-  const first = firstStores()[0];
-  const km = num(FACTS.km[first.key]);
+  const fresh = newStores();
+  const first = fresh[0] ?? FACTS.stores[0];
+  const km = num(FACTS.km[first.key] ?? 0);
   const here = coords(first).split(" · ");
   return (
     <section className="story" id="journey" aria-labelledby="story-title" data-story="">
@@ -195,7 +204,7 @@ function Journey() {
                 {j.title}
               </span>
             </h2>
-            <p className="story__lede">{j.lede}</p>
+            <p className="story__lede">{fill(j.lede, { count: HOME.hills.count[fresh.length] ?? num(fresh.length) })}</p>
           </div>
           <div className="story__globe">
             <Globe label={fill(j.caption, { from: coords(FACTS.places.amsterdam), to: coords(first), city: first.city, km })} />
@@ -223,7 +232,7 @@ function Journey() {
                   <Index n={i + 1} /> {c.label}
                 </p>
                 <h3 className="chapter__title">{c.title}</h3>
-                <p className="chapter__body">{c.key === "welcome" ? <OpeningLine soon={c.body} open={HOME.hero.kickerOpen} /> : c.body}</p>
+                <p className="chapter__body">{c.key === "welcome" ? <OpeningLine t={HOME.hero.line} /> : c.body}</p>
               </li>
             ))}
           </ol>
@@ -311,57 +320,19 @@ function Standards() {
   );
 }
 
-/** The first opening day, in numbers: its stores, the day, the Founding Members places and how far apart they are. */
-function Numbers() {
-  const n = HOME.numbers;
-  const stores = firstStores();
-  const day0 = stores[0].opens;
-  const done = stores.every((s) => s.status === "open");
-  const [day, mon] = shortDay(day0).split(" ");
-  const apart = stores.length >= 2 ? Math.round(greatCircleKm(stores[0], stores[1])) : 0;
-  const provinces = provinceNames(storeProvinces(stores));
-  const value: Record<string, React.ReactNode> = {
-    stores: <Reel value={String(stores.length)} />,
-    date: (
-      <>
-        <Reel value={day} /> <span className="stat__unit">{mon}</span>
-      </>
-    ),
-    founding: <Reel value={num(FACTS.founding.cap)} />,
-    km: <Reel value={String(apart)} />,
-  };
-  const label = (it: (typeof n.items)[number]) => fill(done && "done" in it ? it.done : it.label, { provinces, year: day0.slice(0, 4), a: stores[0].name, b: stores[1]?.name ?? "" });
-  return (
-    <section className="sec numbers" aria-labelledby="numbers-title">
-      <div className="wrap">
-        <Head id="numbers-title" eyebrow={n.eyebrow} title={fill(n.title, { count: n.count[stores.length] ?? num(stores.length) })} />
-        <dl className="stats" data-rs="">
-          {n.items
-            .filter((it) => it.key !== "km" || apart > 0)
-            .map((it) => (
-              <div key={it.key} className="stat" data-r="">
-                <dt>{label(it)}</dt>
-                <dd>{value[it.key]}</dd>
-              </div>
-            ))}
-        </dl>
-      </div>
-    </section>
-  );
-}
-
-/** The first chapter: Holland, meet the Hills. A card for each first store, how far apart they are, and all stores. */
-function First() {
-  const f = HOME.first;
-  const stores = firstStores();
-  const opening = longDate(stores[0].opens);
+/** The new stores' chapter: Holland, meet the Hills. A card for each, how far apart they are, and all our stores. */
+function Hills() {
+  const f = HOME.hills;
+  const stores = newStores();
+  if (!stores.length) return null;
+  const opening = stores[0].opens ? longDate(stores[0].opens) : "";
   const apart = stores.length === 2 ? Math.round(greatCircleKm(stores[0], stores[1])) : 0;
   const cards = [SCENES.storeA, SCENES.storeB];
-  const lede = fill(stores.every((s) => s.status === "open") ? f.ledeOpen : f.lede, { names: listOf(stores.map((s) => s.name)), opening });
+  const lede = fill(stores.every((s) => s.status === "open") ? f.ledeOpen : f.lede, { count: f.count[stores.length] ?? num(stores.length), names: listOf(stores.map((s) => s.name)), opening });
   return (
-    <section className="sec stores" id="first" aria-labelledby="first-title">
+    <section className="sec stores" id="hills" aria-labelledby="hills-title">
       <div className="wrap">
-        <Head id="first-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede} />
+        <Head id="hills-title" eyebrow={f.eyebrow} title={<Words text={f.title} accent />} intro={lede} />
         <div className="stores__grid" data-rs="">
           {stores.map((st, i) => {
             const c = f.stores.find((x) => x.key === st.key);
@@ -374,7 +345,7 @@ function First() {
                     <h3 className="store__name">{st.name}</h3>
                     {c && <p className="store__line">{c.line}</p>}
                     <p className="store__opens">
-                      <Icon name="calendar" size={16} /> {st.status === "open" ? f.open : fill(f.opens, { opening: longDate(st.opens) })}
+                      <Icon name="calendar" size={16} /> {st.status === "open" || !st.opens ? f.open : fill(f.opens, { opening: longDate(st.opens) })}
                     </p>
                   </div>
                   <span className="glare" aria-hidden="true" />
@@ -400,17 +371,45 @@ function First() {
   );
 }
 
-/** Opening nationally: the map, and the door to opening a store. */
+/** Opening nationally: where we are (open, opening, provinces), the map, and the door to opening a store. */
 function National() {
   const n = HOME.national;
+  const open = openStores();
+  const opening = openingStores();
+  const next = nextOpening();
+  const provinces = storeProvinces();
   return (
     <section className="sheet sec nation" id="national" aria-labelledby="national-title">
       <div className="wrap nation__grid">
         <div className="nation__copy">
-          <Head id="national-title" eyebrow={n.eyebrow} title={n.title} intro={<OpeningLine soon={HOME.hero.kicker} open={HOME.hero.kickerOpen} />} />
+          <Head id="national-title" eyebrow={n.eyebrow} title={n.title} intro={<OpeningLine t={HOME.hero.line} />} />
           <p className="nation__body" data-r="">
             {n.body}
           </p>
+          <dl className="stats stats--nation" data-rs="">
+            {open.length > 0 && (
+              <div className="stat" data-r="">
+                <dt>{plural(open.length, n.stats.open)}</dt>
+                <dd>
+                  <Reel value={String(open.length)} />
+                </dd>
+              </div>
+            )}
+            {opening.length > 0 && next && (
+              <div className="stat" data-r="">
+                <dt>{fill(plural(opening.length, n.stats.opening), { date: `${shortDay(next)} ${next.slice(0, 4)}` })}</dt>
+                <dd>
+                  <Reel value={String(opening.length)} />
+                </dd>
+              </div>
+            )}
+            <div className="stat" data-r="">
+              <dt>{plural(provinces.length, n.stats.provinces)}</dt>
+              <dd>
+                <Reel value={String(provinces.length)} />
+              </dd>
+            </div>
+          </dl>
           <div className="ctas" data-r="">
             <Btn href="/franchise" kind="dark" magnetic>
               {n.cta}
@@ -587,7 +586,7 @@ export function HomePage() {
       availableLanguage: "en",
     })),
   };
-  const description = openingLine(HOME.meta.description, HOME.meta.descriptionOpen);
+  const description = openingLine(HOME.meta.description);
   return (
     <Page page="home" meta={{ path: "/", title: HOME.meta.title, description, absolute: true }} jsonLd={org}>
       <Hero />
@@ -597,8 +596,7 @@ export function HomePage() {
       <Marquee />
       <Journey />
       <Standards />
-      <Numbers />
-      <First />
+      <Hills />
       <National />
       <Founding />
       <Doors />

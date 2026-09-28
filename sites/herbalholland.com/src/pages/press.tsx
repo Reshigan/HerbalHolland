@@ -13,12 +13,12 @@ export function PressPage() {
   const releases = releasesOn(site.day);
   const shop = shopLink("/");
   const c = FACTS.company;
-  // "2 opening on Tuesday 1 December 2026: Hillcrest and Hilton, in KwaZulu-Natal. More to be announced." Open
-  // stores are counted first once there are any.
+  // "2 trading: Pietermaritzburg and Umhlanga · 2 opening on Tuesday 1 December 2026: Hillcrest and Hilton, in
+  // KwaZulu-Natal. More to be announced." Open stores first.
   const soon = openingStores();
   const next = nextOpening();
   const stores = [
-    openStores().length ? fill(facts.values.trading, { n: openStores().length }) : "",
+    openStores().length ? fill(facts.values.trading, { n: openStores().length, names: listOf(openStores().map((s) => s.name)) }) : "",
     next ? fill(facts.values.opening, { n: soon.length, opening: longDate(next), names: listOf(soon.map((s) => s.name)), provinces: provinceNames(storeProvinces(soon)) }) : "",
   ]
     .filter(Boolean)
