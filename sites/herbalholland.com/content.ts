@@ -687,8 +687,7 @@ export const CONTACT = {
     franchisees: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details are on the store finder.",
     franchiseesSoon: "Herbal Holland stores are independently owned and operated by franchisees. Each store's own details will be on its store page.",
     stores: "Store finder",
-    // title labels the site's legal links; the other keys are still read by the retiring React pages in src/app/site.
-    legal: { title: "Legal", privacy: "Privacy notice (POPIA)", paia: "PAIA manual", terms: "Membership terms" },
+    legal: { title: "Legal" },
   },
 } as const;
 
