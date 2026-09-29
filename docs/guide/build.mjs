@@ -67,7 +67,8 @@ q_ref, Q_ref = stream(b"q\\n"), stream(b"Q\\n")
 seen = {}
 for i, pg in enumerate(w.pages):
     op = o.pages[i]
-    data = b"".join(x.get_object().get_data() for x in (op["/Contents"] if isinstance(op["/Contents"], ArrayObject) else [op["/Contents"]])) if "/Contents" in op else b""
+    oc = op.raw_get("/Contents").get_object() if "/Contents" in op else None
+    data = b"".join(x.get_object().get_data() for x in (oc if isinstance(oc, ArrayObject) else [oc])) if oc is not None else b""
     if not data.strip(): continue
     res = pg["/Resources"].get_object()
     ores = op["/Resources"].get_object() if "/Resources" in op else {}
@@ -79,11 +80,15 @@ for i, pg in enumerate(w.pages):
         for key, val in entries.items():
             newkey = "/Ov" + key[1:]
             ident = (cat, key, val.idnum if isinstance(val, IndirectObject) else id(val))
-            if ident not in seen: seen[ident] = val.clone(w) if hasattr(val, "clone") else val
-            target[NameObject(newkey)] = seen[ident].indirect_reference if getattr(seen[ident], "indirect_reference", None) else seen[ident]
+            if ident not in seen:
+                cl = val.clone(w)
+                seen[ident] = cl if isinstance(cl, IndirectObject) else (cl.indirect_reference if getattr(cl, "indirect_reference", None) is not None else cl)
+            target[NameObject(newkey)] = seen[ident]
             data = re.sub(re.escape(key.encode()) + rb"(?![A-Za-z0-9_.])", newkey.encode(), data)
-    orig = pg["/Contents"]
-    parts = list(orig) if isinstance(orig, ArrayObject) else [orig]
+    raw = pg.raw_get("/Contents")
+    resolved = raw.get_object()
+    parts = list(resolved) if isinstance(resolved, ArrayObject) else [raw]
+    assert all(isinstance(x, IndirectObject) for x in parts), "content streams must be indirect"
     pg[NameObject("/Contents")] = ArrayObject([q_ref, *parts, Q_ref, stream(data)])
 w.add_metadata({"/Title": "Herbal Holland platform — the complete guide", "/Author": "Herbal Holland", "/Subject": "System guide, version 1.0"})
 with open(out, "wb") as f: w.write(f)
