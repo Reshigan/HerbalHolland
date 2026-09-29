@@ -54,8 +54,10 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
   const [editing, setEditing] = useState(false);
   const [submitted, setSubmitted] = useState<Record<string, string> | null>(null);
   const [flash, setFlash] = useState<string | null>(null);
+  const [showError, setShowError] = useState(false);
   const form = useRef<HTMLFormElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
+  const wasEditing = useRef(false);
   const id = useId();
   const serverValues = fields.map((f) => f.value).join("\u0000");
   const seen = useRef<number | undefined>(undefined);
@@ -74,14 +76,17 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
       return () => clearTimeout(t);
     }
     setSubmitted(null);
+    setShowError(true);
   }, [state.at, state.ok]);
 
+  // Focus follows the mode: into the first field on open, back to the trigger on close (saved or cancelled).
   useEffect(() => {
     if (editing) {
       const first = form.current?.querySelector<HTMLInputElement>("input:not([type=hidden])");
       first?.focus();
       first?.select();
-    } else if (seen.current) trigger.current?.focus();
+    } else if (wasEditing.current) trigger.current?.focus();
+    wasEditing.current = editing;
   }, [editing]);
 
   const optimistic = (v: Record<string, string>) => {
@@ -100,7 +105,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
           ref={trigger}
           type="button"
           disabled={disabled}
-          onClick={() => (setFlash(null), setEditing(true))}
+          onClick={() => (setFlash(null), setShowError(false), setEditing(true))}
           aria-busy={busy || undefined}
           className={cn(
             "group/edit inline-flex max-w-full items-center gap-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/50 disabled:pointer-events-none",
@@ -165,7 +170,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
               autoComplete="off"
               disabled={pending}
               aria-invalid={state.fields?.[f.name] ? true : undefined}
-              aria-describedby={state.error ? `${id}-err` : undefined}
+              aria-describedby={showError && state.error ? `${id}-err` : undefined}
               className={cn(
                 "tnum h-8 rounded-lg border bg-white text-sm text-ink-900 placeholder:text-ink-500 focus:outline-none focus:ring-4 disabled:bg-ink-50",
                 f.prefix ? "pl-6 pr-2" : "px-2",
@@ -186,7 +191,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
           <X className="h-3.5 w-3.5" aria-hidden />
         </button>
       </div>
-      {state.error && !state.ok && (
+      {showError && state.error && !state.ok && (
         <p id={`${id}-err`} role="alert" className="max-w-64 text-xs font-medium text-rose-600">
           {state.error}
         </p>

@@ -10,6 +10,9 @@ import { LEDGER_LABEL, ledgerTitle, memberOverview, tierIndex } from "@/server/s
 import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { memberDeals, memberTickets, upcomingEvents, welcomeGifts } from "@/server/shop/launch";
 import { MemberCard } from "@/components/shop/member-card";
+import { WalletButtons } from "@/components/shop/wallet-buttons";
+import { ClubMore } from "@/components/shop/club-more";
+import { ReorderButton } from "@/components/shop/reorder-button";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { ShareLink } from "@/components/shop/club-client";
 import { DealsPanel, TicketsPanel, WaitlistCard, WelcomeGiftBanner } from "@/components/shop/club-launch";
@@ -68,6 +71,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         <div className="space-y-4">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} floorUntil={floorUntil} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
+          <WalletButtons />
           <InstallPrompt app="rewards" />
         </div>
 
@@ -177,7 +181,9 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         </div>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <ClubMore customerId={customer.id} className="mt-8" />
+
+      <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <DealsPanel deals={deals} personalised={m.customer.personalisedOffers} />
         {(tickets.length > 0 || coming.length > 0) && <TicketsPanel tickets={tickets} suggestions={coming} />}
 
@@ -222,8 +228,8 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               {m.orders.map((o) => {
                 const [label, tone] = ORDER_TONE[o.status];
                 return (
-                  <li key={o.id}>
-                    <Link href={`/orders/${o.code}`} className="flex items-center justify-between gap-3 py-3 text-sm hover:text-white">
+                  <li key={o.id} className="flex items-center gap-3 py-3 text-sm">
+                    <Link href={`/orders/${o.code}`} className="flex min-w-0 flex-1 items-center justify-between gap-3 hover:text-white">
                       <div className="min-w-0">
                         <div className="font-medium text-ink-100">
                           Order {o.code} · {o._count.lines} item{o._count.lines === 1 ? "" : "s"}
@@ -237,6 +243,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                         <div className="tnum mt-1 text-xs text-ink-400">{zar(o.totalCents - o.pointsRedeemed * 100)}</div>
                       </div>
                     </Link>
+                    {o.status === "COMPLETED" && <ReorderButton orderId={o.id} size="sm" variant="ghost-dark" label="Buy again" className="shrink-0" />}
                   </li>
                 );
               })}
