@@ -129,7 +129,7 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{i.name}</span>
-                      <span className="font-mono text-xs text-ink-400">{i.sku}</span>
+                      <span className="font-mono text-xs text-ink-500">{i.sku}</span>
                     </span>
                     <span className="tnum shrink-0 text-xs text-ink-500">{i.onHand} on hand</span>
                   </li>
@@ -202,7 +202,7 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
                   <span className="min-w-0 flex-1">
                     <span className="font-mono text-xs font-semibold text-ink-900">{b.code}</span>
                     <span className="ml-2 text-xs text-ink-500">{b.expires ? `exp ${b.expires}` : "no expiry"}</span>
-                    {!b.atStore && <span className="ml-2 text-xs text-ink-400">· not at this store yet</span>}
+                    {!b.atStore && <span className="ml-2 text-xs text-ink-500">· not at this store yet</span>}
                   </span>
                   {b.status !== "RELEASED" && <Badge tone={b.status === "RECALLED" ? "red" : "amber"}>{b.status === "RECALLED" ? "Recalled" : "Quarantine"}</Badge>}
                   <span className="tnum w-20 text-right text-xs font-semibold text-ink-700">{b.onHand} on hand</span>

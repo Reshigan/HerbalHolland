@@ -64,14 +64,14 @@ export default async function VariantStockPage({ params, searchParams }: { param
           <span className="flex items-center gap-3">
             <ProductArt slug={v.product.slug} strain={v.product.strain} regClass={v.product.regClass} className="h-12 w-12 shrink-0 overflow-hidden rounded-2xl" label="" />
             <span>
-              {v.product.name} <span className="text-ink-400">· {v.name}</span>
+              {v.product.name} <span className="text-ink-500">· {v.name}</span>
             </span>
           </span>
         }
         description={
           <span className="flex flex-wrap items-center gap-2">
             <span className="font-mono text-xs">{v.sku}</span>
-            {v.barcode && <span className="font-mono text-xs text-ink-400">{v.barcode}</span>}
+            {v.barcode && <span className="font-mono text-xs text-ink-500">{v.barcode}</span>}
             {status && <Badge tone={status.tone} dot>{status.label}</Badge>}
             {!sv && <Badge>Not ranged here</Badge>}
             {!v.active && <Badge tone="amber">Discontinued</Badge>}
@@ -113,7 +113,7 @@ export default async function VariantStockPage({ params, searchParams }: { param
             {lots.length === 0 ? (
               <EmptyState title="No batches on record here">Stock arrives with a delivery or a network transfer.</EmptyState>
             ) : (
-              <Table className="mt-3">
+              <Table stickyFirst className="mt-3">
                 <thead>
                   <tr>
                     <Th>Batch</Th>
@@ -128,12 +128,12 @@ export default async function VariantStockPage({ params, searchParams }: { param
                   {lots.map((l) => {
                     const exp = expiryState(l.batch.expiresAt);
                     return (
-                      <Tr key={l.id} className={l.onHand === 0 ? "text-ink-400" : undefined}>
+                      <Tr key={l.id} className={l.onHand === 0 ? "text-ink-500" : undefined}>
                         <Td>
                           <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 whitespace-nowrap font-mono text-xs font-semibold text-ink-900 hover:text-brand-700">
                             {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                           </Link>
-                          <div className="whitespace-nowrap text-xs text-ink-400" title={l.batch.supplier}>Packed {fmtDate(l.batch.packedAt)}</div>
+                          <div className="whitespace-nowrap text-xs text-ink-500" title={l.batch.supplier}>Packed {fmtDate(l.batch.packedAt)}</div>
                         </Td>
                         <Td>
                           <StatusBadge status={l.batch.status} />
@@ -219,7 +219,7 @@ export default async function VariantStockPage({ params, searchParams }: { param
         {led.rows.length === 0 ? (
           <EmptyState title="No movements yet" />
         ) : (
-          <Table className="mt-3">
+          <Table stickyFirst className="mt-3">
             <thead>
               <tr>
                 <Th>When</Th>
@@ -256,11 +256,11 @@ export default async function VariantStockPage({ params, searchParams }: { param
                     <Td align="right"><Qty n={m.qty} /></Td>
                     <Td align="right" className={m.balance < 0 ? "font-semibold text-rose-600" : "text-ink-900"}>{m.balance}</Td>
                     <Td align="right" className="text-ink-600">{zar(m.qty * m.unitCostCents)}</Td>
-                    <Td className="whitespace-nowrap text-ink-600">{m.user ?? <span className="text-ink-400">System</span>}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{m.user ?? <span className="text-ink-500">System</span>}</Td>
                     <Td className="max-w-56 text-xs text-ink-600">
                       {ref}
                       {note && <div className="truncate text-ink-500" title={note}>{note}</div>}
-                      {!ref && !note && <span className="text-ink-300">—</span>}
+                      {!ref && !note && <span className="text-ink-500">—</span>}
                     </Td>
                   </Tr>
                 );

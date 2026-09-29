@@ -136,7 +136,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
         <Stat label="Net due to HQ" value={zarCompact(owed)} sub="all stores, after credits" />
       </div>
       <Card>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Store</Th>

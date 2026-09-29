@@ -89,7 +89,7 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={`/social/${i.key}.jpg`} alt="" loading="lazy" className="aspect-square w-full rounded-lg object-cover" />
                   ) : (
-                    <span className="grid aspect-square place-items-center rounded-lg bg-ink-50 text-ink-400">None</span>
+                    <span className="grid aspect-square place-items-center rounded-lg bg-ink-50 text-ink-500">None</span>
                   )}
                   <span className="mt-1 block truncate">{i.label}</span>
                 </label>

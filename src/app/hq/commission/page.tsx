@@ -89,7 +89,7 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
               Owners switch it on from their store&apos;s Commission page — they pay it.
             </EmptyState>
           ) : (
-            <Table className="mt-4">
+            <Table stickyFirst className="mt-4">
               <thead>
                 <tr>
                   <Th>Store</Th>
@@ -125,7 +125,7 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
                           <div className="text-xs text-ink-500">{monthLabel(r.last.month)}</div>
                         </>
                       ) : (
-                        <span className="text-ink-400">None yet</span>
+                        <span className="text-ink-500">None yet</span>
                       )}
                     </Td>
                     <Td className="text-right">
@@ -184,7 +184,7 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
                         </label>
                         <div className="relative w-28 shrink-0">
                           <Input id={`rate_${c}`} name={`rate_${c}`} defaultValue={String((rates[c] ?? 0) / 100)} inputMode="decimal" className="tnum pr-7 text-right" />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                         </div>
                       </div>
                       <FieldError name={`rate_${c}`} />

@@ -69,7 +69,7 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
       {worst.length > 0 && !chosen && (
         <Card className="mt-6">
           <CardHeader title="Stores with overdue invoices" description="Most overdue first · open a store to see its invoices" />
-          <Table className="mt-3 border-t border-ink-100">
+          <Table stickyFirst className="mt-3 border-t border-ink-100">
             <thead>
               <tr>
                 <Th>Store</Th>
@@ -109,7 +109,7 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
             <FilterSelect name="status" label="Status" defaultValue={sp.status} options={STATUSES.map((s) => ({ value: s, label: STATUS_LABEL[s] }))} />
           </FilterForm>
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Store</Th>

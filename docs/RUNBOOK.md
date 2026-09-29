@@ -86,7 +86,8 @@ the approval.
    - Restart the app.
 2. **Test it with a sandbox card** (the playground's **Test credentials**):
    - A courier order → Peach's page → pay → the order page says **Payment received**.
-   - HQ → Audit log has `order.pay_online` by Peach Payments, and the member's "order received" SMS is in HQ → Messages.
+   - HQ → Audit log has `order.pay_online` by Peach Payments, and the member's "order received" SMS is in HQ → Messages
+     (`/hq/messages`, channel SMS — open the row to read the text as sent).
    - Leave Peach's page without paying → **Payment cancelled** → Try again opens the same page.
    - Cancel the paid order in the back office: it's refunded (`pending` or `succeeded`; the refund id is on the order),
      and `payment.refunded` appears in the audit log once Peach confirms.
@@ -123,7 +124,7 @@ Vantax (Pty) Ltd if online) — see the acceptable-use note in INTEGRATIONS.md. 
      checks Yoco's signature itself). A challenged webhook never lands.
    - Walk through it with Yoco's test card (same Yoco page): a courier order → Yoco's page → paid → the order page says
      **Payment received**, HQ → Audit log has `order.pay_online` by Yoco, and the member's "order received" SMS is in
-     HQ → Messages. Cancel on Yoco's page → **Payment cancelled** → Try again opens the same checkout. Cancel a
+     HQ → Messages (`/hq/messages`, channel SMS). Cancel on Yoco's page → **Payment cancelled** → Try again opens the same checkout. Cancel a
      test-paid order in the back office: it's cancelled with "Yoco test payment: nothing to refund" (Yoco can't refund
      test payments).
    - Stuck on "Waiting for payment confirmation…"? The app log shows why: 400 = wrong `YOCO_WEBHOOK_SECRET` (or the
@@ -235,6 +236,43 @@ sync, late orders, stale catalogue, no shift) and the store's next event — bui
 Any tap or scan returns to selling. Nothing moves when the device prefers reduced motion. `?idleMs=5000` on the
 till's URL shortens the wait for testing.
 
+## Back office and HQ console: working faster
+
+**Keyboard shortcuts** (store back office and HQ console; they pause while you type in a field):
+
+| Keys | What happens |
+|---|---|
+| `⌘K` / `Ctrl+K` (or the **Jump to…** button under the logo) | Command palette: every section of the sidebar plus your recent pages; type to filter, `↑` `↓` `Enter` |
+| `/` | Focus the search box on the page (opens the palette on pages without one) |
+| `g` then `o` / `i` / `r` | Go to Online orders / Stock on hand (HQ: Catalogue) / Reports |
+| `g` then `h` / `m` | Overview / Members |
+| `?` | The cheat sheet |
+| `Esc` | Close a dialog, drawer or inline edit |
+
+Recent pages are remembered per person in the browser (localStorage), never on the server.
+
+**Saved views.** On the lists with filters (online orders, stock on hand, members, the HQ catalogue, stores, audit log
+and messages), set the filters, sort and search you want, then **Save this view** and name it. Saved views appear as
+chips above the list and are links back to the same filters; `×` removes one. They're kept per person and page in the
+browser (localStorage — a private window or cleared site data starts empty), so there's nothing to administer.
+
+**Tables.** Column headings with an arrow sort the list (the URL carries the sort, so a sorted, filtered list can be
+bookmarked or shared); a click anywhere on a row opens it; wide lists scroll sideways on a phone with the first column
+pinned; the header row stays visible while you scroll.
+
+**Editing in place.** On Stock on hand, click a shelf price or the reorder · par cell to change it there (Enter saves,
+Esc cancels; empty shelf price = follow the list price). On the HQ catalogue, click an RRP (or the price range of a
+multi-variant product) to change it. Under Settings, a changed day of trading hours gets its own Save button; Team →
+Reset PIN opens a small inline form. Every inline save goes through the same server action, checks and audit entry as
+the full form.
+
+**Role overviews.** The store overview leads with what the person acts on: managers see the Today list, then today's
+takings against the same day last week, orders to fulfil, stock to count and who's on shift; owners, area managers and
+HQ see takings today, gross margin, cash to bank (with anything overdue), open online orders and open loss-prevention
+alerts, then the Today list. The HQ overview leads with network (or region) sales today and month to date, stores
+trading today, open orders, alerts, new franchise leads and last month's statements still to email; an area manager
+gets their stores ranked with an exceptions column (overdue cash-ups, alerts, negative stock, stores with no sale yet).
+
 ## Routine operations
 
 | When | Task | Where |
@@ -266,7 +304,7 @@ and VAT numbers, address). Every email has a plain-text twin, and campaign email
 `List-Unsubscribe` headers. To preview them without a mail server: `npx tsx scripts/preview-emails.ts` writes each
 template with sample data to `test-results/emails/index.html`; `npx vitest run tests/email.test.ts` checks subjects,
 buttons, escaping, text alternatives and the 102 KB Gmail limit. With `SMTP_URL` unset (demos, staging) nothing is
-sent: every email is written to the message log, so HQ → Messages is the place to read what a member would have got.
+sent: every email is written to the message log, so HQ → Messages (`/hq/messages`) is the place to read what a member would have got.
 `EMAIL_FROM` sets the sender; keep it on a domain with SPF/DKIM for the ESP.
 
 **Texts.** Order updates, sign-in codes and recall notices go by SMS (`MESSAGING_PROVIDER=smsportal`; without it they're
@@ -285,6 +323,17 @@ document: parties, credits and debits netted to one amount, how the fees were wo
 page; "Email to owner" sends it to the owner company's email. The till prints the Z-report at shift close (80 mm) and
 emails it to the store; the same report is in Store → Money → Cash-ups → shift → Z-report, printable on A4 or as a PDF.
 Paper follows the printer: on a receipt printer the document prints as a slip, on A4 as a sheet.
+
+**Message log (HQ → Messages, `/hq/messages`).** Every SMS, email, push and WhatsApp message the platform sent or
+logged (`MessageLog`): order updates, sign-in codes (logged masked), tax invoices, statements, Z-reports, loss-prevention
+and staff notifications, campaign sends. HQ admin and the HQ team see the network; area managers see messages to members
+homed at their stores. Filter by channel, status (sent / failed / suppressed — no consent, do-not-contact list or
+outside the CPA send window), kind (transactional / marketing), campaign, date and recipient (search by the full mobile
+number, email address or member number — the list shows recipients masked). Open a row for the detail drawer with the
+body as sent (`?msg=<id>` in the URL, so a link to a message can be shared with the team). The campaigns page and each
+campaign's delivery log link straight to it. The list is always bounded by date (the last 30 days unless you widen it).
+At network scale `MessageLog` wants an index on `createdAt` (and `channel, status, createdAt`) — see the schema note in
+[ARCHITECTURE.md](ARCHITECTURE.md) before the table passes a few million rows.
 
 **Menu board (in-store TV).** Open `https://<app>/menu/<store slug>` (e.g. `/menu/hatfield`) in a kiosk browser on the
 TV or its stick — Chrome/Chromium `--kiosk --noerrdialogs --disable-session-crashed-bubble`, Android TV with Fully
@@ -309,7 +358,7 @@ $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live i
 | `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
 
 Without `WEB_PUSH_PUBLIC_KEY` / `WEB_PUSH_PRIVATE_KEY` every push is only written to the message log (HQ → Messages,
-channel PUSH) — that's how the demo runs. Staff turn notifications on per phone under Store → Settings → Notifications
+`/hq/messages`, channel PUSH) — that's how the demo runs. Staff turn notifications on per phone under Store → Settings → Notifications
 (“Notify me on this phone”; on iPhone the back office must be on the Home Screen first). Thresholds for the Today list
 and the digests are HQ settings under `operations` (`cycleCountDays`, `cycleCountByCategory`, `batchExpiryDays`,
 `patientAuthDays`, `supplierInvoiceDays`).

@@ -130,7 +130,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                 label={
                   <>
                     My Deals given
-                    <span className="block text-xs text-ink-400">credited to stores on their statements</span>
+                    <span className="block text-xs text-ink-500">credited to stores on their statements</span>
                   </>
                 }
               >
@@ -196,7 +196,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
           <MiniStat label="Queried deposits" value={num(check("QUERIED")?._count ?? 0)} sub={check("QUERIED") ? `${zarCompact(check("QUERIED")?._sum.amountCents ?? 0)} not matching the statement yet` : "None open"} />
         </CardBody>
         {late.length > 0 ? (
-          <Table className="border-t border-ink-100">
+          <Table stickyFirst className="border-t border-ink-100">
             <thead>
               <tr>
                 <Th>Most overdue</Th>
@@ -254,7 +254,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
 
       <Card className="mt-6">
         <CardHeader title="Stores" description="Net sales and gross profit this period" />
-        <Table className="relative mt-4">
+        <Table stickyFirst className="relative mt-4">
           <thead>
             <tr>
               <Th>Store</Th>

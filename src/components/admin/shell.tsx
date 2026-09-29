@@ -4,6 +4,8 @@ import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/misc";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { SideNav, StoreSwitcher, MobileNav } from "./nav";
+import { AdminShortcuts, PaletteButton } from "./shortcuts";
+import { NavProgress } from "./nav-progress";
 import type { NavGroup } from "./nav-config";
 import type { Staff } from "@/server/auth";
 
@@ -33,14 +35,15 @@ export function AdminShell({
 }) {
   const sidebar = (
     <div className="flex h-full flex-col">
-      <Link href={area === "hq" ? "/hq" : `/store/${store?.code}`} className="mb-5 flex items-center justify-between px-2">
+      <Link href={area === "hq" ? "/hq" : `/store/${store?.code}`} className="mb-4 flex items-center justify-between px-2">
         <Logo />
         <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-brand-400">{area === "hq" ? "HQ" : "Store"}</span>
       </Link>
+      <PaletteButton className="mb-5" />
       {store && (
         <div className="mb-5 space-y-2 px-1">
           <div className="px-2">
-            <div className="eyebrow text-[0.6rem] text-ink-500">Store</div>
+            <div className="eyebrow text-[0.6rem] text-ink-450">Store</div>
             <div className="font-display text-lg font-semibold leading-tight text-white">{store.name}</div>
           </div>
           <StoreSwitcher current={store.code} stores={stores} />
@@ -76,7 +79,14 @@ export function AdminShell({
 
   return (
     <div className="min-h-screen bg-ink-50 lg:grid lg:grid-cols-[17rem_1fr] lg:bg-[linear-gradient(to_right,var(--color-ink-950)_17rem,var(--color-ink-50)_17rem)]">
-      <aside className="sticky top-0 hidden h-screen overflow-y-auto bg-ink-950 p-4 lg:block">{sidebar}</aside>
+      <a href="#main" className="sr-only z-[70] rounded-full bg-brand-500 px-4 py-2 text-sm font-semibold text-ink-950 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">
+        Skip to content
+      </a>
+      <NavProgress />
+      <AdminShortcuts groups={nav} area={area} storeCode={store?.code} userKey={user.id} />
+      <aside className="sticky top-0 hidden h-screen overflow-y-auto bg-ink-950 p-4 lg:block" aria-label="Sidebar">
+        {sidebar}
+      </aside>
       <header className="sticky top-0 z-40 bg-ink-950 lg:hidden">
         <div className="flex items-center justify-between px-4 py-2">
           <MobileNav>{sidebar}</MobileNav>
@@ -85,7 +95,8 @@ export function AdminShell({
         </div>
         <InstallPrompt app="staff" variant="bar" />
       </header>
-      <main className="min-w-0">
+      {/* --hh-sticky-top: where table headers stick — under the mobile header bar, at the top of the page on desktop. */}
+      <main id="main" className="min-w-0 [--hh-sticky-top:3.5rem] lg:[--hh-sticky-top:0px]" tabIndex={-1}>
         <div className="mx-auto max-w-[88rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
       </main>
     </div>

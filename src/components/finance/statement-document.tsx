@@ -14,7 +14,7 @@ export type Party = { legalName: string; regNumber?: string | null; vatNumber?: 
 export const statementNumber = (storeCode: string, month: string) => `ST-${storeCode}-${month.replace("-", "")}`;
 
 function Amount({ cents, sign = "" }: { cents: number; sign?: "" | "−" }) {
-  return <span className="tnum whitespace-nowrap">{cents ? `${sign}${zar(cents)}` : <span className="text-ink-300">—</span>}</span>;
+  return <span className="tnum whitespace-nowrap">{cents ? `${sign}${zar(cents)}` : <span className="text-ink-500">—</span>}</span>;
 }
 
 export function StatementDocument({ st, company, hq, current, issuedAt }: { st: Statement; company: Party; hq: Party | null; current: boolean; issuedAt: Date }) {
@@ -142,7 +142,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
               <td className="py-2 px-3 text-right text-leaf-700">
                 <Amount cents={l.cents} />
               </td>
-              <td className="py-2 pl-3 text-right text-ink-300">—</td>
+              <td className="py-2 pl-3 text-right text-ink-500">—</td>
             </tr>
           ))}
           <tr>
@@ -157,7 +157,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
                 <span className="block text-xs font-normal text-ink-500 sm:hidden print:hidden">{l.detail}</span>
               </td>
               <td className="hidden py-2 px-3 text-ink-600 sm:table-cell print:table-cell">{l.detail}</td>
-              <td className="py-2 px-3 text-right text-ink-300">—</td>
+              <td className="py-2 px-3 text-right text-ink-500">—</td>
               <td className="py-2 pl-3 text-right text-ink-900">
                 <Amount cents={l.cents} sign="−" />
               </td>

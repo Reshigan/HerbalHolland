@@ -101,7 +101,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             {sales.length === 0 ? (
               <EmptyState title="No purchases here yet" />
             ) : (
-              <Table className="mt-3">
+              <Table stickyFirst className="mt-3">
                 <thead>
                   <tr>
                     <Th>When</Th>
@@ -124,7 +124,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                       <Td className="text-ink-600">{s.channel === "ONLINE" ? "Online" : "In store"}</Td>
                       <Td align="right">{s.lines.reduce((a, l) => a + l.qty, 0)}</Td>
                       <Td align="right" className="font-medium text-ink-900">{zar(s.totalCents)}</Td>
-                      <Td align="right" className="text-leaf-700">{s.memberSavingsCents ? zar(s.memberSavingsCents) : <span className="text-ink-300">—</span>}</Td>
+                      <Td align="right" className="text-leaf-700">{s.memberSavingsCents ? zar(s.memberSavingsCents) : <span className="text-ink-500">—</span>}</Td>
                       <Td align="right" className="text-ink-600">{s.pointsEarned ? `+${s.pointsEarned.toLocaleString()}` : "—"}</Td>
                     </Tr>
                   ))}
@@ -141,7 +141,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             {ledger.length === 0 ? (
               <EmptyState title="No points activity" />
             ) : (
-              <Table className="mt-3">
+              <Table stickyFirst className="mt-3">
                 <thead>
                   <tr>
                     <Th>When</Th>
@@ -173,9 +173,9 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             <CardHeader title="Profile" />
             <CardBody className="pt-3">
               <Line label="Mobile" value={displayPhone(c.phone)} />
-              <Line label="Email" value={c.email ?? <span className="text-ink-400">—</span>} />
-              <Line label="Date of birth" value={c.dob ? `${fmtDate(c.dob)} (${ageOn(c.dob)})` : <span className="text-ink-400">Not captured</span>} />
-              <Line label="SA ID" value={c.idLast4 ? <span className="font-mono">•••••••••{c.idLast4}</span> : <span className="text-ink-400">Not captured</span>} />
+              <Line label="Email" value={c.email ?? <span className="text-ink-500">—</span>} />
+              <Line label="Date of birth" value={c.dob ? `${fmtDate(c.dob)} (${ageOn(c.dob)})` : <span className="text-ink-500">Not captured</span>} />
+              <Line label="SA ID" value={c.idLast4 ? <span className="font-mono">•••••••••{c.idLast4}</span> : <span className="text-ink-500">Not captured</span>} />
               <Line label="Referral code" value={<span className="font-mono">{c.referralCode}</span>} />
               {referrer && <Line label="Referred by" value={`${referrer.firstName} (${referrer.memberNo})`} />}
             </CardBody>
@@ -233,7 +233,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                     {consents.map((e) => (
                       <li key={e.id} className="flex items-start justify-between gap-3 text-xs">
                         <span>
-                          <b className="text-ink-800">{CHANNEL[e.channel]}</b> {e.granted ? "granted" : "withdrawn"} <span className="text-ink-400">· {e.source.toLowerCase().replaceAll("_", " ")}</span>
+                          <b className="text-ink-800">{CHANNEL[e.channel]}</b> {e.granted ? "granted" : "withdrawn"} <span className="text-ink-500">· {e.source.toLowerCase().replaceAll("_", " ")}</span>
                         </span>
                         <span className="whitespace-nowrap text-ink-500">{fmtDate(e.createdAt)}</span>
                       </li>

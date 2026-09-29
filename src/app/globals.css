@@ -19,7 +19,7 @@
   --color-brand-400: #f79f52;
   --color-brand-500: #f5913c; /* brand */
   --color-brand-600: #e27623;
-  --color-brand-700: #c05f18;
+  --color-brand-700: #b25612; /* small text on white/cream: ≥ 4.5:1 (was #c05f18 at 4.3:1) */
   --color-brand-800: #974a15;
   --color-brand-900: #6e3712;
 
@@ -126,9 +126,53 @@
   }
   .scrollbar-none::-webkit-scrollbar { display: none; }
   .scrollbar-none { scrollbar-width: none; }
+
+  /*
+   * Admin data tables (@/components/ui/table). The frame measures itself: while the table is wider than its frame
+   * it scrolls sideways and, with data-sticky-first, pins the first column; otherwise the frame lets the header
+   * stick to the top of the page (a scroll container would swallow the sticky header).
+   */
+  .hh-table[data-overflow] { overflow-x: auto; }
+  .hh-table:not([data-overflow]) { overflow: visible; }
+  .hh-table thead th { position: sticky; top: var(--hh-sticky-top, 0px); z-index: 2; }
+  .hh-table[data-sticky-first][data-overflow] :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: white; }
+  .hh-table[data-sticky-first][data-overflow] thead th:first-child { z-index: 3; background: var(--color-ink-50); }
+  .hh-table[data-sticky-first][data-overflow][data-scrolled] tbody td:first-child,
+  .hh-table[data-sticky-first][data-overflow][data-scrolled] thead th:first-child { box-shadow: 6px 0 10px -8px rgb(20 17 16 / 0.35); }
+  .hh-table tbody tr:hover > td:first-child { background: color-mix(in srgb, var(--color-brand-50) 40%, white); }
+  .hh-table tr[data-href] { cursor: pointer; }
+  .hh-table tr[data-href]:focus-within > td:first-child { background: color-mix(in srgb, var(--color-brand-50) 40%, white); }
+  @media (prefers-reduced-motion: reduce) {
+    .hh-table * { transition-duration: 0.01ms !important; }
+  }
 }
 
 @media print {
   .no-print { display: none !important; }
   body { background: white; }
+}
+
+/*
+ * Storefront: the corporate site's language (sites/herbalholland.com) carried into the shop — the sky from a Dutch
+ * polder at golden hour to the KwaZulu-Natal hills at night, and the beadwork tile (a chain of diamonds in cream,
+ * orange and charcoal) that edges frames and heroes. The tile's colours are ink-900, ink-50 and brand-500.
+ */
+@layer base {
+  :root {
+    --hh-beads: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cpath fill='%23141110' d='M0 0h24v24H0z'/%3E%3Cpath fill='%23fbf7f3' d='M12 3l9 9-9 9-9-9z'/%3E%3Cpath fill='%23141110' d='M12 6.5l5.5 5.5-5.5 5.5-5.5-5.5z'/%3E%3Cpath fill='%23f5913c' d='M12 9l3 3-3 3-3-3zM0 0h5L0 5zm24 0v5l-5-5zM0 24v-5l5 5zm24 0h-5l5-5z'/%3E%3C/svg%3E");
+  }
+}
+@layer components {
+  /* The sky at three times of day (the site's --sky at 0, ½ and 1). */
+  .hh-sky-gold { background: linear-gradient(color-mix(in oklab, var(--color-brand-900) 26%, var(--color-ink-950)), color-mix(in oklab, var(--color-brand-800) 58%, var(--color-ink-950)) 58%, color-mix(in oklab, var(--color-brand-500) 55%, var(--color-brand-900)) 78%, var(--color-brand-400)); }
+  .hh-sky-dusk { background: linear-gradient(var(--color-ink-950), color-mix(in oklab, var(--color-brand-900) 34%, var(--color-ink-950)) 50%, color-mix(in oklab, var(--color-brand-800) 62%, var(--color-ink-950)) 74%, color-mix(in oklab, var(--color-brand-600) 55%, var(--color-ink-950))); }
+  .hh-sky-night { background: linear-gradient(#070605, var(--color-ink-950) 55%, color-mix(in oklab, var(--color-brand-900) 14%, var(--color-ink-950))); }
+  /* One row of beadwork: as a band, along the foot of a frame, or as a card's whole border. */
+  .hh-beads { height: 12px; background: var(--hh-beads) 0 0 / 12px 12px repeat-x; }
+  .hh-beads-foot::after { content: ""; position: absolute; inset: auto 0 0; height: 10px; background: var(--hh-beads) 0 0 / 10px 10px repeat-x; pointer-events: none; }
+  .hh-bead-frame { border: 14px solid transparent; border-radius: 1.75rem; background: linear-gradient(var(--color-ink-950) 0 0) padding-box, var(--hh-beads) 0 0 / 14px 14px border-box; }
+  /* The sticky buy bar on phones slides up once the page has scrolled past the buy box (see BuyBar). */
+  @media (prefers-reduced-motion: no-preference) {
+    .hh-buybar { transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.35s; }
+  }
 }

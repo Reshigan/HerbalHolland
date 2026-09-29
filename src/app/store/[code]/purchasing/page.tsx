@@ -93,7 +93,7 @@ export default async function PurchasingPage({ params, searchParams }: { params:
             {tab === "transit" ? "Nothing is on its way right now." : "Orders you place will show up here."}
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Order</Th>

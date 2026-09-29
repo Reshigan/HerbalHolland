@@ -100,7 +100,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
           {sales.length === 0 ? (
             <EmptyState title="No transactions in this shift" />
           ) : (
-            <Table className="mt-3">
+            <Table stickyFirst className="mt-3">
               <thead>
                 <tr>
                   <Th>Time</Th>
@@ -122,7 +122,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
                       {s.offline && <Badge className="ml-1.5">Offline</Badge>}
                     </Td>
                     <Td className="whitespace-nowrap text-ink-700">{s.staff?.name ?? "—"}</Td>
-                    <Td className="whitespace-nowrap text-ink-600">{s.customer ? `${s.customer.firstName} ${s.customer.lastName ?? ""}` : <span className="text-ink-300">Walk-in</span>}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{s.customer ? `${s.customer.firstName} ${s.customer.lastName ?? ""}` : <span className="text-ink-500">Walk-in</span>}</Td>
                     <Td align="right">{s.lines.reduce((a, l) => a + l.qty, 0)}</Td>
                     <Td className="text-xs text-ink-600">{[...new Set(s.payments.map((p) => METHOD[p.method] ?? p.method))].join(", ")}</Td>
                     <Td align="right" className="font-medium text-ink-900">{zar(s.totalCents)}</Td>

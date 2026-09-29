@@ -102,7 +102,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
             Shifts are opened and closed at the POS.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Shift</Th>
@@ -135,14 +135,14 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
                     </Td>
                     <Td className="whitespace-nowrap text-ink-600">{(s.deviceId && device.get(s.deviceId)) ?? "—"}</Td>
                     <Td className="whitespace-nowrap text-ink-700">{name.get(s.openedById) ?? "—"}</Td>
-                    <Td className="whitespace-nowrap text-ink-700">{s.closedById ? name.get(s.closedById) ?? "—" : <span className="text-ink-300">—</span>}</Td>
+                    <Td className="whitespace-nowrap text-ink-700">{s.closedById ? name.get(s.closedById) ?? "—" : <span className="text-ink-500">—</span>}</Td>
                     <Td align="right">{s._count.sales.toLocaleString()}</Td>
                     <Td align="right" className="text-ink-600">{zar(s.openingFloatCents)}</Td>
                     <Td align="right">{expected != null ? zar(expected) : "—"}</Td>
-                    <Td align="right">{s.countedCashCents != null ? zar(s.countedCashCents) : <span className="text-ink-300">—</span>}</Td>
+                    <Td align="right">{s.countedCashCents != null ? zar(s.countedCashCents) : <span className="text-ink-500">—</span>}</Td>
                     <Td align="right">
                       {variance == null ? (
-                        <span className="text-ink-300">—</span>
+                        <span className="text-ink-500">—</span>
                       ) : (
                         <Badge tone={tone}>{variance === 0 ? "Balanced" : `${variance > 0 ? "+" : "−"}${zar(Math.abs(variance))}`}</Badge>
                       )}
@@ -159,7 +159,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
                           <Badge tone="blue" dot>Waiting</Badge>
                         )
                       ) : (
-                        <span className="text-ink-300">—</span>
+                        <span className="text-ink-500">—</span>
                       )}
                     </Td>
                   </Tr>

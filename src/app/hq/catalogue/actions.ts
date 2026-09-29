@@ -171,6 +171,26 @@ export async function saveVariant(productId: string, variantId: string | null, _
   return done(`${sku} saved.`);
 }
 
+/** One variant's recommended retail price, from the catalogue list. Audited as a price change like the full editor. */
+export async function saveVariantPrice(variantId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  const priceCents = parseRand(str(fd, "price"));
+  if (!priceCents || priceCents <= 0) return fail("Enter the RRP incl. VAT, like 249.00", { price: "RRP incl. VAT" });
+  if (priceCents > 1_000_000_00) return fail("That's more than R1,000,000 — check the amount", { price: "Too high" });
+  const before = await db.variant.findUnique({ where: { id: variantId }, select: { id: true, sku: true, productId: true, priceCents: true, wholesaleCents: true, costCents: true } });
+  if (!before) return fail("That variant no longer exists.");
+  if (before.priceCents === priceCents) return done(`${before.sku} is already R${(priceCents / 100).toFixed(2)}.`);
+  await db.variant.update({ where: { id: variantId }, data: { priceCents } });
+  await audit(db, g.actor, "variant.price", {
+    entity: "Variant", entityId: variantId,
+    data: { sku: before.sku, before: { rrp: before.priceCents, wholesale: before.wholesaleCents, cost: before.costCents }, after: { rrp: priceCents, wholesale: before.wholesaleCents, cost: before.costCents } },
+  });
+  revalidatePath("/hq/catalogue");
+  revalidatePath(`/hq/catalogue/${before.productId}`);
+  return done(`${before.sku}: RRP R${(priceCents / 100).toFixed(2)} saved.`);
+}
+
 /** Range or unrange a variant at every matching store (by format and/or region). */
 export async function rangeVariant(productId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("network");

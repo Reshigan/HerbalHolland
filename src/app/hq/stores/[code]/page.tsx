@@ -255,7 +255,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                     {siblings.map((s) => (
                       <li key={s.code} className="flex items-center justify-between">
                         <Link href={`/hq/stores/${s.code}`} className="font-medium text-ink-800 hover:text-brand-700">
-                          {s.name} <span className="font-mono text-xs text-ink-400">{s.code}</span>
+                          {s.name} <span className="font-mono text-xs text-ink-500">{s.code}</span>
                         </Link>
                         <StatusBadge status={s.status} />
                       </li>
@@ -281,7 +281,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                     <Field key={n} label={label} htmlFor={n}>
                       <div className="relative">
                         <Input id={n} name={n} defaultValue={v / 100} inputMode="decimal" className="pr-7 tnum" />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                       </div>
                       <FieldError name={n} />
                     </Field>

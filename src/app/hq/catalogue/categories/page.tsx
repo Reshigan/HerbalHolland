@@ -52,7 +52,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
       <Flash message={sp.m} />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 {network && (
@@ -117,7 +117,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
                           {num(all)}
                         </Link>
                       ) : (
-                        <span className="text-ink-400">0</span>
+                        <span className="text-ink-500">0</span>
                       )}
                       <span className="block text-xs text-ink-500">{num(active)} active</span>
                     </Td>
@@ -132,7 +132,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
                               <p>It holds no products. Links to /shop?category={c.slug} will show the whole range.</p>
                             </ConfirmAction>
                           ) : (
-                            <span className="inline-flex h-8 items-center px-3 text-xs text-ink-400" title="Move its products to another category first">
+                            <span className="inline-flex h-8 items-center px-3 text-xs text-ink-500" title="Move its products to another category first">
                               Not empty
                             </span>
                           )}

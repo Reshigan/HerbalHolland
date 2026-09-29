@@ -128,7 +128,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
 
           <Card>
             <CardHeader title="Items" description={open && !merchOnly ? "Pick from the batches shown — first expiry, first out" : undefined} />
-            <Table className="mt-3">
+            <Table stickyFirst className="mt-3">
               <thead>
                 <tr>
                   <Th>Item</Th>
@@ -145,7 +145,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                       <Link href={`${base}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                         {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                       </Link>
-                      <div className="flex items-center gap-2 text-xs text-ink-400">
+                      <div className="flex items-center gap-2 text-xs text-ink-500">
                         <span className="font-mono">{l.variant.sku}</span>
                         {l.licensed && <Badge tone="violet">Licensed</Badge>}
                         {l.made && <Badge tone="orange">Made to order · ships from the merch partner</Badge>}
@@ -162,7 +162,7 @@ export default async function OrderPage({ params }: { params: Promise<{ code: st
                         {l.pick.map((p) => (
                           <div key={p.code} className="font-mono text-xs text-ink-700">
                             {p.code} ×{p.qty}
-                            {p.expiresAt && <span className="font-sans text-ink-400"> · exp {fmtDate(p.expiresAt)}</span>}
+                            {p.expiresAt && <span className="font-sans text-ink-500"> · exp {fmtDate(p.expiresAt)}</span>}
                           </div>
                         ))}
                         {l.short > 0 && <div className="text-xs font-semibold text-rose-600">{l.short} not on hand</div>}

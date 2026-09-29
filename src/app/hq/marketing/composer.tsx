@@ -113,7 +113,7 @@ export function Composer({
                     onClick={() => set("channel", c.key)}
                     className={cn("rounded-xl border p-3 text-left transition", v.channel === c.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
                   >
-                    <c.icon className={cn("mb-1.5 h-5 w-5", v.channel === c.key ? "text-brand-700" : "text-ink-400")} strokeWidth={1.9} />
+                    <c.icon className={cn("mb-1.5 h-5 w-5", v.channel === c.key ? "text-brand-700" : "text-ink-500")} strokeWidth={1.9} />
                     <span className="block text-sm font-semibold text-ink-900">{c.label}</span>
                     <span className="block text-xs text-ink-500">{c.note}</span>
                   </button>

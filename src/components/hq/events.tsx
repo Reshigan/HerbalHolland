@@ -138,7 +138,7 @@ export function GuestList({
                     {fmtTime(r.checkedInAt)}
                   </Badge>
                 ) : (
-                  <span className="text-xs text-ink-400">Not yet</span>
+                  <span className="text-xs text-ink-500">Not yet</span>
                 )}
               </Td>
             </Tr>

@@ -76,7 +76,7 @@ export function AddMember({ action, storeName }: { action: FormAction; storeName
         <SubmitButton className="w-full" size="lg" pendingLabel="Enrolling…">
           Enrol member
         </SubmitButton>
-        <p className="text-center text-xs text-ink-400">New members get their welcome points straight away.</p>
+        <p className="text-center text-xs text-ink-500">New members get their welcome points straight away.</p>
       </ActionForm>
     </Drawer>
   );

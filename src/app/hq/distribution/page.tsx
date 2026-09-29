@@ -104,7 +104,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
 
       {view.status ? (
         <Card>
-          <Table className="relative">
+          <Table stickyFirst className="relative">
             <thead>
               <tr>
                 <Th>Order</Th>
@@ -178,7 +178,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
               <FilterSelect name="low" label="Show" allLabel={null} defaultValue={sp.low ?? ""} options={[{ value: "", label: "All SKUs" }, { value: "1", label: "Low stock only" }]} />
             </FilterForm>
           </div>
-          <Table className="relative">
+          <Table stickyFirst className="relative">
             <thead>
               <tr>
                 <Th>Item</Th>
@@ -206,7 +206,7 @@ export default async function DistributionPage({ searchParams }: { searchParams:
                   <Td align="right" className={r.available <= 0 ? "font-semibold text-rose-600" : "font-semibold"}>{num(r.available)}</Td>
                   <Td align="right" className="hidden text-ink-600 md:table-cell">{num(r.shipped28)}</Td>
                   <Td align="right">
-                    {r.cover === Infinity ? <span className="text-ink-400">No demand</span> : r.low ? <Badge tone={r.cover <= 0 ? "red" : "amber"}>{Math.max(0, Math.floor(r.cover))} days</Badge> : `${Math.floor(r.cover)} days`}
+                    {r.cover === Infinity ? <span className="text-ink-500">No demand</span> : r.low ? <Badge tone={r.cover <= 0 ? "red" : "amber"}>{Math.max(0, Math.floor(r.cover))} days</Badge> : `${Math.floor(r.cover)} days`}
                   </Td>
                   <Td className="hidden whitespace-nowrap text-ink-600 lg:table-cell">{r.nextExpiry ? fmtDate(r.nextExpiry) : "—"}</Td>
                 </Tr>

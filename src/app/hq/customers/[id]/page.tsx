@@ -112,7 +112,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   ))}
               </CardBody>
             )}
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -144,7 +144,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
 
           <Card>
             <CardHeader title="Points ledger" description="Latest movements · 1 point = R1" />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>When</Th>

@@ -133,7 +133,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
             Personal information · exports are logged
           </span>
         )}
-        <span className="hidden text-ink-400 print:inline">Printed {fmtDateTime(new Date())}</span>
+        <span className="hidden text-ink-500 print:inline">Printed {fmtDateTime(new Date())}</span>
       </div>
 
       <FilterBar path={path} query={query} controls={controls} />

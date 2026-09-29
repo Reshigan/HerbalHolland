@@ -143,7 +143,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                   <li key={label} className="flex items-start gap-3 text-sm">
                     <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${at ? "bg-brand-500" : "bg-ink-200"}`} aria-hidden />
                     <span className="flex-1">
-                      <span className={at ? "font-medium text-ink-900" : "text-ink-400"}>{label}</span>
+                      <span className={at ? "font-medium text-ink-900" : "text-ink-500"}>{label}</span>
                       {who && <span className="text-ink-500"> by {who}</span>}
                     </span>
                     <span className="text-xs text-ink-500">{at ? fmtDateTime(at) : "—"}</span>
@@ -158,7 +158,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
         </div>
         <Card className="mt-6">
           <CardHeader title={order.status === "APPROVED" ? "Pick list" : "Lines"} description={order.status === "APPROVED" ? "Pick first-expiry-first-out from these batches" : undefined} />
-          <Table className="relative mt-4">
+          <Table stickyFirst className="relative mt-4">
             <thead>
               <tr>
                 <Th>Item</Th>
@@ -188,7 +188,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                             <li key={x.batchId} className="flex items-center gap-2 text-xs">
                               <span className="tnum w-8 text-right font-semibold text-ink-900">{x.qty}×</span>
                               <Link href={`/hq/batches/${x.batchId}`} className="font-mono text-ink-700 hover:text-brand-700">{x.code}</Link>
-                              {x.expiresAt && <span className="text-ink-400">exp {fmtDate(x.expiresAt)}</span>}
+                              {x.expiresAt && <span className="text-ink-500">exp {fmtDate(x.expiresAt)}</span>}
                             </li>
                           ))}
                           {p.short > 0 && <li><Badge tone="red">{p.short} short</Badge></li>}
@@ -203,7 +203,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                           ))}
                         </ul>
                       ) : (
-                        <span className="text-xs text-ink-400">—</span>
+                        <span className="text-xs text-ink-500">—</span>
                       )}
                     </Td>
                     <Td align="right">

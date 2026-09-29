@@ -41,7 +41,7 @@ export function MatrixHeatmap({ rows, cols, cells, format = "number", className 
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-2 text-[0.65rem] text-ink-400">
+      <div className="mt-3 flex items-center justify-end gap-2 text-[0.65rem] text-ink-500">
         Fewer
         <span className="flex gap-[2px]">
           {RAMP.slice(1).map((c) => (

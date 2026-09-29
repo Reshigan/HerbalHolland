@@ -1705,3 +1705,123 @@ model ScheduledExport {
   @@index([userId, reportKey])
   @@index([active, cadence])
 }
+
+// ── Shop features (wishlists, vouchers, reminders, wallet) ─────────────────────
+// Appended without relations to the core models above (plain id columns, indexed), like the operations block.
+
+/// A product photo: comes in through the catalogue import's `image_urls` column (fetched and kept in storage), served
+/// to everyone at /media/[id] while the product is on sale. Ordered by sortOrder; the first is the main picture.
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  uploadId  String
+  alt       String   @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, uploadId])
+  @@index([productId, sortOrder])
+}
+
+/// A member's saved delivery address ("Home", "Work"…); the default one is offered first at checkout.
+model Address {
+  id         String   @id @default(cuid())
+  customerId String
+  label      String   @default("Home")
+  line       String
+  suburb     String
+  city       String
+  province   Province
+  postalCode String
+  notes      String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId, isDefault])
+}
+
+/// A variant a member wants to come back to. `outOfStockAt` is set by the frequent job while nothing in the network
+/// can ship it; when stock returns it becomes `restockedAt` (the "back in stock" flag on the wishlist).
+model Wishlist {
+  id           String    @id @default(cuid())
+  customerId   String
+  variantId    String
+  outOfStockAt DateTime?
+  restockedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@unique([customerId, variantId])
+  @@index([variantId])
+}
+
+enum VoucherStatus {
+  PENDING // being paid for
+  ACTIVE
+  REDEEMED // balance used up
+  EXPIRED
+  CANCELLED
+}
+
+/// A gift voucher: money, not an incentive — it pays for anything, including medicines, and carries no bonus value.
+/// Bought online as an order for the virtual "Gift voucher" product (@/server/shop/vouchers) and issued when that
+/// order is paid; valid for three years from issue (CPA s63(2)); redeemed against orders at checkout.
+model GiftVoucher {
+  id                    String        @id @default(cuid())
+  code                  String        @unique
+  amountCents           Int
+  balanceCents          Int
+  purchasedByCustomerId String?
+  purchaseOrderId       String?       @unique
+  recipientEmail        String?
+  recipientName         String?
+  message               String?
+  status                VoucherStatus @default(PENDING)
+  issuedAt              DateTime?
+  expiresAt             DateTime
+  redeemedOrderIds      String[]      @default([])
+  sentAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([purchasedByCustomerId, createdAt])
+  @@index([status, expiresAt])
+}
+
+/// Money an order took from a voucher (put back on the voucher if the order is cancelled unpaid).
+model VoucherRedemption {
+  id        String   @id @default(cuid())
+  voucherId String
+  orderId   String
+  cents     Int
+  reversed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([voucherId])
+}
+
+enum ReminderChannel {
+  SMS
+  EMAIL
+  PUSH
+}
+
+/// "Remind me to reorder": a schedule the member set for one product (coffee, collagen, oils). The daily job sends a
+/// message with a one-tap reorder link on the channel chosen — nothing is charged (no card on file until Peach
+/// tokenisation is approved).
+model ReorderReminder {
+  id         String          @id @default(cuid())
+  customerId String
+  variantId  String
+  everyDays  Int
+  nextAt     DateTime
+  active     Boolean         @default(true)
+  channel    ReminderChannel @default(SMS)
+  lastSentAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([customerId, variantId])
+  @@index([active, nextAt])
+}

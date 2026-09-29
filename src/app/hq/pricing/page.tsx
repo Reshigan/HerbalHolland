@@ -85,7 +85,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       />
       <Flash message={sp.m} />
       <Card>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Price list</Th>

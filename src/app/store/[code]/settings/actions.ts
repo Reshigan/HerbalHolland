@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
-import { WEEK, bool, hoursJson, str, type TradingHours } from "@/server/store/rules";
+import { WEEK, bool, hoursJson, readHours, str, type DayKey, type TradingHours } from "@/server/store/rules";
 import { normalisePhone } from "@/lib/sa";
 import { z } from "zod";
 import { requireStaff } from "@/server/auth";
@@ -31,6 +31,26 @@ export async function saveStoreDetails(code: string, _: ActionState, fd: FormDat
     await audit(db, actor, "store.settings", { storeId: store.id, entity: "Store", entityId: store.id, data: { clickCollect, sameDay, hours: hours.json } });
     revalidatePath(`/store/${store.code}/settings`);
     return done("Store details saved. The website and store finder update straight away.");
+  });
+}
+
+/** Saves one day's trading hours from the inline editor (the rest of the week is kept), with the same checks and audit entry as the details form. */
+export async function saveHours(code: string, day: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  return attempt(async () => {
+    const { store, actor } = await manage(code);
+    const entry = WEEK.find(([k]) => k === day);
+    if (!entry) return fail("Unknown day");
+    const [k, name] = entry;
+    const week = readHours(store.hours);
+    week[k as DayKey] = bool(fd, "closed") ? null : { open: str(fd, "open"), close: str(fd, "close") };
+    const hours = hoursJson(week);
+    if ("error" in hours) return fail(hours.error, "hours");
+    await db.store.update({ where: { id: store.id }, data: { hours: hours.json } });
+    await audit(db, actor, "store.settings", { storeId: store.id, entity: "Store", entityId: store.id, data: { hours: hours.json, day: k } });
+    revalidatePath(`/store/${store.code}/settings`);
+    revalidatePath(`/store/${store.code}`);
+    const d = week[k as DayKey];
+    return done(d ? `${name}: ${d.open}–${d.close} saved. The website and store finder update straight away.` : `${name}: closed. The website and store finder update straight away.`);
   });
 }
 

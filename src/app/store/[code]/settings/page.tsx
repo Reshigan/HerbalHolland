@@ -7,7 +7,7 @@ import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { bps } from "@/lib/money";
 import { displayPhone, PROVINCES } from "@/lib/sa";
 import { fmtDate, timeAgo } from "@/lib/format";
-import { disableStaffPush, enableStaffPush, revokeDevice, saveStoreDetails } from "./actions";
+import { disableStaffPush, enableStaffPush, revokeDevice, saveHours, saveStoreDetails } from "./actions";
 import { StaffPushToggle } from "@/components/store/push-toggle";
 import { STAFF_PUSH_ROLES, staffDeviceCount, staffVapidKey } from "@/server/staff-push";
 import { HoursEditor } from "./hours-editor";
@@ -43,7 +43,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
       />
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">
-          <CardHeader title="Store details" description="Shown on the website, store finder, receipts and order messages" />
+          <CardHeader title="Store details" description="Shown on the website, store finder, receipts and order messages. A changed day of trading hours can be saved on its own from its row." />
           <CardBody>
             {canManage ? (
               <ActionForm action={saveStoreDetails.bind(null, store.code)} className="space-y-5">
@@ -61,7 +61,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                     <FieldError name="email" />
                   </Field>
                 </div>
-                <HoursEditor initial={hours} />
+                <HoursEditor initial={hours} saveDay={Object.fromEntries(WEEK.map(([k]) => [k, saveHours.bind(null, store.code, k)]))} />
                 <FieldError name="hours" />
                 <fieldset className="grid gap-3 rounded-2xl bg-ink-50 p-4 sm:grid-cols-2">
                   <legend className="sr-only">Online fulfilment</legend>

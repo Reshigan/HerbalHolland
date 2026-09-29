@@ -261,7 +261,7 @@ export function ProductForm({
                         <Input name="terpName" aria-label={`Terpene ${i + 1}`} value={t.name} onChange={(e) => setTerps(terps.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} placeholder="Myrcene" />
                         <div className="relative w-28 shrink-0">
                           <Input name="terpPct" aria-label={`Terpene ${i + 1} %`} value={t.pct} onChange={(e) => setTerps(terps.map((x, j) => (j === i ? { ...x, pct: e.target.value } : x)))} inputMode="decimal" className="pr-7" />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                         </div>
                         <Button type="button" variant="ghost" size="icon" onClick={() => setTerps(terps.filter((_, j) => j !== i))} aria-label="Remove terpene">
                           <Trash2 className="h-4 w-4" />

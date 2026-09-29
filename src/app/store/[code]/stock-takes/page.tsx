@@ -80,7 +80,7 @@ export default async function StockTakesPage({ params, searchParams }: { params:
             Cycle-count a category each week and do a full count every quarter to keep stock accurate.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Stock take</Th>
@@ -113,18 +113,18 @@ export default async function StockTakesPage({ params, searchParams }: { params:
                   </Td>
                   <Td className="whitespace-nowrap text-ink-600">
                     {fmtDateTime(t.createdAt)}
-                    {t.createdBy && <div className="text-xs text-ink-400">{t.createdBy}</div>}
+                    {t.createdBy && <div className="text-xs text-ink-500">{t.createdBy}</div>}
                   </Td>
                   <Td align="right">
                     {t.stats.counted} / {t.stats.lines}
                   </Td>
-                  <Td align="right">{t.status === "APPROVED" ? <Qty n={t.stats.netUnits} /> : <span className="text-ink-300">—</span>}</Td>
+                  <Td align="right">{t.status === "APPROVED" ? <Qty n={t.stats.netUnits} /> : <span className="text-ink-500">—</span>}</Td>
                   <Td align="right" className={t.status === "APPROVED" && t.stats.netValue < 0 ? "font-semibold text-rose-600" : "text-ink-800"}>
-                    {t.status === "APPROVED" ? zar(t.stats.netValue) : <span className="text-ink-300">—</span>}
+                    {t.status === "APPROVED" ? zar(t.stats.netValue) : <span className="text-ink-500">—</span>}
                   </Td>
                   <Td className="whitespace-nowrap text-ink-600">
-                    {t.approvedAt ? fmtDate(t.approvedAt) : <span className="text-ink-300">—</span>}
-                    {t.approvedBy && <div className="text-xs text-ink-400">{t.approvedBy}</div>}
+                    {t.approvedAt ? fmtDate(t.approvedAt) : <span className="text-ink-500">—</span>}
+                    {t.approvedBy && <div className="text-xs text-ink-500">{t.approvedBy}</div>}
                   </Td>
                 </Tr>
               ))}

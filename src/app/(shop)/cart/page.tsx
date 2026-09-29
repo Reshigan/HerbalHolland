@@ -12,7 +12,8 @@ import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
 import { cardsWhere, getNetwork } from "@/server/shop/catalogue";
-import { getCart, getPreferredStore, getPromoCode } from "@/server/shop/context";
+import { getCart, getPreferredStore, getPromoCode, getVoucherCode } from "@/server/shop/context";
+import { voucherForCheckout } from "@/server/shop/vouchers";
 import { setBagQty } from "@/server/shop/actions";
 import { tierMeta } from "@/server/shop/club";
 import { welcomeGifts } from "@/server/shop/launch";
@@ -20,6 +21,7 @@ import { readableDropBlock } from "@/server/shop/launch-rules";
 import { ProductArt } from "@/components/product/art";
 import { ProductGrid } from "@/components/shop/product-card";
 import { PromoCode } from "@/components/shop/promo-code";
+import { VoucherCode } from "@/components/shop/voucher-code";
 import { WelcomeGiftBanner } from "@/components/shop/club-launch";
 import { fmtWhen } from "@/components/shop/launch-cards";
 import { Callout, Container, Panel, Tag } from "@/components/shop/ui";
@@ -31,8 +33,8 @@ import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = { title: "Your bag", robots: { index: false } };
 
-export default async function CartPage() {
-  const [items, code, customer, settings, classes, store] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getClasses(), getPreferredStore()]);
+export default async function CartPage({ searchParams }: { searchParams: Promise<{ reorder?: string }> }) {
+  const [{ reorder }, items, code, customer, settings, classes, store, voucherCode] = await Promise.all([searchParams, getCart(), getPromoCode(), getCustomer(), getSettings(), getClasses(), getPreferredStore(), getVoucherCode()]);
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
 
   if (!q.lines.length)
@@ -56,6 +58,7 @@ export default async function CartPage() {
 
   const net = await getNetwork();
   const variantIds = q.lines.map((l) => l.variantId);
+  const voucher = voucherCode ? await voucherForCheckout(voucherCode) : null;
   const [variants, avail, access, drops, dropMsgs, gifts, made] = await Promise.all([
     db.variant.findMany({ where: { id: { in: variantIds } }, select: { id: true, product: { select: { slug: true, strain: true, regClass: true, name: true } } } }),
     availability(net.all, variantIds),
@@ -107,6 +110,11 @@ export default async function CartPage() {
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
         <div className="space-y-4">
+          {reorder && (
+            <Callout tone={/^Added/.test(reorder) ? "success" : "warn"} icon={<Sparkles className="h-5 w-5" />} title="From your reminder">
+              {reorder.slice(0, 400)}
+            </Callout>
+          )}
           {dropNotes.map((n) => (
             <Callout key={n.title} tone="warn" icon={<Sparkles className="h-5 w-5" />} title={n.title}>
               {n.body}{" "}
@@ -290,8 +298,9 @@ export default async function CartPage() {
                 <Truck className="h-4 w-4 shrink-0" /> Free delivery unlocked.
               </p>
             )}
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <PromoCode code={code} error={code ? q.codeError : null} />
+              <VoucherCode code={voucherCode} applied={voucher?.ok ? { balanceCents: voucher.voucher.balanceCents, appliedCents: Math.min(voucher.voucher.balanceCents, q.totalCents) } : null} error={voucher && !voucher.ok ? voucher.error : null} />
             </div>
             <ButtonLink href="/checkout" size="xl" className={cn("mt-5 w-full", blockedLicensed && "pointer-events-none opacity-45")} aria-disabled={!!blockedLicensed}>
               Checkout <ArrowRight className="h-5 w-5" />

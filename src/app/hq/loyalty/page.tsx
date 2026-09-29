@@ -92,7 +92,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Tiers" description="Rolling 12-month spend sets the tier; each tier gets an instant saving at the till and online (never on medicines)" />
-          <Table className="relative mt-4">
+          <Table stickyFirst className="relative mt-4">
             <thead>
               <tr>
                 <Th>Tier</Th>
@@ -170,14 +170,14 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                   <Field label="Deal size" htmlFor="offerPercent" hint="5–30% off">
                     <div className="relative">
                       <Input id="offerPercent" name="offerPercent" defaultValue={o.percent} inputMode="numeric" className="tnum pr-7" />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                     </div>
                     <FieldError name="offerPercent" />
                   </Field>
                   <Field label="Valid for" htmlFor="offerDays" hint="3–14 days">
                     <div className="relative">
                       <Input id="offerDays" name="offerDays" defaultValue={o.validDays} inputMode="numeric" className="tnum pr-12" />
-                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">days</span>
+                      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">days</span>
                     </div>
                     <FieldError name="offerDays" />
                   </Field>
@@ -198,7 +198,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Settlement preview · last 30 days" description="Issued vs redeemed per store, from the points ledger. Positive = the pool reimburses the store." />
-          <Table className="relative mt-4">
+          <Table stickyFirst className="relative mt-4">
             <thead>
               <tr>
                 <Th>Store</Th>
@@ -242,7 +242,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
                     <Field key={t.key} label={t.name} htmlFor={`save_${t.key}`}>
                       <div className="relative">
                         <Input id={`save_${t.key}`} name={`save_${t.key}`} defaultValue={l.tierSavingsPct[t.key]} inputMode="decimal" className="tnum pr-7" />
-                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                        <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                       </div>
                       <FieldError name={`save_${t.key}`} />
                     </Field>
@@ -310,7 +310,7 @@ export default async function LoyaltyPage({ searchParams }: { searchParams: Prom
 
       <Card className="mt-6">
         <CardHeader title="Top members" description="By lifetime spend" />
-        <Table className="relative mt-4">
+        <Table stickyFirst className="relative mt-4">
           <thead>
             <tr>
               <Th>Member</Th>

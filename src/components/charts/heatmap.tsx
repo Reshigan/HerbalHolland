@@ -13,7 +13,7 @@ export function Heatmap({ cells, hours, format = "number", className }: { cells:
       <div className="grid gap-[3px]" style={{ gridTemplateColumns: `2.5rem repeat(${hours.length}, minmax(0, 1fr))` }}>
         <span />
         {hours.map((h) => (
-          <span key={h} className="tnum text-center text-[0.65rem] text-ink-400">
+          <span key={h} className="tnum text-center text-[0.65rem] text-ink-500">
             {String(h).padStart(2, "0")}
           </span>
         ))}
@@ -28,7 +28,7 @@ export function Heatmap({ cells, hours, format = "number", className }: { cells:
           </div>
         ))}
       </div>
-      <div className="mt-3 flex items-center justify-end gap-2 text-[0.65rem] text-ink-400">
+      <div className="mt-3 flex items-center justify-end gap-2 text-[0.65rem] text-ink-500">
         Less
         <span className="flex gap-[2px]">
           {RAMP.slice(1).map((c) => (

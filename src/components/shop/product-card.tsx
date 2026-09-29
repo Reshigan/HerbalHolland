@@ -1,3 +1,6 @@
+import { getCustomer } from "@/server/auth";
+import { mainImages, productImageUrl } from "@/server/shop/images";
+import { wishlistVariantIds } from "@/server/shop/wishlist";
 import { ProductArt } from "@/components/product/art";
 import { ProductCardView } from "./product-card-view";
 import { cn } from "@/lib/cn";
@@ -7,41 +10,34 @@ export { ProductCardView, StockLine } from "./product-card-view";
 
 /**
  * Server-rendered grid of product cards. The card markup is a client component (ProductCardView), which keeps it out of
- * the RSC payload; the art stays a server component so the merch mockups never reach the browser bundle. (One
- * boundary per card was tried and dropped: the swaps cost more blocking time than they saved.)
+ * the RSC payload; the picture stays a server component — a real photo when the catalogue has one, else the generated
+ * art, so the merch mockups never reach the browser bundle. (One boundary per card was tried and dropped: the swaps
+ * cost more blocking time than they saved.) Members see a heart on each card for their wishlist.
  */
-export function ProductGrid({
-  items,
-  buyable,
-  className,
-}: {
-  items: Card[];
-  buyable?: boolean;
-  className?: string;
-}) {
+export async function ProductGrid({ items, buyable, className }: { items: Card[]; buyable?: boolean; className?: string }) {
+  const customer = await getCustomer();
+  const [wished, photos] = await Promise.all([customer ? wishlistVariantIds(customer.id) : null, mainImages(items.map((p) => p.id))]);
   return (
-    <div
-      className={cn(
-        "grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4",
-        className,
-      )}
-    >
-      {items.map((p) => (
-        <ProductCardView
-          key={p.id}
-          p={p}
-          buyable={buyable}
-          art={
-            <ProductArt
-              slug={p.slug}
-              strain={p.strain}
-              regClass={p.regClass}
-              label={p.name}
-              className="h-full w-full transition duration-700 group-hover:scale-[1.04]"
-            />
-          }
-        />
-      ))}
+    <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
+      {items.map((p) => {
+        const photo = photos.get(p.id);
+        return (
+          <ProductCardView
+            key={p.id}
+            p={p}
+            buyable={buyable}
+            wished={wished ? wished.has(p.firstVariantId) : null}
+            art={
+              photo ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={productImageUrl(photo.id)} alt={photo.alt || p.name} width={600} height={600} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+              ) : (
+                <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} label={p.name} className="h-full w-full transition duration-700 group-hover:scale-[1.04]" />
+              )
+            }
+          />
+        );
+      })}
     </div>
   );
 }

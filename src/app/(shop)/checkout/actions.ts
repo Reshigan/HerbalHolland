@@ -7,9 +7,11 @@ import { quote } from "@/server/pricing";
 import { deliveryFee, OrderError, placeOrder } from "@/server/orders";
 import { CustomerError } from "@/server/customers";
 import { LoyaltyError } from "@/server/loyalty";
-import { getCart, getPromoCode, saveCart, savePromoCode } from "@/server/shop/context";
+import { getCart, getPromoCode, getVoucherCode, saveCart, savePromoCode, saveVoucherCode } from "@/server/shop/context";
+import { rememberAddress } from "@/server/shop/addresses";
 import { redeemablePoints } from "@/server/shop/cart-codec";
 import { readableDropBlock } from "@/server/shop/launch-rules";
+import { VoucherError } from "@/server/shop/vouchers";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
 export type CheckoutState = { error?: string; alternatives?: { id: string; name: string }[]; fields?: Partial<Record<"addressLine" | "suburb" | "city" | "province" | "postalCode" | "storeId", string>>; values?: Record<string, string> };
@@ -23,7 +25,7 @@ const Address = z.object({
   notes: z.string().trim().max(200).optional(),
 });
 
-const ADDRESS_FIELDS = ["addressLine", "suburb", "city", "province", "postalCode", "notes"];
+const ADDRESS_FIELDS = ["addressLine", "suburb", "city", "province", "postalCode", "notes", "addressLabel", "saveAddress"];
 
 /** React resets the form once the action returns: a delivery address comes back with any error, so it isn't lost. */
 export async function placeOrderAction(_: CheckoutState, form: FormData): Promise<CheckoutState> {
@@ -57,7 +59,7 @@ async function place(form: FormData): Promise<CheckoutState> {
   }
 
   // Points: whole points, from the minimum up to the cap on incentive-eligible spend (medicines excluded).
-  const [settings, code] = await Promise.all([getSettings(), getPromoCode()]);
+  const [settings, code, voucherCode] = await Promise.all([getSettings(), getPromoCode(), getVoucherCode()]);
   const wanted = Math.max(0, Math.floor(Number(form.get("points") ?? 0)) || 0);
   let points = 0;
   if (wanted > 0) {
@@ -70,16 +72,19 @@ async function place(form: FormData): Promise<CheckoutState> {
 
   let order: Awaited<ReturnType<typeof placeOrder>>;
   try {
-    order = await placeOrder({ customerId: customer.id, fulfilment, storeId, address, items, code, points, payMethod });
+    // A gift voucher only pays online (the till doesn't take vouchers): paying in store simply leaves it on the voucher.
+    order = await placeOrder({ customerId: customer.id, fulfilment, storeId, address, items, code, points, payMethod, voucherCode: payMethod === "ONLINE" ? voucherCode : null });
   } catch (e) {
     if (e instanceof OrderError) {
       // Limited drops: turn the rule's short refusal into something a shopper can act on.
       const drop = readableDropBlock(e.message);
       return { error: drop.kind === "other" ? e.message : `${drop.title}. ${drop.body}`, alternatives: e.alternatives };
     }
-    if (e instanceof LoyaltyError || e instanceof CustomerError) return { error: e.message };
+    if (e instanceof LoyaltyError || e instanceof CustomerError || e instanceof VoucherError) return { error: e.message };
     throw e;
   }
-  await Promise.all([saveCart([]), savePromoCode(null)]);
+  // The address this order ships to is kept for next time (up to five; "Home", "Work" or "Other").
+  if (address && form.get("saveAddress") !== "no") await rememberAddress(customer.id, address, String(form.get("addressLabel") ?? "") || null).catch((e) => console.error("[checkout] address", e));
+  await Promise.all([saveCart([]), savePromoCode(null), voucherCode ? saveVoucherCode(null) : Promise.resolve()]);
   redirect(order.status === "PENDING_PAYMENT" ? `/checkout/pay/${order.id}` : `/orders/${order.code}?placed=1`);
 }

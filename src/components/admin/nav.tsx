@@ -4,7 +4,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, Menu, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, Menu, MessageSquare, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
   Star, Stethoscope, Store, Tag, Tags,
   Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
@@ -14,7 +14,7 @@ import type { NavGroup } from "./nav-config";
 // Explicit map (not `import *`) so the client bundle carries only the icons the nav uses.
 const ICONS: Record<string, LucideIcon> = {
   ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, MessageSquare, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
   Star, Stethoscope, Store, Tag, Tags,
   Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse,
 };
@@ -27,10 +27,10 @@ function Icon({ name, className }: { name: string; className?: string }) {
 export function SideNav({ groups }: { groups: NavGroup[] }) {
   const path = usePathname();
   return (
-    <nav className="space-y-5">
+    <nav className="space-y-5" aria-label="Sections">
       {groups.map((g, gi) => (
         <div key={gi}>
-          {g.title && <div className="eyebrow mb-1.5 px-3 text-[0.62rem] text-ink-500">{g.title}</div>}
+          {g.title && <div className="eyebrow mb-1.5 px-3 text-[0.62rem] text-ink-450">{g.title}</div>}
           <ul className="space-y-0.5">
             {g.items.map((i) => {
               const active = i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`);

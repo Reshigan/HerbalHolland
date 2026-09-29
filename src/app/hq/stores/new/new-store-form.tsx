@@ -188,7 +188,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
               <Field key={n} label={label} htmlFor={n}>
                 <div className="relative">
                   <Input id={n} name={n} defaultValue={v} inputMode="decimal" className="tnum pr-7" />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                 </div>
                 <FieldError name={n} />
               </Field>

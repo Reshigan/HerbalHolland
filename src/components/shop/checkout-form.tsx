@@ -1,9 +1,10 @@
 "use client";
 import { useActionState, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Check, CreditCard, IdCard, Lock, MapPin, Store, Truck, Zap } from "lucide-react";
+import { AlertTriangle, ArrowRight, Check, Clock, CreditCard, Gift, IdCard, Lock, MapPin, Store, Truck, Zap } from "lucide-react";
 import { placeOrderAction, type CheckoutState } from "@/app/(shop)/checkout/actions";
 import { buttonClass } from "@/components/ui/button";
+import { VoucherCode } from "./voucher-code";
 import { FieldRow, SelectInput, TextInput, inputClass } from "./ui";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
@@ -13,6 +14,8 @@ export type Fulfil = "COLLECT" | "SAME_DAY" | "COURIER";
 export type FulfilOption = { key: Fulfil; ok: boolean; reason?: string; feeCents: number; maxPoints: number };
 export type CollectStore = { id: string; name: string; suburb: string; city: string; hasAll: boolean; missing: number; km: number | null; openLabel: string; open: boolean };
 export type SummaryLine = { variantId: string; name: string; variant: string; qty: number; totalCents: number };
+export type AddressFields = { addressLine: string; suburb: string; city: string; province: string; postalCode: string; notes?: string };
+export type SavedAddress = AddressFields & { id: string; label: string; isDefault: boolean };
 
 const META: Record<Fulfil, { label: string; icon: React.ReactNode }> = {
   COLLECT: { label: "Click & collect", icon: <Store className="h-5 w-5" /> },
@@ -20,6 +23,7 @@ const META: Record<Fulfil, { label: string; icon: React.ReactNode }> = {
   COURIER: { label: "Courier delivery", icon: <Truck className="h-5 w-5" /> },
 };
 const COLS = ["", "sm:grid-cols-2", "sm:grid-cols-2", "sm:grid-cols-3"]; // a lone option keeps a card's width
+const EMPTY: AddressFields = { addressLine: "", suburb: "", city: "", province: "", postalCode: "", notes: "" };
 
 export function CheckoutForm(props: {
   options: FulfilOption[]; // only what some store can serve (never an empty list: courier is always there)
@@ -37,7 +41,12 @@ export function CheckoutForm(props: {
   tierName: string;
   balance: number;
   minRedeem: number;
-  address: { addressLine: string; suburb: string; city: string; province: string; postalCode: string } | null;
+  address: AddressFields | null; // the last order's address, when the member has none saved
+  addresses: SavedAddress[]; // the member's saved addresses (default first)
+  estimates: { collect: string; sameDay: string; courier: Record<string, string> }; // when it arrives, by province code ("" = anywhere)
+  voucher: { code: string; balanceCents: number } | null; // a valid gift voucher in the bag
+  voucherError: string | null;
+  voucherCode: string | null;
   provinces: [string, string][];
   sameDayNote: string;
   courierNote: string;
@@ -55,10 +64,24 @@ export function CheckoutForm(props: {
   const [points, setPoints] = useState(opt.maxPoints);
   const pts = usePts ? Math.min(points, opt.maxPoints) : 0;
   const total = props.totalCents + opt.feeCents;
-  const due = total - pts * 100;
   const payIn = fulfilment === "COLLECT" ? pay : "ONLINE";
+  const afterPoints = total - pts * 100;
+  // A gift voucher pays after points, online only (the till doesn't take vouchers).
+  const voucherCents = props.voucher && payIn === "ONLINE" ? Math.min(props.voucher.balanceCents, afterPoints) : 0;
+  const due = afterPoints - voucherCents;
   const storesSorted = useMemo(() => props.stores, [props.stores]);
   const chosen = props.stores.find((s) => s.id === storeId);
+  // The delivery address: the default saved address, else the last order's; a chip fills the fields, which stay editable.
+  const initial = useMemo<AddressFields>(() => {
+    if (typed) return { addressLine: typed.addressLine, suburb: typed.suburb, city: typed.city, province: typed.province, postalCode: typed.postalCode, notes: typed.notes };
+    const d = props.addresses.find((a) => a.isDefault) ?? props.addresses[0];
+    return d ? { addressLine: d.addressLine, suburb: d.suburb, city: d.city, province: d.province, postalCode: d.postalCode, notes: d.notes ?? "" } : props.address ? { ...props.address, notes: "" } : EMPTY;
+  }, [typed, props.addresses, props.address]);
+  const [addr, setAddr] = useState<AddressFields>(initial);
+  const [label, setLabel] = useState(typed?.addressLabel ?? props.addresses.find((a) => a.isDefault)?.label ?? "Home");
+  const usingId = props.addresses.find((a) => a.addressLine === addr.addressLine && a.postalCode === addr.postalCode)?.id ?? null;
+  const set = (k: keyof AddressFields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
+  const arrives = fulfilment === "COLLECT" ? props.estimates.collect : fulfilment === "SAME_DAY" ? props.estimates.sameDay : (props.estimates.courier[addr.province] ?? props.estimates.courier[""]);
 
   return (
     <form action={action} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
@@ -75,6 +98,7 @@ export function CheckoutForm(props: {
           <div className={cn("mt-4 grid grid-cols-1 gap-3", COLS[props.options.length])} role="radiogroup" aria-labelledby="co-how">
             {props.options.map((o) => {
               const on = o.key === fulfilment;
+              const when = o.key === "COLLECT" ? props.estimates.collect : o.key === "SAME_DAY" ? props.estimates.sameDay : (props.estimates.courier[addr.province] ?? props.estimates.courier[""]);
               return (
                 <button
                   type="button"
@@ -95,6 +119,11 @@ export function CheckoutForm(props: {
                   <span className={cn("grid h-9 w-9 place-items-center rounded-full", on ? "bg-brand-500 text-ink-950" : "bg-ink-850 text-brand-400")}>{META[o.key].icon}</span>
                   <span className="mt-3 font-semibold text-white">{META[o.key].label}</span>
                   <span className="mt-0.5 text-xs text-ink-400">{!o.ok ? o.reason : o.feeCents ? zar(o.feeCents) : "Free"}</span>
+                  {o.ok && (
+                    <span className="mt-1.5 flex items-center gap-1 text-xs font-medium text-ink-200">
+                      <Clock className="h-3.5 w-3.5 text-brand-500" /> {o.key === "COLLECT" ? `Ready ${when.toLowerCase()}` : `Arrives ${when}`}
+                    </span>
+                  )}
                   {on && <Check className="absolute right-3 top-3 h-4 w-4 text-brand-400" strokeWidth={2.6} />}
                 </button>
               );
@@ -150,18 +179,59 @@ export function CheckoutForm(props: {
             <h2 id="co-where" className="font-display text-xl font-semibold text-white">
               <span className="tnum mr-2 text-brand-500">2</span>Deliver to
             </h2>
+            {props.addresses.length > 0 && (
+              <div className="mt-3">
+                <p className="text-xs font-semibold uppercase tracking-wider text-ink-450">Your addresses</p>
+                <ul className="mt-2 flex flex-wrap gap-2" aria-label="Saved addresses">
+                  {props.addresses.map((a) => {
+                    const on = a.id === usingId;
+                    return (
+                      <li key={a.id}>
+                        <button
+                          type="button"
+                          aria-pressed={on}
+                          onClick={() => {
+                            setAddr({ addressLine: a.addressLine, suburb: a.suburb, city: a.city, province: a.province, postalCode: a.postalCode, notes: a.notes ?? "" });
+                            setLabel(a.label);
+                          }}
+                          className={cn("inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-left text-sm transition", on ? "border-brand-500 bg-brand-500/10 text-white" : "border-ink-700 text-ink-100 hover:border-ink-500")}
+                        >
+                          <MapPin className={cn("h-4 w-4 shrink-0", on ? "text-brand-400" : "text-ink-400")} />
+                          <span className="min-w-0 truncate">
+                            <span className="font-semibold">{a.label}</span> · {a.addressLine}, {a.suburb}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                  <li>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setAddr(EMPTY);
+                        setLabel("Other");
+                      }}
+                      className="inline-flex min-h-11 items-center rounded-full border border-dashed border-ink-700 px-4 py-2 text-sm text-ink-300 hover:border-ink-500 hover:text-white"
+                    >
+                      New address
+                    </button>
+                  </li>
+                </ul>
+                <p className="mt-2 text-xs text-ink-450">{usingId ? "Using this address — edit anything below." : "Fill in the address below; we'll save it for next time."}</p>
+              </div>
+            )}
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FieldRow label="Street address" htmlFor="co-line" error={state.fields?.addressLine} className="sm:col-span-2">
-                <TextInput id="co-line" name="addressLine" autoComplete="address-line1" defaultValue={typed?.addressLine ?? props.address?.addressLine} required aria-invalid={!!state.fields?.addressLine} />
+                <TextInput id="co-line" name="addressLine" autoComplete="address-line1" value={addr.addressLine} onChange={set("addressLine")} required aria-invalid={!!state.fields?.addressLine} />
               </FieldRow>
               <FieldRow label="Suburb" htmlFor="co-suburb" error={state.fields?.suburb}>
-                <TextInput id="co-suburb" name="suburb" autoComplete="address-level3" defaultValue={typed?.suburb ?? props.address?.suburb} required aria-invalid={!!state.fields?.suburb} />
+                <TextInput id="co-suburb" name="suburb" autoComplete="address-level3" value={addr.suburb} onChange={set("suburb")} required aria-invalid={!!state.fields?.suburb} />
               </FieldRow>
               <FieldRow label="Town or city" htmlFor="co-city" error={state.fields?.city}>
-                <TextInput id="co-city" name="city" autoComplete="address-level2" defaultValue={typed?.city ?? props.address?.city} required aria-invalid={!!state.fields?.city} />
+                <TextInput id="co-city" name="city" autoComplete="address-level2" value={addr.city} onChange={set("city")} required aria-invalid={!!state.fields?.city} />
               </FieldRow>
               <FieldRow label="Province" htmlFor="co-prov" error={state.fields?.province}>
-                <SelectInput key={typed?.province} id="co-prov" name="province" defaultValue={typed?.province ?? props.address?.province ?? ""} required aria-invalid={!!state.fields?.province}>
+                <SelectInput id="co-prov" name="province" value={addr.province} onChange={set("province")} required aria-invalid={!!state.fields?.province}>
                   <option value="" disabled>
                     Choose…
                   </option>
@@ -173,12 +243,32 @@ export function CheckoutForm(props: {
                 </SelectInput>
               </FieldRow>
               <FieldRow label="Postal code" htmlFor="co-post" error={state.fields?.postalCode}>
-                <TextInput id="co-post" name="postalCode" inputMode="numeric" autoComplete="postal-code" maxLength={4} defaultValue={typed?.postalCode ?? props.address?.postalCode} required aria-invalid={!!state.fields?.postalCode} />
+                <TextInput id="co-post" name="postalCode" inputMode="numeric" autoComplete="postal-code" maxLength={4} value={addr.postalCode} onChange={set("postalCode")} required aria-invalid={!!state.fields?.postalCode} />
               </FieldRow>
               <FieldRow label="Delivery notes (optional)" htmlFor="co-notes" className="sm:col-span-2" hint="Gate code, complex name, where to leave the driver's details…">
-                <textarea id="co-notes" name="notes" rows={2} maxLength={200} defaultValue={typed?.notes} className={cn(inputClass, "py-3")} />
+                <textarea id="co-notes" name="notes" rows={2} maxLength={200} value={addr.notes ?? ""} onChange={set("notes")} className={cn(inputClass, "py-3")} />
               </FieldRow>
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:col-span-2">
+                <label className="flex items-center gap-2 text-sm text-ink-200">
+                  <input type="checkbox" name="saveAddress" value="yes" defaultChecked className="h-5 w-5 accent-brand-500" /> Save this address
+                </label>
+                <label className="flex items-center gap-2 text-sm text-ink-200">
+                  as
+                  <select name="addressLabel" value={label} onChange={(e) => setLabel(e.target.value)} className={cn(inputClass, "h-9 w-28 cursor-pointer text-sm")} aria-label="Address label">
+                    {["Home", "Work", "Other"].map((l) => (
+                      <option key={l} value={l}>
+                        {l}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <input type="hidden" name="saveAddress" value="no" />
+              </div>
             </div>
+            <p className="mt-3 flex items-center gap-2 text-sm text-ink-300">
+              <Clock className="h-4 w-4 shrink-0 text-brand-500" /> Arrives <strong className="text-white">{arrives}</strong>
+              {fulfilment === "COURIER" && !addr.province ? " — choose your province for a closer estimate" : ""}
+            </p>
           </section>
         )}
 
@@ -236,6 +326,14 @@ export function CheckoutForm(props: {
               )}
             </div>
           )}
+
+          <div className="mt-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-4">
+            <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
+              <Gift className="h-4 w-4 text-brand-500" /> Gift voucher
+            </p>
+            <VoucherCode code={props.voucherCode} applied={props.voucher ? { balanceCents: props.voucher.balanceCents, appliedCents: voucherCents } : null} error={props.voucherError} />
+            {props.voucher && payIn === "IN_STORE" && <p className="mt-2 text-xs text-amber-100">Gift vouchers are redeemed with online payment — choose Pay online now to use it on this order.</p>}
+          </div>
         </section>
       </div>
 
@@ -268,6 +366,12 @@ export function CheckoutForm(props: {
               <div className="flex justify-between text-leaf-100">
                 <dt>Points ({fmtPoints(pts)})</dt>
                 <dd className="tnum">−{zar(pts * 100)}</dd>
+              </div>
+            )}
+            {voucherCents > 0 && (
+              <div className="flex justify-between gap-3 text-leaf-100">
+                <dt className="truncate">Gift voucher {props.voucher!.code}</dt>
+                <dd className="tnum shrink-0">−{zar(voucherCents)}</dd>
               </div>
             )}
             <div className="flex items-baseline justify-between border-t border-ink-800 pt-3">

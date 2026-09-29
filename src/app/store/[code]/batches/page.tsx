@@ -147,7 +147,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
               {view === "blocked" ? "Nothing recalled or quarantined is on hand here." : "Try another filter or search."}
             </EmptyState>
           ) : (
-            <Table>
+            <Table stickyFirst>
               <thead>
                 <tr>
                   <Th>Batch</Th>
@@ -170,13 +170,13 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                         <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-ink-900 hover:text-brand-700">
                           {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                         </Link>
-                        <div className="text-xs text-ink-400">Packed {fmtDate(l.batch.packedAt)}</div>
+                        <div className="text-xs text-ink-500">Packed {fmtDate(l.batch.packedAt)}</div>
                       </Td>
                       <Td className="min-w-44">
                         <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                           {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                         </Link>
-                        <div className="font-mono text-xs text-ink-400">{l.variant.sku}</div>
+                        <div className="font-mono text-xs text-ink-500">{l.variant.sku}</div>
                       </Td>
                       <Td>
                         <StatusBadge status={l.batch.status} />

@@ -80,7 +80,7 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
               Add supplier invoices as they come in so your P&L stays current.
             </EmptyState>
           ) : (
-            <Table>
+            <Table stickyFirst>
               <thead>
                 <tr>
                   <Th>Date</Th>
@@ -99,12 +99,12 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
                       <div className="flex flex-wrap items-center gap-2 text-xs text-ink-500">
                         <Badge>{LABEL[e.category]}</Badge>
                         {e.supplier && <span>{e.supplier}</span>}
-                        {e.createdById && who.get(e.createdById) && <span className="text-ink-400">· {who.get(e.createdById)}</span>}
+                        {e.createdById && who.get(e.createdById) && <span className="text-ink-500">· {who.get(e.createdById)}</span>}
                       </div>
                     </Td>
                     <Td align="right" className="whitespace-nowrap">
                       <div className="font-medium text-ink-900">{zar(e.amountCents)}</div>
-                      <div className="text-xs text-ink-400">{e.vatCents ? `VAT ${zar(e.vatCents)}` : "no VAT"}</div>
+                      <div className="text-xs text-ink-500">{e.vatCents ? `VAT ${zar(e.vatCents)}` : "no VAT"}</div>
                     </Td>
                     <Td align="right" className="whitespace-nowrap">{zar(e.amountCents - e.vatCents)}</Td>
                     {canManage && (

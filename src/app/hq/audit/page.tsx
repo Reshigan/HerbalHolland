@@ -7,15 +7,15 @@ import { addDays, fmtDateTime } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
 import { Badge, type Tone } from "@/components/ui/badge";
-import { Table, Th, Td, Tr } from "@/components/ui/table";
+import { Table, Th, Td, Tr, SortableTh, TableEmpty, sortParams } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
-import { EmptyRow } from "@/components/hq/ui";
+import { SavedViews } from "@/components/admin/saved-views";
 import type { Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Audit log" };
 
-type SP = { action?: string; store?: string; actor?: string; from?: string; to?: string; page?: string };
+type SP = { action?: string; store?: string; actor?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
 
 const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "compliance.", label: "Compliance", tone: "red" },
@@ -48,6 +48,12 @@ const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "auth.", label: "Sign-ins", tone: "dark" },
 ];
 const toneOf = (action: string) => GROUPS.find((g) => action.startsWith(g.prefix))?.tone ?? "neutral";
+const SORTS = ["at", "action", "actor"] as const;
+const ORDER_BY: Record<(typeof SORTS)[number], (d: "asc" | "desc") => Prisma.AuditLogOrderByWithRelationInput[]> = {
+  at: (d) => [{ at: d }],
+  action: (d) => [{ action: d }, { at: "desc" }],
+  actor: (d) => [{ actorName: { sort: d, nulls: "last" } }, { at: "desc" }],
+};
 
 export default async function AuditPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -56,6 +62,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const ids = await scopedStoreIds(scope);
   const page = pageParam(sp.page);
   const pageSize = 50;
+  const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "at", "desc");
   const from = parseDay(sp.from);
   const to = parseDay(sp.to);
   const action = sp.action?.trim();
@@ -71,11 +78,12 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   };
   const [total, rows, stores] = await Promise.all([
     db.auditLog.count({ where }),
-    db.auditLog.findMany({ where, orderBy: { at: "desc" }, skip: (page - 1) * pageSize, take: pageSize }),
+    db.auditLog.findMany({ where, orderBy: ORDER_BY[sort](dir), skip: (page - 1) * pageSize, take: pageSize }),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const storeName = new Map(stores.map((s) => [s.id, s]));
   const href = (p: Record<string, string | number | undefined>) => `/hq/audit${qs({ ...sp, ...p })}`;
+  const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
 
   return (
     <>
@@ -85,8 +93,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         description={scope.kind === "HQ" ? "Every sensitive action across the network — who did what, where and when. Entries can't be edited or deleted." : "Sensitive actions at the stores in your region. Entries can't be edited or deleted."}
       />
       <Card>
-        <div className="border-b border-ink-100 p-4">
-          <FilterForm action="/hq/audit">
+        <div className="space-y-3 border-b border-ink-100 p-4">
+          <FilterForm action="/hq/audit" keep={{ sort: sp.sort, dir: sp.dir }}>
             <SearchField name="actor" defaultValue={sp.actor} placeholder="Who (name)" label="Actor" />
             <FilterSelect name="action" label="Activity" defaultValue={action} allLabel="All" options={[...(action && !GROUPS.some((g) => g.prefix === action) ? [{ value: action, label: action }] : []), ...GROUPS.map((g) => ({ value: g.prefix, label: g.label }))]} />
             {stores.length > 1 && <FilterSelect name="store" label="Store" defaultValue={sp.store} options={stores.map((s) => ({ value: s.code, label: s.name }))} />}
@@ -99,23 +107,23 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
               <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
             </label>
           </FilterForm>
+          <SavedViews pageKey="hq-audit" userKey={user.id} />
         </div>
-        <Table className="relative">
+        <Table className="relative" stickyFirst minWidth="56rem">
           <thead>
             <tr>
-              <Th>When</Th>
-              <Th>Activity</Th>
-              <Th>Who</Th>
-              <Th className="hidden md:table-cell">Store</Th>
+              <SortableTh label="When" sortKey="at" sort={sort} dir={dir} href={sortHref} title="Newest first" />
+              <SortableTh label="Activity" sortKey="action" sort={sort} dir={dir} href={sortHref} />
+              <SortableTh label="Who" sortKey="actor" sort={sort} dir={dir} href={sortHref} />
+              <Th>Store</Th>
               <Th>Details</Th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 && (
-              <EmptyRow cols={5}>
-                <History className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-                No entries match these filters.
-              </EmptyRow>
+              <TableEmpty cols={5} icon={<History className="h-5 w-5" aria-hidden />} title="No entries match these filters">
+                Widen the date range or clear the activity filter.
+              </TableEmpty>
             )}
             {rows.map((r) => {
               const s = r.storeId ? storeName.get(r.storeId) : undefined;
@@ -125,13 +133,13 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                   <Td className="whitespace-nowrap text-xs text-ink-600">{fmtDateTime(r.at)}</Td>
                   <Td>
                     <Badge tone={toneOf(r.action)}>{r.action}</Badge>
-                    {r.entity && <span className="mt-1 block font-mono text-[0.68rem] text-ink-400">{r.entity}{r.entityId ? ` ${r.entityId.slice(0, 8)}…` : ""}</span>}
+                    {r.entity && <span className="mt-1 block font-mono text-[0.68rem] text-ink-500">{r.entity}{r.entityId ? ` ${r.entityId.slice(0, 8)}…` : ""}</span>}
                   </Td>
                   <Td>
                     <span className="text-ink-850">{r.actorName ?? "—"}</span>
                     <span className="block text-xs text-ink-500">{r.actorType.toLowerCase()}</span>
                   </Td>
-                  <Td className="hidden text-ink-600 md:table-cell">{s ? s.name : r.storeId ? "Other store" : "Network"}</Td>
+                  <Td className="text-ink-600">{s ? s.name : r.storeId ? "Other store" : "Network"}</Td>
                   <Td className="max-w-md">
                     {data ? (
                       <details className="group">
@@ -142,7 +150,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                         <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-ink-950 p-3 text-[0.7rem] leading-relaxed text-ink-100">{data}</pre>
                       </details>
                     ) : (
-                      <span className="text-xs text-ink-400">—</span>
+                      <span className="text-xs text-ink-500">—</span>
                     )}
                   </Td>
                 </Tr>

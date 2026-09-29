@@ -18,6 +18,9 @@ import { purgeLeads } from "./leads";
 import { lowStockDigest, notifyDepositsDue, notifyExpiringBatches, pruneStaffPushEvents, runStaffPush } from "./staff-push";
 import { pruneExports, runDueExports } from "./exports";
 import { purgeResolvedTickets } from "./support";
+import { sendDueReminders } from "./shop/reminders";
+import { expireVouchers } from "./shop/vouchers";
+import { refreshWishlistStock } from "./shop/wishlist";
 
 const MIN = 60_000;
 
@@ -82,6 +85,8 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     founding: await assignFounding(),
     drops: await notifyDrops(),
     merchSent: await submitMerchOrders(),
+    // Wishlists: note what the network ran out of and what came back ("Back in stock" on /club/wishlist).
+    wishlists: await refreshWishlistStock(),
   }),
   daily: async () => ({
     birthdays: await birthdayPoints(),
@@ -94,6 +99,10 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     supportTickets: await purgeResolvedTickets(),
     // My Deals refresh weekly, on Mondays (SAST).
     offers: new Date(`${dayKey(new Date())}T12:00:00+02:00`).getUTCDay() === 1 ? await generateOffers() : { created: 0 },
+    // Reorder reminders the member set (one message with a one-tap reorder link; nothing is charged).
+    reminders: await sendDueReminders(),
+    // Gift vouchers past their three years (CPA s63) expire; purchases never paid for are cancelled.
+    vouchers: await expireVouchers(),
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),

@@ -8,6 +8,7 @@ import { shortCode } from "@/server/counters";
 import { APP_URL } from "@/server/invoices";
 import { hostedGateway, HOSTED_GATEWAYS, onlineGateway, PaymentError } from "@/server/payments";
 import { possessive } from "@/lib/online-payments";
+import { orderDue } from "@/server/shop/vouchers";
 
 export type PayState = { error?: string };
 const METHODS = { EFT: "Instant EFT", PAYSHAP: "PayShap", CARD: "Card" } as const;
@@ -38,7 +39,7 @@ export async function simulatePayment(orderId: string, _: PayState, form: FormDa
     const reference = `SIM-${method}-${shortCode(8)}`;
     await markOrderPaid(order.id, reference);
     await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.pay_online", {
-      storeId: order.storeId, entity: "Order", entityId: order.id, data: { gateway: "SIMULATED", method: METHODS[method], reference, amount: order.totalCents - order.pointsRedeemed * 100 },
+      storeId: order.storeId, entity: "Order", entityId: order.id, data: { gateway: "SIMULATED", method: METHODS[method], reference, amount: await orderDue(order) },
     });
   }
   redirect(`/orders/${order.code}?paid=1`);

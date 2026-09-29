@@ -41,14 +41,14 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
 
         <section className="mt-4 grid grid-cols-2 gap-6 text-sm">
           <div>
-            <div className="eyebrow text-ink-400">Member</div>
+            <div className="eyebrow text-ink-500">Member</div>
             <div className="mt-1 font-semibold text-ink-900">
               {o.customer.firstName} {o.customer.lastName ?? ""}
             </div>
             <div className="text-ink-600">Member {o.customer.memberNo}</div>
           </div>
           <div>
-            <div className="eyebrow text-ink-400">{o.fulfilment === "COLLECT" ? "Collection" : "Deliver to"}</div>
+            <div className="eyebrow text-ink-500">{o.fulfilment === "COLLECT" ? "Collection" : "Deliver to"}</div>
             {o.fulfilment === "COLLECT" ? (
               <div className="mt-1 text-ink-700">At the counter — check the collection code and ID (18+).</div>
             ) : (
@@ -91,7 +91,7 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
                     </div>
                   ))}
                   {l.short > 0 && <div className="text-xs font-semibold text-rose-600">{l.short} not on hand — tell a manager</div>}
-                  {!l.pick.length && !l.short && <span className="text-ink-400">—</span>}
+                  {!l.pick.length && !l.short && <span className="text-ink-500">—</span>}
                 </td>
                 <td className="tnum py-3 text-right font-display text-lg font-bold text-ink-950">{l.qty}</td>
               </tr>
@@ -107,7 +107,7 @@ export default async function PickListPage({ params }: { params: Promise<{ code:
             </div>
           ))}
         </footer>
-        <p className="mt-6 text-[0.7rem] text-ink-400">Adults 18+ only. Keep out of reach of children. Printed {fmtDateTime(new Date())} by {user.name}.</p>
+        <p className="mt-6 text-[0.7rem] text-ink-500">Adults 18+ only. Keep out of reach of children. Printed {fmtDateTime(new Date())} by {user.name}.</p>
       </article>
     </>
   );

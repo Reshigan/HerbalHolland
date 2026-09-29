@@ -48,7 +48,7 @@ export function OpeningChecklist({ data, now, canEdit, storeName, onDone, onReop
         {data.groups.map((g) => (
           <section key={g.group} aria-label={g.group}>
             <div className="mb-1.5 flex items-center justify-between">
-              <h4 className="eyebrow text-brand-700">{g.group}</h4>
+              <h3 className="eyebrow text-brand-700">{g.group}</h3>
               <span className="tnum text-xs text-ink-500">
                 {g.done}/{g.total}
               </span>
@@ -59,7 +59,7 @@ export function OpeningChecklist({ data, now, canEdit, storeName, onDone, onReop
                 const soon = isDueSoon(t, now);
                 return (
                   <li key={t.id} className={cn("flex items-start gap-3 px-3 py-2.5", late && "bg-rose-50/60")}>
-                    <span className={cn("mt-0.5 shrink-0", t.doneAt ? "text-leaf-600" : late ? "text-rose-600" : "text-ink-300")} aria-hidden>
+                    <span className={cn("mt-0.5 shrink-0", t.doneAt ? "text-leaf-600" : late ? "text-rose-600" : "text-ink-500")} aria-hidden>
                       {t.doneAt ? <CheckCircle2 className="h-5 w-5" strokeWidth={1.9} /> : <Circle className="h-5 w-5" strokeWidth={1.9} />}
                     </span>
                     <div className="min-w-0 flex-1">

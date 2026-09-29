@@ -103,7 +103,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
       {product.variants.length > 0 && (
         <Card className="mt-6">
           <CardHeader title="Ranging" description="Which stores carry each variant. Ranging drives replenishment and what the web shop can route to a store." />
-          <Table className="relative mt-4">
+          <Table stickyFirst className="relative mt-4">
             <thead>
               <tr>
                 <Th>Variant</Th>
@@ -127,12 +127,12 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     {FORMATS.map((f) => (
                       <Td key={f} align="right" className={(r[f] ?? 0) < (ranging.totals[f] ?? 0) ? "text-ink-600" : "text-ink-900"}>
                         {r[f] ?? 0}
-                        <span className="text-ink-400"> / {ranging.totals[f] ?? 0}</span>
+                        <span className="text-ink-500"> / {ranging.totals[f] ?? 0}</span>
                       </Td>
                     ))}
                     <Td align="right" className="font-semibold text-ink-900">
                       {total}
-                      <span className="font-normal text-ink-400"> / {all}</span>
+                      <span className="font-normal text-ink-500"> / {all}</span>
                     </Td>
                   </Tr>
                 );

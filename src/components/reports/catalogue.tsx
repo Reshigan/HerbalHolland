@@ -109,7 +109,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
               <a key={g.group} href={`#${slug(g.group)}`} className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink-150 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-card transition hover:border-brand-300 hover:text-ink-900">
                 <Icon className="h-3.5 w-3.5 text-brand-600" strokeWidth={2} aria-hidden />
                 {g.group}
-                <span className="tnum text-ink-400">{g.reports.length}</span>
+                <span className="tnum text-ink-500">{g.reports.length}</span>
               </a>
             );
           })}

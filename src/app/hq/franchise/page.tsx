@@ -89,7 +89,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
             ]}
           />
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Number</Th>
@@ -144,7 +144,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
                 <Td className="hidden whitespace-nowrap sm:table-cell">
                   <LeadStatusBadge status={l.status} />
                 </Td>
-                <Td className="hidden whitespace-nowrap md:table-cell">{l.ownerId ? <span className="text-ink-800">{owners.get(l.ownerId) ?? "Former staff member"}</span> : <span className="text-ink-400">Unassigned</span>}</Td>
+                <Td className="hidden whitespace-nowrap md:table-cell">{l.ownerId ? <span className="text-ink-800">{owners.get(l.ownerId) ?? "Former staff member"}</span> : <span className="text-ink-500">Unassigned</span>}</Td>
               </Tr>
             ))}
           </tbody>

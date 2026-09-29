@@ -81,7 +81,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
             {q || status ? "Try another status or search." : "Capture an invoice here, or from a received stock order under Purchasing."}
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Supplier · invoice</Th>
@@ -109,7 +109,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
                             <Link href={`/store/${store.code}/purchasing/${r.stockOrderId}`} className="font-medium text-brand-700 hover:underline">{r.stockOrderNumber}</Link>
                           </>
                         )}
-                        {r.note && <span className="block truncate text-ink-400" title={r.note}>{r.note}</span>}
+                        {r.note && <span className="block truncate text-ink-500" title={r.note}>{r.note}</span>}
                       </div>
                     </Td>
                     <Td className="hidden whitespace-nowrap text-ink-600 md:table-cell">{fmtDate(`${r.invoiceDay}T12:00:00Z`)}</Td>

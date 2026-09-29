@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { AlertTriangle, ArrowRight, Boxes, ChevronRight, Clock, Download, FlaskConical, PackageX, ShoppingBag } from "lucide-react";
+import { AlertTriangle, ArrowRight, Boxes, ChevronRight, Clock, Download, FlaskConical, PackageX, ShoppingBag, UsersRound } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { scopeOf, storeForUser, storeWhere } from "@/server/scope";
-import { kpis, orderQueue, pendingAnnouncements, stockAlerts, topProducts } from "@/server/dashboard";
-import { todayList } from "@/server/today";
+import { cashWaiting, kpis, onShift, openAlerts, orderQueue, pendingAnnouncements, stockAlerts, storeExceptions, todayTakings, topProducts, type StoreException } from "@/server/dashboard";
+import { todayFacts } from "@/server/today";
+import { buildToday, stockTakesDue } from "@/lib/today";
 import { salesByStore } from "@/server/finance";
 import { db } from "@/server/db";
 import { delta, previousRange, resolveRange } from "@/lib/ranges";
@@ -13,6 +14,7 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { PageHeader } from "@/components/ui/page";
 import { RangeTabs } from "@/components/ui/range-tabs";
 import { Stat } from "@/components/ui/stat";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
 import { TabLinks } from "@/components/ui/tabs";
@@ -34,15 +36,17 @@ export default async function StoreDashboard({ params, searchParams }: { params:
   const user = await requireStaff();
   const store = await storeForUser(user, code);
   const r = resolveRange(sp, "30d");
+  const manager = user.role === "MANAGER" || user.role === "BUDTENDER";
   // Owners (and HQ) can consolidate every store of this company they may see; managers only ever see their own store.
   const siblings = await db.store.findMany({
     where: { AND: [storeWhere(scopeOf(user)), { companyId: store.companyId, kind: "RETAIL" }] },
-    select: { id: true, code: true, name: true, city: true },
+    select: { id: true, code: true, name: true, city: true, status: true },
     orderBy: { name: "asc" },
   });
   const company = siblings.length > 1 && sp.stores === "company";
   const ids = company ? siblings.map((x) => x.id) : [store.id];
-  const [k, top, alerts, queue, notes, shift, byStore, byStorePrev, today] = await Promise.all([
+  const now = new Date();
+  const [k, top, alerts, queue, notes, shift, byStore, byStorePrev, facts, takings, cash, open, shifts, exceptions] = await Promise.all([
     kpis(ids, r),
     topProducts(ids, r, 7),
     stockAlerts(ids),
@@ -51,18 +55,28 @@ export default async function StoreDashboard({ params, searchParams }: { params:
     db.shift.findFirst({ where: { storeId: store.id, closedAt: null }, orderBy: { openedAt: "desc" } }),
     company ? salesByStore(ids, r) : null,
     company ? salesByStore(ids, previousRange(r)) : null,
-    company ? null : todayList(store, user),
+    company ? null : todayFacts(store, user, now),
+    todayTakings(ids, now),
+    manager ? null : cashWaiting(ids, now),
+    manager ? null : openAlerts(user, ids),
+    manager ? onShift(store.id) : null,
+    company ? storeExceptions(user, siblings, now) : null,
   ]);
   const c = k.cur;
+  const base = `/store/${code}`;
+  const today = facts ? buildToday(facts, base) : null;
+  const countsDue = facts ? stockTakesDue(facts.stockTakes, facts.now).length : 0;
   const openOrders = (queue.PLACED ?? 0) + (queue.PICKING ?? 0) + (queue.READY ?? 0);
   const keep = { range: r.preset === "custom" ? undefined : r.preset, stores: company ? "company" : undefined };
   const rangeQS = r.preset === "custom" ? `from=${r.from}&to=${r.to}` : `range=${r.preset}`;
   const reportQS = `${rangeQS}${company ? "&stores=company" : ""}`;
+  const exceptionBy = new Map((exceptions ?? []).map((x) => [x.storeId, x]));
   const league = company
     ? siblings
-        .map((x) => ({ ...x, s: byStore!.get(x.id), prev: byStorePrev!.get(x.id)?.netCents ?? 0 }))
+        .map((x) => ({ ...x, s: byStore!.get(x.id), prev: byStorePrev!.get(x.id)?.netCents ?? 0, ex: exceptionBy.get(x.id) }))
         .sort((a, b) => (b.s?.netCents ?? 0) - (a.s?.netCents ?? 0))
     : [];
+  const takingsDelta = takings.prev.grossCents ? takings.delta : null;
 
   return (
     <>
@@ -83,7 +97,54 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         />
       )}
 
-      {today && <TodayList items={today} className="mb-6" description={today.length ? undefined : "Nothing needs your attention right now"} />}
+      {/* Managers: the Today list first, then what the day looks like right now. */}
+      {manager && today && <TodayList items={today} className="mb-6" description={today.length ? undefined : "Nothing needs your attention right now"} />}
+      {manager && (
+        <section aria-label="Right now" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Stat label="Takings today" value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : undefined} />
+          <Stat label="Online orders to fulfil" value={openOrders.toLocaleString()} sub={<Link href={`${base}/orders`} className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready →</Link>} />
+          <Stat label="Stock to count" value={countsDue.toLocaleString()} sub={countsDue ? <Link href={`${base}/stock-takes/new`} className="font-semibold text-brand-700 hover:underline">categories due · start a count →</Link> : "cycle counts up to date"} />
+          <Stat
+            label="On shift"
+            value={(shifts?.length ?? 0).toLocaleString()}
+            sub={shifts?.length ? shifts.map((s) => `${s.name.split(" ")[0]}${s.till ? ` (${s.till})` : ""}`).join(", ") : "no till open"}
+          />
+        </section>
+      )}
+
+      {/* Owners, area managers and HQ: the money first. */}
+      {!manager && cash && open && (
+        <section aria-label="Today" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
+          <Stat label={company ? "Takings today · all stores" : "Takings today"} value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : undefined} />
+          <Stat label="Gross margin" value={pct(c.marginPct)} delta={k.deltas.margin} deltaLabel="pts vs previous" sub={`${zarCompact(c.grossProfitCents)} profit · ${r.preset === "custom" ? "custom range" : r.preset}`} />
+          <Stat
+            label="Cash to bank"
+            value={zarCompact(cash.cents)}
+            upIsGood={false}
+            sub={
+              cash.overdueCount ? (
+                <Link href={`${base}/banking`} className="font-semibold text-rose-600 hover:underline">
+                  {cash.overdueCount} cash-up{cash.overdueCount === 1 ? "" : "s"} overdue · {zarCompact(cash.overdueCents)} →
+                </Link>
+              ) : cash.count ? (
+                <Link href={`${base}/banking`} className="font-semibold text-brand-700 hover:underline">
+                  {cash.count} cash-up{cash.count === 1 ? "" : "s"} waiting{cash.dueOn ? ` · due ${cash.dueOn}` : ""} →
+                </Link>
+              ) : (
+                "everything banked"
+              )
+            }
+          />
+          <Stat label="Online orders open" value={openOrders.toLocaleString()} sub={<Link href={`${base}/orders`} className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready →</Link>} />
+          <Stat
+            label="Loss-prevention alerts"
+            value={open.open.toLocaleString()}
+            sub={open.open ? <Link href={`${base}/loss-prevention`} className={`font-semibold hover:underline ${open.high ? "text-rose-600" : "text-brand-700"}`}>{open.high ? `${open.high} high severity · ` : ""}review →</Link> : "nothing open"}
+          />
+        </section>
+      )}
+
+      {!manager && today && <TodayList items={today} className="mb-6" description={today.length ? undefined : "Nothing needs your attention right now"} />}
 
       {notes.length > 0 && (
         <Link href={`/store/${code}/updates`} className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 hover:bg-brand-100">
@@ -99,7 +160,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} className="col-span-2 lg:col-span-1" />
         <Stat label="Transactions" value={c.sales.toLocaleString()} delta={k.deltas.tx} />
         <Stat label="Average basket" value={zar(c.atvCents)} delta={k.deltas.atv} />
-        <Stat label="Gross margin" value={pct(c.marginPct)} sub={zarCompact(c.grossProfitCents) + " profit"} />
+        {manager ? <Stat label="Gross margin" value={pct(c.marginPct)} sub={zarCompact(c.grossProfitCents) + " profit"} /> : <Stat label="Points issued" value={fmtPoints(c.pointsIssued)} sub="Rewards, this range" />}
         <Stat label="Member sales" value={pct(c.memberRate, 0)} sub="of transactions" />
       </div>
 
@@ -137,7 +198,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         </Card>
 
         {company ? (
-          <Card>
+          <Card className="lg:col-span-3 xl:col-span-1">
             <CardHeader
               title="Your stores"
               description="Net sales ex VAT · open a store to drill in"
@@ -147,29 +208,33 @@ export default async function StoreDashboard({ params, searchParams }: { params:
                 </a>
               }
             />
-            <Table>
+            <Table className="mt-3" stickyFirst minWidth="34rem">
               <thead>
                 <tr>
                   <Th>Store</Th>
                   <Th align="right">Net sales</Th>
                   <Th align="right">Growth</Th>
                   <Th align="right">Margin</Th>
+                  <Th>Exceptions</Th>
                 </tr>
               </thead>
               <tbody>
                 {league.map((x) => {
                   const g = delta(x.s?.netCents ?? 0, x.prev);
                   return (
-                    <Tr key={x.id}>
+                    <Tr key={x.id} href={`/store/${x.code}?${rangeQS}`}>
                       <Td>
                         <Link href={`/store/${x.code}?${rangeQS}`} className="group inline-flex items-center gap-1 font-medium text-ink-900 hover:text-brand-700">
-                          {x.name} <ChevronRight className="h-3.5 w-3.5 text-ink-300 group-hover:text-brand-600" aria-hidden />
+                          {x.name} <ChevronRight className="h-3.5 w-3.5 text-ink-400 group-hover:text-brand-600" aria-hidden />
                         </Link>
                         <div className="text-xs text-ink-500">{x.city}</div>
                       </Td>
-                      <Td align="right" className="tnum">{zarCompact(x.s?.netCents ?? 0)}</Td>
-                      <Td align="right" className={`tnum ${g == null ? "text-ink-400" : g >= 0 ? "text-leaf-700" : "text-rose-600"}`}>{g == null ? "—" : `${g >= 0 ? "▲" : "▼"}${pct(Math.abs(g))}`}</Td>
-                      <Td align="right" className="tnum">{x.s?.netCents ? pct(x.s.marginPct) : "—"}</Td>
+                      <Td align="right">{zarCompact(x.s?.netCents ?? 0)}</Td>
+                      <Td align="right" className={g == null ? "text-ink-500" : g >= 0 ? "text-leaf-700" : "text-rose-600"}>{g == null ? "—" : `${g >= 0 ? "▲" : "▼"}${pct(Math.abs(g))}`}</Td>
+                      <Td align="right">{x.s?.netCents ? pct(x.s.marginPct) : "—"}</Td>
+                      <Td>
+                        <ExceptionBadges x={x.ex} />
+                      </Td>
                     </Tr>
                   );
                 })}
@@ -202,18 +267,38 @@ export default async function StoreDashboard({ params, searchParams }: { params:
                   <div className="font-display text-lg font-semibold">{zarCompact(k.online)}</div>
                 </div>
                 <div className="rounded-xl bg-ink-50 p-3">
-                  <div className="text-xs text-ink-500">Points issued</div>
-                  <div className="font-display text-lg font-semibold">{fmtPoints(c.pointsIssued)}</div>
+                  <div className="text-xs text-ink-500">{manager ? "Points issued" : "Staff on the tills"}</div>
+                  <div className="font-display text-lg font-semibold">{manager ? fmtPoints(c.pointsIssued) : shift ? "Trading" : "Closed"}</div>
                 </div>
               </div>
-              <ButtonLink href="/pos" className="w-full" variant="dark">
-                Open the till
-              </ButtonLink>
+              {manager ? (
+                <ButtonLink href="/pos" className="w-full" variant="dark">
+                  Open the till
+                </ButtonLink>
+              ) : (
+                <ButtonLink href={`/store/${code}/team`} className="w-full" variant="outline">
+                  <UsersRound className="h-4 w-4" aria-hidden /> Team
+                </ButtonLink>
+              )}
             </CardBody>
           </Card>
         )}
       </div>
     </>
+  );
+}
+
+function ExceptionBadges({ x }: { x?: StoreException }) {
+  if (!x || x.score === 0) return <Badge tone="green">All clear</Badge>;
+  return (
+    <span className="flex flex-wrap gap-1">
+      {x.overdueCash > 0 && <Badge tone="red">{x.overdueCash} cash-up{x.overdueCash === 1 ? "" : "s"} overdue</Badge>}
+      {x.highAlerts > 0 && <Badge tone="red">{x.highAlerts} high alert{x.highAlerts === 1 ? "" : "s"}</Badge>}
+      {x.alerts - x.highAlerts > 0 && <Badge tone="amber">{x.alerts - x.highAlerts} alert{x.alerts - x.highAlerts === 1 ? "" : "s"}</Badge>}
+      {x.negativeLots > 0 && <Badge tone="red">{x.negativeLots} negative</Badge>}
+      {x.quiet && <Badge tone="amber">No sales yet today</Badge>}
+      {x.lowStock > 0 && <Badge>{x.lowStock} low stock</Badge>}
+    </span>
   );
 }
 

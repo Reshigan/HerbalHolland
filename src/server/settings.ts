@@ -3,6 +3,7 @@ import { db } from "./db";
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "@/lib/compliance";
 import { DEFAULT_TIER_SAVINGS, type TierKey } from "@/lib/loyalty-rules";
 import { DEFAULT_LOSS } from "@/lib/loss";
+import { DEFAULT_DELIVERY_DAYS, type DeliveryDays } from "@/lib/delivery";
 import type { RegClass } from "@/lib/compliance";
 
 export const DEFAULT_SETTINGS = {
@@ -42,6 +43,7 @@ export const DEFAULT_SETTINGS = {
     sameDayCutoffHour: 15,
     unpaidHoldMinutes: 60, // unpaid online orders are cancelled (stock released) after this
     collectHoldDays: 7, // pay-in-store collections not picked up are cancelled after this
+    deliveryDays: DEFAULT_DELIVERY_DAYS as DeliveryDays, // courier working days door to door, by province (min, max)
   },
   banking: {
     dueBusinessDays: 1, // cash from a cash-up is in the bank by the end of this many business days
@@ -62,7 +64,9 @@ export const DEFAULT_SETTINGS = {
     supplierInvoiceDays: 7, // supplier invoices due within this many days are flagged
   },
 };
-export type Settings = typeof DEFAULT_SETTINGS;
+type Defaults = typeof DEFAULT_SETTINGS;
+/** The settings as read: `ecommerce.deliveryDays` is optional in a saved value (older rows, the HQ form) and falls back to the defaults. */
+export type Settings = Omit<Defaults, "ecommerce"> & { ecommerce: Omit<Defaults["ecommerce"], "deliveryDays"> & { deliveryDays?: DeliveryDays } };
 export type SettingKey = keyof Settings;
 
 export const getSettings = cache(async (): Promise<Settings> => {

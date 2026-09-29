@@ -64,7 +64,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                     </Link>
                     <span className="inline-flex items-center gap-0.5 text-brand-700" aria-label={`${r.rating} out of 5 stars`}>
                       {[1, 2, 3, 4, 5].map((n) => (
-                        <Star key={n} className={`h-3.5 w-3.5 ${n <= r.rating ? "fill-brand-500 text-brand-500" : "text-ink-300"}`} strokeWidth={1.6} aria-hidden />
+                        <Star key={n} className={`h-3.5 w-3.5 ${n <= r.rating ? "fill-brand-500 text-brand-500" : "text-ink-500"}`} strokeWidth={1.6} aria-hidden />
                       ))}
                     </span>
                     {r.verified && (

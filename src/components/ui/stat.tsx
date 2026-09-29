@@ -31,7 +31,7 @@ export function Stat({ label, value, delta, deltaLabel = "vs previous period", u
             <span className="sr-only">{good ? "(good)" : "(needs attention)"}</span>
           </span>
         )}
-        {delta != null && Number.isFinite(delta) && <span className="text-ink-400">{deltaLabel}</span>}
+        {delta != null && Number.isFinite(delta) && <span className="text-ink-500">{deltaLabel}</span>}
         {sub && <span className="text-ink-500">{sub}</span>}
       </div>
     </div>

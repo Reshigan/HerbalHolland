@@ -13,7 +13,10 @@ import { deliveryFee, routingCandidates } from "@/server/orders";
 import { CONSENT_WORDING } from "@/server/customers";
 import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
-import { getCart, getPreferredStore, getPromoCode, getRetailStores, homeStoreOptions } from "@/server/shop/context";
+import { getCart, getPreferredStore, getPromoCode, getRetailStores, getVoucherCode, homeStoreOptions } from "@/server/shop/context";
+import { listAddresses } from "@/server/shop/addresses";
+import { voucherForCheckout } from "@/server/shop/vouchers";
+import { deliveryEstimate } from "@/lib/delivery";
 import { openState, parseHours } from "@/server/shop/hours";
 import { redeemablePoints } from "@/server/shop/cart-codec";
 import { tierMeta } from "@/server/shop/club";
@@ -25,7 +28,7 @@ import { fmtWhen } from "@/components/shop/launch-cards";
 import { Callout, Container, Panel } from "@/components/shop/ui";
 import { onlineGateway } from "@/server/payments";
 import { distanceKm, offeredFulfilment } from "@/lib/routing";
-import { PROVINCES } from "@/lib/sa";
+import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { zar } from "@/lib/money";
 import { opensFor } from "@/lib/drops";
 import { fmtPoints, type TierKey } from "@/lib/loyalty-rules";
@@ -37,7 +40,7 @@ const AGE_BLOCK = /^Age verification required/;
 
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { welcome } = await searchParams;
-  const [items, code, customer, settings, store, stores] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores()]);
+  const [items, code, customer, settings, store, stores, voucherCode] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores(), getVoucherCode()]);
   if (!items.length) redirect("/cart");
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
   if (!q.lines.length) redirect("/cart");
@@ -74,7 +77,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
 
   const compItems = q.lines.map((l) => ({ name: l.name, regClass: l.regClass, grams: l.grams, qty: l.qty, tobaccoRelated: l.tobaccoRelated }));
   const keys: SellChannel[] = ["COLLECT", "SAME_DAY", "COURIER"];
-  const [comps, fees, cands, lastAddress, drops, dropMsgs, made] = await Promise.all([
+  const [comps, fees, cands, lastAddress, drops, dropMsgs, made, addresses, voucher] = await Promise.all([
     Promise.all(keys.map((channel) => evaluateBasket({ items: compItems, channel, customerId: customer.id, storeLicences: settings.compliance.licensedOnly }))),
     Promise.all(keys.map((f) => deliveryFee(f as "COLLECT", q.lines, customer.tier))),
     routingCandidates(q.lines.map((l) => l.variantId)),
@@ -82,7 +85,17 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     dropsFor(q.lines.map((l) => l.variantId)),
     dropBlocks(customer.id, q.lines),
     madeToOrder(q.lines.map((l) => l.variantId)),
+    listAddresses(customer.id),
+    voucherCode ? voucherForCheckout(voucherCode) : null,
   ]);
+  // Delivery estimates: same-day today or the next working day; courier by province (working days, from the settings).
+  const now = new Date();
+  const eco = settings.ecommerce;
+  const estimates = {
+    collect: deliveryEstimate({ fulfilment: "COLLECT", cutoffHour: eco.sameDayCutoffHour, now }).label,
+    sameDay: deliveryEstimate({ fulfilment: "SAME_DAY", cutoffHour: eco.sameDayCutoffHour, now }).label,
+    courier: Object.fromEntries([...Object.keys(PROVINCES), ""].map((p) => [p, deliveryEstimate({ fulfilment: "COURIER", province: (p || null) as ProvinceCode | null, days: eco.deliveryDays, cutoffHour: eco.sameDayCutoffHour, now }).label])) as Record<string, string>,
+  };
   // Limited drops (members only, early access, per-member limits): say what's wrong in plain words, before paying.
   const dropNotes = dropMsgs.map((m) => {
     const d = drops.find((x) => m.startsWith(x.name));
@@ -183,6 +196,11 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         balance={customer.points}
         minRedeem={settings.loyalty.minRedeem}
         address={lastAddress ? { addressLine: lastAddress.addressLine ?? "", suburb: lastAddress.suburb ?? "", city: lastAddress.city ?? "", province: lastAddress.province ?? "", postalCode: lastAddress.postalCode ?? "" } : null}
+        addresses={addresses.map((a) => ({ id: a.id, label: a.label, addressLine: a.line, suburb: a.suburb, city: a.city, province: a.province, postalCode: a.postalCode, notes: a.notes ?? "", isDefault: a.isDefault }))}
+        estimates={estimates}
+        voucher={voucher?.ok ? { code: voucher.voucher.code, balanceCents: voucher.voucher.balanceCents } : null}
+        voucherError={voucher && !voucher.ok ? voucher.error : null}
+        voucherCode={voucherCode}
         provinces={Object.entries(PROVINCES)}
         sameDayNote={`order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
         courierNote={

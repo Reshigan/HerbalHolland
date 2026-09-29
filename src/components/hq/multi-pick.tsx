@@ -46,7 +46,7 @@ export function MultiPick({
         <input key={v} type="hidden" name={name} value={v} />
       ))}
       <div className="flex min-h-10 flex-wrap items-center gap-1.5 border-b border-ink-100 px-2.5 py-2">
-        {picked.length === 0 && <span className="px-1 text-xs text-ink-400">{emptyLabel}</span>}
+        {picked.length === 0 && <span className="px-1 text-xs text-ink-500">{emptyLabel}</span>}
         {picked.map((v) => (
           <span key={v} className="inline-flex items-center gap-1 rounded-full bg-brand-50 py-0.5 pl-2.5 pr-1 text-xs font-medium text-brand-800 ring-1 ring-inset ring-brand-200">
             {byValue.get(v)?.label ?? v}
@@ -76,14 +76,14 @@ export function MultiPick({
         </label>
       )}
       <ul className={cn("overflow-y-auto p-1", height)} role="listbox" aria-multiselectable aria-labelledby={id}>
-        {shown.length === 0 && <li className="px-3 py-2 text-xs text-ink-400">No matches</li>}
+        {shown.length === 0 && <li className="px-3 py-2 text-xs text-ink-500">No matches</li>}
         {shown.map((o, i) => (
           <li key={o.value}>
-            {o.group && o.group !== shown[i - 1]?.group && <div className="px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-ink-400">{o.group}</div>}
+            {o.group && o.group !== shown[i - 1]?.group && <div className="px-2.5 pb-1 pt-2 text-[0.65rem] font-semibold uppercase tracking-[0.08em] text-ink-500">{o.group}</div>}
             <label className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-sm hover:bg-ink-50">
               <input type="checkbox" checked={picked.includes(o.value)} onChange={() => toggle(o.value)} className="h-4 w-4 shrink-0 accent-brand-500" />
               <span className="min-w-0 flex-1 truncate text-ink-800">{o.label}</span>
-              {o.hint && <span className="shrink-0 text-xs text-ink-400">{o.hint}</span>}
+              {o.hint && <span className="shrink-0 text-xs text-ink-500">{o.hint}</span>}
             </label>
           </li>
         ))}

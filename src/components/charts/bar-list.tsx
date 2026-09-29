@@ -13,7 +13,7 @@ export function BarList({ rows, format = "zar", color = "var(--color-series-1)",
               <span className="min-w-0 truncate font-medium text-ink-800">{r.label}</span>
               <span className="tnum shrink-0 text-ink-600">
                 {fmtValue(r.value, format)}
-                {r.sub && <span className="ml-2 text-xs text-ink-400">{r.sub}</span>}
+                {r.sub && <span className="ml-2 text-xs text-ink-500">{r.sub}</span>}
               </span>
             </div>
             <div className="h-2 rounded-full bg-ink-100">

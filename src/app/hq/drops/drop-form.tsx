@@ -221,7 +221,7 @@ export function DropForm({
 function Row({ k, children }: { k: string; children: React.ReactNode }) {
   return (
     <div className="flex gap-3">
-      <dt className="w-20 shrink-0 text-ink-400">{k}</dt>
+      <dt className="w-20 shrink-0 text-ink-500">{k}</dt>
       <dd className="min-w-0 text-ink-100">{children}</dd>
     </div>
   );

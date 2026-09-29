@@ -42,7 +42,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
       <Flash message={sp.m} />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <Table className="relative">
+          <Table stickyFirst className="relative">
             <thead>
               <tr>
                 <Th>Person</Th>
@@ -75,8 +75,8 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                     )}
                   </Td>
                   <Td className="hidden whitespace-nowrap text-ink-600 md:table-cell">
-                    {u.lastLoginAt ? timeAgo(u.lastLoginAt) : <span className="text-ink-400">Never</span>}
-                    <span className="block text-xs text-ink-400">added {fmtDate(u.createdAt)}</span>
+                    {u.lastLoginAt ? timeAgo(u.lastLoginAt) : <span className="text-ink-500">Never</span>}
+                    <span className="block text-xs text-ink-500">added {fmtDate(u.createdAt)}</span>
                   </Td>
                   <Td align="right">
                     {!admin || u.id === user.id ? (

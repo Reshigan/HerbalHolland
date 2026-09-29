@@ -16,6 +16,7 @@ import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
+import { completeVoucherOrder, isVoucherOrder, onOrderCancelledTx, orderDue, redeemVoucherTx, voucherApply, voucherCentsOf, voucherForCheckout, voucherTenderOf } from "./shop/vouchers";
 import {
   createPeachPayment, createYocoCheckout, paidOnlineWith, PaymentError, peachMode, peachPayment, refundPeachPayment, refundYocoCheckout, yocoTestMode, type HostedGateway,
 } from "./payments";
@@ -70,6 +71,8 @@ export type CheckoutInput = {
   items: { variantId: string; qty: number }[];
   code?: string | null;
   points?: number;
+  /** A gift voucher code: its balance pays what points leave, before online payment. */
+  voucherCode?: string | null;
   payMethod: "ONLINE" | "IN_STORE";
   campaignId?: string | null;
 };
@@ -120,7 +123,14 @@ export async function placeOrder(input: CheckoutInput) {
   const total = q.totalCents + fee;
   const maxPoints = Math.floor((total * settings.loyalty.maxRedeemPct) / 100 / 100);
   const points = Math.max(0, Math.min(Math.floor(input.points ?? 0), customer.points, maxPoints));
-  const status: OrderStatus = input.payMethod === "ONLINE" && total - points * 100 > 0 ? "PENDING_PAYMENT" : "PLACED";
+  // A gift voucher is money (allowed on everything, medicines included) and pays after points, with online payment
+  // only: the till doesn't take vouchers, so a pay-in-store order can't carry one.
+  const voucher = input.voucherCode?.trim() ? await voucherForCheckout(input.voucherCode) : null;
+  if (voucher && !voucher.ok) throw new OrderError(voucher.error);
+  if (voucher && input.payMethod !== "ONLINE") throw new OrderError("To pay with a gift voucher, choose Pay online");
+  const voucherCents = voucher?.ok ? voucherApply(voucher.voucher.balanceCents, total - points * 100) : 0;
+  const dueCents = total - points * 100 - voucherCents;
+  const status: OrderStatus = input.payMethod === "ONLINE" && dueCents > 0 ? "PENDING_PAYMENT" : "PLACED";
   const events: Event[] = [{ status, at: new Date().toISOString(), note: route.reason }];
 
   const order = await tx(async (t) => {
@@ -145,6 +155,7 @@ export async function placeOrder(input: CheckoutInput) {
         vatCents: q.vatCents + vatOf(fee),
         payMethod: input.payMethod === "ONLINE" ? "ONLINE" : "CARD",
         paymentStatus: status === "PLACED" && input.payMethod === "ONLINE" ? "PAID" : "UNPAID",
+        paymentRef: voucher?.ok && voucherCents > 0 && status === "PLACED" ? `VOUCHER:${voucher.voucher.code}` : undefined,
         promoCode: input.code?.toUpperCase() || null,
         promotionId: q.promotionId,
         campaignId: input.campaignId,
@@ -158,9 +169,10 @@ export async function placeOrder(input: CheckoutInput) {
       include: { store: true },
     });
     if (points) await redeemPoints(t, { customerId: customer.id, points, orderId: o.id, storeId: route.storeId });
+    if (voucher?.ok && voucherCents > 0) await redeemVoucherTx(t, { voucher: voucher.voucher, orderId: o.id, cents: voucherCents, actor: { type: "CUSTOMER", id: customer.id, name: customer.firstName } });
     await redeemOffers(t, q.offerIds, { orderId: o.id });
     await audit(t, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.place", {
-      storeId: route.storeId, entity: "Order", entityId: o.id, data: { total, fulfilment: input.fulfilment },
+      storeId: route.storeId, entity: "Order", entityId: o.id, data: { total, fulfilment: input.fulfilment, ...(voucherCents ? { voucherCents } : {}) },
     });
     return o;
   });
@@ -176,8 +188,13 @@ async function notifyPlaced(orderId: string) {
 
 /** Confirms an online payment (the simulated gateway, or a gateway's verified webhook): the order goes to the store. Safe to repeat. */
 export async function markOrderPaid(orderId: string, reference: string, note = "Payment received") {
-  const o = await db.order.findUniqueOrThrow({ where: { id: orderId } });
+  const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { lines: { select: { variant: { select: { sku: true } } } } } });
   if (o.status !== "PENDING_PAYMENT") return o;
+  // A gift voucher purchase has nothing to pick: paid means done, and the voucher is issued and sent.
+  if (isVoucherOrder(o.lines)) {
+    await completeVoucherOrder(o, reference);
+    return db.order.findUniqueOrThrow({ where: { id: orderId } });
+  }
   const events = [...(o.events as Event[]), { status: "PLACED" as const, at: new Date().toISOString(), note }];
   // Compare-and-set: when the same confirmation arrives twice at once, only one moves the order (and texts the member).
   const { count } = await db.order.updateMany({ where: { id: orderId, status: "PENDING_PAYMENT" }, data: { status: "PLACED", paymentStatus: "PAID", paymentRef: reference, events } });
@@ -208,7 +225,7 @@ export async function onlineCheckoutFor(gateway: HostedGateway, o: PayingOrder, 
  * paymentRef: the webhook must name it, and a refund goes back to it.
  */
 export async function yocoCheckoutFor(o: { id: string; code: string; totalCents: number; pointsRedeemed: number; paymentRef: string | null }, appUrl: string) {
-  const dueCents = o.totalCents - o.pointsRedeemed * 100;
+  const dueCents = await orderDue(o);
   if (dueCents < YOCO_MIN_CENTS) throw new PaymentError(`Online payments start at ${zar(YOCO_MIN_CENTS)}`);
   const checkout = await createYocoCheckout(yocoCheckoutRequest({ id: o.id, code: o.code, dueCents }, appUrl), o.id);
   if (!checkout.id || !/^https:\/\//.test(checkout.redirectUrl ?? "")) throw new PaymentError("Yoco didn't return a payment page");
@@ -225,7 +242,7 @@ export async function yocoCheckoutFor(o: { id: string; code: string; totalCents:
  * webhook must name it, and a refund goes back to it.
  */
 export async function peachCheckoutFor(o: PayingOrder, appUrl: string): Promise<OnlineCheckout> {
-  const dueCents = o.totalCents - o.pointsRedeemed * 100;
+  const dueCents = await orderDue(o);
   const mode = peachMode();
   const current = o.paymentRef?.startsWith("pay_") ? await peachPayment(o.paymentRef) : null;
   const step = peachNextStep(current, dueCents);
@@ -292,7 +309,7 @@ async function applyOnlineEvent(
     audit(db, actor, action, { storeId: order?.storeId, entity: "Order", entityId: order?.id, data: { event: e.id, type: e.type, checkoutId: f.checkoutId, id: f.id, amount: f.amountCents, mode: f.mode, ...extra } });
 
   if (e.kind === "paid") {
-    const d = decidePayment(f, order && { ...order, dueCents: order.totalCents - order.pointsRedeemed * 100 }, refundIn);
+    const d = decidePayment(f, order && { ...order, dueCents: await orderDue(order) }, refundIn);
     if (d.action === "pay") {
       await markOrderPaid(order!.id, f.checkoutId!, `Paid with ${name}${f.method ? ` · ${f.method}` : ""} · payment ${f.id}`);
       await log("order.pay_online", { gateway, method: f.method });
@@ -360,9 +377,11 @@ export async function advanceOrder(
   if (handover && licensed && settings.compliance.thcMode === "MEDICAL" && opts.staffCanDispense === false)
     throw new OrderError("An authorised dispenser must hand over this order");
 
-  const due = o.totalCents - o.pointsRedeemed * 100;
+  // What's owed in money: the total less points and any gift voucher (the voucher part is its own tender on the sale).
+  const voucherTender = await voucherTenderOf(o.id);
+  const due = o.totalCents - o.pointsRedeemed * 100 - (voucherTender?.amountCents ?? 0);
   const gateway = paidOnlineWith(o);
-  let payments: TenderInput[] | { method: "ONLINE"; amountCents: number; provider: string; reference?: string }[] = [];
+  let payments: (TenderInput | { method: "ONLINE"; amountCents: number; provider: string; reference?: string })[] = [];
   if (handover || dispatch) {
     if (o.paymentStatus === "PAID") payments = due > 0 ? [{ method: "ONLINE", amountCents: due, provider: gateway ?? "GATEWAY", reference: o.paymentRef ?? undefined }] : [];
     else {
@@ -371,6 +390,7 @@ export async function advanceOrder(
       if (paid !== due) throw new OrderError(`Take payment of ${zar(due)} before handover`);
       payments = opts.payments ?? [];
     }
+    if (voucherTender) payments = [...payments, voucherTender];
   }
 
   // A paid Peach or Yoco order is refunded in full before it's cancelled. If the gateway refuses, nothing changes and staff see why.
@@ -419,6 +439,7 @@ export async function advanceOrder(
     if (to === "CANCELLED") {
       await releaseOffers(t, o.id);
       if (o.pointsRedeemed) await addPoints(t, { customerId: o.customerId, points: o.pointsRedeemed, kind: "REVERSAL", orderId: o.id, note: `Order ${o.code} cancelled` });
+      await onOrderCancelledTx(t, o.id, actor); // money back on any voucher used; a voucher being bought is cancelled
     }
     const data: Prisma.OrderUpdateInput = { status: to, events };
     if (handover || dispatch) data.paymentStatus = "PAID";
@@ -461,7 +482,7 @@ export async function refundOrderAmount(orderId: string, cents: number, reason: 
   if (!ret) throw new OrderError("That return isn't on this order");
   if (ret.refundRef) throw new OrderError(`${ret.number} has already been refunded (${ret.refundRef})`);
   if (o.paymentStatus !== "PAID") throw new OrderError(o.paymentStatus === "REFUNDED" ? "This order has already been refunded in full" : "This order hasn't been paid");
-  const due = o.totalCents - o.pointsRedeemed * 100;
+  const due = o.totalCents - o.pointsRedeemed * 100 - (await voucherCentsOf(o.id)); // vouchers are put back by the returns team, not refunded in money
   const before = (await db.returnRequest.aggregate({ where: { orderId, status: "REFUNDED", NOT: { id: ret.id } }, _sum: { refundCents: true } }))._sum.refundCents ?? 0;
   if (before + cents > due) throw new OrderError(`Only ${zar(Math.max(0, due - before))} of this order is left to refund`);
 

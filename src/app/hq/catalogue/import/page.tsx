@@ -85,7 +85,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
         <Card className="mt-6">
           <details>
             <summary className="cursor-pointer px-5 py-4 font-display text-sm font-semibold text-ink-900">The columns ({IMPORT_COLUMNS.length})</summary>
-            <Table>
+            <Table stickyFirst>
               <thead>
                 <tr>
                   <Th>Column</Th>
@@ -209,7 +209,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
 
       <Card>
         <TabLinks className="px-4 pt-1" current={href({})} tabs={SHOW.map((s) => ({ href: `${PATH}${qs({ file: sp.file, at: at?.id, show: s.key === "all" ? undefined : s.key })}`, label: s.label, count: s.count(c) }))} />
-        <Table>
+        <Table stickyFirst>
           <thead>
             <tr>
               <Th align="right" className="w-14">Row</Th>

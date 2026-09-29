@@ -118,7 +118,7 @@ export async function stockRows(storeId: string): Promise<StockRow[]> {
   });
 }
 
-export const STOCK_SORTS = ["name", "status", "onHand", "reserved", "available", "reorder", "cover", "sold", "value"] as const;
+export const STOCK_SORTS = ["name", "status", "onHand", "reserved", "available", "reorder", "cover", "sold", "value", "price"] as const;
 export type StockSort = (typeof STOCK_SORTS)[number];
 const SEVERITY: Record<StockStatus, number> = { NEGATIVE: 0, OUT: 1, LOW: 2, OVER: 3, HEALTHY: 4 };
 
@@ -133,6 +133,7 @@ export function sortStock(rows: StockRow[], sort: StockSort, dir: "asc" | "desc"
     cover: (r) => (Number.isFinite(r.cover) ? r.cover : 1e9),
     sold: (r) => r.sold28,
     value: (r) => r.valueCents,
+    price: (r) => r.shelfCents ?? r.rrpCents,
   };
   const k = key[sort];
   const m = dir === "asc" ? 1 : -1;

@@ -173,7 +173,7 @@ export default async function LaunchPage() {
 
           <Card>
             <CardHeader title="Top referrers" description={`Most friends who joined before launch · each moved them up ${num(l.referralBoost)} places`} />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th className="w-10">#</Th>
@@ -203,7 +203,7 @@ export default async function LaunchPage() {
                     <Td className="hidden text-ink-600 sm:table-cell">{r.store ?? "—"}</Td>
                     <Td align="right" className="font-semibold text-ink-900">{num(r.friends)}</Td>
                     <Td align="right" className="hidden text-ink-600 md:table-cell">+{num(r.friends * l.referralBoost)}</Td>
-                    <Td align="right" className="font-mono text-xs">{r.foundingNo ? four(r.foundingNo) : <span className="text-ink-300">—</span>}</Td>
+                    <Td align="right" className="font-mono text-xs">{r.foundingNo ? four(r.foundingNo) : <span className="text-ink-500">—</span>}</Td>
                   </Tr>
                 ))}
               </tbody>

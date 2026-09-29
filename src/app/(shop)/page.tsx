@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ArrowRight, BadgeCheck, FlaskConical, HandHeart, Leaf, Moon, QrCode, ShieldCheck, Sprout, Store, Sun, Truck, Dumbbell } from "lucide-react";
+import { ArrowRight, BadgeCheck, Crown, FlaskConical, Gift, HandHeart, Leaf, Moon, QrCode, ShieldCheck, Sprout, Store, Sun, Truck, Dumbbell } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -11,6 +11,7 @@ import { cardsWhere, listCatalogue } from "@/server/shop/catalogue";
 import { getFranchisor, getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { featuredDrop, upcomingEvents } from "@/server/shop/launch";
 import { Lockup, Mark, PETAL } from "@/components/brand/logo";
+import { Sky } from "@/components/shop/sky";
 import { JsonLd } from "@/components/shop/json-ld";
 import { LOCALE, organizationJsonLd, parseSameAs, SITE_NAME, siteUrl, websiteJsonLd } from "@/lib/seo";
 import { ProductArt } from "@/components/product/art";
@@ -27,6 +28,7 @@ import { TIERS, fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { fmtDay, num, weekdaySA } from "@/lib/format";
 import { zarWhole } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
+import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
   title: { absolute: "Herbal Holland — Dutch heritage. African soil." },
@@ -82,6 +84,9 @@ export default async function Home() {
   ]);
   // Staff picks first, then the most-reviewed of the rest, so the grid is always full.
   const picks = [...featured].sort((a, b) => Number(b.featured) - Number(a.featured) || (b.rating?.count ?? 0) - (a.rating?.count ?? 0)).slice(0, 8);
+  // New in: the newest products in the range (the same cards, ordered by when they were added).
+  const pickIds = new Set(picks.map((p) => p.id));
+  const newIn = [...featured].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).filter((p) => !pickIds.has(p.id)).slice(0, 4);
   const { trading, provinces } = footprint;
   const moods = facets.moods.filter((m) => MOODS[m.key]);
   const publicCats = categories.filter((c) => c._count.products > 0);
@@ -90,10 +95,9 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={jsonLd} />
-      {/* ── Hero ─────────────────────────────────────────────────── */}
-      <section className="relative overflow-hidden">
-        <div aria-hidden className="pointer-events-none absolute -right-40 top-10 h-[36rem] w-[36rem] rounded-full bg-brand-500/10 blur-3xl" />
-        <Container className="relative grid grid-cols-1 items-center gap-10 pb-16 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:py-20">
+      {/* ── Hero: the journey's sky (herbalholland.com) over the hills, the wordmark in its window frame ─── */}
+      <Sky time={pre ? "night" : "dusk"} mill={false} className="border-b border-ink-850">
+        <Container className="relative grid grid-cols-1 items-center gap-10 pb-20 pt-8 sm:pt-12 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-16 lg:py-24">
           {pre ? (
             <div className="order-2 animate-rise lg:order-1">
               <div className="eyebrow mb-5 text-brand-500">Founding Members</div>
@@ -171,12 +175,12 @@ export default async function Home() {
           </div>
           )}
           <div className="order-1 lg:order-2">
-            <div className="hh-frame relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
+            <div className="hh-bead-frame relative mx-auto flex aspect-[4/5] w-full max-w-[15rem] items-center justify-center p-6 shadow-glow sm:max-w-sm sm:p-10 lg:max-w-md">
               <Lockup spin className="h-full w-full justify-center text-[1.6rem] sm:text-[2.6rem] lg:text-[3rem] [&>svg]:h-[54%]" />
             </div>
           </div>
         </Container>
-      </section>
+      </Sky>
 
       {/* Members: one nudge to keep the app on the home screen (shown once here; the Rewards card keeps offering it). */}
       {customer && (
@@ -248,6 +252,52 @@ export default async function Home() {
         </Container>
       )}
 
+      {/* ── New in ───────────────────────────────────────────────── */}
+      {newIn.length > 0 && (
+        <Container className="pt-20">
+          <SectionHead eyebrow="New in" title="Just landed" description="The newest additions to the range — every consumable with its batch certificate from day one." action={<ButtonLink href="/shop?sort=new" variant="ghost-dark" size="sm">Newest first <ArrowRight className="h-4 w-4" /></ButtonLink>} />
+          <ProductGrid items={newIn} />
+        </Container>
+      )}
+
+      {/* ── Founding Members (pre-launch), and gift vouchers ───────── */}
+      <Suspense>
+        <Container className="pt-20">
+          <div className={cn("grid grid-cols-1 gap-4", pre && "lg:grid-cols-2")}>
+            {pre && (
+              <Link href={customer ? "/club" : "/club/join"} className="hh-beads-foot group relative flex flex-col justify-between overflow-hidden rounded-[2rem] border border-brand-500/40 bg-ink-900 p-6 pb-8 transition hover:border-brand-500 sm:p-8 sm:pb-10">
+                <div>
+                  <div className="eyebrow flex items-center gap-2 text-brand-500">
+                    <Crown className="h-4 w-4" /> Founding Members
+                  </div>
+                  <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-white">
+                    The first {num(launch.foundingCap)} get a numbered card.
+                  </h2>
+                  <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-300">
+                    Join Herbal Holland Rewards free before {fmtDay(pre)} and start at {tierInfo(launch.foundingTier).name} for {launch.foundingMonths} months. Adults 18+.
+                  </p>
+                </div>
+                <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 group-hover:text-brand-300">
+                  {place ? `You're #${num(place.place)} on the list` : customer ? "See your place on the list" : "Join free"} <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
+            )}
+            <Link href="/gift" className="hh-beads-foot group relative flex flex-col justify-between overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/70 p-6 pb-8 transition hover:border-brand-500/60 sm:p-8 sm:pb-10">
+              <div>
+                <div className="eyebrow flex items-center gap-2 text-brand-500">
+                  <Gift className="h-4 w-4" /> Gift vouchers
+                </div>
+                <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-white">Give the gift of choice.</h2>
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-300">R200, R500 or R1,000 — emailed with your message, redeemable on anything in store or online, valid for three years.</p>
+              </div>
+              <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 group-hover:text-brand-300">
+                Buy a voucher <ArrowRight className="h-4 w-4" />
+              </span>
+            </Link>
+          </div>
+        </Container>
+      </Suspense>
+
       {/* ── Shop by mood ──────────────────────────────────────────── */}
       {moods.length > 0 && (
         <Suspense>
@@ -285,7 +335,7 @@ export default async function Home() {
           {publicCats.map((c) => {
             const Icon = categoryIcon(c.icon, Leaf);
             return (
-              <Link key={c.id} href={`/shop?category=${c.slug}`} className="group flex flex-col rounded-2xl border border-ink-800 bg-ink-900/60 p-5 transition hover:border-brand-500/60 hover:bg-ink-900">
+              <Link key={c.id} href={`/shop?category=${c.slug}`} className="hh-beads-foot group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 p-5 pb-7 transition hover:border-brand-500/60 hover:bg-ink-900">
                 <Icon className="h-7 w-7 text-brand-500" strokeWidth={1.6} />
                 <h3 className="mt-6 font-display text-lg font-semibold text-white">{c.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-ink-400">{c.blurb}</p>

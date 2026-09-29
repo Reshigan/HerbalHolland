@@ -10,6 +10,7 @@ import { zar } from "./money";
 
 export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
 export const IMPORT_MAX_ROWS = 5_000;
+export const IMPORT_MAX_IMAGES = 6;
 export const PRODUCT_LINES = ["HOUSE", "HERITAGE", "CLASSIC", "RESERVE", "PARTNER"] as const;
 const STATUSES = ["ACTIVE", "DRAFT", "ARCHIVED"] as const;
 const STRAINS = ["INDICA", "SATIVA", "HYBRID", "CBD"] as const;
@@ -143,6 +144,7 @@ const COLUMNS: Column[] = [
   { key: "heritage", level: "product", field: "heritage", kind: "bool", about: "yes for an African landrace story" },
   { key: "featured", level: "product", field: "featured", kind: "bool", about: "yes to feature it in the shop and the app" },
   { key: "tobacco_related", level: "product", field: "tobaccoRelated", kind: "bool", about: "yes for pipes, water-pipes, papers and vapes (Tobacco Bill)" },
+  { key: "image_urls", level: "product", field: "imageUrls", kind: "list", max: 500, aliases: ["images", "photos", "image_url"], about: "Product photos: https:// web addresses separated by |, up to 6 — fetched and kept at import (JPG, PNG or WebP, 5 MB each); the first is the main picture" },
   // Variant details.
   { key: "barcode", level: "variant", field: "barcode", kind: "barcode", aliases: ["ean", "gtin"], about: "EAN or UPC, 8–14 digits (format the column as text)" },
   { key: "grams", level: "variant", field: "grams", kind: "num", max: 1000, about: "Dried-flower equivalent grams, for licensed products' limits" },
@@ -342,7 +344,7 @@ export type ImportSnapshot = {
 
 export type RowAction = "create" | "update" | "unchanged" | "error";
 export type PlanRow = { line: number; sku: string; product: string; variant: string; action: RowAction; notes: string[]; errors: string[]; stock: number };
-export type ProductWrite = { key: string; id: string | null; slug: string; data: ProductData; changed: string[]; compliance: boolean };
+export type ProductWrite = { key: string; id: string | null; slug: string; data: ProductData; changed: string[]; compliance: boolean; images: string[] };
 export type VariantWrite = { line: number; productKey: string; productId: string | null; id: string | null; data: VariantData; changed: string[]; before: [number, number, number] | null; sortOrder: number };
 export type StockWrite = { line: number; sku: string; qty: number; batchCode: string; batchId: string | null; expires: string | null; unitCostCents: number };
 export type ImportCounts = {
@@ -455,6 +457,15 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
       else problems.push(`Unknown category “${given.category}”: add it in HQ → Catalogue → Categories first (the import never creates categories)`);
       delete given.category;
     }
+    // Photos are fetched after the import (not a product field): https:// addresses only, a handful per product.
+    let images: string[] = [];
+    if (given.imageUrls != null) {
+      images = given.imageUrls as string[];
+      delete given.imageUrls;
+      if (images.length > IMPORT_MAX_IMAGES) problems.push(`image_urls: up to ${IMPORT_MAX_IMAGES} photos per product`);
+      const badUrl = images.find((u) => !/^https:\/\/[^\s"'<>]+$/i.test(u));
+      if (badUrl) problems.push(`image_urls: “${badUrl.slice(0, 60)}” isn't an https:// web address`);
+    }
 
     let product: ProductWrite | null = null;
     if (regClass && (given.categoryId || existing) && !problems.length && !held.length) {
@@ -473,7 +484,7 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
         const flag = screenCopy([data.name, data.tagline ?? "", data.description].join(" "))[0];
         if (flag) problems.push(`“${flag.term}” in the name, tagline or description — ${flag.reason}`);
       }
-      if (!problems.length) product = { key: slug, id: existing?.id ?? null, slug: existing?.slug ?? slug, data: final, changed, compliance: !!existing && complianceChange(changed, regClass) };
+      if (!problems.length) product = { key: slug, id: existing?.id ?? null, slug: existing?.slug ?? slug, data: final, changed, compliance: !!existing && complianceChange(changed, regClass), images };
     }
 
     let first = true, newVariants = 0;
@@ -522,7 +533,7 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
       counts[action === "error" ? "errors" : action]++;
       out.set(r.line, { line: r.line, sku, product: (r.product.name as string) ?? "", variant: v.name, action, notes, errors: [...new Set(errors)], stock: stock && !errors.length ? qty : 0 });
     }
-    if (product && !first && (!product.id || product.changed.length)) plan.products.push(product);
+    if (product && !first && (!product.id || product.changed.length || product.images.length)) plan.products.push(product);
   }
 
   plan.rows = [...out.values()].sort((a, b) => a.line - b.line);
@@ -548,15 +559,16 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
 }
 
 function productChanges(p: ProductWrite, existing: ExistingProduct | null, catName: Map<string, string>) {
-  if (!existing) return [`New product in ${catName.get(p.data.categoryId) ?? "its category"} · ${REG_CLASS_LABEL[p.data.regClass]} · ${title(p.data.status)}`];
-  if (!p.changed.length) return [];
+  const photos = p.images.length ? [`${count(p.images.length, "photo")} to fetch`] : [];
+  if (!existing) return [`New product in ${catName.get(p.data.categoryId) ?? "its category"} · ${REG_CLASS_LABEL[p.data.regClass]} · ${title(p.data.status)}`, ...photos];
+  if (!p.changed.length) return photos;
   const say = (k: keyof ProductData) =>
     k === "status" ? `status ${title(existing.status)} → ${title(p.data.status)}`
     : k === "regClass" ? `class ${existing.regClass} → ${p.data.regClass}`
     : k === "categoryId" ? `category → ${catName.get(p.data.categoryId)}`
     : k === "name" ? `renamed from “${existing.name}”`
     : header("product", k);
-  return [`Product: ${p.changed.map((k) => say(k as keyof ProductData)).join(", ")}`];
+  return [`Product: ${p.changed.map((k) => say(k as keyof ProductData)).join(", ")}`, ...photos];
 }
 
 /** What the person saw in the preview; the import refuses to run if the file would now do something else. */
@@ -578,7 +590,7 @@ const EXAMPLES: Record<string, string>[] = [
     sku: "EXAMPLE-OIL-30", product: "Example Calm Oil 300mg", variant: "30 ml", category: "CBD Wellness", class: "CBD", rrp_incl_vat: "349.00", wholesale_excl_vat: "160.00", cost_excl_vat: "95.00",
     status: "DRAFT", description: "Broad-spectrum hemp extract in MCT oil with natural peppermint. Ten milligrams a day, in two servings.", tagline: "10 mg a day, every day", brand: "Herbal Holland", line: "HOUSE",
     thc_max_pct: "0.001", cbd_mg_per_pack: "300", cbd_mg_per_day: "10", ingredients: "MCT oil (from coconut), broad-spectrum hemp extract (300 mg CBD), natural peppermint oil", allergens: "none",
-    claims: "Supports everyday calm", effects: "calm|focus", flavours: "Peppermint", active: "yes", stock: "24", batch: "EXAMPLE-OIL-2609", expires: "2027-09-30",
+    claims: "Supports everyday calm", effects: "calm|focus", flavours: "Peppermint", image_urls: "https://example.com/photos/calm-oil-front.jpg|https://example.com/photos/calm-oil-back.jpg", active: "yes", stock: "24", batch: "EXAMPLE-OIL-2609", expires: "2027-09-30",
   },
   {
     sku: "EXAMPLE-JAR-250", product: "Example Stash Jar", variant: "250 ml", category: "Accessories", class: "ACCESSORY", rrp_incl_vat: "189.00", wholesale_excl_vat: "85.00", cost_excl_vat: "45.00",

@@ -19,7 +19,8 @@ import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { TierBadge } from "@/components/ui/status";
 import { Avatar } from "@/components/ui/misc";
-import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { Table, Td, Th, Tr, SortableTh } from "@/components/ui/table";
+import { SavedViews } from "@/components/admin/saved-views";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
 import { AutoSelect } from "@/components/store/auto-submit";
@@ -29,14 +30,15 @@ export const metadata = { title: "Members" };
 const PAGE_SIZE = 25;
 type SP = Record<string, string | string[] | undefined>;
 
-// "recent" and "spend" order by this store's own sales (membersByHere); the rest are member fields.
-const SORTS: Record<string, Prisma.CustomerOrderByWithRelationInput[] | null> = {
+// "recent" and "spend" order by this store's own sales (membersByHere, always highest first); the rest are member fields.
+const SORTS: Record<string, ((d: "asc" | "desc") => Prisma.CustomerOrderByWithRelationInput[]) | null> = {
   recent: null,
   spend: null,
-  points: [{ points: "desc" }, { id: "asc" }],
-  joined: [{ createdAt: "desc" }, { id: "asc" }],
-  name: [{ firstName: "asc" }, { lastName: "asc" }, { id: "asc" }],
+  points: (d) => [{ points: d }, { id: "asc" }],
+  joined: (d) => [{ createdAt: d }, { id: "asc" }],
+  name: (d) => [{ firstName: d }, { lastName: d }, { id: "asc" }],
 };
+const DEFAULT_DIR: Record<string, "asc" | "desc"> = { recent: "desc", spend: "desc", points: "desc", joined: "desc", name: "asc" };
 const TIERS: Tier[] = ["SEED", "SPROUT", "BLOOM", "HARVEST"];
 
 export default async function MembersPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<SP> }) {
@@ -49,6 +51,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   const seg = (Object.keys(SEGMENTS) as string[]).includes(sp1(sp.seg)) ? sp1(sp.seg) : "ALL";
   const tier = (TIERS as string[]).includes(sp1(sp.tier)) ? (sp1(sp.tier) as Tier) : null;
   const sort = sp1(sp.sort) in SORTS ? sp1(sp.sort) : "recent";
+  const dir: "asc" | "desc" = SORTS[sort] ? (sp1(sp.dir) === "asc" || sp1(sp.dir) === "desc" ? (sp1(sp.dir) as "asc" | "desc") : DEFAULT_DIR[sort]) : "desc";
   const page = pageParam(sp.page);
 
   const words = q.split(/\s+/).filter(Boolean);
@@ -75,7 +78,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
     Promise.all(segKeys.map(async (k) => [k, await db.customer.count({ where: { AND: [base, segmentWhere(k)] } })] as const)),
     db.customer.count({ where }),
     order
-      ? db.customer.findMany({ where, orderBy: order, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE })
+      ? db.customer.findMany({ where, orderBy: order(dir), skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE })
       : membersByHere(store.id, where, sort as "recent" | "spend", (page - 1) * PAGE_SIZE, PAGE_SIZE).then(async (ids) => {
           const rows = new Map((await db.customer.findMany({ where: { id: { in: ids } } })).map((r) => [r.id, r]));
           return ids.flatMap((id) => rows.get(id) ?? []);
@@ -85,7 +88,8 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   ]);
   const stats = await statsHere(store.id, members.map((m) => m.id));
   const count = Object.fromEntries(segCounts);
-  const keep = { seg: seg === "ALL" ? undefined : seg, sort: sort === "recent" ? undefined : sort };
+  const keep = { seg: seg === "ALL" ? undefined : seg, sort: sort === "recent" ? undefined : sort, dir: sp1(sp.dir) || undefined };
+  const sortHref = (s: string, d: "asc" | "desc") => hrefWith(path, sp, { sort: s === "recent" ? null : s, dir: d, page: null });
 
   return (
     <>
@@ -114,7 +118,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
               ))}
             </AutoSelect>
             <label className="sr-only" htmlFor="m-sort">Sort</label>
-            <AutoSelect id="m-sort" name="sort" defaultValue={sort} wrapperClassName="w-44">
+            <AutoSelect id="m-sort" name="sort" defaultValue={sort} wrapperClassName="w-44" aria-describedby="m-sort-hint">
               <option value="recent">Last visit here</option>
               <option value="spend">Spend here</option>
               <option value="points">Points balance</option>
@@ -141,22 +145,24 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
               </Link>
             </p>
           )}
+          <span id="m-sort-hint" className="sr-only">Column headings sort the list too.</span>
+          <SavedViews pageKey="store-members" userKey={user.id} />
         </div>
         {members.length === 0 ? (
           <EmptyState icon={<Users className="h-5 w-5" />} title="No members match">
             Try another search or segment.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst minWidth="64rem">
             <thead>
               <tr>
-                <Th>Member</Th>
+                <SortableTh label="Member" sortKey="name" sort={sort} dir={dir} href={sortHref} />
                 <Th>Mobile</Th>
                 <Th>Tier · segment</Th>
-                <Th align="right">Points</Th>
+                <SortableTh label="Points" sortKey="points" sort={sort} dir={dir} href={sortHref} align="right" />
                 <Th align="right">Visits here</Th>
-                <Th>Last visit here</Th>
-                <Th align="right">Spend here</Th>
+                <SortableTh label="Last visit here" sortKey="recent" sort={sort} dir={dir} href={sortHref} title="Most recent first" />
+                <SortableTh label="Spend here" sortKey="spend" sort={sort} dir={dir} href={sortHref} align="right" title="Highest first" />
                 <Th>Consent</Th>
               </tr>
             </thead>
@@ -165,7 +171,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                 const s = segmentOf(c);
                 const h = stats.get(c.id) ?? NO_STATS;
                 return (
-                  <Tr key={c.id}>
+                  <Tr key={c.id} href={`${path}/${c.id}`}>
                     <Td className="min-w-52">
                       <Link href={`${path}/${c.id}`} className="group flex items-center gap-3">
                         <Avatar name={`${c.firstName} ${c.lastName ?? ""}`} />
@@ -173,7 +179,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                           <span className="block font-medium text-ink-900 group-hover:text-brand-700">
                             {c.firstName} {c.lastName ?? ""}
                           </span>
-                          <span className="font-mono text-xs text-ink-400">{c.memberNo}</span>
+                          <span className="font-mono text-xs text-ink-500">{c.memberNo}</span>
                         </span>
                       </Link>
                     </Td>
@@ -186,14 +192,14 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                     </Td>
                     <Td align="right">{c.points.toLocaleString()}</Td>
                     <Td align="right">{h.visits.toLocaleString()}</Td>
-                    <Td className="whitespace-nowrap text-ink-600">{h.lastAt ? timeAgo(h.lastAt) : <span className="text-ink-300">Not yet</span>}</Td>
-                    <Td align="right" className="font-medium text-ink-900">{h.visits || h.spendCents ? zar(h.spendCents) : <span className="font-normal text-ink-300">—</span>}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{h.lastAt ? timeAgo(h.lastAt) : <span className="text-ink-500">Not yet</span>}</Td>
+                    <Td align="right" className="font-medium text-ink-900">{h.visits || h.spendCents ? zar(h.spendCents) : <span className="font-normal text-ink-500">—</span>}</Td>
                     <Td>
-                      <span className="flex gap-1.5 text-ink-300" aria-label="Marketing consent">
-                        <MessageSquare className={`h-4 w-4 ${c.consentSms ? "text-leaf-600" : ""}`} aria-label={`SMS ${c.consentSms ? "yes" : "no"}`} />
-                        <MessageCircle className={`h-4 w-4 ${c.consentWhatsapp ? "text-leaf-600" : ""}`} aria-label={`WhatsApp ${c.consentWhatsapp ? "yes" : "no"}`} />
-                        <Mail className={`h-4 w-4 ${c.consentEmail ? "text-leaf-600" : ""}`} aria-label={`Email ${c.consentEmail ? "yes" : "no"}`} />
-                        <Smartphone className={`h-4 w-4 ${c.consentPush ? "text-leaf-600" : ""}`} aria-label={`Push ${c.consentPush ? "yes" : "no"}`} />
+                      <span className="flex gap-1.5 text-ink-500" role="img" aria-label={`Marketing consent: SMS ${c.consentSms ? "yes" : "no"}, WhatsApp ${c.consentWhatsapp ? "yes" : "no"}, email ${c.consentEmail ? "yes" : "no"}, push ${c.consentPush ? "yes" : "no"}`}>
+                        <MessageSquare className={`h-4 w-4 ${c.consentSms ? "text-leaf-600" : ""}`} aria-hidden />
+                        <MessageCircle className={`h-4 w-4 ${c.consentWhatsapp ? "text-leaf-600" : ""}`} aria-hidden />
+                        <Mail className={`h-4 w-4 ${c.consentEmail ? "text-leaf-600" : ""}`} aria-hidden />
+                        <Smartphone className={`h-4 w-4 ${c.consentPush ? "text-leaf-600" : ""}`} aria-hidden />
                       </span>
                     </Td>
                   </Tr>

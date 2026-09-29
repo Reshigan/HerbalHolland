@@ -8,7 +8,7 @@ export function CardHeader({ title, description, action, className }: { title: R
   return (
     <div className={cn("flex items-start justify-between gap-4 px-5 pt-5", className)}>
       <div className="min-w-0">
-        <h3 className="font-display text-[0.95rem] font-semibold text-ink-900">{title}</h3>
+        <h2 className="font-display text-[0.95rem] font-semibold text-ink-900">{title}</h2>
         {description && <p className="mt-0.5 text-[0.8rem] text-ink-500">{description}</p>}
       </div>
       {action && <div className="shrink-0">{action}</div>}

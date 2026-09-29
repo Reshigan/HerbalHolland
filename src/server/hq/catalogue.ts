@@ -10,6 +10,27 @@ export { REG_CLASSES };
 
 export type CatalogueFilters = { q?: string; category?: string; cls?: string; status?: string; flag?: string };
 
+export const CATALOGUE_SORTS = ["name", "category", "cls", "status", "updated"] as const;
+export type CatalogueSort = (typeof CATALOGUE_SORTS)[number];
+
+/** Column sorts for the list; the default groups active products first, by category order, then name. */
+export function productOrderBy(sort: CatalogueSort | null, dir: "asc" | "desc"): Prisma.ProductOrderByWithRelationInput[] {
+  switch (sort) {
+    case "name":
+      return [{ name: dir }];
+    case "category":
+      return [{ category: { sortOrder: dir } }, { name: "asc" }];
+    case "cls":
+      return [{ regClass: dir }, { name: "asc" }];
+    case "status":
+      return [{ status: dir }, { name: "asc" }];
+    case "updated":
+      return [{ updatedAt: dir }];
+    default:
+      return [{ status: "asc" }, { category: { sortOrder: "asc" } }, { name: "asc" }];
+  }
+}
+
 export function productWhere(f: CatalogueFilters): Prisma.ProductWhereInput {
   const q = f.q?.trim();
   return {
@@ -31,14 +52,14 @@ export function productWhere(f: CatalogueFilters): Prisma.ProductWhereInput {
   };
 }
 
-export async function productList(retailIds: string[], f: CatalogueFilters, page: number, pageSize: number) {
+export async function productList(retailIds: string[], f: CatalogueFilters, page: number, pageSize: number, order: { sort: CatalogueSort | null; dir: "asc" | "desc" } = { sort: null, dir: "asc" }) {
   const where = productWhere(f);
   const [total, products] = await Promise.all([
     db.product.count({ where }),
     db.product.findMany({
       where,
-      include: { category: { select: { name: true } }, variants: { select: { id: true, priceCents: true, active: true } } },
-      orderBy: [{ status: "asc" }, { category: { sortOrder: "asc" } }, { name: "asc" }],
+      include: { category: { select: { name: true } }, variants: { select: { id: true, name: true, sku: true, priceCents: true, active: true }, orderBy: { sortOrder: "asc" } } },
+      orderBy: productOrderBy(order.sort, order.dir),
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),

@@ -44,7 +44,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                 className={cn("rounded-2xl border p-4 text-left transition disabled:cursor-default", mode === m.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
               >
                 <span className="flex items-center gap-2 font-display text-sm font-semibold text-ink-900">
-                  <m.icon className={cn("h-4 w-4", mode === m.key ? "text-brand-700" : "text-ink-400")} /> {m.title}
+                  <m.icon className={cn("h-4 w-4", mode === m.key ? "text-brand-700" : "text-ink-500")} /> {m.title}
                   {value.thcMode === m.key && <span className="rounded-full bg-ink-900 px-2 py-0.5 text-[0.65rem] font-semibold text-white">Current</span>}
                 </span>
                 <span className="mt-1.5 block text-xs leading-relaxed text-ink-600">{m.body}</span>
@@ -136,7 +136,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                 <span key={cl} className="inline-flex items-center gap-2 text-sm text-ink-600" title="Licensed medicines never get incentives in medical mode">
                   {(value.noIncentives ?? []).includes(cl) && <input type="hidden" name="noIncentives" value={cl} />}
                   <Lock className="h-4 w-4 text-ink-400" aria-hidden />
-                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-400">— always, in medical mode</span>
+                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-500">— always, in medical mode</span>
                 </span>
               ) : (
                 <Checkbox key={cl} name="noIncentives" value={cl} defaultChecked={(value.noIncentives ?? []).includes(cl)} label={REG_CLASS_LABEL[cl]} />

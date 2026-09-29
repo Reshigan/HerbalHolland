@@ -139,9 +139,9 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
       </div>
 
       <div className="rounded-xl border border-ink-150 p-3 text-sm">
-        <div className="eyebrow mb-1 text-ink-400">Preview</div>
+        <div className="eyebrow mb-1 text-ink-500">Preview</div>
         <p className="whitespace-pre-line text-ink-800">{sample}</p>
-        <p className="mt-1 text-xs text-ink-400">— Herbal Holland sender details{channel === "SMS" ? " · Reply STOP to opt out" : " · unsubscribe link"} (added automatically)</p>
+        <p className="mt-1 text-xs text-ink-500">— Herbal Holland sender details{channel === "SMS" ? " · Reply STOP to opt out" : " · unsubscribe link"} (added automatically)</p>
       </div>
 
       <p className={cn("flex items-start gap-2 rounded-xl px-3 py-2 text-xs", win.allowed ? "bg-leaf-50 text-leaf-700" : "bg-amber-50 text-amber-700")}>

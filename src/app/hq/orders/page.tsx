@@ -17,20 +17,30 @@ import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
 import { TabLinks } from "@/components/ui/tabs";
 import { Field, Input } from "@/components/ui/form";
-import { Table, Th, Td, Tr } from "@/components/ui/table";
+import { Table, Td, Tr, SortableTh, TableEmpty, sortParams } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
-import { EmptyRow, ViewOnly } from "@/components/hq/ui";
+import { ViewOnly } from "@/components/hq/ui";
+import { SavedViews } from "@/components/admin/saved-views";
 import { saveEcommerceSettings } from "./actions";
 import type { Fulfilment, OrderStatus, Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Online orders" };
 
-type SP = { tab?: string; q?: string; status?: string; fulfilment?: string; store?: string; from?: string; to?: string; page?: string };
+type SP = { tab?: string; q?: string; status?: string; fulfilment?: string; store?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
 const STATUSES: OrderStatus[] = ["PENDING_PAYMENT", "PLACED", "PICKING", "READY", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"];
 const FULFIL: Record<Fulfilment, [string, Tone]> = { COLLECT: ["Click & collect", "neutral"], SAME_DAY: ["Same-day", "violet"], COURIER: ["Courier", "blue"] };
 const OPEN: OrderStatus[] = ["PLACED", "PICKING", "READY", "OUT_FOR_DELIVERY"];
+const SORTS = ["created", "member", "store", "fulfilment", "status", "total"] as const;
+const ORDER_BY: Record<(typeof SORTS)[number], (d: "asc" | "desc") => Prisma.OrderOrderByWithRelationInput[]> = {
+  created: (d) => [{ createdAt: d }],
+  member: (d) => [{ customer: { firstName: d } }, { customer: { lastName: d } }, { createdAt: "desc" }],
+  store: (d) => [{ store: { name: d } }, { createdAt: "desc" }],
+  fulfilment: (d) => [{ fulfilment: d }, { createdAt: "desc" }],
+  status: (d) => [{ status: d }, { createdAt: "desc" }],
+  total: (d) => [{ totalCents: d }, { createdAt: "desc" }],
+};
 
 export default async function OrdersPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -40,6 +50,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const settingsTab = sp.tab === "settings";
   const page = pageParam(sp.page);
   const pageSize = 25;
+  const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "created", "desc");
   const q = sp.q?.trim();
   const from = parseDay(sp.from);
   const to = parseDay(sp.to);
@@ -62,7 +73,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       : db.order.findMany({
           where,
           include: { customer: { select: { id: true, firstName: true, lastName: true, memberNo: true } }, store: { select: { code: true, name: true, kind: true } } },
-          orderBy: { createdAt: "desc" },
+          orderBy: ORDER_BY[sort](dir),
           skip: (page - 1) * pageSize,
           take: pageSize,
         }),
@@ -73,6 +84,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   ]);
   const qn = (s: OrderStatus) => queue.find((x) => x.status === s)?._count ?? 0;
   const href = (p: Record<string, string | number | undefined>) => `/hq/orders${qs({ ...sp, ...p })}`;
+  const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
   const e = settings.ecommerce;
   const rand = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
 
@@ -143,8 +155,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         </Card>
       ) : (
         <Card>
-          <div className="border-b border-ink-100 p-4">
-            <FilterForm action="/hq/orders">
+          <div className="space-y-3 border-b border-ink-100 p-4">
+            <FilterForm action="/hq/orders" keep={{ sort: sp.sort, dir: sp.dir }}>
               <SearchField defaultValue={sp.q} placeholder="Order code or member no." />
               <FilterSelect name="status" label="Status" defaultValue={sp.status} options={[{ value: "OPEN", label: "All open" }, ...STATUSES.map((s) => ({ value: s, label: s.replaceAll("_", " ").toLowerCase().replace(/^./, (c) => c.toUpperCase()) }))]} />
               <FilterSelect name="fulfilment" label="Fulfilment" defaultValue={sp.fulfilment} options={Object.entries(FULFIL).map(([k, [l]]) => ({ value: k, label: l }))} />
@@ -158,27 +170,27 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                 <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="h-10 rounded-xl border border-ink-200 bg-white px-3 text-sm text-ink-800 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15" />
               </label>
             </FilterForm>
+            <SavedViews pageKey="hq-orders" userKey={user.id} />
           </div>
-          <Table className="relative">
+          <Table className="relative" stickyFirst minWidth="52rem">
             <thead>
               <tr>
-                <Th>Order</Th>
-                <Th>Member</Th>
-                <Th className="hidden md:table-cell">Fulfilled by</Th>
-                <Th className="hidden sm:table-cell">Fulfilment</Th>
-                <Th>Status</Th>
-                <Th align="right">Total</Th>
+                <SortableTh label="Order" sortKey="created" sort={sort} dir={dir} href={sortHref} title="Newest first" />
+                <SortableTh label="Member" sortKey="member" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="Fulfilled by" sortKey="store" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="Fulfilment" sortKey="fulfilment" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="Status" sortKey="status" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="Total" sortKey="total" sort={sort} dir={dir} href={sortHref} align="right" />
               </tr>
             </thead>
             <tbody>
               {orders.length === 0 && (
-                <EmptyRow cols={6}>
-                  <ShoppingBag className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-                  No orders match these filters.
-                </EmptyRow>
+                <TableEmpty cols={6} icon={<ShoppingBag className="h-5 w-5" aria-hidden />} title="No orders match these filters">
+                  Try another status, store or date range.
+                </TableEmpty>
               )}
               {orders.map((o) => (
-                <Tr key={o.id}>
+                <Tr key={o.id} href={`/hq/orders/${o.code}`}>
                   <Td>
                     <Link href={`/hq/orders/${o.code}`} className="font-mono text-[0.8rem] font-semibold text-ink-900 hover:text-brand-700">
                       {o.code}
@@ -189,11 +201,11 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                     <span className="text-ink-850">{o.customer.firstName} {o.customer.lastName ?? ""}</span>
                     <span className="block font-mono text-xs text-ink-500">{o.customer.memberNo}</span>
                   </Td>
-                  <Td className="hidden text-ink-600 md:table-cell">
+                  <Td className="text-ink-600">
                     {o.store.name}
                     {o.store.kind === "WAREHOUSE" && <Badge className="ml-2">DC</Badge>}
                   </Td>
-                  <Td className="hidden sm:table-cell">
+                  <Td>
                     <Badge tone={FULFIL[o.fulfilment][1]}>{FULFIL[o.fulfilment][0]}</Badge>
                   </Td>
                   <Td>

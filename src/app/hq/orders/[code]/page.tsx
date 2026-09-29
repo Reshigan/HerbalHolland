@@ -76,7 +76,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Items" />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Item</Th>

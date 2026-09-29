@@ -95,6 +95,7 @@ export const hqNav: NavGroup[] = [
     items: [
       { label: "Members & CRM", href: "/hq/customers", icon: "Users" },
       { label: "Campaigns", href: "/hq/marketing", icon: "Megaphone" },
+      { label: "Messages", href: "/hq/messages", icon: "MessageSquare" },
       { label: "Rewards", href: "/hq/loyalty", icon: "Crown" },
       { label: "Support", href: "/hq/support", icon: "LifeBuoy" },
       { label: "Returns", href: "/hq/returns", icon: "Undo2" },

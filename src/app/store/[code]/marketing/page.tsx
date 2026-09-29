@@ -121,14 +121,14 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
       <Td className="max-w-52 text-ink-600">{targets(p)}</Td>
       <Td className="whitespace-nowrap text-ink-600">
         {fmtDate(p.startsAt)} – {fmtDate(p.endsAt)}
-        <div className="text-xs text-ink-400">{scheduleLabel(p.days, p.startMinute, p.endMinute)}</div>
+        <div className="text-xs text-ink-500">{scheduleLabel(p.days, p.startMinute, p.endMinute)}</div>
       </Td>
       <Td>
         <Badge tone={STATE[p.state][1]} dot>{STATE[p.state][0]}</Badge>
       </Td>
       <Td align="right">
         {p.use.sales.toLocaleString()}
-        {p.use.discountCents > 0 && <div className="text-xs text-ink-400">{zar(p.use.discountCents)} given</div>}
+        {p.use.discountCents > 0 && <div className="text-xs text-ink-500">{zar(p.use.discountCents)} given</div>}
       </Td>
       {canManage && (
         <Td className="text-right">
@@ -191,7 +191,7 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
           Try a happy hour on slow afternoons, or a multi-buy on a category you&apos;re overstocked in.
         </EmptyState>
       ) : (
-        <Table className="mt-3">
+        <Table stickyFirst className="mt-3">
           {head}
           <tbody>{own.map((p) => row(p, true))}</tbody>
         </Table>
@@ -201,7 +201,7 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
         {network.length === 0 ? (
           <CardBody className="text-sm text-ink-500">No network deals are running at your tills right now.</CardBody>
         ) : (
-          <Table className="mt-3">
+          <Table stickyFirst className="mt-3">
             {head}
             <tbody>{network.map((p) => row(p, false))}</tbody>
           </Table>
@@ -242,7 +242,7 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
           Message a segment — say, members at risk of lapsing — with a reason to come back.
         </EmptyState>
       ) : (
-        <Table>
+        <Table stickyFirst>
           <thead>
             <tr>
               <Th>Campaign</Th>
@@ -263,11 +263,11 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
                 </Td>
                 <Td>
                   <div className="text-ink-800">{segmentLabel(c.segment)}</div>
-                  <div className="text-xs text-ink-400">{c.channel === "EMAIL" ? "Email" : c.channel === "SMS" ? "SMS" : c.channel}</div>
+                  <div className="text-xs text-ink-500">{c.channel === "EMAIL" ? "Email" : c.channel === "SMS" ? "SMS" : c.channel}</div>
                 </Td>
                 <Td className="whitespace-nowrap">
                   <StatusBadge status={c.status} />
-                  <div className="text-xs text-ink-400">{c.sentAt ? fmtDateTime(c.sentAt) : c.scheduledAt ? `for ${fmtDateTime(c.scheduledAt)}` : `created ${fmtDate(c.createdAt)}`}</div>
+                  <div className="text-xs text-ink-500">{c.sentAt ? fmtDateTime(c.sentAt) : c.scheduledAt ? `for ${fmtDateTime(c.scheduledAt)}` : `created ${fmtDate(c.createdAt)}`}</div>
                 </Td>
                 <Td align="right">{c.sentCount.toLocaleString()}</Td>
                 <Td align="right" className="text-ink-500">{c.suppressedCount.toLocaleString()}</Td>
@@ -275,10 +275,10 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
                   {c.result.orders ? (
                     <>
                       <span className="font-medium text-ink-900">{zar(c.result.revenueCents)}</span>
-                      <div className="text-xs text-ink-400">{c.result.orders} sales</div>
+                      <div className="text-xs text-ink-500">{c.result.orders} sales</div>
                     </>
                   ) : (
-                    <span className="text-ink-300">—</span>
+                    <span className="text-ink-500">—</span>
                   )}
                 </Td>
                 {canManage && (

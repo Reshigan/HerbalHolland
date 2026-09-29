@@ -43,7 +43,7 @@ export function ReceiveForm({ lines, action }: { lines: ReceiveLine[]; action: F
                 <tr key={l.id} className={cn(bad ? "bg-rose-50/70" : short ? "bg-amber-50/80" : undefined)}>
                   <td className="border-b border-ink-100 px-4 py-2.5 sm:px-5">
                     <div className="font-medium text-ink-900">{l.name}</div>
-                    <div className="font-mono text-xs text-ink-400">{l.sku}</div>
+                    <div className="font-mono text-xs text-ink-500">{l.sku}</div>
                     {l.lots && <div className="font-mono text-xs text-ink-600 md:hidden">{l.lots}</div>}
                     <div className="text-xs text-ink-500 sm:hidden">ordered {l.ordered}</div>
                   </td>

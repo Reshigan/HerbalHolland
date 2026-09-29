@@ -13,15 +13,27 @@ import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { TierBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
-import { Table, Th, Td, Tr } from "@/components/ui/table";
+import { Table, Th, Td, Tr, SortableTh, TableEmpty, sortParams } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Donut } from "@/components/charts/donut";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
-import { EmptyRow } from "@/components/hq/ui";
+import { SavedViews } from "@/components/admin/saved-views";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Members & CRM" };
 
-type SP = { q?: string; tier?: string; segment?: string; store?: string; page?: string };
+type SP = { q?: string; tier?: string; segment?: string; store?: string; sort?: string; dir?: string; page?: string };
+
+const SORTS = ["last", "name", "tier", "visits", "lifetime", "points", "joined"] as const;
+const ORDER_BY: Record<(typeof SORTS)[number], (d: "asc" | "desc") => Prisma.CustomerOrderByWithRelationInput[]> = {
+  last: (d) => [{ lastPurchaseAt: { sort: d, nulls: "last" } }, { memberNo: "asc" }],
+  name: (d) => [{ firstName: d }, { lastName: d }, { memberNo: "asc" }],
+  tier: (d) => [{ tier: d }, { memberNo: "asc" }],
+  visits: (d) => [{ visits: d }, { memberNo: "asc" }],
+  lifetime: (d) => [{ lifetimeCents: d }, { memberNo: "asc" }],
+  points: (d) => [{ points: d }, { memberNo: "asc" }],
+  joined: (d) => [{ createdAt: d }, { memberNo: "asc" }],
+};
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -32,6 +44,9 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const page = pageParam(sp.page);
   const pageSize = 25;
   const where = memberWhere(s, sp);
+  // A search lists exact matches by member number; otherwise the most recent shoppers first. Headers override both.
+  const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "last", "desc");
+  const orderBy = sp.q && !sp.sort ? [{ memberNo: "asc" as const }] : ORDER_BY[sort](dir);
   const [k, segments, tiers, total, members, stores] = await Promise.all([
     crmKpis(s),
     segmentCounts(s),
@@ -43,13 +58,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
         id: true, memberNo: true, firstName: true, lastName: true, tier: true, visits: true, lifetimeCents: true, lastPurchaseAt: true, points: true,
         consentSms: true, consentEmail: true, consentWhatsapp: true, consentPush: true, createdAt: true, homeStore: { select: { name: true, code: true } },
       },
-      orderBy: sp.q ? { memberNo: "asc" } : [{ lastPurchaseAt: { sort: "desc", nulls: "last" } }],
+      orderBy,
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
     db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { code: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const href = (p: Record<string, string | number | undefined>) => `/hq/customers${qs({ ...sp, ...p })}`;
+  const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
   const reach = (n: number) => (k.members ? pct(n / k.members, 0) : "—");
 
   return (
@@ -110,7 +126,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 <div key={label}>
                   <div className="mb-1 flex items-center justify-between">
                     <span className="inline-flex items-center gap-2 text-ink-700">
-                      <span className="text-ink-400">{icon}</span>
+                      <span className="text-ink-500">{icon}</span>
                       {label}
                     </span>
                     <span className="tnum text-ink-600">
@@ -129,36 +145,36 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
 
       <Card className="mt-6">
         <CardHeader title="Members" description={`${num(total)} matching`} />
-        <div className="border-b border-ink-100 p-4">
-          <FilterForm action="/hq/customers">
+        <div className="space-y-3 border-b border-ink-100 p-4">
+          <FilterForm action="/hq/customers" keep={{ sort: sp.sort, dir: sp.dir }}>
             <SearchField defaultValue={sp.q} placeholder="Name, mobile, email or member no." />
             <FilterSelect name="segment" label="Segment" defaultValue={sp.segment} options={Object.entries(SEGMENTS).map(([k, v]) => ({ value: k, label: v.name }))} />
             <FilterSelect name="tier" label="Tier" defaultValue={sp.tier} options={TIERS.map((t) => ({ value: t.key, label: t.name }))} />
             {stores.length > 1 && <FilterSelect name="store" label="Home store" defaultValue={sp.store} options={stores.map((x) => ({ value: x.code, label: x.name }))} />}
           </FilterForm>
+          <SavedViews pageKey="hq-members" userKey={user.id} />
         </div>
-        <Table className="relative">
+        <Table className="relative" stickyFirst minWidth="64rem">
           <thead>
             <tr>
-              <Th>Member</Th>
-              <Th>Tier</Th>
-              <Th className="hidden md:table-cell">Home store</Th>
-              <Th align="right" className="hidden sm:table-cell">Visits</Th>
-              <Th align="right">Lifetime</Th>
-              <Th className="hidden lg:table-cell">Last purchase</Th>
-              <Th align="right" className="hidden lg:table-cell">Points</Th>
-              <Th className="hidden xl:table-cell">Consent</Th>
+              <SortableTh label="Member" sortKey="name" sort={sp.q && !sp.sort ? "" : sort} dir={dir} href={sortHref} />
+              <SortableTh label="Tier" sortKey="tier" sort={sort} dir={dir} href={sortHref} />
+              <Th>Home store</Th>
+              <SortableTh label="Visits" sortKey="visits" sort={sort} dir={dir} href={sortHref} align="right" />
+              <SortableTh label="Lifetime" sortKey="lifetime" sort={sort} dir={dir} href={sortHref} align="right" />
+              <SortableTh label="Last purchase" sortKey="last" sort={sp.q && !sp.sort ? "" : sort} dir={dir} href={sortHref} />
+              <SortableTh label="Points" sortKey="points" sort={sort} dir={dir} href={sortHref} align="right" />
+              <Th>Consent</Th>
             </tr>
           </thead>
           <tbody>
             {members.length === 0 && (
-              <EmptyRow cols={8}>
-                <Users className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-                No members match. Search by full mobile number, email or member number for an exact match.
-              </EmptyRow>
+              <TableEmpty cols={8} icon={<Users className="h-5 w-5" aria-hidden />} title="No members match">
+                Search by full mobile number, email or member number for an exact match.
+              </TableEmpty>
             )}
             {members.map((m) => (
-              <Tr key={m.id}>
+              <Tr key={m.id} href={`/hq/customers/${m.id}`}>
                 <Td>
                   <Link href={`/hq/customers/${m.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                     {m.firstName} {m.lastName ?? ""}
@@ -168,17 +184,21 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
                 <Td>
                   <TierBadge tier={m.tier} />
                 </Td>
-                <Td className="hidden text-ink-600 md:table-cell">{m.homeStore?.name ?? "—"}</Td>
-                <Td align="right" className="hidden sm:table-cell">{num(m.visits)}</Td>
+                <Td className="text-ink-600">{m.homeStore?.name ?? "—"}</Td>
+                <Td align="right">{num(m.visits)}</Td>
                 <Td align="right">{m.lifetimeCents ? zarWhole(Math.round(m.lifetimeCents / 100) * 100) : "—"}</Td>
-                <Td className="hidden whitespace-nowrap text-ink-600 lg:table-cell">{m.lastPurchaseAt ? timeAgo(m.lastPurchaseAt) : <span className="text-ink-400">Joined {fmtDate(m.createdAt)}</span>}</Td>
-                <Td align="right" className="hidden lg:table-cell">{num(m.points)}</Td>
-                <Td className="hidden xl:table-cell">
-                  <span className="flex gap-1.5 text-ink-300" aria-label="Marketing consent">
-                    <Smartphone className={`h-4 w-4 ${m.consentSms ? "text-leaf-600" : ""}`} aria-label={m.consentSms ? "SMS: yes" : "SMS: no"} />
-                    <Mail className={`h-4 w-4 ${m.consentEmail ? "text-leaf-600" : ""}`} aria-label={m.consentEmail ? "Email: yes" : "Email: no"} />
-                    <Bell className={`h-4 w-4 ${m.consentPush ? "text-leaf-600" : ""}`} aria-label={m.consentPush ? "Push: yes" : "Push: no"} />
-                    <MessageSquare className={`h-4 w-4 ${m.consentWhatsapp ? "text-leaf-600" : ""}`} aria-label={m.consentWhatsapp ? "WhatsApp: yes" : "WhatsApp: no"} />
+                <Td className="whitespace-nowrap text-ink-600">{m.lastPurchaseAt ? timeAgo(m.lastPurchaseAt) : <span className="text-ink-500">Joined {fmtDate(m.createdAt)}</span>}</Td>
+                <Td align="right">{num(m.points)}</Td>
+                <Td>
+                  <span
+                    className="flex gap-1.5 text-ink-500"
+                    role="img"
+                    aria-label={`Marketing consent: SMS ${m.consentSms ? "yes" : "no"}, email ${m.consentEmail ? "yes" : "no"}, push ${m.consentPush ? "yes" : "no"}, WhatsApp ${m.consentWhatsapp ? "yes" : "no"}`}
+                  >
+                    <Smartphone className={`h-4 w-4 ${m.consentSms ? "text-leaf-600" : ""}`} aria-hidden />
+                    <Mail className={`h-4 w-4 ${m.consentEmail ? "text-leaf-600" : ""}`} aria-hidden />
+                    <Bell className={`h-4 w-4 ${m.consentPush ? "text-leaf-600" : ""}`} aria-hidden />
+                    <MessageSquare className={`h-4 w-4 ${m.consentWhatsapp ? "text-leaf-600" : ""}`} aria-hidden />
                   </span>
                 </Td>
               </Tr>

@@ -60,7 +60,7 @@ export function SupplierInvoiceForm({ action, defaults = {}, vendor, idPrefix = 
         </Field>
         <Field label="Total incl. VAT" htmlFor={id("total")}>
           <div className="relative">
-            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-400">R</span>
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-sm text-ink-500">R</span>
             <Input id={id("total")} name="total" inputMode="decimal" defaultValue={defaults.total ?? ""} className="pl-7 tnum" required placeholder="0.00" />
           </div>
           <FieldError name="total" />

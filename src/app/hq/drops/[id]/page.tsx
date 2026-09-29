@@ -85,7 +85,7 @@ export default async function DropPage({ params, searchParams }: { params: Promi
       <div className="mb-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Sales and stock by product" description={`Limit ${d.perMemberLimit} per member${d.membersOnly ? " · Rewards members only" : ""}${early ? ` · ${early}` : ""}`} />
-          <Table className="relative mt-4">
+          <Table stickyFirst className="relative mt-4">
             <thead>
               <tr>
                 <Th>Product</Th>
@@ -107,7 +107,7 @@ export default async function DropPage({ params, searchParams }: { params: Promi
                     </Td>
                     <Td className="hidden font-mono text-xs text-ink-600 sm:table-cell">{v?.sku ?? "—"}</Td>
                     <Td align="right" className="hidden md:table-cell">{v ? zarWhole(v.priceCents) : "—"}</Td>
-                    <Td align="right" className="font-medium text-ink-900">{phase === "upcoming" ? <span className="font-normal text-ink-300">—</span> : num(s.sold)}</Td>
+                    <Td align="right" className="font-medium text-ink-900">{phase === "upcoming" ? <span className="font-normal text-ink-500">—</span> : num(s.sold)}</Td>
                     <Td align="right" className={s.inStores ? undefined : "text-rose-600"}>{num(s.inStores)}</Td>
                     <Td align="right" className="hidden sm:table-cell">{num(s.atDcs)}</Td>
                   </Tr>

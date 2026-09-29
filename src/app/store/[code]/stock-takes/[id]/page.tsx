@@ -176,7 +176,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
         {listed.length === 0 ? (
           <EmptyState title={show === "variance" ? "No variances — the count matched the system" : "Nothing to show"} />
         ) : (
-          <Table className="mt-4">
+          <Table stickyFirst className="mt-4">
             <thead>
               <tr>
                 <Th>Item</Th>
@@ -195,7 +195,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
                     <Link href={`/store/${store.code}/inventory/${r.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {r.productName} <span className="text-ink-500">· {r.variantName}</span>
                     </Link>
-                    <div className="font-mono text-xs text-ink-400">{r.sku}</div>
+                    <div className="font-mono text-xs text-ink-500">{r.sku}</div>
                   </Td>
                   <Td className="whitespace-nowrap font-mono text-xs text-ink-600">{r.batchCode}</Td>
                   <Td align="right" className="text-ink-500">{r.expectedQty}</Td>
@@ -203,8 +203,8 @@ export default async function StockTakePage({ params, searchParams }: { params: 
                     {r.system}
                     {r.moved && <span className="sr-only"> (changed since it was counted)</span>}
                   </Td>
-                  <Td align="right" className="font-semibold text-ink-950">{r.countedQty ?? <span className="font-normal text-ink-300">—</span>}</Td>
-                  <Td align="right">{r.variance == null ? <span className="text-ink-300">—</span> : <Qty n={r.variance} />}</Td>
+                  <Td align="right" className="font-semibold text-ink-950">{r.countedQty ?? <span className="font-normal text-ink-500">—</span>}</Td>
+                  <Td align="right">{r.variance == null ? <span className="text-ink-500">—</span> : <Qty n={r.variance} />}</Td>
                   <Td align="right" className={r.variance && r.variance < 0 ? "text-rose-600" : "text-ink-800"}>{r.variance == null ? "—" : zar(r.variance * r.cost)}</Td>
                 </Tr>
               ))}

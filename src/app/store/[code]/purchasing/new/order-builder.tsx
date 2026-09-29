@@ -103,7 +103,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                   <tr key={r.variantId} className={cn("transition-colors", n > 0 ? "bg-brand-50/50" : "hover:bg-ink-50/60")}>
                     <td className="border-b border-ink-100 px-5 py-2.5">
                       <div className="font-medium text-ink-900">{r.name}</div>
-                      <div className="text-xs text-ink-400">
+                      <div className="text-xs text-ink-500">
                         <span className="font-mono">{r.sku}</span> · {r.category}
                       </div>
                     </td>
@@ -114,7 +114,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                     </td>
                     <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{r.avgDaily.toFixed(1)}</td>
                     <td className="tnum whitespace-nowrap border-b border-ink-100 px-3 py-2.5 text-right text-ink-800" title={r.safetyStock ? `14-day moving average · safety stock ${r.safetyStock}` : "14-day moving average"}>
-                      {r.forecastPerWeek > 0 ? `${r.forecastPerWeek < 10 ? r.forecastPerWeek.toFixed(1) : Math.round(r.forecastPerWeek)}/week` : <span className="text-ink-400">—</span>}
+                      {r.forecastPerWeek > 0 ? `${r.forecastPerWeek < 10 ? r.forecastPerWeek.toFixed(1) : Math.round(r.forecastPerWeek)}/week` : <span className="text-ink-500">—</span>}
                     </td>
                     <td className={cn("tnum border-b border-ink-100 px-3 py-2.5 text-right", r.cover != null && r.cover < 7 ? "font-semibold text-amber-700" : "text-ink-600")}>{coverText(r.cover)}</td>
                     <td className="border-b border-ink-100 px-3 py-1.5">
@@ -142,7 +142,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                       )}
                     </td>
                     <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{zar(r.wholesaleCents)}</td>
-                    <td className="tnum border-b border-ink-100 px-5 py-2.5 text-right font-medium text-ink-900">{n ? zar(n * r.wholesaleCents) : <span className="text-ink-300">—</span>}</td>
+                    <td className="tnum border-b border-ink-100 px-5 py-2.5 text-right font-medium text-ink-900">{n ? zar(n * r.wholesaleCents) : <span className="text-ink-500">—</span>}</td>
                   </tr>
                 );
               })}

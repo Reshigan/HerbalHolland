@@ -14,6 +14,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
+import { ButtonLink } from "@/components/ui/button";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ActionButton, ConfirmAction } from "@/components/hq/action-form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
@@ -113,7 +114,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Attributed sales" description={promo ? `Sales using ${promo.code ? `code ${promo.code}` : promo.name} or the campaign link` : "Sales stamped with this campaign"} />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -147,8 +148,16 @@ export default async function CampaignPage({ params, searchParams }: { params: P
             </Table>
           </Card>
           <Card>
-            <CardHeader title="Delivery log" description={`Latest messages · ${statuses.map((s) => `${num(s._count)} ${s.status.toLowerCase()}`).join(" · ") || "none"}`} />
-            <Table className="relative mt-4">
+            <CardHeader
+              title="Delivery log"
+              description={`Latest messages · ${statuses.map((s) => `${num(s._count)} ${s.status.toLowerCase()}`).join(" · ") || "none"}`}
+              action={
+                <ButtonLink href={`/hq/messages?campaign=${c.id}`} variant="ghost" size="sm">
+                  All messages
+                </ButtonLink>
+              }
+            />
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>To</Th>

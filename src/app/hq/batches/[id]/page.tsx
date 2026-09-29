@@ -105,7 +105,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
               <MiniStat label="Members reached" value={num(summary.customers)} sub="contactable for a recall" />
               <MiniStat label="Stores" value={num(summary.stores)} />
             </CardBody>
-            <Table className="relative">
+            <Table stickyFirst className="relative">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -130,11 +130,11 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                           <span className="block font-mono text-xs font-normal text-ink-500">{s.memberNo}</span>
                         </Link>
                       ) : (
-                        <span className="text-ink-400">Walk-in (no member)</span>
+                        <span className="text-ink-500">Walk-in (no member)</span>
                       )}
                     </Td>
                     <Td className="hidden text-ink-600 sm:table-cell">
-                      {s.storeName} <span className="font-mono text-xs text-ink-400">{s.storeCode}</span>
+                      {s.storeName} <span className="font-mono text-xs text-ink-500">{s.storeCode}</span>
                     </Td>
                     <Td align="right">{s.kind === "REFUND" ? `−${s.qty}` : s.qty}</Td>
                   </Tr>

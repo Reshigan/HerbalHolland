@@ -6,16 +6,19 @@ import { matchesSearch, sortStock, stockRows, STOCK_SORTS, type StockSort } from
 import { STOCK_STATUS, coverLabel, expiryState, hrefWith, sp1, type StockStatus } from "@/server/store/rules";
 import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { zar, zarCompact } from "@/lib/money";
+import { saveLevels, saveShelfPrice } from "./actions";
 import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink, buttonClass } from "@/components/ui/button";
-import { Table, Td, Tr } from "@/components/ui/table";
+import { Table, Td, Tr, SortableTh } from "@/components/ui/table";
+import { InlineEdit } from "@/components/ui/inline-edit";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ProductArt } from "@/components/product/art";
-import { Chips, SearchForm, SortTh } from "@/components/store/ui";
+import { Chips, SearchForm } from "@/components/store/ui";
 import { AutoSelect } from "@/components/store/auto-submit";
+import { SavedViews } from "@/components/admin/saved-views";
 
 export const metadata = { title: "Stock on hand" };
 
@@ -61,13 +64,14 @@ export default async function InventoryPage({ params, searchParams }: { params: 
   });
   const sortHref = (s: string, d: "asc" | "desc") => hrefWith(path, sp, { sort: s, dir: d, page: null });
   const exportHref = hrefWith(`${path}/export`, { q, cat, cls, status: status === "ALL" ? undefined : status, sort, dir });
+  const rand = (c: number) => (c / 100).toFixed(2);
 
   return (
     <>
       <PageHeader
         overline={`Inventory · ${store.name}`}
         title="Stock on hand"
-        description={`${ranged.length} ranged SKUs, valued at cost (FIFO by batch). Available = released stock less units reserved for open online orders.`}
+        description={`${ranged.length} ranged SKUs, valued at cost (FIFO by batch). Available = released stock less units reserved for open online orders.${canManage ? " Click a shelf price or reorder level to change it in place." : ""}`}
         actions={
           <>
             {/* A plain download link: a router <Link> fetches the CSV route once as RSC, then again as a hard navigation. */}
@@ -135,6 +139,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
               chip("BLOCKED", "Blocked batches", "red"),
             ]}
           />
+          <SavedViews pageKey="store-inventory" userKey={user.id} />
         </div>
 
         {rows.length === 0 ? (
@@ -142,29 +147,31 @@ export default async function InventoryPage({ params, searchParams }: { params: 
             Try a different search, or clear the status filter.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst minWidth="72rem">
             <thead>
               <tr>
-                <SortTh label="Item" sortKey="name" sort={sort} dir={dir} href={sortHref} />
-                <SortTh label="Status" sortKey="status" sort={sort} dir={dir} href={sortHref} />
-                <SortTh label="On hand" sortKey="onHand" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortTh label="Reserved" sortKey="reserved" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortTh label="Available" sortKey="available" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortTh label="Reorder · par" sortKey="reorder" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortTh label="Cover" sortKey="cover" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortTh label="Sold 28d" sortKey="sold" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortTh label="Value at cost" sortKey="value" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Item" sortKey="name" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="Status" sortKey="status" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="On hand" sortKey="onHand" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Reserved" sortKey="reserved" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Available" sortKey="available" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Reorder · par" sortKey="reorder" sort={sort} dir={dir} href={sortHref} align="right" title="Reorder point · par level" />
+                <SortableTh label="Shelf price" sortKey="price" sort={sort} dir={dir} href={sortHref} align="right" title="Your price; blank follows the list price" />
+                <SortableTh label="Cover" sortKey="cover" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Sold 28d" sortKey="sold" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Value at cost" sortKey="value" sort={sort} dir={dir} href={sortHref} align="right" />
               </tr>
             </thead>
             <tbody>
               {rows.map((r) => {
                 const meta = STOCK_STATUS[r.status];
                 const exp = expiryState(r.nextExpiry);
+                const editable = canManage && r.ranged;
                 return (
-                  <Tr key={r.variantId}>
+                  <Tr key={r.variantId} href={`${path}/${r.variantId}`}>
                     <Td className="min-w-64">
                       <div className="flex items-center gap-3">
-                        <ProductArt slug={r.slug} strain={r.strain} regClass={r.regClass} className="h-10 w-10 shrink-0 overflow-hidden rounded-xl" label="" />
+                        <ProductArt slug={r.slug} strain={r.strain} regClass={r.regClass} className="h-9 w-9 shrink-0 overflow-hidden rounded-xl" label="" />
                         <div className="min-w-0">
                           <Link href={`${path}/${r.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                             {r.productName} <span className="text-ink-500">· {r.variantName}</span>
@@ -188,9 +195,44 @@ export default async function InventoryPage({ params, searchParams }: { params: 
                       </div>
                     </Td>
                     <Td align="right" className={r.onHand < 0 ? "font-semibold text-rose-600" : undefined}>{r.onHand.toLocaleString()}</Td>
-                    <Td align="right" className={r.reserved ? "text-ink-800" : "text-ink-400"}>{r.reserved.toLocaleString()}</Td>
+                    <Td align="right" className={r.reserved ? "text-ink-800" : "text-ink-500"}>{r.reserved.toLocaleString()}</Td>
                     <Td align="right" className={r.available <= 0 ? "font-semibold text-rose-600" : "font-semibold text-ink-950"}>{r.available.toLocaleString()}</Td>
-                    <Td align="right" className="text-ink-500">{r.ranged ? `${r.reorderPoint} · ${r.parLevel}` : "—"}</Td>
+                    <Td align="right" className="text-ink-600">
+                      {editable ? (
+                        <InlineEdit
+                          action={saveLevels.bind(null, store.code, r.variantId)}
+                          fields={[
+                            { name: "reorderPoint", label: `Reorder point for ${r.name}`, value: String(r.reorderPoint), inputMode: "numeric", width: "w-14", maxLength: 4 },
+                            { name: "parLevel", label: `Par level for ${r.name}`, value: String(r.parLevel), inputMode: "numeric", width: "w-14", maxLength: 4 },
+                          ]}
+                          display={`${r.reorderPoint} · ${r.parLevel}`}
+                          editLabel={`Reorder point and par level for ${r.name}`}
+                          format="join"
+                          align="right"
+                          saveLabel="Save levels"
+                        />
+                      ) : r.ranged ? (
+                        `${r.reorderPoint} · ${r.parLevel}`
+                      ) : (
+                        "—"
+                      )}
+                    </Td>
+                    <Td align="right">
+                      {editable ? (
+                        <InlineEdit
+                          action={saveShelfPrice.bind(null, store.code, r.variantId)}
+                          fields={[{ name: "price", label: `Shelf price for ${r.name}`, value: r.shelfCents != null ? rand(r.shelfCents) : "", prefix: "R", placeholder: rand(r.rrpCents), inputMode: "decimal", width: "w-24" }]}
+                          display={r.shelfCents != null ? <span className="font-medium text-ink-900">{zar(r.shelfCents)}</span> : <span className="text-ink-500" title="Follows the list price">{zar(r.rrpCents)}</span>}
+                          editLabel={`Shelf price for ${r.name} (empty follows the list price)`}
+                          format="zar"
+                          emptyLabel="List price"
+                          align="right"
+                          saveLabel="Save price"
+                        />
+                      ) : (
+                        <span className={r.shelfCents != null ? "font-medium text-ink-900" : "text-ink-500"}>{zar(r.shelfCents ?? r.rrpCents)}</span>
+                      )}
+                    </Td>
                     <Td align="right" className={Number.isFinite(r.cover) && r.cover < 7 ? "font-semibold text-amber-700" : "text-ink-700"}>{coverLabel(r.cover)}</Td>
                     <Td align="right" className="text-ink-700">{r.sold28.toLocaleString()}</Td>
                     <Td align="right" className="text-ink-900">{zar(r.valueCents)}</Td>
@@ -200,7 +242,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={8} className="px-5 py-3 text-xs text-ink-500">
+                <td colSpan={9} className="px-5 py-3 text-xs text-ink-500">
                   {filtered.length.toLocaleString()} SKUs · {filtered.reduce((s, r) => s + Math.max(0, r.onHand), 0).toLocaleString()} units
                 </td>
                 <td className="tnum px-5 py-3 text-right text-sm font-semibold text-ink-950">{zar(filteredValue)}</td>

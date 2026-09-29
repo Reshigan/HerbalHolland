@@ -214,7 +214,7 @@ export default async function CommissionPage({ params, searchParams }: { params:
                   {onlyMe ? "Your commission shows here once you ring up sales." : "Everyone who rings up sales at the till shows here, with what they've earned."}
                 </EmptyState>
               ) : (
-                <Table className="mt-4">
+                <Table stickyFirst className="mt-4">
                   <thead>
                     <tr>
                       <Th>Person</Th>
@@ -234,12 +234,12 @@ export default async function CommissionPage({ params, searchParams }: { params:
                               <Avatar name={l.name} />
                               <span className="whitespace-nowrap font-medium text-ink-900">
                                 {l.name}
-                                {self && <span className="ml-1.5 text-xs font-normal text-ink-400">(you)</span>}
+                                {self && <span className="ml-1.5 text-xs font-normal text-ink-500">(you)</span>}
                               </span>
                             </div>
                           </Td>
                           <Td align="right" className="whitespace-nowrap">{zar(l.salesCents)}</Td>
-                          <Td align="right" className="whitespace-nowrap text-ink-600">{l.refundsCents ? zar(l.refundsCents) : <span className="text-ink-300">—</span>}</Td>
+                          <Td align="right" className="whitespace-nowrap text-ink-600">{l.refundsCents ? zar(l.refundsCents) : <span className="text-ink-500">—</span>}</Td>
                           <Td align="right" className="whitespace-nowrap font-semibold text-ink-950">{zar(l.commissionCents)}</Td>
                           <Td className="min-w-44">
                             {l.held ? (

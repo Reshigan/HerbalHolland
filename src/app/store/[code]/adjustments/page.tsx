@@ -135,7 +135,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
             Change the date range or filters to see more.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>When</Th>
@@ -156,7 +156,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                     <Link href={`/store/${store.code}/inventory/${m.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {m.variant.product.name} <span className="text-ink-500">· {m.variant.name}</span>
                     </Link>
-                    <div className="font-mono text-xs text-ink-400">{m.variant.sku}</div>
+                    <div className="font-mono text-xs text-ink-500">{m.variant.sku}</div>
                   </Td>
                   <Td className="whitespace-nowrap font-mono text-xs text-ink-600">{m.batch.code}</Td>
                   <Td>{m.reason ? <Badge tone={m.reason === "DESTROYED" || m.reason === "THEFT" || m.reason === "RECALL" ? "red" : m.qty < 0 ? "amber" : "green"}>{ADJUST_REASONS[m.reason].label}</Badge> : "—"}</Td>
@@ -167,7 +167,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                     {m.stockTakeId ? (
                       <Link href={`/store/${store.code}/stock-takes/${m.stockTakeId}`} className="font-medium text-brand-700 hover:underline">{m.note ?? "Stock take"}</Link>
                     ) : (
-                      <span className="line-clamp-2" title={m.note ?? undefined}>{m.note ?? <span className="text-ink-300">—</span>}</span>
+                      <span className="line-clamp-2" title={m.note ?? undefined}>{m.note ?? <span className="text-ink-500">—</span>}</span>
                     )}
                   </Td>
                 </Tr>

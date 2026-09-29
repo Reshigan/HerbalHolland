@@ -6,7 +6,12 @@ import { salesByStore } from "@/server/finance";
 import { resolveRange, previousRange, delta } from "@/lib/ranges";
 import type { Prisma, StoreFormat, StoreKind, StoreStatus } from "@/generated/prisma/client";
 
-export type StoreFilters = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string };
+export type StoreFilters = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; dir?: string };
+
+export const STORE_SORTS = ["sales", "growth", "atv", "name", "code", "tx"] as const;
+/** Numbers rank highest first unless asked otherwise; names read A–Z. */
+export const storeSortDir = (sort: string | undefined, dir: string | undefined): "asc" | "desc" =>
+  dir === "asc" || dir === "desc" ? dir : sort === "name" || sort === "code" ? "asc" : "desc";
 
 export const FORMATS: StoreFormat[] = ["FLAGSHIP", "STANDARD", "EXPRESS"];
 export const STATUSES: StoreStatus[] = ["ACTIVE", "OPENING_SOON", "CLOSED"];
@@ -54,14 +59,18 @@ export async function storeTable(ids: string[], f: StoreFilters, page: number, p
     const p = before.get(s.id);
     return { ...s, netCents: c?.netCents ?? 0, atvCents: c?.atvCents ?? 0, tx: c?.sales ?? 0, growth: delta(c?.netCents ?? 0, p?.netCents ?? 0) };
   });
+  // Ascending comparators; the direction flips them. Ties fall back to the name so pages are stable.
   const sorters: Record<string, (a: (typeof rows)[number], b: (typeof rows)[number]) => number> = {
-    sales: (a, b) => b.netCents - a.netCents,
-    growth: (a, b) => (b.growth ?? -Infinity) - (a.growth ?? -Infinity),
-    atv: (a, b) => b.atvCents - a.atvCents,
+    sales: (a, b) => a.netCents - b.netCents,
+    growth: (a, b) => (a.growth ?? -Infinity) - (b.growth ?? -Infinity),
+    atv: (a, b) => a.atvCents - b.atvCents,
+    tx: (a, b) => a.tx - b.tx,
     name: (a, b) => a.name.localeCompare(b.name),
     code: (a, b) => a.code.localeCompare(b.code),
   };
-  rows.sort(sorters[f.sort ?? ""] ?? sorters.sales);
+  const key = f.sort && f.sort in sorters ? f.sort : "sales";
+  const m = storeSortDir(key, f.dir) === "asc" ? 1 : -1;
+  rows.sort((a, b) => sorters[key](a, b) * m || a.name.localeCompare(b.name));
   const slice = rows.slice((page - 1) * pageSize, page * pageSize);
   const members = await db.customer.groupBy({ by: ["homeStoreId"], where: { homeStoreId: { in: slice.map((s) => s.id) } }, _count: true });
   const byStore = new Map(members.map((m) => [m.homeStoreId, m._count]));

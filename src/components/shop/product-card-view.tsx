@@ -5,6 +5,7 @@
 import Link from "next/link";
 import { Truck, Store, Package, CircleOff, ChevronRight, Shirt } from "lucide-react";
 import { AddToBag } from "./add-to-bag";
+import { WishlistButton } from "./wishlist-button";
 import { Price, Stars, Tag } from "./ui";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
@@ -24,8 +25,11 @@ export function StockLine({ stock, className }: { stock: Card["stock"]; classNam
   return <p className={cn("flex items-center gap-1.5 text-xs font-medium", tone, className)}>{icon}{text}</p>;
 }
 
-/** `art` is the server-rendered ProductArt; `buyable={false}` drops the quick-add (e.g. a limited drop that isn't open to this shopper yet). */
-export function ProductCardView({ p, art, buyable = true }: { p: Card; art: React.ReactNode; buyable?: boolean }) {
+/**
+ * `art` is the server-rendered picture; `buyable={false}` drops the quick-add (e.g. a limited drop that isn't open to
+ * this shopper yet); `wished` (a member's wishlist state for the first variant) shows the heart — null for guests.
+ */
+export function ProductCardView({ p, art, buyable = true, wished = null }: { p: Card; art: React.ReactNode; buyable?: boolean; wished?: boolean | null }) {
   const low = (p.stock.kind === "store" || p.stock.kind === "ships") && p.stock.low;
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition duration-300 hover:-translate-y-0.5 hover:border-ink-600 hover:shadow-[0_18px_40px_-20px_rgb(245_145_60/0.35)]">
@@ -36,6 +40,7 @@ export function ProductCardView({ p, art, buyable = true }: { p: Card; art: Reac
           {p.heritage && <Tag tone="orange" className="bg-ink-950/70 backdrop-blur">Heritage</Tag>}
           {low && <Tag tone="amber" className="bg-ink-950/70 backdrop-blur">Low stock</Tag>}
         </div>
+        {wished != null && <WishlistButton compact variantId={p.firstVariantId} on={wished} signedIn next={`/p/${p.slug}`} className="absolute right-2 top-2" />}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="eyebrow text-[0.62rem] text-ink-400">{p.category.name}</div>

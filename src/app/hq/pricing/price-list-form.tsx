@@ -152,7 +152,7 @@ export function PriceListForm({
               <Field label="Blanket adjustment on RRP" htmlFor="adjustPct" hint="For items without a set price, e.g. −5 for 5% off. Leave blank for none.">
                 <div className="relative">
                   <Input id="adjustPct" name="adjustPct" defaultValue={values.adjustPct} inputMode="decimal" className="pr-7" />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                 </div>
                 <FieldError name="adjustPct" />
               </Field>

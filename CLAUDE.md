@@ -77,7 +77,10 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Shapes: cards `rounded-2xl`, buttons pill (`rounded-full`), inputs `rounded-xl`. The window-poster frame (`.hh-frame`)
   is reserved for hero/brand moments.
 - Components: `@/components/ui/*` (Button/ButtonLink, Card, Badge, StatusBadge/TierBadge, Field/Input/Select/Checkbox,
-  Table/Th/Td/Tr, PageHeader/EmptyState/Notice, Stat/Meter, TabLinks, RangeTabs, Pagination, Avatar/Detail),
+  Table/Th/Td/Tr (+ SortableTh/sortParams for URL sorting, TableEmpty, TableSkeleton; `Table` takes `density`, `stickyFirst`,
+  `minWidth`, `Tr` takes `href` for row links), InlineEdit (a cell that posts to a server action with optimistic feedback),
+  PageHeader/EmptyState/Notice, Stat/Meter, TabLinks, RangeTabs, Pagination, Avatar/Detail),
+  admin shell `@/components/admin/*` (AdminShell with keyboard shortcuts + command palette, NavProgress, SavedViews),
   brand `@/components/brand/logo` (Mark, Logo, Lockup, Wordmark), `@/components/product/art` (ProductArt — no stock photos),
   charts `@/components/charts/*` (AreaChart, ColumnChart, Donut, BarList, Heatmap, Sparkline).
 - Charts follow the dataviz rules: series colours `var(--color-series-1..8)` in fixed order (validated palette), one axis,

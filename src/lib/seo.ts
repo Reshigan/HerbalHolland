@@ -209,6 +209,8 @@ export type ProductInput = {
   /** From verified Review rows only; null or count 0 → no AggregateRating. */
   rating?: { avg: number; count: number } | null;
   reviews?: ReviewInput[];
+  /** Absolute URLs of real product photos (uploaded through the catalogue import); none → no image (never the generated art). */
+  image?: string[];
 };
 
 /** gtin8/12/13/14 from a barcode, only when it is one of those lengths of digits. */
@@ -230,6 +232,7 @@ export function productJsonLd(p: ProductInput): Ld {
     name: p.name,
     description: p.description,
     url,
+    ...(p.image?.length ? { image: p.image } : {}),
     sku: p.variants[0]?.sku,
     ...gtinOf(p.variants[0]?.barcode),
     category: p.category,
