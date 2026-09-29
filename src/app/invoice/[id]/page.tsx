@@ -115,7 +115,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
               {(st.phone || st.email) && <div>{[st.phone, st.email].filter(Boolean).join(" · ")}</div>}
             </div>
           </div>
-          <div className="text-right">
+          <div className="ml-auto text-right">
             <h1 className="inv-title font-display text-3xl font-semibold tracking-tight text-ink-950">{title}</h1>
             {vendor && !refund && <p className="eyebrow text-brand-700">{full ? "Full tax invoice" : "Abridged tax invoice"}</p>}
             {refund && <p className="eyebrow text-brand-700">{vendor ? "Credit note" : "Refund"} · money returned</p>}
