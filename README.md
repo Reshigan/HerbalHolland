@@ -42,6 +42,28 @@ Shop: `/` — the OTP code is shown on screen in demo mode.
 
 Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 
+## Install the apps
+
+All three web apps install straight from the browser — no app store. Each has its own manifest and icon, the prompts
+live in the app itself, and a dismissal is remembered on the device only (30 days; "Not now" on a till is a day).
+Nothing about installs is sent to the server. Rules: `src/lib/install.ts`; UI: `src/components/ui/install-prompt.tsx`.
+
+| App | Manifest | Where the nudge shows | Opens at |
+|---|---|---|---|
+| Herbal Holland Rewards (members) | `/manifest.webmanifest` | Rewards home (`/club`), and once on the shop home for signed-in members | `/club` — the card |
+| Till | `/pos/manifest.webmanifest` | The pair screen (before pairing) and Shift → This till | `/pos`, full-screen; `/sw.js` keeps the shell offline |
+| Back office (store + HQ) | `/staff/manifest.webmanifest` | The mobile header, and "Install app" in the side menu | `/store` → each person's home by role |
+
+- **Android** (Chrome, Edge, Samsung Internet): tap **Install** on the nudge and the browser's own install sheet opens.
+  It is also in the browser menu ("Install app" / "Add to Home screen").
+- **iPhone and iPad** (Safari only): the nudge shows the two steps — **Share**, then **Add to Home Screen**. Chrome,
+  Firefox and in-app browsers (WhatsApp, Instagram…) on iOS can't add web apps, so nothing is shown there.
+- **Desktop** (Chrome, Edge): **Install** on the nudge, or the install icon at the right of the address bar. Firefox
+  and Safari on desktop don't install web apps.
+
+Installed apps open full-screen with their own icon (Rewards: orange on warm black; till: black on orange; back office:
+black on cream). The browser only offers installs on HTTPS (or localhost) with `APP_URL` set to the public origin.
+
 ## What's inside
 
 - **Inventory control** — batch-level stock with FEFO picking and FIFO cost, an immutable movement ledger, blind stock

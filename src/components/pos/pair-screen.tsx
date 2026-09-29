@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, CheckCircle2, MonitorSmartphone, Store as StoreIcon } from "lucide-react";
 import { Mark, Wordmark } from "@/components/brand/logo";
+import { InstallPrompt } from "@/components/ui/install-prompt";
+import { ServiceWorker } from "@/components/ui/service-worker";
 import { cn } from "@/lib/cn";
 import { api, errorText } from "./lib/api";
 import { loadOutbox } from "./lib/storage";
@@ -73,6 +75,10 @@ export function PairScreen({
           </Alert>
         )}
         {error && <Alert className="mt-6">{error}</Alert>}
+
+        {/* Optional first step: the till on the home screen, full-screen, with its shell cached for offline. Pairing works either way. */}
+        <InstallPrompt app="till" className="mt-6" />
+        <ServiceWorker src="/sw.js" scope="/pos" />
 
         {paired && !repair ? (
           <section className="mt-8 rounded-3xl bg-ink-900 p-6 ring-1 ring-ink-800">

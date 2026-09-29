@@ -163,7 +163,10 @@ Vantax (Pty) Ltd if online) — see the acceptable-use note in INTEGRATIONS.md. 
    door, the till checks guests in by scanning the ticket QR in their Rewards card (or typing `HHRSVP:` + code); the
    event's door list (CSV) is the paper fallback.
 4. HQ → Rewards: My Deals on; welcome-gift promotion live (first purchase only).
-5. Watch the till member-attach rate, sign-ups per hour and SMS spend in the first 48 hours.
+5. Pair and install the tills: on each till (Chrome on Android), open `/pos/pair` → **Install the till app** (it then
+   opens full-screen from the home screen and keeps its shell offline) → pair to the store. Managers and owners add
+   the back office to their phones from the side menu ("Install app"); members get the Rewards nudge on their card.
+6. Watch the till member-attach rate, sign-ups per hour and SMS spend in the first 48 hours.
 
 ## Routine operations
 

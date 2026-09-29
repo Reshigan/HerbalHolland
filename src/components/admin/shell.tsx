@@ -2,6 +2,7 @@ import Link from "next/link";
 import { KeyRound, LogOut } from "lucide-react";
 import { Logo } from "@/components/brand/logo";
 import { Avatar } from "@/components/ui/misc";
+import { InstallPrompt } from "@/components/ui/install-prompt";
 import { SideNav, StoreSwitcher, MobileNav } from "./nav";
 import type { NavGroup } from "./nav-config";
 import type { Staff } from "@/server/auth";
@@ -63,6 +64,8 @@ export function AdminShell({
           </button>
         </form>
       </div>
+      {/* Only where the browser can install the back office and it isn't installed yet. */}
+      <InstallPrompt app="staff" variant="menu" className="mt-1" />
       {area === "store" && (user.role === "HQ_ADMIN" || user.role === "HQ_STAFF" || user.role === "AREA_MANAGER") && (
         <Link href="/hq" className="mt-2 rounded-xl px-3 py-2 text-center text-xs font-medium text-ink-400 hover:bg-ink-900 hover:text-white">
           ← Back to HQ console
@@ -74,10 +77,13 @@ export function AdminShell({
   return (
     <div className="min-h-screen bg-ink-50 lg:grid lg:grid-cols-[17rem_1fr] lg:bg-[linear-gradient(to_right,var(--color-ink-950)_17rem,var(--color-ink-50)_17rem)]">
       <aside className="sticky top-0 hidden h-screen overflow-y-auto bg-ink-950 p-4 lg:block">{sidebar}</aside>
-      <header className="sticky top-0 z-40 flex items-center justify-between bg-ink-950 px-4 py-2 lg:hidden">
-        <MobileNav>{sidebar}</MobileNav>
-        <Logo />
-        <span className="w-10" />
+      <header className="sticky top-0 z-40 bg-ink-950 lg:hidden">
+        <div className="flex items-center justify-between px-4 py-2">
+          <MobileNav>{sidebar}</MobileNav>
+          <Logo />
+          <span className="w-10" />
+        </div>
+        <InstallPrompt app="staff" variant="bar" />
       </header>
       <main className="min-w-0">
         <div className="mx-auto max-w-[88rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>

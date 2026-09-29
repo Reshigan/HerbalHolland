@@ -19,6 +19,10 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en-ZA" className={`${outfit.variable} ${inter.variable}`}>
+      <head>
+        {/* Keeps the browser's install prompt, which can fire before hydration, for @/components/ui/install-prompt. */}
+        <script dangerouslySetInnerHTML={{ __html: "addEventListener('beforeinstallprompt',function(e){e.preventDefault();window.__hhInstall=e})" }} />
+      </head>
       <body>{children}</body>
     </html>
   );

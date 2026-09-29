@@ -1,7 +1,14 @@
+import type { Metadata } from "next";
 import { HQ_ROLES, requireStaff } from "@/server/auth";
 import { accessibleStores } from "@/server/scope";
 import { AdminShell } from "@/components/admin/shell";
 import { hqNav } from "@/components/admin/nav-config";
+
+// The back office installs as its own app (manifest at /staff): the same link on store and HQ pages.
+export const metadata: Metadata = {
+  manifest: "/staff/manifest.webmanifest",
+  appleWebApp: { capable: true, title: "HH Office", statusBarStyle: "black" },
+};
 
 export default async function HqLayout({ children }: { children: React.ReactNode }) {
   const user = await requireStaff(HQ_ROLES);

@@ -13,6 +13,7 @@ import { openState, parseHours } from "@/server/shop/hours";
 import { tierMeta } from "@/server/shop/club";
 import { Logo, Mark, Wordmark } from "@/components/brand/logo";
 import { buttonClass } from "@/components/ui/button";
+import { ServiceWorker } from "@/components/ui/service-worker";
 import { MobileMenu, NavLinks, StorePicker, type NavItem } from "./nav-client";
 import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
@@ -209,6 +210,8 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         </Suspense>
       </div>
       {age === "unknown" && <AgeGate />}
+      {/* The Rewards worker (push only) registers once the page is idle, so the app is installable from any consumer page. */}
+      <ServiceWorker src="/rewards-sw.js" scope="/" />
     </>
   );
 }

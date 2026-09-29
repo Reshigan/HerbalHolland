@@ -4,6 +4,7 @@
 // and is emailed to the store. Also this till's device details and the signed-in person's commission.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudOff, LogOut, Printer, RefreshCw, Tablet, Wallet } from "lucide-react";
+import { InstallPrompt } from "@/components/ui/install-prompt";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDateTime, fmtTime } from "@/lib/format";
@@ -433,6 +434,7 @@ function DeviceCard() {
         >
           <RefreshCw className="h-4 w-4" /> Refresh catalogue
         </PosButton>
+        <InstallPrompt app="till" variant="button" />
         {manager && (
           <PosButton variant="ghost" onClick={() => setConfirm(true)} disabled={!pos.online || !!boot.shift}>
             <LogOut className="h-4 w-4" /> Unpair this till

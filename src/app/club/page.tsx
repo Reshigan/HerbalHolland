@@ -11,11 +11,12 @@ import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/s
 import { memberDeals, memberTickets, upcomingEvents, welcomeGifts } from "@/server/shop/launch";
 import { MemberCard } from "@/components/shop/member-card";
 import { PhoneAuth } from "@/components/shop/phone-auth";
-import { InstallPrompt, ShareLink } from "@/components/shop/club-client";
+import { ShareLink } from "@/components/shop/club-client";
 import { DealsPanel, TicketsPanel, WaitlistCard, WelcomeGiftBanner } from "@/components/shop/club-launch";
 import { ShareButton } from "@/components/shop/share";
 import { Callout, Container, Meter, Panel, Tag, type TagTone } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
+import { InstallPrompt } from "@/components/ui/install-prompt";
 import { fmtDate, num, timeAgo } from "@/lib/format";
 import { fmtPoints, tierBenefits, tierInfo, TIERS, type TierKey } from "@/lib/loyalty-rules";
 import { zar, zarWhole } from "@/lib/money";
@@ -67,7 +68,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         <div className="space-y-4">
           <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} floorUntil={floorUntil} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
-          <InstallPrompt />
+          <InstallPrompt app="rewards" />
         </div>
 
         <div className="space-y-6">

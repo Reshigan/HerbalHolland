@@ -16,6 +16,7 @@ import { LOCALE, organizationJsonLd, parseSameAs, SITE_NAME, siteUrl, websiteJso
 import { ProductArt } from "@/components/product/art";
 import { categoryIcon } from "@/components/product/category-icons";
 import { ButtonLink } from "@/components/ui/button";
+import { InstallPrompt } from "@/components/ui/install-prompt";
 import { ProductGrid } from "@/components/shop/product-card";
 import { StoreCard } from "@/components/shop/store-card";
 import { Container, Panel, SectionHead } from "@/components/shop/ui";
@@ -176,6 +177,13 @@ export default async function Home() {
           </div>
         </Container>
       </section>
+
+      {/* Members: one nudge to keep the app on the home screen (shown once here; the Rewards card keeps offering it). */}
+      {customer && (
+        <Container>
+          <InstallPrompt app="rewards" once className="mb-16 animate-rise" />
+        </Container>
+      )}
 
       {/* Each block below the hero is its own Suspense boundary: the HTML is unchanged, the browser hydrates them in slices (see ProductGrid). */}
       {/* ── Trust strip ───────────────────────────────────────────── */}
