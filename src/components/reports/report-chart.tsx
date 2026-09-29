@@ -5,6 +5,7 @@ import { ColumnChart } from "@/components/charts/bar-chart";
 import { BarList } from "@/components/charts/bar-list";
 import { Donut } from "@/components/charts/donut";
 import { Heatmap } from "@/components/charts/heatmap";
+import { MatrixHeatmap } from "@/components/charts/matrix";
 import { SERIES } from "@/components/charts/scale";
 import type { ReportChart as Spec } from "@/server/reports/types";
 
@@ -41,6 +42,12 @@ export function ReportChart({ chart }: { chart: Spec }) {
       return (
         <div className="overflow-x-auto">
           <Heatmap cells={chart.cells} hours={chart.hours} format={format} className="min-w-[36rem]" />
+        </div>
+      );
+    case "matrix":
+      return (
+        <div className="overflow-x-auto">
+          <MatrixHeatmap rows={chart.rows} cols={chart.cols} cells={chart.cells} format={format} className="min-w-[36rem]" />
         </div>
       );
   }

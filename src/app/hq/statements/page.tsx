@@ -10,8 +10,11 @@ import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { zar, zarCompact, vatOnExcl } from "@/lib/money";
 import { dayKey, fmtMonth } from "@/lib/format";
 import { PageHeader, Notice } from "@/components/ui/page";
-import { Card, CardBody } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
+import { PrintButton } from "@/components/shop/print-button";
+import { DocumentPrintStyles } from "@/components/finance/document";
+import { StatementDocument } from "@/components/finance/statement-document";
 import { Stat } from "@/components/ui/stat";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
@@ -55,9 +58,14 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
     const store = await db.store.findFirst({ where: { code: sp.store, id: { in: ids } }, select: { id: true } });
     if (store) {
       const st = await franchiseStatement(store.id, month);
-      const company = await db.company.findUnique({ where: { id: st.store.companyId }, select: { legalName: true, email: true, vatNumber: true } });
+      const [company, hq] = await Promise.all([
+        db.company.findUnique({ where: { id: st.store.companyId }, select: { legalName: true, email: true, vatNumber: true, regNumber: true, address: true, phone: true } }),
+        db.company.findFirst({ where: { kind: "FRANCHISOR" } }),
+      ]);
       return (
         <>
+          <DocumentPrintStyles />
+          <div className="no-print">
           <BackLink href={`/hq/statements${qs({ month })}`}>All statements · {fmtMonth(`${month}-01`)}</BackLink>
           <PageHeader
             overline={`${fmtMonth(`${month}-01`)} franchise statement${current ? " · month to date" : ""}`}
@@ -68,6 +76,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
                 <ButtonLink href={`/store/${st.store.code}/statement?month=${month}`} variant="outline">
                   Store view <ExternalLink className="h-4 w-4" />
                 </ButtonLink>
+                <PrintButton label="Print or save as PDF" />
                 {net && (
                   <ActionButton action={emailOneStatement.bind(null, store.id, month)} variant="dark" size="md" pendingLabel="Sending…">
                     <Mail className="h-4 w-4" /> Email to owner
@@ -76,40 +85,8 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
               </>
             }
           />
-          <Card className="max-w-3xl">
-            <Table className="relative">
-              <thead>
-                <tr>
-                  <Th>Line</Th>
-                  <Th align="right">Credit</Th>
-                  <Th align="right">Debit</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {st.lines.map((l) => (
-                  <Tr key={l.label}>
-                    <Td>
-                      <span className="font-medium text-ink-850">{l.label}</span>
-                      <span className="block text-xs text-ink-500">{l.detail}</span>
-                    </Td>
-                    <Td align="right">{l.kind === "credit" ? zar(l.cents) : ""}</Td>
-                    <Td align="right">{l.kind === "debit" ? zar(l.cents) : ""}</Td>
-                  </Tr>
-                ))}
-                <Tr>
-                  <Td className="font-semibold">Totals</Td>
-                  <Td align="right" className="font-semibold">{zar(st.credits)}</Td>
-                  <Td align="right" className="font-semibold">{zar(st.debits)}</Td>
-                </Tr>
-              </tbody>
-            </Table>
-            <CardBody className="flex flex-wrap items-center justify-between gap-3 border-t border-ink-100">
-              <span className="text-sm text-ink-600">Net sales ex VAT {zar(st.input.netSalesExVatCents)} · online {zar(st.input.onlineSalesExVatCents)}</span>
-              <span className="font-display text-xl">
-                <Position cents={st.net} />
-              </span>
-            </CardBody>
-          </Card>
+          </div>
+          <StatementDocument st={st} company={company ?? { legalName: st.store.name, vatNumber: null }} hq={hq} current={current} issuedAt={new Date()} />
         </>
       );
     }

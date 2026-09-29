@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Check, Copy, CreditCard, History, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
+import { Check, Copy, CreditCard, History, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
 import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
 
@@ -11,6 +11,7 @@ const TABS = [
   { href: "/club/orders", label: "Orders", icon: Package },
   { href: "/club/points", label: "Points", icon: History },
   { href: "/club/invoices", label: "Invoices", icon: Receipt },
+  { href: "/club/support", label: "Help", icon: LifeBuoy },
   { href: "/club/settings", label: "Settings", icon: Settings },
 ];
 
@@ -29,7 +30,7 @@ export function ClubNav() {
         ))}
       </nav>
       <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-6">
           {TABS.map((t) => (
             <li key={t.href}>
               <Link href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold", active(t.href) ? "text-brand-400" : "text-ink-400")}>

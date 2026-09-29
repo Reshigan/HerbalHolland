@@ -42,6 +42,8 @@ const KEYWORDS: Record<string, string> = {
   "member-attach": "rewards members linked sign in",
   "rewards-savings": "tier pricing member prices instant savings discount basket walk-in",
   "join-sources": "sign-ups qr codes links flyers src tags founding members acquisition",
+  cohorts: "cohort retention join month heatmap came back churn",
+  retention: "repeat purchase rate 90-day retention average order value aov basket trend churn",
   promotions: "discounts deals specials bonus buys",
   campaigns: "sms whatsapp email push roi marketing",
   "age-checks": "18+ id verification minors",

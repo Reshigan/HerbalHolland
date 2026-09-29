@@ -78,6 +78,25 @@ export function cardMachineTender(provider: "YOCO" | "EXTERNAL", amountCents: nu
   return { tender: { method: "CARD", amountCents, provider, reference: provider === "EXTERNAL" ? ref.toUpperCase() : ref, cardLast4: last4 || undefined } };
 }
 
+/** HH••••002 — a member number as printed on receipts (the card keeps the full number). */
+export function maskMemberNo(memberNo: string) {
+  const m = memberNo.match(/^([A-Z]*)(\d+)$/i);
+  if (!m || m[2].length <= 3) return memberNo.replace(/\d(?=\d{3})/g, "•");
+  return `${m[1]}${"•".repeat(m[2].length - 3)}${m[2].slice(-3)}`;
+}
+
+/**
+ * A batch code from a scan or a typed value: the code printed on the pack ("DUPO0-35G-2605A") or the lab-certificate
+ * QR that links to /batch/{code}. Never a barcode (digits only), a member number, an order QR or a ticket.
+ */
+export function parseBatchScan(text: string): string | null {
+  const t = text.trim();
+  const url = t.match(/\/batch\/([A-Z0-9][A-Z0-9-]{3,40})\/?(?:[?#].*)?$/i);
+  if (url) return url[1].toUpperCase();
+  if (parseOrderQr(t) || rsvpTicketFrom(t) || memberNoFrom(t) || /^\d+$/.test(t)) return null;
+  return /^[A-Z0-9]{2,12}(?:-[A-Z0-9]{1,12}){1,4}$/i.test(t) && /\d/.test(t) ? t.toUpperCase() : null;
+}
+
 /** 082 ••• 1234 — enough for the cashier to confirm who they're serving. */
 export function maskPhone(e164: string) {
   const local = e164.startsWith("+27") ? `0${e164.slice(3)}` : e164;

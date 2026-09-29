@@ -48,6 +48,8 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   "member-attach": IdCard,
   "rewards-savings": PiggyBank,
   "join-sources": QrCode,
+  cohorts: Grid3x3,
+  retention: Repeat,
   promotions: BadgePercent,
   campaigns: Send,
   "age-checks": ShieldCheck,

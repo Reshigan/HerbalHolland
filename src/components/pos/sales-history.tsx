@@ -10,6 +10,7 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText } from "./lib/api";
 import { TENDER_LABEL, uuid } from "./lib/rules";
 import { usePos } from "./context";
+import { TrainingSales } from "./training";
 import { Alert, CheckRow, Chip, Confirm, EmptyPanel, Field, PosButton, SelectInput, Sheet, Spinner, Stepper, TextInput } from "./ui";
 import type { ReceiptDTO, SaleRow } from "@/server/pos/types";
 
@@ -67,6 +68,11 @@ export function SalesHistory() {
           </div>
         </div>
         {error && <Alert className="mx-4 mb-3">{error}</Alert>}
+        {pos.training && (
+          <div className="mx-2 mb-3">
+            <TrainingSales />
+          </div>
+        )}
         <ul className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-4">
           {rows?.map((s) => (
             <li key={s.id}>
@@ -289,6 +295,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
           onDone={(credit) => {
             setRefunding(false);
             pos.toast(`Refund ${credit.number} done · ${zar(-credit.totalCents)}`);
+            if (credit.payments.some((p) => p.method === "CASH")) pos.openDrawer("cash");
             onChanged();
             onOpen(credit.id);
           }}

@@ -3,6 +3,9 @@ import { HQ_ROLES, requireStaff } from "@/server/auth";
 import { canRun, getReport } from "@/server/reports";
 import { reportContext } from "@/server/reports/context";
 import { ReportDenied, ReportView } from "@/components/reports/report-view";
+import { ScheduleExport } from "@/components/reports/schedule-export";
+import { fmtRun, mySchedules, scheduleLabel } from "@/server/exports";
+import { scheduleExport, unscheduleExport } from "./actions";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const def = getReport((await params).key);
@@ -19,7 +22,7 @@ export default async function HqReport({ params, searchParams }: { params: Promi
 
   // Store ids come from the user's scope (HQ: network, area manager: their region), narrowed by the store filter.
   const r = await reportContext({ def, scope: "hq", user, sp, mode: "screen", basePath: base });
-  const result = await def.run(r.ctx);
+  const [result, schedules] = await Promise.all([def.run(r.ctx), mySchedules(user.id, def.key)]);
   return (
     <ReportView
       def={{ key: def.key, title: def.title, description: def.description, group: def.group, personal: def.personal }}
@@ -32,6 +35,13 @@ export default async function HqReport({ params, searchParams }: { params: Promi
       scopeLabel={r.scopeLabel}
       rangeLabel={r.rangeLabel}
       clamped={r.clamped}
+      extraActions={
+        <ScheduleExport
+          me={user.email ?? ""}
+          schedules={schedules.map((s) => ({ id: s.id, label: scheduleLabel(s), recipients: s.recipients, lastRun: fmtRun(s.lastRunAt), stop: unscheduleExport.bind(null, def.key, s.id) }))}
+          schedule={scheduleExport.bind(null, def.key, r.query)}
+        />
+      }
     />
   );
 }

@@ -3,11 +3,9 @@
 import { db } from "@/server/db";
 import { shiftCash } from "@/server/finance";
 import { audit, type Actor } from "@/server/audit";
-import { sendEmail, emailLayout, esc } from "@/server/email";
-import { zar } from "@/lib/money";
-import { fmtDateTime } from "@/lib/format";
-import { fmtPoints } from "@/lib/loyalty-rules";
-import { countCash, denomLabel, DENOMINATIONS, TENDER_LABEL } from "@/components/pos/lib/rules";
+import { sendEmail } from "@/server/email";
+import { APP_URL, zReportEmail } from "@/server/email-templates";
+import { countCash, DENOMINATIONS, TENDER_LABEL } from "@/components/pos/lib/rules";
 import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
 import { getSettings } from "@/server/settings";
@@ -57,7 +55,8 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
 
 export async function zReport(shiftId: string): Promise<ZReport> {
   const shift = await db.shift.findUniqueOrThrow({ where: { id: shiftId }, include: { store: { include: { company: true } } } });
-  const [kinds, tenders, units, users, device, closeLog, cash] = await Promise.all([
+  const licensed = (await getSettings()).compliance.licensedOnly;
+  const [kinds, tenders, units, users, device, closeLog, cash, dispensed] = await Promise.all([
     db.sale.groupBy({
       by: ["kind", "channel"],
       where: { shiftId },
@@ -70,6 +69,10 @@ export async function zReport(shiftId: string): Promise<ZReport> {
     shift.deviceId ? db.device.findUnique({ where: { id: shift.deviceId }, select: { name: true, prefix: true } }) : null,
     db.auditLog.findFirst({ where: { action: "shift.close", entity: "Shift", entityId: shiftId }, orderBy: { at: "desc" } }),
     shiftCash(shiftId),
+    // Licensed medicines dispensed in the shift (the Z-report's dispensing totals): sales, units, grams and value.
+    licensed.length
+      ? db.saleLine.findMany({ where: { sale: { shiftId, kind: "SALE" }, variant: { product: { regClass: { in: licensed } } } }, select: { saleId: true, qty: true, totalCents: true, variant: { select: { grams: true } } } })
+      : [],
   ]);
   const name = (id: string | null) => users.find((u) => u.id === id)?.name ?? null;
   const sum = (rows: typeof kinds, f: (r: (typeof kinds)[number]) => number) => rows.reduce((a, r) => a + f(r), 0);
@@ -114,6 +117,12 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       counts,
     },
     takingsCents: sum(kinds, (r) => r._sum.totalCents ?? 0),
+    dispensing: {
+      count: new Set(dispensed.map((l) => l.saleId)).size,
+      units: dispensed.reduce((a, l) => a + l.qty, 0),
+      grams: Math.round(dispensed.reduce((a, l) => a + (l.variant.grams ?? 0) * l.qty, 0) * 10) / 10,
+      cents: dispensed.reduce((a, l) => a + l.totalCents, 0),
+    },
     notes: shift.notes,
     emailedTo: null,
   };
@@ -125,38 +134,7 @@ export async function lastShiftId(device: { id: string; storeId: string }) {
   return s?.id ?? null;
 }
 
+/** The store's copy of the cash-up (email-templates.ts), linking to the printable Z-report in the back office. */
 async function emailZReport(r: ZReport, to: string) {
-  const row = (label: string, value: string, strong = false) =>
-    `<tr><td style="padding:5px 0;border-bottom:1px solid #EFE9E3;color:#4A403A">${esc(label)}</td><td align="right" style="padding:5px 0;border-bottom:1px solid #EFE9E3">${strong ? `<b>${value}</b>` : value}</td></tr>`;
-  const variance = r.cash.varianceCents ?? 0;
-  const body = `
-<p style="margin:0 0 16px;color:#6B5F57;font-size:14px;line-height:21px">${esc(r.store.legalName)} · Herbal Holland ${esc(r.store.name)} (${esc(r.store.code)})${r.device ? ` · ${esc(r.device.name)}` : ""}<br/>
-Opened ${fmtDateTime(r.openedAt)} by ${esc(r.openedBy)}${r.closedAt ? `<br/>Closed ${fmtDateTime(r.closedAt)} by ${esc(r.closedBy ?? "—")}` : ""}</p>
-<table role="presentation" width="100%" style="font-size:14px">
-${row("Sales", `${r.sales.count} · ${zar(r.sales.grossCents)}`, true)}
-${row("VAT included", zar(r.sales.vatCents))}
-${row("Net of VAT", zar(r.sales.netCents))}
-${row("Discounts given", zar(r.sales.discountCents))}
-${row("Rewards savings given", zar(r.sales.memberSavingsCents))}
-${row("Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`)}
-${r.tenders.map((t) => row(t.label, zar(t.amountCents))).join("")}
-${row("Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`)}
-${row("Cash expected in drawer", zar(r.cash.expectedCents))}
-${row("Cash counted", r.cash.countedCents != null ? zar(r.cash.countedCents) : "—")}
-${row("Variance", `${variance > 0 ? "+" : ""}${zar(variance)}`, true)}
-</table>${r.notes ? `<p style="margin:14px 0 0;font-size:13px;color:#6B5F57">Notes: ${esc(r.notes)}</p>` : ""}`;
-  const text = [
-    `Z-report ${r.store.name} (${r.store.code})`,
-    `Sales ${r.sales.count} · ${zar(r.sales.grossCents)} (VAT ${zar(r.sales.vatCents)})`,
-    `Refunds ${r.refunds.count} · ${zar(r.refunds.totalCents)}`,
-    ...r.tenders.map((t) => `${t.label} ${zar(t.amountCents)}`),
-    `Cash expected ${zar(r.cash.expectedCents)} · counted ${r.cash.countedCents != null ? zar(r.cash.countedCents) : "—"} · variance ${zar(variance)}`,
-    ...(r.cash.counts ? [DENOMINATIONS.filter((d) => r.cash.counts![String(d)]).map((d) => `${denomLabel(d)}×${r.cash.counts![String(d)]}`).join(", ")] : []),
-  ].join("\n");
-  await sendEmail({
-    to,
-    subject: `Z-report — ${r.store.name} ${r.device ? `(${r.device.name}) ` : ""}${fmtDateTime(r.closedAt ?? r.openedAt)}`,
-    text,
-    html: emailLayout({ preheader: `Takings ${zar(r.takingsCents)} · variance ${zar(variance)}`, heading: `Z-report · ${r.store.name}`, body }),
-  });
+  await sendEmail({ to, ...zReportEmail(r, { url: `${APP_URL()}/store/${r.store.code}/cash-ups/${r.shiftId}/z-report` }) });
 }

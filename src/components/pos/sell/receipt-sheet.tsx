@@ -19,6 +19,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
   if (!receipt) return null;
   const change = receipt.payments.reduce((s, p) => s + (p.changeCents ?? 0), 0);
   const to = sentTo ?? invoiceTo;
+  const training = !!receipt.training;
   const offer = Math.max(0, receipt.offerCents ?? 0);
   const deals = receipt.discountCents - offer;
 
@@ -43,7 +44,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
     <Sheet
       open
       onClose={onDone}
-      title={receipt.queued ? "Sale saved offline" : "Sale complete"}
+      title={training ? "Practice sale — nothing is real" : receipt.queued ? "Sale saved offline" : "Sale complete"}
       subtitle={`${receipt.number}${receipt.customer ? ` · ${receipt.customer.name}` : ""}`}
       size="md"
       footer={
@@ -86,6 +87,11 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
         </div>
       </div>
 
+      {training && (
+        <Alert tone="warn" className="mt-5" data-testid="training-receipt">
+          Training mode: this sale was not posted, no stock moved and no points were awarded. Receipts print with a TRAINING watermark.
+        </Alert>
+      )}
       {receipt.queued && (
         <Alert tone="warn" className="mt-5">
           No connection right now. This sale is stored on the till as <b>{receipt.number}</b> and syncs automatically when you&apos;re back online.
@@ -109,7 +115,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
       )}
 
       <div className="mt-5">
-        {to ? (
+        {training ? null : to ? (
           <div className="flex items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-sm text-ink-200 ring-1 ring-ink-800" data-testid="invoice-emailed">
             <Mail className="h-5 w-5 shrink-0 text-[#7fd49a]" />
             <span>

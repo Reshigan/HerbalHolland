@@ -4,9 +4,9 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
   ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, Megaphone, Menu, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
-  Stethoscope, Store, Tag, Tags,
-  Truck, Tv, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
+  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, Menu, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  Star, Stethoscope, Store, Tag, Tags,
+  Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { NavGroup } from "./nav-config";
@@ -14,9 +14,9 @@ import type { NavGroup } from "./nav-config";
 // Explicit map (not `import *`) so the client bundle carries only the icons the nav uses.
 const ICONS: Record<string, LucideIcon> = {
   ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, Megaphone, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
-  Stethoscope, Store, Tag, Tags,
-  Truck, Tv, Users, UsersRound, Wallet, Warehouse,
+  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  Star, Stethoscope, Store, Tag, Tags,
+  Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse,
 };
 
 function Icon({ name, className }: { name: string; className?: string }) {

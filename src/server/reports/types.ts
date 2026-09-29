@@ -36,6 +36,7 @@ export type ReportChart = { title: string; description?: string; format?: ChartF
   | { kind: "bar"; rows: { label: string; value: number; sub?: string; tip?: string }[] }
   | { kind: "donut"; data: { label: string; value: number }[]; center?: string }
   | { kind: "heatmap"; cells: { day: number; hour: number; value: number }[]; hours: number[] }
+  | { kind: "matrix"; rows: string[]; cols: string[]; cells: { row: number; col: number; value: number | null; tip?: string }[] }
 );
 
 export type ReportResult = Table & {

@@ -50,10 +50,11 @@ reports) and Postgres can't live on Cloudflare.
    After any bulk import (catalogue, members, opening stock) run `ANALYZE;` — autovacuum is slow to gather statistics
    on small tables, and without them the planner scans the whole network for single-store queries.
 8. Pair POS devices per store (`/pos/pair`), create staff with PINs, designate dispensers.
-9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min and
-   `POST /api/cron/daily` at 02:00 SAST. Run it on the server itself (cron or a systemd timer calling
-   `http://localhost:3000`), not through Cloudflare: Cloudflare cuts requests at 100 s, and the daily job at 1,000
-   stores takes about 30 s for the loss-prevention rules alone.
+9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min,
+   `POST /api/cron/daily` at 02:00 SAST, `POST /api/cron/staff-push` every 5 min and `POST /api/cron/operations` at
+   03:00 SAST (see [Scheduled jobs](#scheduled-jobs-apicron)). Run it on the server itself (cron or a systemd timer
+   calling `http://localhost:3000`), not through Cloudflare: Cloudflare cuts requests at 100 s, and the daily job at
+   1,000 stores takes about 30 s for the loss-prevention rules alone.
 
 ## Peach Payments go-live (online payments)
 
@@ -168,12 +169,82 @@ Vantax (Pty) Ltd if online) — see the acceptable-use note in INTEGRATIONS.md. 
    the back office to their phones from the side menu ("Install app"); members get the Rewards nudge on their card.
 6. Watch the till member-attach rate, sign-ups per hour and SMS spend in the first 48 hours.
 
+## Till hardware
+
+Every till works on a tablet or phone with nothing attached: receipts open in the browser's print dialog (receipt-styled,
+80 mm page), the camera or a keyboard-wedge scanner reads codes, and the customer display is a browser window. The
+hardware below is optional and set up per device under **Shift → This till** (settings stay on that device — nothing is
+stored on the server).
+
+**Receipt printer (ESC/POS).** Any 58 mm or 80 mm ESC/POS receipt printer with Bluetooth LE or USB: tested layouts
+for 32 columns (58 mm) and 42 / 48 columns (80 mm). Known-good families: Xprinter XP-58/80 BLE models, Sunmi and
+GOOJPRT 58 mm portables, Epson TM-m30 / TM-T20 (USB), Bixolon SPP-R200/R310 (USB; the Bluetooth models are classic
+SPP — see below). The till speaks Web Bluetooth (BLE GATT) and Web USB, so it needs **Chrome, Edge or Samsung Internet
+on Android, ChromeOS, Windows, macOS or Linux** over https. Not supported: iPhone/iPad (print through AirPrint from the
+print dialog), Firefox, and classic-Bluetooth "SPP" printers (Web Bluetooth can't reach them — use their USB port or
+a BLE model). Pairing: turn the printer on → **Shift → This till → Receipt printer & drawer → Pair Bluetooth printer**
+(or **Pair USB printer**; on Android use an OTG cable) → pick it in the browser's chooser → choose the paper width →
+**Test print** (prints a test page with accents, bold, double height and a QR — check nothing is cut off; if the right
+column wraps, choose a narrower width). Windows USB: if "Couldn't claim the printer's USB interface" appears, the
+vendor driver holds the port — swap it for WinUSB with Zadig, or use Bluetooth. The printer is remembered on the
+device; after a reboot the till reconnects on the first print (Bluetooth may need **Reconnect**, one tap). "Print
+automatically after each sale" prints with the sale; it only applies once a printer is paired, so tablets without one
+keep the Print button. What prints: the store, legal entity and VAT number, every line with VAT, tenders, change,
+points earned/redeemed, the member's name with a masked number, a QR + link to the signed invoice page, the licence
+reference and licensed-medicine wording where a line is a licensed medicine (and the s18A line for CBD supplements),
+and the "Adults 18+" footer. Refunds print as credit notes. Z- and X-reports print through the same printer.
+Receipts are never queued: the sale data syncs when the till is offline, the paper prints locally at once.
+
+**Cash drawer.** A drawer wired to the printer's DK/RJ11 port. **Open the drawer on cash** pulses it on cash sales and
+cash refunds (pin 2 by default; pick pin 5 if nothing happens). **Open drawer** outside a sale asks for a manager's
+PIN and is written to the audit log as `pos.drawer_open` (queued on the till and posted on the next sync when offline).
+There is no drawer without a printer: the till says so.
+
+**Scanners.** Keyboard-wedge USB or Bluetooth scanners work on every screen with no set-up (scan anywhere; the till
+recognises product barcodes, member card QRs, event tickets, collection QRs and batch codes). Camera scanning (the
+camera button next to search, or "Scan member card") uses the browser's BarcodeDetector — Chrome/Edge/Samsung
+Internet on Android, Chrome on ChromeOS and macOS — with a viewfinder and a torch toggle where the camera has one;
+browsers without it get a plain "not supported" note pointing at the alternatives. EAN-13, EAN-8, UPC, Code 128,
+Code 39 and QR. A batch code (the code on the pack, or its lab-certificate QR) opens the batch: status (recalled / on
+hold / expired shown in red or amber), dates, potency, lab and how many of that lot are on the shelf here.
+
+**Customer display.** **Shift → This till → Customer display → Open on this device** opens `/pos/display` in a window
+you can drag to a second monitor (or a tab on the same tablet); it follows the till through the browser with no
+set-up. For a screen on another device (a tablet facing the customer), tick **Send to a separate screen** and open the
+link/QR it shows on that device: the display polls the till's snapshot every 2 seconds through the server (kept in
+memory for 3 minutes, keyed by the paired till and a pairing key; "New link" revokes the old one). The display shows
+the lines, total, deals applied, the member's first name and points, "tap to pay", change and points earned, then
+cycles brand messages (today's deals, never on medicines; the next event). It never shows phone numbers, member
+numbers, or the names of licensed medicines ("Dispensed medicine"). Tap the display for full screen. Runs on any
+browser. Note for HA deployments: the separate-screen feed is held in the app instance's memory, so run one instance
+per store front or use sticky sessions; the same-device window needs no server at all.
+
+**Training mode.** A manager starts it under **Shift → This till → Training mode** (a cashier's tap asks for a
+manager's PIN). The till shows an orange outline and the banner **TRAINING — nothing is real**; a five-step tour
+walks a new cashier through search/scan, the member, the basket, charging and the receipt. Everything runs on a
+sandbox: practice sales are numbered `TRAINING 0001…`, never posted or queued, never move stock or award points;
+member sign-ups and age checks are simulated on the till; receipts print (or open in the print dialog) with a
+TRAINING watermark; the drawer stays shut; online orders, refunds, shift open/close and invoices are refused with a
+message; the customer display carries a training banner. Practice receipts are listed under **Sales** for re-printing
+and simulated refunds. Exiting needs a manager's PIN; start and end are audited (`pos.training_start` /
+`pos.training_end`). Real sales queued before training started still sync.
+
+**Quiet hours.** With no sale open and no touch for 3 minutes the Sell screen shows a calm dashboard — takings so far
+this shift, click & collect orders ready to hand over, low-stock lines, what's waiting on the till (offline sales to
+sync, late orders, stale catalogue, no shift) and the store's next event — built from what the till already caches.
+Any tap or scan returns to selling. Nothing moves when the device prefers reduced motion. `?idleMs=5000` on the
+till's URL shortens the wait for testing.
+
 ## Routine operations
 
 | When | Task | Where |
 |---|---|---|
 | Continuous | Health check, error rate, p95 latency, DB connections | Load balancer + APM |
 | Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the list closes; drop alerts to watchers; email paid merch orders to the print partner | `/api/cron/frequent` |
+| Every 5 min | Staff push notifications: new online orders (polled — nothing hooks the checkout), loss alerts about other people, HQ updates that need acknowledging | `/api/cron/staff-push` |
+| Daily 03:00 | Staff push digests (lots entering the expiry window, cash due at the bank, low stock per store); scheduled report exports emailed as signed CSV links; pruning of old push-event keys and export files | `/api/cron/operations` |
+| Daily (manager) | Work the **Today** list on the store overview: orders to pick or hand over, cycle counts due, cash to bank, open alerts, expiring lots, low stock, lapsing patient authorisations, HQ updates, supplier invoices due | Store → Overview |
+| As delivered | Capture the supplier's invoice (photo or PDF, ≤ 8 MB) on the received stock order, or under Finance → Supplier invoices; mark paid as settled, query one that doesn't match | Store → Purchasing / Finance |
 | Daily (DC) | Print partner's shipping emails → enter courier + tracking on each merch order (**Merch shipped**); chase anything "sent" for more than 7 working days; mark delivered merch orders delivered | Store back office → DC → Online orders |
 | Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; loss-prevention rules + the digest email to owners and area managers; load weekly My Deals (Mondays) | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |
@@ -184,6 +255,75 @@ Vantax (Pty) Ltd if online) — see the acceptable-use note in INTEGRATIONS.md. 
 | Weekly | Schedule the week's social posts (merch, store news, events, Learn); answer comments and DMs in Postiz or the apps — never take orders there | HQ → Campaigns → Social |
 | Monthly | Cycle counts per category; franchise statements emailed; NCC opt-out registry import into Suppression; VAT201 working per store | Stock takes / HQ Statements / Marketing |
 | Quarterly | Access review (users, roles, devices); restore test from backup | HQ Team / DB |
+
+## Documents & messages
+
+**Emails.** Every email the platform sends (tax invoices and credit notes, order updates, franchise statements,
+wholesale invoices, Z-reports, loss-prevention alerts, franchise-enquiry replies, campaigns) uses one layout in
+`src/server/email-templates.ts`: cream page, white card, the mark and wordmark, an orange pill button, tabular figures,
+and a footer whose legal line comes from the franchisor Company record (HQ → Settings → Company: legal name, registration
+and VAT numbers, address). Every email has a plain-text twin, and campaign emails alone carry the unsubscribe link and
+`List-Unsubscribe` headers. To preview them without a mail server: `npx tsx scripts/preview-emails.ts` writes each
+template with sample data to `test-results/emails/index.html`; `npx vitest run tests/email.test.ts` checks subjects,
+buttons, escaping, text alternatives and the 102 KB Gmail limit. With `SMTP_URL` unset (demos, staging) nothing is
+sent: every email is written to the message log, so HQ → Messages is the place to read what a member would have got.
+`EMAIL_FROM` sets the sender; keep it on a domain with SPF/DKIM for the ESP.
+
+**Texts.** Order updates, sign-in codes and recall notices go by SMS (`MESSAGING_PROVIDER=smsportal`; without it they're
+only logged). Copy rules in `src/lib/sms.ts`: "Herbal Holland:" first, the order code next, one GSM-7 segment where
+possible, links as `APP_URL` paths without the scheme, and "Reply STOP" on marketing only (`senderFooter` in
+`marketing.ts` adds it; order texts never carry it). Set `SMS_SENDER_ID` to the alphanumeric sender the provider approved.
+
+**Tax invoices.** Every sale is emailed as a tax invoice (SARS: abridged up to R5,000, full above) with a signed link to
+the hosted copy (`/invoice/<sale id>?t=…`, also under Rewards → Invoices). The hosted invoice shows batch numbers per
+line, VAT per rate, the payment and its reference, and a QR back to the order. Print it on A4, save it as a PDF (the
+print dialog's "Save as PDF") or print it on 80 mm till paper with the "Print receipt" button. A walk-in customer can
+have it emailed from the till (receipt → Email invoice). Failed sends are retried by `/api/cron/frequent` for three days.
+
+**Statements and Z-reports.** Store → Money → Franchise statement (and HQ → Statements → a store) shows the month as a
+document: parties, credits and debits netted to one amount, how the fees were worked out. Print or save as PDF from the
+page; "Email to owner" sends it to the owner company's email. The till prints the Z-report at shift close (80 mm) and
+emails it to the store; the same report is in Store → Money → Cash-ups → shift → Z-report, printable on A4 or as a PDF.
+Paper follows the printer: on a receipt printer the document prints as a slip, on A4 as a sheet.
+
+**Menu board (in-store TV).** Open `https://<app>/menu/<store slug>` (e.g. `/menu/hatfield`) in a kiosk browser on the
+TV or its stick — Chrome/Chromium `--kiosk --noerrdialogs --disable-session-crashed-bubble`, Android TV with Fully
+Kiosk, or a Raspberry Pi in kiosk mode. Landscape (16:9) and portrait (9:16) both work; the page hides the cursor,
+rotates categories every 12 s, refreshes stock and prices every 60 s (sold-out lines grey out with "Sold out"), reloads
+its content from the server every 10 minutes, respects the device's reduced-motion setting, and asks for a screen wake
+lock (HTTPS only — otherwise turn off the device's screen timeout). It shows the store's public range only: in MEDICAL
+mode licensed medicines never appear (a dispensary panel points patients to the pharmacist), and member prices are shown
+only on classes where the law allows incentives (`incentiveExcluded` in `@/lib/compliance`). Deals come from the store's
+active promotions; drops and events from the launch programme. Nothing on the board needs a login.
+
+## Scheduled jobs (`/api/cron`)
+
+Every job is idempotent and bounded, so a missed or doubled run is harmless. `POST` with `Authorization: Bearer
+$CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live in `src/server/jobs.ts`.
+
+| Endpoint | When | What it does |
+|---|---|---|
+| `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders |
+| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals |
+| `/api/cron/staff-push` | every 5 min | Pushes to managers' and owners' phones (`src/server/staff-push.ts`): **new online orders** (polled, so an order shows up within 5 minutes — nothing hooks the checkout), **loss alerts** raised in the last day (never to the person they're about), **HQ updates that need acknowledging** (per store that hasn't). Each event is keyed in `StaffPushEvent`, so a poll never sends twice; dead subscriptions (404/410 from the push service) are pruned as they fail. |
+| `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
+
+Without `WEB_PUSH_PUBLIC_KEY` / `WEB_PUSH_PRIVATE_KEY` every push is only written to the message log (HQ → Messages,
+channel PUSH) — that's how the demo runs. Staff turn notifications on per phone under Store → Settings → Notifications
+(“Notify me on this phone”; on iPhone the back office must be on the Home Screen first). Thresholds for the Today list
+and the digests are HQ settings under `operations` (`cycleCountDays`, `cycleCountByCategory`, `batchExpiryDays`,
+`patientAuthDays`, `supplierInvoiceDays`).
+
+## Store-opening checklist (HQ → Stores → store)
+
+Onboarding a store seeds its opening checklist from the template in `src/lib/opening.ts` — Legal & licences (lease,
+CIPC, VAT, SAHPRA/pharmacy licence where THC is licensed, POPIA register), Set-up (fit-out, internet, Yoco, tills,
+printers, catalogue, Google Business Profile, photos, opening stock), People (staff, PINs, dispenser, training) and
+Launch (opening date, press, site facts, soft opening). Due dates count back from the store's opening day (Status →
+Opened) and move with it while the store is still opening soon; tasks are ticked off with a note by the HQ team (area
+managers see them). The stores list shows each store's progress (`done/total`, overdue in red); a store that predates
+the feature gets a checklist from **Start the opening checklist** on its page. Audit actions: `store.checklist_seed`,
+`store.task_done`, `store.task_reopen`.
 
 ## Incidents
 

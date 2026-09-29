@@ -3,6 +3,7 @@ import { AlertTriangle, ArrowRight, Boxes, ChevronRight, Clock, Download, FlaskC
 import { requireStaff } from "@/server/auth";
 import { scopeOf, storeForUser, storeWhere } from "@/server/scope";
 import { kpis, orderQueue, pendingAnnouncements, stockAlerts, topProducts } from "@/server/dashboard";
+import { todayList } from "@/server/today";
 import { salesByStore } from "@/server/finance";
 import { db } from "@/server/db";
 import { delta, previousRange, resolveRange } from "@/lib/ranges";
@@ -19,6 +20,7 @@ import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { AreaChart } from "@/components/charts/area-chart";
 import { Donut } from "@/components/charts/donut";
 import { BarList } from "@/components/charts/bar-list";
+import { TodayList } from "@/components/store/today-list";
 
 export const metadata = { title: "Store overview" };
 
@@ -40,7 +42,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
   });
   const company = siblings.length > 1 && sp.stores === "company";
   const ids = company ? siblings.map((x) => x.id) : [store.id];
-  const [k, top, alerts, queue, notes, shift, byStore, byStorePrev] = await Promise.all([
+  const [k, top, alerts, queue, notes, shift, byStore, byStorePrev, today] = await Promise.all([
     kpis(ids, r),
     topProducts(ids, r, 7),
     stockAlerts(ids),
@@ -49,6 +51,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
     db.shift.findFirst({ where: { storeId: store.id, closedAt: null }, orderBy: { openedAt: "desc" } }),
     company ? salesByStore(ids, r) : null,
     company ? salesByStore(ids, previousRange(r)) : null,
+    company ? null : todayList(store, user),
   ]);
   const c = k.cur;
   const openOrders = (queue.PLACED ?? 0) + (queue.PICKING ?? 0) + (queue.READY ?? 0);
@@ -79,6 +82,8 @@ export default async function StoreDashboard({ params, searchParams }: { params:
           ]}
         />
       )}
+
+      {today && <TodayList items={today} className="mb-6" description={today.length ? undefined : "Nothing needs your attention right now"} />}
 
       {notes.length > 0 && (
         <Link href={`/store/${code}/updates`} className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 hover:bg-brand-100">

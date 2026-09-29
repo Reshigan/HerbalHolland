@@ -19,6 +19,8 @@ export type BuilderRow = {
   parLevel: number;
   avgDaily: number;
   cover: number | null; // null = no sales
+  forecastPerWeek: number; // 14-day moving average × 7
+  safetyStock: number;
   wholesaleCents: number;
   suggested: number;
 };
@@ -87,6 +89,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">On order</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Reorder · par</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Sold / day</th>
+                <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Forecast</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Cover</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-center">Order qty</th>
                 <th className="border-b border-ink-150 bg-ink-50 px-3 py-2.5 text-right">Unit ex VAT</th>
@@ -110,6 +113,9 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                       {r.reorderPoint} · {r.parLevel}
                     </td>
                     <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-600">{r.avgDaily.toFixed(1)}</td>
+                    <td className="tnum whitespace-nowrap border-b border-ink-100 px-3 py-2.5 text-right text-ink-800" title={r.safetyStock ? `14-day moving average · safety stock ${r.safetyStock}` : "14-day moving average"}>
+                      {r.forecastPerWeek > 0 ? `${r.forecastPerWeek < 10 ? r.forecastPerWeek.toFixed(1) : Math.round(r.forecastPerWeek)}/week` : <span className="text-ink-400">—</span>}
+                    </td>
                     <td className={cn("tnum border-b border-ink-100 px-3 py-2.5 text-right", r.cover != null && r.cover < 7 ? "font-semibold text-amber-700" : "text-ink-600")}>{coverText(r.cover)}</td>
                     <td className="border-b border-ink-100 px-3 py-1.5">
                       <div className="flex items-center justify-center gap-1">
@@ -142,7 +148,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
               })}
               {shown.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-5 py-10 text-center text-sm text-ink-500">
+                  <td colSpan={10} className="px-5 py-10 text-center text-sm text-ink-500">
                     {view === "suggested" ? "Nothing needs reordering right now — switch to All ranged to top up anything." : "No items match."}
                   </td>
                 </tr>

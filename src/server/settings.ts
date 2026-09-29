@@ -53,6 +53,14 @@ export const DEFAULT_SETTINGS = {
     // earn commission (s18A), whatever is set.
     bps: { THC: 0, CBD: 200, CBD_FOOD: 200, CBD_TOPICAL: 200, HEMP: 200, SUPPLEMENT: 200, ACCESSORY: 200, APPAREL: 200, GROW: 200 } as Record<RegClass, number>,
   },
+  operations: {
+    // The store's Today list: a category is due a cycle count this many days after its last approved count…
+    cycleCountDays: 30,
+    cycleCountByCategory: {} as Record<string, number>, // …or its own cadence by category slug
+    batchExpiryDays: 30, // lots expiring within this many days are flagged
+    patientAuthDays: 14, // patient authorisations lapsing within this many days are flagged
+    supplierInvoiceDays: 7, // supplier invoices due within this many days are flagged
+  },
 };
 export type Settings = typeof DEFAULT_SETTINGS;
 export type SettingKey = keyof Settings;

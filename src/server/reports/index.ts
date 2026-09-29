@@ -8,6 +8,7 @@ import { deadStock, expiry, lowStock, negativeStock, sellThrough, shrinkage, sto
 import { purchases, receiving } from "./purchasing";
 import { cashBanking, cashUps, loyaltyLiability, pnl, statements, vat } from "./finance";
 import { joinSources, memberAttach, newVsReturning, rewardsSavings, segments } from "./customers";
+import { cohorts, retention } from "./cohorts";
 import { campaigns, promotions } from "./marketing";
 import { ageChecks, batchTrace, complianceEvents, dispensingRegister, recalls } from "./compliance";
 
@@ -23,7 +24,7 @@ export const REPORTS: ReportDef[] = [
   // Finance
   pnl, vat, cashUps, cashBanking, statements, loyaltyLiability,
   // Members
-  segments, newVsReturning, memberAttach, rewardsSavings, joinSources,
+  segments, newVsReturning, memberAttach, rewardsSavings, joinSources, cohorts, retention,
   // Marketing
   promotions, campaigns,
   // Compliance

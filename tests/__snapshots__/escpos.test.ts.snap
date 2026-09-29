@@ -1,0 +1,51 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`receipt layout > matches the 48-column byte layout of a member's cash sale with a licensed medicine and a CBD supplement 1`] = `
+"<ESC @><ESC t 10><ESC a 01><GS ! 11><ESC E 01>HERBAL HOLLAND
+<GS ! 00><ESC E 00><ESC E 01>Hatfield - PTA01
+<ESC E 00>Hatfield Herbal (Pty) Ltd
+VAT no. 4123456789
+12 Burnett Street, Hatfield, Pretoria 0083
+Tel 012 345 6789
+<ESC a 00>------------------------------------------------
+<ESC a 01><ESC E 01>TAX INVOICE
+<ESC E 00><ESC a 00>No. PTA01-B00042              27 Sep 2026, 12:03
+Served by Shireen Singh - till B
+------------------------------------------------
+Durban Poison - 3.5g (Rx)
+  1 x R620.00                            R620.00
+Recover CBD Muscle Balm - 50 ml
+  2 x R385.00                            R693.00
+  My Deals                               -R77.00
+Calm CBD Oil - 30 ml
+  1 x R595.00                            R595.00
+------------------------------------------------
+My Deals (15% off Recover Balm)          -R77.00
+<ESC E 01><GS ! 01>TOTAL                                  R1,908.00
+<GS ! 00><ESC E 00>Rewards savings in prices                 R30.00
+VAT included (15%)                       R248.87
+------------------------------------------------
+Cash                                   R1,908.00
+  Tendered                             R2,000.00
+<ESC E 01><GS ! 01>CHANGE                                    R92.00
+<GS ! 00><ESC E 00>------------------------------------------------
+Herbal Holland Rewards - Thandi Mokoena
+(HH****002)
+Points earned 65 pts           Balance 1,230 pts
+------------------------------------------------
+<ESC a 01><GS(k fn=65 32 00><GS(k fn=67 06><GS(k fn=69 31><GS(k fn=80 "https://herbalholland.co.za/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123"><GS(k fn=81 30>Scan for your invoice
+herbalholland.co.za/invoice/0f7e2c4a-1111-4222-8
+333-444455556666
+<ESC a 00><ESC a 01>SAHPRA licence 0000/2026
+Licensed medicine dispensed to the named patient
+under their SAHPRA authorisation by an
+authorised dispenser. No promotions, points or
+discounts apply (Medicines Act s18A).
+CBD complementary medicine: no promotions or
+points (Medicines Act s18A).
+Adults 18+ only. Keep out of reach of children.
+Keep this slip for returns within 7 days.
+Tax invoice emailed to thandi@example.co.za
+Thank you - herbalholland.co.za
+<ESC a 00><ESC d 03><GS V 42 00>"
+`;

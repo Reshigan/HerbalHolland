@@ -5,6 +5,8 @@ import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
 import { storeTable, FORMATS, STATUSES, titleCase } from "@/server/hq/stores";
+import { checklistProgressByStore } from "@/server/store-tasks";
+import { ChecklistLine } from "@/components/hq/checklist";
 import { qs } from "@/server/hq/form";
 import { zar, zarCompact } from "@/lib/money";
 import { num } from "@/lib/format";
@@ -34,6 +36,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
     storeTable(ids, sp, page, pageSize),
     db.region.findMany({ where: scope.kind === "REGION" ? { id: scope.regionId } : {}, orderBy: { name: "asc" } }),
   ]);
+  const progress = await checklistProgressByStore(t.rows.map((s) => s.id));
   const dcs = sp.kind === "WAREHOUSE";
   const href = (p: Record<string, string | number | undefined>) => `/hq/stores${qs({ ...sp, ...p })}`;
   const sortLink = (key: string, label: string) => (
@@ -118,6 +121,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
                 </Td>
                 <Td>
                   <StatusBadge status={s.status} />
+                  <ChecklistLine progress={progress.get(s.id)} />
                 </Td>
                 <Td align="right" className="font-medium text-ink-900">{s.netCents ? zarCompact(s.netCents) : "—"}</Td>
                 <Td align="right">

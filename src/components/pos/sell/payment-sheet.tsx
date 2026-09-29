@@ -35,6 +35,7 @@ export function PaymentSheet({
   points,
   needsBuyer,
   onComplete,
+  onProgress,
   onClose,
 }: {
   open: boolean;
@@ -50,6 +51,8 @@ export function PaymentSheet({
   points?: { balance: number; eligibleCents: number; minRedeem: number } | null;
   needsBuyer?: boolean;
   onComplete: (r: PaymentResult) => Promise<void>;
+  /** For the customer display: what is due, what has been tendered, and whether a card tap is in progress. */
+  onProgress?: (p: { dueCents: number; paidCents: number; tapping: boolean; method: string | null } | null) => void;
   onClose: () => void;
 }) {
   const [tenders, setTenders] = useState<(QueuedTender & { key: number })[]>([]);
@@ -74,6 +77,14 @@ export function PaymentSheet({
   const charge = Math.min(Math.max(0, amount), remaining);
   const buyerOk = !needsBuyer || (buyer.name.trim().length > 1 && buyer.address.trim().length > 4);
   const change = tenders.reduce((s, t) => s + (t.changeCents ?? 0), 0);
+
+  // The customer display follows the tender: due, paid so far, and "tap to pay" while a card is being read.
+  const progressRef = useRef(onProgress);
+  progressRef.current = onProgress;
+  useEffect(() => {
+    if (!open) return;
+    progressRef.current?.({ dueCents, paidCents: paid, tapping: tapping != null, method: tapping != null ? "card" : panel });
+  }, [open, dueCents, paid, tapping, panel]);
 
   // Fresh state each time the sheet opens.
   useEffect(() => {

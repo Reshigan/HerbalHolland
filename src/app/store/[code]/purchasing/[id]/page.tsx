@@ -6,9 +6,13 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { availability, availKey } from "@/server/inventory";
 import { receivedValue } from "@/server/stock-orders";
 import { stockOrderDetail } from "@/server/store/purchasing";
+import { invoicesForOrder, STATUS_LABEL } from "@/server/supplier-invoices";
+import { captureInvoice } from "../../finance/supplier-invoices/actions";
+import { SupplierInvoiceForm } from "@/components/store/supplier-invoice-form";
+import { DEFAULT_TERMS_DAYS } from "@/lib/supplier-invoice-rules";
 import { plural } from "@/server/store/rules";
 import { zar } from "@/lib/money";
-import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
+import { addDays, dayKey, fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
 import { cancelOrder, receiveOrder, sellerAct, submitDraft } from "../actions";
 import { ReceiveForm } from "./receive-form";
 import { PageHeader, Notice } from "@/components/ui/page";
@@ -38,6 +42,8 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
   const receivedEx = lines.reduce((s, l) => s + (l.receivedQty ?? 0) * l.unitCostCents, 0);
   const units = lines.reduce((s, l) => s + l.qty, 0);
   const shortReceived = lines.reduce((s, l) => s + (l.receivedQty != null && l.shippedQty != null ? Math.max(0, l.shippedQty - l.receivedQty) : 0), 0);
+  const invoices = isBuyer && ["SHIPPED", "RECEIVED"].includes(o.status) ? await invoicesForOrder(store.id, o.id) : [];
+  const invoiceDay = dayKey(o.receivedAt ?? o.shippedAt ?? new Date());
 
   return (
     <>
@@ -134,6 +140,63 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
             {shortReceived > 0 && <span className="mt-1 block font-semibold">They received {plural(shortReceived, "unit")} fewer than you shipped, so those units aren&apos;t paid for — check the dispatch and courier.</span>}
           </Notice>
         ))}
+
+      {isBuyer && ["SHIPPED", "RECEIVED"].includes(o.status) && (
+        <Card className="mb-6" data-testid="supplier-invoice-card">
+          <CardHeader
+            title="Supplier invoice"
+            description={invoices.length ? `${invoices.length} invoice${invoices.length === 1 ? "" : "s"} captured against this order` : `Attach ${o.seller.name}'s invoice for this delivery — it goes to Finance → Supplier invoices to be paid.`}
+            action={<Link href={`/store/${store.code}/finance/supplier-invoices`} className="text-xs font-semibold text-brand-700 hover:underline">All supplier invoices →</Link>}
+          />
+          <CardBody className="pt-3">
+            {invoices.length > 0 && (
+              <ul className="mb-4 divide-y divide-ink-100 rounded-xl border border-ink-150">
+                {invoices.map((i) => (
+                  <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <span>
+                      <span className="font-mono font-medium text-ink-900">{i.number}</span> · {i.supplierName} · due {fmtDate(`${i.dueDate.toISOString().slice(0, 10)}T12:00:00Z`)}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="tnum font-medium">{zar(i.totalCents)}</span>
+                      <Badge tone={i.status === "PAID" ? "green" : i.status === "QUERIED" ? "red" : "amber"} dot>{STATUS_LABEL[i.status]}</Badge>
+                      <a href={`/store/${store.code}/finance/supplier-invoices/${i.id}/file`} target="_blank" rel="noopener" className="text-xs font-semibold text-brand-700 hover:underline">View</a>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {canManage ? (
+              invoices.length ? (
+                <details className="group">
+                  <summary className="cursor-pointer list-none text-xs font-semibold text-brand-700 hover:underline">
+                    <span className="group-open:hidden">Capture another invoice for this order</span>
+                    <span className="hidden group-open:inline">Hide</span>
+                  </summary>
+                  <div className="mt-3">
+                    <SupplierInvoiceForm action={captureInvoice.bind(null, store.code)} vendor={!!store.company.vatNumber} idPrefix="po-inv" defaults={{ supplierName: o.seller.name, invoiceDate: invoiceDay, dueDate: dayKey(addDays(new Date(`${invoiceDay}T12:00:00+02:00`), DEFAULT_TERMS_DAYS)), stockOrderId: o.id, vat: true }} />
+                  </div>
+                </details>
+              ) : (
+                <SupplierInvoiceForm
+                  action={captureInvoice.bind(null, store.code)}
+                  vendor={!!store.company.vatNumber}
+                  idPrefix="po-inv"
+                  defaults={{
+                    supplierName: o.seller.name,
+                    invoiceDate: invoiceDay,
+                    dueDate: dayKey(addDays(new Date(`${invoiceDay}T12:00:00+02:00`), DEFAULT_TERMS_DAYS)),
+                    total: o.status === "RECEIVED" ? ((received ?? 0) / 100).toFixed(2) : (o.totalCents / 100).toFixed(2),
+                    stockOrderId: o.id,
+                    vat: true,
+                  }}
+                />
+              )
+            ) : (
+              !invoices.length && <p className="text-sm text-ink-500">A manager or owner captures the invoice.</p>
+            )}
+          </CardBody>
+        </Card>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">

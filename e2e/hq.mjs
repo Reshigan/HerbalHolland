@@ -242,6 +242,25 @@ try {
   assert(co.vatNumber === vat && co.contactName === "E2E Owner", `owner now a VAT vendor (${vat})`);
   await shot("store-detail");
 
+  step("Stores: the opening checklist was seeded for the new store; a task is marked done with a note; the list shows progress");
+  const tasks = await q(`select id, key, title, "dueAt" from "StoreTask" where "storeId" = $1 order by "sortOrder"`, [store.id]);
+  assert(tasks.length === 21 && tasks[0].key === "lease" && !tasks.some((t) => t.key === "sahpra"), `${tasks.length} tasks seeded (no SAHPRA line: the store isn't licensed for THC)`);
+  const cl = page.getByTestId("opening-checklist");
+  await open(`/hq/stores/${storeCode}`, cl.getByRole("button", { name: "Mark done" }).first());
+  await cl.getByText(`0 of ${tasks.length} done`).waitFor();
+  await cl.getByRole("button", { name: "Mark done" }).first().click();
+  const panel = cl.getByRole("group", { name: tasks[0].title });
+  await panel.getByLabel("Note (optional)").fill(`Signed by E2E ${sfx}`);
+  await act("stores.markTaskDone", () => panel.getByRole("button", { name: "Mark done" }).click(), () => notice(`Done: ${tasks[0].title}.`).waitFor());
+  const doneTask = await one(`select "doneAt", "doneById", note from "StoreTask" where id = $1`, [tasks[0].id]);
+  assert(doneTask.doneAt && doneTask.doneById === admin.id && doneTask.note === `Signed by E2E ${sfx}`, "task done with the note, by the admin");
+  assert(await one(`select 1 from "AuditLog" where action = 'store.task_done' and "entityId" = $1`, [tasks[0].id]), "audited (store.task_done)");
+  await cl.getByText(`1 of ${tasks.length} done`).waitFor();
+  await open(`/hq/stores?q=${storeCode}`, null);
+  await page.getByText(`1/${tasks.length}`).first().waitFor();
+  ok(`stores list shows the progress line 1/${tasks.length}`);
+  await shot("store-checklist");
+
   // ── Catalogue ─────────────────────────────────────────────────────────────
   step("Catalogue: new draft CBD supplement (validation first: Schedule 0 limits and product facts), reclassify it as CBD food & drink (0.0075% limit), add + edit a variant, range and unrange it");
   const cat = await one(`select c.id, c.name from "Category" c where exists (select 1 from "Product" p where p."categoryId" = c.id and p."regClass" = 'CBD') order by c."sortOrder" limit 1`);
@@ -1231,6 +1250,7 @@ async function cleanup() {
     await run("store range", `delete from "StoreVariant" where "storeId" = $1`, [store.id]);
     await run("store stats", `delete from "DailyStoreStat" where "storeId" = $1`, [store.id]);
     await run("store variant stats", `delete from "DailyVariantStat" where "storeId" = $1`, [store.id]);
+    await run("checklist", `delete from "StoreTask" where "storeId" = $1`, [store.id]);
     await run("store", `delete from "Store" where id = $1`, [store.id]);
     await run("owner company", `delete from "Company" where id = $1 and not exists (select 1 from "Store" where "companyId" = $1)`, [store.companyId]);
   }

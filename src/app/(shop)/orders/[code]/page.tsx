@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { CheckCircle2, Circle, Clock, CreditCard, FileText, IdCard, Loader2, MapPin, Navigation, Package, Phone, Truck, XCircle } from "lucide-react";
+import { CheckCircle2, Circle, Clock, CreditCard, FileText, IdCard, Loader2, MapPin, Navigation, Package, Phone, Truck, Undo2, XCircle } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -16,6 +16,7 @@ import { Callout, Container, Panel, Tag, type TagTone } from "@/components/shop/
 import { ProductArt } from "@/components/product/art";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
+import { RETURN_STATUS, RETURN_WINDOWS } from "@/lib/returns";
 import { zar } from "@/lib/money";
 import { possessive } from "@/lib/online-payments";
 import { peachReturn } from "@/lib/peach";
@@ -49,6 +50,8 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   if (!order) notFound();
   const [customer, settings] = await Promise.all([getCustomer(), getSettings()]);
   const mine = customer?.id === order.customerId;
+  // The member's own delivered order can be returned (or a problem reported) from here.
+  const returns = mine && order.status === "COMPLETED" ? await db.returnRequest.findMany({ where: { orderId: order.id }, orderBy: { createdAt: "desc" }, select: { id: true, number: true, status: true, createdAt: true } }) : [];
   const events = (order.events as Event[]) ?? [];
   const at = (s: OrderStatus) => events.filter((e) => e.status === s).at(-1)?.at;
   const collect = order.fulfilment === "COLLECT";
@@ -349,6 +352,31 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
               </p>
               <ButtonLink href={invoiceUrl(order.sale.id).replace(/^https?:\/\/[^/]+/, "")} variant="outline-dark" size="md" className="mt-4">
                 View or print invoice
+              </ButtonLink>
+            </Panel>
+          )}
+
+          {mine && order.status === "COMPLETED" && (
+            <Panel className="p-5">
+              <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
+                <Undo2 className="h-5 w-5 text-brand-500" /> Returns
+              </h2>
+              {returns.length ? (
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {returns.map((r) => (
+                    <li key={r.id} className="flex items-center justify-between gap-3">
+                      <span className="font-semibold text-white">{r.number}</span>
+                      <span className="text-ink-300">{RETURN_STATUS[r.status].member}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-1 text-sm text-ink-400">
+                  Faulty, damaged or not what you ordered? You have {RETURN_WINDOWS.defectMonths} months. Changed your mind? {RETURN_WINDOWS.coolingOffDays} days from delivery.
+                </p>
+              )}
+              <ButtonLink href={`/club/orders/${order.code}/return`} variant="outline-dark" size="md" className="mt-4">
+                Return or report a problem
               </ButtonLink>
             </Panel>
           )}

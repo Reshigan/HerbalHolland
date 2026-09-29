@@ -1,4 +1,4 @@
-import { MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { Bell, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
@@ -7,7 +7,9 @@ import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { bps } from "@/lib/money";
 import { displayPhone, PROVINCES } from "@/lib/sa";
 import { fmtDate, timeAgo } from "@/lib/format";
-import { revokeDevice, saveStoreDetails } from "./actions";
+import { disableStaffPush, enableStaffPush, revokeDevice, saveStoreDetails } from "./actions";
+import { StaffPushToggle } from "@/components/store/push-toggle";
+import { STAFF_PUSH_ROLES, staffDeviceCount, staffVapidKey } from "@/server/staff-push";
 import { HoursEditor } from "./hours-editor";
 import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -29,6 +31,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
   const live = devices.filter((d) => d.active);
   const revoked = devices.filter((d) => !d.active).sort((a, b) => (b.lastSeenAt?.getTime() ?? 0) - (a.lastSeenAt?.getTime() ?? 0));
   const hours = readHours(store.hours);
+  const pushRole = STAFF_PUSH_ROLES.includes(user.role);
+  const pushDevices = pushRole ? await staffDeviceCount(user.id) : 0;
 
   return (
     <>
@@ -87,6 +91,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
         </Card>
 
         <div className="min-w-0 space-y-6">
+          {pushRole && (
+            <Card>
+              <CardHeader title="Notifications" description="Push notifications to your phone for the stores you look after" action={<Bell className="h-4 w-4 text-brand-600" aria-hidden />} />
+              <CardBody className="space-y-3 pt-3">
+                <StaffPushToggle vapidKey={staffVapidKey()} devices={pushDevices} enable={enableStaffPush.bind(null, store.code)} disable={disableStaffPush.bind(null, store.code)} />
+                <p className="text-xs leading-relaxed text-ink-500">
+                  You&apos;ll hear about new online orders as they come in (checked every 5 minutes), loss-prevention alerts about other people, HQ updates that need acknowledging, lots about to expire, cash due at the bank and a daily low-stock digest.
+                </p>
+              </CardBody>
+            </Card>
+          )}
           <Card>
             <CardHeader title="Licences & VAT" description="Held on record by HQ — contact HQ to change" />
             <CardBody className="space-y-4 pt-3">

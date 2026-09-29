@@ -5,6 +5,11 @@ import { audit } from "@/server/audit";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
 import { WEEK, bool, hoursJson, str, type TradingHours } from "@/server/store/rules";
 import { normalisePhone } from "@/lib/sa";
+import { z } from "zod";
+import { requireStaff } from "@/server/auth";
+import { storeForUser } from "@/server/scope";
+import { actorOf } from "@/server/store/context";
+import { removeStaffSubscription, saveStaffSubscription, STAFF_PUSH_ROLES, staffVapidKey } from "@/server/staff-push";
 
 export async function saveStoreDetails(code: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
@@ -42,4 +47,34 @@ export async function revokeDevice(code: string, deviceId: string, _: ActionStat
     revalidatePath(`/store/${store.code}/settings`);
     return done(`${d.name} can no longer trade. Pair it again from the POS if it was a mistake.`);
   });
+}
+
+// ── Notify me on this phone (staff Web Push) ─────────────────────────────────
+const PushSub = z.object({
+  endpoint: z.string().max(1000).refine((s) => s.startsWith("https://"), "Bad endpoint"),
+  keys: z.object({ p256dh: z.string().min(16).max(200), auth: z.string().min(8).max(100) }),
+});
+
+/** Saves this phone's subscription for the signed-in staff member (managers, owners, area managers and HQ). */
+export async function enableStaffPush(code: string, sub: unknown, userAgent: unknown): Promise<{ error?: string }> {
+  const user = await requireStaff();
+  await storeForUser(user, code);
+  if (!STAFF_PUSH_ROLES.includes(user.role)) return { error: "Notifications are for managers, owners and area managers." };
+  if (!staffVapidKey()) return { error: "Push notifications aren't set up on this server yet." };
+  const p = PushSub.safeParse(sub);
+  if (!p.success) return { error: "Your browser didn't send a complete subscription — please try again." };
+  await saveStaffSubscription(user.id, p.data, typeof userAgent === "string" ? userAgent : null);
+  await audit(db, actorOf(user), "staff_push.enable", { entity: "User", entityId: user.id, data: { endpoint: p.data.endpoint.slice(0, 60) } });
+  revalidatePath(`/store/${code}/settings`);
+  return {};
+}
+
+/** Forgets this phone's subscription. */
+export async function disableStaffPush(code: string, endpoint: unknown): Promise<{ error?: string }> {
+  const user = await requireStaff();
+  await storeForUser(user, code);
+  if (typeof endpoint === "string" && endpoint) await removeStaffSubscription(user.id, endpoint.slice(0, 1000));
+  await audit(db, actorOf(user), "staff_push.disable", { entity: "User", entityId: user.id });
+  revalidatePath(`/store/${code}/settings`);
+  return {};
 }

@@ -119,6 +119,8 @@ export type BootData = {
     loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number; tierSavingsPct: Record<TierKey, number> };
   };
   shift: BootShift | null;
+  /** The store's next event (for the till's quiet-hours dashboard); tills cached before this field have none. */
+  nextEvent?: { title: string; startsAt: string; endsAt: string } | null;
   tapProvider: TapProviderKind;
   joinUrl: string; // Herbal Holland Rewards self-registration link for this store
 };
@@ -261,6 +263,7 @@ export type ReceiptDTO = {
   createdAt: string;
   offline: boolean;
   queued?: boolean; // client-side: not yet synced
+  training?: boolean; // client-side: rung up in training mode — never posted, printed with a TRAINING watermark
   refundOf: { id: string; number: string } | null;
   staff: string | null;
   customer: { id: string; name: string; memberNo: string; tier: TierKey; points: number } | null;
@@ -323,6 +326,8 @@ export type ZReport = {
     counts: Record<string, number> | null;
   };
   takingsCents: number;
+  /** Licensed medicines dispensed in the shift (tills cached before this field carry none). */
+  dispensing?: { count: number; units: number; grams: number; cents: number } | null;
   notes: string | null;
   emailedTo: string | null;
 };

@@ -236,7 +236,8 @@ export async function refundSale(a: {
   number: string;
   saleId: string;
   lines: { saleLineId: string; qty: number; restock: boolean }[];
-  method: TenderInput["method"];
+  method: TenderInput["method"] | "ONLINE"; // ONLINE: money going back through the shop's payment gateway (a return)
+  extraCents?: number; // a delivery fee refunded with the lines (VAT incl.), when a whole online order comes back
   reason: string;
   staffId: string;
   staffName: string;
@@ -276,7 +277,9 @@ export async function refundSale(a: {
   const offer = picks.reduce((s, p) => s + p.offer, 0);
   const loyaltyPaid = orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0);
   const loyaltyBack = orig.totalCents > 0 ? Math.floor((amount * loyaltyPaid) / orig.totalCents / 100) * 100 : 0;
-  const moneyBack = amount - loyaltyBack;
+  const extra = Math.max(0, Math.min(a.extraCents ?? 0, Math.max(0, orig.totalCents - orig.subtotalCents + orig.discountCents)));
+  const extraVat = orig.vatCents > 0 ? vatOf(extra) : 0; // non-VAT-vendor stores charged none
+  const moneyBack = amount - loyaltyBack + extra;
   const earnedBack = orig.totalCents > 0 ? Math.round((orig.pointsEarned * amount) / orig.totalCents) : 0;
 
   return tx(async (t) => {
@@ -284,7 +287,7 @@ export async function refundSale(a: {
       data: {
         id: a.id, number: a.number, kind: "REFUND", refundOfId: orig.id, channel: orig.channel, storeId: orig.storeId,
         shiftId: a.shiftId, staffId: a.staffId, deviceId: a.deviceId, customerId: orig.customerId,
-        subtotalCents: -amount, discountCents: 0, totalCents: -amount, vatCents: -vat, costCents: 0, memberSavingsCents: -saved,
+        subtotalCents: -amount, discountCents: 0, totalCents: -(amount + extra), vatCents: -(vat + extraVat), costCents: 0, memberSavingsCents: -saved,
         pointsEarned: -earnedBack, note: a.reason,
       },
     });
@@ -329,7 +332,7 @@ export async function refundSale(a: {
 
     const date = dayKey(new Date());
     const delta: StoreStatDelta = {
-      storeId: orig.storeId, date, channel: orig.channel, refunds: 1, units: -units, grossCents: -amount, vatCents: -vat,
+      storeId: orig.storeId, date, channel: orig.channel, refunds: 1, units: -units, grossCents: -(amount + extra), vatCents: -(vat + extraVat),
       costCents: -cost, memberSavingsCents: -saved, offerCents: -offer, pointsIssued: -earnedBack,
     };
     for (const p of payments) {

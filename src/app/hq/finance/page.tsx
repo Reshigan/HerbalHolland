@@ -4,6 +4,7 @@ import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { franchiseFees, salesByDay, salesByStore, salesSummary } from "@/server/finance";
 import { cashWaitingByStore } from "@/server/reports/finance";
+import { supplierInvoiceSummary } from "@/server/supplier-invoices";
 import { resolveRange } from "@/lib/ranges";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { zar, zarCompact, pct, vatOnExcl } from "@/lib/money";
@@ -30,7 +31,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const r = resolveRange(sp, "mtd");
   const retail = await db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { id: true, code: true, name: true, region: { select: { name: true } }, company: { select: { vatNumber: true } } } });
   const rids = retail.map((s) => s.id);
-  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks] = await Promise.all([
+  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks, invoices] = await Promise.all([
     salesSummary(rids, r),
     salesByStore(rids, r),
     franchiseFees(rids, r),
@@ -45,6 +46,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
     // Cash banking, as of now: one aggregated row per store with unbanked cash, and deposit checks by status.
     cashWaitingByStore(rids),
     db.cashDeposit.groupBy({ by: ["status"], where: { storeId: { in: rids }, status: { in: ["RECORDED", "QUERIED"] } }, _count: true, _sum: { amountCents: true } }),
+    supplierInvoiceSummary(rids),
   ]);
 
   const regions = new Map<string, number>();
@@ -230,6 +232,24 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
           <p className="border-t border-ink-100 px-5 py-4 text-sm text-ink-500">No store has overdue cash.</p>
         )}
         {late.length > 6 && <p className="border-t border-ink-100 px-5 py-3 text-xs text-ink-500">{num(late.length - 6)} more stores have overdue cash — see the report.</p>}
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="Supplier invoices"
+          description="As of now · what stores owe the distribution centres, each other and outside suppliers, as captured in their back offices"
+          action={
+            <Link href="/hq/finance/supplier-invoices" className="text-xs font-semibold text-brand-700 hover:underline">
+              Per store →
+            </Link>
+          }
+        />
+        <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniStat label="Due" value={zarCompact(invoices.dueCents)} sub={`${num(invoices.due)} invoices`} />
+          <MiniStat label="Overdue" value={<span className={invoices.overdue ? "text-rose-600" : undefined}>{zarCompact(invoices.overdueCents)}</span>} sub={invoices.overdue ? `${num(invoices.overdue)} invoices past due` : "Nothing overdue"} />
+          <MiniStat label="Due within 7 days" value={zarCompact(invoices.dueSoonCents)} sub={`${num(invoices.dueSoon)} invoices`} />
+          <MiniStat label="Queried" value={num(invoices.queried)} sub={invoices.queried ? `${zarCompact(invoices.queriedCents)} in dispute` : "None open"} />
+        </CardBody>
       </Card>
 
       <Card className="mt-6">

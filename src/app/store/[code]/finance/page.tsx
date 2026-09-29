@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt } from "lucide-react";
+import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt, ReceiptText } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { monthRange, profitAndLoss, vatReport } from "@/server/finance";
+import { supplierInvoiceSummary } from "@/server/supplier-invoices";
 import { resolveRange } from "@/lib/ranges";
 import { pct, zar, zarCompact } from "@/lib/money";
 import { fmtMonth, dayKey } from "@/lib/format";
@@ -31,10 +32,11 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
     const d = new Date(Date.UTC(y, m - 1 - (5 - i), 1));
     return d.toISOString().slice(0, 7);
   });
-  const [pl, vat, trend] = await Promise.all([
+  const [pl, vat, trend, invoices] = await Promise.all([
     profitAndLoss(ids, r),
     vatReport(ids, r),
     Promise.all(months.map(async (m) => ({ month: m, pl: await profitAndLoss(ids, monthRange(m)) }))),
+    supplierInvoiceSummary(ids),
   ]);
   const firstWithData = trend.findIndex((t) => t.pl.revenue !== 0);
   const shown = firstWithData < 0 ? trend.slice(-3) : trend.slice(firstWithData);
@@ -162,10 +164,11 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         </CardBody>
       </Card>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { href: `${base}/cash-ups`, icon: Banknote, title: "Cash-ups", sub: "Shifts, floats and till variances" },
           { href: `${base}/expenses`, icon: Receipt, title: "Expenses", sub: "Capture rent, wages and bills" },
+          { href: `${base}/finance/supplier-invoices`, icon: ReceiptText, title: "Supplier invoices", sub: invoices.overdue ? `${invoices.overdue} overdue · ${zarCompact(invoices.dueCents)} due` : invoices.due ? `${zarCompact(invoices.dueCents)} due · ${invoices.dueSoon} due this week` : "Capture, pay and query invoices" },
           { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: "What you owe HQ, or HQ owes you" },
           { href: `${base}/reports`, icon: ChartColumn, title: "Reports", sub: "Sales, margins, stock and staff" },
         ].map((l) => (

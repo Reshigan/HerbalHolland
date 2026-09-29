@@ -13,6 +13,8 @@ import { api, errorText } from "./lib/api";
 import { countCash, DENOMINATIONS, denomLabel, isNote } from "./lib/rules";
 import { usePos } from "./context";
 import { CommissionTile } from "./commission-tile";
+import { DisplayCard, PrinterCard, TrainingCard } from "./hardware-panel";
+import { TrainingShiftCard } from "./training";
 import { Alert, Confirm, EmptyPanel, Field, PosButton, Spinner, TextArea } from "./ui";
 import type { BootShift, ZReport } from "@/server/pos/types";
 
@@ -33,7 +35,7 @@ export function ShiftPanel() {
     try {
       const r = await api<{ shift: BootShift | null; report: ZReport | null }>("/api/pos/shift");
       setX(r.report);
-      if ((r.shift?.id ?? null) !== (pos.boot.shift?.id ?? null)) pos.setShift(r.shift);
+      if (!pos.training && (r.shift?.id ?? null) !== (pos.boot.shift?.id ?? null)) pos.setShift(r.shift);
     } catch (e) {
       setError(errorText(e));
     }
@@ -46,7 +48,9 @@ export function ShiftPanel() {
       <div className="mx-auto grid max-w-6xl gap-5 px-4 py-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-5">
           {error && <Alert>{error}</Alert>}
-          {closed ? (
+          {pos.training ? (
+            <TrainingShiftCard />
+          ) : closed ? (
             <ZReportCard report={closed} onPrint={() => pos.print({ kind: "z", report: closed })} onDone={() => setClosed(null)} />
           ) : shift ? (
             <CloseShift shift={shift} x={x} onClosed={(r) => (setClosed(r), pos.setShift(null))} />
@@ -56,9 +60,12 @@ export function ShiftPanel() {
         </div>
         <div className="space-y-5">
           <CommissionTile />
-          {shift && x && !closed && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
-          {!shift && !closed && <LastShift />}
+          {shift && x && !closed && !pos.training && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
+          {!shift && !closed && !pos.training && <LastShift />}
           <DeviceCard />
+          <PrinterCard />
+          <DisplayCard />
+          <TrainingCard />
         </div>
       </div>
     </div>

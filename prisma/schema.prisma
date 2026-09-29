@@ -1608,3 +1608,100 @@ model ReturnRequest {
   @@index([storeId, status])
   @@index([orderId])
 }
+
+// ── Operations: staff push, supplier invoices, opening checklist, scheduled exports ──
+// Plain id columns (no relations), so these models append without touching the core models above.
+
+/// Web Push subscription for a staff member's phone (one per browser/device): new online orders, low stock,
+/// expiring batches, cash to bank, loss alerts about others and HQ updates that need acknowledging.
+model StaffPushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  endpoint   String    @unique
+  p256dh     String // the subscription's keys
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+}
+
+/// Staff pushes already sent (key = event + subject), so a poll never notifies twice; pruned after 60 days.
+model StaffPushEvent {
+  key    String   @id
+  sentAt DateTime @default(now())
+}
+
+enum SupplierInvoiceStatus {
+  DUE
+  PAID
+  QUERIED
+}
+
+/// A supplier's invoice to a store (DC wholesale, network trading or an outside supplier), with its photo or PDF,
+/// captured when the delivery is received or from Finance → Supplier invoices; paid or queried from there.
+model SupplierInvoice {
+  id           String                @id @default(cuid())
+  storeId      String
+  supplierName String
+  number       String
+  invoiceDate  DateTime              @db.Date
+  dueDate      DateTime              @db.Date
+  totalCents   Int // incl. VAT
+  vatCents     Int                   @default(0)
+  uploadId     String                @unique // the Upload holding the photo or PDF
+  stockOrderId String? // the stock order it invoices, when captured at receiving
+  status       SupplierInvoiceStatus @default(DUE)
+  paidAt       DateTime?
+  paidById     String?
+  note         String?
+  createdById  String
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([storeId, status, dueDate])
+  @@index([stockOrderId])
+}
+
+/// One item of a store's opening checklist (seeded from the template in @/lib/opening when HQ onboards a store).
+model StoreTask {
+  id        String    @id @default(cuid())
+  storeId   String
+  key       String
+  title     String
+  group     String
+  sortOrder Int       @default(0)
+  dueAt     DateTime?
+  doneAt    DateTime?
+  doneById  String?
+  note      String?
+  createdAt DateTime  @default(now())
+
+  @@unique([storeId, key])
+  @@index([storeId, doneAt])
+}
+
+enum ExportCadence {
+  WEEKLY
+  MONTHLY
+}
+
+/// "Email me this weekly/monthly": a report run by the daily job as the person who scheduled it (their scope),
+/// stored as a CSV and sent to staff recipients as a signed download link.
+model ScheduledExport {
+  id         String        @id @default(cuid())
+  userId     String
+  reportKey  String
+  params     Json // the report's query (scope, stores, range, category, channel…)
+  cadence    ExportCadence
+  dayOfWeek  Int? // weekly: 1 = Monday … 7 = Sunday (SAST)
+  dayOfMonth Int? // monthly: 1–28
+  recipients String[]      @default([]) // staff email addresses
+  lastRunAt  DateTime?
+  active     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+
+  @@index([userId, reportKey])
+  @@index([active, cadence])
+}

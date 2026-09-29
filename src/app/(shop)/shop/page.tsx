@@ -8,6 +8,7 @@ import { getPreferredStore } from "@/server/shop/context";
 import { db } from "@/server/db";
 import { ProductGrid } from "@/components/shop/product-card";
 import { AutoSubmitSelect } from "@/components/shop/auto-submit";
+import { RecentSearches } from "@/components/shop/recent-searches";
 import { Callout, Chip, Container, Pager, inputClass } from "@/components/shop/ui";
 import { JsonLd } from "@/components/shop/json-ld";
 import { buttonClass } from "@/components/ui/button";
@@ -92,6 +93,17 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <input id="shop-q" name="q" defaultValue={q} placeholder="Search oils, grinders, tees…" className={cn(inputClass, "h-12 rounded-full pl-11")} />
         </Form>
       </div>
+      {/* Recent searches stay in the member's browser; visitors get none (nothing to remember them by). */}
+      {customer && <RecentSearches current={q} className="mt-3 flex flex-wrap items-center gap-2" />}
+      {res.suggestion && (
+        <p className="mt-4 text-sm text-ink-300" data-testid="did-you-mean">
+          Did you mean{" "}
+          <Link href={href({ q: res.suggestion, page: undefined })} className="font-semibold text-brand-300 underline">
+            {res.suggestion}
+          </Link>
+          ?
+        </p>
+      )}
 
       {/* Categories */}
       <div className="scrollbar-none -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Categories">
@@ -153,8 +165,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         ) : (
           <div className="rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
             <Search className="mx-auto h-8 w-8 text-ink-600" />
-            <h2 className="mt-4 font-display text-xl font-semibold text-white">Nothing matches those filters</h2>
-            <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Try a different mood or price range — or ask the team at your store; they&apos;re happy to help.</p>
+            <h2 className="mt-4 font-display text-xl font-semibold text-white">{q ? `Nothing matches “${q}”` : "Nothing matches those filters"}</h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">{q ? "Check the spelling, try fewer words, or search by what it is — oil, cream, coffee, grinder — and its size, like 600mg or 30ml." : "Try a different mood or price range — or ask the team at your store; they're happy to help."}</p>
             <Link href="/shop" className={buttonClass("outline-dark", "md", "mt-6")}>
               Clear filters
             </Link>

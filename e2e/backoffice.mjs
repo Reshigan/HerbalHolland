@@ -165,6 +165,32 @@ try {
   await tv.close();
 
   // ───────────────────────────────────────────────────────────────────────────
+  step("Today: the manager's prioritised list on the overview matches the store's open work");
+  const todayCard = page.getByTestId("today-list");
+  await todayCard.waitFor();
+  const todayRows = todayCard.getByRole("listitem");
+  const todayCount = await todayRows.count();
+  const openOrders = (await one(`select count(*)::int n from "Order" where "storeId" = $1 and status in ('PLACED', 'PICKING', 'READY')`, [store.id])).n;
+  const pendingAcks = (
+    await one(
+      `select count(*)::int n from "Announcement" a where a."requiresAck" and a.audience in ('ALL', 'format:' || (select format from "Store" where id = $1), 'region:' || (select r.code from "Region" r join "Store" s on s."regionId" = r.id where s.id = $1))
+         and not exists (select 1 from "AnnouncementAck" k where k."announcementId" = a.id and k."storeId" = $1)`,
+      [store.id],
+    )
+  ).n;
+  if (todayCount === 0) assert(await todayCard.getByText("All clear").isVisible(), "nothing to do: the list says All clear");
+  else {
+    const text = await todayCard.innerText();
+    const orderRow = todayRows.filter({ hasText: /online orders? to fulfil/ });
+    assert((await orderRow.count()) === (openOrders ? 1 : 0), openOrders ? `${openOrders} open online orders → one row (${(await orderRow.innerText()).split("\n")[0]})` : "no open orders → no orders row");
+    if (openOrders) assert((await orderRow.getAttribute("href")) === null && (await orderRow.locator("a").getAttribute("href")) === `/store/${CODE}/orders`, "the orders row links to Online orders");
+    assert(((await todayRows.filter({ hasText: /HQ updates? to acknowledge/ }).count()) === 1) === pendingAcks > 0, pendingAcks ? `${pendingAcks} HQ updates to acknowledge → one row` : "no updates → no HQ row");
+    const labels = (text.match(/\b(NOW|TODAY|SOON)\b/g) ?? []).map((l) => ["NOW", "TODAY", "SOON"].indexOf(l));
+    assert(labels.length === todayCount && labels.every((l, i) => i === 0 || l >= labels[i - 1]), `${todayCount} rows, most urgent first (${labels.map((l) => ["now", "today", "soon"][l]).join(" › ")})`);
+  }
+  await shot(page, "today-list");
+
+  // ───────────────────────────────────────────────────────────────────────────
   step("Members: enrol a walk-in adult (deals question + interests, key terms)");
   await visit(page, `/store/${CODE}/customers`, page.getByRole("button", { name: "Add member" }));
   await page.getByRole("button", { name: "Add member" }).click();

@@ -23,6 +23,7 @@ export function CustomerSheet({
   joinUrl,
   minAge,
   initialQuery,
+  training = false,
 }: {
   open: boolean;
   mode: "find" | "new";
@@ -33,6 +34,8 @@ export function CustomerSheet({
   joinUrl: string;
   minAge: number;
   initialQuery?: string;
+  /** Training mode: sign-ups are simulated on the till (nothing is written). */
+  training?: boolean;
 }) {
   return (
     <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name, member number — or scan their member QR" : "Takes about 20 seconds"} size="lg">
@@ -51,7 +54,7 @@ export function CustomerSheet({
       ) : mode === "find" ? (
         <FindMember onPick={onPick} initialQuery={initialQuery} />
       ) : (
-        <NewMember onCreated={onPick} joinUrl={joinUrl} minAge={minAge} />
+        <NewMember onCreated={onPick} joinUrl={joinUrl} minAge={minAge} training={training} />
       )}
     </Sheet>
   );
@@ -149,7 +152,7 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
   );
 }
 
-function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number }) {
+function NewMember({ onCreated, joinUrl, minAge, training }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number; training?: boolean }) {
   const [f, setF] = useState({ phone: "", firstName: "", lastName: "", email: "", idNumber: "" });
   const [passport, setPassport] = useState(false);
   const [deals, setDeals] = useState<boolean | null>(null);
@@ -178,6 +181,14 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
     if (!valid) return;
     setBusy(true);
     setError(null);
+    if (training) {
+      // Practice sign-up: a member that exists on this till only, for this practice sale.
+      const dobIso = id?.ok ? id.dob.toISOString() : dob ? new Date(`${dob}T00:00:00Z`).toISOString() : null;
+      const age = dobIso ? ageOn(new Date(dobIso)) : null;
+      onCreated({ ...offlineMember("HH9999999"), id: "", firstName: f.firstName.trim() || "Trainee", lastName: f.lastName.trim() || null, email: f.email.trim() || null, ageVerified: true, ageCheck: f.idNumber ? "ID_NUMBER" : "ID_SIGHTED", age, offline: false });
+      setBusy(false);
+      return;
+    }
     try {
       const r = await api<{ customer: CustomerDetail }>("/api/pos/customers", {
         body: { ...f, email: f.email.trim(), idNumber: f.idNumber.replace(/\s/g, "") || undefined, passportSighted: passport && !f.idNumber, dob: passport && !f.idNumber ? dob : undefined, deals, interests, acceptTerms: terms },
@@ -193,6 +204,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_15rem]">
       <form onSubmit={submit} className="space-y-4" noValidate>
+        {training && <Alert tone="warn">Training — this sign-up is practice only: no member is created and nothing is sent.</Alert>}
         {error && <Alert>{error}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Mobile number" htmlFor="nm-phone" error={touched && !phoneOk ? "Enter a South African mobile number" : undefined}>

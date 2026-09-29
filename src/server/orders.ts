@@ -10,7 +10,7 @@ import { evaluateBasket } from "./compliance";
 import { getSettings } from "./settings";
 import { redeemPoints, addPoints } from "./loyalty";
 import { postSaleTx, type TenderInput } from "./sales";
-import { notifyCustomer } from "./messaging";
+import { notifyOrder } from "./messaging";
 import { audit, type Actor } from "./audit";
 import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
@@ -168,10 +168,10 @@ export async function placeOrder(input: CheckoutInput) {
   return order;
 }
 
+// The member hears by text (and email, when they gave one): copy in @/lib/sms and email-templates.ts.
 async function notifyPlaced(orderId: string) {
-  const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { customer: true, store: true } });
-  const how = o.fulfilment === "COLLECT" ? `for collection at ${o.store.name}` : "for delivery";
-  await notifyCustomer(o.customer, `Herbal Holland: order ${o.code} received ${how}. We'll let you know when it's ready. Track: /orders/${o.code}`);
+  const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { customer: true, store: true, lines: { include: { variant: { include: { product: { select: { name: true } } } } } } } });
+  await notifyOrder(o, "placed");
 }
 
 /** Confirms an online payment (the simulated gateway, or a gateway's verified webhook): the order goes to the store. Safe to repeat. */
@@ -429,14 +429,72 @@ export async function advanceOrder(
     return t.order.update({ where: { id: o.id }, data });
   });
 
-  const msg: Partial<Record<OrderStatus, string>> = {
-    READY: `Herbal Holland: order ${o.code} is ready at ${o.store.name}. Show code ${o.collectionCode} and your ID (18+) to collect.`,
-    OUT_FOR_DELIVERY: `Herbal Holland: order ${o.code} is on its way${opts.trackingNo ? ` (${opts.courier ?? "courier"} tracking ${opts.trackingNo})` : ""}.${ageRestricted ? " Have your ID (18+) ready for the driver." : ""}`,
-    COMPLETED: `Herbal Holland: order ${o.code} complete. Thanks — your points have been added.`,
-    CANCELLED: `Herbal Holland: order ${o.code} was cancelled. Any payment or points used have been returned.`,
+  const event: Partial<Record<OrderStatus, "ready" | "dispatched" | "delivered" | "collected" | "cancelled">> = {
+    READY: "ready",
+    OUT_FOR_DELIVERY: "dispatched",
+    COMPLETED: o.fulfilment === "COLLECT" ? "collected" : "delivered",
+    CANCELLED: "cancelled",
   };
   // Delivery orders are "ready" only on the packing bench: the customer hears when they're on the way.
-  if (msg[to] && !(to === "READY" && o.fulfilment !== "COLLECT")) await notifyCustomer(o.customer, msg[to]!);
+  if (event[to] && !(to === "READY" && o.fulfilment !== "COLLECT"))
+    await notifyOrder(o, event[to]!, { courier: updated.courier, trackingNo: updated.trackingNo, ageRestricted, refunded: to === "CANCELLED" && o.paymentStatus === "PAID" });
   if (postedSaleId && o.customer.email) queueSaleInvoice(postedSaleId, o.customer.email);
   return updated;
+}
+
+// ── Returns: refunding part of a paid order ───────────────────────────────────
+
+export type OrderRefund = { channel: HostedGateway | "MANUAL" | "TEST"; refundId: string | null; status: string; note: string };
+
+/**
+ * Refunds `cents` of an order's payment for a return (ReturnRequest `returnId`), through the gateway that took the
+ * money: Yoco with the Idempotency-Key `<orderId>:return:<returnId>`; Peach with the running total of what the order's
+ * returns have refunded (Peach refunds only what's left of that total, so a retry never refunds twice). Orders paid in
+ * store, or in the simulated gateway, are refunded by hand and recorded with the reference given. Sets the return's
+ * refundRef and refundCents, adds the refund to the order's timeline, audits it (order.refund) and marks the order
+ * refunded once every cent paid in money is back. Any gateway error stops here, and staff see why.
+ */
+export async function refundOrderAmount(orderId: string, cents: number, reason: string, opts: { returnId: string; actor: Actor; manualRef?: string | null }): Promise<OrderRefund> {
+  if (!Number.isInteger(cents) || cents <= 0) throw new OrderError("Nothing to refund");
+  const o = await db.order.findUniqueOrThrow({ where: { id: orderId } });
+  const ret = await db.returnRequest.findFirst({ where: { id: opts.returnId, orderId } });
+  if (!ret) throw new OrderError("That return isn't on this order");
+  if (ret.refundRef) throw new OrderError(`${ret.number} has already been refunded (${ret.refundRef})`);
+  if (o.paymentStatus !== "PAID") throw new OrderError(o.paymentStatus === "REFUNDED" ? "This order has already been refunded in full" : "This order hasn't been paid");
+  const due = o.totalCents - o.pointsRedeemed * 100;
+  const before = (await db.returnRequest.aggregate({ where: { orderId, status: "REFUNDED", NOT: { id: ret.id } }, _sum: { refundCents: true } }))._sum.refundCents ?? 0;
+  if (before + cents > due) throw new OrderError(`Only ${zar(Math.max(0, due - before))} of this order is left to refund`);
+
+  const gateway = paidOnlineWith(o);
+  const meta = { orderId: o.id, orderCode: o.code, returnId: ret.id, returnNumber: ret.number };
+  let r: OrderRefund;
+  if (!gateway) {
+    const ref = opts.manualRef?.trim();
+    if (!ref) throw new OrderError(o.payMethod === "ONLINE" ? "This order was paid in the simulated gateway: refund it by hand and record the reference" : "This order was paid in store: refund at the till or by EFT and record the reference");
+    r = { channel: "MANUAL", refundId: ref.slice(0, 80), status: "recorded", note: `Refunded ${zar(cents)} by hand (${ref.slice(0, 80)})` };
+  } else if (gateway === "YOCO" && yocoTestMode()) {
+    r = { channel: "TEST", refundId: null, status: "test", note: "Yoco test payment: nothing to refund" }; // Yoco can't refund test payments
+  } else {
+    const { name } = GATEWAYS[gateway];
+    try {
+      const g =
+        gateway === "YOCO"
+          ? await refundYocoCheckout(o.paymentRef!, cents, `${o.id}:return:${ret.id}`, meta)
+          : await refundPeachPayment(o.paymentRef!, before + cents, reason, meta);
+      r = { channel: gateway, refundId: g.refundId, status: g.status, note: `Refunded ${zar(cents)} by ${name} (refund ${g.refundId}, ${g.status})` };
+    } catch (e) {
+      throw new OrderError(`${name} didn't refund ${zar(cents)}. ${(e as Error).message}`);
+    }
+  }
+
+  const events = [...(o.events as Event[]), { status: o.status, at: new Date().toISOString(), note: `${ret.number}: ${r.note}` }];
+  await tx(async (t) => {
+    await t.returnRequest.update({ where: { id: ret.id }, data: { refundRef: r.refundId ?? r.channel, refundCents: cents } });
+    await t.order.update({ where: { id: o.id }, data: { events, ...(before + cents >= due ? { paymentStatus: "REFUNDED" } : {}) } });
+    await audit(t, opts.actor, "order.refund", {
+      storeId: o.storeId, entity: "Order", entityId: o.id,
+      data: { returnId: ret.id, returnNumber: ret.number, amount: cents, channel: r.channel, refundId: r.refundId, refundStatus: r.status, reason },
+    });
+  });
+  return r;
 }

@@ -29,10 +29,11 @@ const config: NextConfig = {
   output: "standalone",
   poweredByHeader: false,
   serverExternalPackages: ["pg", "nodemailer"],
-  // Banking slips (photos or PDFs up to 10 MB) are posted through a server action.
+  // Banking slips (photos or PDFs up to 10 MB) and members' photos (up to three of 5 MB with a review or a return) are
+  // posted through server actions.
   // (experimental.inlineCss was tried and rejected: Next also copies the 130 KB stylesheet into the RSC payload, so the
   // HTML more than doubled; the external, cached stylesheet is cheaper.)
-  experimental: { serverActions: { bodySizeLimit: "11mb" } },
+  experimental: { serverActions: { bodySizeLimit: "16mb" } },
   async headers() {
     return [{ source: "/(.*)", headers: securityHeaders }];
   },

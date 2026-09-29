@@ -44,6 +44,8 @@ type Props = {
   scopeLabel: string;
   rangeLabel: string;
   clamped?: boolean;
+  /** Extra header actions (e.g. the HQ "Email me this" schedule control). */
+  extraActions?: React.ReactNode;
 };
 
 function tileValue(v: number | string | null, format?: Format) {
@@ -62,7 +64,7 @@ function SecondaryTable({ t }: { t: Table }) {
   );
 }
 
-export function ReportView({ def, result, controls, query, path, catalogueHref, csvHref, scopeLabel, rangeLabel, clamped }: Props) {
+export function ReportView({ def, result, controls, query, path, catalogueHref, csvHref, scopeLabel, rangeLabel, clamped, extraActions }: Props) {
   const tiles = result.summary ?? [];
   const chart = result.rows.length || result.chart?.kind === "area" ? result.chart : null;
   const aside = !!chart && (chart.kind === "bar" || chart.kind === "donut");
@@ -111,6 +113,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
         actions={
           <div className="flex flex-wrap gap-2 print:hidden">
             <PrintButton />
+            {extraActions}
             {download}
           </div>
         }

@@ -9,8 +9,10 @@ import { checkCompliance, incentiveExcluded } from "@/lib/compliance";
 import { zar, zarWhole } from "@/lib/money";
 import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
-import { classifyBlock, dropIndex, memberNoFrom, offlineMember, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
+import { classifyBlock, dropIndex, memberNoFrom, offlineMember, parseBatchScan, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
 import { EMPTY_CART, type Cart, type SalePayload } from "../lib/storage";
+import { buildSnapshot } from "../lib/display";
+import { printerPaired } from "../lib/print";
 import { usePos } from "../context";
 import { Confirm, PosButton, Sheet } from "../ui";
 import { Catalog, type Filter } from "./catalog";
@@ -19,7 +21,9 @@ import { CustomerSheet } from "./customer-sheet";
 import { ComplianceSheet } from "./compliance-sheet";
 import { PaymentSheet, FULL_INVOICE_OVER_CENTS, type PaymentResult } from "./payment-sheet";
 import { ReceiptSheet } from "./receipt-sheet";
-import { CameraScanner, cameraScanSupported } from "./scanner";
+import { CameraScanner } from "./scanner";
+import { BatchSheet } from "./batch-sheet";
+import type { BatchLookup } from "@/server/pos/batch";
 import type { BootDrop, CheckInDTO, ComplianceDTO, CustomerDetail, CustomerHit, QuoteDTO, ReceiptDTO } from "@/server/pos/types";
 
 export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: () => void; scan: (code: string) => void; add: (variantId: string) => void };
@@ -43,15 +47,15 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const [payRef, setPayRef] = useState("");
   const [done, setDone] = useState<{ receipt: ReceiptDTO; invoiceTo: string | null } | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
-  const [canCamera, setCanCamera] = useState(false);
+  const [batch, setBatch] = useState<BatchLookup | null>(null);
+  const [payProgress, setPayProgress] = useState<{ dueCents: number; paidCents: number; tapping: boolean; method: string | null } | null>(null);
   const resumeCheckout = useRef(false);
+  const training = !!pos.training;
 
   const cartRef = useRef(cart);
   cartRef.current = cart;
   const onlineRef = useRef(online);
   onlineRef.current = online;
-
-  useEffect(() => setCanCamera(cameraScanSupported()), []);
 
   const licensedClasses = boot.settings.compliance.licensedOnly;
   const index: VariantIndex = useMemo(() => {
@@ -162,16 +166,39 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       if (hit) {
         add(hit.variant.id);
         pos.toast(`Added ${hit.product.name} · ${hit.variant.name}`);
-      } else pos.toast(`Nothing on this till matches “${code}”`, "error");
+        return;
+      }
+      const batchCode = parseBatchScan(code);
+      if (batchCode) {
+        void lookupBatchRef.current(batchCode); // the code on a pack, or its lab-certificate QR → the batch
+        return;
+      }
+      pos.toast(`Nothing on this till matches “${code}”`, "error");
     },
     [index, add, pos],
   );
+
+  /** Batch code → status, dates, potency and stock of that lot here (read-only; needs the connection). */
+  const lookupBatch = async (code: string) => {
+    if (!onlineRef.current) {
+      pos.toast(`Batch ${code}: looking up a batch needs a connection`, "warn");
+      return;
+    }
+    try {
+      const r = await api<{ batch: BatchLookup }>(`/api/pos/batch?code=${encodeURIComponent(code)}`);
+      setBatch(r.batch);
+    } catch (e) {
+      pos.toast(errorText(e), "error");
+    }
+  };
+  const lookupBatchRef = useRef(lookupBatch);
+  lookupBatchRef.current = lookupBatch;
 
   const submitSearch = () => {
     const q = query.trim();
     if (!q) return;
     const exact = [...index.values()].find((e) => e.variant.barcode === q || e.variant.sku.toLowerCase() === q.toLowerCase());
-    if (exact || memberNoFrom(q) || parseOrderQr(q) || rsvpTicketFrom(q)) {
+    if (exact || memberNoFrom(q) || parseOrderQr(q) || rsvpTicketFrom(q) || parseBatchScan(q)) {
       scan(q);
       setQuery("");
       return;
@@ -292,9 +319,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     setCompBusy(true);
     setCompError(null);
     try {
-      if (c.customer && onlineRef.current) {
+      if (c.customer && onlineRef.current && !training) {
         const r = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${c.customer.id}/age-check`, { body: { method, idNumber } });
         await recheckWith({ ...c, customer: r.customer });
+      } else if (c.customer && training) {
+        // Training: the member's record is never written — the check counts for this practice sale only.
+        await recheckWith({ ...c, customer: { ...c.customer, ageVerified: true, ageCheck: method }, ageCheck: method });
       } else await recheckWith({ ...c, ageCheck: method });
     } catch (e) {
       setCompError(errorText(e));
@@ -362,10 +392,16 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     setStage(null);
     setPayQuote(null);
     setComp(null);
+    setPayProgress(null);
     setFilter({ kind: "all" });
     pos.setBusy(false);
     setDone({ receipt, invoiceTo });
-    if (!receipt.queued) void pos.refreshBoot();
+    if (!receipt.queued && !receipt.training) void pos.refreshBoot();
+    // Paired printer: print with the sale (the drawer pulse rides on the receipt for cash); no printer: the Print
+    // button stays. The drawer opens on cash either way when the setting is on (never in training).
+    const cash = receipt.payments.some((p) => p.method === "CASH");
+    if (printerPaired(pos.printer) && pos.printer.autoPrint) pos.print({ kind: "receipt", receipt, drawer: cash });
+    else if (cash) pos.openDrawer("cash");
   };
 
   const completeSale = async (r: PaymentResult) => {
@@ -391,6 +427,14 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       invoiceEmail: null,
       staffId: me.id,
     };
+    if (training) {
+      // Sandbox: nothing is posted, queued, printed for real, taken from stock or awarded — the receipt says so.
+      pos.commitSeq(seq);
+      const receipt: ReceiptDTO = { ...localReceipt(payload, q, c), offline: false, queued: false, training: true, title: boot.store.vatRegistered ? "Tax invoice" : "Invoice" };
+      pos.trainingSale(receipt);
+      finish(receipt, null, c);
+      return;
+    }
     if (!payload.offline) {
       try {
         const res = await api<{ receipt: ReceiptDTO; invoiceTo: string | null }>("/api/pos/sales", { body: payload, timeoutMs: 30_000 });
@@ -424,6 +468,28 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       add,
     };
   });
+
+  // Customer display: what the person being served may see, on every change of the sale.
+  const { display: publishDisplay, idleMessages } = pos;
+  useEffect(() => {
+    publishDisplay(
+      buildSnapshot({
+        store: { name: boot.store.name, code: boot.store.code },
+        cart,
+        quote,
+        productOf: (id) => {
+          const e = index.get(id);
+          return e && { name: e.product.name, variantName: e.variant.name, regClass: e.product.regClass };
+        },
+        licensedClasses,
+        stage: done ? "done" : stage === "payment" ? "pay" : "basket",
+        pay: payProgress,
+        done: done?.receipt ?? null,
+        idle: idleMessages,
+        training,
+      }),
+    );
+  }, [publishDisplay, boot.store.name, boot.store.code, cart, quote, index, licensedClasses, stage, payProgress, done, idleMessages, training]);
 
   /** Member card QR / member number → attach the member (prices re-quote at their tier). */
   const attachMember = async (memberNo: string) => {
@@ -522,7 +588,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           onFind={() => setCustSheet("find")}
           onNew={() => setCustSheet("new")}
           onDetach={() => setCart((c) => ({ ...c, customer: null, ageCheck: null }))}
-          onScan={canCamera ? () => setScanning("member") : undefined}
+          onScan={() => setScanning("member")}
         />
       }
     />
@@ -541,7 +607,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             setQuery={setQuery}
             onSubmitSearch={submitSearch}
             onAdd={add}
-            onScanCamera={canCamera ? () => setScanning("product") : undefined}
+            onScanCamera={() => setScanning("product")}
             licensedClasses={licensedClasses}
             drops={drops}
             // Phones and portrait tablets: a first-time member's welcome gift is one tap from the catalogue.
@@ -591,7 +657,10 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         joinUrl={boot.joinUrl}
         minAge={boot.settings.compliance.minAge}
         initialQuery={custQuery}
+        training={training}
       />
+
+      <BatchSheet batch={batch} onTill={!!batch && index.has(batch.variant.id)} onAdd={add} onClose={() => setBatch(null)} />
 
       <CameraScanner
         open={!!scanning}
@@ -637,12 +706,13 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           offerCents={payQuote.offerCents ?? 0}
           reference={payRef}
           online={online}
-          tapProvider={boot.tapProvider}
+          tapProvider={training ? "SIMULATED" : boot.tapProvider}
           storeCode={boot.store.code}
           points={cart.customer ? { balance: cart.customer.points, eligibleCents: redeemableCents(payQuote), minRedeem: boot.settings.loyalty.minRedeem } : null}
           needsBuyer={payQuote.totalCents > FULL_INVOICE_OVER_CENTS}
           onComplete={completeSale}
-          onClose={() => (setStage(null), pos.setBusy(false))}
+          onProgress={setPayProgress}
+          onClose={() => (setStage(null), setPayProgress(null), pos.setBusy(false))}
         />
       )}
 

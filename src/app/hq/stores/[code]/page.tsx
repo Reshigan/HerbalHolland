@@ -4,6 +4,8 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { kpis, stockAlerts, orderQueue } from "@/server/dashboard";
+import { todayList } from "@/server/today";
+import { checklist } from "@/server/store-tasks";
 import { can } from "@/server/hq/guard";
 import { titleCase, FORMATS, STATUSES } from "@/server/hq/stores";
 import { resolveRange } from "@/lib/ranges";
@@ -24,6 +26,9 @@ import { AreaChart } from "@/components/charts/area-chart";
 import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { saveCompany, saveStoreFees, saveStoreProfile, saveStoreStatus } from "../actions";
+import { markTaskDone, markTaskOpen, startChecklist } from "./actions";
+import { TodayList } from "@/components/store/today-list";
+import { OpeningChecklist } from "@/components/hq/checklist";
 import { saveLicences } from "../../compliance/actions";
 
 export const metadata = { title: "Store" };
@@ -39,7 +44,8 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
   const store = await storeForUser(user, code);
   const r = resolveRange({ range: "30d" });
   const retail = store.kind === "RETAIL";
-  const [k, alerts, queue, members, regions, dcs, siblings, users] = await Promise.all([
+  const now = new Date();
+  const [k, alerts, queue, members, regions, dcs, siblings, users, today, tasks] = await Promise.all([
     kpis([store.id], r),
     stockAlerts([store.id]),
     orderQueue([store.id]),
@@ -48,6 +54,8 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
     db.store.findMany({ where: { kind: "WAREHOUSE" }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
     db.store.findMany({ where: { companyId: store.companyId, id: { not: store.id, in: ids } }, select: { code: true, name: true, status: true }, orderBy: { code: "asc" } }),
     db.user.count({ where: { storeId: store.id, active: true } }),
+    retail ? todayList(store, user, now) : null,
+    retail ? checklist(store.id, now) : null,
   ]);
   const c = k.cur;
   const openOrders = (queue.PLACED ?? 0) + (queue.PICKING ?? 0) + (queue.READY ?? 0);
@@ -84,8 +92,13 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
         <Stat label="Open online orders" value={num(openOrders)} sub={`${alerts.low} SKUs at reorder point`} />
       </div>
 
+      {today && <TodayList items={today} className="mt-6" title={`Today at ${store.name}`} description={today.length ? undefined : "Nothing needs the store's attention right now"} />}
+
       <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="space-y-6 xl:col-span-2">
+          {tasks && (tasks.tasks.length > 0 || store.status !== "ACTIVE" || editProfile) && (
+            <OpeningChecklist data={tasks} now={now} canEdit={editProfile} storeName={store.name} onStart={startChecklist.bind(null, store.id)} onDone={(id) => markTaskDone.bind(null, store.id, id)} onReopen={(id) => markTaskOpen.bind(null, store.id, id)} />
+          )}
           <Card>
             <CardHeader title="Net sales" description="Daily, ex VAT, last 30 days" />
             <CardBody>

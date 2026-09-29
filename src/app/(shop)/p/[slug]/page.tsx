@@ -382,6 +382,10 @@ export default async function ProductPage({
   const base = siteUrl();
   const reviewRows: Awaited<ReturnType<typeof productReviews>>["rows"] =
     reviews.rows;
+  // Members' photos, newest first, at most eight in the gallery (every review keeps its own underneath).
+  const reviewPhotos = reviewRows
+    .flatMap((r) => r.photoUploadIds.map((id) => ({ id, by: r.customer.firstName })))
+    .slice(0, 8);
   const availabilityOf = (
     v: (typeof product.variants)[number],
   ): Availability =>
@@ -1207,6 +1211,23 @@ export default async function ProductPage({
                       </ul>
                     </div>
                     <ul className="space-y-4">
+                      {reviewPhotos.length > 0 && (
+                        <li>
+                          <h3 className="text-sm font-semibold text-ink-200">
+                            Photos from members
+                          </h3>
+                          <ul className="mt-2 flex flex-wrap gap-2" aria-label="Members' photos">
+                            {reviewPhotos.map((ph) => (
+                              <li key={ph.id}>
+                                <a href={`/media/${ph.id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl ring-1 ring-ink-700 transition hover:ring-brand-500">
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img src={`/media/${ph.id}`} alt={`Photo from ${ph.by}`} loading="lazy" className="h-20 w-20 object-cover" />
+                                </a>
+                              </li>
+                            ))}
+                          </ul>
+                        </li>
+                      )}
                       {reviews.rows.map((r) => (
                         <li
                           key={r.id}
@@ -1227,6 +1248,18 @@ export default async function ProductPage({
                             <p className="mt-1 text-sm leading-relaxed text-ink-300">
                               {r.body}
                             </p>
+                          )}
+                          {r.photoUploadIds.length > 0 && (
+                            <ul className="mt-3 flex flex-wrap gap-2" aria-label="Photos with this review">
+                              {r.photoUploadIds.map((id) => (
+                                <li key={id}>
+                                  <a href={`/media/${id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-lg ring-1 ring-ink-700 transition hover:ring-brand-500">
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img src={`/media/${id}`} alt="" loading="lazy" className="h-14 w-14 object-cover" />
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
                           )}
                           <p className="mt-3 flex items-center gap-1.5 text-xs text-ink-400">
                             <BadgeCheck className="h-3.5 w-3.5 text-leaf-500" />{" "}

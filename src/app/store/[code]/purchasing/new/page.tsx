@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
-import { replenishmentPlan } from "@/server/replenishment";
+import { COVER_DAYS, LEAD_DAYS, replenishmentPlan } from "@/server/replenishment";
 import { fmtDate } from "@/lib/format";
 import { placeWholesaleOrder } from "../actions";
 import { OrderBuilder } from "./order-builder";
@@ -28,7 +28,7 @@ export default async function NewOrderPage({ params }: { params: Promise<{ code:
       <PageHeader
         overline={`Buying · ${store.name}`}
         title="New order"
-        description={`Suggested quantities top each item up to par or 17 days of sales, allowing for stock already on order. Wholesale prices are ex VAT; ${dcName} confirms and ships.`}
+        description={`Suggested quantities come from a 14-day sales forecast: enough for the ${LEAD_DAYS}-day lead time plus ${COVER_DAYS} days of cover and safety stock (never below par), allowing for stock already on order. Wholesale prices are ex VAT; ${dcName} confirms and ships.`}
       />
       {!store.dcId && <Notice tone="warn" className="mb-4">Your store isn&apos;t linked to a distribution centre yet — ask HQ to set one up before ordering.</Notice>}
       {open.length > 0 && (
@@ -60,6 +60,8 @@ export default async function NewOrderPage({ params }: { params: Promise<{ code:
             parLevel: r.parLevel,
             avgDaily: r.avgDaily,
             cover: Number.isFinite(r.cover) ? r.cover : null,
+            forecastPerWeek: r.forecastPerWeek,
+            safetyStock: r.safetyStock,
             wholesaleCents: r.wholesaleCents,
             suggested: r.suggested,
           }))}

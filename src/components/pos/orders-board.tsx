@@ -12,7 +12,7 @@ import { orderSla, parseOrderQr } from "./lib/rules";
 import { usePos } from "./context";
 import { Alert, CheckRow, Chip, EmptyPanel, Field, PosButton, Segmented, SelectInput, Sheet, Spinner, TextInput, TextArea } from "./ui";
 import { PaymentSheet, type PaymentResult } from "./sell/payment-sheet";
-import { CameraScanner, cameraScanSupported } from "./sell/scanner";
+import { CameraScanner } from "./sell/scanner";
 import type { OrderCard } from "@/server/pos/types";
 
 type Column = "new" | "picking" | "ready" | "handover";
@@ -261,8 +261,7 @@ function OrderSheet({
   const [busy, setBusy] = useState(false);
   const [paying, setPaying] = useState(false);
   const [scanning, setScanning] = useState(false);
-  const [canCamera, setCanCamera] = useState(false);
-  useEffect(() => setCanCamera(cameraScanSupported()), []);
+  const canCamera = true; // the scanner sheet explains itself on browsers without camera scanning
 
   useEffect(() => {
     setCode(initialCode ?? "");

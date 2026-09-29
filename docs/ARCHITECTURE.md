@@ -9,10 +9,12 @@ loyalty point means exactly the same thing everywhere.
 ```
 src/
   lib/          Pure, isomorphic rules (unit-tested): money/VAT, SA rules (ID, phones, holidays, CPA windows),
-                compliance, FEFO, promotions, price rules, loyalty, routing, replenishment, RFM, franchise statement
+                compliance, FEFO, promotions, price rules, loyalty, routing, replenishment, RFM, franchise statement,
+                today (the manager's list), opening (store-opening checklist), cohorts, forecast (14-day velocity)
   server/       Domain services (server-only): db, auth, scope, settings, audit, inventory, pricing, sales,
                 orders, stock-orders, replenishment, finance, loyalty, customers, compliance, marketing,
-                messaging, email, invoices, payments, dashboard, reports/*
+                messaging, email, invoices, payments, dashboard, reports/*, today, staff-push, supplier-invoices,
+                store-tasks, exports (scheduled CSV exports)
   components/   Design system: ui/*, charts/*, brand/*, product/*, admin/* (+ per-surface folders)
   app/          Routes: (shop), club, pos, store/[code], hq, menu, invoice, batch, api/*
 prisma/         schema.prisma, seed.ts (+ seed-data.ts)
@@ -79,7 +81,8 @@ any time. Stock takes snapshot lots, collect (blind) counts and post COUNT varia
 | Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; partition them by month (Postgres declarative partitioning) once they pass ~100M rows. |
 | Read traffic | Stateless app servers scale horizontally; send reports and the menu boards to a read replica. |
 | Hot rows | Stock rows are per store × SKU × batch; loyalty balances per customer; rollup rows per store × day — contention stays local to one store. Counters are only used for low-volume sequences (POs, members). |
-| Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily` — `src/server/jobs.ts`), statement emails and invoice emails run outside the request path; at scale move them to a Postgres-backed queue (e.g. pg-boss/Graphile Worker) or SQS with a worker process built from the same codebase. |
+| Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily`, `/api/cron/staff-push`, `/api/cron/operations` — `src/server/jobs.ts`), statement emails, invoice emails, staff pushes and scheduled exports run outside the request path; at scale move them to a Postgres-backed queue (e.g. pg-boss/Graphile Worker) or SQS with a worker process built from the same codebase. |
+| Operations models | `StaffPushSubscription` (a staff phone's Web Push subscription) and `StaffPushEvent` (sent-event keys, so polls never notify twice); `SupplierInvoice` (a store's supplier invoice with its `Upload`, paid/queried); `StoreTask` (one line of a store's opening checklist); `ScheduledExport` (a report to email as a signed CSV link weekly or monthly). Plain id columns, no relations, so they append to the schema without touching the core models. |
 | Segments over millions of members | Denormalised customer stats (visits, lifetime, first/last purchase, points, tier) are updated on every purchase, so RFM segments are indexed range queries. |
 | Catalogue sync to devices | Bootstrap payload per store (a few hundred SKUs); move to delta sync (updatedAt watermark) if the range grows past a few thousand SKUs. |
 

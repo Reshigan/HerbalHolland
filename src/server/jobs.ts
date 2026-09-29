@@ -1,5 +1,6 @@
 // Scheduled housekeeping, run by /api/cron/[job]. Every job is idempotent and bounded,
-// so a missed or doubled run is harmless. (frequent: every 15 min · daily: 02:00 SAST)
+// so a missed or doubled run is harmless. (frequent: every 15 min · daily: 02:00 SAST ·
+// staff-push: every 5 min · operations: 03:00 SAST)
 import { db, tx } from "./db";
 import { SYSTEM } from "./audit";
 import { advanceOrder } from "./orders";
@@ -14,6 +15,9 @@ import { generateOffers } from "./offers";
 import { submitMerchOrders } from "./merch";
 import { runLossRules } from "./loss";
 import { purgeLeads } from "./leads";
+import { lowStockDigest, notifyDepositsDue, notifyExpiringBatches, pruneStaffPushEvents, runStaffPush } from "./staff-push";
+import { pruneExports, runDueExports } from "./exports";
+import { purgeResolvedTickets } from "./support";
 
 const MIN = 60_000;
 
@@ -86,7 +90,20 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     lossPrevention: await runLossRules(),
     // POPIA: not-a-fit franchise enquiries are deleted a year after their last change (audited as lead.purge).
     franchiseLeads: await purgeLeads(),
+    // POPIA: resolved support tickets (and their messages) are deleted a year after they close (audited as support.purge).
+    supportTickets: await purgeResolvedTickets(),
     // My Deals refresh weekly, on Mondays (SAST).
     offers: new Date(`${dayKey(new Date())}T12:00:00+02:00`).getUTCDay() === 1 ? await generateOffers() : { created: 0 },
+  }),
+  // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
+  "staff-push": () => runStaffPush(),
+  // Daily operations (after `daily`): expiring lots, cash due at the bank, the low-stock digest, scheduled report
+  // exports, and pruning of old push-event keys and export files.
+  operations: async () => ({
+    batches: await notifyExpiringBatches(),
+    deposits: await notifyDepositsDue(),
+    lowStock: await lowStockDigest(),
+    exports: await runDueExports(),
+    pruned: { pushEvents: (await pruneStaffPushEvents()).count, exports: await pruneExports() },
   }),
 };

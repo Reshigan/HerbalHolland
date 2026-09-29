@@ -37,6 +37,7 @@ Tick every line before the first store trades on the platform.
 
 ## Devices & people
 - [ ] Android devices (11+, Google services, no developer options) paired per till; printers tested; barcode scanners tested
+- [ ] Till hardware per counter ([RUNBOOK → Till hardware](RUNBOOK.md#till-hardware)): BLE/USB receipt printer paired and a test page printed on the right paper width, drawer pulse confirmed on a cash sale, scanner (keyboard-wedge or camera) checked on a member QR and a batch code, customer display window or separate screen paired, a manager has run training mode with each new cashier
 - [ ] Staff accounts with PINs; managers with passwords; area managers assigned to regions
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
 

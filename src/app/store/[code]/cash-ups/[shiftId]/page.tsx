@@ -12,6 +12,7 @@ import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
+import { ButtonLink } from "@/components/ui/button";
 import { Donut } from "@/components/charts/donut";
 import { BackLink } from "@/components/store/ui";
 
@@ -60,6 +61,11 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
           </span>
         }
         description={`Opened by ${who.get(shift.openedById) ?? "—"}${shift.closedAt ? ` · closed ${fmtTime(shift.closedAt)} by ${shift.closedById ? who.get(shift.closedById) ?? "—" : "—"}` : " · still trading"}`}
+        actions={
+          <ButtonLink href={`${path}/z-report`} variant="outline" size="sm">
+            {shift.closedAt ? "Z-report" : "X-report"} · print
+          </ButtonLink>
+        }
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
