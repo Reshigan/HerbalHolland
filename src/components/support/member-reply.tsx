@@ -5,7 +5,7 @@ import { Camera, Send } from "lucide-react";
 import { replyAction, type ReplyState } from "@/app/club/support/actions";
 import { buttonClass } from "@/components/ui/button";
 import { FieldRow, inputClass } from "@/components/shop/ui";
-import { PHOTO_MAX_BYTES } from "@/server/uploads";
+import { PHOTO_MAX_BYTES } from "@/lib/files";
 import { cn } from "@/lib/cn";
 
 export function MemberReply({ ticketId, resolved }: { ticketId: string; resolved: boolean }) {

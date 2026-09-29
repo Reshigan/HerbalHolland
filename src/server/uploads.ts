@@ -5,12 +5,10 @@
 import { createHash, randomUUID } from "node:crypto";
 import { db } from "./db";
 import { putObject } from "./storage";
-import { extFor, sniffType, type UploadType } from "@/lib/files";
+import { extFor, PHOTO_MAX_BYTES, PHOTO_TYPES, sniffType, type UploadType } from "@/lib/files";
 
 export class UploadError extends Error {}
-
-export const PHOTO_TYPES: UploadType[] = ["image/jpeg", "image/png"];
-export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
+export { PHOTO_MAX_BYTES, PHOTO_TYPES };
 
 const mb = (b: number) => `${(b / 1024 / 1024).toFixed(b % (1024 * 1024) ? 1 : 0)} MB`;
 
