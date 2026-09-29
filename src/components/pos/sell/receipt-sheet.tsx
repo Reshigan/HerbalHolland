@@ -88,8 +88,8 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
       </div>
 
       {training && (
-        <Alert tone="warn" className="mt-5" data-testid="training-receipt">
-          Training mode: this sale was not posted, no stock moved and no points were awarded. Receipts print with a TRAINING watermark.
+        <Alert tone="warn" className="mt-5">
+          <span data-testid="training-receipt">Training mode: this sale was not posted, no stock moved and no points were awarded. Receipts print with a TRAINING watermark.</span>
         </Alert>
       )}
       {receipt.queued && (
@@ -98,7 +98,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
         </Alert>
       )}
 
-      {receipt.customer && !receipt.queued && (
+      {receipt.customer && !receipt.queued && !training && (
         <div className="mt-5 flex items-center gap-3 rounded-2xl bg-brand-500/10 px-4 py-3 ring-1 ring-brand-500/30">
           <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
           <div className="text-sm text-brand-100">

@@ -52,7 +52,7 @@ export function TicketForm({ member, prefill }: { member: { firstName: string; h
           </SelectInput>
         </FieldRow>
         <FieldRow label="Order code (if it's about an order)" htmlFor="t-order" error={f.orderCode} hint="It's in your order confirmation and under Rewards → Orders.">
-          <TextInput id="t-order" name="orderCode" defaultValue={v.orderCode} placeholder="e.g. 7K2M9P" maxLength={12} className="uppercase" autoCapitalize="characters" />
+          <TextInput id="t-order" name="orderCode" defaultValue={v.orderCode} placeholder="7K2M9P" maxLength={12} autoCapitalize="characters" />
         </FieldRow>
         <FieldRow label="Subject" htmlFor="t-subject" error={f.subject}>
           <TextInput id="t-subject" name="subject" defaultValue={v.subject} required maxLength={TICKET_LIMITS.subject} placeholder="A few words" />

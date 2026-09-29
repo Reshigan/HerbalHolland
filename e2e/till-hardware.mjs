@@ -190,7 +190,7 @@ try {
   await page.getByTestId("tender-cash").click();
   await page.getByRole("button", { name: "Exact" }).click();
   await page.getByTestId("receipt").waitFor();
-  await page.getByTestId("training-receipt").waitFor();
+  await page.getByText(/Training mode: this sale was not posted/).waitFor();
   const trainingNo = (await page.getByRole("dialog").filter({ has: page.getByTestId("receipt") }).textContent()).match(/TRAINING \d{4}/)?.[0];
   assert(trainingNo, `practice receipt ${trainingNo}`);
   await shot("training-receipt");
