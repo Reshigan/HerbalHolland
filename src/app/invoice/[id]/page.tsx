@@ -43,7 +43,8 @@ const PRINT_CSS = `
   html[data-paper="receipt"] .inv-parties{display:block!important;padding:8px 0!important}
   html[data-paper="receipt"] .inv-parties>div+div{margin-top:8px}
   html[data-paper="receipt"] .inv-lines th.opt,html[data-paper="receipt"] .inv-lines td.opt{display:none!important}
-  html[data-paper="receipt"] .inv-lines td,html[data-paper="receipt"] .inv-lines th{padding:3px 0!important;font-size:11px!important}
+  html[data-paper="receipt"] .inv-lines td,html[data-paper="receipt"] .inv-lines th{padding:3px 6px 3px 0!important;font-size:11px!important}
+  html[data-paper="receipt"] .inv-lines td:last-child,html[data-paper="receipt"] .inv-lines th:last-child{padding-right:0!important}
   html[data-paper="receipt"] .inv-bottom{display:block!important}
   html[data-paper="receipt"] .inv-bottom>*+*{margin-top:8px}
   html[data-paper="receipt"] .inv-rates{display:none!important}
