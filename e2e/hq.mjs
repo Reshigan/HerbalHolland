@@ -251,7 +251,8 @@ try {
   await cl.getByRole("button", { name: "Mark done" }).first().click();
   const panel = cl.getByRole("group", { name: tasks[0].title });
   await panel.getByLabel("Note (optional)").fill(`Signed by E2E ${sfx}`);
-  await act("stores.markTaskDone", () => panel.getByRole("button", { name: "Mark done" }).click(), () => notice(`Done: ${tasks[0].title}.`).waitFor());
+  // The revalidated row re-renders as done (with Undo), so wait for that rather than the panel's notice.
+  await act("stores.markTaskDone", () => panel.getByRole("button", { name: "Mark done" }).click(), () => cl.getByText(`Signed by E2E ${sfx}`).waitFor());
   const doneTask = await one(`select "doneAt", "doneById", note from "StoreTask" where id = $1`, [tasks[0].id]);
   assert(doneTask.doneAt && doneTask.doneById === admin.id && doneTask.note === `Signed by E2E ${sfx}`, "task done with the note, by the admin");
   assert(await one(`select 1 from "AuditLog" where action = 'store.task_done' and "entityId" = $1`, [tasks[0].id]), "audited (store.task_done)");

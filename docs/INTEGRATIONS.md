@@ -333,6 +333,7 @@ five networks, so they're used by hand, outside this platform.
 | `APP_URL` | Public base URL (links in emails) |
 | `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything |
 | `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
+| `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.co.za`; the franchisor company's email is shown on `/support`) |
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |

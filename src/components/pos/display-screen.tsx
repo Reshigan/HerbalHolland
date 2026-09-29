@@ -11,7 +11,7 @@ import { zar } from "@/lib/money";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { Beadwork } from "./beadwork";
 import { BRAND_MESSAGES, DISPLAY_CHANNEL, isSnapshot, type DisplaySnapshot } from "./lib/display";
-import { tierName } from "./ui";
+import { tierName, useReducedMotion } from "./ui";
 
 const POLL_MS = 2000;
 const STALE_MS = 4 * 60_000; // a till that hasn't spoken for this long is treated as gone
@@ -140,6 +140,7 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
 
 function IdleView({ messages, note }: { messages: string[]; note: string | null }) {
   const [i, setI] = useState(0);
+  const reduced = useReducedMotion();
   useEffect(() => {
     const t = setInterval(() => setI((x) => x + 1), 7000);
     return () => clearInterval(t);
@@ -147,7 +148,7 @@ function IdleView({ messages, note }: { messages: string[]; note: string | null 
   const msg = messages[i % messages.length];
   return (
     <div className="flex h-full flex-col items-center justify-center text-center">
-      <Lockup className="h-[clamp(9rem,28vh,15rem)]" spin />
+      <Lockup className="h-[clamp(9rem,28vh,15rem)]" spin={!reduced} />
       <p key={msg} className="mt-10 max-w-3xl font-display text-[clamp(1.6rem,3.6vw,3rem)] font-medium leading-snug text-white motion-safe:animate-rise" data-testid="display-idle-message">
         {msg}
       </p>

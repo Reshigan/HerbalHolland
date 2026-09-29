@@ -166,8 +166,11 @@ try {
   await display.close();
 
   step("Training mode: manager starts it, the tour shows, a practice sale posts nothing");
-  const salesBefore = Number((await q(`select count(*)::int as c from "Sale"`))[0].c);
-  const stockBefore = (await q(`select coalesce(sum("onHand"),0)::int as s from "StockLevel" sl join "Store" st on st.id = sl."storeId" where st.code = 'PTA01'`))[0].s;
+  // Scoped to this till and the product sold: the CI database is shared with other test runs.
+  const salesOf = async () => Number((await q(`select count(*)::int as c from "Sale" where "deviceId" = $1`, [device.id]))[0].c);
+  const stockOf = async () => (await q(`select coalesce(sum(sl."onHand"),0)::int as s from "StockLevel" sl join "Store" st on st.id = sl."storeId" join "Variant" v on v.id = sl."variantId" join "Product" p on p.id = v."productId" where st.code = 'PTA01' and p.name = 'Smell-proof Pouch'`))[0].s;
+  const salesBefore = await salesOf();
+  const stockBefore = await stockOf();
   await page.getByRole("button", { name: "Shift" }).first().click();
   await page.getByTestId("start-training").click();
   await page.getByTestId("training-banner").waitFor();
@@ -200,10 +203,10 @@ try {
   assert((await page.getByTestId("print-area").getByTestId("print-training").count()) === 2, "printed practice receipt carries the TRAINING watermark");
   await page.getByTestId("new-sale").click();
   await page.waitForTimeout(1500);
-  const salesAfter = Number((await q(`select count(*)::int as c from "Sale"`))[0].c);
-  const stockAfter = (await q(`select coalesce(sum("onHand"),0)::int as s from "StockLevel" sl join "Store" st on st.id = sl."storeId" where st.code = 'PTA01'`))[0].s;
-  assert(salesAfter === salesBefore, `no Sale row created in training (${salesBefore} before, ${salesAfter} after)`);
-  assert(stockAfter === stockBefore, "stock on hand unchanged");
+  const salesAfter = await salesOf();
+  const stockAfter = await stockOf();
+  assert(salesAfter === salesBefore, `no Sale row created by this till in training (${salesBefore} before, ${salesAfter} after)`);
+  assert(stockAfter === stockBefore, `stock of the product sold in training unchanged (${stockBefore})`);
   assert((await q(`select count(*)::int as c from "Sale" where number like 'TRAINING%'`))[0].c === 0, "no training-numbered sale exists");
   const audit = (await q(`select action from "AuditLog" where entity = 'Device' and "entityId" = $1 and action = 'pos.training_start'`, [device.id]))[0];
   assert(audit, "training start audited (pos.training_start)");
@@ -224,7 +227,8 @@ try {
   await page.getByTestId("quiet-screen").waitFor({ timeout: 15_000 });
   await shot("quiet-hours");
   const quiet = await page.getByTestId("quiet-screen").innerText();
-  assert(/Takings so far/.test(quiet) && /Online orders to hand over/.test(quiet) && /Low stock/.test(quiet) && /Waiting on this till/.test(quiet) && /Next event/.test(quiet), "dashboard tiles present");
+  // Tile headings are upper-cased by CSS, and innerText reports the rendered text.
+  assert(/takings so far/i.test(quiet) && /online orders to hand over/i.test(quiet) && /low stock/i.test(quiet) && /waiting on this till/i.test(quiet) && /next event/i.test(quiet), "dashboard tiles present");
   await page.getByTestId("quiet-takings").getByText(/R[\d,]+\.\d\d/).waitFor({ timeout: 15_000 });
   ok("takings so far loaded from the shift");
   await page.getByTestId("quiet-screen").click({ position: { x: 640, y: 30 } });

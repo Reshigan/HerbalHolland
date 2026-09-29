@@ -11,6 +11,7 @@ import { fmtDateTime, fmtTime } from "@/lib/format";
 import { api } from "./lib/api";
 import { quietDashboard, type QuietDashboard } from "./lib/idle";
 import { usePos, type PosTab } from "./context";
+import { useReducedMotion } from "./ui";
 import { Beadwork } from "./beadwork";
 import type { BootShift, ZReport } from "@/server/pos/types";
 
@@ -18,6 +19,7 @@ export function QuietScreen({ onWake }: { onWake: (tab?: PosTab) => void }) {
   const pos = usePos();
   const [x, setX] = useState<ZReport | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const reduced = useReducedMotion();
 
   useEffect(() => {
     if (!pos.online || !pos.boot.shift || pos.boot.shift.id === "training") return;
@@ -50,7 +52,7 @@ export function QuietScreen({ onWake }: { onWake: (tab?: PosTab) => void }) {
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-5 overflow-y-auto px-5 py-5 sm:px-8">
         <div className="flex items-end justify-between gap-4">
           <div className="flex items-center gap-4 text-brand-500">
-            <Mark className="h-14 w-14" spin />
+            <Mark className="h-14 w-14" spin={!reduced} />
             <div>
               <div className="eyebrow text-brand-500">{pos.boot.store.name} · quiet hours</div>
               <div className="font-display text-3xl font-semibold text-white">Tap anywhere to sell</div>

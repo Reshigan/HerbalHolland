@@ -1,6 +1,6 @@
 "use client";
 // Till UI primitives: dark surfaces, 44px+ touch targets, big type, orange primary actions.
-import { useEffect, useId, useRef } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { Loader2, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -302,4 +302,17 @@ export function Segmented<T extends string>({ value, onChange, options, classNam
       ))}
     </div>
   );
+}
+
+/** True when the device asks for reduced motion (the quiet-hours and customer-display screens keep still). */
+export function useReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const on = () => setReduced(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return reduced;
 }
