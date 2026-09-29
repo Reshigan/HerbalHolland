@@ -239,7 +239,7 @@ export async function refundReturn(id: string, a: { restock: Record<string, bool
       const items = (r.items as ReturnItem[]) ?? [];
       const lines = items.flatMap((it) => {
         const sl = order.sale!.lines.find((l) => l.variantId === it.variantId);
-        return sl ? [{ saleLineId: sl.id, qty: Math.min(it.qty, sl.qty), restock: a.restock[it.variantId] ?? restockByDefault(r.reason) }] : [];
+        return sl ? [{ saleLineId: sl.id, qty: Math.min(it.qty, sl.qty), restock: a.restock?.[it.variantId] ?? restockByDefault(r.reason) }] : [];
       });
       const manualMethod = (["CARD", "EFT", "CASH", "PAYSHAP"] as const).find((m) => m === a.manualMethod) ?? "EFT";
       try {

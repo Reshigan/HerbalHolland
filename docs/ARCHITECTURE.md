@@ -13,7 +13,7 @@ src/
                 today (the manager's list), opening (store-opening checklist), cohorts, forecast (14-day velocity)
   server/       Domain services (server-only): db, auth, scope, settings, audit, inventory, pricing, sales,
                 orders, stock-orders, replenishment, finance, loyalty, customers, compliance, marketing,
-                messaging, email, invoices, payments, dashboard, reports/*, today, staff-push, supplier-invoices,
+                messaging, email, invoices, payments, dashboard, support, returns, reviews, uploads, reports/*, today, staff-push, supplier-invoices,
                 store-tasks, exports (scheduled CSV exports)
   components/   Design system: ui/*, charts/*, brand/*, product/*, admin/* (+ per-surface folders)
   app/          Routes: (shop), club, pos, store/[code], hq, menu, invoice, batch, api/*
@@ -72,6 +72,30 @@ receiving books the same batches in at the agreed cost; discrepancies are kept; 
 **Stock control:** every change is an immutable `StockMovement` (receive, sale, refund, online, adjust with reason code,
 count, transfer in/out). `StockLevel` per store × variant × batch is the running balance, reconcilable to the ledger at
 any time. Stock takes snapshot lots, collect (blind) counts and post COUNT variances on approval.
+
+**Member support, returns, reviews and search** (`src/lib/support.ts`, `src/lib/returns.ts`, `src/lib/search.ts`;
+`src/server/support.ts`, `src/server/returns.ts`, `src/server/reviews.ts`, `src/server/shop/search.ts`, `src/server/uploads.ts`):
+
+- `SupportTicket` (number `ST-…`, who's asking — a member id or a guest's name/email/phone — subject, category, the order
+  code and its store, status OPEN → WAITING_MEMBER ⇄ OPEN → RESOLVED, priority, assignee, the SLA deadlines
+  `firstResponseDueAt`/`resolveDueAt` set in SAST business days) and `SupportMessage` (MEMBER / STAFF / SYSTEM, an
+  optional photo `Upload`). HQ sees the network, area managers their region's stores' tickets, store managers the
+  tickets about orders their store fulfilled. Tickets have no relation to `Customer`: they outlive an anonymised member
+  and are purged a year after they close.
+- `ReturnRequest` (number `RT-…`, order, member, the fulfilling store, reason, `items` [{ variantId, qty }], note,
+  photos, status REQUESTED → APPROVED → COLLECTION_BOOKED → RECEIVED → REFUNDED, or DECLINED, courier/waybill, the refund
+  amount and reference). The refund runs `refundOrderAmount()` (`src/server/orders.ts`: Yoco/Peach refund by amount,
+  idempotent per return; manual for in-store or simulated payments) and then `refundSale()` for the credit note at the
+  store — units back into the same lots where staff tick it, points reversed, rollups adjusted.
+- `Review` gains `photoUploadIds`, `hidden` (+ reason, moderator, time): hidden reviews never show or count.
+- `Upload` rows hold members' photos (JPEG/PNG by their bytes, ≤ 5 MB), stored through `src/server/storage.ts` and
+  served by `/media/[id]` after an access check (public for a live review's photo; the member and the staff in scope
+  for a return's or a ticket's).
+- Search: `pg_trgm` with GIN trigram indexes on `Product.name`, `Product.tagline` and `Variant.name`; the database
+  returns similarity for typos (`similarProducts`), the pure parser and ranking (`src/lib/search.ts`) understand
+  measures ("600mg", "30ml", "3.5g") and class words (oil, cream, coffee…), rank exact > prefix > words > similar >
+  text, and offer "Did you mean…" when the best hit was found by similarity alone. Always bounded to the classes the
+  shopper may see.
 
 ## Scale to 1,000 stores
 

@@ -476,10 +476,11 @@ export function orderEmail(kind: OrderEvent, o: OrderEmailInput): Rendered {
       ...(o.discountCents > 0 ? [{ label: "Deals & Rewards savings", cents: o.discountCents, muted: true, sign: "-" as const }] : []),
       ...(o.deliveryCents > 0 ? [{ label: "Delivery", cents: o.deliveryCents, muted: true }] : []),
       ...(o.pointsRedeemed > 0 ? [{ label: `Points used (${fmtPoints(o.pointsRedeemed)})`, cents: o.pointsRedeemed * 100, muted: true, sign: "-" as const }] : []),
-      { label: o.paid ? "Total paid" : "Total to pay", cents: due, strong: true },
+      { label: kind === "cancelled" ? (o.refunded ? "Total refunded" : "Order total") : o.paid ? "Total paid" : "Total to pay", cents: due, strong: true },
     ],
   );
-  const textSummary = textDoc(...o.lines.map((l) => `${l.qty} x ${l.name} (${l.variant})  ${zar(l.totalCents)}`), `${o.paid ? "Total paid" : "Total to pay"}: ${zar(due)}`);
+  const totalLabel = kind === "cancelled" ? (o.refunded ? "Total refunded" : "Order total") : o.paid ? "Total paid" : "Total to pay";
+  const textSummary = textDoc(...o.lines.map((l) => `${l.qty} x ${l.name} (${l.variant})  ${zar(l.totalCents)}`), `${totalLabel}: ${zar(due)}`);
   let heading = "";
   let body = "";
   let lead = "";

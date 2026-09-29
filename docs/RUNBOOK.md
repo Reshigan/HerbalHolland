@@ -394,6 +394,61 @@ about. Thresholds: HQ → Loss prevention → Rules & thresholds.
 | Sales outside trading hours | Sales more than 30 minutes outside the store's hours | Check who and why |
 | Compliance exception | An offline sale broke a compliance rule | As for `compliance.offline_exception` above |
 
+## Member support (HQ → Support, Store → Support)
+
+Members and visitors ask for help at `/support` (no sign-in and no 18+ gate needed; a signed-in member's details are
+filled in, a visitor gives an email address and ticks the consent line). Every request is a ticket (`ST-000123`) with a
+conversation; members follow theirs under Rewards → Help. Guests are limited to 3 tickets an hour per connection and 5
+a day per email address; members to 10 a day. Every reply, assignment, priority change and resolution is audited
+(`support.*`).
+
+| SLA | Clock | Shown as |
+|---|---|---|
+| First reply within **1 business day** | Starts when the ticket arrives (08:00 on the next business day if it arrives on a weekend or public holiday, SAST) | "First reply due in 3 h" → **overdue** in red once missed; the queue's *Overdue* chip |
+| Resolved within **5 business days** | Same start; **pauses while the ticket waits for the member** (our reply is out) and stops when it's resolved | "Resolve due in 2 d" → overdue in red |
+
+Working the inbox, daily:
+
+1. **HQ → Support → Unassigned**: assign each new ticket (deliveries start at *High* priority). A reply assigns it to you
+   if nobody has it yet.
+2. Reply from the ticket (canned replies are starting points, edit them). The member gets it by email — by SMS when
+   they have no email address — and the ticket moves to *Waiting for member*; their reply brings it back to *Open*.
+3. Resolve when it's sorted (a closing note goes to the member). A member can reopen a resolved ticket by replying
+   within 30 days; after that they open a new one.
+4. Store managers and owners see the tickets about orders their store fulfilled (Store → Support) and work them the
+   same way; everything else is HQ's. Area managers see their region's stores' tickets.
+5. Watch the *Overdue* chip on HQ → Support. Anything that can't be answered within the day gets a holding reply
+   ("We're looking into it") — that meets the first-reply SLA and tells the member when to expect an answer.
+
+POPIA: the ticket holds the member's name, email and phone; the audit log keeps numbers and categories only; guests'
+IP addresses are kept as a keyed hash; resolved tickets and their messages are deleted a year after they close by the
+daily job (`support.purge`). A member's photo sent with a message is served only to them and to staff who may see the
+ticket (`/media/[id]`).
+
+## Returns (HQ → Returns, Store → Returns)
+
+A member starts a return from the order (Rewards → Orders → the order → **Return or report a problem**): a reason, the
+items, a note and up to three photos. The rules are in `src/lib/returns.ts` and the policy at `/legal/returns`:
+faulty, damaged or wrong within 6 months of delivery (CPA s56); a change of mind within 7 days of delivery (ECTA s44),
+never for made-to-order merch or licensed medicines, and sealed consumables only. Every step tells the member by email
+(SMS without an email address) and is audited (`return.*`).
+
+| Step | Who | What happens |
+|---|---|---|
+| **Requested** | Member | `RT-000123`; the units are spoken for (they can't go into a second request) |
+| **Approve** / **Decline** | Store manager or owner, or HQ | Decline needs a reason the member reads. Faulty goods within 6 months and change-of-mind within 7 days are the member's rights: decline only outside them (opened consumables, made-to-order merch, outside the window) |
+| **Book collection** | Store / HQ | **Manual for now:** book the collection with the courier (portal or phone), then record the courier and waybill; the member gets both. Faulty, damaged or wrong goods: at our cost. Change of mind: the member's delivery fee covers the collection (the direct cost of the return, ECTA s44(3)) |
+| **Received** | Store / HQ | When the parcel arrives (or the member drops it off) |
+| **Refund** | Store manager or owner, or HQ | The amount is worked out for you: each returned unit's share of its line (what was actually paid), plus the delivery fee when the whole order has come back for a reason that's ours (not for a change of mind); never more than was paid in money — points come back as points. Tick *back on the shelf* only for sealed, sellable units (never faulty or damaged goods) |
+
+The refund goes back the way the order was paid: **Peach Payments or Yoco** refund by amount against the order's
+payment (Yoco with an idempotency key per return; Peach as a running total per order, so a retry never refunds twice);
+**pay-in-store or simulated payments** are refunded by hand (EFT, or at the till) and recorded with the reference. The
+credit note (`<store>-RT-000123`) posts at the fulfilling store as a refund sale — stock back on the shelf where ticked,
+points reversed, rollups adjusted — and the tax credit note is emailed. A gateway refund that later fails arrives as
+`payment.refund_failed` in the audit log: refund the member by hand and note it. If the money moved but the credit
+note didn't post (a crash half-way), pressing Refund again posts only the credit note.
+
 ## Data reconciliation checks
 
 ```sql

@@ -160,7 +160,7 @@ describe("a faulty item comes back and is refunded through Peach", () => {
     expect(d.plan.breakdown.note).toBe("");
     expect(d.plan.restock).toEqual({ [w.oilV.id]: true, [w.coffeeV.id]: true });
     const before = (await availability([order.storeId], [w.oilV.id, w.coffeeV.id]));
-    const r = await refundReturn(ret.id, d.plan.restock, who, HQ);
+    const r = await refundReturn(ret.id, { restock: d.plan.restock }, who, HQ);
     expect(r.cents).toBe(rest);
     expect(peach.calls[1].body).toMatchObject({ amount: rest }); // the difference, not the running total
     const after = await availability([order.storeId], [w.oilV.id, w.coffeeV.id]);
