@@ -283,6 +283,10 @@ model Product {
 
   variants Variant[]
   reviews  Review[]
+
+  // Shop search: typo-tolerant matching on the name and tagline (pg_trgm similarity).
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([tagline(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model Variant {
@@ -310,6 +314,8 @@ model Variant {
   listings        Listing[]
   stockTakeLines  StockTakeLine[]
   alerts          StockAlert[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 enum BatchStatus {
@@ -1099,9 +1105,16 @@ model Review {
   title      String?
   body       String?
   verified   Boolean  @default(false)
+  // Photos (Upload ids, up to 3) and HQ moderation: a hidden review stays on record but is never shown or counted.
+  photoUploadIds String[]  @default([])
+  hidden         Boolean   @default(false)
+  hiddenReason   String?
+  moderatedById  String?
+  moderatedAt    DateTime?
   createdAt  DateTime @default(now())
 
   @@unique([productId, customerId])
+  @@index([hidden, createdAt])
 }
 
 // ───────────────────────────── Rollups ─────────────────────────────
@@ -1470,4 +1483,128 @@ model FranchiseLead {
   @@index([status, createdAt])
   @@index([email])
   @@index([ipHash, createdAt])
+}
+
+// ── Member support & returns ─────────────────────────────────────────────────
+// A member (or a guest) asks for help at /support; HQ works the inbox (SLA: first reply within 1 business day, resolved
+// within 5), store managers see tickets about their own orders. Personal information stays in the ticket (POPIA:
+// resolved tickets are deleted a year after they close by the daily job).
+enum SupportCategory {
+  ORDER
+  DELIVERY
+  PRODUCT
+  REWARDS
+  ACCOUNT
+  OTHER
+}
+
+enum SupportStatus {
+  OPEN
+  WAITING_MEMBER
+  RESOLVED
+}
+
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum SupportAuthor {
+  MEMBER
+  STAFF
+  SYSTEM
+}
+
+model SupportTicket {
+  id                 String          @id @default(cuid())
+  number             String          @unique // ST-000123, quoted by the member
+  customerId         String? // the signed-in member, if any (no relation: tickets outlive anonymised members)
+  email              String? // where we reply; a signed-in member without one is texted
+  phone              String?
+  name               String
+  subject            String
+  category           SupportCategory
+  orderCode          String?
+  storeId            String? // the store that fulfilled the order it's about (store managers see these)
+  body               String
+  status             SupportStatus   @default(OPEN)
+  priority           SupportPriority @default(NORMAL)
+  assignedToId       String?
+  firstResponseDueAt DateTime
+  firstRespondedAt   DateTime?
+  resolveDueAt       DateTime
+  resolvedAt         DateTime?
+  ipHash             String? // keyed hash of a guest's IP, to limit repeat submissions — never the IP itself
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([storeId, status])
+  @@index([assignedToId, status])
+  @@index([email, createdAt])
+  @@index([ipHash, createdAt])
+}
+
+model SupportMessage {
+  id                 String        @id @default(cuid())
+  ticket             SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId           String
+  authorType         SupportAuthor
+  authorId           String?
+  authorName         String? // shown on the thread ("Naledi from Herbal Holland")
+  body               String
+  attachmentUploadId String? // an Upload (photo) sent with the message
+  createdAt          DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  COOLING_OFF
+  DAMAGED
+  OTHER
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  COLLECTION_BOOKED
+  RECEIVED
+  REFUNDED
+  DECLINED
+}
+
+/// A member's request to return part (or all) of a delivered online order, from the request to the refund. Rules in
+/// @/lib/returns (CPA s56 faulty goods, ECTA s44 cooling-off); money moves through refundOrderAmount in @/server/orders.
+model ReturnRequest {
+  id             String       @id @default(cuid())
+  number         String       @unique // RT-000123
+  orderId        String
+  customerId     String
+  storeId        String // the store that fulfilled the order (its back office handles the return)
+  reason         ReturnReason
+  items          Json // [{ variantId, qty }]
+  note           String?
+  photoUploadIds String[]     @default([])
+  status         ReturnStatus @default(REQUESTED)
+  courier        String? // collection booked by hand for now: the courier and its waybill
+  waybill        String?
+  refundCents    Int? // what was (or will be) refunded, from refundBreakdown()
+  refundRef      String? // the gateway's refund id, or the manual refund reference
+  decisionNote   String? // why it was declined, or a note with the approval
+  decidedById    String?
+  decidedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([storeId, status])
+  @@index([orderId])
 }
