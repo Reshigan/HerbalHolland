@@ -6,7 +6,6 @@ export type LL = readonly [lat: number, lon: number];
 type V3 = [number, number, number];
 
 const D = Math.PI / 180;
-const r1 = (n: number) => Math.round(n * 10) / 10;
 
 export const toV = ([lat, lon]: LL): V3 => [Math.cos(lat * D) * Math.cos(lon * D), Math.cos(lat * D) * Math.sin(lon * D), Math.sin(lat * D)];
 export const toLL = ([x, y, z]: V3): LL => [Math.asin(Math.max(-1, Math.min(1, z))) / D, Math.atan2(y, x) / D];
@@ -56,36 +55,58 @@ function runs(pts: { x: number; y: number; v: boolean }[]) {
   return out.filter((r) => r.length > 1);
 }
 
-const line = (r: { x: number; y: number }[]) => `M${r.map((p) => `${r1(p.x)} ${r1(p.y)}`).join("L")}`;
+// Paths are written in tenths of a unit, relative to the last point, with no separator before a minus sign: the
+// shortest exact form ("l3.2-1.4"). Every point is rounded first, so the relative steps never drift.
+const T = (n: number) => Math.round(n * 10);
+const fmt = (t: number) => (t / 10).toFixed(1).replace(/\.0$/, "").replace(/^(-?)0\./, "$1.");
+const nums = (...ts: number[]) => ts.map(fmt).map((v, i) => (i && v[0] !== "-" ? ` ${v}` : v)).join("");
 
-/** A smooth path (Catmull-Rom as cubic Béziers) through the points. */
+/** Straight segments through the points. */
+const line = (r: { x: number; y: number }[]) => {
+  let [cx, cy] = [T(r[0].x), T(r[0].y)];
+  let d = `M${nums(cx, cy)}`;
+  for (const p of r.slice(1)) {
+    const [x, y] = [T(p.x), T(p.y)];
+    d += `l${nums(x - cx, y - cy)}`;
+    [cx, cy] = [x, y];
+  }
+  return d;
+};
+
+/** A smooth path (Catmull-Rom as cubic Béziers) through the points. Each segment's first control point is the
+ *  reflection of the last one's second, which is what "s" draws, so only the first segment is written in full. */
 function smooth(r: { x: number; y: number }[], closed = false) {
   if (r.length < 3) return line(r);
   const n = r.length;
   const at = (i: number) => (closed ? r[(i + n) % n] : r[Math.max(0, Math.min(n - 1, i))]);
-  let d = `M${r1(r[0].x)} ${r1(r[0].y)}`;
+  let [cx, cy] = [T(r[0].x), T(r[0].y)];
+  let d = `M${nums(cx, cy)}`;
   const last = closed ? n : n - 1;
   for (let i = 0; i < last; i++) {
     const p0 = at(i - 1);
     const p1 = at(i);
     const p2 = at(i + 1);
     const p3 = at(i + 2);
-    d += `C${r1(p1.x + (p2.x - p0.x) / 6)} ${r1(p1.y + (p2.y - p0.y) / 6)} ${r1(p2.x - (p3.x - p1.x) / 6)} ${r1(p2.y - (p3.y - p1.y) / 6)} ${r1(p2.x)} ${r1(p2.y)}`;
+    const [x, y] = [T(p2.x), T(p2.y)];
+    const c2 = [T(p2.x - (p3.x - p1.x) / 6) - cx, T(p2.y - (p3.y - p1.y) / 6) - cy];
+    d += i ? `s${nums(...c2, x - cx, y - cy)}` : `c${nums(T(p1.x + (p2.x - p0.x) / 6) - cx, T(p1.y + (p2.y - p0.y) / 6) - cy, ...c2, x - cx, y - cy)}`;
+    [cx, cy] = [x, y];
   }
-  return closed ? `${d}Z` : d;
+  return closed ? `${d}z` : d;
 }
 
 /** Meridians and parallels every `step` degrees, as one path of visible runs. */
 export function graticule(P: Projection, step = 15) {
+  // A point every 6°: the chord of a 6° arc on this globe is under half a unit off the circle.
   const parts: string[] = [];
   for (let lon = -180; lon < 180; lon += step) {
     const pts = [];
-    for (let lat = -90; lat <= 90; lat += 2) pts.push(P([lat, lon]));
+    for (let lat = -90; lat <= 90; lat += 6) pts.push(P([lat, lon]));
     parts.push(...runs(pts).map(line));
   }
   for (let lat = -90 + step; lat < 90; lat += step) {
     const pts = [];
-    for (let lon = -180; lon <= 180; lon += 2) pts.push(P([lat, lon]));
+    for (let lon = -180; lon <= 180; lon += 6) pts.push(P([lat, lon]));
     parts.push(...runs(pts).map(line));
   }
   return parts.join("");
@@ -94,7 +115,7 @@ export function graticule(P: Projection, step = 15) {
 /** The equator on its own (drawn a touch stronger). */
 export function equator(P: Projection) {
   const pts = [];
-  for (let lon = -180; lon <= 180; lon += 2) pts.push(P([0, lon]));
+  for (let lon = -180; lon <= 180; lon += 6) pts.push(P([0, lon]));
   return runs(pts).map(line).join("");
 }
 

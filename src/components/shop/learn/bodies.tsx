@@ -36,7 +36,7 @@ function Steps({ items }: { items: { icon: React.ReactNode; title: string; body:
         <li key={s.title} className="flex gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
           <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{s.icon}</span>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wider text-ink-500">Step {i + 1}</div>
+            <div className="text-xs font-semibold uppercase tracking-wider text-ink-450">Step {i + 1}</div>
             <div className="mt-0.5 font-display text-lg font-semibold text-white">{s.title}</div>
             <div className="mt-1 text-[0.98rem] leading-relaxed text-ink-300">{s.body}</div>
           </div>
@@ -188,7 +188,7 @@ function Schedule0() {
       <P>
         Since the Plant Improvement Act 2018 came into force in December 2025, hemp is defined as plant material with no more than 2% THC. Our hemp range is cosmetic — cold-pressed seed oil and creams for skin — and every product lists its legal basis on the page.
       </P>
-      <p className="mt-10 text-sm text-ink-500">This is general information, not legal or medical advice. Regulations change; we update our range and this guide when they do.</p>
+      <p className="mt-10 text-sm text-ink-450">This is general information, not legal or medical advice. Regulations change; we update our range and this guide when they do.</p>
     </>
   );
 }

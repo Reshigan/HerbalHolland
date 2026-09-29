@@ -48,10 +48,11 @@ export function ContactPage() {
     ],
   ];
   const known = c.legalName && c.regNumber && c.address;
+  const crumbs = [{ label: CONTACT.meta.title, path: "/contact" }];
 
   return (
-    <Page page="contact" meta={{ path: "/contact", ...CONTACT.meta }}>
-      <PageHero kind="contact" eyebrow={CONTACT.hero.eyebrow} title={CONTACT.hero.title} lede={CONTACT.hero.lede} />
+    <Page page="contact" stage="night" meta={{ path: "/contact", ...CONTACT.meta, crumbs }}>
+      <PageHero kind="contact" eyebrow={CONTACT.hero.eyebrow} title={CONTACT.hero.title} lede={CONTACT.hero.lede} crumbs={crumbs} />
 
       <section className="sheet sec" aria-labelledby="who-h">
         <div className="wrap">
@@ -93,7 +94,10 @@ export function ContactPage() {
               ))}
             </dl>
             <p className="muted co__note" data-r="">
-              {join ? co.franchisees : co.franchiseesSoon}
+              {join ? co.franchisees : co.franchiseesSoon}{" "}
+              <a className="link" href="/stores">
+                {co.stores}
+              </a>
             </p>
           </div>
         </div>

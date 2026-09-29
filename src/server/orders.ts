@@ -16,10 +16,14 @@ import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
-import { createYocoCheckout, paidWithYoco, PaymentError, refundYocoCheckout, yocoTestMode } from "./payments";
+import {
+  createPeachPayment, createYocoCheckout, paidOnlineWith, PaymentError, peachMode, peachPayment, refundPeachPayment, refundYocoCheckout, yocoTestMode, type HostedGateway,
+} from "./payments";
 import { routeOrder, type Fulfil, type RouteCandidate } from "@/lib/routing";
 import { incentiveExcluded } from "@/lib/compliance";
-import { paymentDecision, yocoCheckoutRequest, yocoFacts, YOCO_MIN_CENTS, type PaymentDecision, type YocoEvent } from "@/lib/yoco";
+import { decidePayment, type PaymentDecision, type PaymentEventKind, type PaymentFacts } from "@/lib/online-payments";
+import { yocoCheckoutRequest, yocoEventKind, yocoFacts, YOCO_MIN_CENTS, type YocoEvent } from "@/lib/yoco";
+import { peachEventKind, peachFacts, peachNextStep, peachPaymentFacts, peachPaymentId, peachPaymentRequest, PEACH_MIN_SESSION_SECONDS, type PeachEvent } from "@/lib/peach";
 import { addDays } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import type { OrderStatus, Prisma, Province } from "@/generated/prisma/client";
@@ -93,6 +97,8 @@ export async function placeOrder(input: CheckoutInput) {
   const customer = comp.ctx.record!;
 
   const requiredLicences = [...new Set(q.lines.filter((l) => settings.compliance.licensedOnly.includes(l.regClass)).map((l) => l.regClass))];
+  // No online payment provider accepts licensed cannabis (Peach and Yoco both prohibit it): those orders are paid at the counter.
+  if (requiredLicences.length && input.payMethod === "ONLINE") throw new OrderError("Licensed medicines are paid for in store, when you collect");
   // Made-to-order merch ships from the merch partner: courier only, and it needs no stock to route.
   const made = await madeToOrder(q.lines.map((l) => l.variantId));
   if (made.size && input.fulfilment !== "COURIER") throw new OrderError("Made-to-order merch ships by courier — choose delivery");
@@ -179,7 +185,22 @@ export async function markOrderPaid(orderId: string, reference: string, note = "
   return db.order.findUniqueOrThrow({ where: { id: orderId } });
 }
 
-// ── Yoco (ONLINE_GATEWAY=YOCO) ───────────────────────────────────────────────
+// ── Online payments: Peach Payments (ONLINE_GATEWAY=PEACH) and Yoco (YOCO) ───
+
+const GATEWAYS: Record<HostedGateway, { name: string; actor: Actor; refundIn: string }> = {
+  PEACH: { name: "Peach Payments", actor: { type: "SYSTEM", name: "Peach Payments" }, refundIn: "the Peach Dashboard" },
+  YOCO: { name: "Yoco", actor: { type: "SYSTEM", name: "Yoco" }, refundIn: "the Yoco portal" },
+};
+type PayingOrder = { id: string; code: string; createdAt: Date; totalCents: number; pointsRedeemed: number; paymentRef: string | null };
+/** Where the pay page sends the member: the gateway's page ("open"), or back to the order (already paid, still processing, or to be checked). */
+export type OnlineCheckout = { step: "open"; url: string; checkoutId: string; created: boolean; dueCents: number; mode: string | null } | { step: "paid" | "wait" | "review" };
+
+/** The member's payment page for an unpaid order, on the configured hosted gateway. */
+export async function onlineCheckoutFor(gateway: HostedGateway, o: PayingOrder, appUrl: string): Promise<OnlineCheckout> {
+  if (gateway === "PEACH") return peachCheckoutFor(o, appUrl);
+  const { checkout, created, dueCents } = await yocoCheckoutFor(o, appUrl);
+  return { step: "open", url: checkout.redirectUrl, checkoutId: checkout.id, created, dueCents, mode: checkout.processingMode ?? null };
+}
 
 /**
  * The member's Yoco checkout for an unpaid order. The order id is the Idempotency-Key, so asking again (a retry, or after
@@ -196,53 +217,103 @@ export async function yocoCheckoutFor(o: { id: string; code: string; totalCents:
   return { checkout, created, dueCents };
 }
 
-/** Refunds a Yoco order in full before it's cancelled. Idempotency-Key "<order id>:refund": a retried cancel can't refund twice. */
-async function refundWithYoco(o: { id: string; code: string; paymentRef: string | null }, amountCents: number) {
-  if (yocoTestMode()) return { refundId: null, status: "test", note: "Yoco test payment: nothing to refund" }; // Yoco can't refund test payments
+/**
+ * The member's Peach payment page for an unpaid order. The order's current payment (paymentRef) is asked about first:
+ * paid → applied now, exactly as its webhook would be; still processing → no second payment; nothing tried yet and still
+ * open → the same page again. Otherwise a new payment, with our own payment_id (a double click opens one payment, not
+ * two) and Peach's page open until the order's payment window closes. Its id becomes the order's paymentRef: the
+ * webhook must name it, and a refund goes back to it.
+ */
+export async function peachCheckoutFor(o: PayingOrder, appUrl: string): Promise<OnlineCheckout> {
+  const dueCents = o.totalCents - o.pointsRedeemed * 100;
+  const mode = peachMode();
+  const current = o.paymentRef?.startsWith("pay_") ? await peachPayment(o.paymentRef) : null;
+  const step = peachNextStep(current, dueCents);
+  if (step === "paid") {
+    const d = await applyOnlineEvent("PEACH", { id: null, type: "payment_status", kind: "paid", facts: peachPaymentFacts(current!, mode) });
+    return { step: d.action === "review" ? "review" : "paid" };
+  }
+  if (step === "wait") return { step };
+  if (step === "reuse") return { step: "open", url: current!.payment_link!.link, checkoutId: current!.payment_id, created: false, dueCents, mode };
+
+  const paymentId = peachPaymentId(o.id, o.paymentRef);
+  if (!paymentId) throw new PaymentError(`Too many payment attempts on order ${o.code}`);
+  const { ecommerce } = await getSettings();
+  const left = Math.ceil((o.createdAt.getTime() + ecommerce.unpaidHoldMinutes * 60_000 - Date.now()) / 1000);
+  const body = peachPaymentRequest({ id: o.id, code: o.code, dueCents }, appUrl, { paymentId, sessionExpiry: Math.max(left, PEACH_MIN_SESSION_SECONDS), profileId: process.env.PEACH_PROFILE_ID });
+  let created = true;
+  // Peach won't create the same payment_id twice: if it refuses, the payment already exists (another click, or a lost reply).
+  const p = await createPeachPayment(body).catch(async (e: unknown) => {
+    const existing = await peachPayment(paymentId).catch(() => null);
+    if (!existing) throw e;
+    created = false;
+    return existing;
+  });
+  const url = p.payment_link?.link ?? "";
+  if (!p.payment_id || !/^https:\/\//.test(url)) throw new PaymentError("Peach didn't return a payment page");
+  await db.order.updateMany({ where: { id: o.id, status: "PENDING_PAYMENT" }, data: { paymentRef: p.payment_id } });
+  return { step: "open", url, checkoutId: p.payment_id, created, dueCents, mode };
+}
+
+/**
+ * Refunds a paid online order in full before it's cancelled; any error stops the cancel and staff see why. A retried
+ * cancel can't refund twice: Yoco replays the Idempotency-Key "<order id>:refund"; Peach counts what's already refunded.
+ */
+async function refundOnline(gateway: HostedGateway, o: { id: string; code: string; paymentRef: string | null }, amountCents: number) {
+  const { name } = GATEWAYS[gateway];
+  if (gateway === "YOCO" && yocoTestMode()) return { refundId: null, status: "test", note: "Yoco test payment: nothing to refund" }; // Yoco can't refund test payments
+  const meta = { orderId: o.id, orderCode: o.code };
   try {
-    const r = await refundYocoCheckout(o.paymentRef!, amountCents, `${o.id}:refund`, { orderId: o.id, orderCode: o.code });
-    return { ...r, note: `Refunded ${zar(amountCents)} by Yoco (refund ${r.refundId}, ${r.status})` };
+    const r = gateway === "YOCO" ? await refundYocoCheckout(o.paymentRef!, amountCents, `${o.id}:refund`, meta) : await refundPeachPayment(o.paymentRef!, amountCents, `Order ${o.code} cancelled`, meta);
+    return { ...r, note: `Refunded ${zar(amountCents)} by ${name} (refund ${r.refundId}, ${r.status})` };
   } catch (e) {
-    throw new OrderError(`Yoco didn't refund ${zar(amountCents)}, so the order hasn't been cancelled. ${(e as Error).message}`);
+    throw new OrderError(`${name} didn't refund ${zar(amountCents)}, so the order hasn't been cancelled. ${(e as Error).message}`);
   }
 }
 
-const YOCO: Actor = { type: "SYSTEM", name: "Yoco" };
-
 /**
- * A verified Yoco webhook event (/api/payments/yoco). payment.succeeded marks the order paid once the checkout and the
- * amount match it; a redelivery changes nothing. Money that doesn't fit the order is logged for a person
- * (payment.review in HQ → Audit log), never guessed at. A failed refund puts the payment back on the cancelled order
- * so staff refund it by hand. Other events about our orders are logged; the rest are ignored.
+ * A verified gateway event (webhook, or a Peach status query). A payment that went through marks the order paid once the
+ * checkout and the amount match it; a redelivery changes nothing. Money that doesn't fit the order is logged for a
+ * person (payment.review in HQ → Audit log), never guessed at. A failed refund puts the payment back on the cancelled
+ * order so staff refund it by hand. Other events about our orders are logged; the rest are ignored.
  */
-export async function applyYocoEvent(e: YocoEvent): Promise<PaymentDecision | { action: "logged"; reason: string }> {
-  const f = yocoFacts(e);
+async function applyOnlineEvent(
+  gateway: HostedGateway,
+  e: { id: string | null; type: string; kind: PaymentEventKind | undefined; facts: PaymentFacts },
+): Promise<PaymentDecision | { action: "logged"; reason: string }> {
+  const { name, actor, refundIn } = GATEWAYS[gateway];
+  const f = e.facts;
   const order = f.orderId
     ? await db.order.findUnique({ where: { id: f.orderId } })
     : f.checkoutId // paymentRef has no index: bound the look-up to recent orders
       ? await db.order.findFirst({ where: { paymentRef: f.checkoutId, createdAt: { gte: addDays(new Date(), -120) } } })
       : null;
   const log = (action: string, extra: Record<string, string | null> = {}) =>
-    audit(db, YOCO, action, { storeId: order?.storeId, entity: "Order", entityId: order?.id, data: { event: e.id, type: e.type, checkoutId: f.checkoutId, id: f.id, amount: f.amountCents, mode: f.mode, ...extra } });
+    audit(db, actor, action, { storeId: order?.storeId, entity: "Order", entityId: order?.id, data: { event: e.id, type: e.type, checkoutId: f.checkoutId, id: f.id, amount: f.amountCents, mode: f.mode, ...extra } });
 
-  if (e.type === "payment.succeeded") {
-    const d = paymentDecision(f, order && { ...order, dueCents: order.totalCents - order.pointsRedeemed * 100 });
+  if (e.kind === "paid") {
+    const d = decidePayment(f, order && { ...order, dueCents: order.totalCents - order.pointsRedeemed * 100 }, refundIn);
     if (d.action === "pay") {
-      await markOrderPaid(order!.id, f.checkoutId!, `Paid with Yoco${f.method ? ` · ${f.method}` : ""} · payment ${f.id}`);
-      await log("order.pay_online", { gateway: "YOCO", method: f.method });
+      await markOrderPaid(order!.id, f.checkoutId!, `Paid with ${name}${f.method ? ` · ${f.method}` : ""} · payment ${f.id}`);
+      await log("order.pay_online", { gateway, method: f.method });
     } else if (d.action === "review") await log("payment.review", { reason: d.reason });
     return d;
   }
   if (!order || (f.checkoutId && f.checkoutId !== order.paymentRef)) return { action: "ignore", reason: "Not one of our checkouts" };
-  if (e.type === "refund.failed" && order.status === "CANCELLED" && order.paymentStatus === "REFUNDED") {
-    const note = `Yoco refund failed${f.failureReason ? ` (${f.failureReason})` : ""}: refund the member by hand`;
+  if (e.kind === "payment.refund_failed" && order.status === "CANCELLED" && order.paymentStatus === "REFUNDED") {
+    const note = `${name} refund failed${f.failureReason ? ` (${f.failureReason})` : ""}: refund the member by hand`;
     await db.order.update({ where: { id: order.id }, data: { paymentStatus: "PAID", events: [...(order.events as Event[]), { status: order.status, at: new Date().toISOString(), note }] } });
   }
-  const action = ({ "payment.failed": "payment.failed", "refund.succeeded": "payment.refunded", "refund.failed": "payment.refund_failed" } as Record<string, string | undefined>)[e.type];
-  if (!action) return { action: "ignore", reason: `${e.type} isn't used` };
-  await log(action, { reason: f.failureReason });
-  return { action: "logged", reason: action };
+  if (!e.kind) return { action: "ignore", reason: `${e.type} isn't used` };
+  await log(e.kind, { reason: f.failureReason });
+  return { action: "logged", reason: e.kind };
 }
+
+/** A verified Yoco webhook event (/api/payments/yoco): payment.succeeded, payment.failed, refund.succeeded, refund.failed. */
+export const applyYocoEvent = (e: YocoEvent) => applyOnlineEvent("YOCO", { id: e.id, type: e.type, kind: yocoEventKind(e.type), facts: yocoFacts(e) });
+
+/** A verified Peach webhook event (/api/payments/peach): payment_succeeded, payment_failed, refund_succeeded, refund_failed. */
+export const applyPeachEvent = (e: PeachEvent) => applyOnlineEvent("PEACH", { id: e.event_id, type: e.event_type, kind: peachEventKind(e.event_type), facts: peachFacts(e, peachMode()) });
 
 const FLOW: Record<OrderStatus, OrderStatus[]> = {
   PENDING_PAYMENT: ["PLACED", "CANCELLED"],
@@ -290,9 +361,10 @@ export async function advanceOrder(
     throw new OrderError("An authorised dispenser must hand over this order");
 
   const due = o.totalCents - o.pointsRedeemed * 100;
+  const gateway = paidOnlineWith(o);
   let payments: TenderInput[] | { method: "ONLINE"; amountCents: number; provider: string; reference?: string }[] = [];
   if (handover || dispatch) {
-    if (o.paymentStatus === "PAID") payments = due > 0 ? [{ method: "ONLINE", amountCents: due, provider: paidWithYoco(o) ? "YOCO" : "GATEWAY", reference: o.paymentRef ?? undefined }] : [];
+    if (o.paymentStatus === "PAID") payments = due > 0 ? [{ method: "ONLINE", amountCents: due, provider: gateway ?? "GATEWAY", reference: o.paymentRef ?? undefined }] : [];
     else {
       if (dispatch) throw new OrderError("Delivery orders must be paid before dispatch");
       const paid = (opts.payments ?? []).reduce((s, p) => s + p.amountCents, 0);
@@ -301,8 +373,8 @@ export async function advanceOrder(
     }
   }
 
-  // A paid Yoco order is refunded in full before it's cancelled. If Yoco refuses, nothing changes and staff see why.
-  const refund = to === "CANCELLED" && paidWithYoco(o) ? await refundWithYoco(o, due) : null;
+  // A paid Peach or Yoco order is refunded in full before it's cancelled. If the gateway refuses, nothing changes and staff see why.
+  const refund = to === "CANCELLED" && gateway ? await refundOnline(gateway, o, due) : null;
   const events = [...(o.events as Event[]), { status: to, at: new Date().toISOString(), note: [opts.note, refund?.note].filter(Boolean).join(" · ") || undefined }];
   let postedSaleId: string | null = null;
   const updated = await tx(async (t) => {

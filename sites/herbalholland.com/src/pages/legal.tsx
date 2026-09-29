@@ -59,9 +59,10 @@ function Para({ p }: { p: LegalPara }) {
 
 function LegalPage({ page, doc }: { page: "privacy" | "terms" | "paia"; doc: LegalDoc }) {
   const { hero, summary, sections } = doc;
+  const crumbs = [{ label: doc.meta.title, path: `/${page}` }];
   return (
-    <Page page={page} meta={{ path: `/${page}`, ...doc.meta }} free>
-      <PageHero kind={page} eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede}>
+    <Page page={page} stage="night" meta={{ path: `/${page}`, ...doc.meta, crumbs }} free>
+      <PageHero kind={page} eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede} crumbs={crumbs}>
         <p className="phero__note">{fill(LEGAL.version, { version: doc.version, date: longDate(doc.updated, { weekday: false }) })}</p>
       </PageHero>
 

@@ -9,6 +9,7 @@ import { PolicyBody } from "@/components/shop/legal/policy";
 import { Callout, Container } from "@/components/shop/ui";
 import { H2, P } from "@/components/shop/learn/bodies";
 import { LEGAL_DOCS as DOCS, deliveryPolicy, returnsPolicy, type LegalSlug as Slug } from "@/lib/policies";
+import { metaDescription, pageTitle } from "@/lib/seo";
 
 const docOf = (slug: string) => (Object.hasOwn(DOCS, slug) ? DOCS[slug as Slug] : null);
 
@@ -17,8 +18,11 @@ export function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
-  const d = docOf((await params).slug);
-  return d ? { title: d.title, description: d.dek } : { title: "Not found" };
+  const { slug } = await params;
+  const d = docOf(slug);
+  if (!d) return { title: "Not found" };
+  const description = metaDescription(d.dek, `${d.title} for Herbal Holland Rewards members and the online shop, in plain English.`);
+  return { title: pageTitle(d.title), description, alternates: { canonical: `/legal/${slug}` }, openGraph: { title: d.title, description, type: "website", url: `/legal/${slug}` } };
 }
 
 export default async function LegalPage({ params }: { params: Promise<{ slug: string }> }) {

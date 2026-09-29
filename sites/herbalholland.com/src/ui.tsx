@@ -3,13 +3,13 @@
 import {
   ArrowRight,
   ArrowUpRight,
+  CircleCheck,
   BadgeCheck,
   Boxes,
   Building2,
   CalendarDays,
   CalendarHeart,
   Camera,
-  CreditCard,
   ChartColumn,
   Download,
   FileText,
@@ -17,7 +17,6 @@ import {
   Frame,
   GraduationCap,
   HandCoins,
-  HandHeart,
   Handshake,
   IdCard,
   KeyRound,
@@ -59,6 +58,7 @@ const ICONS: Record<string, LucideIcon> = {
   mail: Mail,
   download: Download,
   calendar: CalendarDays,
+  open: CircleCheck,
   operator: Store,
   capital: HandCoins,
   standing: UsersRound,
@@ -66,8 +66,8 @@ const ICONS: Record<string, LucideIcon> = {
   tills: MonitorSmartphone,
   stock: Truck,
   finance: ChartColumn,
-  rewards: CreditCard,
-  heritage: HandHeart,
+  rewards: IdCard,
+  delivery: Truck,
   online: Package,
   compliance: BadgeCheck,
   brand: Frame,
@@ -151,7 +151,6 @@ export function Btn({ href, kind = "primary", children, icon = "arrow", magnetic
       {icon && (
         <span className="btn__icon" aria-hidden="true">
           <Icon name={icon} size={18} />
-          <Icon name={icon} size={18} />
         </span>
       )}
     </a>
@@ -169,6 +168,30 @@ export function Soon({ label, className, kind = "chip" }: { label: React.ReactNo
         {FACTS.shop.opensLabel}
       </span>
     </span>
+  );
+}
+
+/** The pages with the early-access sign-up (#first-access) on them; from anywhere else, links go to the home page's. */
+const ACCESS_PAGES = new Set(["home", "stores"]);
+export const accessHref = (page?: string) => (page && ACCESS_PAGES.has(page) ? "#first-access" : "/#first-access");
+
+/**
+ * "Shop online", the main way in: the online shop (or `path` in it) once it's live, and the early-access sign-up until
+ * then. A button, or a plain link in running lists.
+ */
+export function ShopNow({ page, path = "/", label = CHROME.cta.shop, kind = "primary", link, magnetic, className }: { page?: string; path?: string; label?: string; kind?: BtnKind; link?: boolean; magnetic?: boolean; className?: string }) {
+  const shop = shopLink(path);
+  const href = shop ?? accessHref(page);
+  if (link)
+    return (
+      <a href={href} className={cx("link", className)}>
+        {label}
+      </a>
+    );
+  return (
+    <Btn href={href} kind={kind} icon={shop ? "out" : "arrow"} magnetic={magnetic} className={className}>
+      {label}
+    </Btn>
   );
 }
 

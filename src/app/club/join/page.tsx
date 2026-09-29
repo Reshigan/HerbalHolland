@@ -86,7 +86,7 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
               </li>
             ))}
           </ul>
-          <p className="mt-10 max-w-lg text-xs leading-relaxed text-ink-500">
+          <p className="mt-10 max-w-lg text-xs leading-relaxed text-ink-450">
             We ask only what we need: your number to sign you in, your age to keep things legal, and an email address if you&apos;d like invoices by email. Marketing is opt-in, per channel, and you can change it any time.{" "}
             <Link href="/legal/privacy" className="underline hover:text-ink-300">
               Privacy notice

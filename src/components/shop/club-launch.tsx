@@ -40,7 +40,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
             <span className="mt-0.5 whitespace-nowrap rounded-full bg-white px-2 py-0.5 text-[0.68rem] font-bold text-ink-950">You · #{num(w.place)}</span>
           </span>
         </div>
-        <div className="flex justify-between text-[0.7rem] text-ink-500">
+        <div className="flex justify-between text-[0.7rem] text-ink-450">
           <span>Top of the list</span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-brand-500" /> First {num(cap)} = Founding Members
@@ -118,7 +118,7 @@ export function DealsPanel({ deals, personalised }: { deals: Deal[]; personalise
                 )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-medium text-ink-100">{d.title}</span>
-                  <span className="block text-xs text-ink-500">Ends {fmtDay(d.endsAt)} · applies automatically at the till and online</span>
+                  <span className="block text-xs text-ink-450">Ends {fmtDay(d.endsAt)} · applies automatically at the till and online</span>
                 </span>
                 <Tag tone="orange" className="shrink-0">
                   {d.label}

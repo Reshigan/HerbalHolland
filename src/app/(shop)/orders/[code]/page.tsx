@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { invoiceUrl } from "@/server/invoices";
+import { hostedGateway, HOSTED_GATEWAYS } from "@/server/payments";
 import { openState, parseHours, weekRows } from "@/server/shop/hours";
 import { directionsUrl } from "@/components/shop/store-card";
 import { QrCode } from "@/components/shop/qr";
@@ -16,6 +17,8 @@ import { ProductArt } from "@/components/product/art";
 import { fmtDate, fmtDateTime, fmtTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
+import { possessive } from "@/lib/online-payments";
+import { peachReturn } from "@/lib/peach";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { cn } from "@/lib/cn";
 import type { OrderStatus } from "@/generated/prisma/client";
@@ -33,7 +36,7 @@ const STATUS: Record<OrderStatus, [string, TagTone]> = {
   CANCELLED: ["Cancelled", "red"],
 };
 
-export default async function OrderPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ placed?: string; paid?: string; pay?: string }> }) {
+export default async function OrderPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ placed?: string; paid?: string; pay?: string; status?: string }> }) {
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const order = await db.order.findUnique({
     where: { code: code.toUpperCase() },
@@ -71,10 +74,14 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const holdUntil = new Date(order.createdAt.getTime() + settings.ecommerce.unpaidHoldMinutes * 60_000);
   const readyAt = at("READY");
   const store = openState(parseHours(order.store.hours));
-  // Back from Yoco (?pay=success|cancelled|failed). Only its webhook marks an order paid: until then, wait for it.
+  // Back from the gateway: Yoco ?pay=success|cancelled|failed, Peach ?pay=peach&status=<its payment status>. Only the
+  // gateway (its webhook) marks an order paid: until then, wait for it.
+  const g = hostedGateway();
+  const partner = g ? HOSTED_GATEWAYS[g] : "";
+  const pay = !g ? undefined : sp.pay === "peach" ? peachReturn(sp.status) : sp.pay;
   const pending = mine && order.status === "PENDING_PAYMENT";
-  const waiting = pending && sp.pay === "success";
-  const payCancelled = pending && (sp.pay === "cancelled" || sp.pay === "failed");
+  const waiting = pending && pay === "success";
+  const payCancelled = pending && (pay === "cancelled" || pay === "failed");
 
   return (
     <Container className="pt-10 sm:pt-14">
@@ -83,25 +90,25 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           We&apos;ve sent a confirmation by SMS{collect ? ` and ${order.store.name} is getting it ready` : ""}. {order.payMethod !== "ONLINE" ? `Pay ${zar(due)} when you collect.` : ""}
         </Callout>
       )}
-      {mine && (sp.paid || sp.pay) && order.paymentStatus === "PAID" && order.status !== "CANCELLED" && (
+      {mine && (sp.paid || pay) && order.paymentStatus === "PAID" && order.status !== "CANCELLED" && (
         <Callout tone="success" icon={<CreditCard className="h-5 w-5" />} title="Payment received — thank you." className="mb-8">
           Your tax invoice will be emailed{collect ? " when you collect" : " when your order is dispatched"}.
         </Callout>
       )}
       {waiting && (
         <Callout tone="info" icon={<Loader2 className="h-5 w-5 animate-spin" />} title="Waiting for payment confirmation…" className="mb-8">
-          Yoco is confirming your payment. This page updates by itself.
-          <AwaitPayment />
+          {partner} is confirming your payment. This page updates by itself.
+          <AwaitPayment gateway={partner} />
         </Callout>
       )}
-      {mine && sp.pay === "success" && order.status === "CANCELLED" && order.paymentStatus !== "REFUNDED" && (
+      {mine && pay === "success" && order.status === "CANCELLED" && order.paymentStatus !== "REFUNDED" && (
         <Callout tone="warn" icon={<CreditCard className="h-5 w-5" />} title="This order was cancelled before your payment reached us" className="mb-8">
           We&apos;ll refund you in full; there&apos;s nothing you need to do. Questions? Quote order {order.code}.
         </Callout>
       )}
       {payCancelled && (
         <Callout tone="warn" icon={<XCircle className="h-5 w-5" />} title="Payment cancelled" className="mb-8">
-          {sp.pay === "failed" ? "The payment didn't go through, so nothing was charged." : "You left Yoco's page before paying, so nothing was charged."} We&apos;re holding your order until{" "}
+          {pay === "failed" ? "The payment didn't go through, so nothing was charged." : `You left ${possessive(partner)} page before paying, so nothing was charged.`} We&apos;re holding your order until{" "}
           {fmtTime(holdUntil)}.
           <div className="mt-3">
             <ButtonLink href={`/checkout/pay/${order.id}`} size="md">
@@ -200,7 +207,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                         )}
                       </span>
                       <div className="min-w-0">
-                        <div className={cn("font-semibold", done || now ? "text-white" : "text-ink-500")}>{s.label}</div>
+                        <div className={cn("font-semibold", done || now ? "text-white" : "text-ink-450")}>{s.label}</div>
                         <div className="text-sm text-ink-400">
                           {when && (done || now) ? `${fmtDateTime(when)} · ` : ""}
                           {s.sub}
@@ -252,7 +259,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   <dt className="font-semibold text-white">{order.paymentStatus === "PAID" ? "Paid" : collect && order.payMethod !== "ONLINE" ? "To pay in store" : "Total"}</dt>
                   <dd className="tnum font-display text-2xl font-semibold text-white">{zar(due)}</dd>
                 </div>
-                {order.vatCents > 0 && <p className="text-right text-xs text-ink-500">Includes VAT of {zar(order.vatCents)}</p>}
+                {order.vatCents > 0 && <p className="text-right text-xs text-ink-450">Includes VAT of {zar(order.vatCents)}</p>}
                 {saved > 0 && <p className="rounded-xl bg-brand-500/10 px-3 py-2 text-sm font-semibold text-brand-100">You saved {zar(saved)} with Herbal Holland Rewards</p>}
               </dl>
             </Panel>
@@ -348,7 +355,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
 
           <Panel className="p-5 text-sm text-ink-400">
             <p>
-              <Package className="mr-1.5 inline h-4 w-4 align-[-3px] text-ink-500" />
+              <Package className="mr-1.5 inline h-4 w-4 align-[-3px] text-ink-450" />
               Questions about this order? Quote <strong className="text-ink-100">{order.code}</strong>{" "}
               {order.store.phone ? (
                 <>

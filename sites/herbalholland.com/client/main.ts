@@ -1,31 +1,51 @@
 // herbalholland.com — the page's one script: a small ES module, no libraries. What it does:
-//   the 18+ gate (a modal dialog: focus trapped, the page inert), the menu dialog, the FAQ, the franchise form;
-//   and the motion: one requestAnimationFrame loop drives scroll velocity (the windmill's sails and the marquee),
-//   the pinned 9,475 km story, and scroll-linked --p where CSS scroll-driven animations aren't supported, while
-//   IntersectionObserver starts one-shot reveals. Only transform and opacity move; nothing reads layout while it writes.
-//   With prefers-reduced-motion everything is still, and the content is all there.
+//   the 18+ gate's focus (the head script shows it, takes its answers and keeps the page behind it inert), the menu
+//   dialog, the FAQ, the
+//   two forms; and the motion: one requestAnimationFrame loop drives scroll velocity (the wind that turns every
+//   windmill's sails and drifts the marquee), the pinned 9,475 km story, the stage (each scene's entry, --t1 … --t4,
+//   where CSS scroll-driven animations aren't supported; and the windmill's flight from scene to scene, always), and
+//   scroll-linked --p elsewhere, while IntersectionObserver starts one-shot reveals. Only transform and opacity move;
+//   nothing reads layout while it writes. The loop sleeps when nothing moves, drops to 30 fps when the page is idle
+//   and stops in a background tab. Without html.motion (reduced motion, Save-Data, four cores or fewer) the page is
+//   still, and the content is all there.
 
 const d = document;
 const html = d.documentElement;
 const mq = (q: string) => matchMedia(q).matches;
 const RM = mq("(prefers-reduced-motion: reduce)");
+const MOTION = html.classList.contains("motion");
 const FINE = mq("(hover: hover) and (pointer: fine)");
-const SDA = typeof CSS !== "undefined" && CSS.supports("animation-timeline: view()");
+const SDA = typeof CSS !== "undefined" && CSS.supports("animation-timeline: view()") && CSS.supports("timeline-scope: --a");
 const $ = <T extends Element = HTMLElement>(s: string, r: ParentNode = d) => r.querySelector<T>(s);
 const $$ = <T extends Element = HTMLElement>(s: string, r: ParentNode = d) => Array.from(r.querySelectorAll<T>(s));
 const clamp = (v: number, a = 0, b = 1) => (v < a ? a : v > b ? b : v);
+const smooth = (t: number) => t * t * (3 - 2 * t);
 const on = <K extends keyof HTMLElementEventMap>(el: EventTarget | null | undefined, ev: K | string, fn: (e: never) => void, o?: AddEventListenerOptions) => el?.addEventListener(ev, fn as EventListener, o);
 const setVar = (el: HTMLElement | SVGElement, k: string, v: string | number) => el.style.setProperty(k, String(v));
 const fmt = (n: number) => n.toLocaleString("en-US");
+/** Stamps a <template>'s first element into the page (before `before`, or at the end of `parent`). */
+const stamp = (t: HTMLTemplateElement | null, parent: Element, before?: Element | null) => {
+  const el = t?.content.firstElementChild?.cloneNode(true) as HTMLElement | undefined;
+  if (el) parent.insertBefore(el, before ?? null);
+  return el ?? null;
+};
+const modal = (open: boolean) => html.classList.toggle("modal", open);
 
 // ── One loop ────────────────────────────────────────────────────────────────
 // Each job runs every frame while the loop is awake and says whether it still needs frames; the loop sleeps when none
-// do, and scroll, pointer and visibility events wake it.
+// do, and scroll, pointer and visibility events wake it. After a moment without input it runs every other frame.
 type Job = (dt: number) => boolean;
 const jobs: Job[] = [];
 let raf = 0;
 let last = 0;
+let lastInput = 0;
+let tick = 0;
 function frame(now: number) {
+  tick++;
+  if (now - lastInput > 500 && tick % 2) {
+    raf = requestAnimationFrame(frame);
+    return;
+  }
   const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
   last = now;
   let more = false;
@@ -33,12 +53,15 @@ function frame(now: number) {
   raf = more ? requestAnimationFrame(frame) : 0;
 }
 function wake() {
-  if (raf) return;
-  last = performance.now();
+  lastInput = performance.now();
+  if (raf || d.hidden) return;
+  last = lastInput;
   raf = requestAnimationFrame(frame);
 }
+on(d, "visibilitychange", () => (d.hidden ? (cancelAnimationFrame(raf), (raf = 0)) : wake()));
 
-// Scroll: position, smoothed velocity (px/s), direction, and "wind" — rises with a fast scroll, dies away slowly.
+// Scroll: position, smoothed velocity (px/s), direction, and "wind" — rises with a fast scroll (or a quick cursor),
+// dies away slowly.
 let sy = scrollY;
 let prevY = sy;
 let vel = 0;
@@ -51,7 +74,7 @@ jobs.push((dt) => {
   if (dy) dir = dy > 0 ? 1 : -1;
   vel += (dy / dt - vel) * Math.min(1, dt * 14);
   const a = Math.abs(vel);
-  wind += (a - wind) * (a > wind ? Math.min(1, dt * 9) : Math.min(1, dt * 1.6));
+  wind += (a - wind) * (a > wind ? Math.min(1, dt * 9) : Math.min(1, dt * 2.6));
   if (wind < 0.5) wind = 0;
   return Math.abs(vel) > 1 || wind > 0;
 });
@@ -59,14 +82,18 @@ on(window, "scroll", wake, { passive: true });
 
 // Geometry, measured once and on resize (never inside the loop).
 let vh = innerHeight;
+let vw = innerWidth;
 const geo = new Map<Element, { top: number; h: number }>();
+const measurers: (() => void)[] = [];
 const measure = () => {
   vh = innerHeight;
+  vw = innerWidth;
   const y = scrollY;
   geo.forEach((_, el) => {
     const r = el.getBoundingClientRect();
     geo.set(el, { top: r.top + y, h: r.height });
   });
+  measurers.forEach((m) => m());
   wake();
 };
 
@@ -82,65 +109,13 @@ const seen = new IntersectionObserver(
 const watch = (el: Element) => (geo.set(el, { top: 0, h: 0 }), seen.observe(el));
 
 // ── The 18+ gate ────────────────────────────────────────────────────────────
-const ready = () => html.classList.add("ready");
-
+// The head script shows the gate and takes its answers (so the first screen works before this module arrives), and
+// makes the page behind it inert. Here: focus starts on the answer.
+const gated = () => html.dataset.age !== "ok";
 function gate() {
-  const g = $<HTMLDialogElement>("#gate");
-  const age = html.dataset.age;
-  if (!g || age === "ok") return ready();
-  const ask = $("[data-gate-ask]", g)!;
-  const under = $("[data-gate-under]", g)!;
-  const open = () => {
-    if (g.open) return;
-    try {
-      g.showModal();
-    } catch {
-      g.setAttribute("open", "");
-    }
-  };
-  const showUnder = (focus: boolean) => {
-    ask.hidden = true;
-    under.hidden = false;
-    g.setAttribute("aria-labelledby", "gate-under");
-    g.removeAttribute("aria-describedby");
-    if (focus) $("#gate-under", g)?.focus();
-  };
-  open();
-  if (age === "under") showUnder(true);
-  else $<HTMLButtonElement>("[data-age=yes]", g)?.focus();
-  // Esc doesn't dismiss it: an answer does.
-  on(g, "cancel", (e: Event) => e.preventDefault());
-  on(g, "close", () => html.dataset.age !== "ok" && open());
-  on($("[data-age=yes]", g), "click", () => {
-    try {
-      localStorage.setItem("hh_age", String(Date.now()));
-    } catch {
-      try {
-        sessionStorage.setItem("hh_age", "ok");
-      } catch {
-        // Nothing to remember with: this page still opens.
-      }
-    }
-    html.dataset.age = "ok";
-    const done = () => {
-      g.close();
-      g.classList.remove("is-leaving");
-      $("#main")?.focus({ preventScroll: true });
-    };
-    if (RM) return done(), ready();
-    g.classList.add("is-leaving");
-    setTimeout(ready, 380);
-    setTimeout(done, 1300);
-  });
-  on($("[data-age=no]", g), "click", () => {
-    try {
-      sessionStorage.setItem("hh_age", "under");
-    } catch {
-      // The screen still shows for this page.
-    }
-    html.dataset.age = "under";
-    showUnder(true);
-  });
+  const g = $("#gate");
+  if (!g || !gated()) return;
+  ($("#gate-under", g) ?? $("[data-age=yes]", g))?.focus({ preventScroll: true });
 }
 
 // ── Header: solid once scrolled, tucked away while reading down, back on the way up ─────────────────────────────
@@ -179,13 +154,30 @@ function motion() {
     for (const s of sails) if (visible.has(s)) s.style.transform = t;
     return false;
   });
+  // A quick cursor is a gust too.
+  if (FINE) {
+    let px = -1;
+    let py = -1;
+    on(
+      window,
+      "pointermove",
+      (e: PointerEvent) => {
+        if (e.pointerType !== "mouse") return;
+        if (px >= 0) wind = Math.min(2600, wind + Math.hypot(e.clientX - px, e.clientY - py) * 4);
+        px = e.clientX;
+        py = e.clientY;
+        wake();
+      },
+      { passive: true },
+    );
+  }
 
   const m = $("[data-marquee]");
   const track = m && $(".marquee__track", m);
   const set = m && $(".marquee__set", m);
   if (!m || !track || !set) return;
   let w = set.getBoundingClientRect().width;
-  on(window, "resize", () => (w = set.getBoundingClientRect().width));
+  measurers.push(() => (w = set.getBoundingClientRect().width));
   seen.observe(m);
   let x = 0;
   let heading = -1;
@@ -200,7 +192,7 @@ function motion() {
   });
 }
 
-// ── Scroll-linked --p where CSS scroll-driven animations aren't supported ────────────────────────────────────
+// ── Scroll-linked --p, and each scene's entry (--t1 …) for the stage, where CSS scroll-driven animations aren't supported
 function progress() {
   if (SDA) return;
   const els = $$("[data-sp]");
@@ -224,9 +216,27 @@ function progress() {
     }
     return false;
   });
+  // A scene has entered as far as its top has climbed from the bottom of the screen to the top: 0 → 1.
+  const stage = $("[data-stage]");
+  const scenes = $$("[data-scene]");
+  if (!stage || !scenes.length) return;
+  scenes.forEach((s) => geo.set(s, { top: 0, h: 0 }));
+  const done = new Map<Element, string>();
+  jobs.push(() => {
+    for (const s of scenes) {
+      const g = geo.get(s);
+      if (!g) continue;
+      const t = clamp((sy - (g.top - vh)) / vh).toFixed(4);
+      if (done.get(s) !== t) done.set(s, t), setVar(stage, `--t${s.dataset.scene}`, t);
+    }
+    return false;
+  });
 }
 
-// ── The 9,475 km story: pinned while an arc draws from Amsterdam to our first store ──────────────────────────
+// ── The 9,475 km story: pinned while the windmill flies the arc from Amsterdam to the hills ──────────────────────
+/** Where the story is, for the stage: its progress, and where the flying marker is on screen. */
+const flight = { active: false, x: 0, y: 0, p: 0 };
+
 function story() {
   const s = $("[data-story]");
   const svg = s && $<SVGSVGElement>("[data-globe]", s);
@@ -258,8 +268,6 @@ function story() {
   const plane = $<SVGGElement>("[data-plane]", svg)!;
   const zooms = $$<SVGGElement>(".globe__zoom", svg);
   const pinA = $<SVGGElement>(".pin--a", svg);
-  const dots = $$<SVGCircleElement>(".dot", svg);
-  dots.forEach((c) => setVar(c, "--t", c.dataset.t!));
   const chapters = $$("[data-chapter]", s);
   const bars = $$(".story__bar i", s);
   const latEl = $("[data-lat]", s);
@@ -268,6 +276,25 @@ function story() {
   const km = Number(kmEls[0]?.textContent?.replace(/\D/g, "")) || 0;
   const dms = (n: number, p: string, q: string) => `${Math.abs(n).toFixed(4)}° ${n >= 0 ? p : q}`;
   watch(s);
+  // The globe's place inside the pinned frame (its own units → pixels), so the flight can be drawn on the stage; and the
+  // route's length, for the reveal. Measured once the story is on screen (the section's contents are skipped until then).
+  const pin = s.firstElementChild as HTMLElement;
+  const rt = $<SVGGeometryElement>("#rt", svg)!;
+  let gl = 0;
+  let gt = 0;
+  let gk = 1;
+  let len = 0;
+  let stale = true;
+  measurers.push(() => (stale = true));
+  const place = () => {
+    const r = svg.getBoundingClientRect();
+    const q = pin.getBoundingClientRect();
+    gl = r.left - q.left;
+    gt = r.top - q.top;
+    gk = r.width / 600;
+    len ||= rt.getTotalLength();
+    stale = false;
+  };
   let lastP = -1;
   let lastKm = "";
   const W8 = 0.075;
@@ -277,6 +304,7 @@ function story() {
   let flat = false;
   on(tall, "change", () => ((lastP = -1), wake()));
   jobs.push(() => {
+    flight.active = false;
     if (!tall.matches) {
       if (!flat) {
         flat = true;
@@ -287,19 +315,25 @@ function story() {
       return false;
     }
     flat = false;
-    if (!visible.has(s)) return false;
     const g = geo.get(s);
     if (!g || !g.h) return false;
+    if (stale && visible.has(s)) place();
     const p = clamp((sy - g.top) / (g.h - vh || 1));
-    if (Math.abs(p - lastP) < 0.0002) return false;
-    lastP = p;
     const ap = clamp((p - 0.03) / 0.72);
-    setVar(s, "--p", p.toFixed(4));
-    setVar(s, "--ap", ap.toFixed(4));
+    // The marker on screen: the pinned frame's top is where the section is until it pins, 0 while pinned, then it leaves.
     const pt = at(ap);
-    plane.style.transform = `translate(${pt.x.toFixed(1)}px,${pt.y.toFixed(1)}px)`;
     const z = clamp((p - 0.78) / 0.22);
-    const sc = 1 + 0.5 * z * z * (3 - 2 * z);
+    const sc = 1 + 0.5 * smooth(z);
+    const top = sy < g.top ? g.top - sy : sy > g.top + g.h - vh ? g.top + g.h - vh - sy : 0;
+    flight.active = true;
+    flight.p = p;
+    flight.x = gl + (ex + (pt.x - ex) * sc) * gk;
+    flight.y = gt + top + (ey + (pt.y - ey) * sc) * gk;
+    if (!visible.has(s) || Math.abs(p - lastP) < 0.0002) return false;
+    lastP = p;
+    setVar(s, "--p", p.toFixed(4));
+    setVar(s, "--ap", (ap * len).toFixed(1));
+    plane.style.transform = `translate(${pt.x.toFixed(1)}px,${pt.y.toFixed(1)}px)`;
     const zt = `translate(${ex}px,${ey}px) scale(${sc.toFixed(4)}) translate(${-ex}px,${-ey}px)`;
     zooms.forEach((z) => (z.style.transform = zt));
     // Amsterdam leaves the frame as the map closes in on South Africa.
@@ -326,26 +360,63 @@ function story() {
   });
 }
 
-// ── One-shot reveals, rolling numbers and the typed batch code ───────────────────────────────────────────────
+// ── The stage: the windmill's flight from scene to scene ─────────────────────────────────────────────────────────
+// Each scene says where the windmill stands while the scene fills the screen (--mill: x y scale, fractions of the
+// viewport, in its CSS, so it can differ by screen). Between two scenes the windmill moves as the next one enters; over
+// the sea it rides the story's arc, from the Amsterdam pin to the hills.
+function stage() {
+  const st = $("[data-stage]");
+  const mill = st && $("[data-mill-stage]", st);
+  if (!st || !mill) return;
+  const scenes = $$("[data-mill]");
+  if (!scenes.length) return;
+  type K = { x: number; y: number; s: number };
+  const keys: (K | null)[] = [];
+  const sea = scenes.findIndex((s) => s.hasAttribute("data-story"));
+  scenes.forEach((s) => geo.set(s, { top: 0, h: 0 }));
+  measurers.push(() => {
+    scenes.forEach((s, i) => {
+      const [x, y, sc] = getComputedStyle(s).getPropertyValue("--mill").trim().split(/\s+/).map(Number);
+      keys[i] = Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(sc) ? { x, y, s: sc } : null;
+    });
+  });
+  const px = (k: K): K => ({ x: k.x * vw, y: k.y * vh, s: k.s });
+  const flying = (): K => ({ x: flight.x, y: flight.y, s: 0.16 });
+  const mix = (a: K, b: K, u: number): K => ({ x: a.x + (b.x - a.x) * u, y: a.y + (b.y - a.y) * u, s: a.s + (b.s - a.s) * u });
+  let lastT = "";
+  jobs.push(() => {
+    // The scene in charge: the last whose top has reached the top of the screen.
+    let i = 0;
+    for (let j = 1; j < scenes.length; j++) if ((geo.get(scenes[j])?.top ?? Infinity) <= sy) i = j;
+    const from = i === sea && flight.active ? flying() : keys[i] ? px(keys[i]!) : null;
+    const next = scenes[i + 1];
+    const gn = next && geo.get(next);
+    let k = from;
+    if (from && gn && gn.h) {
+      const to = i + 1 === sea && flight.active ? flying() : keys[i + 1] ? px(keys[i + 1]!) : null;
+      if (to) k = mix(from, to, smooth(clamp((sy - (gn.top - vh)) / vh)));
+    }
+    if (!k) return false;
+    const t = `translate3d(${k.x.toFixed(1)}px,${k.y.toFixed(1)}px,0) scale(${k.s.toFixed(3)})`;
+    if (t !== lastT) (lastT = t), (mill.style.transform = t), st.classList.add("is-placed");
+    // Over the sea the windmill is the marker.
+    st.classList.toggle("is-flying", i === sea && flight.active);
+    return false;
+  });
+}
+
+// ── One-shot reveals and rolling numbers ─────────────────────────────────────────────────────────────────────────
 function reveals() {
   $$("[data-rs]").forEach((g) => $$("[data-r]", g).forEach((el, i) => setVar(el, "--i", i % 8)));
   $$(".reel__v").forEach((r) => $$(".reel__d", r).reverse().forEach((dd, i) => setVar(dd, "--i", i)));
-  const words = $$("[data-words] .sw");
-  words.forEach((w, i) => setVar(w, "--i", i));
-  const wp = $("[data-words]");
-  if (wp) setVar(wp, "--n", words.length);
-  const typed = $$("[data-type]");
-  const all = $$("[data-r], .reel__v, [data-type], .step");
-  if (RM || !("IntersectionObserver" in window)) return all.forEach((el) => el.classList.add("in")), $$(".card--lab").forEach((c) => c.classList.add("typed"));
-  typed.forEach((t) => ((t.dataset.full = t.textContent || ""), (t.textContent = "")));
+  const all = $$("[data-r], .reel__v, .step");
+  if (RM || !("IntersectionObserver" in window)) return all.forEach((el) => el.classList.add("in"));
   const io = new IntersectionObserver(
     (es) => {
       for (const e of es) {
         if (!e.isIntersecting) continue;
-        const el = e.target as HTMLElement;
-        io.unobserve(el);
-        el.classList.add("in");
-        if (el.dataset.type !== undefined) type(el);
+        io.unobserve(e.target);
+        e.target.classList.add("in");
       }
     },
     { rootMargin: "0px 0px -10% 0px", threshold: 0.1 },
@@ -353,48 +424,48 @@ function reveals() {
   all.forEach((el) => io.observe(el));
 }
 
-function type(el: HTMLElement) {
-  const full = el.dataset.full || "";
-  let i = 0;
-  const card = el.closest(".card");
-  const t = setInterval(() => {
-    el.textContent = full.slice(0, ++i);
-    if (i >= full.length) clearInterval(t), setTimeout(() => card?.classList.add("typed"), 220);
-  }, 75);
-}
-
 // ── Menu: a full-screen modal dialog ─────────────────────────────────────────────────────────────────────────
 function menu() {
-  const m = $<HTMLDialogElement>("#menu");
+  const t = $<HTMLTemplateElement>("#menu-t");
   const btn = $<HTMLButtonElement>("[data-menu-open]");
-  if (!m || !btn) return;
-  $$(".menu__word", m).forEach((w, i) => setVar(w, "--i", i));
+  if (!t || !btn) return;
+  let m: HTMLDialogElement | null = null;
   let closing = 0;
-  const open = () => {
-    clearTimeout(closing);
-    if (!m.open) m.showModal();
-    html.classList.add("menu-open");
-    btn.setAttribute("aria-expanded", "true");
-    requestAnimationFrame(() => requestAnimationFrame(() => m.classList.add("open")));
-    $<HTMLButtonElement>("[data-menu-close]", m)?.focus();
-  };
   const close = () => {
+    if (!m) return;
     m.classList.remove("open");
     html.classList.remove("menu-open");
     btn.setAttribute("aria-expanded", "false");
     closing = window.setTimeout(
       () => {
-        m.close();
+        m!.close();
+        modal(false);
         btn.focus();
       },
       RM ? 0 : 420,
     );
   };
+  // The dialog is stamped from its template the first time the menu opens.
+  const make = () => {
+    m = stamp(t, d.body) as HTMLDialogElement;
+    $$(".menu__word", m).forEach((w, i) => setVar(w, "--i", i));
+    on($("[data-menu-close]", m), "click", close);
+    on(m, "cancel", (e: Event) => (e.preventDefault(), close()));
+    $$<HTMLAnchorElement>("a[href^='#'], a[href^='/#']", m).forEach((a) => on(a, "click", close));
+    return m;
+  };
+  const open = () => {
+    clearTimeout(closing);
+    const el = m ?? make();
+    if (!el.open) el.showModal();
+    modal(true);
+    html.classList.add("menu-open");
+    btn.setAttribute("aria-expanded", "true");
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add("open")));
+    $<HTMLButtonElement>("[data-menu-close]", el)?.focus();
+  };
   on(btn, "click", open);
-  on($("[data-menu-close]", m), "click", close);
-  on(m, "cancel", (e: Event) => (e.preventDefault(), close()));
-  $$<HTMLAnchorElement>("a[href^='#'], a[href^='/#']", m).forEach((a) => on(a, "click", close));
-  on(window, "resize", () => m.open && innerWidth >= 1100 && close());
+  on(window, "resize", () => m?.open && innerWidth >= 1100 && close());
 }
 
 // ── FAQ: native <details>, with the answers easing in and the questions below gliding (FLIP, transform only) ──────
@@ -432,54 +503,148 @@ function faq() {
   });
 }
 
-// ── The franchise enquiry form: JSON to /api/enquiry ──────────────────────────────────────────────────────────
+// ── Forms: the franchise enquiry (JSON to /api/enquiry) and the early-access sign-up (JSON to /api/early-access) ──
+// One pattern for both: checks before sending, errors under each field and a summary above, a busy button, the server's
+// own field errors (422), "too many tries" (429) and anything else, then a thank-you that takes the focus.
 type FormCopy = { email: string; sending: string; errors: Record<string, string> };
-const ORDER = ["name", "email", "phone", "area", "province", "capital", "experience", "pharmacist", "message", "consent"];
+type Vals = Record<string, string | boolean>;
+type FormSpec = {
+  /** The fields in the order their errors are read and focused. */
+  order: string[];
+  /** Errors that stand for more than one control ("contact": an email address or a mobile number). */
+  group?: Record<string, string[]>;
+  values: (get: (n: string) => string, ticked: (n: string) => boolean) => Vals;
+  check: (v: Vals, E: Record<string, string>) => Record<string, string>;
+  /** What goes in the request (the ?src tag and the honeypot are added to it). */
+  body?: (v: Vals) => Vals;
+};
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+/** A South African mobile number, as the platform reads one (src/lib/sa.ts normalisePhone). */
+const saMobile = (raw: string) => {
+  let d = raw.replace(/[^\d+]/g, "");
+  if (d.startsWith("+27")) d = d.slice(3);
+  else if (d.startsWith("27") && d.length === 11) d = d.slice(2);
+  else if (d.startsWith("0")) d = d.slice(1);
+  return /^[6-8]\d{8}$/.test(d);
+};
+const str = (v: string | boolean | undefined) => (typeof v === "string" ? v.trim() : "");
 
-function form() {
-  const f = $<HTMLFormElement>("[data-form]");
-  const copyEl = $("#form-copy");
-  if (!f || !copyEl) return;
+const FORMS: Record<string, FormSpec> = {
+  // The franchise enquiry (/franchise).
+  f: {
+    order: ["name", "email", "phone", "area", "province", "capital", "experience", "pharmacist", "message", "consent"],
+    values: (get, ticked) => ({
+      name: get("name"),
+      email: get("email"),
+      phone: get("phone"),
+      area: get("area"),
+      province: get("province"),
+      experience: get("experience"),
+      capital: get("capital"),
+      pharmacist: get("pharmacist"),
+      message: get("message"),
+      consent: ticked("consent") ? "on" : "",
+    }),
+    check: (v, E) => {
+      const e: Record<string, string> = {};
+      const min = Number($("#f-experience")?.dataset.min) || 0;
+      if (!str(v.name)) e.name = E.name;
+      if (!str(v.email)) e.email = E.email;
+      else if (!EMAIL_RE.test(str(v.email))) e.email = E.emailShape;
+      if (!str(v.phone)) e.phone = E.phone;
+      if (str(v.area).length < 2) e.area = E.area;
+      if (!v.province) e.province = E.province;
+      if (!v.capital) e.capital = E.capital;
+      if (!str(v.experience)) e.experience = E.experience;
+      else if (str(v.experience).length < min) e.experience = E.experienceShort.replace("{n}", String(min));
+      if (!v.pharmacist) e.pharmacist = E.pharmacist;
+      if (!v.consent) e.consent = E.consent;
+      return e;
+    },
+  },
+  // The early-access sign-up (home, /stores): an email address or a mobile number (or both), 18+, and consent.
+  ea: {
+    order: ["email", "mobile", "contact", "firstName", "province", "adult", "consent"],
+    group: { contact: ["email", "mobile"] },
+    values: (get, ticked) => ({ firstName: get("firstName").trim(), email: get("email").trim(), mobile: get("mobile").trim(), province: get("province"), adult: ticked("adult"), consent: ticked("consent") }),
+    check: (v, E) => {
+      const e: Record<string, string> = {};
+      if (str(v.firstName) && !/\p{L}/u.test(str(v.firstName))) e.firstName = E.firstName;
+      if (!str(v.email) && !str(v.mobile)) e.contact = E.contact;
+      if (str(v.email) && !EMAIL_RE.test(str(v.email))) e.email = E.email;
+      if (str(v.mobile) && !saMobile(str(v.mobile))) e.mobile = E.mobile;
+      if (!v.adult) e.adult = E.adult;
+      if (!v.consent) e.consent = E.consent;
+      return e;
+    },
+    // Only what was given: the optional fields are left out when empty.
+    body: (v) => Object.fromEntries(Object.entries(v).filter(([, x]) => x !== "")),
+  },
+};
+
+function forms() {
+  $$<HTMLFormElement>("form[data-form]").forEach((f) => {
+    const p = f.dataset.form || "";
+    if (FORMS[p]) wireForm(f, p, FORMS[p]);
+  });
+}
+
+function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
+  const copyEl = $(`#${p}-copy`);
+  const doneT = f.parentElement && $<HTMLTemplateElement>("[data-form-done]", f.parentElement);
+  if (!copyEl || !doneT) return;
   const C = JSON.parse(copyEl.textContent || "{}") as FormCopy;
   const submit = $<HTMLButtonElement>("[data-submit]", f)!;
   const alertBox = $("[data-form-alert]", f)!;
   const live = $("[data-form-live]", f)!;
-  const done = $("[data-form-done]")!;
-  const input = (n: string) => f.elements.namedItem(n) as HTMLInputElement | null;
   const src = (new URLSearchParams(location.search).get("src") || "").trim().slice(0, 64);
   const fill = (s: string) => s.replace("{email}", C.email);
   let busy = false;
   submit.disabled = false;
 
-  const values = () => ({
-    name: input("name")?.value ?? "",
-    email: input("email")?.value ?? "",
-    phone: input("phone")?.value ?? "",
-    area: input("area")?.value ?? "",
-    province: input("province")?.value ?? "",
-    experience: input("experience")?.value ?? "",
-    capital: input("capital")?.value ?? "",
-    pharmacist: $<HTMLInputElement>("input[name=pharmacist]:checked", f)?.value ?? "",
-    message: input("message")?.value ?? "",
-    consent: $<HTMLInputElement>("#f-consent", f)?.checked ? "on" : "",
-  });
-
-  const controls = (n: string) => (n === "pharmacist" ? $$<HTMLInputElement>("input[name=pharmacist]", f) : [$<HTMLElement>(`#f-${n}`, f)].filter(Boolean)) as HTMLElement[];
-  const hintId = (n: string) => ($(`#f-${n}-hint`, f) ? `f-${n}-hint` : "");
+  const get = (n: string) => {
+    const radio = $<HTMLInputElement>(`input[type=radio][name="${n}"]:checked`, f);
+    if (radio) return radio.value;
+    return ($<HTMLInputElement>(`#${p}-${n}`, f)?.value ?? "") as string;
+  };
+  const ticked = (n: string) => !!$<HTMLInputElement>(`#${p}-${n}`, f)?.checked;
+  // The controls behind an error: a field's own input (or its radios), or every control a group stands for.
+  const controls = (n: string): HTMLElement[] => {
+    const g = spec.group?.[n];
+    if (g) return g.flatMap(controls);
+    const radios = $$<HTMLInputElement>(`input[type=radio][name="${n}"]`, f);
+    return radios.length ? radios : ([$<HTMLElement>(`#${p}-${n}`, f)].filter(Boolean) as HTMLElement[]);
+  };
+  // What carries aria-describedby: a radio group's fieldset, otherwise the controls themselves.
+  const described = (n: string): HTMLElement[] => {
+    const box = $<HTMLElement>(`[data-field="${n}"]`, f);
+    return box?.tagName === "FIELDSET" ? [box] : controls(n);
+  };
+  // Each one's own descriptions (its hints), kept so an error can be put in front and taken away again.
+  const base = new Map<HTMLElement, string>();
+  $$<HTMLElement>("input, select, textarea, fieldset", f).forEach((c) => base.set(c, c.getAttribute("aria-describedby") || ""));
+  const errOf = (n: string) => $(`#${p}-${n}-err`, f);
+  const boxes = (n: string) => [n, ...(spec.group?.[n] ?? [])].map((m) => $(`[data-field="${m}"]`, f)).filter(Boolean) as HTMLElement[];
+  const showing = (n: string) => !!errOf(n) && !errOf(n)!.hidden;
+  const redescribe = (c: HTMLElement) => {
+    const errs = spec.order.filter((n) => showing(n) && described(n).includes(c)).map((n) => `${p}-${n}-err`);
+    const d = [...errs, base.get(c)].filter(Boolean).join(" ");
+    d ? c.setAttribute("aria-describedby", d) : c.removeAttribute("aria-describedby");
+    const invalid = spec.order.some((n) => showing(n) && controls(n).includes(c));
+    invalid ? c.setAttribute("aria-invalid", "true") : c.removeAttribute("aria-invalid");
+  };
+  const refresh = (n: string) => {
+    boxes(n).forEach((b) => b.classList.toggle("has-err", spec.order.some((m) => showing(m) && boxes(m).includes(b))));
+    new Set([...controls(n), ...described(n)]).forEach(redescribe);
+  };
   const clearField = (n: string) => {
-    const box = $(`[data-field="${n}"]`, f);
-    if (!box?.classList.contains("has-err")) return;
-    box.classList.remove("has-err");
-    $(`#f-${n}-err`, f)!.hidden = true;
-    for (const c of controls(n)) {
-      c.removeAttribute("aria-invalid");
-      const h = hintId(n);
-      if (n === "pharmacist") continue;
-      h ? c.setAttribute("aria-describedby", h) : c.removeAttribute("aria-describedby");
-    }
+    const err = errOf(n);
+    if (!err || err.hidden) return;
+    err.hidden = true;
+    refresh(n);
   };
   const clearAll = () => {
-    ORDER.forEach(clearField);
+    spec.order.forEach(clearField);
     alertBox.hidden = true;
   };
   const showAlert = (msg: string, focus = true) => {
@@ -488,51 +653,29 @@ function form() {
     if (focus) alertBox.focus();
   };
   const showErrors = (fields: Record<string, string>, summary: string) => {
-    const bad = ORDER.filter((n) => fields[n]);
+    const bad = spec.order.filter((n) => fields[n]);
     if (!bad.length) return showAlert(summary);
     for (const n of bad) {
-      $(`[data-field="${n}"]`, f)?.classList.add("has-err");
-      const err = $(`#f-${n}-err`, f)!;
+      const err = errOf(n);
+      if (!err) continue;
       err.hidden = false;
       $("span", err)!.textContent = fields[n];
-      for (const c of controls(n)) {
-        c.setAttribute("aria-invalid", "true");
-        if (n !== "pharmacist") c.setAttribute("aria-describedby", [`f-${n}-err`, hintId(n)].filter(Boolean).join(" "));
-      }
     }
+    bad.forEach(refresh);
     showAlert(summary, false);
     const first = controls(bad[0])[0];
-    if (bad[0] === "pharmacist") $("[data-field=pharmacist]", f)?.setAttribute("aria-describedby", "f-pharmacist-err f-pharmacist-hint");
     first?.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" });
     first?.focus({ preventScroll: true });
   };
 
-  const check = (v: ReturnType<typeof values>) => {
-    const e: Record<string, string> = {};
-    const E = C.errors;
-    const min = Number($("#f-experience", f)?.dataset.min) || 0;
-    if (!v.name.trim()) e.name = E.name;
-    if (!v.email.trim()) e.email = E.email;
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email.trim())) e.email = E.emailShape;
-    if (!v.phone.trim()) e.phone = E.phone;
-    if (v.area.trim().length < 2) e.area = E.area;
-    if (!v.province) e.province = E.province;
-    if (!v.capital) e.capital = E.capital;
-    if (!v.experience.trim()) e.experience = E.experience;
-    else if (v.experience.trim().length < min) e.experience = E.experienceShort.replace("{n}", String(min));
-    if (!v.pharmacist) e.pharmacist = E.pharmacist;
-    if (!v.consent) e.consent = E.consent;
-    return e;
-  };
-
-  ORDER.forEach((n) => controls(n).forEach((c) => (on(c, "input", () => clearField(n)), on(c, "change", () => clearField(n)))));
+  spec.order.forEach((n) => controls(n).forEach((c) => (on(c, "input", () => clearField(n)), on(c, "change", () => clearField(n)))));
 
   on(f, "submit", async (e: Event) => {
     e.preventDefault();
     if (busy) return;
     clearAll();
-    const v = values();
-    const local = check(v);
+    const v = spec.values(get, ticked);
+    const local = spec.check(v, C.errors);
     if (Object.keys(local).length) return showErrors(local, C.errors.summary);
     busy = true;
     submit.disabled = true;
@@ -540,10 +683,11 @@ function form() {
     f.setAttribute("aria-busy", "true");
     live.textContent = C.sending;
     try {
-      const res = await fetch(f.dataset.endpoint || "/api/enquiry", {
+      const body = { ...(spec.body ? spec.body(v) : v), ...(src || !spec.body ? { source: src } : {}), website: ($<HTMLInputElement>(`#${p}-website`, f)?.value ?? "") as string };
+      const res = await fetch(f.dataset.endpoint || "/", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
-        body: JSON.stringify({ ...v, source: src, website: input("website")?.value ?? "" }),
+        body: JSON.stringify(body),
       });
       let data: { ok?: boolean; reference?: string; error?: string; fields?: Record<string, string> } | null = null;
       try {
@@ -567,11 +711,15 @@ function form() {
   });
 
   function success(ref: string) {
-    $("[data-ref]", done)!.textContent = ref;
-    $("[data-ref-line]", done)!.hidden = !ref;
-    f!.hidden = true;
-    done.hidden = false;
-    const title = $("#done-title", done)!;
+    // The thank-you arrives from its template, in the form's place.
+    const done = stamp(doneT, f.parentElement!, f)!;
+    const refEl = $("[data-ref]", done);
+    if (refEl) {
+      refEl.textContent = ref;
+      $("[data-ref-line]", done)!.hidden = !ref;
+    }
+    f.hidden = true;
+    const title = $("[data-done-title]", done)!;
     title.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" });
     title.focus({ preventScroll: true });
     requestAnimationFrame(() => requestAnimationFrame(() => done.classList.add("in")));
@@ -580,7 +728,7 @@ function form() {
 
 // ── Pointer niceties on desktop: tilt, magnetic buttons and the cursor ─────────────────────────────────────────
 function pointer() {
-  if (!FINE || RM) return;
+  if (!FINE || !MOTION) return;
   $$("[data-tilt]").forEach((el) => {
     let r: DOMRect | null = null;
     on(el, "pointerenter", () => ((r = el.getBoundingClientRect()), el.classList.add("tilting")));
@@ -616,7 +764,9 @@ function pointer() {
   c.setAttribute("aria-hidden", "true");
   c.innerHTML = '<span class="cursor__ring"><i></i></span><span class="cursor__dot"></span>';
   d.body.append(c);
-  html.classList.add("has-cursor");
+  const show = () => html.classList.add("has-cursor");
+  if (gated()) on($("[data-age=yes]"), "click", () => setTimeout(show, RM ? 0 : 1300));
+  else show();
   const ring = c.firstElementChild as HTMLElement;
   const dot = c.lastElementChild as HTMLElement;
   const label = ring.firstElementChild as HTMLElement;
@@ -656,25 +806,36 @@ function pointer() {
 }
 
 // ── Start ─────────────────────────────────────────────────────────────────────────────────────────────────────
+// The gate at once (a new visitor is looking at it); everything else once the page has loaded, in small pieces, so
+// nothing runs before the first paint and no task grows long.
 gate();
-reveals();
-menu();
-faq();
-form();
-header();
-// Reduced motion: scroll-linked pieces show their finished state (the hero stays as it is at the top).
-if (RM) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
-if (!RM) {
-  motion();
-  progress();
-  story();
-  pointer();
+const later = (fn: () => void) => ("requestIdleCallback" in window ? (window as Window & { requestIdleCallback: (cb: () => void, o?: { timeout: number }) => void }).requestIdleCallback(fn, { timeout: 400 }) : setTimeout(fn, 0));
+function start() {
+  reveals();
+  html.classList.add("m");
+  later(() => {
+    menu();
+    faq();
+    forms();
+    header();
+  });
+  later(() => {
+    // Without motion, scroll-linked pieces show their finished state (the hero stays as it is at the top).
+    if (!MOTION) $$("[data-sp]:not([data-sp=exit])").forEach((el) => setVar(el, "--p", 1));
+    if (MOTION) {
+      motion();
+      progress();
+      story();
+      stage();
+    }
+    measure();
+    on(window, "resize", measure);
+    d.fonts?.ready.then(measure);
+    new ResizeObserver(() => measure()).observe(d.body);
+    if (MOTION) later(pointer);
+  });
 }
-measure();
-on(window, "resize", measure);
-on(window, "load", measure);
-d.fonts?.ready.then(measure);
-new ResizeObserver(() => measure()).observe(d.body);
-html.classList.add("m");
+if (d.readyState === "complete") later(start);
+else on(window, "load", () => later(start));
 
 export {};

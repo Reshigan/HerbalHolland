@@ -16,7 +16,7 @@ Tick every line before the first store trades on the platform.
 
 ## Money
 - [ ] Each store onboarded with Yoco for its card machine (honest description, written approval for the product mix); tills on `NEXT_PUBLIC_TAP_PROVIDER=YOCO`, cashiers trained to key in the machine's reference
-- [ ] Online payments on Yoco (Vantax (Pty) Ltd): written approval for the product mix, domain verified, live keys and live webhook set, a live payment and a refund tested ([RUNBOOK → Yoco go-live](RUNBOOK.md#yoco-go-live-online-payments-and-in-store-card-machines))
+- [ ] Online payments on Peach Payments (Vantax (Pty) Ltd): Peach's written approval for the product mix (CBD is restricted; licensed THC is always paid in store — the app enforces it), only refundable payment methods on, live key, hash key and webhook set, a live payment and a refund tested ([RUNBOOK → Peach Payments go-live](RUNBOOK.md#peach-payments-go-live-online-payments))
 - [ ] VAT numbers per franchisee captured (non-vendors marked); invoice templates checked against SARS requirements
 - [ ] Royalty / levy / e-commerce commission rates confirmed per store; first statement dry-run reconciled
 - [ ] Accounting export (Sage/Xero daily journal) agreed with each owner's bookkeeper

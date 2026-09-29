@@ -140,6 +140,38 @@ export function validateLead(input: RawLead): LeadCheck {
   };
 }
 
+// ── The early-access list (herbalholland.com, until the online shop opens) ──
+
+export const EARLY_ACCESS_LIMITS = { firstName: 60, perIpHour: 5 } as const;
+/** The consent wording a sign-up ticked, kept with it: bump it when the site's wording changes. */
+export const EARLY_ACCESS_CONSENT = "early-access-1";
+export type EarlyAccessField = "firstName" | "email" | "mobile" | "contact" | "province" | "adult" | "consent";
+export type CleanEarlyAccess = { firstName: string | null; email: string | null; mobile: string | null; province: ProvinceCode | null; source: string | null };
+export type EarlyAccessCheck = { ok: true; data: CleanEarlyAccess } | { ok: false; fields: Partial<Record<EarlyAccessField, string>> };
+
+/** An early-access sign-up: an email address or a mobile number (or both), 18 or older, and consent to hear about the launch. */
+export function validateEarlyAccess(input: Partial<Record<EarlyAccessField | "source", unknown>>): EarlyAccessCheck {
+  const fields: Partial<Record<EarlyAccessField, string>> = {};
+  const firstName = line(input.firstName);
+  if (firstName.length > EARLY_ACCESS_LIMITS.firstName) fields.firstName = `Keep it under ${EARLY_ACCESS_LIMITS.firstName} characters`;
+  else if (firstName && !/\p{L}/u.test(firstName)) fields.firstName = "Enter your name in letters";
+
+  const email = line(input.email).toLowerCase();
+  if (email && (email.length > LEAD_LIMITS.email || !EMAIL.test(email))) fields.email = "That doesn't look like an email address — check it for typos";
+  const rawMobile = line(input.mobile);
+  const mobile = rawMobile ? normalisePhone(rawMobile) : null;
+  if (rawMobile && !mobile) fields.mobile = "Enter a South African mobile number, e.g. 082 123 4567";
+  if (!email && !rawMobile) fields.contact = "Enter an email address or a mobile number";
+
+  const province = line(input.province).toUpperCase();
+  if (province && !Object.hasOwn(PROVINCES, province)) fields.province = "Choose a province";
+  if (!ticked(input.adult)) fields.adult = "Herbal Holland is for adults: tick to confirm you're 18 or older";
+  if (!ticked(input.consent)) fields.consent = "Tick the box so we can tell you when the shop opens";
+
+  if (Object.keys(fields).length) return { ok: false, fields };
+  return { ok: true, data: { firstName: firstName || null, email: email || null, mobile, province: (province || null) as ProvinceCode | null, source: leadSource(text(input.source)) } };
+}
+
 // ── Numbers ─────────────────────────────────────────────────────────────────
 
 /** FL-000123 (from the FRANCHISE_LEAD counter). */

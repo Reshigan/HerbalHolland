@@ -169,7 +169,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       <CheckoutForm
         options={options}
         deliveryOnly={offered.deliveryOnly}
-        onlineNote={onlineGateway() === "YOCO" ? "Card or Instant EFT, secured by Yoco" : "Card, Instant EFT or PayShap"}
+        payInStoreOnly={required.length > 0}
+        onlineNote={onlineGateway() === "PEACH" ? "Card and more, secured by Peach Payments" : onlineGateway() === "YOCO" ? "Card or Instant EFT, secured by Yoco" : "Card, Instant EFT or PayShap"}
         stores={collect}
         defaultStoreId={defaultStore?.id ?? null}
         lines={q.lines.map((l) => ({ variantId: l.variantId, name: l.productName, variant: l.variantName, qty: l.qty, totalCents: l.totalCents }))}
@@ -204,7 +205,7 @@ function Summary({ lines, total, joinSavings }: { lines: { variantId: string; pr
           {lines.map((l) => (
             <li key={l.variantId} className="flex justify-between gap-3">
               <span className="min-w-0 text-ink-300">
-                <span className="tnum text-ink-500">{l.qty}×</span> {l.productName} <span className="text-ink-500">· {l.variantName}</span>
+                <span className="tnum text-ink-450">{l.qty}×</span> {l.productName} <span className="text-ink-450">· {l.variantName}</span>
               </span>
               <span className="tnum shrink-0 text-ink-100">{zar(l.totalCents)}</span>
             </li>
@@ -214,7 +215,7 @@ function Summary({ lines, total, joinSavings }: { lines: { variantId: string; pr
           <span className="font-semibold text-white">Total</span>
           <span className="tnum font-display text-2xl font-semibold text-white">{zar(total)}</span>
         </div>
-        <p className="mt-1 text-xs text-ink-500">Before delivery and points · prices include VAT</p>
+        <p className="mt-1 text-xs text-ink-450">Before delivery and points · prices include VAT</p>
         {joinSavings > 0 && (
           <p className="mt-4 rounded-xl border border-brand-500/35 bg-brand-500/10 px-3 py-2.5 text-sm text-brand-100">
             Join free in the next step and save <strong className="text-white">{zar(joinSavings)}</strong> on this order with your instant Rewards price.

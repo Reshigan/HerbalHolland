@@ -24,6 +24,7 @@ const COLS = ["", "sm:grid-cols-2", "sm:grid-cols-2", "sm:grid-cols-3"]; // a lo
 export function CheckoutForm(props: {
   options: FulfilOption[]; // only what some store can serve (never an empty list: courier is always there)
   deliveryOnly: boolean; // no store trading yet
+  payInStoreOnly?: boolean; // licensed medicines in the bag: no online payment provider accepts them
   onlineNote: string; // how "Pay online now" pays
   stores: CollectStore[];
   defaultStoreId: string | null;
@@ -48,7 +49,7 @@ export function CheckoutForm(props: {
   const canCollect = props.options.some((o) => o.key === "COLLECT");
   const [fulfilment, setFulfilment] = useState<Fulfil>(first);
   const [storeId, setStoreId] = useState(props.defaultStoreId ?? props.stores.find((s) => s.hasAll)?.id ?? "");
-  const [pay, setPay] = useState<"ONLINE" | "IN_STORE">("ONLINE");
+  const [pay, setPay] = useState<"ONLINE" | "IN_STORE">(props.payInStoreOnly ? "IN_STORE" : "ONLINE");
   const [usePts, setUsePts] = useState(false);
   const opt = props.options.find((o) => o.key === fulfilment)!;
   const [points, setPoints] = useState(opt.maxPoints);
@@ -193,7 +194,7 @@ export function CheckoutForm(props: {
                 ["IN_STORE", "Pay when you collect", "Card or cash at the counter", <Store key="s" className="h-5 w-5" />],
               ] as const
             ).filter(([k]) => k === "ONLINE" || canCollect).map(([k, l, sub, icon]) => {
-              const disabled = k === "IN_STORE" && fulfilment !== "COLLECT";
+              const disabled = (k === "IN_STORE" && fulfilment !== "COLLECT") || (k === "ONLINE" && !!props.payInStoreOnly);
               const on = payIn === k;
               return (
                 <button
@@ -208,7 +209,7 @@ export function CheckoutForm(props: {
                   <span className={cn("grid h-9 w-9 shrink-0 place-items-center rounded-full", on ? "bg-brand-500 text-ink-950" : "bg-ink-850 text-brand-400")}>{icon}</span>
                   <span>
                     <span className="block font-semibold text-white">{l}</span>
-                    <span className="block text-xs text-ink-400">{disabled ? "Only for click & collect" : sub}</span>
+                    <span className="block text-xs text-ink-400">{disabled ? (k === "ONLINE" ? "Licensed medicines are paid for at the counter" : "Only for click & collect") : sub}</span>
                   </span>
                 </button>
               );
@@ -246,7 +247,7 @@ export function CheckoutForm(props: {
             {props.lines.map((l) => (
               <li key={l.variantId} className="flex justify-between gap-3">
                 <span className="min-w-0 text-ink-300">
-                  <span className="tnum text-ink-500">{l.qty}×</span> {l.name} <span className="text-ink-500">· {l.variant}</span>
+                  <span className="tnum text-ink-450">{l.qty}×</span> {l.name} <span className="text-ink-450">· {l.variant}</span>
                 </span>
                 <span className="tnum shrink-0 text-ink-100">{zar(l.totalCents)}</span>
               </li>
@@ -273,7 +274,7 @@ export function CheckoutForm(props: {
               <dt className="font-semibold text-white">{payIn === "IN_STORE" ? "To pay in store" : "To pay"}</dt>
               <dd className="tnum font-display text-2xl font-semibold text-white">{zar(due)}</dd>
             </div>
-            {props.vatCents > 0 && <p className="text-right text-xs text-ink-500">Prices include VAT</p>}
+            {props.vatCents > 0 && <p className="text-right text-xs text-ink-450">Prices include VAT</p>}
           </dl>
           {props.memberSavingsCents > 0 && (
             <p className="mt-4 rounded-xl border border-brand-500/35 bg-brand-500/10 px-3 py-2.5 text-xs font-semibold text-brand-100">
@@ -311,7 +312,7 @@ export function CheckoutForm(props: {
             {pending ? "Placing your order…" : payIn === "ONLINE" && due > 0 ? `Continue to payment · ${zar(due)}` : `Place order · ${zar(due)}`}
             {!pending && <ArrowRight className="h-5 w-5" />}
           </button>
-          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-500">
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-xs text-ink-450">
             <Lock className="h-3.5 w-3.5" /> {fulfilment === "COLLECT" && chosen ? `Collect at ${chosen.name} · ID (18+) required` : "Secure checkout · ID (18+) checked on delivery"}
           </p>
           <p className="mt-1 text-center text-xs text-ink-400">

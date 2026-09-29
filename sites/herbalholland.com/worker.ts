@@ -1,9 +1,9 @@
-// herbalholland.com on Cloudflare: the static pages in dist/ (served before this Worker runs) and one API route, the
-// franchise enquiry form. Enquiries are checked with the platform's own rules (src/lib/leads.ts), kept in D1 and sent on:
+// herbalholland.com on Cloudflare: the static pages in dist/ (served before this Worker runs) and two API routes: the
+// franchise enquiry form and the early-access list (kept in D1 until the shop opens). Enquiries are checked with the platform's own rules (src/lib/leads.ts), kept in D1 and sent on:
 // to HQ → Franchise leads once the platform is live (APP_ENQUIRY_URL + APP_ENQUIRY_SECRET), otherwise by email to the
 // team (NOTIFY_TO, a verified Email Routing address).
 import { EmailMessage } from "cloudflare:email";
-import { LEAD_LIMITS, capitalLabel, validateLead, type CleanLead, type RawLead } from "../../src/lib/leads";
+import { EARLY_ACCESS_CONSENT, EARLY_ACCESS_LIMITS, LEAD_LIMITS, capitalLabel, validateEarlyAccess, validateLead, type CleanLead, type RawLead } from "../../src/lib/leads";
 import { PROVINCES } from "../../src/lib/sa";
 
 type Env = {
@@ -24,12 +24,17 @@ export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext) {
     const url = new URL(req.url);
     if (url.pathname === "/api/enquiry") return req.method === "POST" ? enquiry(req, env, ctx) : json(405, { ok: false, error: "Method not allowed" });
+    if (url.pathname === "/api/early-access") return req.method === "POST" ? earlyAccess(req, env) : json(405, { ok: false, error: "Method not allowed" });
     return env.ASSETS.fetch(req);
   },
-  // Daily (POPIA: no longer than needed): a year after they came in, or 30 days after HQ has them.
+  // Daily (POPIA: no longer than needed): enquiries a year after they came in, or 30 days after HQ has them; early-access
+  // sign-ups 12 months after they joined the list.
   async scheduled(_: unknown, env: Env) {
     const ago = (days: number) => new Date(Date.now() - days * 24 * HOUR).toISOString();
-    await env.DB.prepare("DELETE FROM enquiries WHERE created_at < ? OR (forwarded_at IS NOT NULL AND forwarded_at < ?)").bind(ago(365), ago(30)).run();
+    await env.DB.batch([
+      env.DB.prepare("DELETE FROM enquiries WHERE created_at < ? OR (forwarded_at IS NOT NULL AND forwarded_at < ?)").bind(ago(365), ago(30)),
+      env.DB.prepare("DELETE FROM early_access WHERE created_at < ?").bind(ago(365)),
+    ]);
   },
 };
 
@@ -68,6 +73,33 @@ async function enquiry(req: Request, env: Env, ctx: ExecutionContext) {
   const reference = `WEB-${String(row!.id).padStart(6, "0")}`;
   ctx.waitUntil(passOn(env, row!.id, reference, d, ip).catch((e) => console.error("[enquiry] pass-on failed", reference, e)));
   return json(200, { ok: true, reference });
+}
+
+/** A sign-up for first access to the online shop. Already on the list: the same answer, nothing new kept. */
+async function earlyAccess(req: Request, env: Env) {
+  const origin = req.headers.get("origin");
+  if (origin && new URL(origin).host !== new URL(req.url).host) return json(403, { ok: false, error: "Not allowed" });
+  let body: Record<string, unknown>;
+  try {
+    body = await req.json();
+  } catch {
+    return json(400, { ok: false, error: "That didn't come through. Please try again." });
+  }
+  if (typeof body.website === "string" && body.website.trim()) return json(200, { ok: true });
+  const check = validateEarlyAccess(body);
+  if (!check.ok) return json(422, { ok: false, error: "Please check the highlighted fields.", fields: check.fields });
+  const d = check.data;
+
+  const ip = req.headers.get("cf-connecting-ip");
+  const ipHash = ip ? await hmac(env.IP_SALT ?? "", ip) : null;
+  if (ipHash) {
+    const recent = await env.DB.prepare("SELECT COUNT(*) AS n FROM early_access WHERE ip_hash = ? AND created_at >= ?").bind(ipHash, new Date(Date.now() - HOUR).toISOString()).first<{ n: number }>();
+    if ((recent?.n ?? 0) >= EARLY_ACCESS_LIMITS.perIpHour) return json(429, { ok: false, error: "We've had several sign-ups from your connection in the last hour. Please try again later." });
+  }
+  await env.DB.prepare("INSERT OR IGNORE INTO early_access (created_at, first_name, email, mobile, province, source, consent, ip_hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")
+    .bind(new Date().toISOString(), d.firstName, d.email, d.mobile, d.province, d.source, EARLY_ACCESS_CONSENT, ipHash)
+    .run();
+  return json(200, { ok: true });
 }
 
 /** To the platform when it's live (it acknowledges the enquirer and tells the team); otherwise an email to the team. */

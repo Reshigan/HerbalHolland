@@ -99,6 +99,8 @@ export function StorePicker({ current, variant = "pill", className }: { current:
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  // The dialog's contents are rendered on first open (two pickers sit in the header of every page).
+  const [opened, setOpened] = useState(false);
   // The list is fetched on first hover/open rather than shipped with every page (the network can be 1,000 stores).
   const [stores, setStores] = useState<PickerStore[] | null>(null);
   const loading = useRef(false);
@@ -150,6 +152,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
         onFocus={load}
         onClick={() => {
           setError(null);
+          setOpened(true);
           load();
           ref.current?.showModal();
         }}
@@ -174,15 +177,16 @@ export function StorePicker({ current, variant = "pill", className }: { current:
       </button>
       <dialog
         ref={ref}
-        aria-labelledby="store-picker-title"
+        aria-label="Choose your store"
         className="m-auto max-h-[min(40rem,90dvh)] w-[min(34rem,calc(100vw-2rem))] overflow-hidden rounded-3xl border border-ink-800 bg-ink-950 p-0 text-ink-100 shadow-lift backdrop:bg-ink-950/75 backdrop:backdrop-blur-sm"
         onClick={(e) => e.target === ref.current && ref.current?.close()}
       >
+        {opened && (
         <div className="flex max-h-[min(40rem,90dvh)] flex-col">
           <div className="border-b border-ink-800 p-5">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h2 id="store-picker-title" className="font-display text-xl font-semibold text-white">Choose your store</h2>
+                <h2 className="font-display text-xl font-semibold text-white">Choose your store</h2>
                 <p className="mt-1 text-sm text-ink-400">We&apos;ll show what&apos;s in stock there and use it for click &amp; collect.</p>
               </div>
               <button onClick={() => ref.current?.close()} className="grid h-10 w-10 shrink-0 place-items-center rounded-full text-ink-300 hover:bg-ink-850" aria-label="Close">
@@ -197,7 +201,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Suburb or city"
-                  className="h-11 w-full rounded-full border border-ink-700 bg-ink-900 pl-10 pr-4 text-sm text-white placeholder:text-ink-500 focus:border-brand-500 focus:outline-none"
+                  className="h-11 w-full rounded-full border border-ink-700 bg-ink-900 pl-10 pr-4 text-sm text-white placeholder:text-ink-450 focus:border-brand-500 focus:outline-none"
                 />
               </label>
               <button onClick={locate} disabled={locating} className="flex h-11 shrink-0 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-medium text-ink-100 hover:border-brand-500 disabled:opacity-60">
@@ -237,6 +241,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
             {stores && !list.length && <li className="px-4 py-10 text-center text-sm text-ink-400">No stores match “{q}”.</li>}
           </ul>
         </div>
+        )}
       </dialog>
     </>
   );

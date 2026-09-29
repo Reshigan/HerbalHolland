@@ -49,12 +49,12 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
             aria-current={p === chosen ? "true" : undefined}
             className={`shrink-0 rounded-full border px-3.5 py-1.5 text-sm hover:border-brand-500 hover:text-white ${p === chosen ? "border-brand-500 text-white" : "border-ink-700 text-ink-200"}`}
           >
-            {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-500">{trading.filter((s) => s.province === p).length}</span>
+            {PROVINCES[p as ProvinceCode]} <span className="tnum text-ink-450">{trading.filter((s) => s.province === p).length}</span>
           </a>
         ))}
         {soon.length > 0 && (
           <a href="#soon" className="shrink-0 rounded-full border border-dashed border-ink-700 px-3.5 py-1.5 text-sm text-ink-300 hover:border-brand-500">
-            Opening soon <span className="tnum text-ink-500">{soon.length}</span>
+            Opening soon <span className="tnum text-ink-450">{soon.length}</span>
           </a>
         )}
       </nav>

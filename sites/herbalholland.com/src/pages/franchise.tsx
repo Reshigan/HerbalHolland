@@ -7,46 +7,13 @@ import { PROVINCES } from "@/lib/sa";
 import { num } from "@/lib/format";
 import { EMAIL, FRANCHISE, fill } from "../../content";
 import { Mark, cx } from "../art";
+import { Field, FormAlert, Help, described as describedBy } from "../form";
 import { Page } from "../layout";
 import { Btn, Head, Icon, Index, MailTo, Rich } from "../ui";
 import { PageHero } from "./parts";
 
 const F = FRANCHISE.form;
-
-/** Hint and error lines under a field; the script swaps aria-describedby to the error when there is one. */
-function Help({ name, hint }: { name: string; hint?: string }) {
-  return (
-    <>
-      {hint && (
-        <p className="field__hint" id={`f-${name}-hint`}>
-          {hint}
-        </p>
-      )}
-      <p className="field__err" id={`f-${name}-err`} hidden>
-        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-          <circle cx="12" cy="12" r="10" />
-          <path d="M12 7v6M12 16.5v.5" />
-        </svg>
-        <span />
-      </p>
-    </>
-  );
-}
-
-function Field({ name, label, hint, optional, children, wide }: { name: string; label: string; hint?: string; optional?: string; children: React.ReactNode; wide?: boolean }) {
-  return (
-    <div className={cx("field", wide && "field--wide")} data-field={name}>
-      <label className="field__label" htmlFor={`f-${name}`}>
-        {label}
-        {optional && <span className="field__opt"> {optional}</span>}
-      </label>
-      {children}
-      <Help name={name} hint={hint} />
-    </div>
-  );
-}
-
-const described = (name: string, hint?: string) => (hint ? { "aria-describedby": `f-${name}-hint` } : {});
+const described = (name: string, hint?: unknown) => describedBy("f", name, hint);
 
 function EnquiryForm() {
   const f = F.fields;
@@ -54,33 +21,27 @@ function EnquiryForm() {
   const copy = { email: EMAIL.franchise, sending: F.sending, errors: F.errors };
   return (
     <div className="enq">
-      <script type="application/json" id="form-copy" dangerouslySetInnerHTML={{ __html: JSON.stringify(copy).replace(/</g, "\\u003c") }} />
-      <form className="form" noValidate aria-label={F.label} data-form="" data-endpoint="/api/enquiry">
-        <div className="form__alert" role="alert" tabIndex={-1} hidden data-form-alert="">
-          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-            <circle cx="12" cy="12" r="10" />
-            <path d="M12 7v6M12 16.5v.5" />
-          </svg>
-          <p />
-        </div>
+      <script type="application/json" id="f-copy" dangerouslySetInnerHTML={{ __html: JSON.stringify(copy).replace(/</g, "\\u003c") }} />
+      <form className="form" noValidate aria-label={F.label} data-form="f" data-endpoint="/api/enquiry">
+        <FormAlert />
         <div className="hp" aria-hidden="true">
           <label htmlFor="f-website">{f.website.label}</label>
           <input id="f-website" name="website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
         </div>
         <div className="form__grid">
-          <Field name="name" label={f.name.label}>
+          <Field p="f" name="name" label={f.name.label}>
             <input className="input" id="f-name" name="name" type="text" autoComplete="name" required maxLength={LEAD_LIMITS.name} />
           </Field>
-          <Field name="email" label={f.email.label}>
+          <Field p="f" name="email" label={f.email.label}>
             <input className="input" id="f-email" name="email" type="email" inputMode="email" autoComplete="email" required maxLength={LEAD_LIMITS.email} spellCheck={false} />
           </Field>
-          <Field name="phone" label={f.phone.label} hint={f.phone.hint}>
+          <Field p="f" name="phone" label={f.phone.label} hint={f.phone.hint}>
             <input className="input" id="f-phone" name="phone" type="tel" inputMode="tel" autoComplete="tel" required maxLength={20} {...described("phone", f.phone.hint)} />
           </Field>
-          <Field name="area" label={f.area.label} hint={f.area.hint}>
+          <Field p="f" name="area" label={f.area.label} hint={f.area.hint}>
             <input className="input" id="f-area" name="area" type="text" autoComplete="address-level2" required maxLength={LEAD_LIMITS.area} {...described("area", f.area.hint)} />
           </Field>
-          <Field name="province" label={f.province.label}>
+          <Field p="f" name="province" label={f.province.label}>
             <select className="input select" id="f-province" name="province" autoComplete="address-level1" required defaultValue="">
               <option value="" disabled>
                 {f.province.placeholder}
@@ -92,7 +53,7 @@ function EnquiryForm() {
               ))}
             </select>
           </Field>
-          <Field name="capital" label={CAPITAL_LABEL} hint={f.capital.hint}>
+          <Field p="f" name="capital" label={CAPITAL_LABEL} hint={f.capital.hint}>
             <select className="input select" id="f-capital" name="capital" required defaultValue="" {...described("capital", f.capital.hint)}>
               <option value="" disabled>
                 {f.capital.placeholder}
@@ -104,7 +65,7 @@ function EnquiryForm() {
               ))}
             </select>
           </Field>
-          <Field name="experience" label={f.experience.label} hint={f.experience.hint} wide>
+          <Field p="f" name="experience" label={f.experience.label} hint={f.experience.hint} wide>
             <textarea
               className="input textarea"
               id="f-experience"
@@ -127,9 +88,9 @@ function EnquiryForm() {
                 </label>
               ))}
             </div>
-            <Help name="pharmacist" hint={f.pharmacist.hint} />
+            <Help p="f" name="pharmacist" hint={f.pharmacist.hint} />
           </fieldset>
-          <Field name="message" label={f.message.label} optional={f.message.optional} hint={fill(f.message.hint, { n: num(LEAD_LIMITS.message) })} wide>
+          <Field p="f" name="message" label={f.message.label} optional={f.message.optional} hint={fill(f.message.hint, { n: num(LEAD_LIMITS.message) })} wide>
             <textarea className="input textarea" id="f-message" name="message" rows={3} maxLength={LEAD_LIMITS.message} {...described("message", "x")} />
           </Field>
           <div className="field field--wide field--check" data-field="consent">
@@ -139,7 +100,7 @@ function EnquiryForm() {
                 <Rich text={f.consent.label} />
               </span>
             </label>
-            <Help name="consent" />
+            <Help p="f" name="consent" />
           </div>
         </div>
         <p className="form__privacy">
@@ -157,9 +118,8 @@ function EnquiryForm() {
             <span className="btn__label">{F.submit}</span>
             <span className="btn__icon" aria-hidden="true">
               <Icon name="arrow" size={18} />
-              <Icon name="arrow" size={18} />
             </span>
-            <Mark className="btn__mill" sails="spin" />
+            <Mark className="btn__mill" use />
           </button>
           <p className="form__email">
             {FRANCHISE.enquire.email} <MailTo email={EMAIL.franchise} />
@@ -167,11 +127,12 @@ function EnquiryForm() {
         </div>
         <p className="sr-only" aria-live="polite" data-form-live="" />
       </form>
-      <div className="done" data-form-done="" hidden>
+      <template data-form-done="">
+        <div className="done">
         <div className="done__mill" aria-hidden="true">
           <Mark sails="gust" />
         </div>
-        <h3 className="done__title" id="done-title" tabIndex={-1}>
+        <h3 className="done__title" id="done-title" tabIndex={-1} data-done-title="">
           {F.done.title}
         </h3>
         <p className="done__ref" data-ref-line="">
@@ -186,16 +147,20 @@ function EnquiryForm() {
             </li>
           ))}
         </ol>
-      </div>
+        </div>
+      </template>
     </div>
   );
 }
 
 export function FranchisePage() {
   const { hero, who, offer, steps, faq, enquire } = FRANCHISE;
+  const crumbs = [{ label: FRANCHISE.meta.title, path: "/franchise" }];
+  // The FAQ as FAQPage data, so the answers can show in search.
+  const faqLd = { "@type": "FAQPage", mainEntity: faq.items.map((q) => ({ "@type": "Question", name: q.q, acceptedAnswer: { "@type": "Answer", text: q.a } })) };
   return (
-    <Page page="franchise" meta={{ path: "/franchise", ...FRANCHISE.meta }}>
-      <PageHero kind="franchise" eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede}>
+    <Page page="franchise" stage="dusk" meta={{ path: "/franchise", ...FRANCHISE.meta, crumbs }} jsonLd={faqLd}>
+      <PageHero kind="franchise" eyebrow={hero.eyebrow} title={hero.title} lede={hero.lede} crumbs={crumbs}>
         <div className="ctas">
           <Btn href="#enquire" magnetic>
             {hero.enquire}
@@ -204,7 +169,12 @@ export function FranchisePage() {
             {hero.how}
           </Btn>
         </div>
-        <p className="phero__note">{hero.timing}</p>
+        <p className="phero__note">
+          {hero.timing}{" "}
+          <a className="link" href="/stores">
+            {hero.stores}
+          </a>
+        </p>
       </PageHero>
 
       <section className="sheet sec" aria-labelledby="who-h">
@@ -310,7 +280,7 @@ export function FranchisePage() {
           <div className="sticky-split__side">
             <Head id="enquire-h" eyebrow={enquire.eyebrow} title={enquire.title} intro={enquire.body} />
             <div className="poster" data-r="scale" aria-hidden="true">
-              <Mark className="poster__mark" sails="js" />
+              <Mark className="poster__mark" use />
             </div>
           </div>
           <EnquiryForm />

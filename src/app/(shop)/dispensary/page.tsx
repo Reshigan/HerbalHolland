@@ -56,7 +56,7 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
             <div className="mt-4 flex items-baseline justify-between text-sm">
               <span className="text-ink-300">Left this month (rolling 30 days)</span>
               <span className="tnum font-semibold text-white">
-                {Math.round(access.remainingGrams * 10) / 10} g <span className="font-normal text-ink-500">/ {access.auth.monthlyLimitGrams} g</span>
+                {Math.round(access.remainingGrams * 10) / 10} g <span className="font-normal text-ink-450">/ {access.auth.monthlyLimitGrams} g</span>
               </span>
             </div>
             <Meter value={access.remainingGrams} max={access.auth.monthlyLimitGrams} className="mt-2" label="Authorised quantity remaining" />
@@ -78,6 +78,7 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
       <div className="mt-8">
         {res.items.length ? (
           <>
+            <h2 className="sr-only">Products</h2>
             <ProductGrid items={res.items} />
             <Pager page={page} pageSize={PAGE_SIZE} total={res.total} href={(p) => href({ page: p })} noun="products" />
           </>

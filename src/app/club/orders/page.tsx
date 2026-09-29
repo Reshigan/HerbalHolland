@@ -50,7 +50,7 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
                         {o.lines.map((l) => l.variant.product.name).join(", ")}
                         {o._count.lines > o.lines.length ? ` +${o._count.lines - o.lines.length} more` : ""}
                       </p>
-                      <p className="mt-0.5 text-xs text-ink-500">
+                      <p className="mt-0.5 text-xs text-ink-450">
                         {fmtDate(o.createdAt)} · {o.fulfilment === "COLLECT" ? `Collect at ${o.store.name}` : o.fulfilment === "SAME_DAY" ? "Same-day delivery" : "Courier delivery"}
                       </p>
                     </div>

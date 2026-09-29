@@ -18,3 +18,5 @@ src/generated
 sites/*/dist/
 .wrangler/
 e2e/.tmp-*
+sites/.tmp-*/
+sites/tmp-*/

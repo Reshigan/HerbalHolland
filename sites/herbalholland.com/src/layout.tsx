@@ -1,21 +1,28 @@
 // The page shell for every herbalholland.com page: <head> (title, description, canonical, Open Graph, fonts, one CSS
-// file, the tiny boot script and the page's ES module), the header and its full-screen menu, the 18+ gate and the
-// footer with the giant wordmark. build.ts fills `site` (fingerprinted asset names, the build date) before rendering.
+// file, the tiny boot script and the page's ES module, the structured data), the header and its full-screen menu, the
+// stage (the landscape behind the page: ./art Stage), the 18+ gate (the opening scene's question, a modal card over the
+// stage), the breadcrumbs on inner pages and the footer with the giant wordmark. build.ts fills `site` (fingerprinted
+// asset names, the build date) before rendering.
 import { BRAND, CHROME, EMAIL, GATE, LEGAL } from "../content";
-import { FACTS, joinLink } from "../facts";
-import { AgeBadge, Mark, SCENES, Scene, Sprite, Wordmark, cx } from "./art";
-import { Btn, Icon, Index, MailTo, Rich, ShopDoor, Soon } from "./ui";
+import { FACTS, joinLink, shopLink } from "../facts";
+import { AgeBadge, Mark, Sprite, Stage, Wordmark, cx, type StageState } from "./art";
+import { Btn, Icon, Index, MailTo, Rich, ShopNow, Soon } from "./ui";
 
 export const site = {
-  assets: { css: "/assets/site.css", js: "/assets/site.js", boot: "/assets/boot.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", concept: [] as string[] },
+  assets: { css: "/assets/site.css", js: "/assets/site.js", outfit: "/assets/outfit.woff2", inter: "/assets/inter.woff2", icon: "/icon.svg", concept: [] as string[], stores: {} as Record<string, string> },
+  /** Placeholders the build fills once every page is rendered: the page's critical CSS (inlined) and the head script. */
+  critical: "__CRITICAL__",
+  boot: "__BOOT__",
   /** The build day in SAST (YYYY-MM-DD) and its year. */
   day: "2026-01-01",
   year: 2026,
 };
 
-export type Meta = { path: string; title: string; description: string; absolute?: boolean; noindex?: boolean };
+export type Crumb = { label: string; path: string };
+export type Meta = { path: string; title: string; description: string; absolute?: boolean; noindex?: boolean; crumbs?: readonly Crumb[] };
 
-const abs = (path: string) => `${FACTS.origin}${path === "/" ? "/" : path}`;
+export const abs = (path: string) => `${FACTS.origin}${path === "/" ? "/" : path}`;
+const ld = (o: Record<string, unknown>) => JSON.stringify({ "@context": "https://schema.org", ...o }).replace(/</g, "\\u003c");
 
 /** Join Rewards: a link once Rewards is live, otherwise its "opening soon" state. */
 export function JoinDoor({ kind = "chip", className, label = CHROME.cta.join }: { kind?: "chip" | "btn" | "link"; className?: string; label?: string }) {
@@ -35,14 +42,14 @@ export function JoinDoor({ kind = "chip", className, label = CHROME.cta.join }: 
 function Brand({ className, vt }: { className?: string; vt?: boolean }) {
   return (
     <a href="/" className={cx("brand", vt && "brand--vt", className)} aria-label={CHROME.home}>
-      <Mark className="brand__mark" sails="wind" />
+      <Mark className="brand__mark" sails={vt ? "wind" : undefined} use={!vt} />
       <Wordmark className="brand__wm" />
     </a>
   );
 }
 
-function Header({ page }: { page: string }) {
-  const join = joinLink();
+function Header({ page, nav }: { page: string; nav: string }) {
+  const shop = shopLink("/");
   return (
     <header className="hdr" data-hdr="">
       <div className="hdr__bg" aria-hidden="true" />
@@ -52,7 +59,7 @@ function Header({ page }: { page: string }) {
           <ul>
             {CHROME.nav.map((n) => (
               <li key={n.key}>
-                <a href={`/${n.key}`} className="hdr__link" aria-current={page === n.key ? "page" : undefined}>
+                <a href={`/${n.key}`} className="hdr__link" aria-current={nav === n.key ? "page" : undefined}>
                   {n.label}
                 </a>
               </li>
@@ -60,15 +67,8 @@ function Header({ page }: { page: string }) {
           </ul>
         </nav>
         <div className="hdr__end">
-          {join ? (
-            <Btn href={join} kind="primary" className="btn--sm hdr__cta" icon="out" magnetic>
-              {CHROME.cta.join}
-            </Btn>
-          ) : (
-            <Btn href={page === "home" ? "#founding" : "/#founding"} kind="primary" className="btn--sm hdr__cta" magnetic>
-              {CHROME.cta.founding}
-            </Btn>
-          )}
+          {/* "Get first access" until the online shop is live, then "Shop online". */}
+          <ShopNow page={page} label={shop ? CHROME.cta.shop : CHROME.cta.access} className="btn--sm hdr__cta" magnetic />
           <button type="button" className="burger burger--js" aria-haspopup="dialog" aria-controls="menu" aria-expanded="false" data-menu-open="">
             <Icon name="menu" size={18} />
             <span>{CHROME.menu.open}</span>
@@ -84,9 +84,11 @@ function Header({ page }: { page: string }) {
   );
 }
 
-function Menu({ page }: { page: string }) {
+/** The full-screen menu, stamped from this template the first time it's opened (it needs script to open at all). */
+function Menu({ page, nav }: { page: string; nav: string }) {
   const items = [{ key: "", label: CHROME.menu.home }, ...CHROME.nav];
   return (
+    <template id="menu-t">
     <dialog id="menu" className="menu" aria-label={CHROME.menu.label}>
       <div className="menu__in">
         <div className="wrap menu__bar">
@@ -100,7 +102,7 @@ function Menu({ page }: { page: string }) {
           <ol>
             {items.map((n, i) => (
               <li key={n.key}>
-                <a href={`/${n.key}`} className="menu__link" aria-current={page === (n.key || "home") ? "page" : undefined}>
+                <a href={`/${n.key}`} className="menu__link" aria-current={nav === (n.key || "home") ? "page" : undefined}>
                   <Index n={i + 1} />
                   <span className="menu__word">{n.label}</span>
                 </a>
@@ -110,7 +112,7 @@ function Menu({ page }: { page: string }) {
         </nav>
         <div className="wrap menu__foot">
           <div className="menu__doors">
-            <ShopDoor path="/" label={CHROME.cta.shop} />
+            <ShopNow page={page} className="btn--sm" />
             <JoinDoor />
           </div>
           <p className="menu__meta">
@@ -122,13 +124,18 @@ function Menu({ page }: { page: string }) {
         </div>
       </div>
     </dialog>
+    </template>
   );
 }
 
+/**
+ * The 18+ question: the first thing a new visitor meets, as a card framed in beadwork over the opening scene (the stage
+ * shows behind it, the sun still below the dyke; on "I'm 18 or older" the card leaves, the sun rises into place and the
+ * headline lifts from behind the dyke). A modal dialog, so the page behind is inert until it's answered.
+ */
 function Gate() {
   return (
-    <dialog id="gate" className="gate" aria-labelledby="gate-title" aria-describedby="gate-desc" {...{ closedby: "none" }}>
-      <Scene kind="gate" spec={SCENES.gate} />
+    <dialog id="gate" className="gate" aria-modal="true" aria-labelledby="gate-title" aria-describedby="gate-desc">
       <div className="gate__stage">
         <div className="gate__card" data-gate-ask="">
           <Mark className="gate__mark" sails="gust" />
@@ -153,7 +160,8 @@ function Gate() {
             {GATE.remember} <Rich text={GATE.accept} />
           </p>
         </div>
-        <div className="gate__card gate__under" data-gate-under="" hidden>
+        <template id="gate-under-t">
+        <div className="gate__card gate__under" data-gate-under="">
           <Mark className="gate__mark" />
           <h2 id="gate-under" className="gate__title" tabIndex={-1}>
             {GATE.under.title}
@@ -171,12 +179,40 @@ function Gate() {
             .
           </p>
         </div>
+        </template>
       </div>
     </dialog>
   );
 }
 
-function Footer() {
+/** Where a page sits: Home › Stores › Hillcrest. Visible in the page's header, and BreadcrumbList data for search. */
+export function Crumbs({ crumbs }: { crumbs: readonly Crumb[] }) {
+  const all = [{ label: CHROME.crumbs.home, path: "/" }, ...crumbs];
+  return (
+    <nav className="crumbs" aria-label={CHROME.crumbs.label}>
+      <ol>
+        {all.map((c, i) => (
+          <li key={c.path}>
+            {i < all.length - 1 ? (
+              <a href={c.path} className="crumbs__link">
+                {c.label}
+              </a>
+            ) : (
+              <span aria-current="page">{c.label}</span>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+
+const breadcrumbLd = (crumbs: readonly Crumb[]) => ({
+  "@type": "BreadcrumbList",
+  itemListElement: [{ label: CHROME.crumbs.home, path: "/" }, ...crumbs].map((c, i) => ({ "@type": "ListItem", position: i + 1, name: c.label, item: abs(c.path) })),
+});
+
+function Footer({ page }: { page: string }) {
   const f = CHROME.footer;
   const c = FACTS.company;
   const details = [c.legalName, c.regNumber && `Reg. ${c.regNumber}`, c.vatNumber && `VAT ${c.vatNumber}`, c.address, c.phone].filter(Boolean);
@@ -186,7 +222,7 @@ function Footer() {
       <div className="wrap ftr__top">
         <div className="ftr__brand">
           <a href="/" className="ftr__logo" aria-label={CHROME.home}>
-            <Mark className="ftr__mark" sails="spin" />
+            <Mark className="ftr__mark" use />
             <Wordmark />
           </a>
           <p className="ftr__line">
@@ -219,7 +255,7 @@ function Footer() {
             <h2 className="ftr__h">{f.cols.members}</h2>
             <ul>
               <li>
-                <ShopDoor path="/" label={CHROME.cta.shop} kind="link" />
+                <ShopNow page={page} link />
               </li>
               <li>
                 <JoinDoor kind="link" />
@@ -272,13 +308,16 @@ function Footer() {
 }
 
 /**
- * A whole page. `page` names the nav item it belongs to ("home", "about", …). A `free` page (the legal documents) opens
- * without the 18+ gate: the gate asks visitors to accept them, so they must be readable first.
+ * A whole page. `page` names the nav item it belongs to ("home", "about", …); `stage` is the landscape's state behind
+ * an inner page (the home page's stage moves with the scroll). A `free` page (the legal documents) opens without the
+ * 18+ gate: the gate asks visitors to accept them, so they must be readable first. `jsonLd` is one or more schema.org
+ * graphs; a page with `meta.crumbs` gets a BreadcrumbList as well.
  */
-export function Page({ page, meta, jsonLd, free, children }: { page: string; meta: Meta; jsonLd?: Record<string, unknown>; free?: boolean; children: React.ReactNode }) {
+export function Page({ page, nav = page, meta, stage, jsonLd, free, children }: { page: string; nav?: string; meta: Meta; stage?: StageState; jsonLd?: Record<string, unknown> | Record<string, unknown>[]; free?: boolean; children: React.ReactNode }) {
   const title = meta.absolute ? meta.title : `${meta.title} · ${BRAND.name}`;
   const url = abs(meta.path);
   const img = `${FACTS.origin}/og.png`;
+  const graphs = [...(Array.isArray(jsonLd) ? jsonLd : jsonLd ? [jsonLd] : []), ...(meta.crumbs ? [breadcrumbLd(meta.crumbs)] : [])];
   return (
     <html lang="en-ZA" dir="ltr" id="top" data-free={free ? "" : undefined}>
       <head>
@@ -304,15 +343,25 @@ export function Page({ page, meta, jsonLd, free, children }: { page: string; met
         <meta name="twitter:description" content={meta.description} />
         <meta name="twitter:image" content={img} />
         <meta name="twitter:image:alt" content={BRAND.og.alt} />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
-        <link rel="icon" href="/favicon.ico" sizes="32x32" />
+        {/* The icon travels inside the page (a data: URL), so no request for it lands on the first screen's path;
+            browsers without SVG icons fall back to /favicon.ico by convention. */}
+        <link rel="icon" href={site.assets.icon} type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        {/* Both faces are on every first screen (the headline and the 18+ card in Outfit; the header, the lede and
+            the buttons in Inter), so both are preloaded and the first layout has them. */}
         <link rel="preload" href={site.assets.outfit} as="font" type="font/woff2" crossOrigin="" />
         <link rel="preload" href={site.assets.inter} as="font" type="font/woff2" crossOrigin="" />
-        <script src={site.assets.boot} />
-        <link rel="stylesheet" href={site.assets.css} />
-        <script type="module" src={site.assets.js} />
-        {jsonLd && <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />}
+        {/* The first screen's CSS, inline (allowed by its hash in the CSP). The head script adds the rest of the
+            stylesheet and the page's module once the page has loaded, so nothing competes with the first paint; without
+            script, the noscript link loads the stylesheet the plain way. */}
+        <style dangerouslySetInnerHTML={{ __html: site.critical }} />
+        <script data-boot="" data-css={site.assets.css} data-js={site.assets.js} dangerouslySetInnerHTML={{ __html: site.boot }} />
+        <noscript>
+          <link rel="stylesheet" href={site.assets.css} />
+        </noscript>
+        {graphs.map((g, i) => (
+          <script key={i} type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld(g) }} />
+        ))}
       </head>
       <body className={`pg pg--${page}`}>
         <a className="skip" href="#main">
@@ -324,12 +373,13 @@ export function Page({ page, meta, jsonLd, free, children }: { page: string; met
             <AgeBadge /> {GATE.noscript}
           </p>
         </noscript>
-        <Header page={page} />
+        <Header page={page} nav={nav} />
         <main id="main" tabIndex={-1}>
+          <Stage state={stage} />
           {children}
         </main>
-        <Footer />
-        <Menu page={page} />
+        <Footer page={page} />
+        <Menu page={page} nav={nav} />
         {!free && <Gate />}
       </body>
     </html>

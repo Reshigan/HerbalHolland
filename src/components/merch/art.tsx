@@ -9,7 +9,8 @@ export const INKS = { sunset: "#f5913c", black: "#0c0a09" } as const;
 export type InkName = keyof typeof INKS;
 export type { ArtKey };
 
-const FONT = "'Outfit Variable', Outfit, sans-serif";
+// In the app --font-display is the next/font Outfit; standalone renders (merch-export's pages) declare 'Outfit Variable' themselves.
+const FONT = "var(--font-display, 'Outfit Variable'), Outfit, sans-serif";
 const TAGLINE = "DUTCH HERITAGE · AFRICAN SOIL";
 // Outfit 500 sets the tagline 15.4 em wide; with ~0.3 em tracking between its 29 characters that's 23.8 em.
 const tagSize = (width: number) => width / 23.8;
@@ -26,7 +27,7 @@ function M({ x, y, size, heavy }: { x: number; y: number; size: number; heavy?: 
 /** One line of display type fitted to an exact width (tracking absorbs the difference), so layouts don't drift with font metrics. */
 function Line({ text, x, y, width, size, weight, anchor = "middle" }: { text: string; x: number; y: number; width: number; size: number; weight: number; anchor?: "start" | "middle" }) {
   return (
-    <text x={x} y={y} textLength={width} lengthAdjust="spacing" textAnchor={anchor} fontFamily={FONT} fontSize={size} fontWeight={weight} fill="currentColor" stroke="none">
+    <text x={x} y={y} textLength={width} lengthAdjust="spacing" textAnchor={anchor} style={{ fontFamily: FONT }} fontSize={size} fontWeight={weight} fill="currentColor" stroke="none">
       {text}
     </text>
   );

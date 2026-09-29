@@ -193,7 +193,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
                 </Select>
               </FilterForm>
               <p className="text-sm text-ink-600">
-                {plan.fileErrors.length ? "Fix the file, then upload it again." : writes ? `Importing ${will.join(", ")}.${c.errors ? ` ${plural(c.errors, "row")} with errors will be skipped.` : ""}` : "Nothing to import: every row is unchanged or has an error."}
+                {plan.fileErrors.length ? "Sort out the problem above first." : writes ? `Importing ${will.join(", ")}.${c.errors ? ` ${plural(c.errors, "row")} with errors will be skipped.` : ""}` : "Nothing to import: every row is unchanged or has an error."}
               </p>
             </div>
             <ActionForm action={importCatalogue.bind(null, file.upload.id)} className="shrink-0" notices="bottom">

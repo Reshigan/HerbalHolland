@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { ArrowRight, BadgeCheck, FlaskConical, HandHeart, Leaf, Moon, QrCode, ShieldCheck, Sprout, Store, Sun, Truck, Dumbbell } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
@@ -7,9 +8,11 @@ import { getSettings } from "@/server/settings";
 import { launchState, waitlistPlace } from "@/server/launch";
 import { getClasses } from "@/server/shop/access";
 import { cardsWhere, listCatalogue } from "@/server/shop/catalogue";
-import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
+import { getFranchisor, getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { featuredDrop, upcomingEvents } from "@/server/shop/launch";
 import { Lockup, Mark, PETAL } from "@/components/brand/logo";
+import { JsonLd } from "@/components/shop/json-ld";
+import { LOCALE, organizationJsonLd, parseSameAs, SITE_NAME, siteUrl, websiteJsonLd } from "@/lib/seo";
 import { ProductArt } from "@/components/product/art";
 import { categoryIcon } from "@/components/product/category-icons";
 import { ButtonLink } from "@/components/ui/button";
@@ -26,8 +29,9 @@ import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
 export const metadata: Metadata = {
   title: { absolute: "Herbal Holland — Dutch heritage. African soil." },
-  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel with click & collect at stores across South Africa and nationwide delivery. Adults 18+.",
-  openGraph: { title: "Herbal Holland — Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+." },
+  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel. Click & collect at stores across South Africa or nationwide delivery. Adults 18+.",
+  alternates: { canonical: "/" },
+  openGraph: { title: "Herbal Holland — Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+.", url: "/", type: "website", siteName: SITE_NAME, locale: LOCALE },
 };
 
 const MOODS: Record<string, { label: string; line: string; icon: React.ReactNode; hue: string }> = {
@@ -47,7 +51,7 @@ const LANDRACES = [
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
 export default async function Home() {
-  const [customer, store, classes, settings, footprint, batches, launch] = await Promise.all([
+  const [customer, store, classes, settings, footprint, batches, launch, franchisor] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getClasses(),
@@ -55,7 +59,14 @@ export default async function Home() {
     getStoreFootprint(),
     db.batch.count({ where: { labName: { not: null }, status: "RELEASED" } }),
     launchState(),
+    getFranchisor(),
   ]);
+  // Organization + WebSite for search engines: the franchisor's registered details, profiles only from ORG_SAME_AS.
+  const base = siteUrl();
+  const jsonLd = [
+    organizationJsonLd({ base, legalName: franchisor?.legalName, email: franchisor?.email, telephone: franchisor?.phone, sameAs: parseSameAs(process.env.ORG_SAME_AS) }),
+    websiteJsonLd(base),
+  ];
   const who = { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name };
   const pre = launch.preLaunch ? launch.at : null;
   const [featured, heritage, facets, categories, events, drop, place, listSize] = await Promise.all([
@@ -77,6 +88,7 @@ export default async function Home() {
 
   return (
     <>
+      <JsonLd data={jsonLd} />
       {/* ── Hero ─────────────────────────────────────────────────── */}
       <section className="relative overflow-hidden">
         <div aria-hidden className="pointer-events-none absolute -right-40 top-10 h-[36rem] w-[36rem] rounded-full bg-brand-500/10 blur-3xl" />
@@ -165,7 +177,9 @@ export default async function Home() {
         </Container>
       </section>
 
+      {/* Each block below the hero is its own Suspense boundary: the HTML is unchanged, the browser hydrates them in slices (see ProductGrid). */}
       {/* ── Trust strip ───────────────────────────────────────────── */}
+      <Suspense>
       <section className="border-y border-ink-850 bg-ink-900/40">
         <Container className="grid grid-cols-2 gap-x-6 gap-y-5 py-6 lg:grid-cols-4">
           {[
@@ -184,6 +198,7 @@ export default async function Home() {
           ))}
         </Container>
       </section>
+      </Suspense>
 
       {/* ── Windmill Days: events and the featured drop ─────────────── */}
       {(events.length > 0 || drop) && (
@@ -201,15 +216,25 @@ export default async function Home() {
             }
           />
           <div className={drop && events.length ? "grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)]" : "grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3"}>
-            {drop && <DropCardView d={drop} />}
+            {drop && (
+              <Suspense>
+                <DropCardView d={drop} />
+              </Suspense>
+            )}
             {drop && events.length > 0 ? (
               <div className="grid content-start gap-3">
                 {events.map((e) => (
-                  <EventCardView key={e.id} e={e} />
+                  <Suspense key={e.id}>
+                    <EventCardView e={e} />
+                  </Suspense>
                 ))}
               </div>
             ) : (
-              events.map((e) => <EventCardView key={e.id} e={e} />)
+              events.map((e) => (
+                <Suspense key={e.id}>
+                  <EventCardView e={e} />
+                </Suspense>
+              ))
             )}
           </div>
         </Container>
@@ -217,6 +242,7 @@ export default async function Home() {
 
       {/* ── Shop by mood ──────────────────────────────────────────── */}
       {moods.length > 0 && (
+        <Suspense>
         <Container className="pt-20">
           <SectionHead eyebrow="Shop by mood" title="How do you want to feel?" description="Everyday CBD and hemp rituals, grouped by the moment they're made for." />
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -240,9 +266,11 @@ export default async function Home() {
             })}
           </div>
         </Container>
+        </Suspense>
       )}
 
       {/* ── Categories ────────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-20">
         <SectionHead eyebrow="The range" title="Shop by category" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Everything <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
@@ -265,6 +293,7 @@ export default async function Home() {
           </Link>
         </div>
       </Container>
+      </Suspense>
 
       {/* ── Featured ──────────────────────────────────────────────── */}
       {picks.length > 0 && (
@@ -275,6 +304,7 @@ export default async function Home() {
       )}
 
       {/* ── Heritage story ────────────────────────────────────────── */}
+      <Suspense>
       <section className="mt-24 border-y border-ink-850 bg-[radial-gradient(ellipse_at_top_left,rgb(245_145_60/0.08),transparent_60%)]">
         <Container className="grid grid-cols-1 gap-12 py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
           <div>
@@ -334,8 +364,10 @@ export default async function Home() {
           </div>
         </Container>
       </section>
+      </Suspense>
 
       {/* ── Rewards ─────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-24">
         <div className="relative overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900 p-6 sm:p-10 lg:p-14">
           <Mark aria-hidden className="pointer-events-none absolute -bottom-24 -right-16 h-80 w-80 text-brand-500/[0.07]" />
@@ -370,8 +402,10 @@ export default async function Home() {
           </div>
         </div>
       </Container>
+      </Suspense>
 
       {/* ── Stores ────────────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-24">
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
           <div>
@@ -383,7 +417,7 @@ export default async function Home() {
             <div className="mt-6 flex flex-wrap gap-2">
               {provinces.map((p) => (
                 <Link key={p.code} href={`/stores?province=${p.code}#${p.code}`} className="rounded-full border border-ink-700 px-3.5 py-1.5 text-sm text-ink-200 hover:border-brand-500 hover:text-white">
-                  {PROVINCES[p.code as ProvinceCode]} <span className="tnum text-ink-500">{p.stores}</span>
+                  {PROVINCES[p.code as ProvinceCode]} <span className="tnum text-ink-450">{p.stores}</span>
                 </Link>
               ))}
             </div>
@@ -408,8 +442,10 @@ export default async function Home() {
           )}
         </div>
       </Container>
+      </Suspense>
 
       {/* ── Learn ─────────────────────────────────────────────────── */}
+      <Suspense>
       <Container className="pt-24">
         <SectionHead eyebrow="Learn" title="Know what you're buying" action={<ButtonLink href="/learn" variant="ghost-dark" size="sm">All guides <ArrowRight className="h-4 w-4" /></ButtonLink>} />
         <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -420,12 +456,13 @@ export default async function Home() {
                 <div className="eyebrow text-brand-500">{a.kicker}</div>
                 <h3 className="mt-2 font-display text-xl font-semibold leading-snug text-white group-hover:text-brand-200">{a.title}</h3>
                 <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-ink-400">{a.dek}</p>
-                <p className="mt-4 text-xs font-medium text-ink-500">{a.minutes} min read</p>
+                <p className="mt-4 text-xs font-medium text-ink-450">{a.minutes} min read</p>
               </div>
             </Link>
           ))}
         </div>
       </Container>
+      </Suspense>
     </>
   );
 }

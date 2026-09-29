@@ -85,7 +85,7 @@ export default async function ClubSettings() {
               action={setPersonalisedOffers}
               note="We use your purchase history — what you buy, where and when — to pick your deals."
             />
-            <p className="mt-3 text-xs leading-relaxed text-ink-500">
+            <p className="mt-3 text-xs leading-relaxed text-ink-450">
               Turning this off stops new deals; any deal already on your card stays until it ends. It doesn&apos;t change your tier price or points. Medicines are never part of a deal.
             </p>
           </Panel>
@@ -125,7 +125,7 @@ export default async function ClubSettings() {
               </Link>{" "}
               · <a href="https://herbalholland.com/paia" className="font-semibold text-brand-400 hover:underline">PAIA manual</a>
             </p>
-            <p className="mt-2 text-xs text-ink-500">{company?.legalName ?? "Herbal Holland (Pty) Ltd"} is the responsible party for Rewards.</p>
+            <p className="mt-2 text-xs text-ink-450">{company?.legalName ?? "Herbal Holland (Pty) Ltd"} is the responsible party for Rewards.</p>
           </Panel>
 
           <form action={signOut}>

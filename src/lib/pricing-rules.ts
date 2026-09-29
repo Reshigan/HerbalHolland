@@ -34,7 +34,8 @@ export type PriceContext = {
   at: Date;
 };
 
-export type ResolvedPrice = { rrpCents: number; shelfCents: number; unitCents: number; rule: string | null };
+/** `validUntil`: the end of the price list that set the unit price, when it has one (tier %, RRP and markdowns have none). */
+export type ResolvedPrice = { rrpCents: number; shelfCents: number; unitCents: number; rule: string | null; validUntil: Date | null };
 
 export function listApplies(l: PriceListRule, c: PriceContext) {
   if (!l.active) return false;
@@ -64,27 +65,29 @@ export function resolvePrice(
 
   let shelf = v.rrpCents;
   let rule: string | null = null;
+  let validUntil: Date | null = null;
   const zone = live.filter((l) => l.kind !== "MEMBER").map((l) => ({ l, p: priceIn(l, v.variantId, v.rrpCents, 1) })).find((x) => x.p);
   if (ctx.channel === "POS" && v.storeShelfCents != null) (shelf = v.storeShelfCents), (rule = null);
-  else if (zone) (shelf = zone.p!.price), (rule = null);
+  else if (zone) (shelf = zone.p!.price), (rule = null), (validUntil = zone.l.endsAt ?? null);
 
   let unit = shelf;
-  if (v.incentives === false) return { rrpCents: v.rrpCents, shelfCents: shelf, unitCents: unit, rule };
+  if (v.incentives === false) return { rrpCents: v.rrpCents, shelfCents: shelf, unitCents: unit, rule, validUntil };
   if (ctx.member && ctx.tier && ctx.tierPct) {
     unit = Math.round((shelf * (100 - ctx.tierPct)) / 100);
     rule = `${tierInfo(ctx.tier).name} Rewards −${ctx.tierPct}%`;
+    validUntil = null;
   }
   for (const l of live) {
     const p = priceIn(l, v.variantId, v.rrpCents, v.qty);
     if (!p || p.price >= unit) continue;
-    if (l.kind === "MEMBER") (unit = p.price), (rule = l.name);
-    else if (p.minQty > 1) (unit = p.price), (rule = `${l.name} (${p.minQty}+)`);
+    if (l.kind === "MEMBER") (unit = p.price), (rule = l.name), (validUntil = l.endsAt ?? null);
+    else if (p.minQty > 1) (unit = p.price), (rule = `${l.name} (${p.minQty}+)`), (validUntil = l.endsAt ?? null);
   }
   if (v.markdownPct) {
     unit = Math.round((unit * (100 - v.markdownPct)) / 100);
     rule = `Near-expiry −${v.markdownPct}%`;
   }
-  return { rrpCents: v.rrpCents, shelfCents: shelf, unitCents: unit, rule };
+  return { rrpCents: v.rrpCents, shelfCents: shelf, unitCents: unit, rule, validUntil };
 }
 
 /** Is a promotion's happy-hour / day-of-week window open at `at` (SAST)? */

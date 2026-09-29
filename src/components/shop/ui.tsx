@@ -1,7 +1,6 @@
 // Storefront primitives on the dark brand surface (ink-950). The shared @/components/ui
 // set is tuned for the light back office; these mirror it for the consumer shop.
 import Link from "next/link";
-import { Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 
@@ -45,14 +44,28 @@ export function Tag({ tone = "neutral", icon, className, children }: { tone?: Ta
   );
 }
 
+// lucide's Star outline, drawn five times in one SVG (one element instead of ten per rating): 14px stars with 2px gaps.
+const STAR =
+  "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z";
+const STAR_PITCH = 24 + (2 * 24) / 14;
 export function Stars({ value, className, label }: { value: number; className?: string; label?: string }) {
   const full = Math.round(value * 2) / 2;
   return (
-    <span className={cn("inline-flex items-center gap-0.5", className)} role="img" aria-label={label ?? `${value.toFixed(1)} out of 5 stars`}>
+    <svg
+      viewBox={`0 0 ${4 * STAR_PITCH + 24} 24`}
+      className={cn("inline-block h-3.5 w-auto shrink-0", className)}
+      role="img"
+      aria-label={label ?? `${value.toFixed(1)} out of 5 stars`}
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.6}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       {[1, 2, 3, 4, 5].map((i) => (
-        <Star key={i} className={cn("h-3.5 w-3.5", i <= full ? "fill-brand-500 text-brand-500" : i - 0.5 === full ? "fill-brand-500/50 text-brand-500" : "text-ink-600")} strokeWidth={1.6} />
+        <path key={i} d={STAR} transform={`translate(${(i - 1) * STAR_PITCH} 0)`} className={i <= full ? "fill-brand-500 text-brand-500" : i - 0.5 === full ? "fill-brand-500/50 text-brand-500" : "text-ink-600"} />
       ))}
-    </span>
+    </svg>
   );
 }
 
@@ -124,7 +137,7 @@ export function Pager({ page, pageSize, total, href, noun = "results" }: { page:
 
 // ── Forms (dark) ─────────────────────────────────────────────────────────────
 export const inputClass =
-  "w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-[0.95rem] text-white placeholder:text-ink-500 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
+  "w-full rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-[0.95rem] text-white placeholder:text-ink-450 transition focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20 disabled:opacity-50 aria-[invalid=true]:border-rose-500";
 
 export function FieldRow({ label, hint, error, htmlFor, children, className }: { label: React.ReactNode; hint?: React.ReactNode; error?: React.ReactNode; htmlFor?: string; children: React.ReactNode; className?: string }) {
   return (
@@ -189,7 +202,7 @@ export function Chip({ href, active, children, className, count }: { href: strin
       )}
     >
       {children}
-      {count != null && <span className={cn("tnum text-xs", active ? "text-ink-900/70" : "text-ink-500")}>{count}</span>}
+      {count != null && <span className={cn("tnum text-xs", active ? "text-ink-900/70" : "text-ink-450")}>{count}</span>}
     </Link>
   );
 }
