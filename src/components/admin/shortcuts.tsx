@@ -121,10 +121,10 @@ export function AdminShortcuts({ groups, area, storeCode, userKey }: { groups: N
     };
   }, [palette, help, area, storeCode, router, open, close]);
 
+  // Recent pages first (everywhere but the page you're on), then every section of the sidebar.
   const items = useMemo<PaletteItem[]>(() => {
     const nav = groups.flatMap((g) => g.items.filter((i) => !i.external).map((i) => ({ href: i.href, label: i.label, group: g.title, kind: "nav" as const })));
-    const seen = new Set(nav.map((i) => i.href));
-    const rec = recent.filter((r) => r.href !== pathname && !seen.has(r.href)).map((r) => ({ href: r.href, label: r.title, group: "Recent", kind: "recent" as const }));
+    const rec = recent.filter((r) => r.href !== pathname).slice(0, 6).map((r) => ({ href: r.href, label: r.title, group: "Recent", kind: "recent" as const }));
     return [...rec, ...nav];
   }, [groups, recent, pathname]);
 
@@ -180,7 +180,8 @@ function Palette({ items, onClose, onGo }: { items: PaletteItem[]; onClose: () =
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
-  const results = useMemo(() => searchPalette(items, q), [items, q]);
+  // No query: the whole list (recents, then the sidebar); a query: the best dozen matches.
+  const results = useMemo(() => searchPalette(items, q, q.trim() ? 12 : 80), [items, q]);
   const current = Math.min(active, Math.max(0, results.length - 1));
 
   return (
