@@ -77,7 +77,8 @@ function DaySave({ day, name, value, saved, action }: { day: DayKey; name: strin
     setFlash(null);
     start(() => run(fd));
   };
-  const showError = state.error && !state.ok && dirty && seen.current === state.at;
+  // The last result, while the row still differs from what's saved (a success clears it, a fix-and-resave replaces it).
+  const showError = !!state.error && !state.ok && dirty;
   if (!dirty && !flash && !showError) return null;
   return (
     <div className="flex basis-full items-center justify-end gap-2 sm:basis-auto">
