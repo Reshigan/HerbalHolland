@@ -18,7 +18,7 @@ import { fmtDate } from "@/lib/format";
 import { zar, zarWhole } from "@/lib/money";
 import { cn } from "@/lib/cn";
 
-const DESCRIPTION = "Herbal Holland gift vouchers: R200, R500 or R1,000, emailed with your message and redeemable on anything in store or online. Valid for three years. Adults 18+.";
+const DESCRIPTION = "Herbal Holland gift vouchers: R200, R500 or R1,000, emailed with your message and redeemable online on anything in the range. Valid for three years. Adults 18+.";
 export const metadata: Metadata = {
   title: "Gift vouchers",
   description: DESCRIPTION,
@@ -39,7 +39,7 @@ export default async function GiftPage({ searchParams }: { searchParams: Promise
             <div className="eyebrow text-brand-500">Gift vouchers</div>
             <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">Give the gift of choice.</h1>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-100">
-              {amounts} — emailed with your message, redeemable on anything in the range, online or in any store. Valid for {VOUCHER_VALID_YEARS} years. Adults 18+.
+              {amounts} — emailed with your message, redeemable online on anything in the range. Valid for {VOUCHER_VALID_YEARS} years. Adults 18+.
             </p>
           </div>
         </Container>
@@ -67,7 +67,7 @@ export default async function GiftPage({ searchParams }: { searchParams: Promise
                 {[
                   [<Gift key="g" className="h-4 w-4" />, `Choose ${amounts}, add a message and, if you like, their email.`],
                   [<Mail key="m" className="h-4 w-4" />, "Pay online. The voucher is emailed to you — and to them — the moment the payment goes through."],
-                  [<Store key="s" className="h-4 w-4" />, "They redeem it at checkout (under Gift voucher) or at the counter in any store, on anything, as many times as it takes."],
+                  [<Store key="s" className="h-4 w-4" />, "They redeem it at checkout (under Gift voucher), on anything, as many times as it takes."],
                   [<Calendar key="c" className="h-4 w-4" />, `Valid for ${VOUCHER_VALID_YEARS} years from the day it's issued (Consumer Protection Act s63). No fees, and it's not a promotion — nothing on top, nothing taken off.`],
                 ].map(([i, t]) => (
                   <li key={String(t)} className="flex gap-3">

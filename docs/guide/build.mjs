@@ -21,7 +21,7 @@ const root = resolve(here, "..", "..");
 const OUT = join(root, "docs", "Herbal-Holland-System-Guide.pdf");
 const WORK = process.env.GUIDE_WORK_DIR || join(tmpdir(), "hh-guide-build");
 mkdirSync(WORK, { recursive: true });
-const VERSION = "Version 1.0 · 29 September 2026";
+const VERSION = "Version 1.1 · 30 September 2026";
 
 // ── Fonts: Outfit (headings) and Inter (text) as data: URLs. The packages ship variable fonts, which Chromium can
 // only embed as Type3 outlines (embedded, but nameless); so static instances at the weights the guide uses are made
@@ -113,7 +113,7 @@ for i, pg in enumerate(w.pages):
     parts = list(resolved) if isinstance(resolved, ArrayObject) else [raw]
     assert all(isinstance(x, IndirectObject) for x in parts), "content streams must be indirect"
     pg[NameObject("/Contents")] = ArrayObject([q_ref, *parts, Q_ref, stream(data)])
-w.add_metadata({"/Title": "Herbal Holland platform — the complete guide", "/Author": "Herbal Holland", "/Subject": "System guide, version 1.0"})
+w.add_metadata({"/Title": "Herbal Holland platform — the complete guide", "/Author": "Herbal Holland", "/Subject": "System guide, version 1.1"})
 with open(out, "wb") as f: w.write(f)
 `;
 const PY_FONTS = `

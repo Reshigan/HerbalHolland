@@ -32,13 +32,13 @@ export async function ensureVoucherProduct() {
   return tx(async (t) => {
     const category =
       (await t.category.findUnique({ where: { slug: VOUCHER_CATEGORY_SLUG } })) ??
-      (await t.category.create({ data: { slug: VOUCHER_CATEGORY_SLUG, name: "Gift vouchers", icon: "Gift", sortOrder: 99, blurb: "Herbal Holland gift vouchers, redeemable online and in store." } }));
+      (await t.category.create({ data: { slug: VOUCHER_CATEGORY_SLUG, name: "Gift vouchers", icon: "Gift", sortOrder: 99, blurb: "Herbal Holland gift vouchers, redeemable online on anything in the range." } }));
     const product =
       existing ??
       (await t.product.create({
         data: {
           slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Give the gift of choice", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
-          description: "A Herbal Holland gift voucher: redeemable online and in any store, on anything in the range, for three years from the date of issue.",
+          description: "A Herbal Holland gift voucher: redeemable online on anything in the range, for three years from the date of issue.",
           legalBasis: "Consumer Protection Act s63 — prepaid voucher, valid three years",
         },
         include: { variants: true },
@@ -123,7 +123,7 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
   const base = APP_URL();
   const from = [buyer.firstName, buyer.lastName].filter(Boolean).join(" ");
   const code = `<div style="margin:6px 0 18px;padding:18px 20px;border-radius:16px;background:#0c0a09;text-align:center"><div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#f5913c">Voucher code</div><div style="margin-top:6px;font-family:'Outfit',Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;letter-spacing:0.08em;color:#fbf7f3">${esc(v.code)}</div><div style="margin-top:4px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;color:#bdb3a9">${esc(zar(v.amountCents))} · valid until ${esc(fmtDate(v.expiresAt))}</div></div>`;
-  const how = para(`Use it online: enter the code at checkout under <strong>Gift voucher</strong>. In store: show this email at the counter. Whatever isn't spent stays on the voucher until it's used up. It can't be exchanged for cash, and it isn't a promotion — it pays for anything in the range.`);
+  const how = para(`Enter the code at checkout under <strong>Gift voucher</strong>. Whatever isn't spent stays on the voucher until it's used up. It can't be exchanged for cash, and it isn't a promotion — it pays for anything in the range.`);
   const body =
     to === "recipient"
       ? `${para(`${esc(from || "A friend")} sent you a Herbal Holland gift voucher${v.recipientName ? `, ${esc(v.recipientName)}` : ""}.`)}${v.message ? callout(`“${esc(v.message)}”`, "soft") : ""}${code}${how}${para("Herbal Holland is for adults 18+: bring your ID when you collect or shop in store.", { muted: true, small: true })}`
@@ -144,7 +144,7 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
     `Voucher code: ${v.code}`,
     `Amount: ${zar(v.amountCents)} · valid until ${fmtDate(v.expiresAt)}`,
     "",
-    "Use it online at checkout under Gift voucher, or show it at the counter in store. Adults 18+.",
+    "Enter it at checkout under Gift voucher. Adults 18+.",
     `${base}/shop`,
   );
   return { subject, html, text };
@@ -166,7 +166,7 @@ export async function sendVoucher(v: GiftVoucher) {
     const m = voucherEmail(v, "recipient", who);
     await logEmail(v.recipientEmail, m.subject, await deliverEmail({ to: v.recipientEmail, ...m, kind: "TRANSACTIONAL" }), null);
   }
-  if (buyer?.phone) await notifyCustomer({ id: buyer.id, phone: buyer.phone }, sms(`Your ${zarWhole(v.amountCents)} gift voucher ${v.code} is ready, valid until ${fmtDate(v.expiresAt)}. Enter it at checkout or show it in store.`));
+  if (buyer?.phone) await notifyCustomer({ id: buyer.id, phone: buyer.phone }, sms(`Your ${zarWhole(v.amountCents)} gift voucher ${v.code} is ready, valid until ${fmtDate(v.expiresAt)}. Enter it at checkout online.`));
   await db.giftVoucher.update({ where: { id: v.id }, data: { sentAt: new Date() } });
 }
 

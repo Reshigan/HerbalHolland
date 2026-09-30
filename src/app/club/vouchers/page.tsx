@@ -22,7 +22,7 @@ export default async function ClubVouchers({ searchParams }: { searchParams: Pro
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Gift vouchers</h1>
-          <p className="mt-1 text-sm text-ink-400">Vouchers you&apos;ve bought, and a balance check for one you were given. Valid for three years; redeemable on anything, online or in store.</p>
+          <p className="mt-1 text-sm text-ink-400">Vouchers you&apos;ve bought, and a balance check for one you were given. Valid for three years; redeemable online on anything in the range.</p>
         </div>
         <ButtonLink href="/gift" size="md">
           <Gift className="h-4 w-4" /> Buy a voucher

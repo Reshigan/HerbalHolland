@@ -145,7 +145,8 @@ td code { font-size: 7.8pt; }
 
 /* Figures */
 figure { margin: 8pt 0 10pt; break-inside: avoid; }
-figure img { display: block; width: 100%; height: auto; border-radius: 2.5mm; border: 0.3mm solid var(--ink-300); background: var(--ink-950); }
+/* Width auto + max-height keeps a tall phone crop (and its caption) on one page: the image shrinks to fit the column and 200 mm, whichever binds. */
+figure img { display: block; width: auto; max-width: 100%; height: auto; max-height: 200mm; margin: 0 auto; border-radius: 2.5mm; border: 0.3mm solid var(--ink-300); background: var(--ink-950); }
 figure.phone img { border-radius: 4mm; }
 figcaption { font-size: 8pt; color: var(--ink-600); margin-top: 3.5pt; line-height: 1.4; }
 figcaption b { color: var(--ink-800); font-weight: 600; }
@@ -159,6 +160,9 @@ figure.w70 { width: 70%; }
 figure.w80 { width: 80%; }
 figure.w45 { width: 45%; }
 figure.w40 { width: 40%; }
+figure.fr { float: right; width: 40%; margin: 0 0 5mm 6mm; }
+/* Chapter 6 has seventeen sections: three narrower columns keep the list clear of the lede. */
+.chapter[data-num="6"] .opener .inthis ul { columns: 3; column-gap: 5mm; font-size: 8.2pt; }
 .figs.c2.text { grid-template-columns: 0.55fr 1fr; }
 .figs.c2.text-r { grid-template-columns: 1fr 0.55fr; }
 
