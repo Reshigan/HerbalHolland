@@ -386,6 +386,55 @@ try {
   await page.getByText("We'll send you an SMS as soon as it's back in stock.").waitFor();
   ok("still shown as set after a reload");
 
+  // ── 4a. Wishlist, a reorder reminder, buy again ────────────────────────────────────────────────────
+  step("Wishlist: the heart on a product page, then Rewards → Wishlist");
+  undo.push(() => q(`delete from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]));
+  await page.goto(`${BASE}/p/${member.productSlug}`);
+  const heart = page.getByRole("button", { name: "Save to your wishlist" });
+  await heart.waitFor();
+  await timed("Wishlist: save", () => heart.click(), () => page.getByRole("button", { name: "Remove from your wishlist" }).waitFor());
+  assert(await one(`select 1 from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]), "saved to the wishlist");
+  await page.goto(`${BASE}/club/wishlist`);
+  await page.getByRole("heading", { name: "Your wishlist" }).waitFor();
+  await page.getByRole("link", { name: member.productName, exact: true }).first().waitFor();
+  await shot(page, "wishlist");
+  ok("listed under Rewards → Wishlist");
+  await timed("Wishlist: remove", () => page.getByRole("button", { name: `Remove ${member.productName} from your wishlist` }).first().click(), () => page.getByRole("heading", { name: "Nothing saved yet" }).waitFor());
+  assert(!(await one(`select 1 from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0])), "removed again");
+
+  step("Reorder reminder on an everyday product (every 30 days by SMS), then stop it");
+  const everyday = await one(
+    `select p.slug, p.name from "Product" p
+     where p.status = 'ACTIVE' and p."regClass" = 'CBD_FOOD' and exists (select 1 from "Variant" v where v."productId" = p.id and v.active)
+       and not exists (select 1 from "ReorderReminder" r join "Variant" v on v.id = r."variantId" where v."productId" = p.id and r."customerId" = $1 and r.active)
+     order by p.name limit 1`,
+    [member.id],
+  );
+  if (everyday) {
+    undo.push(() => q(`delete from "ReorderReminder" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]));
+    await page.goto(`${BASE}/p/${everyday.slug}`);
+    await timed("Reminder: open", () => page.getByRole("button", { name: "Remind me to reorder" }).click(), () => page.getByRole("button", { name: "Set reminder" }).waitFor());
+    await timed("Reminder: set", () => page.getByRole("button", { name: "Set reminder" }).click(), () => page.getByText(/We'll remind you every 30 days by SMS/).waitFor());
+    const rem = await one(`select id, "everyDays", channel, active from "ReorderReminder" where "customerId" = $1 and "createdAt" >= $2 order by "createdAt" desc limit 1`, [member.id, t0]);
+    assert(rem?.everyDays === 30 && rem.channel === "SMS" && rem.active, `reminder saved for ${everyday.name}: every 30 days by SMS`);
+    await page.goto(`${BASE}/club/reminders`);
+    await page.getByRole("heading", { name: "Reorder reminders" }).waitFor();
+    await shot(page, "reminders");
+    await timed("Reminder: stop", () => page.getByRole("button", { name: `Stop the reminder for ${everyday.name}` }).first().click(), () => page.getByText(/Every 30 days by SMS/).waitFor({ state: "detached" }));
+    assert(!(await one(`select 1 from "ReorderReminder" where id = $1 and active`, [rem.id])), "reminder stopped");
+  } else ok("(no CBD food & drink product to remind about — skipped)");
+
+  step("Buy again from an order's tracking page");
+  await page.goto(`${BASE}/orders/${code}`);
+  const again = page.getByRole("button", { name: "Buy again" });
+  await again.waitFor();
+  const outcome = page.getByRole("status").filter({ hasText: /Added \d+ items? to your bag|Nothing could be added/ }).first();
+  await timed("Order: buy again", () => again.click(), () => outcome.waitFor());
+  const outcomeText = (await outcome.textContent()).trim().replace(/\s+/g, " ");
+  const bagCookie = (await ctx.cookies()).find((c) => c.name === "hh_cart");
+  assert(!/^Added/.test(outcomeText) || !!bagCookie, `buy again: ${outcomeText.slice(0, 140)}`);
+  await ctx.clearCookies({ name: "hh_cart" });
+
   // ── 4b. Support: ask for help, then reply from Rewards → Help ───────────────────────────────────────
   step("Support: a request from /support (details filled in for the signed-in member), then a reply on it");
   undo.push(async () => {

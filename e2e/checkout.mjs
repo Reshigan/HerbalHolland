@@ -1,12 +1,24 @@
-// E2E: add to bag → checkout as a NEW member (phone OTP + one-step registration) →
-// simulated payment → order tracking. Needs DEMO_MODE=true (the OTP is shown on screen).
-//   BASE_URL=http://localhost:3000 node e2e/checkout.mjs [outdir] [width] [height] [COLLECT|SAME_DAY|COURIER]
+// E2E: add to bag → checkout as a NEW member (phone OTP + one-step registration) → a gift voucher redeemed on the
+// order → simulated payment of the rest → order tracking. Needs DEMO_MODE=true (the OTP is shown on screen) and
+// DATABASE_URL (the voucher is issued straight into the database, as a paid purchase would).
+//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/checkout.mjs [outdir] [width] [height] [COLLECT|SAME_DAY|COURIER]
 import { chromium } from "@playwright/test";
+import pg from "pg";
 import { mkdirSync } from "node:fs";
 
 const [, , outdir = "test-results/e2e-checkout", w = "390", h = "844", fulfil = "COLLECT"] = process.argv;
 mkdirSync(outdir, { recursive: true });
 const base = process.env.BASE_URL ?? "http://localhost:3000";
+const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+await db.connect();
+const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
+// A R100 gift voucher, issued as a paid purchase would issue it (three years' validity, CPA s63).
+const pick = (n) => Array.from({ length: n }, () => "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 32)]).join("");
+const VOUCHER = `HH-${pick(4)}-${pick(4)}-${pick(4)}`;
+await db.query(
+  `insert into "GiftVoucher" (id, code, "amountCents", "balanceCents", status, "issuedAt", "expiresAt", "updatedAt") values (gen_random_uuid()::text, $1, 10000, 10000, 'ACTIVE', now(), now() + interval '3 years', now())`,
+  [VOUCHER],
+);
 let browser;
 try { browser = await chromium.launch(); } catch { browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }); }
 const ctx = await browser.newContext({ viewport: { width: +w, height: +h } });
@@ -69,12 +81,19 @@ if (fulfil !== "COLLECT") {
   await page.getByLabel("Province").selectOption("GP");
   await page.getByLabel("Postal code").fill("0083");
 }
+// 3b. A gift voucher pays R100 of it, before online payment
+await page.getByLabel("Gift voucher code").fill(VOUCHER.toLowerCase());
+await page.getByRole("button", { name: "Redeem" }).click();
+await page.getByText(/will come off this order/).waitFor({ timeout: 30000 });
+await page.getByText(`Gift voucher ${VOUCHER}`).first().waitFor();
+console.log("voucher applied:", VOUCHER);
 await shot("checkout-filled");
 await page.getByRole("button", { name: /Continue to payment|Place order/ }).click();
 await page.waitForURL(/\/checkout\/pay\/|\/orders\//, { timeout: 30000 });
 await page.waitForLoadState("networkidle");
 await shot("pay");
 if (page.url().includes("/checkout/pay/")) {
+  await page.getByText(/Gift voucher HH-/).first().waitFor();
   await page.getByRole("radio", { name: /PayShap/ }).click();
   await page.getByRole("button", { name: /^Pay R/ }).click();
   await page.waitForURL(/\/orders\//, { timeout: 30000 });
@@ -82,8 +101,17 @@ if (page.url().includes("/checkout/pay/")) {
 }
 await shot("order");
 console.log("ORDER URL", page.url(), "phone", phone);
+const orderCode = page.url().split("/orders/")[1]?.split("?")[0];
+const redeemed = await one(`select v."balanceCents", v.status, r.cents from "GiftVoucher" v join "VoucherRedemption" r on r."voucherId" = v.id and not r.reversed where v.code = $1`, [VOUCHER]);
+const paid = await one(`select "paymentStatus", status, "totalCents" from "Order" where code = $1`, [orderCode]);
+if (!redeemed || redeemed.cents !== 10000 || redeemed.balanceCents !== 0 || redeemed.status !== "REDEEMED") {
+  console.log("VOUCHER NOT REDEEMED AS EXPECTED", redeemed);
+  process.exitCode = 1;
+} else console.log("voucher redeemed on", orderCode, "→ balance 0, order", paid?.status, paid?.paymentStatus, "total", paid?.totalCents);
+await page.getByText(/Gift voucher HH-/).first().waitFor();
 if (errors.length) {
   console.log("PAGE ERRORS:\n" + [...new Set(errors)].slice(0, 15).join("\n"));
   process.exitCode = 1;
 }
 await browser.close();
+await db.end();
