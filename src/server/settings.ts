@@ -24,9 +24,9 @@ export const DEFAULT_SETTINGS = {
   },
   launch: {
     launchAt: null as string | null, // ISO date-time when the Founding Members list closes (null = no list)
-    foundingCap: 10_000, // the first N waitlist places become numbered Founding Members
+    foundingCap: 2_026, // the first N waitlist places become numbered Founding Members
     foundingTier: "SPROUT" as TierKey, // …who hold at least this tier
-    foundingMonths: 12, // …for this long after launch
+    foundingMonths: 14, // …for this long after launch
     referralBoost: 250, // waitlist places gained per friend who joins before launch
   },
   offers: {

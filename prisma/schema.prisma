@@ -1081,6 +1081,8 @@ model MessageLog {
 
   @@index([campaignId])
   @@index([customerId])
+  @@index([createdAt])
+  @@index([channel, status, createdAt])
 }
 
 model StockAlert {
