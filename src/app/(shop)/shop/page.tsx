@@ -228,14 +228,16 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                   </dd>
                 </div>
                 {article && (
-                  <Link href={`/learn/${article.slug}`} className="group col-span-2 flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-950/60 p-4 transition hover:border-brand-500/60 sm:col-span-1">
-                    <BookOpen className="h-5 w-5 shrink-0 text-brand-500" />
-                    <span className="min-w-0">
-                      <span className="block text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Read first</span>
-                      <span className="block truncate font-semibold text-white group-hover:text-brand-200">{article.title}</span>
-                    </span>
-                    <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-brand-300" />
-                  </Link>
+                  <div className="col-span-2 sm:col-span-1">
+                    <Link href={`/learn/${article.slug}`} className="group flex h-full items-center gap-3 rounded-2xl border border-ink-800 bg-ink-950/60 p-4 transition hover:border-brand-500/60">
+                      <BookOpen className="h-5 w-5 shrink-0 text-brand-500" />
+                      <span className="min-w-0">
+                        <span className="block text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Read first</span>
+                        <span className="block truncate font-semibold text-white group-hover:text-brand-200">{article.title}</span>
+                      </span>
+                      <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-brand-300" />
+                    </Link>
+                  </div>
                 )}
               </dl>
             </div>
