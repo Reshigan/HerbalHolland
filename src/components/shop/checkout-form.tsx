@@ -373,12 +373,8 @@ export function CheckoutForm(props: {
               <dt className="font-semibold text-white">{payIn === "IN_STORE" ? "To pay in store" : "To pay"}</dt>
               <dd className="tnum font-display text-2xl font-semibold text-white">{zar(due)}</dd>
             </div>
-            {props.vatCents > 0 && (
-              <div>
-                <p className="text-right text-xs text-ink-450">Prices include VAT</p>
-              </div>
-            )}
           </dl>
+          {props.vatCents > 0 && <p className="mt-2 text-right text-xs text-ink-450">Prices include VAT</p>}
           {props.memberSavingsCents > 0 && (
             <p className="mt-4 rounded-xl border border-brand-500/35 bg-brand-500/10 px-3 py-2.5 text-xs font-semibold text-brand-100">
               Includes {zar(props.memberSavingsCents)} off with your {props.tierName} price.

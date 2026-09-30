@@ -207,7 +207,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                   )}
                 </ul>
               </div>
-              <dl className="grid grid-cols-2 content-start gap-3 text-sm">
+              <div className="grid grid-cols-2 content-start gap-3 text-sm">
+                <dl className="contents">
                 <div className="rounded-2xl border border-ink-800 bg-ink-950/60 p-4">
                   <dt className="text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Products</dt>
                   <dd className="tnum mt-1 font-display text-2xl font-semibold text-white">{catCount}</dd>
@@ -227,19 +228,18 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                     <Store className="h-4 w-4 text-brand-500" /> {footprint.trading} stores
                   </dd>
                 </div>
+                </dl>
                 {article && (
-                  <div className="col-span-2 sm:col-span-1">
-                    <Link href={`/learn/${article.slug}`} className="group flex h-full items-center gap-3 rounded-2xl border border-ink-800 bg-ink-950/60 p-4 transition hover:border-brand-500/60">
-                      <BookOpen className="h-5 w-5 shrink-0 text-brand-500" />
-                      <span className="min-w-0">
-                        <span className="block text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Read first</span>
-                        <span className="block truncate font-semibold text-white group-hover:text-brand-200">{article.title}</span>
-                      </span>
-                      <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-brand-300" />
-                    </Link>
-                  </div>
+                  <Link href={`/learn/${article.slug}`} className="group col-span-2 flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-950/60 p-4 transition hover:border-brand-500/60 sm:col-span-1">
+                    <BookOpen className="h-5 w-5 shrink-0 text-brand-500" />
+                    <span className="min-w-0">
+                      <span className="block text-[0.68rem] font-semibold uppercase tracking-wider text-ink-400">Read first</span>
+                      <span className="block truncate font-semibold text-white group-hover:text-brand-200">{article.title}</span>
+                    </span>
+                    <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-ink-400 transition group-hover:translate-x-0.5 group-hover:text-brand-300" />
+                  </Link>
                 )}
-              </dl>
+              </div>
             </div>
           </section>
         )}
