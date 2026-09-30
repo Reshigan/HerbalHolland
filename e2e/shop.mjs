@@ -390,9 +390,10 @@ try {
   step("Wishlist: the heart on a product page, then Rewards → Wishlist");
   undo.push(() => q(`delete from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]));
   await page.goto(`${BASE}/p/${member.productSlug}`);
-  const heart = page.getByRole("button", { name: "Save to your wishlist" });
+  const buyBox = page.locator("#buy-box"); // (the related products' cards carry hearts of their own)
+  const heart = buyBox.getByRole("button", { name: "Save to your wishlist", exact: true });
   await heart.waitFor();
-  await timed("Wishlist: save", () => heart.click(), () => page.getByRole("button", { name: "Remove from your wishlist" }).waitFor());
+  await timed("Wishlist: save", () => heart.click(), () => buyBox.getByRole("button", { name: "Remove from your wishlist", exact: true }).waitFor());
   assert(await one(`select 1 from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]), "saved to the wishlist");
   await page.goto(`${BASE}/club/wishlist`);
   await page.getByRole("heading", { name: "Your wishlist" }).waitFor();

@@ -12,7 +12,7 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: ["/", "/club/join"],
         // Personal, operational and licence-gated areas stay out of search.
-        disallow: ["/hq", "/store/", "/pos", "/api/", "/login", "/cart", "/checkout", "/orders/", "/club", "/invoice/", "/menu/", "/batch/", "/dispensary", "/brand"],
+        disallow: ["/hq", "/store/", "/pos", "/api/", "/login", "/cart", "/checkout", "/orders/", "/club", "/invoice/", "/menu/", "/batch/", "/dispensary", "/brand", "/r/", "/media/"],
       },
     ],
     sitemap: `${base()}/sitemap.xml`,

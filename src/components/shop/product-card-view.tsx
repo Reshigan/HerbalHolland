@@ -40,7 +40,7 @@ export function ProductCardView({ p, art, buyable = true, wished = null }: { p: 
           {p.heritage && <Tag tone="orange" className="bg-ink-950/70 backdrop-blur">Heritage</Tag>}
           {low && <Tag tone="amber" className="bg-ink-950/70 backdrop-blur">Low stock</Tag>}
         </div>
-        {wished != null && <WishlistButton compact variantId={p.firstVariantId} on={wished} signedIn next={`/p/${p.slug}`} className="absolute right-2 top-2" />}
+        {wished != null && <WishlistButton compact variantId={p.firstVariantId} on={wished} signedIn name={p.name} next={`/p/${p.slug}`} className="absolute right-2 top-2" />}
       </div>
       <div className="flex flex-1 flex-col p-4">
         <div className="eyebrow text-[0.62rem] text-ink-400">{p.category.name}</div>

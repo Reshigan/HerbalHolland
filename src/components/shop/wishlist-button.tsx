@@ -5,9 +5,10 @@ import { Heart } from "lucide-react";
 import { toggleWishlistAction } from "@/server/shop/feature-actions";
 import { cn } from "@/lib/cn";
 
-/** The heart: saves a variant to the member's wishlist. Guests are sent to sign in (and back). */
-export function WishlistButton({ variantId, on: initial, signedIn, next, compact, className }: { variantId: string; on: boolean; signedIn: boolean; next: string; compact?: boolean; className?: string }) {
+/** The heart: saves a variant to the member's wishlist. Guests are sent to sign in (and back). `name` names the product in the label (cards). */
+export function WishlistButton({ variantId, on: initial, signedIn, next, compact, name, className }: { variantId: string; on: boolean; signedIn: boolean; next: string; compact?: boolean; name?: string; className?: string }) {
   const [on, setOn] = useState(initial);
+  const what = name ? `${name} ` : "";
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const shape = compact
@@ -15,7 +16,7 @@ export function WishlistButton({ variantId, on: initial, signedIn, next, compact
     : "inline-flex h-11 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-semibold text-ink-100 transition hover:border-brand-500 hover:text-white";
   if (!signedIn)
     return (
-      <Link href={`/club/join?next=${encodeURIComponent(next)}`} aria-label="Save to your wishlist — sign in" title="Save to your wishlist" className={cn("relative z-10", shape, className)}>
+      <Link href={`/club/join?next=${encodeURIComponent(next)}`} aria-label={`Save ${what}to your wishlist — sign in`} title="Save to your wishlist" className={cn("relative z-10", shape, className)}>
         <Heart className="h-5 w-5" strokeWidth={1.9} />
         {!compact && "Save"}
       </Link>
@@ -25,7 +26,7 @@ export function WishlistButton({ variantId, on: initial, signedIn, next, compact
       <button
         type="button"
         aria-pressed={on}
-        aria-label={on ? "Remove from your wishlist" : "Save to your wishlist"}
+        aria-label={on ? `Remove ${what}from your wishlist` : `Save ${what}to your wishlist`}
         title={on ? "On your wishlist" : "Save to your wishlist"}
         disabled={pending}
         onClick={() =>
