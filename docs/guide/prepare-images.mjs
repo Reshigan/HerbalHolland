@@ -104,6 +104,8 @@ const IMAGES = [
   ["pos-z-report", ci("pos", "z-report")],
   ["pos-offline-reload", ci("pos", "offline-reload")],
   ["pos-printer", `${TILL}/01-printer-setup.png`],
+  ["pos-voucher-tender", join(T, "till-voucher-shots", "voucher-tender.png")],
+  ["pos-voucher-refund", join(T, "till-voucher-shots", "voucher-refund-sheet.png")],
   ["pos-display-link", `${TILL}/06-display-link.png`],
   ["pos-display-sale", `${TILL}/03-display-sale.png`],
   ["pos-display-done", `${TILL}/05-display-done.png`],

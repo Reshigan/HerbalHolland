@@ -604,6 +604,10 @@
         <tr><td class="k">Paid online</td><td>Only on online orders handed over at the till: the order was paid at checkout (any gift voucher used at checkout shows as its own "Gift voucher" tender).</td><td>—</td></tr>
       </tbody>
     </table>
+    <div class="figs c2">
+      <figure><img src="images/pos-voucher-tender.jpg" alt="The Gift voucher tender on the payment sheet"><figcaption><b>Gift voucher tender.</b> Still to pay R156.65; the code typed or scanned, <strong>Look up</strong>, then "R50.00 on the voucher · valid until…" and <strong>Pay R50.00 from the voucher</strong> — the rest is still due and can be split with cash, card, PayShap or points.</figcaption></figure>
+      <figure><img src="images/pos-voucher-refund.jpg" alt="A refund where a voucher was part of the payment"><figcaption><b>Refund with a voucher in the original payment.</b> "R50.00 goes back onto gift voucher HH-…; R106.65 refunded by Cash. A voucher is never cashed out." The refund-to choice only covers the part that was paid in money.</figcaption></figure>
+    </div>
     <p>Offline, the payment sheet says so and allows cash only — or cash and the Yoco machine when that is the store's provider; card (tap), PayShap, points and gift vouchers need the connection. The sale itself is posted on the server later (see <em>Offline mode</em>). A sale queued offline never carries a gift voucher: if the connection drops with a voucher on the sheet, the till says so and the cashier removes the voucher payment and takes another tender; a queued sale the server refuses stays in the outbox with the reason until a manager discards it (manager PIN, logged) after ringing it up again.</p>
     <p>Receipts show each line's price and rule, deals and discounts, the Rewards savings in prices, VAT included (or "No VAT charged — store not VAT-registered"), tenders and change, points earned and redeemed, the new balance, and the store's receipt footer. The member number is masked on receipts (HH••••002); the card keeps the full number.</p>
 
