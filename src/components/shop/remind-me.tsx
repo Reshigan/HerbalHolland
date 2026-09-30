@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useActionState, useState, useTransition } from "react";
+import { useActionState, useEffect, useState, useTransition } from "react";
 import { BellRing, CalendarClock, Check, X } from "lucide-react";
 import { cancelReminderAction, setReminderAction, type ReminderState } from "@/server/shop/feature-actions";
 import { buttonClass } from "@/components/ui/button";
@@ -22,6 +22,13 @@ export function RemindMe({ variantId, signedIn, next, existing, days, channels, 
   const [cancelled, setCancelled] = useState(false);
   const [cancelling, startCancel] = useTransition();
   const current = state.ok ? { id: state.id!, everyDays: state.everyDays!, channel: state.channel! } : cancelled ? null : existing;
+  // A saved reminder closes the form and shows as set (each save returns a new state object).
+  useEffect(() => {
+    if (state.ok) {
+      setOpen(false);
+      setCancelled(false);
+    }
+  }, [state]);
 
   if (!signedIn)
     return (
