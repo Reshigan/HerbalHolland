@@ -34,11 +34,13 @@ export type WishlistItem = { id: string; variantId: string; variantName: string;
 export async function listWishlist(customerId: string, who: Shopper, now = new Date()): Promise<WishlistItem[]> {
   const rows = await db.wishlist.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: WISHLIST_MAX });
   if (!rows.length) return [];
-  const variants = await db.variant.findMany({ where: { id: { in: rows.map((r) => r.variantId) } }, select: { id: true, name: true, active: true, productId: true, product: { select: { name: true, regClass: true, status: true, _count: { select: { variants: { where: { active: true } } } } } } } });
+  const variants = await db.variant.findMany({ where: { id: { in: rows.map((r) => r.variantId) } }, select: { id: true, name: true, active: true, podSku: true, productId: true, product: { select: { name: true, regClass: true, status: true, _count: { select: { variants: { where: { active: true } } } } } } } });
   const byId = new Map(variants.map((v) => [v.id, v]));
-  const classes = await getClasses();
-  const cards = await cardsWhere({ id: { in: [...new Set(variants.map((v) => v.productId))] } }, [...classes.public, ...classes.licensed], who);
+  const [classes, net] = await Promise.all([getClasses(), getNetwork()]);
+  const [cards, avail] = await Promise.all([cardsWhere({ id: { in: [...new Set(variants.map((v) => v.productId))] } }, [...classes.public, ...classes.licensed], who), availability(net.all, variants.map((v) => v.id))]);
   const cardOf = new Map(cards.map((c) => [c.id, c]));
+  // Stock is the variant's own (a card speaks for the whole product).
+  const inStock = (v: (typeof variants)[number]) => !!v.podSku || net.all.some((storeId) => (avail.get(availKey(storeId, v.id))?.available ?? 0) > 0);
   return rows.flatMap((r) => {
     const v = byId.get(r.variantId);
     if (!v) return [];
@@ -46,7 +48,7 @@ export async function listWishlist(customerId: string, who: Shopper, now = new D
     return [{
       id: r.id, variantId: r.variantId, variantName: v.name, variantCount: v.product._count.variants, addedAt: r.createdAt,
       restocked: !!r.restockedAt && r.restockedAt > addDays(now, -RESTOCK_FLAG_DAYS),
-      card, buyable: !!card && v.active && v.product.status === "ACTIVE" && card.stock.kind !== "out",
+      card, buyable: !!card && v.active && v.product.status === "ACTIVE" && inStock(v),
     }];
   });
 }

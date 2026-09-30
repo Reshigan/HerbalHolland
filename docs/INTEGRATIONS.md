@@ -323,6 +323,52 @@ Free alternatives if Postiz doesn't suit: Buffer's free plan (3 channels, 10 que
 (Facebook and Instagram only) or Mixpost Lite (self-hosted, fewer networks). None of them gives us a free API for all
 five networks, so they're used by hand, outside this platform.
 
+## Wallet passes — Apple Wallet and Google Wallet (`src/lib/wallet.ts`, `src/server/shop/wallet.ts`)
+
+The Rewards card as a wallet pass: member number as the till's QR code, tier, points and first name — nothing else
+personal. The buttons appear under the card on `/club` only once a wallet is configured; until then the routes answer
+404 with a plain "isn't set up yet" message and the card page shows no buttons.
+
+- **Apple Wallet** — `GET /club/wallet/apple.pkpass` builds `pass.json` (a `storeCard`), the icons (drawn from the app
+  icon), `manifest.json` (SHA-1 of every file) and a PKCS#7 detached signature, zipped (stored, no compression) as a
+  `.pkpass`. Signing uses the **openssl CLI** (`openssl smime -sign … -outform DER`): Node's `crypto` has no CMS
+  signer, so `openssl` must be on the server (it is in the Docker image's Debian base). Needs, from the Apple
+  Developer account: a Pass Type ID (`pass.co.za.herbalholland.rewards`), the Team ID, the pass certificate and its
+  private key (PEM), and Apple's WWDR G4 intermediate certificate (PEM). Passes are built on request and never stored;
+  there is no pass-update web service yet (the pass shows the balance as it was when added — members re-add it, or the
+  Rewards app has the live figure).
+- **Google Wallet** — `GET /club/wallet/google` redirects to `https://pay.google.com/gp/v/save/<jwt>`: a "Save to
+  Google Wallet" JWT (RS256, signed with the issuer's service-account key using `node:crypto`) carrying a generic
+  class and the member's generic object, so nothing has to be created in the Google Pay & Wallet Console ahead of
+  time beyond the issuer account. Needs the Issuer ID and a service account (JSON key) added to the issuer with
+  developer access; the site's origin must be listed for the save button (the JWT's `origins` is `APP_URL`).
+
+| Variable | What it is |
+|---|---|
+| `WALLET_APPLE_PASS_TYPE_ID` | The Pass Type ID (e.g. `pass.co.za.herbalholland.rewards`) |
+| `WALLET_APPLE_TEAM_ID` | The Apple Developer Team ID |
+| `WALLET_APPLE_CERT_PEM` | The pass certificate (PEM; `\n` for newlines is accepted) |
+| `WALLET_APPLE_KEY_PEM` | Its private key (PEM, unencrypted) |
+| `WALLET_APPLE_WWDR_PEM` | Apple's WWDR intermediate certificate (PEM) |
+| `WALLET_GOOGLE_ISSUER_ID` | Google Wallet issuer id (a number) |
+| `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | The service account's JSON key, as one line |
+
+Both builders are pure (`src/lib/wallet.ts`, tests in `tests/wallet.test.ts`): `applePassJson`, `appleManifest`,
+`zipStore`, `googleGenericObject`, `googleSaveJwtClaims`, `signJwtRS256`.
+
+## Product photos — the catalogue import (`image_urls`)
+
+Product photos come in through HQ → Catalogue → Import, in the `image_urls` column: `https://` addresses separated
+by `|`, up to six per product (the first is the main picture). After the import commits, each address is fetched
+(15 s timeout, 5 MB at most, JPG/PNG/WebP by its bytes — never by its name), kept through `@/server/storage` (R2/S3 or
+`UPLOAD_DIR`, under `products/<productId>/`) and recorded as an `Upload` plus a `ProductImage` row. The same bytes
+already on the product are skipped, so re-importing a file never doubles a gallery; failures are listed in the
+import's result and audited as `catalogue.import_images` (`data.failed`). Only public hosts are fetched (no IP
+literals, no `localhost`). Photos are served to everyone at `/media/<uploadId>` (a week's cache) and appear on cards,
+the product page gallery, the bag and orders, Open Graph and the product's JSON-LD `image`; products without photos
+keep the generated art. Removing or reordering photos is an HQ job (delete the `ProductImage` row or change
+`sortOrder`); there is no member-facing upload.
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -354,3 +400,5 @@ five networks, so they're used by hand, outside this platform.
 | `CRON_SECRET` | Protects `/api/cron/*` |
 | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Banking slips in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
 | `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image — mount a volume there) — back it up |
+| `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |
+| `WALLET_GOOGLE_ISSUER_ID`, `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | Google Wallet pass for the Rewards card; both, or the button stays hidden |

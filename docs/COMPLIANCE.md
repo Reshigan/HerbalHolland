@@ -91,3 +91,29 @@ change without a deploy.
    (until then they stay in `noIncentives`); the legal basis for CBD skin care; that collagen and protein powders are
    foodstuffs rather than health supplements (complementary medicines — if so, add `SUPPLEMENT` to `noIncentives`);
    and the CBD food products' labels (net content, ingredients, allergens, the naturally-occurring statement).
+
+## Gift vouchers (CPA s63) and reorder reminders
+
+**Gift vouchers are money, not an incentive.** A prepaid voucher is consideration the member already paid; it carries
+no bonus value on purchase, earns nothing on top, and is never discounted. So it pays for anything in the range —
+licensed medicines included, as a matter of law (Medicines Act s18A forbids inducements, and a voucher offers none).
+In practice medicines are paid for at the counter and the till doesn't take vouchers yet, so online redemption only
+covers what can be paid online; the code is data, and a medicine bought with it in store would be a POS change.
+**Validity: three years** from the date of issue — Consumer Protection Act s63(2) — enforced by `expiresAt` (set when
+the voucher is issued, not when it is bought), refused at checkout after that, and marked EXPIRED by the daily job.
+Unspent balances stay on the voucher until then (s63(3)); the liability report is the sum of active balances.
+A voucher can't be exchanged for cash. VAT: none at issue; accounted for on the sale it pays for (VAT Act s10(18)
+treatment of vouchers), which is what the posted sale at handover records.
+
+**Reorder reminders are transactional, not marketing.** A reminder exists only because the member set it, on the
+channel they chose, for one product, with an interval they picked, and they can stop it in one tap. It is a service
+message about that request, so it is sent regardless of the marketing consents (POPIA s69 governs unsolicited
+direct marketing; CPA Reg 4's contact hours apply to direct marketing) — but the content is confined to the reminder
+and the one-tap link, with no offers, no promotions and no other products, so it never becomes marketing by the back
+door. Every send is logged (`MessageLog`, kind TRANSACTIONAL), and setting or stopping a reminder is audited
+(`reminder.set`, `reminder.cancel`). No charge is ever taken: there is no stored card until Peach Payments approves
+tokenisation, and a reminder never places an order — the member does, from their bag.
+
+**Wishlists and saved addresses** hold personal information (what a member wants; where they live) and are shown
+only to that member; the address goes to the fulfilling store on the order itself, as before. Both are deleted with
+the member's account.

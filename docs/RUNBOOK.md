@@ -363,6 +363,45 @@ Without `WEB_PUSH_PUBLIC_KEY` / `WEB_PUSH_PRIVATE_KEY` every push is only writte
 and the digests are HQ settings under `operations` (`cycleCountDays`, `cycleCountByCategory`, `batchExpiryDays`,
 `patientAuthDays`, `supplierInvoiceDays`).
 
+## Reorder reminders, gift vouchers, wishlists and addresses (the shop's member features)
+
+**Reorder reminders** (`ReorderReminder`, `src/server/shop/reminders.ts`). A member sets "Remind me to reorder" on a
+product page (every 14–90 days, by SMS, email or app notification). The **daily job** (`/api/cron/daily` →
+`reminders`) sends each due reminder one message with a one-tap link (`/r/<id>/<token>`) that puts the item in the
+bag, then moves the reminder on by its interval. Nothing is charged: there is no card on file until Peach approves
+tokenisation, at which point this becomes a real subscription. Members manage them at `/club/reminders`; a product
+taken off sale stops its reminders on the next run (`stopped` in the job's summary). Reminders are transactional
+(the member asked for exactly this) and go out whatever the marketing consents say — see COMPLIANCE.md.
+
+**Gift vouchers** (`GiftVoucher`, `VoucherRedemption`, `src/server/shop/vouchers.ts`). Bought at `/gift` for R200,
+R500 or R1,000: the purchase is an ordinary online order for the virtual **Gift voucher** product (slug
+`gift-voucher`, category `gift-vouchers`, status DRAFT so it is never listed; created on first use). It sits with the
+franchisor's warehouse and goes through the normal pay page; when it is paid (`markOrderPaid`) the order completes on
+the spot — no picking — the voucher is issued (three years, CPA s63) and emailed to the buyer and, if given, the
+recipient, and the buyer gets an SMS with the code. Unpaid voucher orders lapse with every other unpaid order
+(`unpaidHoldMinutes`), and the daily job cancels vouchers still pending after two days. Redemption: the member enters
+the code in the bag or at checkout; the balance pays what points leave, before online payment; a fully covered order
+is placed as paid (`paymentRef VOUCHER:<code>`). Cancelling an order puts the money back on the voucher
+(`voucher.release` in the audit log). Refunds of a voucher-paid order refund the money part only: staff put the
+voucher part back by hand (adjust `balanceCents`) — a returns-desk job for now. Balance check: `/gift?check=CODE`
+(public, by code) or `/club/vouchers`. Reports: voucher liability = the sum of `balanceCents` where status is ACTIVE;
+VAT is accounted for at redemption (the sale posted at handover), not at issue. Audit actions: `voucher.purchase`,
+`voucher.issue`, `voucher.redeem`, `voucher.release`.
+
+**Wishlists** (`Wishlist`). The heart on cards and product pages. The **frequent job** (`wishlists`) notes when the
+whole network runs out of a wished-for variant and when stock returns, which shows as "Back in stock" on
+`/club/wishlist` for two weeks. It sends nothing; "Notify me" (StockAlert) does that.
+
+**Saved addresses** (`Address`, up to five per member). Offered as chips at checkout; the address an order ships to is
+saved (or updated) automatically; managed at `/club/addresses`. Personal information under POPIA: deleted with the
+member's account.
+
+**Delivery estimates** (`settings.ecommerce.deliveryDays`, `src/lib/delivery.ts`): courier working days by province
+(defaults GP 1–2, WC/KZN/FS/MP/NW 2–3, EC/LP 3–4, NC 3–5), counted from the next working day after the same-day
+cut-off; weekends and public holidays are skipped. Shown at checkout, on product pages and on the order tracker.
+Change them in the `ecommerce` setting (the HQ → Online orders form leaves the key alone; edit the JSON value or
+extend the form).
+
 ## Store-opening checklist (HQ → Stores → store)
 
 Onboarding a store seeds its opening checklist from the template in `src/lib/opening.ts` — Legal & licences (lease,

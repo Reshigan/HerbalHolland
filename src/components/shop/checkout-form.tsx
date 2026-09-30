@@ -83,12 +83,14 @@ export function CheckoutForm(props: {
   const set = (k: keyof AddressFields) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => setAddr((a) => ({ ...a, [k]: e.target.value }));
   const arrives = fulfilment === "COLLECT" ? props.estimates.collect : fulfilment === "SAME_DAY" ? props.estimates.sameDay : (props.estimates.courier[addr.province] ?? props.estimates.courier[""]);
 
+  // The voucher and promo forms live in the summary, outside the checkout form (a form can't hold another form);
+  // the submit button targets the checkout form by id.
   return (
-    <form action={action} className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
-      <input type="hidden" name="fulfilment" value={fulfilment} />
-      <input type="hidden" name="payMethod" value={payIn} />
-      <input type="hidden" name="points" value={pts} />
-      <div className="space-y-10">
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_24rem] lg:gap-12">
+      <form id="checkout-form" action={action} className="space-y-10">
+        <input type="hidden" name="fulfilment" value={fulfilment} />
+        <input type="hidden" name="payMethod" value={payIn} />
+        <input type="hidden" name="points" value={pts} />
         {/* 1. Fulfilment */}
         <section aria-labelledby="co-how">
           <h2 id="co-how" className="font-display text-xl font-semibold text-white">
@@ -327,15 +329,8 @@ export function CheckoutForm(props: {
             </div>
           )}
 
-          <div className="mt-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-4">
-            <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
-              <Gift className="h-4 w-4 text-brand-500" /> Gift voucher
-            </p>
-            <VoucherCode code={props.voucherCode} applied={props.voucher ? { balanceCents: props.voucher.balanceCents, appliedCents: voucherCents } : null} error={props.voucherError} />
-            {props.voucher && payIn === "IN_STORE" && <p className="mt-2 text-xs text-amber-100">Gift vouchers are redeemed with online payment — choose Pay online now to use it on this order.</p>}
-          </div>
         </section>
-      </div>
+      </form>
 
       {/* Summary */}
       <aside className="lg:sticky lg:top-28 lg:self-start">
@@ -386,6 +381,14 @@ export function CheckoutForm(props: {
             </p>
           )}
 
+          <div className="mt-4">
+            <p className="mb-2 flex items-center gap-2 text-sm font-semibold text-white">
+              <Gift className="h-4 w-4 text-brand-500" /> Gift voucher
+            </p>
+            <VoucherCode code={props.voucherCode} applied={props.voucher ? { balanceCents: props.voucher.balanceCents, appliedCents: voucherCents } : null} error={props.voucherError} />
+            {props.voucher && payIn === "IN_STORE" && <p className="mt-2 text-xs text-amber-100">Gift vouchers are redeemed with online payment — choose Pay online now to use it on this order.</p>}
+          </div>
+
           {props.blocked && (
             <p className="mt-4 flex gap-2 rounded-xl border border-amber-500/35 bg-amber-500/10 px-3 py-2.5 text-sm text-amber-100" role="alert">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" /> {props.blocked}
@@ -412,7 +415,7 @@ export function CheckoutForm(props: {
             </div>
           )}
 
-          <button disabled={pending || !!props.blocked || !opt.ok || (fulfilment === "COLLECT" && !storeId)} className={buttonClass("primary", "xl", "mt-5 w-full")}>
+          <button form="checkout-form" disabled={pending || !!props.blocked || !opt.ok || (fulfilment === "COLLECT" && !storeId)} className={buttonClass("primary", "xl", "mt-5 w-full")}>
             {pending ? "Placing your order…" : payIn === "ONLINE" && due > 0 ? `Continue to payment · ${zar(due)}` : `Place order · ${zar(due)}`}
             {!pending && <ArrowRight className="h-5 w-5" />}
           </button>
@@ -430,6 +433,6 @@ export function CheckoutForm(props: {
           </p>
         </div>
       </aside>
-    </form>
+    </div>
   );
 }
