@@ -1,11 +1,10 @@
 // Till sales: history (GET) and posting (POST, idempotent on the client-generated Sale.id,
 // so queued offline sales can be retried safely). Domain: sales.postPosSale.
-import { z } from "zod";
 import { db } from "@/server/db";
 import { postPosSale, type PosSaleInput } from "@/server/sales";
 import { quote } from "@/server/pricing";
 import { json, readBody, withStaff, PosError } from "@/server/pos/http";
-import { AgeCheck, Tender, Uuid } from "@/server/pos/schemas";
+import { SaleBody } from "@/server/pos/schemas";
 import { receipt, salesHistory } from "@/server/pos/receipts";
 
 export const GET = withStaff(async (req, pos) => {
@@ -13,27 +12,8 @@ export const GET = withStaff(async (req, pos) => {
   return json(await salesHistory(pos.device.storeId, { q: sp.get("q") ?? undefined, before: sp.get("before") ?? undefined }));
 });
 
-const Body = z.object({
-  id: Uuid,
-  number: z.string().regex(/^[A-Z0-9]{2,12}-[A-Z0-9]{1,3}\d{3,9}$/, "Invalid receipt number"),
-  seq: z.number().int().min(1).optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  offline: z.boolean().optional(),
-  shiftId: z.string().nullish(),
-  customerId: z.string().nullish(),
-  memberNo: z.string().trim().max(20).nullish(),
-  lines: z.array(z.object({ variantId: z.string().min(1), qty: z.number().int().min(1).max(999), unitPriceCents: z.number().int().min(0).optional() })).min(1, "The sale has no items").max(200),
-  promoCode: z.string().trim().max(40).nullish(),
-  pointsRedeemed: z.number().int().min(0).optional(),
-  payments: z.array(Tender).max(10),
-  ageCheck: AgeCheck.optional(),
-  buyer: z.object({ name: z.string().trim().min(1), address: z.string().trim().min(1), vatNumber: z.string().trim().optional() }).nullish(),
-  invoiceEmail: z.union([z.literal(""), z.string().trim().email("That email doesn't look right")]).nullish(),
-  staffId: z.string().optional(), // who rang it up (offline sales sync later under whoever is signed in)
-});
-
 export const POST = withStaff(async (req, pos) => {
-  const b = await readBody(req, Body);
+  const b = await readBody(req, SaleBody);
   const storeId = pos.device.storeId;
 
   const existing = await db.sale.findUnique({ where: { id: b.id }, select: { storeId: true } });

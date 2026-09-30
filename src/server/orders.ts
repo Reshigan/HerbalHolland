@@ -9,7 +9,7 @@ import { availability, availKey } from "./inventory";
 import { evaluateBasket } from "./compliance";
 import { getSettings } from "./settings";
 import { redeemPoints, addPoints } from "./loyalty";
-import { postSaleTx, type TenderInput } from "./sales";
+import { checkVoucherTenders, normaliseVoucherTenders, postSaleTx, redeemVoucherTendersTx, SaleError, type TenderInput, type VoucherTender } from "./sales";
 import { notifyOrder } from "./messaging";
 import { audit, type Actor } from "./audit";
 import { shortCode, pinCode } from "./counters";
@@ -123,11 +123,12 @@ export async function placeOrder(input: CheckoutInput) {
   const total = q.totalCents + fee;
   const maxPoints = Math.floor((total * settings.loyalty.maxRedeemPct) / 100 / 100);
   const points = Math.max(0, Math.min(Math.floor(input.points ?? 0), customer.points, maxPoints));
-  // A gift voucher is money (allowed on everything, medicines included) and pays after points, with online payment
-  // only: the till doesn't take vouchers, so a pay-in-store order can't carry one.
+  // A gift voucher is money (allowed on everything, medicines included) and pays after points, with online payment.
+  // A pay-in-store order doesn't carry one at checkout: the member pays with the voucher at the counter instead, where
+  // the till takes it as a tender (sales.postPosSale) — so the code stays theirs until they collect.
   const voucher = input.voucherCode?.trim() ? await voucherForCheckout(input.voucherCode) : null;
   if (voucher && !voucher.ok) throw new OrderError(voucher.error);
-  if (voucher && input.payMethod !== "ONLINE") throw new OrderError("To pay with a gift voucher, choose Pay online");
+  if (voucher && input.payMethod !== "ONLINE") throw new OrderError("To use a gift voucher on this order choose Pay online — or keep the code and pay with it at the counter when you collect");
   const voucherCents = voucher?.ok ? voucherApply(voucher.voucher.balanceCents, total - points * 100) : 0;
   const dueCents = total - points * 100 - voucherCents;
   const status: OrderStatus = input.payMethod === "ONLINE" && dueCents > 0 ? "PENDING_PAYMENT" : "PLACED";
@@ -169,7 +170,7 @@ export async function placeOrder(input: CheckoutInput) {
       include: { store: true },
     });
     if (points) await redeemPoints(t, { customerId: customer.id, points, orderId: o.id, storeId: route.storeId });
-    if (voucher?.ok && voucherCents > 0) await redeemVoucherTx(t, { voucher: voucher.voucher, orderId: o.id, cents: voucherCents, actor: { type: "CUSTOMER", id: customer.id, name: customer.firstName } });
+    if (voucher?.ok && voucherCents > 0) await redeemVoucherTx(t, { voucher: voucher.voucher, orderId: o.id, cents: voucherCents, actor: { type: "CUSTOMER", id: customer.id, name: customer.firstName }, storeId: route.storeId });
     await redeemOffers(t, q.offerIds, { orderId: o.id });
     await audit(t, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.place", {
       storeId: route.storeId, entity: "Order", entityId: o.id, data: { total, fulfilment: input.fulfilment, ...(voucherCents ? { voucherCents } : {}) },
@@ -377,18 +378,27 @@ export async function advanceOrder(
   if (handover && licensed && settings.compliance.thcMode === "MEDICAL" && opts.staffCanDispense === false)
     throw new OrderError("An authorised dispenser must hand over this order");
 
-  // What's owed in money: the total less points and any gift voucher (the voucher part is its own tender on the sale).
+  // What's owed in money: the total less points and any gift voucher redeemed at checkout (the voucher part is its own
+  // "Gift voucher" tender on the sale). A pay-in-store order may be paid with a voucher at the counter too: the till
+  // sends it as a VOUCHER tender, checked here and redeemed with the sale.
   const voucherTender = await voucherTenderOf(o.id);
   const due = o.totalCents - o.pointsRedeemed * 100 - (voucherTender?.amountCents ?? 0);
   const gateway = paidOnlineWith(o);
   let payments: (TenderInput | { method: "ONLINE"; amountCents: number; provider: string; reference?: string })[] = [];
+  let counterVouchers: VoucherTender[] = [];
   if (handover || dispatch) {
     if (o.paymentStatus === "PAID") payments = due > 0 ? [{ method: "ONLINE", amountCents: due, provider: gateway ?? "GATEWAY", reference: o.paymentRef ?? undefined }] : [];
     else {
       if (dispatch) throw new OrderError("Delivery orders must be paid before dispatch");
       const paid = (opts.payments ?? []).reduce((s, p) => s + p.amountCents, 0);
       if (paid !== due) throw new OrderError(`Take payment of ${zar(due)} before handover`);
-      payments = opts.payments ?? [];
+      payments = normaliseVoucherTenders(opts.payments ?? []);
+      try {
+        counterVouchers = await checkVoucherTenders(payments);
+      } catch (e) {
+        if (e instanceof SaleError) throw new OrderError(e.message);
+        throw e;
+      }
     }
     if (voucherTender) payments = [...payments, voucherTender];
   }
@@ -435,6 +445,12 @@ export async function advanceOrder(
         createdAt: new Date(),
         campaignId: o.campaignId,
       });
+      try {
+        await redeemVoucherTendersTx(t, counterVouchers, { saleId: postedSaleId, orderId: o.id, storeId: o.storeId, actor });
+      } catch (e) {
+        if (e instanceof SaleError) throw new OrderError(e.message);
+        throw e;
+      }
     }
     if (to === "CANCELLED") {
       await releaseOffers(t, o.id);
@@ -482,8 +498,13 @@ export async function refundOrderAmount(orderId: string, cents: number, reason: 
   if (!ret) throw new OrderError("That return isn't on this order");
   if (ret.refundRef) throw new OrderError(`${ret.number} has already been refunded (${ret.refundRef})`);
   if (o.paymentStatus !== "PAID") throw new OrderError(o.paymentStatus === "REFUNDED" ? "This order has already been refunded in full" : "This order hasn't been paid");
-  const due = o.totalCents - o.pointsRedeemed * 100 - (await voucherCentsOf(o.id)); // vouchers are put back by the returns team, not refunded in money
-  const before = (await db.returnRequest.aggregate({ where: { orderId, status: "REFUNDED", NOT: { id: ret.id } }, _sum: { refundCents: true } }))._sum.refundCents ?? 0;
+  // What was paid in money: the voucher part of a return goes back onto the voucher with the credit note (refundSale),
+  // never out through the gateway, so the caller passes only the money part here (returns.refundReturn splits it).
+  const due = o.totalCents - o.pointsRedeemed * 100 - (await voucherCentsOf(o.id));
+  // The money part of earlier refunds: what those returns refunded less what their credit notes put back onto vouchers.
+  const others = await db.returnRequest.findMany({ where: { orderId, status: "REFUNDED", NOT: { id: ret.id } }, select: { id: true, refundCents: true } });
+  const toVouchers = others.length ? ((await db.payment.aggregate({ where: { method: "VOUCHER", saleId: { in: others.map((x) => `return-${x.id}`) } }, _sum: { amountCents: true } }))._sum.amountCents ?? 0) : 0;
+  const before = others.reduce((s, x) => s + (x.refundCents ?? 0), 0) + toVouchers; // voucher rows on credit notes are negative
   if (before + cents > due) throw new OrderError(`Only ${zar(Math.max(0, due - before))} of this order is left to refund`);
 
   const gateway = paidOnlineWith(o);

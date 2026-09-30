@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { isTrainingNumber, TOUR, trainingAllows, TrainingError, trainingNumber } from "@/components/pos/lib/training";
-import { BRAND_MESSAGES, buildSnapshot, displayKey, displayUrl, idleMessages, idleSnapshot, isSnapshot, LICENSED_LINE_NAME } from "@/components/pos/lib/display";
+import { BRAND_MESSAGES, buildSnapshot, displayKey, displayUrl, idleMessages, idleSnapshot, isSnapshot, LICENSED_LINE_NAME, tenderName } from "@/components/pos/lib/display";
 import { idleDelay, QUIET_AFTER_MS, quietDashboard, saleIsOpen } from "@/components/pos/lib/idle";
-import { parseBatchScan } from "@/components/pos/lib/rules";
+import { parseBatchScan, tenderLine } from "@/components/pos/lib/rules";
 import { DEFAULT_COMPLIANCE } from "@/lib/compliance";
 import type { BootData, BootPromotion, CustomerDetail, OrderCard, QuoteDTO, ReceiptDTO, ZReport } from "@/server/pos/types";
 
 describe("training mode guard", () => {
   it("lets reads and pure calculations through, and refuses every write of record", () => {
     for (const p of ["/api/pos/bootstrap", "/api/pos/session", "/api/pos/orders", "/api/pos/customers?q=HH01", "/api/pos/sales?q=X", "/api/pos/stock?q=a", "/api/pos/shift", "/api/pos/qr?text=x"]) expect(trainingAllows("GET", p), p).toBe(true);
-    for (const p of ["/api/pos/quote", "/api/pos/compliance", "/api/pos/session", "/api/pos/display", "/api/pos/audit"]) expect(trainingAllows("POST", p), p).toBe(true);
+    for (const p of ["/api/pos/quote", "/api/pos/compliance", "/api/pos/session", "/api/pos/display", "/api/pos/audit", "/api/pos/vouchers"]) expect(trainingAllows("POST", p), p).toBe(true);
     expect(trainingAllows("DELETE", "/api/pos/session")).toBe(true);
     for (const p of ["/api/pos/sales", "/api/pos/refunds", "/api/pos/customers", "/api/pos/customers/c1/age-check", "/api/pos/events/checkin", "/api/pos/orders/o1", "/api/pos/shift", "/api/pos/sales/s1/invoice", "/api/pos/card", "/api/pos/pair"])
       expect(trainingAllows("POST", p), p).toBe(false);
@@ -205,7 +205,23 @@ describe("batch code scans", () => {
     expect(parseBatchScan("HH0100002")).toBeNull();
     expect(parseBatchScan("HHORDER:ABCD12:123456")).toBeNull();
     expect(parseBatchScan("HHRSVP:K7Q2M9XA")).toBeNull();
+    expect(parseBatchScan("HH-K7PM-3QXR-9ZAB")).toBeNull(); // a gift voucher code (dashed too) is the voucher tender's, not a batch
     expect(parseBatchScan("hello world")).toBeNull();
     expect(parseBatchScan("ABC-DEF")).toBeNull(); // no digit: not a batch
+  });
+});
+
+describe("tender lines", () => {
+  it("name a gift voucher by its code on receipts, and the tender on the customer display", () => {
+    expect(tenderLine({ method: "VOUCHER", reference: "HH-K7PM-3QXR-9ZAB" })).toBe("Gift voucher HH-K7PM-3QXR-9ZAB");
+    expect(tenderLine({ method: "CARD", reference: "A1B2", cardLast4: "1234" })).toBe("Card •••• 1234 (A1B2)");
+    expect(tenderLine({ method: "CARD", reference: "A1B2", cardLast4: "1234" }, "****")).toBe("Card **** 1234 (A1B2)");
+    expect(tenderLine({ method: "CASH" })).toBe("Cash");
+    expect(tenderName("voucher")).toBe("Gift voucher");
+    expect(tenderName("VOUCHER")).toBe("Gift voucher");
+    expect(tenderName("external")).toBe("Card");
+    expect(tenderName("points")).toBe("Rewards points");
+    expect(tenderName(null)).toBeNull();
+    expect(tenderName("nope")).toBeNull();
   });
 });

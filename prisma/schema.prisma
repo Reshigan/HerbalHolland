@@ -729,6 +729,7 @@ enum PayMethod {
   EFT
   LOYALTY
   ONLINE
+  VOUCHER // a gift voucher: redeemed online at checkout or at the till (refunds go back onto the voucher)
 }
 
 model Shift {
@@ -1790,16 +1791,22 @@ model GiftVoucher {
   @@index([status, expiresAt])
 }
 
-/// Money an order took from a voucher (put back on the voucher if the order is cancelled unpaid).
+/// Money taken from a voucher: by an online order at checkout (orderId), by a till sale (saleId), or by a counter
+/// voucher on a pay-in-store order handed over at the till (both). A cancelled unpaid order marks its rows reversed.
+/// A refund puts money back with a negative row against the credit note (saleId, and the order id when there is one):
+/// the order-level sums (voucherCentsOf, voucherTenderOf) count only positive rows, so a refund never changes what an
+/// order took; the voucher's own rows net to its balance movement.
 model VoucherRedemption {
   id        String   @id @default(cuid())
   voucherId String
-  orderId   String
+  orderId   String?
+  saleId    String?
   cents     Int
   reversed  Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@index([orderId])
+  @@index([saleId])
   @@index([voucherId])
 }
 

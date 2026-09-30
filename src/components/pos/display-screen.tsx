@@ -10,7 +10,7 @@ import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { Beadwork } from "./beadwork";
-import { BRAND_MESSAGES, DISPLAY_CHANNEL, isSnapshot, type DisplaySnapshot } from "./lib/display";
+import { BRAND_MESSAGES, DISPLAY_CHANNEL, isSnapshot, type DisplaySnapshot, tenderName } from "./lib/display";
 import { tierName, useReducedMotion } from "./ui";
 
 const POLL_MS = 2000;
@@ -242,7 +242,15 @@ function PayView({ s }: { s: DisplaySnapshot }) {
       </div>
       <div className="mt-8 eyebrow text-brand-500">{p.tapping ? "Tap to pay" : p.paidCents > 0 ? "Still to pay" : "Ready to pay"}</div>
       <div className="mt-2 font-display text-[clamp(3.5rem,9vw,7rem)] font-semibold leading-none tracking-tight text-white tnum">{zar(due)}</div>
-      <p className="mt-6 max-w-xl text-2xl text-ink-300">{p.tapping ? "Hold your card, phone or watch on the reader." : p.paidCents > 0 ? `${zar(p.paidCents)} paid so far.` : "Card, cash, PayShap or points — your cashier will take it from here."}</p>
+      <p className="mt-6 max-w-xl text-2xl text-ink-300" data-testid="display-tender">
+        {p.tapping
+          ? "Hold your card, phone or watch on the reader."
+          : tenderName(p.method)
+            ? `Paying by ${tenderName(p.method)!.toLowerCase()}${p.paidCents > 0 ? ` · ${zar(p.paidCents)} paid so far` : ""}.`
+            : p.paidCents > 0
+              ? `${zar(p.paidCents)} paid so far.`
+              : "Card, cash, PayShap, points or a gift voucher — your cashier will take it from here."}
+      </p>
       {s.member && <p className="mt-4 text-lg text-brand-300">Thanks, {s.member.firstName} — your points are on their way.</p>}
     </div>
   );

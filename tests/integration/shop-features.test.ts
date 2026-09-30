@@ -111,7 +111,7 @@ describe("gift vouchers", () => {
     expect(partial.status).toBe("PENDING_PAYMENT"); // the rest is still to pay
     expect(partial.totalCents).toBeGreaterThan(50_000);
     expect(await orderDue(partial)).toBe(partial.totalCents - 50_000);
-    expect(await voucherTenderOf(partial.id)).toMatchObject({ method: "ONLINE", amountCents: 50_000, provider: "VOUCHER", reference: voucher.code });
+    expect(await voucherTenderOf(partial.id)).toMatchObject({ method: "VOUCHER", amountCents: 50_000, reference: voucher.code });
     let v = await db.giftVoucher.findUniqueOrThrow({ where: { id: voucher.id } });
     expect(v).toMatchObject({ balanceCents: 0, status: "REDEEMED", redeemedOrderIds: [partial.id] });
     expect(await db.auditLog.count({ where: { action: "voucher.redeem", entityId: voucher.id } })).toBe(1);

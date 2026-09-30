@@ -14,15 +14,18 @@ import { queueSaleInvoice } from "./invoices";
 import { redeemOffers } from "./offers";
 import { dropBlocks } from "./drops";
 import { evaluateBasket } from "./compliance";
-import { dayKey } from "@/lib/format";
+import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers";
+import { dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
+import { allocateRefundAcross, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
 import type { Allocation } from "@/lib/fefo";
-import type { AgeCheck, PayMethod } from "@/generated/prisma/client";
+import type { AgeCheck, GiftVoucher, PayMethod } from "@/generated/prisma/client";
 
 export class SaleError extends Error {}
 
+/** A tender on a sale. VOUCHER is a gift voucher: `reference` is its code, and posting the sale redeems it (online only). */
 export type TenderInput = {
-  method: "CARD" | "CASH" | "PAYSHAP" | "EFT";
+  method: "CARD" | "CASH" | "PAYSHAP" | "EFT" | "VOUCHER";
   amountCents: number;
   tenderedCents?: number;
   changeCents?: number;
@@ -139,6 +142,51 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   return { ...sale, costCents: cost, pointsEarned };
 }
 
+// ── Gift vouchers as a tender ─────────────────────────────────────────────────
+
+export type VoucherTender = { code: string; cents: number; voucher: GiftVoucher };
+
+/**
+ * The gift vouchers among a sale's tenders, checked before anything is posted: each code must be on record, active,
+ * unexpired and hold at least what it is tendered for (the same code tendered twice counts once). The failure names
+ * the voucher and the shortfall so the operator can lower the amount or add another tender.
+ */
+export async function checkVoucherTenders(payments: { method: string; amountCents: number; reference?: string | null }[], now = new Date()): Promise<VoucherTender[]> {
+  const cents = new Map<string, number>();
+  for (const p of payments) {
+    if (p.method !== "VOUCHER") continue;
+    const code = normaliseVoucherCode(p.reference ?? "");
+    if (!code) throw new SaleError("A gift voucher tender needs the voucher code (HH-XXXX-XXXX-XXXX)");
+    cents.set(code, (cents.get(code) ?? 0) + p.amountCents);
+  }
+  const out: VoucherTender[] = [];
+  for (const [code, amount] of cents) {
+    const voucher = await db.giftVoucher.findUnique({ where: { code } });
+    const problem = voucherProblem(voucher, now, fmtDate);
+    if (problem || !voucher) throw new SaleError(`Gift voucher ${code}: ${problem ?? "can't pay right now"}`);
+    if (amount > voucher.balanceCents)
+      throw new SaleError(`Gift voucher ${code} has ${zar(voucher.balanceCents)} left, ${zar(amount - voucher.balanceCents)} short of the ${zar(amount)} tendered — lower the voucher amount or add another tender`);
+    out.push({ code, cents: amount, voucher });
+  }
+  return out;
+}
+
+/** Voucher tenders as posted: the code in its canonical form (the refund looks the voucher up by it), no provider. */
+export const normaliseVoucherTenders = <T extends { method: string; reference?: string | null; provider?: string | null }>(payments: T[]): T[] =>
+  payments.map((p) => (p.method === "VOUCHER" ? { ...p, reference: normaliseVoucherCode(p.reference ?? "") ?? p.reference, provider: undefined } : p));
+
+/** Redeems checked voucher tenders inside the sale's transaction; a balance that moved meanwhile stops the sale. */
+export async function redeemVoucherTendersTx(t: Tx, vouchers: VoucherTender[], a: { saleId: string; orderId?: string | null; storeId: string; actor: Actor }) {
+  for (const v of vouchers) {
+    try {
+      await redeemVoucherTx(t, { voucher: v.voucher, cents: v.cents, actor: a.actor, saleId: a.saleId, orderId: a.orderId ?? null, storeId: a.storeId });
+    } catch (e) {
+      if (e instanceof VoucherError) throw new SaleError(e.message);
+      throw e;
+    }
+  }
+}
+
 // ── POS ──────────────────────────────────────────────────────────────────────
 
 export type PosSaleInput = {
@@ -178,8 +226,14 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   // Drop limits are checked at the till before payment. If a card/PayShap payment already went through (a race with
   // an online order), post the sale and flag it for HQ rather than leave the customer charged without a sale.
   const dropped = offline ? [] : await dropBlocks(input.customerId, q.lines);
-  const charged = input.payments.some((p) => p.method !== "CASH" && !!p.reference);
+  const charged = input.payments.some((p) => p.method !== "CASH" && p.method !== "VOUCHER" && !!p.reference);
   if (dropped.length && !charged) throw new SaleError(dropped[0]);
+  // A gift voucher is redeemed on the server when the sale posts, so it needs the connection: a sale queued offline can
+  // never carry one (the till refuses it too). The operator re-tenders that sale with another payment.
+  if (offline && input.payments.some((p) => p.method === "VOUCHER"))
+    throw new SaleError("Gift vouchers can't be taken on an offline sale — this queued sale needs another tender: ring it up again and discard this one");
+  const vouchers = await checkVoucherTenders(input.payments, createdAtOf(input));
+  const tenders = normaliseVoucherTenders(input.payments);
 
   const [store, staff] = await Promise.all([
     db.store.findUniqueOrThrow({ where: { id: ctx.storeId }, select: { licences: true } }),
@@ -205,17 +259,18 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   if (paid !== q.totalCents && !offline) throw new SaleError(`Payments (${zar(paid)}) don't match the total (${zar(q.totalCents)})`);
 
   const actor: Actor = { type: "USER", id: ctx.staffId, name: ctx.staffName };
-  const createdAt = offline && input.createdAt ? new Date(input.createdAt) : new Date();
+  const createdAt = createdAtOf(input);
 
   const result = await tx(async (t) => {
     const taken = await t.sale.findUnique({ where: { number: input.number }, select: { id: true } });
     const number = taken ? `${input.number}-${shortCode(3)}` : input.number;
     const sale = await postSaleTx(t, {
       id: input.id, number, storeId: ctx.storeId, channel: "POS", shiftId: input.shiftId, staffId: ctx.staffId,
-      deviceId: ctx.deviceId, customerId: customer?.id, quote: q, promoCode: input.promoCode, payments: input.payments,
+      deviceId: ctx.deviceId, customerId: customer?.id, quote: q, promoCode: input.promoCode, payments: tenders,
       pointsRedeemed: points, redeemNow: true, ageCheck: input.ageCheck ?? (customer?.ageVerifiedAt ? "VERIFIED" : "NONE"),
       offline, createdAt, campaignId: input.campaignId, buyer: input.buyer,
     });
+    await redeemVoucherTendersTx(t, vouchers, { saleId: sale.id, storeId: ctx.storeId, actor });
     if (input.seq) await t.device.updateMany({ where: { id: ctx.deviceId, seq: { lt: input.seq } }, data: { seq: input.seq } });
     if (!comp.ok) await audit(t, actor, "compliance.offline_exception", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: comp.blocks } });
     if (paid !== q.totalCents) await audit(t, actor, "sale.tender_variance", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { paid, total: q.totalCents } });
@@ -231,12 +286,36 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
 
 type LineAlloc = Allocation & { lineId?: string };
 
+type PaymentLike = { method: PayMethod; amountCents: number; reference: string | null };
+
+/**
+ * What each gift voucher paid on a sale and what refunds of it have already put back, in tender order: the
+ * VOUCHER payment rows on the sale (positive) and on its refunds (negative), by voucher code.
+ */
+export function voucherPartsOf(sale: { payments: PaymentLike[]; refunds: { payments: PaymentLike[] }[] }) {
+  const parts = new Map<string, { code: string; paidCents: number; refundedCents: number }>();
+  for (const p of sale.payments) {
+    if (p.method !== "VOUCHER" || !p.reference) continue;
+    const part = parts.get(p.reference) ?? { code: p.reference, paidCents: 0, refundedCents: 0 };
+    part.paidCents += Math.max(0, p.amountCents);
+    parts.set(p.reference, part);
+  }
+  for (const r of sale.refunds)
+    for (const p of r.payments) {
+      const part = p.method === "VOUCHER" && p.reference ? parts.get(p.reference) : undefined;
+      if (part) part.refundedCents += Math.max(0, -p.amountCents);
+    }
+  return [...parts.values()];
+}
+
 export async function refundSale(a: {
   id: string;
   number: string;
   saleId: string;
   lines: { saleLineId: string; qty: number; restock: boolean }[];
-  method: TenderInput["method"] | "ONLINE"; // ONLINE: money going back through the shop's payment gateway (a return)
+  /** Where the money part goes. ONLINE: back through the shop's payment gateway (a return). The voucher part never
+   *  goes here: it returns to the gift voucher(s) that paid, first (lib/vouchers.allocateRefund). */
+  method: Exclude<TenderInput["method"], "VOUCHER"> | "ONLINE";
   extraCents?: number; // a delivery fee refunded with the lines (VAT incl.), when a whole online order comes back
   reason: string;
   staffId: string;
@@ -248,7 +327,7 @@ export async function refundSale(a: {
   if (dup) return dup;
   const orig = await db.sale.findUniqueOrThrow({
     where: { id: a.saleId },
-    include: { lines: true, payments: true, refunds: { include: { lines: true } } },
+    include: { lines: true, payments: true, refunds: { include: { lines: true, payments: true } } },
   });
   if (orig.kind !== "SALE") throw new SaleError("Only sales can be refunded");
 
@@ -281,6 +360,8 @@ export async function refundSale(a: {
   const extraVat = orig.vatCents > 0 ? vatOf(extra) : 0; // non-VAT-vendor stores charged none
   const moneyBack = amount - loyaltyBack + extra;
   const earnedBack = orig.totalCents > 0 ? Math.round((orig.pointsEarned * amount) / orig.totalCents) : 0;
+  // Gift vouchers that paid on the sale take the refund first, up to what each paid less what earlier refunds put back.
+  const split = allocateRefundAcross(moneyBack, voucherPartsOf(orig));
 
   return tx(async (t) => {
     const refund = await t.sale.create({
@@ -319,10 +400,19 @@ export async function refundSale(a: {
       vstats.push({ variantId: p.line.variantId, units: -p.x.qty, netCents: -(p.amount - p.vat), costCents: -c });
     }
     const payments: PaymentRow[] = [];
-    if (moneyBack) payments.push({ method: a.method, amountCents: -moneyBack });
+    for (const v of split.parts) payments.push({ method: "VOUCHER", amountCents: -v.cents, reference: v.code });
+    if (split.toTender) payments.push({ method: a.method, amountCents: -split.toTender });
     if (loyaltyBack) payments.push({ method: "LOYALTY", amountCents: -loyaltyBack });
     await t.payment.createMany({ data: payments.map((p) => ({ saleId: refund.id, ...p })) });
     await t.sale.update({ where: { id: refund.id }, data: { costCents: -cost } });
+    for (const v of split.parts) {
+      try {
+        await restoreVoucherTx(t, { code: v.code, cents: v.cents, actor: { type: "USER", id: a.staffId, name: a.staffName }, saleId: refund.id, orderId: orig.orderId, storeId: orig.storeId });
+      } catch (e) {
+        if (e instanceof VoucherError) throw new SaleError(e.message);
+        throw e;
+      }
+    }
 
     if (orig.customerId) {
       if (loyaltyBack) await addPoints(t, { customerId: orig.customerId, points: loyaltyBack / 100, kind: "REVERSAL", storeId: orig.storeId, saleId: refund.id, note: "points returned on refund" });
@@ -342,7 +432,8 @@ export async function refundSale(a: {
     await bumpStoreStat(t, delta);
     await bumpVariantStats(t, orig.storeId, date, vstats);
     await audit(t, { type: "USER", id: a.staffId, name: a.staffName }, "sale.refund", {
-      storeId: orig.storeId, entity: "Sale", entityId: refund.id, data: { of: orig.number, amount, reason: a.reason },
+      storeId: orig.storeId, entity: "Sale", entityId: refund.id,
+      data: { of: orig.number, amount, reason: a.reason, ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: v.code, cents: v.cents })), toTender: split.toTender }) },
     });
     return refund;
   }).then((refund) => {
@@ -351,5 +442,7 @@ export async function refundSale(a: {
     return refund;
   });
 }
+
+const createdAtOf = (input: Pick<PosSaleInput, "offline" | "createdAt">) => (input.offline && input.createdAt ? new Date(input.createdAt) : new Date());
 
 export const newSaleId = () => randomUUID();

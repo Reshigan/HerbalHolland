@@ -2,8 +2,9 @@
 //   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/pos.mjs [outdir]   (seeded demo data)
 // Pair PTA01 → PIN 1111 → open shift → walk-in CBD sale (ID sighted, cash) → patient flower
 // sale (card, tap on glass) → event check-in from a members' evening ticket (member attached,
-// welcome gift offered to a first-timer) → refund a line → offline cash sale → back online &
-// sync → hand over a READY click & collect order → close the shift (Z-report).
+// welcome gift offered to a first-timer) → refund a line → a gift voucher scanned at the till pays
+// part of a sale, cash the rest, then the refund goes back onto the voucher → offline cash sale →
+// back online & sync → hand over a READY click & collect order → close the shift (Z-report).
 import { chromium } from "@playwright/test";
 import pg from "pg";
 import { mkdirSync } from "node:fs";
@@ -39,6 +40,9 @@ const search = async (text) => {
 };
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 let tempEvent = null; // throwaway event for the check-in step (deleted at the end)
+let tempVoucher = null; // a R50 gift voucher issued straight into the database for the till step (deleted at the end)
+const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I, as makeVoucherCode
+const pick = (n) => [...Array(n)].map(() => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
 
 try {
   step("Pair PTA01 with the manager's email + password");
@@ -203,6 +207,71 @@ try {
   const refund = (await q(`select r.number, r."totalCents", p.method from "Sale" r join "Sale" o on o.id = r."refundOfId" join "Payment" p on p."saleId" = r.id where o.number = $1`, [walkinNo]))[0];
   assert(refund?.totalCents === -walkin.totalCents && refund.method === "CASH", `refund ${refund?.number} of R${(walkin.totalCents / 100).toFixed(2)} in cash`);
 
+  step("Gift voucher at the till: the code scanned (typed into search) pays R50 of a pouch, cash the rest");
+  const VOUCHER = `HH-${pick(4)}-${pick(4)}-${pick(4)}`;
+  tempVoucher = (
+    await q(
+      `insert into "GiftVoucher" (id, code, "amountCents", "balanceCents", status, "issuedAt", "expiresAt", "updatedAt")
+       values (gen_random_uuid()::text, $1, 5000, 5000, 'ACTIVE', now(), now() + interval '3 years', now()) returning id, code`,
+      [VOUCHER],
+    )
+  )[0];
+  await waitOnline();
+  await page.getByRole("button", { name: "Sell" }).first().click();
+  await page.getByRole("button", { name: /Find member/ }).first().click(); // members only: the shopper who joined above (ID verified)
+  await page.getByLabel("Search members").fill(joined.memberNo);
+  await page.getByTestId("customer-card").waitFor();
+  await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
+  await page.waitForTimeout(700);
+  await search(VOUCHER.toLowerCase()); // a scanner types the code the same way; the till opens payment with the voucher looked up
+  await page.getByTestId("voucher-found").waitFor({ timeout: 30_000 });
+  const found = (await page.getByTestId("voucher-found").textContent()) ?? "";
+  assert(found.includes(VOUCHER) && found.includes("R50.00 on the voucher"), `voucher ${VOUCHER} looked up: R50.00 on it`);
+  await shot("voucher-tender");
+  await page.getByTestId("voucher-apply").click();
+  await page.getByText(/Gift voucher HH-[A-Z2-9-]+ · R0\.00 left on the voucher/).waitFor();
+  ok("R50.00 taken from the voucher (nothing left on it)");
+  await page.getByTestId("tender-cash").click();
+  await page.getByRole("button", { name: "Exact" }).click();
+  await page.getByTestId("receipt").waitFor({ timeout: 30_000 });
+  await shot("voucher-receipt");
+  const voucherNo = await receiptNo();
+  const voucherReceipt = (await page.getByRole("dialog").filter({ has: page.getByTestId("receipt") }).textContent()) ?? "";
+  assert(new RegExp(`Gift voucher ${esc(VOUCHER)} R50\\.00 \\(R0\\.00 left on the voucher\\)`).test(voucherReceipt), `receipt ${voucherNo} shows "Gift voucher ${VOUCHER}" and what's left on it`);
+  const vsale = (await q(`select id, "totalCents", offline from "Sale" where number = $1`, [voucherNo]))[0];
+  const vpays = await q(`select method, "amountCents", reference from "Payment" where "saleId" = $1`, [vsale.id]);
+  assert(
+    vsale.offline === false && vpays.some((p) => p.method === "VOUCHER" && p.amountCents === 5000 && p.reference === VOUCHER) && vpays.some((p) => p.method === "CASH" && p.amountCents === vsale.totalCents - 5000),
+    `sale posted online with a R50 VOUCHER tender (${VOUCHER}) and R${((vsale.totalCents - 5000) / 100).toFixed(2)} cash`,
+  );
+  const vbal = (await q(`select "balanceCents", status from "GiftVoucher" where id = $1`, [tempVoucher.id]))[0];
+  const vred = (await q(`select "saleId", "orderId", cents from "VoucherRedemption" where "voucherId" = $1`, [tempVoucher.id]))[0];
+  assert(vbal.balanceCents === 0 && vbal.status === "REDEEMED" && vred?.saleId === vsale.id && vred.orderId === null && vred.cents === 5000, "voucher used up: balance 0, REDEEMED, redemption row on the sale");
+  await page.getByTestId("new-sale").click();
+
+  step("Refund the voucher sale: R50 goes back onto the voucher, the rest as cash");
+  await page.getByRole("button", { name: "Sales" }).first().click();
+  await page.getByLabel("Search by receipt number").fill(voucherNo);
+  await page.locator("[aria-label='Recent sales'] li button", { hasText: voucherNo }).first().click();
+  await page.getByTestId("start-refund").first().click();
+  await page.getByRole("button", { name: /Increase refund quantity of Smell-proof Pouch/ }).click();
+  const splitText = (await page.getByTestId("refund-voucher").textContent()) ?? "";
+  assert(splitText.includes(`R50.00 goes back onto gift voucher ${VOUCHER}`) && splitText.includes(`R${((vsale.totalCents - 5000) / 100).toFixed(2)} refunded by Cash`), "refund sheet: R50.00 back onto the voucher, the rest in cash");
+  await shot("voucher-refund-sheet");
+  await page.getByTestId("refund-continue").click();
+  await page.getByRole("button", { name: "Confirm refund" }).click();
+  await page.getByText(/^Refund PTA01-[A-Z]\d{5}.* done/).waitFor();
+  const vrefund = (await q(`select r.id, r.number, r."totalCents" from "Sale" r join "Sale" o on o.id = r."refundOfId" where o.number = $1`, [voucherNo]))[0];
+  const rpays = await q(`select method, "amountCents", reference from "Payment" where "saleId" = $1`, [vrefund.id]);
+  assert(
+    vrefund.totalCents === -vsale.totalCents && rpays.some((p) => p.method === "VOUCHER" && p.amountCents === -5000 && p.reference === VOUCHER) && rpays.some((p) => p.method === "CASH" && p.amountCents === -(vsale.totalCents - 5000)),
+    `credit note ${vrefund.number}: −R50.00 to the voucher, −R${((vsale.totalCents - 5000) / 100).toFixed(2)} cash`,
+  );
+  const vbal2 = (await q(`select "balanceCents", status from "GiftVoucher" where id = $1`, [tempVoucher.id]))[0];
+  const vrows = await q(`select "saleId", cents from "VoucherRedemption" where "voucherId" = $1 order by "createdAt"`, [tempVoucher.id]);
+  assert(vbal2.balanceCents === 5000 && vbal2.status === "ACTIVE" && vrows.length === 2 && vrows[1].saleId === vrefund.id && vrows[1].cents === -5000, "voucher balance restored (R50.00, ACTIVE) with a negative redemption row on the credit note");
+  await page.getByRole("button", { name: "Sell" }).first().click();
+
   step("Go offline: take the member number from their card and ring up a cash sale");
   await page.getByRole("button", { name: "Sell" }).first().click();
   await ctx.setOffline(true);
@@ -220,6 +289,7 @@ try {
   await page.getByRole("button", { name: /ID sighted/ }).click();
   await page.getByTestId("cash-panel").waitFor();
   assert(await page.getByTestId("tender-card").isDisabled(), "card disabled offline (cash only)");
+  assert(await page.getByTestId("tender-voucher").isDisabled(), "gift voucher disabled offline (needs a connection)");
   await page.getByRole("button", { name: "Exact" }).click();
   await page.getByTestId("receipt").waitFor();
   await shot("offline-receipt");
@@ -329,6 +399,10 @@ try {
   process.exitCode = 1;
 } finally {
   if (tempEvent) await q(`delete from "StoreEvent" where id = $1`, [tempEvent.id]).catch(() => undefined); // its tickets go with it
+  if (tempVoucher) {
+    await q(`delete from "VoucherRedemption" where "voucherId" = $1`, [tempVoucher.id]).catch(() => undefined);
+    await q(`delete from "GiftVoucher" where id = $1`, [tempVoucher.id]).catch(() => undefined);
+  }
   if (problems.length) console.log("\nNotes:\n" + problems.join("\n"));
   await browser.close();
   await db.end();

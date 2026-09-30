@@ -193,7 +193,7 @@ export const RETURN_PHOTOS = { max: 3, maxBytes: 5 * 1024 * 1024, note: "Up to 3
 export const RETURN_NOTE_MAX = 1_000;
 
 /** The message the member gets at each step (SMS-short, and the same words as the email). */
-export function returnStatusMessage(r: { number: string; orderCode: string; status: ReturnStatusKey; courier?: string | null; waybill?: string | null; refundCents?: number | null; decisionNote?: string | null }) {
+export function returnStatusMessage(r: { number: string; orderCode: string; status: ReturnStatusKey; courier?: string | null; waybill?: string | null; refundCents?: number | null; voucherCents?: number | null; decisionNote?: string | null }) {
   const n = r.number;
   switch (r.status) {
     case "REQUESTED":
@@ -204,8 +204,14 @@ export function returnStatusMessage(r: { number: string; orderCode: string; stat
       return { subject: `Return ${n}: courier booked`, text: `A courier will collect your return ${n} for order ${r.orderCode}${r.courier ? ` (${r.courier}${r.waybill ? `, waybill ${r.waybill}` : ""})` : ""}. Have the parcel ready and packed.` };
     case "RECEIVED":
       return { subject: `Return ${n} has reached us`, text: `Your return ${n} for order ${r.orderCode} has reached us. We're checking it and will refund you as soon as that's done.` };
-    case "REFUNDED":
-      return { subject: `Return ${n} refunded`, text: `We've refunded ${zar(r.refundCents ?? 0)} for return ${n} (order ${r.orderCode}) to the way you paid. Your bank may take a few days to show it.` };
+    case "REFUNDED": {
+      const total = r.refundCents ?? 0;
+      const voucher = Math.min(total, Math.max(0, r.voucherCents ?? 0));
+      const money = total - voucher;
+      // What a gift voucher paid goes back onto the voucher (never cashed out); only the rest goes the way they paid.
+      const how = voucher > 0 ? (money > 0 ? `: ${zar(voucher)} back onto your gift voucher and ${zar(money)} to the way you paid` : " back onto your gift voucher") : " to the way you paid";
+      return { subject: `Return ${n} refunded`, text: `We've refunded ${zar(total)} for return ${n} (order ${r.orderCode})${how}.${money > 0 ? " Your bank may take a few days to show it." : ""}` };
+    }
     case "DECLINED":
       return { subject: `Return ${n}: we can't accept it`, text: `We can't accept return ${n} for order ${r.orderCode}${r.decisionNote ? `: ${r.decisionNote}` : "."} If you'd like to talk it through, reply to this message or ask us at /support.` };
   }

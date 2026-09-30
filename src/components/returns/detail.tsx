@@ -49,7 +49,7 @@ export function ReturnPanel({ d, canWork, actions, links }: {
     ) : r.status === "COLLECTION_BOOKED" ? (
       <ReceiveForm action={actions.receive} />
     ) : r.status === "RECEIVED" ? (
-      <RefundForm action={actions.refund} items={items} plan={{ ...plan.breakdown, gateway: plan.gateway }} restockDefault={plan.restock} />
+      <RefundForm action={actions.refund} items={items} plan={{ ...plan.breakdown, gateway: plan.gateway, voucherCents: plan.voucher.toVoucher, voucherCodes: plan.voucher.parts.map((v) => v.code), moneyCents: plan.voucher.toTender }} restockDefault={plan.restock} />
     ) : null;
 
   return (
@@ -63,7 +63,7 @@ export function ReturnPanel({ d, canWork, actions, links }: {
         )}
         {r.status === "REFUNDED" && (
           <Notice tone="success" title={`Refunded ${zar(r.refundCents ?? 0)}`}>
-            {r.refundRef === "POINTS" ? "Nothing was paid in money: the points came back with the credit note." : `Reference ${r.refundRef}. The credit note is posted at ${order.store.name} and the member has been told.`}
+            {r.refundRef === "POINTS" ? "Nothing was paid in money: the points came back with the credit note." : r.refundRef === "VOUCHER" ? `Nothing to pay out in money: it went back onto the gift voucher with the credit note at ${order.store.name}, and the member has been told.` : `Reference ${r.refundRef}. The credit note is posted at ${order.store.name} and the member has been told.`}
           </Notice>
         )}
         {r.status === "DECLINED" && (
@@ -120,7 +120,9 @@ export function ReturnPanel({ d, canWork, actions, links }: {
             <p className="flex items-start gap-2 text-xs text-ink-500">
               <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
               Refund plan: {zar(plan.breakdown.linesCents)} for the items{plan.breakdown.deliveryCents ? ` + ${zar(plan.breakdown.deliveryCents)} delivery` : ""} = {zar(plan.breakdown.totalCents)}
-              {plan.breakdown.note ? `. ${plan.breakdown.note}` : "."} {plan.gateway ? `Paid through ${plan.gateway === "PEACH" ? "Peach Payments" : "Yoco"}: refunded by amount there.` : "Not paid through the online gateway: refunded by hand."}
+              {plan.breakdown.note ? `. ${plan.breakdown.note}` : "."}{" "}
+              {plan.voucher.toVoucher > 0 ? `${zar(plan.voucher.toVoucher)} goes back onto gift voucher ${plan.voucher.parts.map((v) => v.code).join(", ")} with the credit note (a voucher is never cashed out)${plan.voucher.toTender > 0 ? `; ${zar(plan.voucher.toTender)} in money` : "; nothing to pay out in money"}. ` : ""}
+              {plan.voucher.toTender > 0 || plan.voucher.toVoucher === 0 ? (plan.gateway ? `Paid through ${plan.gateway === "PEACH" ? "Peach Payments" : "Yoco"}: refunded by amount there.` : "Not paid through the online gateway: refunded by hand.") : ""}
             </p>
           </CardBody>
         </Card>

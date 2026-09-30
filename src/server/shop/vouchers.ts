@@ -1,8 +1,9 @@
 // Gift vouchers. Bought at /gift: the purchase is an ordinary online order for the virtual "Gift voucher" product
 // (a DRAFT product, so it is never listed, with one variant per amount and no stock), paid through the usual online
 // payment flow; when that order is paid it completes on the spot — nothing to pick — and the voucher is issued and
-// emailed. Redeemed at checkout: the balance pays what points left, before any online payment. A voucher is money,
-// not an incentive (no bonus value, allowed on everything); CPA s63(2) makes it valid for three years from issue.
+// emailed. Redeemed at checkout (the balance pays what points left, before any online payment) or at the till, as a
+// tender like any other (sales.postPosSale; refunds go back onto the voucher first). A voucher is money, not an
+// incentive (no bonus value, allowed on everything); CPA s63(2) makes it valid for three years from issue.
 import { cache } from "react";
 import { db, tx, type Tx } from "@/server/db";
 import { audit, SYSTEM, type Actor } from "@/server/audit";
@@ -32,13 +33,13 @@ export async function ensureVoucherProduct() {
   return tx(async (t) => {
     const category =
       (await t.category.findUnique({ where: { slug: VOUCHER_CATEGORY_SLUG } })) ??
-      (await t.category.create({ data: { slug: VOUCHER_CATEGORY_SLUG, name: "Gift vouchers", icon: "Gift", sortOrder: 99, blurb: "Herbal Holland gift vouchers, redeemable online on anything in the range." } }));
+      (await t.category.create({ data: { slug: VOUCHER_CATEGORY_SLUG, name: "Gift vouchers", icon: "Gift", sortOrder: 99, blurb: "Herbal Holland gift vouchers, redeemable online or in store on anything in the range." } }));
     const product =
       existing ??
       (await t.product.create({
         data: {
           slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Give the gift of choice", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
-          description: "A Herbal Holland gift voucher: redeemable online on anything in the range, for three years from the date of issue.",
+          description: "A Herbal Holland gift voucher: redeemable online or at the counter in any store, on anything in the range, for three years from the date of issue.",
           legalBasis: "Consumer Protection Act s63 — prepaid voucher, valid three years",
         },
         include: { variants: true },
@@ -123,7 +124,7 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
   const base = APP_URL();
   const from = [buyer.firstName, buyer.lastName].filter(Boolean).join(" ");
   const code = `<div style="margin:6px 0 18px;padding:18px 20px;border-radius:16px;background:#0c0a09;text-align:center"><div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#f5913c">Voucher code</div><div style="margin-top:6px;font-family:'Outfit',Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;letter-spacing:0.08em;color:#fbf7f3">${esc(v.code)}</div><div style="margin-top:4px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;color:#bdb3a9">${esc(zar(v.amountCents))} · valid until ${esc(fmtDate(v.expiresAt))}</div></div>`;
-  const how = para(`Enter the code at checkout under <strong>Gift voucher</strong>. Whatever isn't spent stays on the voucher until it's used up. It can't be exchanged for cash, and it isn't a promotion — it pays for anything in the range.`);
+  const how = para(`Use it online: enter the code at checkout under <strong>Gift voucher</strong>. In store: show this email at the counter. Whatever isn't spent stays on the voucher until it's used up. It can't be exchanged for cash, and it isn't a promotion — it pays for anything in the range.`);
   const body =
     to === "recipient"
       ? `${para(`${esc(from || "A friend")} sent you a Herbal Holland gift voucher${v.recipientName ? `, ${esc(v.recipientName)}` : ""}.`)}${v.message ? callout(`“${esc(v.message)}”`, "soft") : ""}${code}${how}${para("Herbal Holland is for adults 18+: bring your ID when you collect or shop in store.", { muted: true, small: true })}`
@@ -144,7 +145,7 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
     `Voucher code: ${v.code}`,
     `Amount: ${zar(v.amountCents)} · valid until ${fmtDate(v.expiresAt)}`,
     "",
-    "Enter it at checkout under Gift voucher. Adults 18+.",
+    "Use it online: enter the code at checkout under Gift voucher. In store: show this email at the counter. Adults 18+.",
     `${base}/shop`,
   );
   return { subject, html, text };
@@ -166,13 +167,13 @@ export async function sendVoucher(v: GiftVoucher) {
     const m = voucherEmail(v, "recipient", who);
     await logEmail(v.recipientEmail, m.subject, await deliverEmail({ to: v.recipientEmail, ...m, kind: "TRANSACTIONAL" }), null);
   }
-  if (buyer?.phone) await notifyCustomer({ id: buyer.id, phone: buyer.phone }, sms(`Your ${zarWhole(v.amountCents)} gift voucher ${v.code} is ready, valid until ${fmtDate(v.expiresAt)}. Enter it at checkout online.`));
+  if (buyer?.phone) await notifyCustomer({ id: buyer.id, phone: buyer.phone }, sms(`Your ${zarWhole(v.amountCents)} gift voucher ${v.code} is ready, valid until ${fmtDate(v.expiresAt)}. Enter it at checkout or show it in store.`));
   await db.giftVoucher.update({ where: { id: v.id }, data: { sentAt: new Date() } });
 }
 
 // ── Redeeming ─────────────────────────────────────────────────────────────────
 
-/** The voucher a member typed at checkout, or why it can't pay right now. */
+/** The voucher a member typed at checkout (or the till scanned), or why it can't pay right now. */
 export async function voucherForCheckout(raw: string, now = new Date()): Promise<{ ok: true; voucher: GiftVoucher } | { ok: false; error: string }> {
   const code = normaliseVoucherCode(raw);
   if (!code) return { ok: false, error: "That doesn't look like a gift voucher code (HH-XXXX-XXXX-XXXX)." };
@@ -181,35 +182,69 @@ export async function voucherForCheckout(raw: string, now = new Date()): Promise
   return problem ? { ok: false, error: problem } : { ok: true, voucher: v! };
 }
 
-/** Takes `cents` off the voucher for an order (inside the order's transaction). Refuses if the balance moved meanwhile. */
-export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; orderId: string; cents: number; actor: Actor }) {
+/**
+ * Takes `cents` off the voucher for an order placed online (`orderId`), a till sale (`saleId`) or a counter voucher on a
+ * pay-in-store order handed over at the till (both) — inside that transaction. Refuses if the balance moved meanwhile.
+ */
+export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: number; actor: Actor; orderId?: string | null; saleId?: string | null; storeId?: string | null }) {
   if (a.cents <= 0) return;
-  const { count } = await t.giftVoucher.updateMany({ where: { id: a.voucher.id, status: "ACTIVE", balanceCents: { gte: a.cents } }, data: { balanceCents: { decrement: a.cents }, redeemedOrderIds: { push: a.orderId } } });
-  if (!count) throw new VoucherError("That voucher was just used somewhere else — check its balance and try again");
+  if (!a.orderId && !a.saleId) throw new VoucherError("A redemption belongs to an order or a sale");
+  const { count } = await t.giftVoucher.updateMany({
+    where: { id: a.voucher.id, status: "ACTIVE", balanceCents: { gte: a.cents } },
+    data: { balanceCents: { decrement: a.cents }, ...(a.orderId && { redeemedOrderIds: { push: a.orderId } }) },
+  });
+  if (!count) throw new VoucherError(`Gift voucher ${a.voucher.code} was just used somewhere else — check its balance and try again`);
   await t.giftVoucher.updateMany({ where: { id: a.voucher.id, balanceCents: { lte: 0 } }, data: { status: "REDEEMED" } });
-  await t.voucherRedemption.create({ data: { voucherId: a.voucher.id, orderId: a.orderId, cents: a.cents } });
-  await audit(t, a.actor, "voucher.redeem", { entity: "GiftVoucher", entityId: a.voucher.id, data: { code: a.voucher.code, orderId: a.orderId, amount: a.cents, balanceAfter: a.voucher.balanceCents - a.cents } });
+  await t.voucherRedemption.create({ data: { voucherId: a.voucher.id, orderId: a.orderId ?? null, saleId: a.saleId ?? null, cents: a.cents } });
+  await audit(t, a.actor, "voucher.redeem", {
+    storeId: a.storeId ?? undefined, entity: "GiftVoucher", entityId: a.voucher.id,
+    data: { code: a.voucher.code, ...(a.orderId && { orderId: a.orderId }), ...(a.saleId && { saleId: a.saleId }), amount: a.cents, balanceAfter: a.voucher.balanceCents - a.cents },
+  });
 }
+
+/**
+ * Puts `cents` of a refund back onto a voucher (inside the refund's transaction): the balance goes up, a voucher that
+ * was used up is active again unless it has expired, and a negative redemption row is written against the credit note.
+ * A voucher is never cashed out: the allocation rule (lib/vouchers.allocateRefund) decides what comes back here.
+ */
+export async function restoreVoucherTx(t: Tx, a: { code: string; cents: number; actor: Actor; saleId: string; orderId?: string | null; storeId?: string | null }) {
+  if (a.cents <= 0) return;
+  const v = await t.giftVoucher.findUnique({ where: { code: a.code } });
+  if (!v) throw new VoucherError(`Gift voucher ${a.code} is no longer on record — refund that part another way`);
+  const updated = await t.giftVoucher.update({ where: { id: v.id }, data: { balanceCents: { increment: a.cents } } });
+  if (updated.status === "REDEEMED" && updated.expiresAt > new Date()) await t.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE" } });
+  await t.voucherRedemption.create({ data: { voucherId: v.id, orderId: a.orderId ?? null, saleId: a.saleId, cents: -a.cents } });
+  await audit(t, a.actor, "voucher.refund", {
+    storeId: a.storeId ?? undefined, entity: "GiftVoucher", entityId: v.id,
+    data: { code: v.code, saleId: a.saleId, ...(a.orderId && { orderId: a.orderId }), amount: a.cents, balanceAfter: updated.balanceCents },
+  });
+  return updated;
+}
+
+// Order-level sums count the positive rows only — what the order took from vouchers. A refund's negative rows sit
+// against the credit note (and carry the order id for tracing) but never change what the order paid, so what's due
+// in money on the order stays right after a return.
+const TAKEN = { reversed: false, cents: { gt: 0 } } as const;
 
 /** Money an order took from vouchers — what online payment, the till and refunds leave out. */
 export async function voucherCentsOf(orderId: string, t: Tx | typeof db = db) {
-  return (await t.voucherRedemption.aggregate({ where: { orderId, reversed: false }, _sum: { cents: true } }))._sum.cents ?? 0;
+  return (await t.voucherRedemption.aggregate({ where: { orderId, ...TAKEN }, _sum: { cents: true } }))._sum.cents ?? 0;
 }
 
 /** What's left to pay in money: the total less points and vouchers. */
 export const orderDue = async (o: { id: string; totalCents: number; pointsRedeemed: number }) => o.totalCents - o.pointsRedeemed * 100 - (await voucherCentsOf(o.id));
 
-/** The voucher part of an order as a tender line for the sale posted at handover or dispatch. */
+/** The voucher part of an order as a "Gift voucher" tender line for the sale posted at handover or dispatch. */
 export async function voucherTenderOf(orderId: string) {
-  const reds = await db.voucherRedemption.findMany({ where: { orderId, reversed: false }, select: { cents: true, voucherId: true } });
+  const reds = await db.voucherRedemption.findMany({ where: { orderId, ...TAKEN }, select: { cents: true, voucherId: true } });
   if (!reds.length) return null;
-  const codes = await db.giftVoucher.findMany({ where: { id: { in: reds.map((r) => r.voucherId) } }, select: { code: true } });
-  return { method: "ONLINE" as const, amountCents: reds.reduce((s, r) => s + r.cents, 0), provider: "VOUCHER", reference: codes.map((c) => c.code).join(",") };
+  const codes = await db.giftVoucher.findMany({ where: { id: { in: [...new Set(reds.map((r) => r.voucherId))] } }, select: { code: true } });
+  return { method: "VOUCHER" as const, amountCents: reds.reduce((s, r) => s + r.cents, 0), reference: codes.map((c) => c.code).join(",") };
 }
 
 /** The vouchers applied to an order, for the order page. */
 export const redemptionsOf = cache(async (orderId: string) => {
-  const reds = await db.voucherRedemption.findMany({ where: { orderId, reversed: false }, select: { cents: true, voucherId: true } });
+  const reds = await db.voucherRedemption.findMany({ where: { orderId, ...TAKEN }, select: { cents: true, voucherId: true } });
   if (!reds.length) return [];
   const byId = new Map((await db.giftVoucher.findMany({ where: { id: { in: reds.map((r) => r.voucherId) } }, select: { id: true, code: true } })).map((v) => [v.id, v.code]));
   return reds.map((r) => ({ code: byId.get(r.voucherId) ?? "", cents: r.cents }));
@@ -217,7 +252,7 @@ export const redemptionsOf = cache(async (orderId: string) => {
 
 /** A cancelled order: money goes back onto the vouchers it used; a voucher it was buying is cancelled. */
 export async function onOrderCancelledTx(t: Tx, orderId: string, actor: Actor) {
-  const reds = await t.voucherRedemption.findMany({ where: { orderId, reversed: false } });
+  const reds = await t.voucherRedemption.findMany({ where: { orderId, ...TAKEN } });
   for (const r of reds) {
     await t.voucherRedemption.update({ where: { id: r.id }, data: { reversed: true } });
     const v = await t.giftVoucher.update({ where: { id: r.voucherId }, data: { balanceCents: { increment: r.cents } } });

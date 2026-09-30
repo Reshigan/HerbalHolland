@@ -1,14 +1,16 @@
 "use client";
 // Sales at this store: search by receipt number, view/print a receipt, email the invoice,
-// refund selected lines (restock toggle, reason, tender) via sales.refundSale.
+// refund selected lines (restock toggle, reason, tender) via sales.refundSale — what a gift
+// voucher paid goes back onto the voucher first; only the rest is paid out.
 import { useCallback, useEffect, useState } from "react";
 import { ChevronRight, CloudOff, History, Mail, Printer, RotateCcw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDateTime, fmtTime, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
+import { allocateRefundAcross } from "@/lib/vouchers";
 import { api, errorText } from "./lib/api";
-import { TENDER_LABEL, uuid } from "./lib/rules";
+import { TENDER_LABEL, tenderLine, uuid } from "./lib/rules";
 import { usePos } from "./context";
 import { TrainingSales } from "./training";
 import { Alert, CheckRow, Chip, Confirm, EmptyPanel, Field, PosButton, SelectInput, Sheet, Spinner, Stepper, TextInput } from "./ui";
@@ -252,7 +254,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
             {r.payments.map((p, i) => (
               <div key={i} className="flex justify-between text-ink-300">
                 <dt>
-                  {TENDER_LABEL[p.method] ?? p.method}
+                  {p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method)}
                   {p.cardLast4 ? ` •••• ${p.cardLast4}` : ""}
                   {p.reference ? ` · ${p.reference}` : ""}
                   {p.changeCents ? ` · change ${zar(p.changeCents)}` : ""}
@@ -308,7 +310,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
 
 function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () => void; onDone: (credit: ReceiptDTO) => void }) {
   const pos = usePos();
-  const original = sale.payments.find((p) => p.method !== "ONLINE")?.method ?? "CARD";
+  const original = sale.payments.find((p) => p.method !== "ONLINE" && p.method !== "VOUCHER")?.method ?? "CARD";
   const [qty, setQty] = useState<Record<string, number>>({});
   const [restock, setRestock] = useState<Record<string, boolean>>(() => Object.fromEntries(sale.lines.map((l) => [l.id, true])));
   const [reason, setReason] = useState(REASONS[0]);
@@ -321,6 +323,11 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
   const amount = sale.lines.reduce((s, l) => s + Math.round((l.totalCents * (qty[l.id] ?? 0)) / l.qty), 0);
   const units = Object.values(qty).reduce((a, b) => a + b, 0);
   const why = reason === "Other" ? other.trim() : reason;
+  // The server's split (sales.refundSale): points come back in proportion; what a gift voucher paid returns to the
+  // voucher first, up to what it paid less earlier refunds; only the remainder goes to the tender chosen here.
+  const loyaltyBack = sale.totalCents > 0 ? Math.floor((amount * sale.pointsRedeemed * 100) / sale.totalCents / 100) * 100 : 0;
+  const split = allocateRefundAcross(amount - loyaltyBack, sale.vouchers ?? []);
+  const voucherOnly = split.parts.length > 0 && split.toTender === 0;
 
   async function submit() {
     setBusy(true);
@@ -400,8 +407,8 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
               ))}
             </SelectInput>
           </Field>
-          <Field label="Refund to" htmlFor="refund-method" hint={`Original payment: ${TENDER_LABEL[original] ?? original}`}>
-            <SelectInput id="refund-method" value={method} onChange={(e) => setMethod(e.target.value as "CARD")}>
+          <Field label="Refund to" htmlFor="refund-method" hint={voucherOnly ? "Nothing to pay out: it all goes back onto the gift voucher" : `Original payment: ${sale.payments.map((p) => (p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method))).join(", ")}`}>
+            <SelectInput id="refund-method" value={method} disabled={voucherOnly} onChange={(e) => setMethod(e.target.value as "CARD")}>
               <option value="CARD">Card</option>
               <option value="CASH">Cash from the drawer</option>
               <option value="PAYSHAP">PayShap</option>
@@ -414,6 +421,15 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
             </Field>
           )}
         </div>
+        {split.parts.length > 0 && (
+          <Alert tone="info" className="mt-4">
+            <span data-testid="refund-voucher">
+              {split.parts.map((v) => `${zar(v.cents)} goes back onto gift voucher ${v.code}`).join("; ")}
+              {split.toTender > 0 ? `; ${zar(split.toTender)} refunded by ${TENDER_LABEL[method]}.` : " — nothing to pay out in money."}
+            </span>{" "}
+            A voucher is never cashed out.
+          </Alert>
+        )}
         {sale.pointsRedeemed > 0 && <p className="mt-3 text-xs text-ink-400">Points paid on the original sale are returned in proportion; points earned are reversed.</p>}
       </Sheet>
       <Confirm
@@ -421,7 +437,27 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
         title={`Refund ${zar(amount)}?`}
         body={
           <>
-            {units} item{units === 1 ? "" : "s"} from {sale.number} refunded by <b>{TENDER_LABEL[method]}</b>. A credit note is issued{sale.invoiceEmail ? ` and emailed to ${sale.invoiceEmail}` : ""}. This can&apos;t be undone.
+            {units} item{units === 1 ? "" : "s"} from {sale.number} refunded
+            {split.parts.length > 0 ? (
+              <>
+                {" "}
+                — {split.parts.map((v) => `${zar(v.cents)} back onto gift voucher ${v.code}`).join(", ")}
+                {split.toTender > 0 ? (
+                  <>
+                    {" "}
+                    and {zar(split.toTender)} by <b>{TENDER_LABEL[method]}</b>
+                  </>
+                ) : (
+                  ""
+                )}
+              </>
+            ) : (
+              <>
+                {" "}
+                by <b>{TENDER_LABEL[method]}</b>
+              </>
+            )}
+            . A credit note is issued{sale.invoiceEmail ? ` and emailed to ${sale.invoiceEmail}` : ""}. This can&apos;t be undone.
           </>
         }
         confirmLabel="Confirm refund"

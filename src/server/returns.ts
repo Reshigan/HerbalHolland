@@ -11,9 +11,11 @@ import { APP_URL, emailLayout, esc, para } from "./email-templates";
 import { notifyCustomer } from "./messaging";
 import { OrderError, refundOrderAmount } from "./orders";
 import { paidOnlineWith } from "./payments";
-import { refundSale, SaleError } from "./sales";
+import { refundSale, SaleError, voucherPartsOf } from "./sales";
 import { storePhotos, UploadError } from "./uploads";
 import { gsmSafe } from "@/lib/sms";
+import { zar } from "@/lib/money";
+import { allocateRefundAcross } from "@/lib/vouchers";
 import {
   RETURN_NOTE_MAX,
   RETURN_PHOTOS,
@@ -200,6 +202,18 @@ export function refundPlan(r: ReturnRequest, order: OrderRow, prior: { cents: nu
   return { breakdown, gateway, manual: !gateway, restock: Object.fromEntries(items.map((i) => [i.variantId, restockByDefault(r.reason)])) as Record<string, boolean> };
 }
 
+/**
+ * How a refund of `cents` on the order splits between the gift voucher(s) that paid for it and money: the voucher
+ * part goes back onto the voucher with the credit note (lib/vouchers.allocateRefund), only the rest moves in money.
+ * This return's own credit note (a retry) doesn't count as an earlier refund.
+ */
+export async function voucherSplitFor(order: { sale: { id: string } | null }, returnId: string, cents: number) {
+  if (!order.sale) return { parts: [] as { code: string; cents: number }[], toVoucher: 0, toTender: cents };
+  const sale = await db.sale.findUniqueOrThrow({ where: { id: order.sale.id }, select: { payments: true, refunds: { where: { NOT: { id: `return-${returnId}` } }, select: { payments: true } } } });
+  const split = allocateRefundAcross(cents, voucherPartsOf(sale));
+  return { parts: split.parts.map((v) => ({ code: v.code, cents: v.cents })), toVoucher: cents - split.toTender, toTender: split.toTender };
+}
+
 /** The money and units earlier refunded returns on the order took. */
 export async function priorRefunds(orderId: string, exceptId: string) {
   const rows = await db.returnRequest.findMany({ where: { orderId, status: "REFUNDED", NOT: { id: exceptId } }, select: { refundCents: true, items: true } });
@@ -219,15 +233,18 @@ export async function refundReturn(id: string, a: { restock: Record<string, bool
   move(r, "REFUNDED");
   const plan = refundPlan(r, order, await priorRefunds(order.id, r.id));
   const cents = plan.breakdown.totalCents;
+  // The gift voucher part comes back onto the voucher(s) with the credit note; only the rest moves in money.
+  const split = await voucherSplitFor(order, r.id, cents);
+  const codes = split.parts.map((v) => v.code).join(", ");
   const money = r.refundRef
     ? { note: `already refunded (${r.refundRef})` }
-    : cents > 0
-      ? await refundOrderAmount(order.id, cents, `Return ${r.number}: ${RETURN_REASON[r.reason].label}`, { returnId: r.id, actor, manualRef: a.manualRef }).catch((e) => {
+    : split.toTender > 0
+      ? await refundOrderAmount(order.id, split.toTender, `Return ${r.number}: ${RETURN_REASON[r.reason].label}`, { returnId: r.id, actor, manualRef: a.manualRef }).catch((e) => {
           if (e instanceof OrderError) throw new ReturnError(e.message, plan.manual ? "manualRef" : undefined);
           throw e;
         })
-      : { note: "nothing paid in money: points come back with the credit note" };
-  if (!r.refundRef && cents === 0) await db.returnRequest.update({ where: { id }, data: { refundRef: "POINTS", refundCents: 0 } });
+      : { note: split.toVoucher > 0 ? `nothing to pay out in money: ${zar(split.toVoucher)} goes back onto gift voucher ${codes} with the credit note` : "nothing paid in money: points come back with the credit note" };
+  if (!r.refundRef && split.toTender === 0) await db.returnRequest.update({ where: { id }, data: { refundRef: split.toVoucher > 0 ? "VOUCHER" : "POINTS", refundCents: 0 } });
 
   // The credit note: the online sale posted at handover or dispatch is refunded line by line.
   let creditNote: string | null = null;
@@ -263,11 +280,14 @@ export async function refundReturn(id: string, a: { restock: Record<string, bool
   }
   const row = await tx(async (t) => {
     const updated = await t.returnRequest.update({ where: { id }, data: { status: "REFUNDED", refundCents: cents, decidedById: r.decidedById ?? actor.id, decidedAt: r.decidedAt ?? new Date() } });
-    await audit(t, actor, "return.refund", { storeId: r.storeId, entity: "ReturnRequest", entityId: id, data: { number: r.number, orderCode: order.code, amount: cents, delivery: plan.breakdown.deliveryCents, money: money.note, creditNote } });
+    await audit(t, actor, "return.refund", {
+      storeId: r.storeId, entity: "ReturnRequest", entityId: id,
+      data: { number: r.number, orderCode: order.code, amount: cents, delivery: plan.breakdown.deliveryCents, money: money.note, creditNote, ...(split.toVoucher > 0 && { toVouchers: split.parts, toTender: split.toTender }) },
+    });
     return updated;
   });
-  await tell(row, order.code, order.customer);
-  return { r: row, cents, creditNote, money };
+  await tell(row, order.code, order.customer, { voucherCents: split.toVoucher });
+  return { r: row, cents, creditNote, money, voucherCents: split.toVoucher };
 }
 
 // ── Queues and detail ───────────────────────────────────────────────────────
@@ -329,14 +349,15 @@ export async function returnDetail(id: string, scope: ReturnScope) {
     const l = order.lines.find((x) => x.variantId === it.variantId);
     return { ...it, name: l ? `${l.variant.product.name} · ${l.variant.name}` : "Item", sku: l?.variant.sku ?? "", unitCents: l ? Math.round(l.totalCents / l.qty) : 0, slug: l?.variant.product.slug ?? null, strain: l?.variant.product.strain ?? null, regClass: l?.variant.product.regClass ?? null };
   });
-  const plan = refundPlan(r, order, await priorRefunds(order.id, r.id));
+  const base = refundPlan(r, order, await priorRefunds(order.id, r.id));
+  const plan = { ...base, voucher: await voucherSplitFor(order, r.id, base.breakdown.totalCents) };
   return { r, order, items, history, decidedBy, plan };
 }
 
 // ── Telling the member ──────────────────────────────────────────────────────
 
-async function tell(r: ReturnRequest, orderCode: string, c: { id: string; firstName: string; phone: string; email: string | null }) {
-  const m = returnStatusMessage({ ...r, orderCode });
+async function tell(r: ReturnRequest, orderCode: string, c: { id: string; firstName: string; phone: string; email: string | null }, extra: { voucherCents?: number } = {}) {
+  const m = returnStatusMessage({ ...r, orderCode, ...extra });
   const link = `${APP_URL()}/club/orders/${orderCode}/return`;
   if (c.email) {
     const html = emailLayout({

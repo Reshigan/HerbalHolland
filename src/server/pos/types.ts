@@ -7,7 +7,8 @@ import type { PriceListRule } from "@/lib/pricing-rules";
 export type { TierKey } from "@/lib/loyalty-rules";
 import type { TierKey } from "@/lib/loyalty-rules";
 export type AgeCheckKind = "NONE" | "ID_SIGHTED" | "ID_NUMBER" | "VERIFIED";
-export type TenderMethod = "CARD" | "CASH" | "PAYSHAP" | "EFT";
+/** VOUCHER is a gift voucher (its code in `reference`): looked up and redeemed on the server, so never on a queued sale. */
+export type TenderMethod = "CARD" | "CASH" | "PAYSHAP" | "EFT" | "VOUCHER";
 export type TapProviderKind = "SIMULATED" | "HALO_APPLINK" | "YOCO" | "EXTERNAL";
 
 export type StaffTile = { id: string; name: string; role: string; canDispense: boolean };
@@ -206,6 +207,9 @@ export type CustomerDetail = {
   offline?: boolean; // taken from the member's card while the till was offline: checked when it reconnects
 };
 
+/** A gift voucher looked up at the till (POST /api/pos/vouchers), ready to tender. */
+export type VoucherLookupDTO = { code: string; balanceCents: number; amountCents: number; expiresAt: string };
+
 /** Door check-in from an event ticket (HHRSVP:{code}): the member to attach and their event. */
 export type CheckInDTO = {
   customer: CustomerDetail;
@@ -249,10 +253,14 @@ export type ReceiptPayment = {
   tenderedCents: number | null;
   changeCents: number | null;
   provider: string | null;
-  reference: string | null;
+  reference: string | null; // a gift voucher's code on a VOUCHER tender
   cardBrand: string | null;
   cardLast4: string | null;
+  balanceCents?: number | null; // gift voucher: what's left on it (as of printing)
 };
+
+/** A gift voucher on a sale: what it paid and what refunds of the sale have already put back (the refund sheet's split). */
+export type ReceiptVoucher = { code: string; paidCents: number; refundedCents: number };
 
 export type ReceiptDTO = {
   id: string;
@@ -278,6 +286,7 @@ export type ReceiptDTO = {
   pointsEarned: number;
   pointsRedeemed: number;
   payments: ReceiptPayment[];
+  vouchers?: ReceiptVoucher[]; // gift vouchers that paid on this sale (sales only)
   promoCode: string | null;
   invoiceEmail: string | null;
   buyer: { name: string; address: string; vatNumber?: string } | null;

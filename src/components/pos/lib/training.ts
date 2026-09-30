@@ -21,11 +21,12 @@ export class TrainingError extends Error {
 /**
  * Requests the sandbox may make. Reads are fine (they only look), and so are the calls that don't change anything of
  * record: quotes and compliance checks (pure calculations), the PIN session (people still lock and switch users),
- * the customer display feed (in-memory) and the audit call itself (entering/leaving training is audited).
+ * the customer display feed (in-memory), a gift voucher lookup (it only reads the balance; a practice sale never
+ * redeems it) and the audit call itself (entering/leaving training is audited).
  * Every other write — sales, refunds, sign-ups, age checks, check-ins, orders, shifts, invoices, card sessions,
  * pairing — is refused, so a practice sale can never post, print for real, move stock or award points.
  */
-const WRITES_ALLOWED = ["/api/pos/quote", "/api/pos/compliance", "/api/pos/session", "/api/pos/display", "/api/pos/audit"];
+const WRITES_ALLOWED = ["/api/pos/quote", "/api/pos/compliance", "/api/pos/session", "/api/pos/display", "/api/pos/audit", "/api/pos/vouchers"];
 
 export function trainingAllows(method: string, path: string): boolean {
   const m = method.toUpperCase();

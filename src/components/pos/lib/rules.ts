@@ -1,5 +1,6 @@
 // Small pure rules for the till: receipt numbering, cash handling, compliance block
 // types, order SLAs and points redemption. Isomorphic and unit-tested (tests/pos.test.ts).
+import { voucherCodeFrom } from "@/lib/vouchers";
 import type { BlockKind, CustomerDetail } from "@/server/pos/types";
 import type { QueuedTender } from "./storage";
 
@@ -64,7 +65,14 @@ export const TENDER_LABEL: Record<string, string> = {
   EFT: "EFT",
   LOYALTY: "Points",
   ONLINE: "Paid online",
+  VOUCHER: "Gift voucher",
 };
+
+/** A tender as a receipt line: "Gift voucher HH-K7PM-3QXR-9ZAB", "Card •••• 1234 (ref)", "Cash". */
+export function tenderLine(t: { method: string; reference?: string | null; cardLast4?: string | null }, dots = "••••") {
+  if (t.method === "VOUCHER") return `${TENDER_LABEL.VOUCHER} ${t.reference ?? ""}`.trim();
+  return `${TENDER_LABEL[t.method] ?? t.method}${t.cardLast4 ? ` ${dots} ${t.cardLast4}` : ""}${t.reference ? ` (${t.reference})` : ""}`;
+}
 
 /**
  * A card payment taken on a stand-alone card machine: the store's Yoco machine, or any bank terminal. The cashier charges
@@ -87,13 +95,14 @@ export function maskMemberNo(memberNo: string) {
 
 /**
  * A batch code from a scan or a typed value: the code printed on the pack ("DUPO0-35G-2605A") or the lab-certificate
- * QR that links to /batch/{code}. Never a barcode (digits only), a member number, an order QR or a ticket.
+ * QR that links to /batch/{code}. Never a barcode (digits only), a member number, an order QR, a ticket or a gift
+ * voucher code (HH-XXXX-XXXX-XXXX, which is also dashed).
  */
 export function parseBatchScan(text: string): string | null {
   const t = text.trim();
   const url = t.match(/\/batch\/([A-Z0-9][A-Z0-9-]{3,40})\/?(?:[?#].*)?$/i);
   if (url) return url[1].toUpperCase();
-  if (parseOrderQr(t) || rsvpTicketFrom(t) || memberNoFrom(t) || /^\d+$/.test(t)) return null;
+  if (parseOrderQr(t) || rsvpTicketFrom(t) || memberNoFrom(t) || voucherCodeFrom(t) || /^\d+$/.test(t)) return null;
   return /^[A-Z0-9]{2,12}(?:-[A-Z0-9]{1,12}){1,4}$/i.test(t) && /\d/.test(t) ? t.toUpperCase() : null;
 }
 

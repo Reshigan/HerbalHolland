@@ -27,7 +27,7 @@ export const metadata = { title: "Online order" };
 
 type Event = { status: string; at: string; note?: string };
 const FULFIL = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier delivery" } as const;
-const PAY = { ONLINE: "Paid online", CARD: "Pay in store", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points" } as const;
+const PAY = { ONLINE: "Paid online", CARD: "Pay in store", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", VOUCHER: "Gift voucher" } as const;
 
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ m?: string }> }) {
   const [{ code }, sp] = await Promise.all([params, searchParams]);

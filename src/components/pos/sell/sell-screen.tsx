@@ -2,11 +2,12 @@
 // Sell: catalogue + basket, then compliance → payment → receipt. Prices come from the
 // server's quote when online (authoritative) and from the till's cached price book
 // offline; offline sales are cash only and queue in the outbox. Member-only extras —
-// My Deals, welcome gifts, limited drops and event check-in — need the connection.
+// My Deals, welcome gifts, limited drops, event check-in and gift vouchers — need the connection.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
 import { checkCompliance, incentiveExcluded } from "@/lib/compliance";
 import { zar, zarWhole } from "@/lib/money";
+import { voucherCodeFrom } from "@/lib/vouchers";
 import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
 import { priceBasket, redeemableCents, type PricingData } from "../lib/pricing";
 import { classifyBlock, dropIndex, memberNoFrom, offlineMember, parseBatchScan, parseOrderQr, rsvpTicketFrom, uuid } from "../lib/rules";
@@ -19,7 +20,7 @@ import { Catalog, type Filter } from "./catalog";
 import { CartPanel, CustomerCard, WelcomeGiftButton, type VariantIndex, type WelcomeGift } from "./cart-panel";
 import { CustomerSheet } from "./customer-sheet";
 import { ComplianceSheet } from "./compliance-sheet";
-import { PaymentSheet, FULL_INVOICE_OVER_CENTS, type PaymentResult } from "./payment-sheet";
+import { PaymentSheet, FULL_INVOICE_OVER_CENTS, type PaymentResult, type VoucherScan } from "./payment-sheet";
 import { ReceiptSheet } from "./receipt-sheet";
 import { CameraScanner } from "./scanner";
 import { BatchSheet } from "./batch-sheet";
@@ -49,7 +50,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const [confirmClear, setConfirmClear] = useState(false);
   const [batch, setBatch] = useState<BatchLookup | null>(null);
   const [payProgress, setPayProgress] = useState<{ dueCents: number; paidCents: number; tapping: boolean; method: string | null } | null>(null);
+  const [voucherScan, setVoucherScan] = useState<VoucherScan | null>(null);
   const resumeCheckout = useRef(false);
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
+  // One sale id per payment: a retry after a lost answer posts nothing twice (the server answers with the receipt).
+  const saleIdRef = useRef<string | null>(null);
   const training = !!pos.training;
 
   const cartRef = useRef(cart);
@@ -162,6 +168,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         void attachMemberRef.current(member); // member card QR (or typed member no.) → attach straight away
         return;
       }
+      const voucher = voucherCodeFrom(code);
+      if (voucher) {
+        voucherScannedRef.current(voucher); // a gift voucher's code (email, card or balance-check QR) → the voucher tender
+        return;
+      }
       const hit = [...index.values()].find((e) => e.variant.barcode === code || e.variant.sku.toLowerCase() === code.toLowerCase());
       if (hit) {
         add(hit.variant.id);
@@ -177,6 +188,27 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     },
     [index, add, pos],
   );
+
+  /** Gift voucher code → the Gift voucher tender on the payment sheet, looked up (opening payment first when needed). */
+  const voucherScanned = (code: string) => {
+    if (!onlineRef.current) {
+      pos.toast(`Gift voucher ${code}: vouchers need a connection — take another tender, or wait until the till is back online`, "warn");
+      return;
+    }
+    if (stageRef.current === "payment") {
+      setVoucherScan({ code, n: Date.now() });
+      return;
+    }
+    if (!cartRef.current.lines.length) {
+      pos.toast(`Gift voucher ${code}: add the items first, then scan it at payment`, "warn");
+      return;
+    }
+    setVoucherScan({ code, n: Date.now() });
+    pos.toast(`Gift voucher ${code} — taking payment`);
+    void checkoutRef.current();
+  };
+  const voucherScannedRef = useRef(voucherScanned);
+  voucherScannedRef.current = voucherScanned;
 
   /** Batch code → status, dates, potency and stock of that lot here (read-only; needs the connection). */
   const lookupBatch = async (code: string) => {
@@ -198,7 +230,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const q = query.trim();
     if (!q) return;
     const exact = [...index.values()].find((e) => e.variant.barcode === q || e.variant.sku.toLowerCase() === q.toLowerCase());
-    if (exact || memberNoFrom(q) || parseOrderQr(q) || rsvpTicketFrom(q) || parseBatchScan(q)) {
+    if (exact || memberNoFrom(q) || parseOrderQr(q) || rsvpTicketFrom(q) || voucherCodeFrom(q) || parseBatchScan(q)) {
       scan(q);
       setQuery("");
       return;
@@ -290,6 +322,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           return;
         }
         setPayRef(pos.nextNumber().number);
+        saleIdRef.current = uuid();
         setCartOpen(false);
         setStage("payment");
         pos.setBusy(true);
@@ -393,6 +426,8 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     setPayQuote(null);
     setComp(null);
     setPayProgress(null);
+    setVoucherScan(null);
+    saleIdRef.current = null;
     setFilter({ kind: "all" });
     pos.setBusy(false);
     setDone({ receipt, invoiceTo });
@@ -409,8 +444,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const c = cartRef.current;
     const { seq, number } = pos.nextNumber();
     const unit = new Map(q.lines.map((l) => [l.variantId, l.unitPriceCents]));
+    // A gift voucher is redeemed on the server as the sale posts: never on a sale rung up or queued offline.
+    const hasVoucher = r.tenders.some((t) => t.method === "VOUCHER");
+    if (hasVoucher && !onlineRef.current && !training)
+      throw new TillError("Gift voucher needs a connection", "The till is offline, so the gift voucher can't be redeemed and this sale won't be queued with it. Remove the voucher payment and take another tender, or wait for the connection and try again.");
     const payload: SalePayload = {
-      id: uuid(),
+      id: saleIdRef.current ?? uuid(),
       number,
       seq,
       createdAt: new Date().toISOString(),
@@ -450,6 +489,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             `${errorText(e)}. Remove the payment below, then go back to the basket and take the drop items out or reduce them.`,
           );
         if (!(e instanceof OfflineError)) throw e; // shown on the payment sheet
+        if (hasVoucher)
+          throw new TillError(
+            "Gift voucher needs a connection",
+            `${errorText(e)}. This sale wasn't queued: a gift voucher is redeemed on the server. Check Sales in case it went through; otherwise try again when the connection is back, or remove the voucher payment and take another tender.`,
+          );
         payload.offline = true; // the customer has paid: keep the sale and sync it later
       }
     }
@@ -710,9 +754,10 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           storeCode={boot.store.code}
           points={cart.customer ? { balance: cart.customer.points, eligibleCents: redeemableCents(payQuote), minRedeem: boot.settings.loyalty.minRedeem } : null}
           needsBuyer={payQuote.totalCents > FULL_INVOICE_OVER_CENTS}
+          voucherScan={voucherScan}
           onComplete={completeSale}
           onProgress={setPayProgress}
-          onClose={() => (setStage(null), setPayProgress(null), pos.setBusy(false))}
+          onClose={() => (setStage(null), setPayProgress(null), setVoucherScan(null), pos.setBusy(false))}
         />
       )}
 

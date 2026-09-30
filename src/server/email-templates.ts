@@ -180,7 +180,7 @@ export type InvoiceEmailInput = {
   payments: { method: string; amountCents: number; reference?: string | null; cardLast4?: string | null }[];
 };
 
-export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online" };
+export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher" };
 
 export const invoiceTitleFor = (s: { kind: "SALE" | "REFUND"; store: { company: { vatNumber: string | null } } }) =>
   s.kind === "REFUND" ? (s.store.company.vatNumber ? "Credit note" : "Refund") : s.store.company.vatNumber ? "Tax invoice" : "Invoice";

@@ -16,6 +16,7 @@ import {
 } from "./lib/storage";
 import { rememberPin, verifyOffline, canUnlockOffline } from "./lib/pin";
 import { parseOrderQr, receiptNumber, uuid } from "./lib/rules";
+import { voucherCodeFrom } from "@/lib/vouchers";
 import { DEFAULT_PRINTER, kickDrawer, printerPaired, sendBytes, type PrinterSettings } from "./lib/print";
 import { receiptBytes } from "./lib/receipt";
 import { zReportBytes } from "./lib/print-z";
@@ -395,23 +396,24 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       }
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
-      if (dialog) return;
       // Event creation time, not handling time: a busy main thread mustn't break up a fast scan.
       const now = e.timeStamp;
       if (e.key === "Enter") {
-        if (buf.length >= 4 && now - last < 120) {
-          e.preventDefault();
-          const code = buf;
-          if (parseOrderQr(code)) {
-            // Customer's collection QR → straight to that order's handover.
-            setOrderScan(code);
-            setTab("orders");
-          } else {
-            setTab("sell");
-            setTimeout(() => sellApi.current?.scan(code), 0);
-          }
-        }
+        const code = buf;
         buf = "";
+        if (code.length < 4 || now - last >= 120) return;
+        // Sheets own the keyboard — except a gift voucher scanned while the Sell tab's payment sheet is open, which
+        // fills its tender (the handover sheet's voucher field takes a scan directly, as it has the focus).
+        if (dialog && (!voucherCodeFrom(code) || tabRef.current !== "sell")) return;
+        e.preventDefault();
+        if (parseOrderQr(code)) {
+          // Customer's collection QR → straight to that order's handover.
+          setOrderScan(code);
+          setTab("orders");
+        } else {
+          setTab("sell");
+          setTimeout(() => sellApi.current?.scan(code), 0);
+        }
       } else if (e.key.length === 1) {
         buf = now - last > 80 ? e.key : buf + e.key;
         last = now;
@@ -503,6 +505,21 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       });
     },
     [kick, recordAudit, toast, switchUser],
+  );
+
+  /** A queued sale the server refused stays in the outbox until a manager discards it (the sale is rung up again). */
+  const discardQueued = useCallback(
+    (id: string) => {
+      const item = loadOutbox().find((i) => i.payload.id === id);
+      if (!item) return;
+      switchUser("manager", () => {
+        updateQueued(id, () => null);
+        setOutbox(loadOutbox());
+        recordAudit("outbox.discard", `${item.payload.number} · ${zar(item.totalCents)} · ${item.error ?? "discarded"}`.slice(0, 200));
+        toast(`${item.payload.number} discarded — logged`);
+      });
+    },
+    [recordAudit, switchUser, toast],
   );
 
   const startTraining = useCallback(() => {
@@ -675,6 +692,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       printer,
       setPrinter,
       openDrawer,
+      discardQueued,
       training,
       startTraining,
       exitTraining,
@@ -685,7 +703,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setDisplaySettings,
       idleMessages,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;
@@ -870,7 +888,7 @@ function Splash({ message, retry }: { message?: string; retry?: () => void }) {
 function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pos = usePosSafe();
   if (!pos) return null;
-  const { outbox, online, syncing, syncNow, boot } = pos;
+  const { outbox, online, syncing, syncNow, boot, discardQueued } = pos;
   return (
     <Sheet
       open={open}
@@ -910,7 +928,14 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
               {o.deviceId && o.deviceId !== boot.device.id ? (
                 <Alert className="mt-2">Rung up before this device was re-paired. Ask HQ support to post it for the original store — it won&apos;t sync here.</Alert>
               ) : (
-                o.error && <Alert className="mt-2">{o.error}</Alert>
+                o.error && (
+                  <Alert className="mt-2">
+                    <div data-testid="outbox-error">{o.error}</div>
+                    <PosButton variant="danger" size="sm" className="mt-2" onClick={() => discardQueued(o.payload.id)}>
+                      Discard this queued sale (manager PIN)
+                    </PosButton>
+                  </Alert>
+                )
               )}
             </li>
           ))}

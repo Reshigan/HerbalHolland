@@ -4,7 +4,7 @@ import { zar } from "@/lib/money";
 import { fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { EscPos, type Columns, type DrawerPin } from "./escpos";
-import { maskMemberNo, TENDER_LABEL } from "./rules";
+import { maskMemberNo, tenderLine } from "./rules";
 import type { ReceiptDTO } from "@/server/pos/types";
 
 /** What the receipt says about the store (the bootstrap's store block, or a subset of it). */
@@ -93,8 +93,9 @@ export function receiptBytes(r: ReceiptDTO, o: ReceiptOptions): Uint8Array {
 
   const change = r.payments.reduce((s, x) => s + (x.changeCents ?? 0), 0);
   for (const t of r.payments) {
-    p.row(`${TENDER_LABEL[t.method] ?? t.method}${t.cardLast4 ? ` **** ${t.cardLast4}` : ""}${t.reference ? ` (${t.reference})` : ""}`, zar(t.amountCents));
+    p.row(tenderLine(t, "****"), zar(t.amountCents));
     if (t.tenderedCents != null && t.tenderedCents !== t.amountCents) p.row("  Tendered", zar(t.tenderedCents));
+    if (t.method === "VOUCHER" && t.balanceCents != null) p.row("  Left on the voucher", zar(t.balanceCents));
   }
   if (r.pointsRedeemed > 0) p.row("Points redeemed", fmtPoints(r.pointsRedeemed));
   if (change > 0) p.bold(true).size({ height: 2 }).row("CHANGE", zar(change)).size().bold(false);

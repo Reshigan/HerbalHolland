@@ -22,6 +22,8 @@ export type PosCtx = {
   refreshOrders: () => Promise<void>;
   syncNow: () => Promise<void>;
   queueSale: (p: SalePayload, totalCents: number) => void;
+  /** Drops a queued offline sale the server refused (e.g. one tendered with a gift voucher): manager PIN, audited. */
+  discardQueued: (id: string) => void;
   adjustStock: (moves: { variantId: string; qty: number }[]) => void;
   commitSeq: (seq: number) => void;
   nextNumber: () => { seq: number; number: string };

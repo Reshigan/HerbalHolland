@@ -145,8 +145,8 @@ export type DisplaySettings = { key: string; remote: boolean };
 export const loadDisplay = () => read<DisplaySettings>("display");
 export const saveDisplay = (d: DisplaySettings | null) => write("display", d);
 
-/** Sensitive actions taken while offline (drawer opened, training started/ended) — posted to the audit log on sync. */
-export type QueuedAudit = { id: string; action: "drawer.open" | "training.start" | "training.end"; at: string; staffId: string; staffName: string; note?: string; deviceId: string };
+/** Sensitive actions taken while offline (drawer opened, training started/ended, a refused queued sale discarded) — posted to the audit log on sync. */
+export type QueuedAudit = { id: string; action: "drawer.open" | "training.start" | "training.end" | "outbox.discard"; at: string; staffId: string; staffName: string; note?: string; deviceId: string };
 export const loadAuditQueue = () => read<QueuedAudit[]>("audit-queue") ?? [];
 export const saveAuditQueue = (q: QueuedAudit[]) => write("audit-queue", q.length ? q : null);
 

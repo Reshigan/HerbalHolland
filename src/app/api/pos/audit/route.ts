@@ -1,5 +1,5 @@
 // Audit trail for sensitive till actions that have no record of their own: the cash drawer opened outside a sale
-// (manager PIN), training mode started or ended. The till posts them at once when online and queues them in
+// (manager PIN), training mode started or ended, a queued offline sale discarded (manager PIN) after the server refused it. The till posts them at once when online and queues them in
 // localStorage when offline (storage.QueuedAudit), replaying the queue on sync — each entry carries its own id so a
 // retry never writes twice.
 import { z } from "zod";
@@ -8,11 +8,11 @@ import { audit } from "@/server/audit";
 import { actorOf, json, readBody, withStaff } from "@/server/pos/http";
 import { Uuid } from "@/server/pos/schemas";
 
-const ACTIONS = { "drawer.open": "pos.drawer_open", "training.start": "pos.training_start", "training.end": "pos.training_end" } as const;
+const ACTIONS = { "drawer.open": "pos.drawer_open", "training.start": "pos.training_start", "training.end": "pos.training_end", "outbox.discard": "pos.outbox_discard" } as const;
 
 const Entry = z.object({
   id: Uuid,
-  action: z.enum(["drawer.open", "training.start", "training.end"]),
+  action: z.enum(["drawer.open", "training.start", "training.end", "outbox.discard"]),
   at: z.string().datetime({ offset: true }),
   staffId: z.string().optional(), // who did it (offline entries sync under whoever is signed in)
   staffName: z.string().max(80).optional(),

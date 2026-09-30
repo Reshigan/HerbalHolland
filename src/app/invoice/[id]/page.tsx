@@ -25,7 +25,7 @@ const valid = (id: string, t?: string) => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-const PAY: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online" };
+const PAY: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher" };
 
 // Print: A4 is the default sheet; html[data-paper="receipt"] (set by the toolbar) turns the same document into a till slip.
 const PRINT_CSS = `
@@ -302,7 +302,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                     <li key={p.id} className="flex justify-between gap-4 text-ink-700">
                       <span>
                         {PAY[p.method] ?? p.method}
-                        {p.provider && p.method !== "CASH" && p.method !== "LOYALTY" && <span className="text-ink-500"> · {p.provider}</span>}
+                        {p.provider && p.method !== "CASH" && p.method !== "LOYALTY" && p.method !== "VOUCHER" && <span className="text-ink-500"> · {p.provider}</span>}
                         {p.cardBrand && ` · ${p.cardBrand}`}
                         {p.cardLast4 && <span className="tnum"> •••• {p.cardLast4}</span>}
                         {p.method === "LOYALTY" && ` (${fmtPoints(abs(p.amountCents) / 100)})`}

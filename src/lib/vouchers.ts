@@ -50,3 +50,46 @@ export function voucherProblem(v: VoucherFacts | null | undefined, now = new Dat
 
 /** How much of the amount still due a voucher's balance can cover. */
 export const voucherApply = (balanceCents: number, dueCents: number) => Math.max(0, Math.min(balanceCents, dueCents));
+
+/** A voucher code on its own (dashed, spaced or run together, any case) or its balance-check link (/gift?check=CODE). */
+const CODE_TEXT = /^HH[-\s]?([A-HJ-NP-Z2-9]{4})[-\s]?([A-HJ-NP-Z2-9]{4})[-\s]?([A-HJ-NP-Z2-9]{4})$/;
+
+/**
+ * A scanned or typed value that is a voucher code — and nothing else — as the till sees it: the code from the email or
+ * card, or the QR of its balance-check link. Never a barcode, a member number (HH + digits), an order QR or a batch
+ * code. Returns the canonical HH-XXXX-XXXX-XXXX, or null.
+ */
+export function voucherCodeFrom(text: string): string | null {
+  let t = text.trim();
+  const link = t.match(/[?&]check=([^&#\s]+)/i);
+  if (link) t = decodeURIComponent(link[1]).trim();
+  const m = CODE_TEXT.exec(t.toUpperCase());
+  return m ? `HH-${m[1]}-${m[2]}-${m[3]}` : null;
+}
+
+/**
+ * How a refund is paid back when a voucher paid for (part of) the sale: onto the voucher first, up to what it paid on
+ * that sale less what earlier refunds already put back — a voucher is never cashed out — and only the remainder to the
+ * tender the operator chooses.
+ */
+export function allocateRefund(a: { refundCents: number; voucherPaidCents: number; voucherRefundedCents: number }): { toVoucher: number; toTender: number } {
+  const refund = Math.max(0, Math.floor(a.refundCents));
+  const left = Math.max(0, Math.floor(a.voucherPaidCents) - Math.max(0, Math.floor(a.voucherRefundedCents)));
+  const toVoucher = Math.min(refund, left);
+  return { toVoucher, toTender: refund - toVoucher };
+}
+
+/**
+ * The same rule across several vouchers on one sale, in the order they were tendered: each takes its share of the
+ * refund up to what it paid less what it already got back; what's left goes to the tender.
+ */
+export function allocateRefundAcross<V extends { paidCents: number; refundedCents: number }>(refundCents: number, vouchers: V[]): { parts: (V & { cents: number })[]; toTender: number } {
+  let remaining = Math.max(0, Math.floor(refundCents));
+  const parts: (V & { cents: number })[] = [];
+  for (const v of vouchers) {
+    const { toVoucher } = allocateRefund({ refundCents: remaining, voucherPaidCents: v.paidCents, voucherRefundedCents: v.refundedCents });
+    if (toVoucher > 0) parts.push({ ...v, cents: toVoucher });
+    remaining -= toVoucher;
+  }
+  return { parts, toTender: remaining };
+}

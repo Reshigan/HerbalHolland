@@ -57,8 +57,13 @@ export async function bumpVariantStats(
       "costCents" = "DailyVariantStat"."costCents" + EXCLUDED."costCents"`;
 }
 
+/**
+ * The rollup column a tender lands in. A gift voucher (VOUCHER) counts with money collected by HQ (`onlineCents`): the
+ * voucher was paid for online, its liability is HQ's, and HQ settles the store for it on the monthly statement — the
+ * same as an online payment. The Payment rows keep it a "Gift voucher" tender everywhere they are read.
+ */
 export function paymentColumn(method: string): keyof StoreStatDelta {
-  return ({ CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents" } as const)[
+  return ({ CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents", VOUCHER: "onlineCents" } as const)[
     method as "CARD"
   ];
 }

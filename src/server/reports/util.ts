@@ -147,4 +147,4 @@ export const ROLE_LABEL: Record<string, string> = {
 
 export const CHANNEL_LABEL: Record<string, string> = { POS: "In store", ONLINE: "Online" };
 export const FULFIL_LABEL: Record<string, string> = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier" };
-export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online" };
+export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher" };

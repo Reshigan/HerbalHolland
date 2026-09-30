@@ -1,23 +1,29 @@
 "use client";
 // Payment: amount due and split tenders — card (tap on glass, or the store's Yoco card machine),
-// a separate bank terminal, cash (quick amounts, change due), PayShap (payment-request QR) and
-// points. Over R5,000 the buyer's details are captured for a full tax invoice. Reused for order handovers.
+// a separate bank terminal, cash (quick amounts, change due), PayShap (payment-request QR), points and
+// gift vouchers (the code typed or scanned, looked up on the server, redeemed when the sale posts — so
+// online only). Over R5,000 the buyer's details are captured for a full tax invoice. Reused for order handovers.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Banknote, CreditCard, Landmark, Nfc, QrCode, Sparkles, Trash2 } from "lucide-react";
+import { Banknote, CreditCard, Gift, Landmark, Nfc, QrCode, ScanLine, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
+import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { errorText, TillError } from "../lib/api";
+import { voucherCodeFrom } from "@/lib/vouchers";
+import { api, errorText, TillError } from "../lib/api";
 import { cardMachineTender, maxRedeemable, parseRands, quickCash } from "../lib/rules";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
 import { TapOverlay } from "./tap-overlay";
+import { CameraScanner, cameraScanSupported } from "./scanner";
 import type { QueuedTender } from "../lib/storage";
-import type { TapProviderKind } from "@/server/pos/types";
+import type { TapProviderKind, VoucherLookupDTO } from "@/server/pos/types";
 
 export type Buyer = { name: string; address: string; vatNumber?: string };
 export type PaymentResult = { tenders: QueuedTender[]; points: number; buyer: Buyer | null };
+/** A gift voucher code scanned or typed outside the sheet: opens the voucher tender with it looked up (`n` makes a repeat scan count). */
+export type VoucherScan = { code: string; n: number };
 
-type Panel = "cash" | "external" | "yoco" | "payshap" | "points" | null;
+type Panel = "cash" | "external" | "yoco" | "payshap" | "points" | "voucher" | null;
 
 export const FULL_INVOICE_OVER_CENTS = 500_000;
 
@@ -34,6 +40,7 @@ export function PaymentSheet({
   storeCode,
   points,
   needsBuyer,
+  voucherScan,
   onComplete,
   onProgress,
   onClose,
@@ -50,6 +57,7 @@ export function PaymentSheet({
   storeCode: string;
   points?: { balance: number; eligibleCents: number; minRedeem: number } | null;
   needsBuyer?: boolean;
+  voucherScan?: VoucherScan | null;
   onComplete: (r: PaymentResult) => Promise<void>;
   /** For the customer display: what is due, what has been tendered, and whether a card tap is in progress. */
   onProgress?: (p: { dueCents: number; paidCents: number; tapping: boolean; method: string | null } | null) => void;
@@ -68,6 +76,12 @@ export function PaymentSheet({
   const [extRef, setExtRef] = useState("");
   const [extLast4, setExtLast4] = useState("");
   const [payshapRef, setPayshapRef] = useState("");
+  const [voucherText, setVoucherText] = useState("");
+  const [voucher, setVoucher] = useState<VoucherLookupDTO | null>(null);
+  const [voucherBusy, setVoucherBusy] = useState(false);
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [balances, setBalances] = useState<Record<string, number>>({}); // vouchers looked up in this sale, by code
+  const [scanVoucher, setScanVoucher] = useState(false);
   const keySeq = useRef(0);
   const completing = useRef(false);
 
@@ -96,8 +110,41 @@ export function PaymentSheet({
     setError(null);
     setBusy(false);
     setBuyer({ name: "", address: "", vatNumber: "" });
+    setVoucher(null);
+    setVoucherText("");
+    setVoucherError(null);
+    setBalances({});
     completing.current = false;
   }, [open, online]);
+
+  /** Looks a gift voucher up on the server: what's on it, or why it can't pay (in plain English). */
+  const lookupVoucher = async (raw: string) => {
+    const code = voucherCodeFrom(raw);
+    setVoucherError(null);
+    setVoucher(null);
+    if (!code) return setVoucherError("That doesn't look like a gift voucher code (HH-XXXX-XXXX-XXXX)");
+    setVoucherText(code);
+    setVoucherBusy(true);
+    try {
+      const r = await api<{ voucher: VoucherLookupDTO }>("/api/pos/vouchers", { body: { code } });
+      setVoucher(r.voucher);
+      setBalances((b) => ({ ...b, [r.voucher.code]: r.voucher.balanceCents }));
+    } catch (e) {
+      setVoucherError(errorText(e));
+    } finally {
+      setVoucherBusy(false);
+    }
+  };
+  const lookupRef = useRef(lookupVoucher);
+  lookupRef.current = lookupVoucher;
+
+  // A voucher scanned or typed outside the sheet (the search box, the camera, a keyboard-wedge scanner): open the
+  // tender with it looked up. Runs after the reset above when both fire on opening.
+  useEffect(() => {
+    if (!open || !voucherScan) return;
+    setPanel("voucher");
+    void lookupRef.current(voucherScan.code);
+  }, [open, voucherScan]);
 
   const add = (t: QueuedTender) => {
     setTenders((ts) => [...ts, { ...t, key: ++keySeq.current }]);
@@ -130,6 +177,11 @@ export function PaymentSheet({
   }, [open, remaining, paid, dueCents, buyerOk, tenders.length, pts, error]);
 
   const maxPts = points ? maxRedeemable({ balance: points.balance, eligibleCents: points.eligibleCents - pts * 100, dueCents: remaining, minRedeem: points.minRedeem }) : 0;
+  /** What's left on a voucher looked up in this sale, less what's already tendered from it here. */
+  const voucherLeft = (code: string) => Math.max(0, (balances[code] ?? 0) - tenders.filter((t) => t.method === "VOUCHER" && t.reference === code).reduce((s, t) => s + t.amountCents, 0));
+  // The voucher pays up to its balance and up to what's due (or the smaller amount typed above): lowered, never raised.
+  const voucherUse = voucher ? Math.min(charge, voucherLeft(voucher.code)) : 0;
+  const voucherPending = !online && tenders.some((t) => t.method === "VOUCHER");
   const cashOptions = useMemo(() => quickCash(charge), [charge]);
   const payshapText = `https://pay.herbalholland.co.za/payshap/${storeCode.toLowerCase()}?amount=${(charge / 100).toFixed(2)}&ref=${encodeURIComponent(reference)}`;
 
@@ -193,11 +245,13 @@ export function PaymentSheet({
                 {tenders.map((t) => (
                   <TenderRow
                     key={t.key}
-                    icon={t.method === "CASH" ? <Banknote className="h-4 w-4" /> : t.method === "PAYSHAP" ? <QrCode className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                    icon={t.method === "CASH" ? <Banknote className="h-4 w-4" /> : t.method === "PAYSHAP" ? <QrCode className="h-4 w-4" /> : t.method === "VOUCHER" ? <Gift className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
                     label={
                       t.method === "CASH"
                         ? `Cash${t.tenderedCents ? ` · tendered ${zar(t.tenderedCents)}` : ""}${t.changeCents ? ` · change ${zar(t.changeCents)}` : ""}`
-                        : t.method === "PAYSHAP"
+                        : t.method === "VOUCHER"
+                          ? `Gift voucher ${t.reference} · ${zar(voucherLeft(t.reference ?? ""))} left on the voucher`
+                          : t.method === "PAYSHAP"
                           ? `PayShap · ref ${t.reference}`
                           : t.provider === "EXTERNAL"
                             ? `Bank terminal · auth ${t.reference}`
@@ -261,7 +315,12 @@ export function PaymentSheet({
 
             {!online && (
               <Alert tone="warn" className="mt-3">
-                {tapProvider === "YOCO" ? "Offline — cash, or card on the Yoco machine. PayShap and points need a connection." : "Offline — cash only. Card, PayShap and points need a connection."}
+                {tapProvider === "YOCO" ? "Offline — cash, or card on the Yoco machine. PayShap, points and gift vouchers need a connection." : "Offline — cash only. Card, PayShap, points and gift vouchers need a connection."}
+              </Alert>
+            )}
+            {voucherPending && (
+              <Alert className="mt-3" data-testid="voucher-offline">
+                The gift voucher can only be redeemed with a connection, and this sale won&apos;t be queued with it: remove the voucher payment and take another tender, or wait for the connection.
               </Alert>
             )}
 
@@ -273,7 +332,74 @@ export function PaymentSheet({
               {method("cash", "Cash", <Banknote className="h-5 w-5" />, false, "Change calculated")}
               {method("payshap", "PayShap", <QrCode className="h-5 w-5" />, !online, "Instant EFT by QR")}
               {points && method("points", "Points", <Sparkles className="h-5 w-5" />, !online || maxPts === 0, points.balance < points.minRedeem ? `Min ${points.minRedeem} pts to redeem` : `${fmtPoints(points.balance)} available`)}
+              {method("voucher", "Gift voucher", <Gift className="h-5 w-5" />, !online, online ? "Type or scan the code" : "Needs a connection")}
             </div>
+
+            {panel === "voucher" && (
+              <form
+                className="mt-4 space-y-3 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800"
+                data-testid="voucher-panel"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void lookupVoucher(voucherText);
+                }}
+              >
+                <p className="text-sm text-ink-300">Type the code from the voucher email or card, or scan it. The voucher pays up to what&apos;s on it and what&apos;s due.</p>
+                <div className="flex items-end gap-2">
+                  <Field label="Voucher code" htmlFor="voucher-code" className="min-w-0 flex-1">
+                    <TextInput
+                      id="voucher-code"
+                      autoFocus
+                      autoComplete="off"
+                      autoCapitalize="characters"
+                      spellCheck={false}
+                      placeholder="HH-XXXX-XXXX-XXXX"
+                      value={voucherText}
+                      onChange={(e) => (setVoucherText(e.target.value), setVoucher(null), setVoucherError(null))}
+                      className="font-mono uppercase placeholder:normal-case"
+                    />
+                  </Field>
+                  {cameraScanSupported() && (
+                    <PosButton type="button" variant="secondary" onClick={() => setScanVoucher(true)} aria-label="Scan the voucher code with the camera">
+                      <ScanLine className="h-5 w-5" />
+                    </PosButton>
+                  )}
+                  <PosButton type="submit" variant="secondary" busy={voucherBusy} data-testid="voucher-lookup">
+                    Look up
+                  </PosButton>
+                </div>
+                {voucherError && <Alert data-testid="voucher-error">{voucherError}</Alert>}
+                {voucher && (
+                  <div className="rounded-xl bg-ink-900 p-3 ring-1 ring-ink-800" data-testid="voucher-found">
+                    <div className="text-sm text-white">
+                      <b className="font-mono">{voucher.code}</b> · <span className="tnum">{zar(voucherLeft(voucher.code))}</span> on the voucher · valid until {fmtDate(voucher.expiresAt)}
+                    </div>
+                    <p className="mt-1 text-xs text-ink-400">
+                      {voucherUse <= 0
+                        ? "Nothing left on it to use here."
+                        : voucherUse < charge
+                          ? `It covers ${zar(voucherUse)} of the ${zar(charge)} — ${zar(charge - voucherUse)} will still be due. `
+                          : `${zar(voucherLeft(voucher.code) - voucherUse)} stays on the voucher. `}
+                      {voucherUse > 0 && "To use less of it, type a smaller amount above."}
+                    </p>
+                    <PosButton
+                      type="button"
+                      variant="primary"
+                      className="mt-3 w-full"
+                      disabled={voucherUse <= 0}
+                      data-testid="voucher-apply"
+                      onClick={() => {
+                        add({ method: "VOUCHER", amountCents: voucherUse, reference: voucher.code });
+                        setVoucher(null);
+                        setVoucherText("");
+                      }}
+                    >
+                      Use {zar(voucherUse)} from the voucher
+                    </PosButton>
+                  </div>
+                )}
+              </form>
+            )}
 
             {panel === "cash" && (
               <div className="mt-4 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800" data-testid="cash-panel">
@@ -398,6 +524,16 @@ export function PaymentSheet({
         </div>
         {change > 0 && remaining === 0 && <div className="sr-only">Change due {zar(change)}</div>}
       </Sheet>
+
+      <CameraScanner
+        open={scanVoucher}
+        title="Scan the gift voucher"
+        onClose={() => setScanVoucher(false)}
+        onResult={(text) => {
+          setScanVoucher(false);
+          void lookupVoucher(text);
+        }}
+      />
 
       {tapping != null && (
         <TapOverlay

@@ -1,6 +1,7 @@
 // Receipts and the till's sales history (bounded by store and date range).
 import { db } from "@/server/db";
 import { invoiceUrl } from "@/server/invoices";
+import { voucherPartsOf } from "@/server/sales";
 import { addDays } from "@/lib/format";
 import { PosError } from "./http";
 import type { ReceiptDTO, SaleRow, TierKey } from "./types";
@@ -14,7 +15,7 @@ const receiptInclude = {
   lines: { include: { variant: { select: { name: true, sku: true, product: { select: { name: true } } } } }, orderBy: { id: "asc" } },
   payments: true,
   refundOf: { select: { id: true, number: true } },
-  refunds: { include: { lines: true }, orderBy: { createdAt: "asc" } },
+  refunds: { include: { lines: true, payments: true }, orderBy: { createdAt: "asc" } },
 } as const;
 
 export async function receipt(saleId: string, storeId: string): Promise<ReceiptDTO> {
@@ -35,6 +36,10 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
     }
   const vendor = !!s.store.company.vatNumber;
   const loyalty = s.payments.filter((p) => p.method === "LOYALTY").reduce((a, p) => a + p.amountCents, 0);
+  // Gift vouchers: what's left on each (the receipt says so) and what this sale's refunds may still put back.
+  const codes = [...new Set(s.payments.filter((p) => p.method === "VOUCHER" && p.reference).map((p) => p.reference!))];
+  const balances = codes.length ? new Map((await db.giftVoucher.findMany({ where: { code: { in: codes } }, select: { code: true, balanceCents: true } })).map((v) => [v.code, v.balanceCents])) : new Map<string, number>();
+  const vouchers = s.kind === "SALE" ? voucherPartsOf(s) : [];
 
   return {
     id: s.id,
@@ -87,7 +92,9 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
         reference: p.reference,
         cardBrand: p.cardBrand,
         cardLast4: p.cardLast4,
+        ...(p.method === "VOUCHER" && p.reference && { balanceCents: balances.get(p.reference) ?? null }),
       })),
+    ...(vouchers.length && { vouchers }),
     promoCode: s.promoCode,
     invoiceEmail: s.invoiceEmail,
     buyer: (s.buyer as ReceiptDTO["buyer"]) ?? null,

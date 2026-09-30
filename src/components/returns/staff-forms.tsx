@@ -65,9 +65,11 @@ export function ReceiveForm({ action }: { action: StaffAction }) {
 export function RefundForm({ action, items, plan, restockDefault }: {
   action: StaffAction;
   items: { variantId: string; name: string; qty: number }[];
-  plan: { linesCents: number; deliveryCents: number; totalCents: number; note: string; gateway: string | null };
+  plan: { linesCents: number; deliveryCents: number; totalCents: number; note: string; gateway: string | null; voucherCents?: number; voucherCodes?: string[]; moneyCents?: number };
   restockDefault: Record<string, boolean>;
 }) {
+  const voucher = plan.voucherCents ?? 0;
+  const money = plan.moneyCents ?? plan.totalCents;
   return (
     <ActionForm action={action} className="space-y-4 rounded-2xl border border-ink-150 bg-ink-50 p-4">
       <dl className="grid grid-cols-2 gap-x-6 gap-y-1 text-sm">
@@ -77,8 +79,17 @@ export function RefundForm({ action, items, plan, restockDefault }: {
         <dd className="tnum text-right text-ink-900">{plan.deliveryCents ? zar(plan.deliveryCents) : "—"}</dd>
         <dt className="font-semibold text-ink-900">Refund</dt>
         <dd className="tnum text-right font-display text-lg font-semibold text-ink-950">{zar(plan.totalCents)}</dd>
+        {voucher > 0 && (
+          <>
+            <dt className="text-ink-500">Back onto gift voucher {plan.voucherCodes?.join(", ")}</dt>
+            <dd className="tnum text-right text-ink-900">{zar(voucher)}</dd>
+            <dt className="text-ink-500">In money</dt>
+            <dd className="tnum text-right text-ink-900">{money ? zar(money) : "—"}</dd>
+          </>
+        )}
       </dl>
       {plan.note && <p className="text-xs text-ink-500">{plan.note}</p>}
+      {voucher > 0 && <p className="text-xs text-ink-500">What the gift voucher paid goes back onto the voucher with the credit note — a voucher is never cashed out.</p>}
       <fieldset>
         <legend className="mb-1.5 text-[0.78rem] font-semibold text-ink-700">Back on the shelf?</legend>
         <div className="space-y-2">
@@ -87,7 +98,9 @@ export function RefundForm({ action, items, plan, restockDefault }: {
           ))}
         </div>
       </fieldset>
-      {plan.gateway ? (
+      {money === 0 ? (
+        <p className="text-sm text-ink-700">Nothing to pay out in money: the credit note is posted at the store and the member told.</p>
+      ) : plan.gateway ? (
         <p className="text-sm text-ink-700">
           Refunded through <b className="text-ink-900">{plan.gateway === "PEACH" ? "Peach Payments" : "Yoco"}</b> to the card or account that paid, then the credit note is posted at the store and the member told.
         </p>

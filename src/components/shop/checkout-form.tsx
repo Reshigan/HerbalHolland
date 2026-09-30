@@ -66,7 +66,7 @@ export function CheckoutForm(props: {
   const total = props.totalCents + opt.feeCents;
   const payIn = fulfilment === "COLLECT" ? pay : "ONLINE";
   const afterPoints = total - pts * 100;
-  // A gift voucher pays after points, online only (the till doesn't take vouchers).
+  // A gift voucher pays after points with online payment; a pay-in-store order keeps the code for the counter, where the till takes it.
   const voucherCents = props.voucher && payIn === "ONLINE" ? Math.min(props.voucher.balanceCents, afterPoints) : 0;
   const due = afterPoints - voucherCents;
   const storesSorted = useMemo(() => props.stores, [props.stores]);
@@ -386,7 +386,7 @@ export function CheckoutForm(props: {
               <Gift className="h-4 w-4 text-brand-500" /> Gift voucher
             </p>
             <VoucherCode code={props.voucherCode} applied={props.voucher ? { balanceCents: props.voucher.balanceCents, appliedCents: voucherCents } : null} error={props.voucherError} />
-            {props.voucher && payIn === "IN_STORE" && <p className="mt-2 text-xs text-amber-100">Gift vouchers are redeemed with online payment — choose Pay online now to use it on this order.</p>}
+            {props.voucher && payIn === "IN_STORE" && <p className="mt-2 text-xs text-amber-100">Paying in store? Keep the code: the counter takes gift vouchers when you collect. To use it on this order now, choose Pay online.</p>}
           </div>
 
           {props.blocked && (

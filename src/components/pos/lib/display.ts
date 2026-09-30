@@ -43,6 +43,16 @@ export const BRAND_MESSAGES = [
 
 export const LICENSED_LINE_NAME = "Dispensed medicine";
 
+/** The tender being taken, as the customer display names it (from the payment sheet's panel or a payment method). */
+export function tenderName(method: string | null | undefined): string | null {
+  if (!method) return null;
+  const names: Record<string, string> = {
+    card: "Card", yoco: "Card", external: "Card", cash: "Cash", payshap: "PayShap", points: "Rewards points", voucher: "Gift voucher",
+    CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher",
+  };
+  return names[method] ?? null;
+}
+
 /** Messages the idle screen cycles: the brand lines, today's deals (never on medicines) and the next event. */
 export function idleMessages(
   input: { promotions: BootPromotion[]; products: Pick<BootProduct, "id" | "categoryId" | "regClass">[]; compliance: ComplianceSettings; nextEvent?: { title: string; startsAt: string } | null },

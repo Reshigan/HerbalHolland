@@ -105,7 +105,7 @@ export async function zReport(shiftId: string): Promise<ZReport> {
     refunds: { count: sum(refunds, (r) => r._count._all), totalCents: -sum(refunds, (r) => r._sum.totalCents ?? 0) },
     online: { count: sum(online, (r) => r._count._all), grossCents: sum(online, (r) => r._sum.totalCents ?? 0) },
     tenders: tenders
-      .map((t) => ({ method: t.method, label: TENDER_LABEL[t.method] ?? t.method, amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
+      .map((t) => ({ method: t.method, label: t.method === "VOUCHER" ? "Gift vouchers" : (TENDER_LABEL[t.method] ?? t.method), amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
       .sort((a, b) => b.amountCents - a.amountCents),
     points: { issued: sum(kinds, (r) => r._sum.pointsEarned ?? 0), redeemed: Math.round(loyalty / 100) },
     cash: {

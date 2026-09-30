@@ -3,7 +3,7 @@
 import { zar } from "@/lib/money";
 import { fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { maskMemberNo, TENDER_LABEL } from "./lib/rules";
+import { maskMemberNo, tenderLine } from "./lib/rules";
 import { ADULTS_LINE, CBD_LINE, LICENSED_LINE, TRAINING_LINE } from "./lib/receipt";
 import { incentiveExcluded } from "@/lib/compliance";
 import { ZReportPrint } from "./z-report";
@@ -97,8 +97,9 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
       <Rule />
       {r.payments.map((p, i) => (
         <div key={i}>
-          <Row l={`${TENDER_LABEL[p.method] ?? p.method}${p.cardLast4 ? ` •••• ${p.cardLast4}` : ""}${p.reference ? ` (${p.reference})` : ""}`} r={zar(p.amountCents)} />
+          <Row l={tenderLine(p)} r={zar(p.amountCents)} />
           {p.tenderedCents != null && p.tenderedCents !== p.amountCents && <Row l="  Tendered" r={zar(p.tenderedCents)} />}
+          {p.method === "VOUCHER" && p.balanceCents != null && <Row l="  Left on the voucher" r={zar(p.balanceCents)} />}
         </div>
       ))}
       {r.pointsRedeemed > 0 && <Row l="Points redeemed" r={fmtPoints(r.pointsRedeemed)} />}

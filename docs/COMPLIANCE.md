@@ -97,13 +97,15 @@ change without a deploy.
 **Gift vouchers are money, not an incentive.** A prepaid voucher is consideration the member already paid; it carries
 no bonus value on purchase, earns nothing on top, and is never discounted. So it pays for anything in the range —
 licensed medicines included, as a matter of law (Medicines Act s18A forbids inducements, and a voucher offers none).
-In practice medicines are paid for at the counter and the till doesn't take vouchers yet, so online redemption only
-covers what can be paid online; the code is data, and a medicine bought with it in store would be a POS change.
+It is redeemed online at checkout or at the till as a tender like any other, medicines included: the till checks the
+voucher on the server and redeems it as the sale posts (never on a sale queued offline).
 **Validity: three years** from the date of issue — Consumer Protection Act s63(2) — enforced by `expiresAt` (set when
 the voucher is issued, not when it is bought), refused at checkout after that, and marked EXPIRED by the daily job.
 Unspent balances stay on the voucher until then (s63(3)); the liability report is the sum of active balances.
-A voucher can't be exchanged for cash. VAT: none at issue; accounted for on the sale it pays for (VAT Act s10(18)
-treatment of vouchers), which is what the posted sale at handover records.
+**No cash-out.** A voucher can't be exchanged for cash, and a refund never turns one into cash either: what a voucher
+paid on a sale goes back onto that voucher first (`allocateRefund`), at the till and for online returns alike, and only
+what was paid in money is refunded in money. VAT: none at issue; accounted for on the sale it pays for (VAT Act
+s10(18) treatment of vouchers), which is what the posted sale — at the till or at handover — records.
 
 **Reorder reminders are transactional, not marketing.** A reminder exists only because the member set it, on the
 channel they chose, for one product, with an interval they picked, and they can stop it in one tap. It is a service

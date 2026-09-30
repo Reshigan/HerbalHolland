@@ -7,7 +7,7 @@ import { zar } from "@/lib/money";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText } from "../lib/api";
 import { updateQueued } from "../lib/storage";
-import { TENDER_LABEL } from "../lib/rules";
+import { tenderLine } from "../lib/rules";
 import { Alert, PosButton, Sheet, TextInput } from "../ui";
 import type { ReceiptDTO } from "@/server/pos/types";
 
@@ -82,7 +82,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
           </div>
         )}
         <div className="mt-2 text-sm text-ink-400">
-          {receipt.payments.map((p) => `${TENDER_LABEL[p.method] ?? p.method} ${zar(p.amountCents)}`).join(" · ")}
+          {receipt.payments.map((p) => (p.method === "VOUCHER" ? `${tenderLine(p)} ${zar(p.amountCents)}${p.balanceCents != null ? ` (${zar(p.balanceCents)} left on the voucher)` : ""}` : `${tenderLine({ method: p.method })} ${zar(p.amountCents)}`)).join(" · ")}
           {receipt.pointsRedeemed > 0 && ` · Points ${fmtPoints(receipt.pointsRedeemed)}`}
         </div>
       </div>

@@ -72,7 +72,7 @@ async function place(form: FormData): Promise<CheckoutState> {
 
   let order: Awaited<ReturnType<typeof placeOrder>>;
   try {
-    // A gift voucher only pays online (the till doesn't take vouchers): paying in store simply leaves it on the voucher.
+    // A gift voucher pays with online payment; paying in store leaves it on the voucher for the counter, where the till takes it.
     order = await placeOrder({ customerId: customer.id, fulfilment, storeId, address, items, code, points, payMethod, voucherCode: payMethod === "ONLINE" ? voucherCode : null });
   } catch (e) {
     if (e instanceof OrderError) {

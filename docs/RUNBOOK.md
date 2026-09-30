@@ -379,14 +379,53 @@ R500 or R1,000: the purchase is an ordinary online order for the virtual **Gift 
 franchisor's warehouse and goes through the normal pay page; when it is paid (`markOrderPaid`) the order completes on
 the spot — no picking — the voucher is issued (three years, CPA s63) and emailed to the buyer and, if given, the
 recipient, and the buyer gets an SMS with the code. Unpaid voucher orders lapse with every other unpaid order
-(`unpaidHoldMinutes`), and the daily job cancels vouchers still pending after two days. Redemption: the member enters
-the code in the bag or at checkout; the balance pays what points leave, before online payment; a fully covered order
-is placed as paid (`paymentRef VOUCHER:<code>`). Cancelling an order puts the money back on the voucher
-(`voucher.release` in the audit log). Refunds of a voucher-paid order refund the money part only: staff put the
-voucher part back by hand (adjust `balanceCents`) — a returns-desk job for now. Balance check: `/gift?check=CODE`
-(public, by code) or `/club/vouchers`. Reports: voucher liability = the sum of `balanceCents` where status is ACTIVE;
-VAT is accounted for at redemption (the sale posted at handover), not at issue. Audit actions: `voucher.purchase`,
-`voucher.issue`, `voucher.redeem`, `voucher.release`.
+(`unpaidHoldMinutes`), and the daily job cancels vouchers still pending after two days. Redemption online: the member
+enters the code in the bag or at checkout; the balance pays what points leave, before online payment; a fully covered
+order is placed as paid (`paymentRef VOUCHER:<code>`). A pay-in-store order doesn't carry a voucher at checkout — the
+member pays with it at the counter instead. Cancelling an order puts the money back on the voucher (`voucher.release`
+in the audit log). Balance check: `/gift?check=CODE` (public, by code) or `/club/vouchers`.
+
+*At the till.* **Gift voucher** is a tender on the payment sheet (online only: disabled with "needs a connection"
+when the till is offline). The cashier types the code or scans it (the code from the email or card, or the QR of the
+balance-check link — scanning it anywhere on the till opens payment with the voucher looked up); `POST /api/pos/vouchers`
+returns the balance and expiry, or the plain-English reason it can't pay (`voucherProblem`). The amount defaults to
+min(balance, still due) and can be lowered with the amount field, never raised; the tender row is `{ method: "VOUCHER",
+amountCents, reference: code }` and vouchers split with cash, card, PayShap and points like any other tender. Posting
+(`postPosSale`) checks every voucher tender first (`checkVoucherTenders`: on record, active, unexpired, enough balance —
+the error names the voucher and the shortfall) and redeems each inside the sale's transaction (`redeemVoucherTx` with
+`saleId`); a balance that moved meanwhile stops the sale and nothing is posted. A pay-in-store order handed over at the
+till may be paid with a voucher the same way (`advanceOrder`: the row carries both `orderId` and `saleId`). **A queued
+(offline) sale never carries a VOUCHER tender**: the till refuses to queue one (the operator removes the voucher payment
+and re-tenders), `SaleBody` refuses it in the request, and `postPosSale` refuses it in the sync path; a queued sale the
+server refused stays in the outbox with the reason until a manager discards it (manager PIN, audited as
+`pos.outbox_discard`) after ringing it up again. The receipt's tender line reads "Gift voucher HH-…" with what's left on
+the voucher; the Z-report and shift summaries carry a "Gift vouchers" line; the customer display names the tender.
+
+*Refunds go back onto the voucher.* `allocateRefund` (`src/lib/vouchers.ts`): a refund returns to the voucher first,
+up to what that voucher paid on the sale less what earlier refunds already put back — a voucher is never cashed out —
+and only the remainder goes to the tender the operator chooses (with several vouchers on a sale, in tender order:
+`allocateRefundAcross`). `refundSale` applies it to every credit note, at the till and for online returns: the credit
+note gets a negative `VOUCHER` payment row per voucher (the code in `reference`) and `restoreVoucherTx` puts the balance
+back (a used-up voucher is ACTIVE again unless it has expired), writes a negative `VoucherRedemption` row against the
+credit note (`saleId`, plus the order id when there is one) and audits `voucher.refund`. Online returns
+(`returns.refundReturn`) split the same way first, so only the money part goes through the gateway or by hand
+(`refundOrderAmount`); a return covered entirely by the voucher records `refundRef = VOUCHER`, and the member's message
+says what went back onto the voucher. The refund sheet on the till shows "R… goes back onto gift voucher HH-…" and only
+the remainder as cash/card.
+
+*Ledger conventions.* A `VoucherRedemption` row is positive when money is taken (an online order: `orderId`; a till
+sale: `saleId`; a counter voucher at handover: both) and negative when a refund puts it back. The order-level sums
+(`voucherCentsOf`, `voucherTenderOf`, `redemptionsOf`) count only positive, unreversed rows, so what an order took from
+vouchers — and so what is still due in money on it — never changes because of a return; the voucher's own rows net to
+its balance movement. `voucherTenderOf` puts the voucher part of an online order on the handover sale as a `VOUCHER`
+tender (it used to be `ONLINE` with provider `VOUCHER`; the migration converted those rows), so finance sees one
+"Gift voucher" tender in every Payment-row view (Z-report, cash-ups, invoices, the refunds report). Cash-ups and banking
+treat only CASH as cash. In the daily rollups a voucher lands in `onlineCents` with online payments (`paymentColumn`):
+money collected by HQ — the voucher was paid for online and its liability is HQ's — and settled to the store on the
+monthly statement ("Online sales and gift vouchers collected by HQ"); the tender reports label that column
+"Online & gift vouchers". Reports: voucher liability = the sum of `balanceCents` where status is ACTIVE; VAT is
+accounted for at redemption (the sale the voucher pays for), not at issue. Audit actions: `voucher.purchase`,
+`voucher.issue`, `voucher.redeem`, `voucher.release`, `voucher.refund`.
 
 **Wishlists** (`Wishlist`). The heart on cards and product pages. The **frequent job** (`wishlists`) notes when the
 whole network runs out of a wished-for variant and when stock returns, which shows as "Back in stock" on
