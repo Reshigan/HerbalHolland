@@ -69,7 +69,7 @@ try {
   const settingsRow = await one(`select value from "Setting" where key = 'trade'`);
   const T = { minOrderCents: 200_000, deliveryCents: 15_000, freeDeliveryOverCents: 500_000, collectHandlingCents: 7_500, eftHoldDays: 3, ...(settingsRow?.value ?? {}) };
   const dc = await one(`select id, code, name from "Store" where kind = 'WAREHOUSE' and status = 'ACTIVE' order by code limit 1`);
-  // A click & collect store holding at least 40 units of two trade-priced lines without quantity breaks (the seed's
+  // A click & collect store holding at least 40 units of two trade-priced lines with no quantity break inside the journey's quantities (the seed's
   // "Trade 2026" list prices most lines, some with breaks), each line worth enough that two cases clear the minimum order.
   const pick = await one(
     `with avail as (
@@ -79,7 +79,7 @@ try {
        from avail a join "Variant" v on v.id = a."variantId" and v.active and v."podSku" is null and v."wholesaleCents" between 6000 and 80000
        join "Product" p on p.id = v."productId" and p.status = 'ACTIVE' and p."regClass" <> 'THC'
        join "Store" s on s.id = a."storeId" and s.kind = 'RETAIL' and s.status = 'ACTIVE' and s."clickCollect"
-       where a.q >= 40 and not exists (select 1 from "PriceListItem" i join "PriceList" l on l.id = i."priceListId" and l.kind = 'TRADE' where i."variantId" = v.id and i."minQty" > 1))
+       where a.q >= 24 and not exists (select 1 from "PriceListItem" i join "PriceList" l on l.id = i."priceListId" and l.kind = 'TRADE' where i."variantId" = v.id and i."minQty" between 2 and 18))
      select s.id "storeId", s.code, s.name, s.suburb, s.city, s.province, s."addressLine",
             (select json_agg(x) from (select id, sku, vname, pname, "wholesaleCents", "caseQty", "regClass", q from lines l where l."storeId" = s.id order by random() limit 2) x) lines
      from "Store" s where (select count(*) from lines l where l."storeId" = s.id) >= 2 order by random() limit 1`,
@@ -98,7 +98,7 @@ try {
   }
   const store = pick;
   const dcQty = async (id) => (await one(`select coalesce(sum(sl."onHand"), 0)::int q from "StockLevel" sl join "Batch" b on b.id = sl."batchId" and b.status = 'RELEASED' where sl."storeId" = $1 and sl."variantId" = $2`, [dc.id, id])).q;
-  if ((await dcQty(A.id)) < 40 || (await dcQty(B.id)) < 40) fail(`seed data: ${dc.name} holds too little of ${A.sku} / ${B.sku}`);
+  if ((await dcQty(A.id)) < 24 || (await dcQty(B.id)) < 24) fail(`seed data: ${dc.name} holds too little of ${A.sku} / ${B.sku}`);
   // Real case packs for the two lines (the seed sells singly): restored afterwards.
   await q(`update "Variant" set "caseQty" = 6 where id = $1`, [A.id]);
   await q(`update "Variant" set "caseQty" = 12 where id = $1`, [B.id]);

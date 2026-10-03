@@ -375,13 +375,13 @@ try {
   // price: the live TRADE list that prices them (best break for the quantity), else the wholesale price — as resolveTradePrice does.
   const tradeUnit = async (variantId, qty, fallback) =>
     (
-      await one(
+      await q(
         `select i."priceCents" from "PriceListItem" i join "PriceList" l on l.id = i."priceListId"
          where i."variantId" = $1 and l.kind = 'TRADE' and l.active and (l."startsAt" is null or l."startsAt" <= now()) and (l."endsAt" is null or l."endsAt" >= now()) and i."minQty" <= $2
          order by l.priority desc, l."createdAt" desc, i."minQty" desc limit 1`,
         [variantId, qty],
       )
-    )?.priceCents ?? fallback;
+    )[0]?.priceCents ?? fallback;
   const pouch = (await q(`select v.id, v."wholesaleCents" from "Variant" v join "Product" p on p.id = v."productId" where p.name = 'Smell-proof Pouch' and v.active limit 1`))[0];
   const cbd = (
     await q(
