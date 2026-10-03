@@ -27,6 +27,7 @@ export const POST = withStaff(async (req) => {
       paymentDays: h.paymentDays,
       balanceCents: h.balanceCents,
       availableCents: h.availableCents,
+      licenceProblem: h.licenceProblem,
     }));
   return json({ accounts });
 });

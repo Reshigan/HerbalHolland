@@ -22,8 +22,9 @@ import { sendDueReminders } from "./shop/reminders";
 import { expireVouchers } from "./shop/vouchers";
 import { refreshWishlistStock } from "./shop/wishlist";
 import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs";
+import { tradeLicenceExpiry } from "./trade/licences";
 
-export { tradeEftExpiry, tradeOverdueHolds, tradeStatements };
+export { tradeEftExpiry, tradeOverdueHolds, tradeStatements, tradeLicenceExpiry };
 
 const MIN = 60_000;
 
@@ -108,7 +109,7 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     vouchers: await expireVouchers(),
     // Trade: EFT orders unpaid past the hold lapse; accounts with an invoice past due + grace go on hold; last
     // month's statements go out on the statement day (once per account and month).
-    trade: { eftExpiry: await tradeEftExpiry(), overdueHolds: await tradeOverdueHolds(), statements: await tradeStatements() },
+    trade: { eftExpiry: await tradeEftExpiry(), overdueHolds: await tradeOverdueHolds(), licences: await tradeLicenceExpiry(), statements: await tradeStatements() },
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),

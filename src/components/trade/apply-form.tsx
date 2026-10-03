@@ -1,33 +1,63 @@
 "use client";
-// The trade application form: the business, its addresses, the ranges it wants, who orders, and the two
-// confirmations. Field-level errors come from the server's validation (src/lib/trade.ts) and every value is kept
-// across a refused submit. Success is shown in place.
+// The trade application form: the business, its addresses, the ranges it wants, the licences that kind of business
+// needs for them (with the documents), who orders, and the two confirmations. The same validator the server uses
+// (src/lib/trade.ts) runs in the browser first, so a typing mistake never costs the attached documents; anything only
+// the server can tell (a buyer email in use, a document's contents) comes back by field. Success is shown in place.
 import Link from "next/link";
-import { useActionState, useState } from "react";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { useActionState, useRef, useState } from "react";
+import { ArrowRight, CheckCircle2, FileCheck2 } from "lucide-react";
 import { applyAction, type ApplyState } from "@/app/trade/apply/actions";
 import { buttonClass } from "@/components/ui/button";
 import { CheckRow, FieldRow, SelectInput, TextInput, inputClass } from "@/components/shop/ui";
 import { CLASS_BLURB, CLASS_NAME } from "./format";
 import { APPLY } from "./copy";
-import { TRADE_CLASSES, TRADE_KINDS, type TradeField } from "@/lib/trade";
+import { applicationFromForm, licenceInputName, TRADE_CLASSES, TRADE_KINDS, validateTradeApplication, type TradeErrors } from "@/lib/trade";
+import { LICENCE_FILE_ACCEPT, requiredLicences, TRADE_LICENCES, TRADE_LICENCE_KINDS, type TradeLicenceKind } from "@/lib/trade-licences";
 import { PROVINCES } from "@/lib/sa";
 import { cn } from "@/lib/cn";
 
-const FIELD_LABEL: Partial<Record<TradeField, string>> = {
+const FIELD_LABEL: Partial<Record<keyof TradeErrors, string>> = {
   legalName: "Registered business name", name: "Trading name", kind: "Kind of business", regNumber: "Company registration number", vatNumber: "VAT number", email: "Billing email", phone: "Business phone",
   addressLine: "Street address", suburb: "Suburb", city: "City or town", province: "Province", postalCode: "Postal code",
   deliveryLine: "Delivery street address", deliverySuburb: "Delivery suburb", deliveryCity: "Delivery city or town", deliveryProvince: "Delivery province", deliveryPostalCode: "Delivery postal code",
   classes: "Ranges", buyerName: "Buyer's name", buyerEmail: "Buyer's email", buyerPhone: "Buyer's mobile", notes: "Notes", adult: "Adults only", terms: "Trade terms",
+  ...Object.fromEntries(
+    TRADE_LICENCE_KINDS.flatMap((k) => [
+      [licenceInputName(k, "number"), `${TRADE_LICENCES[k].name}: number`],
+      [licenceInputName(k, "expiresAt"), `${TRADE_LICENCES[k].name}: expiry date`],
+      [licenceInputName(k, "file"), `${TRADE_LICENCES[k].name}: document`],
+    ]),
+  ),
 };
+/** An input's id from its field key (licence keys carry dots). */
+const fieldId = (k: string) => `f-${k.replace(/\./g, "-")}`;
 
 export function ApplyForm({ termsVersion }: { termsVersion: string }) {
   const [state, action, pending] = useActionState<ApplyState, FormData>(applyAction, {});
   const v = state.values ?? {};
-  const f = state.fields ?? {};
+  // The browser's own check (the server's validator, run before sending) wins until the next send.
+  const [checked, setChecked] = useState<TradeErrors | null>(null);
+  const f: TradeErrors = checked ?? state.fields ?? {};
   const [otherDelivery, setOtherDelivery] = useState(v.otherDelivery === "on");
-  const problems = Object.entries(f) as [TradeField, string][];
+  const problems = Object.entries(f) as [keyof TradeErrors, string][];
   const ticked = (c: string) => (v.classes ?? "").split(" ").includes(c);
+  // The kind of business and the ranges decide which licences the form asks for; they follow what's typed, and the
+  // server's echo after a refused send (React resets the form then).
+  const [sel, setSel] = useState({ at: state.at, kind: v.kind ?? "", classes: (v.classes ?? "").split(" ").filter(Boolean) });
+  if (sel.at !== state.at) setSel({ at: state.at, kind: v.kind ?? "", classes: (v.classes ?? "").split(" ").filter(Boolean) });
+  const needed = sel.kind ? requiredLicences(sel.kind, sel.classes) : [];
+  const cipc = needed.some((r) => r.kind === "CIPC_REGISTRATION");
+  const summary = useRef<HTMLDivElement>(null);
+  const refusedByServer = !!(state.fields || state.error) && !checked;
+
+  const preCheck = (e: React.FormEvent<HTMLFormElement>) => {
+    const check = validateTradeApplication(applicationFromForm(new FormData(e.currentTarget)));
+    if (check.ok) return setChecked(null);
+    e.preventDefault();
+    setChecked(check.fields);
+    requestAnimationFrame(() => summary.current?.focus());
+  };
+  const toggleClass = (c: string, on: boolean) => setSel((x) => ({ ...x, classes: on ? [...new Set([...x.classes, c])] : x.classes.filter((y) => y !== c) }));
 
   if (state.ok)
     return (
@@ -52,15 +82,15 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
     );
 
   return (
-    <form action={action} className="space-y-10" noValidate>
+    <form action={action} onSubmit={preCheck} className="space-y-10" noValidate>
       {(problems.length > 0 || state.error) && (
-        <div className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-5 py-4 text-sm text-rose-50" role="alert">
+        <div ref={summary} tabIndex={-1} className="rounded-2xl border border-rose-500/40 bg-rose-500/10 px-5 py-4 text-sm text-rose-50 outline-none" role="alert">
           <p className="font-semibold text-white">{state.error ?? `Please check ${problems.length === 1 ? "one thing" : `${problems.length} things`} below.`}</p>
           {problems.length > 0 && (
             <ul className="mt-2 list-disc space-y-1 pl-5">
               {problems.map(([k, msg]) => (
                 <li key={k}>
-                  <a href={`#f-${k}`} className="underline hover:text-white">
+                  <a href={`#${fieldId(k)}`} className="underline hover:text-white">
                     {FIELD_LABEL[k] ?? k}
                   </a>
                   : {msg}
@@ -80,7 +110,7 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
             <TextInput id="f-name" name="name" maxLength={120} defaultValue={v.name} aria-invalid={!!f.name} />
           </FieldRow>
           <FieldRow label="Kind of business" htmlFor="f-kind" error={f.kind}>
-            <SelectInput key={v.kind} id="f-kind" name="kind" defaultValue={v.kind || ""} required aria-invalid={!!f.kind}>
+            <SelectInput key={v.kind} id="f-kind" name="kind" defaultValue={v.kind || ""} required aria-invalid={!!f.kind} onChange={(e) => setSel((x) => ({ ...x, kind: e.target.value }))}>
               <option value="" disabled>
                 Choose one
               </option>
@@ -91,7 +121,12 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
               ))}
             </SelectInput>
           </FieldRow>
-          <FieldRow label="Company registration number (optional)" htmlFor="f-regNumber" error={f.regNumber} hint="Like 2015/123456/07. Leave blank if the business isn't registered.">
+          <FieldRow
+            label={cipc ? "Company registration number" : "Company registration number (optional)"}
+            htmlFor="f-regNumber"
+            error={f.regNumber}
+            hint={cipc ? "Like 2015/123456/07. This kind of business needs it — attach the certificate under Licences." : "Like 2015/123456/07. Leave blank if the business isn't registered."}
+          >
             <TextInput id="f-regNumber" name="regNumber" inputMode="numeric" maxLength={20} defaultValue={v.regNumber} aria-invalid={!!f.regNumber} className="tnum" />
           </FieldRow>
           <FieldRow label="VAT number (optional)" htmlFor="f-vatNumber" error={f.vatNumber} hint="Ten digits starting with 4, for a VAT vendor.">
@@ -124,7 +159,7 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
           <legend className="sr-only">Ranges</legend>
           <div className="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
             {TRADE_CLASSES.map((c) => (
-              <CheckRow key={`${c}-${ticked(c)}`} name="classes" value={c} label={CLASS_NAME[c]} description={CLASS_BLURB[c]} defaultChecked={ticked(c)} />
+              <CheckRow key={`${c}-${ticked(c)}`} name="classes" value={c} label={CLASS_NAME[c]} description={CLASS_BLURB[c]} defaultChecked={ticked(c)} onChange={(e) => toggleClass(c, e.target.checked)} />
             ))}
           </div>
           {f.classes && (
@@ -135,7 +170,11 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
         </fieldset>
       </Section>
 
-      <Section n="4" title="Who will order" lead="The buyer signs in with a 6-digit code sent to their email. The account's owner can add more buyers later.">
+      <Section n="4" title="Licences" lead="Every trade account holds the licences its kind of business needs for the ranges it buys. Attach each one — we check it with the issuer before approving the account.">
+        <Licences needed={needed} v={v} f={f} attachAgain={refusedByServer} />
+      </Section>
+
+      <Section n="5" title="Who will order" lead="The buyer signs in with a 6-digit code sent to their email. The account's owner can add more buyers later.">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <FieldRow label="Buyer's name" htmlFor="f-buyerName" error={f.buyerName}>
             <TextInput id="f-buyerName" name="buyerName" autoComplete="name" required maxLength={120} defaultValue={v.buyerName} aria-invalid={!!f.buyerName} />
@@ -152,7 +191,7 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
         </div>
       </Section>
 
-      <Section n="5" title="Confirm">
+      <Section n="6" title="Confirm">
         <div className="space-y-1">
           <CheckRow key={`adult-${v.adult}`} name="adult" id="f-adult" label="Every buyer who orders for this business is 18 or older." defaultChecked={v.adult === "on"} aria-invalid={!!f.adult} />
           {f.adult && (
@@ -247,6 +286,63 @@ function Address({ prefix, v, f }: { prefix: "" | "delivery"; v: Record<string, 
       <FieldRow label={label("Postal code")} htmlFor={id("postalCode")} error={f[k("postalCode")]}>
         <TextInput id={id("postalCode")} name={k("postalCode")} inputMode="numeric" autoComplete={prefix ? "shipping postal-code" : "billing postal-code"} maxLength={4} defaultValue={v[k("postalCode")]} aria-invalid={!!f[k("postalCode")]} className="tnum" required={!prefix} />
       </FieldRow>
+    </div>
+  );
+}
+
+function Licences({ needed, v, f, attachAgain }: { needed: { kind: TradeLicenceKind; why: string }[]; v: Record<string, string>; f: TradeErrors; attachAgain: boolean }) {
+  if (!needed.length)
+    return <p className="text-sm text-ink-300">Choose the kind of business and tick the ranges above — the licences it needs appear here.</p>;
+  return (
+    <div className="space-y-4">
+      {attachAgain && (
+        <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50" role="status">
+          Attach the documents again — for your security a browser doesn&apos;t keep files from a form that came back.
+        </p>
+      )}
+      {needed.map(({ kind, why }) => {
+        const info = TRADE_LICENCES[kind];
+        const key = (part: "number" | "expiresAt" | "file") => licenceInputName(kind, part);
+        return (
+          <fieldset key={kind} className="rounded-2xl border border-ink-800 bg-ink-950/40 p-4 sm:p-5" data-testid={`licence-${kind}`}>
+            <legend className="sr-only">{info.name}</legend>
+            <div className="flex items-start gap-3">
+              <FileCheck2 className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" aria-hidden />
+              <div>
+                <p className="font-semibold text-white">{info.name}</p>
+                <p className="mt-0.5 text-xs text-ink-400">
+                  {why}. Issued by {info.issuer} ({info.law}).
+                </p>
+              </div>
+            </div>
+            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+              {kind === "CIPC_REGISTRATION" ? (
+                <p className="text-sm text-ink-300 sm:col-span-2">The number is the company registration number you entered above.</p>
+              ) : (
+                <FieldRow label="Licence number" htmlFor={fieldId(key("number"))} error={f[key("number")]} hint={info.hint}>
+                  <TextInput id={fieldId(key("number"))} name={key("number")} required maxLength={40} defaultValue={v[key("number")]} aria-invalid={!!f[key("number")]} className="tnum" />
+                </FieldRow>
+              )}
+              {info.expires && (
+                <FieldRow label="Expires on" htmlFor={fieldId(key("expiresAt"))} error={f[key("expiresAt")]} hint="As printed on the licence.">
+                  <TextInput id={fieldId(key("expiresAt"))} name={key("expiresAt")} type="date" required defaultValue={v[key("expiresAt")]} aria-invalid={!!f[key("expiresAt")]} />
+                </FieldRow>
+              )}
+              <FieldRow label="The document" htmlFor={fieldId(key("file"))} error={f[key("file")]} hint="A PDF, or a clear photo (JPG or PNG) of the whole licence. Up to 5 MB." className="sm:col-span-2">
+                <input
+                  id={fieldId(key("file"))}
+                  name={key("file")}
+                  type="file"
+                  accept={LICENCE_FILE_ACCEPT}
+                  required
+                  aria-invalid={!!f[key("file")]}
+                  className="block w-full rounded-xl border border-ink-700 bg-ink-900 text-sm text-ink-200 file:mr-4 file:h-11 file:rounded-l-xl file:border-0 file:bg-ink-800 file:px-4 file:font-semibold file:text-white hover:file:bg-ink-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-500"
+                />
+              </FieldRow>
+            </div>
+          </fieldset>
+        );
+      })}
     </div>
   );
 }

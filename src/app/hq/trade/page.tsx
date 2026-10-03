@@ -14,6 +14,8 @@ import { ButtonLink } from "@/components/ui/button";
 import { ViewOnly } from "@/components/hq/ui";
 import { TradeAccountBadge, TradeOrderBadge, kindLabel, termsLabel } from "@/components/admin/trade-ui";
 import { accountWhere, orderWhere, tradeScope } from "./scope";
+import { licencesToCheck } from "@/server/trade/licences";
+import { TRADE_LICENCES } from "@/lib/trade-licences";
 
 export const metadata = { title: "Trade" };
 
@@ -21,7 +23,7 @@ export default async function TradeOverviewPage() {
   const s = await tradeScope();
   const aw = accountWhere(s);
   const ow = orderWhere(s);
-  const [queue, accounts, toPick, pending, eft, picking, held, entries, settings] = await Promise.all([
+  const [queue, accounts, toPick, pending, eft, picking, held, entries, settings, toCheck] = await Promise.all([
     tradeQueue(s.ids, s.networkWide),
     db.tradeAccount.groupBy({ by: ["status"], where: aw, _count: true }),
     db.tradeOrder.count({ where: { ...ow, fulfilment: "COURIER", status: { in: ["PLACED", "PICKING"] } } }),
@@ -36,6 +38,7 @@ export default async function TradeOverviewPage() {
     // The ledger is small next to retail (the aged balances report reads it the same way); aged FIFO as of now.
     db.tradeLedgerEntry.findMany({ where: s.networkWide ? {} : { account: aw }, select: { tradeAccountId: true, kind: true, cents: true, dueAt: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
     getSettings(),
+    s.networkWide ? licencesToCheck({ take: 6 }) : db.tradeAccount.findMany({ where: aw, select: { id: true } }).then((rows) => licencesToCheck({ accountIds: rows.map((r) => r.id), take: 6 })),
   ]);
   const n = (status: string) => accounts.find((a) => a.status === status)?._count ?? 0;
   const aged = sumAgedBalances(ageTradeLedger(entries).values());
@@ -83,6 +86,28 @@ export default async function TradeOverviewPage() {
                       <span className="block text-xs text-ink-500">{a.number} · {kindLabel(a.kind)} · {a.city} · applied {timeAgo(a.createdAt)}</span>
                     </span>
                     <TradeAccountBadge status="PENDING" />
+                    <ArrowRight className="h-4 w-4 text-ink-400" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Card>
+
+        <Card>
+          <CardHeader title="Licences to check" description={`Documents from applications and renewals, oldest first${toCheck.total ? ` · ${num(toCheck.total)} waiting` : ""}. Check each with its issuer, then verify it on the account.`} />
+          {toCheck.rows.length === 0 ? (
+            <EmptyState icon={<Briefcase className="h-5 w-5" aria-hidden />} title="Nothing to check" className="py-8">Licences uploaded with applications and renewals appear here.</EmptyState>
+          ) : (
+            <ul className="mt-3 divide-y divide-ink-100 border-t border-ink-100" data-testid="licences-to-check">
+              {toCheck.rows.map((l) => (
+                <li key={l.id}>
+                  <Link href={`/hq/trade/accounts/${l.account.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-brand-50/40">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold text-ink-900">{l.account.name}</span>
+                      <span className="block text-xs text-ink-500">{l.account.number} · {TRADE_LICENCES[l.kind].name} · uploaded {timeAgo(l.createdAt)}</span>
+                    </span>
+                    <Badge tone="blue" dot>To check</Badge>
                     <ArrowRight className="h-4 w-4 text-ink-400" aria-hidden />
                   </Link>
                 </li>
@@ -146,7 +171,7 @@ export default async function TradeOverviewPage() {
                   <Link href={`/hq/trade/accounts/${a.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-brand-50/40">
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-semibold text-ink-900">{a.name}</span>
-                      <span className="block text-xs text-ink-500">{a.number} · {termsLabel(a)} · {a.holdReason === "overdue" ? "overdue invoices" : a.holdReason ?? "held by HQ"}</span>
+                      <span className="block text-xs text-ink-500">{a.number} · {termsLabel(a)} · {a.holdReason === "overdue" ? "overdue invoices" : a.holdReason === "licence" ? "a required licence lapsed" : a.holdReason ?? "held by HQ"}</span>
                     </span>
                     <Badge tone="red" dot>On hold</Badge>
                     <ArrowRight className="h-4 w-4 text-ink-400" aria-hidden />

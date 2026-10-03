@@ -14,7 +14,7 @@ import { MANAGERS } from "./types";
 import { bounds, count, multi, n, ratio, storeLabel, sumRows, variantMap } from "./util";
 
 const TRADE_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"];
-const KIND_LABEL: Record<string, string> = { PHARMACY: "Pharmacy", RETAILER: "Retailer", CAFE: "Café", PRACTICE: "Practice", ONLINE_SHOP: "Online shop", OTHER: "Other" };
+const KIND_LABEL: Record<string, string> = { DISTRIBUTOR: "Distributor", PHARMACY: "Pharmacy", RETAILER: "Retailer", CAFE: "Café", PRACTICE: "Practice", ONLINE_SHOP: "Online shop", OTHER: "Other" };
 const STATUS_LABEL: Record<string, string> = { PENDING: "Pending", APPROVED: "Approved", ON_HOLD: "On hold", CLOSED: "Closed" };
 const termsLabel = (a: { terms: string; paymentDays: number }) => (a.terms === "ACCOUNT" ? `${a.paymentDays} days` : "Prepaid");
 const NO_ACCOUNT = "No account on file";

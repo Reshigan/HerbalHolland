@@ -1,5 +1,5 @@
 "use server";
-// HQ → Trade → Accounts: approval and terms, holds and closure, details, buyers, the ledger (payments, credit notes,
+// HQ → Trade → Accounts: licences (verify or reject), approval and terms, holds and closure, details, buyers, the ledger (payments, credit notes,
 // adjustments, statements) and placing an order on an account's behalf. Every action re-checks the signed-in user
 // (HQ admin or HQ team), hands the work to the trade services (which validate and audit) and turns their errors into
 // inline messages.
@@ -10,6 +10,7 @@ import { audit } from "@/server/audit";
 import { addTradeBuyer, approveTradeAccount, closeTradeAccount, holdTradeAccount, releaseTradeHold, removeTradeBuyer, TradeAccountError, updateTradeAccount, type TradeAccountDetails, type TradeTermsInput } from "@/server/trade/accounts";
 import { adjustTradeLedger, emailTradeStatement, issueCreditNote, recordTradePayment, TradeLedgerError } from "@/server/trade/ledger";
 import { collectStoresFor, defaultDc, placeTradeOrder, TradeOrderError } from "@/server/trade/orders";
+import { rejectTradeLicence, TradeLicenceError, verifyTradeLicence } from "@/server/trade/licences";
 import { tradeRange } from "@/server/pricing";
 import { StockError } from "@/server/inventory";
 import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
@@ -18,7 +19,7 @@ import { TRADE_CLASSES, previousMonth } from "@/lib/trade";
 import type { RegClass } from "@/lib/compliance";
 import type { TradeTerms } from "@/generated/prisma/client";
 
-const EXPECTED = [TradeAccountError, TradeLedgerError, TradeOrderError, StockError];
+const EXPECTED = [TradeAccountError, TradeLedgerError, TradeOrderError, TradeLicenceError, StockError];
 
 /** Runs an action body; the trade services' own errors come back as inline messages, redirects pass through. */
 async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
@@ -75,6 +76,34 @@ export async function saveTerms(id: string, _: ActionState, fd: FormData): Promi
     await updateTradeAccount(id, terms, g.actor);
     refresh(id);
     return done("Terms saved. They apply to the account's next order.");
+  });
+}
+
+/** HQ checked the licence document with the issuer. A licence pause lifts itself once nothing required is lapsed. */
+export async function verifyLicence(id: string, licenceId: string): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  return attempt(async () => {
+    const l = await db.tradeLicence.findFirst({ where: { id: licenceId, tradeAccountId: id }, select: { id: true } });
+    if (!l) return fail("That licence isn't on this account.");
+    const { released } = await verifyTradeLicence(licenceId, g.actor);
+    refresh(id);
+    flashTo(`/hq/trade/accounts/${id}`, released ? "Licence verified — the account's licences are in order again, so its pause is lifted and it has been told." : "Licence verified.");
+  });
+}
+
+/** The document can't be accepted: the account is emailed the reason and uploads another in the portal. */
+export async function rejectLicence(id: string, licenceId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  const reason = str(fd, "reason");
+  if (reason.length < 3) return fail("Say what's wrong — it's in the email the account gets.", { reason: "Required" });
+  return attempt(async () => {
+    const l = await db.tradeLicence.findFirst({ where: { id: licenceId, tradeAccountId: id }, select: { id: true } });
+    if (!l) return fail("That licence isn't on this account.");
+    await rejectTradeLicence(licenceId, reason, g.actor);
+    refresh(id);
+    flashTo(`/hq/trade/accounts/${id}`, "Licence not accepted — the account has been emailed why, and can upload another in the portal.");
   });
 }
 

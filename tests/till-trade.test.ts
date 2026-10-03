@@ -20,6 +20,7 @@ const account = (over: Partial<TradeAccountDTO> = {}): TradeAccountDTO => ({
   paymentDays: 30,
   balanceCents: 120_000,
   availableCents: 380_000,
+  licenceProblem: null,
   ...over,
 });
 

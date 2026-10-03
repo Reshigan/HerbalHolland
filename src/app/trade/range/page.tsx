@@ -47,7 +47,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
   const inCart = new Map(cart.items.map((l) => [l.variantId, l.qty]));
   const cat = category ? categories.find((c) => c.slug === category || c.id === category) : undefined;
   const pending = account.status === "PENDING";
-  const problem = orderingProblem(account);
+  const problem = await orderingProblem(account);
   const href = (o: Partial<SP>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ q: q || undefined, category, ...o })) if (v) p.set(k, String(v));

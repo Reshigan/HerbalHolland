@@ -59,7 +59,7 @@ export default async function TradeCartPage() {
   const problems = [...comp.blocks, ...validateTradeBasket(q.lines.map((l) => ({ name: l.name, qty: l.qty, unitCents: l.exCents / l.qty, caseQty: l.caseQty })), { minOrderCents: t.minOrderCents })];
   const shortAtDc = store ? q.lines.filter((l) => (avail.get(availKey(store.id, l.variantId))?.available ?? 0) < l.qty) : [];
   const progress = minOrderProgress(q.exCents ?? 0, t.minOrderCents);
-  const ordering = orderingProblem(account);
+  const ordering = await orderingProblem(account);
   const units = q.lines.reduce((s, l) => s + l.qty, 0);
   const canCheckout = problems.length === 0 && !ordering && !!store;
 

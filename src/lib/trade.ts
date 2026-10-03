@@ -6,6 +6,7 @@ import { PROVINCES, type ProvinceCode } from "./sa";
 import { REG_CLASSES, type RegClass } from "./compliance";
 import { zar } from "./money";
 import { addDays } from "./format";
+import { checkLicenceInput, licenceInSentence, requiredLicences, TRADE_LICENCES, TRADE_LICENCE_KINDS, type TradeLicenceKind } from "./trade-licences";
 
 // ── Numbers ──────────────────────────────────────────────────────────────────
 // Counter keys (src/server/counters.ts nextNumber): "trade-account", "trade-order", "trade-invoice", "trade-credit".
@@ -265,6 +266,7 @@ export const TRADE_KINDS = {
   CAFE: "Café or restaurant",
   PRACTICE: "Wellness or health practice",
   ONLINE_SHOP: "Online shop",
+  DISTRIBUTOR: "Wholesaler or distributor",
   OTHER: "Other business",
 } as const;
 export type TradeKind = keyof typeof TRADE_KINDS;
@@ -277,8 +279,14 @@ export type TradeField =
   | "addressLine" | "suburb" | "city" | "province" | "postalCode"
   | "deliveryLine" | "deliverySuburb" | "deliveryCity" | "deliveryProvince" | "deliveryPostalCode"
   | "classes" | "buyerName" | "buyerEmail" | "buyerPhone" | "notes" | "adult" | "terms";
-/** What the form sent: untrusted text, checkboxes as "on", classes as an array (or comma-separated). */
-export type RawTradeApplication = Partial<Record<TradeField, string | boolean | string[] | null | undefined>>;
+/** What the form sent: untrusted text, checkboxes as "on", classes as an array (or comma-separated); each licence's number
+ * and expiry as typed, and which licences came with a document attached (the files themselves go to the server). */
+export type RawTradeApplication = Partial<Record<TradeField, string | boolean | string[] | null | undefined>> & {
+  licences?: Partial<Record<string, { number?: string | null; expiresAt?: string | null }>>;
+  licenceFiles?: readonly string[];
+};
+/** A licence field's error key: `licence.PHARMACY_LICENCE.number`, `….expiresAt`, `….file`. */
+export type LicenceField = `licence.${TradeLicenceKind}.${"number" | "expiresAt" | "file"}`;
 export type CleanTradeApplication = {
   legalName: string;
   name: string;
@@ -298,8 +306,9 @@ export type CleanTradeApplication = {
   buyerEmail: string;
   buyerPhone: string | null;
   notes: string | null;
+  licences: { kind: TradeLicenceKind; number: string; expiresAt: Date | null }[]; // what the kind of business and its ranges require
 };
-export type TradeErrors = Partial<Record<TradeField, string>>;
+export type TradeErrors = Partial<Record<TradeField | LicenceField, string>>;
 export type TradeApplicationCheck = { ok: true; data: CleanTradeApplication } | { ok: false; fields: TradeErrors };
 
 const text = (v: unknown) => (typeof v === "string" ? v : "");
@@ -333,7 +342,7 @@ export const normaliseEmail = (raw: string) => line(raw).toLowerCase();
 const classList = (v: unknown): string[] => (Array.isArray(v) ? v.map((x) => line(x)) : line(v) ? line(v).split(/[,\s]+/) : []);
 
 /** Checks and tidies a trade application. Every problem is a plain message against its field. */
-export function validateTradeApplication(raw: RawTradeApplication): TradeApplicationCheck {
+export function validateTradeApplication(raw: RawTradeApplication, now = new Date()): TradeApplicationCheck {
   const f: TradeErrors = {};
   const legalName = line(raw.legalName);
   const name = line(raw.name) || legalName;
@@ -379,6 +388,24 @@ export function validateTradeApplication(raw: RawTradeApplication): TradeApplica
   if (!ticked(raw.adult)) f.adult = "Confirm that everyone who orders for this business is 18 or older";
   if (!ticked(raw.terms)) f.terms = "Accept the trade terms to apply";
 
+  // The licences this kind of business needs for these ranges: each with its number (a company registration certificate
+  // uses the registration number above), its expiry when it lapses, and the document.
+  const licences: CleanTradeApplication["licences"] = [];
+  if (isTradeKind(kindRaw) && !f.classes) {
+    for (const { kind } of requiredLicences(kindRaw, classes)) {
+      const typed = raw.licences?.[kind] ?? {};
+      if (kind === "CIPC_REGISTRATION") {
+        if (!regRaw) f.regNumber = "Enter the company registration number — this kind of business needs it";
+      }
+      const check = checkLicenceInput(kind, kind === "CIPC_REGISTRATION" ? { number: regNumber ?? regRaw, expiresAt: null } : { number: typed.number, expiresAt: TRADE_LICENCES[kind].expires ? typed.expiresAt : null }, now);
+      if (!check.ok) {
+        if (check.fields.number && kind !== "CIPC_REGISTRATION") f[`licence.${kind}.number`] = check.fields.number;
+        if (check.fields.expiresAt) f[`licence.${kind}.expiresAt`] = check.fields.expiresAt;
+      } else licences.push({ kind, number: check.number, expiresAt: check.expiresAt });
+      if (!raw.licenceFiles?.includes(kind)) f[`licence.${kind}.file`] = `Attach the ${licenceInSentence(kind)} (a PDF or a photo)`;
+    }
+  }
+
   const dLine = line(raw.deliveryLine);
   let delivery: CleanTradeApplication["delivery"] = null;
   if (dLine) {
@@ -397,9 +424,36 @@ export function validateTradeApplication(raw: RawTradeApplication): TradeApplica
     ok: true,
     data: {
       legalName, name, kind: kindRaw as TradeKind, regNumber, vatNumber, email, phone: phone!, addressLine, suburb, city, province: province as ProvinceCode, postalCode,
-      delivery, classes: classes as RegClass[], buyerName, buyerEmail, buyerPhone, notes,
+      delivery, classes: classes as RegClass[], buyerName, buyerEmail, buyerPhone, notes, licences,
     },
   };
+}
+
+/** The application form's text fields, as named in the form. */
+export const TRADE_TEXT_FIELDS = [
+  "legalName", "name", "kind", "regNumber", "vatNumber", "email", "phone", "addressLine", "suburb", "city", "province", "postalCode",
+  "deliveryLine", "deliverySuburb", "deliveryCity", "deliveryProvince", "deliveryPostalCode", "buyerName", "buyerEmail", "buyerPhone", "notes",
+] as const satisfies readonly TradeField[];
+
+/** A licence input's form name: `licence.PHARMACY_LICENCE.number`, `….expiresAt`, `….file`. */
+export const licenceInputName = (kind: TradeLicenceKind, part: "number" | "expiresAt" | "file") => `licence.${kind}.${part}` as LicenceField;
+
+/**
+ * The application as the form posts it. The browser's check before sending and the server action read the form the
+ * same way, so a typing mistake is caught before any document leaves the browser.
+ */
+export function applicationFromForm(form: FormData): RawTradeApplication {
+  const get = (k: string) => String(form.get(k) ?? "").slice(0, 2_000);
+  const raw: RawTradeApplication = Object.fromEntries(TRADE_TEXT_FIELDS.map((k) => [k, get(k)]));
+  raw.classes = form.getAll("classes").map((c) => String(c).slice(0, 20));
+  raw.adult = form.get("adult") === "on";
+  raw.terms = form.get("terms") === "on";
+  raw.licences = Object.fromEntries(TRADE_LICENCE_KINDS.map((k) => [k, { number: get(licenceInputName(k, "number")), expiresAt: get(licenceInputName(k, "expiresAt")) }]));
+  raw.licenceFiles = TRADE_LICENCE_KINDS.filter((k) => {
+    const f = form.get(licenceInputName(k, "file"));
+    return typeof f === "object" && f !== null && f.size > 0;
+  });
+  return raw;
 }
 
 /** One line for an address block: "1 Burnett St, Hatfield, Pretoria, 0083". */

@@ -1,8 +1,9 @@
 // The trade account: status and terms, credit (limit, exposure, available), balance and ageing from the ledger,
-// the business details (editable by an owner), and the buyers (owners add and remove).
+// the licences the business must hold (status, and uploading a renewal), the business details (editable by an
+// owner), and the buyers (owners add and remove).
 import Link from "next/link";
 import type { Metadata } from "next";
-import { AlertTriangle, Users } from "lucide-react";
+import { AlertTriangle, FileCheck2, Users } from "lucide-react";
 import { tradeAccountSummary, tradeEmail } from "@/server/trade/accounts";
 import { Callout, Container, Panel, Tag } from "@/components/shop/ui";
 import { AccountStatusTag } from "@/components/trade/status";
@@ -13,6 +14,9 @@ import { fmtDate, fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { requireBuyer } from "../_lib/context";
+import { standingOf } from "@/server/trade/licences";
+import { LicenceUploadForm } from "@/components/trade/licence-form";
+import type { LicenceLine } from "@/lib/trade-licences";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false, follow: false } };
 
@@ -31,6 +35,8 @@ export default async function TradeAccountPage() {
     deliveryLine: a.deliveryLine ?? "", deliverySuburb: a.deliverySuburb ?? "", deliveryCity: a.deliveryCity ?? "", deliveryProvince: a.deliveryProvince ?? "", deliveryPostalCode: a.deliveryPostalCode ?? "",
   };
   const ageing: [string, number][] = [["Current", s.ageing.current], ["30 days", s.ageing.d30], ["60 days", s.ageing.d60], ["90+ days", s.ageing.d90plus]];
+  const licences = await standingOf(a);
+  const firstProblem = licences.lines.find((l) => l.problem)?.kind ?? licences.lines.find((l) => l.state === "expiring")?.kind ?? licences.lines[0]?.kind;
 
   return (
     <Container className="pt-10 sm:pt-14">
@@ -55,7 +61,11 @@ export default async function TradeAccountPage() {
       )}
       {a.status === "ON_HOLD" && (
         <Callout tone="warn" icon={<AlertTriangle className="h-5 w-5" aria-hidden />} className="mt-8" title="Your account is on hold">
-          {a.holdReason === "overdue" ? `An invoice is past its due date: ${zar(s.ageing.overdue)} is overdue on a balance of ${zar(s.balanceCents)}. Settle it and the hold lifts by itself.` : `Reason given: ${a.holdReason ?? "ask the trade team"}.`} Nothing new goes on account meanwhile; you can still see prices and your statements.
+          {a.holdReason === "overdue"
+            ? `An invoice is past its due date: ${zar(s.ageing.overdue)} is overdue on a balance of ${zar(s.balanceCents)}. Settle it and the hold lifts by itself. Nothing new goes on account meanwhile; you can still see prices and your statements.`
+            : a.holdReason === "licence"
+              ? "A licence the business needs has lapsed. Upload the renewal under Licences below — ordering resumes as soon as we've checked it."
+              : `Reason given: ${a.holdReason ?? "ask the trade team"}. Nothing new goes on account meanwhile; you can still see prices and your statements.`}
         </Callout>
       )}
 
@@ -85,7 +95,31 @@ export default async function TradeAccountPage() {
         </Panel>
       </div>
 
-      <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <section id="licences" aria-labelledby="licences-h" className="mt-12 scroll-mt-24">
+        <h2 id="licences-h" className="flex items-center gap-2 font-display text-xl font-semibold text-white">
+          <FileCheck2 className="h-5 w-5 text-brand-500" aria-hidden /> Licences
+        </h2>
+        <p className="mt-2 max-w-3xl text-sm text-ink-400">
+          What a {(TRADE_KINDS[a.kind as keyof typeof TRADE_KINDS] ?? "business").toLowerCase()} needs for the ranges it buys. We check each one with its issuer before the first order, remind you a month before one lapses, and pause ordering while a required licence has lapsed.
+        </p>
+        <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <ul className="space-y-3" data-testid="licences">
+            {licences.lines.map((l) => (
+              <LicenceItem key={l.kind} line={l} />
+            ))}
+          </ul>
+          {a.status !== "CLOSED" && firstProblem && (
+            <Panel className="p-5">
+              <h3 className="font-semibold text-white">Upload a licence or its renewal</h3>
+              <div className="mt-4">
+                <LicenceUploadForm kinds={licences.lines.map((l) => l.kind)} initial={firstProblem} />
+              </div>
+            </Panel>
+          )}
+        </div>
+      </section>
+
+      <div className="mt-12 grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <section aria-labelledby="ageing">
           <h2 id="ageing" className="font-display text-xl font-semibold text-white">
             Age analysis
@@ -184,5 +218,41 @@ export default async function TradeAccountPage() {
         )}
       </section>
     </Container>
+  );
+}
+
+const LICENCE_TAG: Record<LicenceLine["state"], { tone: "green" | "amber" | "red" | "neutral"; label: string }> = {
+  ok: { tone: "green", label: "Verified" },
+  expiring: { tone: "amber", label: "Expires soon" },
+  pending: { tone: "neutral", label: "Being checked" },
+  rejected: { tone: "red", label: "Not accepted" },
+  expired: { tone: "red", label: "Expired" },
+  missing: { tone: "red", label: "Needed" },
+};
+
+function LicenceItem({ line: l }: { line: LicenceLine }) {
+  const shown = l.current ?? l.latest;
+  const tag = LICENCE_TAG[l.state];
+  return (
+    <li className="rounded-2xl border border-ink-800 bg-ink-900/60 p-4" data-testid={`licence-${l.kind}`} data-state={l.state}>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <div>
+          <p className="font-semibold text-white">{l.name}</p>
+          <p className="mt-0.5 text-xs text-ink-400">{l.why}.</p>
+        </div>
+        <Tag tone={tag.tone}>{tag.label}</Tag>
+      </div>
+      {shown && (
+        <p className="tnum mt-3 text-sm text-ink-200">
+          No. {shown.number}
+          {shown.expiresAt ? ` · expires ${fmtDate(shown.expiresAt)}` : ""} ·{" "}
+          <a href={`/trade/licences/${shown.id}/file`} target="_blank" rel="noopener" className="font-semibold text-brand-400 underline hover:text-brand-300">
+            View the document
+          </a>
+        </p>
+      )}
+      {l.pending && l.current && <p className="mt-2 text-xs text-ink-300">A renewal (no. {l.pending.number}) is with the trade team for checking.</p>}
+      {l.problem && <p className="mt-2 text-xs font-medium text-rose-100">{l.problem}</p>}
+    </li>
   );
 }

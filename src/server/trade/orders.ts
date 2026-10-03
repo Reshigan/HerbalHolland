@@ -22,6 +22,7 @@ import { addDays } from "@/lib/format";
 import { tradeAllowed, type RegClass } from "@/lib/compliance";
 import { ACCOUNT_STATUS_PROBLEM, addressLineOf, caseMultiple, creditDecision, tradeBuyerBlock, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeTotals, validateTradeBasket, vatHalfUp } from "@/lib/trade";
 import { postLedgerEntry, openOnAccountCents, tradeBalance } from "./ledger";
+import { licenceProblem } from "./licences";
 import { tradeActor } from "./accounts";
 import { tradeOrderEmail, tradePortalUrl, tradeProFormaEmail, tradeReadySms, type TradeOrderEmailInfo, type TradeOrderEvent } from "./emails";
 import type { TradeAccount, TradeOrder, TradeOrderStatus } from "@/generated/prisma/client";
@@ -155,7 +156,11 @@ export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   if (!account) throw new TradeOrderError("Unknown trade account");
   // A held account (overdue, or held by HQ) may still order prepaid — the hold stops credit, not trade — as its emails say.
   const canOrder = account.status === "APPROVED" || (account.status === "ON_HOLD" && input.payMethod === "EFT");
+  if (account.status === "ON_HOLD" && account.holdReason === "licence") throw new TradeOrderError((await licenceProblem(account)) ?? "This trade account's licences need attention — see Account › Licences");
   if (!canOrder) throw new TradeOrderError(account.status === "ON_HOLD" ? `${ACCOUNT_STATUS_PROBLEM.ON_HOLD} — or pay this order by EFT` : ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
+  // We only supply an account whose required licences are verified and in date (src/lib/trade-licences.ts).
+  const lp = await licenceProblem(account);
+  if (lp) throw new TradeOrderError(`${lp} (Account › Licences)`);
   const buyer = input.buyerId ? await db.tradeBuyer.findUnique({ where: { id: input.buyerId } }) : null;
   if (input.buyerId && (!buyer || buyer.tradeAccountId !== account.id || !buyer.active)) throw new TradeOrderError("This buyer can't order for the account");
   const actor: Actor = buyer ? tradeActor(buyer) : (input.actor ?? SYSTEM);
@@ -333,6 +338,10 @@ export async function advanceTradeOrder(orderId: string, action: TradeOrderActio
   if (!FROM[action].includes(o.status)) throw new TradeOrderError(`Can't ${action} an order that is ${o.status.toLowerCase().replace("_", " ")}`);
   if (action === "collect" && !opts.idChecked) throw new TradeOrderError("Check the collector's ID (18+) and the collection code before handing over");
   if ((action === "ship" || action === "collect") && o.account.status === "CLOSED") throw new TradeOrderError(ACCOUNT_STATUS_PROBLEM.CLOSED);
+  if (action === "ship" || action === "collect") {
+    const lp = await licenceProblem(o.account);
+    if (lp) throw new TradeOrderError(`This order can't be supplied until the account's licences are in order: ${lp}`);
+  }
   const now = new Date();
   const posting = action === "ship" || action === "collect";
 

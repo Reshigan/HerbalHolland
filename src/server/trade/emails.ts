@@ -116,12 +116,13 @@ export function tradeOnHoldEmail(a: { account: TradeAccountInfo; reason: string;
   };
 }
 
-export function tradeHoldLiftedEmail(a: { account: TradeAccountInfo; url: string }): Rendered {
-  const body = para(`Thanks — the account <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) is back in good standing and orders can go on account again.`);
+export function tradeHoldLiftedEmail(a: { account: TradeAccountInfo; url: string; licence?: boolean }): Rendered {
+  const line = a.licence ? "is back in good standing: its licences are in order and orders can go through again" : "is back in good standing and orders can go on account again";
+  const body = para(`Thanks — the account <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) ${line}.`);
   return {
     subject: `${SUBJECT}: account ${a.account.number} hold lifted`,
     html: emailLayout({ preheader: "Your trade account is back in good standing", eyebrow: "Trade account", heading: "Hold lifted", body, cta: { label: "Place an order", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
-    text: textDoc(`The account ${a.account.legalName} (${a.account.number}) is back in good standing and orders can go on account again.`, "", `Order: ${a.url}`),
+    text: textDoc(`The account ${a.account.legalName} (${a.account.number}) ${line}.`, "", `Order: ${a.url}`),
   };
 }
 
@@ -409,3 +410,59 @@ export function tradeStatementEmail(st: TradeStatementEmailInput): Rendered {
 
 /** The account's address on one line, for emails and the buyer block. */
 export const accountAddress = addressLineOf;
+
+// ── Licences ─────────────────────────────────────────────────────────────────
+
+/** To the trade team: a licence document to check (a new application's, or a renewal from the portal). */
+export function tradeLicenceNoticeEmail(a: { account: TradeAccountInfo; licence: string; number: string; expiresAt: Date | null; url: string }): Rendered {
+  const rows: [string, string][] = [
+    ["Account", `${esc(a.account.number)} · ${esc(a.account.legalName)}`],
+    ["Licence", esc(a.licence)],
+    ["Number", esc(a.number)],
+    ["Expires", a.expiresAt ? esc(fmtDate(a.expiresAt)) : "—"],
+  ];
+  const body = para("A trade account uploaded a licence for checking. Compare the document with the issuer's register before you verify it.") + facts(rows);
+  return {
+    subject: `${SUBJECT}: licence to check — ${a.account.legalName}`,
+    html: emailLayout({ preheader: `${a.licence} to check for ${a.account.legalName}`, eyebrow: "HQ · Trade", heading: "A licence to check", body, cta: { label: "Open it in HQ", href: a.url }, footerHtml: "Sent to the trade team's address (TRADE_EMAIL / FRANCHISE_EMAIL)." }),
+    text: textDoc("A trade account uploaded a licence for checking.", "", ...rows.map(([k, v]) => `${k}: ${v.replace(/<[^>]+>/g, "")}`), "", `Open it in HQ: ${a.url}`),
+  };
+}
+
+/** To the account: HQ couldn't accept a licence document. */
+export function tradeLicenceRejectedEmail(a: { account: TradeAccountInfo; licence: string; reason: string; url: string }): Rendered {
+  const body =
+    para(`We couldn't accept the <b>${esc(a.licence)}</b> uploaded for <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}).`) +
+    callout(`<b>Why:</b> ${esc(a.reason)}`, "soft") +
+    para("Upload a clear copy of the current licence under Account › Licences in the trade portal and we'll check it again.");
+  return {
+    subject: `${SUBJECT}: ${a.licence} not accepted — ${a.account.number}`,
+    html: emailLayout({ preheader: `We couldn't accept the ${a.licence}`, eyebrow: "Trade account", heading: "Licence not accepted", body, cta: { label: "Upload it again", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
+    text: textDoc(`We couldn't accept the ${a.licence} uploaded for ${a.account.legalName} (${a.account.number}).`, `Why: ${a.reason}`, "", `Upload it again: ${a.url}`),
+  };
+}
+
+/** To the account: a licence lapses soon. */
+export function tradeLicenceExpiringEmail(a: { account: TradeAccountInfo; licence: string; expiresAt: Date; url: string }): Rendered {
+  const body =
+    para(`The <b>${esc(a.licence)}</b> we hold for <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) expires on <b>${esc(fmtDate(a.expiresAt))}</b>.`) +
+    para("Upload the renewed licence under Account › Licences before then so ordering carries on without a pause. We can't supply the account once a required licence has lapsed.");
+  return {
+    subject: `${SUBJECT}: ${a.licence} expires ${fmtDate(a.expiresAt)}`,
+    html: emailLayout({ preheader: `Your ${a.licence} expires on ${fmtDate(a.expiresAt)}`, eyebrow: "Trade account", heading: "A licence is about to expire", body, cta: { label: "Upload the renewal", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
+    text: textDoc(`The ${a.licence} we hold for ${a.account.legalName} (${a.account.number}) expires on ${fmtDate(a.expiresAt)}.`, "Upload the renewed licence under Account › Licences before then so ordering carries on without a pause.", "", `Upload: ${a.url}`),
+  };
+}
+
+/** To the account: trading is paused because a required licence lapsed. */
+export function tradeLicenceHoldEmail(a: { account: TradeAccountInfo; problems: string[]; url: string }): Rendered {
+  const body =
+    para(`Ordering for <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) is paused: we can't supply the account until its licences are in order.`) +
+    callout(a.problems.map((p) => esc(p)).join("<br>"), "soft") +
+    para("Upload the renewed licence under Account › Licences. As soon as we've checked it the account is back in good standing — usually within a working day.");
+  return {
+    subject: `${SUBJECT}: ordering paused for ${a.account.number} — licence`,
+    html: emailLayout({ preheader: "A required licence has lapsed", eyebrow: "Trade account", heading: "Ordering paused", body, cta: { label: "Upload the renewal", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
+    text: textDoc(`Ordering for ${a.account.legalName} (${a.account.number}) is paused until its licences are in order.`, ...a.problems, "", `Upload: ${a.url}`),
+  };
+}

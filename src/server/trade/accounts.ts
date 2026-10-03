@@ -12,6 +12,10 @@ import type { RegClass } from "@/lib/compliance";
 import { ledgerEntries, tradeBalance } from "./ledger";
 import { ageing } from "@/lib/trade";
 import { tradeApplicationNoticeEmail, tradeApplicationReceivedEmail, tradeApprovedEmail, tradeClosedEmail, tradeHoldLiftedEmail, tradeOnHoldEmail, tradePortalUrl } from "./emails";
+import { ipHash } from "../leads";
+import { UploadError } from "../uploads";
+import { licenceProblem, standingOf, storeLicenceDocument } from "./licences";
+import { isTradeLicenceKind, type TradeLicenceKind } from "@/lib/trade-licences";
 import type { Prisma, TradeAccount, TradeAccountStatus, TradeBuyer, TradeTerms } from "@/generated/prisma/client";
 
 export class TradeAccountError extends Error {}
@@ -35,13 +39,34 @@ export type ApplyResult = { ok: true; account: TradeAccount; buyer: TradeBuyer }
  * (TA-…) with its OWNER buyer, an acknowledgement to the buyer, a notice to the trade team, and the audit entry
  * `trade.apply`. A buyer email already in use is refused by field: they sign in instead.
  */
-export async function applyForTradeAccount(raw: RawTradeApplication, opts: { source?: string | null } = {}): Promise<ApplyResult> {
-  const check = validateTradeApplication(raw);
+/** Applications from one connection in an hour before the portal asks them to wait (the form carries documents). */
+export const APPLICATIONS_PER_IP_HOUR = 5;
+
+export async function applyForTradeAccount(
+  raw: RawTradeApplication,
+  opts: { source?: string | null; ip?: string | null; files?: Partial<Record<string, File | null>> } = {},
+): Promise<ApplyResult> {
+  // The licence documents that came with the form (their contents are checked once everything typed is in order).
+  const files = new Map(Object.entries(opts.files ?? {}).filter((e): e is [TradeLicenceKind, File] => isTradeLicenceKind(e[0]) && e[1] instanceof File && e[1].size > 0));
+  const check = validateTradeApplication({ ...raw, licenceFiles: [...files.keys()] });
   if (!check.ok) return check;
   const d = check.data;
   const settings = await getSettings();
   if (await db.tradeBuyer.findUnique({ where: { email: d.buyerEmail }, select: { id: true } }))
     return { ok: false, fields: { buyerEmail: "That email address already signs in to a trade account — sign in, or use another address for this business" } };
+  const hash = opts.ip ? ipHash(opts.ip) : null;
+  if (hash && (await db.tradeAccount.count({ where: { ipHash: hash, createdAt: { gte: new Date(Date.now() - 3_600_000) } } })) >= APPLICATIONS_PER_IP_HOUR)
+    return { ok: false, fields: {}, error: "We've had several applications from this connection in the last hour — please try again later, or email the trade team." };
+  // The documents: checked by their bytes and stored before the account exists (a refused one stores nothing of the rest).
+  const uploads = new Map<TradeLicenceKind, string>();
+  for (const l of d.licences) {
+    try {
+      uploads.set(l.kind, await storeLicenceDocument(files.get(l.kind)!, l.kind));
+    } catch (e) {
+      if (e instanceof UploadError) return { ok: false, fields: { [`licence.${l.kind}.file`]: e.message } };
+      throw e;
+    }
+  }
   const now = new Date();
   const { account, buyer } = await tx(async (t) => {
     const number = tradeAccountNumber(await nextNumber(t, "trade-account"));
@@ -50,13 +75,15 @@ export async function applyForTradeAccount(raw: RawTradeApplication, opts: { sou
         number, name: d.name, legalName: d.legalName, kind: d.kind, regNumber: d.regNumber, vatNumber: d.vatNumber, email: d.email, phone: d.phone,
         addressLine: d.addressLine, suburb: d.suburb, city: d.city, province: d.province, postalCode: d.postalCode,
         deliveryLine: d.delivery?.addressLine ?? null, deliverySuburb: d.delivery?.suburb ?? null, deliveryCity: d.delivery?.city ?? null, deliveryProvince: d.delivery?.province ?? null, deliveryPostalCode: d.delivery?.postalCode ?? null,
-        status: "PENDING", terms: "PREPAID", classes: d.classes, notes: d.notes, adultAttestedAt: now, termsVersion: settings.trade.termsVersion, termsAcceptedAt: now,
+        status: "PENDING", terms: "PREPAID", classes: d.classes, notes: d.notes, adultAttestedAt: now, termsVersion: settings.trade.termsVersion, termsAcceptedAt: now, ipHash: hash,
         buyers: { create: { name: d.buyerName, email: d.buyerEmail, phone: d.buyerPhone, role: "OWNER" } },
       },
       include: { buyers: true },
     });
     const buyer = account.buyers[0];
-    await audit(t, tradeActor(buyer), "trade.apply", { entity: "TradeAccount", entityId: account.id, data: { number, kind: d.kind, classes: d.classes, termsVersion: settings.trade.termsVersion, source: opts.source ?? null } });
+    if (d.licences.length)
+      await t.tradeLicence.createMany({ data: d.licences.map((l) => ({ tradeAccountId: account.id, kind: l.kind, number: l.number, expiresAt: l.expiresAt, uploadId: uploads.get(l.kind)!, submittedById: buyer.id })) });
+    await audit(t, tradeActor(buyer), "trade.apply", { entity: "TradeAccount", entityId: account.id, data: { number, kind: d.kind, classes: d.classes, licences: d.licences.map((l) => ({ kind: l.kind, number: l.number, expiresAt: l.expiresAt })), termsVersion: settings.trade.termsVersion, source: opts.source ?? null } });
     return { account, buyer };
   });
   await Promise.all([
@@ -102,6 +129,9 @@ export async function approveTradeAccount(id: string, input: TradeTermsInput, ac
     const before = await t.tradeAccount.findUniqueOrThrow({ where: { id } });
     if (before.status === "CLOSED") throw new TradeAccountError("This account is closed — reopen it first");
     const data = await checkTerms(t, input);
+    // Licences first: every one this kind of business needs for the approved ranges, verified and in date.
+    const standing = await standingOf(before, { classes: data.classes, t });
+    if (!standing.ok) throw new TradeAccountError(`Verify the licences first: ${standing.problems.join("; ")}`);
     const account = await t.tradeAccount.update({ where: { id }, data: { ...data, status: "APPROVED", holdReason: null, approvedAt: before.approvedAt ?? new Date(), approvedById: actor.id ?? null } });
     await audit(t, actor, "trade.account.approve", { entity: "TradeAccount", entityId: id, data: { number: account.number, from: before.status, terms: data.terms, creditLimitCents: data.creditLimitCents, paymentDays: data.paymentDays, classes: data.classes } });
     return account;
@@ -260,6 +290,13 @@ export async function updateTradeAccount(id: string, patch: Partial<TradeAccount
       const terms = await checkTerms(t, { terms: patch.terms ?? before.terms, creditLimitCents: patch.creditLimitCents ?? before.creditLimitCents, paymentDays: patch.paymentDays ?? before.paymentDays, classes: patch.classes ?? before.classes, priceListId: patch.priceListId === undefined ? before.priceListId : patch.priceListId, dcId: patch.dcId === undefined ? before.dcId : patch.dcId, notes: patch.notes });
       Object.assign(data, terms);
     }
+    // A new kind of business or new ranges can need licences the account hasn't given yet.
+    const nextKind = (data.kind as string | undefined) ?? before.kind;
+    const nextClasses = (data.classes as string[] | undefined) ?? before.classes;
+    if ((before.status === "APPROVED" || before.status === "ON_HOLD") && (nextKind !== before.kind || nextClasses.join() !== before.classes.join())) {
+      const standing = await standingOf(before, { kind: nextKind, classes: nextClasses, t });
+      if (!standing.ok) throw new TradeAccountError(`The account needs its licences in order for that first: ${standing.problems.join("; ")}`);
+    }
     const account = await t.tradeAccount.update({ where: { id }, data });
     await audit(t, actor, "trade.account.update", { entity: "TradeAccount", entityId: id, data: { number: account.number, changed: [...detailKeys, ...termKeys] } });
     return account;
@@ -371,6 +408,7 @@ export type TradeAccountHit = {
   paymentDays: number;
   balanceCents: number;
   availableCents: number; // what may still go on account now
+  licenceProblem: string | null; // a required licence missing, waiting for HQ, or lapsed: the till can't sell to it
 };
 
 /** The till's lookup: approved accounts (and those on hold, who may pay in money) by name, number or VAT number, with terms, limit and balance. */
@@ -386,12 +424,14 @@ export async function tradeAccountLookup(q: string, opts: { limit?: number; incl
   ]);
   const balance = new Map(balances.map((b) => [b.tradeAccountId, b._sum.cents ?? 0]));
   const openCents = new Map(open.map((o) => [o.tradeAccountId, o._sum.totalCents ?? 0]));
+  const licence = new Map(await Promise.all(rows.map(async (r) => [r.id, await licenceProblem(r)] as const)));
   return rows.map((r) => {
     const balanceCents = balance.get(r.id) ?? 0;
     const exposure = balanceCents + (openCents.get(r.id) ?? 0);
     return {
       id: r.id, number: r.number, name: r.name, legalName: r.legalName, vatNumber: r.vatNumber, status: r.status, terms: r.terms, classes: r.classes, creditLimitCents: r.creditLimitCents, paymentDays: r.paymentDays,
       balanceCents, availableCents: r.terms === "ACCOUNT" && r.status === "APPROVED" ? Math.max(0, r.creditLimitCents - exposure) : 0,
+      licenceProblem: licence.get(r.id) ?? null,
     };
   });
 }

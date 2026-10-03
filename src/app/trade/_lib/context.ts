@@ -1,6 +1,7 @@
 // Request context for the trade portal's pages: the signed-in buyer (or the sign-in page), the warehouse the
 // account's range is priced from, the cart as the WHOLESALE engine quotes it, and the plain reason an account can't
 // order. Every mutation re-checks all of this itself in src/server/trade/*; this is for rendering.
+import { licenceProblem } from "@/server/trade/licences";
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
@@ -42,8 +43,11 @@ export async function cartQuote(account: Pick<TradeAccount, "id" | "dcId">) {
 }
 
 /** Why the account can't place an order right now, in the server's own words — null when it can. */
-export function orderingProblem(a: Pick<TradeAccount, "status" | "holdReason">) {
+/** Why this account can't order right now (its status, or a required licence missing, waiting or lapsed), or null. */
+export async function orderingProblem(a: Pick<TradeAccount, "id" | "kind" | "classes" | "status" | "holdReason">) {
+  const licence = a.status === "APPROVED" || a.status === "ON_HOLD" ? await licenceProblem(a) : null;
+  if (licence) return `Ordering is paused: ${licence}. Upload it under Account › Licences.`;
   if (a.status === "APPROVED") return null;
   const base = ACCOUNT_STATUS_PROBLEM[a.status as keyof typeof ACCOUNT_STATUS_PROBLEM] ?? "This trade account can't order right now";
-  return a.status === "ON_HOLD" && a.holdReason && a.holdReason !== "overdue" ? `${base}. Reason given: ${a.holdReason}` : base;
+  return a.status === "ON_HOLD" && a.holdReason && a.holdReason !== "overdue" && a.holdReason !== "licence" ? `${base}. Reason given: ${a.holdReason}` : base;
 }

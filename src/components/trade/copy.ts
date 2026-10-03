@@ -47,8 +47,8 @@ export const HOW = {
   eyebrow: "How it works",
   title: "Apply, get approved, order.",
   steps: [
-    { n: "1", title: "Apply", text: "Tell us about the business, where to deliver and what you would like to stock. It takes about five minutes." },
-    { n: "2", title: "Approved", text: "Our trade team checks the application and emails you within one business day with your terms." },
+    { n: "1", title: "Apply", text: "Tell us about the business, what you would like to stock and where to deliver, and upload the licences your kind of business holds. It takes about ten minutes." },
+    { n: "2", title: "Approved", text: "Our trade team checks the application and each licence with its issuer, and emails you within one business day with your terms." },
     { n: "3", title: "Order", text: "Sign in with a code sent to your email, add cases to your cart and choose courier or collection. Your invoice follows when it ships." },
   ],
 };
@@ -57,6 +57,7 @@ export const FACTS = {
   eyebrow: "Good to know",
   items: [
     "Buyers are adults, 18 or older, and the business keeps its own records of who collects.",
+    "Every account holds the licences its kind of business needs: a pharmacy licence and SAPC recording, a SAHPRA licence to resell CBD supplements, a certificate of acceptability to sell food. We check each one before the first order and ask for the renewal before it lapses.",
     "Licensed (THC) medicines are never traded; everything else is on the list.",
     "Prices are ex VAT with VAT shown per line. No points, member prices or consumer deals apply to trade orders.",
     "A short-shipped line is invoiced for what was supplied.",

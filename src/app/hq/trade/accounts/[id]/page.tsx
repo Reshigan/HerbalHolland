@@ -28,7 +28,9 @@ import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { AgeingChips, FULFIL_LABEL, LEDGER_LABEL, LEDGER_TONE, PAY_LABEL, TradeAccountBadge, TradeOrderBadge, kindLabel, termsLabel } from "@/components/admin/trade-ui";
 import { accountWhere, orderWhere, tradeScope, type TradeScope } from "../../scope";
-import { addBuyer, adjustLedger, approveAccount, closeAccount, creditNote, holdAccount, recordPayment, releaseAccount, removeBuyer, saveDetails, saveTerms, sendStatement } from "../actions";
+import { addBuyer, adjustLedger, approveAccount, closeAccount, creditNote, holdAccount, recordPayment, rejectLicence, releaseAccount, removeBuyer, saveDetails, saveTerms, sendStatement, verifyLicence } from "../actions";
+import { licenceRecords, standingOf } from "@/server/trade/licences";
+import { TRADE_LICENCES, type LicenceLine } from "@/lib/trade-licences";
 
 export const metadata = { title: "Trade account" };
 
@@ -55,6 +57,8 @@ export default async function TradeAccountPage({ params, searchParams }: { param
     a.approvedById ? db.user.findUnique({ where: { id: a.approvedById }, select: { name: true } }) : null,
   ]);
   const dc = dcs.find((d) => d.id === a.dcId);
+  const [standing, licences] = await Promise.all([standingOf(a), licenceRecords(a.id)]);
+  const reviewers = new Map((await db.user.findMany({ where: { id: { in: [...new Set(licences.flatMap((l) => (l.reviewedById ? [l.reviewedById] : [])))] } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
 
   return (
     <>
@@ -79,7 +83,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
       <Flash message={sp.m} />
       {!s.canEdit && <ViewOnly className="mb-6">View only — the HQ team approves accounts, sets terms and works the ledger.</ViewOnly>}
       {a.status === "ON_HOLD" && (
-        <Notice tone="warn" className="mb-6" title={a.holdReason === "overdue" ? "On hold: overdue invoices" : `On hold: ${a.holdReason ?? "held by HQ"}`}>
+        <Notice tone="warn" className="mb-6" title={a.holdReason === "overdue" ? "On hold: overdue invoices" : a.holdReason === "licence" ? "Paused: a required licence lapsed — it lifts when the renewal is verified" : `On hold: ${a.holdReason ?? "held by HQ"}`}>
           Nothing new goes on account until the hold is lifted{a.holdReason === "overdue" ? " — it lifts itself once what's past due is settled" : ""}. EFT orders still work.
         </Notice>
       )}
@@ -99,8 +103,73 @@ export default async function TradeAccountPage({ params, searchParams }: { param
         <div className="grid gap-6 xl:grid-cols-3">
           <div className="min-w-0 space-y-6 xl:col-span-2">
             <Card>
+              <CardHeader
+                title="Licences"
+                description={`What a ${kindLabel(a.kind).toLowerCase()} needs for ${a.status === "PENDING" ? "the ranges it asked for" : "its ranges"}. Check each document with its issuer before verifying it: the account can't be approved, or supplied, while a required licence is missing, waiting or lapsed.`}
+              />
+              <CardBody className="pt-2">
+                <ul className="divide-y divide-ink-100" data-testid="hq-licences">
+                  {standing.lines.map((l) => (
+                    <li key={l.kind} className="py-4" data-testid={`hq-licence-${l.kind}`}>
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-ink-900">{l.name}</p>
+                          <p className="text-xs text-ink-500">
+                            {TRADE_LICENCES[l.kind].law} · issued by {TRADE_LICENCES[l.kind].issuer}
+                          </p>
+                        </div>
+                        <Badge tone={LICENCE_TONE[l.state]} dot>
+                          {LICENCE_STATE[l.state]}
+                        </Badge>
+                      </div>
+                      <ul className="mt-2 space-y-2">
+                        {licences
+                          .filter((r) => r.kind === l.kind)
+                          .slice(0, 4)
+                          .map((r) => (
+                            <li key={r.id} className="rounded-xl bg-ink-50 px-3 py-2 text-sm text-ink-700">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <span className="tnum">
+                                  No. <strong className="text-ink-900">{r.number}</strong>
+                                  {r.expiresAt ? ` · expires ${fmtDate(r.expiresAt)}` : " · doesn't lapse"} · uploaded {fmtDate(r.createdAt)} ·{" "}
+                                  <a href={`/trade/licences/${r.id}/file`} target="_blank" rel="noopener" className="font-semibold text-brand-700 hover:underline">
+                                    View document
+                                  </a>
+                                </span>
+                                <span className="text-xs text-ink-500">
+                                  {r.status === "SUBMITTED" ? "Waiting to be checked" : r.status === "VERIFIED" ? `Verified${r.reviewedById ? ` by ${reviewers.get(r.reviewedById) ?? "HQ"}` : ""}${r.reviewedAt ? `, ${fmtDate(r.reviewedAt)}` : ""}` : `Not accepted: ${r.rejectReason ?? ""}`}
+                                </span>
+                              </div>
+                              {r.status === "SUBMITTED" && s.canEdit && (
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  <ActionButton action={verifyLicence.bind(null, a.id, r.id)} variant="primary" pendingLabel="Verifying…">
+                                    Verify
+                                  </ActionButton>
+                                  <ConfirmAction action={rejectLicence.bind(null, a.id, r.id)} label="Not accepted" title={`Can't accept this ${l.name.toLowerCase()}?`} confirmLabel="Send the reason" variant="dark">
+                                    <Field label="What's wrong (in the email the account gets)" htmlFor={`reject-${r.id}`}>
+                                      <Textarea id={`reject-${r.id}`} name="reason" className="min-h-16" placeholder="e.g. The licence number doesn't match the document" maxLength={300} />
+                                      <FieldError name="reason" />
+                                    </Field>
+                                  </ConfirmAction>
+                                </div>
+                              )}
+                            </li>
+                          ))}
+                      </ul>
+                      {!licences.some((r) => r.kind === l.kind) && <p className="mt-2 text-sm text-rose-700">Not uploaded yet — the account uploads it under Account › Licences in the portal.</p>}
+                    </li>
+                  ))}
+                </ul>
+              </CardBody>
+            </Card>
+            <Card>
               <CardHeader title={a.status === "PENDING" ? "Approve with terms" : "Terms"} description="Prepaid accounts pay each order by EFT before it's picked; accounts on credit terms are invoiced when the order ships or is collected and pay within the payment days, within the limit. Licensed medicines are never traded." />
               <CardBody>
+                {a.status === "PENDING" && !standing.ok && (
+                  <Notice tone="warn" className="mb-5" title="Verify the licences first">
+                    {standing.problems.join(" · ")}
+                  </Notice>
+                )}
                 <ActionForm action={a.status === "PENDING" ? approveAccount.bind(null, a.id) : saveTerms.bind(null, a.id)}>
                   <fieldset disabled={!edit} className="min-w-0 grid gap-4 sm:grid-cols-3">
                     <Field label="Terms" htmlFor="terms">
@@ -576,3 +645,6 @@ async function OrdersTab({ accountId, page, base, scope }: { accountId: string; 
   );
 }
 
+
+const LICENCE_STATE: Record<LicenceLine["state"], string> = { ok: "Verified", expiring: "Expires within 30 days", pending: "To check", rejected: "Not accepted", expired: "Expired", missing: "Missing" };
+const LICENCE_TONE: Record<LicenceLine["state"], "green" | "amber" | "blue" | "red"> = { ok: "green", expiring: "amber", pending: "blue", rejected: "red", expired: "red", missing: "red" };

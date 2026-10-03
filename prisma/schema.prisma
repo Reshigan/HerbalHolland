@@ -1874,6 +1874,7 @@ enum TradeAccountKind {
   CAFE
   PRACTICE // wellness / health practice
   ONLINE_SHOP
+  DISTRIBUTOR // wholesaler or distributor: resells to other businesses
   OTHER
 }
 
@@ -1933,14 +1934,16 @@ model TradeAccount {
   termsAcceptedAt    DateTime?
   approvedAt         DateTime?
   approvedById       String?
-  holdReason         String?
+  holdReason         String? // "overdue" and "licence" are the jobs' own holds; they lift themselves
+  ipHash             String? // portal applications: a keyed hash of the applicant's IP, for the hourly limit
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
-  buyers TradeBuyer[]
-  orders TradeOrder[]
-  ledger TradeLedgerEntry[]
-  sales  Sale[]
+  buyers   TradeBuyer[]
+  orders   TradeOrder[]
+  ledger   TradeLedgerEntry[]
+  sales    Sale[]
+  licences TradeLicence[]
 
   @@index([status])
   @@index([name])
@@ -2046,4 +2049,44 @@ model TradeLedgerEntry {
   @@index([tradeAccountId, createdAt])
   @@index([saleId])
   @@index([tradeOrderId])
+}
+
+/// The licences and registrations a trade account must hold to buy (src/lib/trade-licences.ts decides which, by the
+/// kind of business and the ranges it buys). Submitted with a document at registration or on renewal; HQ verifies
+/// each against the issuer before the account may trade, and a lapsed one pauses trading until a renewal is verified.
+enum TradeLicenceKind {
+  PHARMACY_LICENCE // Pharmacy Act 53 of 1974 s22: the licence to own the pharmacy (Department of Health)
+  SAPC_RECORDING // the pharmacy's recording with the South African Pharmacy Council
+  SAHPRA_LICENCE // Medicines and Related Substances Act 101 of 1965 s22C: licence to wholesale or distribute medicines
+  FOOD_COA // R638 of 2018: certificate of acceptability for food premises (municipal environmental health)
+  BUSINESS_LICENCE // Businesses Act 71 of 1991: municipal business licence (meals and perishable foodstuffs)
+  PRACTICE_NUMBER // BHF PCNS practice number, with the practitioner's HPCSA or AHPCSA registration
+  CIPC_REGISTRATION // the CIPC registration certificate (CoR14.3 or equivalent)
+}
+
+enum TradeLicenceStatus {
+  SUBMITTED // waiting for HQ to check it
+  VERIFIED // HQ checked the document against the issuer
+  REJECTED // HQ couldn't accept it (reason given); a new one is needed
+}
+
+model TradeLicence {
+  id             String             @id @default(cuid())
+  account        TradeAccount       @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String
+  kind           TradeLicenceKind
+  number         String
+  expiresAt      DateTime? // null: it doesn't lapse
+  uploadId       String // the document (PDF or photo), served through the app only
+  status         TradeLicenceStatus @default(SUBMITTED)
+  submittedById  String? // the trade buyer who uploaded it (null: HQ or the seed)
+  reviewedAt     DateTime?
+  reviewedById   String?
+  rejectReason   String?
+  remindedAt     DateTime? // the expiry reminder went out
+  createdAt      DateTime           @default(now())
+
+  @@index([tradeAccountId, kind])
+  @@index([status])
+  @@index([expiresAt])
 }

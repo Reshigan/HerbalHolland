@@ -1,8 +1,12 @@
 // The trade (wholesale) channel end to end: apply → approve → order on account (reserved) → over the limit refused →
 // ship short → WHOLESALE sale at the DC with trade VAT, the TI invoice and the ledger → payment → EFT order → confirm →
 // ship → ledger nets to zero → cancel releases stock → click & collect at a store → till trade sales, refunds and
-// refusals → sign-in codes → the daily jobs.
+// refusals → sign-in codes → the daily jobs → licences (mandatory at registration, verified before approval, a lapse
+// pauses trading until the renewal is verified).
 import { randomUUID } from "node:crypto";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { db, tx } from "@/server/db";
 import { putStock, availability, availKey } from "@/server/inventory";
@@ -14,7 +18,8 @@ import { applyForTradeAccount, approveTradeAccount, holdTradeAccount, releaseTra
 import { placeTradeOrder, confirmTradePayment, advanceTradeOrder, collectStoresFor, tradeOrderById, listTradeOrders, nextTradeActions } from "@/server/trade/orders";
 import { recordTradePayment, issueCreditNote, adjustTradeLedger, tradeBalance, tradeAgeing, tradeStatementFor, emailTradeStatement } from "@/server/trade/ledger";
 import { requestTradeCode, verifyTradeCode } from "@/server/trade/auth";
-import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "@/server/jobs";
+import { tradeEftExpiry, tradeLicenceExpiry, tradeOverdueHolds, tradeStatements } from "@/server/jobs";
+import { licenceProblem, rejectTradeLicence, submitTradeLicence, verifyTradeLicence } from "@/server/trade/licences";
 import { saveSetting, DEFAULT_SETTINGS } from "@/server/settings";
 import { dayKey } from "@/lib/format";
 import { buildWorld, onHand, resetDb, type World } from "./world";
@@ -36,9 +41,14 @@ const stat = (storeId: string) => db.dailyStoreStat.findUnique({ where: { storeI
 const application = {
   legalName: "Hatfield Pharmacy (Pty) Ltd", name: "Hatfield Pharmacy", kind: "PHARMACY", regNumber: "2015/123456/07", vatNumber: "4123456789", email: BILLING, phone: "012 342 1234",
   addressLine: "12 Burnett St", suburb: "Hatfield", city: "Pretoria", province: "GP", postalCode: "0083", classes: ["CBD", "CBD_FOOD"], buyerName: "Thandi Nkosi", buyerEmail: BUYER_EMAIL, buyerPhone: "082 555 0199", adult: "on", terms: "on",
+  // A pharmacy selling CBD food: its licence to own the pharmacy, its SAPC recording and a food certificate.
+  licences: { PHARMACY_LICENCE: { number: "GP-PL-0042" }, SAPC_RECORDING: { number: "P1234567" }, FOOD_COA: { number: "COA/TSH/2026/88" } },
 };
+const pdf = (name = "licence.pdf") => new File([new TextEncoder().encode("%PDF-1.4\n% Herbal Holland test licence\n%%EOF\n")], name, { type: "application/pdf" });
+const licenceFiles = () => ({ PHARMACY_LICENCE: pdf(), SAPC_RECORDING: pdf(), FOOD_COA: pdf() });
 
 beforeAll(async () => {
+  process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-trade-licences-"));
   await resetDb();
   w = await buildWorld();
   // Case packs, a trade price list (ex VAT, with a 12+ break on the oil) and coffee stock at the DC.
@@ -60,7 +70,15 @@ describe("Accounts", () => {
     expect(bad.ok).toBe(false);
     if (!bad.ok) expect(Object.keys(bad.fields).sort()).toEqual(["classes", "terms"]);
 
-    const r = await applyForTradeAccount(application, { source: "portal" });
+    // Licences are mandatory: each one this kind of business needs, with its document.
+    const noDocs = await applyForTradeAccount(application, { source: "portal" });
+    expect(noDocs.ok).toBe(false);
+    if (!noDocs.ok) expect(Object.keys(noDocs.fields).sort()).toEqual(["licence.FOOD_COA.file", "licence.PHARMACY_LICENCE.file", "licence.SAPC_RECORDING.file"]);
+    const notPdf = await applyForTradeAccount(application, { files: { ...licenceFiles(), FOOD_COA: new File(["just text"], "coa.txt") } });
+    expect(notPdf.ok).toBe(false);
+    if (!notPdf.ok) expect(notPdf.fields["licence.FOOD_COA.file"]).toMatch(/PDF, or a JPG or PNG/);
+
+    const r = await applyForTradeAccount(application, { source: "portal", ip: "196.25.1.1", files: licenceFiles() });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     accountId = r.account.id;
@@ -71,7 +89,14 @@ describe("Accounts", () => {
     expect((await lastMailTo(BUYER_EMAIL)).body).toMatch(/application TA-000001 received/);
     expect((await lastMailTo("franchise@herbalholland.com")).body).toMatch(/new application TA-000001/);
     expect(await db.auditLog.findFirst({ where: { action: "trade.apply", entityId: accountId } })).toBeTruthy();
-    const dup = await applyForTradeAccount(application);
+    const lic = await db.tradeLicence.findMany({ where: { tradeAccountId: accountId } });
+    expect(lic.map((l) => [l.kind, l.number, l.status, l.submittedById]).sort()).toEqual([
+      ["FOOD_COA", "COA/TSH/2026/88", "SUBMITTED", buyerId],
+      ["PHARMACY_LICENCE", "GP-PL-0042", "SUBMITTED", buyerId],
+      ["SAPC_RECORDING", "P1234567", "SUBMITTED", buyerId],
+    ]);
+    expect(await db.upload.count({ where: { id: { in: lic.map((l) => l.uploadId) }, contentType: "application/pdf" } })).toBe(3);
+    const dup = await applyForTradeAccount(application, { files: licenceFiles() });
     expect(dup.ok).toBe(false);
     if (!dup.ok) expect(dup.fields.buyerEmail).toMatch(/already signs in/);
   });
@@ -79,6 +104,22 @@ describe("Accounts", () => {
   it("refuses orders and on-account sales until HQ approves", async () => {
     await expect(placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "EFT" })).rejects.toThrow(/hasn't been approved/);
     expect(await tradeAccountLookup("hatfield")).toEqual([]);
+  });
+
+  it("approves only once every licence is verified; a document HQ can't accept goes back to the account", async () => {
+    const terms = { terms: "ACCOUNT" as const, creditLimitCents: 1_000_000, paymentDays: 30, classes: ["CBD", "CBD_FOOD"] };
+    await expect(approveTradeAccount(accountId, terms, hq)).rejects.toThrow(/Verify the licences first: Pharmacy licence is waiting to be checked/);
+    const lic = await db.tradeLicence.findMany({ where: { tradeAccountId: accountId } });
+    const coa = lic.find((l) => l.kind === "FOOD_COA")!;
+    await rejectTradeLicence(coa.id, "The certificate is for another address", hq);
+    expect((await lastMailTo(BILLING)).body).toMatch(/not accepted[\s\S]*another address/i);
+    for (const l of lic.filter((l) => l.kind !== "FOOD_COA")) await verifyTradeLicence(l.id, hq);
+    await expect(approveTradeAccount(accountId, terms, hq)).rejects.toThrow(/Certificate of acceptability \(food premises\) wasn't accepted \(The certificate is for another address\)/);
+    // Approving without CBD food needs no food certificate; but the account asked for it, so it uploads a new one.
+    const again = await submitTradeLicence(accountId, { kind: "FOOD_COA", number: "COA/TSH/2026/91" }, pdf("coa.pdf"), { type: "CUSTOMER", id: buyerId, name: "Thandi" }, { byBuyerId: buyerId });
+    expect((await lastMailTo("franchise@herbalholland.com")).body).toMatch(/licence to check/);
+    await verifyTradeLicence(again.id, hq);
+    expect(await db.auditLog.count({ where: { action: { in: ["trade.licence.verify", "trade.licence.reject", "trade.licence.submit"] } } })).toBe(5);
   });
 
   it("approves on account with a R10,000 limit, 30 days, and emails the terms", async () => {
@@ -485,5 +526,47 @@ describe("Ledger and the daily jobs", () => {
     expect((await requestTradeCode(BUYER_EMAIL)).demoCode).toBeUndefined();
     await expect(placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "EFT" })).rejects.toThrow(/closed/);
     expect((await lastMailTo(BILLING)).body).toMatch(/account TA-000001 closed/);
+  });
+});
+
+describe("Licences after approval", () => {
+  // The ledger tests close the account; trade it again for these (its buyers and licences are as they were).
+  beforeAll(() => db.tradeAccount.update({ where: { id: accountId }, data: { status: "APPROVED", holdReason: null } }));
+
+  it("won't add ranges or change the kind of business without the licences they need", async () => {
+    await expect(updateTradeAccount(accountId, { kind: "CAFE" }, hq)).rejects.toThrow(/Business licence is needed/);
+  });
+
+  it("reminds before a licence lapses, pauses trading when it has, and lifts the pause when the renewal is verified", async () => {
+    const sapc = await db.tradeLicence.findFirstOrThrow({ where: { tradeAccountId: accountId, kind: "SAPC_RECORDING", status: "VERIFIED" } });
+    // Due in ten days: one reminder, once.
+    await db.tradeLicence.update({ where: { id: sapc.id }, data: { expiresAt: new Date(Date.now() + 10 * 86_400_000), remindedAt: null } });
+    expect((await tradeLicenceExpiry()).reminded).toBe(1);
+    expect((await lastMailTo(BILLING)).body).toMatch(/SAPC pharmacy recording[\s\S]*expires on/);
+    expect((await tradeLicenceExpiry()).reminded).toBe(0);
+    // Lapsed: no orders, no till sale, no shipping; the job pauses the account and says why.
+    await db.tradeLicence.update({ where: { id: sapc.id }, data: { expiresAt: new Date(Date.now() - 3_600_000) } });
+    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"] })).toMatch(/^SAPC pharmacy recording expired on/);
+    await expect(placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "EFT" })).rejects.toThrow(/SAPC pharmacy recording expired/);
+    await expect(postPosSale({ id: randomUUID(), number: saleNumber(), lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: 23_000 }], trade: { tradeAccountId: accountId } }, pos())).rejects.toThrow(/until its licences are in order/);
+    expect((await tradeLicenceExpiry()).held).toBe(1);
+    expect(await db.tradeAccount.findUniqueOrThrow({ where: { id: accountId } })).toMatchObject({ status: "ON_HOLD", holdReason: "licence" });
+    expect((await lastMailTo(BILLING)).body).toMatch(/ordering paused[\s\S]*SAPC pharmacy recording expired/i);
+    expect((await tradeAccountLookup("hatfield"))[0].licenceProblem).toMatch(/SAPC pharmacy recording expired/);
+    // The renewal, uploaded in the portal and verified: the pause lifts by itself.
+    const renewal = await submitTradeLicence(accountId, { kind: "SAPC_RECORDING", number: "P1234567" }, pdf("sapc-2027.pdf"), { type: "CUSTOMER", id: buyerId, name: "Thandi" }, { byBuyerId: buyerId });
+    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"] })).toBe("SAPC pharmacy recording is waiting to be checked");
+    expect((await verifyTradeLicence(renewal.id, hq)).released).toBe(true);
+    expect(await db.tradeAccount.findUniqueOrThrow({ where: { id: accountId } })).toMatchObject({ status: "APPROVED", holdReason: null });
+    expect((await lastMailTo(BILLING)).body).toMatch(/hold lifted/i);
+    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"] })).toBeNull();
+  });
+
+  it("limits applications from one connection to five an hour", async () => {
+    const one = (n: number) => applyForTradeAccount({ ...application, buyerEmail: `owner${n}@limit.example`, legalName: `Limit ${n} (Pty) Ltd` }, { ip: "41.1.2.3", files: licenceFiles() });
+    for (let n = 1; n <= 5; n++) expect((await one(n)).ok).toBe(true);
+    const sixth = await one(6);
+    expect(sixth.ok).toBe(false);
+    if (!sixth.ok) expect(sixth.error).toMatch(/several applications from this connection/);
   });
 });

@@ -65,12 +65,15 @@ export function TradeSheet({ open, online, onClose, onPick }: { open: boolean; o
             {hits?.map((a) => {
               const onHold = a.status === "ON_HOLD";
               const credit = a.terms === "ACCOUNT" && !onHold;
+              const blocked = !!a.licenceProblem; // the server refuses the sale too; say why before anything is rung up
               return (
                 <li key={a.id}>
                   <button
                     type="button"
                     onClick={() => onPick(a)}
-                    className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition hover:ring-sky-500/60"
+                    disabled={blocked}
+                    aria-describedby={blocked ? `licence-${a.id}` : undefined}
+                    className="flex min-h-16 w-full items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-left ring-1 ring-ink-800 transition enabled:hover:ring-sky-500/60 disabled:cursor-not-allowed disabled:opacity-70"
                     data-testid={`trade-account-${a.number}`}
                   >
                     <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-500/20 text-[#8fbdf2]">
@@ -79,7 +82,7 @@ export function TradeSheet({ open, online, onClose, onPick }: { open: boolean; o
                     <span className="min-w-0 flex-1">
                       <span className="flex flex-wrap items-center gap-1.5">
                         <span className="font-semibold text-white">{a.name}</span>
-                        <Chip tone={onHold ? "amber" : "green"}>{onHold ? "On hold" : "Approved"}</Chip>
+                        <Chip tone={blocked ? "red" : onHold ? "amber" : "green"}>{blocked ? "Licence" : onHold ? "On hold" : "Approved"}</Chip>
                         <Chip tone="blue">{tradeTermsLabel(a)}</Chip>
                       </span>
                       <span className="mt-0.5 block text-xs text-ink-400">
@@ -87,9 +90,15 @@ export function TradeSheet({ open, online, onClose, onPick }: { open: boolean; o
                         {a.legalName !== a.name ? ` · ${a.legalName}` : ""}
                         {a.vatNumber ? ` · VAT ${a.vatNumber}` : ""}
                       </span>
-                      <span className="block text-xs text-ink-400">
-                        {credit ? `${zar(a.availableCents)} available on account · owing ${zar(a.balanceCents)}` : onHold ? "On hold — cash, card or EFT only" : "Prepaid — cash, card or EFT"}
-                      </span>
+                      {blocked ? (
+                        <span id={`licence-${a.id}`} className="block text-xs font-medium text-rose-200">
+                          Can&apos;t sell to this account: {a.licenceProblem}.
+                        </span>
+                      ) : (
+                        <span className="block text-xs text-ink-400">
+                          {credit ? `${zar(a.availableCents)} available on account · owing ${zar(a.balanceCents)}` : onHold ? "On hold — cash, card or EFT only" : "Prepaid — cash, card or EFT"}
+                        </span>
+                      )}
                     </span>
                     <span className="shrink-0 text-sm font-semibold text-[#8fbdf2]">Trade sale</span>
                   </button>

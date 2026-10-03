@@ -149,6 +149,7 @@ export type TradeAccountDTO = {
   paymentDays: number;
   balanceCents: number; // what it owes on its ledger
   availableCents: number; // what may still go on account (0 unless APPROVED on ACCOUNT terms)
+  licenceProblem: string | null; // a required licence missing, waiting for HQ or lapsed: no trade sale until it's sorted
 };
 
 /** A trade click & collect order on the till's order board (alongside consumer orders, tagged "Trade · TO-…"). */

@@ -16,6 +16,7 @@ import { dropBlocks } from "./drops";
 import { checkTradeBasket, evaluateBasket } from "./compliance";
 import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers";
 import { creditCheckFor, postLedgerEntry } from "./trade/ledger";
+import { licenceProblem } from "./trade/licences";
 import { addDays, dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
@@ -322,6 +323,8 @@ async function postTradeSale(input: PosSaleInput, ctx: { storeId: string; device
   const account = await db.tradeAccount.findUnique({ where: { id: input.trade!.tradeAccountId } });
   if (!account) throw new SaleError("Unknown trade account");
   if (account.status !== "APPROVED" && account.status !== "ON_HOLD") throw new SaleError(ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
+  const lp = await licenceProblem(account);
+  if (lp) throw new SaleError(`We can't sell to ${account.name} until its licences are in order: ${lp}`);
   const q = await quote({ storeId: ctx.storeId, channel: "WHOLESALE", items: input.lines, code: input.promoCode, tradeAccountId: account.id });
   if (!q.lines.length) throw new SaleError("The sale has no items");
   if (q.codeError) throw new SaleError(q.codeError);

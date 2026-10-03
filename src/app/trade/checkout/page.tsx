@@ -62,7 +62,7 @@ export default async function TradeCheckoutPage() {
         account={{ terms: account.terms, creditLimitCents: account.creditLimitCents, paymentDays: account.paymentDays, province: account.province, billing, delivery, balanceCents }}
         stores={stores}
         provinces={Object.entries(PROVINCES)}
-        ordering={orderingProblem(account)}
+        ordering={await orderingProblem(account)}
         fees={{ deliveryCents: t.deliveryCents, freeDeliveryOverCents: t.freeDeliveryOverCents, handlingCents: t.collectHandlingCents, eftHoldDays: t.eftHoldDays, minOrderCents: t.minOrderCents }}
         dcName={store.name}
       />

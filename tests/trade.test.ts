@@ -211,12 +211,38 @@ describe("The application form", () => {
     legalName: "Hatfield Pharmacy (Pty) Ltd", name: "Hatfield Pharmacy", kind: "pharmacy", regNumber: "2015/123456/07", vatNumber: "4 123 456 789", email: "Accounts@Hatfield.co.za ", phone: "012 342 1234",
     addressLine: "12 Burnett St", suburb: "Hatfield", city: "Pretoria", province: "gp", postalCode: "0083", classes: ["CBD", "CBD_FOOD"], buyerName: "Thandi Nkosi", buyerEmail: "thandi@hatfield.co.za", buyerPhone: "082 555 0199",
     adult: "on", terms: "true",
+    // A pharmacy selling CBD food needs its pharmacy licence, its SAPC recording and a food certificate, with documents.
+    licences: { PHARMACY_LICENCE: { number: " gp-pl 0042 " }, SAPC_RECORDING: { number: "p1234" }, FOOD_COA: { number: "coa/2026/88" } },
+    licenceFiles: ["PHARMACY_LICENCE", "SAPC_RECORDING", "FOOD_COA"],
   };
   it("tidies a good application", () => {
     const r = validateTradeApplication(good);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.data).toMatchObject({ kind: "PHARMACY", vatNumber: "4123456789", regNumber: "2015/123456/07", email: "accounts@hatfield.co.za", phone: "+27123421234", province: "GP", buyerPhone: "+27825550199", delivery: null, classes: ["CBD", "CBD_FOOD"] });
+    expect(r.data.licences).toEqual([
+      { kind: "PHARMACY_LICENCE", number: "GP-PL 0042", expiresAt: null },
+      { kind: "SAPC_RECORDING", number: "P1234", expiresAt: null },
+      { kind: "FOOD_COA", number: "COA/2026/88", expiresAt: null },
+    ]);
+  });
+  it("makes the licences the kind of business needs mandatory, each with its document", () => {
+    const r = validateTradeApplication({ ...good, licences: { PHARMACY_LICENCE: { number: "" } }, licenceFiles: ["PHARMACY_LICENCE"] });
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.fields).toMatchObject({
+      "licence.PHARMACY_LICENCE.number": "Enter the pharmacy licence number",
+      "licence.SAPC_RECORDING.number": "Enter the SAPC pharmacy recording number",
+      "licence.SAPC_RECORDING.file": "Attach the SAPC pharmacy recording (a PDF or a photo)",
+      "licence.FOOD_COA.file": "Attach the certificate of acceptability (food premises) (a PDF or a photo)",
+    });
+    expect(r.fields["licence.PHARMACY_LICENCE.file"]).toBeUndefined();
+    // A distributor of CBD supplements: SAHPRA licence with its expiry, and the company registration (from the number above).
+    const d = validateTradeApplication({ ...good, kind: "DISTRIBUTOR", classes: ["CBD"], regNumber: "", licences: { SAHPRA_LICENCE: { number: "W-0042" } }, licenceFiles: ["SAHPRA_LICENCE", "CIPC_REGISTRATION"] });
+    expect(d.ok).toBe(false);
+    if (d.ok) return;
+    expect(d.fields.regNumber).toMatch(/needs it/);
+    expect(d.fields["licence.SAHPRA_LICENCE.expiresAt"]).toMatch(/expires/);
   });
   it("refuses THC, bad numbers, missing attestations and a bad delivery address, by field", () => {
     const r = validateTradeApplication({ ...good, classes: ["CBD", "THC"], vatNumber: "123", regNumber: "abc", adult: "", terms: undefined, deliveryLine: "1 Depot Rd", deliveryCity: "", deliveryProvince: "", deliveryPostalCode: "12" });
