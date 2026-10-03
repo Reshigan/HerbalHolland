@@ -51,13 +51,16 @@ export function OrderBuilder({
     });
 
   const add = (h: RangeHit) => setLines((ls) => (ls.some((l) => l.variantId === h.variantId) ? ls.map((l) => (l.variantId === h.variantId ? { ...l, cases: l.cases + 1 } : l)) : [...ls, { ...h, cases: 1 }]));
-  const setCases = (variantId: string, cases: number) => setLines((ls) => ls.map((l) => (l.variantId === variantId ? { ...l, cases: Math.max(0, Math.floor(cases)) } : l)).filter((l) => l.cases > 0));
+  // Typing keeps the line (a cleared field is 0 cases, not a removed line); the minus and bin buttons remove it.
+  const setCases = (variantId: string, cases: number, remove = false) =>
+    setLines((ls) => ls.map((l) => (l.variantId === variantId ? { ...l, cases: Math.max(0, Math.floor(Number.isFinite(cases) ? cases : 0)) } : l)).filter((l) => !remove || l.variantId !== variantId || l.cases > 0));
 
-  const basket = lines.map((l) => ({ variantId: l.variantId, qty: l.cases * l.caseQty }));
-  const lineTotals = lines.map((l) => tradeLine({ unitCents: unitAt(l, l.cases * l.caseQty), qty: l.cases * l.caseQty }));
+  const live = lines.filter((l) => l.cases > 0);
+  const basket = live.map((l) => ({ variantId: l.variantId, qty: l.cases * l.caseQty }));
+  const lineTotals = live.map((l) => tradeLine({ unitCents: unitAt(l, l.cases * l.caseQty), qty: l.cases * l.caseQty }));
   const subtotal = lineTotals.reduce((s, l) => s + l.exCents, 0);
   const totals = tradeTotals(lineTotals, { deliveryCents: fulfilment === "COURIER" ? tradeDelivery(subtotal, terms) : 0, handlingCents: fulfilment === "COLLECT" ? tradeHandling(terms) : 0 });
-  const problems = lines.length ? validateTradeBasket(lines.map((l) => ({ name: l.name, qty: l.cases * l.caseQty, unitCents: unitAt(l, l.cases * l.caseQty), caseQty: l.caseQty })), { minOrderCents: terms.minOrderCents }) : [];
+  const problems = live.length ? validateTradeBasket(live.map((l) => ({ name: l.name, qty: l.cases * l.caseQty, unitCents: unitAt(l, l.cases * l.caseQty), caseQty: l.caseQty })), { minOrderCents: terms.minOrderCents }) : lines.length ? ["Enter at least one case on a line"] : [];
   const overCredit = payMethod === "ACCOUNT" && totals.totalCents > account.availableCents;
 
   // Collect: the stores that can hand this basket over, looked up when the basket or the search changes.
@@ -158,7 +161,7 @@ export function OrderBuilder({
                       </td>
                       <td className="border-b border-ink-100 px-4 py-2 text-right">
                         <span className="inline-flex items-center gap-1">
-                          <button type="button" onClick={() => setCases(l.variantId, l.cases - 1)} className="grid h-8 w-8 place-items-center rounded-full border border-ink-200 text-ink-700 hover:bg-ink-50" aria-label={`One case fewer of ${l.name}`}><Minus className="h-3.5 w-3.5" aria-hidden /></button>
+                          <button type="button" onClick={() => setCases(l.variantId, l.cases - 1, true)} className="grid h-8 w-8 place-items-center rounded-full border border-ink-200 text-ink-700 hover:bg-ink-50" aria-label={`One case fewer of ${l.name}`}><Minus className="h-3.5 w-3.5" aria-hidden /></button>
                           <label className="sr-only" htmlFor={`cases-${i}`}>Cases of {l.name}</label>
                           <input id={`cases-${i}`} type="number" min={0} max={999} value={l.cases} onChange={(e) => setCases(l.variantId, Number(e.target.value))} className="tnum h-8 w-14 rounded-lg border border-ink-200 px-2 text-center text-sm" />
                           <button type="button" onClick={() => setCases(l.variantId, l.cases + 1)} className="grid h-8 w-8 place-items-center rounded-full border border-ink-200 text-ink-700 hover:bg-ink-50" aria-label={`One case more of ${l.name}`}><Plus className="h-3.5 w-3.5" aria-hidden /></button>
@@ -168,7 +171,7 @@ export function OrderBuilder({
                       <td className="tnum border-b border-ink-100 px-4 py-2 text-right text-ink-700">{zar(unit)}</td>
                       <td className="tnum border-b border-ink-100 px-5 py-2 text-right font-medium text-ink-900">
                         {zar(unit * qty)}
-                        <button type="button" onClick={() => setCases(l.variantId, 0)} className="ml-2 inline-grid h-7 w-7 place-items-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-rose-600" aria-label={`Remove ${l.name}`}><Trash2 className="h-3.5 w-3.5" aria-hidden /></button>
+                        <button type="button" onClick={() => setCases(l.variantId, 0, true)} className="ml-2 inline-grid h-7 w-7 place-items-center rounded-full text-ink-500 hover:bg-ink-100 hover:text-rose-600" aria-label={`Remove ${l.name}`}><Trash2 className="h-3.5 w-3.5" aria-hidden /></button>
                       </td>
                     </tr>
                   );
@@ -214,7 +217,14 @@ export function OrderBuilder({
               <label className="relative block">
                 <span className="sr-only">Find a store</span>
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden />
-                <Input type="search" value={storeQ} onChange={(e) => setStoreQ(e.target.value)} placeholder="Find a store (name, suburb or city)" className="pl-9" />
+                <Input
+                  type="search"
+                  value={storeQ}
+                  onChange={(e) => setStoreQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+                  placeholder="Find a store (name, suburb or city)"
+                  className="pl-9"
+                />
               </label>
               <Field label="Collect from" htmlFor="storeId" hint={lines.length ? (loadingStores ? "Checking stock at the stores…" : "Stores in the account's province first; ✓ has the whole order on hand") : "Add items first to see which stores can hand them over"}>
                 <Select id="storeId" name="storeId" value={storeId} onChange={(e) => setStoreId(e.target.value)} disabled={!lines.length}>
@@ -260,8 +270,8 @@ export function OrderBuilder({
           </dl>
           {overCredit && <p className="mt-3 text-xs text-amber-400" role="status">Over the available credit of {zar(account.availableCents)} — the account can pay by EFT instead.</p>}
           <p className="mt-3 text-xs text-ink-400">Prices from the range at the DC; the order is priced again when it&apos;s placed (promotions for the trade channel apply then).</p>
-          <SubmitButton size="lg" className="mt-4 w-full" disabled={!lines.length || problems.length > 0 || (fulfilment === "COLLECT" && !storeId)} pendingLabel="Placing…">
-            {lines.length ? `Place order for ${account.name}` : "Add items to place an order"}
+          <SubmitButton size="lg" className="mt-4 w-full" disabled={!live.length || problems.length > 0 || (fulfilment === "COLLECT" && !storeId)} pendingLabel="Placing…">
+            {live.length ? `Place order for ${account.name}` : "Add items to place an order"}
           </SubmitButton>
         </section>
       </div>
