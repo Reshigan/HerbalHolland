@@ -955,7 +955,7 @@ try {
   await page.getByRole("link", { name: tradeOrder.number, exact: true }).waitFor();
   ok(`${tradeOrder.number} is Done`);
 
-  step(`Trade: the EFT recorded against ${tShipped.invoiceNumber} → tBalance zero; the statement emailed; hold and release`);
+  step(`Trade: the EFT recorded against ${tShipped.invoiceNumber} → balance zero; the statement emailed; hold and release`);
   await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger`, formWith("#pay-amount"));
   const tpf = formWith("#pay-amount");
   await tpf.locator("#pay-amount").fill("0");

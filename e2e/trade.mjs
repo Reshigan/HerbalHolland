@@ -161,7 +161,14 @@ try {
   await timed("Apply: send → received", send, () => page.getByTestId("apply-done").waitFor());
   await page.getByText("We'll be in touch within one business day.").waitFor();
   const account = await one(`select a.*, b.id "buyerId", b.role from "TradeAccount" a join "TradeBuyer" b on b."tradeAccountId" = a.id where b.email = $1`, [buyerEmail]);
-  assert(account && account.status === "PENDING" && /^TA-\d{6}$/.test(account.number) && account.role === "OWNER", `application ${account?.number} is PENDING with its OWNER buyer`);
+  if (!account) fail("the application wasn't stored");
+  // Clean-up first, so a failed check below still leaves nothing behind (orders before the account: no cascade there).
+  undo.push(() => q(`delete from "MessageLog" where "createdAt" >= $1 and ("to" in ($2, $3, $4) or body like $5)`, [t0, billingEmail, buyerEmail, extraBuyerEmail, `%${account.number}%`]));
+  undo.push(() => q(`delete from "AuditLog" where at >= $1 and ("entityId" = $2 or "actorId" in (select id from "TradeBuyer" where "tradeAccountId" = $2) or "entityId" in (select id from "TradeOrder" where "tradeAccountId" = $2))`, [t0, account.id]));
+  undo.push(() => q(`delete from "TradeAccount" where id = $1`, [account.id])); // buyers, sessions and ledger go with it
+  undo.push(() => q(`delete from "TradeOrder" where "tradeAccountId" = $1`, [account.id]));
+  undo.push(() => q(`delete from "Otp" where email in ($1, $2)`, [buyerEmail, extraBuyerEmail]));
+  assert(account.status === "PENDING" && /^TA-\d{6}$/.test(account.number) && account.role === "OWNER", `application ${account.number} is PENDING with its OWNER buyer`);
   assert(account.regNumber === "2015/123456/07" && account.vatNumber === "4123456789" && account.deliveryLine === "Unit 4, 9 Depot Road" && account.deliveryCity === "Pretoria" && account.adultAttestedAt && account.termsAcceptedAt, "numbers tidied, delivery address kept, 18+ and terms recorded");
   assert(account.classes.length === 3 && account.classes.includes("CBD_TOPICAL"), "three ranges requested");
   await page.getByText(account.number).waitFor();
@@ -169,11 +176,6 @@ try {
   const notice = await one(`select "to" from "MessageLog" where "to" <> $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%new application ${account.number}%`, t0]);
   assert(ack && notice, `acknowledgement emailed to the buyer, notice to the trade team (${notice?.to})`);
   await shot(page, "apply-done");
-  undo.push(() => q(`delete from "MessageLog" where "createdAt" >= $1 and ("to" in ($2, $3, $4) or body like $5)`, [t0, billingEmail, buyerEmail, extraBuyerEmail, `%${account.number}%`]));
-  undo.push(() => q(`delete from "AuditLog" where at >= $1 and ("entityId" = $2 or "actorId" in (select id from "TradeBuyer" where "tradeAccountId" = $2) or "entityId" in (select id from "TradeOrder" where "tradeAccountId" = $2))`, [t0, account.id]));
-  undo.push(() => q(`delete from "TradeOrder" where "tradeAccountId" = $1`, [account.id]));
-  undo.push(() => q(`delete from "TradeAccount" where id = $1`, [account.id])); // buyers, sessions and ledger go with it
-  undo.push(() => q(`delete from "Otp" where email in ($1, $2)`, [buyerEmail, extraBuyerEmail]));
 
   step("The same buyer email can't apply twice");
   await page.goto(`${BASE}/trade/apply`);

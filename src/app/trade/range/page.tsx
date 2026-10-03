@@ -9,7 +9,8 @@ import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { tradeRange } from "@/server/pricing";
 import { ProductArt } from "@/components/product/art";
-import { Callout, Chip, Container, Pager, Tag, inputClass } from "@/components/shop/ui";
+import { Callout, Chip, Container, Tag, inputClass } from "@/components/shop/ui";
+import { TradePager } from "@/components/trade/pager";
 import { buttonClass } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
 import { AddToTradeCart } from "@/components/trade/add-to-cart";
@@ -186,7 +187,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
             })}
           </ul>
         )}
-        <Pager page={res.page} pageSize={res.pageSize} total={res.total} href={(p) => href({ page: String(p) })} noun="lines" />
+        <TradePager page={res.page} pageSize={res.pageSize} total={res.total} href={(p) => href({ page: String(p) })} noun="lines" />
         {!pending && !cart.items.length && (
           <p className="mt-6 text-sm text-ink-400">
             Your cart is empty.{" "}

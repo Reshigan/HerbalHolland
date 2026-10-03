@@ -27,7 +27,7 @@ import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } fro
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { AgeingChips, FULFIL_LABEL, LEDGER_LABEL, LEDGER_TONE, PAY_LABEL, TradeAccountBadge, TradeOrderBadge, kindLabel, termsLabel } from "@/components/admin/trade-ui";
-import { accountWhere, tradeScope } from "../../scope";
+import { accountWhere, orderWhere, tradeScope, type TradeScope } from "../../scope";
 import { addBuyer, adjustLedger, approveAccount, closeAccount, creditNote, holdAccount, recordPayment, releaseAccount, removeBuyer, saveDetails, saveTerms, sendStatement } from "../actions";
 
 export const metadata = { title: "Trade account" };
@@ -89,7 +89,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
         <Stat label="Balance" value={zar(balanceCents)} sub={balanceCents < 0 ? "in credit" : ageing.overdue > 0 ? <span className="font-semibold text-rose-600">{zar(ageing.overdue)} overdue</span> : "nothing overdue"} />
         <Stat label="Available credit" value={a.terms === "ACCOUNT" ? zar(availableCents) : "—"} sub={a.terms === "ACCOUNT" ? `limit ${zar(a.creditLimitCents)} · ${a.paymentDays} days` : "prepaid by EFT"} />
         <Stat label="Open orders" value={num(openOrders.count)} sub={openOrders.count ? `${zar(openOrders.cents)} incl. VAT` : "none open"} />
-        <Stat label="Last order" value={lastOrder ? zar(lastOrder.totalCents) : "—"} sub={lastOrder ? <Link href={`/hq/trade/orders/${lastOrder.id}`} className="font-semibold text-brand-700 hover:underline">{lastOrder.number} · {fmtDate(lastOrder.createdAt)} →</Link> : "no orders yet"} />
+        <Stat label="Last order" value={lastOrder ? zar(lastOrder.totalCents) : "—"} sub={lastOrder ? s.networkWide ? <Link href={`/hq/trade/orders/${lastOrder.id}`} className="font-semibold text-brand-700 hover:underline">{lastOrder.number} · {fmtDate(lastOrder.createdAt)} →</Link> : `${lastOrder.number} · ${fmtDate(lastOrder.createdAt)}` : "no orders yet"} />
       </div>
       <AgeingChips ageing={ageing} className="mb-6" />
 
@@ -269,8 +269,8 @@ export default async function TradeAccountPage({ params, searchParams }: { param
         </div>
       )}
 
-      {tab === "ledger" && <LedgerTab accountId={a.id} canEdit={s.canEdit} month={sp.month} base={base} approved={a.status !== "PENDING"} />}
-      {tab === "orders" && <OrdersTab accountId={a.id} page={pageParam(sp.page)} base={base} />}
+      {tab === "ledger" && <LedgerTab accountId={a.id} canEdit={s.canEdit} month={sp.month} base={base} approved={a.status !== "PENDING"} scope={s} />}
+      {tab === "orders" && <OrdersTab accountId={a.id} page={pageParam(sp.page)} base={base} scope={s} />}
       {tab === "buyers" && (
         <div className="grid gap-6 xl:grid-cols-3">
           <Card className="xl:col-span-2">
@@ -333,12 +333,13 @@ export default async function TradeAccountPage({ params, searchParams }: { param
   );
 }
 
-async function LedgerTab({ accountId, canEdit, month: rawMonth, base, approved }: { accountId: string; canEdit: boolean; month?: string; base: string; approved: boolean }) {
+async function LedgerTab({ accountId, canEdit, month: rawMonth, base, approved, scope }: { accountId: string; canEdit: boolean; month?: string; base: string; approved: boolean; scope: TradeScope }) {
   const month = rawMonth && /^\d{4}-(0[1-9]|1[0-2])$/.test(rawMonth) ? rawMonth : previousMonth(new Date());
   const [entries, statement, invoices] = await Promise.all([
     ledgerEntries(accountId),
     tradeStatementFor(accountId, month),
-    db.tradeOrder.findMany({ where: { tradeAccountId: accountId, invoiceNumber: { not: null } }, orderBy: { createdAt: "desc" }, take: 50, select: { id: true, number: true, invoiceNumber: true, saleId: true } }),
+    // The orders an entry may link to: the ones this person can open (an area manager: their region's).
+    db.tradeOrder.findMany({ where: { tradeAccountId: accountId, invoiceNumber: { not: null }, ...orderWhere(scope) }, orderBy: { createdAt: "desc" }, take: 50, select: { id: true, number: true, invoiceNumber: true, saleId: true } }),
   ]);
   let running = 0;
   const rows = entries.map((e) => ({ ...e, balance: (running += e.cents) })).reverse();
@@ -523,11 +524,22 @@ function SubmitButtonPlain() {
   );
 }
 
-async function OrdersTab({ accountId, page, base }: { accountId: string; page: number; base: string }) {
-  const r = await listTradeOrders({ accountId, page, pageSize: 25 });
+async function regionOrders(accountId: string, scope: TradeScope, page: number) {
+  const pageSize = 25;
+  const where = { tradeAccountId: accountId, ...orderWhere(scope) };
+  const [total, rows] = await Promise.all([
+    db.tradeOrder.count({ where }),
+    db.tradeOrder.findMany({ where, orderBy: { createdAt: "desc" }, skip: (page - 1) * pageSize, take: pageSize, include: { account: { select: { id: true, number: true, name: true } }, store: { select: { id: true, code: true, name: true } }, _count: { select: { lines: true } } } }),
+  ]);
+  return { rows, total, page, pageSize };
+}
+
+async function OrdersTab({ accountId, page, base, scope }: { accountId: string; page: number; base: string; scope: TradeScope }) {
+  // Network-wide through the service; an area manager sees the account's orders at their region's stores.
+  const r = scope.networkWide ? await listTradeOrders({ accountId, page, pageSize: 25 }) : await regionOrders(accountId, scope, page);
   return (
     <Card>
-      <CardHeader title="Orders" description="Every order on this account, newest first." />
+      <CardHeader title="Orders" description={scope.networkWide ? "Every order on this account, newest first." : "This account's orders fulfilled in your region, newest first."} />
       {r.rows.length === 0 ? (
         <EmptyState icon={<Briefcase className="h-5 w-5" aria-hidden />} title="No orders yet" className="py-10">Orders placed in the trade portal, or by HQ on the account&apos;s behalf, appear here.</EmptyState>
       ) : (

@@ -131,7 +131,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
               return (
                 <Tr key={l.id}>
                   <Td>
-                    <Link href={`/hq/pricing/${l.id}`} className="font-medium text-ink-900 hover:text-brand-700">
+                    <Link href={`/hq/pricing/${l.id}`} className="inline-block py-1 font-medium text-ink-900 hover:text-brand-700">
                       {l.name}
                     </Link>
                     {l.adjustPct != null && <span className="block text-xs text-ink-500">{l.adjustPct > 0 ? "+" : ""}{l.adjustPct}% on RRP for items without a set price</span>}

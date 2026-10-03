@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Package } from "lucide-react";
 import { listTradeOrders } from "@/server/trade/orders";
-import { Chip, Container, Pager } from "@/components/shop/ui";
+import { Chip, Container } from "@/components/shop/ui";
+import { TradePager } from "@/components/trade/pager";
 import { ButtonLink } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
 import { OrderStatusTag } from "@/components/trade/status";
@@ -92,7 +93,7 @@ export default async function TradeOrdersPage({ searchParams }: { searchParams: 
           ))}
         </ul>
       )}
-      <Pager page={page} pageSize={pageSize} total={total} href={(p) => href({ page: p })} noun="orders" />
+      <TradePager page={page} pageSize={pageSize} total={total} href={(p) => href({ page: p })} noun="orders" />
     </Container>
   );
 }

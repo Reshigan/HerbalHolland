@@ -103,7 +103,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
           {collect && ["PLACED", "PICKING", "READY"].includes(o.status) && (
             <Notice tone="info" title={`Click & collect at ${o.store.name}`}>
               The store picks it, marks it ready (the buyer gets the collection code by email and text) and hands it over with an ID check — that posts the sale and the invoice.{" "}
-              {o.store.kind === "RETAIL" && <Link href={`/store/${o.store.code}/trade/${o.id}`} className="font-semibold text-brand-700 hover:underline">Open the store&apos;s view →</Link>}
+              {o.store.kind === "RETAIL" && <Link href={`/store/${o.store.code}/trade/${o.id}`} className="inline-block py-1 font-semibold underline hover:no-underline">Open the store&apos;s view →</Link>}
             </Notice>
           )}
 
