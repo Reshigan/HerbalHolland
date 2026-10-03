@@ -452,26 +452,26 @@ async function main() {
     addressLine: string; suburb: string | null; city: string; province: Prov3; postalCode: string; delivery: Addr | null;
     status: "PENDING" | "APPROVED" | "ON_HOLD" | "CLOSED"; terms: "PREPAID" | "ACCOUNT"; creditLimitCents: number; paymentDays: number; classes: RegClass[];
     dc: SimStore; priceListId: string | null; notes: string | null; applied: Date; approvedAt: Date | null; holdReason: string | null; heldAt: Date | null; closedAt: Date | null;
-    buyers: SimBuyer[]; ref: string; rate: number; balance: number; open: number;
+    buyers: SimBuyer[]; ref: string; rate: number; balance: number; open: number; reserve: number; // credit kept free for the demo's own open orders
   };
   type AccDef = {
     name: string; legalName: string; kind: TradeKind; reg?: string; vat?: string; email: string; phone: string; ref: string; address: Addr; delivery?: Addr;
     status: SimAccount["status"]; terms?: "PREPAID" | "ACCOUNT"; limit?: number; applied: number; approvedDays?: number; classes?: RegClass[];
-    buyers: [name: string, email: string, phone: string | null, role: "OWNER" | "BUYER"][]; notes?: string; holdReason?: string; heldAgo?: number; closedAgo?: number; rate?: number; ownList?: boolean;
+    buyers: [name: string, email: string, phone: string | null, role: "OWNER" | "BUYER"][]; notes?: string; holdReason?: string; heldAgo?: number; closedAgo?: number; rate?: number; ownList?: boolean; reserve?: number;
   };
   const PHARMACY_CLASSES: RegClass[] = ["CBD", "CBD_TOPICAL", "SUPPLEMENT", "HEMP"];
   const CAFE_CLASSES: RegClass[] = ["CBD_FOOD", "HEMP", "ACCESSORY"];
   // Fourteen businesses, numbered in the order they applied. The demo trade buyer is Greenleaf Pharmacy's owner buyer
   // (trade@greenleafpharmacy.co.za: /trade/login, the code is shown on screen in demo mode).
   const ACCOUNTS: AccDef[] = [
-    { name: "Greenleaf Pharmacy", legalName: "Greenleaf Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2016/204388/07", vat: "4620118473", email: "accounts@greenleafpharmacy.co.za", phone: "+27123620480", ref: "GREENLEAF", address: ["Shop 12, Hatfield Square, Burnett Street", "Hatfield", "Pretoria", "GP", "0083"], status: "APPROVED", terms: "ACCOUNT", limit: 5_000_000, applied: 150, approvedDays: 2, buyers: [["Naledi Khumalo", "trade@greenleafpharmacy.co.za", "+27825550140", "OWNER"], ["Thandeka Zulu", "dispensary@greenleafpharmacy.co.za", null, "BUYER"]], notes: "Deliveries to the back entrance on Grosvenor Street, weekdays before 15:00." },
+    { name: "Greenleaf Pharmacy", legalName: "Greenleaf Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2016/204388/07", vat: "4620118473", email: "accounts@greenleafpharmacy.co.za", phone: "+27123620480", ref: "GREENLEAF", address: ["Shop 12, Hatfield Square, Burnett Street", "Hatfield", "Pretoria", "GP", "0083"], status: "APPROVED", terms: "ACCOUNT", limit: 5_000_000, applied: 150, approvedDays: 2, reserve: 1_800_000, buyers: [["Naledi Khumalo", "trade@greenleafpharmacy.co.za", "+27825550140", "OWNER"], ["Thandeka Zulu", "dispensary@greenleafpharmacy.co.za", null, "BUYER"]], notes: "Deliveries to the back entrance on Grosvenor Street, weekdays before 15:00." },
     { name: "The Kind Café", legalName: "The Kind Café (Pty) Ltd", kind: "CAFE", reg: "2021/118246/07", vat: "4710204871", email: "hello@thekindcafe.co.za", phone: "+27214470912", ref: "KIND CAFE", address: ["44 Lower Main Road", "Observatory", "Cape Town", "WC", "7925"], status: "APPROVED", terms: "PREPAID", applied: 142, approvedDays: 3, buyers: [["Jess Carstens", "jess@thekindcafe.co.za", "+27829914471", "OWNER"]] },
     { name: "Midlands Wellness Practice", legalName: "Midlands Wellness Practice Inc.", kind: "PRACTICE", reg: "2019/311907/21", email: "practice@midlandswellness.co.za", phone: "+27333301188", ref: "MIDLANDS WP", address: ["7 Main Road", null, "Howick", "KZN", "3290"], status: "APPROVED", terms: "ACCOUNT", limit: 2_500_000, applied: 135, approvedDays: 4, buyers: [["Anele Mkhize", "anele@midlandswellness.co.za", "+27837720315", "OWNER"]] },
-    { name: "Bo-Kaap Apothecary", legalName: "Bo-Kaap Apothecary (Pty) Ltd", kind: "RETAILER", reg: "2017/458201/07", vat: "4650098122", email: "orders@bokaapapothecary.co.za", phone: "+27214240077", ref: "BOKAAP APOTH", address: ["88 Wale Street", "Bo-Kaap", "Cape Town", "WC", "8001"], status: "APPROVED", terms: "ACCOUNT", limit: 3_000_000, applied: 128, approvedDays: 2, buyers: [["Yusuf Dollie", "yusuf@bokaapapothecary.co.za", "+27823301190", "OWNER"], ["Amina Dollie", "amina@bokaapapothecary.co.za", null, "BUYER"]] },
+    { name: "Bo-Kaap Apothecary", legalName: "Bo-Kaap Apothecary (Pty) Ltd", kind: "RETAILER", reg: "2017/458201/07", vat: "4650098122", email: "orders@bokaapapothecary.co.za", phone: "+27214240077", ref: "BOKAAP APOTH", address: ["88 Wale Street", "Bo-Kaap", "Cape Town", "WC", "8001"], status: "APPROVED", terms: "ACCOUNT", limit: 3_000_000, applied: 128, approvedDays: 2, reserve: 800_000, buyers: [["Yusuf Dollie", "yusuf@bokaapapothecary.co.za", "+27823301190", "OWNER"], ["Amina Dollie", "amina@bokaapapothecary.co.za", null, "BUYER"]] },
     { name: "Umhlanga Health Pharmacy", legalName: "Umhlanga Health Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2014/087310/07", vat: "4580012398", email: "accounts@umhlangahealth.co.za", phone: "+27315611204", ref: "UMHLANGA HP", address: ["Shop 5, Chartwell Centre, Chartwell Drive", "Umhlanga Rocks", "Durban", "KZN", "4320"], status: "APPROVED", terms: "PREPAID", applied: 121, approvedDays: 3, buyers: [["Kiara Naidoo", "kiara@umhlangahealth.co.za", "+27834412210", "OWNER"]] },
     { name: "Linden Corner Store", legalName: "Lukas Botha", kind: "RETAILER", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Sole proprietor — not VAT registered." },
     { name: "Roots & Rooibos Café", legalName: "Roots and Rooibos (Pty) Ltd", kind: "CAFE", reg: "2020/233514/07", vat: "4690071355", email: "cafe@rootsandrooibos.co.za", phone: "+27123461190", ref: "ROOTS ROOIBOS", address: ["12 Lynnwood Road", "Brooklyn", "Pretoria", "GP", "0181"], status: "APPROVED", terms: "PREPAID", applied: 107, approvedDays: 2, buyers: [["Mpho Sithole", "mpho@rootsandrooibos.co.za", "+27836601182", "OWNER"]] },
-    { name: "Hemp & Home Online", legalName: "Hemp and Home Online (Pty) Ltd", kind: "ONLINE_SHOP", reg: "2022/301877/07", vat: "4730116209", email: "finance@hempandhome.co.za", phone: "+27104470550", ref: "HEMP HOME", address: ["3 Kramer Road", "Kramerville", "Sandton", "GP", "2090"], delivery: ["Unit 7, Linbro Business Park, Galaxy Avenue", "Linbro Park", "Sandton", "GP", "2065"], status: "APPROVED", terms: "ACCOUNT", limit: 4_000_000, applied: 100, approvedDays: 2, ownList: true, buyers: [["Dineo Maseko", "dineo@hempandhome.co.za", "+27827740930", "OWNER"], ["Tebogo Rakgole", "warehouse@hempandhome.co.za", "+27836112078", "BUYER"]], notes: "Online retailer — ships from the Linbro Park warehouse; deliver there, not to the office." },
+    { name: "Hemp & Home Online", legalName: "Hemp and Home Online (Pty) Ltd", kind: "ONLINE_SHOP", reg: "2022/301877/07", vat: "4730116209", email: "finance@hempandhome.co.za", phone: "+27104470550", ref: "HEMP HOME", address: ["3 Kramer Road", "Kramerville", "Sandton", "GP", "2090"], delivery: ["Unit 7, Linbro Business Park, Galaxy Avenue", "Linbro Park", "Sandton", "GP", "2065"], status: "APPROVED", terms: "ACCOUNT", limit: 4_000_000, applied: 100, approvedDays: 2, ownList: true, reserve: 1_500_000, buyers: [["Dineo Maseko", "dineo@hempandhome.co.za", "+27827740930", "OWNER"], ["Tebogo Rakgole", "warehouse@hempandhome.co.za", "+27836112078", "BUYER"]], notes: "Online retailer — ships from the Linbro Park warehouse; deliver there, not to the office." },
     { name: "Stellenbosch Physio & Wellness", legalName: "Stellenbosch Physio and Wellness Inc.", kind: "PRACTICE", reg: "2018/142290/21", email: "admin@stellenboschphysio.co.za", phone: "+27218870341", ref: "STB PHYSIO", address: ["23 Andringa Street", null, "Stellenbosch", "WC", "7600"], status: "APPROVED", terms: "PREPAID", applied: 93, approvedDays: 3, buyers: [["Marli Louw", "marli@stellenboschphysio.co.za", "+27824409912", "OWNER"]] },
     { name: "Durban North Pharmacy", legalName: "Durban North Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2012/055641/07", vat: "4560087731", email: "accounts@durbannorthpharmacy.co.za", phone: "+27315631107", ref: "DBN NORTH PH", address: ["56 Kensington Drive", "Durban North", "Durban", "KZN", "4051"], status: "ON_HOLD", terms: "ACCOUNT", limit: 2_000_000, applied: 86, approvedDays: 2, holdReason: "overdue", heldAgo: 37, rate: 0, buyers: [["Pravesh Maharaj", "pravesh@durbannorthpharmacy.co.za", "+27833318840", "OWNER"], ["Nisha Maharaj", "nisha@durbannorthpharmacy.co.za", null, "BUYER"]] },
     { name: "Vilakazi Street Health Shop", legalName: "VS Health Shop (Pty) Ltd", kind: "RETAILER", reg: "2023/409118/07", email: "lerato@vshealthshop.co.za", phone: "+27119361020", ref: "VS HEALTH", address: ["8107 Vilakazi Street", "Orlando West", "Soweto", "GP", "1804"], status: "ON_HOLD", terms: "ACCOUNT", limit: 1_500_000, applied: 75, approvedDays: 4, holdReason: "Awaiting updated CIPC documents after the change of directors", heldAgo: 12, buyers: [["Lerato Mabaso", "orders@vshealthshop.co.za", "+27825501937", "OWNER"]] },
@@ -500,7 +500,7 @@ async function main() {
       id, number, name: d.name, legalName: d.legalName, kind: d.kind, regNumber: d.reg ?? null, vatNumber: d.vat ?? null, email: d.email, phone: d.phone,
       addressLine: d.address[0], suburb: d.address[1], city: d.address[2], province, postalCode: d.address[4], delivery: d.delivery ?? null,
       status: d.status, terms: d.terms ?? "PREPAID", creditLimitCents: d.terms === "ACCOUNT" ? d.limit! : 0, paymentDays: 30, classes, dc, priceListId: d.ownList ? plTrade : null,
-      notes: d.notes ?? null, applied, approvedAt, holdReason: d.holdReason ?? null, heldAt, closedAt, buyers, ref: d.ref, rate: d.rate ?? 2 / 22, balance: 0, open: 0,
+      notes: d.notes ?? null, applied, approvedAt, holdReason: d.holdReason ?? null, heldAt, closedAt, buyers, ref: d.ref, rate: d.rate ?? 2 / 22, balance: 0, open: 0, reserve: d.reserve ?? 0,
     };
     tradeAccounts.push(a);
     tradeAccountRows.push({
@@ -944,8 +944,8 @@ async function main() {
     }
     return subtotal() >= TRADE.minOrderCents ? lines : [];
   }
-  /** What may still go on account now (the credit decision's headroom), for the orders the account places on account. */
-  const creditRoom = (a: SimAccount) => (a.terms === "ACCOUNT" ? a.creditLimitCents - a.balance - a.open : 0);
+  /** What may still go on account now (the credit decision's headroom), less what the demo keeps free for its own open orders. */
+  const creditRoom = (a: SimAccount, reserve = a.reserve) => (a.terms === "ACCOUNT" ? a.creditLimitCents - a.balance - a.open - reserve : 0);
   const orderTotal = (lines: OrderLine[], fulfilment: "COURIER" | "COLLECT") => {
     const lt = lines.map((l) => tradeLine({ unitCents: l.unit, qty: l.qty }));
     return tradeTotals(lt, fulfilment === "COURIER" ? { deliveryCents: tradeDelivery(lt.reduce((x, l) => x + l.exCents, 0), TRADE) } : { handlingCents: tradeHandling(TRADE) }).totalCents;
@@ -1045,8 +1045,8 @@ async function main() {
   const closedAccount = tradeAccounts.find((a) => a.status === "CLOSED")!;
   explicitOrder(overdueAccount, 100, { pay: "prompt" });
   explicitOrder(overdueAccount, 75, { payMethod: "ACCOUNT", pay: "never" });
-  explicitOrder(closedAccount, 50);
-  explicitOrder(tradeAccounts[0], 31);
+  explicitOrder(closedAccount, 50, { pay: "prompt" });
+  explicitOrder(tradeAccounts[0], 31, { pay: "prompt" });
   explicitOrder(overdueAccount, 20, { payMethod: "EFT" });
   explicitOrder(tradeAccounts[7], 17, { short: true, pay: "random" });
 
@@ -1352,14 +1352,14 @@ async function main() {
   ];
   for (const d of demoTrade) {
     const store = d.store ?? d.a.dc;
-    const budgetCents = d.payMethod === "ACCOUNT" ? Math.floor(creditRoom(d.a) * 0.9) : 1_500_000;
+    const budgetCents = d.payMethod === "ACCOUNT" ? Math.floor(creditRoom(d.a, 0) * 0.9) : 1_500_000;
     let lines: OrderLine[] = [];
     for (let k = 0; k < 6 && !lines.length; k++) lines = tradeBasket(d.a, store, d.placedAt, d.fulfilment, { budgetCents, maxCases: 2 });
     if (!lines.length) {
       console.warn(`  (trade) couldn't build the demo ${d.fulfilment.toLowerCase()} order for ${d.a.name} at ${store.name}`);
       continue;
     }
-    const payMethod = d.payMethod === "ACCOUNT" && orderTotal(lines, d.fulfilment) > creditRoom(d.a) ? "EFT" : d.payMethod;
+    const payMethod = d.payMethod === "ACCOUNT" && orderTotal(lines, d.fulfilment) > creditRoom(d.a, 0) ? "EFT" : d.payMethod;
     placeTradeOrder({ account: d.a, buyer: d.a.buyers[0], store, fulfilment: d.fulfilment, payMethod, lines, placedAt: d.placedAt, steps: d.steps, reference: d.reference ?? null });
   }
 

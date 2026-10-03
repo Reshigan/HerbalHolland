@@ -11,6 +11,7 @@ export type ApplyState = {
   error?: string;
   fields?: TradeErrors;
   values?: Record<string, string>;
+  at?: number; // when a refused submit came back (the form re-keys what React's reset would otherwise lose)
 };
 
 const TEXT = [
@@ -24,11 +25,10 @@ export async function applyAction(_: ApplyState, form: FormData): Promise<ApplyS
   values.classes = classes.join(" ");
   values.adult = form.get("adult") === "on" ? "on" : "";
   values.terms = form.get("terms") === "on" ? "on" : "";
-  // "Deliver somewhere else" unticked: the delivery address typed earlier is ignored, not sent.
-  if (form.get("otherDelivery") !== "on") for (const k of ["deliveryLine", "deliverySuburb", "deliveryCity", "deliveryProvince", "deliveryPostalCode"]) values[k] = "";
-  values.otherDelivery = form.get("otherDelivery") === "on" ? "on" : "";
+  // The delivery fields are only in the form while "Deliver somewhere else" is open; remember that for the re-render.
+  values.otherDelivery = form.has("deliveryLine") ? "on" : "";
   const raw: RawTradeApplication = { ...values, classes, adult: values.adult === "on", terms: values.terms === "on" };
   const r = await applyForTradeAccount(raw, { source: "portal" });
-  if (!r.ok) return { fields: r.fields, error: r.error, values };
+  if (!r.ok) return { fields: r.fields, error: r.error, values, at: Date.now() };
   return { ok: true, number: r.account.number, buyerEmail: r.buyer.email };
 }

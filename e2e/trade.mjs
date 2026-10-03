@@ -225,7 +225,8 @@ try {
   await timed("Range: add 2 cases → cart bar", () => rowA.getByRole("button", { name: /^Add 2 cases of/ }).click(), () => page.getByTestId("cart-bar").waitFor());
   await rowA.getByText("in cart: 2 cases (12 units)").waitFor();
   const bar1 = await page.getByTestId("cart-bar").textContent();
-  assert(bar1.includes("1 line") && bar1.includes(zar(12 * A.wholesaleCents)) && bar1.includes(`${zar(T.minOrderCents - 12 * A.wholesaleCents)} more to reach the ${zar(T.minOrderCents)} minimum`), `cart bar: 1 line · ${zar(12 * A.wholesaleCents)} ex VAT · how far to the minimum`);
+  const short = T.minOrderCents - 12 * A.wholesaleCents;
+  assert(bar1.includes("1 line") && bar1.includes(zar(12 * A.wholesaleCents)) && bar1.includes(short > 0 ? `${zar(short)} more to reach the ${zar(T.minOrderCents)} minimum` : "Minimum order reached"), `cart bar: 1 line · ${zar(12 * A.wholesaleCents)} ex VAT · ${short > 0 ? `${zar(short)} short of the minimum` : "minimum reached"}`);
   await search.fill(B.sku);
   await search.press("Enter");
   const rowB = page.locator(`li[data-sku="${B.sku}"]`);

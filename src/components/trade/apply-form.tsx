@@ -109,7 +109,8 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
       <Section n="2" title="Addresses" lead="The billing address goes on your tax invoices. Courier orders go to the delivery address, or to the billing address when there isn't one.">
         <Address prefix="" v={v} f={f} />
         <div className="mt-5">
-          <CheckRow name="otherDelivery" label="Deliver somewhere else" description="Tick to add a separate delivery address." checked={otherDelivery} onChange={(e) => setOtherDelivery(e.target.checked)} />
+          {/* Re-keyed after a refused submit: React's form reset unticks the box without telling the state. */}
+          <CheckRow key={`od-${state.at ?? 0}`} label="Deliver somewhere else" description="Tick to add a separate delivery address." defaultChecked={otherDelivery} onChange={(e) => setOtherDelivery(e.target.checked)} />
         </div>
         {otherDelivery && (
           <div className="mt-4">

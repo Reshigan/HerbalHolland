@@ -966,7 +966,7 @@ try {
   await tpf.locator("#pay-order").selectOption(tradeOrder.id);
   await act("trade.recordPayment", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => notice(`Payment of R${(tInvoiced / 100).toFixed(2)} recorded`).waitFor());
   const tBalance = (await one(`select coalesce(sum(cents), 0)::int n from "TradeLedgerEntry" where "tradeAccountId" = $1`, [tradeAccount.id])).n;
-  assert(tBalance === 0 && (await one(`select 1 from "AuditLog" where action = 'trade.payment' and "entityId" = $1`, [tradeAccount.id])), "tBalance R0.00 after the payment (audited: trade.payment)");
+  assert(tBalance === 0 && (await one(`select 1 from "AuditLog" where action = 'trade.payment' and "entityId" = $1`, [tradeAccount.id])), "balance R0.00 after the payment (audited: trade.payment)");
   const tNow = sastParts(new Date());
   const tMonth = `${tNow.year}-${tNow.month}`;
   await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger&month=${tMonth}`, page.getByRole("button", { name: "Email statement" }));
@@ -990,8 +990,8 @@ try {
   await shot("trade-account");
 
   step("Trade: the settings card (validation first), changed and restored");
-  await open("/hq/settings", formWith("#tMinOrder"));
-  const tsf = formWith("#tMinOrder");
+  await open("/hq/settings", formWith("#minOrder"));
+  const tsf = formWith("#minOrder");
   const tOrig = { handling: await tsf.locator("#collectHandling").inputValue(), eft: await tsf.locator("#eftHoldDays").inputValue() };
   await tsf.locator("#eftHoldDays").fill("0");
   await act("settings.saveTradeSettings · invalid", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => alertIn(tsf, "1 to 30 days").waitFor());
