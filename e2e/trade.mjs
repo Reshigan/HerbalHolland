@@ -172,7 +172,9 @@ try {
   undo.push(() => q(`delete from "Otp" where email in ($1, $2)`, [buyerEmail, extraBuyerEmail]));
   assert(account.status === "PENDING" && /^TA-\d{6}$/.test(account.number) && account.role === "OWNER", `application ${account.number} is PENDING with its OWNER buyer`);
   assert(account.regNumber === "2015/123456/07" && account.vatNumber === "4123456789" && account.deliveryLine === "Unit 4, 9 Depot Road" && account.deliveryCity === "Pretoria" && account.adultAttestedAt && account.termsAcceptedAt, "numbers tidied, delivery address kept, 18+ and terms recorded");
-  assert(account.classes.length === 3 && account.classes.includes("CBD_TOPICAL"), `three ranges requested (got ${account.classes.join(", ") || "none"})`);
+  // pg hands an enum[] column back as "{CBD,CBD_TOPICAL,ACCESSORY}".
+  const classes = Array.isArray(account.classes) ? account.classes : String(account.classes).replace(/[{}"]/g, "").split(",").filter(Boolean);
+  assert(classes.length === 3 && classes.includes("CBD_TOPICAL"), `three ranges requested (${classes.join(", ")})`);
   await page.getByText(account.number).waitFor();
   const ack = await one(`select 1 from "MessageLog" where "to" = $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%application ${account.number} received%`, t0]);
   const notice = await one(`select "to" from "MessageLog" where "to" <> $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%new application ${account.number}%`, t0]);
@@ -253,10 +255,11 @@ try {
   assert((await lineA.getByTestId("line-ex").textContent()) === zar(exA) && (await lineA.getByTestId("line-vat").textContent()) === zar(vatHalfUp(exA)) && (await lineA.getByTestId("line-incl").textContent()) === zar(exA + vatHalfUp(exA)), `line A: ${zar(exA)} ex · ${zar(vatHalfUp(exA))} VAT · ${zar(exA + vatHalfUp(exA))} incl.`);
   assert((await lineB.getByTestId("line-ex").textContent()) === zar(exB) && (await lineB.getByTestId("line-vat").textContent()) === zar(vatHalfUp(exB)), `line B: ${zar(exB)} ex · ${zar(vatHalfUp(exB))} VAT`);
   assert((await page.getByTestId("subtotal-ex").textContent()) === zar(subtotal) && (await page.getByTestId("total-vat").textContent()) === zar(vat) && (await page.getByTestId("total-incl").textContent()) === zar(subtotal + vat), `totals: ${zar(subtotal)} ex VAT · ${zar(vat)} VAT · ${zar(subtotal + vat)} incl.`);
-  await timed("Cart: one case more", () => lineA.getByRole("button", { name: "One case more" }).click(), () => lineA.getByText("3 cases").waitFor());
+  const stepperA = lineA.getByRole("group", { name: /^Cases of/ });
+  await timed("Cart: one case more", () => stepperA.getByRole("button", { name: "One case more" }).click(), () => stepperA.getByText("3 cases", { exact: true }).waitFor());
   await page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal + 6 * A.wholesaleCents) }).waitFor();
   ok(`3 cases (18 units): subtotal ${zar(subtotal + 6 * A.wholesaleCents)}`);
-  await timed("Cart: one case fewer", () => lineA.getByRole("button", { name: "One case fewer" }).click(), () => lineA.getByText("2 cases").waitFor());
+  await timed("Cart: one case fewer", () => stepperA.getByRole("button", { name: "One case fewer" }).click(), () => stepperA.getByText("2 cases", { exact: true }).waitFor());
   await page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal) }).waitFor();
   const cookie = (await ctx.cookies()).find((c) => c.name === "hh_trade_cart");
   assert(cookie && cookie.value.includes(`${A.id}_12`) && cookie.value.includes(`${B.id}_12`), "hh_trade_cart holds both lines in units (12 + 12)");

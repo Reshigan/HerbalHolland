@@ -137,8 +137,12 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
             <td className="py-3 pr-3" colSpan={2}>
               Closing balance
             </td>
-            <td className="tnum py-3 px-3 text-right">{zar(st.lines.reduce((s, l) => s + l.debitCents, 0))}</td>
-            <td className="tnum py-3 px-3 text-right">−{zar(st.lines.reduce((s, l) => s + l.creditCents, 0))}</td>
+            <td className="py-3 px-3 text-right">
+              <Amount cents={st.lines.reduce((s, l) => s + l.debitCents, 0)} />
+            </td>
+            <td className="py-3 px-3 text-right">
+              <Amount cents={st.lines.reduce((s, l) => s + l.creditCents, 0)} sign="−" />
+            </td>
             <td className="tnum py-3 pl-3 text-right">{zar(st.closing)}</td>
           </tr>
         </tbody>
