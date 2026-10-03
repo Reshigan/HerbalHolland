@@ -153,7 +153,9 @@ export type PlaceTradeOrderInput = {
 export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   const account = await db.tradeAccount.findUnique({ where: { id: input.accountId } });
   if (!account) throw new TradeOrderError("Unknown trade account");
-  if (account.status !== "APPROVED") throw new TradeOrderError(ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
+  // A held account (overdue, or held by HQ) may still order prepaid — the hold stops credit, not trade — as its emails say.
+  const canOrder = account.status === "APPROVED" || (account.status === "ON_HOLD" && input.payMethod === "EFT");
+  if (!canOrder) throw new TradeOrderError(account.status === "ON_HOLD" ? `${ACCOUNT_STATUS_PROBLEM.ON_HOLD} — or pay this order by EFT` : ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
   const buyer = input.buyerId ? await db.tradeBuyer.findUnique({ where: { id: input.buyerId } }) : null;
   if (input.buyerId && (!buyer || buyer.tradeAccountId !== account.id || !buyer.active)) throw new TradeOrderError("This buyer can't order for the account");
   const actor: Actor = buyer ? tradeActor(buyer) : (input.actor ?? SYSTEM);

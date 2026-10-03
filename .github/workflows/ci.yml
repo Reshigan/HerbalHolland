@@ -98,6 +98,9 @@ jobs:
       - run: node e2e/shop.mjs test-results/e2e-shop
         env:
           BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/trade.mjs test-results/e2e-trade
+        env:
+          BASE_URL: http://127.0.0.1:3000
       - name: Crawl every page as every role (broken links, server errors, crashes, timings)
         run: node e2e/crawl.mjs test-results/e2e-crawl
         env:

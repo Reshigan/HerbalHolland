@@ -374,7 +374,11 @@ describe("Trade sales at the till", () => {
   it("lets a held account pay in money but not on account; a closed account can't trade at all", async () => {
     await holdTradeAccount(accountId, "Paperwork outstanding", hq);
     expect((await lastMailTo(BILLING)).body).toMatch(/account TA-000001 on hold[\s\S]*Reason: Paperwork outstanding/);
-    await expect(placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "EFT" })).rejects.toThrow(/on hold/);
+    // The hold stops credit, not trade: a prepaid (EFT) order is still welcome, an on-account one isn't.
+    await expect(placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "ACCOUNT" })).rejects.toThrow(/on hold/);
+    const held = await placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "EFT" });
+    expect(held.status).toBe("PENDING_PAYMENT");
+    await advanceTradeOrder(held.id, "cancel", hq, { note: "test" });
     await expect(postPosSale({ id: randomUUID(), number: saleNumber(), lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "ACCOUNT", amountCents: 23_000 }], trade: { tradeAccountId: accountId } }, pos())).rejects.toThrow(/on hold/);
     const cash = await postPosSale({ id: randomUUID(), number: saleNumber(), lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: 23_000 }], trade: { tradeAccountId: accountId } }, pos());
     expect(cash.sale.channel).toBe("WHOLESALE");
