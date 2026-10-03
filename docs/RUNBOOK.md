@@ -432,6 +432,27 @@ note). Statements go out on the statement day for the previous month; **Send sta
 (`emailTradeStatement(accountId, "YYYY-MM", { force: true })`). Ageing is current / 30 / 60 / 90+ days past due after
 credits are applied — to the item they name first, then oldest due first.
 
+**HQ console (how-to).** `/hq/trade` is the overview: applications waiting, open orders (to pick at the DC, ready to
+collect), EFTs to confirm, accounts on hold, the balance outstanding and overdue (FIFO ageing), links to the Trade sales
+and Trade aged balances reports and to the settings. `/hq/trade/accounts` lists accounts by status (All / Pending /
+Approved / On hold / Closed; search by number, name, VAT number or email; sortable incl. balance). An account's page
+has four tabs: **Overview** (approve with terms, or save terms; business and delivery details; hold / lift the hold;
+close — type CLOSE), **Ledger & statements** (record a payment, credit note, adjustment; the month's statement with
+**Email statement**), **Orders**, **Buyers** (add, remove). **Place an order** (approved accounts) captures a phone
+order: search the trade range at the account's DC, add whole cases, courier or click & collect at a store, EFT or on
+account — the account gets the same emails as a portal order. `/hq/trade/orders` has views Open / Pending EFT / To pick
+/ Ready for collection / In transit (shipped in the last 7 days) / Done / Cancelled / All; an order's page confirms the
+EFT (bank reference), picks and ships (courier, tracking, short lines) or cancels (reason). Area managers see their
+region's orders and accounts read-only; the HQ team acts. Settings: `/hq/settings` → Trade card (HQ administrator).
+
+**Store back office (how-to).** Store → **Trade orders** (`/store/<code>/trade`): the click & collect trade orders at
+this store (To fulfil / Done / Cancelled); the Today list and the Online orders page point here while any are open.
+An order's page shows the lines with what's on hand, the collection code (never read it out), then **Start picking** →
+**Packed — ready for collection** (the buyer is emailed and texted the code) → **Hand over**: tick that the collector's
+ID was seen (18+), type the six-digit code they give (it must match), note any short line — the WHOLESALE sale posts at
+the store with the handling fee, the tax invoice is numbered and emailed, and the sale number and invoice link show on
+the page. Any staff member at the store can pick, ready and hand over; a manager or owner cancels (with a reason).
+
 ## Reorder reminders, gift vouchers, wishlists and addresses (the shop's member features)
 
 **Reorder reminders** (`ReorderReminder`, `src/server/shop/reminders.ts`). A member sets "Remind me to reorder" on a

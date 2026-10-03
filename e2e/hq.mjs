@@ -866,63 +866,63 @@ try {
 
   // ── Trade (wholesale) ─────────────────────────────────────────────────────
   step("Trade: an application (SQL) is approved on account terms (validation first); the account is emailed");
-  const tradeVat = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, "0")}`;
-  let tradeNo;
-  while (!tradeNo) {
+  const tVat = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, "0")}`;
+  let tNo;
+  while (!tNo) {
     const c = `TA-9${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
-    if (!(await one(`select 1 from "TradeAccount" where number = $1`, [c]))) tradeNo = c;
+    if (!(await one(`select 1 from "TradeAccount" where number = $1`, [c]))) tNo = c;
   }
   tradeAccount = await one(
     `insert into "TradeAccount" (id, number, name, "legalName", kind, "vatNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "updatedAt")
      values (gen_random_uuid()::text, $1, $2, $3, 'RETAILER', $4, $5, '+27115550123', '12 Jan Smuts Avenue', 'Rosebank', 'Johannesburg', 'GP', '2196', 'PENDING', 'PREPAID', '{ACCESSORY,CBD}'::"RegClass"[], now(), 'trade-1', now(), now())
      returning id, number, name, email`,
-    [tradeNo, T.tradeName, `${T.tradeName} (Pty) Ltd`, tradeVat, T.tradeEmail],
+    [tNo, T.tradeName, `${T.tradeName} (Pty) Ltd`, tVat, T.tradeEmail],
   );
   await q(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, phone, role) values (gen_random_uuid()::text, $1, 'E2E Buyer', $2, '+27825550123', 'OWNER')`, [tradeAccount.id, T.tradeBuyerEmail]);
   await open("/hq/trade/accounts?status=PENDING", page.getByRole("link", { name: T.tradeName, exact: true }));
   await page.getByRole("link", { name: T.tradeName, exact: true }).click();
   await page.waitForURL(new RegExp(`/hq/trade/accounts/${tradeAccount.id}$`));
-  const af = formWith("#creditLimit");
-  await hydrated(af);
-  await af.locator("#terms").selectOption("ACCOUNT");
-  await af.locator("#creditLimit").fill("");
-  await act("trade.approveAccount · invalid", () => af.getByRole("button", { name: "Approve account" }).click(), () => alertIn(af, "An account on credit terms needs a limit").waitFor());
+  const taf = formWith("#creditLimit");
+  await hydrated(taf);
+  await taf.locator("#terms").selectOption("ACCOUNT");
+  await taf.locator("#creditLimit").fill("");
+  await act("trade.approveAccount · invalid", () => taf.getByRole("button", { name: "Approve account" }).click(), () => alertIn(taf, "An account on credit terms needs a limit").waitFor());
   assert((await one(`select status from "TradeAccount" where id = $1`, [tradeAccount.id])).status === "PENDING", "still pending");
-  await af.locator("#creditLimit").fill("20000");
-  await af.getByRole("checkbox", { name: "Supplements", exact: true }).check();
+  await taf.locator("#creditLimit").fill("20000");
+  await taf.getByRole("checkbox", { name: "Supplements", exact: true }).check();
   await shot("trade-approve");
-  await act("trade.approveAccount", () => af.getByRole("button", { name: "Approve account" }).click(), () => notice(`${tradeAccount.number} approved on account terms`).waitFor());
-  let ta = await one(`select status, terms, "creditLimitCents", "paymentDays", classes::text[] classes, "approvedById", "approvedAt" from "TradeAccount" where id = $1`, [tradeAccount.id]);
-  assert(ta.status === "APPROVED" && ta.terms === "ACCOUNT" && ta.creditLimitCents === 2_000_000 && ta.paymentDays === 30 && ta.classes.includes("SUPPLEMENT") && ta.approvedById === admin.id && ta.approvedAt, "approved on account: R20,000 limit, 30 days, three ranges, by the admin");
+  await act("trade.approveAccount", () => taf.getByRole("button", { name: "Approve account" }).click(), () => notice(`${tradeAccount.number} approved on account terms`).waitFor());
+  let tacc = await one(`select status, terms, "creditLimitCents", "paymentDays", classes::text[] classes, "approvedById", "approvedAt" from "TradeAccount" where id = $1`, [tradeAccount.id]);
+  assert(tacc.status === "APPROVED" && tacc.terms === "ACCOUNT" && tacc.creditLimitCents === 2_000_000 && tacc.paymentDays === 30 && tacc.classes.includes("SUPPLEMENT") && tacc.approvedById === admin.id && tacc.approvedAt, "approved on account: R20,000 limit, 30 days, three ranges, by the admin");
   assert(await one(`select 1 from "AuditLog" where action = 'trade.account.approve' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id]), "audited (trade.account.approve)");
   assert(await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%account ${tradeAccount.number} approved%`])), "approval email logged for the account");
 
   step(`Trade: HQ places a courier order on account for ${T.tradeName} (whole cases above the minimum) → it queues to pick at ${dc.name}`);
-  const tradeVariant = await one(
+  const tVariant = await one(
     `select v.id, v.sku, v.name, p.name product, v."wholesaleCents", v."caseQty",
        (select coalesce(sum(sl."onHand"), 0) from "StockLevel" sl join "Batch" b on b.id = sl."batchId" where sl."variantId" = v.id and sl."storeId" = $1 and b.status = 'RELEASED')::int "onHand"
      from "Variant" v join "Product" p on p.id = v."productId"
      where v.active and p.status = 'ACTIVE' and v."podSku" is null and p."regClass" in ('ACCESSORY', 'CBD') and v."wholesaleCents" between 5000 and 60000 order by "onHand" desc limit 1`,
     [dc.id],
   );
-  const tradeSetting = (await setting("trade")) ?? {};
-  const minOrder = tradeSetting.minOrderCents ?? 200_000;
-  const tradeCases = Math.ceil(minOrder / (tradeVariant.wholesaleCents * tradeVariant.caseQty)) + 1;
-  const tradeUnits = tradeCases * tradeVariant.caseQty;
-  if (tradeVariant.onHand < tradeUnits) fail(`${dc.code} needs ${tradeUnits} of ${tradeVariant.sku} on hand for the trade order`);
-  const tradeLabel = `${tradeVariant.product} · ${tradeVariant.name}`;
+  const tSetting = (await setting("trade")) ?? {};
+  const tMinOrder = tSetting.minOrderCents ?? 200_000;
+  const tCases = Math.ceil(tMinOrder / (tVariant.wholesaleCents * tVariant.caseQty)) + 1;
+  const tUnits = tCases * tVariant.caseQty;
+  if (tVariant.onHand < tUnits) fail(`${dc.code} needs ${tUnits} of ${tVariant.sku} on hand for the trade order`);
+  const tLabel = `${tVariant.product} · ${tVariant.name}`;
   await open(`/hq/trade/accounts/${tradeAccount.id}/order`, page.getByRole("button", { name: "Search", exact: true }));
-  await page.getByPlaceholder("Product, SKU or barcode").fill(tradeVariant.sku);
+  await page.getByPlaceholder("Product, SKU or barcode").fill(tVariant.sku);
   await page.getByRole("button", { name: "Search", exact: true }).click();
-  await page.getByRole("button", { name: `Add a case of ${tradeLabel}` }).click();
-  await page.getByLabel(`Cases of ${tradeLabel}`).fill(String(tradeCases));
+  await page.getByRole("button", { name: `Add a case of ${tLabel}` }).click();
+  await page.getByLabel(`Cases of ${tLabel}`).fill(String(tCases));
   await page.locator("#reference").fill(`E2E-PO-${SFX}`);
   await shot("trade-order-builder");
   await act("trade.placeOrderForAccount", () => page.getByRole("button", { name: `Place order for ${T.tradeName}` }).click(), () => page.waitForURL(/\/hq\/trade\/orders\/[^/?]+\?m=/));
   tradeOrder = await one(`select id, number, status, "payMethod", fulfilment, "storeId", "totalCents", "subtotalCents", "deliveryCents", reference from "TradeOrder" where "tradeAccountId" = $1`, [tradeAccount.id]);
-  const tradeLine = await one(`select id, qty, "unitCents" from "TradeOrderLine" where "tradeOrderId" = $1`, [tradeOrder?.id ?? ""]);
-  assert(tradeOrder?.status === "PLACED" && tradeOrder.payMethod === "ACCOUNT" && tradeOrder.fulfilment === "COURIER" && tradeOrder.storeId === dc.id && tradeLine?.qty === tradeUnits && tradeOrder.reference === `E2E-PO-${SFX}`, `${tradeOrder?.number}: placed on account, courier from ${dc.code}, ${tradeUnits} units at R${(tradeLine?.unitCents / 100).toFixed(2)} ex VAT`);
-  assert(tradeOrder.subtotalCents === tradeUnits * tradeLine.unitCents && tradeOrder.totalCents > tradeOrder.subtotalCents, `ex VAT ${tradeOrder.subtotalCents} + VAT and courier = ${tradeOrder.totalCents} incl.`);
+  const tLine = await one(`select id, qty, "unitCents" from "TradeOrderLine" where "tradeOrderId" = $1`, [tradeOrder?.id ?? ""]);
+  assert(tradeOrder?.status === "PLACED" && tradeOrder.payMethod === "ACCOUNT" && tradeOrder.fulfilment === "COURIER" && tradeOrder.storeId === dc.id && tLine?.qty === tUnits && tradeOrder.reference === `E2E-PO-${SFX}`, `${tradeOrder?.number}: placed on account, courier from ${dc.code}, ${tUnits} units at R${(tLine?.unitCents / 100).toFixed(2)} ex VAT`);
+  assert(tradeOrder.subtotalCents === tUnits * tLine.unitCents && tradeOrder.totalCents > tradeOrder.subtotalCents, `ex VAT ${tradeOrder.subtotalCents} + VAT and courier = ${tradeOrder.totalCents} incl.`);
   await open("/hq/trade/orders?view=pick", null);
   await page.getByRole("link", { name: tradeOrder.number, exact: true }).waitFor();
   ok(`${tradeOrder.number} is in To pick`);
@@ -933,74 +933,74 @@ try {
   assert((await one(`select status from "TradeOrder" where id = $1`, [tradeOrder.id])).status === "PICKING", "picking");
   await hydrated(page.getByRole("button", { name: "Ship order" }));
   await page.getByRole("button", { name: "Ship order" }).click();
-  const sg = page.getByRole("group", { name: `Ship ${tradeOrder.number}?` });
-  await act("trade.shipOrder · no courier", () => sg.getByRole("button", { name: "Ship and invoice" }).click(), () => alertIn(sg, "Which courier is it with?").waitFor());
-  await sg.locator("#ship-courier").fill("The Courier Guy");
-  await sg.locator("#ship-tracking").fill(`E2E${SFX}`);
-  const shippedUnits = tradeUnits - tradeVariant.caseQty;
-  await sg.locator(`#short-${tradeLine.id}`).fill(String(shippedUnits));
+  const tsg = page.getByRole("group", { name: `Ship ${tradeOrder.number}?` });
+  await act("trade.shipOrder · no courier", () => tsg.getByRole("button", { name: "Ship and invoice" }).click(), () => alertIn(tsg, "Which courier is it with?").waitFor());
+  await tsg.locator("#ship-courier").fill("The Courier Guy");
+  await tsg.locator("#ship-tracking").fill(`E2E${SFX}`);
+  const tShippedUnits = tUnits - tVariant.caseQty;
+  await tsg.locator(`#short-${tLine.id}`).fill(String(tShippedUnits));
   await shot("trade-ship");
-  await act("trade.shipOrder", () => sg.getByRole("button", { name: "Ship and invoice" }).click(), () => notice("shipped with The Courier Guy").waitFor());
+  await act("trade.shipOrder", () => tsg.getByRole("button", { name: "Ship and invoice" }).click(), () => notice("shipped with The Courier Guy").waitFor());
   const tShipped = await one(`select o.status, o.courier, o."trackingNo", o."invoiceNumber", o."saleId", l."shippedQty" from "TradeOrder" o join "TradeOrderLine" l on l."tradeOrderId" = o.id where o.id = $1`, [tradeOrder.id]);
-  const halfUp = (n) => Math.floor((n * 1500 + 5000) / 10000);
-  const invoiced = shippedUnits * tradeLine.unitCents + halfUp(shippedUnits * tradeLine.unitCents) + tradeOrder.deliveryCents + halfUp(tradeOrder.deliveryCents);
-  const tradeInv = await one(`select cents, reference, "dueAt" from "TradeLedgerEntry" where "tradeOrderId" = $1 and kind = 'INVOICE'`, [tradeOrder.id]);
-  const tradeSale = await one(`select channel, "storeId", "totalCents", "tradeAccountId", number from "Sale" where id = $1`, [tShipped.saleId ?? ""]);
-  assert(tShipped.status === "SHIPPED" && tShipped.courier === "The Courier Guy" && tShipped.trackingNo === `E2E${SFX}` && /^TI-\d{6}$/.test(tShipped.invoiceNumber ?? "") && tShipped.shippedQty === shippedUnits, `shipped: ${tShipped.shippedQty} of ${tradeUnits}, invoice ${tShipped.invoiceNumber}`);
-  const dueDays = tradeInv?.dueAt ? Math.round((tradeInv.dueAt.getTime() - Date.now()) / 86_400_000) : null;
-  assert(tradeInv?.cents === invoiced && tradeInv.reference === tShipped.invoiceNumber && dueDays === 30, `ledger INVOICE for the shipped quantity (R${(invoiced / 100).toFixed(2)}), due in 30 days`);
-  assert(tradeSale?.channel === "WHOLESALE" && tradeSale.storeId === dc.id && tradeSale.totalCents === invoiced && tradeSale.tradeAccountId === tradeAccount.id && tradeSale.number === tShipped.invoiceNumber, `WHOLESALE sale ${tradeSale?.number} posted at ${dc.code}`);
+  const tHalfUp = (n) => Math.floor((n * 1500 + 5000) / 10000);
+  const tInvoiced = tShippedUnits * tLine.unitCents + tHalfUp(tShippedUnits * tLine.unitCents) + tradeOrder.deliveryCents + tHalfUp(tradeOrder.deliveryCents);
+  const tInv = await one(`select cents, reference, "dueAt" from "TradeLedgerEntry" where "tradeOrderId" = $1 and kind = 'INVOICE'`, [tradeOrder.id]);
+  const tSale = await one(`select channel, "storeId", "totalCents", "tradeAccountId", number from "Sale" where id = $1`, [tShipped.saleId ?? ""]);
+  assert(tShipped.status === "SHIPPED" && tShipped.courier === "The Courier Guy" && tShipped.trackingNo === `E2E${SFX}` && /^TI-\d{6}$/.test(tShipped.invoiceNumber ?? "") && tShipped.shippedQty === tShippedUnits, `shipped: ${tShipped.shippedQty} of ${tUnits}, invoice ${tShipped.invoiceNumber}`);
+  const tDueDays = tInv?.dueAt ? Math.round((tInv.dueAt.getTime() - Date.now()) / 86_400_000) : null;
+  assert(tInv?.cents === tInvoiced && tInv.reference === tShipped.invoiceNumber && tDueDays === 30, `ledger INVOICE for the shipped quantity (R${(tInvoiced / 100).toFixed(2)}), due in 30 days`);
+  assert(tSale?.channel === "WHOLESALE" && tSale.storeId === dc.id && tSale.totalCents === tInvoiced && tSale.tradeAccountId === tradeAccount.id && tSale.number === tShipped.invoiceNumber, `WHOLESALE sale ${tSale?.number} posted at ${dc.code}`);
   assert(await one(`select 1 from "AuditLog" where action = 'trade.order.shipped' and "entityId" = $1 and "actorId" = $2`, [tradeOrder.id, admin.id]), "audited (trade.order.shipped)");
   await open("/hq/trade/orders?view=done", null);
   await page.getByRole("link", { name: tradeOrder.number, exact: true }).waitFor();
   ok(`${tradeOrder.number} is Done`);
 
-  step(`Trade: the EFT recorded against ${tShipped.invoiceNumber} → balance zero; the statement emailed; hold and release`);
+  step(`Trade: the EFT recorded against ${tShipped.invoiceNumber} → tBalance zero; the statement emailed; hold and release`);
   await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger`, formWith("#pay-amount"));
-  const pf = formWith("#pay-amount");
-  await pf.locator("#pay-amount").fill("0");
-  await pf.locator("#pay-reference").fill("x");
-  await act("trade.recordPayment · invalid", () => pf.getByRole("button", { name: "Record payment" }).click(), () => alertIn(pf, "The amount received, like 2500.00").waitFor());
-  await pf.locator("#pay-amount").fill((invoiced / 100).toFixed(2));
-  await pf.locator("#pay-reference").fill(`E2E-EFT-${SFX}`);
-  await pf.locator("#pay-order").selectOption(tradeOrder.id);
-  await act("trade.recordPayment", () => pf.getByRole("button", { name: "Record payment" }).click(), () => notice(`Payment of R${(invoiced / 100).toFixed(2)} recorded`).waitFor());
-  const balance = (await one(`select coalesce(sum(cents), 0)::int n from "TradeLedgerEntry" where "tradeAccountId" = $1`, [tradeAccount.id])).n;
-  assert(balance === 0 && (await one(`select 1 from "AuditLog" where action = 'trade.payment' and "entityId" = $1`, [tradeAccount.id])), "balance R0.00 after the payment (audited: trade.payment)");
-  const sastNow = sastParts(new Date());
-  const stMonth = `${sastNow.year}-${sastNow.month}`;
-  await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger&month=${stMonth}`, page.getByRole("button", { name: "Email statement" }));
+  const tpf = formWith("#pay-amount");
+  await tpf.locator("#pay-amount").fill("0");
+  await tpf.locator("#pay-reference").fill("x");
+  await act("trade.recordPayment · invalid", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => alertIn(tpf, "The amount received, like 2500.00").waitFor());
+  await tpf.locator("#pay-amount").fill((tInvoiced / 100).toFixed(2));
+  await tpf.locator("#pay-reference").fill(`E2E-EFT-${SFX}`);
+  await tpf.locator("#pay-order").selectOption(tradeOrder.id);
+  await act("trade.recordPayment", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => notice(`Payment of R${(tInvoiced / 100).toFixed(2)} recorded`).waitFor());
+  const tBalance = (await one(`select coalesce(sum(cents), 0)::int n from "TradeLedgerEntry" where "tradeAccountId" = $1`, [tradeAccount.id])).n;
+  assert(tBalance === 0 && (await one(`select 1 from "AuditLog" where action = 'trade.payment' and "entityId" = $1`, [tradeAccount.id])), "tBalance R0.00 after the payment (audited: trade.payment)");
+  const tNow = sastParts(new Date());
+  const tMonth = `${tNow.year}-${tNow.month}`;
+  await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger&month=${tMonth}`, page.getByRole("button", { name: "Email statement" }));
   await page.getByRole("row").filter({ hasText: tShipped.invoiceNumber }).first().waitFor();
   await shot("trade-ledger");
-  await act("trade.sendStatement", () => page.getByRole("button", { name: "Email statement" }).click(), () => notice(`Statement for ${stMonth} emailed`).waitFor());
-  const stLog = await one(`select status, kind from "MessageLog" where id = $1`, [`trade-statement-${tradeAccount.id}-${stMonth}`]);
-  created.mails.push(`trade-statement-${tradeAccount.id}-${stMonth}`);
-  assert(stLog?.kind === "trade-statement" && stLog.status === "SENT" && (await one(`select 1 from "AuditLog" where action = 'trade.statement.send' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id])), `statement for ${stMonth} logged (message-log receipt) and the send audited`);
+  await act("trade.sendStatement", () => page.getByRole("button", { name: "Email statement" }).click(), () => notice(`Statement for ${tMonth} emailed`).waitFor());
+  const tStLog = await one(`select status, kind from "MessageLog" where id = $1`, [`trade-statement-${tradeAccount.id}-${tMonth}`]);
+  created.mails.push(`trade-statement-${tradeAccount.id}-${tMonth}`);
+  assert(tStLog?.kind === "trade-statement" && tStLog.status === "SENT" && (await one(`select 1 from "AuditLog" where action = 'trade.statement.send' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id])), `statement for ${tMonth} logged (message-log receipt) and the send audited`);
   await open(`/hq/trade/accounts/${tradeAccount.id}`, page.getByRole("button", { name: "Put on hold" }));
   await page.getByRole("button", { name: "Put on hold" }).click();
-  const hg = page.getByRole("group", { name: `Put ${T.tradeName} on hold?` });
-  await act("trade.holdAccount · no reason", () => hg.getByRole("button", { name: "Put on hold" }).click(), () => alertIn(hg, "Say why").waitFor());
-  await hg.locator("#hold-reason").fill("E2E: invoice query");
-  await act("trade.holdAccount", () => hg.getByRole("button", { name: "Put on hold" }).click(), () => notice("Account on hold").waitFor());
-  ta = await one(`select status, "holdReason" from "TradeAccount" where id = $1`, [tradeAccount.id]);
-  assert(ta.status === "ON_HOLD" && ta.holdReason === "E2E: invoice query" && (await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%${tradeAccount.number} on hold%`]))), "on hold with the reason; the account emailed");
+  const thg = page.getByRole("group", { name: `Put ${T.tradeName} on hold?` });
+  await act("trade.holdAccount · no reason", () => thg.getByRole("button", { name: "Put on hold" }).click(), () => alertIn(thg, "Say why").waitFor());
+  await thg.locator("#hold-reason").fill("E2E: invoice query");
+  await act("trade.holdAccount", () => thg.getByRole("button", { name: "Put on hold" }).click(), () => notice("Account on hold").waitFor());
+  tacc = await one(`select status, "holdReason" from "TradeAccount" where id = $1`, [tradeAccount.id]);
+  assert(tacc.status === "ON_HOLD" && tacc.holdReason === "E2E: invoice query" && (await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%${tradeAccount.number} on hold%`]))), "on hold with the reason; the account emailed");
   await hydrated(page.getByRole("button", { name: "Lift the hold" }));
   await act("trade.releaseAccount", () => page.getByRole("button", { name: "Lift the hold" }).click(), () => notice("Hold lifted").waitFor());
   assert((await one(`select status, "holdReason" from "TradeAccount" where id = $1`, [tradeAccount.id])).status === "APPROVED" && (await one(`select 1 from "AuditLog" where action = 'trade.account.release' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id])), "approved again (audited: trade.account.release)");
   await shot("trade-account");
 
   step("Trade: the settings card (validation first), changed and restored");
-  await open("/hq/settings", formWith("#minOrder"));
-  const ts = formWith("#minOrder");
-  const origTrade = { handling: await ts.locator("#collectHandling").inputValue(), eft: await ts.locator("#eftHoldDays").inputValue() };
-  await ts.locator("#eftHoldDays").fill("0");
-  await act("settings.saveTradeSettings · invalid", () => ts.getByRole("button", { name: "Save trade settings" }).click(), () => alertIn(ts, "1 to 30 days").waitFor());
-  await ts.locator("#eftHoldDays").fill(origTrade.eft);
-  await ts.locator("#collectHandling").fill(String(Number(origTrade.handling) + 1));
-  await act("settings.saveTradeSettings", () => ts.getByRole("button", { name: "Save trade settings" }).click(), () => notice("Trade settings saved").waitFor());
-  assert((await setting("trade"))?.collectHandlingCents === Math.round((Number(origTrade.handling) + 1) * 100) && (await one(`select 1 from "AuditLog" where action = 'settings.trade' and "actorId" = $1`, [admin.id])), `collect handling R${origTrade.handling} → R${Number(origTrade.handling) + 1} (audited: settings.trade)`);
-  await ts.locator("#collectHandling").fill(origTrade.handling);
-  await act("settings.saveTradeSettings (restore)", () => ts.getByRole("button", { name: "Save trade settings" }).click(), () => notice("Trade settings saved").waitFor());
+  await open("/hq/settings", formWith("#tMinOrder"));
+  const tsf = formWith("#tMinOrder");
+  const tOrig = { handling: await tsf.locator("#collectHandling").inputValue(), eft: await tsf.locator("#eftHoldDays").inputValue() };
+  await tsf.locator("#eftHoldDays").fill("0");
+  await act("settings.saveTradeSettings · invalid", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => alertIn(tsf, "1 to 30 days").waitFor());
+  await tsf.locator("#eftHoldDays").fill(tOrig.eft);
+  await tsf.locator("#collectHandling").fill(String(Number(tOrig.handling) + 1));
+  await act("settings.saveTradeSettings", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => notice("Trade settings saved").waitFor());
+  assert((await setting("trade"))?.collectHandlingCents === Math.round((Number(tOrig.handling) + 1) * 100) && (await one(`select 1 from "AuditLog" where action = 'settings.trade' and "actorId" = $1`, [admin.id])), `collect handling R${tOrig.handling} → R${Number(tOrig.handling) + 1} (audited: settings.trade)`);
+  await tsf.locator("#collectHandling").fill(tOrig.handling);
+  await act("settings.saveTradeSettings (restore)", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => notice("Trade settings saved").waitFor());
   await restoreSetting("trade");
   assert(JSON.stringify(await setting("trade")) === JSON.stringify(originalSettings.get("trade") ?? null), "trade settings as found");
   await shot("trade-settings");
