@@ -739,9 +739,9 @@ async function main() {
    * How invoices get paid: a third of businesses run a weekly payment run (within a fortnight), most of the rest pay a
    * few days before an invoice falls due, some a few days late (inside the grace period), and a few haven't yet.
    */
-  function planPayment(a: SimAccount, cents: number, reference: string, dueAt: Date, postedAt: Date, tradeOrderId: string | null, mode: "random" | "ontime" | "never" = "random") {
+  function planPayment(a: SimAccount, cents: number, reference: string, dueAt: Date, postedAt: Date, tradeOrderId: string | null, mode: "random" | "prompt" | "ontime" | "never" = "random") {
     if (mode === "never") return undefined;
-    const r = mode === "ontime" ? 0.5 : R();
+    const r = mode === "ontime" ? 0.5 : mode === "prompt" ? 0.1 : R();
     let payAt: Date;
     if (r < 0.35) payAt = addDays(postedAt, int(3, 12));
     else if (r < 0.8) payAt = addDays(dueAt, -int(1, 9));
@@ -827,7 +827,7 @@ async function main() {
   }
 
   /** Places an order and walks it through the steps that have happened: the rows, events, stock, sale, ledger and audit the services would leave. */
-  function placeTradeOrder(o: { account: SimAccount; buyer: SimBuyer | null; store: SimStore; fulfilment: "COURIER" | "COLLECT"; payMethod: "EFT" | "ACCOUNT"; lines: OrderLine[]; placedAt: Date; steps: Steps; reference?: string | null; notes?: string | null; pay?: "random" | "ontime" | "never" }) {
+  function placeTradeOrder(o: { account: SimAccount; buyer: SimBuyer | null; store: SimStore; fulfilment: "COURIER" | "COLLECT"; payMethod: "EFT" | "ACCOUNT"; lines: OrderLine[]; placedAt: Date; steps: Steps; reference?: string | null; notes?: string | null; pay?: "random" | "prompt" | "ontime" | "never" }) {
     const { account: a, store: s, placedAt, steps } = o;
     const id = uid();
     const number = tradeOrderNumber(++tradeOrderSeq);
@@ -1028,8 +1028,9 @@ async function main() {
   // business was sold.
   // Greenleaf Pharmacy (the demo buyer) has an invoice a month old — credited in part below — and Hemp & Home's order
   // from a fortnight ago shipped one line short.
-  const explicitOrder = (a: SimAccount, daysBack: number, o: { payMethod?: "EFT" | "ACCOUNT"; pay?: "random" | "ontime" | "never"; short?: boolean } = {}) => {
+  const explicitOrder = (a: SimAccount, daysBack: number, o: { payMethod?: "EFT" | "ACCOUNT"; pay?: "random" | "prompt" | "ontime" | "never"; short?: boolean } = {}) => {
     const placedAt = at(keyOf(daysBack), 9 * 60 + int(0, 60));
+    applyScheduled(placedAt); // payments made before this order count towards its credit
     const payMethod = o.payMethod ?? (a.terms === "ACCOUNT" && creditRoom(a) >= TRADE.minOrderCents * 1.15 + 17_250 ? "ACCOUNT" : "EFT");
     const lines = tradeBasket(a, a.dc, placedAt, "COURIER", { budgetCents: payMethod === "ACCOUNT" ? Math.floor(creditRoom(a) * 0.9) : 2_000_000, maxCases: 3 });
     if (!lines.length) return null;
@@ -1042,11 +1043,11 @@ async function main() {
   };
   const overdueAccount = tradeAccounts.find((a) => a.holdReason === "overdue")!;
   const closedAccount = tradeAccounts.find((a) => a.status === "CLOSED")!;
-  explicitOrder(overdueAccount, 100);
-  explicitOrder(overdueAccount, 75, { pay: "never" });
-  explicitOrder(overdueAccount, 20, { payMethod: "EFT" });
+  explicitOrder(overdueAccount, 100, { pay: "prompt" });
+  explicitOrder(overdueAccount, 75, { payMethod: "ACCOUNT", pay: "never" });
   explicitOrder(closedAccount, 50);
   explicitOrder(tradeAccounts[0], 31);
+  explicitOrder(overdueAccount, 20, { payMethod: "EFT" });
   explicitOrder(tradeAccounts[7], 17, { short: true, pay: "random" });
 
   // Replenishment, adjustments and stock takes run on the same clock as sales.

@@ -1,4 +1,4 @@
-// E2E crawl: signs in as each role (shopper, member, store manager, franchise owner, area manager, HQ) and visits every
+// E2E crawl: signs in as each role (shopper, member, store manager, franchise owner, area manager, HQ, trade buyer) and visits every
 // page it can reach by following links. Fails on broken links, server errors, crashes and console errors; reports how
 // long each page took on the server (HTML fully streamed) and to paint.
 //   BASE_URL=http://127.0.0.1:3000 DATABASE_URL=... node e2e/crawl.mjs [outdir] [only-role]
@@ -46,14 +46,43 @@ async function member(page) {
   await page.waitForURL((u) => u.pathname === "/club", { timeout: 30_000 });
 }
 
+/** The trade portal: a throwaway approved account (on account, every trade range) signs in with the demo code. */
+let tradeAccountId = null;
+async function trade(page) {
+  const email = `crawl.${Date.now().toString(36)}@example.co.za`;
+  const row = (await db.query(
+    `insert into "TradeAccount" (id, number, name, "legalName", kind, email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "paymentDays", "creditLimitCents", classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "approvedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, 'Crawl Trade Co', 'Crawl Trade Co (Pty) Ltd', 'RETAILER', $2, '+27123456789', '1 Crawl Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 30, 2000000,
+       array['CBD','CBD_FOOD','CBD_TOPICAL','HEMP','SUPPLEMENT','ACCESSORY','APPAREL','GROW']::"RegClass"[], now(), 'trade-1', now(), now(), now()) returning id`,
+    [`TA-9${String(Date.now() % 100000).padStart(5, "0")}`, email],
+  )).rows[0];
+  tradeAccountId = row.id;
+  await db.query(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, role) values (gen_random_uuid()::text, $1, 'Crawl Buyer', $2, 'OWNER')`, [row.id, email]);
+  await page.goto(`${BASE}/trade/login`);
+  await page.getByLabel("Email address").fill(email);
+  await page.getByRole("button", { name: "Send my code" }).click();
+  await page.getByRole("button", { name: "Fill it in" }).click();
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await page.waitForURL((u) => u.pathname === "/trade/range", { timeout: 30_000 });
+}
+async function tradeCleanup() {
+  if (!tradeAccountId) return;
+  await db.query(`delete from "AuditLog" where "entityId" = $1 or "actorId" in (select id from "TradeBuyer" where "tradeAccountId" = $1)`, [tradeAccountId]);
+  await db.query(`delete from "MessageLog" where "to" in (select email from "TradeBuyer" where "tradeAccountId" = $1)`, [tradeAccountId]);
+  await db.query(`delete from "Otp" where email in (select email from "TradeBuyer" where "tradeAccountId" = $1)`, [tradeAccountId]);
+  await db.query(`delete from "TradeAccount" where id = $1`, [tradeAccountId]); // buyers and sessions go with it
+  tradeAccountId = null;
+}
+
 const SHOP = /^\/(?!(hq|store|account|menu|brand)(\/|$))/;
 const ROLES = [
-  { name: "shopper", scope: SHOP, start: ["/", "/shop", "/stores", "/learn", "/drops", "/dispensary", "/club/join", "/cart", "/checkout", "/login", "/legal/terms"] },
+  { name: "shopper", scope: SHOP, start: ["/", "/shop", "/stores", "/learn", "/drops", "/dispensary", "/club/join", "/cart", "/checkout", "/login", "/legal/terms", "/trade", "/trade/apply", "/trade/login", "/trade/terms"] },
   { name: "member", login: member, scope: SHOP, start: ["/club", "/club/orders", "/club/points", "/club/invoices", "/club/settings"] },
   { name: "manager", login: staff("manager.pta01@herbalholland.co.za"), scope: /^\/(store|account|menu|invoice)(\/|$)/, start: ["/store/PTA01"] },
   { name: "owner", login: staff("thabo@mokoenaretail.co.za"), scope: /^\/(store|account)(\/|$)/, start: ["/store"] },
   { name: "area", login: staff("area.gpn@herbalholland.co.za"), scope: /^\/(hq|store)(\/|$)/, start: ["/hq"] },
   { name: "hq", login: staff("hq@herbalholland.co.za"), scope: /^\/(hq|store|menu|invoice|brand)(\/|$)/, start: ["/hq"] },
+  { name: "trade", login: trade, cleanup: tradeCleanup, scope: /^\/(trade|invoice)(\/|$)/, start: ["/trade/range", "/trade/cart", "/trade/checkout", "/trade/orders", "/trade/account", "/trade/statements"] },
 ];
 
 const METRICS = () =>
@@ -137,6 +166,7 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
   }
   console.log(`${role.name}: ${[...perTpl.values()].reduce((a, b) => a + b, 0)} URLs across ${perTpl.size} routes`);
   await ctx.close();
+  if (role.cleanup) await role.cleanup();
 }
 await browser.close();
 await db.end();

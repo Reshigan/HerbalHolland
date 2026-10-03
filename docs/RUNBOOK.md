@@ -453,6 +453,27 @@ ID was seen (18+), type the six-digit code they give (it must match), note any s
 the store with the handling fee, the tax invoice is numbered and emailed, and the sale number and invoice link show on
 the page. Any staff member at the store can pick, ready and hand over; a manager or owner cancels (with a reason).
 
+### Trade portal
+
+The buyer-facing side lives at `/trade` (`src/app/trade/*`, components in `src/components/trade/*`), on the shop's
+dark look: the landing page (indexable, Organization JSON-LD), `/trade/apply` (the application form — field errors
+come from `validateTradeApplication`; success says "We'll be in touch within one business day"), `/trade/terms` (the
+terms applicants accept, `settings.trade.termsVersion`, placeholder wording marked for counsel) and `/trade/login`
+(a 6-digit code by email; in DEMO_MODE the form shows the code with "Fill it in"). Signed in (`hh_trade`, 12 hours):
+`/trade/range` (the account's DC, searchable, by category, paginated; a PENDING account browses without prices, an
+account on hold sees why ordering is paused), `/trade/cart` (the `hh_trade_cart` cookie, whole cases, re-quoted by
+the WHOLESALE engine every time; codec in `src/lib/trade-cart.ts`), `/trade/checkout` (courier to the account's
+delivery or billing address, or click & collect with a per-store stock check from `collectStoresFor`; EFT or on
+account within `creditDecision`), `/trade/orders` and `/trade/orders/[id]` (pro forma with the bank details and
+`HH-TO-…` reference, collection code with "bring your ID (18+)", courier and tracking, the signed tax-invoice link,
+"order again"), `/trade/account` (terms, credit, ageing, details and buyers — owners edit) and `/trade/statements`
+(`tradeStatementFor`, printable, "email me this statement"). Everything but the landing, application and terms
+pages is `noindex` and disallowed in `robots.txt`; the sitemap lists only those three.
+
+Journey test: `BASE_URL=… DATABASE_URL=… SESSION_SECRET=… DEMO_MODE=true node e2e/trade.mjs [outdir]` (applies,
+approves in SQL, orders by collection on account and by courier with EFT, checks the tracker, account and
+statements, cleans up). `e2e/crawl.mjs` crawls the portal as a throwaway trade buyer too.
+
 ## Reorder reminders, gift vouchers, wishlists and addresses (the shop's member features)
 
 **Reorder reminders** (`ReorderReminder`, `src/server/shop/reminders.ts`). A member sets "Remind me to reorder" on a

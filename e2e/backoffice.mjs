@@ -806,9 +806,10 @@ try {
   await row(page, tOrder.number).getByRole("link", { name: tOrder.number, exact: true }).click();
   await page.waitForURL(new RegExp(`/trade/${tOrder.id}$`));
   await hydrated(page.getByRole("button", { name: "Start picking" }));
-  await act(page, "pickTradeOrder", () => page.getByRole("button", { name: "Start picking" }).click(), () => status(page, `Picking ${tOrder.number}`).waitFor());
+  const tHeading = (text) => page.getByRole("heading", { level: 1 }).filter({ hasText: text });
+  await act(page, "pickTradeOrder", () => page.getByRole("button", { name: "Start picking" }).click(), () => tHeading("Picking").waitFor());
   assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "PICKING", "picking");
-  await act(page, "readyTradeOrder", () => page.getByRole("button", { name: "Packed — ready for collection" }).click(), () => status(page, "is ready — the buyer has been sent their collection code").waitFor());
+  await act(page, "readyTradeOrder", () => page.getByRole("button", { name: "Packed — ready for collection" }).click(), () => tHeading("Ready to collect").waitFor());
   const tReady = await one(`select status, "readyAt" from "TradeOrder" where id = $1`, [tOrder.id]);
   const readyText = await one(`select body from "MessageLog" where channel = 'SMS' and "to" = $1 and body like $2`, [tBuyer.phone, `%${tOrder.number} is ready%`]);
   assert(tReady.status === "READY" && tReady.readyAt && readyText?.body.includes(tOrder.collectionCode), "ready: the collection code texted to the buyer");
