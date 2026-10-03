@@ -129,7 +129,7 @@ model Store {
   loyalty        LoyaltyEntry[]
   campaigns      Campaign[]
   dailyStats     DailyStoreStat[]
-  tradeOrders    TradeOrder[]       @relation("tradeDc")
+  tradeOrders    TradeOrder[]       @relation("tradeStore")
   variantStats   DailyVariantStat[]
   acks           AnnouncementAck[]
   deposits       CashDeposit[]
@@ -1886,7 +1886,9 @@ enum TradeOrderStatus {
   PENDING_PAYMENT // EFT: held (no stock reserved) until HQ confirms the payment
   PLACED // confirmed: DC stock reserved
   PICKING
-  SHIPPED // invoiced for what shipped; the final state
+  READY // click & collect: packed at the store, waiting for the buyer (collection code)
+  SHIPPED // courier: invoiced for what shipped; the final state
+  COLLECTED // click & collect: handed over at the store and invoiced; the final state
   CANCELLED
 }
 
@@ -1924,7 +1926,7 @@ model TradeAccount {
   classes            RegClass[]         @default([]) // what the account may buy (∩ the seller's licences; never THC)
   priceList          PriceList?         @relation(fields: [priceListId], references: [id])
   priceListId        String? // a TRADE price list assigned to this account (null = the active TRADE lists by priority)
-  dcId               String? // the warehouse that serves it (null = the default DC)
+  dcId               String? // the warehouse that serves its courier orders (null = the default DC)
   notes              String?
   adultAttestedAt    DateTime? // the applicant confirmed every buyer is 18 or older
   termsVersion       String?
@@ -1969,21 +1971,26 @@ model TradeOrder {
   tradeAccountId String
   buyer          TradeBuyer?      @relation(fields: [buyerId], references: [id])
   buyerId        String? // null when HQ placed it for the account
-  dc             Store            @relation("tradeDc", fields: [dcId], references: [id])
-  dcId           String
+  store          Store            @relation("tradeStore", fields: [storeId], references: [id])
+  storeId        String // the fulfilling store: the DC for courier orders, a retail store for click & collect
+  fulfilment     Fulfilment       @default(COURIER) // COURIER from the DC, or COLLECT at a store (handling fee)
   status         TradeOrderStatus @default(PENDING_PAYMENT)
   payMethod      PayMethod // EFT (pro forma; held until HQ confirms) or ACCOUNT (within the credit limit)
   paymentRef     String?
   paidAt         DateTime?
   subtotalCents  Int // ex VAT
-  deliveryCents  Int              @default(0) // ex VAT
+  deliveryCents  Int              @default(0) // ex VAT (courier)
+  handlingCents  Int              @default(0) // ex VAT (click & collect: the store's handling fee)
   vatCents       Int
   totalCents     Int // incl. VAT
-  addressLine    String
+  addressLine    String? // courier: where it goes (null for click & collect)
   suburb         String?
-  city           String
-  province       Province
-  postalCode     String
+  city           String?
+  province       Province?
+  postalCode     String?
+  collectionCode String? // click & collect: shown at the counter with the buyer's ID
+  readyAt        DateTime?
+  collectedAt    DateTime?
   reference      String? // the buyer's own order / PO number, printed on the invoice
   notes          String?
   courier        String?
@@ -2001,7 +2008,7 @@ model TradeOrder {
   lines TradeOrderLine[]
 
   @@index([tradeAccountId, status])
-  @@index([dcId, status])
+  @@index([storeId, status])
   @@index([createdAt])
 }
 
