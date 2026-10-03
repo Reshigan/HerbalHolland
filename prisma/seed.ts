@@ -887,7 +887,7 @@ async function main() {
         posted = postTrade({
           store: s, account: a, ts: postAt, lines: o.lines.map((l) => ({ v: l.v, qty: l.ship ?? l.qty, unit: l.unit })).filter((l) => l.qty > 0), number: `TI-${id}`,
           extraEx: deliveryCents + handlingCents, tender: eft ? { method: "EFT", reference: row.paymentRef as string, provider: "Trade EFT" } : { method: "ACCOUNT" },
-          collectedByHq: true, staffId: s.kind === "RETAIL" ? s.staff[0].id : null, ageCheck: o.fulfilment === "COLLECT" ? "ID_SIGHTED" : "NONE", note: `Trade order ${number}`,
+          collectedByHq: true, staffId: s.kind === "RETAIL" ? s.staff[0].id : (hqPieter.id as string), ageCheck: o.fulfilment === "COLLECT" ? "ID_SIGHTED" : "NONE", note: `Trade order ${number}`,
         });
         status = o.fulfilment === "COURIER" ? "SHIPPED" : "COLLECTED";
         touch(postAt);
