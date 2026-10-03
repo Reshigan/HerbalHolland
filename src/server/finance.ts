@@ -36,7 +36,7 @@ export function derived(t: Totals) {
 }
 export type Summary = ReturnType<typeof derived>;
 
-export async function salesSummary(storeIds: string[], r: DateRange, channel?: "POS" | "ONLINE") {
+export async function salesSummary(storeIds: string[], r: DateRange, channel?: "POS" | "ONLINE" | "WHOLESALE") {
   const where = { storeId: { in: storeIds }, date: { gte: r.fromDate, lte: r.toDate }, ...(channel && { channel }) };
   const agg = await db.dailyStoreStat.aggregate({ where, _sum: SUMS });
   return derived(fill(agg._sum));

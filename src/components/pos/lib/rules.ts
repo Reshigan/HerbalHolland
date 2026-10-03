@@ -65,7 +65,7 @@ export const TENDER_LABEL: Record<string, string> = {
   EFT: "EFT",
   LOYALTY: "Points",
   ONLINE: "Paid online",
-  VOUCHER: "Gift voucher",
+  VOUCHER: "Gift voucher", ACCOUNT: "On account",
 };
 
 /** A tender as a receipt line: "Gift voucher HH-K7PM-3QXR-9ZAB", "Card •••• 1234 (ref)", "Cash". */

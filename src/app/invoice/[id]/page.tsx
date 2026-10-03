@@ -25,7 +25,7 @@ const valid = (id: string, t?: string) => {
   return a.length === b.length && timingSafeEqual(a, b);
 };
 
-const PAY: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher" };
+const PAY: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account" };
 
 // Print: A4 is the default sheet; html[data-paper="receipt"] (set by the toolbar) turns the same document into a till slip.
 const PRINT_CSS = `

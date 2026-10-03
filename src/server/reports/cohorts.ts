@@ -11,7 +11,7 @@ import { bounds, n, retailIds } from "./util";
 
 const ymSql = (expr: Prisma.Sql) => Prisma.sql`to_char(${expr}, 'YYYY-MM')`;
 const homeSql = (ctx: { networkWide: boolean }, ids: string[]) => (ctx.networkWide ? Prisma.empty : Prisma.sql`AND c."homeStoreId" = ANY(${ids}::text[])`);
-const channelSql = (c?: "POS" | "ONLINE") => (c ? Prisma.sql`AND s.channel = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND s.channel = ${c}::"Channel"` : Prisma.empty);
 
 export const cohorts: ReportDef = {
   key: "cohorts",

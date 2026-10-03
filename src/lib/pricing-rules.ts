@@ -10,8 +10,8 @@ export type Tier = "SEED" | "SPROUT" | "BLOOM" | "HARVEST";
 export type PriceListRule = {
   id: string;
   name: string;
-  kind: "ZONE" | "CHANNEL" | "MEMBER";
-  channel?: "POS" | "ONLINE" | null;
+  kind: "ZONE" | "CHANNEL" | "MEMBER" | "TRADE";
+  channel?: "POS" | "ONLINE" | "WHOLESALE" | null;
   tiers: Tier[];
   storeIds: string[];
   regionIds: string[];
@@ -27,7 +27,7 @@ export type PriceListRule = {
 export type PriceContext = {
   storeId?: string | null;
   regionId?: string | null;
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   member: boolean;
   tier?: Tier | null;
   tierPct?: number; // the member's instant tier saving (settings.loyalty.tierSavingsPct)

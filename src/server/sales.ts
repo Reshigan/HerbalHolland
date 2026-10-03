@@ -40,7 +40,7 @@ type PostArgs = {
   id: string;
   number: string;
   storeId: string;
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   orderId?: string;
   shiftId?: string | null;
   staffId?: string | null;

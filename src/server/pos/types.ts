@@ -266,7 +266,7 @@ export type ReceiptDTO = {
   id: string;
   number: string;
   kind: "SALE" | "REFUND";
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   title: string;
   createdAt: string;
   offline: boolean;
@@ -299,7 +299,7 @@ export type SaleRow = {
   id: string;
   number: string;
   kind: "SALE" | "REFUND";
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   createdAt: string;
   totalCents: number;
   customer: string | null;

@@ -12,7 +12,7 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, multi, n, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
 
 const ORDER: SegmentKey[] = ["CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
 const CONSENTED: Prisma.CustomerWhereInput = { OR: [{ consentSms: true }, { consentWhatsapp: true }, { consentEmail: true }, { consentPush: true }] };

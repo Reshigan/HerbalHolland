@@ -129,6 +129,7 @@ model Store {
   loyalty        LoyaltyEntry[]
   campaigns      Campaign[]
   dailyStats     DailyStoreStat[]
+  tradeOrders    TradeOrder[]       @relation("tradeDc")
   variantStats   DailyVariantStat[]
   acks           AnnouncementAck[]
   deposits       CashDeposit[]
@@ -176,18 +177,21 @@ model User {
 }
 
 model Session {
-  id         String    @id // sha256(token)
-  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String?
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  customerId String?
-  storeId    String? // POS store context
-  deviceId   String?
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
+  id           String      @id // sha256(token)
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId   String?
+  storeId      String? // POS store context
+  deviceId     String?
+  tradeBuyer   TradeBuyer? @relation(fields: [tradeBuyerId], references: [id], onDelete: Cascade)
+  tradeBuyerId String? // trade portal session (cookie hh_trade)
+  expiresAt    DateTime
+  createdAt    DateTime    @default(now())
 
   @@index([userId])
   @@index([customerId])
+  @@index([tradeBuyerId])
 }
 
 model Device {
@@ -298,7 +302,8 @@ model Variant {
   name           String
   grams          Float? // dried-flower equivalent grams, used for purchase limits
   priceCents     Int // national RRP, VAT incl.
-  wholesaleCents Int // price to stores, VAT excl.
+  wholesaleCents Int // price to stores and the trade fallback price, VAT excl.
+  caseQty        Int     @default(1) // units per case: trade orders are placed in multiples of this
   costCents      Int // HQ landed cost, VAT excl. (made to order: the print partner's price)
   podSku         String? // print partner's product code: set = made to order (no stock; ships from the partner)
   active         Boolean @default(true)
@@ -311,6 +316,7 @@ model Variant {
   saleLines       SaleLine[]
   orderLines      OrderLine[]
   stockOrderLines StockOrderLine[]
+  tradeOrderLines TradeOrderLine[]
   listings        Listing[]
   stockTakeLines  StockTakeLine[]
   alerts          StockAlert[]
@@ -701,13 +707,15 @@ model Suppression {
 
 model Otp {
   id        String   @id @default(cuid())
-  phone     String
+  phone     String? // members: a code by SMS
+  email     String? // trade buyers: a code by email
   codeHash  String
   attempts  Int      @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   @@index([phone])
+  @@index([email])
 }
 
 // ───────────────────────────── Selling ─────────────────────────────
@@ -720,6 +728,7 @@ enum SaleKind {
 enum Channel {
   POS
   ONLINE
+  WHOLESALE // trade sales: the trade portal (DC-fulfilled) and trade sales rung up at a till
 }
 
 enum PayMethod {
@@ -730,6 +739,7 @@ enum PayMethod {
   LOYALTY
   ONLINE
   VOUCHER // a gift voucher: redeemed online at checkout or at the till (refunds go back onto the voucher)
+  ACCOUNT // a trade account's credit terms: invoiced, settled later (never money at the time of sale)
 }
 
 model Shift {
@@ -754,48 +764,52 @@ model Shift {
 }
 
 model Sale {
-  id                 String    @id // client-generated UUID (idempotent offline sync)
-  number             String    @unique
-  kind               SaleKind  @default(SALE)
-  refundOf           Sale?     @relation("refunds", fields: [refundOfId], references: [id])
+  id                 String        @id // client-generated UUID (idempotent offline sync)
+  number             String        @unique
+  kind               SaleKind      @default(SALE)
+  refundOf           Sale?         @relation("refunds", fields: [refundOfId], references: [id])
   refundOfId         String?
-  refunds            Sale[]    @relation("refunds")
-  channel            Channel   @default(POS)
-  order              Order?    @relation(fields: [orderId], references: [id])
-  orderId            String?   @unique
-  store              Store     @relation(fields: [storeId], references: [id])
+  refunds            Sale[]        @relation("refunds")
+  channel            Channel       @default(POS)
+  order              Order?        @relation(fields: [orderId], references: [id])
+  orderId            String?       @unique
+  store              Store         @relation(fields: [storeId], references: [id])
   storeId            String
-  shift              Shift?    @relation(fields: [shiftId], references: [id])
+  shift              Shift?        @relation(fields: [shiftId], references: [id])
   shiftId            String?
-  staff              User?     @relation(fields: [staffId], references: [id])
+  staff              User?         @relation(fields: [staffId], references: [id])
   staffId            String?
   deviceId           String?
-  customer           Customer? @relation(fields: [customerId], references: [id])
+  customer           Customer?     @relation(fields: [customerId], references: [id])
   customerId         String?
+  tradeAccount       TradeAccount? @relation(fields: [tradeAccountId], references: [id])
+  tradeAccountId     String? // WHOLESALE channel: the business that bought (buyer block = its details)
+  tradeOrder         TradeOrder?
   subtotalCents      Int
-  discountCents      Int       @default(0)
-  memberSavingsCents Int       @default(0)
+  discountCents      Int           @default(0)
+  memberSavingsCents Int           @default(0)
   totalCents         Int
   vatCents           Int
   costCents          Int
-  pointsEarned       Int       @default(0)
+  pointsEarned       Int           @default(0)
   promoCode          String?
   promotionId        String?
   campaignId         String?
-  ageCheck           AgeCheck  @default(NONE)
+  ageCheck           AgeCheck      @default(NONE)
   buyer              Json? // full tax invoice (> R5,000): { name, address, vatNumber }
   invoiceEmail       String? // where the tax invoice was emailed
   invoiceSentAt      DateTime?
-  offline            Boolean   @default(false)
+  offline            Boolean       @default(false)
   note               String?
-  createdAt          DateTime  @default(now())
-  syncedAt           DateTime  @default(now())
+  createdAt          DateTime      @default(now())
+  syncedAt           DateTime      @default(now())
 
   lines    SaleLine[]
   payments Payment[]
 
   @@index([storeId, createdAt])
   @@index([customerId])
+  @@index([tradeAccountId])
   @@index([createdAt])
   @@index([promotionId]) // promotion usage caps (maxUses) and redemption reporting
 }
@@ -960,23 +974,25 @@ enum PriceListKind {
   ZONE // regional / scheduled price changes (stores or regions; empty = network)
   CHANNEL // e.g. online-only prices
   MEMBER // Rewards member prices, optionally tier-specific
+  TRADE // trade (wholesale) prices for the WHOLESALE channel — items hold ex-VAT prices; quantity breaks via minQty
 }
 
 model PriceList {
-  id        String          @id @default(cuid())
-  name      String
-  kind      PriceListKind
-  channel   Channel?
-  tiers     Tier[]          @default([]) // MEMBER: empty = all members
-  storeIds  String[]        @default([])
-  regionIds String[]        @default([])
-  adjustPct Float? // blanket adjustment on RRP for items without an explicit price (e.g. -5)
-  startsAt  DateTime?
-  endsAt    DateTime?
-  active    Boolean         @default(true)
-  priority  Int             @default(0)
-  createdAt DateTime        @default(now())
-  items     PriceListItem[]
+  id            String          @id @default(cuid())
+  name          String
+  kind          PriceListKind
+  channel       Channel?
+  tiers         Tier[]          @default([]) // MEMBER: empty = all members
+  storeIds      String[]        @default([])
+  regionIds     String[]        @default([])
+  adjustPct     Float? // blanket adjustment on RRP for items without an explicit price (e.g. -5)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  active        Boolean         @default(true)
+  priority      Int             @default(0)
+  createdAt     DateTime        @default(now())
+  items         PriceListItem[]
+  tradeAccounts TradeAccount[]
 }
 
 model PriceListItem {
@@ -1099,22 +1115,22 @@ model StockAlert {
 }
 
 model Review {
-  id         String   @id @default(cuid())
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId  String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  customerId String
-  rating     Int
-  title      String?
-  body       String?
-  verified   Boolean  @default(false)
+  id             String    @id @default(cuid())
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId      String
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId     String
+  rating         Int
+  title          String?
+  body           String?
+  verified       Boolean   @default(false)
   // Photos (Upload ids, up to 3) and HQ moderation: a hidden review stays on record but is never shown or counted.
   photoUploadIds String[]  @default([])
   hidden         Boolean   @default(false)
   hiddenReason   String?
   moderatedById  String?
   moderatedAt    DateTime?
-  createdAt  DateTime @default(now())
+  createdAt      DateTime  @default(now())
 
   @@unique([productId, customerId])
   @@index([hidden, createdAt])
@@ -1144,6 +1160,7 @@ model DailyStoreStat {
   eftCents           Int      @default(0)
   loyaltyCents       Int      @default(0)
   onlineCents        Int      @default(0)
+  accountCents       Int      @default(0) // trade sales on account (invoiced, not yet money)
   members            Int      @default(0) // transactions linked to a member
   pointsIssued       Int      @default(0)
 
@@ -1833,4 +1850,193 @@ model ReorderReminder {
 
   @@unique([customerId, variantId])
   @@index([active, nextAt])
+}
+
+// ───────────────────────────── Trade (wholesale) channel ─────────────────────────────
+// Businesses that buy at trade prices (ex VAT): online from the DC (EFT up front or on an approved account) and at
+// any till (trade-sale mode). Every trade sale posts in the WHOLESALE channel. THC is never traded in this version.
+
+enum TradeAccountStatus {
+  PENDING // applied; HQ hasn't approved yet
+  APPROVED
+  ON_HOLD // overdue, or held by HQ: no new on-account orders
+  CLOSED
+}
+
+enum TradeTerms {
+  PREPAID // EFT before the order is picked
+  ACCOUNT // invoiced on shipping, due after paymentDays, within creditLimitCents
+}
+
+enum TradeAccountKind {
+  PHARMACY
+  RETAILER
+  CAFE
+  PRACTICE // wellness / health practice
+  ONLINE_SHOP
+  OTHER
+}
+
+enum TradeBuyerRole {
+  OWNER // may manage buyers and the account's details
+  BUYER
+}
+
+enum TradeOrderStatus {
+  PENDING_PAYMENT // EFT: held (no stock reserved) until HQ confirms the payment
+  PLACED // confirmed: DC stock reserved
+  PICKING
+  SHIPPED // invoiced for what shipped; the final state
+  CANCELLED
+}
+
+enum TradeLedgerKind {
+  INVOICE // + what the account owes
+  PAYMENT // − money received (EFT reference)
+  CREDIT_NOTE // − a return or correction
+  ADJUSTMENT // ± HQ correction, with a note
+}
+
+model TradeAccount {
+  id                 String             @id @default(cuid())
+  number             String             @unique // TA-000123
+  name               String // trading name
+  legalName          String
+  kind               TradeAccountKind   @default(RETAILER)
+  regNumber          String?
+  vatNumber          String?
+  email              String // billing: pro formas, invoices, statements
+  phone              String?
+  addressLine        String
+  suburb             String?
+  city               String
+  province           Province
+  postalCode         String
+  deliveryLine       String? // null = deliver to the billing address
+  deliverySuburb     String?
+  deliveryCity       String?
+  deliveryProvince   Province?
+  deliveryPostalCode String?
+  status             TradeAccountStatus @default(PENDING)
+  terms              TradeTerms         @default(PREPAID)
+  paymentDays        Int                @default(30)
+  creditLimitCents   Int                @default(0) // ACCOUNT terms: open invoices + unshipped on-account orders may not exceed this
+  classes            RegClass[]         @default([]) // what the account may buy (∩ the seller's licences; never THC)
+  priceList          PriceList?         @relation(fields: [priceListId], references: [id])
+  priceListId        String? // a TRADE price list assigned to this account (null = the active TRADE lists by priority)
+  dcId               String? // the warehouse that serves it (null = the default DC)
+  notes              String?
+  adultAttestedAt    DateTime? // the applicant confirmed every buyer is 18 or older
+  termsVersion       String?
+  termsAcceptedAt    DateTime?
+  approvedAt         DateTime?
+  approvedById       String?
+  holdReason         String?
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  buyers TradeBuyer[]
+  orders TradeOrder[]
+  ledger TradeLedgerEntry[]
+  sales  Sale[]
+
+  @@index([status])
+  @@index([name])
+}
+
+model TradeBuyer {
+  id             String         @id @default(cuid())
+  account        TradeAccount   @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String
+  name           String
+  email          String         @unique // signs in with a code emailed here
+  phone          String?
+  role           TradeBuyerRole @default(BUYER)
+  active         Boolean        @default(true)
+  lastSignInAt   DateTime?
+  createdAt      DateTime       @default(now())
+
+  sessions Session[]
+  orders   TradeOrder[]
+
+  @@index([tradeAccountId])
+}
+
+model TradeOrder {
+  id             String           @id @default(cuid())
+  number         String           @unique // TO-000123
+  account        TradeAccount     @relation(fields: [tradeAccountId], references: [id])
+  tradeAccountId String
+  buyer          TradeBuyer?      @relation(fields: [buyerId], references: [id])
+  buyerId        String? // null when HQ placed it for the account
+  dc             Store            @relation("tradeDc", fields: [dcId], references: [id])
+  dcId           String
+  status         TradeOrderStatus @default(PENDING_PAYMENT)
+  payMethod      PayMethod // EFT (pro forma; held until HQ confirms) or ACCOUNT (within the credit limit)
+  paymentRef     String?
+  paidAt         DateTime?
+  subtotalCents  Int // ex VAT
+  deliveryCents  Int              @default(0) // ex VAT
+  vatCents       Int
+  totalCents     Int // incl. VAT
+  addressLine    String
+  suburb         String?
+  city           String
+  province       Province
+  postalCode     String
+  reference      String? // the buyer's own order / PO number, printed on the invoice
+  notes          String?
+  courier        String?
+  trackingNo     String?
+  invoiceNumber  String?          @unique
+  sale           Sale?            @relation(fields: [saleId], references: [id])
+  saleId         String?          @unique // the WHOLESALE sale posted at the DC when it shipped
+  events         Json // [{ status, at, note }]
+  reservedAt     DateTime?
+  shippedAt      DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  lines TradeOrderLine[]
+
+  @@index([tradeAccountId, status])
+  @@index([dcId, status])
+  @@index([createdAt])
+}
+
+model TradeOrderLine {
+  id           String     @id @default(cuid())
+  order        TradeOrder @relation(fields: [tradeOrderId], references: [id], onDelete: Cascade)
+  tradeOrderId String
+  variant      Variant    @relation(fields: [variantId], references: [id])
+  variantId    String
+  qty          Int // ordered, in case multiples
+  unitCents    Int // ex VAT, after quantity breaks
+  vatCents     Int // VAT on the ordered quantity
+  shippedQty   Int? // null until shipped; short-shipped lines are invoiced for this
+  shipped      Json? // [{ batchId, qty }]
+
+  @@index([tradeOrderId])
+  @@index([variantId])
+}
+
+/// The account's ledger: invoices raise what it owes, payments and credit notes lower it. Balance = sum(cents).
+model TradeLedgerEntry {
+  id             String          @id @default(cuid())
+  account        TradeAccount    @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String
+  kind           TradeLedgerKind
+  cents          Int // signed
+  reference      String? // invoice number, bank reference, credit note number
+  tradeOrderId   String?
+  saleId         String? // the WHOLESALE sale (till or shipped order) an invoice or credit note belongs to
+  dueAt          DateTime? // invoices on ACCOUNT terms: when payment is due
+  note           String?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+
+  @@index([tradeAccountId, createdAt])
+  @@index([saleId])
+  @@index([tradeOrderId])
 }

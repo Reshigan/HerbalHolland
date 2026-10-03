@@ -48,7 +48,7 @@ export function tenderName(method: string | null | undefined): string | null {
   if (!method) return null;
   const names: Record<string, string> = {
     card: "Card", yoco: "Card", external: "Card", cash: "Cash", payshap: "PayShap", points: "Rewards points", voucher: "Gift voucher",
-    CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher",
+    CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account",
   };
   return names[method] ?? null;
 }

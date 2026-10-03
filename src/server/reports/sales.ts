@@ -11,7 +11,7 @@ import {
   CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio, storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap, rangeQS, storeDrill,
 } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
 
 // ── Sales overview ──────────────────────────────────────────────────────────
 export const salesOverview: ReportDef = {

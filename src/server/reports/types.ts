@@ -76,7 +76,7 @@ export type ReportCtx = {
   networkWide: boolean;
   range: DateRange & { preset: string };
   category?: { id: string; slug: string; name: string };
-  channel?: "POS" | "ONLINE";
+  channel?: "POS" | "ONLINE" | "WHOLESALE";
   /** Validated values of the report's own params. */
   params: Record<string, string>;
   /** Screen: 200 rows. CSV: everything up to a hard cap. */
@@ -105,7 +105,7 @@ export type ReportDef = {
   params?: ParamDef[];
   defaultRange?: PresetKey;
   /** Defaults for built-in filters (the select then offers an explicit "All" choice). */
-  defaults?: { channel?: "POS" | "ONLINE" };
+  defaults?: { channel?: "POS" | "ONLINE" | "WHOLESALE" };
   /** Who may run it (default: anyone who can open the scope). */
   roles?: Role[];
   /** Contains customer personal information (POPIA): restricted roles, exports audited. */

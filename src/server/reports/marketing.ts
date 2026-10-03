@@ -7,7 +7,7 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { bounds, n, ratio, statWhere, storeLabel, sumRows } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
 
 export const promotions: ReportDef = {
   key: "promotions",

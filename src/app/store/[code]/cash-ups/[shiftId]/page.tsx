@@ -18,7 +18,7 @@ import { BackLink } from "@/components/store/ui";
 
 export const metadata = { title: "Cash-up" };
 const PAGE_SIZE = 25;
-const METHOD: Record<string, string> = { CARD: "Card (tap)", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", ONLINE: "Paid online", VOUCHER: "Gift voucher" };
+const METHOD: Record<string, string> = { CARD: "Card (tap)", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account" };
 
 export default async function ShiftPage({ params, searchParams }: { params: Promise<{ code: string; shiftId: string }>; searchParams: Promise<{ page?: string }> }) {
   const [{ code, shiftId }, sp] = await Promise.all([params, searchParams]);

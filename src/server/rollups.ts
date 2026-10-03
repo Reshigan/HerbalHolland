@@ -5,7 +5,7 @@ import type { Tx } from "./db";
 export type StoreStatDelta = {
   storeId: string;
   date: string; // YYYY-MM-DD (SAST business day)
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   sales?: number;
   refunds?: number;
   units?: number;
@@ -21,13 +21,14 @@ export type StoreStatDelta = {
   eftCents?: number;
   loyaltyCents?: number;
   onlineCents?: number;
+  accountCents?: number; // trade sales on account (invoiced, not money)
   members?: number;
   pointsIssued?: number;
 };
 
 const COLS = [
   "sales", "refunds", "units", "grossCents", "vatCents", "costCents", "discountCents", "memberSavingsCents", "offerCents", "cardCents",
-  "cashCents", "payshapCents", "eftCents", "loyaltyCents", "onlineCents", "members", "pointsIssued",
+  "cashCents", "payshapCents", "eftCents", "loyaltyCents", "onlineCents", "accountCents", "members", "pointsIssued",
 ] as const;
 
 export async function bumpStoreStat(t: Tx, d: StoreStatDelta) {
@@ -63,7 +64,7 @@ export async function bumpVariantStats(
  * same as an online payment. The Payment rows keep it a "Gift voucher" tender everywhere they are read.
  */
 export function paymentColumn(method: string): keyof StoreStatDelta {
-  return ({ CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents", VOUCHER: "onlineCents" } as const)[
+  return ({ CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents", VOUCHER: "onlineCents", ACCOUNT: "accountCents" } as const)[
     method as "CARD"
   ];
 }

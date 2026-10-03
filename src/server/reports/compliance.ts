@@ -7,7 +7,7 @@ import type { Option, ParamArgs, ReportDef, Row } from "./types";
 import { MANAGERS, PATIENT_DATA } from "./types";
 import { CHANNEL_LABEL, bounds, multi, n, ratio, storeCols, storeLabel, storeVals, sumRows } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
 
 // ── Age checks ──────────────────────────────────────────────────────────────
 const METHODS = [
