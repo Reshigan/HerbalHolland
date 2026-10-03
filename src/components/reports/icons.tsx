@@ -1,6 +1,6 @@
 // Icons for report groups and individual reports (lucide, 1.9 stroke).
 import {
-  ArrowLeftRight, BadgePercent, Banknote, Boxes, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins, Hourglass,
+  ArrowLeftRight, BadgePercent, Banknote, Boxes, Briefcase, CalendarClock, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins, Hourglass,
   IdCard, Landmark, Megaphone, PackageSearch, PackageX, PiggyBank, QrCode, Receipt, ReceiptText, Repeat, Route, Scale, ScanSearch, Send, ShieldAlert,
   ShieldCheck, ShoppingBag, Siren, Snowflake, Stethoscope, Tags, TrendingUp, Trophy, Truck, Undo2, UserCheck, Users, UsersRound, Wallet,
   type LucideIcon,
@@ -27,6 +27,8 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   refunds: Undo2,
   payments: CreditCard,
   "online-orders": ShoppingBag,
+  "trade-sales": Briefcase,
+  "trade-sales-store": Briefcase,
   "stock-valuation": Landmark,
   "stock-movements": ArrowLeftRight,
   shrinkage: PackageX,
@@ -43,6 +45,7 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   "cash-banking": PiggyBank,
   statements: Receipt,
   "loyalty-liability": HandCoins,
+  "trade-aged-balances": CalendarClock,
   segments: UsersRound,
   "new-vs-returning": Repeat,
   "member-attach": IdCard,

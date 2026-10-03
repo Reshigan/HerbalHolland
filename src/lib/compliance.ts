@@ -98,6 +98,49 @@ export function checkCompliance(input: {
   return { ok: blocks.length === 0, blocks, needsAgeCheck, needsPrescription, gramsInCart };
 }
 
+// ── Trade (wholesale) baskets ────────────────────────────────────────────────
+
+export type TradeComplianceItem = { name: string; regClass: RegClass; productStatus?: string };
+export type TradeAllowedInput = { accountClasses: readonly string[]; sellerLicences: readonly string[]; productClass: RegClass; productStatus: string; licensedOnly?: readonly string[] };
+
+/**
+ * May this product be sold to this trade account by this seller? The account's allow-list, the seller's licence where
+ * the class needs one (`licensedOnly`, THC by default), and the product must be live. THC is never traded, whatever
+ * either side holds.
+ */
+export function tradeAllowed(a: TradeAllowedInput) {
+  if (a.productClass === "THC") return false;
+  if (a.productStatus !== "ACTIVE") return false;
+  if (!a.accountClasses.includes(a.productClass)) return false;
+  if ((a.licensedOnly ?? ["THC"]).includes(a.productClass) && !a.sellerLicences.includes(a.productClass)) return false;
+  return true;
+}
+
+/** Why `tradeAllowed` said no, in plain English — null when it's allowed. */
+export function tradeProblem(a: TradeAllowedInput & { name: string }) {
+  if (a.productClass === "THC") return `${a.name} is a licensed medicine and isn't available to trade customers`;
+  if (a.productStatus !== "ACTIVE") return `${a.name} isn't available right now`;
+  if (!a.accountClasses.includes(a.productClass)) return `${a.name} is ${REG_CLASS_LABEL[a.productClass]}, which this account isn't approved to buy`;
+  if ((a.licensedOnly ?? ["THC"]).includes(a.productClass) && !a.sellerLicences.includes(a.productClass)) return `${a.name} needs a licence this store doesn't hold`;
+  return null;
+}
+
+/**
+ * The trade rule (Medicines Act s22A: Schedule 0 CBD and excluded products may be sold to any business; THC never):
+ * each line's class must be in the account's allow-list and, where the class needs a licence, held by the seller;
+ * the product must be live. No member, age-gate or members-only rules — the buyer is a business whose buyers are
+ * attested adults — and no quantity limits.
+ */
+export function evaluateTradeBasket(input: { items: TradeComplianceItem[]; accountClasses: readonly string[]; sellerLicences: readonly string[]; settings?: ComplianceSettings }) {
+  const s = input.settings ?? DEFAULT_COMPLIANCE;
+  const blocks: string[] = [];
+  for (const it of input.items) {
+    const problem = tradeProblem({ name: it.name, accountClasses: input.accountClasses, sellerLicences: input.sellerLicences, productClass: it.regClass, productStatus: it.productStatus ?? "ACTIVE", licensedOnly: s.licensedOnly });
+    if (problem) blocks.push(problem);
+  }
+  return { ok: blocks.length === 0, blocks };
+}
+
 /**
  * Classes excluded from incentives (promotions, member/volume prices, markdowns, points earn, commission).
  * Medicines Act s18A prohibits supplying medicine under a bonus, rebate or other incentive scheme: licensed products in

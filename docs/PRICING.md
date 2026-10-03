@@ -63,3 +63,22 @@ show as one-tap prompts.
 
 Retail prices are VAT-inclusive; VAT per line = round(total × 15/115). Non-VAT-vendor franchisees (below the R2.3m
 threshold) charge no VAT: their sales post with zero VAT and their invoices are titled "Invoice", not "Tax Invoice".
+
+## 4. Trade prices (the WHOLESALE channel)
+
+`quote({ channel: "WHOLESALE", tradeAccountId })` uses the trade engine (`resolveTradePrice` in
+`src/lib/pricing-rules.ts`, `tradeQuote` in `src/server/pricing.ts`); the consumer steps above never run.
+
+1. **The account's own TRADE list** (`TradeAccount.priceListId`), when it prices the variant.
+2. **The live TRADE lists by priority** (newest first on a tie): the first list that prices the variant decides, taking
+   its best quantity break with `minQty ≤ qty`. `adjustPct` on a TRADE list adjusts the wholesale price. TRADE lists are
+   national (store and region scopes are ignored) and hold **ex-VAT** prices.
+3. **`Variant.wholesaleCents`** (ex VAT) when no list prices it. A variant with neither isn't in the trade range.
+
+VAT is 15% of each line's ex-VAT total, rounded half up to the cent (`vatHalfUp`), never backed out of an inclusive
+price; the quote's `exCents` is the lines ex VAT and `totalCents = exCents + vatCents`. Promotions apply only when the
+promotion's channels include WHOLESALE, to the same `incentiveExcluded` rule as everywhere else (no promotion on
+medicines), and are rounded to a whole cent per unit so a trade order line can carry the net unit price. Tiers,
+member deals, zone/channel lists, shelf prices, markdowns and My Deals never touch a trade quote. THC is never priced.
+Orders are placed in multiples of `Variant.caseQty` above `settings.trade.minOrderCents`; courier and click & collect
+handling fees come from `settings.trade` and carry their own VAT line.

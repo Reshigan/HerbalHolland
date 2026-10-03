@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt, ReceiptText } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
-import { monthRange, profitAndLoss, vatReport } from "@/server/finance";
+import { monthRange, profitAndLoss, salesSummary, vatReport } from "@/server/finance";
 import { supplierInvoiceSummary } from "@/server/supplier-invoices";
 import { resolveRange } from "@/lib/ranges";
 import { pct, zar, zarCompact } from "@/lib/money";
@@ -32,9 +32,10 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
     const d = new Date(Date.UTC(y, m - 1 - (5 - i), 1));
     return d.toISOString().slice(0, 7);
   });
-  const [pl, vat, trend, invoices] = await Promise.all([
+  const [pl, vat, trade, trend, invoices] = await Promise.all([
     profitAndLoss(ids, r),
     vatReport(ids, r),
+    salesSummary(ids, r, "WHOLESALE"),
     Promise.all(months.map(async (m) => ({ month: m, pl: await profitAndLoss(ids, monthRange(m)) }))),
     supplierInvoiceSummary(ids),
   ]);
@@ -55,7 +56,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${pl.summary.sales.toLocaleString()} transactions`} className="col-span-2 lg:col-span-1" />
+        <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${pl.summary.sales.toLocaleString()} transactions${trade.netCents ? ` · of which trade ${zarCompact(trade.netCents)}` : ""}`} className="col-span-2 lg:col-span-1" />
         <Stat label="Gross profit" value={zarCompact(pl.grossProfit)} sub={`${pct(pl.marginPct)} gross margin`} />
         <Stat label="Operating expenses" value={zarCompact(pl.opex)} sub="ex VAT, as captured" />
         <Stat label="Franchise fees" value={zarCompact(pl.fees.total)} sub="royalty, levy, e-commerce" />
@@ -67,6 +68,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           <CardHeader title="Profit & loss" description="Ex VAT" />
           <CardBody className="pt-3">
             <Line label="Net sales" value={zar(pl.revenue)} strong />
+            {trade.netCents !== 0 && <Line label={<span className="pl-4">of which trade sales to business accounts</span>} value={zar(trade.netCents)} muted />}
             <Line label={<span className="pl-4">incl. Rewards savings given to members</span>} value={saved ? `−${zar(saved)}` : zar(0)} muted />
             {pl.summary.discountCents > 0 && <Line label={<span className="pl-4">incl. promotions and discounts</span>} value={`−${zar(pl.summary.discountCents)}`} muted />}
             {pl.summary.offerCents > 0 && (
@@ -169,7 +171,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           { href: `${base}/cash-ups`, icon: Banknote, title: "Cash-ups", sub: "Shifts, floats and till variances" },
           { href: `${base}/expenses`, icon: Receipt, title: "Expenses", sub: "Capture rent, wages and bills" },
           { href: `${base}/finance/supplier-invoices`, icon: ReceiptText, title: "Supplier invoices", sub: invoices.overdue ? `${invoices.overdue} overdue · ${zarCompact(invoices.dueCents)} due` : invoices.due ? `${zarCompact(invoices.dueCents)} due · ${invoices.dueSoon} due this week` : "Capture, pay and query invoices" },
-          { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: "What you owe HQ, or HQ owes you" },
+          { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: pl.summary.hqCollectedCents ? `${zarCompact(pl.summary.hqCollectedCents)} collected by HQ for you this period` : "What you owe HQ, or HQ owes you" },
           { href: `${base}/reports`, icon: ChartColumn, title: "Reports", sub: "Sales, margins, stock and staff" },
         ].map((l) => (
           <Link key={l.href} href={l.href} className="group flex items-center gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:border-brand-300">

@@ -209,14 +209,17 @@ export const salesByStore: ReportDef = {
   filters: ["range", "channel"],
   async run(ctx) {
     const prevR = previousRange(ctx.range);
-    const [cur, before, online] = await Promise.all([
+    const [cur, before, online, trade] = await Promise.all([
       db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx), _sum: STAT_SUMS }),
       db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx, prevR), _sum: { grossCents: true, vatCents: true } }),
       db.dailyStoreStat.groupBy({ by: ["storeId"], where: { ...statWhere(ctx), channel: "ONLINE" }, _sum: { grossCents: true, vatCents: true } }),
+      db.dailyStoreStat.groupBy({ by: ["storeId"], where: { ...statWhere(ctx), channel: "WHOLESALE" }, _sum: { grossCents: true, vatCents: true } }),
     ]);
     const now = new Map(cur.map((x) => [x.storeId, summaryOf(x._sum)]));
     const prev = new Map(before.map((x) => [x.storeId, (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0)]));
-    const onl = new Map(online.map((x) => [x.storeId, (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0)]));
+    const netOf = (x: { _sum: { grossCents: number | null; vatCents: number | null } }) => (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0);
+    const onl = new Map(online.map((x) => [x.storeId, netOf(x)]));
+    const trd = new Map(trade.map((x) => [x.storeId, netOf(x)]));
     const ids = [...ctx.stores.values()].filter((s) => now.has(s.id) || prev.has(s.id) || (s.kind === "RETAIL" && s.status === "ACTIVE")).map((s) => s.id);
     const list = ids
       .map((id) => ({ id, s: now.get(id) ?? summaryOf(null), prev: prev.get(id) ?? 0 }))
@@ -227,7 +230,7 @@ export const salesByStore: ReportDef = {
         _link: "store", _href: storeDrill(ctx, st.code, "sales-overview"),
         rank: i + 1, store: storeLabel(ctx, x.id), code: st.code, region: st.region, net: x.s.netCents, prev: x.prev,
         growth: delta(x.s.netCents, x.prev), sales: x.s.sales, atv: x.s.sales ? x.s.atvCents : null, margin: x.s.netCents ? x.s.marginPct : null,
-        members: x.s.sales ? x.s.memberRate : null, online: ratio(onl.get(x.id) ?? 0, x.s.netCents),
+        members: x.s.sales ? x.s.memberRate : null, online: ratio(onl.get(x.id) ?? 0, x.s.netCents), trade: ratio(trd.get(x.id) ?? 0, x.s.netCents),
       };
     });
     const t = summaryOf(Object.fromEntries(Object.keys(STAT_SUMS).map((k) => [k, cur.reduce((s, x) => s + ((x._sum as Record<string, number | null>)[k] ?? 0), 0)])));
@@ -247,13 +250,15 @@ export const salesByStore: ReportDef = {
         { key: "margin", label: "Margin", format: "pct" },
         { key: "members", label: "Member sales", format: "pct" },
         { key: "online", label: "Online share", format: "pct" },
+        { key: "trade", label: "Trade share", format: "pct" },
       ],
       rows,
       title: "League table",
       totals: {
         rank: "", store: "Total", net: t.netCents, prev: prevTotal, growth: delta(t.netCents, prevTotal), sales: t.sales,
         atv: t.sales ? t.atvCents : null, margin: t.netCents ? t.marginPct : null, members: t.sales ? t.memberRate : null,
-        online: ratio(online.reduce((s, x) => s + (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0), 0), t.netCents),
+        online: ratio(online.reduce((s, x) => s + netOf(x), 0), t.netCents),
+        trade: ratio(trade.reduce((s, x) => s + netOf(x), 0), t.netCents),
       },
       summary: [
         { label: "Net sales (ex VAT)", value: t.netCents, format: "zar", delta: delta(t.netCents, prevTotal) },
@@ -264,7 +269,7 @@ export const salesByStore: ReportDef = {
       chart: rows.length > 1
         ? { kind: "bar", title: "Store league", description: "Net sales ex VAT · top 15", format: "zar", rows: rows.slice(0, 15).map((r) => ({ label: `${String(r.rank).padStart(2, "0")}  ${r.store}`, value: r.net as number, sub: r.growth == null ? "new" : `${(r.growth as number) >= 0 ? "▲" : "▼"} ${Math.abs((r.growth as number) * 100).toFixed(1)}%`, tip: `${r.store} (${r.code})\n${zar(r.net as number)} net · ${r.region}` })) }
         : null,
-      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Distribution centres appear when they fulfil courier orders.`,
+      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Online share is online orders the store fulfilled; trade share is sales to business accounts (the trade portal's orders collected at the store, and trade sales rung up at a till). Distribution centres appear when they fulfil courier or trade orders.`,
     };
   },
 };
@@ -492,8 +497,9 @@ const TENDERS = [
   { key: "cashCents", label: "Cash" },
   { key: "payshapCents", label: "PayShap" },
   { key: "eftCents", label: "EFT" },
-  { key: "onlineCents", label: "Online & gift vouchers" },
+  { key: "onlineCents", label: "Collected by HQ" },
   { key: "loyaltyCents", label: "Points" },
+  { key: "accountCents", label: "On account" },
 ] as const;
 
 export const payments: ReportDef = {
@@ -540,7 +546,7 @@ export const payments: ReportDef = {
         { label: "PayShap", value: t.payshapCents as number, format: "zar", sub: pctOf(t.payshapCents, t.total) },
       ],
       chart: (t.total as number) > 0 ? { kind: "donut", title: "How sales were paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarShort(t.total as number) } : null,
-      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account; online payments and gift vouchers (paid for online, HQ's liability) are collected by HQ and redeemed Rewards points are reimbursed — all on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to; the voucher part of a refund goes back onto the voucher.",
+      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account. Collected by HQ is money HQ took on the store's behalf — online payments, gift vouchers (paid for online, HQ's liability) and trade orders collected at the store — and redeemed Rewards points are reimbursed; on account is trade sales invoiced to a business account on HQ's trade ledger, not money at the till. All of those are settled on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to; the voucher part of a refund goes back onto the voucher.",
     };
   },
 };

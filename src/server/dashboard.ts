@@ -14,13 +14,16 @@ import type { Staff } from "./auth";
 export async function kpis(storeIds: string[], r: DateRange) {
   const prev = previousRange(r);
   const [cur, before, days, channels] = await Promise.all([salesSummary(storeIds, r), salesSummary(storeIds, prev), salesByDay(storeIds, r), salesByChannel(storeIds, r)]);
+  // Every tender, so the shares add up to takings incl. VAT. On account is invoiced to a trade account on HQ's ledger —
+  // not money at the till — and what HQ collected (online, vouchers, trade collect orders) is settled on the statement.
   const payments = [
     { label: "Card (tap)", value: cur.cardCents },
     { label: "Cash", value: cur.cashCents },
     { label: "PayShap", value: cur.payshapCents },
-    { label: "Online & gift vouchers", value: cur.onlineCents },
+    { label: "Collected by HQ", value: cur.onlineCents },
     { label: "Points", value: cur.loyaltyCents },
     { label: "EFT", value: cur.eftCents },
+    { label: "On account (invoiced)", value: cur.accountCents },
   ];
   return {
     cur,
@@ -38,6 +41,8 @@ export async function kpis(storeIds: string[], r: DateRange) {
       return { labels: complete.map((d) => fmtDay(`${d.date}T12:00:00Z`)), net: complete.map((d) => d.netCents) };
     })(),
     online: channels.find((c) => c.channel === "ONLINE")?.netCents ?? 0,
+    /** Net sales to business accounts (the WHOLESALE channel) in the range — "of which trade" on the sales tiles. */
+    trade: channels.find((c) => c.channel === "WHOLESALE")?.netCents ?? 0,
     payments,
   };
 }
@@ -112,8 +117,24 @@ const dayRange = (day: string, now: Date) => rangeFromParams({ from: day, to: da
 
 /** Takings so far today against the same weekday last week (the whole of that day). Today's rollup row is live. */
 export async function todayTakings(storeIds: string[], now = new Date()) {
-  const [cur, prev] = await Promise.all([salesSummary(storeIds, dayRange(dayKey(now), now)), salesSummary(storeIds, dayRange(dayKey(addDays(now, -7)), now))]);
-  return { cur, prev, delta: delta(cur.grossCents, prev.grossCents) };
+  const today = dayRange(dayKey(now), now);
+  const [cur, prev, trade] = await Promise.all([salesSummary(storeIds, today), salesSummary(storeIds, dayRange(dayKey(addDays(now, -7)), now)), salesSummary(storeIds, today, "WHOLESALE")]);
+  return { cur, prev, delta: delta(cur.grossCents, prev.grossCents), tradeCents: trade.grossCents };
+}
+
+/**
+ * The trade channel's open work for the HQ overview: orders to fulfil (placed, picking, ready to collect), EFT pro
+ * formas waiting for HQ to confirm payment, and accounts on hold. Indexed counts; a region sees the orders its stores
+ * fulfil and the accounts that order from them.
+ */
+export async function tradeQueue(storeIds: string[], networkWide: boolean) {
+  const at = networkWide ? {} : { storeId: { in: storeIds } };
+  const [orders, onHold] = await Promise.all([
+    db.tradeOrder.groupBy({ by: ["status"], where: { ...at, status: { in: ["PENDING_PAYMENT", "PLACED", "PICKING", "READY"] } }, _count: true }),
+    db.tradeAccount.count({ where: { status: "ON_HOLD", ...(networkWide ? {} : { OR: [{ orders: { some: at } }, { dcId: { in: storeIds } }] }) } }),
+  ]);
+  const n = (status: string) => orders.find((o) => o.status === status)?._count ?? 0;
+  return { open: n("PLACED") + n("PICKING") + n("READY"), ready: n("READY"), pendingEft: n("PENDING_PAYMENT"), onHold };
 }
 
 /** Net sales month to date against the same days of last month. */

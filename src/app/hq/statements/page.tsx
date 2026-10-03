@@ -107,14 +107,15 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
   ]);
   const wholesaleIncl = Math.round((wholesale[0]?.ex ?? 0) * 1.15);
   const feesIncl = fees.total + vatOnExcl(fees.total);
-  const owed = feesIncl + wholesaleIncl + sum.pointsIssued * POINT_VALUE_CENTS - sum.onlineCents - sum.loyaltyCents;
+  // What HQ collected for the stores (online, vouchers, trade sales on account or collected in store) comes off what they owe.
+  const owed = feesIncl + wholesaleIncl + sum.pointsIssued * POINT_VALUE_CENTS - sum.hqCollectedCents - sum.loyaltyCents;
 
   return (
     <>
       <PageHeader
         overline="Money"
         title="Franchise statements"
-        description="One monthly statement per store: fees, wholesale stock on account, online sales collected by HQ, network trading and the Rewards pool — netted to a single amount."
+        description="One monthly statement per store: fees, wholesale stock on account, money HQ collected for the store (online, vouchers, trade), network trading and the Rewards pool — netted to a single amount."
         actions={
           net && (
             <ConfirmAction action={emailAllStatements.bind(null, month)} label="Email all statements" icon={<Send className="h-4 w-4" />} triggerVariant="dark" variant="dark" title={`Email ${stores.length} ${fmtMonth(`${month}-01`)} statements?`} confirmLabel="Send to all owners" size="md">
@@ -132,7 +133,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Fees incl. VAT" value={zarCompact(feesIncl)} sub={`${zarCompact(fees.total)} ex VAT`} />
         <Stat label="Wholesale on account" value={zarCompact(wholesaleIncl)} sub="received from DCs, incl. VAT" />
-        <Stat label="Online sales collected by HQ" value={zarCompact(sum.onlineCents)} sub="paid back to stores" />
+        <Stat label="Collected by HQ (online, vouchers, trade)" value={zarCompact(sum.hqCollectedCents)} sub="paid back to stores" />
         <Stat label="Net due to HQ" value={zarCompact(owed)} sub="all stores, after credits" />
       </div>
       <Card>

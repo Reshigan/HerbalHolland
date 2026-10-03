@@ -63,6 +63,19 @@ export const DEFAULT_SETTINGS = {
     patientAuthDays: 14, // patient authorisations lapsing within this many days are flagged
     supplierInvoiceDays: 7, // supplier invoices due within this many days are flagged
   },
+  trade: {
+    // The trade (wholesale) channel: businesses buying at ex-VAT prices online (courier from the DC, or click &
+    // collect at a store) and at the till. Amounts are cents ex VAT; VAT is added per line.
+    minOrderCents: 200_000, // R2,000 ex VAT, after any promotion
+    deliveryCents: 15_000, // courier from the DC: a flat R150 ex VAT…
+    freeDeliveryOverCents: 500_000, // …free from R5,000 ex VAT
+    collectHandlingCents: 7_500, // click & collect: the store's handling fee, R75 ex VAT (no delivery fee)
+    eftHoldDays: 3, // an EFT order's payment must arrive within this many days or the order lapses
+    overdueGraceDays: 7, // an invoice this many days past due puts an account on hold (lifted when it's settled)
+    statementDay: 1, // day of the month the previous month's statements go out
+    termsVersion: "trade-1", // the trade terms applicants accept (stored on the account)
+    bank: { bank: "", accountName: "", accountNumber: "", branchCode: "" }, // where EFT payments go (printed on pro formas)
+  },
 };
 type Defaults = typeof DEFAULT_SETTINGS;
 /** The settings as read: `ecommerce.deliveryDays` is optional in a saved value (older rows, the HQ form) and falls back to the defaults. */

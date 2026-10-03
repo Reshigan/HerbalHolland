@@ -21,6 +21,9 @@ import { purgeResolvedTickets } from "./support";
 import { sendDueReminders } from "./shop/reminders";
 import { expireVouchers } from "./shop/vouchers";
 import { refreshWishlistStock } from "./shop/wishlist";
+import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs";
+
+export { tradeEftExpiry, tradeOverdueHolds, tradeStatements };
 
 const MIN = 60_000;
 
@@ -103,6 +106,9 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     reminders: await sendDueReminders(),
     // Gift vouchers past their three years (CPA s63) expire; purchases never paid for are cancelled.
     vouchers: await expireVouchers(),
+    // Trade: EFT orders unpaid past the hold lapse; accounts with an invoice past due + grace go on hold; last
+    // month's statements go out on the statement day (once per account and month).
+    trade: { eftExpiry: await tradeEftExpiry(), overdueHolds: await tradeOverdueHolds(), statements: await tradeStatements() },
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),

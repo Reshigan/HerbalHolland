@@ -13,19 +13,24 @@ import { shortCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
 import { redeemOffers } from "./offers";
 import { dropBlocks } from "./drops";
-import { evaluateBasket } from "./compliance";
+import { checkTradeBasket, evaluateBasket } from "./compliance";
 import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers";
-import { dayKey, fmtDate } from "@/lib/format";
+import { creditCheckFor, postLedgerEntry } from "./trade/ledger";
+import { addDays, dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
+import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
 import { allocateRefundAcross, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
 import type { Allocation } from "@/lib/fefo";
 import type { AgeCheck, GiftVoucher, PayMethod } from "@/generated/prisma/client";
 
 export class SaleError extends Error {}
 
-/** A tender on a sale. VOUCHER is a gift voucher: `reference` is its code, and posting the sale redeems it (online only). */
+/**
+ * A tender on a sale. VOUCHER is a gift voucher: `reference` is its code, and posting the sale redeems it (online only).
+ * ACCOUNT is a trade account's credit terms (trade sales only): invoiced on the account's ledger, never money now.
+ */
 export type TenderInput = {
-  method: "CARD" | "CASH" | "PAYSHAP" | "EFT" | "VOUCHER";
+  method: "CARD" | "CASH" | "PAYSHAP" | "EFT" | "VOUCHER" | "ACCOUNT";
   amountCents: number;
   tenderedCents?: number;
   changeCents?: number;
@@ -46,6 +51,8 @@ type PostArgs = {
   staffId?: string | null;
   deviceId?: string | null;
   customerId?: string | null;
+  /** WHOLESALE: the trade account that bought (the buyer block carries its legal name, address and VAT number). */
+  tradeAccountId?: string | null;
   quote: {
     lines: { variantId: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents: number; noEarn?: boolean; memberSavingsCents?: number; offerCents?: number }[];
     offerIds?: string[]; // My Deals to mark redeemed (online orders redeem at placement)
@@ -55,11 +62,18 @@ type PostArgs = {
   payments: PaymentRow[];
   pointsRedeemed: number;
   redeemNow: boolean; // online orders redeem at checkout
-  extraCents?: number; // delivery fee (VAT incl.)
+  extraCents?: number; // delivery fee (VAT incl.) — or a trade order's courier / click & collect handling fee
   ageCheck: AgeCheck;
   offline: boolean;
   createdAt: Date;
   campaignId?: string | null;
+  /**
+   * The money for this sale was collected by HQ (an online trade order: EFT to HQ's account, or HQ's trade ledger on
+   * ACCOUNT) and is settled to the store on its statement — so its EFT and ACCOUNT tenders roll up under
+   * `onlineCents`, the HQ-collected column, exactly as gift vouchers do. Till trade sales keep their real columns.
+   */
+  collectedByHq?: boolean;
+  tradeOrderRef?: string | null; // the TO-… number, kept on the sale's note
 };
 
 export async function postSaleTx(t: Tx, a: PostArgs) {
@@ -81,10 +95,10 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   const sale = await t.sale.create({
     data: {
       id: a.id, number: a.number, storeId: a.storeId, channel: a.channel, orderId: a.orderId, shiftId: a.shiftId,
-      staffId: a.staffId, deviceId: a.deviceId, customerId: a.customerId,
+      staffId: a.staffId, deviceId: a.deviceId, customerId: a.customerId, tradeAccountId: a.tradeAccountId ?? null,
       subtotalCents: a.quote.subtotalCents + extra, discountCents: a.quote.discountCents, totalCents: total, vatCents: vat, memberSavingsCents: memberSavings,
       costCents: 0, promoCode: a.promoCode, promotionId: a.quote.promotionId, campaignId, ageCheck: a.ageCheck,
-      buyer: a.buyer ?? undefined, offline: a.offline, createdAt: a.createdAt,
+      buyer: a.buyer ?? undefined, offline: a.offline, createdAt: a.createdAt, note: a.tradeOrderRef ? `Trade order ${a.tradeOrderRef}` : undefined,
     },
   });
 
@@ -95,7 +109,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
     const allocations = made.has(l.variantId)
       ? []
       : await takeStock(t, {
-          storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "POS" ? "SALE" : "ONLINE",
+          storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "ONLINE" ? "ONLINE" : "SALE",
           saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true,
         });
     const c = made.has(l.variantId) ? made.get(l.variantId)! * l.qty : allocationCost(allocations);
@@ -134,7 +148,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
     discountCents: a.quote.discountCents, memberSavingsCents: memberSavings, offerCents: offers, members: a.customerId ? 1 : 0, pointsIssued: pointsEarned,
   };
   for (const p of payments) {
-    const col = paymentColumn(p.method) as "cardCents";
+    const col = (a.collectedByHq && (p.method === "EFT" || p.method === "ACCOUNT") ? "onlineCents" : paymentColumn(p.method)) as "cardCents";
     delta[col] = (delta[col] ?? 0) + p.amountCents;
   }
   await bumpStoreStat(t, delta);
@@ -206,6 +220,12 @@ export type PosSaleInput = {
   campaignId?: string | null;
   buyer?: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail?: string | null; // another address for the tax invoice
+  /**
+   * Trade-sale mode: the sale is for a trade account — WHOLESALE channel, ex-VAT trade prices with VAT per line, the
+   * account's buyer block on the full tax invoice, an ACCOUNT tender allowed within its credit terms. No member, no
+   * points, no My Deals, no vouchers, never offline.
+   */
+  trade?: { tradeAccountId: string } | null;
 };
 
 /** SARS: supplies above R5,000 need a full tax invoice (recipient name and address). */
@@ -214,8 +234,10 @@ export const FULL_TAX_INVOICE_OVER_CENTS = 500_000;
 export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; deviceId: string; staffId: string; staffName: string }) {
   const existing = await db.sale.findUnique({ where: { id: input.id } });
   if (existing) return { sale: existing, duplicate: true };
+  if (input.trade) return postTradeSale(input, ctx);
 
   const offline = !!input.offline;
+  if (input.payments.some((p) => p.method === "ACCOUNT")) throw new SaleError("On account is for trade sales only: choose the trade account first");
   if (!input.customerId && input.memberNo)
     input = { ...input, customerId: (await db.customer.findUnique({ where: { memberNo: input.memberNo.toUpperCase() }, select: { id: true } }))?.id ?? null };
   const q = await quote({
@@ -282,6 +304,60 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   return result;
 }
 
+// ── Trade sales at the till ──────────────────────────────────────────────────
+
+/**
+ * A trade sale rung up at any till (a retail store or the DC): priced with the WHOLESALE quote for the account (ex VAT,
+ * VAT per line; the till's store's licences apply), checked with the trade basket rule (classes allowed, THC never —
+ * no member or age-gate rules), paid in money as usual and/or on ACCOUNT when the credit decision allows (that part
+ * is invoiced on the account's ledger, due after its payment days). Posts the Sale in channel WHOLESALE with the
+ * account's buyer block, earns and redeems nothing, refuses gift vouchers (consumer money) and queued offline sales,
+ * and emails the tax invoice to the account's billing address.
+ */
+async function postTradeSale(input: PosSaleInput, ctx: { storeId: string; deviceId: string; staffId: string; staffName: string }) {
+  if (input.offline) throw new SaleError("Trade sales need a connection — this queued trade sale can't be posted: ring it up again online and discard this one");
+  if (input.payments.some((p) => p.method === "VOUCHER")) throw new SaleError("Gift vouchers can't pay for a trade sale — vouchers are consumer money");
+  if ((input.pointsRedeemed ?? 0) > 0) throw new SaleError("Points can't be redeemed on a trade sale");
+  if (input.customerId || input.memberNo) throw new SaleError("A trade sale is for the trade account, not a Rewards member — remove the member first");
+  const account = await db.tradeAccount.findUnique({ where: { id: input.trade!.tradeAccountId } });
+  if (!account) throw new SaleError("Unknown trade account");
+  if (account.status !== "APPROVED" && account.status !== "ON_HOLD") throw new SaleError(ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
+  const q = await quote({ storeId: ctx.storeId, channel: "WHOLESALE", items: input.lines, code: input.promoCode, tradeAccountId: account.id });
+  if (!q.lines.length) throw new SaleError("The sale has no items");
+  if (q.codeError) throw new SaleError(q.codeError);
+  const store = await db.store.findUniqueOrThrow({ where: { id: ctx.storeId }, select: { code: true, licences: true } });
+  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass })), accountClasses: account.classes, storeLicences: store.licences });
+  if (!comp.ok) throw new SaleError(comp.blocks[0]);
+
+  const paid = input.payments.reduce((s, p) => s + p.amountCents, 0);
+  if (paid !== q.totalCents) throw new SaleError(`Payments (${zar(paid)}) don't match the total (${zar(q.totalCents)})`);
+  const onAccount = input.payments.filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + p.amountCents, 0);
+  if (onAccount < 0) throw new SaleError("The on-account part can't be negative");
+  if (onAccount > 0) {
+    const d = await creditCheckFor(account, onAccount);
+    if (!d.ok) throw new SaleError(d.reason!);
+  }
+
+  const actor: Actor = { type: "USER", id: ctx.staffId, name: ctx.staffName };
+  const createdAt = new Date();
+  const result = await tx(async (t) => {
+    const taken = await t.sale.findUnique({ where: { number: input.number }, select: { id: true } });
+    const number = taken ? `${input.number}-${shortCode(3)}` : input.number;
+    const sale = await postSaleTx(t, {
+      id: input.id, number, storeId: ctx.storeId, channel: "WHOLESALE", shiftId: input.shiftId, staffId: ctx.staffId, deviceId: ctx.deviceId,
+      customerId: null, tradeAccountId: account.id, quote: q, promoCode: input.promoCode, payments: input.payments, pointsRedeemed: 0, redeemNow: true,
+      ageCheck: input.ageCheck ?? "NONE", offline: false, createdAt, campaignId: input.campaignId, buyer: tradeBuyerBlock(account),
+    });
+    if (onAccount > 0)
+      await postLedgerEntry(t, { accountId: account.id, kind: "INVOICE", cents: onAccount, reference: sale.number, saleId: sale.id, dueAt: addDays(createdAt, account.paymentDays), note: `Till sale ${sale.number} at ${store.code}`, createdAt, actor });
+    if (input.seq) await t.device.updateMany({ where: { id: ctx.deviceId, seq: { lt: input.seq } }, data: { seq: input.seq } });
+    await audit(t, actor, "trade.sale", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { account: account.number, total: q.totalCents, onAccount } });
+    return { sale, duplicate: false };
+  });
+  queueSaleInvoice(result.sale.id, input.invoiceEmail?.trim() || account.email);
+  return result;
+}
+
 // ── Refunds (a refund is a negative sale, so every report nets naturally) ─────
 
 type LineAlloc = Allocation & { lineId?: string };
@@ -314,8 +390,9 @@ export async function refundSale(a: {
   saleId: string;
   lines: { saleLineId: string; qty: number; restock: boolean }[];
   /** Where the money part goes. ONLINE: back through the shop's payment gateway (a return). The voucher part never
-   *  goes here: it returns to the gift voucher(s) that paid, first (lib/vouchers.allocateRefund). */
-  method: Exclude<TenderInput["method"], "VOUCHER"> | "ONLINE";
+   *  goes here: it returns to the gift voucher(s) that paid, first (lib/vouchers.allocateRefund). On a trade sale the
+   *  part that was on account comes back as a credit note on the account's ledger first (never as money). */
+  method: Exclude<TenderInput["method"], "VOUCHER" | "ACCOUNT"> | "ONLINE";
   extraCents?: number; // a delivery fee refunded with the lines (VAT incl.), when a whole online order comes back
   reason: string;
   staffId: string;
@@ -362,14 +439,19 @@ export async function refundSale(a: {
   const earnedBack = orig.totalCents > 0 ? Math.round((orig.pointsEarned * amount) / orig.totalCents) : 0;
   // Gift vouchers that paid on the sale take the refund first, up to what each paid less what earlier refunds put back.
   const split = allocateRefundAcross(moneyBack, voucherPartsOf(orig));
+  // Trade sales: what was on account comes back onto the account (a credit note), before any money moves.
+  const accountPaid = orig.tradeAccountId ? orig.payments.filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, p.amountCents), 0) : 0;
+  const accountBack = orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, -p.amountCents), 0);
+  const toAccount = Math.min(split.toTender, Math.max(0, accountPaid - accountBack));
+  const toTender = split.toTender - toAccount;
 
   return tx(async (t) => {
     const refund = await t.sale.create({
       data: {
         id: a.id, number: a.number, kind: "REFUND", refundOfId: orig.id, channel: orig.channel, storeId: orig.storeId,
-        shiftId: a.shiftId, staffId: a.staffId, deviceId: a.deviceId, customerId: orig.customerId,
+        shiftId: a.shiftId, staffId: a.staffId, deviceId: a.deviceId, customerId: orig.customerId, tradeAccountId: orig.tradeAccountId,
         subtotalCents: -amount, discountCents: 0, totalCents: -(amount + extra), vatCents: -(vat + extraVat), costCents: 0, memberSavingsCents: -saved,
-        pointsEarned: -earnedBack, note: a.reason,
+        pointsEarned: -earnedBack, note: a.reason, buyer: orig.buyer ?? undefined,
       },
     });
     let cost = 0, units = 0;
@@ -401,10 +483,14 @@ export async function refundSale(a: {
     }
     const payments: PaymentRow[] = [];
     for (const v of split.parts) payments.push({ method: "VOUCHER", amountCents: -v.cents, reference: v.code });
-    if (split.toTender) payments.push({ method: a.method, amountCents: -split.toTender });
+    if (toAccount) payments.push({ method: "ACCOUNT", amountCents: -toAccount, reference: refund.number });
+    if (toTender) payments.push({ method: a.method, amountCents: -toTender });
     if (loyaltyBack) payments.push({ method: "LOYALTY", amountCents: -loyaltyBack });
     await t.payment.createMany({ data: payments.map((p) => ({ saleId: refund.id, ...p })) });
     await t.sale.update({ where: { id: refund.id }, data: { costCents: -cost } });
+    // The credit note (numbered as the refund sale) credits the original sale's invoice: saleId names what it settles.
+    if (toAccount && orig.tradeAccountId)
+      await postLedgerEntry(t, { accountId: orig.tradeAccountId, kind: "CREDIT_NOTE", cents: -toAccount, reference: refund.number, saleId: orig.id, note: `Credit note ${refund.number} for ${orig.number}`, actor: { type: "USER", id: a.staffId, name: a.staffName } });
     for (const v of split.parts) {
       try {
         await restoreVoucherTx(t, { code: v.code, cents: v.cents, actor: { type: "USER", id: a.staffId, name: a.staffName }, saleId: refund.id, orderId: orig.orderId, storeId: orig.storeId });
@@ -433,7 +519,7 @@ export async function refundSale(a: {
     await bumpVariantStats(t, orig.storeId, date, vstats);
     await audit(t, { type: "USER", id: a.staffId, name: a.staffName }, "sale.refund", {
       storeId: orig.storeId, entity: "Sale", entityId: refund.id,
-      data: { of: orig.number, amount, reason: a.reason, ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: v.code, cents: v.cents })), toTender: split.toTender }) },
+      data: { of: orig.number, amount, reason: a.reason, ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: v.code, cents: v.cents })), toTender }), ...(toAccount && { creditNote: toAccount }) },
     });
     return refund;
   }).then((refund) => {

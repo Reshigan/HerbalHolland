@@ -77,6 +77,21 @@ change without a deploy.
 | CPA franchise regulations — disclosure and fair marketing | The franchise page names no earnings, projections or investment figures (CPA s41); the disclosure document goes out at least 14 days before signing — HQ records the date and a lead can't be marked signed sooner (`src/lib/leads.ts`). Counsel reviews the franchise copy and the disclosure document |
 | POPIA — franchise enquiries | Consent to reply ticked on the form; only HQ admin and HQ team see leads; IPs are kept only as a keyed hash to limit repeat submissions; not-a-fit leads are deleted a year after their last change (daily job); HQ admin can delete a lead on request (audited) |
 
+## Trade (wholesale)
+
+The trade channel sells to businesses — pharmacies, independent retailers, cafés, wellness practices — never to the
+franchise stores and never licensed medicines. `evaluateTradeBasket()` (`src/lib/compliance.ts`) is the only basket
+rule it uses; `src/lib/trade.ts` holds the pricing, case, credit and ledger rules.
+
+| Obligation | Where it's enforced |
+|---|---|
+| Medicines Act s22A — who may be supplied | Schedule 0 CBD and the excluded products (CBD food and drink, skin care, hemp, supplements, accessories, apparel, grow) may be sold to any business. THC is never traded: `tradeAllowed()` says no whatever the account or the seller holds, `tradeQuote` prices it at nothing and the basket rule names the line. Each account carries the classes HQ approved it for (`TradeAccount.classes`, never THC); the selling store must hold a licence for any class in `licensedOnly` |
+| Medicines Act s18A — incentives | A consumer rule: trade quantity breaks and TRADE list prices are prices, not bonuses, and apply to every class. Promotions reach a trade basket only when HQ adds the WHOLESALE channel to them, and even then medicines (`incentiveExcluded`) get none. No points, member prices, My Deals or gift vouchers on trade |
+| VAT Act s20 — full tax invoices | Every WHOLESALE sale is a full tax invoice (a credit note for a refund): the seller's legal name, address and VAT number, and the buyer's legal name, address and VAT number from the account (`Sale.buyer`), numbered `TI-…` for orders or by the till for counter sales; unit prices ex VAT, VAT worked out per line (15%, rounded half up to the cent), the total incl. VAT. A non-vendor franchisee's till issues an "Invoice" without VAT, as SARS requires |
+| CPA — juristic customers | The Act largely doesn't apply to juristic persons above its asset/turnover threshold, but the trade terms (`trade.termsVersion`, accepted on application and stored on the account) are still plain and fair: prices ex VAT with VAT shown, the minimum order and case packs before ordering, delivery and handling fees from settings, EFT orders held three days, invoices due after the agreed days, credit limits applied the same way every time (`creditDecision()`), short shipments invoiced only for what went, a refund by hand named on a cancelled paid order |
+| 18+ | Applicants attest that everyone who orders for the business is 18 or older (`adultAttestedAt`); the collector's ID is checked at a click & collect handover (`idChecked`), and the sale records `ID_SIGHTED` |
+| POPIA | Buyers are business contacts: a name, work email and optional phone; sign-in codes are emailed and logged without the code; the application notice to the trade team carries the business, not the contact details; closing an account ends every buyer's session |
+
 ## Operating procedures the software assumes
 
 1. Legal review of MEDICAL-mode flows, the claims library and the class × channel matrix.

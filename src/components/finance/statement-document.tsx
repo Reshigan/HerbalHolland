@@ -188,6 +188,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
             {[
               ["Net sales, all channels (ex VAT)", zar(st.input.netSalesExVatCents)],
               ["Online sales fulfilled by the store (ex VAT)", zar(st.input.onlineSalesExVatCents)],
+              ["Trade sales (ex VAT)", zar(st.input.tradeSalesExVatCents ?? 0)],
               [`Royalty ${s.royaltyBps / 100}% of net sales`, zar(st.royalty)],
               [`Marketing fund levy ${s.levyBps / 100}% of net sales`, zar(st.levy)],
               [`E-commerce commission ${s.ecomBps / 100}% of online sales`, zar(st.ecom)],
@@ -222,6 +223,9 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
       <footer className="mt-10 border-t border-ink-150 pt-5 text-xs leading-relaxed text-ink-500">
         <p>
           Wholesale and network stock appear in the month they were received; each delivery carries its own tax invoice, so this statement is a reconciliation and not a tax invoice for those lines. Fees are invoiced by {hq?.legalName ?? "the franchisor"} and include VAT as shown.
+        </p>
+        <p className="mt-1">
+          Trade sales are sales to business accounts rung up at your tills or collected at your store. HQ collected the money — online, by EFT, or on its trade ledger for sales on account, where HQ carries the credit risk — and credits it to you above, as it does online sales. Royalty and the marketing levy apply to trade sales at the standard rates; the e-commerce commission does not.
         </p>
         <p className="mt-1">
           Generated {fmtDateTime(issuedAt)}

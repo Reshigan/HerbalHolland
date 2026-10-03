@@ -5,7 +5,7 @@
 // Email clients are a museum: tables and inline styles only, Outfit/Inter with Arial fallbacks, a hosted PNG for the
 // mark (Gmail strips inline SVG), a bulletproof pill button, and everything under 102 KB so Gmail never clips it.
 import { zar } from "@/lib/money";
-import { fmtDateTime, fmtMonth } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { DENOMINATIONS, denomLabel } from "@/components/pos/lib/rules";
 import type { ZReport } from "./pos/types";
@@ -176,8 +176,27 @@ export type InvoiceEmailInput = {
   store: { name: string; addressLine: string; suburb: string; city: string; company: { legalName: string; vatNumber: string | null } };
   customer: { firstName: string } | null;
   refundOf: { number: string } | null;
-  lines: { id: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; variant: { name: string; product: { name: string } } }[];
+  lines: { id: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents?: number; variant: { name: string; product: { name: string } } }[];
   payments: { method: string; amountCents: number; reference?: string | null; cardLast4?: string | null }[];
+  /** WHOLESALE: a trade sale — rendered as a trade tax invoice (ex-VAT lines, the buyer block, account terms; never points). */
+  channel?: "POS" | "ONLINE" | "WHOLESALE";
+  /** The buyer block of a full tax invoice (over R5,000, and every trade sale): `{ name, address, vatNumber }`, as the Sale row stores it (JSON). */
+  buyer?: unknown;
+};
+
+type BuyerBlock = { name?: string; address?: string; vatNumber?: string };
+const buyerOf = (raw: unknown): BuyerBlock => (raw && typeof raw === "object" && !Array.isArray(raw) ? (raw as BuyerBlock) : {});
+
+/** What the hosted invoice knows about a trade sale beyond the Sale row: the account, its terms and the trade order. */
+export type TradeInvoiceOpts = {
+  accountNumber?: string | null;
+  accountName?: string | null;
+  /** When an invoice on ACCOUNT terms is due (from the trade ledger entry). */
+  dueAt?: Date | string | null;
+  orderNumber?: string | null;
+  /** The buyer's own order / PO number. */
+  reference?: string | null;
+  fulfilment?: "COURIER" | "COLLECT" | null;
 };
 
 export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account" };
@@ -186,7 +205,8 @@ export const invoiceTitleFor = (s: { kind: "SALE" | "REFUND"; store: { company: 
   s.kind === "REFUND" ? (s.store.company.vatNumber ? "Credit note" : "Refund") : s.store.company.vatNumber ? "Tax invoice" : "Invoice";
 
 /** The emailed tax invoice: what was bought, VAT, how it was paid, and a button to the hosted, printable copy. */
-export function saleInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes?: Record<string, string[]>; orderCode?: string | null }): Rendered {
+export function saleInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes?: Record<string, string[]>; orderCode?: string | null; trade?: TradeInvoiceOpts }): Rendered {
+  if (s.channel === "WHOLESALE") return tradeInvoiceEmail(s, opts);
   const title = invoiceTitleFor(s);
   const refund = s.kind === "REFUND";
   const vendor = !!s.store.company.vatNumber;
@@ -254,6 +274,97 @@ export function saleInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batc
   };
 }
 
+/**
+ * A trade sale's tax invoice: lines ex VAT with the VAT per line, the buyer block (the business, its VAT number, its
+ * account), the trade order and the buyer's reference, and the terms — "On account, due …" for an ACCOUNT tender or how
+ * it was paid otherwise. Never points or member savings: a business account is not a Rewards member.
+ */
+function tradeInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes?: Record<string, string[]>; trade?: TradeInvoiceOpts }): Rendered {
+  const title = invoiceTitleFor(s);
+  const refund = s.kind === "REFUND";
+  const vendor = !!s.store.company.vatNumber;
+  const abs = Math.abs;
+  const total = abs(s.totalCents);
+  const vat = abs(s.vatCents);
+  const linesTotal = s.lines.reduce((n, l) => n + abs(l.totalCents), 0);
+  const linesVat = s.lines.reduce((n, l) => n + abs(l.vatCents ?? 0), 0);
+  const extra = !refund ? Math.max(0, total - linesTotal) : 0;
+  const extraVat = extra > 0 ? Math.max(0, vat - linesVat) : 0;
+  const t = opts.trade ?? {};
+  const rows: LineRow[] = s.lines.map((l) => {
+    const batches = opts.batchCodes?.[l.id] ?? [];
+    const qty = abs(l.qty);
+    const ex = abs(l.totalCents) - abs(l.vatCents ?? 0);
+    return {
+      title: `${l.variant.product.name} · ${l.variant.name}`,
+      sub: [`VAT ${zar(abs(l.vatCents ?? 0))}`, l.discountCents ? `less ${zar(abs(l.discountCents))}` : null, batches.length ? `batch ${batches.join(", ")}` : null].filter(Boolean).join(" · "),
+      qty,
+      unit: qty ? Math.round(ex / qty) : null,
+      amountCents: ex,
+    };
+  });
+  if (extra > 0) rows.push({ title: t.fulfilment === "COLLECT" ? "Collection handling fee" : "Delivery", sub: `VAT ${zar(extraVat)}`, amountCents: extra - extraVat });
+  const totals: TotalRow[] = [
+    { label: "Total excl. VAT", cents: total - vat, muted: true },
+    { label: vendor ? "VAT @ 15%" : "VAT", cents: vat, muted: true },
+    { label: refund ? "Total credited" : "Total incl. VAT", cents: total, strong: true },
+  ];
+  const onAccount = s.payments.some((p) => p.method === "ACCOUNT");
+  const pays = s.payments.filter((p) => p.method !== "ACCOUNT").map((p) => `${PAY_LABEL[p.method] ?? p.method}${p.reference ? ` (ref ${p.reference})` : ""} ${zar(abs(p.amountCents))}`);
+  const terms = refund
+    ? onAccount
+      ? "Credited to your trade account"
+      : pays.length
+        ? `Refunded to ${pays.join(" · ")}`
+        : null
+    : onAccount
+      ? `On account${t.dueAt ? `, due ${fmtDate(t.dueAt)}` : " — due as per your account's payment terms"}`
+      : pays.length
+        ? `Paid by ${pays.join(" · ")}`
+        : null;
+  const b = buyerOf(s.buyer);
+  const billTo = [b.name ? `<span style="font-weight:600">${esc(b.name)}</span>` : null, b.address ? `<span style="font-weight:400;color:${C.muted}">${esc(b.address)}</span>` : null, b.vatNumber ? `<span style="font-weight:400;color:${C.muted}">VAT no. ${esc(b.vatNumber)}</span>` : null, t.accountNumber ? `<span style="font-weight:400;color:${C.muted};${TNUM}">Trade account ${esc(t.accountNumber)}</span>` : null]
+    .filter(Boolean)
+    .join("<br/>");
+  const body =
+    facts([
+      [title, `<span style="${TNUM}">${esc(s.number)}</span>${s.refundOf ? ` <span style="font-weight:400;color:${C.muted}">for ${esc(s.refundOf.number)}</span>` : ""}`],
+      ["Date", esc(fmtDateTime(s.createdAt))],
+      ...(t.orderNumber ? ([["Trade order", `<span style="${TNUM}">${esc(t.orderNumber)}</span>`]] as [string, string][]) : []),
+      ...(t.reference ? ([["Your reference", esc(t.reference)]] as [string, string][]) : []),
+      ["Sold by", `${esc(s.store.company.legalName)}<br/><span style="font-weight:400;color:${C.muted}">Herbal Holland ${esc(s.store.name)} · ${esc(s.store.addressLine)}, ${esc(s.store.suburb)}, ${esc(s.store.city)}${vendor ? ` · VAT no. ${esc(s.store.company.vatNumber!)}` : ""}</span>`],
+      ...(billTo ? ([["Bill to", billTo]] as [string, string][]) : []),
+    ]) +
+    summaryTable(rows, totals) +
+    (terms ? para(`<b>${refund ? "Credit" : "Terms"}</b> ${esc(terms)}`, { small: true }) : "") +
+    para(`Prices are ex VAT; VAT is shown per line and in the total. Keep this ${title.toLowerCase()} for your records.`, { muted: true, small: true });
+  const text = textDoc(
+    `${title} ${s.number}${s.refundOf ? ` (for ${s.refundOf.number})` : ""} · ${fmtDateTime(s.createdAt)}`,
+    `${s.store.company.legalName} — Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` — VAT no. ${s.store.company.vatNumber}` : ""}`,
+    t.orderNumber ? `Trade order ${t.orderNumber}${t.reference ? ` · your reference ${t.reference}` : ""}` : t.reference ? `Your reference ${t.reference}` : null,
+    b.name ? `Bill to: ${[b.name, b.address, b.vatNumber ? `VAT no. ${b.vatNumber}` : null, t.accountNumber ? `trade account ${t.accountNumber}` : null].filter(Boolean).join(", ")}` : null,
+    "",
+    ...rows.map((r) => `${r.qty != null ? `${r.qty} x ` : ""}${r.title}${r.sub ? ` (${r.sub})` : ""}  ${zar(r.amountCents)} ex VAT`),
+    "",
+    ...totals.map((x) => `${x.label}: ${zar(x.cents)}`),
+    terms ? `${refund ? "Credit" : "Terms"}: ${terms}` : null,
+    "",
+    `View or print: ${opts.url}`,
+  );
+  return {
+    subject: `Herbal Holland ${title.toLowerCase()} ${s.number}${b.name ? ` — ${b.name}` : ""}`,
+    html: emailLayout({
+      preheader: `${title} ${s.number} — ${zar(total)} incl. VAT${terms ? ` · ${terms}` : ""}`,
+      eyebrow: `${title} · Herbal Holland ${s.store.name}`,
+      heading: `${title} ${s.number}`,
+      body,
+      cta: { label: `View or print ${title.toLowerCase()}`, href: opts.url },
+      footerHtml: `You received this because your business buys from Herbal Holland ${esc(s.store.name)} on a trade account. Every sale is invoiced by email (SARS).`,
+    }),
+    text,
+  };
+}
+
 // ── Wholesale / network tax invoice (store to store) ─────────────────────────
 
 export type StockOrderEmailInput = {
@@ -310,7 +421,7 @@ export type StatementEmailInput = {
   debits: number;
   net: number;
   memberSavingsCents: number;
-  input: { netSalesExVatCents: number; onlineSalesExVatCents: number; royaltyBps: number; levyBps: number; ecomBps: number };
+  input: { netSalesExVatCents: number; onlineSalesExVatCents: number; tradeSalesExVatCents?: number; royaltyBps: number; levyBps: number; ecomBps: number };
 };
 
 export const netPositionLabel = (net: number) => (net >= 0 ? `HQ pays you ${zar(net)}` : `Amount due to HQ: ${zar(-net)}`);
@@ -331,7 +442,7 @@ export function statementEmail(st: StatementEmailInput, company: { legalName: st
     callout(`<span style="font-family:${DISPLAY};font-size:20px;font-weight:700;${TNUM}">${esc(net)}</span><br/>${st.net >= 0 ? "Settled to you by HQ after month end." : "Settled with HQ after month end."}`, st.net >= 0 ? "leaf" : "brand") +
     figures(rows) +
     para(
-      `Fees on net sales of ${zar(st.input.netSalesExVatCents)} ex VAT (online ${zar(st.input.onlineSalesExVatCents)}): royalty ${st.input.royaltyBps / 100}%, marketing fund levy ${st.input.levyBps / 100}%, e-commerce commission ${st.input.ecomBps / 100}% of online sales. Instant Rewards savings given to members (${zar(st.memberSavingsCents)}) are already inside your net sales. Wholesale and network stock appear in the month received; each delivery has its own tax invoice.`,
+      `Fees on net sales of ${zar(st.input.netSalesExVatCents)} ex VAT (online ${zar(st.input.onlineSalesExVatCents)}${st.input.tradeSalesExVatCents ? `, trade ${zar(st.input.tradeSalesExVatCents)}` : ""}): royalty ${st.input.royaltyBps / 100}%, marketing fund levy ${st.input.levyBps / 100}%, e-commerce commission ${st.input.ecomBps / 100}% of online sales.${st.input.tradeSalesExVatCents ? " Trade sales on account are on HQ's ledger — HQ carries the credit risk and credits them to you here." : ""} Instant Rewards savings given to members (${zar(st.memberSavingsCents)}) are already inside your net sales. Wholesale and network stock appear in the month received; each delivery has its own tax invoice.`,
       { muted: true, small: true },
     );
   const text = textDoc(
@@ -348,7 +459,7 @@ export function statementEmail(st: StatementEmailInput, company: { legalName: st
     textRows(st.lines.filter((l) => l.kind === "debit").map((l) => [l.label, `-${zar(l.cents)}`])),
     `Total debits: -${zar(st.debits)}`,
     "",
-    `Net sales ex VAT ${zar(st.input.netSalesExVatCents)} · online ${zar(st.input.onlineSalesExVatCents)} · royalty ${st.input.royaltyBps / 100}% · levy ${st.input.levyBps / 100}% · e-commerce ${st.input.ecomBps / 100}%`,
+    `Net sales ex VAT ${zar(st.input.netSalesExVatCents)} · online ${zar(st.input.onlineSalesExVatCents)}${st.input.tradeSalesExVatCents ? ` · trade ${zar(st.input.tradeSalesExVatCents)}` : ""} · royalty ${st.input.royaltyBps / 100}% · levy ${st.input.levyBps / 100}% · e-commerce ${st.input.ecomBps / 100}%`,
     "",
     `View or print: ${opts.url}`,
   );

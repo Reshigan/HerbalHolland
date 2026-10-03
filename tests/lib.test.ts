@@ -372,4 +372,19 @@ describe("franchise statement", () => {
     expect(s.feesVat).toBe(13_500_00);
     expect(s.net).toBe(128_000_00 - (60_000_00 + 20_000_00 + 10_000_00 + 13_500_00 + 5_000_00 + 400_000_00));
   });
+
+  it("charges royalty and levy on trade sales too, the e-commerce fee on online sales only, and credits what HQ collected", () => {
+    const base = {
+      netSalesExVatCents: 1_000_000_00, onlineSalesExVatCents: 100_000_00, tradeSalesExVatCents: 250_000_00, onlineCollectedCents: 115_000_00 + 287_500_00,
+      pointsIssuedCents: 0, pointsRedeemedCents: 0, wholesaleCents: 0, networkSoldCents: 0, networkBoughtCents: 0, royaltyBps: 600, levyBps: 200, ecomBps: 1000,
+    };
+    const s = buildStatement(base);
+    expect(s.royalty).toBe(60_000_00); // 6% of all net sales, trade included
+    expect(s.levy).toBe(20_000_00);
+    expect(s.ecom).toBe(10_000_00); // 10% of online sales only — not of trade sales
+    const collected = s.lines.find((l) => l.label === "Collected by HQ (online, vouchers, trade)");
+    expect(collected).toMatchObject({ kind: "credit", cents: 402_500_00 });
+    // The trade line is information, not a fee: the same figures without it settle the same.
+    expect(buildStatement({ ...base, tradeSalesExVatCents: undefined }).net).toBe(s.net);
+  });
 });

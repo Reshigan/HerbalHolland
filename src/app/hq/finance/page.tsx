@@ -31,8 +31,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const r = resolveRange(sp, "mtd");
   const retail = await db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { id: true, code: true, name: true, region: { select: { name: true } }, company: { select: { vatNumber: true } } } });
   const rids = retail.map((s) => s.id);
-  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks, invoices] = await Promise.all([
+  const [sum, tradeSum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks, invoices] = await Promise.all([
     salesSummary(rids, r),
+    salesSummary(rids, r, "WHOLESALE"),
     salesByStore(rids, r),
     franchiseFees(rids, r),
     salesByDay(rids, r),
@@ -83,7 +84,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         actions={<RangeTabs path="/hq/finance" current={r.preset} />}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Network net sales" value={zarCompact(sum.netCents)} sub={`${zarCompact(sum.grossCents)} incl. VAT`} />
+        <Stat label="Network net sales" value={zarCompact(sum.netCents)} sub={`${zarCompact(sum.grossCents)} incl. VAT${tradeSum.netCents ? ` · of which trade ${zarCompact(tradeSum.netCents)}` : ""}`} />
         <Stat label="Store gross profit" value={zarCompact(sum.grossProfitCents)} sub={`${pct(sum.marginPct)} margin`} />
         <Stat label="Franchise fee income" value={zarCompact(fees.total)} sub="ex VAT · royalty, levy, e-com" />
         <Stat label="Wholesale to stores" value={zarCompact(wholesaleIncl)} sub="received, incl. VAT" />
@@ -171,7 +172,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         <Card className="lg:col-span-2 xl:col-span-3">
           <CardHeader title="VAT summary" description="Each franchisee is its own VAT vendor and files its own VAT201; HQ files on fees and wholesale" />
           <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MiniStat label="Output VAT collected by stores" value={zarCompact(sum.vatCents)} sub={`on ${zarCompact(sum.grossCents)} of sales`} />
+            <MiniStat label="Output VAT collected by stores" value={zarCompact(sum.vatCents)} sub={`on ${zarCompact(sum.grossCents)} of sales, trade included`} />
             <MiniStat label="HQ output VAT · fees" value={zarCompact(feesVat)} sub="15% on royalty, levy, commission" />
             <MiniStat label="HQ output VAT · wholesale" value={zarCompact(wholesaleVat)} sub="DC stock invoiced to stores" />
             <MiniStat label="Non-VAT stores" value={num(nonVat.length)} sub={nonVat.length ? `${zarCompact(nonVatSales)} of sales, no VAT charged` : "All stores are VAT vendors"} />

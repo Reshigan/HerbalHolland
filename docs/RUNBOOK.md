@@ -353,7 +353,7 @@ $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live i
 | Endpoint | When | What it does |
 |---|---|---|
 | `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders |
-| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals |
+| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals; **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`) |
 | `/api/cron/staff-push` | every 5 min | Pushes to managers' and owners' phones (`src/server/staff-push.ts`): **new online orders** (polled, so an order shows up within 5 minutes — nothing hooks the checkout), **loss alerts** raised in the last day (never to the person they're about), **HQ updates that need acknowledging** (per store that hasn't). Each event is keyed in `StaffPushEvent`, so a poll never sends twice; dead subscriptions (404/410 from the push service) are pruned as they fail. |
 | `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
 
@@ -362,6 +362,53 @@ Without `WEB_PUSH_PUBLIC_KEY` / `WEB_PUSH_PRIVATE_KEY` every push is only writte
 (“Notify me on this phone”; on iPhone the back office must be on the Home Screen first). Thresholds for the Today list
 and the digests are HQ settings under `operations` (`cycleCountDays`, `cycleCountByCategory`, `batchExpiryDays`,
 `patientAuthDays`, `supplierInvoiceDays`).
+
+## Trade (wholesale)
+
+Businesses buy at ex-VAT trade prices online (courier from the DC, or click & collect at a store) and at any till.
+Server side in `src/server/trade/*` (accounts, auth, orders, ledger, emails, jobs), rules in `src/lib/trade.ts`.
+
+**Settings** (HQ → Settings → Trade, key `trade`): `minOrderCents` (R2,000 ex VAT), `deliveryCents` (R150 ex VAT,
+flat) and `freeDeliveryOverCents` (R5,000 ex VAT), `collectHandlingCents` (R75 ex VAT on click & collect),
+`eftHoldDays` (3), `overdueGraceDays` (7), `statementDay` (1), `termsVersion` ("trade-1"), and `bank` (bank, account
+name, account number, branch code — printed on every pro forma; **fill these in before the first trade order**).
+`TRADE_EMAIL` (else `FRANCHISE_EMAIL`, else franchise@herbalholland.com) is where new applications are announced.
+
+**Approving an account.** Applications arrive from the portal as PENDING accounts (`TA-…`) with their OWNER buyer;
+the applicant gets an acknowledgement and the trade team an email. HQ → Trade → Accounts: check the business (CIPC
+and VAT numbers are format-checked, not verified), then **Approve** with the terms — PREPAID (EFT before picking) or
+ACCOUNT with a credit limit and payment days (default 30), the ranges it may buy (never THC), optionally a TRADE price
+list and a serving DC. The approval email carries the terms. **Hold** stops new on-account orders (EFT still works);
+**Close** signs every buyer out for good (the balance stays due). Buyers sign in with a six-digit code emailed to
+them (`/trade/login`, 12-hour sessions); an account's owner adds and removes buyers in the portal.
+
+**Confirming an EFT.** An EFT order sits in PENDING_PAYMENT (nothing reserved) with a pro forma quoting the
+reference `HH-TO-000123`. When the money shows on the bank statement, HQ → Trade → Orders → **Confirm payment** with the
+bank reference: the order becomes PLACED, the stock is reserved and the PAYMENT lands on the account's ledger. Orders
+unpaid after `eftHoldDays` are cancelled by the daily job and the buyer told; confirming a cancelled order isn't
+possible (record the payment on the ledger instead and have them reorder).
+
+**Shipping (courier).** The DC picks (`pick`), then **Ship** with the courier and tracking number; a line that can't
+be filled ships short (`shortShip`) and is invoiced for what went. Shipping posts the WHOLESALE sale at the DC (FEFO
+lots), numbers the tax invoice `TI-…`, raises the INVOICE on the ledger (due after the payment days on account; on
+the day for EFT) and emails the buyer the news and the tax invoice.
+
+**Click & collect.** The buyer chose a participating store; the store's phones get the same push as a new online
+order. The store picks, marks it **Ready** (the buyer gets the six-digit collection code by email and text) and hands
+it over with **Collect** after checking the collector's ID (18+) and the code — that posts the sale at the store with
+the handling fee, invoices and emails exactly like shipping. The money was collected by HQ (EFT to HQ, or the trade
+ledger), so it shows under HQ-collected takings on the store's statement.
+
+**Till trade sales.** Trade-sale mode on the till looks the account up (`tradeAccountLookup`: approved accounts, and
+held ones for cash/card only), prices the basket ex VAT with VAT per line and takes money as usual and/or **On
+account** within the credit decision; the tax invoice goes to the account's billing email. Refunds put the on-account
+part back as a credit note. No points, member prices, My Deals or gift vouchers; never offline.
+
+**Ledger and statements.** HQ → Trade → Account → Ledger: record payments (bank reference; name the order or
+invoice it settles so the ageing is exact), issue credit notes (`TC-…`, with a note) and adjustments (always with a
+note). Statements go out on the statement day for the previous month; **Send statement** resends one by hand
+(`emailTradeStatement(accountId, "YYYY-MM", { force: true })`). Ageing is current / 30 / 60 / 90+ days past due after
+credits are applied — to the item they name first, then oldest due first.
 
 ## Reorder reminders, gift vouchers, wishlists and addresses (the shop's member features)
 

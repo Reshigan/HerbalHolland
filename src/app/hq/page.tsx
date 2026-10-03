@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Download } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
-import { kpis, hourlyHeat, stockAlerts, todayTakings, monthToDate, tradingToday, orderQueue, openAlerts, newLeads, statementsDue, storeExceptions, type StoreException } from "@/server/dashboard";
+import { kpis, hourlyHeat, stockAlerts, todayTakings, monthToDate, tradingToday, orderQueue, openAlerts, newLeads, statementsDue, storeExceptions, tradeQueue, type StoreException } from "@/server/dashboard";
 import { salesByStore } from "@/server/finance";
 import { db } from "@/server/db";
 import { resolveRange, delta, previousRange } from "@/lib/ranges";
@@ -32,7 +32,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
   const r = resolveRange(sp, "30d");
   const ids = await scopedStoreIds(scope);
   const now = new Date();
-  const [k, byStore, byStorePrev, stores, heat, alerts, liability, active30, pendingPOs, recalls, takings, mtd, trading, queue, open, leads, statements] = await Promise.all([
+  const [k, byStore, byStorePrev, stores, heat, alerts, liability, active30, pendingPOs, recalls, takings, mtd, trading, queue, open, leads, statements, trade] = await Promise.all([
     kpis(ids, r),
     salesByStore(ids, r),
     region ? salesByStore(ids, previousRange(r)) : null,
@@ -50,6 +50,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
     openAlerts(user, ids),
     hqTeam ? newLeads() : null,
     hqTeam ? statementsDue(ids, now) : null,
+    tradeQueue(ids, scope.kind === "HQ"),
   ]);
   const c = k.cur;
   const retail = stores.filter((s) => s.kind === "RETAIL");
@@ -88,11 +89,45 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
       />
 
       {/* Today, before the range: the numbers HQ and area managers act on first. */}
-      <section aria-label="Today" className={hqTeam ? "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-7" : "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5"}>
-        <Stat label={region ? "Region sales today" : "Network sales today"} value={zarCompact(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={takingsDelta == null ? `${takings.cur.sales.toLocaleString()} sales so far` : undefined} />
+      <section aria-label="Today" className={hqTeam ? "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-8" : "mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6"}>
+        <Stat
+          label={region ? "Region sales today" : "Network sales today"}
+          value={zarCompact(takings.cur.grossCents)}
+          delta={takingsDelta}
+          deltaLabel="vs same day last week"
+          sub={[takingsDelta == null ? `${takings.cur.sales.toLocaleString()} sales so far` : null, takings.tradeCents ? `of which trade ${zarCompact(takings.tradeCents)}` : null].filter(Boolean).join(" · ") || undefined}
+        />
         <Stat label="Net sales · month to date" value={zarCompact(mtd.cur.netCents)} delta={mtd.prev.netCents ? mtd.delta : null} deltaLabel="vs last month, same days" />
         <Stat label="Stores trading today" value={`${trading.size} of ${active.length}`} sub={trading.size < active.length ? <Link href={`/hq/stores?status=ACTIVE&sort=sales&dir=asc`} className="font-semibold text-brand-700 hover:underline">{active.length - trading.size} with no sale yet →</Link> : "every store has sold today"} />
         <Stat label="Online orders open" value={openOrders.toLocaleString()} sub={<Link href="/hq/orders?status=OPEN" className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready →</Link>} />
+        {/* The trade channel: orders to fulfil, EFT pro formas waiting for HQ, accounts on hold. Links appear with the work. */}
+        <Stat
+          label="Trade orders open"
+          value={trade.open.toLocaleString()}
+          sub={
+            trade.open || trade.pendingEft || trade.onHold ? (
+              <span className="flex flex-wrap gap-x-2">
+                {trade.open > 0 && (
+                  <Link href="/hq/trade/orders" className="font-semibold text-brand-700 hover:underline">
+                    {trade.ready ? `${trade.ready} ready to collect` : "to fulfil"} →
+                  </Link>
+                )}
+                {trade.pendingEft > 0 && (
+                  <Link href="/hq/trade" className="font-semibold text-brand-700 hover:underline">
+                    {trade.pendingEft} awaiting EFT →
+                  </Link>
+                )}
+                {trade.onHold > 0 && (
+                  <Link href="/hq/trade/accounts?status=ON_HOLD" className="font-semibold text-rose-600 hover:underline">
+                    {trade.onHold} account{trade.onHold === 1 ? "" : "s"} on hold →
+                  </Link>
+                )}
+              </span>
+            ) : (
+              "no trade orders waiting"
+            )
+          }
+        />
         <Stat
           label="Loss-prevention alerts"
           value={open.open.toLocaleString()}
@@ -167,7 +202,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} className="col-span-2" />
+        <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} sub={k.trade ? `of which trade ${zarCompact(k.trade)}` : undefined} className="col-span-2" />
         <Stat label="Transactions" value={c.sales.toLocaleString()} delta={k.deltas.tx} />
         <Stat label="Average basket" value={zar(c.atvCents)} delta={k.deltas.atv} />
         <Stat label="Online share" value={pct(c.netCents ? k.online / c.netCents : 0)} sub={zarCompact(k.online)} />

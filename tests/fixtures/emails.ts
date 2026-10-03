@@ -47,6 +47,26 @@ export const refund: InvoiceEmailInput = {
   payments: [{ method: "CARD", amountCents: -29_650, reference: "YC-8842", cardLast4: "4242" }],
 };
 
+/** A trade sale at a DC on ACCOUNT terms: priced ex VAT (24 × R290.00 + 15%), billed to the business, never points. */
+export const tradeSale: InvoiceEmailInput = {
+  id: "sale-3",
+  number: "DC-C-T00017",
+  kind: "SALE",
+  channel: "WHOLESALE",
+  createdAt: WHEN,
+  totalCents: 800_400,
+  vatCents: 104_400,
+  discountCents: 0,
+  memberSavingsCents: 0,
+  pointsEarned: 0,
+  store: { name: "Centurion DC", addressLine: "1 DC Road", suburb: "Centurion", city: "Pretoria", company: { legalName: "Herbal Holland (Pty) Ltd", vatNumber: "4870123456" } },
+  customer: null,
+  refundOf: null,
+  buyer: { name: "Hatfield Pharmacy & Co", address: "12 Burnett Street, Hatfield, Pretoria, 0083", vatNumber: "4550001234" },
+  lines: [{ id: "l5", qty: 24, unitPriceCents: 29_000, discountCents: 0, totalCents: 800_400, vatCents: 104_400, variant: { name: "600 mg · 30 ml", product: { name: TRICKY } } }],
+  payments: [{ method: "ACCOUNT", amountCents: 800_400 }],
+};
+
 export const stockOrder: StockOrderEmailInput = {
   id: "so-1",
   number: "SO-000318",

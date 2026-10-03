@@ -101,7 +101,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
       {manager && today && <TodayList items={today} className="mb-6" description={today.length ? undefined : "Nothing needs your attention right now"} />}
       {manager && (
         <section aria-label="Right now" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="Takings today" value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : undefined} />
+          <Stat label="Takings today" value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={[takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : null, takings.tradeCents ? `of which trade ${zar(takings.tradeCents)}` : null].filter(Boolean).join(" · ") || undefined} />
           <Stat label="Online orders to fulfil" value={openOrders.toLocaleString()} sub={<Link href={`${base}/orders`} className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready →</Link>} />
           <Stat label="Stock to count" value={countsDue.toLocaleString()} sub={countsDue ? <Link href={`${base}/stock-takes/new`} className="font-semibold text-brand-700 hover:underline">categories due · start a count →</Link> : "cycle counts up to date"} />
           <Stat
@@ -115,7 +115,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
       {/* Owners, area managers and HQ: the money first. */}
       {!manager && cash && open && (
         <section aria-label="Today" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
-          <Stat label={company ? "Takings today · all stores" : "Takings today"} value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : undefined} />
+          <Stat label={company ? "Takings today · all stores" : "Takings today"} value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={[takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : null, takings.tradeCents ? `of which trade ${zar(takings.tradeCents)}` : null].filter(Boolean).join(" · ") || undefined} />
           <Stat label="Gross margin" value={pct(c.marginPct)} delta={k.deltas.margin} deltaLabel="pts vs previous" sub={`${zarCompact(c.grossProfitCents)} profit · ${r.preset === "custom" ? "custom range" : r.preset}`} />
           <Stat
             label="Cash to bank"
@@ -157,7 +157,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} className="col-span-2 lg:col-span-1" />
+        <Stat label="Net sales (ex VAT)" value={zarCompact(c.netCents)} delta={k.deltas.net} trend={k.trend.net.slice(-12)} sub={k.trade ? `of which trade ${zarCompact(k.trade)}` : undefined} className="col-span-2 lg:col-span-1" />
         <Stat label="Transactions" value={c.sales.toLocaleString()} delta={k.deltas.tx} />
         <Stat label="Average basket" value={zar(c.atvCents)} delta={k.deltas.atv} />
         {manager ? <Stat label="Gross margin" value={pct(c.marginPct)} sub={zarCompact(c.grossProfitCents) + " profit"} /> : <Stat label="Points issued" value={fmtPoints(c.pointsIssued)} sub="Rewards, this range" />}

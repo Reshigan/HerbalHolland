@@ -46,6 +46,10 @@ Analytics follow the same scopes (`tests/integration/scope.test.ts` pins them do
 - **HQ** — the network overview drills region → stores (`/hq/reports/sales-by-store?stores=region:XX`) → store
   (`/store/{code}`, the store's own dashboard) → day → hour; categories drill to their products. Area managers get the
   same console limited to their region, whatever the URL asks for. Every CSV export is audited (`report.export`).
+- **Trade** — the trade sales report (HQ and area managers) covers WHOLESALE sales at the stores in scope; a store's own
+  "Trade sales at this store" covers trade orders collected there and trade sales rung up at its tills. Trade aged
+  balances read HQ's trade ledger: the whole network for HQ, and for a region the accounts that buy there or are served
+  by a DC there.
 
 ## Core flows
 
@@ -97,11 +101,55 @@ any time. Stock takes snapshot lots, collect (blind) counts and post COUNT varia
   text, and offer "Did you mean…" when the best hit was found by similarity alone. Always bounded to the classes the
   shopper may see.
 
+**Trade (wholesale) channel** (`src/lib/trade.ts`, `src/server/trade/*`, `src/server/pricing.ts` `tradeQuote`/`tradeRange`,
+`src/server/sales.ts` `postTradeSale`): businesses — pharmacies, independent retailers, cafés, practices — buy at ex-VAT
+trade prices, never the franchise stores and never THC.
+
+- Models: `TradeAccount` (number `TA-…`, legal and trading name, VAT/registration numbers, billing and delivery
+  addresses, status PENDING → APPROVED ⇄ ON_HOLD → CLOSED, terms PREPAID or ACCOUNT with `creditLimitCents` and
+  `paymentDays`, the `classes` it may buy, an optional TRADE `priceListId` and `dcId`), `TradeBuyer` (the people who
+  order: OWNER or BUYER, sign in with a code emailed to them — `Otp.email`, `Session.tradeBuyerId`, cookie `hh_trade`),
+  `TradeOrder` (number `TO-…`, the fulfilling `storeId`, `fulfilment` COURIER from the DC or COLLECT at a retail store,
+  status PENDING_PAYMENT → PLACED → PICKING → SHIPPED | READY → COLLECTED, or CANCELLED; `payMethod` EFT or ACCOUNT;
+  ex-VAT `subtotalCents`, `deliveryCents`, `handlingCents`, `vatCents`, inclusive `totalCents`; `collectionCode`;
+  `invoiceNumber` `TI-…` and `saleId` once posted; `events`), `TradeOrderLine` (qty in case multiples, net `unitCents`
+  ex VAT, `vatCents`, `shippedQty` and the batches that went), `TradeLedgerEntry` (INVOICE +, PAYMENT −, CREDIT_NOTE −,
+  ADJUSTMENT ±; `dueAt` on invoices; `tradeOrderId`/`saleId` say what an entry is for). `Sale.tradeAccountId` and
+  `channel: WHOLESALE` mark every trade sale; `PriceList.kind = TRADE` holds ex-VAT prices with quantity breaks;
+  `Variant.caseQty` is the case pack; `DailyStoreStat.accountCents` rolls up on-account tenders.
+- Pricing: `quote({ channel: "WHOLESALE", tradeAccountId })` prices from the account's TRADE list, else the live TRADE
+  lists by priority, else `Variant.wholesaleCents` — ex VAT, VAT 15% per line rounded half up to the cent, totals = ex +
+  VAT. Tiers, member and zone/channel lists, markdowns, My Deals and shelf prices never apply; promotions only when
+  their channels include WHOLESALE (rounded to the cent per unit so an order line carries the net unit price).
+  `tradeRange(storeId, account, { q, category, page })` is the paginated catalogue the portal shows.
+- Orders (`placeTradeOrder`): approved account, classes allowed (∩ the store's licences), whole cases, the minimum
+  order, courier from the account's DC (or the default warehouse) or click & collect at an ACTIVE retail store with
+  `clickCollect` (`collectStoresFor` lists them, the account's province first, with the basket's availability per
+  store). EFT → PENDING_PAYMENT with a pro forma (reference `HH-TO-…`, bank details, `trade.eftHoldDays`), nothing
+  reserved until HQ confirms the payment (`confirmTradePayment`: a PAYMENT on the ledger). ACCOUNT → PLACED at once
+  within the credit limit (balance + open on-account orders + this order ≤ limit) with the stock reserved at the store
+  (`inventory.availability` subtracts PLACED/PICKING/READY trade lines like open online orders). `advanceTradeOrder`
+  picks, makes ready (collection code by email and text), ships or hands over (ID checked): the WHOLESALE `Sale` posts
+  at the fulfilling store through `postSaleTx` — FEFO lots for what shipped (short lines keep `shippedQty`), one ACCOUNT
+  or EFT tender, the account's buyer block for the full tax invoice, the `TI-…` number as the sale number, courier or
+  handling as the sale's extra, and the ledger INVOICE (due after `paymentDays` on account; due on the day for EFT so it
+  nets against the payment). HQ collected the money for online trade orders, so their EFT/ACCOUNT tenders roll up in
+  `DailyStoreStat.onlineCents` (settled to the store on its statement, like gift vouchers); till trade sales keep
+  their real columns. A new collect order pushes to the store's phones like a consumer online order.
+- Till (`postPosSale` with `trade: { tradeAccountId }`): the same WHOLESALE quote at the till's store, the trade basket
+  rule, money tenders as usual plus ACCOUNT within the credit decision (ledger INVOICE at posting); no member, points,
+  My Deals or gift vouchers, never offline. `refundSale` on a trade sale puts the on-account part back as a CREDIT_NOTE
+  (numbered as the refund) before any money moves.
+- Ledger (`src/server/trade/ledger.ts`): balance = Σ cents; ageing settles credits that name an order or sale against
+  that item first, then FIFO by due date; `recordTradePayment`, `issueCreditNote`, `adjustTradeLedger`, monthly
+  statements (`tradeStatementFor`, `emailTradeStatement`, once per account and month). Jobs (`daily`): lapsed EFT
+  orders, overdue holds (`ON_HOLD` with reason "overdue", lifted by itself when settled), statements on the statement day.
+
 ## Scale to 1,000 stores
 
 | Concern | Approach |
 |---|---|
-| Reporting load | Daily rollups (`DailyStoreStat`, `DailyVariantStat`) are incremented inside the posting transaction with `INSERT … ON CONFLICT DO UPDATE`, so network dashboards and most reports never scan raw sales. Raw queries are always bounded by store(s) and dates. |
+| Reporting load | Daily rollups (`DailyStoreStat`, `DailyVariantStat`) are incremented inside the posting transaction with `INSERT … ON CONFLICT DO UPDATE`, so network dashboards and most reports never scan raw sales. Raw queries are always bounded by store(s) and dates. A sale rolls up under its channel — `POS`, `ONLINE`, or `WHOLESALE` for trade sales (the trade portal's orders, fulfilled by a DC or collected at a store, and trade sales rung up at a till) — with each tender in its own column: `accountCents` holds trade sales on account (invoiced on HQ's trade ledger, not money), so finance derives money taken (`moneyCents`) and what HQ collected for a store (`hqCollectedCents` = online, vouchers, trade) from the same rows (`src/server/finance.ts`). The trade reports — sales by account, product and month, and the FIFO aged balances (`src/lib/trade-ageing.ts`) — read `Sale` and `TradeLedgerEntry` directly: trade volume is a fraction of retail and the queries stay bounded by stores and dates. `DailyVariantStat` has no channel column (product figures are per store and day across channels). |
 | Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; partition them by month (Postgres declarative partitioning) once they pass ~100M rows. `MessageLog` is the exception today — it indexes only `campaignId` and `customerId` — so the message log screen (HQ → Messages, always date-bounded) needs `@@index([createdAt])` and `@@index([channel, status, createdAt])` added in a migration before the table passes a few million rows. |
 | Read traffic | Stateless app servers scale horizontally; send reports and the menu boards to a read replica. |
 | Hot rows | Stock rows are per store × SKU × batch; loyalty balances per customer; rollup rows per store × day — contention stays local to one store. Counters are only used for low-volume sequences (POs, members). |

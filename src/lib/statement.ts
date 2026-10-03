@@ -3,9 +3,10 @@
 import { applyBps, vatOnExcl } from "./money";
 
 export type StatementInput = {
-  netSalesExVatCents: number; // all channels
-  onlineSalesExVatCents: number; // online orders fulfilled by the store
-  onlineCollectedCents: number; // paid online or with a gift voucher: collected by HQ on the store's behalf
+  netSalesExVatCents: number; // all channels: in store, online and trade
+  onlineSalesExVatCents: number; // online orders fulfilled by the store (the e-commerce commission applies to these only)
+  tradeSalesExVatCents?: number; // trade sales to business accounts (WHOLESALE channel): royalty and levy at the standard rates, no e-commerce fee
+  onlineCollectedCents: number; // collected by HQ on the store's behalf: paid online, with a gift voucher, or on a trade account (HQ's ledger)
   pointsIssuedCents: number; // value of points the store issued
   pointsRedeemedCents: number; // value of points redeemed at the store
   offersFundedCents?: number; // My Deals discounts given at the store (HQ-funded from the marketing fund)
@@ -26,7 +27,7 @@ export function buildStatement(i: StatementInput) {
   const fees = royalty + levy + ecom;
   const feesVat = vatOnExcl(fees);
   const lines: StatementLine[] = [
-    { label: "Online sales and gift vouchers collected by HQ", detail: "Paid online or with a gift voucher, fulfilled by your store", cents: i.onlineCollectedCents, kind: "credit" },
+    { label: "Collected by HQ (online, vouchers, trade)", detail: "Paid online, with a gift voucher or on a trade account; fulfilled by your store", cents: i.onlineCollectedCents, kind: "credit" },
     { label: "Points redeemed in store", detail: "Reimbursed from the network loyalty pool", cents: i.pointsRedeemedCents, kind: "credit" },
     { label: "My Deals given", detail: "Personal member offers, funded by the marketing fund", cents: i.offersFundedCents ?? 0, kind: "credit" },
     { label: "Stock sold to network stores", detail: "Network trading, cleared by HQ", cents: i.networkSoldCents, kind: "credit" },

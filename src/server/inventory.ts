@@ -6,14 +6,16 @@ import type { AdjustReason, MovementType } from "@/generated/prisma/client";
 export class StockError extends Error {}
 
 export const OPEN_ORDER_STATUSES = ["PENDING_PAYMENT", "PLACED", "PICKING", "READY"] as const;
+/** Trade orders that hold stock at their fulfilling store (an EFT order reserves nothing until HQ confirms the payment). */
+export const OPEN_TRADE_ORDER_STATUSES = ["PLACED", "PICKING", "READY"] as const;
 
 export type Avail = { onHand: number; reserved: number; available: number };
 export const availKey = (storeId: string, variantId: string) => `${storeId}:${variantId}`;
 
-/** Sellable stock = released on-hand − open online reservations. */
+/** Sellable stock = released on-hand − open online reservations − open trade-order reservations (confirmed, not yet shipped or collected). */
 export async function availability(storeIds: string[], variantIds?: string[]) {
   const variantFilter = variantIds ? { variantId: { in: variantIds } } : {};
-  const [levels, reserved] = await Promise.all([
+  const [levels, reservedOnline, reservedTrade] = await Promise.all([
     db.stockLevel.groupBy({
       by: ["storeId", "variantId"],
       where: { storeId: { in: storeIds }, ...variantFilter, batch: { status: "RELEASED" } },
@@ -24,13 +26,18 @@ export async function availability(storeIds: string[], variantIds?: string[]) {
       FROM "OrderLine" l JOIN "Order" o ON o.id = l."orderId"
       WHERE o.status::text = ANY(${[...OPEN_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
       GROUP BY 1, 2`,
+    db.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
+      SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
+      FROM "TradeOrderLine" l JOIN "TradeOrder" o ON o.id = l."tradeOrderId"
+      WHERE o.status::text = ANY(${[...OPEN_TRADE_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
+      GROUP BY 1, 2`,
   ]);
   const map = new Map<string, Avail>();
   for (const l of levels) {
     const onHand = l._sum.onHand ?? 0;
     map.set(availKey(l.storeId, l.variantId), { onHand, reserved: 0, available: onHand });
   }
-  for (const r of reserved) {
+  for (const r of [...reservedOnline, ...reservedTrade]) {
     if (variantIds && !variantIds.includes(r.variantId)) continue;
     const k = availKey(r.storeId, r.variantId);
     const a = map.get(k) ?? { onHand: 0, reserved: 0, available: 0 };

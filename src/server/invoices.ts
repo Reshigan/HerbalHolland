@@ -8,6 +8,7 @@ import { sendEmail } from "./email";
 import { APP_URL, saleInvoiceEmail, statementEmail, stockOrderInvoiceEmail } from "./email-templates";
 import { receivedValue } from "./stock-orders";
 import { franchiseStatement } from "./finance";
+import { tradeInvoiceEmail } from "./trade/emails";
 
 export { APP_URL };
 export const invoiceToken = (id: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`invoice:${id}`).digest("base64url").slice(0, 22);
@@ -19,6 +20,7 @@ export async function invoiceData(saleId: string) {
     include: {
       store: { include: { company: true } },
       customer: true,
+      tradeAccount: { select: { id: true, number: true, name: true, legalName: true, vatNumber: true, email: true } },
       staff: { select: { name: true } },
       lines: { include: { variant: { include: { product: { select: { name: true, regClass: true } } } } } },
       payments: true,
@@ -28,10 +30,18 @@ export async function invoiceData(saleId: string) {
 }
 export type InvoiceData = NonNullable<Awaited<ReturnType<typeof invoiceData>>>;
 
-export function invoiceTitle(s: InvoiceData) {
+/**
+ * Consumer sales: abridged or full tax invoice by the seller's VAT status. A WHOLESALE (trade) sale is always a full
+ * tax invoice — the buyer block (legal name, address, VAT number) is on the sale — titled "Tax Invoice" when the
+ * seller is a VAT vendor (SARS: only vendors issue tax invoices; a non-vendor franchisee's till issues an "Invoice").
+ */
+export function invoiceTitle(s: Pick<InvoiceData, "kind" | "channel" | "store">) {
   if (s.kind === "REFUND") return s.store.company.vatNumber ? "Credit Note" : "Refund";
   return s.store.company.vatNumber ? "Tax Invoice" : "Invoice";
 }
+
+/** Where a sale's invoice goes by default: a trade sale to the account's billing address, a consumer sale to the member. */
+export const invoiceRecipient = (s: Pick<InvoiceData, "channel" | "customer" | "tradeAccount">) => (s.channel === "WHOLESALE" ? s.tradeAccount?.email : s.customer?.email) ?? null;
 
 type Allocation = { batchId?: string | null };
 
@@ -56,8 +66,20 @@ export async function saleBatchCodes(lines: { id: string; allocations: unknown }
 export async function emailSaleInvoice(saleId: string, to?: string) {
   const s = await invoiceData(saleId);
   if (!s) return;
-  const email = to ?? s.customer?.email;
+  const email = to ?? invoiceRecipient(s);
   if (!email) return;
+  if (s.channel === "WHOLESALE") {
+    // Trade: the full tax invoice (or credit note) with the buyer block, lines ex VAT, the order and when it's due.
+    const [batchCodes, order, entry] = await Promise.all([
+      saleBatchCodes(s.lines),
+      db.tradeOrder.findUnique({ where: { saleId: s.id }, select: { number: true, reference: true, handlingCents: true, deliveryCents: true } }),
+      db.tradeLedgerEntry.findFirst({ where: { saleId: s.id, kind: "INVOICE" }, select: { dueAt: true } }),
+    ]);
+    const r = tradeInvoiceEmail(s, { url: invoiceUrl(s.id), batchCodes, orderNumber: order?.number, orderRef: order?.reference, dueAt: entry?.dueAt, handlingCents: order?.handlingCents, deliveryCents: order?.deliveryCents });
+    await sendEmail({ ...r, to: email });
+    await db.sale.update({ where: { id: s.id }, data: { invoiceEmail: email, invoiceSentAt: new Date() } });
+    return;
+  }
   const [batchCodes, order] = await Promise.all([saleBatchCodes(s.lines), s.orderId ? db.order.findUnique({ where: { id: s.orderId }, select: { code: true } }) : null]);
   const r = saleInvoiceEmail(s, { url: invoiceUrl(s.id), batchCodes, orderCode: order?.code });
   await sendEmail({ ...r, to: email, customerId: s.customerId });

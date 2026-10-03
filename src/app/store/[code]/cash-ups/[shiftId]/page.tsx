@@ -18,7 +18,7 @@ import { BackLink } from "@/components/store/ui";
 
 export const metadata = { title: "Cash-up" };
 const PAGE_SIZE = 25;
-const METHOD: Record<string, string> = { CARD: "Card (tap)", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account" };
+const METHOD: Record<string, string> = { CARD: "Card (tap)", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account (invoiced)" };
 
 export default async function ShiftPage({ params, searchParams }: { params: Promise<{ code: string; shiftId: string }>; searchParams: Promise<{ page?: string }> }) {
   const [{ code, shiftId }, sp] = await Promise.all([params, searchParams]);
@@ -47,6 +47,11 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
   const variance = shift.countedCashCents != null ? shift.countedCashCents - expected : null;
   const saleTotal = totals.find((t) => t.kind === "SALE");
   const refundTotal = totals.find((t) => t.kind === "REFUND");
+  // Trade sales on account are invoiced to a business account on HQ's ledger: not in the drawer, not a card settlement.
+  // They sit outside the tender reconciliation.
+  const money = tenders.filter((t) => t.method !== "ACCOUNT");
+  const onAccount = tenders.find((t) => t.method === "ACCOUNT");
+  const moneyTotal = money.reduce((a, t) => a + (t._sum.amountCents ?? 0), 0);
   const path = `/store/${store.code}/cash-ups/${shift.id}`;
 
   return (
@@ -82,14 +87,20 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
 
       <div className="mt-6 space-y-6">
         <Card>
-          <CardHeader title="Takings by tender" description="Sales and refunds in this shift, incl. VAT" />
+          <CardHeader title="Takings by tender" description="Money taken in this shift, incl. VAT — sales less refunds" />
           <CardBody className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2">
-              {tenders.length ? <Donut layout="row" data={tenders.map((t) => ({ label: METHOD[t.method] ?? t.method, value: Math.max(0, t._sum.amountCents ?? 0) }))} centerLabel={zar(saleTotal?._sum.totalCents ?? 0)} /> : <p className="text-sm text-ink-500">No takings yet.</p>}
+              {money.length ? <Donut layout="row" data={money.map((t) => ({ label: METHOD[t.method] ?? t.method, value: Math.max(0, t._sum.amountCents ?? 0) }))} centerLabel={zar(moneyTotal)} /> : <p className="text-sm text-ink-500">No takings yet.</p>}
             </div>
             <div className="space-y-1 text-sm md:border-l md:border-ink-100 md:pl-6">
               <div className="flex justify-between"><span className="text-ink-500">Sales</span><span className="tnum">{saleTotal?._count ?? 0} · {zar(saleTotal?._sum.totalCents ?? 0)}</span></div>
               <div className="flex justify-between"><span className="text-ink-500">Refunds</span><span className="tnum">{refundTotal?._count ?? 0} · {zar(refundTotal?._sum.totalCents ?? 0)}</span></div>
+              {onAccount && (
+                <>
+                  <div className="flex justify-between border-t border-ink-100 pt-1"><span className="text-ink-500">On account (invoiced)</span><span className="tnum">{onAccount._count} · {zar(onAccount._sum.amountCents ?? 0)}</span></div>
+                  <p className="text-xs text-ink-500">Trade sales invoiced to a business account on HQ&apos;s ledger — not in the drawer and not a card settlement.</p>
+                </>
+              )}
               {shift.notes && <p className="mt-3 rounded-xl bg-ink-50 p-3 text-sm text-ink-700">“{shift.notes}”</p>}
             </div>
           </CardBody>

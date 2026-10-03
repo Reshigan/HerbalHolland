@@ -153,7 +153,7 @@ export const vat: ReportDef = {
     const refund = v.payable < 0;
     const rows: Row[] = [
       { line: "Output tax", _style: "section" },
-      { line: "Standard-rated sales (in store and online)", field: "1 · 4", amount: v.salesInclCents, vat: v.output },
+      { line: "Standard-rated sales (in store, online and trade)", field: "1 · 4", amount: v.salesInclCents, vat: v.output },
       { line: "Input tax", _style: "section" },
       { line: "Stock purchases (HQ and network tax invoices)", field: "15", amount: purchases, vat: v.stockInput },
       { line: "Operating expenses with VAT", field: "15", amount: vatableExpenses, vat: v.expenseInput },
@@ -433,14 +433,14 @@ export const statements: ReportDef = {
     const rows: Row[] = list.map((st) => {
       const i = st.input;
       return {
-        store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents, fees: st.royalty + st.levy + st.ecom,
+        store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents, trade: i.tradeSalesExVatCents ?? 0, fees: st.royalty + st.levy + st.ecom,
         online: i.onlineCollectedCents, redeemed: i.pointsRedeemedCents, netSold: i.networkSoldCents,
         royalty: st.royalty, levy: st.levy, ecom: st.ecom, feesVat: st.feesVat, issued: i.pointsIssuedCents, savings: savedBy.get(st.store.id) ?? 0, wholesale: i.wholesaleCents, netBought: i.networkBoughtCents,
         credits: st.credits, debits: st.debits, net: st.net, position: st.net >= 0 ? "HQ pays store" : "Store pays HQ",
         _href: `/store/${st.store.code}/statement?month=${month}`,
       };
     });
-    const t = sumRows(rows, ["sales", "fees", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
+    const t = sumRows(rows, ["sales", "trade", "fees", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
     const due = rows.filter((r) => (r.net as number) < 0).reduce((s, r) => s - (r.net as number), 0);
     const pay = rows.filter((r) => (r.net as number) >= 0).reduce((s, r) => s + (r.net as number), 0);
     const current = month === dayKey(ctx.now).slice(0, 7);
@@ -452,12 +452,13 @@ export const statements: ReportDef = {
         { key: "position", label: "Settlement", format: "badge", tones: { "HQ pays store": "green", "Store pays HQ": "amber" } },
         { key: "net", label: "Net", format: "zar" },
         { key: "sales", label: "Net sales ex VAT", format: "zar" },
+        { key: "trade", label: "Trade sales ex VAT", format: "zar", csvOnly: true },
         { key: "fees", label: "Fees ex VAT", format: "zar" },
         { key: "royalty", label: "Royalty", format: "zar", csvOnly: true },
         { key: "levy", label: "Marketing levy", format: "zar", csvOnly: true },
         { key: "ecom", label: "E-com commission", format: "zar", csvOnly: true },
         { key: "feesVat", label: "VAT on fees", format: "zar" },
-        { key: "online", label: "Online collected", format: "zar", csvOnly: true },
+        { key: "online", label: "Collected by HQ", format: "zar", csvOnly: true },
         { key: "redeemed", label: "Points redeemed", format: "zar", csvOnly: true },
         { key: "issued", label: "Points issued", format: "zar" },
         { key: "savings", label: "Rewards savings (memo)", format: "zar" },
@@ -478,7 +479,7 @@ export const statements: ReportDef = {
       ],
       emptyTitle: "No statements",
       empty: "No trading stores in this selection.",
-      note: `${current ? "This month is still open — figures will change until month end. " : ""}Credits: online sales collected by HQ, points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
+      note: `${current ? "This month is still open — figures will change until month end. " : ""}Credits: money collected by HQ (online sales, gift vouchers and trade sales on account or collected at the store), points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Royalty and levy run on all net sales, trade included; the e-commerce commission on online sales only. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
     };
   },
 };

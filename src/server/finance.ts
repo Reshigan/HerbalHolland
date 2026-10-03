@@ -9,9 +9,18 @@ import { receivedValue } from "./stock-orders";
 
 const SUMS = {
   sales: true, refunds: true, units: true, grossCents: true, vatCents: true, costCents: true, discountCents: true, memberSavingsCents: true, offerCents: true,
-  cardCents: true, cashCents: true, payshapCents: true, eftCents: true, loyaltyCents: true, onlineCents: true,
+  cardCents: true, cashCents: true, payshapCents: true, eftCents: true, loyaltyCents: true, onlineCents: true, accountCents: true,
   members: true, pointsIssued: true,
 } as const;
+
+/** The sales channels, in the order every breakdown shows them. */
+export const CHANNELS = [
+  { channel: "POS", label: "In store" },
+  { channel: "ONLINE", label: "Online" },
+  { channel: "WHOLESALE", label: "Trade" },
+] as const;
+export type ChannelKey = (typeof CHANNELS)[number]["channel"];
+export const CHANNEL_LABEL: Record<ChannelKey, string> = Object.fromEntries(CHANNELS.map((c) => [c.channel, c.label])) as Record<ChannelKey, string>;
 
 export type Totals = { -readonly [K in keyof typeof SUMS]: number };
 const zero = (): Totals => Object.fromEntries(Object.keys(SUMS).map((k) => [k, 0])) as Totals;
@@ -32,6 +41,13 @@ export function derived(t: Totals) {
     atvCents: transactions ? Math.round(t.grossCents / transactions) : 0,
     upt: transactions ? t.units / transactions : 0,
     memberRate: transactions ? t.members / transactions : 0,
+    // Money at the time of sale: card, cash, PayShap, EFT, and what HQ collected (online, gift vouchers, trade collect
+    // orders). Points redeemed are reimbursed on the statement and sales on account (`accountCents`) are invoiced on
+    // HQ's trade ledger — neither is money when the sale is rung up.
+    moneyCents: t.grossCents - t.accountCents - t.loyaltyCents,
+    // Collected by HQ on the store's behalf and credited on the franchise statement: online and voucher payments, plus
+    // trade sales on account (the trade ledger is HQ's and HQ carries the credit risk).
+    hqCollectedCents: t.onlineCents + t.accountCents,
   };
 }
 export type Summary = ReturnType<typeof derived>;
@@ -58,13 +74,15 @@ export async function salesByDay(storeIds: string[], r: DateRange) {
   return out;
 }
 
+/** Every channel, in order, zero-filled: in store, online and trade. */
 export async function salesByChannel(storeIds: string[], r: DateRange) {
   const rows = await db.dailyStoreStat.groupBy({
     by: ["channel"],
     where: { storeId: { in: storeIds }, date: { gte: r.fromDate, lte: r.toDate } },
     _sum: SUMS,
   });
-  return rows.map((x) => ({ channel: x.channel, ...derived(fill(x._sum)) }));
+  const by = new Map(rows.map((x) => [x.channel as ChannelKey, derived(fill(x._sum))]));
+  return CHANNELS.map((c) => ({ channel: c.channel, label: c.label, ...(by.get(c.channel) ?? derived(zero())) }));
 }
 
 export async function salesByStore(storeIds: string[], r: DateRange) {
@@ -156,19 +174,24 @@ export function monthRange(month: string) {
 export async function franchiseStatement(storeId: string, month: string) {
   const r = monthRange(month);
   const store = await db.store.findUniqueOrThrow({ where: { id: storeId } });
-  const [all, online, orders] = await Promise.all([
+  const [all, online, trade, orders] = await Promise.all([
     salesSummary([storeId], r),
     salesSummary([storeId], r, "ONLINE"),
+    salesSummary([storeId], r, "WHOLESALE"),
     db.stockOrder.findMany({
       where: { status: "RECEIVED", receivedAt: { gte: r.start, lt: r.end }, OR: [{ buyerId: storeId }, { sellerId: storeId }] },
       include: { lines: true },
     }),
   ]);
   const sum = (f: (o: (typeof orders)[number]) => boolean) => orders.filter(f).reduce((a, o) => a + receivedValue(o), 0);
+  // Royalty and levy run on net sales of every channel, trade included; the e-commerce commission on online sales only.
+  // HQ collected the online, voucher and trade-collect payments, and carries trade sales on account on its own ledger:
+  // all of it is credited back to the store here.
   const input = {
     netSalesExVatCents: all.netCents,
     onlineSalesExVatCents: online.netCents,
-    onlineCollectedCents: all.onlineCents,
+    tradeSalesExVatCents: trade.netCents,
+    onlineCollectedCents: all.hqCollectedCents,
     pointsIssuedCents: all.pointsIssued * POINT_VALUE_CENTS,
     pointsRedeemedCents: all.loyaltyCents,
     offersFundedCents: all.offerCents,

@@ -8,7 +8,7 @@ export { hashSecret, verifySecret, sha256, newToken } from "./crypto";
 import { sha256, newToken } from "./crypto";
 
 // ── Cookies & sessions ───────────────────────────────────────────────────────
-export const COOKIE = { staff: "hh_staff", pos: "hh_pos", device: "hh_device", customer: "hh_customer" } as const;
+export const COOKIE = { staff: "hh_staff", pos: "hh_pos", device: "hh_device", customer: "hh_customer", trade: "hh_trade" } as const;
 
 const cookieOpts = (maxAgeSec: number) => ({
   httpOnly: true,
@@ -20,7 +20,7 @@ const cookieOpts = (maxAgeSec: number) => ({
 
 export async function startSession(
   name: keyof typeof COOKIE,
-  who: { userId?: string; customerId?: string; storeId?: string; deviceId?: string },
+  who: { userId?: string; customerId?: string; storeId?: string; deviceId?: string; tradeBuyerId?: string },
   hours: number,
 ) {
   const token = newToken();
@@ -98,6 +98,25 @@ export const getCustomer = cache(async () => {
   if (!s?.customerId) return null;
   return db.customer.findUnique({ where: { id: s.customerId } });
 });
+
+// ── Trade buyers (the trade portal, cookie hh_trade) ────────────────────────
+export const TRADE_SESSION_HOURS = 12;
+
+/**
+ * The buyer a trade session token belongs to, with their account — null when the session is missing or expired, the
+ * buyer was removed, or the account is closed. Every trade page and action starts here; mutations re-check the
+ * account's status themselves (src/server/trade/*).
+ */
+export async function tradeBuyerForToken(token: string | null | undefined) {
+  if (!token) return null;
+  const s = await db.session.findUnique({ where: { id: sha256(token) }, select: { tradeBuyerId: true, expiresAt: true } });
+  if (!s?.tradeBuyerId || s.expiresAt < new Date()) return null;
+  const buyer = await db.tradeBuyer.findUnique({ where: { id: s.tradeBuyerId }, include: { account: true } });
+  return buyer?.active && buyer.account.status !== "CLOSED" ? buyer : null;
+}
+export type TradeBuyerSession = NonNullable<Awaited<ReturnType<typeof tradeBuyerForToken>>>;
+
+export const getTradeBuyer = cache(async () => tradeBuyerForToken((await cookies()).get(COOKIE.trade)?.value));
 
 /** Where a staff member lands after signing in. */
 export async function homeFor(u: { role: Role; storeId: string | null; companyId: string | null }) {

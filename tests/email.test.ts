@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { campaignEmail, emailLayout, LEGAL_MARK, legalLine, netPositionLabel, orderEmail, saleInvoiceEmail, statementEmail, stockOrderInvoiceEmail, zReportEmail, type Rendered } from "@/server/email-templates";
-import { courierOrder, order, refund, sale, statement, statementCompany, stockOrder, stockOrderValueIncl, TRICKY, zReport } from "./fixtures/emails";
+import { courierOrder, order, refund, sale, statement, statementCompany, stockOrder, stockOrderValueIncl, tradeSale, TRICKY, zReport } from "./fixtures/emails";
 
 const GMAIL_CLIP = 102 * 1024;
 const url = (p: string) => `https://herbalholland.co.za${p}`;
@@ -22,6 +22,8 @@ const rendered: { name: string; r: Rendered; link: string | null; marketing?: bo
   { name: "order collected", r: orderEmail("collected", order), link: app("/club") },
   { name: "order cancelled (refunded)", r: orderEmail("cancelled", { ...courierOrder, refunded: true }), link: app("/shop") },
   { name: "order cancelled (unpaid)", r: orderEmail("cancelled", { ...order, paid: false }), link: app("/shop") },
+  { name: "trade tax invoice (on account)", r: saleInvoiceEmail(tradeSale, { url: url("/invoice/sale-3?t=ghi"), trade: { accountNumber: "TA-000123", dueAt: new Date("2026-10-12T00:00:00+02:00"), orderNumber: "TO-000321", reference: "PO-7781" } }), link: url("/invoice/sale-3?t=ghi") },
+  { name: "trade tax invoice (paid by EFT)", r: saleInvoiceEmail({ ...tradeSale, id: "sale-4", number: "DC-C-T00018", payments: [{ method: "EFT", amountCents: 800_400, reference: "HH-TO-000322" }] }, { url: url("/invoice/sale-4?t=jkl"), trade: { accountNumber: "TA-000123", fulfilment: "COLLECT" } }), link: url("/invoice/sale-4?t=jkl") },
   { name: "campaign", r: campaignEmail({ subject: "Windmill Days are back <3", body: "Hi Lindiwe,\n\nThe Windmill Tee & Co drop lands Friday.\n\n— Herbal Holland", unsubscribeUrl: url("/unsubscribe?c=1&ch=EMAIL&t=tok") }), link: url("/unsubscribe?c=1&ch=EMAIL&t=tok"), marketing: true },
 ];
 
@@ -70,6 +72,19 @@ describe("Email templates", () => {
     expect(cn.subject).toBe("Your Herbal Holland credit note PTA01-A00042-R01");
     expect(cn.html).toContain("Total credited");
     expect(cn.html).toContain("for PTA01-A00042");
+  });
+
+  it("trade tax invoice: ex-VAT lines, the buyer block, account terms, and never points", () => {
+    const { r } = rendered.find((x) => x.name === "trade tax invoice (on account)")!;
+    expect(r.subject).toBe("Herbal Holland tax invoice DC-C-T00017 — Hatfield Pharmacy & Co");
+    for (const s of ["Bill to", "Hatfield Pharmacy &amp; Co", "VAT no. 4550001234", "Trade account TA-000123", "24 × R290.00", "VAT R1,044.00", "Total excl. VAT", "R6,960.00", "VAT @ 15%", "Total incl. VAT", "R8,004.00", "On account, due 12 Oct 2026", "TO-000321", "PO-7781"])
+      expect(r.html, s).toContain(s);
+    for (const s of ["You saved", "You earned", "Rewards under Invoices", "Thanks"]) expect(r.html, s).not.toContain(s);
+    expect(r.text).toContain("Terms: On account, due 12 Oct 2026");
+    expect(r.text).toContain("Total excl. VAT: R6,960.00");
+    const eft = rendered.find((x) => x.name === "trade tax invoice (paid by EFT)")!.r;
+    expect(eft.html).toContain("Paid by EFT (ref HH-TO-000322) R8,004.00");
+    expect(eft.html).not.toContain("On account");
   });
 
   it("statement and Z-report keep the subjects other systems look for", () => {

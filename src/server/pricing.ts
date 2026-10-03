@@ -5,11 +5,13 @@ import { db } from "./db";
 import { getSettings } from "./settings";
 import { activeOffers, isOffer, offerPromo } from "./offers";
 import { applyPromotions, type PromoInput, type Suggestion } from "@/lib/promotions";
-import { resolvePrice, promoWindowOpen, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
+import { resolvePrice, promoWindowOpen, resolveTradePrice, tradeBreaks, listLive, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { vatOf } from "@/lib/money";
 import { addDays } from "@/lib/format";
-import type { Channel } from "@/generated/prisma/client";
-import { incentiveExcluded, type RegClass } from "@/lib/compliance";
+import type { Channel, Prisma } from "@/generated/prisma/client";
+import { incentiveExcluded, tradeAllowed, type RegClass } from "@/lib/compliance";
+import { vatHalfUp } from "@/lib/trade";
+import { availability, availKey } from "./inventory";
 
 export async function activePromotions(opts: { storeId?: string | null; channel: Channel; at?: Date }) {
   const at = opts.at ?? new Date();
@@ -72,15 +74,17 @@ export type QuoteLine = {
   regClass: RegClass;
   tobaccoRelated: boolean;
   grams: number | null;
+  caseQty: number; // units per case (trade orders are placed in multiples of it; 1 for everything else)
   qty: number;
   rrpCents: number;
   shelfCents: number;
-  unitPriceCents: number;
+  unitPriceCents: number; // VAT incl. — except on WHOLESALE quotes, where it is the ex-VAT trade price
   priceRule: string | null;
   priceValidUntil: Date | null; // end of the price list behind the unit price, when it has one (Offer.priceValidUntil)
-  grossCents: number;
-  discountCents: number;
-  totalCents: number;
+  grossCents: number; // VAT incl.
+  discountCents: number; // VAT incl.
+  totalCents: number; // VAT incl.
+  exCents: number; // the line ex VAT (totalCents − vatCents)
   vatCents: number;
   promoId?: string;
   noEarn: boolean; // excluded from incentives incl. points earn
@@ -88,15 +92,48 @@ export type QuoteLine = {
   offerCents: number; // My Deals discount on this line (HQ-funded)
 };
 
-export async function quote(opts: {
+export type Quote = {
+  lines: QuoteLine[];
+  subtotalCents: number; // VAT incl., before discounts
+  discountCents: number; // VAT incl.
+  totalCents: number; // VAT incl. (= subtotal − discount)
+  vatCents: number;
+  vatRegistered: boolean;
+  memberSavingsCents: number;
+  joinSavingsCents: number;
+  offerIds: string[];
+  pointsMultiplier: number;
+  applied: { id: string; name: string; discountCents: number }[];
+  suggestions: Suggestion[];
+  codeError?: string;
+  promotionId: string | null;
+  /** WHOLESALE only: the lines ex VAT after promotions (totalCents = exCents + vatCents). */
+  exCents?: number;
+  tradeAccountId?: string | null;
+};
+
+export type QuoteInput = {
   storeId?: string | null;
   channel: Channel;
   items: { variantId: string; qty: number; unitPriceCents?: number }[];
   code?: string | null;
   customerId?: string | null;
+  /** WHOLESALE: the trade account buying (its own TRADE price list comes first). */
+  tradeAccountId?: string | null;
   trustClientPrices?: boolean;
   at?: Date;
-}) {
+};
+
+/**
+ * Prices a basket for a channel. POS and ONLINE: the consumer engine (shelf prices, zone/channel/member lists, tiers,
+ * quantity breaks, markdowns, promotions, My Deals). WHOLESALE: the trade engine (tradeQuote) — same Quote shape, but
+ * each line's `unitPriceCents` is the ex-VAT trade price, `vatCents` is 15% of the line's ex-VAT total rounded half up
+ * per line (never backed out of an inclusive price) and `totalCents` = ex + VAT; the quote's `exCents` is the ex-VAT
+ * total of the lines and `totalCents` = exCents + vatCents. Tiers, member/zone/channel lists, markdowns, My Deals and
+ * shelf prices never touch a trade quote; promotions do only when their channels include WHOLESALE.
+ */
+export async function quote(opts: QuoteInput): Promise<Quote> {
+  if (opts.channel === "WHOLESALE") return tradeQuote(opts);
   const at = opts.at ?? new Date();
   const items = opts.items.filter((i) => i.qty > 0);
   const variantIds = items.map((i) => i.variantId);
@@ -160,6 +197,7 @@ export async function quote(opts: {
     regClass: v.product.regClass,
     tobaccoRelated: v.product.tobaccoRelated,
     grams: v.grams,
+    caseQty: v.caseQty,
     qty: i.qty,
     rrpCents: price.rrpCents,
     shelfCents: price.shelfCents,
@@ -169,6 +207,7 @@ export async function quote(opts: {
     grossCents: r.lines[idx].grossCents,
     discountCents: r.lines[idx].discountCents,
     totalCents: r.lines[idx].totalCents,
+    exCents: r.lines[idx].totalCents - (vatRegistered ? vatOf(r.lines[idx].totalCents) : 0),
     vatCents: vatRegistered ? vatOf(r.lines[idx].totalCents) : 0,
     promoId: r.lines[idx].promoId,
   }));
@@ -190,4 +229,180 @@ export async function quote(opts: {
     promotionId: (codePromo?.id ?? r.applied.at(0)?.id ?? null) as string | null,
   };
 }
-export type Quote = Awaited<ReturnType<typeof quote>>;
+
+// ── Trade (wholesale) ────────────────────────────────────────────────────────
+
+const TRADE_INCLUDE = { product: { select: { id: true, name: true, categoryId: true, regClass: true, tobaccoRelated: true, status: true } } } as const;
+
+/**
+ * The WHOLESALE quote (see `quote` for the shape). Unit prices come from `resolveTradePrice` (the account's TRADE list,
+ * the live TRADE lists by priority, else the wholesale price), ex VAT. A promotion's discount is rounded to a whole
+ * cent per unit, so an order line can carry the net unit price exactly (`unitPriceCents − discountCents/qty`); its
+ * `applied` figures are the rounded ones. Medicines (incentiveExcluded) and anything not tradeable get no promotion.
+ * Line and quote totals are VAT inclusive like every other quote; `exCents` carries the ex-VAT figures.
+ */
+async function tradeQuote(opts: QuoteInput): Promise<Quote> {
+  const at = opts.at ?? new Date();
+  const items = opts.items.filter((i) => i.qty > 0);
+  const variantIds = items.map((i) => i.variantId);
+  const [variants, store, account, lists, promos, settings] = await Promise.all([
+    db.variant.findMany({ where: { id: { in: variantIds } }, include: TRADE_INCLUDE }),
+    opts.storeId ? db.store.findUnique({ where: { id: opts.storeId }, select: { company: { select: { vatNumber: true } } } }) : null,
+    opts.tradeAccountId ? db.tradeAccount.findUnique({ where: { id: opts.tradeAccountId }, select: { priceListId: true } }) : null,
+    activePriceLists(at),
+    activePromotions({ storeId: opts.storeId, channel: "WHOLESALE", at }),
+    getSettings(),
+  ]);
+  const byId = new Map(variants.map((v) => [v.id, v]));
+  const vatRegistered = store ? !!store.company.vatNumber : true;
+  const excluded = incentiveExcluded(settings.compliance);
+  const ctx = { accountListId: account?.priceListId ?? null, at };
+
+  const base = items
+    .filter((i) => byId.has(i.variantId))
+    .map((i) => {
+      const v = byId.get(i.variantId)!;
+      // THC is never traded: no price at all (the trade basket rule names the line when someone tries).
+      const thc = v.product.regClass === "THC";
+      const price = thc ? { unitCents: 0, rule: "Not available to trade", validUntil: null } : resolveTradePrice({ variantId: v.id, wholesaleCents: v.wholesaleCents, qty: i.qty }, lists, ctx);
+      const noPromo = thc || excluded.includes(v.product.regClass);
+      return { i, v, price, unit: Math.max(0, price.unitCents), noPromo };
+    });
+  const r = applyPromotions(
+    base.map(({ i, v, unit, noPromo }) => ({ key: i.variantId, productId: v.productId, categoryId: v.product.categoryId, qty: i.qty, unitPriceCents: unit, noPromo })),
+    promos as PromoInput[],
+    opts.code,
+  );
+  const lines: QuoteLine[] = base.map(({ i, v, price, unit }, idx) => {
+    const pl = r.lines[idx];
+    const netUnit = Math.min(unit, Math.round(pl.totalCents / i.qty)); // the promotion, to the cent per unit
+    const grossEx = unit * i.qty;
+    const netEx = netUnit * i.qty;
+    const vat = vatRegistered ? vatHalfUp(netEx) : 0;
+    const grossIncl = grossEx + (vatRegistered ? vatHalfUp(grossEx) : 0);
+    const totalCents = netEx + vat;
+    return {
+      noEarn: true,
+      memberSavingsCents: 0,
+      offerCents: 0,
+      variantId: v.id,
+      productId: v.productId,
+      categoryId: v.product.categoryId,
+      name: `${v.product.name} · ${v.name}`,
+      productName: v.product.name,
+      variantName: v.name,
+      sku: v.sku,
+      regClass: v.product.regClass,
+      tobaccoRelated: v.product.tobaccoRelated,
+      grams: v.grams,
+      caseQty: v.caseQty,
+      qty: i.qty,
+      rrpCents: v.priceCents,
+      shelfCents: v.wholesaleCents,
+      unitPriceCents: unit,
+      priceRule: price.rule ?? "Trade price",
+      priceValidUntil: price.validUntil,
+      grossCents: grossIncl,
+      discountCents: grossIncl - totalCents,
+      totalCents,
+      exCents: netEx,
+      vatCents: vat,
+      promoId: netUnit < unit ? pl.promoId : undefined,
+    };
+  });
+  const codePromo = opts.code && !r.codeError ? promos.find((p) => p.code?.toUpperCase() === opts.code!.trim().toUpperCase()) : undefined;
+  // What each promotion took off, ex VAT, after the per-unit rounding.
+  const applied = r.applied
+    .map((a) => ({ ...a, discountCents: lines.filter((l) => l.promoId === a.id).reduce((s, l) => s + (l.unitPriceCents * l.qty - l.exCents), 0) }))
+    .filter((a) => a.discountCents > 0);
+  return {
+    lines,
+    subtotalCents: lines.reduce((s, l) => s + l.grossCents, 0),
+    discountCents: lines.reduce((s, l) => s + l.discountCents, 0),
+    totalCents: lines.reduce((s, l) => s + l.totalCents, 0),
+    exCents: lines.reduce((s, l) => s + l.exCents, 0),
+    vatCents: lines.reduce((s, l) => s + l.vatCents, 0),
+    vatRegistered,
+    memberSavingsCents: 0,
+    joinSavingsCents: 0,
+    offerIds: [],
+    pointsMultiplier: 1,
+    applied,
+    suggestions: r.suggestions as Suggestion[],
+    codeError: r.codeError,
+    promotionId: (codePromo?.id ?? applied.at(0)?.id ?? null) as string | null,
+    tradeAccountId: opts.tradeAccountId ?? null,
+  };
+}
+
+export type TradeRangeRow = {
+  variantId: string;
+  productId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  barcode: string | null;
+  categoryId: string;
+  regClass: RegClass;
+  caseQty: number;
+  rrpCents: number; // RRP, VAT incl. (what the buyer's own customers would pay)
+  unitCents: number; // trade price for one case's worth, ex VAT
+  priceRule: string | null;
+  breaks: { minQty: number; unitCents: number }[]; // ex VAT, lowest quantity first
+  onHand: number;
+  available: number; // at the store, after reservations
+};
+
+/**
+ * The trade range at a store for an account: live products in the account's classes (never THC, and only classes the
+ * store may sell), active variants that aren't made to order, with a trade price (a TRADE list or a wholesale price),
+ * their case packs, prices and current availability at that store. Searchable (q: name, SKU or barcode; category: slug
+ * or id) and paginated — never the whole catalogue in one go.
+ */
+export async function tradeRange(
+  storeId: string,
+  account: { priceListId?: string | null; classes: readonly string[] },
+  opts: { q?: string | null; category?: string | null; page?: number; pageSize?: number; at?: Date } = {},
+) {
+  const at = opts.at ?? new Date();
+  const page = Math.max(1, Math.floor(opts.page ?? 1));
+  const pageSize = Math.min(100, Math.max(1, Math.floor(opts.pageSize ?? 24)));
+  const [store, lists, settings] = await Promise.all([db.store.findUniqueOrThrow({ where: { id: storeId }, select: { licences: true } }), activePriceLists(at), getSettings()]);
+  const classes = account.classes.filter((c) => tradeAllowed({ accountClasses: account.classes, sellerLicences: store.licences, productClass: c as RegClass, productStatus: "ACTIVE", licensedOnly: settings.compliance.licensedOnly })) as RegClass[];
+  const empty = { rows: [] as TradeRangeRow[], total: 0, page, pageSize };
+  if (!classes.length) return empty;
+  const tradeLists = lists.filter((l) => l.kind === "TRADE" && listLive(l, at));
+  const priced = [...new Set(tradeLists.flatMap((l) => l.items.map((i) => i.variantId)))];
+  const q = opts.q?.trim().slice(0, 60);
+  const like = q ? { contains: q, mode: "insensitive" as const } : undefined;
+  const category = opts.category?.trim();
+  const where: Prisma.VariantWhereInput = {
+    active: true,
+    podSku: null,
+    OR: [{ wholesaleCents: { gt: 0 } }, ...(priced.length ? [{ id: { in: priced } }] : [])],
+    product: {
+      status: "ACTIVE",
+      regClass: { in: classes },
+      ...(category ? { category: { OR: [{ slug: category }, { id: category }] } } : {}),
+    },
+    ...(like ? { AND: [{ OR: [{ name: like }, { sku: like }, { barcode: like }, { product: { name: like } }] }] } : {}),
+  };
+  const [total, variants] = await Promise.all([
+    db.variant.count({ where }),
+    db.variant.findMany({ where, include: TRADE_INCLUDE, orderBy: [{ product: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }], skip: (page - 1) * pageSize, take: pageSize }),
+  ]);
+  const avail = await availability([storeId], variants.map((v) => v.id));
+  const ctx = { accountListId: account.priceListId ?? null, at };
+  const rows: TradeRangeRow[] = variants
+    .map((v) => {
+      const price = resolveTradePrice({ variantId: v.id, wholesaleCents: v.wholesaleCents, qty: v.caseQty }, tradeLists, ctx);
+      const a = avail.get(availKey(storeId, v.id));
+      return {
+        variantId: v.id, productId: v.productId, productName: v.product.name, variantName: v.name, sku: v.sku, barcode: v.barcode, categoryId: v.product.categoryId, regClass: v.product.regClass,
+        caseQty: v.caseQty, rrpCents: v.priceCents, unitCents: price.unitCents, priceRule: price.rule, breaks: tradeBreaks({ variantId: v.id, wholesaleCents: v.wholesaleCents }, tradeLists, ctx),
+        onHand: a?.onHand ?? 0, available: Math.max(0, a?.available ?? 0),
+      };
+    })
+    .filter((r) => r.unitCents > 0);
+  return { rows, total, page, pageSize };
+}

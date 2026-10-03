@@ -1,7 +1,10 @@
 // Hosted tax invoice (SARS): opened from the invoice email or Rewards, protected by a
 // signed token. Abridged tax invoice up to R5,000, full tax invoice above; non-VAT
-// vendors issue a plain invoice; refunds are credit notes. Prints on A4 (or saves as a
-// PDF) and on 80 mm receipt paper (print-bar.tsx switches the paper).
+// vendors issue a plain invoice; refunds are credit notes. A trade sale (WHOLESALE) is a
+// full tax invoice to the business account: lines ex VAT with VAT and incl. columns, the
+// buyer block, the trade order and reference, and the terms ("On account, due …" from the
+// trade ledger, or how it was paid) — never points or member savings. Prints on A4 (or
+// saves as a PDF) and on 80 mm receipt paper (print-bar.tsx switches the paper).
 import { timingSafeEqual } from "node:crypto";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -10,7 +13,7 @@ import { invoiceData, invoiceTitle, invoiceToken, invoiceUrl, saleBatchCodes } f
 import { FULL_TAX_INVOICE_OVER_CENTS } from "@/server/sales";
 import { Mark, Wordmark } from "@/components/brand/logo";
 import { QrCode } from "@/components/shop/qr";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
 import { displayPhone } from "@/lib/sa";
@@ -65,13 +68,18 @@ export default async function InvoicePage({ params, searchParams }: Props) {
   if (!valid(id, t)) notFound();
   const s = await invoiceData(id);
   if (!s) notFound();
-  const [order, batchCodes] = await Promise.all([
+  const trade = s.channel === "WHOLESALE";
+  const refund = s.kind === "REFUND";
+  const [order, batchCodes, account, ledger, tradeOrder] = await Promise.all([
     s.orderId ? db.order.findUnique({ where: { id: s.orderId }, select: { code: true, fulfilment: true } }) : null,
     saleBatchCodes(s.lines),
+    trade && s.tradeAccountId ? db.tradeAccount.findUnique({ where: { id: s.tradeAccountId }, select: { number: true, name: true, email: true, terms: true, paymentDays: true } }) : null,
+    // The ledger entry this document raised: an invoice on ACCOUNT terms carries the due date.
+    trade ? db.tradeLedgerEntry.findFirst({ where: { saleId: s.id, kind: refund ? "CREDIT_NOTE" : "INVOICE" }, select: { dueAt: true, reference: true } }) : null,
+    trade ? db.tradeOrder.findUnique({ where: { saleId: s.id }, select: { number: true, reference: true, fulfilment: true } }) : null,
   ]);
 
   const title = invoiceTitle(s);
-  const refund = s.kind === "REFUND";
   const vendor = !!s.store.company.vatNumber;
   const abs = (n: number) => Math.abs(n);
   const total = abs(s.totalCents);
@@ -80,8 +88,13 @@ export default async function InvoicePage({ params, searchParams }: Props) {
   const linesVat = s.lines.reduce((n, l) => n + abs(l.vatCents), 0);
   const delivery = !refund ? Math.max(0, total - linesTotal) : 0;
   const deliveryVat = delivery > 0 ? Math.max(0, vat - linesVat) : 0;
+  // A trade order's extra charge is the courier fee, or the store's handling fee on a collected order.
+  const extraLabel = trade && tradeOrder?.fulfilment === "COLLECT" ? "Collection handling fee" : "Delivery";
   const full = vendor && (total > FULL_TAX_INVOICE_OVER_CENTS || !!s.buyer);
   const buyer = (s.buyer ?? null) as { name?: string; address?: string; vatNumber?: string } | null;
+  const onAccount = s.payments.some((p) => p.method === "ACCOUNT");
+  const terms = trade && !refund && onAccount ? (ledger?.dueAt ? `On account · due ${fmtDate(ledger.dueAt)}` : `On account · due ${account?.paymentDays ?? 30} days from invoice`) : null;
+  const lineEx = (l: { totalCents: number; vatCents: number }) => abs(l.totalCents) - abs(l.vatCents);
   const c = s.store.company;
   const st = s.store;
   const url = invoiceUrl(s.id);
@@ -118,8 +131,8 @@ export default async function InvoicePage({ params, searchParams }: Props) {
           </div>
           <div className="ml-auto text-right">
             <h1 className="inv-title font-display text-3xl font-semibold tracking-tight text-ink-950">{title}</h1>
-            {vendor && !refund && <p className="eyebrow text-brand-700">{full ? "Full tax invoice" : "Abridged tax invoice"}</p>}
-            {refund && <p className="eyebrow text-brand-700">{vendor ? "Credit note" : "Refund"} · money returned</p>}
+            {vendor && !refund && <p className="eyebrow text-brand-700">{full ? "Full tax invoice" : "Abridged tax invoice"}{trade ? " · trade" : ""}</p>}
+            {refund && <p className="eyebrow text-brand-700">{vendor ? "Credit note" : "Refund"} · {trade && onAccount ? "credited to the account" : "money returned"}</p>}
             <dl className="mt-3 space-y-0.5 text-sm">
               <div>
                 <dt className="inline text-ink-500">No. </dt>
@@ -139,6 +152,30 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                 <div>
                   <dt className="inline text-ink-500">Online order </dt>
                   <dd className="tnum inline font-semibold">{order.code}</dd>
+                </div>
+              )}
+              {account && (
+                <div>
+                  <dt className="inline text-ink-500">Trade account </dt>
+                  <dd className="tnum inline font-semibold">{account.number}</dd>
+                </div>
+              )}
+              {tradeOrder && (
+                <div>
+                  <dt className="inline text-ink-500">Trade order </dt>
+                  <dd className="tnum inline font-semibold">{tradeOrder.number}</dd>
+                </div>
+              )}
+              {tradeOrder?.reference && (
+                <div>
+                  <dt className="inline text-ink-500">Your reference </dt>
+                  <dd className="tnum inline">{tradeOrder.reference}</dd>
+                </div>
+              )}
+              {terms && (
+                <div>
+                  <dt className="inline text-ink-500">Terms </dt>
+                  <dd className="inline font-semibold">{terms}</dd>
                 </div>
               )}
               {s.staff?.name && (
@@ -185,8 +222,24 @@ export default async function InvoicePage({ params, searchParams }: Props) {
             </dl>
           </div>
           <div>
-            <h2 className="eyebrow text-ink-500">{refund ? "Credited to" : "Customer"}</h2>
-            {buyer?.name ? (
+            <h2 className="eyebrow text-ink-500">{trade ? "Bill to" : refund ? "Credited to" : "Customer"}</h2>
+            {trade ? (
+              <>
+                <p className="mt-2 font-semibold text-ink-950">{buyer?.name ?? account?.name ?? "Trade account"}</p>
+                {buyer?.address && <p className="whitespace-pre-line text-sm leading-relaxed text-ink-700">{buyer.address}</p>}
+                {buyer?.vatNumber && (
+                  <p className="text-sm text-ink-700">
+                    VAT no. <span className="tnum">{buyer.vatNumber}</span>
+                  </p>
+                )}
+                {account && (
+                  <p className="mt-1 text-sm text-ink-500">
+                    Trade account <span className="tnum">{account.number}</span>
+                    {account.email ? ` · ${account.email}` : ""}
+                  </p>
+                )}
+              </>
+            ) : buyer?.name ? (
               <>
                 <p className="mt-2 font-semibold text-ink-950">{buyer.name}</p>
                 {buyer.address && <p className="whitespace-pre-line text-sm leading-relaxed text-ink-700">{buyer.address}</p>}
@@ -222,10 +275,21 @@ export default async function InvoicePage({ params, searchParams }: Props) {
             <tr className="border-y border-ink-200 text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-500">
               <th className="py-2.5 pr-3 font-semibold">Description</th>
               <th className="py-2.5 px-3 text-right font-semibold">Qty</th>
-              <th className="opt py-2.5 px-3 text-right font-semibold">Unit price</th>
-              <th className="opt py-2.5 px-3 text-right font-semibold">Discount</th>
-              {vendor && <th className="opt py-2.5 px-3 text-right font-semibold">VAT</th>}
-              <th className="py-2.5 pl-3 text-right font-semibold">Amount</th>
+              {trade ? (
+                <>
+                  <th className="opt py-2.5 px-3 text-right font-semibold">Unit ex VAT</th>
+                  <th className="opt py-2.5 px-3 text-right font-semibold">Excl. VAT</th>
+                  <th className="py-2.5 px-3 text-right font-semibold">VAT</th>
+                  <th className="py-2.5 pl-3 text-right font-semibold">Incl. VAT</th>
+                </>
+              ) : (
+                <>
+                  <th className="opt py-2.5 px-3 text-right font-semibold">Unit price</th>
+                  <th className="opt py-2.5 px-3 text-right font-semibold">Discount</th>
+                  {vendor && <th className="opt py-2.5 px-3 text-right font-semibold">VAT</th>}
+                  <th className="py-2.5 pl-3 text-right font-semibold">Amount</th>
+                </>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -235,6 +299,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                   <div className="font-medium text-ink-900">{l.variant.product.name}</div>
                   <div className="text-xs text-ink-500">
                     {l.variant.name}
+                    {trade && l.discountCents ? ` · less ${zar(abs(l.discountCents))}` : ""}
                     {batchCodes[l.id]?.length ? (
                       <>
                         {" · "}
@@ -248,20 +313,42 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                   </div>
                 </td>
                 <td className="tnum py-2.5 px-3 text-right">{abs(l.qty)}</td>
-                <td className="opt tnum py-2.5 px-3 text-right">{zar(l.unitPriceCents)}</td>
-                <td className="opt tnum py-2.5 px-3 text-right text-ink-500">{l.discountCents ? `−${zar(abs(l.discountCents))}` : "—"}</td>
-                {vendor && <td className="opt tnum py-2.5 px-3 text-right text-ink-500">{rate(l)}%</td>}
-                <td className="tnum py-2.5 pl-3 text-right font-medium">{zar(abs(l.totalCents))}</td>
+                {trade ? (
+                  <>
+                    <td className="opt tnum py-2.5 px-3 text-right">{zar(abs(l.qty) ? Math.round(lineEx(l) / abs(l.qty)) : lineEx(l))}</td>
+                    <td className="opt tnum py-2.5 px-3 text-right">{zar(lineEx(l))}</td>
+                    <td className="tnum py-2.5 px-3 text-right text-ink-500">{zar(abs(l.vatCents))}</td>
+                    <td className="tnum py-2.5 pl-3 text-right font-medium">{zar(abs(l.totalCents))}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="opt tnum py-2.5 px-3 text-right">{zar(l.unitPriceCents)}</td>
+                    <td className="opt tnum py-2.5 px-3 text-right text-ink-500">{l.discountCents ? `−${zar(abs(l.discountCents))}` : "—"}</td>
+                    {vendor && <td className="opt tnum py-2.5 px-3 text-right text-ink-500">{rate(l)}%</td>}
+                    <td className="tnum py-2.5 pl-3 text-right font-medium">{zar(abs(l.totalCents))}</td>
+                  </>
+                )}
               </tr>
             ))}
             {delivery > 0 && (
               <tr className="border-b border-ink-100">
-                <td className="py-2.5 pr-3 font-medium text-ink-900">Delivery</td>
+                <td className="py-2.5 pr-3 font-medium text-ink-900">{extraLabel}</td>
                 <td className="tnum py-2.5 px-3 text-right">1</td>
-                <td className="opt tnum py-2.5 px-3 text-right">{zar(delivery)}</td>
-                <td className="opt py-2.5 px-3 text-right text-ink-500">—</td>
-                {vendor && <td className="opt tnum py-2.5 px-3 text-right text-ink-500">{deliveryVat > 0 ? 15 : 0}%</td>}
-                <td className="tnum py-2.5 pl-3 text-right font-medium">{zar(delivery)}</td>
+                {trade ? (
+                  <>
+                    <td className="opt tnum py-2.5 px-3 text-right">{zar(delivery - deliveryVat)}</td>
+                    <td className="opt tnum py-2.5 px-3 text-right">{zar(delivery - deliveryVat)}</td>
+                    <td className="tnum py-2.5 px-3 text-right text-ink-500">{zar(deliveryVat)}</td>
+                    <td className="tnum py-2.5 pl-3 text-right font-medium">{zar(delivery)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td className="opt tnum py-2.5 px-3 text-right">{zar(delivery)}</td>
+                    <td className="opt py-2.5 px-3 text-right text-ink-500">—</td>
+                    {vendor && <td className="opt tnum py-2.5 px-3 text-right text-ink-500">{deliveryVat > 0 ? 15 : 0}%</td>}
+                    <td className="tnum py-2.5 pl-3 text-right font-medium">{zar(delivery)}</td>
+                  </>
+                )}
               </tr>
             )}
           </tbody>
@@ -294,9 +381,18 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                 </table>
               </div>
             )}
-            {s.payments.length > 0 && (
+            {terms && (
               <div>
-                <h2 className="eyebrow text-ink-500">{refund ? "Refunded to" : "Payment"}</h2>
+                <h2 className="eyebrow text-ink-500">Terms</h2>
+                <p className="mt-2 font-semibold text-ink-900">{terms}</p>
+                <p className="text-xs text-ink-500">
+                  Invoiced to trade account {account?.number ?? ""} on Herbal Holland&apos;s trade ledger{ledger?.reference ? ` · ${ledger.reference}` : ""}. Please quote the invoice number with your EFT.
+                </p>
+              </div>
+            )}
+            {s.payments.length > 0 && !terms && (
+              <div>
+                <h2 className="eyebrow text-ink-500">{refund ? (trade && onAccount ? "Credited to" : "Refunded to") : "Payment"}</h2>
                 <ul className="mt-2 space-y-1">
                   {s.payments.map((p) => (
                     <li key={p.id} className="flex justify-between gap-4 text-ink-700">
@@ -326,7 +422,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                 </ul>
               </div>
             )}
-            {!refund && (s.pointsEarned > 0 || s.memberSavingsCents > 0) && (
+            {!refund && !trade && (s.pointsEarned > 0 || s.memberSavingsCents > 0) && (
               <div className="rounded-xl bg-brand-50 px-4 py-3 text-brand-900 ring-1 ring-brand-200 print:ring-ink-200">
                 {s.memberSavingsCents > 0 && <p className="font-semibold">You saved {zar(s.memberSavingsCents)} with Herbal Holland Rewards</p>}
                 {s.pointsEarned > 0 && <p>You earned {fmtPoints(s.pointsEarned)} on this purchase.</p>}
@@ -335,7 +431,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
             {refund && s.note && <p className="text-ink-600">Reason: {s.note}</p>}
           </div>
           <dl className="space-y-1.5 text-sm">
-            {s.discountCents > 0 && (
+            {s.discountCents > 0 && !trade && (
               <div className="flex justify-between text-ink-600">
                 <dt>Discounts included</dt>
                 <dd className="tnum">−{zar(abs(s.discountCents))}</dd>
@@ -368,6 +464,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
               Issued by {c.legalName}
               {c.regNumber ? ` (reg. no. ${c.regNumber})` : ""}. Herbal Holland stores are independently owned and operated by franchisees; the store named above is the supplier.
               {!vendor && " The supplier is not registered for VAT, so no VAT is charged."}
+              {trade && " Trade prices are ex VAT; VAT is shown per line and in the total."}
             </p>
             <p>Adults 18+ only · Keep out of reach of children · Lab-tested and batch-traceable: scan any pack for its certificate.</p>
           </div>
