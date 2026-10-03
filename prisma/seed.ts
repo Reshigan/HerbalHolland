@@ -1726,7 +1726,7 @@ async function main() {
   const launchAt = daysAgo(DAYS);
   await db.setting.create({ data: { key: "launch", value: { launchAt: launchAt.toISOString(), foundingCap: 10_000, foundingTier: "SPROUT", foundingMonths: 12, referralBoost: 250 } } });
   // Demo bank details so pro formas print in full; the real account goes in at HQ → Settings → Trade before go-live.
-  await db.setting.create({ data: { key: "trade", value: { bank: { bank: "Demo Bank", accountName: "Herbal Holland (Pty) Ltd — Trade", accountNumber: "000 000 0000", branchCode: "000000" } } } });
+  await db.setting.create({ data: { key: "trade", value: { bank: { bank: "Demo Bank", accountName: "Herbal Holland (Pty) Ltd — Trade", accountNumber: "0000000000", branchCode: "000000" } } } });
   const founding = await (await import("../src/server/launch")).assignFounding(NOW);
   const nextAt = (dow: number, hh: number) => {
     for (let i = 1; i <= 7; i++) {

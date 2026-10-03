@@ -42,7 +42,7 @@ export async function saveTradeSettings(_: ActionState, fd: FormData): Promise<A
     bank: {
       bank: text("bank", 80),
       accountName: text("bankAccountName", 120),
-      accountNumber: text("bankAccountNumber", 20, /^\d{6,20}$/, "6 to 20 digits").replace(/\s/g, ""),
+      accountNumber: text("bankAccountNumber", 26, /^(?=(?:\D*\d){6,20}\D*$)[\d ]+$/, "6 to 20 digits").replace(/\s/g, ""),
       branchCode: text("bankBranchCode", 10, /^\d{6}$/, "A six-digit branch code"),
     },
   };

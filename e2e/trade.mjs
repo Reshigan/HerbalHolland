@@ -69,23 +69,33 @@ try {
   const settingsRow = await one(`select value from "Setting" where key = 'trade'`);
   const T = { minOrderCents: 200_000, deliveryCents: 15_000, freeDeliveryOverCents: 500_000, collectHandlingCents: 7_500, eftHoldDays: 3, ...(settingsRow?.value ?? {}) };
   const dc = await one(`select id, code, name from "Store" where kind = 'WAREHOUSE' and status = 'ACTIVE' order by code limit 1`);
-  // A click & collect store holding at least 40 units of two trade-priced lines (no TRADE price lists in the seed,
-  // so the trade price is the wholesale price), each line worth enough that two cases clear the minimum order.
+  // A click & collect store holding at least 40 units of two trade-priced lines without quantity breaks (the seed's
+  // "Trade 2026" list prices most lines, some with breaks), each line worth enough that two cases clear the minimum order.
   const pick = await one(
     `with avail as (
        select sl."storeId", sl."variantId", sum(sl."onHand") q from "StockLevel" sl join "Batch" b on b.id = sl."batchId" and b.status = 'RELEASED' group by 1, 2),
      lines as (
        select a."storeId", v.id, v.sku, v.name vname, p.name pname, v."wholesaleCents", v."caseQty", p."regClass", a.q
-       from avail a join "Variant" v on v.id = a."variantId" and v.active and v."podSku" is null and v."wholesaleCents" between 9000 and 60000
+       from avail a join "Variant" v on v.id = a."variantId" and v.active and v."podSku" is null and v."wholesaleCents" between 6000 and 80000
        join "Product" p on p.id = v."productId" and p.status = 'ACTIVE' and p."regClass" <> 'THC'
        join "Store" s on s.id = a."storeId" and s.kind = 'RETAIL' and s.status = 'ACTIVE' and s."clickCollect"
-       where a.q >= 40 and not exists (select 1 from "PriceListItem" i join "PriceList" l on l.id = i."priceListId" and l.kind = 'TRADE' where i."variantId" = v.id))
+       where a.q >= 40 and not exists (select 1 from "PriceListItem" i join "PriceList" l on l.id = i."priceListId" and l.kind = 'TRADE' where i."variantId" = v.id and i."minQty" > 1))
      select s.id "storeId", s.code, s.name, s.suburb, s.city, s.province, s."addressLine",
             (select json_agg(x) from (select id, sku, vname, pname, "wholesaleCents", "caseQty", "regClass", q from lines l where l."storeId" = s.id order by random() limit 2) x) lines
      from "Store" s where (select count(*) from lines l where l."storeId" = s.id) >= 2 order by random() limit 1`,
   );
   if (!dc || !pick) fail("seed data: no DC, or no click & collect store with stock of two trade-priced lines");
   const [A, B] = pick.lines;
+  // The trade price each line shows: the live TRADE list's base price when there is one, else the wholesale price.
+  for (const L of [A, B]) {
+    const listed = await one(
+      `select i."priceCents" from "PriceListItem" i join "PriceList" l on l.id = i."priceListId"
+       where i."variantId" = $1 and l.kind = 'TRADE' and l.active and (l."startsAt" is null or l."startsAt" <= now()) and (l."endsAt" is null or l."endsAt" >= now()) and i."minQty" = 1
+       order by l.priority desc, l."createdAt" desc limit 1`,
+      [L.id],
+    );
+    if (listed) L.wholesaleCents = listed.priceCents;
+  }
   const store = pick;
   const dcQty = async (id) => (await one(`select coalesce(sum(sl."onHand"), 0)::int q from "StockLevel" sl join "Batch" b on b.id = sl."batchId" and b.status = 'RELEASED' where sl."storeId" = $1 and sl."variantId" = $2`, [dc.id, id])).q;
   if ((await dcQty(A.id)) < 40 || (await dcQty(B.id)) < 40) fail(`seed data: ${dc.name} holds too little of ${A.sku} / ${B.sku}`);

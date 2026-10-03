@@ -371,7 +371,17 @@ try {
       [taNo, `trade.e2e.${Date.now()}@example.com`],
     )
   )[0];
-  // The lines: the pouch (an accessory on this till) and a CBD supplement with one variant on the till, both at their wholesale price (no TRADE lists in the seed).
+  // The lines: the pouch (an accessory on this till) and a CBD supplement with one variant on the till, at their trade
+  // price: the live TRADE list that prices them (best break for the quantity), else the wholesale price — as resolveTradePrice does.
+  const tradeUnit = async (variantId, qty, fallback) =>
+    (
+      await one(
+        `select i."priceCents" from "PriceListItem" i join "PriceList" l on l.id = i."priceListId"
+         where i."variantId" = $1 and l.kind = 'TRADE' and l.active and (l."startsAt" is null or l."startsAt" <= now()) and (l."endsAt" is null or l."endsAt" >= now()) and i."minQty" <= $2
+         order by l.priority desc, l."createdAt" desc, i."minQty" desc limit 1`,
+        [variantId, qty],
+      )
+    )?.priceCents ?? fallback;
   const pouch = (await q(`select v.id, v."wholesaleCents" from "Variant" v join "Product" p on p.id = v."productId" where p.name = 'Smell-proof Pouch' and v.active limit 1`))[0];
   const cbd = (
     await q(
@@ -383,6 +393,8 @@ try {
       [store.id],
     )
   )[0];
+  if (pouch) pouch.wholesaleCents = await tradeUnit(pouch.id, 1, pouch.wholesaleCents);
+  if (cbd) cbd.wholesaleCents = await tradeUnit(cbd.id, 1, cbd.wholesaleCents);
   assert(pouch && cbd, `trade lines: Smell-proof Pouch (R${(pouch?.wholesaleCents / 100).toFixed(2)} ex VAT) and ${cbd?.name} (R${(cbd?.wholesaleCents / 100).toFixed(2)} ex VAT)`);
   await waitOnline();
   await page.getByRole("button", { name: "Sell" }).first().click();
