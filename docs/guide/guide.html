@@ -26,8 +26,8 @@
   <div class="adults"><span>18+</span> Adults only</div>
   <div class="eyebrow">Herbal Holland platform</div>
   <h1><span class="thin">The complete</span><br>system guide<br><span class="orange">for the whole team.</span></h1>
-  <div class="sub">Every surface and every function: the <b>online shop and Rewards app</b>, the <b>till</b>, the <b>store back office</b>, the <b>HQ console</b>, the menu boards and invoices, and <b>herbalholland.com</b> — for franchisees, store managers, HQ staff and dispensers.</div>
-  <div class="version"><b>Version 1.1</b> · 30 September 2026</div>
+  <div class="sub">Every surface and every function: the <b>online shop and Rewards app</b>, the <b>till</b>, the <b>store back office</b>, the <b>HQ console</b>, the <b>trade portal</b>, the menu boards and invoices, and <b>herbalholland.com</b> — for franchisees, store managers, HQ staff and dispensers.</div>
+  <div class="version"><b>Version 1.2</b> · 3 October 2026</div>
   <div class="brandline">Dutch heritage.<br><b>African soil.</b></div>
 </section>
 
@@ -45,7 +45,7 @@
     <div class="num">1</div>
     <div class="eyebrow">Chapter 1</div>
     <h1>About this guide, and who does what</h1>
-    <div class="lede">How to use this manual, the <b>seven surfaces</b> of the platform, and the <b>roles</b> — from a dispenser at the till to the HQ administrator — with what each can see and do.</div>
+    <div class="lede">How to use this manual, the <b>eight surfaces</b> of the platform, and the <b>roles</b> — from a dispenser at the till to the HQ administrator — with what each can see and do.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
   </div>
   <div class="body">
@@ -55,16 +55,16 @@
     <ul>
       <li><strong>Read chapter 2 first</strong> if you are new: it explains how everyone gets in, and how to install the three apps.</li>
       <li><strong>Members and patients</strong> live in chapter 3. Store teams should read it too — it is what your members see.</li>
-      <li><strong>Dispensers and cashiers</strong> need chapter 4 (the till) and the compliance rules in chapter 9.</li>
-      <li><strong>Store managers and franchisees</strong> need chapters 4, 5, 9 and 10.</li>
-      <li><strong>HQ staff and area managers</strong> need chapters 6 to 10.</li>
+      <li><strong>Dispensers and cashiers</strong> need chapter 4 (the till) and the compliance rules in chapter 10.</li>
+      <li><strong>Store managers and franchisees</strong> need chapters 4, 5, 10 and 11.</li>
+      <li><strong>HQ staff and area managers</strong> need chapters 6 to 11.</li>
       <li>The appendices hold the demo logins, the catalogue import columns, a glossary and the open decisions.</li>
     </ul>
     <p>Procedures are written as numbered steps in the second person ("Tap <strong>Charge</strong>"). Rules the software enforces are set out in orange callouts; things that can go wrong, in amber ones. Money is in rand; retail prices include VAT; wholesale prices and costs exclude it. Times are South African (SAST). We say <em>members</em>, never customers, and everything is for <strong>adults 18+</strong>.</p>
 
-    <div class="callout note"><div class="lab">A word on the demo</div><p>Screenshots come from the demo network (24 stores, about 18,000 members, 60 days of trading) with <code>DEMO_MODE=true</code>: names, numbers and prices are made up, payments are simulated, and one-click logins exist that a live system must never have. Chapter 10 says how production differs.</p></div>
+    <div class="callout note"><div class="lab">A word on the demo</div><p>Screenshots come from the demo network (24 stores, about 18,000 members, 60 days of trading) with <code>DEMO_MODE=true</code>: names, numbers and prices are made up, payments are simulated, and one-click logins exist that a live system must never have. Chapter 11 says how production differs.</p></div>
 
-    <h2>The seven surfaces</h2>
+    <h2>The eight surfaces</h2>
     <p>Everything shares one database and one set of rules, so a sale, a stock movement or a Rewards point means the same thing everywhere.</p>
     <table class="wide">
       <colgroup><col style="width:34mm"><col style="width:58mm"><col style="width:36mm"><col></colgroup>
@@ -74,9 +74,10 @@
         <tr><td class="k">The till (POS)</td><td class="route">/pos · /pos/pair · /pos/display</td><td>Cashiers ("budtenders"), dispensers, managers</td><td>Dark, touch-first, offline-first; installs full-screen on Android</td></tr>
         <tr><td class="k">Store back office</td><td class="route">/store/&lt;code&gt;/…</td><td>Store managers, franchise owners (area managers and HQ can open any store in their scope)</td><td>Light content, dark sidebar; installs as "HH Office"</td></tr>
         <tr><td class="k">HQ console</td><td class="route">/hq/…</td><td>HQ administrators, HQ team, area managers</td><td>Light content, dark sidebar</td></tr>
+        <tr><td class="k">Trade portal (Herbal Holland Trade)</td><td class="route">/trade · /trade/apply · /trade/login · /trade/range · /trade/cart · /trade/checkout · /trade/orders · /trade/statements · /trade/account · /trade/terms</td><td>Trade buyers: pharmacies, independent retailers, cafés, wellness practices, online shops (adults 18+)</td><td>Dark brand surfaces like the shop, with a "Trade" badge; a code by email, no passwords (chapter 7)</td></tr>
         <tr><td class="k">Menu board</td><td class="route">/menu/&lt;store-slug&gt;</td><td>A TV in each store</td><td>Dark, 16:9, rotates on its own</td></tr>
         <tr><td class="k">Public documents</td><td class="route">/invoice/&lt;id&gt;?t=… · /batch/&lt;code&gt; · /unsubscribe · /legal/…</td><td>Anyone with the link</td><td>Print-friendly tax invoices; lab certificates; opt-out; policies</td></tr>
-        <tr><td class="k">herbalholland.com</td><td class="route">herbalholland.com/… (about, stores, franchise, press, careers, contact, privacy, terms, paia)</td><td>The public, journalists, prospective franchisees</td><td>Its own static site on Cloudflare — not part of the application (chapter 7)</td></tr>
+        <tr><td class="k">herbalholland.com</td><td class="route">herbalholland.com/… (about, stores, franchise, press, careers, contact, privacy, terms, paia)</td><td>The public, journalists, prospective franchisees</td><td>Its own static site on Cloudflare — not part of the application (chapter 8)</td></tr>
       </tbody>
     </table>
     <p class="small">There is also a brand book at <span class="route">/brand</span> (logo, colour, type, shapes, art, voice, misuse and the merch specifications) for marketing and partners, and a reports centre inside both the back office and HQ (<span class="route">/store/&lt;code&gt;/reports</span>, <span class="route">/hq/reports</span>).</p>
@@ -95,10 +96,11 @@
         <tr><td class="k">Budtender (cashier / dispenser)</td><td>One store</td><td>The till, with a PIN</td><td>Sells, refunds, hands over online orders, checks in event guests, counts the float. A budtender with <strong>Authorised dispenser</strong> ticked may complete sales of licensed medicines. No back-office login (the sign-in page sends them to the till).</td></tr>
       </tbody>
     </table>
-    <p>Two more kinds of people use the platform without a staff account:</p>
+    <p>Three more kinds of people use the platform without a staff account:</p>
     <dl class="grid">
       <dt>Member</dt><dd>Anyone 18 or older who has joined Herbal Holland Rewards with their mobile number. We sell to members only, online and at the till; joining is free and takes about a minute (chapter 3).</dd>
       <dt>Patient</dt><dd>A member with an active SAHPRA Section 21 authorisation on file, registered by a dispenser in a store. Only patients can see and buy licensed (THC) medicines, and only in store from an authorised dispenser.</dd>
+      <dt>Trade buyer</dt><dd>A person who orders for a business with a trade account — an owner (who also manages the account and its buyers) or a buyer. They sign in to the trade portal with a code sent to their email, buy at ex-VAT trade prices in whole cases, and never licensed medicines (chapter 7).</dd>
     </dl>
 
     <h3>Which surface each role uses</h3>
@@ -142,6 +144,9 @@
         <tr><td>A customer-facing screen for a till</td><td class="route">/pos/display &nbsp;(opened from Shift › This till › Customer display)</td></tr>
         <tr><td>Your store's back office</td><td class="route">/store/&lt;store code&gt; &nbsp;— e.g. /store/PTA01 &nbsp;(/store alone sends you to your own home)</td></tr>
         <tr><td>HQ console</td><td class="route">/hq</td></tr>
+        <tr><td>Apply for a trade account, or sign in to the trade portal</td><td class="route">/trade/apply &nbsp;·&nbsp; /trade/login &nbsp;(the landing page is /trade; the terms are at /trade/terms)</td></tr>
+        <tr><td>The trade portal once signed in</td><td class="route">/trade/range &nbsp;·&nbsp; /trade/cart &nbsp;·&nbsp; /trade/checkout &nbsp;·&nbsp; /trade/orders &nbsp;·&nbsp; /trade/statements &nbsp;·&nbsp; /trade/account</td></tr>
+        <tr><td>Trade in HQ, and a store's trade orders</td><td class="route">/hq/trade &nbsp;·&nbsp; /hq/trade/accounts &nbsp;·&nbsp; /hq/trade/orders &nbsp;·&nbsp; /store/&lt;code&gt;/trade</td></tr>
         <tr><td>The menu board for a store TV</td><td class="route">/menu/&lt;store slug&gt; &nbsp;— e.g. /menu/hatfield</td></tr>
         <tr><td>Change your password</td><td class="route">/account/password</td></tr>
         <tr><td>Sign out of the back office</td><td class="route">/logout &nbsp;(the sign-out button in the sidebar)</td></tr>
@@ -201,9 +206,9 @@
       <li><span class="route">/api/auth/demo?email=…&amp;next=/hq</span> signs in a seeded user directly (used by screenshots and smoke tests).</li>
       <li>The pair screen offers <strong>one-click pairing</strong> to any store, and the demo PINs are <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> and <code>4444</code>.</li>
       <li>Member sign-in shows the SMS code <strong>on screen</strong>.</li>
-      <li>Payments are simulated (chapter 8) and no messages leave the system — every SMS and email is only logged.</li>
+      <li>Payments are simulated (chapter 9) and no messages leave the system — every SMS and email is only logged.</li>
     </ul>
-    <div class="callout warn"><div class="lab">Warning</div><p>Production must run with <code>DEMO_MODE=false</code>, a strong <code>SESSION_SECRET</code> and a <code>CRON_SECRET</code>. The launch checklist in chapter 10 repeats this because it matters.</p></div>
+    <div class="callout warn"><div class="lab">Warning</div><p>Production must run with <code>DEMO_MODE=false</code>, a strong <code>SESSION_SECRET</code> and a <code>CRON_SECRET</code>. The launch checklist in chapter 11 repeats this because it matters.</p></div>
 
     <h2>Installing the apps on Android, iPhone and desktop</h2>
     <p>All three web apps install straight from the browser — no app store, nothing sent to the server about installs. Each has its own icon and opens in its own window.<sup>1</sup></p>
@@ -354,7 +359,7 @@
       </div>
       <figure class="phone"><img src="images/club-addresses.jpg" alt="Rewards › Addresses"><figcaption><b>Your addresses.</b> "Up to 5 delivery addresses, offered at checkout. The one you order to is saved automatically." — and the form to add one, with a default-address tick.</figcaption></figure>
     </div>
-    <p>After the payment page (chapter 8 explains Peach Payments, Yoco and the simulator) the order page says <em>Payment received</em>, <em>Waiting for payment confirmation…</em> (refreshing itself), <em>Payment cancelled</em> with <strong>Try again</strong>, or that the payment didn't go through. The return from the payment page is never taken as proof of payment: the order is confirmed when the gateway's webhook lands.</p>
+    <p>After the payment page (chapter 9 explains Peach Payments, Yoco and the simulator) the order page says <em>Payment received</em>, <em>Waiting for payment confirmation…</em> (refreshing itself), <em>Payment cancelled</em> with <strong>Try again</strong>, or that the payment didn't go through. The return from the payment page is never taken as proof of payment: the order is confirmed when the gateway's webhook lands.</p>
 
     <h2>Order tracking and tax invoices</h2>
     <p>The order page (<span class="route">/orders/&lt;code&gt;</span>) is a live tracker: while the order is open it re-renders when you come back to the tab and every minute ("Updates by itself while it's open"). The heading says where things stand — "Collect at Hatfield", "On its way to you", "Collected — thank you", "Delivered — thank you", "Order cancelled" — with the placed time and the fulfilment. For a collection the <strong>collection code</strong> is shown large with its QR code and "Show this code and your ID (18+) at the counter — your ID will be checked. Only you can collect this order", then "Ready since … — we'll hold it for 7 days" once it is. <strong>Progress</strong> lists each step with its time and a plain line ("Checked against the batch on the shelf", "Waiting for the driver", "ID (18+) checked at the door"), with "Every update" behind a disclosure. <strong>Items</strong> carries <strong>Buy again</strong>, the totals, the points and vouchers used, and "You saved R… with Herbal Holland Rewards". A delivery order shows the address, "Expected Thu 1 – Fri 2 Oct", where it ships from, the courier and tracking number once dispatched, and "Your ID (18+) will be checked on delivery. We can't leave the parcel without it." Then the invoice, the returns panel and whom to call, quoting the order code. Only the member who placed the order sees the code, the items and the address; anyone else with the link sees the progress and a sign-in prompt.</p>
@@ -376,7 +381,7 @@
         <tr><td class="k">Cancelled</td><td>By the store or HQ, or automatically (unpaid, or not collected within 7 days); stock released, points returned, online payments refunded</td><td>SMS "any payment or points used have been returned"</td></tr>
       </tbody>
     </table>
-    <p>Members find every order under Rewards › <strong>Orders</strong> and every receipt under Rewards › <strong>Invoices &amp; receipts</strong>. Each sale is emailed as an <strong>abridged tax invoice</strong> (up to R5,000) or a <strong>full tax invoice</strong> (above R5,000, with the buyer's name and address captured at the till); a franchisee that isn't a VAT vendor issues a plain invoice with no VAT. Every invoice has a hosted, printable copy behind a signed link (<span class="route">/invoice/&lt;id&gt;?t=…</span>) with a QR code — the link can't be guessed, and the QR on the paper invoice opens the same page; print it on A4, save it as a PDF, or print it on 80 mm till paper with <strong>Print receipt</strong> (chapter 8). Members can't cancel an order themselves: they contact the store, which cancels it from the back office (chapter 5).</p>
+    <p>Members find every order under Rewards › <strong>Orders</strong> and every receipt under Rewards › <strong>Invoices &amp; receipts</strong>. Each sale is emailed as an <strong>abridged tax invoice</strong> (up to R5,000) or a <strong>full tax invoice</strong> (above R5,000, with the buyer's name and address captured at the till); a franchisee that isn't a VAT vendor issues a plain invoice with no VAT. Every invoice has a hosted, printable copy behind a signed link (<span class="route">/invoice/&lt;id&gt;?t=…</span>) with a QR code — the link can't be guessed, and the QR on the paper invoice opens the same page; print it on A4, save it as a PDF, or print it on 80 mm till paper with <strong>Print receipt</strong> (chapter 9). Members can't cancel an order themselves: they contact the store, which cancels it from the back office (chapter 5).</p>
 
     <h2>Help, support tickets and returns</h2>
     <p>Two doors for when something isn't right: a support desk and online return requests. Both follow the returns and delivery policies at the end of this chapter, and both keep the member posted at every step.</p>
@@ -394,7 +399,7 @@
     <h2>Herbal Holland Rewards: card, tiers, instant prices and points</h2>
     <div class="figs c2 text-r">
       <div>
-        <p>The Rewards home is the member's <strong>card</strong>: name, member number, tier, points balance and a QR code (the member number) to scan at the till, with the Founding Member number where there is one — and, once the wallets are configured (chapter 8), <strong>Add to Apple Wallet</strong> and <strong>Add to Google Wallet</strong> under it. Below: "You've saved R… with Herbal Holland Rewards", share buttons, the tier ladder with progress to the next tier, perks, a row of chips to the rest of Rewards (<strong>Wishlist</strong> — with "2 back in stock" when something returned — <strong>Reorder reminders</strong>, <strong>Gift vouchers</strong>, <strong>Addresses</strong>), My Deals, tickets and upcoming events, recent points and recent orders (each completed order with <strong>Buy again</strong>), Invite a friend, and the patient authorisation panel.</p>
+        <p>The Rewards home is the member's <strong>card</strong>: name, member number, tier, points balance and a QR code (the member number) to scan at the till, with the Founding Member number where there is one — and, once the wallets are configured (chapter 9), <strong>Add to Apple Wallet</strong> and <strong>Add to Google Wallet</strong> under it. Below: "You've saved R… with Herbal Holland Rewards", share buttons, the tier ladder with progress to the next tier, perks, a row of chips to the rest of Rewards (<strong>Wishlist</strong> — with "2 back in stock" when something returned — <strong>Reorder reminders</strong>, <strong>Gift vouchers</strong>, <strong>Addresses</strong>), My Deals, tickets and upcoming events, recent points and recent orders (each completed order with <strong>Buy again</strong>), Invite a friend, and the patient authorisation panel.</p>
         <table class="compact">
           <thead><tr><th>Tier</th><th>Rolling 12-month spend</th><th>Instant saving</th><th>Perks</th></tr></thead>
           <tbody>
@@ -408,7 +413,7 @@
       </div>
       <figure class="phone"><img src="images/club-card.jpg" alt="The Rewards card"><figcaption><b>The card.</b> A Seed member with her QR, balance, savings to date, share buttons and the tier ladder; a Founding Member's card carries the number too.</figcaption></figure>
     </div>
-    <p>The <strong>wallet pass</strong> is the card in Apple Wallet or Google Wallet: Holland orange on warm black, the member number as the till's QR code, the tier, the points balance, the first name and the Founding number — nothing else personal. The buttons appear only when the platform holds the wallet keys (chapter 8); until then the routes simply say the wallet isn't set up yet.</p>
+    <p>The <strong>wallet pass</strong> is the card in Apple Wallet or Google Wallet: Holland orange on warm black, the member number as the till's QR code, the tier, the points balance, the first name and the Founding number — nothing else personal. The buttons appear only when the platform holds the wallet keys (chapter 9); until then the routes simply say the wallet isn't set up yet.</p>
     <h3>How the money works</h3>
     <ul>
       <li><strong>Instant member prices</strong>: once the member is identified — signed in online, or found at the till — eligible prices drop by the tier percentage on the spot, or to the week's <em>Rewards deal</em> price when that is lower. Walk-ins see "members save R… on this basket — join free". Never on medicines; never for walk-ins. The saving is reported per sale and carried by the selling store as a price reduction.</li>
@@ -502,7 +507,7 @@
       <dt>Returns &amp; refunds</dt><dd>Faulty goods: repair, replacement or refund within 6 months, the return at our cost (CPA s56); change of mind on online orders within 7 days of delivery, the member pays only the direct cost of returning, refunded within 30 days (ECTA s44); made-to-order merch and opened consumables excluded (ECTA s42 — marked "for counsel"); 5 business days after direct marketing (CPA s16); in-store returns of unopened non-consumables within 7 days once stores open.</dd>
       <dt>Delivery</dt><dd>Courier from the warehouse nationwide; fees and the free threshold; pay within the payment window; 2–4 working days; delivery <strong>only to the member named on the order, in person, ID on request</strong> — never left with a neighbour or at reception; licensed medicines never delivered; two attempts, then back to the warehouse (redelivery at the courier fee, or a refund of the goods).</dd>
     </dl>
-    <p class="small">The PAIA manual is on herbalholland.com (chapter 7). Copy for all four documents is in <code>src/lib/policies.ts</code> and <code>src/components/shop/legal/</code>.</p>
+    <p class="small">The PAIA manual is on herbalholland.com (chapter 8). Copy for all four documents is in <code>src/lib/policies.ts</code> and <code>src/components/shop/legal/</code>.</p>
   </div>
 </section>
 
@@ -580,6 +585,7 @@
     <p>Register a new patient's authorisation in the back office (Patient register); the till reads it at once.</p>
 
     <h2>Taking payment: tenders, split payments and points</h2>
+    <p class="small">A sale to a business on a trade account is rung up in <strong>Trade sale</strong> mode — ex-VAT trade prices, a full tax invoice, and "On account" as a tender within the account's terms. Chapter 7 has it.</p>
     <div class="figs c2">
       <figure><img src="images/pos-tap.jpg" alt="The tap-on-glass overlay"><figcaption><b>Card · tap on glass.</b> "Hold card, phone or watch near the device" — the simulated flow in the demo; Halo Dot's app in production when that provider is chosen.</figcaption></figure>
       <figure><img src="images/pos-patient-receipt.jpg" alt="Sale complete"><figcaption><b>Sale complete.</b> Card R390.00, "No points on this sale" (a medicine), the tax invoice emailed, print receipt or start a new sale.</figcaption></figure>
@@ -622,9 +628,10 @@
       <li>Choose a <strong>reason</strong> — Changed mind (unopened), Faulty product, Wrong item sold, Damaged packaging, Pricing error, Other — and <strong>Refund to</strong>: the original tender is shown; cash from the drawer needs an open shift.</li>
       <li>Confirm. The credit note prints or emails like a receipt.</li>
     </ol>
-    <div class="callout warn"><div class="lab">Watch-outs</div><p>Card sales should go back to the card. A card sale refunded in cash, a refund of someone else's sale within 30 minutes, or a refund just before the shift closes, raises a <em>Suspicious refund</em> alert for the owner; a high personal refund rate, or refunds of your own sales, hold your commission until the alert is closed (chapter 10). Only sales can be refunded — never a refund.</p></div>
+    <div class="callout warn"><div class="lab">Watch-outs</div><p>Card sales should go back to the card. A card sale refunded in cash, a refund of someone else's sale within 30 minutes, or a refund just before the shift closes, raises a <em>Suspicious refund</em> alert for the owner; a high personal refund rate, or refunds of your own sales, hold your commission until the alert is closed (chapter 11). Only sales can be refunded — never a refund.</p></div>
 
     <h2>Online orders: picking, handover with an ID check, dispatch</h2>
+    <p class="small">Trade click &amp; collect orders (a business buying on its trade account) sit on the same board tagged <strong>Trade · TO-…</strong>. They are packed and marked ready in the back office; the till only <strong>hands them over</strong> — the buyer's 6-digit collection code and the ID tick, nothing to take at the till. Chapter 7.</p>
     <div class="figs c2">
       <figure><img src="images/pos-orders.jpg" alt="The online orders board"><figcaption><b>The board.</b> New · Picking · Ready · Handover, each card with the member, fulfilment, "Pay R… in store" or "Paid", the ID 18+ badge, minutes since placed and the 15-minute SLA colour, and the next action.</figcaption></figure>
       <figure><img src="images/pos-handover.jpg" alt="The handover sheet"><figcaption><b>Hand over.</b> The 6-digit collection code (typed or scanned from the member's QR — a wrong code is refused), the ID tick, the pick list and "Take payment of R…" for pay-in-store orders.</figcaption></figure>
@@ -732,6 +739,7 @@
           <li><strong>Cancel</strong> releases the stock, returns points, and refunds an online payment in full first (if the gateway refuses, nothing changes and you see why).</li>
           <li>"Not enough stock to fill this order" warns when the shelf no longer covers it.</li>
         </ul>
+        <p class="small">Click &amp; collect orders from <em>business</em> accounts (the trade channel) have their own list, <strong>Trade orders</strong>, with the same pick › ready › hand over steps and a handling fee — chapter 7.</p>
       </div>
     </div>
 
@@ -840,7 +848,7 @@
 
     <h2>Insight: reports and loss prevention</h2>
     <p><strong>Reports</strong> is the reports centre for your store (and all your stores, for an owner): live, filterable, charted and downloadable as CSV, in seven groups — Sales, Inventory, Purchasing, Finance, Members, Marketing, Compliance. The full list, with what each answers, is in chapter 6 — including the two member reports, <strong>Member cohorts</strong> and <strong>Retention &amp; order value</strong>; the same definitions serve HQ, scoped to your store. Every CSV export is audited; HQ can also schedule a report to arrive by email (chapter 6).</p>
-    <p><strong>Loss prevention</strong> lists the alerts raised about your store — cash-ups short, deposits short or late, suspicious refunds, unusual write-offs, sales on own member cards, offline selling, out-of-hours sales, compliance exceptions — with their evidence. Mark one <strong>Investigating</strong>, <strong>Resolve</strong> it with a note, <strong>Dismiss</strong> it as a false alarm, or <strong>Reopen</strong> it; every step is in the audit log. An alert is never shown to the person it is about, and the rules and thresholds are HQ's (chapter 10 lists them).</p>
+    <p><strong>Loss prevention</strong> lists the alerts raised about your store — cash-ups short, deposits short or late, suspicious refunds, unusual write-offs, sales on own member cards, offline selling, out-of-hours sales, compliance exceptions — with their evidence. Mark one <strong>Investigating</strong>, <strong>Resolve</strong> it with a note, <strong>Dismiss</strong> it as a false alarm, or <strong>Reopen</strong> it; every step is in the audit log. An alert is never shown to the person it is about, and the rules and thresholds are HQ's (chapter 11 lists them).</p>
 
     <h2>Store: team and PINs, HQ updates, the menu board, settings</h2>
     <h3>Team</h3>
@@ -848,7 +856,7 @@
     <h3>HQ updates</h3>
     <p>News, launches, policy changes and recalls from HQ. Some must be <strong>acknowledged by a manager</strong> — they stay on the dashboard until they are.</p>
     <h3>Settings</h3>
-    <p><strong>Store details</strong> shown on the website, store finder, receipts and order messages: phone, email, WhatsApp (service messages only), and the services — <strong>Click &amp; collect</strong> (turn off during stock takes or renovations) and <strong>Same-day delivery</strong> (this store may be picked for same-day orders within 30 km). Changes reach the website and store finder straight away. The <strong>Notifications</strong> card — "Push notifications to your phone for the stores you look after" — has one switch, <strong>Notify me on this phone</strong>: managers, owners and area managers switch it on per phone or browser (on iPhone the back office must be on the Home Screen first; a blocked site, or a browser that can't show notifications, says so) and hear about new online orders as they come in (checked every 5 minutes), loss-prevention alerts about other people, HQ updates that need acknowledging, lots about to expire, cash due at the bank and a daily low-stock digest; a tap opens the page in question. The scheduler sends them (chapter 10) and never twice for the same event; without push keys on the server the switch says "Push notifications aren't set up on this server yet (WEB_PUSH keys) — ask HQ." <strong>Licences &amp; VAT</strong>, the company, format, region, DC and franchise fees are held by HQ — contact HQ to change them.</p>
+    <p><strong>Store details</strong> shown on the website, store finder, receipts and order messages: phone, email, WhatsApp (service messages only), and the services — <strong>Click &amp; collect</strong> (turn off during stock takes or renovations) and <strong>Same-day delivery</strong> (this store may be picked for same-day orders within 30 km). Changes reach the website and store finder straight away. The <strong>Notifications</strong> card — "Push notifications to your phone for the stores you look after" — has one switch, <strong>Notify me on this phone</strong>: managers, owners and area managers switch it on per phone or browser (on iPhone the back office must be on the Home Screen first; a blocked site, or a browser that can't show notifications, says so) and hear about new online orders as they come in (checked every 5 minutes), loss-prevention alerts about other people, HQ updates that need acknowledging, lots about to expire, cash due at the bank and a daily low-stock digest; a tap opens the page in question. The scheduler sends them (chapter 11) and never twice for the same event; without push keys on the server the switch says "Push notifications aren't set up on this server yet (WEB_PUSH keys) — ask HQ." <strong>Licences &amp; VAT</strong>, the company, format, region, DC and franchise fees are held by HQ — contact HQ to change them.</p>
     <div class="figs c2">
       <figure><img src="images/bo-team-pin.jpg" alt="A PIN reset in place on the Team page"><figcaption><b>Team.</b> Reset PIN opens a small form in the row; the confirmation reads "New PIN set for Anika Daniels. Share it in person, never by message."</figcaption></figure>
       <figure><img src="images/bo-settings.jpg" alt="The store settings page"><figcaption><b>Settings.</b> Store details with the trading hours — "Saturday: 10:00–14:30 saved. The website and store finder update straight away." — and the Notifications card with "Notify me on this phone".</figcaption></figure>
@@ -912,10 +920,10 @@
       <figure><img src="images/hq-checklist.jpg" alt="The opening checklist on a store's page"><figcaption><b>Opening checklist</b> on a store's page: "5 of 21 done · 1 overdue · 2 due this week", the progress bar, and the tasks grouped under Legal &amp; licences, Set-up, People and Launch with their due dates — overdue in red — Mark done (with a note) and Undo.</figcaption></figure>
       <figure><img src="images/hq-stores-progress.jpg" alt="The stores list with checklist progress"><figcaption><b>The stores list</b> shows each opening store's progress under its status: "1/21 · 20 overdue".</figcaption></figure>
     </div>
-    <p>Onboarding a store seeds its <strong>opening checklist</strong> from the platform's template: <em>Legal &amp; licences</em> (lease, CIPC registration and bank account, VAT registration, the SAHPRA or pharmacy licence where the store will sell licensed products, the POPIA register and information officer), <em>Set-up</em> (fit-out, internet, the Yoco account and machines, tills paired, printers and drawers tested, catalogue ranged, Google Business Profile, store photos, opening stock received and counted), <em>People</em> (staff hired, logins and PINs, the authorised dispenser, training) and <em>Launch</em> (opening date confirmed, press and listings, herbalholland.com facts, a soft opening) — 21 tasks, 22 with the licence line. Due dates count back from the opening day and move with it while the store is still <em>Opening soon</em>. The HQ team ticks tasks off with a note ("Signed, filed in Drive"); area managers see them; a store that predates the checklist gets one from <strong>Start the opening checklist</strong>. Every tick is audited. Chapter 10 has the same list as a procedure.</p>
+    <p>Onboarding a store seeds its <strong>opening checklist</strong> from the platform's template: <em>Legal &amp; licences</em> (lease, CIPC registration and bank account, VAT registration, the SAHPRA or pharmacy licence where the store will sell licensed products, the POPIA register and information officer), <em>Set-up</em> (fit-out, internet, the Yoco account and machines, tills paired, printers and drawers tested, catalogue ranged, Google Business Profile, store photos, opening stock received and counted), <em>People</em> (staff hired, logins and PINs, the authorised dispenser, training) and <em>Launch</em> (opening date confirmed, press and listings, herbalholland.com facts, a soft opening) — 21 tasks, 22 with the licence line. Due dates count back from the opening day and move with it while the store is still <em>Opening soon</em>. The HQ team ticks tasks off with a note ("Signed, filed in Drive"); area managers see them; a store that predates the checklist gets one from <strong>Start the opening checklist</strong>. Every tick is audited. Chapter 11 has the same list as a procedure.</p>
 
     <h2>Franchise leads</h2>
-    <p>Enquiries from the form on herbalholland.com/franchise land here (once the site is connected — chapter 7), numbered <code>FL-…</code>, and are visible to HQ administrators and the HQ team only. The list shows new leads waiting for a reply, open leads, disclosures sent and enquiries in the last 30 days; search by number, name, email or area; filter by status.</p>
+    <p>Enquiries from the form on herbalholland.com/franchise land here (once the site is connected — chapter 8), numbered <code>FL-…</code>, and are visible to HQ administrators and the HQ team only. The list shows new leads waiting for a reply, open leads, disclosures sent and enquiries in the last 30 days; search by number, name, email or area; filter by status.</p>
     <p>A lead's page shows the enquiry as sent (area, province, capital band, experience, pharmacist partner, message), <strong>Move it on</strong> through the statuses — New › Contacted › Information evening › Disclosure sent › Signed, or Not a fit — with notes for the team, who in HQ is following it up, the <strong>disclosure document</strong> date, and the history from the audit log.</p>
     <div class="callout"><div class="lab">Rule (CPA franchise regulations)</div><p>A lead can't be marked <strong>Signed</strong> sooner than <strong>14 days</strong> after the day the disclosure document was sent; record that day first. Leads that are not a fit are deleted a year after their last change by the nightly job; an HQ administrator can delete a lead on request (type DELETE to confirm). The franchise page and this pipeline never state earnings or investment figures.</p></div>
 
@@ -929,7 +937,7 @@
     <ul>
       <li><strong>Ranging</strong> decides which stores carry a variant — it drives replenishment suggestions and what the web shop can route to a store. Range or unrange by store format and region; a variant must be active to be ranged.</li>
       <li><strong>Categories</strong>: name, a line of copy (screened) and an icon, in the order they appear in the shop, on the tills and on the menu boards. A category with products can't be deleted — move them first. A category shows to members once it has an active product.</li>
-      <li><strong>Made-to-order merch</strong>: a variant with a merch partner code has no stock anywhere; it costs what the partner charges and always ships by courier from the partner (chapter 8).</li>
+      <li><strong>Made-to-order merch</strong>: a variant with a merch partner code has no stock anywhere; it costs what the partner charges and always ships by courier from the partner (chapter 9).</li>
     </ul>
     <h3>Import from a spreadsheet</h3>
     <figure><img src="images/hq-import.jpg" alt="The catalogue import preview"><figcaption><b>Import preview.</b> A dry run: new products, price updates, unchanged, errors (with the reason — here an unknown category), and the opening stock that would be received at the chosen location. Nothing changes until you press Import.</figcaption></figure>
@@ -1043,7 +1051,7 @@
     <table class="compact">
       <thead><tr><th>Group</th><th>Report</th><th>The question it answers</th></tr></thead>
       <tbody>
-        <tr><td class="k" rowspan="9">Sales</td><td>Sales overview</td><td>How did we trade each day — sales, VAT, discounts, baskets and margin?</td></tr>
+        <tr><td class="k" rowspan="10">Sales</td><td>Sales overview</td><td>How did we trade each day — sales, VAT, discounts, baskets and margin?</td></tr>
         <tr><td>Sales by product</td><td>Which products sell, and at what margin?</td></tr>
         <tr><td>Sales by category</td><td>Which categories drive sales and profit?</td></tr>
         <tr><td>Sales by store</td><td>Which stores lead, and who is growing against the previous period?</td></tr>
@@ -1052,6 +1060,7 @@
         <tr><td>Refunds</td><td>What came back, who processed it, and why?</td></tr>
         <tr><td>Payments &amp; tenders</td><td>Do the takings match the bank? Tenders by day for reconciliation.</td></tr>
         <tr><td>Online orders</td><td>How quickly and reliably are online orders fulfilled?</td></tr>
+        <tr><td>Trade sales</td><td>Which business accounts buy, what they take and what it's worth — by account, product and month (chapter 7).</td></tr>
         <tr><td class="k" rowspan="8">Inventory</td><td>Stock valuation</td><td>What is the stock on hand worth, at landed cost and at retail?</td></tr>
         <tr><td>Stock movements</td><td>Every unit in and out: receipts, sales, transfers, adjustments and counts.</td></tr>
         <tr><td>Shrinkage</td><td>What are we losing — damage, theft, expiry and count variances — and what does it cost?</td></tr>
@@ -1062,12 +1071,13 @@
         <tr><td>Negative stock</td><td>Where has the till sold more than the system says we had?</td></tr>
         <tr><td class="k" rowspan="2">Purchasing</td><td>Purchases</td><td>What stock did we buy, from which DC or store, and for how much?</td></tr>
         <tr><td>Receiving discrepancies</td><td>Did we receive what was ordered and shipped? Short shipments and losses in transit.</td></tr>
-        <tr><td class="k" rowspan="6">Finance</td><td>Profit &amp; loss</td><td>Are we making money? Sales, margin, expenses and franchise fees against the previous period.</td></tr>
+        <tr><td class="k" rowspan="7">Finance</td><td>Profit &amp; loss</td><td>Are we making money? Sales, margin, expenses and franchise fees against the previous period.</td></tr>
         <tr><td>VAT (VAT201 working)</td><td>What VAT do we owe SARS for the period — output tax against input tax?</td></tr>
         <tr><td>Cash-ups</td><td>Did the cash drawer balance at every shift close?</td></tr>
         <tr><td>Cash banking</td><td>Did each day's cash reach the bank, in full and on time?</td></tr>
         <tr><td>Franchise statements</td><td>What does each franchisee owe HQ — or get paid — for the month?</td></tr>
         <tr><td>Rewards liability</td><td>Points issued vs redeemed by store, the settlement, and what we owe members.</td></tr>
+        <tr><td>Trade aged balances</td><td>What each trade account owes, current and 30, 60 and 90+ days past due, as of today (chapter 7).</td></tr>
         <tr><td class="k" rowspan="7">Members</td><td>Member segments</td><td>Who are our members? Recency, frequency and value segments with the play for each.</td></tr>
         <tr><td>New vs returning members</td><td>Are we winning new members each week — and bringing them back?</td></tr>
         <tr><td>Member attach rate</td><td>What share of transactions are linked to a Rewards member?</td></tr>
@@ -1086,10 +1096,10 @@
     </table>
 
     <h2>Governance: loss prevention, compliance, audit log, announcements and team</h2>
-    <p><strong>Loss prevention</strong> (network or region): open high-severity alerts, open alerts, resolved this month, value at risk; alerts raised per week; a store risk ranking; the alert queue; <strong>Rules &amp; thresholds</strong> (audited, applied from the next check — chapter 10 lists every rule) and <strong>Run the checks now</strong>. They run every night, at each shift close and when cash is banked; alerts already raised aren't raised twice.</p>
-    <p><strong>Compliance</strong> is the rulebook (chapter 9): THC mode, the licensed classes, minimum age (18–25, never below 18), age-restricted classes, the class × channel matrix, the daily limit in adult-use mode, Tobacco Bill mode, members only, and "No promotions, points or commission" classes — plus a watch-list of the laws in motion (the Cannabis for Private Purposes Act and its regulations, the Cannabis Bill, the Tobacco Bill B33-2022, Schedule 0 CBD GN 586, the VAT Act s7(4) judgment, the CPA opt-out registry) with what each means for the settings. Switching to adult use needs the words ADULT USE typed; THC must stay licence-gated.</p>
+    <p><strong>Loss prevention</strong> (network or region): open high-severity alerts, open alerts, resolved this month, value at risk; alerts raised per week; a store risk ranking; the alert queue; <strong>Rules &amp; thresholds</strong> (audited, applied from the next check — chapter 11 lists every rule) and <strong>Run the checks now</strong>. They run every night, at each shift close and when cash is banked; alerts already raised aren't raised twice.</p>
+    <p><strong>Compliance</strong> is the rulebook (chapter 10): THC mode, the licensed classes, minimum age (18–25, never below 18), age-restricted classes, the class × channel matrix, the daily limit in adult-use mode, Tobacco Bill mode, members only, and "No promotions, points or commission" classes — plus a watch-list of the laws in motion (the Cannabis for Private Purposes Act and its regulations, the Cannabis Bill, the Tobacco Bill B33-2022, Schedule 0 CBD GN 586, the VAT Act s7(4) judgment, the CPA opt-out registry) with what each means for the settings. Switching to adult use needs the words ADULT USE typed; THC must stay licence-gated.</p>
     <figure><img src="images/hq-team.jpg" alt="The HQ team page"><figcaption><b>Team.</b> HQ staff and area managers with their role, last sign-in, reset password and deactivate; adding a person creates a temporary password they must change on first sign-in; area managers need a region.</figcaption></figure>
-    <p><strong>Audit log</strong>: every sensitive action across the network — who, what, where and when — filtered by person, activity and dates; entries can't be edited or deleted. The exceptions worth reviewing are in chapter 10. <strong>Announcements</strong>: news, launches, policy changes and recalls for store teams, to everyone or a region, with "Managers must acknowledge" (always on for policies and recalls) — they stay on the store dashboard until acknowledged, and HQ sees who has. <strong>Team</strong>: HQ administrators, HQ team and area managers (store teams are managed by each store); at least one active HQ administrator must remain.</p>
+    <p><strong>Audit log</strong>: every sensitive action across the network — who, what, where and when — filtered by person, activity and dates; entries can't be edited or deleted. The exceptions worth reviewing are in chapter 11. <strong>Announcements</strong>: news, launches, policy changes and recalls for store teams, to everyone or a region, with "Managers must acknowledge" (always on for policies and recalls) — they stay on the store dashboard until acknowledged, and HQ sees who has. <strong>Team</strong>: HQ administrators, HQ team and area managers (store teams are managed by each store); at least one active HQ administrator must remain.</p>
     <div class="footnotes"><ol>
       <li>The store's local campaign form allows SMS of up to 459 characters and HQ's up to 480; both are "3 parts". A campaign's page shows its own delivery log; every message it sent or suppressed, with the reason, is in HQ › Messages.</li>
       <li>The platform's defaults are the numbers herbalholland.com publishes — <strong>2,026</strong> places and <strong>14 months</strong> at Sprout. Check them in HQ › Founding Members before the list opens: once numbers are assigned the settings lock.</li>
@@ -1098,11 +1108,168 @@
 </section>
 
 <!-- ═══════════════════════════════════════════ CHAPTER 7 ═══════════════════════════════════════ -->
-<section class="chapter" data-num="7" data-title="herbalholland.com: the corporate site" data-short="herbalholland.com">
+<section class="chapter" data-num="7" data-title="Trade: selling to businesses" data-short="Trade">
   <div class="dark-page opener">
     <div class="rail"></div>
     <div class="num">7</div>
     <div class="eyebrow">Chapter 7</div>
+    <h1>Trade: selling to businesses</h1>
+    <div class="lede">Pharmacies, independent retailers, cafés and wellness practices buy at <b>trade prices ex VAT</b>, in <b>whole cases</b> — couriered from a distribution centre or collected at a store — prepaid by EFT against a pro forma, or <b>on account</b> within a credit limit. Never licensed medicines.</div>
+    <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
+  </div>
+  <div class="body">
+    <h2>Who trade customers are, and what they can buy</h2>
+    <p class="lede">A trade account belongs to a registered business that sells to adults — a pharmacy, an independent retailer, a café or restaurant, a wellness or health practice, an online shop, or another business HQ approves. Its buyers are adults, 18 or older; the applicant confirms this and keeps it true. Everything the business buys is priced <strong>ex VAT</strong>, with VAT worked out per line, and ordered in <strong>case packs</strong>.</p>
+    <p>The trade channel is a third channel beside the shop and the till: every trade sale posts in the <strong>WHOLESALE</strong> channel, so the dashboards, the franchise statement and the reports keep it apart from retail. It reaches the buyer in two ways: the <strong>trade portal</strong> at <span class="route">/trade</span> (orders fulfilled by a distribution centre or a store) and <strong>trade-sale mode on any till</strong> (a business buying over the counter). HQ runs the accounts, the ledger and the DC's queue under <strong>HQ › Trade</strong>; a store sees the click &amp; collect orders it fulfils under <strong>Store › Trade orders</strong>.</p>
+    <table class="compact">
+      <thead><tr><th>Range (product class)</th><th>Who it suits</th><th>Traded?</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Licensed (THC)</td><td>—</td><td class="cross">Never — whatever licences either side holds</td></tr>
+        <tr><td class="k">CBD supplements (Schedule 0)</td><td>Pharmacies, practices</td><td class="tick">Yes, when ticked for the account</td></tr>
+        <tr><td class="k">CBD food &amp; drink</td><td>Cafés, retailers</td><td class="tick">Yes</td></tr>
+        <tr><td class="k">CBD skin care · Hemp · Supplements</td><td>Pharmacies, practices, retailers</td><td class="tick">Yes</td></tr>
+        <tr><td class="k">Accessory · Apparel · Grow</td><td>Retailers, cafés (accessories), online shops</td><td class="tick">Yes</td></tr>
+      </tbody>
+    </table>
+    <p>HQ ticks the <strong>ranges the account may buy</strong> when it approves the account; a line outside them is refused everywhere ("… is CBD food &amp; drink, which this account isn't approved to buy"). Where a class needs a licence, the seller must hold it. Products must be live; made-to-order merch (no stock) is never on the trade list.</p>
+    <p><strong>Prices.</strong> A line's trade price is the account's own trade price list if HQ assigned one, else the live <em>trade</em> price lists by priority, else the variant's <em>wholesale price</em> (what stores pay). Trade lists hold ex-VAT prices and <strong>quantity breaks</strong> (a lower price from a minimum quantity — the portal shows "Buy more, pay less: 36+ at R…"). VAT at 15% is added to each line and rounded half up to the cent, never backed out of a shelf price. No points, member prices, My Deals or gift vouchers touch a trade basket; a promotion applies only when HQ included the trade channel in it.</p>
+    <p><strong>Cases and the minimum.</strong> Each variant has a <strong>case pack</strong> (six oils, twelve coffees, twenty-four papers; one for grow equipment and apparel). Portal orders are placed in whole cases and must reach the <strong>minimum order</strong> — R2,000 ex VAT by default — after any promotion. The till is not bound by cases or the minimum: a business buying over the counter takes what is on the shelf.</p>
+    <div class="callout"><div class="lab">Rule</div><p>Licensed (THC) medicines are never supplied on a trade account. The portal does not list them, HQ's order form refuses them, and the till's trade mode blocks them — however the store is licensed and whatever the buyer asks. Age-restricted items (18+) still need the usual ID check at a counter; a trade sale replaces the <em>member</em> rules, not the <em>adult</em> ones.</p></div>
+    <div class="callout note"><div class="lab">In the demo</div><p>The seeded network has fourteen trade accounts (TA-000001 Greenleaf Pharmacy to TA-000014 Garden Route Health Shop): nine approved — five on account with limits from R10,000 to R50,000 and 30-day terms, four prepaid — two pending applications, two on hold (one overdue, one held by HQ) and one closed; the "Trade 2026" price list with breaks on most lines; some fifty portal orders at every status; trade sales at the tills; and the ledgers, payments, a credit note and last month's statements behind them. The demo buyer is Greenleaf's owner, <code>trade@greenleafpharmacy.co.za</code>.</p></div>
+    <!-- <figure><img src="images/trade-landing.jpg" alt="The trade portal's landing page"><figcaption><b>Herbal Holland Trade</b> at /trade, signed out: who it is for, what an account comes with, the range by category (counts only — prices after sign-in), how it works, and the two doors: apply or sign in.</figcaption></figure>  capture: /trade signed out, desktop -->
+
+    <h2>Applying, and approval</h2>
+    <p>From the landing page a business taps <strong>Apply for a trade account</strong> (<span class="route">/trade/apply</span>). The form takes about five minutes: the <strong>registered (legal) name</strong> and an optional trading name, the <strong>kind of business</strong>, an optional <strong>company registration number</strong> (2015/123456/07) and <strong>VAT number</strong> (ten digits starting with 4 — both are checked for shape, not verified), the <strong>billing email</strong> (pro formas, tax invoices and statements go there), the business phone and street address, <strong>Deliver somewhere else</strong> for a separate delivery address, the <strong>ranges</strong> it would like to buy, the first <strong>buyer's name, email and mobile</strong> (the mobile gets a text when a collection is ready), anything we should know, and two ticks: <em>every buyer who orders for this business is 18 or older</em>, and the <strong>trade terms</strong> (<span class="route">/trade/terms</span>, version <code>trade-1</code>, recorded on the account with the time).</p>
+    <ol class="steps">
+      <li>The application becomes a <strong>pending</strong> account numbered <strong>TA-000123</strong> with its first buyer as the account's <strong>owner</strong>. The buyer gets an acknowledgement ("We've got your application"); the trade team gets a notice at <code>TRADE_EMAIL</code> (else the franchise address) with the business and the ranges requested — contact details stay in HQ (POPIA).</li>
+      <li>The buyer can already sign in: the range shows without prices ("Trade price after approval"; "Ordering opens on approval") and the account page says the application is being reviewed.</li>
+      <li>HQ › Trade › <strong>Accounts</strong> › <strong>Pending</strong> › the account. Check the business, then <strong>Approve with terms</strong>: <strong>Terms</strong> — <em>Prepaid (EFT before picking)</em> or <em>On account (credit terms)</em>; <strong>Credit limit (R)</strong> and <strong>Payment days</strong> (default 30) for an account on credit; <strong>Ranges the account may buy</strong>; an optional <strong>Trade price list</strong> (blank: the live trade lists by priority, else the wholesale price); the <strong>Distribution centre</strong> that fulfils its courier orders (blank: the default DC); and <strong>Notes</strong> for the trade team, which the account never sees. Tap <strong>Approve account</strong>.</li>
+      <li>The approval email ("You're approved") carries the terms: on account with its payment days and limit, or prepaid; the ranges; the minimum order; courier and collection fees. New accounts normally start prepaid — account terms follow once the relationship is known.</li>
+    </ol>
+    <p>An account is one of <strong>Pending approval</strong>, <strong>Approved</strong>, <strong>On hold</strong> or <strong>Closed</strong>. A hold stops anything new going on account (EFT orders still work); closing signs every buyer out for good, and any balance stays due. Both are explained in "HQ: accounts" below.</p>
+    <!-- <figure><img src="images/trade-apply.jpg" alt="The trade application form"><figcaption><b>Apply for a trade account.</b> Business, numbers, billing email, address, ranges, the first buyer, and the two ticks (adults 18+, the trade terms).</figcaption></figure>  capture: /trade/apply, desktop, top of the form -->
+    <!-- <figure><img src="images/hq-trade-approve.jpg" alt="Approving a pending trade account in HQ"><figcaption><b>Approve with terms.</b> Prepaid or on account, the credit limit and payment days, the ranges, a trade price list and the serving DC; the business details below go on every tax invoice.</figcaption></figure>  capture: HQ › Trade › Accounts › TA-000013 (Ballito Beach Café, pending) -->
+
+    <h2>The trade portal: range, cart and checkout</h2>
+    <p><strong>Signing in.</strong> <span class="route">/trade/login</span> asks for the buyer's email address and sends a <strong>6-digit code</strong> (it works once and expires in ten minutes; five codes per address per ten minutes; five wrong tries end a code). There are no passwords. A session lasts twelve hours. A buyer whose account is pending can sign in and look; one on hold can sign in, see prices and statements; one on a closed account cannot sign in at all. In demo mode the code is shown on screen.</p>
+    <p>The portal's menu is <strong>Range · Orders · Statements · Account</strong>, with the <strong>Cart</strong> and <strong>Sign out</strong> on the right.</p>
+    <h3>The range</h3>
+    <p><strong>The trade range</strong> is priced and stocked from the account's distribution centre ("Stock and courier orders from Midrand Distribution Centre"). Search by product, SKU or barcode; filter by category. Every line shows the product and size, a stock tag (in stock, low with the units left, or out), the SKU, its range, its <strong>case of 12</strong> (or "sold singly") and the RRP; then the trade price: <strong>R… ex VAT each · case of 12 · R… a case</strong>, with the price rule that set it (the list's name, "Trade 2026 (36+)" when a break applies) and the breaks the buyer can reach ("Buy more, pay less: 36+ at R…"). A case stepper adds whole cases to the cart; the bar at the foot of the page keeps the cart's subtotal and how far it is from the minimum order in view.</p>
+    <h3>The cart</h3>
+    <p><strong>Your cart</strong> re-prices every line with the trade engine at the DC: the unit price ex VAT, the cases, and <strong>Ex VAT · VAT · Incl. VAT</strong> per line; a case stepper and <strong>Remove</strong> on each; <strong>Add more lines</strong> and <strong>Empty the cart</strong>. The totals panel shows <strong>Subtotal ex VAT</strong>, any promotion, "Courier or handling: chosen at checkout", <strong>VAT @ 15%</strong> and <strong>Total incl. VAT</strong>, and how far the cart is from the minimum ("R450.00 more to reach the R2,000.00 minimum (ex VAT)"). Problems appear as callouts and keep <strong>Checkout</strong> off until they are fixed: a quantity that is not whole cases ("… comes in cases of 12: order 12, 24, 36… "), an order under the minimum, a line the account may not buy, a line no longer on the trade list, and <strong>Short at the DC right now</strong> — which is a warning only: "You can still order; a line we can't fill in full ships short and is invoiced for what went."</p>
+    <h3>Checkout</h3>
+    <p><strong>How you'll get it.</strong> <strong>Courier from our DC</strong> — a flat R150 ex VAT, free from R5,000 ex VAT (the figures come from HQ's settings) — to the account's <strong>Delivery address</strong> or <strong>Billing address</strong>; or <strong>Click &amp; collect at a store</strong> — R75 ex VAT <strong>handling</strong>, "your driver collects with a code". For collection the page lists participating stores, the account's province first, each with what it has on the shelf for this cart right now ("All lines in stock", or which lines are short and by how much); a store that cannot sell a class (a licence it lacks) is not offered.</p>
+    <p><strong>How you'll pay.</strong> <strong>EFT (pro forma)</strong>, or <strong>On account</strong> when the account is approved on credit terms and the <em>credit decision</em> allows it: what the account owes, plus its open on-account orders, plus this order must stay within its credit limit — the page says what is available and why not when it is not ("Over the credit limit: R1,250.00 available on a limit of R10,000.00 (owing R6,100.00, R2,650.00 on open orders) — this order is R3,220.00"). A <strong>reference</strong> (the buyer's PO number, printed on the pro forma and the invoice) and <strong>notes for us</strong> are optional. The button reads <strong>Place order on account · R…</strong> or <strong>Place order · pay R… by EFT</strong>.</p>
+    <dl class="grid">
+      <dt>EFT</dt><dd>The order waits as <strong>Awaiting EFT</strong> with nothing reserved. The buyer gets the <strong>pro forma</strong> by email: the amount, the bank details HQ set, and the reference to put on the payment — <strong>HH-TO-000123</strong>. When HQ confirms the money (below), the stock is reserved and the order is confirmed. Unpaid after the EFT hold (three days by default), it lapses: the daily job cancels it and emails "Payment not received within 3 days".</dd>
+      <dt>On account</dt><dd>The order is confirmed at once ("Confirmed — stock reserved"), the stock is reserved at the DC or the store, and it counts against the credit limit until it ships or is collected — when the tax invoice is raised and falls due the account's payment days later.</dd>
+    </dl>
+    <h3>Orders, statements and the account</h3>
+    <p><strong>Orders</strong> lists every order on the account, newest first, filtered by <em>All · Open · Awaiting EFT · Confirmed · Ready to collect · Shipped · Collected · Cancelled</em>, each with its fulfilment and store, payment, lines, the buyer's reference and the invoice number. An order's page has the timeline, the pro forma and EFT reference, the courier and tracking, the <strong>collection code</strong> once a collect order is ready, and the tax invoice to view or print; <strong>New order</strong> and "Reorder from a past order" start the next one.</p>
+    <p><strong>Statements</strong> lists one month per line with its closing balance ("month to date" for the current month); a month's statement shows the opening balance, every invoice, payment and credit note with the balance after each, the closing balance and its age analysis.<!-- the statement month page's own buttons (print / email) — labels to confirm when the page is final --> The same statement goes out by email on the statement day.</p>
+    <p><strong>Account</strong> shows the terms (<em>On account</em> with the payment days and limit, or <em>Prepaid (EFT)</em>), the <strong>balance owing</strong> and what is past due, the <strong>available credit</strong> ("R6,120.00 used of R50,000.00 (R3,300.00 on open orders)"), the <strong>age analysis</strong> (Current · 30 days · 60 days · 90+ days), the ranges the account may buy, and the business details — the <strong>owner</strong> can edit the details; terms, limits, ranges and price lists are HQ's. <strong>Buyers</strong> lists who may sign in; an owner adds a buyer (name, email, phone, owner or buyer) — they get a code the first time they sign in — and removes one, which signs them out everywhere. An account always keeps one owner.</p>
+    <div class="callout warn"><div class="lab">When ordering is paused</div><p>An account on hold still sees prices and its statements, and may still pay an order by EFT, but nothing new goes on account ("This trade account is on hold — settle the account or speak to Herbal Holland Trade to lift it"). A hold for an overdue invoice lifts by itself the moment what is past due is settled; a hold HQ placed is lifted by HQ.</p></div>
+    <!-- <figure class="phone"><img src="images/trade-range.jpg" alt="The trade range on a phone"><figcaption><b>The trade range.</b> A line with its case pack, price ex VAT each and per case, the breaks it can reach, the stock tag and the case stepper.</figcaption></figure>  capture: /trade/range signed in as trade@greenleafpharmacy.co.za, phone width -->
+    <!-- <figure><img src="images/trade-checkout.jpg" alt="Trade checkout"><figcaption><b>Checkout.</b> Courier from the DC or click &amp; collect at a store (stores in the province first, stock for this cart at each), EFT or on account with the credit decision, the totals with VAT per line.</figcaption></figure>  capture: /trade/checkout with a cart over the minimum, desktop -->
+    <!-- <figure><img src="images/trade-statement.jpg" alt="A trade account's monthly statement"><figcaption><b>A statement.</b> Opening balance, every invoice, payment and credit note with the running balance, the closing balance and the age analysis.</figcaption></figure>  capture: /trade/statements/<last month> for Greenleaf Pharmacy -->
+
+    <h2>HQ: accounts</h2>
+    <p><strong>HQ › Trade</strong> opens with the queue: <strong>Applications waiting</strong>, <strong>Open orders</strong> ("3 to pick at the DC · 2 ready to collect"), <strong>Awaiting EFT</strong>, <strong>Accounts on hold</strong>, <strong>Balance outstanding</strong> with the number of open invoices, <strong>Overdue</strong> and <strong>90+ days</strong>, and the minimum order and fees; then cards for the applications (oldest first), the <strong>EFTs to confirm</strong> (with the reference HH-TO-… to look for on the bank statement), <strong>To pick at the DC</strong> and the accounts on hold, and links to the two trade reports and the settings. The HQ team works it; an area manager sees the same pages for their region, view only.</p>
+    <p><strong>Accounts</strong> lists every account under <em>All · Pending · Approved · On hold · Closed</em> with its number, type, terms, credit limit, <strong>balance</strong> (negative means in credit), orders and the day it applied; search by account number (however typed), name, VAT number or billing email; sort any column; saved views as elsewhere.</p>
+    <p>An <strong>account's page</strong> leads with its status badge, the legal name, kind, city, terms and VAT number; four figures — <strong>Balance</strong> (and what is overdue), <strong>Available credit</strong> (limit and days), <strong>Open orders</strong> and the <strong>Last order</strong> — and the ageing chips (Current · 30 days · 60 days · 90+ days, the overdue ones in red). Four tabs:</p>
+    <ul>
+      <li><strong>Overview</strong>: the <strong>Terms</strong> card (the same fields as approval; <strong>Save terms</strong>), the <strong>Business details</strong> that go on every tax invoice (<strong>Save details</strong>), the <strong>Status</strong> card (applied, terms accepted and when, adults confirmed, approved by whom, hold reason, price list, DC, ranges), and <strong>Holds and closure</strong>: <strong>Put on hold</strong> with a reason that goes in the email to the account, <strong>Lift the hold</strong>, and <strong>Close account</strong> (type CLOSE to confirm; the email says what is still due). <strong>Place an order</strong> at the top captures a phone or email order on the account's behalf — the same whole-case rules, courier or collection, EFT or on account, and the same emails as a portal order.</li>
+      <li><strong>Ledger &amp; statements</strong>: below.</li>
+      <li><strong>Orders</strong>: every order on the account, newest first.</li>
+      <li><strong>Buyers</strong>: who may order, their role and last sign-in; <strong>Add a buyer</strong> and <strong>Remove</strong>.</li>
+    </ul>
+    <p>Every change is audited (<code>trade.account.approve</code>, <code>.update</code>, <code>.hold</code>, <code>.release</code>, <code>.close</code>, <code>trade.buyer.add</code> and <code>.remove</code>) and every status change is emailed to the account's billing address.</p>
+    <!-- <figure><img src="images/hq-trade-overview.jpg" alt="HQ › Trade overview"><figcaption><b>HQ › Trade.</b> Applications waiting, open orders, EFTs to confirm, accounts on hold, the balance outstanding and what is overdue; the queues underneath.</figcaption></figure>  capture: /hq/trade as hq@herbalholland.co.za -->
+    <!-- <figure><img src="images/hq-trade-account.jpg" alt="A trade account in HQ"><figcaption><b>A trade account.</b> Balance, available credit, open orders, ageing chips; the terms and business details; holds and closure.</figcaption></figure>  capture: /hq/trade/accounts/<Greenleaf Pharmacy> overview -->
+
+    <h2>HQ: the ledger — payments, credit notes, adjustments, statements and holds</h2>
+    <p>Each account has a <strong>ledger</strong>: <strong>invoices</strong> raise what it owes (an order that shipped or was collected; a till sale on account); <strong>payments</strong> and <strong>credit notes</strong> lower it; <strong>adjustments</strong> go either way, always with a note. The balance is simply the sum of the entries. Ageing is <strong>FIFO on due dates</strong>: a credit that names an order or a sale settles that invoice first (an EFT for its order, a credit note for its sale, a payment HQ recorded against an order); whatever is left, and every credit without a reference, is applied to the oldest due invoice first. The age analysis then buckets what is still open by how far past due it is — current, 1–30, 31–60 and more than 60 days ("90+") — and an unapplied credit shows as negative current, so the total is always the balance.</p>
+    <p>The <strong>Ledger &amp; statements</strong> tab has three forms and two tables:</p>
+    <ul>
+      <li><strong>Record a payment</strong> — an EFT that showed on the bank statement: <strong>Amount received (R)</strong>, the <strong>Bank reference</strong>, <strong>Received on</strong> (blank: today), <strong>Settles order</strong> (optional: applied to that invoice first, else oldest first) and a note; <strong>Record payment</strong>. If the account was on hold for an overdue invoice and nothing is past due any more, the hold lifts and the account is emailed ("Hold lifted").</li>
+      <li><strong>Credit note</strong> — a return HQ agreed, or a price correction: the amount, an optional reference (else the next <strong>TC-000123</strong>) and <strong>why</strong>; <strong>Issue credit note</strong>. A refund of a trade sale at a till raises its own credit note, numbered as the refund (next section).</li>
+      <li><strong>Adjustment</strong> — an HQ correction, signed ("−150.00 reduces what the account owes"), with a note; <strong>Post adjustment</strong>.</li>
+      <li><strong>Statement · September 2026</strong> — pick a month; opening and closing balances, what was overdue at month end, the month's lines with a running balance; <strong>Email statement</strong> sends it again by hand.</li>
+      <li><strong>Ledger</strong> — every entry newest first: when, kind, the reference (the invoice number, the bank reference, the credit note number) with the order it belongs to and a link to the tax invoice, the due date, debit, credit and the balance after it.</li>
+    </ul>
+    <div class="callout"><div class="lab">Overdue holds</div><p>The daily job puts an approved account on credit terms <strong>on hold</strong> when an invoice is still open more than the <strong>overdue grace</strong> (seven days by default) past its due date, after credits are applied FIFO. The reason is "overdue"; the email says what is past due on what balance ("Settle it and the hold lifts automatically"). The hold lifts itself the moment a payment, credit note or negative adjustment clears what is past due — a hold HQ placed by hand never does.</p></div>
+    <p>Statements go out <strong>once a month</strong> on the statement day (the 1st by default) for the previous month, to every approved or held account with anything on its ledger — once per account and month: the receipt is a row in HQ › Messages (kind <code>trade-statement</code>), so a rerun never sends a second copy. The email carries the opening balance, every line, the closing balance and the age analysis, and asks the account to pay by EFT with the invoice number as reference.</p>
+    <!-- <figure><img src="images/hq-trade-ledger.jpg" alt="A trade account's ledger in HQ"><figcaption><b>Ledger &amp; statements.</b> Record a payment, issue a credit note, post an adjustment; the month's statement; the ledger with due dates and the running balance.</figcaption></figure>  capture: /hq/trade/accounts/<Greenleaf Pharmacy>?tab=ledger -->
+
+    <h2>HQ: orders — confirm the EFT, pick, ship, short-ship, cancel</h2>
+    <p><strong>HQ › Trade › Orders</strong> lists orders from the portal and ones HQ placed for an account, under <em>Open · Pending EFT · To pick · Ready for collection · In transit (shipped in the last 7 days) · Done · Cancelled · All</em>; search by order number (TO-…), invoice number (TI-…) or the account's name or number. The work queues sort oldest first. An order is <strong>Awaiting EFT</strong>, <strong>To pick</strong>, <strong>Picking</strong>, <strong>Ready to collect</strong>, <strong>Shipped</strong>, <strong>Collected</strong> or <strong>Cancelled</strong>; the timeline on its page names each step (<em>Pro forma sent — awaiting EFT · Confirmed — stock reserved · Picking started · Packed and ready to collect · Shipped · Handed over · Cancelled</em>) with the time and any note.</p>
+    <ol class="steps">
+      <li><strong>Confirm the EFT.</strong> On an order awaiting EFT, the Payment card says what to look for: "When R3,220.00 shows on the bank statement with the reference HH-TO-000123". Enter the <strong>Bank reference</strong> and <strong>Paid on</strong> (blank: today) and tap <strong>Confirm payment</strong>: the order becomes <strong>To pick</strong>, the stock is reserved from now, the payment lands on the account's ledger, and the buyer gets "Order TO-000123 is confirmed". Confirming twice changes nothing. The payment is for the ordered total; if the order later ships short, the difference stays as credit on the ledger.</li>
+      <li><strong>Start picking</strong> (optional — an order can ship straight from "To pick"). The order shows as <strong>Picking</strong>.</li>
+      <li><strong>Ship order</strong>: the <strong>Courier</strong> and <strong>Tracking number</strong>, and — if a line cannot be filled in full — what was supplied of it (<strong>Short-shipping?</strong> Enter what was supplied; blank ships in full). An optional note goes to the account. <strong>Ship and invoice</strong> posts the sale at the DC: FEFO lots for what shipped, the <strong>tax invoice TI-000123</strong> as the sale's number, the <strong>invoice</strong> on the ledger (due after the payment days on account; due the same day for an EFT, so it nets against the payment), and emails "Order TO-000123 has shipped" with the courier, tracking and invoice, plus the tax invoice itself. A short line is invoiced for what went and shows "ordered 12, 6 supplied"; the order keeps its ordered total and shows <strong>Invoiced (short supplied)</strong> beside it.</li>
+      <li><strong>Cancel order</strong> with a reason (the account is told) at any point before it ships or is collected. It releases the reservation; a cancelled order that was paid by EFT notes "refund … by hand" — no money moves by itself.</li>
+    </ol>
+    <p>A click &amp; collect order is not shipped by HQ: its page shows "Click &amp; collect at Hatfield" with a link to the <strong>store's view</strong>; the store picks it, marks it ready and hands it over (next section). Every step is audited (<code>trade.order</code>, <code>.paid</code>, <code>.picking</code>, <code>.ready</code>, <code>.shipped</code>, <code>.collected</code>, <code>.cancelled</code>).</p>
+    <!-- <figure><img src="images/hq-trade-order-ship.jpg" alt="Shipping a trade order from the DC"><figcaption><b>Ship order.</b> Courier and tracking, a short-shipped line, the note to the account — then "Ship and invoice" posts the sale, numbers the tax invoice and raises the invoice on the ledger.</figcaption></figure>  capture: /hq/trade/orders/<a To pick courier order> with the Ship dialog open -->
+
+    <h2>The store: trade click &amp; collect orders</h2>
+    <p>When a trade account chooses click &amp; collect at your store, the store's phones get the same push as a new online order ("New online order · Hatfield — TO-000123 · Greenleaf Pharmacy · R3,220.00 · click &amp; collect (trade)"), and the order appears under <strong>Store › Trade orders</strong> — <em>To fulfil · Done · Cancelled</em>, oldest first while there is work to do, with its account, lines, total incl. VAT, payment (<em>On account</em> or <em>EFT (prepaid)</em>) and age (amber after four hours, red after a day). The money is never taken at the store: it was paid to HQ by EFT, or it is on the account's terms on HQ's ledger.</p>
+    <ol class="steps">
+      <li>Open the order. Its page shows the items in units ("2 × case of 12 (24 units)") with what the shelf holds right now — "Not enough on hand to fill this order" names any line that is short — the account and buyer, the payment, the timeline, and the <strong>collection code</strong> in a dark card ("Never read it out to them").</li>
+      <li><strong>Start picking</strong>, then <strong>Packed — ready for collection</strong>. The buyer gets "Order TO-000123 is ready" by email and a text with the code: "Trade order TO-000123 is ready at Herbal Holland Hatfield. Collection code 482913. Bring your ID (18+)."</li>
+      <li>When the driver or buyer arrives, <strong>Hand over TO-000123</strong>: tick <strong>I've seen the collector's ID — they're 18 or older</strong>, type the six-digit <strong>collection code</strong> they give you, tick <strong>Something is short</strong> and enter what you are handing over if a line is short, add a note if you like, and <strong>Complete handover</strong>.</li>
+    </ol>
+    <p>Handing over posts the sale <strong>at your store</strong> in the trade channel — FEFO lots, the handling fee, the tax invoice TI-000123, the invoice on the account's ledger — and emails the buyer ("Order TO-000123 collected") with the tax invoice. The page then reads "Handed over — sale TI-000123 posted at Hatfield · R3,306.25 incl. VAT in the trade (wholesale) channel, collected by HQ". The till's <strong>Orders</strong> board shows the same orders tagged <strong>Trade · TO-000123</strong> ("Being packed in the back office" until they are ready) and can do the handover too — the same code and ID tick, "nothing to take at the till". A manager or owner can <strong>Cancel</strong> a trade order with a reason; cashiers cannot.</p>
+    <!-- <figure><img src="images/store-trade-handover.jpg" alt="Handing over a trade click and collect order"><figcaption><b>Hand over.</b> The ID tick, the collection code, the short option, and the collection code card the store keeps to itself.</figcaption></figure>  capture: /store/PTA01/trade/<the READY Greenleaf order> with the handover form open -->
+
+    <h2>The till: trade-sale mode</h2>
+    <p>A business can also buy over the counter at any till, at its trade prices, on a full tax invoice. On the sell screen tap <strong>Trade sale</strong> (beside the member button; it needs a connection — the account, its prices and its credit terms live on the server, and a trade sale is never queued offline). The <strong>Trade sale</strong> sheet finds the account by trading or legal name, number (TA-…, however typed) or VAT number, and shows each hit's status, terms and what is available on account ("R18,400.00 available on account · owing R6,100.00"; "On hold — cash, card or EFT only"; "Prepaid — cash, card or EFT"). Pick one and the basket goes into trade mode: a blue banner <strong>Trade sale · Greenleaf Pharmacy</strong> with the terms chip replaces the member card ("Leave trade mode" to go back).</p>
+    <ul>
+      <li>Lines are priced by the server at the account's trade prices: <strong>R… ex VAT each</strong>, the VAT per line, and <strong>Total incl VAT</strong>. No member, points, member prices, deals, drops, welcome gifts or gift vouchers; a line the account may not buy is blocked with the reason. Age-restricted items still need the counter's 18+ check.</li>
+      <li><strong>Charge</strong> offers <strong>Cash</strong>, <strong>Card</strong>, <strong>EFT</strong> (the buyer pays now — check the proof of payment and key in the bank reference) and <strong>On account</strong>: "Put R1,380.00 on Greenleaf Pharmacy's account (TA-000001): invoiced on the account's ledger, due in 30 days", enabled only while the amount stays within what the account may still put on account (the credit decision less what this sale has already put on it; the server checks again when the sale posts). Tenders can be split. Points and vouchers are off.</li>
+      <li>The receipt is a <strong>tax invoice</strong>: the account's legal name, address and VAT number as the buyer block, unit prices ex VAT with the VAT per line, "On account - due 2 Nov 2026" for the on-account part, "Trade account TA-000001 - Greenleaf Pharmacy", and it is emailed to the account's billing address. The sale posts in the trade channel, with the on-account part as an <strong>invoice</strong> on the ledger (due after the payment days) and the rest as cash, card or EFT in the shift.</li>
+      <li><strong>Refunds</strong> work from Sales history as usual (a trade sale is tagged "Trade"). What was paid on account comes back onto the account as a <strong>credit note</strong> on the ledger — numbered as the refund, settling the original invoice first — before any money is paid out; only the cash or card part is refunded in money. Sales history says so: "Nothing to pay out: it all goes back onto the account as a credit note".</li>
+    </ul>
+    <p>Trade sales count in the shift's cash-up like any sale (the cash part), in the Z-report, and in the store's takings — the dashboard shows "of which trade R…" so retail and trade are never confused.</p>
+    <!-- <figure class="phone"><img src="images/pos-trade-sale.jpg" alt="A trade sale on the till"><figcaption><b>Trade-sale mode.</b> The blue account banner, lines ex VAT with VAT per line, "Total incl VAT", and On account among the tenders.</figcaption></figure>  capture: /pos, PTA01, after picking Greenleaf Pharmacy in the Trade sale sheet, with two lines in the basket -->
+
+    <h2>Finance: how trade money flows</h2>
+    <p>Every trade sale — an order the DC shipped, a collect order a store handed over, a sale rung up at a till — writes the same daily rollups as retail, under the <strong>WHOLESALE</strong> channel, so finance, the dashboards and the reports see it without reading raw sales. Where the money sits depends on how it was paid:</p>
+    <table class="compact">
+      <thead><tr><th>Trade sale</th><th>Paid by</th><th>Where the money is</th><th>On the store's statement</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Order shipped from the DC</td><td>EFT to HQ, or on account</td><td>HQ's bank account, or HQ's trade ledger</td><td>The DC is HQ's own store: no franchise statement</td></tr>
+        <tr><td class="k">Collect order handed over at a store</td><td>EFT to HQ, or on account</td><td>HQ collected it — it rolls up with online payments ("collected by HQ")</td><td>Credited to the store as HQ-collected takings; royalty and levy on the net sale; no e-commerce commission</td></tr>
+        <tr><td class="k">Till sale, cash or card</td><td>Money at the till</td><td>The store's cash-up and card settlement</td><td>Royalty and levy on the net sale, as any sale</td></tr>
+        <tr><td class="k">Till sale, on account</td><td>The account's terms</td><td>HQ's trade ledger ("sales on account" — invoiced, not yet money)</td><td>Credited to the store as HQ-collected; HQ carries the credit risk</td></tr>
+      </tbody>
+    </table>
+    <p>So a store is paid for every trade sale it makes or hands over: the monthly franchise statement's <strong>net sales</strong> include trade (shown separately — "online R…, trade R…"), <strong>royalty and the marketing levy</strong> run on it at the store's rates, the e-commerce commission does not, and what HQ collected (EFTs, sales on account, collect orders) is <strong>credited back</strong> on the statement: "Trade sales on account are on HQ's ledger — HQ carries the credit risk and credits them to you here." Points are never issued on trade, so nothing is reimbursed for them. The VAT working counts trade output VAT like any other; the P&amp;L carries trade in its sales and margin; the store dashboard's <strong>Takings today</strong> and <strong>Net sales</strong> say "of which trade R…".</p>
+    <p>On HQ's side the <strong>trade ledger</strong> is the debtors' book: the balance outstanding and its ageing on HQ › Trade, the aged balances report below, and the statements. An EFT confirmed against a pro forma is money in HQ's account before the sale is posted; when the order ships, the invoice nets against it on the ledger (both due the same day), so a prepaid account's balance returns to zero — or to a small credit when a line shipped short.</p>
+
+    <h2>Reports</h2>
+    <p>Two reports under HQ › Reports (and from the trade overview); an area manager gets them for their region's stores, a store for its own trade sales:</p>
+    <ul>
+      <li><strong>Trade sales</strong> — <em>By trade account</em> (account, number, type, orders, units, ex VAT, VAT, incl VAT, average order ex VAT and share of trade; terms, city, credit notes and last order in the CSV), with the top ten accounts charted; <em>By product</em> (what trade accounts take — units, average unit price ex VAT, ex VAT, VAT, incl VAT, and how many accounts buy it); and <em>By month</em>. The headline figures compare with the previous period and show trade's share of all sales.</li>
+      <li><strong>Trade aged balances</strong> — every account's balance split into current, 30, 60 and 90+ days past due as of today, after credits are applied FIFO, with the totals and how many accounts are past due.</li>
+    </ul>
+    <p>Trade is also a channel on the sales reports and the finance pages wherever a channel can be chosen (in store · online · trade), and <strong>Sales by channel</strong> shows its share. Downloads and schedules ("Email me this") work as for every report (chapter 6).</p>
+    <!-- <figure><img src="images/hq-report-trade-sales.jpg" alt="The Trade sales report"><figcaption><b>Trade sales</b>, 30 days, all stores: by account with the top accounts charted, by product and by month.</figcaption></figure>  capture: /hq/reports/trade-sales, 30 days -->
+
+    <h2>Settings and jobs</h2>
+    <p><strong>HQ › Settings › Trade (wholesale)</strong> holds the channel's terms, all in rand ex VAT: <strong>Minimum order</strong> (R2,000, after any promotion), <strong>Courier fee</strong> (R150, flat, from the DC) and <strong>Free courier over</strong> (R5,000; 0 means never free), <strong>Collect handling fee</strong> (R75, the store's fee on click &amp; collect), <strong>EFT hold</strong> (3 days — unpaid pro formas lapse after it), <strong>Overdue grace</strong> (7 days past due puts an account on hold), <strong>Statement day</strong> (the 1st), the <strong>Terms version</strong> stored on each account when it applies (<code>trade-1</code>), and the <strong>bank details</strong> printed on every pro forma — <strong>Bank, Account name, Account number, Branch code</strong>. "Fill these in before the first trade order": the overview says "bank details not set yet" until they are. <strong>Save trade settings</strong>; every change is audited. Trade price lists are made under HQ › Pricing with the kind <em>Trade</em> — items hold ex-VAT prices and a minimum quantity for each break.</p>
+    <p>The <strong>daily job</strong> (02:00 SAST) runs three trade tasks, each idempotent: <strong>EFT expiry</strong> cancels pro formas unpaid past the hold and tells the buyer; <strong>overdue holds</strong> puts accounts with an invoice past due beyond the grace on hold with the reason "overdue"; and on the statement day, <strong>statements</strong> emails last month's statement to every approved or held account with ledger activity, once each. Every email the channel sends — the sign-in code, the application received, approved, on hold, hold lifted, closed, the pro forma, the order confirmed, ready, shipped, collected or cancelled, the tax invoice or credit note, the statement — starts its subject with "Herbal Holland Trade" and is in HQ › Messages; the ready-to-collect text is one SMS segment. New applications are announced at <code>TRADE_EMAIL</code> (else <code>FRANCHISE_EMAIL</code>).</p>
+    <p>Everything a trade buyer or HQ does is in the audit log under <code>trade.*</code> — the application and sign-ins, approvals and holds, orders and each step, payments, credit notes and adjustments, statements, and every trade sale at a till (<code>trade.sale</code>, with the account and what went on account).</p>
+    <div class="callout note"><div class="lab">Before go-live</div><p>Have counsel sign off the trade terms (the page is marked as a draft); put the real bank account in the settings; decide which ranges pharmacies may be approved for; and appoint the trade team's address. Appendix D lists these with the other open decisions.</p></div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════ CHAPTER 8 ═══════════════════════════════════════ -->
+<section class="chapter" data-num="8" data-title="herbalholland.com: the corporate site" data-short="herbalholland.com">
+  <div class="dark-page opener">
+    <div class="rail"></div>
+    <div class="num">8</div>
+    <div class="eyebrow">Chapter 8</div>
     <h1>herbalholland.com: the corporate site</h1>
     <div class="lede">A separate, static site on Cloudflare: the brand, the stores, franchising, press and careers — <b>no prices, no deals, no health claims</b>. Every "Shop online" leads to the early-access list until the shop opens, then to the shop.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
@@ -1153,7 +1320,7 @@
       <figure><img src="images/site-home-access.jpg" alt="The early-access form"><figcaption><b>Get first access.</b> Email and/or mobile, optional first name and province, "I'm 18 or older", and an <em>unticked</em> consent to hear about the launch — the POPIA basis for the launch messages.</figcaption></figure>
       <figure><img src="images/site-access-done.jpg" alt="The confirmation"><figcaption><b>Done.</b> "You're on the list — we'll tell you first." Every message will carry an unsubscribe link.</figcaption></figure>
     </div>
-    <p>Until the shop opens, every "Shop online" and "Join Rewards" door leads to this form (on the home page's last scene and on Stores). It posts to the Worker, which keeps the sign-up in the site's own Cloudflare D1 database (<code>herbalholland-com-eu</code>, EU jurisdiction) with the version of the consent wording, refuses duplicates quietly, rate-limits repeat attempts, and <strong>deletes every sign-up 12 months after it joined the list</strong>. Nothing reaches the platform automatically: on launch day HQ exports the list (chapter 10) and sends the launch message only through the platform's consent-checked messaging, with an opt-out in every message.</p>
+    <p>Until the shop opens, every "Shop online" and "Join Rewards" door leads to this form (on the home page's last scene and on Stores). It posts to the Worker, which keeps the sign-up in the site's own Cloudflare D1 database (<code>herbalholland-com-eu</code>, EU jurisdiction) with the version of the consent wording, refuses duplicates quietly, rate-limits repeat attempts, and <strong>deletes every sign-up 12 months after it joined the list</strong>. Nothing reaches the platform automatically: on launch day HQ exports the list (chapter 11) and sends the launch message only through the platform's consent-checked messaging, with an opt-out in every message.</p>
 
     <h2>Franchise enquiries: where they land</h2>
     <p>The enquiry form asks for name, email, mobile, where they'd like to open, province, a capital band ("your own funds you could invest — a rough band is fine"), retail or business experience, whether they have a pharmacist partner, an optional message, and consent to use the details to reply. The Worker checks it with the platform's own rules, stores it in D1, gives the enquirer a reference (shown on screen with what happens next), and passes it on:</p>
@@ -1183,12 +1350,12 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ CHAPTER 8 ═══════════════════════════════════════ -->
-<section class="chapter" data-num="8" data-title="Payments and integrations" data-short="Payments and integrations">
+<!-- ═══════════════════════════════════════════ CHAPTER 9 ═══════════════════════════════════════ -->
+<section class="chapter" data-num="9" data-title="Payments and integrations" data-short="Payments and integrations">
   <div class="dark-page opener">
     <div class="rail"></div>
-    <div class="num">8</div>
-    <div class="eyebrow">Chapter 8</div>
+    <div class="num">9</div>
+    <div class="eyebrow">Chapter 9</div>
     <h1>Payments and integrations</h1>
     <div class="lede">Online payments through <b>Peach Payments</b> (chosen; Yoco kept; simulated in demo), <b>Yoco card machines</b> in store, SMS, email and app push, wallet passes for the Rewards card, ID checks, couriers, accounting, file storage, the merch partner and social posting — and every environment variable by name.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
@@ -1214,7 +1381,7 @@
         <tr><td class="k">Daily reconciliation</td><td>Merchant reference = order code; payment id = the order's payment reference (Dashboard › Reporting)</td><td>externalId = order code; checkout id = payment reference</td><td>—</td></tr>
       </tbody>
     </table>
-    <p>The go-live procedures (sandbox, hash key, webhook, the Cloudflare rule that lets webhooks through, the live smoke test) are in the runbook and summarised in chapter 10.</p>
+    <p>The go-live procedures (sandbox, hash key, webhook, the Cloudflare rule that lets webhooks through, the live smoke test) are in the runbook and summarised in chapter 11.</p>
 
     <h2>In-store cards: Yoco machines, tap on glass, bank terminals</h2>
     <p><code>NEXT_PUBLIC_TAP_PROVIDER</code> decides the till's card tender for the whole network (set in the app's runtime environment, never at image build; each till picks it up on its next refresh and shows it under Shift › This till › Card payments):</p>
@@ -1251,7 +1418,7 @@
       <dt>Merch partner</dt><dd>Made-to-order merch (embroidered tee, hoodie, crewneck, cap, bucket hat, beanie; printed tote) is made one at a time by the partner (Lucani, Cape Town) and couriered white-label. No API: a paid order with merch is emailed to the partner as a production order (<code>POD_EMAIL</code>, <code>POD_PARTNER_NAME</code>) by the 15-minute job with links to the print files; the partner emails back the tracking, which the DC enters on the order (<em>Merch shipped</em>).</dd>
       <dt>Social</dt><dd>Postiz (open source, self-hosted or cloud) publishes to Instagram, Facebook, LinkedIn, X and Threads (<code>POSTIZ_URL</code>, <code>POSTIZ_API_KEY</code>); pictures are fetched from the app, so <code>APP_URL</code> must be public.</dd>
       <dt>Wallet passes</dt><dd>The Rewards card as an Apple Wallet pass (<span class="route">/club/wallet/apple.pkpass</span> — pass, manifest and a PKCS#7 signature, zipped) and as a Google Wallet pass (<span class="route">/club/wallet/google</span> — a signed "Save to Google Wallet" link). Both carry the member number as the till's QR code, the tier, the points and the first name, nothing else personal; both need their keys (<code>WALLET_APPLE_*</code>, <code>WALLET_GOOGLE_*</code>) or the buttons stay hidden.</dd>
-      <dt>Scheduler</dt><dd>Something must call four endpoints with <code>Authorization: Bearer $CRON_SECRET</code>, from the server itself and not through Cloudflare: <code>POST /api/cron/frequent</code> every 15 minutes, <code>POST /api/cron/staff-push</code> every 5 minutes (staff phone notifications), <code>POST /api/cron/daily</code> at 02:00 SAST, and <code>POST /api/cron/operations</code> at 03:00 SAST (expiring lots, cash due at the bank, the low-stock digest, scheduled report exports, pruning). Chapter 10 lists what each job does; every job is idempotent, so a missed or doubled run is harmless.</dd>
+      <dt>Scheduler</dt><dd>Something must call four endpoints with <code>Authorization: Bearer $CRON_SECRET</code>, from the server itself and not through Cloudflare: <code>POST /api/cron/frequent</code> every 15 minutes, <code>POST /api/cron/staff-push</code> every 5 minutes (staff phone notifications), <code>POST /api/cron/daily</code> at 02:00 SAST, and <code>POST /api/cron/operations</code> at 03:00 SAST (expiring lots, cash due at the bank, the low-stock digest, scheduled report exports, pruning). Chapter 11 lists what each job does; every job is idempotent, so a missed or doubled run is harmless.</dd>
       <dt>Health</dt><dd><span class="route">GET /api/health</span> for the load balancer.</dd>
     </dl>
 
@@ -1298,12 +1465,12 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ CHAPTER 9 ═══════════════════════════════════════ -->
-<section class="chapter" data-num="9" data-title="Compliance built in" data-short="Compliance">
+<!-- ═══════════════════════════════════════════ CHAPTER 10 ═══════════════════════════════════════ -->
+<section class="chapter" data-num="10" data-title="Compliance built in" data-short="Compliance">
   <div class="dark-page opener">
     <div class="rail"></div>
-    <div class="num">9</div>
-    <div class="eyebrow">Chapter 9</div>
+    <div class="num">10</div>
+    <div class="eyebrow">Chapter 10</div>
     <h1>Compliance built in</h1>
     <div class="lede">The South African rules the software enforces — written for a manager, with the law named. The rules are <b>data</b> (HQ › Compliance), evaluated on the server for every sale and order, so nothing in a screen can bypass them.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
@@ -1358,7 +1525,7 @@
       <dt>Profiling (s11(3))</dt><dd>My Deals use purchase history only for members with personalised deals on; the app lets them turn it off.</dd>
       <dt>Staff monitoring</dt><dd>Loss-prevention rules are transparent and show their evidence; an alert is never shown or emailed to the person it is about. Franchisees must tell staff in their employee privacy notice that till, cash and stock activity is monitored for loss prevention.</dd>
       <dt>Cross-border (s72)</dt><dd>Banking slips in Cloudflare R2 (EU) and the site's enquiries and early-access list in Cloudflare D1 (EU) are transfers abroad — record them in the POPIA register.</dd>
-      <dt>Breach (s22)</dt><dd>Contain (revoke sessions, rotate secrets), assess from the audit log, notify the Regulator and the people affected, document everything (chapter 10).</dd>
+      <dt>Breach (s22)</dt><dd>Contain (revoke sessions, rotate secrets), assess from the audit log, notify the Regulator and the people affected, document everything (chapter 11).</dd>
     </dl>
 
     <h2>Direct marketing windows and the opt-out registry (CPA)</h2>
@@ -1401,12 +1568,12 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ CHAPTER 10 ══════════════════════════════════════ -->
-<section class="chapter" data-num="10" data-title="Running it: deploys, releases, launch day, routine and incidents" data-short="Running it">
+<!-- ═══════════════════════════════════════════ CHAPTER 11 ══════════════════════════════════════ -->
+<section class="chapter" data-num="11" data-title="Running it: deploys, releases, launch day, routine and incidents" data-short="Running it">
   <div class="dark-page opener">
     <div class="rail"></div>
-    <div class="num">10</div>
-    <div class="eyebrow">Chapter 10</div>
+    <div class="num">11</div>
+    <div class="eyebrow">Chapter 11</div>
     <h1>Running it: deploys, releases, launch day, routine and incidents</h1>
     <div class="lede">Environments, the first deploy, releasing the app and the site, launch day, the <b>daily, weekly and monthly rhythm</b>, backups, incidents, the exceptions worth reviewing, the loss-prevention rules — and the checklist for opening a store.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
@@ -1426,7 +1593,7 @@
 
     <h2>First deploy and go-live procedures</h2>
     <ol class="steps">
-      <li><strong>Server</strong>: Docker + Postgres 16, a <code>cloudflared</code> tunnel to port 3000, the environment variables (chapter 8). Cloudflare: proxied DNS, SSL Full (strict), WAF managed rules, a cache rule for <code>/_next/static/*</code>, and a WAF rule that lets <code>POST /api/payments/peach</code> (and <code>/yoco</code>) through without challenges — a challenged webhook never lands.</li>
+      <li><strong>Server</strong>: Docker + Postgres 16, a <code>cloudflared</code> tunnel to port 3000, the environment variables (chapter 9). Cloudflare: proxied DNS, SSL Full (strict), WAF managed rules, a cache rule for <code>/_next/static/*</code>, and a WAF rule that lets <code>POST /api/payments/peach</code> (and <code>/yoco</code>) through without challenges — a challenged webhook never lands.</li>
       <li><strong>R2</strong>: a bucket in the EU jurisdiction with a token limited to it; else slips live under <code>UPLOAD_DIR</code> — include it in backups.</li>
       <li><strong>Build</strong> the image, run the migrations, start the app; health check <span class="route">/api/health</span>.</li>
       <li>Create the first HQ administrator and set <code>DEMO_MODE=false</code>.</li>
@@ -1441,7 +1608,7 @@
     <h2>Releases</h2>
     <ul>
       <li><strong>The app</strong>: migrations run before the new version starts and take table locks — apply them outside trading hours (after 22:00 SAST); tills keep selling offline and sync afterwards. Before big releases re-run the load test, the crawl and the end-to-end journeys against a production-sized copy. Measured capacity: about 45 sales a second on one instance; POS posting p95 about 440 ms.</li>
-      <li><strong>The site</strong>: build, apply D1 migrations, deploy — or upload a preview version first for the owner (chapter 7). Rebuild on or after a press release's date; set <code>shop.url</code> when the shop opens.</li>
+      <li><strong>The site</strong>: build, apply D1 migrations, deploy — or upload a preview version first for the owner (chapter 8). Rebuild on or after a press release's date; set <code>shop.url</code> when the shop opens.</li>
     </ul>
 
     <h2>Launch day</h2>
@@ -1538,12 +1705,12 @@
   </div>
 </section>
 
-<!-- ═══════════════════════════════════════════ CHAPTER 11 ══════════════════════════════════════ -->
-<section class="chapter" data-num="11" data-title="Appendices" data-short="Appendices" data-letters="1">
+<!-- ═══════════════════════════════════════════ CHAPTER 12 ══════════════════════════════════════ -->
+<section class="chapter" data-num="12" data-title="Appendices" data-short="Appendices" data-letters="1">
   <div class="dark-page opener">
     <div class="rail"></div>
-    <div class="num">11</div>
-    <div class="eyebrow">Chapter 11</div>
+    <div class="num">12</div>
+    <div class="eyebrow">Chapter 12</div>
     <h1>Appendices</h1>
     <div class="lede"><b>A</b> Demo logins and PINs · <b>B</b> The catalogue import columns · <b>C</b> Glossary · <b>D</b> What's still to be decided.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
@@ -1558,6 +1725,7 @@
         <tr><td class="k">Area manager</td><td>area.gpn@herbalholland.co.za</td><td>HQ console, Tshwane &amp; North region</td></tr>
         <tr><td class="k">Franchise owner</td><td>thabo@mokoenaretail.co.za</td><td>All my stores: Mokoena Retail — Hatfield and Brooklyn</td></tr>
         <tr><td class="k">Store manager (and responsible dispenser)</td><td>manager.pta01@herbalholland.co.za</td><td>Hatfield's back office</td></tr>
+        <tr><td class="k">Trade buyer (owner of Greenleaf Pharmacy, TA-000001, on account)</td><td>trade@greenleafpharmacy.co.za</td><td>The trade portal — no password: the 6-digit code is shown on screen in demo mode (<span class="route">/trade/login</span>)</td></tr>
       </tbody>
     </table>
     <p>Till: open <span class="route">/pos</span>, use one-click pairing to a store, then PIN <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> or <code>4444</code> (cashiers). Shop: <span class="route">/</span> — the SMS code is shown on screen. Direct sign-in: <span class="route">/api/auth/demo?email=hq@herbalholland.co.za&amp;next=/hq</span>. Reseed the demo with <code>npm run db:seed</code> (it truncates every table; <code>SEED_STORES=1000 SEED_DAYS=30</code> makes a production-sized copy for load tests).</p>
@@ -1612,20 +1780,24 @@
       <dt>Authorised dispenser</dt><dd>A staff member (usually the responsible pharmacist) who may complete sales of licensed medicines; ticked by the owner in Store › Team.</dd>
       <dt>Batch / lot</dt><dd>A production lot with its own code, expiry and certificate of analysis; stock is kept and sold per batch.</dd>
       <dt>Budtender</dt><dd>The role name for a cashier or member advisor at the till.</dd>
+      <dt>Case pack</dt><dd>The number of units a trade line is sold in (six oils, twelve coffees, twenty-four papers; one for grow equipment and apparel). Trade orders are placed in whole cases; the till sells any quantity.</dd>
       <dt>Cash-up</dt><dd>A closed till shift: float, cash taken, counted, variance — the basis for banking.</dd>
       <dt>COA</dt><dd>Certificate of analysis: the laboratory's results for a batch, public at /batch/&lt;code&gt; and as a panel on the product page.</dd>
       <dt>Collection code</dt><dd>The 6-digit code (and QR) a member shows to collect an online order; verified at handover with an ID check.</dd>
+      <dt>Credit note</dt><dd>A negative entry on a trade account's ledger: a return or price correction HQ agreed (numbered TC-000001…), or the on-account part of a refunded trade sale (numbered as the refund). It settles the invoice it names first.</dd>
       <dt>Customer display</dt><dd>A second screen (/pos/display) that mirrors the till's sale for the member being served: lines, deals, points, the total, the thank-you.</dd>
       <dt>DC</dt><dd>Distribution centre: a warehouse store that supplies retail stores and ships courier orders.</dd>
       <dt>Drop</dt><dd>A limited, members-only release with tier early access and a per-member limit. Never medicines.</dd>
       <dt>FEFO / FIFO</dt><dd>First expiry, first out (how stock is picked); first in, first out (how cost is taken).</dd>
       <dt>Founding Member</dt><dd>One of the first members on the launch list, with a numbered card and a tier floor for a set period.</dd>
       <dt>Gift voucher</dt><dd>Prepaid value (R200, R500 or R1,000) with a code, valid three years, redeemed online in the bag or at checkout; money, never a promotion.</dd>
+      <dt>Handling fee</dt><dd>What a trade account pays (R75 ex VAT by default) for a click &amp; collect order a store packs and hands over; it is part of the sale posted at that store.</dd>
       <dt>Incentive-excluded</dt><dd>Classes that get no promotion, member price, markdown, points, deal, gift, drop or commission (Medicines Act s18A): licensed products in medical mode and the "no incentives" classes.</dd>
       <dt>Instant saving / member price</dt><dd>The tier percentage (or a member price list) applied the moment a member is identified, at the till and online.</dd>
       <dt>Members only</dt><dd>The rule that every sale needs a registered member.</dd>
       <dt>My Deals</dt><dd>A weekly personal offer on a member's favourite eligible product, HQ-funded and credited to the store.</dd>
       <dt>Network trading</dt><dd>Stores buying and selling surplus stock with each other, cleared by HQ on the statement.</dd>
+      <dt>On account</dt><dd>A trade account's credit terms: a sale or order is invoiced on HQ's trade ledger and falls due after the account's payment days, within its credit limit. Never money at the time of sale.</dd>
       <dt>Opening checklist</dt><dd>The tasks HQ ticks off before a store opens — legal, set-up, people, launch — seeded when the store is onboarded, with due dates counted back from the opening day.</dd>
       <dt>Par / reorder point</dt><dd>Order up to par when stock is at or below the reorder point; both set per item per store.</dd>
       <dt>Patient authorisation</dt><dd>A SAHPRA Section 21 authorisation registered against a member, with a monthly quantity.</dd>
@@ -1636,6 +1808,8 @@
       <dt>Statement</dt><dd>The monthly franchise statement between HQ and a store, netted to one amount.</dd>
       <dt>Tier</dt><dd>Seed, Sprout, Bloom, Harvest — by rolling 12-month spend, each with an instant saving.</dd>
       <dt>Today list</dt><dd>The store's to-do list at the top of the overview — orders, alerts, cash, updates, expiring lots, low stock, counts, authorisations, invoices — most urgent first.</dd>
+      <dt>Trade account</dt><dd>A business approved to buy at trade prices (TA-000001…): its legal details for the tax invoice, the ranges it may buy, prepaid or on-account terms, a credit limit and payment days, its buyers and its ledger.</dd>
+      <dt>Trade order</dt><dd>An order placed in the trade portal (TO-000001…): whole cases at ex-VAT prices, by courier from the DC or click &amp; collect at a store, paid by EFT against a pro forma or on account; invoiced TI-000001… when it ships or is collected.</dd>
       <dt>Training mode</dt><dd>The till on a sandbox: practice sales numbered TRAINING 0001…, nothing posted, printed for real, moved or awarded; started and ended with a manager's PIN.</dd>
       <dt>Z-report / X-report</dt><dd>The shift's closing report / the live report during the shift.</dd>
     </dl>
@@ -1653,12 +1827,13 @@
         <tr><td class="k">Counsel sign-off</td><td>Medical-mode flows, the class × channel matrix, the claims library, the membership terms (directors' names), the returns policy's ECTA s42 exclusions and failed-delivery terms, whether CBD supplements may carry incentives, the legal basis for CBD skin care, whether collagen and protein are foodstuffs, and the CBD food labels.</td></tr>
         <tr><td class="k">Founding Members</td><td>The numbers are settled — the platform's defaults are the site's 2,026 places and 14 months; only the closing date is still to be set in HQ › Founding Members (the settings lock once numbers are assigned).</td></tr>
         <tr><td class="k">Vouchers at the till</td><td>Done: the till takes gift vouchers as a tender (typed or scanned, online only, never on a queued sale) and refunds return the voucher part to the voucher; the gift page, the voucher email and the SMS say "online or in store". Nothing left to decide.</td></tr>
+        <tr><td class="k">Trade terms and bank details</td><td>The trade terms at <span class="route">/trade/terms</span> are placeholder wording marked for counsel (the version each applicant accepted, <code>trade-1</code>, is recorded on the account); the bank account EFT pro formas quote — HQ › Settings › Trade — before the first trade order (the demo prints "Demo Bank · 000 000 0000"); and whether CBD supplements may be traded to pharmacies on these terms.</td></tr>
         <tr><td class="k">Company facts</td><td>Vantax (Pty) Ltd's registration and VAT numbers, address and phone for the site's company details and the ECTA s43 information; the Information Officer's registration number.</td></tr>
         <tr><td class="k">Providers</td><td>SMSPortal and SMTP accounts; VAPID keys; the Apple Wallet pass certificate and the Google Wallet issuer account; Postiz with the five social accounts; the merch partner's trade account, samples and prices; the courier account; NCC direct-marketing registration and the first registry import.</td></tr>
         <tr><td class="k">Social profiles</td><td>The brand's profile URLs for <code>ORG_SAME_AS</code> and <code>facts.ts</code>; Google Business Profiles per store.</td></tr>
       </tbody>
     </table>
-    <p class="small" style="margin-top:14pt">Herbal Holland platform — complete system guide, version 1.1, 30 September 2026. Written from the code at that date; the platform keeps changing, so check the screen in front of you when it differs from this page.</p>
+    <p class="small" style="margin-top:14pt">Herbal Holland platform — complete system guide, version 1.2, 3 October 2026. Written from the code at that date; the platform keeps changing, so check the screen in front of you when it differs from this page.</p>
   </div>
 </section>
 
