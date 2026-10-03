@@ -2,8 +2,11 @@
 // Online orders for this store: New → Picking → Ready → Handover, each card timed against
 // the 15-minute ready SLA. Handover checks the collection code, 18+ ID, a dispenser for
 // licensed items and takes payment if unpaid; delivery orders are dispatched with tracking.
+// Trade click & collect orders (tagged "Trade · TO-…") sit alongside: packed in the back
+// office, then handed over here against the buyer's 6-digit code and an ID check — nothing
+// is paid at the till (HQ's EFT, or the account's terms).
 import { useEffect, useMemo, useState } from "react";
-import { Bike, Clock, IdCard, Package, PackageCheck, Pill, QrCode, RefreshCw, ShieldCheck, ShoppingBag, Truck, XCircle } from "lucide-react";
+import { Bike, Building2, Clock, IdCard, Package, PackageCheck, Pill, QrCode, RefreshCw, ShieldCheck, ShoppingBag, Truck, XCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
@@ -105,6 +108,8 @@ export function OrdersBoard() {
   }
 
   const primary = (o: OrderCard) => {
+    // Trade orders are packed and marked ready in the back office; the till only hands them over.
+    if (o.trade) return o.status === "READY" ? { label: "Hand over", run: () => (setOpen(o), setAction("handover")), icon: ShoppingBag } : null;
     if (o.status === "PLACED") return { label: "Start picking", run: () => void advance(o, "PICKING"), icon: Package };
     if (o.status === "PICKING") return { label: "Mark ready", run: () => void advance(o, "READY"), icon: PackageCheck };
     if (o.status === "READY" && o.fulfilment === "COLLECT") return { label: "Hand over", run: () => (setOpen(o), setAction("handover")), icon: ShoppingBag };
@@ -135,7 +140,11 @@ export function OrdersBoard() {
               <div className="font-mono text-base font-bold tracking-wide text-white">{o.code}</div>
               <div className="mt-0.5 text-sm text-ink-300">{o.customer.name}</div>
             </div>
-            {o.status === "PLACED" || o.status === "PICKING" ? (
+            {o.trade && (o.status === "PLACED" || o.status === "PICKING") ? (
+              <Chip tone="neutral" icon={<Package className="h-3 w-3" />}>
+                Back office
+              </Chip>
+            ) : o.status === "PLACED" || o.status === "PICKING" ? (
               <Chip tone={sla.state === "late" ? "red" : sla.state === "warn" ? "amber" : "green"} icon={<Clock className="h-3 w-3" />}>
                 {sla.minutes} min{sla.state === "late" ? " · late" : ""}
               </Chip>
@@ -144,10 +153,15 @@ export function OrdersBoard() {
             ) : null}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
+            {o.trade && (
+              <Chip tone="blue" icon={<Building2 className="h-3 w-3" />}>
+                <span data-testid="trade-order-chip">Trade · {o.trade.number}</span>
+              </Chip>
+            )}
             <Chip tone="neutral" icon={<F.icon className="h-3 w-3" />}>
               {F.label}
             </Chip>
-            {o.paid ? <Chip tone="green">Paid</Chip> : <Chip tone="amber">Pay {zar(o.dueCents)} in store</Chip>}
+            {o.trade ? <Chip tone="green">{o.trade.payMethod === "ACCOUNT" ? "On account" : "Paid by EFT"}</Chip> : o.paid ? <Chip tone="green">Paid</Chip> : <Chip tone="amber">Pay {zar(o.dueCents)} in store</Chip>}
             {o.licensed && (
               <Chip tone="orange" icon={<Pill className="h-3 w-3" />}>
                 Dispenser
@@ -172,7 +186,7 @@ export function OrdersBoard() {
               <p.icon className="h-4 w-4" /> {p.label}
             </PosButton>
           ) : (
-            <div className="px-1 pb-1 text-center text-xs text-ink-500">{o.fulfilment === "COLLECT" ? "Collected" : "Delivered"}</div>
+            <div className="px-1 pb-1 text-center text-xs text-ink-500">{done ? (o.fulfilment === "COLLECT" ? "Collected" : "Delivered") : o.trade ? "Being packed in the back office" : o.fulfilment === "COLLECT" ? "Collected" : "Delivered"}</div>
           )}
         </div>
       </li>
@@ -287,14 +301,22 @@ function OrderSheet({
     setCode(qr.collectionCode);
   };
   const needsDispenser = o.licensed && !pos.me.canDispense;
+  const trade = o.trade ?? null;
 
   const post = async (body: Record<string, unknown>) => api<{ order: { trackingNo: string | null } }>(`/api/pos/orders/${o.id}`, { body });
 
   async function handover() {
     setError(null);
     if (o.ageRestricted && !idOk) return setError("Tick the ID check — adults 18+ only");
+    if (trade && !/^\d{6}$/.test(code.replace(/\D/g, ""))) return setError("Enter the 6-digit collection code from the buyer's email or text");
     setBusy(true);
     try {
+      if (trade) {
+        // The server checks the code against the order and posts the WHOLESALE sale at this store with the handling fee.
+        await api(`/api/pos/trade/orders/${trade.id}/collect`, { body: { code: code.replace(/\D/g, ""), idChecked: idOk } });
+        await onDone(`${o.code} handed over to ${o.customer.name}`);
+        return;
+      }
       await post({ to: "COMPLETED", code, idChecked: idOk, check: true });
       if (!o.paid) {
         setPaying(true);
@@ -330,7 +352,7 @@ function OrderSheet({
     }
   }
 
-  const title = action === "handover" ? `Hand over ${o.code}` : action === "dispatch" ? `Dispatch ${o.code}` : action === "delivered" ? `Delivered ${o.code}` : action === "cancel" ? `Cancel ${o.code}` : `Order ${o.code}`;
+  const title = action === "handover" ? `Hand over ${o.code}` : action === "dispatch" ? `Dispatch ${o.code}` : action === "delivered" ? `Delivered ${o.code}` : action === "cancel" ? `Cancel ${o.code}` : `${trade ? "Trade order" : "Order"} ${o.code}`;
 
   return (
     <>
@@ -338,7 +360,7 @@ function OrderSheet({
         open={!paying}
         onClose={onClose}
         title={title}
-        subtitle={`${o.customer.name} · ${o.customer.memberNo} · ${o.customer.phone}`}
+        subtitle={trade ? `Trade · ${trade.account.name} · ${trade.account.number}` : `${o.customer.name} · ${o.customer.memberNo} · ${o.customer.phone}`}
         size="md"
         footer={
           action === "handover" ? (
@@ -357,6 +379,11 @@ function OrderSheet({
             <PosButton variant="danger" size="lg" className="w-full" busy={busy} disabled={reason.trim().length < 3} onClick={() => void simple({ to: "CANCELLED", note: reason.trim() }, () => `${o.code} cancelled — the member has been told`)}>
               <XCircle className="h-5 w-5" /> Cancel order
             </PosButton>
+          ) : trade ? (
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-sm text-ink-400">{o.status === "READY" ? "Ready for the buyer to collect" : o.status === "COMPLETED" ? "Collected" : "Being packed in the back office"}</span>
+              {o.status === "READY" && <PosButton variant="primary" onClick={() => onAction("handover")}>Hand over</PosButton>}
+            </div>
           ) : (
             <div className="flex flex-wrap justify-between gap-2">
               {["PLACED", "PICKING", "READY"].includes(o.status) ? (
@@ -378,10 +405,21 @@ function OrderSheet({
 
         {action === "handover" && (
           <div className="mb-5 space-y-4">
-            <Field label="Collection code" htmlFor="collect-code" hint={initialCode && code === initialCode ? "From the member's collection QR — checked when you hand over" : "The 6-digit code from the member's SMS or QR — or their order code"}>
+            {trade && (
+              <Alert tone="info">
+                <span data-testid="trade-handover">
+                  Trade order for <b>{trade.account.name}</b> ({trade.account.number}) · {trade.payMethod === "ACCOUNT" ? "on the account's terms" : "paid by EFT to HQ"} — nothing to take at the till. Handing it over posts the tax invoice with the handling fee.
+                </span>
+              </Alert>
+            )}
+            <Field
+              label="Collection code"
+              htmlFor="collect-code"
+              hint={trade ? "The 6-digit code from the buyer's email or text — it must match this order" : initialCode && code === initialCode ? "From the member's collection QR — checked when you hand over" : "The 6-digit code from the member's SMS or QR — or their order code"}
+            >
               <div className="flex gap-2">
-                <TextInput id="collect-code" autoFocus inputMode="text" autoComplete="off" value={code} onChange={(e) => takeCode(e.target.value)} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />
-                {canCamera && (
+                <TextInput id="collect-code" autoFocus inputMode={trade ? "numeric" : "text"} autoComplete="off" value={code} onChange={(e) => takeCode(e.target.value)} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />
+                {canCamera && !trade && (
                   <PosButton variant="secondary" className="h-14 w-14 shrink-0 px-0" onClick={() => setScanning(true)} aria-label="Scan the member's collection QR">
                     <QrCode className="h-6 w-6" />
                   </PosButton>
@@ -389,7 +427,12 @@ function OrderSheet({
               </div>
             </Field>
             {o.ageRestricted && (
-              <CheckRow checked={idOk} onChange={setIdOk} label="I've checked their ID — adults 18+ only" description={o.customer.ageVerified ? "Their age is verified on their profile; check the ID matches the member." : "Their age isn't verified yet — check an ID document."} />
+              <CheckRow
+                checked={idOk}
+                onChange={setIdOk}
+                label={trade ? "I've checked the collector's ID — adults 18+ only" : "I've checked their ID — adults 18+ only"}
+                description={trade ? "A trade order is collected by an adult buying for the business — check an ID document." : o.customer.ageVerified ? "Their age is verified on their profile; check the ID matches the member." : "Their age isn't verified yet — check an ID document."}
+              />
             )}
             {needsDispenser && (
               <Alert tone="warn">
@@ -445,10 +488,17 @@ function OrderSheet({
               </li>
             ))}
           </ul>
+          {trade && trade.handlingCents > 0 && (
+            <div className="mt-2 flex justify-between text-sm text-ink-400">
+              <span>Collection handling fee (ex VAT)</span>
+              <span className="tnum">{zar(trade.handlingCents)}</span>
+            </div>
+          )}
           <div className="mt-2 flex justify-between border-t border-ink-800 pt-2 text-sm">
-            <span className="text-ink-400">{o.paid ? "Paid online" : o.pointsRedeemed ? `Due in store (after ${o.pointsRedeemed} points)` : "Due in store"}</span>
+            <span className="text-ink-400">{trade ? (trade.payMethod === "ACCOUNT" ? "On account · invoiced at handover (incl VAT)" : "Paid by EFT to HQ (incl VAT)") : o.paid ? "Paid online" : o.pointsRedeemed ? `Due in store (after ${o.pointsRedeemed} points)` : "Due in store"}</span>
             <span className="font-semibold text-white tnum">{zar(o.paid ? o.totalCents : o.dueCents)}</span>
           </div>
+          {trade?.reference && <p className="mt-2 text-sm text-ink-300">Buyer&apos;s reference: {trade.reference}</p>}
           {o.address && <p className="mt-3 text-sm text-ink-300">Deliver to: {o.address}{o.deliveryNotes ? ` · ${o.deliveryNotes}` : ""}</p>}
           {o.courier && (
             <p className="mt-1 text-sm text-ink-300">

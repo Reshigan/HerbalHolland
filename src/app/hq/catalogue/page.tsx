@@ -123,6 +123,9 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
                 <Td align="right">
                   {p.activeVariants}
                   {p.variants.length > p.activeVariants && <span className="text-ink-500"> / {p.variants.length}</span>}
+                  {p.variants.some((v) => v.active && v.caseQty > 1) && (
+                    <span className="block whitespace-nowrap text-xs text-ink-500">case of {[...new Set(p.variants.filter((v) => v.active && v.caseQty > 1).map((v) => v.caseQty))].sort((a, b) => a - b).join(" / ")}</span>
+                  )}
                 </Td>
                 <Td align="right" data-no-row-link>
                   <PriceCell product={p.name} variants={p.variants} canEdit={editPrices && p.status !== "ARCHIVED"} />

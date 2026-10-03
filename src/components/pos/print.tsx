@@ -1,10 +1,10 @@
 "use client";
 // 80 mm thermal layouts for receipts / credit notes and Z-reports (print CSS only).
 import { zar } from "@/lib/money";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { maskMemberNo, tenderLine } from "./lib/rules";
-import { ADULTS_LINE, CBD_LINE, LICENSED_LINE, TRAINING_LINE } from "./lib/receipt";
+import { ADULTS_LINE, CBD_LINE, LICENSED_LINE, TRADE_LINE, TRAINING_LINE, tradeLineRows, tradeTenderRows, tradeTotalRows } from "./lib/receipt";
 import { incentiveExcluded } from "@/lib/compliance";
 import { ZReportPrint } from "./z-report";
 import type { PrintDoc } from "./context";
@@ -63,6 +63,10 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
   const excluded = incentiveExcluded(boot.settings.compliance);
   const anyLicensed = r.lines.some((l) => licensed(l.variantId));
   const anyCbd = r.lines.some((l) => !licensed(l.variantId) && excluded.includes(classOf.get(l.variantId) as never));
+  // A trade sale (WHOLESALE) is a full tax invoice: unit prices ex VAT, VAT per line, the account's buyer block and
+  // "On account · due …" — never points or deals (lib/receipt.ts has the same rows for the ESC/POS printer).
+  const isTrade = r.channel === "WHOLESALE";
+  const trade = isTrade ? (r.trade ?? null) : null;
   const Watermark = () => <div className="my-1 text-center text-[13px] font-bold" data-testid="print-training">{TRAINING_LINE}</div>;
   return (
     <div className="relative">
@@ -84,27 +88,44 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
             {l.name} · {l.variantName}
             {licensed(l.variantId) ? " (Rx)" : ""}
           </div>
-          <Row l={`  ${Math.abs(l.qty)} × ${zar(l.unitPriceCents)}`} r={zar(l.totalCents)} />
-          {l.discountCents > 0 && <Row l={l.offerCents === l.discountCents ? "  My Deals" : "  Discount"} r={`−${zar(l.discountCents)}`} />}
+          {isTrade ? (
+            tradeLineRows(l).map(([left, right], i) => <Row key={i} l={left} r={right} />)
+          ) : (
+            <>
+              <Row l={`  ${Math.abs(l.qty)} × ${zar(l.unitPriceCents)}`} r={zar(l.totalCents)} />
+              {l.discountCents > 0 && <Row l={l.offerCents === l.discountCents ? "  My Deals" : "  Discount"} r={`−${zar(l.discountCents)}`} />}
+            </>
+          )}
         </div>
       ))}
       <Rule />
-      {r.discountCents - offer > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents - offer)}`} />}
-      {offer > 0 && <Row l={`My Deals${r.offers?.length ? ` (${r.offers.join(", ")})` : ""}`} r={`−${zar(offer)}`} />}
-      <Row l="TOTAL" r={zar(r.totalCents)} bold />
-      {r.memberSavingsCents > 0 && <Row l="Rewards savings in prices" r={zar(r.memberSavingsCents)} />}
-      <Row l={r.vatCents ? "VAT included (15%)" : "No VAT charged"} r={r.vatCents ? zar(r.vatCents) : ""} />
+      {isTrade ? (
+        <>
+          {tradeTotalRows(r).map(([left, right], i) => (
+            <Row key={i} l={left} r={right} />
+          ))}
+          <Row l="TOTAL INCL VAT" r={zar(r.totalCents)} bold />
+        </>
+      ) : (
+        <>
+          {r.discountCents - offer > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents - offer)}`} />}
+          {offer > 0 && <Row l={`My Deals${r.offers?.length ? ` (${r.offers.join(", ")})` : ""}`} r={`−${zar(offer)}`} />}
+          <Row l="TOTAL" r={zar(r.totalCents)} bold />
+          {r.memberSavingsCents > 0 && <Row l="Rewards savings in prices" r={zar(r.memberSavingsCents)} />}
+          <Row l={r.vatCents ? "VAT included (15%)" : "No VAT charged"} r={r.vatCents ? zar(r.vatCents) : ""} />
+        </>
+      )}
       <Rule />
       {r.payments.map((p, i) => (
         <div key={i}>
-          <Row l={tenderLine(p)} r={zar(p.amountCents)} />
+          {isTrade ? tradeTenderRows(p, trade, "••••").map(([left, right], j) => <Row key={j} l={left.replace(/^  Due /, "  · due ")} r={right} />) : <Row l={tenderLine(p)} r={zar(p.amountCents)} />}
           {p.tenderedCents != null && p.tenderedCents !== p.amountCents && <Row l="  Tendered" r={zar(p.tenderedCents)} />}
           {p.method === "VOUCHER" && p.balanceCents != null && <Row l="  Left on the voucher" r={zar(p.balanceCents)} />}
         </div>
       ))}
-      {r.pointsRedeemed > 0 && <Row l="Points redeemed" r={fmtPoints(r.pointsRedeemed)} />}
+      {!isTrade && r.pointsRedeemed > 0 && <Row l="Points redeemed" r={fmtPoints(r.pointsRedeemed)} />}
       {change > 0 && <Row l="CHANGE" r={zar(change)} bold />}
-      {r.customer && (
+      {r.customer && !isTrade && (
         <>
           <Rule />
           <div data-testid="print-member">
@@ -123,6 +144,20 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
           {r.buyer.vatNumber && <div>Buyer VAT no. {r.buyer.vatNumber}</div>}
         </>
       )}
+      {trade && (
+        <div data-testid="print-trade">
+          {!r.buyer && <Rule />}
+          <div>
+            Trade account {trade.number} · {trade.name}
+          </div>
+          {trade.orderNumber && <div>Trade order {trade.orderNumber}</div>}
+          {trade.dueAt && trade.onAccountCents > 0 && (
+            <div>
+              Payment terms: {trade.paymentDays} days · {zar(trade.onAccountCents)} on account, due {fmtDate(trade.dueAt)}
+            </div>
+          )}
+        </div>
+      )}
       {r.note && <div>Reason: {r.note}</div>}
       <Rule />
       {r.invoiceUrl && !training && (
@@ -136,7 +171,8 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
       <div className="text-center">
         {boot.store.licenceRef && <div>{boot.store.licenceRef}</div>}
         {anyLicensed && <div className="mt-1">{LICENSED_LINE}</div>}
-        {anyCbd && <div className="mt-1">{CBD_LINE}</div>}
+        {anyCbd && !isTrade && <div className="mt-1">{CBD_LINE}</div>}
+        {isTrade && <div className="mt-1">{TRADE_LINE}</div>}
         <div className="mt-1">{ADULTS_LINE}</div>
         {boot.store.receiptFooter && <div>{boot.store.receiptFooter}</div>}
         {r.invoiceEmail && !training && <div>Tax invoice emailed to {r.invoiceEmail}</div>}

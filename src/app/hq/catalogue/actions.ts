@@ -141,8 +141,10 @@ export async function saveVariant(productId: string, variantId: string | null, _
   if (!priceCents || priceCents <= 0) fields.price = "RRP incl. VAT";
   if (wholesaleCents == null || wholesaleCents < 0) fields.wholesale = "Ex VAT";
   if (costCents == null || costCents < 0) fields.cost = "Ex VAT";
+  const caseQty = parseInt10(str(fd, "caseQty") || "1");
+  if (caseQty == null || caseQty < 1 || caseQty > 1000) fields.caseQty = "1–1000 units per case";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
-  const data = { sku, barcode, podSku, name, grams, priceCents: priceCents!, wholesaleCents: wholesaleCents!, costCents: costCents!, active: bool(fd, "active") };
+  const data = { sku, barcode, podSku, name, grams, priceCents: priceCents!, wholesaleCents: wholesaleCents!, costCents: costCents!, active: bool(fd, "active"), caseQty: caseQty! };
 
   if (!variantId) {
     const v = await tx(async (t) => {
@@ -165,7 +167,7 @@ export async function saveVariant(productId: string, variantId: string | null, _
   const priceChange = before.priceCents !== data.priceCents || before.wholesaleCents !== data.wholesaleCents || before.costCents !== data.costCents;
   await audit(db, g.actor, priceChange ? "variant.price" : "variant.update", {
     entity: "Variant", entityId: variantId,
-    data: { sku, ...(priceChange && { before: { rrp: before.priceCents, wholesale: before.wholesaleCents, cost: before.costCents }, after: { rrp: data.priceCents, wholesale: data.wholesaleCents, cost: data.costCents } }), active: data.active },
+    data: { sku, ...(priceChange && { before: { rrp: before.priceCents, wholesale: before.wholesaleCents, cost: before.costCents }, after: { rrp: data.priceCents, wholesale: data.wholesaleCents, cost: data.costCents } }), active: data.active, ...(before.caseQty !== data.caseQty && { caseQty: { before: before.caseQty, after: data.caseQty } }) },
   });
   revalidatePath(`/hq/catalogue/${productId}`);
   return done(`${sku} saved.`);

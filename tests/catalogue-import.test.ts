@@ -20,7 +20,7 @@ const existingOil: ExistingProduct = {
   heritage: false, featured: false, tobaccoRelated: false, legalBasis: "Schedule 0 CBD — GN 586 of 22 May 2020", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: [],
   netContent: null, netUnit: null, ingredients: "MCT oil, hemp extract", allergens: ["none"], naturalCbd: false,
 };
-const existingVariant: ExistingVariant = { id: "v-rest", productId: "p-oil", sku: "REST-30", name: "30 ml", barcode: "6001234000017", grams: null, priceCents: 29_900, wholesaleCents: 14_000, costCents: 8_000, podSku: null, active: true };
+const existingVariant: ExistingVariant = { id: "v-rest", productId: "p-oil", sku: "REST-30", name: "30 ml", barcode: "6001234000017", grams: null, priceCents: 29_900, wholesaleCents: 14_000, costCents: 8_000, podSku: null, active: true, caseQty: 1 };
 const snap = (over: Partial<ImportSnapshot> = {}): ImportSnapshot => ({
   categories: [{ id: "c-well", name: "CBD Wellness", slug: "wellness" }, { id: "c-acc", name: "Accessories", slug: "accessories" }, { id: "c-flower", name: "Flower", slug: "flower" }],
   products: [existingOil],
@@ -137,6 +137,22 @@ describe("the dry run", () => {
     expect(row(p, 3).errors).toContain("Schedule 0 allows at most 600 mg CBD per sales pack");
     expect(row(p, 4).errors.some((e) => e.includes("Medicinal claim"))).toBe(true);
     expect(p.products).toHaveLength(1);
+  });
+
+  it("reads the case pack (case_qty, aliases case / case_pack): default 1 for a new SKU, kept on an update, 0 refused", () => {
+    const p = plan(csv(`${HEAD},description,case_qty`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,An airtight glass jar with a bamboo lid for the shelf.,6", "JAR-500,Stash Jar,500 ml,Accessories,ACCESSORY,249,112,60,,"));
+    expect(p.variants.map((v) => [v.data.sku, v.data.caseQty])).toEqual([["JAR-250", 6], ["JAR-500", 1]]);
+    const alias = plan(csv(`${HEAD},description,Case pack`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,An airtight glass jar with a bamboo lid for the shelf.,12"));
+    expect(alias.variants[0].data.caseQty).toBe(12);
+    const kept = plan(csv(HEAD, "REST-30,Rest Oil,30 ml,CBD Wellness,CBD,299.00,140.00,80.00"));
+    expect(kept.rows[0].action).toBe("unchanged");
+    expect(kept.variants[0].data.caseQty).toBe(1);
+    const changed = plan(csv(`${HEAD},case`, "REST-30,Rest Oil,30 ml,CBD Wellness,CBD,299.00,140.00,80.00,24"));
+    expect(changed.rows[0]).toMatchObject({ action: "update", notes: ["Changes case_qty"] });
+    expect(changed.variants[0]).toMatchObject({ changed: ["caseQty"], data: { caseQty: 24 } });
+    const zero = plan(csv(`${HEAD},case_qty`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,0"));
+    expect(row(zero, 2).errors).toContain("case_qty: at least 1 (leave it empty for single units)");
+    expect(row(plan(csv(`${HEAD},case_qty`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,1.5")), 2).errors).toContain("case_qty: a whole number");
   });
 
   it("needs the facts a class carries: CBD food without its net content or natural-CBD tick is an error", () => {

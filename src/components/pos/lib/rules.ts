@@ -1,7 +1,8 @@
 // Small pure rules for the till: receipt numbering, cash handling, compliance block
 // types, order SLAs and points redemption. Isomorphic and unit-tested (tests/pos.test.ts).
 import { voucherCodeFrom } from "@/lib/vouchers";
-import type { BlockKind, CustomerDetail } from "@/server/pos/types";
+import { zar } from "@/lib/money";
+import type { BlockKind, CustomerDetail, TradeAccountDTO } from "@/server/pos/types";
 import type { QueuedTender } from "./storage";
 
 /** Device-local receipt number, e.g. PTA01-B00042 (store code · device prefix · sequence). */
@@ -27,6 +28,7 @@ export function quickCash(dueCents: number): number[] {
 /** Maps the compliance engine's messages to the action the cashier can take. */
 export function classifyBlock(message: string): BlockKind {
   if (/^Members only/i.test(message)) return "MEMBER";
+  if (/isn't available to trade customers|isn't approved to buy|isn't available right now/i.test(message)) return "TRADE";
   if (/^Age verification required/i.test(message)) return "AGE";
   if (/^Under \d+/i.test(message)) return "UNDERAGE";
   if (/patient authorisation/i.test(message)) return "PATIENT";
@@ -159,3 +161,67 @@ export const offlineMember = (memberNo: string): CustomerDetail => ({
   id: "", memberNo, firstName: "Member", lastName: memberNo, phone: "", email: null, tier: "SEED", points: 0, ageCheck: "NONE", ageVerified: false, age: null,
   homeStore: null, visitsHere: 0, lastVisitHere: null, foundingNo: null, tierFloor: null, offers: [], patient: null, offline: true,
 });
+
+// ── Trade-sale mode ──────────────────────────────────────────────────────────
+
+/** "On account · 30 days" / "Prepaid (EFT)" — an account's terms as the till shows them. */
+export const tradeTermsLabel = (a: Pick<TradeAccountDTO, "terms" | "paymentDays">) => (a.terms === "ACCOUNT" ? `On account · ${a.paymentDays} days` : "Prepaid (EFT)");
+
+export type TradeTenderRules = {
+  cash: boolean;
+  card: boolean; // tap on glass / the Yoco machine / a bank terminal
+  eft: boolean; // an EFT the buyer makes now (bank reference)
+  payshap: boolean;
+  account: boolean; // "On account": only when the credit decision allows the amount
+  accountReason: string | null; // why not, in plain English (shown under the tender)
+  points: false;
+  voucher: false;
+};
+
+/**
+ * Which tenders a trade sale may take. Money as usual (card, EFT and PayShap need the connection the sale needs
+ * anyway), never points or a gift voucher (consumer money), and "On account" only for an APPROVED account on
+ * ACCOUNT terms while the amount — this tender plus what's already on account in the sale — stays within what the
+ * account may still put on account (`availableCents`, the server's credit decision less what's open). The server
+ * re-runs the credit check when the sale posts.
+ */
+export function tradeTenders(a: { account: Pick<TradeAccountDTO, "terms" | "status" | "availableCents">; online: boolean; amountCents: number; onAccountSoFarCents?: number }): TradeTenderRules {
+  const left = Math.max(0, a.account.availableCents - (a.onAccountSoFarCents ?? 0));
+  let accountReason: string | null = null;
+  if (a.account.status !== "APPROVED") accountReason = "On hold — money only";
+  else if (a.account.terms !== "ACCOUNT") accountReason = "Prepaid account — money only";
+  else if (a.account.availableCents <= 0) accountReason = "Nothing available on account";
+  else if (a.amountCents > left) accountReason = `Only ${zar(left)} available on account`;
+  else if (a.amountCents <= 0) accountReason = "Nothing left to put on account";
+  return { cash: true, card: a.online, eft: a.online, payshap: a.online, account: a.online && !accountReason, accountReason, points: false, voucher: false };
+}
+
+/**
+ * The 6-digit collection code a trade buyer gets when their click & collect order is ready: it must match the
+ * order's exactly (the TO-… number is not a fallback — the buyer may not be the person who collects).
+ */
+export function tradeCodeMatches(collectionCode: string | null | undefined, entered: string) {
+  const v = entered.replace(/\D/g, "");
+  return !!collectionCode && /^\d{6}$/.test(v) && v === collectionCode;
+}
+
+/**
+ * The Z-report's trade section from the shift's sales grouped by kind and channel: WHOLESALE sales (till trade
+ * sales and trade orders handed over) ex VAT, VAT and incl, their refunds, and the part invoiced on account
+ * (the ACCOUNT tender, net of credit notes) — which is not money and never changes the cash-up.
+ */
+export function tradeSummary(rows: { kind: string; channel: string; count: number; totalCents: number; vatCents: number }[], tenders: { method: string; amountCents: number }[]) {
+  const sum = (xs: { totalCents: number; vatCents: number }[], f: (r: { totalCents: number; vatCents: number }) => number) => xs.reduce((a, r) => a + f(r), 0);
+  const sales = rows.filter((r) => r.kind === "SALE" && r.channel === "WHOLESALE");
+  const refunds = rows.filter((r) => r.kind === "REFUND" && r.channel === "WHOLESALE");
+  const inclCents = sum(sales, (r) => r.totalCents);
+  const vatCents = sum(sales, (r) => r.vatCents);
+  return {
+    count: sales.reduce((a, r) => a + r.count, 0),
+    exCents: inclCents - vatCents,
+    vatCents,
+    inclCents,
+    refundCents: sum(refunds, (r) => -r.totalCents),
+    onAccountCents: tenders.filter((t) => t.method === "ACCOUNT").reduce((a, t) => a + t.amountCents, 0),
+  };
+}

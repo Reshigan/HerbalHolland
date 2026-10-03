@@ -3,27 +3,29 @@
 // a separate bank terminal, cash (quick amounts, change due), PayShap (payment-request QR), points and
 // gift vouchers (the code typed or scanned, looked up on the server, redeemed when the sale posts — so
 // online only). Over R5,000 the buyer's details are captured for a full tax invoice. Reused for order handovers.
+// Trade-sale mode (`trade`): money as usual plus an EFT by bank reference and "On account" within the account's credit
+// terms — never points or a gift voucher (consumer money); the buyer block comes from the account.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Banknote, CreditCard, Gift, Landmark, Nfc, QrCode, ScanLine, Sparkles, Trash2 } from "lucide-react";
+import { Banknote, Building2, CreditCard, Gift, Landmark, Nfc, QrCode, ScanLine, Sparkles, Trash2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { voucherCodeFrom } from "@/lib/vouchers";
 import { api, errorText, TillError } from "../lib/api";
-import { cardMachineTender, maxRedeemable, parseRands, quickCash } from "../lib/rules";
+import { cardMachineTender, maxRedeemable, parseRands, quickCash, tradeTenders } from "../lib/rules";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
 import { TapOverlay } from "./tap-overlay";
 import { CameraScanner, cameraScanSupported } from "./scanner";
 import type { QueuedTender } from "../lib/storage";
-import type { TapProviderKind, VoucherLookupDTO } from "@/server/pos/types";
+import type { TapProviderKind, TradeAccountDTO, VoucherLookupDTO } from "@/server/pos/types";
 
 export type Buyer = { name: string; address: string; vatNumber?: string };
 export type PaymentResult = { tenders: QueuedTender[]; points: number; buyer: Buyer | null };
 /** A gift voucher code scanned or typed outside the sheet: opens the voucher tender with it looked up (`n` makes a repeat scan count). */
 export type VoucherScan = { code: string; n: number };
 
-type Panel = "cash" | "external" | "yoco" | "payshap" | "points" | "voucher" | null;
+type Panel = "cash" | "external" | "yoco" | "payshap" | "points" | "voucher" | "eft" | "account" | null;
 
 export const FULL_INVOICE_OVER_CENTS = 500_000;
 
@@ -41,6 +43,7 @@ export function PaymentSheet({
   points,
   needsBuyer,
   voucherScan,
+  trade,
   onComplete,
   onProgress,
   onClose,
@@ -58,6 +61,8 @@ export function PaymentSheet({
   points?: { balance: number; eligibleCents: number; minRedeem: number } | null;
   needsBuyer?: boolean;
   voucherScan?: VoucherScan | null;
+  /** Trade-sale mode: the account buying (its terms decide whether "On account" is offered, and for how much). */
+  trade?: TradeAccountDTO | null;
   onComplete: (r: PaymentResult) => Promise<void>;
   /** For the customer display: what is due, what has been tendered, and whether a card tap is in progress. */
   onProgress?: (p: { dueCents: number; paidCents: number; tapping: boolean; method: string | null } | null) => void;
@@ -76,6 +81,7 @@ export function PaymentSheet({
   const [extRef, setExtRef] = useState("");
   const [extLast4, setExtLast4] = useState("");
   const [payshapRef, setPayshapRef] = useState("");
+  const [eftRef, setEftRef] = useState("");
   const [voucherText, setVoucherText] = useState("");
   const [voucher, setVoucher] = useState<VoucherLookupDTO | null>(null);
   const [voucherBusy, setVoucherBusy] = useState(false);
@@ -114,6 +120,7 @@ export function PaymentSheet({
     setVoucherText("");
     setVoucherError(null);
     setBalances({});
+    setEftRef("");
     completing.current = false;
   }, [open, online]);
 
@@ -182,6 +189,10 @@ export function PaymentSheet({
   // The voucher pays up to its balance and up to what's due (or the smaller amount typed above): lowered, never raised.
   const voucherUse = voucher ? Math.min(charge, voucherLeft(voucher.code)) : 0;
   const voucherPending = !online && tenders.some((t) => t.method === "VOUCHER");
+  // Trade-sale mode: what may go on account — the credit decision less what this sale has already put on it.
+  const onAccountSoFar = tenders.filter((t) => t.method === "ACCOUNT").reduce((s, t) => s + t.amountCents, 0);
+  const tradeRules = trade ? tradeTenders({ account: trade, online, amountCents: charge, onAccountSoFarCents: onAccountSoFar }) : null;
+  const accountLeft = trade ? Math.max(0, trade.availableCents - onAccountSoFar) : 0;
   const cashOptions = useMemo(() => quickCash(charge), [charge]);
   const payshapText = `https://pay.herbalholland.co.za/payshap/${storeCode.toLowerCase()}?amount=${(charge / 100).toFixed(2)}&ref=${encodeURIComponent(reference)}`;
 
@@ -224,6 +235,14 @@ export function PaymentSheet({
                 Total {zar(dueCents)}
                 {paid > 0 && ` · paid ${zar(paid)}`}
               </div>
+              {trade && (
+                <div className="mt-3 flex items-center gap-2 border-t border-ink-800 pt-3 text-sm text-[#8fbdf2]" data-testid="pay-trade">
+                  <Building2 className="h-4 w-4 shrink-0" />
+                  <span className="min-w-0 truncate">
+                    Trade sale · {trade.name} · {trade.number}
+                  </span>
+                </div>
+              )}
               {(savingsCents > 0 || discountCents > 0) && (
                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 border-t border-ink-800 pt-3 text-sm">
                   {savingsCents > 0 && <span className="font-semibold text-brand-300">Rewards savings {zar(savingsCents)}</span>}
@@ -245,12 +264,18 @@ export function PaymentSheet({
                 {tenders.map((t) => (
                   <TenderRow
                     key={t.key}
-                    icon={t.method === "CASH" ? <Banknote className="h-4 w-4" /> : t.method === "PAYSHAP" ? <QrCode className="h-4 w-4" /> : t.method === "VOUCHER" ? <Gift className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />}
+                    icon={
+                      t.method === "CASH" ? <Banknote className="h-4 w-4" /> : t.method === "PAYSHAP" ? <QrCode className="h-4 w-4" /> : t.method === "VOUCHER" ? <Gift className="h-4 w-4" /> : t.method === "ACCOUNT" ? <Building2 className="h-4 w-4" /> : t.method === "EFT" ? <Landmark className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />
+                    }
                     label={
                       t.method === "CASH"
                         ? `Cash${t.tenderedCents ? ` · tendered ${zar(t.tenderedCents)}` : ""}${t.changeCents ? ` · change ${zar(t.changeCents)}` : ""}`
                         : t.method === "VOUCHER"
                           ? `Gift voucher ${t.reference} · ${zar(voucherLeft(t.reference ?? ""))} left on the voucher`
+                          : t.method === "ACCOUNT"
+                            ? `On account · ${t.reference}${trade ? ` · due in ${trade.paymentDays} days` : ""}`
+                            : t.method === "EFT"
+                              ? `EFT · ref ${t.reference}`
                           : t.method === "PAYSHAP"
                           ? `PayShap · ref ${t.reference}`
                           : t.provider === "EXTERNAL"
@@ -315,7 +340,11 @@ export function PaymentSheet({
 
             {!online && (
               <Alert tone="warn" className="mt-3">
-                {tapProvider === "YOCO" ? "Offline — cash, or card on the Yoco machine. PayShap, points and gift vouchers need a connection." : "Offline — cash only. Card, PayShap, points and gift vouchers need a connection."}
+                {trade
+                  ? "Offline — a trade sale is priced and invoiced on the server, so it can't be completed until the till is back online."
+                  : tapProvider === "YOCO"
+                    ? "Offline — cash, or card on the Yoco machine. PayShap, points and gift vouchers need a connection."
+                    : "Offline — cash only. Card, PayShap, points and gift vouchers need a connection."}
               </Alert>
             )}
             {voucherPending && (
@@ -331,9 +360,54 @@ export function PaymentSheet({
               {method("external", "Bank terminal", <Landmark className="h-5 w-5" />, !online, "Enter the approval code")}
               {method("cash", "Cash", <Banknote className="h-5 w-5" />, false, "Change calculated")}
               {method("payshap", "PayShap", <QrCode className="h-5 w-5" />, !online, "Instant EFT by QR")}
-              {points && method("points", "Points", <Sparkles className="h-5 w-5" />, !online || maxPts === 0, points.balance < points.minRedeem ? `Min ${points.minRedeem} pts to redeem` : `${fmtPoints(points.balance)} available`)}
-              {method("voucher", "Gift voucher", <Gift className="h-5 w-5" />, !online, online ? "Type or scan the code" : "Needs a connection")}
+              {tradeRules && method("eft", "EFT", <Landmark className="h-5 w-5" />, !tradeRules.eft, "Paid by EFT · bank reference")}
+              {tradeRules &&
+                trade &&
+                method("account", "On account", <Building2 className="h-5 w-5" />, !tradeRules.account, tradeRules.account ? `${zar(accountLeft)} available on account` : (tradeRules.accountReason ?? "Needs a connection"))}
+              {!trade && points && method("points", "Points", <Sparkles className="h-5 w-5" />, !online || maxPts === 0, points.balance < points.minRedeem ? `Min ${points.minRedeem} pts to redeem` : `${fmtPoints(points.balance)} available`)}
+              {!trade && method("voucher", "Gift voucher", <Gift className="h-5 w-5" />, !online, online ? "Type or scan the code" : "Needs a connection")}
             </div>
+
+            {panel === "eft" && trade && (
+              <form
+                className="mt-4 space-y-3 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800"
+                data-testid="eft-panel"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  const ref = eftRef.trim().slice(0, 60);
+                  if (ref.length < 3) return setError("Enter the bank reference of the EFT (from the proof of payment)");
+                  add({ method: "EFT", amountCents: charge, provider: "EFT", reference: ref });
+                  setEftRef("");
+                }}
+              >
+                <p className="text-sm text-ink-300">
+                  {trade.name} pays <b className="text-white">{zar(charge)}</b> by EFT now: check the proof of payment, then key in its bank reference.
+                </p>
+                <Field label="Bank reference" htmlFor="eft-ref">
+                  <TextInput id="eft-ref" autoFocus autoComplete="off" value={eftRef} onChange={(e) => setEftRef(e.target.value)} className="font-mono" placeholder="e.g. the payment reference on the proof" />
+                </Field>
+                <PosButton type="submit" variant="primary" className="w-full">
+                  Add EFT payment
+                </PosButton>
+              </form>
+            )}
+
+            {panel === "account" && trade && (
+              <div className="mt-4 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800" data-testid="account-panel">
+                <p className="text-sm text-ink-300">
+                  Put <b className="text-white">{zar(charge)}</b> on {trade.name}&apos;s account ({trade.number}): invoiced on the account&apos;s ledger, due in {trade.paymentDays} days. The tax invoice goes to its billing email. {zar(accountLeft)} is available on account right now.
+                </p>
+                <PosButton
+                  variant="primary"
+                  className="mt-3 w-full"
+                  disabled={!tradeRules?.account}
+                  data-testid="account-apply"
+                  onClick={() => add({ method: "ACCOUNT", amountCents: charge, reference: trade.number })}
+                >
+                  <Building2 className="h-4 w-4" /> Put {zar(charge)} on account
+                </PosButton>
+              </div>
+            )}
 
             {panel === "voucher" && (
               <form

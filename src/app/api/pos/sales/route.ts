@@ -1,5 +1,7 @@
 // Till sales: history (GET) and posting (POST, idempotent on the client-generated Sale.id,
-// so queued offline sales can be retried safely). Domain: sales.postPosSale.
+// so queued offline sales can be retried safely). Domain: sales.postPosSale — which hands a
+// trade sale (`trade.tradeAccountId`) to postTradeSale: WHOLESALE, ex-VAT prices, the
+// account's buyer block, "On account" within its credit terms, never offline.
 import { db } from "@/server/db";
 import { postPosSale, type PosSaleInput } from "@/server/sales";
 import { quote } from "@/server/pricing";
@@ -39,8 +41,12 @@ export const POST = withStaff(async (req, pos) => {
     shiftId = given?.id ?? open?.id ?? null;
   }
 
+  // Trade-sale mode: the account's billing address gets the tax invoice (unless another address was given).
+  const account = b.trade ? await db.tradeAccount.findUnique({ where: { id: b.trade.tradeAccountId }, select: { email: true } }) : null;
+  if (b.trade && !account) throw new PosError("Unknown trade account", 404);
+
   // Medicines Act s18A: points (an incentive) can't pay for medicines (licensed, or the noIncentives classes).
-  if (!b.offline && b.pointsRedeemed) {
+  if (!b.offline && !b.trade && b.pointsRedeemed) {
     const q = await quote({ storeId, channel: "POS", items: b.lines, code: b.promoCode, customerId: b.customerId });
     const eligible = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
     if (b.pointsRedeemed * 100 > eligible) throw new PosError("Points can't be used towards medicines (licensed or CBD supplements)", 422);
@@ -64,9 +70,11 @@ export const POST = withStaff(async (req, pos) => {
     ageCheck: b.ageCheck,
     buyer: b.buyer ?? null,
     invoiceEmail: b.invoiceEmail || null,
+    trade: b.trade ? { tradeAccountId: b.trade.tradeAccountId } : null,
   };
   const r = await postPosSale(input, { storeId, deviceId: pos.device.id, staffId: staff.id, staffName: staff.name });
   const dto = await receipt(r.sale.id, storeId);
   const customerEmail = b.customerId ? (await db.customer.findUnique({ where: { id: b.customerId }, select: { email: true } }))?.email : null;
-  return json({ receipt: dto, duplicate: r.duplicate, invoiceTo: b.invoiceEmail || customerEmail || null }, r.duplicate ? 200 : 201);
+  const invoiceTo = b.trade ? b.invoiceEmail || account!.email : b.invoiceEmail || customerEmail || null;
+  return json({ receipt: dto, duplicate: r.duplicate, invoiceTo }, r.duplicate ? 200 : 201);
 });

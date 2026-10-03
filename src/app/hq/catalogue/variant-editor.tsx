@@ -11,7 +11,7 @@ import { saveVariant } from "./actions";
 
 export type VariantRow = {
   id: string; sku: string; barcode: string | null; name: string; grams: number | null;
-  priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; batches: number; onHand: number;
+  priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; batches: number; onHand: number; caseQty: number;
 };
 
 const rand = (c: number) => (c / 100).toFixed(2);
@@ -76,7 +76,7 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
           {isNew && <input type="hidden" name="active" value="on" />}
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-3 items-end gap-3 md:max-w-xl">
+      <div className="mt-3 grid grid-cols-2 items-end gap-3 sm:grid-cols-4 md:max-w-2xl">
         <Field label="RRP incl. VAT" htmlFor={`price-${k}`}>
           <Input id={`price-${k}`} name="price" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" className="tnum" required />
           <FieldError name="price" />
@@ -88,6 +88,10 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
         <Field label="Cost ex VAT" htmlFor={`cost-${k}`}>
           <Input id={`cost-${k}`} name="cost" value={cost} onChange={(e) => setCost(e.target.value)} inputMode="decimal" className="tnum" required />
           <FieldError name="cost" />
+        </Field>
+        <Field label="Case pack" htmlFor={`caseQty-${k}`} hint="Units per case: trade orders come in multiples">
+          <Input id={`caseQty-${k}`} name="caseQty" defaultValue={v?.caseQty ?? 1} inputMode="numeric" className="tnum" />
+          <FieldError name="caseQty" />
         </Field>
       </div>
       <div className="mt-2">

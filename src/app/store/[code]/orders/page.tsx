@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ShoppingBag } from "lucide-react";
+import { Briefcase, ShoppingBag } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
@@ -63,7 +63,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
       }
     : {};
   const where: Prisma.OrderWhereInput = { storeId: store.id, status: { in: TABS[tab].statuses }, ...search };
-  const [counts, total, orders] = await Promise.all([
+  const [counts, total, orders, tradeOpen] = await Promise.all([
     db.order.groupBy({ by: ["status"], where: { storeId: store.id, ...search }, _count: true }),
     db.order.count({ where }),
     db.order.findMany({
@@ -73,6 +73,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
       take: PAGE_SIZE,
       include: { customer: { select: { firstName: true, lastName: true, tier: true, memberNo: true } }, lines: { select: { qty: true } } },
     }),
+    db.tradeOrder.count({ where: { storeId: store.id, fulfilment: "COLLECT", status: { in: ["PLACED", "PICKING", "READY"] } } }),
   ]);
   const n = (statuses: OrderStatus[]) => counts.filter((c) => statuses.includes(c.status)).reduce((s, c) => s + c._count, 0);
   const tabHref = (t: string) => hrefWith(path, { q: q || undefined }, { tab: t === "todo" ? null : t });
@@ -86,6 +87,13 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
         title="Online orders"
         description="Click & collect and delivery orders routed to your store. Stock is reserved until handover or dispatch; oldest first while there's work to do."
       />
+      {tradeOpen > 0 && (
+        <Link href={`/store/${store.code}/trade`} className="mb-4 flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-ink-800 transition hover:border-brand-300 hover:bg-brand-50">
+          <Briefcase className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
+          <span className="flex-1"><b className="text-ink-900">{tradeOpen} trade order{tradeOpen === 1 ? "" : "s"}</b> to fulfil — click &amp; collect for business accounts, handled on the Trade orders page.</span>
+          <span className="font-semibold text-brand-700">Trade orders →</span>
+        </Link>
+      )}
       <Card>
         <TabLinks className="px-4" current={tabHref(tab)} tabs={Object.entries(TABS).map(([k, t]) => ({ href: tabHref(k), label: t.label, count: n(t.statuses) }))} />
         <div className="space-y-3 border-b border-ink-100 p-4 sm:px-5">

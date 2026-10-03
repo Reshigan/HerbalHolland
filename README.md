@@ -36,9 +36,11 @@ Demo access (`DEMO_MODE=true`) — `/login` has one-click logins; password `holl
 | Area manager (Tshwane & North) | `area.gpn@herbalholland.co.za` |
 | Franchise owner (Hatfield + Brooklyn) | `thabo@mokoenaretail.co.za` |
 | Store manager / dispenser (Hatfield) | `manager.pta01@herbalholland.co.za` |
+| Trade buyer (Greenleaf Pharmacy, on account) | `trade@greenleafpharmacy.co.za` — trade portal, `/trade/login` (no password: a sign-in code, shown on screen in demo mode) |
 
 POS: open `/pos`, pair a store, then PIN `1111` (manager, dispenser), `2222` (dispenser), `3333`, `4444`.
 Shop: `/` — the OTP code is shown on screen in demo mode.
+Trade (wholesale): `/trade` — businesses apply at `/trade/apply`; the demo buyer above has an approved account on 30-day terms with orders, invoices and a statement.
 
 Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 

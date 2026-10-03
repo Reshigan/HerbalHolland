@@ -1,7 +1,7 @@
 // Till-local persistence (localStorage): the offline bootstrap, the signed-in staff
 // member, the device receipt sequence, the in-progress cart and the outbox of sales
 // waiting to sync. Everything is namespaced and wiped when the device is re-paired.
-import type { BootData, SessionInfo, StaffTile, AgeCheckKind, CustomerDetail, TenderMethod } from "@/server/pos/types";
+import type { BootData, SessionInfo, StaffTile, AgeCheckKind, CustomerDetail, TenderMethod, TradeAccountDTO } from "@/server/pos/types";
 
 const NS = "hh-pos:v1:";
 // Wiped when the browser is paired as a different till. The printer set-up ("printer") survives a re-pair: the
@@ -54,10 +54,16 @@ export type Cart = {
   code: string | null;
   customer: CustomerDetail | null;
   ageCheck: AgeCheckKind | null; // counter check for walk-ins (ID sighted / SA ID number)
+  /** Trade-sale mode: the trade account buying (WHOLESALE prices ex VAT; no member, points or deals). A basket is retail or trade, never both. */
+  trade: TradeAccountDTO | null;
 };
-export const EMPTY_CART: Cart = { lines: [], code: null, customer: null, ageCheck: null };
-export const loadCart = () => read<Cart>("cart") ?? EMPTY_CART;
-export const saveCart = (c: Cart) => write("cart", c.lines.length || c.customer || c.code ? c : null);
+export const EMPTY_CART: Cart = { lines: [], code: null, customer: null, ageCheck: null, trade: null };
+/** The in-progress cart; one saved before trade-sale mode existed has no `trade` field. */
+export const loadCart = (): Cart => {
+  const c = read<Partial<Cart>>("cart");
+  return c ? { ...EMPTY_CART, ...c } : EMPTY_CART;
+};
+export const saveCart = (c: Cart) => write("cart", c.lines.length || c.customer || c.code || c.trade ? c : null);
 
 // ── Outbox ───────────────────────────────────────────────────────────────────
 
@@ -89,6 +95,8 @@ export type SalePayload = {
   buyer: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail: string | null;
   staffId: string;
+  /** Trade-sale mode: the account buying (the server prices and invoices it; never queued offline). */
+  trade?: { tradeAccountId: string } | null;
 };
 
 export type OutboxItem = {

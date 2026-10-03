@@ -8,7 +8,7 @@ import { getSettings, saveSetting } from "@/server/settings";
 import { str, list, bool, parseNum, parseInt10, parseLocal, parseRand } from "@/server/hq/form";
 import type { Channel, PriceListKind, Tier } from "@/generated/prisma/client";
 
-const KINDS: PriceListKind[] = ["ZONE", "CHANNEL", "MEMBER"];
+const KINDS: PriceListKind[] = ["ZONE", "CHANNEL", "MEMBER", "TRADE"];
 const TIERS: Tier[] = ["SEED", "SPROUT", "BLOOM", "HARVEST"];
 
 export async function savePriceList(listId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -20,11 +20,12 @@ export async function savePriceList(listId: string | null, _: ActionState, fd: F
   const kind = str(fd, "kind") as PriceListKind;
   if (!KINDS.includes(kind)) fields.kind = "Choose a type";
   const ch = str(fd, "channel");
-  const channel: Channel | null = ch === "POS" || ch === "ONLINE" ? ch : null;
+  // A trade list prices the wholesale channel for every trade account: no store, region or consumer channel.
+  const channel: Channel | null = kind === "TRADE" ? "WHOLESALE" : ch === "POS" || ch === "ONLINE" ? ch : null;
   if (kind === "CHANNEL" && !channel) fields.channel = "A channel list needs a channel";
   const tiers = kind === "MEMBER" ? (list(fd, "tiers").filter((t) => TIERS.includes(t as Tier)) as Tier[]) : [];
-  const storeIds = list(fd, "storeIds");
-  const regionIds = list(fd, "regionIds");
+  const storeIds = kind === "TRADE" ? [] : list(fd, "storeIds");
+  const regionIds = kind === "TRADE" ? [] : list(fd, "regionIds");
   const adjRaw = str(fd, "adjustPct");
   const adjustPct = adjRaw ? parseNum(adjRaw) : null;
   if (adjRaw && (adjustPct == null || adjustPct < -90 || adjustPct > 100)) fields.adjustPct = "Between −90% and +100%";
@@ -69,7 +70,7 @@ export async function savePriceList(listId: string | null, _: ActionState, fd: F
   revalidatePath("/hq/pricing");
   if (!listId) redirect(`/hq/pricing/${saved.id}?saved=1`);
   revalidatePath(`/hq/pricing/${saved.id}`);
-  return done(`Saved. ${data.active ? "Tills and the web shop use it on the next quote." : "It's switched off."}`);
+  return done(`Saved. ${data.active ? (kind === "TRADE" ? "Trade quotes use it from now on (ex VAT)." : "Tills and the web shop use it on the next quote.") : "It's switched off."}`);
 }
 
 export async function deletePriceList(listId: string, _: ActionState, fd: FormData): Promise<ActionState> {

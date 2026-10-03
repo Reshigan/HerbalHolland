@@ -10,6 +10,9 @@ import { StockError } from "@/server/inventory";
 import { LoyaltyError } from "@/server/loyalty";
 import { EventError } from "@/server/events";
 import { VoucherError } from "@/server/shop/vouchers";
+import { TradeAccountError } from "@/server/trade/accounts";
+import { TradeOrderError } from "@/server/trade/orders";
+import { TradeLedgerError } from "@/server/trade/ledger";
 import type { Actor } from "@/server/audit";
 import { Prisma } from "@/generated/prisma/client";
 
@@ -32,7 +35,10 @@ export const actorOf = (pos: PosStaff): Actor => ({ type: "USER", id: pos.user.i
 function handleError(e: unknown) {
   if (e instanceof PosError) return fail(e.status, e.message, e.code);
   if (e instanceof ZodError) return fail(400, e.issues[0]?.message ?? "Invalid request");
-  if (e instanceof SaleError || e instanceof OrderError || e instanceof CustomerError || e instanceof StockError || e instanceof LoyaltyError || e instanceof EventError || e instanceof VoucherError)
+  if (
+    e instanceof SaleError || e instanceof OrderError || e instanceof CustomerError || e instanceof StockError || e instanceof LoyaltyError || e instanceof EventError || e instanceof VoucherError ||
+    e instanceof TradeAccountError || e instanceof TradeOrderError || e instanceof TradeLedgerError
+  )
     return fail(422, e.message);
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail(409, "That's already on record for another member or sale");
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") return fail(404, "Not found");

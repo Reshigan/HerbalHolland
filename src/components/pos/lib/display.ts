@@ -31,6 +31,9 @@ export type DisplaySnapshot = {
   done: { totalCents: number; changeCents: number; pointsEarned: number; balance: number | null; firstName: string | null } | null;
   idle: string[]; // brand messages the idle screen cycles through
   training: boolean;
+  /** Trade-sale mode: the account being served (its trading name only) and the basket ex VAT; tills before trade mode send neither. */
+  trade?: { account: string } | null;
+  exCents?: number | null;
 };
 
 export const BRAND_MESSAGES = [
@@ -47,7 +50,7 @@ export const LICENSED_LINE_NAME = "Dispensed medicine";
 export function tenderName(method: string | null | undefined): string | null {
   if (!method) return null;
   const names: Record<string, string> = {
-    card: "Card", yoco: "Card", external: "Card", cash: "Cash", payshap: "PayShap", points: "Rewards points", voucher: "Gift voucher",
+    card: "Card", yoco: "Card", external: "Card", cash: "Cash", payshap: "PayShap", points: "Rewards points", voucher: "Gift voucher", eft: "EFT", account: "On account",
     CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account",
   };
   return names[method] ?? null;
@@ -78,7 +81,7 @@ export function idleMessages(
 
 export type SnapshotInput = {
   store: { name: string; code: string };
-  cart: Pick<Cart, "lines" | "customer">;
+  cart: Pick<Cart, "lines" | "customer"> & { trade?: Cart["trade"] };
   quote: QuoteDTO;
   productOf: (variantId: string) => { name: string; variantName: string; regClass: RegClass } | undefined;
   licensedClasses: readonly string[];
@@ -95,7 +98,9 @@ export function buildSnapshot(i: SnapshotInput): DisplaySnapshot {
   const at = (i.at ?? new Date()).toISOString();
   const store = { name: i.store.name, code: i.store.code };
   const c = i.cart.customer;
-  const member = c ? { firstName: c.firstName, tier: c.tier, points: c.points, pointsEstimate: i.quote.pointsEstimate } : null;
+  // A trade sale has no member: the display names the business being served instead (never its number or balance).
+  const trade = i.cart.trade ? { account: i.cart.trade.name } : null;
+  const member = c && !trade ? { firstName: c.firstName, tier: c.tier, points: c.points, pointsEstimate: i.quote.pointsEstimate } : null;
   const base = { v: 1 as const, at, store, idle: i.idle, training: i.training };
 
   if (i.stage === "done" && i.done) {
@@ -103,6 +108,8 @@ export function buildSnapshot(i: SnapshotInput): DisplaySnapshot {
     const change = r.payments.reduce((s, p) => s + (p.changeCents ?? 0), 0);
     return {
       ...base,
+      trade: r.trade ? { account: r.trade.name } : null,
+      exCents: r.trade ? r.totalCents - r.vatCents : null,
       state: "done",
       lines: [],
       subtotalCents: r.subtotalCents,
@@ -125,9 +132,11 @@ export function buildSnapshot(i: SnapshotInput): DisplaySnapshot {
     const licensed = i.licensedClasses.includes(p.regClass);
     return [{ name: licensed ? LICENSED_LINE_NAME : p.name, detail: licensed ? null : p.variantName, qty: l.qty, totalCents: q?.totalCents ?? 0, discountCents: q?.discountCents ?? 0 }];
   });
-  const empty = !lines.length && !member;
+  const empty = !lines.length && !member && !trade;
   return {
     ...base,
+    trade,
+    exCents: trade ? (i.quote.exCents ?? i.quote.totalCents - i.quote.vatCents) : null,
     state: empty ? "idle" : i.stage === "pay" ? "pay" : "sale",
     lines,
     subtotalCents: i.quote.subtotalCents,

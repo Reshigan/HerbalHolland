@@ -314,6 +314,12 @@ function ReportFigures({ r }: { r: ZReport }) {
     ["Rewards savings given", zar(r.sales.memberSavingsCents)],
     ["Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`],
     ...(r.online.count ? ([["Online handovers", `${r.online.count} · ${zar(r.online.grossCents)}`]] as [string, string][]) : []),
+    ...(r.trade?.count
+      ? ([
+          ["Trade sales (ex VAT · VAT · incl)", `${r.trade.count} · ${zar(r.trade.exCents)} · ${zar(r.trade.vatCents)} · ${zar(r.trade.inclCents)}`],
+          ["On account (invoiced, not money)", zar(r.trade.onAccountCents)],
+        ] as [string, string][])
+      : []),
     ...r.tenders.map((t) => [t.label, zar(t.amountCents)] as [string, string]),
     ["Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`],
     ["Cash expected in drawer", zar(r.cash.expectedCents)],

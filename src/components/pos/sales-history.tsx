@@ -1,16 +1,18 @@
 "use client";
 // Sales at this store: search by receipt number, view/print a receipt, email the invoice,
 // refund selected lines (restock toggle, reason, tender) via sales.refundSale — what a gift
-// voucher paid goes back onto the voucher first; only the rest is paid out.
+// voucher paid goes back onto the voucher first, and on a trade sale what was on account comes
+// back as a credit note on the account's ledger; only the rest is paid out.
 import { useCallback, useEffect, useState } from "react";
-import { ChevronRight, CloudOff, History, Mail, Printer, RotateCcw, Search, Undo2 } from "lucide-react";
+import { Building2, ChevronRight, CloudOff, History, Mail, Printer, RotateCcw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
-import { fmtDateTime, fmtTime, fmtDay } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtTime, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { allocateRefundAcross } from "@/lib/vouchers";
+import { allocateRefund, allocateRefundAcross } from "@/lib/vouchers";
 import { api, errorText } from "./lib/api";
 import { TENDER_LABEL, tenderLine, uuid } from "./lib/rules";
+import { tradeTenderLabel } from "./lib/receipt";
 import { usePos } from "./context";
 import { TrainingSales } from "./training";
 import { Alert, CheckRow, Chip, Confirm, EmptyPanel, Field, PosButton, SelectInput, Sheet, Spinner, Stepper, TextInput } from "./ui";
@@ -91,6 +93,7 @@ export function SalesHistory() {
                   <span className="block truncate font-mono text-sm font-semibold text-white">{s.number}</span>
                   <span className="mt-0.5 flex min-w-0 items-center gap-1.5 text-xs text-ink-400">
                     {s.channel === "ONLINE" && <Chip tone="blue">Online</Chip>}
+                    {s.channel === "WHOLESALE" && <Chip tone="blue">Trade</Chip>}
                     {s.refunded && <Chip tone="red">Refunded</Chip>}
                     {s.offline && <Chip tone="amber">Offline</Chip>}
                     <span className="truncate">
@@ -161,6 +164,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
   const refundable = r.kind === "SALE" && r.lines.some((l) => l.qty - l.refundedQty > 0);
   const saved = r.memberSavingsCents ?? 0;
   const offer = Math.max(0, r.offerCents ?? 0);
+  const trade = r.channel === "WHOLESALE" ? (r.trade ?? null) : null;
   const actions = (
     <>
       <PosButton variant="outline" onClick={() => pos.print({ kind: "receipt", receipt: r })} aria-label="Print receipt">
@@ -207,6 +211,20 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
               {r.pointsEarned !== 0 && <span className="text-brand-300"> · {fmtPoints(r.pointsEarned)} {r.pointsEarned > 0 ? "earned" : "reversed"}</span>}
             </div>
           )}
+          {trade && (
+            <div className="mb-3 flex items-start gap-3 rounded-2xl bg-sky-500/10 px-4 py-3 text-sm ring-1 ring-sky-500/40" data-testid="sale-trade">
+              <Building2 className="mt-0.5 h-4 w-4 shrink-0 text-[#8fbdf2]" />
+              <div>
+                <span className="font-semibold text-white">Trade sale · {trade.name}</span> <span className="text-ink-400">· {trade.number}</span>
+                {trade.orderNumber && <span className="text-ink-400"> · order {trade.orderNumber}</span>}
+                <div className="text-xs text-ink-400">
+                  Prices ex VAT
+                  {trade.onAccountCents > 0 && ` · ${zar(trade.onAccountCents)} on account${trade.dueAt ? `, due ${fmtDate(trade.dueAt)}` : ""}${trade.creditedCents ? ` · ${zar(trade.creditedCents)} credited back` : ""}`}
+                  {trade.onAccountCents < 0 && ` · ${zar(-trade.onAccountCents)} credited to the account`}
+                </div>
+              </div>
+            </div>
+          )}
           <ul className="divide-y divide-ink-850 rounded-2xl bg-ink-900 px-4 ring-1 ring-ink-800">
             {r.lines.map((l) => (
               <li key={l.id} className="flex items-start justify-between gap-3 py-3 text-sm">
@@ -216,7 +234,8 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
                   </span>
                   <span className="block text-xs text-ink-400">
                     {Math.abs(l.qty)} × {zar(l.unitPriceCents)}
-                    {l.discountCents > 0 && ` · saved ${zar(l.discountCents)}`}
+                    {trade && ` ex VAT · VAT ${zar(l.vatCents)}`}
+                    {l.discountCents > 0 && !trade && ` · saved ${zar(l.discountCents)}`}
                     {l.refundedQty > 0 && <span className="text-[#f29b9b]"> · {l.refundedQty} refunded</span>}
                   </span>
                 </span>
@@ -248,15 +267,15 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
               <dd className="tnum">{zar(r.totalCents)}</dd>
             </div>
             <div className="flex justify-between text-xs text-ink-400">
-              <dt>{r.vatCents ? "VAT included" : "No VAT charged"}</dt>
+              <dt>{r.vatCents ? (trade ? "VAT (15%) on ex-VAT prices" : "VAT included") : "No VAT charged"}</dt>
               <dd className="tnum">{r.vatCents ? zar(r.vatCents) : ""}</dd>
             </div>
             {r.payments.map((p, i) => (
               <div key={i} className="flex justify-between text-ink-300">
                 <dt>
-                  {p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method)}
+                  {p.method === "VOUCHER" ? tenderLine(p) : p.method === "ACCOUNT" ? tradeTenderLabel(p, trade, "••••").replace(" - due ", " · due ") : (TENDER_LABEL[p.method] ?? p.method)}
                   {p.cardLast4 ? ` •••• ${p.cardLast4}` : ""}
-                  {p.reference ? ` · ${p.reference}` : ""}
+                  {p.reference && p.method !== "ACCOUNT" ? ` · ${p.reference}` : ""}
                   {p.changeCents ? ` · change ${zar(p.changeCents)}` : ""}
                 </dt>
                 <dd className="tnum">{zar(p.amountCents)}</dd>
@@ -310,7 +329,9 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
 
 function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () => void; onDone: (credit: ReceiptDTO) => void }) {
   const pos = usePos();
-  const original = sale.payments.find((p) => p.method !== "ONLINE" && p.method !== "VOUCHER")?.method ?? "CARD";
+  // The money tender to default to: never a voucher, the shop's gateway or a trade account's terms.
+  const original = sale.payments.find((p) => p.method !== "ONLINE" && p.method !== "VOUCHER" && p.method !== "ACCOUNT" && p.method !== "LOYALTY")?.method ?? "CARD";
+  const trade = sale.channel === "WHOLESALE" ? (sale.trade ?? null) : null;
   const [qty, setQty] = useState<Record<string, number>>({});
   const [restock, setRestock] = useState<Record<string, boolean>>(() => Object.fromEntries(sale.lines.map((l) => [l.id, true])));
   const [reason, setReason] = useState(REASONS[0]);
@@ -327,7 +348,12 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
   // voucher first, up to what it paid less earlier refunds; only the remainder goes to the tender chosen here.
   const loyaltyBack = sale.totalCents > 0 ? Math.floor((amount * sale.pointsRedeemed * 100) / sale.totalCents / 100) * 100 : 0;
   const split = allocateRefundAcross(amount - loyaltyBack, sale.vouchers ?? []);
-  const voucherOnly = split.parts.length > 0 && split.toTender === 0;
+  // Trade sales: what was on account comes back onto the account as a credit note (up to what's still open on it),
+  // before any money moves — the same rule as a voucher, applied after the vouchers.
+  const account = trade ? allocateRefund({ refundCents: split.toTender, voucherPaidCents: Math.max(0, trade.onAccountCents), voucherRefundedCents: trade.creditedCents }) : { toVoucher: 0, toTender: split.toTender };
+  const toAccount = account.toVoucher;
+  const toTender = account.toTender;
+  const voucherOnly = (split.parts.length > 0 || toAccount > 0) && toTender === 0;
 
   async function submit() {
     setBusy(true);
@@ -407,7 +433,11 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
               ))}
             </SelectInput>
           </Field>
-          <Field label="Refund to" htmlFor="refund-method" hint={voucherOnly ? "Nothing to pay out: it all goes back onto the gift voucher" : `Original payment: ${sale.payments.map((p) => (p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method))).join(", ")}`}>
+          <Field
+            label="Refund to"
+            htmlFor="refund-method"
+            hint={voucherOnly ? (toAccount > 0 ? "Nothing to pay out: it all goes back onto the account as a credit note" : "Nothing to pay out: it all goes back onto the gift voucher") : `Original payment: ${sale.payments.map((p) => (p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method))).join(", ")}`}
+          >
             <SelectInput id="refund-method" value={method} disabled={voucherOnly} onChange={(e) => setMethod(e.target.value as "CARD")}>
               <option value="CARD">Card</option>
               <option value="CASH">Cash from the drawer</option>
@@ -425,9 +455,18 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
           <Alert tone="info" className="mt-4">
             <span data-testid="refund-voucher">
               {split.parts.map((v) => `${zar(v.cents)} goes back onto gift voucher ${v.code}`).join("; ")}
-              {split.toTender > 0 ? `; ${zar(split.toTender)} refunded by ${TENDER_LABEL[method]}.` : " — nothing to pay out in money."}
+              {toTender > 0 ? `; ${zar(toTender)} refunded by ${TENDER_LABEL[method]}.` : " — nothing to pay out in money."}
             </span>{" "}
             A voucher is never cashed out.
+          </Alert>
+        )}
+        {trade && toAccount > 0 && (
+          <Alert tone="info" className="mt-4">
+            <span data-testid="refund-account">
+              {zar(toAccount)} goes back onto the account as a credit note ({trade.number})
+              {toTender > 0 ? `; ${zar(toTender)} refunded by ${TENDER_LABEL[method]}.` : " — nothing to pay out in money."}
+            </span>{" "}
+            The on-account part is never cashed out.
           </Alert>
         )}
         {sale.pointsRedeemed > 0 && <p className="mt-3 text-xs text-ink-400">Points paid on the original sale are returned in proportion; points earned are reversed.</p>}
@@ -438,14 +477,14 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
         body={
           <>
             {units} item{units === 1 ? "" : "s"} from {sale.number} refunded
-            {split.parts.length > 0 ? (
+            {split.parts.length > 0 || toAccount > 0 ? (
               <>
                 {" "}
-                — {split.parts.map((v) => `${zar(v.cents)} back onto gift voucher ${v.code}`).join(", ")}
-                {split.toTender > 0 ? (
+                — {[...split.parts.map((v) => `${zar(v.cents)} back onto gift voucher ${v.code}`), ...(toAccount > 0 ? [`${zar(toAccount)} credited to the account as a credit note`] : [])].join(", ")}
+                {toTender > 0 ? (
                   <>
                     {" "}
-                    and {zar(split.toTender)} by <b>{TENDER_LABEL[method]}</b>
+                    and {zar(toTender)} by <b>{TENDER_LABEL[method]}</b>
                   </>
                 ) : (
                   ""

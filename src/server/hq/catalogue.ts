@@ -58,7 +58,7 @@ export async function productList(retailIds: string[], f: CatalogueFilters, page
     db.product.count({ where }),
     db.product.findMany({
       where,
-      include: { category: { select: { name: true } }, variants: { select: { id: true, name: true, sku: true, priceCents: true, active: true }, orderBy: { sortOrder: "asc" } } },
+      include: { category: { select: { name: true } }, variants: { select: { id: true, name: true, sku: true, priceCents: true, active: true, caseQty: true }, orderBy: { sortOrder: "asc" } } },
       orderBy: productOrderBy(order.sort, order.dir),
       skip: (page - 1) * pageSize,
       take: pageSize,

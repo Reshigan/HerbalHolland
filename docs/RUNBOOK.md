@@ -404,6 +404,28 @@ held ones for cash/card only), prices the basket ex VAT with VAT per line and ta
 account** within the credit decision; the tax invoice goes to the account's billing email. Refunds put the on-account
 part back as a credit note. No points, member prices, My Deals or gift vouchers; never offline.
 
+### Trade sales at the till
+
+A business buying at the counter: **Trade sale** (next to Find member on the Sell screen; it needs a connection —
+offline it is greyed out and a trade basket is never queued) → find the account by name, number (`TA-…`, however
+typed) or VAT number → the basket goes into trade mode with a **TRADE SALE · account** banner (no member, points,
+member prices or deals: a basket is retail or trade, never both). Lines are re-quoted by the server at the account's
+trade prices ex VAT with VAT per line; a line the account may not buy (a range it isn't approved for, a licensed
+medicine, a product off sale) says why and is removed before payment. The compliance sheet's member and patient rules
+don't apply, but the usual 18+ counter check does (ID sighted / SA ID number). Payment: cash, card (tap, Yoco or a bank
+terminal), PayShap, **EFT** (the bank reference from the proof of payment) and **On account** — offered only when the
+account is APPROVED on ACCOUNT terms and the amount is within what it may still put on account (the credit decision,
+re-checked when the sale posts). The receipt is a **tax invoice**: the account's buyer block (legal name, address,
+VAT number), unit ex VAT · VAT · incl per line, "On account · due <date>" from the ledger invoice, no points. The tax
+invoice is emailed to the account's billing address. Refunds (Sales tab): the part that was on account comes back as a
+credit note on the ledger first; only the rest is paid out by the chosen money method (never On account or a voucher).
+Z-report / X-report: a **Trade sales** section (count, ex VAT, VAT, incl) and **On account** as its own tender line —
+not cash, not card — so the cash-up is unchanged. Trade click & collect orders at the store appear on the Orders board
+tagged **Trade · TO-…** with the account name: PLACED/PICKING ones are packed and marked ready in the back office; a
+READY one is handed over at the till with the buyer's 6-digit collection code (it must match the order — the TO number
+isn't a fallback) and the ID (18+) tick, which posts the WHOLESALE sale at the store with the handling fee on the open
+shift. Training mode may look accounts up and practise a trade sale (nothing posts); handovers are refused.
+
 **Ledger and statements.** HQ → Trade → Account → Ledger: record payments (bank reference; name the order or
 invoice it settles so the ageing is exact), issue credit notes (`TC-…`, with a note) and adjustments (always with a
 note). Statements go out on the statement day for the previous month; **Send statement** resends one by hand

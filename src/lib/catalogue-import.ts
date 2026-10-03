@@ -23,7 +23,7 @@ export type ProductData = {
   legalBasis: string | null; cbdMgPerPack: number | null; cbdMgPerDay: number | null; claims: string[];
   netContent: number | null; netUnit: string | null; ingredients: string | null; allergens: string[]; naturalCbd: boolean;
 };
-export type VariantData = { sku: string; name: string; barcode: string | null; grams: number | null; priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean };
+export type VariantData = { sku: string; name: string; barcode: string | null; grams: number | null; priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; caseQty: number };
 type Value = string | number | boolean | string[];
 
 // ── Cells ─────────────────────────────────────────────────────────────────────
@@ -149,6 +149,7 @@ const COLUMNS: Column[] = [
   { key: "barcode", level: "variant", field: "barcode", kind: "barcode", aliases: ["ean", "gtin"], about: "EAN or UPC, 8–14 digits (format the column as text)" },
   { key: "grams", level: "variant", field: "grams", kind: "num", max: 1000, about: "Dried-flower equivalent grams, for licensed products' limits" },
   { key: "merch_partner_code", level: "variant", field: "podSku", kind: "text", max: 64, aliases: ["pod_sku"], about: "Made to order: the merch partner's product code (no stock)" },
+  { key: "case_qty", level: "variant", field: "caseQty", kind: "int", max: 1000, aliases: ["case", "case_pack", "units_per_case"], about: "Units per case: trade orders are placed in multiples of this (default 1)" },
   { key: "active", level: "variant", field: "active", kind: "bool", about: "no stops it being ordered or sold (new variants: yes)" },
   // Opening stock at the location chosen on upload.
   { key: "stock", level: "stock", field: "qty", kind: "int", max: 1_000_000, aliases: ["opening_stock", "qty", "quantity"], about: "Opening stock, in units, at the location you choose" },
@@ -360,7 +361,7 @@ const newProduct = (regClass: RegClass): ProductData => ({
   legalBasis: DEFAULT_LEGAL_BASIS[regClass] ?? null, cbdMgPerPack: null, cbdMgPerDay: null, claims: [], netContent: null, netUnit: null, ingredients: null, allergens: [], naturalCbd: false,
 });
 const PRODUCT_FIELDS = Object.keys(newProduct("ACCESSORY")) as (keyof ProductData)[];
-const VARIANT_FIELDS: (keyof VariantData)[] = ["name", "barcode", "grams", "priceCents", "wholesaleCents", "costCents", "podSku", "active"];
+const VARIANT_FIELDS: (keyof VariantData)[] = ["name", "barcode", "grams", "priceCents", "wholesaleCents", "costCents", "podSku", "active", "caseQty"];
 const same = (a: unknown, b: unknown) => JSON.stringify(a ?? null) === JSON.stringify(b ?? null);
 
 /** Keeps only the facts the class carries, as the product form saves them. */
@@ -498,8 +499,10 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
         sku, name: got<string>("name") ?? ev?.name ?? "", barcode: got<string>("barcode") ?? ev?.barcode ?? null, grams: got<number>("grams") ?? ev?.grams ?? null,
         priceCents: got<number>("priceCents") ?? ev?.priceCents ?? 0, wholesaleCents: got<number>("wholesaleCents") ?? ev?.wholesaleCents ?? 0,
         costCents: got<number>("costCents") ?? ev?.costCents ?? 0, podSku: got<string>("podSku") ?? ev?.podSku ?? null, active: got<boolean>("active") ?? ev?.active ?? true,
+        caseQty: got<number>("caseQty") ?? ev?.caseQty ?? 1,
       };
       if (got<number>("priceCents") === 0) errors.push("rrp_incl_vat: more than R0");
+      if (got<number>("caseQty") === 0) errors.push("case_qty: at least 1 (leave it empty for single units)");
       const owner = v.barcode ? barcodeOwner.get(v.barcode) : undefined;
       if (owner && owner !== sku) errors.push(`barcode: ${v.barcode} is already on SKU ${owner}`);
 
@@ -590,13 +593,13 @@ const EXAMPLES: Record<string, string>[] = [
     sku: "EXAMPLE-OIL-30", product: "Example Calm Oil 300mg", variant: "30 ml", category: "CBD Wellness", class: "CBD", rrp_incl_vat: "349.00", wholesale_excl_vat: "160.00", cost_excl_vat: "95.00",
     status: "DRAFT", description: "Broad-spectrum hemp extract in MCT oil with natural peppermint. Ten milligrams a day, in two servings.", tagline: "10 mg a day, every day", brand: "Herbal Holland", line: "HOUSE",
     thc_max_pct: "0.001", cbd_mg_per_pack: "300", cbd_mg_per_day: "10", ingredients: "MCT oil (from coconut), broad-spectrum hemp extract (300 mg CBD), natural peppermint oil", allergens: "none",
-    claims: "Supports everyday calm", effects: "calm|focus", flavours: "Peppermint", image_urls: "https://example.com/photos/calm-oil-front.jpg|https://example.com/photos/calm-oil-back.jpg", active: "yes", stock: "24", batch: "EXAMPLE-OIL-2609", expires: "2027-09-30",
+    claims: "Supports everyday calm", effects: "calm|focus", flavours: "Peppermint", image_urls: "https://example.com/photos/calm-oil-front.jpg|https://example.com/photos/calm-oil-back.jpg", active: "yes", case_qty: "12", stock: "24", batch: "EXAMPLE-OIL-2609", expires: "2027-09-30",
   },
   {
     sku: "EXAMPLE-JAR-250", product: "Example Stash Jar", variant: "250 ml", category: "Accessories", class: "ACCESSORY", rrp_incl_vat: "189.00", wholesale_excl_vat: "85.00", cost_excl_vat: "45.00",
-    status: "DRAFT", description: "An airtight, UV-blocking glass jar with a bamboo lid. Keeps things fresh and out of the light.", brand: "Herbal Holland", line: "HOUSE", tobacco_related: "no", stock: "12",
+    status: "DRAFT", description: "An airtight, UV-blocking glass jar with a bamboo lid. Keeps things fresh and out of the light.", brand: "Herbal Holland", line: "HOUSE", tobacco_related: "no", case_qty: "6", stock: "12",
   },
-  { sku: "EXAMPLE-JAR-500", product: "Example Stash Jar", variant: "500 ml", category: "Accessories", class: "ACCESSORY", rrp_incl_vat: "249.00", wholesale_excl_vat: "112.00", cost_excl_vat: "60.00", stock: "12" },
+  { sku: "EXAMPLE-JAR-500", product: "Example Stash Jar", variant: "500 ml", category: "Accessories", class: "ACCESSORY", rrp_incl_vat: "249.00", wholesale_excl_vat: "112.00", cost_excl_vat: "60.00", case_qty: "6", stock: "12" },
 ];
 
 /** The CSV template: every column, with example rows (which the import refuses until they're replaced). */

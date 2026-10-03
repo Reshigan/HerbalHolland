@@ -92,6 +92,7 @@ export function ZReportDocument({ z, printedAt, address }: { z: ZReport; printed
   const variance = z.cash.varianceCents;
   const tone = variance == null ? "" : variance === 0 ? " ok" : variance < 0 ? " short" : " over";
   const d = z.dispensing;
+  const t = z.trade;
   return (
     <article className="zr" aria-label={z.closed ? "Z-report" : "X-report"}>
       <div className="zr-head">
@@ -200,6 +201,21 @@ export function ZReportDocument({ z, printedAt, address }: { z: ZReport; printed
             </>
           ) : (
             <Row label="No licensed medicines dispensed" value="—" />
+          )}
+        </section>
+
+        <section className="zr-sec" aria-label="Trade sales">
+          <h2>Trade sales (wholesale)</h2>
+          {t && (t.count > 0 || t.refundCents > 0) ? (
+            <>
+              <Row label={`Trade sales (${t.count}) incl VAT`} value={zar(t.inclCents)} strong />
+              <Row label="Ex VAT" value={zar(t.exCents)} indent />
+              <Row label="VAT (15%)" value={zar(t.vatCents)} indent />
+              {t.refundCents > 0 && <Row label="Credit notes" value={`−${zar(t.refundCents)}`} indent tone="neg" />}
+              <Row label="On account (invoiced, not money)" value={zar(t.onAccountCents)} indent />
+            </>
+          ) : (
+            <Row label="No trade sales" value="—" />
           )}
         </section>
       </div>

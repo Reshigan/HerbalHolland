@@ -6,7 +6,8 @@
 // export, stock levels) → adjustments → batches (recall write-off) → stock takes (start, save, approve,
 // cancel) → purchasing (builder draft → submit → HQ approves and ships → received one short; a second
 // order cancelled) → network trading (buy another store's listing → they accept and ship → receive; list
-// and close our own) → online orders (collect handover, courier with merch shipped, cancel) → marketing
+// and close our own) → online orders (collect handover, courier with merch shipped, cancel) → a trade (business
+// account) click & collect order: pick → ready → hand over with ID + collection code → marketing
 // (promotion create/edit/end; campaigns to a tier and to an "Into …" interest audience, CPA send window,
 // cancel) → pricing (shelf price, category bulk change) → settings (hours, till revoke) → statement email →
 // team (add, PIN, own member card, deactivate/reactivate) → banking (deposit with its slip) → an alert about the
@@ -76,6 +77,16 @@ const row = (scope, text) => scope.getByRole("row").filter({ hasText: text });
 const dayKey = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(d);
 const daysFromNow = (n) => dayKey(new Date(Date.now() + n * 86_400_000));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Polls until fn returns something truthy (or gives up and returns null) — for emails sent after an action returns. */
+async function until(fn, ms = 20_000, every = 150) {
+  const end = Date.now() + ms;
+  for (;;) {
+    const v = await fn().catch(() => null);
+    if (v) return v;
+    if (Date.now() > end) return null;
+    await sleep(every);
+  }
+}
 
 // ── Timing: click → visible result. For a server-action form we also wait for the action's
 // response, so a notice with the same text left over from an earlier submit can't stop the clock.
@@ -744,6 +755,88 @@ try {
   await act(page, "moveOrder · CANCELLED", () => cancelGroup.getByRole("button", { name: "Cancel order" }).click(), () => heading("Cancelled").waitFor());
   o = await one(`select status, events from "Order" where id = $1`, [toCancel.id]);
   assert(o.status === "CANCELLED" && o.events.at(-1).note === `Cancelled by ${me.name}: E2E: member asked to cancel`, `${toCancel.code} cancelled, reason on the timeline`);
+
+
+  // ───────────────────────────────────────────────────────────────────────────
+  step("Trade: a click & collect order from a business account (SQL fixture) is picked → ready (code texted) → handed over with ID and code → the WHOLESALE sale posts here");
+  const tradeItem = await ranged(`p."regClass" = 'ACCESSORY' and v."wholesaleCents" > 0 and ${RELEASED("$1")} >= 6`, [], `${RELEASED("$1")} desc`);
+  if (!tradeItem) fail(`${CODE} needs 6+ released units of an accessory for the trade order`);
+  const tradeHandling = (await one(`select value from "Setting" where key = 'trade'`))?.value?.collectHandlingCents ?? 7500;
+  const halfUp = (n) => Math.floor((n * 1500 + 5000) / 10000);
+  const tQty = 4;
+  const tEx = tQty * tradeItem.wholesaleCents;
+  const tTotal = tEx + halfUp(tEx) + tradeHandling + halfUp(tradeHandling);
+  let tNo;
+  while (!tNo) {
+    const c = `TA-8${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
+    if (!(await one(`select 1 from "TradeAccount" where number = $1`, [c]))) tNo = c;
+  }
+  const tAcc = await one(
+    `insert into "TradeAccount" (id, number, name, "legalName", kind, email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "creditLimitCents", "paymentDays", classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "approvedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, $2, $3, 'PHARMACY', $4, '+27125550140', '1 Burnett Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 5000000, 30, '{ACCESSORY,CBD}'::"RegClass"[], now(), 'trade-1', now(), now(), now())
+     returning id, number, name, email`,
+    [tNo, `E2E Pharmacy ${run}`, `E2E Pharmacy ${run} (Pty) Ltd`, `e2e.trade.${run.toLowerCase()}@example.com`],
+  );
+  later(`remove trade account ${tAcc.number}`, () => q(`delete from "TradeAccount" where id = $1`, [tAcc.id]));
+  later("unlink the trade sale, drop the trade messages", async () => {
+    await q(`update "Sale" set "tradeAccountId" = null where "tradeAccountId" = $1`, [tAcc.id]); // the sale stays, like every other trading record
+    await q(`delete from "MessageLog" where "to" in ($1, $2)`, [tAcc.email, "+27825550199"]);
+  });
+  const tBuyer = await one(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, phone, role) values (gen_random_uuid()::text, $1, 'E2E Buyer', $2, '+27825550199', 'OWNER') returning id, phone`, [tAcc.id, `e2e.trade.buyer.${run.toLowerCase()}@example.com`]);
+  let tNum;
+  while (!tNum) {
+    const c = `TO-8${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
+    if (!(await one(`select 1 from "TradeOrder" where number = $1`, [c]))) tNum = c;
+  }
+  const tOrder = await one(
+    `insert into "TradeOrder" (id, number, "tradeAccountId", "buyerId", "storeId", fulfilment, status, "payMethod", "subtotalCents", "deliveryCents", "handlingCents", "vatCents", "totalCents", "collectionCode", events, "reservedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, $2, $3, $4, 'COLLECT', 'PLACED', 'ACCOUNT', $5, 0, $6, $7, $8, $9, $10::jsonb, now(), now()) returning id, number, "collectionCode"`,
+    [tNum, tAcc.id, tBuyer.id, store.id, tEx, tradeHandling, halfUp(tEx) + halfUp(tradeHandling), tTotal, String(100000 + Math.floor(Math.random() * 900000)), JSON.stringify([{ status: "PLACED", at: new Date().toISOString(), note: "E2E fixture: placed on account; stock reserved" }])],
+  );
+  later(`remove trade order ${tOrder.number}`, () => q(`delete from "TradeOrder" where id = $1`, [tOrder.id]));
+  await q(`insert into "TradeOrderLine" (id, "tradeOrderId", "variantId", qty, "unitCents", "vatCents") values (gen_random_uuid()::text, $1, $2, $3, $4, $5)`, [tOrder.id, tradeItem.id, tQty, tradeItem.wholesaleCents, halfUp(tEx)]);
+  ok(`${tOrder.number} for ${tAcc.name}: ${tQty} × ${tradeItem.label} at R${(tradeItem.wholesaleCents / 100).toFixed(2)} ex VAT + handling → R${(tTotal / 100).toFixed(2)} incl. VAT, on account`);
+  await page.goto(`${BASE}/store/${CODE}`);
+  const todayTrade = page.getByTestId("today-list").getByRole("listitem").filter({ hasText: /trade orders? to fulfil/ });
+  await todayTrade.first().waitFor();
+  assert((await todayTrade.count()) === 1 && (await todayTrade.locator("a").getAttribute("href")) === `/store/${CODE}/trade`, "Today lists the trade order to fulfil, linking to Trade orders");
+  await visit(page, `/store/${CODE}/orders`, page.getByRole("searchbox"));
+  assert((await page.getByRole("link", { name: /trade orders? to fulfil/ }).count()) === 1, "the Online orders page points to the open trade order");
+  await visit(page, `/store/${CODE}/trade`, page.getByRole("link", { name: tOrder.number, exact: true }));
+  await row(page, tOrder.number).getByRole("link", { name: tOrder.number, exact: true }).click();
+  await page.waitForURL(new RegExp(`/trade/${tOrder.id}$`));
+  await hydrated(page.getByRole("button", { name: "Start picking" }));
+  await act(page, "pickTradeOrder", () => page.getByRole("button", { name: "Start picking" }).click(), () => status(page, `Picking ${tOrder.number}`).waitFor());
+  assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "PICKING", "picking");
+  await act(page, "readyTradeOrder", () => page.getByRole("button", { name: "Packed — ready for collection" }).click(), () => status(page, "is ready — the buyer has been sent their collection code").waitFor());
+  const tReady = await one(`select status, "readyAt" from "TradeOrder" where id = $1`, [tOrder.id]);
+  const readyText = await one(`select body from "MessageLog" where channel = 'SMS' and "to" = $1 and body like $2`, [tBuyer.phone, `%${tOrder.number} is ready%`]);
+  assert(tReady.status === "READY" && tReady.readyAt && readyText?.body.includes(tOrder.collectionCode), "ready: the collection code texted to the buyer");
+  await hydrated(page.getByRole("button", { name: `Hand over ${tOrder.number}` }));
+  await page.getByRole("button", { name: `Hand over ${tOrder.number}` }).click();
+  const hg = page.getByRole("group", { name: `Hand over ${tOrder.number}` });
+  await act(page, "collectTradeOrder · no ID check", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => alert(hg, "Check the collector's ID").waitFor());
+  await hg.getByLabel(/I've seen the collector's ID/).check();
+  await hg.locator("#collection-code").fill("000000");
+  await act(page, "collectTradeOrder · wrong code", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => alert(hg, "That isn't this order's collection code").waitFor());
+  assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "READY", "nothing posted on a wrong code");
+  await hg.locator("#collection-code").fill(tOrder.collectionCode);
+  await shot(page, "trade-handover");
+  await act(page, "collectTradeOrder", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => status(page, "Handed over — sale").waitFor());
+  const tDone = await one(
+    `select o.status, o."invoiceNumber", o."collectedAt", s.channel, s."storeId", s."totalCents", s."tradeAccountId", s."ageCheck",
+       (select method from "Payment" p where p."saleId" = s.id limit 1) method,
+       (select cents from "TradeLedgerEntry" e where e."tradeOrderId" = o.id and e.kind = 'INVOICE') invoiced
+     from "TradeOrder" o join "Sale" s on s.id = o."saleId" where o.id = $1`,
+    [tOrder.id],
+  );
+  assert(
+    tDone?.status === "COLLECTED" && tDone.collectedAt && tDone.channel === "WHOLESALE" && tDone.storeId === store.id && tDone.totalCents === tTotal && tDone.method === "ACCOUNT" && tDone.invoiced === tTotal && /^TI-\d{6}$/.test(tDone.invoiceNumber ?? "") && tDone.ageCheck === "ID_SIGHTED",
+    `collected: sale ${tDone?.invoiceNumber} at ${CODE} in the trade channel, R${(tTotal / 100).toFixed(2)} incl. the handling fee, on account, ID sighted`,
+  );
+  const tMail = await until(() => one(`select 1 from "MessageLog" where channel = 'EMAIL' and "to" = $1 and body like $2`, [tAcc.email, `%${tDone.invoiceNumber}%`]));
+  assert(tMail && (await one(`select 1 from "AuditLog" where action = 'trade.order.collected' and "entityId" = $1 and "actorId" = $2`, [tOrder.id, me.id])), "tax invoice emailed to the account; handover audited (trade.order.collected)");
+  assert((await page.getByRole("button", { name: `Hand over ${tOrder.number}` }).count()) === 0, "nothing left to do on the order");
 
   // ───────────────────────────────────────────────────────────────────────────
   step("Local marketing: a coded happy-hour promotion — create, edit, end");

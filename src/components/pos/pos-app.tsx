@@ -725,7 +725,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   if (!unlocked) return <>{lockScreen}</>;
   if (!boot || !ctx) return <Splash message={bootError ?? "Loading the catalogue…"} retry={bootError ? refreshBoot : undefined} />;
 
-  const newOrders = orders?.filter((o) => o.status === "PLACED").length ?? 0;
+  const newOrders = orders?.filter((o) => o.status === "PLACED" && !o.trade).length ?? 0; // trade orders are picked in the back office
   const failed = outbox.filter((o) => o.error).length;
 
   return (

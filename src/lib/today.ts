@@ -27,10 +27,12 @@ export type TodayFacts = {
   announcements: { pending: number; urgent: number; latestTitle: string | null };
   /** Supplier invoices past their due date, and due within 7 days. */
   supplierInvoices: { overdue: number; overdueCents: number; dueSoon: number; dueSoonCents: number };
+  /** Click & collect trade orders at this store: to pick (placed or picking) and packed, waiting for the buyer. */
+  tradeOrders?: { toPick: number; ready: number; oldestOpenAt: Date | null; oldestReadyAt: Date | null };
 };
 
 const RANK: Record<TodaySeverity, number> = { high: 0, medium: 1, low: 2 };
-const ORDER = ["orders", "alerts", "cash", "announcements", "batches", "low-stock", "stock-takes", "patients", "supplier-invoices"];
+const ORDER = ["orders", "trade-orders", "alerts", "cash", "announcements", "batches", "low-stock", "stock-takes", "patients", "supplier-invoices"];
 const DAY = 86_400_000;
 
 const plural = (n: number, word: string, many = `${word}s`) => `${n.toLocaleString("en-US")} ${n === 1 ? word : many}`;
@@ -80,6 +82,22 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       title: `${plural(open, "online order")} to fulfil`,
       line: `${parts.join(" · ")}${f.orders.oldestOpenAt ? ` · oldest waiting ${ageLabel(f.orders.oldestOpenAt, now)}` : ""}`,
       href: `${base}/orders`,
+    });
+  }
+
+  const trade = f.tradeOrders;
+  const tradeOpen = trade ? trade.toPick + trade.ready : 0;
+  if (trade && tradeOpen > 0) {
+    const stale = trade.oldestOpenAt ? now.getTime() - trade.oldestOpenAt.getTime() > 4 * 3_600_000 : false;
+    const waitingLong = trade.oldestReadyAt ? now.getTime() - trade.oldestReadyAt.getTime() > 3 * DAY : false;
+    const parts = [trade.toPick && `${trade.toPick} to pick`, trade.ready && `${trade.ready} waiting for collection`].filter(Boolean);
+    items.push({
+      key: "trade-orders",
+      severity: stale || waitingLong ? "high" : "medium",
+      count: tradeOpen,
+      title: `${plural(tradeOpen, "trade order")} to fulfil`,
+      line: `${parts.join(" · ")}${trade.oldestOpenAt ? ` · oldest waiting ${ageLabel(trade.oldestOpenAt, now)}` : ""} — click & collect for a business account`,
+      href: `${base}/trade`,
     });
   }
 
@@ -207,5 +225,6 @@ export function emptyFacts(now = new Date()): TodayFacts {
     patients: { expiring: 0, soonest: null, withinDays: 14 },
     announcements: { pending: 0, urgent: 0, latestTitle: null },
     supplierInvoices: { overdue: 0, overdueCents: 0, dueSoon: 0, dueSoonCents: 0 },
+    tradeOrders: { toPick: 0, ready: 0, oldestOpenAt: null, oldestReadyAt: null },
   };
 }

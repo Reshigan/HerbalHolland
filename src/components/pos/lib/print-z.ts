@@ -39,6 +39,16 @@ export function zReportBytes(z: ZReport, o: { cols: Columns; codePage?: number; 
     p.row(`  Sales (${z.dispensing.count})`, zar(z.dispensing.cents));
     p.row("  Units / grams", `${z.dispensing.units} / ${z.dispensing.grams}g`);
   }
+  // Trade sales: ex VAT, VAT and incl; what went on account is invoiced, not money, so it never touches the drawer.
+  if (z.trade && (z.trade.count > 0 || z.trade.refundCents > 0)) {
+    p.rule();
+    p.bold(true).line("Trade sales (wholesale)").bold(false);
+    p.row(`  Sales (${z.trade.count}) incl VAT`, zar(z.trade.inclCents));
+    p.row("  Ex VAT", zar(z.trade.exCents));
+    p.row("  VAT", zar(z.trade.vatCents));
+    if (z.trade.refundCents > 0) p.row("  Credit notes", `-${zar(z.trade.refundCents)}`);
+    p.row("  On account (not money)", zar(z.trade.onAccountCents));
+  }
   p.rule();
   p.bold(true).line("Cash drawer").bold(false);
   p.row("  Opening float", zar(z.cash.floatCents));

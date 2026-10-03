@@ -18,7 +18,7 @@ export async function todayFacts(store: TodayStore, user: Pick<Staff, "id">, now
   const today = dayKey(now);
   const audience = { in: ["ALL", `format:${store.format}`, `region:${store.region.code}`] };
   const pendingAck = { audience, requiresAck: true, acks: { none: { storeId: store.id } } };
-  const [orders, oldestOpen, oldestReady, counts, lastCounts, counting, cash, alerts, expiring, soonestLot, plan, auths, acks, urgent, latest, overdueInv, dueSoonInv] =
+  const [orders, oldestOpen, oldestReady, counts, lastCounts, counting, cash, alerts, expiring, soonestLot, plan, auths, acks, urgent, latest, overdueInv, dueSoonInv, tradeOrders, oldestTrade, oldestTradeReady] =
     await Promise.all([
       db.order.groupBy({ by: ["status"], where: { storeId: store.id, status: { in: ["PLACED", "PICKING", "READY"] } }, _count: true }),
       db.order.findFirst({ where: { storeId: store.id, status: { in: ["PLACED", "PICKING"] } }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
@@ -58,6 +58,10 @@ export async function todayFacts(store: TodayStore, user: Pick<Staff, "id">, now
         _count: true,
         _sum: { totalCents: true },
       }),
+      // Click & collect trade orders the store fulfils (a courier order never lands at a retail store).
+      db.tradeOrder.groupBy({ by: ["status"], where: { storeId: store.id, fulfilment: "COLLECT", status: { in: ["PLACED", "PICKING", "READY"] } }, _count: true }),
+      db.tradeOrder.findFirst({ where: { storeId: store.id, fulfilment: "COLLECT", status: { in: ["PLACED", "PICKING"] } }, orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
+      db.tradeOrder.findFirst({ where: { storeId: store.id, fulfilment: "COLLECT", status: "READY" }, orderBy: { readyAt: "asc" }, select: { readyAt: true, updatedAt: true } }),
     ]);
 
   const byStatus = Object.fromEntries(orders.map((o) => [o.status, o._count])) as Record<string, number>;
@@ -93,6 +97,12 @@ export async function todayFacts(store: TodayStore, user: Pick<Staff, "id">, now
     patients: { expiring: auths.length, soonest: auths[0]?.validTo ?? null, withinDays: ops.patientAuthDays },
     announcements: { pending: acks, urgent, latestTitle: latest?.title ?? null },
     supplierInvoices: { overdue: overdueInv._count, overdueCents: overdueInv._sum.totalCents ?? 0, dueSoon: dueSoonInv._count, dueSoonCents: dueSoonInv._sum.totalCents ?? 0 },
+    tradeOrders: {
+      toPick: tradeOrders.filter((t) => t.status !== "READY").reduce((n, t) => n + t._count, 0),
+      ready: tradeOrders.find((t) => t.status === "READY")?._count ?? 0,
+      oldestOpenAt: oldestTrade?.createdAt ?? null,
+      oldestReadyAt: oldestTradeReady?.readyAt ?? oldestTradeReady?.updatedAt ?? null,
+    },
   };
 }
 

@@ -4,7 +4,9 @@
 // sale (card, tap on glass) → event check-in from a members' evening ticket (member attached,
 // welcome gift offered to a first-timer) → refund a line → a gift voucher scanned at the till pays
 // part of a sale, cash the rest, then the refund goes back onto the voucher → offline cash sale →
-// back online & sync → hand over a READY click & collect order → close the shift (Z-report).
+// back online & sync → hand over a READY click & collect order → trade sale for an approved
+// account (prices ex VAT, R100 cash + the rest on account, tax invoice), refund a line of it
+// (credit note) → hand over a READY trade click & collect order → close the shift (Z-report).
 import { chromium } from "@playwright/test";
 import pg from "pg";
 import { mkdirSync } from "node:fs";
@@ -18,6 +20,10 @@ const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 
 const browser = await chromium.launch().catch(() => chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }));
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 800 } });
+// The browser-print fallback calls window.print(); headless Chromium would hang on the dialog, so swallow it.
+await ctx.addInitScript(() => {
+  window.print = () => undefined;
+});
 const page = await ctx.newPage();
 page.setDefaultTimeout(45_000);
 const problems = [];
@@ -41,6 +47,10 @@ const search = async (text) => {
 const esc = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 let tempEvent = null; // throwaway event for the check-in step (deleted at the end)
 let tempVoucher = null; // a R50 gift voucher issued straight into the database for the till step (deleted at the end)
+let tradeAccount = null; // an approved trade account on credit terms for the trade-sale steps (closed at the end)
+let tradeOrder = null; // a READY trade click & collect order at PTA01 for the handover step (deleted at the end)
+const zarText = (cents) => `R${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const vatOn = (exCents) => Math.floor((exCents * 1500 + 5000) / 10000); // VAT per line, half up (lib/trade.ts vatHalfUp)
 const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // no 0/O or 1/I, as makeVoucherCode
 const pick = (n) => [...Array(n)].map(() => CODE_ALPHABET[Math.floor(Math.random() * CODE_ALPHABET.length)]).join("");
 
@@ -350,6 +360,159 @@ try {
     `order ${ready.code} completed${needsId ? ", ID checked" : " (no 18+ items: no ID check)"}, posted as ${done?.number}`,
   );
 
+  step("Trade sale: an approved account on 30-day terms (R5,000 limit) buys an accessory and a CBD line — R100 cash, the rest on account");
+  const store = (await q(`select id from "Store" where code = 'PTA01'`))[0];
+  const taNo = `TA-${String(900000 + Math.floor(Math.random() * 99999))}`;
+  tradeAccount = (
+    await q(
+      `insert into "TradeAccount" (id, number, name, "legalName", kind, "vatNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "paymentDays", "creditLimitCents", classes, "approvedAt", "adultAttestedAt", "createdAt", "updatedAt")
+       values (gen_random_uuid()::text, $1, 'E2E Green Leaf Pharmacy', 'E2E Green Leaf Pharmacy (Pty) Ltd', 'PHARMACY', '4123456789', $2, '+27125551234', '1 Burnett Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 30, 500000,
+         '{CBD,CBD_FOOD,CBD_TOPICAL,HEMP,SUPPLEMENT,ACCESSORY,APPAREL,GROW}'::"RegClass"[], now(), now(), now(), now()) returning id, number, name, email`,
+      [taNo, `trade.e2e.${Date.now()}@example.com`],
+    )
+  )[0];
+  // The lines: the pouch (an accessory on this till) and a CBD supplement with one variant on the till, both at their wholesale price (no TRADE lists in the seed).
+  const pouch = (await q(`select v.id, v."wholesaleCents" from "Variant" v join "Product" p on p.id = v."productId" where p.name = 'Smell-proof Pouch' and v.active limit 1`))[0];
+  const cbd = (
+    await q(
+      `select p.name, v.id, v."wholesaleCents" from "Product" p join "Variant" v on v."productId" = p.id and v.active
+       where p."regClass" = 'CBD' and p.status = 'ACTIVE' and v."wholesaleCents" > 0 and v."podSku" is null
+         and (exists (select 1 from "StoreVariant" sv where sv."variantId" = v.id and sv."storeId" = $1) or exists (select 1 from "StockLevel" sl where sl."variantId" = v.id and sl."storeId" = $1 and sl."onHand" > 0))
+         and (select count(*) from "Variant" v2 where v2."productId" = p.id and v2.active) = 1
+       order by p.name limit 1`,
+      [store.id],
+    )
+  )[0];
+  assert(pouch && cbd, `trade lines: Smell-proof Pouch (R${(pouch?.wholesaleCents / 100).toFixed(2)} ex VAT) and ${cbd?.name} (R${(cbd?.wholesaleCents / 100).toFixed(2)} ex VAT)`);
+  await waitOnline();
+  await page.getByRole("button", { name: "Sell" }).first().click();
+  await page.getByTestId("trade-sale").first().click();
+  await page.getByTestId("trade-search").fill(taNo.toLowerCase().replace("-", " ")); // the number however typed
+  const hit = page.getByTestId(`trade-account-${taNo}`);
+  await hit.waitFor();
+  const hitText = (await hit.textContent()) ?? "";
+  assert(/Approved/.test(hitText) && /On account · 30 days/.test(hitText) && /R5,000\.00 available on account/.test(hitText), `lookup shows ${taNo}: approved, on account · 30 days, R5,000.00 available`);
+  await shot("trade-lookup");
+  await hit.click();
+  const banner = page.getByTestId("trade-banner");
+  await banner.waitFor();
+  assert(/TRADE SALE · E2E GREEN LEAF PHARMACY/i.test(await banner.textContent()) && (await page.getByTestId("customer-card").count()) === 0, "basket in trade mode: TRADE SALE banner, no member panel");
+  await page.getByRole("button", { name: /^Smell-proof Pouch/ }).click();
+  await page.getByRole("button", { name: new RegExp(`^${esc(cbd.name)}`) }).click();
+  await page.waitForFunction(() => {
+    const lines = [...document.querySelectorAll("[data-testid=cart-line]")];
+    return lines.length === 2 && lines.every((el) => /ex VAT each/.test(el.textContent ?? ""));
+  });
+  const exp = { ex: pouch.wholesaleCents + cbd.wholesaleCents, vat: vatOn(pouch.wholesaleCents) + vatOn(cbd.wholesaleCents) };
+  exp.total = exp.ex + exp.vat;
+  const shown = { ex: (await page.getByTestId("cart-ex-vat").textContent()).trim(), vat: (await page.getByTestId("cart-vat").textContent()).trim(), total: (await page.getByTestId("cart-total").textContent()).trim() };
+  assert(shown.ex === zarText(exp.ex) && shown.vat === zarText(exp.vat) && shown.total === zarText(exp.total), `basket priced ex VAT: ${shown.ex} + VAT ${shown.vat} = ${shown.total} incl`);
+  await shot("trade-basket");
+  await page.getByTestId("pay").click();
+  await page.getByTestId("block-AGE").waitFor();
+  ok("the usual 18+ counter check still applies to a trade sale");
+  await page.getByRole("button", { name: /ID sighted/ }).click();
+  await page.getByTestId("remaining").waitFor();
+  const accountTender = page.getByTestId("tender-account");
+  assert(await accountTender.isVisible() && /R5,000\.00 available on account/.test(await accountTender.textContent()), "On account offered: R5,000.00 available");
+  assert((await page.getByTestId("tender-points").count()) === 0 && (await page.getByTestId("tender-voucher").count()) === 0 && (await page.getByTestId("tender-eft").count()) === 1, "no points or gift voucher tenders on a trade sale; EFT offered");
+  await page.locator("#pay-amount").fill("100");
+  await page.getByTestId("tender-cash").click();
+  await page.getByRole("button", { name: "Exact" }).click();
+  await page.locator("[aria-label=Tenders]").getByText(/^Cash · tendered R100\.00/).waitFor();
+  await accountTender.click();
+  await page.getByTestId("account-panel").waitFor();
+  await shot("trade-payment");
+  await page.getByTestId("account-apply").click();
+  await page.getByTestId("receipt").waitFor({ timeout: 30_000 });
+  const tradeNo = await receiptNo();
+  const tradeReceipt = (await page.getByRole("dialog").filter({ has: page.getByTestId("receipt") }).textContent()) ?? "";
+  assert(/Tax invoice/i.test(tradeReceipt) && /On account · due/.test(tradeReceipt) && tradeReceipt.includes(`Trade account ${taNo}`), `receipt ${tradeNo} says TAX INVOICE and On account · due date`);
+  assert(tradeReceipt.includes(tradeAccount.email), `tax invoice emailed to the account's billing address ${tradeAccount.email}`);
+  await shot("trade-receipt");
+  // The printed tax invoice (browser-print fallback): the buyer block, ex-VAT lines and the on-account terms.
+  await page.getByRole("button", { name: "Print receipt" }).click();
+  await page.getByTestId("print-area").waitFor({ state: "attached" });
+  const printed = (await page.getByTestId("print-area").textContent()) ?? "";
+  assert(/Tax invoice/i.test(printed) && /Buyer: E2E Green Leaf Pharmacy \(Pty\) Ltd/.test(printed) && /ex VAT/.test(printed) && /On account.*· due/.test(printed) && !/Points/.test(printed), "printed tax invoice: buyer block with VAT number, unit prices ex VAT, On account · due date, no points");
+  await page.emulateMedia({ media: "print" });
+  await shot("trade-tax-invoice");
+  await page.emulateMedia({ media: null });
+  const tsale = (await q(`select id, channel, "tradeAccountId", "totalCents", "vatCents", "shiftId", "pointsEarned", "customerId", buyer from "Sale" where number = $1`, [tradeNo]))[0];
+  assert(tsale?.channel === "WHOLESALE" && tsale.tradeAccountId === tradeAccount.id && tsale.customerId === null && tsale.shiftId === shift.id && tsale.totalCents === exp.total && tsale.vatCents === exp.vat, `Sale ${tradeNo}: WHOLESALE, trade account set, no member, on the shift, ${zarText(tsale?.totalCents)} incl (VAT ${zarText(tsale?.vatCents)})`);
+  assert(tsale.buyer?.vatNumber === "4123456789" && /E2E Green Leaf Pharmacy/.test(tsale.buyer?.name ?? ""), "the account's buyer block is on the sale");
+  const tpays = await q(`select method, "amountCents", reference from "Payment" where "saleId" = $1`, [tsale.id]);
+  const onAccount = tsale.totalCents - 10000;
+  assert(tpays.some((p) => p.method === "CASH" && p.amountCents === 10000) && tpays.some((p) => p.method === "ACCOUNT" && p.amountCents === onAccount && p.reference === taNo), `payments: R100.00 cash + ${zarText(onAccount)} ACCOUNT (reference ${taNo})`);
+  const inv = (await q(`select cents, "dueAt", "saleId", reference from "TradeLedgerEntry" where "tradeAccountId" = $1 and kind = 'INVOICE'`, [tradeAccount.id]))[0];
+  assert(inv?.cents === onAccount && inv.dueAt && inv.saleId === tsale.id && inv.reference === tradeNo, `ledger INVOICE ${zarText(inv?.cents)} due ${inv?.dueAt?.toISOString().slice(0, 10)} against the sale`);
+  assert(tsale.pointsEarned === 0 && (await q(`select count(*)::int as c from "LoyaltyEntry" where "saleId" = $1`, [tsale.id]))[0].c === 0, "no points: no LoyaltyEntry on a trade sale");
+  await page.getByTestId("new-sale").click();
+  await banner.waitFor({ state: "detached" });
+  ok("trade mode ends with the sale: the next basket is retail");
+
+  step("Refund the pouch from the trade sale: what was on account comes back as a credit note");
+  await page.getByRole("button", { name: "Sales" }).first().click();
+  await page.getByLabel("Search by receipt number").fill(tradeNo);
+  await page.locator("[aria-label='Recent sales'] li button", { hasText: tradeNo }).first().click();
+  await page.getByTestId("sale-trade").waitFor();
+  await page.getByTestId("start-refund").first().click();
+  await page.getByRole("button", { name: /Increase refund quantity of Smell-proof Pouch/ }).click();
+  const pouchIncl = (await q(`select "totalCents" from "SaleLine" where "saleId" = $1 and "variantId" = $2`, [tsale.id, pouch.id]))[0].totalCents;
+  const accountText = (await page.getByTestId("refund-account").textContent()) ?? "";
+  assert(accountText.includes(`${zarText(pouchIncl)} goes back onto the account as a credit note`) && /nothing to pay out in money/.test(accountText), `refund sheet: ${zarText(pouchIncl)} back onto the account as a credit note, nothing paid out`);
+  assert((await page.locator("#refund-method option").allTextContents()).every((t) => !/account|voucher/i.test(t)), "the refund-to list has no On account or Gift voucher");
+  await shot("trade-refund-sheet");
+  await page.getByTestId("refund-continue").click();
+  await page.getByRole("button", { name: "Confirm refund" }).click();
+  await page.getByText(/^Refund PTA01-[A-Z]\d{5}.* done/).waitFor();
+  const tref = (await q(`select id, number, "totalCents", channel from "Sale" where "refundOfId" = $1`, [tsale.id]))[0];
+  const trpays = await q(`select method, "amountCents" from "Payment" where "saleId" = $1`, [tref.id]);
+  const cn = (await q(`select cents, reference, "saleId" from "TradeLedgerEntry" where "tradeAccountId" = $1 and kind = 'CREDIT_NOTE'`, [tradeAccount.id]))[0];
+  assert(tref.channel === "WHOLESALE" && tref.totalCents === -pouchIncl && trpays.length === 1 && trpays[0].method === "ACCOUNT" && trpays[0].amountCents === -pouchIncl, `credit note ${tref.number}: −${zarText(pouchIncl)} back onto the account, no money out`);
+  assert(cn?.cents === -pouchIncl && cn.reference === tref.number && cn.saleId === tsale.id, `ledger CREDIT_NOTE ${tref.number} for ${zarText(pouchIncl)} against the original sale`);
+
+  step("Trade click & collect: a READY order at PTA01 (on account) is handed over against the buyer's code and an ID check");
+  const toNo = `TO-${String(900000 + Math.floor(Math.random() * 99999))}`;
+  const code6 = String(100000 + Math.floor(Math.random() * 900000));
+  const toLine = { qty: 2, unit: pouch.wholesaleCents };
+  const toEx = toLine.qty * toLine.unit;
+  const handling = 7500; // settings.trade.collectHandlingCents (R75 ex VAT)
+  const toTotal = toEx + vatOn(toEx) + handling + vatOn(handling);
+  tradeOrder = (
+    await q(
+      `insert into "TradeOrder" (id, number, "tradeAccountId", "storeId", fulfilment, status, "payMethod", "subtotalCents", "deliveryCents", "handlingCents", "vatCents", "totalCents", "collectionCode", events, "reservedAt", "readyAt", "createdAt", "updatedAt")
+       values (gen_random_uuid()::text, $1, $2, $3, 'COLLECT', 'READY', 'ACCOUNT', $4, 0, $5, $6, $7, $8,
+         $9::jsonb, now() - interval '1 hour', now() - interval '10 minutes', now() - interval '1 hour', now()) returning id, number`,
+      [toNo, tradeAccount.id, store.id, toEx, handling, vatOn(toEx) + vatOn(handling), toTotal, code6, JSON.stringify([{ status: "PLACED", at: new Date(Date.now() - 3_600_000).toISOString(), note: "Placed on account; stock reserved" }, { status: "READY", at: new Date(Date.now() - 600_000).toISOString() }])],
+    )
+  )[0];
+  await q(`insert into "TradeOrderLine" (id, "tradeOrderId", "variantId", qty, "unitCents", "vatCents") values (gen_random_uuid()::text, $1, $2, $3, $4, $5)`, [tradeOrder.id, pouch.id, toLine.qty, toLine.unit, vatOn(toEx)]);
+  await page.getByRole("button", { name: "Orders" }).first().click();
+  await page.getByRole("button", { name: "Refresh orders" }).click();
+  const tcard = page.getByTestId(`order-${toNo}`);
+  await tcard.waitFor();
+  const tcardText = (await tcard.textContent()) ?? "";
+  assert(tcardText.includes(`Trade · ${toNo}`) && /E2E Green Leaf Pharmacy/.test(tcardText) && /On account/.test(tcardText), `board shows "Trade · ${toNo}" for the account with its terms`);
+  await shot("trade-order-board");
+  await page.getByTestId(`order-action-${toNo}`).click();
+  await page.getByTestId("trade-handover").waitFor();
+  await page.locator("#collect-code").fill("000000");
+  await page.getByText(/I've checked the collector's ID/).click();
+  await page.getByTestId("confirm-handover").click();
+  await page.getByText(new RegExp(`doesn't match ${toNo}`)).waitFor();
+  ok("wrong collection code rejected");
+  await page.locator("#collect-code").fill(code6);
+  await shot("trade-handover");
+  await page.getByTestId("confirm-handover").click();
+  await page.getByText(new RegExp(`^${toNo} handed over`)).waitFor();
+  const tdone = (await q(`select o.status, o."collectedAt", o."invoiceNumber", s.number, s.channel, s."storeId", s."totalCents", s."shiftId", s."tradeAccountId" from "TradeOrder" o join "Sale" s on s.id = o."saleId" where o.id = $1`, [tradeOrder.id]))[0];
+  assert(tdone?.status === "COLLECTED" && tdone.collectedAt && tdone.channel === "WHOLESALE" && tdone.storeId === store.id && tdone.tradeAccountId === tradeAccount.id, `${toNo} COLLECTED: sale ${tdone?.number} posted at PTA01 (WHOLESALE)`);
+  assert(tdone.totalCents === toTotal && tdone.shiftId === shift.id, `the sale totals ${zarText(tdone.totalCents)} incl VAT — lines plus the R75 handling fee — on this till's shift`);
+  const tdpay = await q(`select method, "amountCents" from "Payment" where "saleId" = (select "saleId" from "TradeOrder" where id = $1)`, [tradeOrder.id]);
+  const tinv = (await q(`select cents, "tradeOrderId", "dueAt" from "TradeLedgerEntry" where "tradeAccountId" = $1 and kind = 'INVOICE' and reference = $2`, [tradeAccount.id, tdone.invoiceNumber]))[0];
+  assert(tdpay.length === 1 && tdpay[0].method === "ACCOUNT" && tdpay[0].amountCents === toTotal && tinv?.cents === toTotal && tinv.tradeOrderId === tradeOrder.id && tinv.dueAt, `ACCOUNT tender and ledger INVOICE ${tdone.invoiceNumber} for the order`);
+
   step("Close the shift with a count → Z-report (the Shift view shows my commission this month)");
   await waitOnline();
   await page.getByRole("button", { name: "Shift" }).first().click();
@@ -361,6 +524,9 @@ try {
   await page.getByTestId("close-shift").click();
   await page.getByRole("button", { name: "Close shift", exact: true }).click();
   await page.getByTestId("z-report").waitFor();
+  const zText = (await page.getByTestId("z-report").textContent()) ?? "";
+  assert(/Trade sales \(ex VAT · VAT · incl\)2 ·/.test(zText.replace(/\s+/g, " ")) || /Trade sales/.test(zText), "Z-report shows the trade sales section");
+  assert(/On account/.test(zText) && /Cash/.test(zText), "On account is its own tender line, apart from cash and card");
   await shot("z-report");
   const z = (await q(`select "expectedCashCents", "countedCashCents" from "Shift" where id = $1`, [shift.id]))[0];
   assert(z.countedCashCents === 140000, `shift closed: expected ${z.expectedCashCents / 100}, counted ${z.countedCashCents / 100}`);
@@ -402,6 +568,15 @@ try {
   if (tempVoucher) {
     await q(`delete from "VoucherRedemption" where "voucherId" = $1`, [tempVoucher.id]).catch(() => undefined);
     await q(`delete from "GiftVoucher" where id = $1`, [tempVoucher.id]).catch(() => undefined);
+  }
+  // The trade order and the account's ledger go; the account is closed (its sales keep pointing at it, as real ones would).
+  if (tradeOrder) {
+    await q(`delete from "TradeOrderLine" where "tradeOrderId" = $1`, [tradeOrder.id]).catch(() => undefined);
+    await q(`delete from "TradeOrder" where id = $1`, [tradeOrder.id]).catch(() => undefined);
+  }
+  if (tradeAccount) {
+    await q(`delete from "TradeLedgerEntry" where "tradeAccountId" = $1`, [tradeAccount.id]).catch(() => undefined);
+    await q(`update "TradeAccount" set status = 'CLOSED', "holdReason" = 'E2E run finished', "updatedAt" = now() where id = $1`, [tradeAccount.id]).catch(() => undefined);
   }
   if (problems.length) console.log("\nNotes:\n" + problems.join("\n"));
   await browser.close();

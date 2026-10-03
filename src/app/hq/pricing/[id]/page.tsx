@@ -74,7 +74,7 @@ export default async function PriceListPage({ params, searchParams }: { params: 
         tiers={TIERS.map((t) => ({ key: t.key, name: t.name }))}
         regions={regions}
         stores={stores.map((s) => ({ value: s.id, label: `${s.name} (${s.code})`, hint: s.region.name }))}
-        variants={variants.map((v) => ({ id: v.id, label: `${v.product.name} · ${v.name}`, rrpCents: v.priceCents, group: v.product.category.name }))}
+        variants={variants.map((v) => ({ id: v.id, label: `${v.product.name} · ${v.name}`, rrpCents: v.priceCents, wholesaleCents: v.wholesaleCents, group: v.product.category.name }))}
       />
     </>
   );

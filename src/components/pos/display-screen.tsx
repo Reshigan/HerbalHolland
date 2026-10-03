@@ -116,7 +116,14 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
             <div className="font-display text-xl font-semibold text-white">{s?.store.name ?? "Welcome"}</div>
           </div>
         </div>
-        <div className="text-right text-sm text-ink-450">Adults 18+</div>
+        <div className="text-right text-sm text-ink-450">
+          {s?.trade && state !== "idle" ? (
+            <div className="font-display text-lg font-semibold text-white" data-testid="display-trade">
+              Trade sale · {s.trade.account}
+            </div>
+          ) : null}
+          <div>Adults 18+</div>
+        </div>
       </header>
 
       <main className="min-h-0 flex-1 px-8 py-6 sm:px-12">
@@ -128,7 +135,7 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
 
       <footer className="shrink-0">
         <div className="flex items-center justify-between px-8 pb-3 text-xs text-ink-450 sm:px-12">
-          <span>Herbal Holland Rewards · members earn points on every visit</span>
+          <span>{s?.trade && state !== "idle" ? "Herbal Holland Trade · prices ex VAT, VAT shown separately" : "Herbal Holland Rewards · members earn points on every visit"}</span>
           <span>herbalholland.co.za</span>
         </div>
         <Beadwork size={16} />
@@ -163,6 +170,7 @@ function IdleView({ messages, note }: { messages: string[]; note: string | null 
 
 function SaleView({ s }: { s: DisplaySnapshot }) {
   const deals = s.discountCents + s.savingsCents;
+  const trade = !!s.trade;
   return (
     <div className="grid h-full min-h-0 grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
       <section className="flex min-h-0 flex-col" aria-label="Items">
@@ -203,23 +211,38 @@ function SaleView({ s }: { s: DisplaySnapshot }) {
           </div>
         )}
         <dl className="space-y-2 text-xl text-ink-300">
-          <div className="flex justify-between">
-            <dt>Subtotal</dt>
-            <dd className="tnum">{zar(s.subtotalCents)}</dd>
-          </div>
+          {trade ? (
+            <>
+              <div className="flex justify-between">
+                <dt>Subtotal ex VAT</dt>
+                <dd className="tnum" data-testid="display-ex-vat">
+                  {zar(s.exCents ?? s.totalCents - s.vatCents)}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt>VAT 15%</dt>
+                <dd className="tnum">{zar(s.vatCents)}</dd>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between">
+              <dt>Subtotal</dt>
+              <dd className="tnum">{zar(s.subtotalCents)}</dd>
+            </div>
+          )}
           {deals > 0 && (
             <div className="flex justify-between text-[#7fd49a]">
-              <dt>Deals &amp; Rewards savings</dt>
+              <dt>{trade ? "Trade deals" : "Deals & Rewards savings"}</dt>
               <dd className="tnum">−{zar(deals)}</dd>
             </div>
           )}
           <div className="flex items-end justify-between border-t border-ink-800 pt-4">
-            <dt className="font-display text-3xl font-semibold text-white">Total</dt>
+            <dt className="font-display text-3xl font-semibold text-white">{trade ? "Total incl VAT" : "Total"}</dt>
             <dd className="font-display text-[clamp(3rem,7vw,6rem)] font-semibold leading-none tracking-tight text-white tnum" data-testid="display-total">
               {zar(s.totalCents)}
             </dd>
           </div>
-          {s.vatCents > 0 && (
+          {s.vatCents > 0 && !trade && (
             <div className="flex justify-between text-base text-ink-450">
               <dt>Includes VAT</dt>
               <dd className="tnum">{zar(s.vatCents)}</dd>

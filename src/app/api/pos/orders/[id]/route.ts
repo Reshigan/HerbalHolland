@@ -6,7 +6,7 @@ import { db } from "@/server/db";
 import { advanceOrder } from "@/server/orders";
 import { getSettings } from "@/server/settings";
 import { json, readBody, withStaff, actorOf, PosError } from "@/server/pos/http";
-import { Tender } from "@/server/pos/schemas";
+import { MoneyTender } from "@/server/pos/schemas";
 import { codeMatches } from "@/server/pos/orders";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -15,7 +15,7 @@ const Body = z.object({
   to: z.enum(["PICKING", "READY", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"]),
   code: z.string().trim().max(20).optional(),
   idChecked: z.boolean().optional(),
-  payments: z.array(Tender).max(6).optional(),
+  payments: z.array(MoneyTender).max(6).optional(),
   courier: z.string().trim().max(60).optional(),
   trackingNo: z.string().trim().max(60).optional(),
   note: z.string().trim().max(200).optional(),

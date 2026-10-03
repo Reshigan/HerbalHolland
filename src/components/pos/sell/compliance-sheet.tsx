@@ -4,7 +4,7 @@
 // quantity, dispenser required ("switch user"), licence — and limited-drop rules (members
 // only, not open yet, per-member limit; offline, drops can't be checked at all).
 import { useMemo, useState } from "react";
-import { BadgeCheck, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, Building2, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
 import { checkSaId, ageOn } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
@@ -21,6 +21,7 @@ const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
   CHANNEL: ShieldAlert,
   DAILY_LIMIT: Pill,
   DROP: Gem,
+  TRADE: Building2,
   OTHER: ShieldAlert,
 };
 
@@ -35,6 +36,7 @@ const TITLE: Record<BlockKind, string> = {
   CHANNEL: "Can't be sold here",
   DAILY_LIMIT: "Over the daily limit",
   DROP: "Limited drop",
+  TRADE: "Not available to this trade account",
   OTHER: "Can't complete this sale yet",
 };
 
@@ -52,6 +54,7 @@ export function ComplianceSheet({
   onRemoveLicensed,
   onRemoveRestricted,
   onRemoveDrops,
+  onRemoveTrade,
   onSwitchUser,
 }: {
   open: boolean;
@@ -67,6 +70,8 @@ export function ComplianceSheet({
   onRemoveLicensed: () => void;
   onRemoveRestricted: () => void;
   onRemoveDrops: () => void;
+  /** Trade-sale mode: takes the lines the trade basket rule refused (wrong range for the account, THC) out of the basket. */
+  onRemoveTrade?: () => void;
   onSwitchUser: () => void;
 }) {
   const [idNumber, setIdNumber] = useState("");
@@ -84,7 +89,7 @@ export function ComplianceSheet({
       <ul className="space-y-3" aria-label="Compliance checks">
         {blocks.map((b, i) => {
           const Icon = ICON[b.kind];
-          const hard = b.kind === "UNDERAGE" || b.kind === "LICENCE" || b.kind === "CHANNEL";
+          const hard = b.kind === "UNDERAGE" || b.kind === "LICENCE" || b.kind === "CHANNEL" || b.kind === "TRADE";
           return (
             <li key={i} className={`rounded-2xl p-4 ring-1 ${hard ? "bg-rose-500/10 ring-rose-500/40" : "bg-ink-850 ring-amber-500/40"}`} data-testid={`block-${b.kind}`}>
               <div className="flex items-start gap-3">
@@ -173,6 +178,14 @@ export function ComplianceSheet({
                   )}
                   <PosButton variant="secondary" onClick={onRemoveDrops}>
                     <Trash2 className="h-4 w-4" /> Remove drop items
+                  </PosButton>
+                </div>
+              )}
+
+              {b.kind === "TRADE" && onRemoveTrade && (
+                <div className="mt-4">
+                  <PosButton variant="secondary" onClick={onRemoveTrade} data-testid="remove-trade-blocked">
+                    <Trash2 className="h-4 w-4" /> Remove it from the basket
                   </PosButton>
                 </div>
               )}

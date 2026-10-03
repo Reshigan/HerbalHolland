@@ -5,7 +5,7 @@ import { shiftCash } from "@/server/finance";
 import { audit, type Actor } from "@/server/audit";
 import { sendEmail } from "@/server/email";
 import { APP_URL, zReportEmail } from "@/server/email-templates";
-import { countCash, DENOMINATIONS, TENDER_LABEL } from "@/components/pos/lib/rules";
+import { countCash, DENOMINATIONS, TENDER_LABEL, tradeSummary } from "@/components/pos/lib/rules";
 import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
 import { getSettings } from "@/server/settings";
@@ -123,6 +123,12 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       grams: Math.round(dispensed.reduce((a, l) => a + (l.variant.grams ?? 0) * l.qty, 0) * 10) / 10,
       cents: dispensed.reduce((a, l) => a + l.totalCents, 0),
     },
+    // Trade sales (WHOLESALE) in the shift, and the part invoiced on account — which is not money: the cash-up
+    // (shiftCash) counts CASH tenders only, so "On account" never changes what's expected in the drawer.
+    trade: tradeSummary(
+      kinds.map((k) => ({ kind: k.kind, channel: k.channel, count: k._count._all, totalCents: k._sum.totalCents ?? 0, vatCents: k._sum.vatCents ?? 0 })),
+      tenders.map((t) => ({ method: t.method, amountCents: t._sum.amountCents ?? 0 })),
+    ),
     notes: shift.notes,
     emailedTo: null,
   };

@@ -24,6 +24,7 @@ const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "patient.", label: "Patient register", tone: "violet" },
   { prefix: "sale.", label: "Sales & refunds", tone: "green" },
   { prefix: "order.", label: "Online orders", tone: "green" },
+  { prefix: "trade.", label: "Trade accounts & orders", tone: "green" },
   { prefix: "stockorder.", label: "Stock orders", tone: "blue" },
   { prefix: "stocktake.", label: "Stock takes", tone: "blue" },
   { prefix: "stock.", label: "Stock adjustments", tone: "blue" },

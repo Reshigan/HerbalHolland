@@ -4,13 +4,14 @@ import { invoiceUrl } from "@/server/invoices";
 import { voucherPartsOf } from "@/server/sales";
 import { addDays } from "@/lib/format";
 import { PosError } from "./http";
-import type { ReceiptDTO, SaleRow, TierKey } from "./types";
+import type { ReceiptDTO, ReceiptTrade, SaleRow, TierKey } from "./types";
 
 type LineAlloc = { lineId?: string };
 
 const receiptInclude = {
   store: { select: { company: { select: { vatNumber: true } } } },
   customer: { select: { id: true, firstName: true, lastName: true, memberNo: true, tier: true, points: true } },
+  tradeAccount: { select: { id: true, number: true, name: true, terms: true, paymentDays: true } },
   staff: { select: { name: true } },
   lines: { include: { variant: { select: { name: true, sku: true, product: { select: { name: true } } } } }, orderBy: { id: "asc" } },
   payments: true,
@@ -40,13 +41,15 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
   const codes = [...new Set(s.payments.filter((p) => p.method === "VOUCHER" && p.reference).map((p) => p.reference!))];
   const balances = codes.length ? new Map((await db.giftVoucher.findMany({ where: { code: { in: codes } }, select: { code: true, balanceCents: true } })).map((v) => [v.code, v.balanceCents])) : new Map<string, number>();
   const vouchers = s.kind === "SALE" ? voucherPartsOf(s) : [];
+  const trade = s.channel === "WHOLESALE" && s.tradeAccount ? await tradeBlock(s) : null;
 
   return {
     id: s.id,
     number: s.number,
     kind: s.kind,
     channel: s.channel,
-    title: s.kind === "REFUND" ? (vendor ? "Credit note" : "Refund") : vendor ? "Tax invoice" : "Invoice",
+    // A trade sale is always a full tax invoice (the account's legal name, address and VAT number are the buyer block).
+    title: s.kind === "REFUND" ? (vendor ? "Credit note" : "Refund") : vendor || trade ? "Tax invoice" : "Invoice",
     createdAt: s.createdAt.toISOString(),
     offline: s.offline,
     refundOf: s.refundOf,
@@ -70,6 +73,7 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
       offerCents: l.offerCents,
       totalCents: l.totalCents,
       vatCents: l.vatCents,
+      exCents: l.totalCents - l.vatCents,
       refundedQty: refunded.get(l.id) ?? 0,
     })),
     subtotalCents: s.subtotalCents,
@@ -95,6 +99,7 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
         ...(p.method === "VOUCHER" && p.reference && { balanceCents: balances.get(p.reference) ?? null }),
       })),
     ...(vouchers.length && { vouchers }),
+    ...(trade && { trade }),
     promoCode: s.promoCode,
     invoiceEmail: s.invoiceEmail,
     buyer: (s.buyer as ReceiptDTO["buyer"]) ?? null,
@@ -102,6 +107,33 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
     refunds: s.refunds.map((r) => ({ id: r.id, number: r.number, totalCents: r.totalCents, createdAt: r.createdAt.toISOString() })),
     invoiceUrl: invoiceUrl(s.id),
   };
+}
+
+type TradeSale = {
+  id: string;
+  kind: "SALE" | "REFUND";
+  number: string;
+  tradeAccount: { id: string; number: string; name: string; terms: "PREPAID" | "ACCOUNT"; paymentDays: number } | null;
+  payments: { method: string; amountCents: number }[];
+  refunds: { payments: { method: string; amountCents: number }[] }[];
+};
+
+/**
+ * The trade account behind a WHOLESALE document and its on-account part: the ACCOUNT tender, what refunds already
+ * credited back (sales), the ledger invoice's due date (the credit note of a refund is filed under the original
+ * sale, by the refund's number) and the trade order it fulfilled, if any.
+ */
+async function tradeBlock(s: TradeSale): Promise<ReceiptTrade> {
+  const a = s.tradeAccount!;
+  const onAccountCents = s.payments.filter((p) => p.method === "ACCOUNT").reduce((n, p) => n + p.amountCents, 0);
+  const creditedCents = s.kind === "SALE" ? s.refunds.flatMap((r) => r.payments).filter((p) => p.method === "ACCOUNT").reduce((n, p) => n + Math.max(0, -p.amountCents), 0) : 0;
+  const [entry, order] = await Promise.all([
+    onAccountCents
+      ? db.tradeLedgerEntry.findFirst({ where: s.kind === "SALE" ? { saleId: s.id, kind: "INVOICE" } : { reference: s.number, kind: "CREDIT_NOTE" }, select: { dueAt: true } })
+      : null,
+    s.kind === "SALE" ? db.tradeOrder.findUnique({ where: { saleId: s.id }, select: { number: true } }) : null,
+  ]);
+  return { accountId: a.id, number: a.number, name: a.name, terms: a.terms, paymentDays: a.paymentDays, onAccountCents, creditedCents, dueAt: entry?.dueAt?.toISOString() ?? null, orderNumber: order?.number ?? null };
 }
 
 export const HISTORY_DAYS = 30;
@@ -123,6 +155,7 @@ export async function salesHistory(storeId: string, opts: { q?: string; before?:
     select: {
       id: true, number: true, kind: true, channel: true, createdAt: true, totalCents: true, offline: true,
       customer: { select: { firstName: true, lastName: true } },
+      tradeAccount: { select: { name: true } },
       staff: { select: { name: true } },
       payments: { select: { method: true } },
       lines: { select: { qty: true } },
@@ -137,7 +170,7 @@ export async function salesHistory(storeId: string, opts: { q?: string; before?:
     channel: s.channel,
     createdAt: s.createdAt.toISOString(),
     totalCents: s.totalCents,
-    customer: s.customer ? [s.customer.firstName, s.customer.lastName].filter(Boolean).join(" ") : null,
+    customer: s.customer ? [s.customer.firstName, s.customer.lastName].filter(Boolean).join(" ") : (s.tradeAccount?.name ?? null), // a trade sale names the account
     staff: s.staff?.name ?? null,
     methods: [...new Set(s.payments.map((p) => p.method))],
     items: s.lines.reduce((a, l) => a + Math.abs(l.qty), 0),

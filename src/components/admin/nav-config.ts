@@ -6,6 +6,7 @@ export const storeNav = (code: string, slug: string): NavGroup[] => [
     items: [
       { label: "Overview", href: `/store/${code}`, icon: "LayoutDashboard", exact: true },
       { label: "Online orders", href: `/store/${code}/orders`, icon: "ShoppingBag" },
+      { label: "Trade orders", href: `/store/${code}/trade`, icon: "Briefcase" },
       { label: "Open POS", href: "/pos", icon: "Nfc" },
     ],
   },
@@ -91,6 +92,14 @@ export const hqNav: NavGroup[] = [
     ],
   },
   {
+    title: "Trade",
+    items: [
+      { label: "Overview", href: "/hq/trade", icon: "Briefcase", exact: true },
+      { label: "Accounts", href: "/hq/trade/accounts", icon: "Building2" },
+      { label: "Orders", href: "/hq/trade/orders", icon: "PackageCheck" },
+    ],
+  },
+  {
     title: "Members",
     items: [
       { label: "Members & CRM", href: "/hq/customers", icon: "Users" },
@@ -127,6 +136,7 @@ export const hqNav: NavGroup[] = [
       { label: "Audit log", href: "/hq/audit", icon: "History" },
       { label: "Announcements", href: "/hq/announcements", icon: "Bell" },
       { label: "Team", href: "/hq/team", icon: "UsersRound" },
+      { label: "Settings", href: "/hq/settings", icon: "Settings", roles: ["HQ_ADMIN", "HQ_STAFF"] },
     ],
   },
 ];
