@@ -22,6 +22,7 @@ import { promoWindowOpen } from "../src/lib/pricing-rules";
 import { appendNote, leadNumber, noteLine, type LeadStatusKey } from "../src/lib/leads";
 import { DEFAULT_COMPLIANCE, DEFAULT_LEGAL_BASIS, PRODUCT_FACTS, CBD_CLASSES, THC_CAP_PCT, incentiveExcluded, type RegClass } from "../src/lib/compliance";
 import { eftReference, previousMonth, statementMonth, tradeAccountNumber, tradeBuyerBlock, tradeCreditNumber, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeStatement, tradeTotals, TRADE_CLASSES, vatHalfUp } from "../src/lib/trade";
+import { expiryOf, LICENCE_REMIND_DAYS, requiredLicences, TRADE_LICENCES, type TradeLicenceKind } from "../src/lib/trade-licences";
 import { CATEGORIES, DCS, FIRST_NAMES, HQ_COMPANY, LAST_NAMES, OWNERS, PRODUCTS, REGIONS, STORES, type StoreSeed } from "./seed-data";
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
@@ -67,6 +68,33 @@ const dateOnly = (k: string) => new Date(`${k}T00:00:00Z`);
 async function insert<T>(label: string, model: { createMany: (a: { data: T[] }) => Promise<unknown> }, rows: T[], chunk = 4000) {
   for (let i = 0; i < rows.length; i += chunk) await model.createMany({ data: rows.slice(i, i + chunk) });
   console.log(`  ${label.padEnd(22)} ${rows.length.toLocaleString()}`);
+}
+
+/** A one-page A4 PDF of lines in Helvetica ([size, bold, text, grey 0–1]): the demo's stand-in for a scanned document. */
+function samplePdf(lines: [size: number, bold: boolean, text: string, grey: number][]): Uint8Array<ArrayBuffer> {
+  const WIN: Record<string, string> = { "\u2014": "\\227", "\u2013": "\\226", "\u2019": "\\222" };
+  const esc = (t: string) => [...t].map((c) => WIN[c] ?? ("()\\".includes(c) ? `\\${c}` : c.charCodeAt(0) < 127 ? c : c.charCodeAt(0) <= 255 ? `\\${c.charCodeAt(0).toString(8)}` : "?")).join("");
+  let y = 760;
+  const text = lines.map(([size, bold, t, grey]) => `BT ${grey} g /F${bold ? 2 : 1} ${size} Tf 72 ${(y -= size * 2)} Td (${esc(t)}) Tj ET`);
+  const body = ["0.8 G 1 w 48 48 499 746 re S", ...text].join("\n");
+  const objs = [
+    "<< /Type /Catalog /Pages 2 0 R >>",
+    "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+    "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>",
+    "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>",
+    `<< /Length ${body.length} >>\nstream\n${body}\nendstream`,
+  ];
+  let pdf = "%PDF-1.4\n";
+  const offsets: number[] = [];
+  for (const [i, o] of objs.entries()) {
+    offsets.push(pdf.length);
+    pdf += `${i + 1} 0 obj\n${o}\nendobj\n`;
+  }
+  const xref = pdf.length;
+  pdf += `xref\n0 ${objs.length + 1}\n0000000000 65535 f \n${offsets.map((o) => `${String(o).padStart(10, "0")} 00000 n \n`).join("")}`;
+  pdf += `trailer\n<< /Size ${objs.length + 1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`;
+  return new Uint8Array(Buffer.from(pdf, "latin1"));
 }
 
 async function main() {
@@ -459,7 +487,7 @@ async function main() {
     status: SimAccount["status"]; terms?: "PREPAID" | "ACCOUNT"; limit?: number; applied: number; approvedDays?: number; classes?: RegClass[];
     buyers: [name: string, email: string, phone: string | null, role: "OWNER" | "BUYER"][]; notes?: string; holdReason?: string; heldAgo?: number; closedAgo?: number; rate?: number; ownList?: boolean; reserve?: number;
   };
-  const PHARMACY_CLASSES: RegClass[] = ["CBD", "CBD_TOPICAL", "SUPPLEMENT", "HEMP"];
+  const HEALTH_CLASSES: RegClass[] = ["CBD", "CBD_TOPICAL", "SUPPLEMENT", "HEMP"]; // pharmacies and practices
   const CAFE_CLASSES: RegClass[] = ["CBD_FOOD", "HEMP", "ACCESSORY"];
   // Fourteen businesses, numbered in the order they applied. The demo trade buyer is Greenleaf Pharmacy's owner buyer
   // (trade@greenleafpharmacy.co.za: /trade/login, the code is shown on screen in demo mode).
@@ -469,7 +497,7 @@ async function main() {
     { name: "Midlands Wellness Practice", legalName: "Midlands Wellness Practice Inc.", kind: "PRACTICE", reg: "2019/311907/21", email: "practice@midlandswellness.co.za", phone: "+27333301188", ref: "MIDLANDS WP", address: ["7 Main Road", null, "Howick", "KZN", "3290"], status: "APPROVED", terms: "ACCOUNT", limit: 2_500_000, applied: 135, approvedDays: 4, buyers: [["Anele Mkhize", "anele@midlandswellness.co.za", "+27837720315", "OWNER"]] },
     { name: "Bo-Kaap Apothecary", legalName: "Bo-Kaap Apothecary (Pty) Ltd", kind: "RETAILER", reg: "2017/458201/07", vat: "4650098122", email: "orders@bokaapapothecary.co.za", phone: "+27214240077", ref: "BOKAAP APOTH", address: ["88 Wale Street", "Bo-Kaap", "Cape Town", "WC", "8001"], status: "APPROVED", terms: "ACCOUNT", limit: 3_000_000, applied: 128, approvedDays: 2, reserve: 800_000, buyers: [["Yusuf Dollie", "yusuf@bokaapapothecary.co.za", "+27823301190", "OWNER"], ["Amina Dollie", "amina@bokaapapothecary.co.za", null, "BUYER"]] },
     { name: "Umhlanga Health Pharmacy", legalName: "Umhlanga Health Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2014/087310/07", vat: "4580012398", email: "accounts@umhlangahealth.co.za", phone: "+27315611204", ref: "UMHLANGA HP", address: ["Shop 5, Chartwell Centre, Chartwell Drive", "Umhlanga Rocks", "Durban", "KZN", "4320"], status: "APPROVED", terms: "PREPAID", applied: 121, approvedDays: 3, buyers: [["Kiara Naidoo", "kiara@umhlangahealth.co.za", "+27834412210", "OWNER"]] },
-    { name: "Linden Corner Store", legalName: "Lukas Botha", kind: "RETAILER", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Sole proprietor — not VAT registered." },
+    { name: "Linden Corner Store", legalName: "Linden Corner Store (Pty) Ltd", kind: "RETAILER", reg: "2019/447120/07", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Small company — not VAT registered." },
     { name: "Roots & Rooibos Café", legalName: "Roots and Rooibos (Pty) Ltd", kind: "CAFE", reg: "2020/233514/07", vat: "4690071355", email: "cafe@rootsandrooibos.co.za", phone: "+27123461190", ref: "ROOTS ROOIBOS", address: ["12 Lynnwood Road", "Brooklyn", "Pretoria", "GP", "0181"], status: "APPROVED", terms: "PREPAID", applied: 107, approvedDays: 2, buyers: [["Mpho Sithole", "mpho@rootsandrooibos.co.za", "+27836601182", "OWNER"]] },
     { name: "Hemp & Home Online", legalName: "Hemp and Home Online (Pty) Ltd", kind: "ONLINE_SHOP", reg: "2022/301877/07", vat: "4730116209", email: "finance@hempandhome.co.za", phone: "+27104470550", ref: "HEMP HOME", address: ["3 Kramer Road", "Kramerville", "Sandton", "GP", "2090"], delivery: ["Unit 7, Linbro Business Park, Galaxy Avenue", "Linbro Park", "Sandton", "GP", "2065"], status: "APPROVED", terms: "ACCOUNT", limit: 4_000_000, applied: 100, approvedDays: 2, ownList: true, reserve: 2_000_000, buyers: [["Dineo Maseko", "dineo@hempandhome.co.za", "+27827740930", "OWNER"], ["Tebogo Rakgole", "warehouse@hempandhome.co.za", "+27836112078", "BUYER"]], notes: "Online retailer — ships from the Linbro Park warehouse; deliver there, not to the office." },
     { name: "Stellenbosch Physio & Wellness", legalName: "Stellenbosch Physio and Wellness Inc.", kind: "PRACTICE", reg: "2018/142290/21", email: "admin@stellenboschphysio.co.za", phone: "+27218870341", ref: "STB PHYSIO", address: ["23 Andringa Street", null, "Stellenbosch", "WC", "7600"], status: "APPROVED", terms: "PREPAID", applied: 93, approvedDays: 3, buyers: [["Marli Louw", "marli@stellenboschphysio.co.za", "+27824409912", "OWNER"]] },
@@ -485,6 +513,29 @@ async function main() {
   const tradeAccounts: SimAccount[] = [];
   const tradeAccountRows: Prisma.TradeAccountCreateManyInput[] = [];
   const tradeAudit: Prisma.AuditLogCreateManyInput[] = [];
+  // Licences: what each kind of business needs for its ranges (src/lib/trade-licences.ts), sent with the application
+  // and checked by HQ just before approval; the two applications wait with theirs. Midlands' practice number runs out
+  // next week with the renewal waiting for HQ, Stellenbosch's in a fortnight with nothing sent yet (both reminded), and
+  // Vilakazi Street has sent the new CIPC certificate its hold waits for. Numbers come from the account, not the RNG.
+  const tradeLicenceRows: Prisma.TradeLicenceCreateManyInput[] = [];
+  const licenceDocs: { uploadId: string; account: SimAccount; kind: TradeLicenceKind; number: string; expiresAt: Date | null; at: Date }[] = [];
+  const PRACTICE_EXPIRY: Record<string, number> = { "Midlands Wellness Practice": 9, "Stellenbosch Physio & Wellness": 16 }; // days from today
+  const digits = (seed: string, n: number) => String(parseInt(createHash("sha256").update(seed).digest("hex").slice(0, 12), 16) % 10 ** n).padStart(n, "0");
+  const licenceNumber = (a: SimAccount, kind: TradeLicenceKind) => {
+    const d = (n: number) => digits(`${a.number}:${kind}`, n);
+    return { CIPC_REGISTRATION: a.regNumber!, PRACTICE_NUMBER: d(7), PHARMACY_LICENCE: `DOH/PH/${d(5)}`, SAPC_RECORDING: `P${d(6)}`, BUSINESS_LICENCE: `BL/${a.province}/${d(5)}`, FOOD_COA: `COA/${d(6)}`, SAHPRA_LICENCE: `SAHPRA/W/${d(5)}` }[kind];
+  };
+  const addLicence = (a: SimAccount, kind: TradeLicenceKind, when: Date, expiresAt: Date | null, review: Date | null) => {
+    const id = uid(), uploadId = uid(), number = licenceNumber(a, kind);
+    const remind = expiresAt && expiresAt.getTime() - LICENCE_REMIND_DAYS * DAY;
+    tradeLicenceRows.push({
+      id, tradeAccountId: a.id, kind, number, expiresAt, uploadId, status: review ? "VERIFIED" : "SUBMITTED", submittedById: a.buyers[0].id, createdAt: when,
+      reviewedAt: review, reviewedById: review ? (hqNaledi.id as string) : null, remindedAt: review && remind && remind < NOW.getTime() ? at(dayKey(new Date(remind)), 6 * 60 + 5) : null,
+    });
+    licenceDocs.push({ uploadId, account: a, kind, number, expiresAt, at: when });
+    if (review) tradeAudit.push({ id: uid(), at: review, ...hqActor(hqNaledi), action: "trade.licence.verify", entity: "TradeLicence", entityId: id, data: { account: a.number, kind, number, expiresAt } });
+    return { kind, number, expiresAt };
+  };
   for (const [i, d] of ACCOUNTS.entries()) {
     const id = uid();
     const number = tradeAccountNumber(i + 1);
@@ -492,7 +543,7 @@ async function main() {
     const approvedAt = d.status === "PENDING" ? null : at(keyOf(d.applied - (d.approvedDays ?? 2)), 10 * 60 + int(0, 6 * 60));
     const province = d.address[3];
     const dc = stores.find((s) => s.kind === "WAREHOUSE" && s.province === province)!;
-    const classes = d.classes ?? (d.kind === "PHARMACY" ? PHARMACY_CLASSES : d.kind === "CAFE" ? CAFE_CLASSES : TRADE_CLASSES);
+    const classes = d.classes ?? (d.kind === "PHARMACY" || d.kind === "PRACTICE" ? HEALTH_CLASSES : d.kind === "CAFE" ? CAFE_CLASSES : TRADE_CLASSES);
     const buyers: SimBuyer[] = d.buyers.map(([name, email, phone, role]) => ({ id: uid(), name, email, phone, role }));
     const heldAt = d.heldAgo != null ? at(keyOf(d.heldAgo), d.holdReason === "overdue" ? 2 * 60 + 5 : 11 * 60 + 40) : null;
     const closedAt = d.closedAgo != null ? at(keyOf(d.closedAgo), 14 * 60 + 20) : null;
@@ -511,7 +562,21 @@ async function main() {
       adultAttestedAt: applied, termsVersion: TRADE.termsVersion, termsAcceptedAt: applied, approvedAt, approvedById: approvedAt ? (hqNaledi.id as string) : null, holdReason: a.holdReason,
       createdAt: applied, updatedAt: closedAt ?? heldAt ?? approvedAt ?? applied,
     });
-    tradeAudit.push({ id: uid(), at: applied, ...buyerActor(buyers[0]), action: "trade.apply", entity: "TradeAccount", entityId: id, data: { number, kind: a.kind, classes, termsVersion: TRADE.termsVersion, source: "portal" } });
+    const expiry = PRACTICE_EXPIRY[a.name];
+    const licences = requiredLicences(a.kind, classes).map(({ kind }, j) =>
+      addLicence(a, kind, applied, TRADE_LICENCES[kind].expires ? expiryOf(keyOf(-(expiry ?? 240))) : null, approvedAt && new Date(approvedAt.getTime() - (30 - 4 * j) * 60_000)),
+    );
+    if (expiry === 9) {
+      const renewal = at(keyOf(1), 14 * 60 + 10);
+      const l = addLicence(a, "PRACTICE_NUMBER", renewal, expiryOf(keyOf(-(expiry + 365))), null);
+      tradeAudit.push({ id: uid(), at: renewal, ...buyerActor(buyers[0]), action: "trade.licence.submit", entity: "TradeLicence", entityId: tradeLicenceRows.at(-1)!.id!, data: { account: number, ...l } });
+    }
+    if (d.holdReason?.includes("CIPC")) {
+      const sent = at(keyOf(2), 10 * 60 + 30);
+      const l = addLicence(a, "CIPC_REGISTRATION", sent, null, null);
+      tradeAudit.push({ id: uid(), at: sent, ...buyerActor(buyers[0]), action: "trade.licence.submit", entity: "TradeLicence", entityId: tradeLicenceRows.at(-1)!.id!, data: { account: number, ...l } });
+    }
+    tradeAudit.push({ id: uid(), at: applied, ...buyerActor(buyers[0]), action: "trade.apply", entity: "TradeAccount", entityId: id, data: { number, kind: a.kind, classes, licences, termsVersion: TRADE.termsVersion, source: "portal" } });
     if (approvedAt) tradeAudit.push({ id: uid(), at: approvedAt, ...hqActor(hqNaledi), action: "trade.account.approve", entity: "TradeAccount", entityId: id, data: { number, from: "PENDING", terms: a.terms, creditLimitCents: a.creditLimitCents, paymentDays: a.paymentDays, classes } });
     if (heldAt) tradeAudit.push({ id: uid(), at: heldAt, ...(a.holdReason === "overdue" ? { actorType: "SYSTEM", actorName: "System" } : hqActor(hqNaledi)), action: "trade.account.hold", entity: "TradeAccount", entityId: id, data: { number, reason: a.holdReason } });
     if (closedAt) tradeAudit.push({ id: uid(), at: closedAt, ...hqActor(hqNaledi), action: "trade.account.close", entity: "TradeAccount", entityId: id, data: { number, reason: a.holdReason } });
@@ -1677,6 +1742,26 @@ async function main() {
       for (const x of list) x.depositId = id;
     }
   }
+  // Each trade licence's document: a one-page sample certificate, plainly marked as one.
+  for (const l of licenceDocs) {
+    const info = TRADE_LICENCES[l.kind];
+    const body = samplePdf([
+      [9, false, "SAMPLE DOCUMENT FOR THE HERBAL HOLLAND DEMO — NOT A LICENCE", 0.45],
+      [18, true, info.name, 0],
+      [11, false, `Issued by ${info.issuer}`, 0.3],
+      [11, false, info.law, 0.3],
+      [12, false, "", 0],
+      [12, true, l.account.legalName, 0],
+      [11, false, `Trading as ${l.account.name}`, 0],
+      [11, false, [l.account.addressLine, l.account.suburb, l.account.city, l.account.postalCode].filter(Boolean).join(", "), 0],
+      [12, false, "", 0],
+      [12, false, `Number: ${l.number}`, 0],
+      [12, false, l.expiresAt ? `Valid until: ${dayKey(l.expiresAt)}` : "Valid until: does not lapse", 0],
+    ]);
+    const key = `demo/trade-licences/${l.uploadId}.pdf`;
+    await putObject(key, body, "application/pdf");
+    uploadRows.push({ id: l.uploadId, key, fileName: `${l.kind.toLowerCase().replaceAll("_", "-")}.pdf`, contentType: "application/pdf", sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex"), createdAt: l.at });
+  }
   await insert("uploads", db.upload, uploadRows);
   await insert("deposits", db.cashDeposit, depositRows);
   await db.counter.create({ data: { key: "DEPOSIT", value: depositRows.length } });
@@ -1685,6 +1770,7 @@ async function main() {
   await insert("order lines", db.orderLine, orderLines);
   await insert("trade accounts", db.tradeAccount, tradeAccountRows);
   await insert("trade buyers", db.tradeBuyer, tradeBuyerRows);
+  await insert("trade licences", db.tradeLicence, tradeLicenceRows);
   await insert("sales", db.sale, sales.filter((s) => s.kind !== "REFUND"));
   await insert("refunds", db.sale, sales.filter((s) => s.kind === "REFUND"));
   await insert("sale lines", db.saleLine, saleLines);

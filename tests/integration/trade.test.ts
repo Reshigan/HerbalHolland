@@ -19,7 +19,7 @@ import { placeTradeOrder, confirmTradePayment, advanceTradeOrder, collectStoresF
 import { recordTradePayment, issueCreditNote, adjustTradeLedger, tradeBalance, tradeAgeing, tradeStatementFor, emailTradeStatement } from "@/server/trade/ledger";
 import { requestTradeCode, verifyTradeCode } from "@/server/trade/auth";
 import { tradeEftExpiry, tradeLicenceExpiry, tradeOverdueHolds, tradeStatements } from "@/server/jobs";
-import { licenceProblem, rejectTradeLicence, submitTradeLicence, verifyTradeLicence } from "@/server/trade/licences";
+import { licenceOverview, licenceProblem, rejectTradeLicence, submitTradeLicence, verifyTradeLicence } from "@/server/trade/licences";
 import { saveSetting, DEFAULT_SETTINGS } from "@/server/settings";
 import { dayKey } from "@/lib/format";
 import { buildWorld, onHand, resetDb, type World } from "./world";
@@ -74,9 +74,11 @@ describe("Accounts", () => {
     const noDocs = await applyForTradeAccount(application, { source: "portal" });
     expect(noDocs.ok).toBe(false);
     if (!noDocs.ok) expect(Object.keys(noDocs.fields).sort()).toEqual(["licence.FOOD_COA.file", "licence.PHARMACY_LICENCE.file", "licence.SAPC_RECORDING.file"]);
+    const uploadsBefore = await db.upload.count();
     const notPdf = await applyForTradeAccount(application, { files: { ...licenceFiles(), FOOD_COA: new File(["just text"], "coa.txt") } });
     expect(notPdf.ok).toBe(false);
-    if (!notPdf.ok) expect(notPdf.fields["licence.FOOD_COA.file"]).toMatch(/PDF, or a JPG or PNG/);
+    if (!notPdf.ok) expect(notPdf.fields).toEqual({ "licence.FOOD_COA.file": expect.stringMatching(/PDF, or a JPG or PNG/) });
+    expect(await db.upload.count()).toBe(uploadsBefore); // the good documents weren't kept either
 
     const r = await applyForTradeAccount(application, { source: "portal", ip: "196.25.1.1", files: licenceFiles() });
     expect(r.ok).toBe(true);
@@ -533,8 +535,16 @@ describe("Licences after approval", () => {
   // The ledger tests close the account; trade it again for these (its buyers and licences are as they were).
   beforeAll(() => db.tradeAccount.update({ where: { id: accountId }, data: { status: "APPROVED", holdReason: null } }));
 
-  it("won't add ranges or change the kind of business without the licences they need", async () => {
+  it("won't add ranges or change the kind of business without the licences they need — which can be sent ahead", async () => {
     await expect(updateTradeAccount(accountId, { kind: "CAFE" }, hq)).rejects.toThrow(/Business licence is needed/);
+    // Sent from the portal before asking for the change: on file, neither needed nor counted against the account.
+    const bl = await submitTradeLicence(accountId, { kind: "BUSINESS_LICENCE", number: "BL/GP/00412" }, pdf("business-licence.pdf"), { type: "CUSTOMER", id: buyerId, name: "Thandi" }, { byBuyerId: buyerId });
+    const view = await licenceOverview(await db.tradeAccount.findUniqueOrThrow({ where: { id: accountId } }));
+    expect(view.standing.ok).toBe(true);
+    expect(view.others.map((l) => [l.kind, l.state])).toEqual([["BUSINESS_LICENCE", "pending"]]);
+    await verifyTradeLicence(bl.id, hq);
+    await updateTradeAccount(accountId, { kind: "CAFE" }, hq);
+    await updateTradeAccount(accountId, { kind: "PHARMACY" }, hq); // and back, for the tests below
   });
 
   it("reminds before a licence lapses, pauses trading when it has, and lifts the pause when the renewal is verified", async () => {

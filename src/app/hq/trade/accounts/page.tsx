@@ -26,10 +26,13 @@ const STATUSES: TradeAccountStatus[] = ["PENDING", "APPROVED", "ON_HOLD", "CLOSE
 const TABS: { key: string; label: string }[] = [
   { key: "ALL", label: "All" },
   { key: "PENDING", label: "Pending" },
+  { key: "LICENCES", label: "Licences to check" },
   { key: "APPROVED", label: "Approved" },
   { key: "ON_HOLD", label: "On hold" },
   { key: "CLOSED", label: "Closed" },
 ];
+// Accounts (not closed) with a licence document waiting for HQ's check.
+const CHECKING: Prisma.TradeAccountWhereInput = { status: { not: "CLOSED" }, licences: { some: { status: "SUBMITTED" } } };
 const SORTS = ["number", "name", "kind", "status", "terms", "limit", "balance", "created"] as const;
 // The balance is a sum over the ledger, so the page of ids is sorted in SQL; everything else rides along.
 const ORDER_BY: Record<(typeof SORTS)[number], Prisma.Sql> = {
@@ -47,22 +50,25 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
   const sp = await searchParams;
   const s = await tradeScope();
   const status = STATUSES.includes(sp.status as TradeAccountStatus) ? (sp.status as TradeAccountStatus) : "ALL";
+  const checking = sp.status === "LICENCES";
+  const tab = checking ? "LICENCES" : status;
   const q = sp.q?.trim().slice(0, 100) ?? "";
   const page = pageParam(sp.page);
   const pageSize = 25;
   const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "created", "desc");
-  const where: Prisma.TradeAccountWhereInput = { AND: [accountWhere(s), status === "ALL" ? {} : { status }, tradeAccountSearch(q)] };
+  const where: Prisma.TradeAccountWhereInput = { AND: [accountWhere(s), status === "ALL" ? {} : { status }, checking ? CHECKING : {}, tradeAccountSearch(q)] };
 
   // Scope and search as Prisma decides them (the service's search), the page's order from SQL.
   const number = q ? tradeNumberQuery(q, "TA") : null;
   const like = `%${q}%`;
   const conds: Prisma.Sql[] = [];
   if (status !== "ALL") conds.push(Prisma.sql`a.status = ${status}::"TradeAccountStatus"`);
+  if (checking) conds.push(Prisma.sql`a.status <> 'CLOSED' AND EXISTS (SELECT 1 FROM "TradeLicence" t WHERE t."tradeAccountId" = a.id AND t.status = 'SUBMITTED')`);
   if (q) conds.push(Prisma.sql`(a.number ILIKE ${like} OR a.name ILIKE ${like} OR a."legalName" ILIKE ${like} OR a."vatNumber" ILIKE ${like} OR a.email ILIKE ${like}${number ? Prisma.sql` OR a.number = ${number}` : Prisma.empty})`);
   if (!s.networkWide)
     conds.push(Prisma.sql`(a."dcId" = ANY(${s.ids}::text[]) OR EXISTS (SELECT 1 FROM "TradeOrder" o WHERE o."tradeAccountId" = a.id AND o."storeId" = ANY(${s.ids}::text[])) OR EXISTS (SELECT 1 FROM "Sale" x WHERE x."tradeAccountId" = a.id AND x."storeId" = ANY(${s.ids}::text[])))`);
   const sqlWhere = conds.length ? Prisma.sql`WHERE ${Prisma.join(conds, " AND ")}` : Prisma.empty;
-  const [total, ids, counts] = await Promise.all([
+  const [total, ids, counts, toCheck] = await Promise.all([
     db.tradeAccount.count({ where }),
     db.$queryRaw<{ id: string }[]>`
       SELECT a.id FROM "TradeAccount" a
@@ -71,6 +77,7 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
       ORDER BY ${ORDER_BY[sort]} ${dir === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`}, a."createdAt" DESC
       LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
     db.tradeAccount.groupBy({ by: ["status"], where: { AND: [accountWhere(s), tradeAccountSearch(q)] }, _count: true }),
+    db.tradeAccount.count({ where: { AND: [accountWhere(s), CHECKING, tradeAccountSearch(q)] } }),
   ]);
   const rows = ids.length
     ? await db.tradeAccount.findMany({ where: { id: { in: ids.map((r) => r.id) } }, include: { _count: { select: { orders: true, buyers: true } } } })
@@ -79,10 +86,10 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
   const balance = new Map(balances.map((b) => [b.tradeAccountId, b._sum.cents ?? 0]));
   const byId = new Map(rows.map((r) => [r.id, r]));
   const list = ids.map((r) => byId.get(r.id)!).filter(Boolean);
-  const n = (k: string) => (k === "ALL" ? counts.reduce((t, c) => t + c._count, 0) : counts.find((c) => c.status === k)?._count ?? 0);
+  const n = (k: string) => (k === "ALL" ? counts.reduce((t, c) => t + c._count, 0) : k === "LICENCES" ? toCheck : counts.find((c) => c.status === k)?._count ?? 0);
   const href = (p: Record<string, string | number | undefined>) => `/hq/trade/accounts${qs({ ...sp, ...p })}`;
   const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
-  const current = href({ status: status === "ALL" ? undefined : status, page: undefined });
+  const current = href({ status: tab === "ALL" ? undefined : tab, page: undefined });
 
   return (
     <>
@@ -91,7 +98,7 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
       <Card>
         <TabLinks className="px-4" current={current} tabs={TABS.map((t) => ({ href: href({ status: t.key === "ALL" ? undefined : t.key, page: undefined }), label: t.label, count: n(t.key) }))} />
         <div className="space-y-3 border-b border-ink-100 p-4">
-          <FilterForm action="/hq/trade/accounts" keep={{ status: status === "ALL" ? undefined : status, sort: sp.sort, dir: sp.dir }}>
+          <FilterForm action="/hq/trade/accounts" keep={{ status: tab === "ALL" ? undefined : tab, sort: sp.sort, dir: sp.dir }}>
             <SearchField defaultValue={q} placeholder="Account number, name, VAT number or email" />
           </FilterForm>
           <SavedViews pageKey="hq-trade-accounts" userKey={s.user.id} />
@@ -112,7 +119,7 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
           </thead>
           <tbody>
             {list.length === 0 && (
-              <TableEmpty cols={9} icon={<Briefcase className="h-5 w-5" aria-hidden />} title={q ? "No accounts match" : status === "PENDING" ? "No applications waiting" : "No trade accounts yet"}>
+              <TableEmpty cols={9} icon={<Briefcase className="h-5 w-5" aria-hidden />} title={q ? "No accounts match" : status === "PENDING" ? "No applications waiting" : checking ? "No licences to check" : "No trade accounts yet"}>
                 {q ? "Try the account number, trading name, VAT number or billing email." : "Businesses apply on the trade portal; approved accounts order at ex-VAT prices."}
               </TableEmpty>
             )}

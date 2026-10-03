@@ -1,7 +1,6 @@
 // A trade licence document, served through the app (never a storage link): to HQ (admin, staff, and area managers) and
 // to the account's own active buyers. Every view is audited; anything else is a 404, so ids can't be guessed into.
-import { getStaff, isHq } from "@/server/auth";
-import { getTradeBuyer } from "@/server/auth";
+import { getStaff, getTradeBuyer, isHq } from "@/server/auth";
 import { tradeActor } from "@/server/trade/accounts";
 import { db } from "@/server/db";
 import { audit, type Actor } from "@/server/audit";
@@ -13,7 +12,7 @@ const notFound = () => new Response("Not found", { status: 404, headers: { "cach
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  if (!/^[a-z0-9]{10,40}$/i.test(id)) return notFound();
+  if (!/^[a-z0-9-]{10,40}$/i.test(id)) return notFound(); // cuids, and the seed's uuids
   const licence = await db.tradeLicence.findUnique({ where: { id }, include: { account: { select: { id: true, number: true } } } });
   if (!licence) return notFound();
   const [staff, buyer] = await Promise.all([getStaff(), getTradeBuyer()]);

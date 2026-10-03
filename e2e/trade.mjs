@@ -1,16 +1,20 @@
 // End-to-end test of the trade portal (Playwright + direct DB checks).
 //   BASE_URL=http://127.0.0.1:3700 DATABASE_URL=postgresql://…/hh_ci SESSION_SECRET=… DEMO_MODE=true node e2e/trade.mjs [outdir]
-// Landing → apply (every validation path once, then a good application; a second application with the same buyer
-// email is refused) → sign in with the demo code while PENDING (browse, no prices, no ordering) → approved directly
-// in SQL (ACCOUNT terms, R20,000 limit, every trade class) → range (search, two lines in whole cases) → cart (unit ex
+// Landing → apply (every validation path once, checked in the browser before anything is sent; the licences a
+// pharmacy needs, with a document the server refuses by its bytes; then a good application; a second application with
+// the same buyer email is refused) → sign in with the demo code while PENDING (browse, no prices, no ordering) →
+// approved directly in SQL (licences verified, ACCOUNT terms, R20,000 limit, every trade class but food) → range (search, two lines in whole cases) → cart (unit ex
 // VAT, VAT per line, totals, case steppers) → checkout as click & collect at a store with stock, on account → the
 // order page shows the collection code → "order again" → checkout by courier, EFT → the pro forma details → HQ marks
 // the first order READY (SQL) → the tracker says "Ready to collect" → orders list and its filter → account page
-// (balance, available credit, add and remove a buyer, edit the trading name) → statements → sign out.
+// (balance, available credit, licences and their documents, a renewal uploaded, add and remove a buyer, edit the
+// trading name) → statements → sign out.
 // Everything it creates is removed and the two variants' case packs are put back. Prints click-to-result timings.
 import { chromium } from "@playwright/test";
 import pg from "pg";
 import { mkdirSync } from "node:fs";
+
+const pdf = (name) => ({ name, mimeType: "application/pdf", buffer: Buffer.from(`%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n% ${name}\n%%EOF\n`) });
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-trade";
@@ -77,7 +81,7 @@ try {
      lines as (
        select a."storeId", v.id, v.sku, v.name vname, p.name pname, v."wholesaleCents", v."caseQty", p."regClass", a.q
        from avail a join "Variant" v on v.id = a."variantId" and v.active and v."podSku" is null and v."wholesaleCents" between 6000 and 80000
-       join "Product" p on p.id = v."productId" and p.status = 'ACTIVE' and p."regClass" <> 'THC'
+       join "Product" p on p.id = v."productId" and p.status = 'ACTIVE' and p."regClass" not in ('THC', 'CBD_FOOD') -- a pharmacy without a food certificate
        join "Store" s on s.id = a."storeId" and s.kind = 'RETAIL' and s.status = 'ACTIVE' and s."clickCollect"
        where a.q >= 24 and not exists (select 1 from "PriceListItem" i join "PriceList" l on l.id = i."priceListId" and l.kind = 'TRADE' where i."variantId" = v.id and i."minQty" between 2 and 18))
      select s.id "storeId", s.code, s.name, s.suburb, s.city, s.province, s."addressLine",
@@ -130,12 +134,16 @@ try {
   await page.getByRole("heading", { level: 1, name: "Apply for a trade account" }).waitFor();
   assert(!(await page.locator('meta[name="robots"][content*="noindex"]').count()), "application page is indexable");
   const send = () => page.getByRole("button", { name: "Send the application" }).click();
+  let applyPosts = 0;
+  page.on("request", (r) => r.method() === "POST" && new URL(r.url()).pathname === "/trade/apply" && applyPosts++);
   const summary = page.getByRole("alert").filter({ hasText: /Please check/ });
+  await page.getByText("the licences it needs appear here").waitFor();
   await timed("Apply: empty form → errors", send, () => summary.waitFor());
   const errs = await summary.textContent();
   for (const want of ["registered (legal) name", "kind of business", "billing email", "phone number", "street address", "city or town", "Choose the province", "four-digit postal code", "Tick at least one range", "place orders", "18 or older", "Accept the trade terms"])
     assert(errs.includes(want), `empty form: “${want}”`);
   assert(!/legal name under|already signs in/.test(errs), "no stray errors on an empty form");
+  assert(applyPosts === 0, "checked in the browser: nothing sent");
   await shot(page, "apply-errors");
 
   const fill = async (o = {}) => {
@@ -160,6 +168,11 @@ try {
   await timed("Apply: bad numbers and a half delivery address → errors", send, () => summary2.waitFor());
   const errs2 = await summary2.textContent();
   for (const want of ["2015/123456/07", "ten digits starting with 4", "Enter a South African phone number, or leave it blank", "delivery city", "delivery province", "delivery postal code"]) assert(errs2.includes(want), `refused: “${want}”`);
+  // A pharmacy needs its pharmacy licence and its SAPC recording, each with the document; nothing else for these ranges.
+  for (const want of ["Enter the pharmacy licence number", "Attach the pharmacy licence (a PDF or a photo)", "Enter the SAPC pharmacy recording number", "Attach the SAPC pharmacy recording (a PDF or a photo)"]) assert(errs2.includes(want), `licences are mandatory: “${want}”`);
+  const licenceSets = page.locator('fieldset[data-testid^="licence-"]');
+  assert((await licenceSets.count()) === 2 && (await page.getByTestId("licence-PHARMACY_LICENCE").count()) && (await page.getByTestId("licence-SAPC_RECORDING").count()), "the form asks for exactly the two licences a pharmacy needs");
+  assert(applyPosts === 0, "still nothing sent");
   assert((await page.getByLabel("Registered (legal) name", { exact: true }).inputValue()) === `E2E Pharmacy ${run} (Pty) Ltd`, "a refused submit keeps what was typed");
   assert(await page.getByRole("checkbox", { name: /^CBD supplements/ }).isChecked(), "…and the ticks");
 
@@ -170,6 +183,23 @@ try {
   await page.getByLabel("Delivery city or town").fill("Pretoria");
   await page.getByLabel("Delivery province").selectOption("GP");
   await page.getByLabel("Delivery postal code").fill("0184");
+  const pharmacyLicence = page.getByTestId("licence-PHARMACY_LICENCE");
+  const sapc = page.getByTestId("licence-SAPC_RECORDING");
+  const attach = async (notPdf = false) => {
+    await pharmacyLicence.getByLabel("The document").setInputFiles(notPdf ? { name: "licence.pdf", mimeType: "application/pdf", buffer: Buffer.from("not really a PDF") } : pdf("pharmacy-licence.pdf"));
+    await sapc.getByLabel("The document").setInputFiles(pdf("sapc-recording.pdf"));
+  };
+  await pharmacyLicence.getByLabel("Licence number").fill(`gp ${run} 0412`);
+  await sapc.getByLabel("Licence number").fill(`p${run}`);
+  await attach(true);
+  const refusedDoc = page.getByRole("alert").filter({ hasText: /Please check/ }).filter({ hasText: "must be a PDF, or a JPG or PNG photo" });
+  await timed("Apply: a document that isn't a PDF → refused by the server", send, () => refusedDoc.waitFor());
+  assert(applyPosts === 1, "the browser's check passed, so it was sent once");
+  assert((await one(`select count(*)::int n from "TradeAccount" where "legalName" = $1`, [`E2E Pharmacy ${run} (Pty) Ltd`])).n === 0, "nothing created");
+  await page.getByText("Attach the documents again").waitFor();
+  assert((await pharmacyLicence.getByLabel("Licence number").inputValue()) === `gp ${run} 0412`, "licence numbers kept as typed; the documents asked for again");
+  await shot(page, "apply-documents");
+  await attach();
   await timed("Apply: send → received", send, () => page.getByTestId("apply-done").waitFor());
   await page.getByText("We'll be in touch within one business day.").waitFor();
   const account = await one(`select a.*, b.id "buyerId", b.role from "TradeAccount" a join "TradeBuyer" b on b."tradeAccountId" = a.id where b.email = $1`, [buyerEmail]);
@@ -180,11 +210,17 @@ try {
   undo.push(() => q(`delete from "TradeAccount" where id = $1`, [account.id])); // buyers, sessions and ledger go with it
   undo.push(() => q(`delete from "TradeOrder" where "tradeAccountId" = $1`, [account.id]));
   undo.push(() => q(`delete from "Otp" where email in ($1, $2)`, [buyerEmail, extraBuyerEmail]));
+  undo.push(() => q(`delete from "Upload" where id in (select "uploadId" from "TradeLicence" where "tradeAccountId" = $1)`, [account.id])); // before the account (licences go with it)
   assert(account.status === "PENDING" && /^TA-\d{6}$/.test(account.number) && account.role === "OWNER", `application ${account.number} is PENDING with its OWNER buyer`);
   assert(account.regNumber === "2015/123456/07" && account.vatNumber === "4123456789" && account.deliveryLine === "Unit 4, 9 Depot Road" && account.deliveryCity === "Pretoria" && account.adultAttestedAt && account.termsAcceptedAt, "numbers tidied, delivery address kept, 18+ and terms recorded");
   // pg hands an enum[] column back as "{CBD,CBD_TOPICAL,ACCESSORY}".
   const classes = Array.isArray(account.classes) ? account.classes : String(account.classes).replace(/[{}"]/g, "").split(",").filter(Boolean);
   assert(classes.length === 3 && classes.includes("CBD_TOPICAL"), `three ranges requested (${classes.join(", ")})`);
+  const licences = await q(`select l.kind, l.number, l.status, u."contentType" from "TradeLicence" l join "Upload" u on u.id = l."uploadId" where l."tradeAccountId" = $1 order by l.kind`, [account.id]);
+  assert(
+    licences.length === 2 && licences.every((l) => l.status === "SUBMITTED" && l.contentType === "application/pdf") && licences.find((l) => l.kind === "PHARMACY_LICENCE")?.number === `GP ${run.toUpperCase()} 0412`,
+    "both licences stored with their documents, waiting for HQ's check",
+  );
   await page.getByText(account.number).waitFor();
   const ack = await one(`select 1 from "MessageLog" where "to" = $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%application ${account.number} received%`, t0]);
   const notice = await one(`select "to" from "MessageLog" where "to" <> $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%new application ${account.number}%`, t0]);
@@ -195,6 +231,9 @@ try {
   await page.goto(`${BASE}/trade/apply`);
   await fill({ legalName: `Another Shop ${run}` });
   await page.getByRole("checkbox", { name: /^Accessories/ }).check();
+  await pharmacyLicence.getByLabel("Licence number").fill("GP 0001");
+  await sapc.getByLabel("Licence number").fill("P0001");
+  await attach();
   await page.getByRole("checkbox", { name: /Every buyer who orders/ }).check();
   await page.getByRole("checkbox", { name: /I accept the/ }).check();
   await timed("Apply: duplicate buyer email → refused", send, () => page.getByText("already signs in to a trade account").first().waitFor());
@@ -219,8 +258,9 @@ try {
   await shot(page, "range-pending");
 
   // ── 4. Approve in SQL ───────────────────────────────────────────────────────────────────────────────
-  step("HQ approves the account (SQL): on account, R20,000 limit, 30 days, every trade range");
-  await q(`update "TradeAccount" set status = 'APPROVED', terms = 'ACCOUNT', "creditLimitCents" = 2000000, "paymentDays" = 30, "approvedAt" = now(), classes = array['CBD','CBD_FOOD','CBD_TOPICAL','HEMP','SUPPLEMENT','ACCESSORY','APPAREL','GROW']::"RegClass"[] where id = $1`, [account.id]);
+  step("HQ verifies the licences and approves the account (SQL): on account, R20,000 limit, 30 days, every trade range but food");
+  await q(`update "TradeLicence" set status = 'VERIFIED', "reviewedAt" = now() where "tradeAccountId" = $1`, [account.id]);
+  await q(`update "TradeAccount" set status = 'APPROVED', terms = 'ACCOUNT', "creditLimitCents" = 2000000, "paymentDays" = 30, "approvedAt" = now(), classes = array['CBD','CBD_TOPICAL','HEMP','SUPPLEMENT','ACCESSORY','APPAREL','GROW']::"RegClass"[] where id = $1`, [account.id]);
   ok("approved");
 
   // ── 5. Range ────────────────────────────────────────────────────────────────────────────────────────
@@ -367,6 +407,31 @@ try {
   await page.getByRole("heading", { level: 1, name: `E2E Pharmacy ${run}` }).waitFor();
   assert((await page.getByTestId("balance").textContent()).trim() === zar(0) && (await page.getByTestId("available").textContent()).trim() === zar(2_000_000 - total1), `balance ${zar(0)} · available ${zar(2_000_000 - total1)} (the open on-account order counts)`);
   await page.getByText("On account").first().waitFor();
+
+  const licenceList = page.getByTestId("licences");
+  assert((await licenceList.locator("li").count()) === 2 && (await licenceList.locator('li[data-state="ok"]').count()) === 2, "licences: both verified");
+  const docHref = await licenceList.getByTestId("licence-PHARMACY_LICENCE").getByRole("link", { name: "View the document" }).getAttribute("href");
+  // Fetched from the page, like a click (Playwright's own request client won't send the Secure session cookie over http).
+  const doc = await page.evaluate(async (u) => {
+    const r = await fetch(u);
+    const b = new Uint8Array(await r.arrayBuffer());
+    return { status: r.status, type: r.headers.get("content-type"), cache: r.headers.get("cache-control"), head: String.fromCharCode(...b.slice(0, 5)) };
+  }, docHref);
+  assert(doc.status === 200 && doc.type === "application/pdf" && /no-store/.test(doc.cache) && doc.head === "%PDF-", "the document opens for the account's buyer (PDF, not cached)");
+  const stranger = await browser.newContext();
+  assert((await (await stranger.request.get(`${BASE}${docHref}`)).status()) === 404, "…and is a 404 to anyone signed out");
+  await stranger.close();
+  const upload = page.getByTestId("licence-upload");
+  await upload.getByLabel("Licence", { exact: true }).selectOption("SAPC_RECORDING");
+  await upload.getByLabel("Licence number").fill(`p${run}`);
+  await upload.getByLabel("The document").setInputFiles(pdf("sapc-2027.pdf"));
+  await timed("Account: upload a renewed licence", () => upload.getByRole("button", { name: "Upload for checking" }).click(), () => page.getByText("the trade team checks it with the issuer").waitFor());
+  await licenceList.getByTestId("licence-SAPC_RECORDING").getByText("is with the trade team for checking").waitFor();
+  const renewal = await one(`select status from "TradeLicence" where "tradeAccountId" = $1 and kind = 'SAPC_RECORDING' order by "createdAt" desc limit 1`, [account.id]);
+  const teamNotice = await one(`select 1 from "MessageLog" where body like $1 and "createdAt" >= $2`, [`%licence to check — E2E Pharmacy ${run}%`, t0]);
+  assert(renewal?.status === "SUBMITTED" && teamNotice && (await licenceList.locator('li[data-state="ok"]').count()) === 2, "the renewal waits for HQ (the trade team is told); the current one still counts");
+  await shot(page, "account-licences");
+
   const buyers = page.getByTestId("buyers");
   assert((await buyers.locator("li").count()) === 1 && (await buyers.textContent()).includes("You"), "the owner is the only buyer");
   const addForm = page.locator("form").filter({ hasText: "Add a buyer" });

@@ -6,7 +6,7 @@
 // (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
 // connected) → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
 // Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → trade (an application
-// approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
+// whose licence HQ first doesn't accept and then verifies — approval waits for it — approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
 // statement emailed, hold and release, the trade settings card) → an area manager's scope.
 // Everything it creates is named "E2E …" and removed at the end; every setting it changes is put back as found.
 // Prints how long each action took, from the click to its visible result.
@@ -865,29 +865,70 @@ try {
 
 
   // ── Trade (wholesale) ─────────────────────────────────────────────────────
-  step("Trade: an application (SQL) is approved on account terms (validation first); the account is emailed");
+  step("Trade: an application (SQL) with its company registration certificate — approval waits for the licence");
   const tVat = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, "0")}`;
+  const tReg = `2018/${String(Math.floor(Math.random() * 1e6)).padStart(6, "0")}/07`;
   let tNo;
   while (!tNo) {
     const c = `TA-9${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
     if (!(await one(`select 1 from "TradeAccount" where number = $1`, [c]))) tNo = c;
   }
   tradeAccount = await one(
-    `insert into "TradeAccount" (id, number, name, "legalName", kind, "vatNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "updatedAt")
-     values (gen_random_uuid()::text, $1, $2, $3, 'RETAILER', $4, $5, '+27115550123', '12 Jan Smuts Avenue', 'Rosebank', 'Johannesburg', 'GP', '2196', 'PENDING', 'PREPAID', '{ACCESSORY,CBD}'::"RegClass"[], now(), 'trade-1', now(), now())
+    `insert into "TradeAccount" (id, number, name, "legalName", kind, "regNumber", "vatNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, $2, $3, 'RETAILER', $6, $4, $5, '+27115550123', '12 Jan Smuts Avenue', 'Rosebank', 'Johannesburg', 'GP', '2196', 'PENDING', 'PREPAID', '{ACCESSORY,CBD}'::"RegClass"[], now(), 'trade-1', now(), now())
      returning id, number, name, email`,
-    [tNo, T.tradeName, `${T.tradeName} (Pty) Ltd`, tVat, T.tradeEmail],
+    [tNo, T.tradeName, `${T.tradeName} (Pty) Ltd`, tVat, T.tradeEmail, tReg],
   );
   await q(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, phone, role) values (gen_random_uuid()::text, $1, 'E2E Buyer', $2, '+27825550123', 'OWNER')`, [tradeAccount.id, T.tradeBuyerEmail]);
+  // A retailer needs its company registration certificate for these ranges; the buyer sent it with the application.
+  const sendCertificate = async () => {
+    const u = await one(`insert into "Upload" (id, key, "fileName", "contentType", "sizeBytes", sha256) values (gen_random_uuid()::text, 'e2e/cor14-3.pdf', 'cor14-3.pdf', 'application/pdf', 1024, 'e2e') returning id`);
+    return one(`insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId") values (gen_random_uuid()::text, $1, 'CIPC_REGISTRATION', $2, $3) returning id`, [tradeAccount.id, tReg, u.id]);
+  };
+  const firstCert = await sendCertificate();
+  await open(`/hq/trade/accounts?status=LICENCES&q=${encodeURIComponent(T.tradeName)}`, page.getByRole("link", { name: T.tradeName, exact: true }));
+  ok("the application is under Licences to check");
   await open("/hq/trade/accounts?status=PENDING", page.getByRole("link", { name: T.tradeName, exact: true }));
   await page.getByRole("link", { name: T.tradeName, exact: true }).click();
   await page.waitForURL(new RegExp(`/hq/trade/accounts/${tradeAccount.id}$`));
-  const taf = formWith("#creditLimit");
+  const cert = page.getByTestId("hq-licence-CIPC_REGISTRATION");
+  await cert.getByText("To check").waitFor();
+  await page.getByText("Verify the licences first").waitFor();
+  let taf = formWith("#creditLimit");
   await hydrated(taf);
   await taf.locator("#terms").selectOption("ACCOUNT");
   await taf.locator("#creditLimit").fill("");
   await act("trade.approveAccount · invalid", () => taf.getByRole("button", { name: "Approve account" }).click(), () => alertIn(taf, "An account on credit terms needs a limit").waitFor());
-  assert((await one(`select status from "TradeAccount" where id = $1`, [tradeAccount.id])).status === "PENDING", "still pending");
+  await taf.locator("#creditLimit").fill("20000");
+  await act("trade.approveAccount · licence not verified", () => taf.getByRole("button", { name: "Approve account" }).click(), () => alertIn(taf, "Verify the licences first").waitFor());
+  assert((await one(`select status from "TradeAccount" where id = $1`, [tradeAccount.id])).status === "PENDING", "still pending: terms checked first, then the licence");
+
+  step("Trade: HQ doesn't accept the certificate (the account is told why), then verifies the one sent again");
+  await hydrated(cert.getByRole("button", { name: "Not accepted" }));
+  await cert.getByRole("button", { name: "Not accepted" }).click();
+  const rg = page.getByRole("group", { name: "Can't accept this company registration certificate?" });
+  await act("trade.rejectLicence · no reason", () => rg.getByRole("button", { name: "Send the reason" }).click(), () => alertIn(rg, "Say what's wrong").waitFor());
+  await rg.getByLabel("What's wrong (in the email the account gets)").fill("The certificate is for a different company");
+  await act("trade.rejectLicence", () => rg.getByRole("button", { name: "Send the reason" }).click(), () => notice("Licence not accepted").waitFor());
+  const rejected = await one(`select status, "rejectReason", "reviewedById" from "TradeLicence" where id = $1`, [firstCert.id]);
+  assert(rejected.status === "REJECTED" && rejected.rejectReason === "The certificate is for a different company" && rejected.reviewedById === admin.id, "not accepted, with the reason, by the admin");
+  assert(await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%not accepted — ${tradeAccount.number}%The certificate is for a different company%`])), "the account is emailed the reason");
+  assert(await one(`select 1 from "AuditLog" where action = 'trade.licence.reject' and "entityId" = $1 and "actorId" = $2`, [firstCert.id, admin.id]), "audited (trade.licence.reject)");
+  await cert.getByText("Not accepted").first().waitFor();
+  const secondCert = await sendCertificate();
+  await open(`/hq/trade/accounts/${tradeAccount.id}`, cert.getByRole("button", { name: "Verify" }));
+  await shot("trade-licence");
+  await act("trade.verifyLicence", () => cert.getByRole("button", { name: "Verify" }).click(), () => notice("Licence verified").waitFor());
+  const verified = await one(`select status, "reviewedById", "reviewedAt" from "TradeLicence" where id = $1`, [secondCert.id]);
+  assert(verified.status === "VERIFIED" && verified.reviewedById === admin.id && verified.reviewedAt, "verified by the admin");
+  assert(await one(`select 1 from "AuditLog" where action = 'trade.licence.verify' and "entityId" = $1 and "actorId" = $2`, [secondCert.id, admin.id]), "audited (trade.licence.verify)");
+  await cert.getByText("Verified").first().waitFor();
+  assert(!(await page.getByText("Verify the licences first").count()), "nothing left to verify");
+
+  step("Trade: approved on account terms; the account is emailed");
+  taf = formWith("#creditLimit");
+  await hydrated(taf);
+  await taf.locator("#terms").selectOption("ACCOUNT");
   await taf.locator("#creditLimit").fill("20000");
   await taf.getByRole("checkbox", { name: "Supplements", exact: true }).check();
   await shot("trade-approve");
@@ -1381,7 +1422,8 @@ async function cleanup() {
     await run("trade messages", `delete from "MessageLog" where "to" in ($1, $2) or id like $3`, [tradeAccount.email, T.tradeBuyerEmail, `trade-statement-${tradeAccount.id}-%`]);
     await run("trade sale link", `update "Sale" set "tradeAccountId" = null where "tradeAccountId" = $1`, [tradeAccount.id]); // the WHOLESALE sale stays, like other trading records
     await run("trade orders", `delete from "TradeOrder" where "tradeAccountId" = $1`, [tradeAccount.id]);
-    await run("trade account", `delete from "TradeAccount" where id = $1`, [tradeAccount.id]); // buyers and ledger go with it
+    await run("trade licence documents", `delete from "Upload" where id in (select "uploadId" from "TradeLicence" where "tradeAccountId" = $1)`, [tradeAccount.id]);
+    await run("trade account", `delete from "TradeAccount" where id = $1`, [tradeAccount.id]); // buyers, licences and ledger go with it
   }
   if (store) await run("stock orders", `delete from "StockOrder" where "buyerId" = $1`, [store.id]);
   if (variant) {

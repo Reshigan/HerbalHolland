@@ -9,14 +9,14 @@ import { Callout, Container, Panel, Tag } from "@/components/shop/ui";
 import { AccountStatusTag } from "@/components/trade/status";
 import { AddBuyerForm, DetailsForm, RemoveBuyerButton, type Details } from "@/components/trade/account-forms";
 import { className as classLabel } from "@/components/trade/format";
-import { addressLineOf, TRADE_KINDS } from "@/lib/trade";
+import { addressLineOf, tradeKindPhrase, TRADE_KINDS } from "@/lib/trade";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { requireBuyer } from "../_lib/context";
-import { standingOf } from "@/server/trade/licences";
+import { licenceOverview } from "@/server/trade/licences";
 import { LicenceUploadForm } from "@/components/trade/licence-form";
-import type { LicenceLine } from "@/lib/trade-licences";
+import { TRADE_LICENCE_KINDS, type LicenceLine } from "@/lib/trade-licences";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false, follow: false } };
 
@@ -35,8 +35,10 @@ export default async function TradeAccountPage() {
     deliveryLine: a.deliveryLine ?? "", deliverySuburb: a.deliverySuburb ?? "", deliveryCity: a.deliveryCity ?? "", deliveryProvince: a.deliveryProvince ?? "", deliveryPostalCode: a.deliveryPostalCode ?? "",
   };
   const ageing: [string, number][] = [["Current", s.ageing.current], ["30 days", s.ageing.d30], ["60 days", s.ageing.d60], ["90+ days", s.ageing.d90plus]];
-  const licences = await standingOf(a);
-  const firstProblem = licences.lines.find((l) => l.problem)?.kind ?? licences.lines.find((l) => l.state === "expiring")?.kind ?? licences.lines[0]?.kind;
+  const { standing: licences, others } = await licenceOverview(a);
+  const firstProblem = licences.lines.find((l) => l.problem)?.kind ?? licences.lines.find((l) => l.state === "expiring")?.kind ?? licences.lines[0]?.kind ?? TRADE_LICENCE_KINDS[0];
+  // Any licence can be sent — the ones the account needs first, then the rest (ahead of asking for a new range).
+  const uploadKinds = [...licences.lines.map((l) => l.kind), ...TRADE_LICENCE_KINDS.filter((k) => !licences.lines.some((l) => l.kind === k))];
 
   return (
     <Container className="pt-10 sm:pt-14">
@@ -100,19 +102,19 @@ export default async function TradeAccountPage() {
           <FileCheck2 className="h-5 w-5 text-brand-500" aria-hidden /> Licences
         </h2>
         <p className="mt-2 max-w-3xl text-sm text-ink-400">
-          What a {(TRADE_KINDS[a.kind as keyof typeof TRADE_KINDS] ?? "business").toLowerCase()} needs for the ranges it buys. We check each one with its issuer before the first order, remind you a month before one lapses, and pause ordering while a required licence has lapsed.
+          What {tradeKindPhrase(a.kind)} needs for the ranges it buys. We check each one with its issuer before the first order, remind you a month before one lapses, and pause ordering while a required licence has lapsed.
         </p>
         <div className="mt-5 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
           <ul className="space-y-3" data-testid="licences">
-            {licences.lines.map((l) => (
+            {[...licences.lines, ...others].map((l) => (
               <LicenceItem key={l.kind} line={l} />
             ))}
           </ul>
-          {a.status !== "CLOSED" && firstProblem && (
+          {a.status !== "CLOSED" && (
             <Panel className="p-5">
               <h3 className="font-semibold text-white">Upload a licence or its renewal</h3>
               <div className="mt-4">
-                <LicenceUploadForm kinds={licences.lines.map((l) => l.kind)} initial={firstProblem} />
+                <LicenceUploadForm kinds={uploadKinds} initial={firstProblem} />
               </div>
             </Panel>
           )}

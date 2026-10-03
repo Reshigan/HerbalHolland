@@ -353,7 +353,7 @@ $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live i
 | Endpoint | When | What it does |
 |---|---|---|
 | `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders |
-| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals; **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`) |
+| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals; **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`) |
 | `/api/cron/staff-push` | every 5 min | Pushes to managers' and owners' phones (`src/server/staff-push.ts`): **new online orders** (polled, so an order shows up within 5 minutes — nothing hooks the checkout), **loss alerts** raised in the last day (never to the person they're about), **HQ updates that need acknowledging** (per store that hasn't). Each event is keyed in `StaffPushEvent`, so a poll never sends twice; dead subscriptions (404/410 from the push service) are pruned as they fail. |
 | `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
 
@@ -374,9 +374,22 @@ flat) and `freeDeliveryOverCents` (R5,000 ex VAT), `collectHandlingCents` (R75 e
 name, account number, branch code — printed on every pro forma; **fill these in before the first trade order**).
 `TRADE_EMAIL` (else `FRANCHISE_EMAIL`, else franchise@herbalholland.com) is where new applications are announced.
 
-**Approving an account.** Applications arrive from the portal as PENDING accounts (`TA-…`) with their OWNER buyer;
-the applicant gets an acknowledgement and the trade team an email. HQ → Trade → Accounts: check the business (CIPC
-and VAT numbers are format-checked, not verified), then **Approve** with the terms — PREPAID (EFT before picking) or
+**Licences.** Every application carries the licences its kind of business needs for the ranges it asks for (the
+matrix: `src/lib/trade-licences.ts`, docs/COMPLIANCE.md) — number, expiry where it lapses, and the document (PDF, JPG
+or PNG, ≤ 5 MB, stored under `trade-licences/` in R2/S3 or `UPLOAD_DIR`; back it up). Each new document emails the
+trade team ("licence to check"). HQ → Trade shows **Licences to check** (oldest first; the accounts list has the same
+tab). On the account's Overview, **View document**, check it against the issuer's register (SAPC, BHF PCNS, CIPC,
+SAHPRA, the municipality), then **Verify** or **Not accepted** with the reason (emailed; the buyer uploads another
+under Account › Licences). Renewals arrive the same way. Thirty days before a licence lapses the daily job reminds
+the account; once one has lapsed, nothing can be ordered, shipped, collected or sold at a till for the account, and
+the job puts it on hold (reason "licence"). Verifying the renewal lifts that hold and emails the account. An approved
+account can't be switched to a kind or ranges whose licences it doesn't hold — have it upload them first (a buyer can
+send any licence; one not needed yet shows as "on file" on both sides until the range is added).
+
+**Approving an account.** Applications arrive from the portal as PENDING accounts (`TA-…`) with their OWNER buyer and
+licences; the applicant gets an acknowledgement and the trade team an email. HQ → Trade → Accounts: verify the
+licences (above — approval is refused until every required one is verified; VAT numbers are format-checked, not
+verified), then **Approve** with the terms — PREPAID (EFT before picking) or
 ACCOUNT with a credit limit and payment days (default 30), the ranges it may buy (never THC), optionally a TRADE price
 list and a serving DC. The approval email carries the terms. **Hold** stops new on-account orders (EFT still works);
 **Close** signs every buyer out for good (the balance stays due). Buyers sign in with a six-digit code emailed to
@@ -400,7 +413,7 @@ the handling fee, invoices and emails exactly like shipping. The money was colle
 ledger), so it shows under HQ-collected takings on the store's statement.
 
 **Till trade sales.** Trade-sale mode on the till looks the account up (`tradeAccountLookup`: approved accounts, and
-held ones for cash/card only), prices the basket ex VAT with VAT per line and takes money as usual and/or **On
+held ones for cash/card only; one whose licences aren't in order shows a **Licence** chip and can't be picked), prices the basket ex VAT with VAT per line and takes money as usual and/or **On
 account** within the credit decision; the tax invoice goes to the account's billing email. Refunds put the on-account
 part back as a credit note. No points, member prices, My Deals or gift vouchers; never offline.
 
@@ -432,11 +445,11 @@ note). Statements go out on the statement day for the previous month; **Send sta
 (`emailTradeStatement(accountId, "YYYY-MM", { force: true })`). Ageing is current / 30 / 60 / 90+ days past due after
 credits are applied — to the item they name first, then oldest due first.
 
-**HQ console (how-to).** `/hq/trade` is the overview: applications waiting, open orders (to pick at the DC, ready to
-collect), EFTs to confirm, accounts on hold, the balance outstanding and overdue (FIFO ageing), links to the Trade sales
+**HQ console (how-to).** `/hq/trade` is the overview: applications waiting, licences to check, open orders (to pick at the DC,
+ready to collect), EFTs to confirm, accounts on hold, the balance outstanding and overdue (FIFO ageing), links to the Trade sales
 and Trade aged balances reports and to the settings. `/hq/trade/accounts` lists accounts by status (All / Pending /
-Approved / On hold / Closed; search by number, name, VAT number or email; sortable incl. balance). An account's page
-has four tabs: **Overview** (approve with terms, or save terms; business and delivery details; hold / lift the hold;
+Licences to check / Approved / On hold / Closed; search by number, name, VAT number or email; sortable incl. balance). An account's page
+has four tabs: **Overview** (licences — view, verify, not accepted; approve with terms, or save terms; business and delivery details; hold / lift the hold;
 close — type CLOSE), **Ledger & statements** (record a payment, credit note, adjustment; the month's statement with
 **Email statement**), **Orders**, **Buyers** (add, remove). **Place an order** (approved accounts) captures a phone
 order: search the trade range at the account's DC, add whole cases, courier or click & collect at a store, EFT or on

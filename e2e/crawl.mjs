@@ -46,17 +46,23 @@ async function member(page) {
   await page.waitForURL((u) => u.pathname === "/club", { timeout: 30_000 });
 }
 
-/** The trade portal: a throwaway approved account (on account, every trade range) signs in with the demo code. */
+/** The trade portal: a throwaway approved account (on account, every trade range, licences verified) signs in with the demo code. */
 let tradeAccountId = null;
 async function trade(page) {
   const email = `crawl.${Date.now().toString(36)}@example.co.za`;
   const row = (await db.query(
-    `insert into "TradeAccount" (id, number, name, "legalName", kind, email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "paymentDays", "creditLimitCents", classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "approvedAt", "updatedAt")
-     values (gen_random_uuid()::text, $1, 'Crawl Trade Co', 'Crawl Trade Co (Pty) Ltd', 'RETAILER', $2, '+27123456789', '1 Crawl Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 30, 2000000,
+    `insert into "TradeAccount" (id, number, name, "legalName", kind, "regNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "paymentDays", "creditLimitCents", classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "approvedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, 'Crawl Trade Co', 'Crawl Trade Co (Pty) Ltd', 'RETAILER', '2020/000001/07', $2, '+27123456789', '1 Crawl Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 30, 2000000,
        array['CBD','CBD_FOOD','CBD_TOPICAL','HEMP','SUPPLEMENT','ACCESSORY','APPAREL','GROW']::"RegClass"[], now(), 'trade-1', now(), now(), now()) returning id`,
     [`TA-9${String(Date.now() % 100000).padStart(5, "0")}`, email],
   )).rows[0];
   tradeAccountId = row.id;
+  // What a retailer buying every range needs, verified; the document is a seeded one (the account page links to it).
+  await db.query(
+    `insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId", status, "reviewedAt")
+     select gen_random_uuid()::text, $1, k::"TradeLicenceKind", 'E2E/' || k, (select "uploadId" from "TradeLicence" order by "createdAt" limit 1), 'VERIFIED', now() from unnest($2::text[]) k`,
+    [row.id, ["CIPC_REGISTRATION", "FOOD_COA"]],
+  );
   await db.query(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, role) values (gen_random_uuid()::text, $1, 'Crawl Buyer', $2, 'OWNER')`, [row.id, email]);
   await page.goto(`${BASE}/trade/login`);
   await page.getByLabel("Email address").fill(email);

@@ -777,7 +777,13 @@ try {
      returning id, number, name, email`,
     [tNo, `E2E Pharmacy ${run}`, `E2E Pharmacy ${run} (Pty) Ltd`, `e2e.trade.${run.toLowerCase()}@example.com`],
   );
-  later(`remove trade account ${tAcc.number}`, () => q(`delete from "TradeAccount" where id = $1`, [tAcc.id]));
+  later(`remove trade account ${tAcc.number}`, () => q(`delete from "TradeAccount" where id = $1`, [tAcc.id])); // licences go with it
+  // What a pharmacy needs, verified by HQ (the document is a seeded one: nobody opens it here).
+  await q(
+    `insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId", status, "reviewedAt")
+     select gen_random_uuid()::text, $1, k::"TradeLicenceKind", 'E2E/' || k, (select "uploadId" from "TradeLicence" order by "createdAt" limit 1), 'VERIFIED', now() from unnest($2::text[]) k`,
+    [tAcc.id, ["PHARMACY_LICENCE", "SAPC_RECORDING"]],
+  );
   later("unlink the trade sale, drop the trade messages", async () => {
     await q(`update "Sale" set "tradeAccountId" = null where "tradeAccountId" = $1`, [tAcc.id]); // the sale stays, like every other trading record
     await q(`delete from "MessageLog" where "to" in ($1, $2)`, [tAcc.email, "+27825550199"]);

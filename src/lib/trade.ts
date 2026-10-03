@@ -271,6 +271,12 @@ export const TRADE_KINDS = {
 } as const;
 export type TradeKind = keyof typeof TRADE_KINDS;
 export const isTradeKind = (v: unknown): v is TradeKind => typeof v === "string" && v in TRADE_KINDS;
+/** The kind of business mid-sentence, with its article: "an independent retailer", and "a business" for any other. */
+export const tradeKindPhrase = (kind: string) => {
+  if (!isTradeKind(kind) || kind === "OTHER") return "a business";
+  const name = TRADE_KINDS[kind].toLowerCase();
+  return `${/^[aeiou]/.test(name) ? "an" : "a"} ${name}`;
+};
 
 export const TRADE_LIMITS = { name: 120, email: 254, address: 160, notes: 1_000, reference: 60 } as const;
 

@@ -8,9 +8,9 @@ import { audit, SYSTEM, type Actor } from "../audit";
 import { sendEmail } from "../email";
 import { franchiseEmail } from "../leads";
 import { APP_URL } from "../email-templates";
-import { storeDocument, UploadError } from "../uploads";
+import { readDocument, storeDocument, UploadError } from "../uploads";
 import {
-  LICENCE_FILE_MAX_BYTES, LICENCE_FILE_TYPES, LICENCE_REMIND_DAYS, TRADE_LICENCES, checkLicenceInput, isTradeLicenceKind, licenceInSentence, licenceStanding, requiredLicences,
+  LICENCE_FILE_MAX_BYTES, LICENCE_FILE_TYPES, LICENCE_REMIND_DAYS, TRADE_LICENCES, TRADE_LICENCE_KINDS, checkLicenceInput, isTradeLicenceKind, licenceInSentence, licenceStanding, requiredLicences,
   type LicenceRecord, type LicenceStanding, type TradeLicenceKind,
 } from "@/lib/trade-licences";
 import { tradeHoldLiftedEmail, tradeLicenceExpiringEmail, tradeLicenceHoldEmail, tradeLicenceNoticeEmail, tradeLicenceRejectedEmail, tradePortalUrl } from "./emails";
@@ -29,9 +29,11 @@ const mail = async (r: { subject: string; html: string; text: string }, to: stri
 /** The folder licence documents are kept under in storage. */
 export const LICENCE_FOLDER = "trade-licences";
 
-/** Stores one licence document (PDF, JPG or PNG, ≤ 5 MB) and returns the Upload id; refuses with a plain message. */
-export const storeLicenceDocument = (file: File, kind: TradeLicenceKind) =>
-  storeDocument({ file, types: LICENCE_FILE_TYPES, maxBytes: LICENCE_FILE_MAX_BYTES, folder: LICENCE_FOLDER, label: licenceInSentence(kind) });
+const licenceDocument = (kind: TradeLicenceKind) => ({ types: LICENCE_FILE_TYPES, maxBytes: LICENCE_FILE_MAX_BYTES, label: licenceInSentence(kind) });
+/** Checks a licence document (PDF, JPG or PNG, ≤ 5 MB) without storing it; refuses with a plain message (UploadError). */
+export const checkLicenceDocument = async (file: File, kind: TradeLicenceKind) => void (await readDocument(file, licenceDocument(kind)));
+/** Stores one licence document and returns the Upload id; refuses with a plain message. */
+export const storeLicenceDocument = (file: File, kind: TradeLicenceKind) => storeDocument({ file, folder: LICENCE_FOLDER, ...licenceDocument(kind) });
 
 /** An account's licence records, newest first. */
 export async function licenceRecords(accountId: string, t: Tx | typeof db = db): Promise<(LicenceRecord & { uploadId: string; reviewedAt: Date | null; reviewedById: string | null; submittedById: string | null; remindedAt: Date | null })[]> {
@@ -42,6 +44,21 @@ export async function licenceRecords(accountId: string, t: Tx | typeof db = db):
 export async function standingOf(account: { id: string; kind: string; classes: string[] }, opts: { kind?: string; classes?: string[]; now?: Date; t?: Tx | typeof db } = {}): Promise<LicenceStanding> {
   const records = await licenceRecords(account.id, opts.t);
   return licenceStanding(requiredLicences(opts.kind ?? account.kind, opts.classes ?? account.classes), records, opts.now);
+}
+
+/**
+ * For showing an account's licences: the standing of the ones it needs, then the lines for any other licence it has
+ * sent (ahead of a range it wants added, say) — on file, but not counted for or against it — and every record.
+ */
+export async function licenceOverview(account: { id: string; kind: string; classes: string[] }) {
+  const records = await licenceRecords(account.id);
+  const required = requiredLicences(account.kind, account.classes);
+  const others = TRADE_LICENCE_KINDS.filter((k) => !required.some((r) => r.kind === k) && records.some((r) => r.kind === k));
+  return {
+    standing: licenceStanding(required, records),
+    others: licenceStanding(others.map((kind) => ({ kind, why: "On file — not needed for the ranges on the account yet" })), records).lines,
+    records,
+  };
 }
 
 /** Why the account can't be supplied right now because of its licences — or null when they're in order. */
@@ -71,6 +88,7 @@ export async function submitTradeLicence(
   }
   if (!isTradeLicenceKind(input.kind)) throw new TradeLicenceError("Choose which licence this is", "kind");
   const kind = input.kind;
+  if (kind === "CIPC_REGISTRATION" && !input.number && !account.regNumber) throw new TradeLicenceError("Add the company registration number to the business details first — the certificate is for that number");
   const check = checkLicenceInput(kind, { number: kind === "CIPC_REGISTRATION" ? (input.number ?? account.regNumber) : input.number, expiresAt: input.expiresAt }, opts.now);
   if (!check.ok) {
     const [field, message] = Object.entries(check.fields)[0] as ["number" | "expiresAt", string];

@@ -371,6 +371,12 @@ try {
       [taNo, `trade.e2e.${Date.now()}@example.com`],
     )
   )[0];
+  // What a pharmacy buying every range needs, verified by HQ (the document is a seeded one: nobody opens it here).
+  await q(
+    `insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId", status, "reviewedAt")
+     select gen_random_uuid()::text, $1, k::"TradeLicenceKind", 'E2E/' || k, (select "uploadId" from "TradeLicence" order by "createdAt" limit 1), 'VERIFIED', now() from unnest($2::text[]) k`,
+    [tradeAccount.id, ["PHARMACY_LICENCE", "SAPC_RECORDING", "FOOD_COA"]],
+  );
   // The lines: the pouch (an accessory on this till) and a CBD supplement with one variant on the till, at their trade
   // price: the live TRADE list that prices them (best break for the quantity), else the wholesale price — as resolveTradePrice does.
   const tradeUnit = async (variantId, qty, fallback) =>

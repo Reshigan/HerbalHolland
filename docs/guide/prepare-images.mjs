@@ -107,8 +107,10 @@ const IMAGES = [
   ["pos-voucher-tender", join(T, "till-voucher-shots", "voucher-tender.png")],
   // Trade channel
   ["trade-landing", join(T, "trade-final-shots", "trade-landing.png"), { crop: { top: 0, height: 1500 } }],
-  ["trade-apply", join(T, "trade-shots", "desktop-trade_apply.png"), { crop: { top: 0, height: 1800 } }],
-  ["hq-trade-approve", join(T, "b-hq", "12-trade-approve.png")],
+  ["trade-apply", join(T, "trade-licence-shots", "trade-apply.png"), { crop: { top: 0, height: 1800 } }],
+  ["trade-apply-licences", join(T, "trade-licence-shots", "trade-apply-licences.png")],
+  ["hq-trade-licence", ci("hq", "trade-licence")],
+  ["hq-trade-approve", ci("hq", "trade-approve")],
   ["trade-range", join(T, "trade-final-shots", "trade-range-phone.png"), { crop: { top: 0, height: 1900 } }],
   ["trade-checkout", join(T, "a-trade", "07-checkout-collect.png"), { crop: { top: 60, height: 1140 } }],
   ["trade-statement", join(T, "trade-final-shots", "trade-statement.png"), { crop: { top: 0, height: 1500 } }],

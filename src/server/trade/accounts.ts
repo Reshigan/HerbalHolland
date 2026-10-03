@@ -14,7 +14,7 @@ import { ageing } from "@/lib/trade";
 import { tradeApplicationNoticeEmail, tradeApplicationReceivedEmail, tradeApprovedEmail, tradeClosedEmail, tradeHoldLiftedEmail, tradeOnHoldEmail, tradePortalUrl } from "./emails";
 import { ipHash } from "../leads";
 import { UploadError } from "../uploads";
-import { licenceProblem, standingOf, storeLicenceDocument } from "./licences";
+import { checkLicenceDocument, licenceProblem, standingOf, storeLicenceDocument } from "./licences";
 import { isTradeLicenceKind, type TradeLicenceKind } from "@/lib/trade-licences";
 import type { Prisma, TradeAccount, TradeAccountStatus, TradeBuyer, TradeTerms } from "@/generated/prisma/client";
 
@@ -57,16 +57,16 @@ export async function applyForTradeAccount(
   const hash = opts.ip ? ipHash(opts.ip) : null;
   if (hash && (await db.tradeAccount.count({ where: { ipHash: hash, createdAt: { gte: new Date(Date.now() - 3_600_000) } } })) >= APPLICATIONS_PER_IP_HOUR)
     return { ok: false, fields: {}, error: "We've had several applications from this connection in the last hour — please try again later, or email the trade team." };
-  // The documents: checked by their bytes and stored before the account exists (a refused one stores nothing of the rest).
+  // The documents: every one checked by its bytes before any is stored, then stored before the account exists.
+  const refused: TradeErrors = {};
+  for (const l of d.licences)
+    await checkLicenceDocument(files.get(l.kind)!, l.kind).catch((e) => {
+      if (!(e instanceof UploadError)) throw e;
+      refused[`licence.${l.kind}.file`] = e.message;
+    });
+  if (Object.keys(refused).length) return { ok: false, fields: refused };
   const uploads = new Map<TradeLicenceKind, string>();
-  for (const l of d.licences) {
-    try {
-      uploads.set(l.kind, await storeLicenceDocument(files.get(l.kind)!, l.kind));
-    } catch (e) {
-      if (e instanceof UploadError) return { ok: false, fields: { [`licence.${l.kind}.file`]: e.message } };
-      throw e;
-    }
-  }
+  for (const l of d.licences) uploads.set(l.kind, await storeLicenceDocument(files.get(l.kind)!, l.kind));
   const now = new Date();
   const { account, buyer } = await tx(async (t) => {
     const number = tradeAccountNumber(await nextNumber(t, "trade-account"));

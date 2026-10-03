@@ -7,7 +7,7 @@ import { ledgerEntries, tradeStatementFor } from "@/server/trade/ledger";
 import { listTradeOrders } from "@/server/trade/orders";
 import { invoiceUrl } from "@/server/invoices";
 
-import { TRADE_CLASSES, TRADE_KINDS, previousMonth } from "@/lib/trade";
+import { TRADE_CLASSES, TRADE_KINDS, previousMonth, tradeKindPhrase } from "@/lib/trade";
 import { REG_CLASS_LABEL } from "@/lib/compliance";
 import { PROVINCES } from "@/lib/sa";
 import { zar } from "@/lib/money";
@@ -29,7 +29,7 @@ import { Flash } from "@/components/hq/flash";
 import { AgeingChips, FULFIL_LABEL, LEDGER_LABEL, LEDGER_TONE, PAY_LABEL, TradeAccountBadge, TradeOrderBadge, kindLabel, termsLabel } from "@/components/admin/trade-ui";
 import { accountWhere, orderWhere, tradeScope, type TradeScope } from "../../scope";
 import { addBuyer, adjustLedger, approveAccount, closeAccount, creditNote, holdAccount, recordPayment, rejectLicence, releaseAccount, removeBuyer, saveDetails, saveTerms, sendStatement, verifyLicence } from "../actions";
-import { licenceRecords, standingOf } from "@/server/trade/licences";
+import { licenceOverview } from "@/server/trade/licences";
 import { TRADE_LICENCES, type LicenceLine } from "@/lib/trade-licences";
 
 export const metadata = { title: "Trade account" };
@@ -57,7 +57,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
     a.approvedById ? db.user.findUnique({ where: { id: a.approvedById }, select: { name: true } }) : null,
   ]);
   const dc = dcs.find((d) => d.id === a.dcId);
-  const [standing, licences] = await Promise.all([standingOf(a), licenceRecords(a.id)]);
+  const { standing, others, records: licences } = await licenceOverview(a);
   const reviewers = new Map((await db.user.findMany({ where: { id: { in: [...new Set(licences.flatMap((l) => (l.reviewedById ? [l.reviewedById] : [])))] } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]));
 
   return (
@@ -87,7 +87,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
           Nothing new goes on account until the hold is lifted{a.holdReason === "overdue" ? " — it lifts itself once what's past due is settled" : ""}. EFT orders still work.
         </Notice>
       )}
-      {a.status === "PENDING" && <Notice tone="info" className="mb-6" title="Application waiting for approval">Check the business (registration and VAT numbers are format-checked, not verified), then approve it with its terms below. The approval email carries the terms.</Notice>}
+      {a.status === "PENDING" && <Notice tone="info" className="mb-6" title="Application waiting for approval">Check each licence below with its issuer and verify it, check the business (the VAT number is format-checked, not verified), then approve it with its terms. The approval email carries the terms.</Notice>}
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Balance" value={zar(balanceCents)} sub={balanceCents < 0 ? "in credit" : ageing.overdue > 0 ? <span className="font-semibold text-rose-600">{zar(ageing.overdue)} overdue</span> : "nothing overdue"} />
@@ -105,11 +105,11 @@ export default async function TradeAccountPage({ params, searchParams }: { param
             <Card>
               <CardHeader
                 title="Licences"
-                description={`What a ${kindLabel(a.kind).toLowerCase()} needs for ${a.status === "PENDING" ? "the ranges it asked for" : "its ranges"}. Check each document with its issuer before verifying it: the account can't be approved, or supplied, while a required licence is missing, waiting or lapsed.`}
+                description={`What ${tradeKindPhrase(a.kind)} needs for ${a.status === "PENDING" ? "the ranges it asked for" : "its ranges"}. Check each document with its issuer before verifying it: the account can't be approved, or supplied, while a required licence is missing, waiting or lapsed.`}
               />
               <CardBody className="pt-2">
                 <ul className="divide-y divide-ink-100" data-testid="hq-licences">
-                  {standing.lines.map((l) => (
+                  {[...standing.lines, ...others].map((l) => (
                     <li key={l.kind} className="py-4" data-testid={`hq-licence-${l.kind}`}>
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div>
@@ -117,6 +117,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
                           <p className="text-xs text-ink-500">
                             {TRADE_LICENCES[l.kind].law} · issued by {TRADE_LICENCES[l.kind].issuer}
                           </p>
+                          {others.includes(l) && <p className="mt-0.5 text-xs font-medium text-ink-600">{l.why}.</p>}
                         </div>
                         <Badge tone={LICENCE_TONE[l.state]} dot>
                           {LICENCE_STATE[l.state]}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ageing, caseMultiple, creditDecision, eftExpired, eftReference, normaliseTradePhone, normaliseRegNumber, normaliseVatNumber, openInvoices, overdueBeyondGrace, previousMonth,
+  ageing, caseMultiple, tradeKindPhrase, creditDecision, eftExpired, eftReference, normaliseTradePhone, normaliseRegNumber, normaliseVatNumber, openInvoices, overdueBeyondGrace, previousMonth,
   statementMonth, tradeAccountNumber, tradeAllowed, tradeBuyerBlock, tradeCreditNumber, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeNumberQuery, tradeOrderNumber,
   tradeProblem, tradeStatement, tradeTotals, validateTradeApplication, validateTradeBasket, vatHalfUp, TRADE_CLASSES, type LedgerEntryLike,
 } from "@/lib/trade";
@@ -358,5 +358,16 @@ describe("Trade emails", () => {
     const t = tradeReadySms({ number: "TO-000007", storeName: "Hatfield", collectionCode: "482913" });
     expect(t).toContain("482913");
     expect(smsSegments(`Herbal Holland: ${t}`)).toBe(1);
+  });
+});
+
+describe("tradeKindPhrase", () => {
+  it("names the kind of business mid-sentence with the right article", () => {
+    expect(tradeKindPhrase("PHARMACY")).toBe("a pharmacy");
+    expect(tradeKindPhrase("RETAILER")).toBe("an independent retailer");
+    expect(tradeKindPhrase("ONLINE_SHOP")).toBe("an online shop");
+    expect(tradeKindPhrase("DISTRIBUTOR")).toBe("a wholesaler or distributor");
+    expect(tradeKindPhrase("OTHER")).toBe("a business");
+    expect(tradeKindPhrase("NONSENSE")).toBe("a business");
   });
 });

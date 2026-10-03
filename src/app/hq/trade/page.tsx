@@ -95,7 +95,11 @@ export default async function TradeOverviewPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Licences to check" description={`Documents from applications and renewals, oldest first${toCheck.total ? ` · ${num(toCheck.total)} waiting` : ""}. Check each with its issuer, then verify it on the account.`} />
+          <CardHeader
+            title="Licences to check"
+            description={`Documents from applications and renewals, oldest first${toCheck.total ? ` · ${num(toCheck.total)} waiting` : ""}. Check each with its issuer, then verify it on the account.`}
+            action={toCheck.total > toCheck.rows.length ? <Link href="/hq/trade/accounts?status=LICENCES" className="text-sm font-semibold text-brand-700 hover:underline">All accounts to check</Link> : undefined}
+          />
           {toCheck.rows.length === 0 ? (
             <EmptyState icon={<Briefcase className="h-5 w-5" aria-hidden />} title="Nothing to check" className="py-8">Licences uploaded with applications and renewals appear here.</EmptyState>
           ) : (
