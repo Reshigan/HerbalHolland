@@ -145,8 +145,10 @@ try {
   for (const c of ["CBD supplements", "CBD skin care", "Accessories"]) await page.getByRole("checkbox", { name: new RegExp(`^${esc(c)}`) }).check();
   await page.getByRole("checkbox", { name: /Every buyer who orders/ }).check();
   await page.getByRole("checkbox", { name: /I accept the/ }).check();
-  await timed("Apply: bad numbers and a half delivery address → errors", send, () => summary.waitFor());
-  const errs2 = await summary.textContent();
+  // The first refusal's summary is still on the page: wait for the new one (it names the registration number format).
+  const summary2 = page.getByRole("alert").filter({ hasText: /Please check/ }).filter({ hasText: "2015/123456/07" });
+  await timed("Apply: bad numbers and a half delivery address → errors", send, () => summary2.waitFor());
+  const errs2 = await summary2.textContent();
   for (const want of ["2015/123456/07", "ten digits starting with 4", "Enter a South African phone number, or leave it blank", "delivery city", "delivery province", "delivery postal code"]) assert(errs2.includes(want), `refused: “${want}”`);
   assert((await page.getByLabel("Registered (legal) name", { exact: true }).inputValue()) === `E2E Pharmacy ${run} (Pty) Ltd`, "a refused submit keeps what was typed");
   assert(await page.getByRole("checkbox", { name: /^CBD supplements/ }).isChecked(), "…and the ticks");
@@ -170,7 +172,7 @@ try {
   undo.push(() => q(`delete from "Otp" where email in ($1, $2)`, [buyerEmail, extraBuyerEmail]));
   assert(account.status === "PENDING" && /^TA-\d{6}$/.test(account.number) && account.role === "OWNER", `application ${account.number} is PENDING with its OWNER buyer`);
   assert(account.regNumber === "2015/123456/07" && account.vatNumber === "4123456789" && account.deliveryLine === "Unit 4, 9 Depot Road" && account.deliveryCity === "Pretoria" && account.adultAttestedAt && account.termsAcceptedAt, "numbers tidied, delivery address kept, 18+ and terms recorded");
-  assert(account.classes.length === 3 && account.classes.includes("CBD_TOPICAL"), "three ranges requested");
+  assert(account.classes.length === 3 && account.classes.includes("CBD_TOPICAL"), `three ranges requested (got ${account.classes.join(", ") || "none"})`);
   await page.getByText(account.number).waitFor();
   const ack = await one(`select 1 from "MessageLog" where "to" = $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%application ${account.number} received%`, t0]);
   const notice = await one(`select "to" from "MessageLog" where "to" <> $1 and body like $2 and "createdAt" >= $3`, [buyerEmail, `%new application ${account.number}%`, t0]);
