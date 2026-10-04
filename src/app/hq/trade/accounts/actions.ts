@@ -16,6 +16,7 @@ import { StockError } from "@/server/inventory";
 import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, opt, list, parseRand, parseInt10, parseDay } from "@/server/hq/form";
 import { TRADE_CLASSES, previousMonth } from "@/lib/trade";
+import { zarWhole } from "@/lib/money";
 import type { RegClass } from "@/lib/compliance";
 import type { TradeTerms } from "@/generated/prisma/client";
 
@@ -63,7 +64,7 @@ export async function approveAccount(id: string, _: ActionState, fd: FormData): 
   return attempt(async () => {
     const a = await approveTradeAccount(id, terms, g.actor);
     refresh(id);
-    return done(`${a.number} approved on ${terms.terms === "ACCOUNT" ? `account terms (${terms.paymentDays} days, limit R${(terms.creditLimitCents / 100).toLocaleString()})` : "prepaid terms"} — the account has been emailed.`);
+    flashTo(`/hq/trade/accounts/${id}`, `${a.number} approved on ${terms.terms === "ACCOUNT" ? `account terms (${terms.paymentDays} days, limit ${zarWhole(terms.creditLimitCents)})` : "prepaid terms"} — the account has been emailed.`);
   });
 }
 
@@ -246,7 +247,7 @@ export async function sendStatement(id: string, _: ActionState, fd: FormData): P
 export type RangeHit = { variantId: string; name: string; sku: string; regClass: string; caseQty: number; unitCents: number; breaks: { minQty: number; unitCents: number }[]; available: number; rrpCents: number };
 
 /** The trade range at the account's DC, searched — for the order builder (24 at a time, never the whole catalogue). */
-export async function searchRange(accountId: string, q: string): Promise<{ rows: RangeHit[]; total: number; dc: string } | { error: string }> {
+export async function searchRange(accountId: string, q: string): Promise<{ rows: RangeHit[]; total: number; dc: string; didYouMean: string | null } | { error: string }> {
   const g = await guard("network");
   if (!g) return { error: DENIED.error! };
   const account = await db.tradeAccount.findUnique({ where: { id: accountId }, select: { classes: true, priceListId: true, dcId: true } });
@@ -257,6 +258,7 @@ export async function searchRange(accountId: string, q: string): Promise<{ rows:
     return {
       dc: dc.name,
       total: r.total,
+      didYouMean: r.didYouMean,
       rows: r.rows.map((x) => ({ variantId: x.variantId, name: `${x.productName} · ${x.variantName}`, sku: x.sku, regClass: x.regClass, caseQty: x.caseQty, unitCents: x.unitCents, breaks: x.breaks, available: x.available, rrpCents: x.rrpCents })),
     };
   } catch (e) {

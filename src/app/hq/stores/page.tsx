@@ -11,6 +11,8 @@ import { qs } from "@/server/hq/form";
 import { zar, zarCompact } from "@/lib/money";
 import { num } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
+import { RangeTabs } from "@/components/ui/range-tabs";
+import { PRESETS } from "@/lib/ranges";
 import { Card } from "@/components/ui/card";
 import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +26,7 @@ import { SavedViews } from "@/components/admin/saved-views";
 
 export const metadata = { title: "Stores" };
 
-type SP = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; dir?: string; page?: string };
+type SP = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; dir?: string; page?: string; range?: string; from?: string; to?: string };
 
 export default async function StoresPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -43,32 +45,38 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
   const sort = sp.sort ?? "sales";
   const dir = storeSortDir(sort, sp.dir);
   const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
+  const preset = sp.from || sp.to ? "custom" : (PRESETS.find((p) => p.key === sp.range)?.key ?? "30d");
+  const period = preset === "custom" ? `${t.range.from} to ${t.range.to}` : PRESETS.find((p) => p.key === preset)!.label.toLowerCase();
+  const periodShort = preset === "custom" ? "range" : preset === "today" ? "today" : preset === "mtd" ? "MTD" : preset === "lastmonth" ? "last month" : preset;
 
   return (
     <>
       <PageHeader
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Network"}
         title="Stores"
-        description="Every store in the network with its owner, trading over the last 30 days and membership."
+        description={`Every store in the network with its owner, trading (${period}) and membership.`}
         actions={
-          can(user, "admin") && (
-            <ButtonLink href="/hq/stores/new">
-              <Plus className="h-4 w-4" /> Onboard a store
-            </ButtonLink>
-          )
+          <div className="flex flex-wrap items-center gap-2">
+            <RangeTabs path="/hq/stores" current={preset} params={{ q: sp.q, region: sp.region, format: sp.format, status: sp.status, kind: sp.kind, sort: sp.sort, dir: sp.dir }} />
+            {can(user, "admin") && (
+              <ButtonLink href="/hq/stores/new">
+                <Plus className="h-4 w-4" /> Onboard a store
+              </ButtonLink>
+            )}
+          </div>
         }
       />
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label={dcs ? "Distribution centres" : "Trading stores"} value={num(t.trading)} sub={t.opening ? `${t.opening} opening soon` : undefined} />
-        <Stat label="Net sales · 30 days" value={zarCompact(t.totals.net)} sub="ex VAT, matching stores" />
-        <Stat label="Transactions · 30 days" value={num(t.totals.tx)} />
-        <Stat label="Average per trading store" value={zarCompact(t.trading ? t.totals.net / t.trading : 0)} sub="net sales, 30 days" />
+        <Stat label={`Net sales · ${period}`} value={zarCompact(t.totals.net)} sub="ex VAT, matching stores" />
+        <Stat label={`Transactions · ${period}`} value={num(t.totals.tx)} />
+        <Stat label="Average per trading store" value={zarCompact(t.trading ? t.totals.net / t.trading : 0)} sub={`net sales, ${period}`} />
       </div>
 
       <Card>
         <div className="space-y-3 border-b border-ink-100 p-4">
-          <FilterForm action="/hq/stores" keep={{ sort: sp.sort, dir: sp.dir }}>
+          <FilterForm action="/hq/stores" keep={{ sort: sp.sort, dir: sp.dir, range: sp.range, from: sp.from, to: sp.to }}>
             <SearchField defaultValue={sp.q} placeholder="Search store, code, city or owner" />
             {regions.length > 1 && <FilterSelect name="region" label="Region" defaultValue={sp.region} options={regions.map((r) => ({ value: r.code, label: r.name }))} />}
             <FilterSelect name="format" label="Format" defaultValue={sp.format} options={FORMATS.map((f) => ({ value: f, label: titleCase(f) }))} />
@@ -84,8 +92,8 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
               <Th>Region</Th>
               <Th>Owner</Th>
               <Th>Status</Th>
-              <SortableTh label="Net 30d" sortKey="sales" sort={sort} dir={dir} href={sortHref} align="right" className="whitespace-nowrap" title="Net sales, last 30 days" />
-              <SortableTh label="Growth" sortKey="growth" sort={sort} dir={dir} href={sortHref} align="right" className="whitespace-nowrap" />
+              <SortableTh label={`Net ${periodShort}`} sortKey="sales" sort={sort} dir={dir} href={sortHref} align="right" className="whitespace-nowrap" title={`Net sales, ${period}`} />
+              <SortableTh label="Growth" sortKey="growth" sort={sort} dir={dir} href={sortHref} align="right" className="whitespace-nowrap" title="Against the previous period of the same length" />
               <SortableTh label="ATV" sortKey="atv" sort={sort} dir={dir} href={sortHref} align="right" title="Average transaction value" />
               <Th align="right">Members</Th>
             </tr>

@@ -28,12 +28,13 @@ export function OrderBuilder({
   dcName: string;
   initial: RangeHit[];
   placeAction: (state: ActionState, fd: FormData) => Promise<ActionState>;
-  searchAction: (accountId: string, q: string) => Promise<{ rows: RangeHit[]; total: number; dc: string } | { error: string }>;
+  searchAction: (accountId: string, q: string) => Promise<{ rows: RangeHit[]; total: number; dc: string; didYouMean?: string | null } | { error: string }>;
   storesAction: (accountId: string, lines: { variantId: string; qty: number }[], q: string) => Promise<{ rows: CollectHit[]; total: number } | { error: string }>;
 }) {
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<RangeHit[]>(initial);
   const [hitError, setHitError] = useState<string | null>(null);
+  const [didYouMean, setDidYouMean] = useState<string | null>(null);
   const [searching, startSearch] = useTransition();
   const [lines, setLines] = useState<Line[]>([]);
   const [fulfilment, setFulfilment] = useState<"COURIER" | "COLLECT">("COURIER");
@@ -47,7 +48,7 @@ export function OrderBuilder({
     startSearch(async () => {
       const r = await searchAction(accountId, term);
       if ("error" in r) setHitError(r.error);
-      else (setHits(r.rows), setHitError(null));
+      else (setHits(r.rows), setHitError(null), setDidYouMean(r.didYouMean ?? null));
     });
 
   const add = (h: RangeHit) => setLines((ls) => (ls.some((l) => l.variantId === h.variantId) ? ls.map((l) => (l.variantId === h.variantId ? { ...l, cases: l.cases + 1 } : l)) : [...ls, { ...h, cases: 1 }]));
@@ -105,6 +106,15 @@ export function OrderBuilder({
             </Button>
           </div>
           {hitError && <p role="alert" className="px-5 pb-3 text-sm font-medium text-rose-600">{hitError}</p>}
+          {didYouMean && !hitError && (
+            <p className="px-5 pb-3 text-sm text-ink-600" aria-live="polite">
+              Nothing matched exactly — showing similar names. Did you mean{" "}
+              <button type="button" className="font-semibold text-brand-700 underline" onClick={() => (setQ(didYouMean), search(didYouMean))}>
+                {didYouMean}
+              </button>
+              ?
+            </p>
+          )}
           <ul className="max-h-[26rem] divide-y divide-ink-100 overflow-y-auto border-t border-ink-100" aria-busy={searching}>
             {hits.length === 0 && <li className="px-5 py-8 text-center text-sm text-ink-500">{searching ? "Searching…" : "Nothing in the range matches — the account may not be approved for that range, or the item has no trade price."}</li>}
             {hits.map((h) => {

@@ -34,7 +34,7 @@ export function TradeCheckoutForm(props: {
   const [storeId, setStoreId] = useState(typed.storeId ?? "");
   const credit = props.credit[fulfilment];
   const onAccountOk = props.account.terms === "ACCOUNT" && credit.ok;
-  const [pay, setPay] = useState<Pay>(typed.payMethod === "ACCOUNT" && onAccountOk ? "ACCOUNT" : "EFT");
+  const [pay, setPay] = useState<Pay>(typed.payMethod !== "EFT" && onAccountOk ? "ACCOUNT" : "EFT"); // on account when the terms and credit allow
   const [deliver, setDeliver] = useState(typed.deliver === "BILLING" || !props.account.delivery ? "BILLING" : "DELIVERY");
   const t = props.totals[fulfilment];
   const chosen = props.stores.rows.find((s) => s.id === storeId);

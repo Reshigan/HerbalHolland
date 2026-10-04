@@ -11,7 +11,10 @@ import { cn } from "@/lib/cn";
 
 export function AddToTradeCart({ variantId, name, caseQty, inCart, disabled, className }: { variantId: string; name: string; caseQty: number; inCart: number; disabled?: boolean; className?: string }) {
   const [state, action, pending] = useActionState<CartActionState, FormData>(addToCartAction, {});
-  const [cases, setCases] = useState(1);
+  // What's typed, as typed (so it can be cleared and retyped); the number is clamped from it.
+  const [typed, setTyped] = useState("1");
+  const cases = Math.max(1, Math.min(999, Math.floor(Number(typed)) || 1));
+  const setCases = (f: (c: number) => number) => setTyped(String(f(cases)));
   const [flash, setFlash] = useState(false);
   useEffect(() => {
     if (!state.at) return;
@@ -39,8 +42,9 @@ export function AddToTradeCart({ variantId, name, caseQty, inCart, disabled, cla
             inputMode="numeric"
             min={1}
             max={999}
-            value={cases}
-            onChange={(e) => setCases(Math.max(1, Math.min(999, Math.floor(Number(e.target.value)) || 1)))}
+            value={typed}
+            onChange={(e) => setTyped(e.target.value.replace(/\D/g, "").slice(0, 3))}
+            onBlur={() => setTyped(String(cases))}
             disabled={disabled}
             className="tnum h-11 w-12 bg-transparent text-center text-sm font-semibold text-white [appearance:textfield] focus:outline-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />

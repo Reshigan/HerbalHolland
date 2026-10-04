@@ -13,6 +13,7 @@ import { getTradeCart, saveTradeCart } from "./_lib/cart";
 export async function signOutAction() {
   const buyer = await getTradeBuyer();
   await signOutTrade();
+  await saveTradeCart([]); // a shared computer's next buyer starts with an empty cart
   if (buyer) await audit(db, tradeActor(buyer), "trade.signout", { entity: "TradeAccount", entityId: buyer.tradeAccountId });
   redirect("/trade");
 }

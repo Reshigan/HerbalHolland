@@ -135,6 +135,8 @@
   .hh-table[data-overflow] { overflow-x: auto; }
   .hh-table:not([data-overflow]) { overflow: visible; }
   .hh-table thead th { position: sticky; top: var(--hh-sticky-top, 0px); z-index: 2; }
+  /* Inside its own sideways scroll frame the header sticks to the frame's top, not under the page header bar. */
+  .hh-table[data-overflow] thead th { top: 0; }
   .hh-table[data-sticky-first][data-overflow] :is(th, td):first-child { position: sticky; left: 0; z-index: 1; background: white; }
   .hh-table[data-sticky-first][data-overflow] thead th:first-child { z-index: 3; background: var(--color-ink-50); }
   .hh-table[data-sticky-first][data-overflow][data-scrolled] tbody td:first-child,

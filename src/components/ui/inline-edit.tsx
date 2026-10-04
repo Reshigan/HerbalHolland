@@ -33,7 +33,7 @@ const rands = (s: string) => {
   return Number.isFinite(n) ? zar(Math.round(n * 100)) : s;
 };
 
-export function InlineEdit({ action, fields, display, editLabel, format = "text", emptyLabel = "—", hidden, align = "left", className, saveLabel = "Save", disabled, variant = "value" }: {
+export function InlineEdit({ action, fields, display, editLabel, format = "text", emptyLabel = "—", hidden, align = "left", className, saveLabel = "Save", disabled, variant = "value", secret }: {
   action: InlineAction;
   fields: InlineField[];
   display: React.ReactNode;
@@ -48,6 +48,8 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
   disabled?: boolean;
   /** "value": looks like the cell's text with a pencil on hover; "button": a small outline button. */
   variant?: "value" | "button";
+  /** A secret (a PIN): never echo what was typed — the trigger keeps showing `display` while it saves. */
+  secret?: boolean;
 }) {
   const [state, run, pending] = useActionState(action, {});
   const [, start] = useTransition();
@@ -95,7 +97,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
     if (format === "join") return fields.map((f) => v[f.name] || emptyLabel).join(" · ");
     return first.trim() || emptyLabel;
   };
-  const shown = submitted ? optimistic(submitted) : display;
+  const shown = submitted && !secret ? optimistic(submitted) : display;
   const busy = pending && !!submitted;
 
   if (!editing)
@@ -115,7 +117,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
             align === "right" && "flex-row-reverse text-right",
           )}
         >
-          <span className="min-w-0">{shown}</span>
+          <span className="inline-flex min-w-0 items-center gap-1.5">{shown}</span>
           <span className="sr-only">, {editLabel}</span>
           {busy ? (
             <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-ink-500" aria-hidden />
@@ -163,7 +165,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
               id={`${id}-${f.name}`}
               name={f.name}
               type={f.type ?? "text"}
-              defaultValue={submitted?.[f.name] ?? f.value}
+              defaultValue={secret ? "" : (submitted?.[f.name] ?? f.value)}
               inputMode={f.inputMode}
               placeholder={f.placeholder}
               maxLength={f.maxLength}

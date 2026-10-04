@@ -6,6 +6,7 @@ import Form from "next/form";
 import type { Metadata } from "next";
 import { AlertTriangle, Clock, Search, X } from "lucide-react";
 import { db } from "@/server/db";
+import { standingOf } from "@/server/trade/licences";
 import { getSettings } from "@/server/settings";
 import { tradeRange } from "@/server/pricing";
 import { ProductArt } from "@/components/product/art";
@@ -41,13 +42,14 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
     classes.length ? db.category.findMany({ where: { products: { some: tradeProduct } }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, name: true } }) : [],
   ]);
   const store = cart.store;
-  const res = store && classes.length ? await tradeRange(store.id, account, { q: q || null, category, page, pageSize: PAGE_SIZE }) : { rows: [], total: 0, page, pageSize: PAGE_SIZE };
+  const res = store && classes.length ? await tradeRange(store.id, account, { q: q || null, category, page, pageSize: PAGE_SIZE }) : { rows: [], total: 0, page, pageSize: PAGE_SIZE, didYouMean: null };
   const arts = res.rows.length ? await db.product.findMany({ where: { id: { in: [...new Set(res.rows.map((r) => r.productId))] } }, select: { id: true, slug: true, strain: true } }) : [];
   const artOf = new Map(arts.map((a) => [a.id, a]));
   const inCart = new Map(cart.items.map((l) => [l.variantId, l.qty]));
   const cat = category ? categories.find((c) => c.slug === category || c.id === category) : undefined;
   const pending = account.status === "PENDING";
   const problem = await orderingProblem(account);
+  const asks = pending ? (await standingOf(account)).lines.filter((l) => l.problem && l.state !== "pending").map((l) => l.problem!) : [];
   const href = (o: Partial<SP>) => {
     const p = new URLSearchParams();
     for (const [k, v] of Object.entries({ q: q || undefined, category, ...o })) if (v) p.set(k, String(v));
@@ -82,7 +84,12 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
           </Form>
         </div>
 
-        {pending && (
+        {pending && asks.length > 0 && (
+          <Callout tone="warn" icon={<AlertTriangle className="h-5 w-5" aria-hidden />} title="We need something from you" className="mt-8">
+            {asks.join(". ")}. <Link href="/trade/account#licences" className="font-semibold underline">Upload it on your account</Link> — we check it within one business day.
+          </Callout>
+        )}
+        {pending && asks.length === 0 && (
           <Callout tone="info" icon={<Clock className="h-5 w-5" aria-hidden />} title="Your application is being reviewed" className="mt-8">
             Our trade team replies by email within one business day. Until the account is approved you can browse what&apos;s on the list, but prices stay hidden and nothing can be ordered yet.
           </Callout>
@@ -113,8 +120,18 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
 
         <p className="mt-6 text-sm text-ink-400" aria-live="polite">
           {res.total === 0 ? "No lines" : `${res.total.toLocaleString()} ${res.total === 1 ? "line" : "lines"}`}
-          {q ? ` for “${q}”` : ""}
+          {q ? (res.didYouMean ? ` like “${res.didYouMean}” — nothing matched “${q}” exactly` : ` for “${q}”`) : ""}
           {cat ? ` in ${cat.name}` : ""}
+          {res.didYouMean && (
+            <>
+              {" · "}
+              Did you mean{" "}
+              <Link href={href({ q: res.didYouMean, page: undefined })} className="font-semibold text-brand-400 underline">
+                {res.didYouMean}
+              </Link>
+              ?
+            </>
+          )}
           {q && (
             <>
               {" · "}

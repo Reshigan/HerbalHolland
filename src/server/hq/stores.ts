@@ -6,7 +6,7 @@ import { salesByStore } from "@/server/finance";
 import { resolveRange, previousRange, delta } from "@/lib/ranges";
 import type { Prisma, StoreFormat, StoreKind, StoreStatus } from "@/generated/prisma/client";
 
-export type StoreFilters = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; dir?: string };
+export type StoreFilters = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; dir?: string; range?: string; from?: string; to?: string };
 
 export const STORE_SORTS = ["sales", "growth", "atv", "name", "code", "tx"] as const;
 /** Numbers rank highest first unless asked otherwise; names read A–Z. */
@@ -42,7 +42,7 @@ export function storeFilterWhere(ids: string[], f: StoreFilters): Prisma.StoreWh
 }
 
 export async function storeTable(ids: string[], f: StoreFilters, page: number, pageSize: number) {
-  const r = resolveRange({ range: "30d" });
+  const r = resolveRange({ range: f.range, from: f.from, to: f.to }, "30d");
   const prev = previousRange(r);
   const stores = await db.store.findMany({
     where: storeFilterWhere(ids, f),

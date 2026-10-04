@@ -42,17 +42,17 @@ export function LicenceUploadForm({ kinds, initial, regNumber }: { kinds: TradeL
             The number is the account&apos;s company registration number, <span className="tnum">{regNumber}</span>.
           </p>
         ) : (
-          <FieldRow label="Licence number" htmlFor="l-number" error={err("number")} hint={kind === "CIPC_REGISTRATION" ? "The company's registration number, like 2015/123456/07 — add it to the business details once we've checked the certificate." : info.hint}>
+          <FieldRow label={info.numberLabel} htmlFor="l-number" error={err("number")} hint={kind === "CIPC_REGISTRATION" ? "The company's registration number, like 2015/123456/07 — add it to the business details once we've checked the certificate." : info.hint}>
             <TextInput id="l-number" name="number" maxLength={40} required defaultValue={v.number} aria-invalid={!!err("number")} className="tnum" />
           </FieldRow>
         )}
         {info.expires && (
-          <FieldRow label="Expires on" htmlFor="l-expires" error={err("expiresAt")} hint="As printed on the licence.">
+          <FieldRow label="Expires on" htmlFor="l-expires" error={err("expiresAt")} hint={`As printed on the ${info.docLabel.charAt(0).toLowerCase()}${info.docLabel.slice(1)}.`}>
             <TextInput id="l-expires" name="expiresAt" type="date" required defaultValue={v.expiresAt} aria-invalid={!!err("expiresAt")} />
           </FieldRow>
         )}
       </div>
-      <FieldRow label="The document" htmlFor="l-file" error={err("file")} hint="A PDF, or a clear photo (JPG or PNG) of the whole licence. Up to 5 MB.">
+      <FieldRow label="The document" htmlFor="l-file" error={err("file")} hint={`Your ${info.docLabel} — a PDF, or a clear photo (JPG or PNG) of the whole document. Up to 5 MB.`}>
         <input
           id="l-file"
           name="file"

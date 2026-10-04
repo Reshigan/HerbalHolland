@@ -158,7 +158,8 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                             <InlineEdit
                               variant="button"
                               action={resetPin.bind(null, store.code, s.id)}
-                              fields={[{ name: "pin", label: "New 4-digit PIN", value: "", inputMode: "numeric", maxLength: 4, placeholder: "••••", width: "w-24", className: "tracking-[0.35em]" }]}
+                              secret
+                              fields={[{ name: "pin", label: "New 4-digit PIN", value: "", type: "password", inputMode: "numeric", maxLength: 4, placeholder: "••••", width: "w-24", className: "tracking-[0.35em]" }]}
                               display={<><KeyRound className="h-3.5 w-3.5" aria-hidden /> {s.pinHash ? "Reset PIN" : "Set PIN"}</>}
                               editLabel={`New till PIN for ${s.name}`}
                               saveLabel="Save PIN"

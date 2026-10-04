@@ -5,6 +5,7 @@
 import { PROVINCES, type ProvinceCode } from "./sa";
 import { REG_CLASSES, type RegClass } from "./compliance";
 import { zar } from "./money";
+import { parseQuery } from "./search";
 import { addDays } from "./format";
 import { checkLicenceInput, licenceInSentence, requiredLicences, TRADE_LICENCES, TRADE_LICENCE_KINDS, type TradeLicenceKind } from "./trade-licences";
 
@@ -216,10 +217,14 @@ export function overdueBeyondGrace(entries: LedgerEntryLike[], now: Date, graceD
 }
 
 export type StatementLine = { at: Date; kind: TradeLedgerKind; reference: string | null; note: string | null; debitCents: number; creditCents: number; balanceCents: number };
-export type TradeStatement = { from: Date; to: Date; opening: number; lines: StatementLine[]; closing: number; ageing: Ageing };
+export type TradeStatement = { from: Date; to: Date; asAt: Date; opening: number; lines: StatementLine[]; closing: number; ageing: Ageing };
 
-/** The account's statement for [from, to): the opening balance, every entry with a running balance, the closing balance and its age analysis at `to`. */
-export function tradeStatement(entries: LedgerEntryLike[], period: { from: Date; to: Date }): TradeStatement {
+/**
+ * The account's statement for [from, to): the opening balance, every entry with a running balance, the closing balance
+ * and its age analysis at the period's end — or now, for the month still running (nothing is past due early).
+ */
+export function tradeStatement(entries: LedgerEntryLike[], period: { from: Date; to: Date }, now = new Date()): TradeStatement {
+  const asAt = new Date(Math.min(period.to.getTime(), now.getTime()));
   const sorted = [...entries].sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   const opening = sorted.filter((e) => e.createdAt < period.from).reduce((s, e) => s + e.cents, 0);
   let balance = opening;
@@ -229,7 +234,7 @@ export function tradeStatement(entries: LedgerEntryLike[], period: { from: Date;
       balance += e.cents;
       return { at: e.createdAt, kind: e.kind, reference: e.reference ?? null, note: e.note ?? null, debitCents: Math.max(0, e.cents), creditCents: Math.max(0, -e.cents), balanceCents: balance };
     });
-  return { from: period.from, to: period.to, opening, lines, closing: balance, ageing: ageing(sorted.filter((e) => e.createdAt < period.to), period.to) };
+  return { from: period.from, to: period.to, asAt, opening, lines, closing: balance, ageing: ageing(sorted.filter((e) => e.createdAt < period.to), asAt) };
 }
 
 /** "2026-09" → the SAST month [from, to) and its label. */
@@ -473,3 +478,16 @@ export const tradeBuyerBlock = (a: { legalName: string; name: string; vatNumber?
   address: addressLineOf(a),
   ...(a.vatNumber ? { vatNumber: a.vatNumber } : {}),
 });
+
+// ── Range search ─────────────────────────────────────────────────────────────
+
+/**
+ * The words a trade range search must all match (each in a name, SKU or barcode): the query's words split on hyphens
+ * (so "calm-oil" finds "Calm oil") plus the numbers it measures ("calm 600" → "calm", "600"; "cbd 30ml" → "cbd", "30").
+ */
+export function rangeSearchTerms(q: string): string[] {
+  const p = parseQuery(q);
+  const words = p.terms.flatMap((t) => t.split(/[-']+/)).filter((w) => w.length > 1);
+  const numbers = p.measures.map((m) => m.raw.match(/\d+(?:[.,]\d+)?/)?.[0]).filter((n): n is string => !!n);
+  return [...new Set([...words, ...numbers])].slice(0, 8);
+}

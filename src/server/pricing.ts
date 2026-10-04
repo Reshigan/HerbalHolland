@@ -10,7 +10,8 @@ import { vatOf } from "@/lib/money";
 import { addDays } from "@/lib/format";
 import type { Channel, Prisma } from "@/generated/prisma/client";
 import { incentiveExcluded, tradeAllowed, type RegClass } from "@/lib/compliance";
-import { vatHalfUp } from "@/lib/trade";
+import { rangeSearchTerms, vatHalfUp } from "@/lib/trade";
+import { similarProducts } from "./shop/search";
 import { availability, availKey } from "./inventory";
 
 export async function activePromotions(opts: { storeId?: string | null; channel: Channel; at?: Date }) {
@@ -369,14 +370,13 @@ export async function tradeRange(
   const pageSize = Math.min(100, Math.max(1, Math.floor(opts.pageSize ?? 24)));
   const [store, lists, settings] = await Promise.all([db.store.findUniqueOrThrow({ where: { id: storeId }, select: { licences: true } }), activePriceLists(at), getSettings()]);
   const classes = account.classes.filter((c) => tradeAllowed({ accountClasses: account.classes, sellerLicences: store.licences, productClass: c as RegClass, productStatus: "ACTIVE", licensedOnly: settings.compliance.licensedOnly })) as RegClass[];
-  const empty = { rows: [] as TradeRangeRow[], total: 0, page, pageSize };
+  const empty = { rows: [] as TradeRangeRow[], total: 0, page, pageSize, didYouMean: null as string | null };
   if (!classes.length) return empty;
   const tradeLists = lists.filter((l) => l.kind === "TRADE" && listLive(l, at));
   const priced = [...new Set(tradeLists.flatMap((l) => l.items.map((i) => i.variantId)))];
   const q = opts.q?.trim().slice(0, 60);
-  const like = q ? { contains: q, mode: "insensitive" as const } : undefined;
   const category = opts.category?.trim();
-  const where: Prisma.VariantWhereInput = {
+  const base: Prisma.VariantWhereInput = {
     active: true,
     podSku: null,
     OR: [{ wholesaleCents: { gt: 0 } }, ...(priced.length ? [{ id: { in: priced } }] : [])],
@@ -385,8 +385,24 @@ export async function tradeRange(
       regClass: { in: classes },
       ...(category ? { category: { OR: [{ slug: category }, { id: category }] } } : {}),
     },
-    ...(like ? { AND: [{ OR: [{ name: like }, { sku: like }, { barcode: like }, { product: { name: like } }] }] } : {}),
   };
+  // Every word must match somewhere (name, SKU, barcode or product name) — or the whole query must (a SKU like "HH-CBD-001").
+  const matches = (t: string): Prisma.VariantWhereInput => {
+    const like = { contains: t, mode: "insensitive" as const };
+    return { OR: [{ name: like }, { sku: like }, { barcode: like }, { product: { name: like } }] };
+  };
+  const terms = q ? rangeSearchTerms(q) : [];
+  let where: Prisma.VariantWhereInput = q ? { AND: [base, { OR: [matches(q), ...(terms.length ? [{ AND: terms.map(matches) }] : [])] }] } : base;
+  let didYouMean: string | null = null;
+  // Nothing by words (a typo: "colagen")? Fall back to products with a similar name, and say which we think was meant.
+  if (q && !(await db.variant.count({ where }))) {
+    const similar = await similarProducts(q, classes);
+    const hits = similar.size ? await db.product.findMany({ where: { id: { in: [...similar.keys()] }, variants: { some: base } }, select: { id: true, name: true } }) : [];
+    if (hits.length) {
+      where = { AND: [base, { productId: { in: hits.map((h) => h.id) } }] };
+      didYouMean = hits.reduce((x, y) => ((similar.get(y.id) ?? 0) > (similar.get(x.id) ?? 0) ? y : x)).name;
+    }
+  }
   const [total, variants] = await Promise.all([
     db.variant.count({ where }),
     db.variant.findMany({ where, include: TRADE_INCLUDE, orderBy: [{ product: { name: "asc" } }, { sortOrder: "asc" }, { name: "asc" }], skip: (page - 1) * pageSize, take: pageSize }),
@@ -404,5 +420,5 @@ export async function tradeRange(
       };
     })
     .filter((r) => r.unitCents > 0);
-  return { rows, total, page, pageSize };
+  return { rows, total, page, pageSize, didYouMean };
 }

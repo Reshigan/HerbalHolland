@@ -52,22 +52,23 @@ export const CLASS_WORDS: Record<string, string[]> = {
 const CLASS_OF = new Map<string, string>();
 for (const [k, words] of Object.entries(CLASS_WORDS)) for (const w of words) CLASS_OF.set(w, k);
 
-/** Lower-case, no accents, one space between words, at most QUERY_MAX characters. */
-export const normalise = (s: string) =>
+/** Lower-case, no accents, one space between words (no length cap: for product text). */
+export const normaliseText = (s: string) =>
   s
     .normalize("NFKD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^\p{L}\p{N}.,%&+'-]+/gu, " ")
     .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, QUERY_MAX)
     .trim();
+
+/** A query: normalised as above, at most QUERY_MAX characters. */
+export const normalise = (s: string) => normaliseText(s).slice(0, QUERY_MAX).trim();
 
 /** Every measure written in a text ("600mg", "3.5 g", "30ml", a bare "600"). */
 export function measuresIn(text: string): Measure[] {
   const out: Measure[] = [];
-  for (const m of normalise(text).matchAll(MEASURE)) {
+  for (const m of normaliseText(text).matchAll(MEASURE)) {
     const value = Number(m[1].replace(",", "."));
     if (!Number.isFinite(value) || value <= 0) continue;
     const u = m[2] ? UNITS[m[2]] : null;

@@ -247,7 +247,10 @@ try {
   await shot("voucher-receipt");
   const voucherNo = await receiptNo();
   const voucherReceipt = (await page.getByRole("dialog").filter({ has: page.getByTestId("receipt") }).textContent()) ?? "";
-  assert(new RegExp(`Gift voucher ${esc(VOUCHER)} R50\\.00 \\(R0\\.00 left on the voucher\\)`).test(voucherReceipt), `receipt ${voucherNo} shows "Gift voucher ${VOUCHER}" and what's left on it`);
+  // The receipt names the voucher by its last four characters only (the code is a bearer secret).
+  const masked = `HH-••••-••••-${VOUCHER.slice(-4)}`;
+  assert(new RegExp(`Gift voucher ${esc(masked)} R50\\.00 \\(R0\\.00 left on the voucher\\)`).test(voucherReceipt), `receipt ${voucherNo} shows "Gift voucher ${masked}" and what's left on it`);
+  assert(!voucherReceipt.includes(VOUCHER), `receipt ${voucherNo} doesn't print the whole voucher code`);
   const vsale = (await q(`select id, "totalCents", offline from "Sale" where number = $1`, [voucherNo]))[0];
   const vpays = await q(`select method, "amountCents", reference from "Payment" where "saleId" = $1`, [vsale.id]);
   assert(

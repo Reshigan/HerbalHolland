@@ -222,20 +222,23 @@ export const salesByStore: ReportDef = {
     const trd = new Map(trade.map((x) => [x.storeId, netOf(x)]));
     const ids = [...ctx.stores.values()].filter((s) => now.has(s.id) || prev.has(s.id) || (s.kind === "RETAIL" && s.status === "ACTIVE")).map((s) => s.id);
     const list = ids
-      .map((id) => ({ id, s: now.get(id) ?? summaryOf(null), prev: prev.get(id) ?? 0 }))
-      .sort((a, b) => b.s.netCents - a.s.netCents);
+      .map((id) => ({ id, s: now.get(id) ?? summaryOf(null), prev: prev.get(id) ?? 0, dc: ctx.stores.get(id)!.kind === "WAREHOUSE" }))
+      // Stores are ranked; distribution centres (courier and trade fulfilment) follow, unranked.
+      .sort((a, b) => Number(a.dc) - Number(b.dc) || b.s.netCents - a.s.netCents);
     const rows: Row[] = list.map((x, i) => {
       const st = ctx.stores.get(x.id)!;
       return {
         _link: "store", _href: storeDrill(ctx, st.code, "sales-overview"),
-        rank: i + 1, store: storeLabel(ctx, x.id), code: st.code, region: st.region, net: x.s.netCents, prev: x.prev,
+        rank: x.dc ? null : i + 1, store: storeLabel(ctx, x.id), code: st.code, region: st.region, net: x.s.netCents, prev: x.prev,
         growth: delta(x.s.netCents, x.prev), sales: x.s.sales, atv: x.s.sales ? x.s.atvCents : null, margin: x.s.netCents ? x.s.marginPct : null,
         members: x.s.sales ? x.s.memberRate : null, online: ratio(onl.get(x.id) ?? 0, x.s.netCents), trade: ratio(trd.get(x.id) ?? 0, x.s.netCents),
       };
     });
     const t = summaryOf(Object.fromEntries(Object.keys(STAT_SUMS).map((k) => [k, cur.reduce((s, x) => s + ((x._sum as Record<string, number | null>)[k] ?? 0), 0)])));
     const prevTotal = list.reduce((s, x) => s + x.prev, 0);
-    const growing = rows.filter((r) => (r.growth as number | null) != null && (r.growth as number) > 0).length;
+    const retailRows = rows.filter((_, i) => !list[i].dc);
+    const dcTrading = rows.filter((r, i) => list[i].dc && (r.sales as number) > 0).length;
+    const growing = retailRows.filter((r) => (r.growth as number | null) != null && (r.growth as number) > 0).length;
     return {
       columns: [
         { key: "rank", label: "#", format: "number" },
@@ -262,14 +265,14 @@ export const salesByStore: ReportDef = {
       },
       summary: [
         { label: "Net sales (ex VAT)", value: t.netCents, format: "zar", delta: delta(t.netCents, prevTotal) },
-        { label: "Stores trading", value: rows.filter((r) => (r.sales as number) > 0).length, format: "number" },
-        { label: "Growing vs last period", value: growing, format: "number", sub: `of ${rows.length}` },
+        { label: "Stores trading", value: retailRows.filter((r) => (r.sales as number) > 0).length, format: "number", sub: dcTrading ? `+ ${dcTrading} distribution centre${dcTrading === 1 ? "" : "s"}` : undefined },
+        { label: "Growing vs last period", value: growing, format: "number", sub: `of ${retailRows.length} stores` },
         { label: "Average basket", value: t.atvCents, format: "zar", sub: "incl VAT" },
       ],
-      chart: rows.length > 1
-        ? { kind: "bar", title: "Store league", description: "Net sales ex VAT · top 15", format: "zar", rows: rows.slice(0, 15).map((r) => ({ label: `${String(r.rank).padStart(2, "0")}  ${r.store}`, value: r.net as number, sub: r.growth == null ? "new" : `${(r.growth as number) >= 0 ? "▲" : "▼"} ${Math.abs((r.growth as number) * 100).toFixed(1)}%`, tip: `${r.store} (${r.code})\n${zar(r.net as number)} net · ${r.region}` })) }
+      chart: retailRows.length > 1
+        ? { kind: "bar", title: "Store league", description: "Net sales ex VAT · top 15", format: "zar", rows: retailRows.slice(0, 15).map((r) => ({ label: `${String(r.rank).padStart(2, "0")}  ${r.store}`, value: r.net as number, sub: r.growth == null ? "new" : `${(r.growth as number) >= 0 ? "▲" : "▼"} ${Math.abs((r.growth as number) * 100).toFixed(1)}%`, tip: `${r.store} (${r.code})\n${zar(r.net as number)} net · ${r.region}` })) }
         : null,
-      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Online share is online orders the store fulfilled; trade share is sales to business accounts (the trade portal's orders collected at the store, and trade sales rung up at a till). Distribution centres appear when they fulfil courier or trade orders.`,
+      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Online share is online orders the store fulfilled; trade share is sales to business accounts (the trade portal's orders collected at the store, and trade sales rung up at a till). Distribution centres (DC) are listed after the stores, unranked, when they fulfil courier or trade orders; they don't count as stores trading.`,
     };
   },
 };

@@ -35,7 +35,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
   const [k, byStore, byStorePrev, stores, heat, alerts, liability, active30, pendingPOs, recalls, takings, mtd, trading, queue, open, leads, statements, trade] = await Promise.all([
     kpis(ids, r),
     salesByStore(ids, r),
-    region ? salesByStore(ids, previousRange(r)) : null,
+    salesByStore(ids, previousRange(r)),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true, city: true, kind: true, status: true, region: { select: { name: true, code: true } } } }),
     hourlyHeat(ids, { ...r, start: new Date(Math.max(r.start.getTime(), Date.now() - 28 * 86_400_000)) }),
     stockAlerts(ids),
@@ -55,7 +55,19 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
   const c = k.cur;
   const retail = stores.filter((s) => s.kind === "RETAIL");
   const active = retail.filter((s) => s.status === "ACTIVE");
-  const exceptions = region ? await storeExceptions(user, active, now) : [];
+  const activeIds = new Set(active.map((s) => s.id));
+  // Distribution centres ring up courier and trade orders: only retail stores count as "trading".
+  const tradingStores = [...trading].filter((id) => activeIds.has(id)).length;
+  const growthOf = (id: string) => delta(byStore.get(id)?.netCents ?? 0, byStorePrev.get(id)?.netCents ?? 0);
+  // Network view: the ten stores falling furthest behind the previous period (bounded, so exceptions stay cheap at 1,000 stores).
+  const behind = region
+    ? []
+    : active
+        .map((s) => ({ s, g: growthOf(s.id) }))
+        .filter((x): x is { s: (typeof active)[number]; g: number } => x.g != null && x.g < 0)
+        .sort((a, b) => a.g - b.g)
+        .slice(0, 10);
+  const exceptions = await storeExceptions(user, region ? active : behind.map((x) => x.s), now);
   const exceptionBy = new Map(exceptions.map((x) => [x.storeId, x]));
   const rangeQS = r.preset === "custom" ? `from=${r.from}&to=${r.to}` : `range=${r.preset}`;
   const regions = new Map<string, { label: string; value: number; href: string }>();
@@ -64,12 +76,12 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
     regions.set(s.region.code, { ...g, value: g.value + (byStore.get(s.id)?.netCents ?? 0) });
   }
   const league = active
-    .map((s) => ({ s, net: byStore.get(s.id)?.netCents ?? 0, prev: byStorePrev?.get(s.id)?.netCents ?? 0, atv: byStore.get(s.id)?.atvCents ?? 0, margin: byStore.get(s.id)?.marginPct ?? 0, ex: exceptionBy.get(s.id) }))
+    .map((s) => ({ s, net: byStore.get(s.id)?.netCents ?? 0, prev: byStorePrev.get(s.id)?.netCents ?? 0, atv: byStore.get(s.id)?.atvCents ?? 0, margin: byStore.get(s.id)?.marginPct ?? 0, ex: exceptionBy.get(s.id) }))
     .sort((a, b) => b.net - a.net);
   const hours = Array.from({ length: 12 }, (_, i) => i + 9);
   const openOrders = (queue.PLACED ?? 0) + (queue.PICKING ?? 0) + (queue.READY ?? 0);
   const takingsDelta = takings.prev.grossCents ? takings.delta : null;
-  const worst = exceptions.filter((x) => x.score > 0).slice(0, 8);
+  const worst = !region ? [] : exceptions.filter((x) => x.score > 0).slice(0, 8);
   const storeBy = new Map(stores.map((s) => [s.id, s]));
 
   return (
@@ -98,7 +110,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
           sub={[takingsDelta == null ? `${takings.cur.sales.toLocaleString()} sales so far` : null, takings.tradeCents ? `of which trade ${zarCompact(takings.tradeCents)}` : null].filter(Boolean).join(" · ") || undefined}
         />
         <Stat label="Net sales · month to date" value={zarCompact(mtd.cur.netCents)} delta={mtd.prev.netCents ? mtd.delta : null} deltaLabel="vs last month, same days" />
-        <Stat label="Stores trading today" value={`${trading.size} of ${active.length}`} sub={trading.size < active.length ? <Link href={`/hq/stores?status=ACTIVE&sort=sales&dir=asc`} className="font-semibold text-brand-700 hover:underline">{active.length - trading.size} with no sale yet →</Link> : "every store has sold today"} />
+        <Stat label="Stores trading today" value={`${tradingStores} of ${active.length}`} sub={tradingStores < active.length ? <Link href={`/hq/stores?status=ACTIVE&range=today&sort=sales&dir=asc`} className="font-semibold text-brand-700 hover:underline">{active.length - tradingStores} with no sale yet →</Link> : "every store has sold today"} />
         <Stat label="Online orders open" value={openOrders.toLocaleString()} sub={<Link href="/hq/orders?status=OPEN" className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready →</Link>} />
         {/* The trade channel: orders to fulfil, EFT pro formas waiting for HQ, accounts on hold. Links appear with the work. */}
         <Stat
@@ -145,7 +157,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
 
       {region && (
         <div className="mb-6 grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
+          <Card className="min-w-0 lg:col-span-2">
             <CardHeader title="Your stores, ranked" description={`Net sales ex VAT · ${r.from} to ${r.to} · open a store to work it`} action={<ButtonLink href={`/hq/reports/sales-by-store?${rangeQS}`} variant="ghost" size="sm">Full table</ButtonLink>} />
             <Table className="mt-3" stickyFirst minWidth="44rem">
               <thead>
@@ -181,7 +193,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
               </tbody>
             </Table>
           </Card>
-          <Card>
+          <Card className="min-w-0">
             <CardHeader title="Exceptions" description="Most urgent first — cash past its banking deadline, alerts, negative stock, quiet stores" />
             <CardBody className="space-y-2">
               {worst.length === 0 && <p className="rounded-xl bg-leaf-50 px-3 py-2.5 text-sm text-leaf-700">Nothing out of the ordinary across your region today.</p>}
@@ -210,13 +222,13 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+        <Card className="min-w-0 xl:col-span-2">
           <CardHeader title={region ? "Region net sales" : "Network net sales"} description="Daily, ex VAT, all channels" />
           <CardBody>
             <AreaChart labels={k.trend.labels} series={[{ name: "Net sales", color: "var(--color-series-1)", values: k.trend.net }]} />
           </CardBody>
         </Card>
-        <Card>
+        <Card className="min-w-0">
           <CardHeader title={region ? "Sales by store" : "Sales by region"} description={region ? "Net sales, ex VAT · share of the region" : "Net sales, ex VAT · open a region for its stores"} />
           <CardBody>
             <Donut data={region ? league.slice(0, 8).map((x) => ({ label: x.s.name, value: x.net, href: `/store/${x.s.code}?${rangeQS}` })) : [...regions.values()]} centerLabel={zarCompact(c.netCents)} />
@@ -226,10 +238,11 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
 
       <div className="mt-6 grid gap-6 lg:grid-cols-3">
         {!region && (
-          <Card className="lg:col-span-2">
+          <Card className="min-w-0 lg:col-span-2">
             <CardHeader title="Store league" description="Ranked by net sales" action={<ButtonLink href={`/hq/reports/sales-by-store?${rangeQS}`} variant="ghost" size="sm">Full table</ButtonLink>} />
             <CardBody>
               <BarList
+                compact
                 rows={league.slice(0, 10).map((x, i) => ({
                   label: (
                     <Link href={`/store/${x.s.code}?${rangeQS}`} className="hover:text-brand-700">
@@ -245,7 +258,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
             </CardBody>
           </Card>
         )}
-        <Card className={region ? "lg:col-span-3" : undefined}>
+        <Card className={region ? "min-w-0 lg:col-span-3" : "min-w-0"}>
           <CardHeader title="Needs attention" description="Across your stores" />
           <CardBody className={region ? "grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5" : "space-y-3 text-sm"}>
             <Attention href="/hq/distribution" n={pendingPOs} label="Store orders awaiting DC approval" />
@@ -261,6 +274,53 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
         </Card>
       </div>
 
+      {!region && (
+        <Card className="mt-6 min-w-0">
+          <CardHeader
+            title="Falling behind"
+            description={`Biggest drop in net sales against the previous ${r.days} day${r.days === 1 ? "" : "s"} · with what's open at each store`}
+            action={<ButtonLink href={`/hq/reports/sales-by-store?${rangeQS}&sort=growth&dir=asc`} variant="ghost" size="sm">Full table</ButtonLink>}
+          />
+          {behind.length === 0 ? (
+            <CardBody>
+              <p className="rounded-xl bg-leaf-50 px-3 py-2.5 text-sm text-leaf-700">No store is behind the previous period.</p>
+            </CardBody>
+          ) : (
+            <Table className="mt-3" stickyFirst minWidth="44rem">
+              <thead>
+                <tr>
+                  <Th>Store</Th>
+                  <Th align="right">Net sales</Th>
+                  <Th align="right">Previous period</Th>
+                  <Th align="right">Growth</Th>
+                  <Th>Why to look</Th>
+                </tr>
+              </thead>
+              <tbody>
+                {behind.map((x) => (
+                  <Tr key={x.s.id} href={`/store/${x.s.code}?${rangeQS}`}>
+                    <Td>
+                      <Link href={`/store/${x.s.code}?${rangeQS}`} className="font-medium text-ink-900 hover:text-brand-700">
+                        {x.s.name}
+                      </Link>
+                      <div className="text-xs text-ink-500">
+                        {x.s.city} · {x.s.region.name}
+                      </div>
+                    </Td>
+                    <Td align="right" className="font-medium text-ink-900">{zarCompact(byStore.get(x.s.id)?.netCents ?? 0)}</Td>
+                    <Td align="right">{zarCompact(byStorePrev.get(x.s.id)?.netCents ?? 0)}</Td>
+                    <Td align="right" className="text-rose-600">▼{pct(Math.abs(x.g))}</Td>
+                    <Td>
+                      <ExceptionBadges x={exceptionBy.get(x.s.id)} clear="Nothing open — check footfall and stock" />
+                    </Td>
+                  </Tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Card>
+      )}
+
       <Card className="mt-6">
         <CardHeader title="Busiest hours" description="Transactions by weekday and hour · last 28 days" />
         <CardBody>
@@ -271,8 +331,8 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
   );
 }
 
-function ExceptionBadges({ x }: { x?: StoreException }) {
-  if (!x || x.score === 0) return <Badge tone="green">All clear</Badge>;
+function ExceptionBadges({ x, clear = "All clear" }: { x?: StoreException; clear?: string }) {
+  if (!x || x.score === 0) return <Badge tone="green">{clear}</Badge>;
   return (
     <span className="flex flex-wrap gap-1">
       {x.overdueCash > 0 && <Badge tone="red">{x.overdueCash} cash-up{x.overdueCash === 1 ? "" : "s"} overdue</Badge>}

@@ -330,16 +330,16 @@ function Licences({ needed, v, f, attachAgain }: { needed: { kind: TradeLicenceK
               {kind === "CIPC_REGISTRATION" ? (
                 <p className="text-sm text-ink-300 sm:col-span-2">The number is the company registration number you entered above.</p>
               ) : (
-                <FieldRow label="Licence number" htmlFor={fieldId(key("number"))} error={f[key("number")]} hint={info.hint}>
+                <FieldRow label={info.numberLabel} htmlFor={fieldId(key("number"))} error={f[key("number")]} hint={info.hint}>
                   <TextInput id={fieldId(key("number"))} name={key("number")} required maxLength={40} defaultValue={v[key("number")]} aria-invalid={!!f[key("number")]} className="tnum" />
                 </FieldRow>
               )}
               {info.expires && (
-                <FieldRow label="Expires on" htmlFor={fieldId(key("expiresAt"))} error={f[key("expiresAt")]} hint="As printed on the licence.">
+                <FieldRow label="Expires on" htmlFor={fieldId(key("expiresAt"))} error={f[key("expiresAt")]} hint={`As printed on the ${info.docLabel.charAt(0).toLowerCase()}${info.docLabel.slice(1)}.`}>
                   <TextInput id={fieldId(key("expiresAt"))} name={key("expiresAt")} type="date" required defaultValue={v[key("expiresAt")]} aria-invalid={!!f[key("expiresAt")]} />
                 </FieldRow>
               )}
-              <FieldRow label="The document" htmlFor={fieldId(key("file"))} error={f[key("file")]} hint="A PDF, or a clear photo (JPG or PNG) of the whole licence. Up to 5 MB." className="sm:col-span-2">
+              <FieldRow label="The document" htmlFor={fieldId(key("file"))} error={f[key("file")]} hint={`Your ${info.docLabel} — a PDF, or a clear photo (JPG or PNG) of the whole document. Up to 5 MB.`} className="sm:col-span-2">
                 <input
                   id={fieldId(key("file"))}
                   name={key("file")}

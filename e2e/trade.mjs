@@ -190,7 +190,7 @@ try {
     await sapc.getByLabel("The document").setInputFiles(pdf("sapc-recording.pdf"));
   };
   await pharmacyLicence.getByLabel("Licence number").fill(`gp ${run} 0412`);
-  await sapc.getByLabel("Licence number").fill(`p${run}`);
+  await sapc.getByLabel("SAPC recording number").fill(`p${run}`);
   await attach(true);
   const refusedDoc = page.getByRole("alert").filter({ hasText: /Please check/ }).filter({ hasText: "must be a PDF, or a JPG or PNG photo" });
   await timed("Apply: a document that isn't a PDF → refused by the server", send, () => refusedDoc.waitFor());
@@ -232,7 +232,7 @@ try {
   await fill({ legalName: `Another Shop ${run}` });
   await page.getByRole("checkbox", { name: /^Accessories/ }).check();
   await pharmacyLicence.getByLabel("Licence number").fill("GP 0001");
-  await sapc.getByLabel("Licence number").fill("P0001");
+  await sapc.getByLabel("SAPC recording number").fill("P0001");
   await attach();
   await page.getByRole("checkbox", { name: /Every buyer who orders/ }).check();
   await page.getByRole("checkbox", { name: /I accept the/ }).check();
@@ -423,7 +423,7 @@ try {
   await stranger.close();
   const upload = page.getByTestId("licence-upload");
   await upload.getByLabel("Licence", { exact: true }).selectOption("SAPC_RECORDING");
-  await upload.getByLabel("Licence number").fill(`p${run}`);
+  await upload.getByLabel("SAPC recording number").fill(`p${run}`);
   await upload.getByLabel("The document").setInputFiles(pdf("sapc-2027.pdf"));
   await timed("Account: upload a renewed licence", () => upload.getByRole("button", { name: "Upload for checking" }).click(), () => page.getByText("the trade team checks it with the issuer").waitFor());
   await licenceList.getByTestId("licence-SAPC_RECORDING").getByText("is with the trade team for checking").waitFor();

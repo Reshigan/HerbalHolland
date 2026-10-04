@@ -121,7 +121,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
                 <Amount cents={l.debitCents} />
               </td>
               <td className="py-2 px-3 text-right text-leaf-700">
-                <Amount cents={l.creditCents} sign="−" />
+                <Amount cents={l.creditCents} />
               </td>
               <td className="tnum py-2 pl-3 text-right text-ink-900">{zar(l.balanceCents)}</td>
             </tr>
@@ -141,7 +141,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
               <Amount cents={st.lines.reduce((s, l) => s + l.debitCents, 0)} />
             </td>
             <td className="py-3 px-3 text-right">
-              <Amount cents={st.lines.reduce((s, l) => s + l.creditCents, 0)} sign="−" />
+              <Amount cents={st.lines.reduce((s, l) => s + l.creditCents, 0)} />
             </td>
             <td className="tnum py-3 pl-3 text-right">{zar(st.closing)}</td>
           </tr>
@@ -149,7 +149,7 @@ export function TradeStatementDocument({ st, hq, issuedAt, current }: { st: Trad
       </table>
 
       <section className="mt-8 text-sm">
-        <DocLabel>Age analysis at {fmtDate(new Date(st.to.getTime() - 1))}</DocLabel>
+        <DocLabel>Age analysis at {fmtDate(st.asAt < st.to ? st.asAt : new Date(st.to.getTime() - 1))}</DocLabel>
         <dl className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-4">
           {(
             [

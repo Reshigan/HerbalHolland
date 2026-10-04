@@ -36,6 +36,7 @@ export default async function TradeAccountPage() {
   };
   const ageing: [string, number][] = [["Current", s.ageing.current], ["30 days", s.ageing.d30], ["60 days", s.ageing.d60], ["90+ days", s.ageing.d90plus]];
   const { standing: licences, others } = await licenceOverview(a);
+  const asks = licences.lines.filter((l) => l.problem && l.state !== "pending").map((l) => l.problem!); // what only the applicant can fix
   const firstProblem = licences.lines.find((l) => l.problem)?.kind ?? licences.lines.find((l) => l.state === "expiring")?.kind ?? licences.lines[0]?.kind ?? TRADE_LICENCE_KINDS[0];
   // Any licence can be sent — the ones the account needs first, then the rest (ahead of asking for a new range).
   const uploadKinds = [...licences.lines.map((l) => l.kind), ...TRADE_LICENCE_KINDS.filter((k) => !licences.lines.some((l) => l.kind === k))];
@@ -56,7 +57,12 @@ export default async function TradeAccountPage() {
         <AccountStatusTag status={a.status} className="px-3 py-1 text-xs" />
       </div>
 
-      {a.status === "PENDING" && (
+      {a.status === "PENDING" && asks.length > 0 && (
+        <Callout tone="warn" icon={<AlertTriangle className="h-5 w-5" aria-hidden />} className="mt-8" title="We need something from you">
+          {asks.join(". ")}. <a href="#licences" className="font-semibold underline">Upload it under Licences</a> — we check it within one business day.
+        </Callout>
+      )}
+      {a.status === "PENDING" && asks.length === 0 && (
         <Callout tone="info" className="mt-8" title="Your application is being reviewed">
           We reply by email within one business day with the terms. Ordering opens once the account is approved.
         </Callout>

@@ -19,8 +19,9 @@ export type TodayFacts = {
   alerts: { open: number; high: number };
   /** Released lots on hand that expire within `withinDays`. */
   batches: { lots: number; units: number; soonest: Date | null; withinDays: number };
-  /** Ranged SKUs at or below their reorder point, and how many are out. */
-  lowStock: { skus: number; out: number };
+  /** Ranged SKUs at or below their reorder point, and how many are out. `onOrder`: of those, how many already have
+   *  enough on open stock orders to lift them back above the reorder point (nothing more to order). */
+  lowStock: { skus: number; out: number; onOrder?: number };
   /** Patient authorisations that lapse within `withinDays`. */
   patients: { expiring: number; soonest: Date | null; withinDays: number };
   /** HQ updates that still need this store's acknowledgement (`urgent` = recalls). */
@@ -154,14 +155,27 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
     });
   }
 
-  if (f.lowStock.skus > 0)
+  const covered = Math.min(f.lowStock.onOrder ?? 0, f.lowStock.skus);
+  const toOrder = f.lowStock.skus - covered;
+  if (toOrder > 0)
     items.push({
       key: "low-stock",
       severity: f.lowStock.out > 0 ? "high" : "medium",
-      count: f.lowStock.skus,
-      title: `${plural(f.lowStock.skus, "SKU")} at or below reorder point`,
-      line: f.lowStock.out > 0 ? `${plural(f.lowStock.out, "item")} out of stock — order from your distribution centre` : "Top up before they run out",
+      count: toOrder,
+      title: `${plural(toOrder, "SKU")} to reorder`,
+      line:
+        (f.lowStock.out > 0 ? `${plural(f.lowStock.out, "item")} out of stock — order from your distribution centre` : "At or below reorder point — top up before they run out") +
+        (covered ? ` · ${covered.toLocaleString("en-US")} more already on order` : ""),
       href: `${base}/purchasing/new`,
+    });
+  else if (covered > 0)
+    items.push({
+      key: "low-stock",
+      severity: "low",
+      count: covered,
+      title: `${plural(covered, "low SKU")} already on order`,
+      line: "Nothing more to order — receive the delivery when it arrives",
+      href: `${base}/purchasing`,
     });
 
   const due = stockTakesDue(f.stockTakes, now);
@@ -210,6 +224,26 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
     });
 
   return items.sort((a, b) => RANK[a.severity] - RANK[b.severity] || ORDER.indexOf(a.key) - ORDER.indexOf(b.key));
+}
+
+/** One store's exceptions, as the consolidated (owner) overview sees them. */
+export type StoreExceptionFacts = { code: string; name: string; overdueCash: number; highAlerts: number; alerts: number; negativeLots: number; lowStock: number; quiet: boolean };
+
+/** The owner's consolidated Today list: each store's exceptions as store-tagged items linking into that store. */
+export function buildCompanyToday(stores: StoreExceptionFacts[]): TodayItem[] {
+  const items: TodayItem[] = [];
+  for (const x of stores) {
+    const base = `/store/${x.code}`;
+    const add = (key: string, severity: TodaySeverity, count: number, what: string, line: string, href: string) =>
+      items.push({ key: `${x.code}:${key}`, severity, count, title: `${x.name} · ${what}`, line, href });
+    if (x.overdueCash > 0) add("cash", "high", x.overdueCash, `${plural(x.overdueCash, "cash-up")} overdue`, "Past its banking deadline — bank it and record the deposit", `${base}/banking`);
+    if (x.alerts > 0)
+      add("alerts", x.highAlerts > 0 ? "high" : "medium", x.alerts, `${plural(x.alerts, "loss-prevention alert")} open`, x.highAlerts > 0 ? `${plural(x.highAlerts, "high-severity alert")} — investigate today` : "Review, then resolve or dismiss with a note", `${base}/loss-prevention`);
+    if (x.quiet) add("quiet", "medium", 1, "no sales yet today", "Check the store is open and the tills are trading", base);
+    if (x.negativeLots > 0) add("negative", "medium", x.negativeLots, `${plural(x.negativeLots, "negative stock lot")}`, "Count them to correct the stock", `${base}/reports/negative-stock`);
+    if (x.lowStock > 0) add("low-stock", "low", x.lowStock, `${plural(x.lowStock, "SKU")} at or below reorder point`, "Check what is already on order, then top up", `${base}/purchasing/new`);
+  }
+  return items.sort((a, b) => RANK[a.severity] - RANK[b.severity] || b.count - a.count);
 }
 
 /** Empty facts: handy as a base in tests and for stores with nothing on. */
