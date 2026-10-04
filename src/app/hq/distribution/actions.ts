@@ -10,6 +10,7 @@ type DcAction = "approve" | "reject" | "ship" | "cancel";
 export async function actOnDcOrder(orderId: string, action: DcAction, _: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("network");
   if (!g) return DENIED;
+  if (!(["approve", "reject", "ship", "cancel"] as string[]).includes(action)) return fail("That isn't something HQ does to a store's order."); // receiving is the store's
   const order = await db.stockOrder.findUnique({ where: { id: orderId }, include: { seller: { select: { kind: true } }, buyer: { select: { name: true } } } });
   if (!order || order.kind !== "WHOLESALE" || order.seller.kind !== "WAREHOUSE") return fail("That isn't a distribution-centre order.");
   const reason = str(fd, "reason");

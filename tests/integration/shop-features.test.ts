@@ -1,6 +1,8 @@
 // The shop's member features against the real services: saved addresses, gift vouchers (buy → pay → issue → redeem →
 // release → expire), reorder reminders falling due, wishlists tracking stock, and product photos through the import.
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
+// Catalogue image addresses resolve through DNS first: the test's names resolve here, "internal." ones to a private address.
+vi.mock("node:dns/promises", () => ({ lookup: async (host: string) => [{ address: host.startsWith("internal.") ? "10.0.0.5" : "93.184.216.34", family: 4 }] }));
 
 // Before any import: photos land in a scratch folder, and links carry the shop's public address.
 vi.hoisted(() => {
@@ -93,7 +95,9 @@ describe("gift vouchers", () => {
     expect(issued.expiresAt.toISOString()).toBe(voucherExpiry(issued.issuedAt!).toISOString());
     expect(issued.expiresAt.getTime() - issued.issuedAt!.getTime()).toBeGreaterThan(3 * 365 * 86_400_000 - 86_400_000);
     // Told: the buyer by SMS, the recipient by email (logged: no SMTP in tests).
-    expect(await db.messageLog.count({ where: { customerId: w.walkIn.id, channel: "SMS", body: { contains: voucher.code } } })).toBe(1);
+    expect(await db.messageLog.count({ where: { customerId: w.walkIn.id, channel: "SMS", body: { contains: voucher.code.slice(-4) } } })).toBe(1); // masked: the SMS log keeps the last four
+    expect(await db.messageLog.count({ where: { body: { contains: voucher.code } } })).toBe(0); // the code itself is never logged
+    expect(JSON.stringify((await db.auditLog.findFirstOrThrow({ where: { action: "voucher.issue", entityId: voucher.id } })).data)).not.toContain(voucher.code);
     expect(await db.messageLog.count({ where: { to: "sipho@example.co.za", channel: "EMAIL" } })).toBe(1);
     expect(await db.auditLog.count({ where: { action: "voucher.issue", entityId: voucher.id } })).toBe(1);
     // Paying twice does nothing more.
@@ -199,6 +203,7 @@ describe("product photos", () => {
       calls.push(url);
       if (url.endsWith("/missing.jpg")) return new Response("nope", { status: 404 });
       if (url.endsWith("/page.html")) return new Response("<html></html>", { status: 200, headers: { "content-type": "text/html" } });
+      if (url.endsWith("/moved.png")) return new Response(null, { status: 302, headers: { location: "http://127.0.0.1:3000/" } });
       return new Response(new Uint8Array([...PNG, url.endsWith("/two.png") ? 2 : 1]), { status: 200, headers: { "content-type": "image/png" } });
     });
     try {
@@ -207,6 +212,10 @@ describe("product photos", () => {
       expect(r.fetched).toBe(2);
       expect(r.failed.map((f) => f.reason)).toEqual(["the server answered 404", "not a JPG, PNG or WebP image", "only public https:// addresses", "only public https:// addresses"]);
       expect(calls).toHaveLength(4); // the two refused addresses were never fetched
+      // A public-looking name that resolves to a private address is never fetched; a redirect is never followed.
+      const odd = await importProductImages(pid, ["https://internal.example.co.za/x.png", "https://cdn.example.co.za/moved.png"], { alt: "Test CBD Coffee" });
+      expect(odd.failed.map((f) => f.reason)).toEqual(["only public https:// addresses", "it redirects — use the photo's own address"]);
+      expect(calls).toHaveLength(5);
       const photos = await productImages(pid);
       expect(photos).toHaveLength(2);
       expect(photos[0].alt).toBe("Test CBD Coffee");

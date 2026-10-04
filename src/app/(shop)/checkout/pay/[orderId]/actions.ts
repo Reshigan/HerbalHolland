@@ -6,7 +6,7 @@ import { audit } from "@/server/audit";
 import { markOrderPaid, onlineCheckoutFor, type OnlineCheckout } from "@/server/orders";
 import { shortCode } from "@/server/counters";
 import { APP_URL } from "@/server/invoices";
-import { hostedGateway, HOSTED_GATEWAYS, onlineGateway, PaymentError } from "@/server/payments";
+import { simulationAllowed, hostedGateway, HOSTED_GATEWAYS, onlineGateway, PaymentError } from "@/server/payments";
 import { possessive } from "@/lib/online-payments";
 import { orderDue } from "@/server/shop/vouchers";
 
@@ -31,6 +31,7 @@ async function unpaidOrder(orderId: string) {
  */
 export async function simulatePayment(orderId: string, _: PayState, form: FormData): Promise<PayState> {
   if (onlineGateway() !== "SIMULATED") return { error: "Payments are handled by our payment partner — please use their page." };
+  if (!simulationAllowed()) return { error: "Online payment isn't switched on yet — please choose click & collect and pay in store." };
   const r = await unpaidOrder(orderId);
   if ("error" in r) return r;
   const { customer, order } = r;

@@ -497,7 +497,7 @@ async function main() {
     { name: "Midlands Wellness Practice", legalName: "Midlands Wellness Practice Inc.", kind: "PRACTICE", reg: "2019/311907/21", email: "practice@midlandswellness.co.za", phone: "+27333301188", ref: "MIDLANDS WP", address: ["7 Main Road", null, "Howick", "KZN", "3290"], status: "APPROVED", terms: "ACCOUNT", limit: 2_500_000, applied: 135, approvedDays: 4, buyers: [["Anele Mkhize", "anele@midlandswellness.co.za", "+27837720315", "OWNER"]] },
     { name: "Bo-Kaap Apothecary", legalName: "Bo-Kaap Apothecary (Pty) Ltd", kind: "RETAILER", reg: "2017/458201/07", vat: "4650098122", email: "orders@bokaapapothecary.co.za", phone: "+27214240077", ref: "BOKAAP APOTH", address: ["88 Wale Street", "Bo-Kaap", "Cape Town", "WC", "8001"], status: "APPROVED", terms: "ACCOUNT", limit: 3_000_000, applied: 128, approvedDays: 2, reserve: 800_000, buyers: [["Yusuf Dollie", "yusuf@bokaapapothecary.co.za", "+27823301190", "OWNER"], ["Amina Dollie", "amina@bokaapapothecary.co.za", null, "BUYER"]] },
     { name: "Umhlanga Health Pharmacy", legalName: "Umhlanga Health Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2014/087310/07", vat: "4580012398", email: "accounts@umhlangahealth.co.za", phone: "+27315611204", ref: "UMHLANGA HP", address: ["Shop 5, Chartwell Centre, Chartwell Drive", "Umhlanga Rocks", "Durban", "KZN", "4320"], status: "APPROVED", terms: "PREPAID", applied: 121, approvedDays: 3, buyers: [["Kiara Naidoo", "kiara@umhlangahealth.co.za", "+27834412210", "OWNER"]] },
-    { name: "Linden Corner Store", legalName: "Linden Corner Store (Pty) Ltd", kind: "RETAILER", reg: "2019/447120/07", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Small company — not VAT registered." },
+    { name: "Linden Corner Store", legalName: "Lukas Botha", kind: "RETAILER", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Sole proprietor — not VAT registered." },
     { name: "Roots & Rooibos Café", legalName: "Roots and Rooibos (Pty) Ltd", kind: "CAFE", reg: "2020/233514/07", vat: "4690071355", email: "cafe@rootsandrooibos.co.za", phone: "+27123461190", ref: "ROOTS ROOIBOS", address: ["12 Lynnwood Road", "Brooklyn", "Pretoria", "GP", "0181"], status: "APPROVED", terms: "PREPAID", applied: 107, approvedDays: 2, buyers: [["Mpho Sithole", "mpho@rootsandrooibos.co.za", "+27836601182", "OWNER"]] },
     { name: "Hemp & Home Online", legalName: "Hemp and Home Online (Pty) Ltd", kind: "ONLINE_SHOP", reg: "2022/301877/07", vat: "4730116209", email: "finance@hempandhome.co.za", phone: "+27104470550", ref: "HEMP HOME", address: ["3 Kramer Road", "Kramerville", "Sandton", "GP", "2090"], delivery: ["Unit 7, Linbro Business Park, Galaxy Avenue", "Linbro Park", "Sandton", "GP", "2065"], status: "APPROVED", terms: "ACCOUNT", limit: 4_000_000, applied: 100, approvedDays: 2, ownList: true, reserve: 2_000_000, buyers: [["Dineo Maseko", "dineo@hempandhome.co.za", "+27827740930", "OWNER"], ["Tebogo Rakgole", "warehouse@hempandhome.co.za", "+27836112078", "BUYER"]], notes: "Online retailer — ships from the Linbro Park warehouse; deliver there, not to the office." },
     { name: "Stellenbosch Physio & Wellness", legalName: "Stellenbosch Physio and Wellness Inc.", kind: "PRACTICE", reg: "2018/142290/21", email: "admin@stellenboschphysio.co.za", phone: "+27218870341", ref: "STB PHYSIO", address: ["23 Andringa Street", null, "Stellenbosch", "WC", "7600"], status: "APPROVED", terms: "PREPAID", applied: 93, approvedDays: 3, buyers: [["Marli Louw", "marli@stellenboschphysio.co.za", "+27824409912", "OWNER"]] },
@@ -516,14 +516,15 @@ async function main() {
   // Licences: what each kind of business needs for its ranges (src/lib/trade-licences.ts), sent with the application
   // and checked by HQ just before approval; the two applications wait with theirs. Midlands' practice number runs out
   // next week with the renewal waiting for HQ, Stellenbosch's in a fortnight with nothing sent yet (both reminded), and
-  // Vilakazi Street has sent the new CIPC certificate its hold waits for. Numbers come from the account, not the RNG.
+  // Vilakazi Street has sent the new CIPC certificate its hold waits for. Linden Corner, a sole proprietor, holds its
+  // SARS registration instead of a CIPC certificate. Numbers come from the account, not the RNG.
   const tradeLicenceRows: Prisma.TradeLicenceCreateManyInput[] = [];
   const licenceDocs: { uploadId: string; account: SimAccount; kind: TradeLicenceKind; number: string; expiresAt: Date | null; at: Date }[] = [];
   const PRACTICE_EXPIRY: Record<string, number> = { "Midlands Wellness Practice": 9, "Stellenbosch Physio & Wellness": 16 }; // days from today
   const digits = (seed: string, n: number) => String(parseInt(createHash("sha256").update(seed).digest("hex").slice(0, 12), 16) % 10 ** n).padStart(n, "0");
   const licenceNumber = (a: SimAccount, kind: TradeLicenceKind) => {
     const d = (n: number) => digits(`${a.number}:${kind}`, n);
-    return { CIPC_REGISTRATION: a.regNumber!, PRACTICE_NUMBER: d(7), PHARMACY_LICENCE: `DOH/PH/${d(5)}`, SAPC_RECORDING: `P${d(6)}`, BUSINESS_LICENCE: `BL/${a.province}/${d(5)}`, FOOD_COA: `COA/${d(6)}`, SAHPRA_LICENCE: `SAHPRA/W/${d(5)}` }[kind];
+    return { CIPC_REGISTRATION: a.regNumber!, SARS_REGISTRATION: `0${d(9)}`, PRACTICE_NUMBER: d(7), PHARMACY_LICENCE: `DOH/PH/${d(5)}`, SAPC_RECORDING: `P${d(6)}`, BUSINESS_LICENCE: `BL/${a.province}/${d(5)}`, FOOD_COA: `COA/${d(6)}`, SAHPRA_LICENCE: `SAHPRA/W/${d(5)}` }[kind];
   };
   const addLicence = (a: SimAccount, kind: TradeLicenceKind, when: Date, expiresAt: Date | null, review: Date | null) => {
     const id = uid(), uploadId = uid(), number = licenceNumber(a, kind);
@@ -563,7 +564,7 @@ async function main() {
       createdAt: applied, updatedAt: closedAt ?? heldAt ?? approvedAt ?? applied,
     });
     const expiry = PRACTICE_EXPIRY[a.name];
-    const licences = requiredLicences(a.kind, classes).map(({ kind }, j) =>
+    const licences = requiredLicences(a.kind, classes, !!a.regNumber).map(({ kind }, j) =>
       addLicence(a, kind, applied, TRADE_LICENCES[kind].expires ? expiryOf(keyOf(-(expiry ?? 240))) : null, approvedAt && new Date(approvedAt.getTime() - (30 - 4 * j) * 60_000)),
     );
     if (expiry === 9) {

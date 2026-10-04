@@ -15,7 +15,7 @@ export const RULE_GROUPS: { title: string; rules: Rule[] }[] = [
   { title: "Cash", rules: ["CASH_SHORT", "CASH_SHORT_REPEAT", "DEPOSIT_OVERDUE", "DEPOSIT_SHORT"] },
   { title: "Refunds", rules: ["REFUND", "REFUND_RATE", "SALES_REFUNDED"] },
   { title: "Stock", rules: ["WRITE_OFFS"] },
-  { title: "Tills & member cards", rules: ["OWN_MEMBER", "MEMBER_REPEAT", "OFFLINE_SHARE", "AFTER_HOURS", "COMPLIANCE"] },
+  { title: "Tills & member cards", rules: ["OWN_MEMBER", "MEMBER_REPEAT", "OFFLINE_SHARE", "OFFLINE_VARIANCE", "AFTER_HOURS", "COMPLIANCE"] },
 ];
 
 const times = (n: number) => `${n}×`;
@@ -51,5 +51,7 @@ export function explainRule(rule: string, { loss: s, banking: b }: Thresholds): 
       return "A till sale more than 30 minutes outside the store's trading hours.";
     case "COMPLIANCE":
       return "A sale made while the till was offline broke a compliance rule it couldn't check at the time.";
+    case "OFFLINE_VARIANCE":
+      return "A sale rung up offline came in below today's price, paid short or over, or took more points than the member had.";
   }
 }

@@ -5,7 +5,7 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { getFranchisor } from "@/server/shop/context";
-import { hostedGateway, HOSTED_GATEWAYS } from "@/server/payments";
+import { hostedGateway, HOSTED_GATEWAYS, simulationAllowed } from "@/server/payments";
 import { isVoucherOrder, orderDue, redemptionsOf } from "@/server/shop/vouchers";
 import { payOnline, simulatePayment } from "./actions";
 import { HostedPayForm, PayForm } from "@/components/shop/pay-form";
@@ -88,7 +88,15 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
             {giftOrder ? `Complete payment by ${fmtTime(holdUntil)} (${settings.ecommerce.unpaidHoldMinutes} minutes); the voucher is issued and emailed the moment it's paid.` : `Complete payment by ${fmtTime(holdUntil)} (${settings.ecommerce.unpaidHoldMinutes} minutes) or the order is released and the stock goes back on the shelf.`}
           </p>
-          {name ? <HostedPayForm action={payOnline.bind(null, order.id)} amount={zar(due)} gateway={name} /> : <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />}
+          {name ? (
+            <HostedPayForm action={payOnline.bind(null, order.id)} amount={zar(due)} gateway={name} />
+          ) : simulationAllowed() ? (
+            <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />
+          ) : (
+            <p className="mt-6 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50" role="status">
+              Online payment isn&apos;t switched on yet. Choose click &amp; collect and pay in store.
+            </p>
+          )}
           <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-ink-450">
             <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" />
             {gateway === "PEACH"

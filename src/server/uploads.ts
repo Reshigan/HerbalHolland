@@ -6,6 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { db } from "./db";
 import { putObject } from "./storage";
 import { extFor, PHOTO_MAX_BYTES, PHOTO_TYPES, sniffType, type UploadType } from "@/lib/files";
+import { stripImageMetadata } from "@/lib/strip-metadata";
 
 export class UploadError extends Error {}
 export { PHOTO_MAX_BYTES, PHOTO_TYPES };
@@ -29,7 +30,7 @@ export async function storePhotos(a: { files: File[]; max: number; folder: strin
     const bytes = new Uint8Array(await f.arrayBuffer());
     const type = sniffType(bytes);
     if (!type || !PHOTO_TYPES.includes(type)) throw new UploadError(`${label} isn't a JPG or PNG photo`);
-    checked.push({ bytes, type, name: label });
+    checked.push({ bytes: stripImageMetadata(bytes), type, name: label }); // no GPS, camera or time travels with it
   }
   const ids: string[] = [];
   for (const c of checked) {

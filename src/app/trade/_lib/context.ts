@@ -42,9 +42,8 @@ export async function cartQuote(account: Pick<TradeAccount, "id" | "dcId">) {
   return { items, store, quote: q };
 }
 
-/** Why the account can't place an order right now, in the server's own words — null when it can. */
 /** Why this account can't order right now (its status, or a required licence missing, waiting or lapsed), or null. */
-export async function orderingProblem(a: Pick<TradeAccount, "id" | "kind" | "classes" | "status" | "holdReason">) {
+export async function orderingProblem(a: Pick<TradeAccount, "id" | "kind" | "classes" | "regNumber" | "status" | "holdReason">) {
   const licence = a.status === "APPROVED" || a.status === "ON_HOLD" ? await licenceProblem(a) : null;
   if (licence) return `Ordering is paused: ${licence}. Upload it under Account › Licences.`;
   if (a.status === "APPROVED") return null;

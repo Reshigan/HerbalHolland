@@ -1,5 +1,5 @@
 # Local production-like stack: Postgres + one-off migrate/seed + app.
-#   docker compose up --build
+#   SESSION_SECRET=$(openssl rand -base64 48) docker compose up --build
 services:
   db:
     image: postgres:16
@@ -27,9 +27,9 @@ services:
     build: { context: ., target: runner }
     environment:
       DATABASE_URL: postgresql://hh:hh@db:5432/herbalholland
-      SESSION_SECRET: change-me-to-32-plus-random-bytes-in-production
+      SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to 32+ random characters (openssl rand -base64 48)}
       APP_URL: http://localhost:3000
-      DEMO_MODE: "true"
+      DEMO_MODE: ${DEMO_MODE:-false} # DEMO_MODE=true docker compose up for one-click demo logins
     ports: ["3000:3000"]
     volumes: [uploads:/data/uploads] # banking slips (unless S3_BUCKET is set)
     depends_on:

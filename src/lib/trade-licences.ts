@@ -4,7 +4,7 @@
 // (docs/COMPLIANCE.md "Trade (wholesale)"); THC is never traded, so no cannabis licence appears here.
 import { dayKey, fmtDate } from "./format";
 
-export type TradeLicenceKind = "PHARMACY_LICENCE" | "SAPC_RECORDING" | "SAHPRA_LICENCE" | "FOOD_COA" | "BUSINESS_LICENCE" | "PRACTICE_NUMBER" | "CIPC_REGISTRATION";
+export type TradeLicenceKind = "PHARMACY_LICENCE" | "SAPC_RECORDING" | "SAHPRA_LICENCE" | "FOOD_COA" | "BUSINESS_LICENCE" | "PRACTICE_NUMBER" | "CIPC_REGISTRATION" | "SARS_REGISTRATION";
 export type TradeLicenceStatus = "SUBMITTED" | "VERIFIED" | "REJECTED";
 
 type LicenceInfo = {
@@ -25,6 +25,7 @@ export const TRADE_LICENCES: Record<TradeLicenceKind, LicenceInfo> = {
   BUSINESS_LICENCE: { name: "Business licence", law: "Businesses Act 71 of 1991", issuer: "the municipality", expires: false, hint: "The municipal licence to sell meals or perishable foodstuffs." },
   PRACTICE_NUMBER: { name: "Practice number", law: "BHF PCNS, with registration at the HPCSA or AHPCSA", issuer: "the Board of Healthcare Funders", expires: true, hint: "Seven digits. The expiry date is on this year's practice number certificate.", pattern: /^\d{7}$/, patternError: "A practice number is seven digits" },
   CIPC_REGISTRATION: { name: "Company registration certificate", law: "Companies Act 71 of 2008", issuer: "CIPC", expires: false, hint: "The certificate for the registration number above (CoR14.3 or equivalent).", pattern: /^\d{4}\/\d{6}\/\d{2}$/, patternError: "Company registration numbers look like 2015/123456/07" },
+  SARS_REGISTRATION: { name: "SARS tax registration", law: "Tax Administration Act 28 of 2011, section 22", issuer: "SARS", expires: false, hint: "The owner's income tax reference number (ten digits) — the document is SARS's notice of registration.", pattern: /^\d{10}$/, patternError: "An income tax reference number is ten digits" },
 };
 export const TRADE_LICENCE_KINDS = Object.keys(TRADE_LICENCES) as TradeLicenceKind[];
 /** A licence's name mid-sentence: "pharmacy licence", but "SAHPRA licence…" and "SAPC pharmacy recording" keep their capitals. */
@@ -35,14 +36,17 @@ export const licenceInSentence = (kind: TradeLicenceKind) => {
 export const isTradeLicenceKind = (v: unknown): v is TradeLicenceKind => typeof v === "string" && v in TRADE_LICENCES;
 
 /**
- * When each licence is required: the account is one of `kinds` (any kind when absent) and buys at least one of
- * `classes` (any range when absent). A licence named by several rules is required once.
+ * When each licence is required: the account is one of `kinds` (any kind when absent), buys at least one of `classes`
+ * (any range when absent) and, where `company` is set, is (true) or isn't (false) a registered company — a sole
+ * proprietor gives no registration number. A licence named by several rules is required once.
  */
-export const TRADE_LICENCE_RULES: readonly { licence: TradeLicenceKind; kinds?: readonly string[]; classes?: readonly string[]; why: string }[] = [
+export const TRADE_LICENCE_RULES: readonly { licence: TradeLicenceKind; kinds?: readonly string[]; classes?: readonly string[]; company?: boolean; why: string }[] = [
   { licence: "PHARMACY_LICENCE", kinds: ["PHARMACY"], why: "A pharmacy trades under its licence to own the pharmacy" },
   { licence: "SAPC_RECORDING", kinds: ["PHARMACY"], why: "A pharmacy is recorded with the Pharmacy Council" },
   { licence: "SAHPRA_LICENCE", kinds: ["DISTRIBUTOR"], classes: ["CBD"], why: "Reselling CBD supplements to other businesses is wholesaling medicines" },
-  { licence: "CIPC_REGISTRATION", kinds: ["RETAILER", "ONLINE_SHOP", "DISTRIBUTOR", "OTHER"], why: "Trade accounts are for registered businesses" },
+  { licence: "CIPC_REGISTRATION", kinds: ["DISTRIBUTOR", "OTHER"], why: "Trade accounts for these businesses are for registered companies" },
+  { licence: "CIPC_REGISTRATION", kinds: ["RETAILER", "ONLINE_SHOP"], company: true, why: "A company shows its registration with CIPC" },
+  { licence: "SARS_REGISTRATION", kinds: ["RETAILER", "ONLINE_SHOP"], company: false, why: "A sole proprietor shows the business is registered with SARS" },
   { licence: "BUSINESS_LICENCE", kinds: ["CAFE"], why: "Selling meals or perishable food needs a municipal business licence" },
   { licence: "FOOD_COA", kinds: ["CAFE"], why: "Food premises need a certificate of acceptability" },
   { licence: "FOOD_COA", classes: ["CBD_FOOD"], why: "Selling CBD food and drink needs a certificate of acceptability for the premises" },
@@ -51,12 +55,13 @@ export const TRADE_LICENCE_RULES: readonly { licence: TradeLicenceKind; kinds?: 
 
 export type RequiredLicence = { kind: TradeLicenceKind; why: string };
 
-/** The licences an account of this kind must hold to buy these ranges, in a fixed order. */
-export function requiredLicences(kind: string, classes: readonly string[]): RequiredLicence[] {
+/** The licences an account of this kind must hold to buy these ranges, in a fixed order. `company`: it has a registration number. */
+export function requiredLicences(kind: string, classes: readonly string[], company: boolean): RequiredLicence[] {
   const out = new Map<TradeLicenceKind, string>();
   for (const r of TRADE_LICENCE_RULES) {
     if (r.kinds && !r.kinds.includes(kind)) continue;
     if (r.classes && !r.classes.some((c) => classes.includes(c))) continue;
+    if (r.company !== undefined && r.company !== company) continue;
     if (!out.has(r.licence)) out.set(r.licence, r.why);
   }
   return TRADE_LICENCE_KINDS.filter((k) => out.has(k)).map((k) => ({ kind: k, why: out.get(k)! }));
@@ -129,8 +134,7 @@ export function checkLicenceInput(kind: TradeLicenceKind, input: { number?: stri
   const info = TRADE_LICENCES[kind];
   const fields: { number?: string; expiresAt?: string } = {};
   let number = (input.number ?? "").replace(CONTROL, "").replace(/\s+/g, " ").trim().toUpperCase();
-  if (kind === "PRACTICE_NUMBER") number = number.replace(/\s/g, "");
-  if (kind === "CIPC_REGISTRATION") number = number.replace(/\s/g, "");
+  if (info.pattern) number = number.replace(/\s/g, ""); // the patterned numbers are digits (and slashes)
   if (!number) fields.number = `Enter the ${licenceInSentence(kind)} number`;
   else if (number.length < 3 || number.length > LICENCE_NUMBER_MAX) fields.number = `Between 3 and ${LICENCE_NUMBER_MAX} characters`;
   else if (info.pattern && !info.pattern.test(number)) fields.number = info.patternError ?? "Check the number";

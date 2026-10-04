@@ -12,6 +12,7 @@ import { getClasses } from "./access";
 import { sms } from "@/lib/sms";
 import { addDays } from "@/lib/format";
 import type { ReminderChannel } from "@/generated/prisma/client";
+import { appSecret } from "../secret";
 
 export const REMINDER_DAYS = [14, 21, 30, 45, 60, 90] as const;
 export const REMINDER_MAX = 20;
@@ -23,7 +24,7 @@ export const REMINDER_CHANNELS: { key: ReminderChannel; label: string }[] = [
 export class ReminderError extends Error {}
 
 /** The one-tap link carries a short signature, so a reminder id can't be guessed into someone's bag. */
-export const reminderToken = (id: string) => sha256(`${process.env.SESSION_SECRET ?? "hh"}:reminder:${id}`).slice(0, 20);
+export const reminderToken = (id: string) => sha256(`${appSecret()}:reminder:${id}`).slice(0, 20);
 export const reorderPath = (id: string) => `/r/${id}/${reminderToken(id)}`;
 
 type Member = { id: string; firstName: string; email: string | null };

@@ -12,6 +12,9 @@ import { extFor } from "@/lib/files";
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "private, no-store" } });
 
+// HQ admin and HQ staff see the whole network; an area manager sees their region's stores (scopedStoreIds) only.
+const networkWide = (u: { role: string }) => u.role === "HQ_ADMIN" || u.role === "HQ_STAFF";
+
 /** "product" for a product photo; "public" for a live review's photo; "private" when the viewer may see the record it belongs to; null otherwise. */
 async function access(uploadId: string): Promise<"product" | "public" | "private" | null> {
   if (await isProductImage(uploadId)) return "product";
@@ -22,13 +25,13 @@ async function access(uploadId: string): Promise<"product" | "public" | "private
   const ret = await db.returnRequest.findFirst({ where: { photoUploadIds: { has: uploadId } }, select: { customerId: true, storeId: true } });
   if (ret) {
     if (customer && customer.id === ret.customerId) return "private";
-    if (staff && (isHq(staff) || (await scopedStoreIds(scopeOf(staff))).includes(ret.storeId))) return "private";
+    if (staff && (networkWide(staff) || (await scopedStoreIds(scopeOf(staff))).includes(ret.storeId))) return "private";
     return null;
   }
   const msg = await db.supportMessage.findFirst({ where: { attachmentUploadId: uploadId }, select: { ticket: { select: { customerId: true, storeId: true } } } });
   if (msg) {
     if (customer && customer.id === msg.ticket.customerId) return "private";
-    if (staff && (isHq(staff) || (msg.ticket.storeId && (await scopedStoreIds(scopeOf(staff))).includes(msg.ticket.storeId)))) return "private";
+    if (staff && (networkWide(staff) || (msg.ticket.storeId && (await scopedStoreIds(scopeOf(staff))).includes(msg.ticket.storeId)))) return "private";
   }
   return null;
 }

@@ -16,7 +16,6 @@ import { QrCode } from "@/components/shop/qr";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { zar } from "@/lib/money";
-import { displayPhone } from "@/lib/sa";
 import { PrintBar } from "./print-bar";
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ t?: string }> };
@@ -256,8 +255,7 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                 <p className="text-sm text-ink-700">
                   Herbal Holland Rewards member <span className="tnum">{s.customer.memberNo}</span>
                 </p>
-                <p className="text-sm text-ink-700">{displayPhone(s.customer.phone)}</p>
-                {s.customer.email && <p className="text-sm text-ink-700">{s.customer.email}</p>}
+                {/* No phone or email: this page opens from the receipt's QR code, for anyone holding the receipt. */}
               </>
             ) : (
               <p className="mt-2 text-sm text-ink-700">Walk-in customer</p>

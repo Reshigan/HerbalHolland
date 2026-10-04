@@ -2,8 +2,9 @@
 // so the card needs no lookup and can't be forged or used to probe other members.
 import { createHmac, timingSafeEqual } from "node:crypto";
 import type { TierKey } from "@/lib/loyalty-rules";
+import { appSecret } from "./secret";
 
-const sig = (payload: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`share:${payload}`).digest("base64url").slice(0, 16);
+const sig = (payload: string) => createHmac("sha256", appSecret()).update(`share:${payload}`).digest("base64url").slice(0, 16);
 
 /** `/s/{referralCode}?n=…&s=…&t=…&k=…` — n: first name, s: cents saved, t: tier. The link also carries the referral. */
 export function sharePath(m: { referralCode: string; firstName: string; savedCents: number; tier: TierKey }) {

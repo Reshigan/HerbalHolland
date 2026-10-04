@@ -21,11 +21,17 @@ export async function addPoints(
   await t.customer.update({ where: { id: a.customerId }, data: { points: { increment: a.points } } });
 }
 
-export async function redeemPoints(t: Tx, a: { customerId: string; points: number; storeId?: string | null; saleId?: string; orderId?: string }) {
+/**
+ * Spends points — only if the member has them, in one statement, so two redemptions at once can't spend the same
+ * points. `overdraw`: a till sale queued offline records what the member was given (loss prevention flags it).
+ */
+export async function redeemPoints(t: Tx, a: { customerId: string; points: number; storeId?: string | null; saleId?: string; orderId?: string; overdraw?: boolean }) {
   if (a.points <= 0) return;
-  const c = await t.customer.findUniqueOrThrow({ where: { id: a.customerId }, select: { points: true } });
-  if (c.points < a.points) throw new LoyaltyError(`Only ${c.points} points available`);
-  await addPoints(t, { ...a, points: -a.points, kind: "REDEEM" });
+  const { overdraw, ...entry } = a;
+  if (overdraw) return addPoints(t, { ...entry, points: -a.points, kind: "REDEEM" });
+  const { count } = await t.customer.updateMany({ where: { id: a.customerId, points: { gte: a.points } }, data: { points: { decrement: a.points } } });
+  if (!count) throw new LoyaltyError(`Only ${(await t.customer.findUnique({ where: { id: a.customerId }, select: { points: true } }))?.points ?? 0} points available`);
+  await t.loyaltyEntry.create({ data: { ...entry, points: -a.points, kind: "REDEEM" } });
 }
 
 /**
@@ -36,6 +42,8 @@ export async function recordPurchase(
   t: Tx,
   a: { customerId: string; storeId: string; paidCents: number; totalCents: number; multiplier: number; saleId: string; orderId?: string; at: Date; earnPer100: number; referralBonus: number },
 ) {
+  // The member's row lock first: two first purchases at once can't both pay the referral bonus.
+  await t.$queryRaw`SELECT 1 FROM "Customer" WHERE id = ${a.customerId} FOR UPDATE`;
   const before = await t.customer.findUniqueOrThrow({ where: { id: a.customerId } });
   const spend = await spend12m(t, a.customerId);
   const tier = heldTier(tierFor(spend).key as TierKey, before.tierFloor, before.tierFloorUntil, a.at);

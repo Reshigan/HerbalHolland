@@ -191,8 +191,10 @@ export async function recordCounts(storeId: string, stockTakeId: string, counts:
 }
 
 export async function approveStockTake(t: Tx, stockTakeId: string, userId: string | null) {
+  // Closed once: only the approval that moves it out of COUNTING posts the variances.
+  const claimed = await t.stockTake.updateMany({ where: { id: stockTakeId, status: "COUNTING" }, data: { status: "APPROVED", approvedAt: new Date(), approvedById: userId } });
+  if (claimed.count !== 1) throw new StockError("Stock take is already closed");
   const st = await t.stockTake.findUniqueOrThrow({ where: { id: stockTakeId }, include: { lines: true } });
-  if (st.status !== "COUNTING") throw new StockError("Stock take is already closed");
   let varianceValue = 0;
   for (const line of st.lines) {
     if (line.countedQty == null) continue;
@@ -207,6 +209,5 @@ export async function approveStockTake(t: Tx, stockTakeId: string, userId: strin
     });
     varianceValue += delta * cost;
   }
-  await t.stockTake.update({ where: { id: stockTakeId }, data: { status: "APPROVED", approvedAt: new Date(), approvedById: userId } });
   return varianceValue;
 }

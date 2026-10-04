@@ -15,12 +15,12 @@ import { redeemOffers } from "./offers";
 import { dropBlocks } from "./drops";
 import { checkTradeBasket, evaluateBasket } from "./compliance";
 import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers";
-import { creditCheckFor, postLedgerEntry } from "./trade/ledger";
+import { lockedCreditCheck, postLedgerEntry } from "./trade/ledger";
 import { licenceProblem } from "./trade/licences";
 import { addDays, dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
-import { allocateRefundAcross, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
+import { allocateRefundAcross, maskVoucherCode, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
 import type { Allocation } from "@/lib/fefo";
 import type { AgeCheck, GiftVoucher, PayMethod } from "@/generated/prisma/client";
 
@@ -132,7 +132,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   let pointsEarned = 0;
   if (a.customerId) {
     if (a.quote.offerIds?.length) await redeemOffers(t, a.quote.offerIds, { saleId: sale.id });
-    if (a.redeemNow && a.pointsRedeemed > 0) await redeemPoints(t, { customerId: a.customerId, points: a.pointsRedeemed, storeId: a.storeId, saleId: sale.id });
+    if (a.redeemNow && a.pointsRedeemed > 0) await redeemPoints(t, { customerId: a.customerId, points: a.pointsRedeemed, storeId: a.storeId, saleId: sale.id, overdraw: !!a.offline });
     const noEarn = a.quote.lines.filter((l) => l.noEarn).reduce((s, l) => s + l.totalCents, 0);
     const r = await recordPurchase(t, {
       customerId: a.customerId, storeId: a.storeId, paidCents: Math.max(0, total - a.pointsRedeemed * 100 - noEarn), totalCents: total,
@@ -241,10 +241,12 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   if (input.payments.some((p) => p.method === "ACCOUNT")) throw new SaleError("On account is for trade sales only: choose the trade account first");
   if (!input.customerId && input.memberNo)
     input = { ...input, customerId: (await db.customer.findUnique({ where: { memberNo: input.memberNo.toUpperCase() }, select: { id: true } }))?.id ?? null };
-  const q = await quote({
-    storeId: ctx.storeId, channel: "POS", items: input.lines, code: input.promoCode, customerId: input.customerId, trustClientPrices: offline,
-  });
+  const quoteArgs = { storeId: ctx.storeId, channel: "POS" as const, items: input.lines, code: input.promoCode, customerId: input.customerId };
+  const q = await quote({ ...quoteArgs, trustClientPrices: offline });
   if (!q.lines.length) throw new SaleError("The sale has no items");
+  // An offline sale is recorded at the prices the till charged; what the server would have charged is kept beside it,
+  // so a sale rung up below price (or a till that only claims to be offline) shows up in loss prevention.
+  const listTotal = offline ? (await quote(quoteArgs)).totalCents : q.totalCents;
   if (q.codeError && !offline) throw new SaleError(q.codeError);
   // Drop limits are checked at the till before payment. If a card/PayShap payment already went through (a race with
   // an online order), post the sale and flag it for HQ rather than leave the customer charged without a sale.
@@ -297,6 +299,8 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
     if (input.seq) await t.device.updateMany({ where: { id: ctx.deviceId, seq: { lt: input.seq } }, data: { seq: input.seq } });
     if (!comp.ok) await audit(t, actor, "compliance.offline_exception", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: comp.blocks } });
     if (paid !== q.totalCents) await audit(t, actor, "sale.tender_variance", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { paid, total: q.totalCents } });
+    if (listTotal > q.totalCents) await audit(t, actor, "sale.offline_price", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { charged: q.totalCents, price: listTotal } });
+    if (customer && points > customer.points) await audit(t, actor, "sale.points_overdraw", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { redeemed: points, balance: customer.points } });
     if (dropped.length) await audit(t, actor, "drop.limit_after_payment", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: dropped } });
     return { sale, duplicate: false };
   });
@@ -336,14 +340,14 @@ async function postTradeSale(input: PosSaleInput, ctx: { storeId: string; device
   if (paid !== q.totalCents) throw new SaleError(`Payments (${zar(paid)}) don't match the total (${zar(q.totalCents)})`);
   const onAccount = input.payments.filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + p.amountCents, 0);
   if (onAccount < 0) throw new SaleError("The on-account part can't be negative");
-  if (onAccount > 0) {
-    const d = await creditCheckFor(account, onAccount);
-    if (!d.ok) throw new SaleError(d.reason!);
-  }
 
   const actor: Actor = { type: "USER", id: ctx.staffId, name: ctx.staffName };
   const createdAt = new Date();
   const result = await tx(async (t) => {
+    if (onAccount > 0) {
+      const d = await lockedCreditCheck(t, account.id, onAccount);
+      if (!d.ok) throw new SaleError(d.reason!);
+    }
     const taken = await t.sale.findUnique({ where: { number: input.number }, select: { id: true } });
     const number = taken ? `${input.number}-${shortCode(3)}` : input.number;
     const sale = await postSaleTx(t, {
@@ -405,50 +409,57 @@ export async function refundSale(a: {
 }) {
   const dup = await db.sale.findUnique({ where: { id: a.id } });
   if (dup) return dup;
-  const orig = await db.sale.findUniqueOrThrow({
-    where: { id: a.saleId },
-    include: { lines: true, payments: true, refunds: { include: { lines: true, payments: true } } },
-  });
-  if (orig.kind !== "SALE") throw new SaleError("Only sales can be refunded");
-
-  const refunded = new Map<string, number>();
-  for (const r of orig.refunds)
-    for (const l of r.lines) {
-      const src = (l.allocations as LineAlloc[])[0]?.lineId;
-      if (src) refunded.set(src, (refunded.get(src) ?? 0) - l.qty);
-    }
-
-  const picks = a.lines
-    .filter((x) => x.qty > 0)
-    .map((x) => {
-      const line = orig.lines.find((l) => l.id === x.saleLineId);
-      if (!line) throw new SaleError("Unknown sale line");
-      const left = line.qty - (refunded.get(line.id) ?? 0);
-      if (x.qty > left) throw new SaleError(`Only ${left} left to refund on that line`);
-      const share = x.qty / line.qty;
-      return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share), saved: Math.round(line.memberSavingsCents * share), offer: Math.round(line.offerCents * share) };
-    });
-  if (!picks.length) throw new SaleError("Choose at least one item to refund");
-
-  const amount = picks.reduce((s, p) => s + p.amount, 0);
-  const vat = picks.reduce((s, p) => s + p.vat, 0);
-  const saved = picks.reduce((s, p) => s + p.saved, 0);
-  const offer = picks.reduce((s, p) => s + p.offer, 0);
-  const loyaltyPaid = orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0);
-  const loyaltyBack = orig.totalCents > 0 ? Math.floor((amount * loyaltyPaid) / orig.totalCents / 100) * 100 : 0;
-  const extra = Math.max(0, Math.min(a.extraCents ?? 0, Math.max(0, orig.totalCents - orig.subtotalCents + orig.discountCents)));
-  const extraVat = orig.vatCents > 0 ? vatOf(extra) : 0; // non-VAT-vendor stores charged none
-  const moneyBack = amount - loyaltyBack + extra;
-  const earnedBack = orig.totalCents > 0 ? Math.round((orig.pointsEarned * amount) / orig.totalCents) : 0;
-  // Gift vouchers that paid on the sale take the refund first, up to what each paid less what earlier refunds put back.
-  const split = allocateRefundAcross(moneyBack, voucherPartsOf(orig));
-  // Trade sales: what was on account comes back onto the account (a credit note), before any money moves.
-  const accountPaid = orig.tradeAccountId ? orig.payments.filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, p.amountCents), 0) : 0;
-  const accountBack = orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, -p.amountCents), 0);
-  const toAccount = Math.min(split.toTender, Math.max(0, accountPaid - accountBack));
-  const toTender = split.toTender - toAccount;
-
+  let invoiceTo: string | null = null;
   return tx(async (t) => {
+    // One refund of a sale at a time: what's left to refund (and what goes back to vouchers, points and the account) is
+    // worked out under the sale's row lock, so two refunds at once can't both take the same line.
+    await t.$queryRaw`SELECT 1 FROM "Sale" WHERE id = ${a.saleId} FOR UPDATE`;
+    const again = await t.sale.findUnique({ where: { id: a.id } });
+    if (again) return again;
+    const orig = await t.sale.findUniqueOrThrow({
+      where: { id: a.saleId },
+      include: { lines: true, payments: true, refunds: { include: { lines: true, payments: true } } },
+    });
+    if (orig.kind !== "SALE") throw new SaleError("Only sales can be refunded");
+    invoiceTo = orig.invoiceEmail ?? null;
+
+    const refunded = new Map<string, number>();
+    for (const r of orig.refunds)
+      for (const l of r.lines) {
+        const src = (l.allocations as LineAlloc[])[0]?.lineId;
+        if (src) refunded.set(src, (refunded.get(src) ?? 0) - l.qty);
+      }
+
+    const picks = a.lines
+      .filter((x) => x.qty > 0)
+      .map((x) => {
+        const line = orig.lines.find((l) => l.id === x.saleLineId);
+        if (!line) throw new SaleError("Unknown sale line");
+        const left = line.qty - (refunded.get(line.id) ?? 0);
+        if (x.qty > left) throw new SaleError(`Only ${left} left to refund on that line`);
+        const share = x.qty / line.qty;
+        return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share), saved: Math.round(line.memberSavingsCents * share), offer: Math.round(line.offerCents * share) };
+      });
+    if (!picks.length) throw new SaleError("Choose at least one item to refund");
+
+    const amount = picks.reduce((s, p) => s + p.amount, 0);
+    const vat = picks.reduce((s, p) => s + p.vat, 0);
+    const saved = picks.reduce((s, p) => s + p.saved, 0);
+    const offer = picks.reduce((s, p) => s + p.offer, 0);
+    const loyaltyPaid = orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0);
+    const loyaltyBack = orig.totalCents > 0 ? Math.floor((amount * loyaltyPaid) / orig.totalCents / 100) * 100 : 0;
+    const extra = Math.max(0, Math.min(a.extraCents ?? 0, Math.max(0, orig.totalCents - orig.subtotalCents + orig.discountCents)));
+    const extraVat = orig.vatCents > 0 ? vatOf(extra) : 0; // non-VAT-vendor stores charged none
+    const moneyBack = amount - loyaltyBack + extra;
+    const earnedBack = orig.totalCents > 0 ? Math.round((orig.pointsEarned * amount) / orig.totalCents) : 0;
+    // Gift vouchers that paid on the sale take the refund first, up to what each paid less what earlier refunds put back.
+    const split = allocateRefundAcross(moneyBack, voucherPartsOf(orig));
+    // Trade sales: what was on account comes back onto the account (a credit note), before any money moves.
+    const accountPaid = orig.tradeAccountId ? orig.payments.filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, p.amountCents), 0) : 0;
+    const accountBack = orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, -p.amountCents), 0);
+    const toAccount = Math.min(split.toTender, Math.max(0, accountPaid - accountBack));
+    const toTender = split.toTender - toAccount;
+
     const refund = await t.sale.create({
       data: {
         id: a.id, number: a.number, kind: "REFUND", refundOfId: orig.id, channel: orig.channel, storeId: orig.storeId,
@@ -522,12 +533,11 @@ export async function refundSale(a: {
     await bumpVariantStats(t, orig.storeId, date, vstats);
     await audit(t, { type: "USER", id: a.staffId, name: a.staffName }, "sale.refund", {
       storeId: orig.storeId, entity: "Sale", entityId: refund.id,
-      data: { of: orig.number, amount, reason: a.reason, ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: v.code, cents: v.cents })), toTender }), ...(toAccount && { creditNote: toAccount }) },
+      data: { of: orig.number, amount, reason: a.reason, ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: maskVoucherCode(v.code), cents: v.cents })), toTender }), ...(toAccount && { creditNote: toAccount }) },
     });
     return refund;
   }).then((refund) => {
-    const to = orig.invoiceEmail ?? null;
-    if (to) queueSaleInvoice(refund.id, to);
+    if (invoiceTo) queueSaleInvoice(refund.id, invoiceTo);
     return refund;
   });
 }

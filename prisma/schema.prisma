@@ -156,6 +156,10 @@ model User {
   passwordHash       String?
   mustChangePassword Boolean   @default(false) // set with a temporary password; cleared when they choose their own
   pinHash            String?
+  passwordFails      Int       @default(0) // wrong passwords since the last lock or sign-in (sign-in and till pairing)
+  passwordLockedAt   DateTime? // locked out until 15 minutes after this
+  pinFails           Int       @default(0)
+  pinLockedAt        DateTime? // locked out of every till until 5 minutes after this
   canDispense        Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
   memberId           String?   @unique // their own Rewards membership: sales they ring onto it are flagged and earn no commission
   role               Role
@@ -2062,6 +2066,7 @@ enum TradeLicenceKind {
   BUSINESS_LICENCE // Businesses Act 71 of 1991: municipal business licence (meals and perishable foodstuffs)
   PRACTICE_NUMBER // BHF PCNS practice number, with the practitioner's HPCSA or AHPCSA registration
   CIPC_REGISTRATION // the CIPC registration certificate (CoR14.3 or equivalent)
+  SARS_REGISTRATION // a sole proprietor's SARS notice of registration (income tax reference number)
 }
 
 enum TradeLicenceStatus {

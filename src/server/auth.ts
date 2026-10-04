@@ -45,19 +45,26 @@ async function readSession(name: keyof typeof COOKIE) {
 }
 
 // ── Staff (back office, HQ) ──────────────────────────────────────────────────
-export const getStaff = cache(async () => {
+/** The signed-in staff member, even one who must still choose their own password (only the password page wants that). */
+export const getStaffChangingPassword = cache(async () => {
   const s = await readSession("staff");
-  if (!s?.userId) return null;
+  // A till's PIN session (it carries the device) only ever works at that till, never as a back-office sign-in.
+  if (!s?.userId || s.deviceId) return null;
   const user = await db.user.findUnique({
     where: { id: s.userId },
     include: { company: true, store: true, region: true },
   });
   return user?.active ? user : null;
 });
+/** The signed-in staff member; nobody until a temporary password has been replaced. */
+export const getStaff = cache(async () => {
+  const user = await getStaffChangingPassword();
+  return user && !user.mustChangePassword ? user : null;
+});
 export type Staff = NonNullable<Awaited<ReturnType<typeof getStaff>>>;
 
 export async function requireStaff(roles?: Role[]) {
-  const user = await getStaff();
+  const user = await getStaffChangingPassword();
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
   if (roles && !roles.includes(user.role)) redirect("/login?denied=1");

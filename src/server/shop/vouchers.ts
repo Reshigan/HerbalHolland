@@ -15,7 +15,7 @@ import { sms } from "@/lib/sms";
 import { fmtDate } from "@/lib/format";
 import { zar, zarWhole } from "@/lib/money";
 import {
-  isVoucherSku, makeVoucherCode, normaliseVoucherCode, voucherApply, voucherExpiry, voucherProblem, voucherSku, VOUCHER_AMOUNTS_CENTS, VOUCHER_MESSAGE_MAX, VOUCHER_PRODUCT_SLUG,
+  isVoucherSku, makeVoucherCode, maskVoucherCode, normaliseVoucherCode, voucherApply, voucherExpiry, voucherProblem, voucherSku, VOUCHER_AMOUNTS_CENTS, VOUCHER_MESSAGE_MAX, VOUCHER_PRODUCT_SLUG,
 } from "@/lib/vouchers";
 import type { GiftVoucher, OrderStatus } from "@/generated/prisma/client";
 
@@ -114,7 +114,7 @@ export async function completeVoucherOrder(o: { id: string; code: string; custom
   const v = await db.giftVoucher.findFirst({ where: { purchaseOrderId: o.id } });
   if (!v) return;
   const issued = v.status === "PENDING" ? await db.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE", issuedAt: now, expiresAt: voucherExpiry(now) } }) : v;
-  await audit(db, SYSTEM, "voucher.issue", { entity: "GiftVoucher", entityId: v.id, data: { code: v.code, amount: v.amountCents, orderId: o.id, expiresAt: issued.expiresAt } });
+  await audit(db, SYSTEM, "voucher.issue", { entity: "GiftVoucher", entityId: v.id, data: { code: maskVoucherCode(v.code), amount: v.amountCents, orderId: o.id, expiresAt: issued.expiresAt } });
   await sendVoucher(issued);
 }
 
@@ -167,7 +167,10 @@ export async function sendVoucher(v: GiftVoucher) {
     const m = voucherEmail(v, "recipient", who);
     await logEmail(v.recipientEmail, m.subject, await deliverEmail({ to: v.recipientEmail, ...m, kind: "TRANSACTIONAL" }), null);
   }
-  if (buyer?.phone) await notifyCustomer({ id: buyer.id, phone: buyer.phone }, sms(`Your ${zarWhole(v.amountCents)} gift voucher ${v.code} is ready, valid until ${fmtDate(v.expiresAt)}. Enter it at checkout or show it in store.`));
+  if (buyer?.phone) {
+    const text = (code: string) => sms(`Your ${zarWhole(v.amountCents)} gift voucher ${code} is ready, valid until ${fmtDate(v.expiresAt)}. Enter it at checkout or show it in store.`);
+    await notifyCustomer({ id: buyer.id, phone: buyer.phone }, text(v.code), text(maskVoucherCode(v.code)));
+  }
   await db.giftVoucher.update({ where: { id: v.id }, data: { sentAt: new Date() } });
 }
 
@@ -198,7 +201,7 @@ export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: n
   await t.voucherRedemption.create({ data: { voucherId: a.voucher.id, orderId: a.orderId ?? null, saleId: a.saleId ?? null, cents: a.cents } });
   await audit(t, a.actor, "voucher.redeem", {
     storeId: a.storeId ?? undefined, entity: "GiftVoucher", entityId: a.voucher.id,
-    data: { code: a.voucher.code, ...(a.orderId && { orderId: a.orderId }), ...(a.saleId && { saleId: a.saleId }), amount: a.cents, balanceAfter: a.voucher.balanceCents - a.cents },
+    data: { code: maskVoucherCode(a.voucher.code), ...(a.orderId && { orderId: a.orderId }), ...(a.saleId && { saleId: a.saleId }), amount: a.cents, balanceAfter: a.voucher.balanceCents - a.cents },
   });
 }
 
@@ -216,7 +219,7 @@ export async function restoreVoucherTx(t: Tx, a: { code: string; cents: number; 
   await t.voucherRedemption.create({ data: { voucherId: v.id, orderId: a.orderId ?? null, saleId: a.saleId, cents: -a.cents } });
   await audit(t, a.actor, "voucher.refund", {
     storeId: a.storeId ?? undefined, entity: "GiftVoucher", entityId: v.id,
-    data: { code: v.code, saleId: a.saleId, ...(a.orderId && { orderId: a.orderId }), amount: a.cents, balanceAfter: updated.balanceCents },
+    data: { code: maskVoucherCode(v.code), saleId: a.saleId, ...(a.orderId && { orderId: a.orderId }), amount: a.cents, balanceAfter: updated.balanceCents },
   });
   return updated;
 }
@@ -257,7 +260,7 @@ export async function onOrderCancelledTx(t: Tx, orderId: string, actor: Actor) {
     await t.voucherRedemption.update({ where: { id: r.id }, data: { reversed: true } });
     const v = await t.giftVoucher.update({ where: { id: r.voucherId }, data: { balanceCents: { increment: r.cents } } });
     if (v.status === "REDEEMED" && v.expiresAt > new Date()) await t.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE" } });
-    await audit(t, actor, "voucher.release", { entity: "GiftVoucher", entityId: v.id, data: { code: v.code, orderId, amount: r.cents } });
+    await audit(t, actor, "voucher.release", { entity: "GiftVoucher", entityId: v.id, data: { code: maskVoucherCode(v.code), orderId, amount: r.cents } });
   }
   const pending = await t.giftVoucher.updateMany({ where: { purchaseOrderId: orderId, status: "PENDING" }, data: { status: "CANCELLED" } });
   return { released: reds.length, cancelled: pending.count };

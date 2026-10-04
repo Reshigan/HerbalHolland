@@ -403,11 +403,14 @@ export async function advanceOrder(
     if (voucherTender) payments = [...payments, voucherTender];
   }
 
-  // A paid Peach or Yoco order is refunded in full before it's cancelled. If the gateway refuses, nothing changes and staff see why.
-  const refund = to === "CANCELLED" && gateway ? await refundOnline(gateway, o, due) : null;
-  const events = [...(o.events as Event[]), { status: to, at: new Date().toISOString(), note: [opts.note, refund?.note].filter(Boolean).join(" · ") || undefined }];
   let postedSaleId: string | null = null;
   const updated = await tx(async (t) => {
+    // Claim the order as it was read, so two people (or a double tap) can't both move it — or both refund it.
+    const claimed = await t.order.updateMany({ where: { id: o.id, status: o.status, paymentStatus: o.paymentStatus }, data: { status: to } });
+    if (!claimed.count) throw new OrderError("This order changed while you were on it. Refresh and try again.");
+    // A paid Peach or Yoco order is refunded in full before it's cancelled. If the gateway refuses, nothing changes and staff see why.
+    const refund = to === "CANCELLED" && gateway ? await refundOnline(gateway, o, due) : null;
+    const events = [...(o.events as Event[]), { status: to, at: new Date().toISOString(), note: [opts.note, refund?.note].filter(Boolean).join(" · ") || undefined }];
     if (handover || dispatch) {
       const excluded = incentiveExcluded(settings.compliance);
       const lines = o.lines.map((l) => ({

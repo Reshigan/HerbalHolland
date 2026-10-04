@@ -1,6 +1,6 @@
 // Herbal Holland Rewards membership: phone OTP sign-in, adult-only enrolment, consent ledger,
 // age verification and the SAHPRA patient register.
-import { createHmac, randomInt } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { db, tx } from "./db";
 import { send } from "./messaging";
 import { APP_URL } from "./invoices";
@@ -8,23 +8,25 @@ import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { nextNumber, shortCode } from "./counters";
-import { sha256 } from "./crypto";
+import { checkCode, issueCode } from "./otp";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
 import { DEALS_QUESTION, TERMS_VERSION } from "@/lib/terms";
 import { interestsFrom } from "@/lib/rfm";
+import { appSecret } from "./secret";
 
 export class CustomerError extends Error {}
 
-const idHash = (id: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(id).digest("hex");
+/** Why a sign-in code didn't work (members and trade buyers alike). */
+export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That code has expired — request a new one", locked: "Too many wrong codes — try again in an hour" } as const;
+
+const idHash = (id: string) => createHmac("sha256", appSecret()).update(id).digest("hex");
 
 export async function requestOtp(raw: string) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Enter a valid South African mobile number");
-  const recent = await db.otp.count({ where: { phone, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } });
-  if (recent >= 5) throw new CustomerError("Too many codes requested — try again in 10 minutes");
-  const code = String(randomInt(100_000, 1_000_000));
-  await db.otp.create({ data: { phone, codeHash: sha256(`${phone}:${code}`), expiresAt: new Date(Date.now() + 10 * 60_000) } });
+  const code = await issueCode({ phone });
+  if (!code) throw new CustomerError("Too many codes requested — try again in 10 minutes");
   const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
   const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
   if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now — please try again in a minute");
@@ -34,13 +36,8 @@ export async function requestOtp(raw: string) {
 export async function verifyOtp(raw: string, code: string) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Invalid phone number");
-  const otp = await db.otp.findFirst({ where: { phone, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } });
-  if (!otp || otp.attempts >= 5) throw new CustomerError("That code has expired — request a new one");
-  if (otp.codeHash !== sha256(`${phone}:${code.trim()}`)) {
-    await db.otp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
-    throw new CustomerError("That code isn't right");
-  }
-  await db.otp.deleteMany({ where: { phone } });
+  const r = await checkCode({ phone }, code);
+  if (r !== "ok") throw new CustomerError(CODE_PROBLEM[r]);
   return { phone, customer: await db.customer.findUnique({ where: { phone } }) };
 }
 

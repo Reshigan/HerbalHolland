@@ -40,19 +40,24 @@ export async function licenceRecords(accountId: string, t: Tx | typeof db = db):
   return t.tradeLicence.findMany({ where: { tradeAccountId: accountId }, orderBy: { createdAt: "desc" } });
 }
 
-/** Whether the account holds what its kind of business and its ranges require (or would, with `kind`/`classes`). */
-export async function standingOf(account: { id: string; kind: string; classes: string[] }, opts: { kind?: string; classes?: string[]; now?: Date; t?: Tx | typeof db } = {}): Promise<LicenceStanding> {
+/** What licences turn on: the kind of business, its ranges, and whether it's a company (has a registration number). */
+export type LicensedAccount = { id: string; kind: string; classes: string[]; regNumber: string | null };
+const needs = (a: { kind: string; classes: string[]; regNumber: string | null }) => requiredLicences(a.kind, a.classes, !!a.regNumber);
+
+/** Whether the account holds what its kind of business and its ranges require (or would, with `kind`/`classes`/`regNumber`). */
+export async function standingOf(account: LicensedAccount, opts: { kind?: string; classes?: string[]; regNumber?: string | null; now?: Date; t?: Tx | typeof db } = {}): Promise<LicenceStanding> {
   const records = await licenceRecords(account.id, opts.t);
-  return licenceStanding(requiredLicences(opts.kind ?? account.kind, opts.classes ?? account.classes), records, opts.now);
+  const next = { kind: opts.kind ?? account.kind, classes: opts.classes ?? account.classes, regNumber: opts.regNumber === undefined ? account.regNumber : opts.regNumber };
+  return licenceStanding(needs(next), records, opts.now);
 }
 
 /**
  * For showing an account's licences: the standing of the ones it needs, then the lines for any other licence it has
  * sent (ahead of a range it wants added, say) — on file, but not counted for or against it — and every record.
  */
-export async function licenceOverview(account: { id: string; kind: string; classes: string[] }) {
+export async function licenceOverview(account: LicensedAccount) {
   const records = await licenceRecords(account.id);
-  const required = requiredLicences(account.kind, account.classes);
+  const required = needs(account);
   const others = TRADE_LICENCE_KINDS.filter((k) => !required.some((r) => r.kind === k) && records.some((r) => r.kind === k));
   return {
     standing: licenceStanding(required, records),
@@ -62,7 +67,7 @@ export async function licenceOverview(account: { id: string; kind: string; class
 }
 
 /** Why the account can't be supplied right now because of its licences — or null when they're in order. */
-export async function licenceProblem(account: { id: string; kind: string; classes: string[] }, t?: Tx | typeof db): Promise<string | null> {
+export async function licenceProblem(account: LicensedAccount, t?: Tx | typeof db): Promise<string | null> {
   const s = await standingOf(account, { t });
   return s.ok ? null : s.problems.join("; ");
 }
@@ -88,7 +93,6 @@ export async function submitTradeLicence(
   }
   if (!isTradeLicenceKind(input.kind)) throw new TradeLicenceError("Choose which licence this is", "kind");
   const kind = input.kind;
-  if (kind === "CIPC_REGISTRATION" && !input.number && !account.regNumber) throw new TradeLicenceError("Add the company registration number to the business details first — the certificate is for that number");
   const check = checkLicenceInput(kind, { number: kind === "CIPC_REGISTRATION" ? (input.number ?? account.regNumber) : input.number, expiresAt: input.expiresAt }, opts.now);
   if (!check.ok) {
     const [field, message] = Object.entries(check.fields)[0] as ["number" | "expiresAt", string];
@@ -180,7 +184,7 @@ export async function tradeLicenceExpiry(now = new Date()) {
   for (const l of due) {
     try {
       const newer = await db.tradeLicence.count({ where: { tradeAccountId: l.tradeAccountId, kind: l.kind, createdAt: { gt: l.createdAt }, status: { in: ["SUBMITTED", "VERIFIED"] } } });
-      const needed = requiredLicences(l.account.kind, l.account.classes).some((r) => r.kind === l.kind);
+      const needed = needs(l.account).some((r) => r.kind === l.kind);
       await db.tradeLicence.update({ where: { id: l.id }, data: { remindedAt: now } });
       if (newer || !needed) continue;
       await mail(tradeLicenceExpiringEmail({ account: l.account, licence: TRADE_LICENCES[l.kind].name, expiresAt: l.expiresAt!, url: portalUrl() }), l.account.email);

@@ -556,7 +556,7 @@ describe("Licences after approval", () => {
     expect((await tradeLicenceExpiry()).reminded).toBe(0);
     // Lapsed: no orders, no till sale, no shipping; the job pauses the account and says why.
     await db.tradeLicence.update({ where: { id: sapc.id }, data: { expiresAt: new Date(Date.now() - 3_600_000) } });
-    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"] })).toMatch(/^SAPC pharmacy recording expired on/);
+    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"], regNumber: null })).toMatch(/^SAPC pharmacy recording expired on/);
     await expect(placeTradeOrder({ accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "EFT" })).rejects.toThrow(/SAPC pharmacy recording expired/);
     await expect(postPosSale({ id: randomUUID(), number: saleNumber(), lines: [{ variantId: w.oilV.id, qty: 1 }], payments: [{ method: "CARD", amountCents: 23_000 }], trade: { tradeAccountId: accountId } }, pos())).rejects.toThrow(/until its licences are in order/);
     expect((await tradeLicenceExpiry()).held).toBe(1);
@@ -565,11 +565,32 @@ describe("Licences after approval", () => {
     expect((await tradeAccountLookup("hatfield"))[0].licenceProblem).toMatch(/SAPC pharmacy recording expired/);
     // The renewal, uploaded in the portal and verified: the pause lifts by itself.
     const renewal = await submitTradeLicence(accountId, { kind: "SAPC_RECORDING", number: "P1234567" }, pdf("sapc-2027.pdf"), { type: "CUSTOMER", id: buyerId, name: "Thandi" }, { byBuyerId: buyerId });
-    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"] })).toBe("SAPC pharmacy recording is waiting to be checked");
+    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"], regNumber: null })).toBe("SAPC pharmacy recording is waiting to be checked");
     expect((await verifyTradeLicence(renewal.id, hq)).released).toBe(true);
     expect(await db.tradeAccount.findUniqueOrThrow({ where: { id: accountId } })).toMatchObject({ status: "APPROVED", holdReason: null });
     expect((await lastMailTo(BILLING)).body).toMatch(/hold lifted/i);
-    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"] })).toBeNull();
+    expect(await licenceProblem({ id: accountId, kind: "PHARMACY", classes: ["CBD", "CBD_FOOD"], regNumber: null })).toBeNull();
+  });
+
+  it("lets a shop apply as a sole proprietor, and asks for the CIPC certificate before it becomes a company", async () => {
+    const r = await applyForTradeAccount(
+      { ...application, kind: "RETAILER", legalName: "Sipho Dlamini", name: "Kasi Corner Shop", regNumber: "", vatNumber: "", classes: ["ACCESSORY", "HEMP"], buyerEmail: "sipho@kasicorner.example", licences: { SARS_REGISTRATION: { number: "0123 456 789" } } },
+      { files: { SARS_REGISTRATION: pdf("sars-notice.pdf") } },
+    );
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const sars = await db.tradeLicence.findFirstOrThrow({ where: { tradeAccountId: r.account.id } });
+    expect(sars).toMatchObject({ kind: "SARS_REGISTRATION", number: "0123456789", status: "SUBMITTED" });
+    await verifyTradeLicence(sars.id, hq);
+    const approved = await approveTradeAccount(r.account.id, { terms: "PREPAID", creditLimitCents: 0, paymentDays: 30, classes: ["ACCESSORY", "HEMP"] }, hq);
+    expect(await licenceProblem(approved)).toBeNull();
+    // Registering a company later: the certificate first (its number typed, as the account has none yet), then the number.
+    await expect(updateTradeAccount(r.account.id, { regNumber: "2019/123456/07" }, hq)).rejects.toThrow(/Company registration certificate is needed/);
+    const cipc = await submitTradeLicence(r.account.id, { kind: "CIPC_REGISTRATION", number: "2019/123456/07" }, pdf("cor14-3.pdf"), { type: "CUSTOMER", id: r.buyer.id, name: "Sipho" }, { byBuyerId: r.buyer.id });
+    await verifyTradeLicence(cipc.id, hq);
+    const company = await updateTradeAccount(r.account.id, { regNumber: "2019/123456/07" }, hq);
+    expect(company.regNumber).toBe("2019/123456/07");
+    expect(await licenceProblem(company)).toBeNull();
   });
 
   it("limits applications from one connection to five an hour", async () => {
@@ -578,5 +599,24 @@ describe("Licences after approval", () => {
     const sixth = await one(6);
     expect(sixth.ok).toBe(false);
     if (!sixth.ok) expect(sixth.error).toMatch(/several applications from this connection/);
+  });
+});
+
+describe("Credit under concurrency", () => {
+  it("decides credit one order at a time: of three orders at once that fit only singly, one is placed", async () => {
+    const one = { accountId, buyerId, lines: [{ variantId: w.oilV.id, qty: 12 }], payMethod: "ACCOUNT" as const };
+    const a = await db.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
+    const [{ _sum: bal }, { _sum: open }] = await Promise.all([
+      db.tradeLedgerEntry.aggregate({ where: { tradeAccountId: accountId }, _sum: { cents: true } }),
+      db.tradeOrder.aggregate({ where: { tradeAccountId: accountId, payMethod: "ACCOUNT", status: { in: ["PLACED", "PICKING", "READY"] } }, _sum: { totalCents: true } }),
+    ]);
+    // Headroom for one order of R2,656.50 and a half.
+    await db.tradeAccount.update({ where: { id: accountId }, data: { status: "APPROVED", terms: "ACCOUNT", creditLimitCents: (bal.cents ?? 0) + (open.totalCents ?? 0) + 400_000 } });
+    const results = await Promise.allSettled([placeTradeOrder(one), placeTradeOrder(one), placeTradeOrder(one)]);
+    const placed = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    expect(placed).toHaveLength(1);
+    for (const r of results) if (r.status === "rejected") expect(String(r.reason)).toMatch(/credit/i);
+    await db.tradeOrder.deleteMany({ where: { id: { in: placed.map((o) => o.id) } } });
+    await db.tradeAccount.update({ where: { id: accountId }, data: { status: a.status, terms: a.terms, creditLimitCents: a.creditLimitCents } });
   });
 });

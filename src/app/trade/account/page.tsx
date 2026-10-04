@@ -114,7 +114,7 @@ export default async function TradeAccountPage() {
             <Panel className="p-5">
               <h3 className="font-semibold text-white">Upload a licence or its renewal</h3>
               <div className="mt-4">
-                <LicenceUploadForm kinds={uploadKinds} initial={firstProblem} />
+                <LicenceUploadForm kinds={uploadKinds} initial={firstProblem} regNumber={a.regNumber} />
               </div>
             </Panel>
           )}

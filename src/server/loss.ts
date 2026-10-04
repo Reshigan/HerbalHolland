@@ -30,6 +30,7 @@ export const RULES = {
   OFFLINE_SHARE: "Unusual offline selling",
   AFTER_HOURS: "Sales outside trading hours",
   COMPLIANCE: "Compliance exception",
+  OFFLINE_VARIANCE: "Offline sale off price or tender",
 } as const;
 export type Rule = keyof typeof RULES;
 
@@ -317,6 +318,19 @@ async function complianceExceptions(since: Date) {
   }));
 }
 
+/** Offline sales the server would have charged more for, that were paid short or over, or that took more points than the member had. */
+async function offlineVariances(since: Date) {
+  const rows = await db.auditLog.findMany({ where: { action: { in: ["sale.offline_price", "sale.tender_variance", "sale.points_overdraw"] }, at: { gte: since }, storeId: { not: null } }, select: { id: true, action: true, storeId: true, actorId: true, at: true, data: true } });
+  return rows.map((r): NewAlert => {
+    const d = (r.data ?? {}) as { charged?: number; price?: number; paid?: number; total?: number; redeemed?: number; balance?: number };
+    const [title, detail, amountCents] =
+      r.action === "sale.offline_price" ? ["Offline sale below price", `Charged ${zar(d.charged ?? 0)} for what costs ${zar(d.price ?? 0)} today.`, (d.price ?? 0) - (d.charged ?? 0)]
+      : r.action === "sale.points_overdraw" ? ["Offline sale took more points than the member had", `${d.redeemed} points redeemed with ${d.balance} on the card.`, ((d.redeemed ?? 0) - (d.balance ?? 0)) * 100]
+      : ["Sale paid short or over", `Tendered ${zar(d.paid ?? 0)} against a total of ${zar(d.total ?? 0)}.`, Math.abs((d.total ?? 0) - (d.paid ?? 0))];
+    return { key: `OFFLINE_VARIANCE:${r.id}`, rule: "OFFLINE_VARIANCE", severity: "MEDIUM", storeId: r.storeId!, userId: r.actorId, title, detail: `${fmtDateTime(r.at)}: ${detail}`, amountCents, evidence: [{ label: `Logged as ${r.action} in the HQ audit log` }] };
+  });
+}
+
 /** The nightly run: every rule over recent trading, then the digest. Idempotent — re-running raises nothing new. */
 export async function runLossRules(now = new Date()) {
   const { loss: s, banking } = await getSettings();
@@ -333,6 +347,7 @@ export async function runLossRules(now = new Date()) {
     ...(await offlineShare(now, s)),
     ...(await afterHours(since)),
     ...(await complianceExceptions(since)),
+    ...(await offlineVariances(since)),
   ];
   const raised = await raiseAlerts(found);
   return { found: found.length, raised, digest: await sendDigest(now) };

@@ -9,7 +9,7 @@ import { advanceOrder, placeOrder } from "@/server/orders";
 import { receipt } from "@/server/pos/receipts";
 import { zReport } from "@/server/pos/shift";
 import { SaleBody } from "@/server/pos/schemas";
-import { makeVoucherCode, voucherExpiry } from "@/lib/vouchers";
+import { maskVoucherCode, makeVoucherCode, voucherExpiry } from "@/lib/vouchers";
 import { buildWorld, resetDb, type World } from "./world";
 
 let w: World;
@@ -56,8 +56,9 @@ describe("a gift voucher as a tender", () => {
     expect(await db.auditLog.count({ where: { action: "voucher.redeem", entityId: v.id } })).toBe(1);
     // The receipt names the voucher and what's left on it; the Z-report carries a "Gift vouchers" line.
     const dto = await receipt(r.sale.id, w.store.id);
-    expect(dto.payments.find((p) => p.method === "VOUCHER")).toMatchObject({ reference: v.code, balanceCents: 0 });
-    expect(dto.vouchers).toEqual([{ code: v.code, paidCents: 50_000, refundedCents: 0 }]);
+    // The till shows the code masked (the whole code spends what's left on it).
+    expect(dto.payments.find((p) => p.method === "VOUCHER")).toMatchObject({ reference: maskVoucherCode(v.code), balanceCents: 0 });
+    expect(dto.vouchers).toEqual([{ code: maskVoucherCode(v.code), paidCents: 50_000, refundedCents: 0 }]);
     const z = await zReport("shift-v");
     expect(z.tenders.find((t) => t.method === "VOUCHER")).toMatchObject({ label: "Gift vouchers", amountCents: 50_000, count: 1 });
     // The rollup keeps voucher money with what HQ collects; cash stays cash.
@@ -115,7 +116,7 @@ describe("a gift voucher as a tender", () => {
       expect.objectContaining({ saleId: first.id, orderId: null, cents: -each }),
     ]);
     expect(await db.auditLog.count({ where: { action: "voucher.refund", entityId: v.id } })).toBe(1);
-    expect((await receipt(s.sale.id, w.store.id)).vouchers).toEqual([{ code: v.code, paidCents: PART, refundedCents: each }]);
+    expect((await receipt(s.sale.id, w.store.id)).vouchers).toEqual([{ code: maskVoucherCode(v.code), paidCents: PART, refundedCents: each }]);
     // The second coffee: the voucher takes what it has left to get back (PART − each); the rest goes to the card.
     const second = await refundSale({ id: randomUUID(), number: number(), saleId: s.sale.id, lines: [{ saleLineId: line.id, qty: 1, restock: true }], method: "CARD", reason: "Changed mind", staffId: w.manager.id, staffName: "Mia", shiftId: "shift-v" });
     const pays = (await db.payment.findMany({ where: { saleId: second.id }, orderBy: { amountCents: "asc" } })).map((p) => [p.method, p.amountCents]);

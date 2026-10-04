@@ -34,6 +34,7 @@ import {
   type RawLead,
 } from "@/lib/leads";
 import type { FranchiseLead, Prisma, Role } from "@/generated/prisma/client";
+import { appSecret } from "./secret";
 
 /** Who may see and work franchise leads: HQ admin and the HQ team — not area managers. */
 export const LEAD_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF"];
@@ -55,7 +56,7 @@ const HOUR = 3_600_000;
 // ── Enquiries ───────────────────────────────────────────────────────────────
 
 /** Keyed hash of the visitor's IP (HMAC-SHA-256 with SESSION_SECRET): limits repeat enquiries without storing the IP. */
-export const ipHash = (ip: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`franchise-lead:${ip}`).digest("hex");
+export const ipHash = (ip: string) => createHmac("sha256", appSecret()).update(`franchise-lead:${ip}`).digest("hex");
 
 /** The visitor's IP as Cloudflare (or the nearest proxy) reports it; null when there's none that looks like an IP. */
 export function clientIp(h: { get(name: string): string | null }) {

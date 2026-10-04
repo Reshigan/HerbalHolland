@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Logo } from "@/components/brand/logo";
-import { getStaff, homeFor } from "@/server/auth";
+import { getStaffChangingPassword, homeFor } from "@/server/auth";
 import { PasswordForm } from "./password-form";
 
 export const metadata = { title: "Your password" };
 
 export default async function PasswordPage() {
-  const user = await getStaff();
+  const user = await getStaffChangingPassword();
   if (!user) redirect("/login");
   const forced = user.mustChangePassword;
   return (

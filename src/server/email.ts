@@ -16,6 +16,7 @@ export type Email = {
   subject: string;
   html: string;
   text: string;
+  logText?: string; // what the message log keeps instead of `text`, when the text carries a link that is a credential
   customerId?: string | null;
   kind?: "TRANSACTIONAL" | "MARKETING";
   headers?: Record<string, string>;
@@ -60,7 +61,7 @@ export async function deliverEmail(e: Email) {
 /** Sends and logs. An SMTP failure is logged as FAILED (with the reason) and rethrown so callers can retry or tell the user. */
 export async function sendEmail(e: Email) {
   const m = await finalizeEmail(e);
-  const row = { channel: "EMAIL" as const, to: m.to, kind: m.kind ?? ("TRANSACTIONAL" as const), customerId: m.customerId, body: `${m.subject}\n\n${m.text}` };
+  const row = { channel: "EMAIL" as const, to: m.to, kind: m.kind ?? ("TRANSACTIONAL" as const), customerId: m.customerId, body: `${m.subject}\n\n${e.logText ?? m.text}` };
   let delivered = false;
   try {
     delivered = await deliverEmail(m);

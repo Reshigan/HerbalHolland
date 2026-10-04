@@ -1,6 +1,7 @@
 // Scheduled report exports ("Email me this weekly/monthly"): the daily job re-runs each due report as the person who
 // scheduled it (their scope, their filters), stores the CSV and emails the staff recipients a signed download link —
-// never the file itself. Links are HMAC-signed like invoice links and expire after 30 days.
+// never the file itself. Recipients are colleagues whose role may run that report (checked again at every run); the
+// link is HMAC-signed, expires after 30 days, works only for them once signed in, and never appears in the message log.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
 import { audit, SYSTEM, type Actor } from "./audit";
@@ -9,11 +10,13 @@ import { APP_URL } from "./invoices";
 import { canRun, getReport } from "./reports";
 import { storeForUser } from "./scope";
 import { reportContext } from "./reports/context";
-import { putObject } from "./storage";
+import { deleteObject, putObject } from "./storage";
 import { csvFilename, toCsv } from "@/lib/csv";
 import { addDays, dayKey, fmtDate, weekdaySA } from "@/lib/format";
 import type { Staff } from "./auth";
 import type { ExportCadence, ScheduledExport } from "@/generated/prisma/client";
+import type { ReportDef } from "./reports/types";
+import { appSecret } from "./secret";
 
 export class ExportError extends Error {
   constructor(message: string, public field?: string) {
@@ -25,7 +28,7 @@ export const LINK_DAYS = 30;
 export const WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
 
 // ── Signed download links ────────────────────────────────────────────────────
-const sign = (uploadId: string, exp: number) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`export:${uploadId}:${exp}`).digest("base64url").slice(0, 32);
+const sign = (uploadId: string, exp: number) => createHmac("sha256", appSecret()).update(`export:${uploadId}:${exp}`).digest("base64url").slice(0, 32);
 
 /** `exp` is a unix day (days since 1970). */
 export function exportUrl(uploadId: string, now = new Date()) {
@@ -52,17 +55,28 @@ export type ScheduleInput = {
   recipients: string[];
 };
 
-/** Recipients must be active staff with that email — reports are for the team, never for outside addresses. */
-export async function validateRecipients(raw: string[]) {
+/** Recipients must be active staff whose role may run the report — never outside addresses, never people the report is closed to. */
+export async function validateRecipients(raw: string[], def: ReportDef) {
   const emails = [...new Set(raw.map((e) => e.trim().toLowerCase()).filter(Boolean))];
   if (!emails.length) throw new ExportError("Add at least one recipient", "recipients");
   if (emails.length > 10) throw new ExportError("Up to 10 recipients", "recipients");
-  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: { email: true } });
-  const known = new Set(users.map((u) => u.email!.toLowerCase()));
-  const unknown = emails.filter((e) => !known.has(e));
+  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: { email: true, role: true } });
+  const role = new Map(users.map((u) => [u.email!.toLowerCase(), u.role]));
+  const unknown = emails.filter((e) => !role.has(e));
   if (unknown.length) throw new ExportError(`Only staff email addresses: ${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} on the team`, "recipients");
+  const barred = emails.filter((e) => !canRun(def, role.get(e)!));
+  if (barred.length) throw new ExportError(`${barred.join(", ")} can't open this report, so can't receive it`, "recipients");
   return emails;
 }
+
+/** Of a schedule's recipients, the ones who may still receive it: active, and their role still runs the report. */
+async function currentRecipients(emails: string[], def: ReportDef) {
+  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: { email: true, role: true } });
+  return users.filter((u) => canRun(def, u.role)).map((u) => u.email!.toLowerCase());
+}
+
+/** The schedule an export file came from (its key is exports/<user>/<day>/<schedule>.csv). */
+export const scheduleIdOf = (key: string) => /^exports\/[^/]+\/\d{4}-\d{2}-\d{2}\/([^/]+)\.csv$/.exec(key)?.[1] ?? null;
 
 export async function createSchedule(user: Staff, a: ScheduleInput, actor: Actor) {
   const def = getReport(a.reportKey);
@@ -72,7 +86,7 @@ export async function createSchedule(user: Staff, a: ScheduleInput, actor: Actor
   if (!def.scopes.includes(scope)) throw new ExportError("This report isn't available in that scope");
   if (a.cadence === "WEEKLY" && !(a.dayOfWeek && a.dayOfWeek >= 1 && a.dayOfWeek <= 7)) throw new ExportError("Choose a weekday", "day");
   if (a.cadence === "MONTHLY" && !(a.dayOfMonth && a.dayOfMonth >= 1 && a.dayOfMonth <= 28)) throw new ExportError("Choose a day of the month (1–28)", "day");
-  const recipients = await validateRecipients(a.recipients);
+  const recipients = await validateRecipients(a.recipients, def);
   if ((await db.scheduledExport.count({ where: { userId: user.id, active: true } })) >= 20) throw new ExportError("You already have 20 scheduled exports — stop one first");
   const params: Record<string, string> = { scope };
   for (const [k, v] of Object.entries(a.params)) if (v && ["store", "stores", "range", "from", "to", "category", "channel", "month"].includes(k)) params[k] = String(v).slice(0, 40);
@@ -128,6 +142,11 @@ export async function runExport(s: ScheduledExport, now = new Date()) {
       return null;
     }
   }
+  const to = await currentRecipients(s.recipients, def);
+  if (!to.length) {
+    await db.scheduledExport.update({ where: { id: s.id }, data: { active: false } });
+    return null;
+  }
   const r = await reportContext({ def, scope, user, store, sp: params, mode: "csv", basePath: scope === "hq" ? "/hq/reports" : `/store/${store!.code}/reports` });
   const result = await def.run(r.ctx);
   const csv = toCsv([
@@ -150,16 +169,16 @@ export async function runExport(s: ScheduledExport, now = new Date()) {
     preheader: `Your ${label} export of ${def.title} is ready`,
     heading: def.title,
     body: `<p style="margin:0 0 12px;font-size:14px;line-height:21px">${esc(r.scopeLabel)} · ${esc(r.rangeLabel)}<br/>${result.rows.length.toLocaleString("en-US")} row${result.rows.length === 1 ? "" : "s"} · scheduled ${esc(label)} by ${esc(user.name)}</p>
-<p style="margin:0;color:#6B5F57;font-size:13px">The link works for ${LINK_DAYS} days and needs no sign-in — don't forward it outside the team. To stop these emails, open the report and remove the schedule.</p>`,
+<p style="margin:0;color:#6B5F57;font-size:13px">The link works for ${LINK_DAYS} days, for the colleagues it was sent to: sign in with your Herbal Holland login to download. To stop these emails, open the report and remove the schedule.</p>`,
     cta: { label: "Download CSV", href: url },
     footerHtml: "You received this because a colleague scheduled this report for you in the HQ console.",
   });
-  const text = `${def.title}\n${r.scopeLabel} · ${r.rangeLabel}\n${result.rows.length} rows\n\nDownload (valid ${LINK_DAYS} days): ${url}`;
-  for (const to of s.recipients) await sendEmail({ to, subject, html, text });
+  const text = (link: string) => `${def.title}\n${r.scopeLabel} · ${r.rangeLabel}\n${result.rows.length} rows\n\nDownload (valid ${LINK_DAYS} days, sign in first): ${link}`;
+  for (const addr of to) await sendEmail({ to: addr, subject, html, text: text(url), logText: text(`${APP_URL()}/api/exports/${upload.id} (signed link sent; not kept here)`) });
   await db.scheduledExport.update({ where: { id: s.id }, data: { lastRunAt: now } });
   await audit(db, SYSTEM, "report.export", {
     storeId: store?.id ?? null, entity: "Report", entityId: def.key,
-    data: { scope, query: r.query, rows: result.rows.length, personal: !!def.personal, scheduled: s.id, by: user.id, recipients: s.recipients, uploadId: upload.id },
+    data: { scope, query: r.query, rows: result.rows.length, personal: !!def.personal, scheduled: s.id, by: user.id, recipients: to, uploadId: upload.id },
   });
   return upload.id;
 }
@@ -180,8 +199,11 @@ export async function runDueExports(now = new Date()) {
 }
 
 /** Old export files are of no further use once their links have expired. */
+/** Export files past their links (plus a week): the stored CSVs and their rows both go. */
 export async function pruneExports(now = new Date()) {
-  const { count } = await db.upload.deleteMany({ where: { key: { startsWith: "exports/" }, createdAt: { lt: addDays(now, -(LINK_DAYS + 7)) } } });
+  const old = await db.upload.findMany({ where: { key: { startsWith: "exports/" }, createdAt: { lt: addDays(now, -(LINK_DAYS + 7)) } }, select: { id: true, key: true }, take: 2_000 });
+  for (const f of old) await deleteObject(f.key).catch((e) => console.error("[exports] delete failed", f.key, e));
+  const { count } = await db.upload.deleteMany({ where: { id: { in: old.map((f) => f.id) } } });
   return count;
 }
 

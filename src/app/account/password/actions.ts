@@ -2,14 +2,14 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
-import { COOKIE, getStaff, homeFor, verifySecret } from "@/server/auth";
+import { COOKIE, getStaffChangingPassword, homeFor, verifySecret } from "@/server/auth";
 import { hashSecret, sha256 } from "@/server/crypto";
 import { audit } from "@/server/audit";
 
 export type PasswordState = { error?: string; field?: "current" | "next" | "confirm" };
 
 export async function changePassword(_: PasswordState, form: FormData): Promise<PasswordState> {
-  const user = await getStaff();
+  const user = await getStaffChangingPassword();
   if (!user) redirect("/login");
   const [current, next, confirm] = ["current", "next", "confirm"].map((k) => String(form.get(k) ?? ""));
   if (!verifySecret(current, user.passwordHash)) return { error: "Your current password isn't right.", field: "current" };

@@ -7,7 +7,8 @@
 | Database | Postgres 16 (`docker compose up db` or local cluster) | Postgres on the staging server | Postgres 16 on our own server in South Africa, WAL archiving + nightly dumps |
 | Files (banking slips) | `.data/uploads` on disk | R2 bucket `…-staging` | Cloudflare R2 bucket (EU jurisdiction), or `UPLOAD_DIR` on the server |
 | Data | `npm run db:seed` demo network | Anonymised copy or seed | Real — never seed (the seed truncates every table and refuses to run with `NODE_ENV=production` unless `--force`) |
-| `DEMO_MODE` | true | true (clearly labelled) | **false** |
+| `DEMO_MODE` | true | true (clearly labelled) | **false** (the server warns at start-up when it's on) |
+| `SESSION_SECRET` | any | 32+ random characters | 32+ random characters (`openssl rand -base64 48`): a production server won't start without one |
 
 ## First deploy
 
@@ -378,13 +379,15 @@ name, account number, branch code — printed on every pro forma; **fill these i
 matrix: `src/lib/trade-licences.ts`, docs/COMPLIANCE.md) — number, expiry where it lapses, and the document (PDF, JPG
 or PNG, ≤ 5 MB, stored under `trade-licences/` in R2/S3 or `UPLOAD_DIR`; back it up). Each new document emails the
 trade team ("licence to check"). HQ → Trade shows **Licences to check** (oldest first; the accounts list has the same
-tab). On the account's Overview, **View document**, check it against the issuer's register (SAPC, BHF PCNS, CIPC,
+tab). On the account's Overview, **View document**, check it against the issuer's register (SAPC, BHF PCNS, CIPC, SARS,
 SAHPRA, the municipality), then **Verify** or **Not accepted** with the reason (emailed; the buyer uploads another
 under Account › Licences). Renewals arrive the same way. Thirty days before a licence lapses the daily job reminds
 the account; once one has lapsed, nothing can be ordered, shipped, collected or sold at a till for the account, and
 the job puts it on hold (reason "licence"). Verifying the renewal lifts that hold and emails the account. An approved
-account can't be switched to a kind or ranges whose licences it doesn't hold — have it upload them first (a buyer can
-send any licence; one not needed yet shows as "on file" on both sides until the range is added).
+account can't be switched to a kind, ranges or registration number whose licences it doesn't hold — have it upload them
+first (a buyer can send any licence; one not needed yet shows as "on file" on both sides until it's needed). A shop or
+online shop with no registration number is a sole proprietor and gives its SARS tax registration instead of the CIPC
+certificate; one that registers a company sends the certificate (typing the number), then the number goes on the account.
 
 **Approving an account.** Applications arrive from the portal as PENDING accounts (`TA-…`) with their OWNER buyer and
 licences; the applicant gets an acknowledgement and the trade team an email. HQ → Trade → Accounts: verify the
@@ -621,6 +624,9 @@ rebuilt from movements if ever required (see the reconciliation queries in `pris
 | `sale.tender_variance` | Payments didn't match the total on a synced sale | Reconcile against the terminal report |
 | `drop.limit_after_payment` | A card was charged before a drop limit tripped (race with an online order); the sale stands | Decide whether to contact the member; no refund needed unless they ask |
 | `payment.review` | A Peach or Yoco payment didn't fit its order — another amount, another checkout (payment), or paid after the order was cancelled. The order was **not** marked paid | Find the payment in the Peach Dashboard (or the Yoco portal); refund it there (or sort it out with the member) and note what you did |
+| `auth.lockout` | 8 wrong passwords in a row (sign-in or till pairing): password sign-in is locked for 15 minutes | If it wasn't them, reset their password (HQ → Team) — that clears the lock and signs them out everywhere; otherwise it lifts by itself |
+| `pos.pin_lockout` | 5 wrong PINs: that person can't use any till for 5 minutes | A manager can reset the PIN (Store → Team), which clears the lock and signs them out of every till |
+| `sale.offline_price` / `sale.points_overdraw` | An offline sale charged less than the server's price for its lines, or spent points the member no longer had | Feeds the `OFFLINE_VARIANCE` loss rule; review a pattern with the store manager |
 | `payment.refund_failed` | Peach or Yoco couldn't complete the refund of a cancelled order; the order shows paid again | Refund the member by hand (Peach Dashboard, Yoco portal or EFT) and note it |
 
 ## Loss prevention (Store / HQ → Loss prevention)

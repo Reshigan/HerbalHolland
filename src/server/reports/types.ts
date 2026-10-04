@@ -118,3 +118,5 @@ export type ReportDef = {
 export const MANAGERS: Role[] = ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER", "OWNER", "MANAGER"];
 /** Health-related records (patients, prescriptions): no general HQ staff, no budtenders. */
 export const PATIENT_DATA: Role[] = ["HQ_ADMIN", "AREA_MANAGER", "OWNER", "MANAGER"];
+/** Who may open patient records (authorisations, the dispensing register): those roles, and authorised dispensers. */
+export const seesPatientData = (u: { role: Role; canDispense?: boolean | null }) => PATIENT_DATA.includes(u.role) || !!u.canDispense;

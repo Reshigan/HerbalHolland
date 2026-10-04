@@ -100,6 +100,9 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
     return { sent: 0, suppressed: 0, audience: 0, scheduledAt: at, reason: window.reason };
   }
 
+  // Claim it before sending, so a double click or two scheduler runs send it once.
+  const claimed = await db.campaign.updateMany({ where: { id, status: c.status }, data: { status: "SENT", sentAt: now } });
+  if (!claimed.count) throw new CampaignError("This campaign has already been sent");
   const promo = c.promotionId ? await db.promotion.findUnique({ where: { id: c.promotionId } }) : null;
   const footer = await senderFooter(c.channel);
   const field = CONSENT_FIELD[c.channel];
@@ -141,7 +144,13 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
 export async function runDueCampaigns(now = new Date()) {
   const due = await db.campaign.findMany({ where: { status: "SCHEDULED", scheduledAt: { lte: now } }, select: { id: true } });
   const results = [];
-  for (const c of due) results.push(await sendCampaign(c.id, { type: "SYSTEM", name: "Scheduler" }, now));
+  for (const c of due) {
+    try {
+      results.push(await sendCampaign(c.id, { type: "SYSTEM", name: "Scheduler" }, now));
+    } catch (e) {
+      if (!(e instanceof CampaignError)) throw e; // sent by someone else meanwhile, or its copy needs changes
+    }
+  }
   return results;
 }
 

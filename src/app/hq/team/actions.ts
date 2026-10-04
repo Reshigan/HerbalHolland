@@ -62,7 +62,7 @@ export async function resetPassword(userId: string, _: ActionState): Promise<Act
   const u = await db.user.findUnique({ where: { id: userId } });
   if (!u || !ROLES.includes(u.role)) return fail("User not found.");
   const password = tempPassword();
-  await db.user.update({ where: { id: userId }, data: { passwordHash: hashSecret(password), mustChangePassword: true } });
+  await db.user.update({ where: { id: userId }, data: { passwordHash: hashSecret(password), mustChangePassword: true, passwordFails: 0, passwordLockedAt: null } });
   await db.session.deleteMany({ where: { userId } });
   await audit(db, g.actor, "user.password_reset", { entity: "User", entityId: userId, data: { email: u.email } });
   revalidatePath("/hq/team");

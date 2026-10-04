@@ -244,6 +244,21 @@ describe("The application form", () => {
     expect(d.fields.regNumber).toMatch(/needs it/);
     expect(d.fields["licence.SAHPRA_LICENCE.expiresAt"]).toMatch(/expires/);
   });
+  it("lets a shop apply as a sole proprietor with its SARS registration, or as a company with its CIPC certificate", () => {
+    const shop = { ...good, kind: "RETAILER", classes: ["ACCESSORY", "HEMP"] };
+    const sole = validateTradeApplication({ ...shop, regNumber: "", licences: { SARS_REGISTRATION: { number: "0123 456 789" } }, licenceFiles: ["SARS_REGISTRATION"] });
+    expect(sole.ok).toBe(true);
+    if (sole.ok) expect(sole.data.licences).toEqual([{ kind: "SARS_REGISTRATION", number: "0123456789", expiresAt: null }]);
+    const missing = validateTradeApplication({ ...shop, regNumber: "" });
+    expect(missing.ok).toBe(false);
+    if (!missing.ok) {
+      expect(missing.fields.regNumber).toBeUndefined();
+      expect(missing.fields).toMatchObject({ "licence.SARS_REGISTRATION.number": "Enter the SARS tax registration number", "licence.SARS_REGISTRATION.file": "Attach the SARS tax registration (a PDF or a photo)" });
+    }
+    const company = validateTradeApplication({ ...shop, regNumber: "2015/123456/07", licenceFiles: ["CIPC_REGISTRATION"] });
+    expect(company.ok).toBe(true);
+    if (company.ok) expect(company.data.licences).toEqual([{ kind: "CIPC_REGISTRATION", number: "2015/123456/07", expiresAt: null }]);
+  });
   it("refuses THC, bad numbers, missing attestations and a bad delivery address, by field", () => {
     const r = validateTradeApplication({ ...good, classes: ["CBD", "THC"], vatNumber: "123", regNumber: "abc", adult: "", terms: undefined, deliveryLine: "1 Depot Rd", deliveryCity: "", deliveryProvince: "", deliveryPostalCode: "12" });
     expect(r.ok).toBe(false);

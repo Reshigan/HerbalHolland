@@ -160,14 +160,36 @@ trade prices, never the franchise stores and never THC.
 
 ## Security
 
-- Staff: scrypt-hashed passwords; sessions are random 256-bit tokens stored as SHA-256 hashes, httpOnly/SameSite cookies;
-  login throttling. POS: long-lived device pairing cookie + short staff PIN session (per device); PINs are scrypt-hashed.
-- Customers: phone OTP (hashed, 10-minute expiry, attempt-limited, rate-limited), 30-day sessions.
-- Invoices: public links are HMAC-signed per sale.
+- Staff: scrypt-hashed passwords; sessions are random 256-bit tokens stored as SHA-256 hashes, httpOnly/SameSite cookies.
+  Wrong passwords (sign-in and till pairing) and PINs are counted on the account in the database (`src/server/lockout.ts`):
+  8 wrong passwords lock password sign-in for 15 minutes, 5 wrong PINs lock every till for 5; each lock is audited
+  (`auth.lockout`, `pos.pin_lockout`) and a reset by a manager or HQ clears it. An unknown email costs the same scrypt
+  work as a wrong password. A temporary password is no sign-in at all until it's replaced (`getStaff`). A till's PIN
+  session is never a back-office sign-in, and a PIN reset signs the person out of every till.
+  POS: long-lived device pairing cookie + short staff PIN session (per device); PINs are scrypt-hashed. POS JSON
+  endpoints accept `application/json` only, so no cross-site form can post to them.
+- Customers and trade buyers: one-time codes (`src/server/otp.ts`, hashed, 10-minute expiry) under a Postgres advisory
+  lock: 5 codes per address per 10 minutes, 5 tries per code, 10 wrong tries per hour locks the address for the hour.
+- `SESSION_SECRET` signs invoice, export, opt-out and share links and keys the IP and ID-number hashes: a production
+  server refuses to start without one of 32+ characters (`src/instrumentation.ts`), and warns when `DEMO_MODE` is on.
+- Money and stock changes that two people (or a retry) could make at once claim the record first (compare-and-set on
+  its status, or a row lock): order moves and cancellation refunds, refunds of a sale, stock orders, stock takes, trade
+  credit and payments, points redemptions, campaign sends. Cron jobs run single-flight (`pg_try_advisory_xact_lock`).
+- Offline till sales are accepted only from the last 7 days; their prices and any points overdraw are audited and fed
+  to the `OFFLINE_VARIANCE` loss rule.
+- Files: uploads are type-checked by their bytes; photos lose EXIF/GPS, XMP, IPTC and PNG text before storage; files
+  are served only through the app with a scope check. Product images fetched by URL resolve to public addresses only,
+  with no redirects and a 5MB cap. Scheduled export links need a signed-in recipient who can still run the report.
+- Gift voucher codes are random (Web Crypto) and masked (`HH-••••-••••-1234`) in logs, audits, texts and receipts.
+- Redirect targets (`next=`) are same-site paths only (`safePath`).
+- Simulated payments work only with `DEMO_MODE` or outside production.
+- Invoices: public links are HMAC-signed per sale and show no customer phone or email.
 - Security headers (HSTS, frame, content-type, referrer, permissions policy) on every response; `poweredByHeader` off.
 - Every sensitive action is written to `AuditLog` (who, what, where, data).
 - POPIA: minimal personal data; SA ID numbers are stored only as an HMAC plus last 4 digits; clinical conditions are
-  never stored; consent is a ledger; exports and anonymisation are available per customer.
+  never stored; consent is a ledger; exports and anonymisation are available per customer (anonymising also deletes
+  their review photos). Patient registers are shown only to roles with patient-data access or to dispensers.
+- Dependencies: `npm audit` clean; patched transitive versions pinned in `package.json` `overrides`.
 
 ## Hosting (recommended)
 

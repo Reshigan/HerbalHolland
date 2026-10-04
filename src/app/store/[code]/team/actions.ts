@@ -66,7 +66,8 @@ export async function resetPin(code: string, id: string, _: ActionState, fd: For
     const pin = str(fd, "pin");
     if (!isPin(pin)) return fail("The PIN must be exactly 4 digits", "pin");
     if (weakPin(pin)) return fail("Choose a PIN that's harder to guess — no repeated or running digits", "pin");
-    await db.user.update({ where: { id: t.id }, data: { pinHash: hashSecret(pin) } });
+    await db.user.update({ where: { id: t.id }, data: { pinHash: hashSecret(pin), pinFails: 0, pinLockedAt: null } });
+    await db.session.deleteMany({ where: { userId: t.id, deviceId: { not: null } } }); // signed out of every till
     await audit(db, actor, "staff.pin_reset", { storeId: store.id, entity: "User", entityId: t.id, data: { name: t.name } });
     return done(`New PIN set for ${t.name}. Share it in person, never by message.`);
   });

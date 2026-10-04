@@ -395,10 +395,11 @@ export function validateTradeApplication(raw: RawTradeApplication, now = new Dat
   if (!ticked(raw.terms)) f.terms = "Accept the trade terms to apply";
 
   // The licences this kind of business needs for these ranges: each with its number (a company registration certificate
-  // uses the registration number above), its expiry when it lapses, and the document.
+  // uses the registration number above; a retailer without one is a sole proprietor, who gives the SARS registration),
+  // its expiry when it lapses, and the document.
   const licences: CleanTradeApplication["licences"] = [];
   if (isTradeKind(kindRaw) && !f.classes) {
-    for (const { kind } of requiredLicences(kindRaw, classes)) {
+    for (const { kind } of requiredLicences(kindRaw, classes, !!regRaw)) {
       const typed = raw.licences?.[kind] ?? {};
       if (kind === "CIPC_REGISTRATION") {
         if (!regRaw) f.regNumber = "Enter the company registration number — this kind of business needs it";

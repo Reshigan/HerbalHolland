@@ -13,6 +13,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Mark } from "@/components/brand/logo";
 import { fmtPoints, tierInfo } from "@/lib/loyalty-rules";
 import { fmtDate, num } from "@/lib/format";
+import { safePath } from "@/lib/safe-path";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
@@ -24,7 +25,7 @@ type SP = { ref?: string; store?: string; next?: string; src?: string };
 
 export default async function JoinPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
-  const next = sp.next && sp.next.startsWith("/") && !sp.next.startsWith("//") ? sp.next : "/club";
+  const next = safePath(sp.next) ?? "/club";
   const [customer, settings, stores, preferred, launch] = await Promise.all([getCustomer(), getSettings(), getRetailStores(), getPreferredStore(), launchState()]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const pre = launch.preLaunch && launch.at ? launch.at : null;

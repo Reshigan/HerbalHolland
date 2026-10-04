@@ -9,9 +9,10 @@ import { APP_URL, saleInvoiceEmail, statementEmail, stockOrderInvoiceEmail } fro
 import { receivedValue } from "./stock-orders";
 import { franchiseStatement } from "./finance";
 import { tradeInvoiceEmail } from "./trade/emails";
+import { appSecret } from "./secret";
 
 export { APP_URL };
-export const invoiceToken = (id: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`invoice:${id}`).digest("base64url").slice(0, 22);
+export const invoiceToken = (id: string) => createHmac("sha256", appSecret()).update(`invoice:${id}`).digest("base64url").slice(0, 22);
 export const invoiceUrl = (saleId: string) => `${APP_URL()}/invoice/${saleId}?t=${invoiceToken(saleId)}`;
 
 export async function invoiceData(saleId: string) {

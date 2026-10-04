@@ -288,3 +288,10 @@ describe("the template", () => {
     expect(own.products.find((p) => p.slug === "example-calm-oil-300mg")?.data).toMatchObject({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: ["Supports everyday calm"], effects: ["calm", "focus"] });
   });
 });
+
+describe("oversized files", () => {
+  it("stops at a row with more cells than any catalogue has", () => {
+    const r = parseCsv(`sku,name\n${",".repeat(5_000)}\n`);
+    expect(r.error).toMatch(/more than 100 cells/);
+  });
+});

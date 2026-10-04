@@ -167,6 +167,7 @@ export async function removeBuyer(id: string, buyerId: string): Promise<ActionSt
   const g = await guard("network");
   if (!g) return DENIED;
   return attempt(async () => {
+    if (!(await db.tradeBuyer.findFirst({ where: { id: buyerId, tradeAccountId: id }, select: { id: true } }))) return fail("That buyer isn't on this account.");
     const b = await removeTradeBuyer(buyerId, g.actor);
     refresh(id);
     return done(`${b.name} can no longer sign in or order for this account.`);

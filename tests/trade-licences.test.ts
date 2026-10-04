@@ -3,7 +3,8 @@
 import { describe, expect, it } from "vitest";
 import { checkLicenceInput, expiryOf, LICENCE_REMIND_DAYS, licenceStanding, requiredLicences, type LicenceRecord } from "@/lib/trade-licences";
 
-const kinds = (kind: string, classes: string[]) => requiredLicences(kind, classes).map((r) => r.kind);
+// A company (it has a registration number) unless `company` says otherwise.
+const kinds = (kind: string, classes: string[], company = true) => requiredLicences(kind, classes, company).map((r) => r.kind);
 const NOW = new Date("2026-10-04T10:00:00+02:00");
 const day = (n: number) => new Date(NOW.getTime() + n * 86_400_000);
 let seq = 0;
@@ -28,17 +29,25 @@ describe("which licences each kind of business needs", () => {
     expect(kinds("PRACTICE", ["CBD"])).toEqual(["PRACTICE_NUMBER"]);
     for (const k of ["RETAILER", "ONLINE_SHOP", "OTHER"]) expect(kinds(k, ["GROW"])).toEqual(["CIPC_REGISTRATION"]);
   });
+  it("lets a shop or online shop be a sole proprietor, with its SARS registration instead of a CIPC certificate", () => {
+    for (const k of ["RETAILER", "ONLINE_SHOP"]) expect(kinds(k, ["GROW"], false)).toEqual(["SARS_REGISTRATION"]);
+    expect(kinds("RETAILER", ["CBD_FOOD"], false)).toEqual(["FOOD_COA", "SARS_REGISTRATION"]);
+    // Distributors and other businesses must be companies; pharmacies, cafés and practices don't turn on it.
+    for (const k of ["DISTRIBUTOR", "OTHER"]) expect(kinds(k, ["GROW"], false)).toEqual(["CIPC_REGISTRATION"]);
+    for (const k of ["PHARMACY", "CAFE", "PRACTICE"]) expect(kinds(k, ["CBD"], false)).toEqual(kinds(k, ["CBD"], true));
+  });
   it("never needs a licence twice, and every kind needs at least one", () => {
-    for (const k of ["PHARMACY", "RETAILER", "CAFE", "PRACTICE", "ONLINE_SHOP", "DISTRIBUTOR", "OTHER"]) {
-      const list = kinds(k, ["CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "ACCESSORY", "APPAREL", "GROW"]);
-      expect(list.length).toBeGreaterThan(0);
-      expect(new Set(list).size).toBe(list.length);
-    }
+    for (const k of ["PHARMACY", "RETAILER", "CAFE", "PRACTICE", "ONLINE_SHOP", "DISTRIBUTOR", "OTHER"])
+      for (const company of [true, false]) {
+        const list = kinds(k, ["CBD", "CBD_FOOD", "CBD_TOPICAL", "HEMP", "SUPPLEMENT", "ACCESSORY", "APPAREL", "GROW"], company);
+        expect(list.length).toBeGreaterThan(0);
+        expect(new Set(list).size).toBe(list.length);
+      }
   });
 });
 
 describe("whether the account holds them", () => {
-  const need = requiredLicences("PHARMACY", ["CBD"]);
+  const need = requiredLicences("PHARMACY", ["CBD"], true);
   it("is in order with both licences verified and in date", () => {
     const s = licenceStanding(need, [rec({}), rec({ kind: "SAPC_RECORDING", number: "P123" })], NOW);
     expect(s.ok).toBe(true);
@@ -48,13 +57,13 @@ describe("whether the account holds them", () => {
     const s = licenceStanding(need, [rec({ status: "SUBMITTED" }), rec({ kind: "SAPC_RECORDING", status: "REJECTED", rejectReason: "Blurred photo" })], NOW);
     expect(s.ok).toBe(false);
     expect(s.problems).toEqual(["Pharmacy licence is waiting to be checked", "SAPC pharmacy recording wasn't accepted (Blurred photo) — upload a new one"]);
-    const lapsed = licenceStanding(requiredLicences("PRACTICE", []), [rec({ kind: "PRACTICE_NUMBER", number: "0123456", expiresAt: day(-1) })], NOW);
+    const lapsed = licenceStanding(requiredLicences("PRACTICE", [], false), [rec({ kind: "PRACTICE_NUMBER", number: "0123456", expiresAt: day(-1) })], NOW);
     expect(lapsed.lines[0].state).toBe("expired");
     expect(lapsed.problems[0]).toMatch(/^Practice number expired on .+ — upload the renewed one$/);
     expect(licenceStanding(need, [], NOW).problems).toEqual(["Pharmacy licence is needed — upload it", "SAPC pharmacy recording is needed — upload it"]);
   });
   it("keeps trading on a licence in date while its renewal waits, and warns when it lapses soon", () => {
-    const need = requiredLicences("PRACTICE", []);
+    const need = requiredLicences("PRACTICE", [], false);
     const current = rec({ kind: "PRACTICE_NUMBER", number: "0123456", expiresAt: day(LICENCE_REMIND_DAYS - 2), createdAt: day(-300) });
     const renewal = rec({ kind: "PRACTICE_NUMBER", number: "0123456", status: "SUBMITTED", expiresAt: day(400), createdAt: day(-1) });
     const s = licenceStanding(need, [current, renewal], NOW);
@@ -62,7 +71,7 @@ describe("whether the account holds them", () => {
     expect(s.lines[0]).toMatchObject({ state: "expiring", current: { id: current.id }, pending: { id: renewal.id } });
   });
   it("uses the newest verified licence still in date, whatever was rejected after it", () => {
-    const need = requiredLicences("PRACTICE", []);
+    const need = requiredLicences("PRACTICE", [], false);
     const ok = rec({ kind: "PRACTICE_NUMBER", number: "0123456", expiresAt: day(200), createdAt: day(-50) });
     const bad = rec({ kind: "PRACTICE_NUMBER", number: "9999999", status: "REJECTED", createdAt: day(-2) });
     expect(licenceStanding(need, [ok, bad], NOW).lines[0]).toMatchObject({ state: "ok", current: { id: ok.id } });
@@ -75,6 +84,8 @@ describe("checking a licence as typed", () => {
     expect(checkLicenceInput("PRACTICE_NUMBER", { number: "012 3456", expiresAt: "2027-02-28" }, NOW)).toMatchObject({ ok: true, number: "0123456" });
     expect(checkLicenceInput("PRACTICE_NUMBER", { number: "12345", expiresAt: "2027-02-28" }, NOW)).toEqual({ ok: false, fields: { number: "A practice number is seven digits" } });
     expect(checkLicenceInput("CIPC_REGISTRATION", { number: "2015/123456/07" }, NOW)).toMatchObject({ ok: true, number: "2015/123456/07" });
+    expect(checkLicenceInput("SARS_REGISTRATION", { number: "0123 456 789" }, NOW)).toMatchObject({ ok: true, number: "0123456789" });
+    expect(checkLicenceInput("SARS_REGISTRATION", { number: "12345" }, NOW)).toEqual({ ok: false, fields: { number: "An income tax reference number is ten digits" } });
     expect(checkLicenceInput("FOOD_COA", { number: "" }, NOW)).toEqual({ ok: false, fields: { number: "Enter the certificate of acceptability (food premises) number" } });
   });
   it("requires the expiry date of a licence that lapses, in the future, valid all of its last day", () => {

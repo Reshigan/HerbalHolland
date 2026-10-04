@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download, FileText, Plus, Stethoscope } from "lucide-react";
 import { requireStaff } from "@/server/auth";
+import { seesPatientData } from "@/server/reports/types";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { authRegister, authWhere, dispensingRegister, type AuthView } from "@/server/store/patients";
@@ -30,6 +31,13 @@ export default async function PatientsPage({ params, searchParams }: { params: P
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff();
   const store = await storeForUser(user, code);
+  if (!seesPatientData(user))
+    return (
+      <>
+        <PageHeader title="Patient register" />
+        <Notice tone="warn" title="Not available to your role">Patient authorisations and the dispensing register are health information: managers, owners and authorised dispensers see them.</Notice>
+      </>
+    );
   const canManage = canManageStore(user);
   const path = `/store/${store.code}/patients`;
   const tab = sp1(sp.tab) === "register" ? "register" : "auths";

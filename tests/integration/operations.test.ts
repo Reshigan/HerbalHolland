@@ -196,7 +196,7 @@ describe("Supplier invoices", () => {
 
     const list = await supplierInvoiceList({ storeIds: [w.store.id], status: "PAID" }, 1, 10);
     expect(list.total).toBe(2);
-    expect(list.rows[0]).toMatchObject({ number: "INV-1", stockOrderNumber: "PO-T1", createdBy: "Mia Manager", paidBy: "Mia Manager", file: { contentType: "application/pdf" } });
+    expect(list.rows.find((r) => r.number === "INV-1")).toMatchObject({ number: "INV-1", stockOrderNumber: "PO-T1", createdBy: "Mia Manager", paidBy: "Mia Manager", file: { contentType: "application/pdf" } });
     const s = await supplierInvoiceSummary([w.store.id]);
     expect(s).toMatchObject({ due: 0, overdue: 0, paid30: 2, paid30Cents: 345_000 });
     expect(await supplierInvoicesByStore([w.store.id])).toEqual([]);
@@ -267,7 +267,10 @@ describe("Scheduled exports", () => {
     expect(up.fileName).toMatch(/^herbal-holland_sales-by-store_network_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/);
     const mails = await db.messageLog.findMany({ where: { channel: "EMAIL", body: { contains: "Sales by store" } } });
     expect(mails.map((m) => m.to).sort()).toEqual(["hanna@example.co.za", "mia@example.co.za"]);
-    const link = mails[0].body.match(/https?:\/\/\S+\/api\/exports\/([^?\s]+)\?e=(\d+)&t=([\w-]+)/)!;
+    // The log keeps where the link points, never the signed link itself.
+    expect(mails[0].body).toContain(`/api/exports/${uploadId} (signed link sent; not kept here)`);
+    expect(mails[0].body).not.toMatch(/\?e=\d+&t=/);
+    const link = exportUrl(uploadId!).match(/\/api\/exports\/([^?\s]+)\?e=(\d+)&t=([\w-]+)/)!;
     expect(link[1]).toBe(uploadId);
     expect(verifyExportToken(link[1], link[2], link[3])).toBe(true);
     expect(verifyExportToken(link[1], link[2], "tampered")).toBe(false);

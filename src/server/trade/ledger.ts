@@ -37,6 +37,22 @@ export async function creditCheckFor(account: Pick<TradeAccount, "id" | "terms" 
   return creditDecision({ terms: account.terms, status: account.status, creditLimitCents: account.creditLimitCents, balanceCents, openOrdersCents, orderInclCents });
 }
 
+/**
+ * The credit decision under a lock on the account's row, inside the caller's transaction: two orders or till sales on
+ * account at once can't both spend the same headroom — the second waits for the first, then counts it.
+ */
+export async function lockedCreditCheck(t: Tx, accountId: string, orderInclCents: number): Promise<CreditDecision> {
+  await t.$queryRaw`SELECT 1 FROM "TradeAccount" WHERE id = ${accountId} FOR UPDATE`;
+  const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId }, select: { id: true, terms: true, status: true, creditLimitCents: true } });
+  return creditCheckFor(account, orderInclCents, t);
+}
+
+/** An order or sale named on a ledger entry must be this account's own. */
+async function checkLinks(t: Tx, accountId: string, a: { tradeOrderId?: string | null; saleId?: string | null }) {
+  if (a.tradeOrderId && !(await t.tradeOrder.findFirst({ where: { id: a.tradeOrderId, tradeAccountId: accountId }, select: { id: true } }))) throw new TradeLedgerError("That order isn't on this account");
+  if (a.saleId && !(await t.sale.findFirst({ where: { id: a.saleId, tradeAccountId: accountId }, select: { id: true } }))) throw new TradeLedgerError("That sale isn't on this account");
+}
+
 /** Writes one ledger entry inside the caller's transaction (orders and sales raise invoices and credit notes this way). */
 export function postLedgerEntry(
   t: Tx,
@@ -74,7 +90,12 @@ export async function recordTradePayment(accountId: string, a: { cents: number; 
   const reference = a.reference.trim().slice(0, 80);
   if (!reference) throw new TradeLedgerError("Enter the bank reference");
   const result = await tx(async (t) => {
+    // Under the account's row lock: the same payment submitted twice is recorded once.
+    await t.$queryRaw`SELECT 1 FROM "TradeAccount" WHERE id = ${accountId} FOR UPDATE`;
     const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
+    await checkLinks(t, accountId, a);
+    const same = await t.tradeLedgerEntry.findFirst({ where: { tradeAccountId: accountId, kind: "PAYMENT", reference, cents: -cents, createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } }, select: { createdAt: true } });
+    if (same) throw new TradeLedgerError(`A payment of that amount with reference ${reference} is already on the account (recorded ${same.createdAt.toISOString().slice(0, 10)})`);
     const entry = await t.tradeLedgerEntry.create({
       data: { tradeAccountId: accountId, kind: "PAYMENT", cents: -cents, reference, note: a.note ?? null, tradeOrderId: a.tradeOrderId ?? null, createdById: actor.id ?? null, ...(a.receivedAt ? { createdAt: a.receivedAt } : {}) },
     });
@@ -93,6 +114,7 @@ export async function issueCreditNote(accountId: string, a: { cents: number; ref
   const note = a.note.trim().slice(0, 300);
   if (!note) throw new TradeLedgerError("Say why the account is being credited");
   const result = await tx(async (t) => {
+    await checkLinks(t, accountId, a);
     const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
     const reference = a.reference?.trim().slice(0, 80) || tradeCreditNumber(await nextNumber(t, "trade-credit"));
     const entry = await t.tradeLedgerEntry.create({
@@ -113,6 +135,7 @@ export async function adjustTradeLedger(accountId: string, a: { cents: number; n
   const note = a.note.trim().slice(0, 300);
   if (!note) throw new TradeLedgerError("An adjustment needs a note");
   return tx(async (t) => {
+    await checkLinks(t, accountId, a);
     const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
     const entry = await t.tradeLedgerEntry.create({ data: { tradeAccountId: accountId, kind: "ADJUSTMENT", cents, note, reference: a.reference?.trim().slice(0, 80) || null, tradeOrderId: a.tradeOrderId ?? null, saleId: a.saleId ?? null, createdById: actor.id ?? null } });
     await audit(t, actor, "trade.ledger.adjust", { entity: "TradeAccount", entityId: accountId, data: { number: account.number, cents, note } });

@@ -86,6 +86,8 @@ export function open<C = unknown>(handler: (req: Request, ctx: C) => Promise<Res
 }
 
 export async function readBody<T>(req: Request, schema: ZodType<T>): Promise<T> {
+  // JSON only: a page on another site can't send that without the browser asking first (no cross-site form posts).
+  if (!req.headers.get("content-type")?.toLowerCase().startsWith("application/json")) throw new PosError("Expected a JSON body", 415);
   let raw: unknown;
   try {
     raw = await req.json();
@@ -93,24 +95,4 @@ export async function readBody<T>(req: Request, schema: ZodType<T>): Promise<T> 
     throw new PosError("Expected a JSON body");
   }
   return schema.parse(raw);
-}
-
-/** Simple in-memory attempt limiter (per process) for PINs and pairing sign-ins. */
-export function limiter(max: number, windowMs: number) {
-  const hits = new Map<string, { n: number; at: number }>();
-  return {
-    blocked(key: string) {
-      const h = hits.get(key);
-      if (h && Date.now() - h.at > windowMs) hits.delete(key);
-      return (hits.get(key)?.n ?? 0) >= max;
-    },
-    fail(key: string) {
-      const h = hits.get(key);
-      hits.set(key, { n: (h && Date.now() - h.at <= windowMs ? h.n : 0) + 1, at: Date.now() });
-      return (hits.get(key)?.n ?? 0) >= max;
-    },
-    reset(key: string) {
-      hits.delete(key);
-    },
-  };
 }

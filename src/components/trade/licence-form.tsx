@@ -8,7 +8,8 @@ import { buttonClass } from "@/components/ui/button";
 import { FieldRow, SelectInput, TextInput } from "@/components/shop/ui";
 import { LICENCE_FILE_ACCEPT, TRADE_LICENCES, type TradeLicenceKind } from "@/lib/trade-licences";
 
-export function LicenceUploadForm({ kinds, initial }: { kinds: TradeLicenceKind[]; initial: TradeLicenceKind }) {
+/** `regNumber`: the account's company registration number — a company certificate is for it (typed when there's none yet). */
+export function LicenceUploadForm({ kinds, initial, regNumber }: { kinds: TradeLicenceKind[]; initial: TradeLicenceKind; regNumber: string | null }) {
   const [state, action, pending] = useActionState<LicenceState, FormData>(uploadLicenceAction, {});
   const v = state.values ?? {};
   const [kind, setKind] = useState<TradeLicenceKind>((v.kind as TradeLicenceKind) || initial);
@@ -36,10 +37,12 @@ export function LicenceUploadForm({ kinds, initial }: { kinds: TradeLicenceKind[
         </SelectInput>
       </FieldRow>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {kind === "CIPC_REGISTRATION" ? (
-          <p className="text-sm text-ink-300 sm:col-span-2">The number is the account&apos;s company registration number.</p>
+        {kind === "CIPC_REGISTRATION" && regNumber ? (
+          <p className="text-sm text-ink-300 sm:col-span-2">
+            The number is the account&apos;s company registration number, <span className="tnum">{regNumber}</span>.
+          </p>
         ) : (
-          <FieldRow label="Licence number" htmlFor="l-number" error={err("number")} hint={info.hint}>
+          <FieldRow label="Licence number" htmlFor="l-number" error={err("number")} hint={kind === "CIPC_REGISTRATION" ? "The company's registration number, like 2015/123456/07 — add it to the business details once we've checked the certificate." : info.hint}>
             <TextInput id="l-number" name="number" maxLength={40} required defaultValue={v.number} aria-invalid={!!err("number")} className="tnum" />
           </FieldRow>
         )}

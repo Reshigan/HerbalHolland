@@ -20,8 +20,8 @@ import { sms } from "@/lib/sms";
 import { zar } from "@/lib/money";
 import { addDays } from "@/lib/format";
 import { tradeAllowed, type RegClass } from "@/lib/compliance";
-import { ACCOUNT_STATUS_PROBLEM, addressLineOf, caseMultiple, creditDecision, tradeBuyerBlock, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeTotals, validateTradeBasket, vatHalfUp } from "@/lib/trade";
-import { postLedgerEntry, openOnAccountCents, tradeBalance } from "./ledger";
+import { ACCOUNT_STATUS_PROBLEM, addressLineOf, caseMultiple, tradeBuyerBlock, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeTotals, validateTradeBasket, vatHalfUp } from "@/lib/trade";
+import { lockedCreditCheck, postLedgerEntry } from "./ledger";
 import { licenceProblem } from "./licences";
 import { tradeActor } from "./accounts";
 import { tradeOrderEmail, tradePortalUrl, tradeProFormaEmail, tradeReadySms, type TradeOrderEmailInfo, type TradeOrderEvent } from "./emails";
@@ -202,12 +202,6 @@ export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   const totals = tradeTotals(lineTotals, { deliveryCents, handlingCents });
   if (totals.vatCents !== q.vatCents + vatHalfUp(deliveryCents) + vatHalfUp(handlingCents)) throw new TradeOrderError("Pricing changed while the order was being placed — please try again");
 
-  if (input.payMethod === "ACCOUNT") {
-    const [balanceCents, openOrdersCents] = await Promise.all([tradeBalance(account.id), openOnAccountCents(account.id)]);
-    const d = creditDecision({ terms: account.terms, status: account.status, creditLimitCents: account.creditLimitCents, balanceCents, openOrdersCents, orderInclCents: totals.totalCents });
-    if (!d.ok) throw new TradeOrderError(d.reason!);
-  }
-
   const useDelivery = fulfilment === "COURIER" && !!account.deliveryLine && input.deliver !== "BILLING";
   const address = fulfilment === "COLLECT"
     ? {}
@@ -222,6 +216,10 @@ export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   const events: Event[] = [{ status, at: now.toISOString(), note }];
 
   const order = await tx(async (t) => {
+    if (input.payMethod === "ACCOUNT") {
+      const d = await lockedCreditCheck(t, account.id, totals.totalCents);
+      if (!d.ok) throw new TradeOrderError(d.reason!);
+    }
     const number = tradeOrderNumber(await nextNumber(t, "trade-order"));
     const o = await t.tradeOrder.create({
       data: {
@@ -367,6 +365,10 @@ export async function advanceTradeOrder(orderId: string, action: TradeOrderActio
 
   let saleId: string | null = null;
   const updated = await tx(async (t) => {
+    // One step at a time: the order moves only from the status it was read in, so a second ship or collect (or a
+    // cancel racing one) finds it moved and stops before anything is posted twice.
+    const claimed = await t.tradeOrder.updateMany({ where: { id: o.id, status: o.status }, data: { status: to } });
+    if (claimed.count !== 1) throw new TradeOrderError("This order changed while you were working on it — refresh and try again");
     const data: Prisma.TradeOrderUpdateInput = { status: to, events };
     if (action === "pick") data.reservedAt = o.reservedAt ?? now;
     if (action === "ready") data.readyAt = now;

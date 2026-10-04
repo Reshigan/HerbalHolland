@@ -37,6 +37,7 @@ import {
   type TicketErrors,
 } from "@/lib/support";
 import type { Customer, SupportTicket } from "@/generated/prisma/client";
+import { appSecret } from "./secret";
 
 /** An expected, user-facing failure (shown inline). */
 export class SupportError extends Error {
@@ -53,7 +54,7 @@ const HOUR = 3_600_000;
 export const supportEmail = () => process.env.SUPPORT_EMAIL?.trim() || "hello@herbalholland.co.za";
 
 /** Keyed hash of a guest's IP (HMAC-SHA-256 with SESSION_SECRET): limits repeat tickets without storing the IP. */
-export const supportIpHash = (ip: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`support-ticket:${ip}`).digest("hex");
+export const supportIpHash = (ip: string) => createHmac("sha256", appSecret()).update(`support-ticket:${ip}`).digest("hex");
 
 /** Who a ticket's messages are for: HQ (everything) or a store's managers (tickets about that store's orders). */
 export type SupportScope = { kind: "HQ" } | { kind: "STORES"; storeIds: string[] };
@@ -208,6 +209,13 @@ export async function memberReply(id: string, customer: Customer, raw: unknown, 
   if (t.status === "RESOLVED" && !canReopen(t.resolvedAt, new Date())) throw new SupportError("This request closed more than 30 days ago. Please open a new one and quote its number.");
   let attachmentUploadId: string | null = null;
   if (photo) {
+    // Photos are for showing the problem, not storage: ten on a request, and twenty a day across a member's requests.
+    const since = new Date(Date.now() - 86_400_000);
+    const [onTicket, today] = await Promise.all([
+      db.supportMessage.count({ where: { ticketId: t.id, authorType: "MEMBER", attachmentUploadId: { not: null } } }),
+      db.supportMessage.count({ where: { authorType: "MEMBER", authorId: customer.id, attachmentUploadId: { not: null }, createdAt: { gte: since } } }),
+    ]);
+    if (onTicket >= 10 || today >= 20) throw new SupportError("That's as many photos as we can take on this request — describe it in words, or the team will ask for more", "photo");
     try {
       [attachmentUploadId = null] = await storePhotos({ files: [photo], max: 1, folder: "support", uploadedById: customer.id, storeId: t.storeId });
     } catch (e) {

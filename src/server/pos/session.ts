@@ -4,7 +4,8 @@ import { db } from "@/server/db";
 import { endSession, pairDevice, startSession, verifySecret } from "@/server/auth";
 import { audit, type Actor } from "@/server/audit";
 import { scopeOf, storeWhere } from "@/server/scope";
-import { PosError, limiter, type PosDevice } from "./http";
+import { PosError, type PosDevice } from "./http";
+import { clearFailures, isLocked, recordFailure } from "../lockout";
 import type { Role } from "@/generated/prisma/client";
 import type { SessionInfo, StaffTile } from "./types";
 
@@ -31,19 +32,16 @@ export async function sessionInfo(device: PosDevice, me: { id: string; name: str
   };
 }
 
-const pins = limiter(5, 5 * 60_000);
-
 export async function pinSignIn(device: PosDevice, userId: string, pin: string) {
-  const key = `${device.id}:${userId}`;
-  if (pins.blocked(key)) throw new PosError("Too many wrong PINs — wait 5 minutes or ask your manager", 429);
   const user = await db.user.findFirst({ where: { id: userId, storeId: device.storeId, active: true } });
   if (!user?.pinHash) throw new PosError("That staff member can't use this till", 403);
+  if (isLocked(user, "pin")) throw new PosError("Too many wrong PINs — wait 5 minutes or ask your manager", 429);
   if (!/^\d{4,6}$/.test(pin) || !verifySecret(pin, user.pinHash)) {
-    if (pins.fail(key))
+    if (await recordFailure(user.id, "pin"))
       await audit(db, { type: "DEVICE", id: device.id, name: device.name }, "pos.pin_lockout", { storeId: device.storeId, entity: "User", entityId: user.id });
     throw new PosError("That PIN isn't right", 401, "BAD_PIN");
   }
-  pins.reset(key);
+  if (user.pinFails) await clearFailures(user.id, "pin");
   await endSession("pos");
   await startSession("pos", { userId: user.id, storeId: device.storeId, deviceId: device.id }, POS_SESSION_HOURS);
   await db.device.update({ where: { id: device.id }, data: { lastSeenAt: new Date() } });
@@ -70,18 +68,16 @@ export async function pairableStores(user: { role: Role; storeId: string | null;
 export const demoStores = () =>
   db.store.findMany({ where: { kind: "RETAIL", status: "ACTIVE" }, select: storeSelect, orderBy: { code: "asc" } });
 
-const signIns = limiter(8, 15 * 60_000);
-
-/** Verifies a manager's email + password for pairing. */
+/** Verifies a manager's email + password for pairing (wrong ones count towards the account's sign-in lockout). */
 export async function verifyPairingUser(email: string, password: string) {
-  const key = email.trim().toLowerCase();
-  if (signIns.blocked(key)) throw new PosError("Too many attempts — try again in 15 minutes", 429);
-  const user = await db.user.findUnique({ where: { email: key } });
+  const user = await db.user.findUnique({ where: { email: email.trim().toLowerCase().slice(0, 254) } });
+  if (user && isLocked(user, "password")) throw new PosError("Too many attempts — try again in 15 minutes", 429);
   if (!user?.active || !verifySecret(password, user.passwordHash)) {
-    signIns.fail(key);
+    if (user && (await recordFailure(user.id, "password")))
+      await audit(db, { type: "USER", id: user.id, name: user.name }, "auth.lockout", { storeId: user.storeId, entity: "User", entityId: user.id, data: { via: "till pairing" } });
     throw new PosError("That email and password don't match", 401);
   }
-  signIns.reset(key);
+  if (user.passwordFails) await clearFailures(user.id, "password");
   if (!PAIR_ROLES.includes(user.role)) throw new PosError("Only a store manager, owner or HQ can pair a till", 403);
   return user;
 }

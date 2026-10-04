@@ -290,11 +290,13 @@ export async function updateTradeAccount(id: string, patch: Partial<TradeAccount
       const terms = await checkTerms(t, { terms: patch.terms ?? before.terms, creditLimitCents: patch.creditLimitCents ?? before.creditLimitCents, paymentDays: patch.paymentDays ?? before.paymentDays, classes: patch.classes ?? before.classes, priceListId: patch.priceListId === undefined ? before.priceListId : patch.priceListId, dcId: patch.dcId === undefined ? before.dcId : patch.dcId, notes: patch.notes });
       Object.assign(data, terms);
     }
-    // A new kind of business or new ranges can need licences the account hasn't given yet.
+    // A new kind of business, new ranges, or adding or removing the registration number (a company or a sole
+    // proprietor) can need licences the account hasn't given yet.
     const nextKind = (data.kind as string | undefined) ?? before.kind;
     const nextClasses = (data.classes as string[] | undefined) ?? before.classes;
-    if ((before.status === "APPROVED" || before.status === "ON_HOLD") && (nextKind !== before.kind || nextClasses.join() !== before.classes.join())) {
-      const standing = await standingOf(before, { kind: nextKind, classes: nextClasses, t });
+    const nextReg = data.regNumber === undefined ? before.regNumber : (data.regNumber as string | null);
+    if ((before.status === "APPROVED" || before.status === "ON_HOLD") && (nextKind !== before.kind || nextClasses.join() !== before.classes.join() || !!nextReg !== !!before.regNumber)) {
+      const standing = await standingOf(before, { kind: nextKind, classes: nextClasses, regNumber: nextReg, t });
       if (!standing.ok) throw new TradeAccountError(`The account needs its licences in order for that first: ${standing.problems.join("; ")}`);
     }
     const account = await t.tradeAccount.update({ where: { id }, data });

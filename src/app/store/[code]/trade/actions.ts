@@ -17,6 +17,8 @@ import { parseInt10 } from "@/server/hq/form";
 async function load(code: string, id: string) {
   const user = await requireStaff();
   const store = await storeForUser(user, code);
+  // The store's own team works the orders; area managers and HQ staff see them read-only.
+  if (!canManageStore(user) && user.role !== "BUDTENDER") throw new UserError("Trade orders are handled by the store's team.");
   const order = await db.tradeOrder.findFirst({ where: { id, storeId: store.id }, select: { id: true, number: true, status: true, fulfilment: true, collectionCode: true, payMethod: true, paidAt: true } });
   if (!order) throw new UserError("Trade order not found at this store.");
   return { user, store, order, actor: actorOf(user) };

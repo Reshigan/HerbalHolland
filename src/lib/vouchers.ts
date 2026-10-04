@@ -13,12 +13,19 @@ export const voucherSku = (amountCents: number) => `${VOUCHER_SKU_PREFIX}${amoun
 const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 const BODY = /^HH([A-HJ-NP-Z2-9]{12})$/;
 
+// A voucher code is money to whoever holds it: drawn from the platform's secure random source (32 characters divide
+// 2^32 evenly, so no character is likelier than another).
+const secureRandom = () => crypto.getRandomValues(new Uint32Array(1))[0] / 2 ** 32;
+
 /** "HH-K7PM-3QXR-9ZAB" from 12 random letters and digits. */
-export function makeVoucherCode(random: () => number = Math.random) {
+export function makeVoucherCode(random: () => number = secureRandom) {
   let s = "";
   for (let i = 0; i < 12; i++) s += ALPHABET[Math.floor(random() * ALPHABET.length) % ALPHABET.length];
   return `HH-${s.slice(0, 4)}-${s.slice(4, 8)}-${s.slice(8, 12)}`;
 }
+
+/** A code as logs, audit entries and receipts show it: "HH-••••-••••-9ZAB" (the whole code spends the balance). */
+export const maskVoucherCode = (code: string) => code.replace(/^HH-[A-Z0-9]{4}-[A-Z0-9]{4}-/, "HH-••••-••••-");
 
 /** As typed ("hh k7pm 3qxr 9zab", "HH-K7PM…") → the canonical code, or null when it can't be one. */
 export function normaliseVoucherCode(raw: string): string | null {

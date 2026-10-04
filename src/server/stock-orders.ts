@@ -72,6 +72,10 @@ const ALLOWED: Record<StockOrderAction, StockOrderStatus[]> = {
   cancel: ["DRAFT", "SUBMITTED", "APPROVED"],
 };
 
+const STATUS_AFTER: Record<StockOrderAction, StockOrderStatus> = {
+  submit: "SUBMITTED", approve: "APPROVED", reject: "REJECTED", ship: "SHIPPED", receive: "RECEIVED", cancel: "CANCELLED",
+};
+
 export async function actOnStockOrder(
   id: string,
   action: StockOrderAction,
@@ -83,6 +87,10 @@ export async function actOnStockOrder(
 
   const result = await tx(async (t) => {
     const now = new Date();
+    // One step at a time: the order moves only from a status the action allows, so a second ship or receive (or a
+    // cancel racing a ship) finds it moved and stops before stock moves twice.
+    const claimed = await t.stockOrder.updateMany({ where: { id, status: { in: ALLOWED[action] } }, data: { status: STATUS_AFTER[action] } });
+    if (claimed.count !== 1) throw new PurchaseError("This order changed while you were working on it — refresh and try again");
     if (action === "ship") {
       // Ship what the seller actually has; shortfalls are visible on the order.
       const avail = await availability([o.sellerId], o.lines.map((l) => l.variantId));
@@ -114,13 +122,10 @@ export async function actOnStockOrder(
         await t.stockOrderLine.update({ where: { id: line.id }, data: { receivedQty } });
       }
     }
-    const status: Record<StockOrderAction, StockOrderStatus> = {
-      submit: "SUBMITTED", approve: "APPROVED", reject: "REJECTED", ship: "SHIPPED", receive: "RECEIVED", cancel: "CANCELLED",
-    };
     const stamp = { submit: "submittedAt", approve: "approvedAt", ship: "shippedAt", receive: "receivedAt" } as const;
     const updated = await t.stockOrder.update({
       where: { id },
-      data: { status: status[action], ...(action in stamp && { [stamp[action as keyof typeof stamp]]: now }) },
+      data: { status: STATUS_AFTER[action], ...(action in stamp && { [stamp[action as keyof typeof stamp]]: now }) },
     });
     await audit(t, actor, `stockorder.${action}`, { storeId: action === "receive" || action === "submit" ? o.buyerId : o.sellerId, entity: "StockOrder", entityId: id, data: { number: o.number } });
     return updated;

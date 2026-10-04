@@ -52,8 +52,9 @@ export const POST = withStaff(async (req, pos) => {
     if (b.pointsRedeemed * 100 > eligible) throw new PosError("Points can't be used towards medicines (licensed or CBD supplements)", 422);
   }
 
+  // A queued offline sale keeps the time it was rung up — from the last 7 days only (else it's dated when it arrives).
   const now = Date.now();
-  const createdAt = b.createdAt && Date.parse(b.createdAt) < now ? b.createdAt : undefined;
+  const createdAt = b.createdAt && Date.parse(b.createdAt) < now && Date.parse(b.createdAt) > now - 7 * 86_400_000 ? b.createdAt : undefined;
   const input: PosSaleInput = {
     id: b.id,
     number: b.number,

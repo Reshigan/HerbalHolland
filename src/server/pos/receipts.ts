@@ -5,6 +5,7 @@ import { voucherPartsOf } from "@/server/sales";
 import { addDays } from "@/lib/format";
 import { PosError } from "./http";
 import type { ReceiptDTO, ReceiptTrade, SaleRow, TierKey } from "./types";
+import { maskVoucherCode } from "@/lib/vouchers";
 
 type LineAlloc = { lineId?: string };
 
@@ -40,7 +41,8 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
   // Gift vouchers: what's left on each (the receipt says so) and what this sale's refunds may still put back.
   const codes = [...new Set(s.payments.filter((p) => p.method === "VOUCHER" && p.reference).map((p) => p.reference!))];
   const balances = codes.length ? new Map((await db.giftVoucher.findMany({ where: { code: { in: codes } }, select: { code: true, balanceCents: true } })).map((v) => [v.code, v.balanceCents])) : new Map<string, number>();
-  const vouchers = s.kind === "SALE" ? voucherPartsOf(s) : [];
+  // The till shows voucher codes masked: the whole code spends what's left on it.
+  const vouchers = s.kind === "SALE" ? voucherPartsOf(s).map((v) => ({ ...v, code: maskVoucherCode(v.code) })) : [];
   const trade = s.channel === "WHOLESALE" && s.tradeAccount ? await tradeBlock(s) : null;
 
   return {
@@ -93,7 +95,7 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
         tenderedCents: p.tenderedCents,
         changeCents: p.changeCents,
         provider: p.provider,
-        reference: p.reference,
+        reference: p.method === "VOUCHER" && p.reference ? maskVoucherCode(p.reference) : p.reference,
         cardBrand: p.cardBrand,
         cardLast4: p.cardLast4,
         ...(p.method === "VOUCHER" && p.reference && { balanceCents: balances.get(p.reference) ?? null }),

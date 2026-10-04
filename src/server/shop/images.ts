@@ -3,11 +3,13 @@
 // storage (@/server/storage) and served to everyone at /media/[id]. A photo already on the product (same bytes) is
 // skipped, so importing a file twice never doubles the gallery. Products without photos keep the generated art.
 import { createHash, randomUUID } from "node:crypto";
+import { lookup } from "node:dns/promises";
 import { cache } from "react";
 import { db } from "@/server/db";
 import { putObject } from "@/server/storage";
 import { extFor, sniffType, type UploadType } from "@/lib/files";
 import { IMPORT_MAX_IMAGES } from "@/lib/catalogue-import";
+import { isPublicIp } from "@/lib/net";
 
 export const PRODUCT_IMAGE_TYPES: UploadType[] = ["image/jpeg", "image/png", "image/webp"];
 export const PRODUCT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
@@ -44,12 +46,30 @@ async function fetchImage(url: string) {
     throw new Error("not a web address");
   }
   if (u.protocol !== "https:" || isPrivateHost(u.hostname)) throw new Error("only public https:// addresses");
-  const res = await fetch(u, { signal: AbortSignal.timeout(15_000), redirect: "follow", headers: { accept: "image/*" } });
+  // The name must lead to public addresses only (no internal service behind a public-looking name), and a redirect is
+  // never followed (it could point anywhere): the photo's own address, please.
+  const addresses = await lookup(u.hostname, { all: true }).catch(() => []);
+  if (!addresses.length) throw new Error("that address doesn't resolve");
+  if (addresses.some((a) => !isPublicIp(a.address))) throw new Error("only public https:// addresses");
+  const res = await fetch(u, { signal: AbortSignal.timeout(15_000), redirect: "manual", headers: { accept: "image/*" } });
+  if (res.status >= 300 && res.status < 400) throw new Error("it redirects — use the photo's own address");
   if (!res.ok) throw new Error(`the server answered ${res.status}`);
   if (Number(res.headers.get("content-length") ?? 0) > PRODUCT_IMAGE_MAX_BYTES) throw new Error("over 5 MB");
-  const bytes = new Uint8Array(await res.arrayBuffer());
-  if (!bytes.length) throw new Error("empty file");
-  if (bytes.length > PRODUCT_IMAGE_MAX_BYTES) throw new Error("over 5 MB");
+  // At most 5 MB is read, whatever length the server gives (or doesn't).
+  const reader = res.body?.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (let r = reader && (await reader.read()); r && !r.done; r = await reader!.read()) {
+    size += r.value.length;
+    if (size > PRODUCT_IMAGE_MAX_BYTES) {
+      await reader!.cancel();
+      throw new Error("over 5 MB");
+    }
+    chunks.push(r.value);
+  }
+  if (!size) throw new Error("empty file");
+  const bytes = new Uint8Array(size);
+  chunks.reduce((at, c) => (bytes.set(c, at), at + c.length), 0);
   return bytes;
 }
 

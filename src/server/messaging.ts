@@ -13,6 +13,7 @@ import { APP_URL, campaignEmail, orderEmail, type OrderEvent } from "./email-tem
 import { pushToCustomer } from "./push";
 import { gsmSafe, orderSms, shortLink } from "@/lib/sms";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { appSecret } from "./secret";
 
 export type OutboundMessage = {
   channel: MsgChannel;
@@ -29,7 +30,7 @@ export type OutboundMessage = {
 // ── Opt-out links (POPIA s69: every marketing message offers a free opt-out) ──
 
 export const optOutToken = (customerId: string, channel: MsgChannel) =>
-  createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`optout:${customerId}:${channel}`).digest("base64url").slice(0, 22);
+  createHmac("sha256", appSecret()).update(`optout:${customerId}:${channel}`).digest("base64url").slice(0, 22);
 
 export const validOptOut = (customerId: string, channel: string, token: string) =>
   ["WHATSAPP", "SMS", "EMAIL", "PUSH"].includes(channel) &&
@@ -118,9 +119,10 @@ export async function send(msg: OutboundMessage) {
  * Transactional messages default to SMS: WhatsApp's commerce policy prohibits drug and
  * medical products, so it is optional (utility templates, neutral wording) with SMS fallback.
  */
-export function notifyCustomer(c: { id: string; phone: string }, body: string) {
+/** `logBody`: what the message log keeps instead, when the text carries something that must not be stored (a code). */
+export function notifyCustomer(c: { id: string; phone: string }, body: string, logBody?: string) {
   const channel = process.env.TRANSACTIONAL_CHANNEL === "WHATSAPP" ? "WHATSAPP" : "SMS";
-  return send({ channel, to: c.phone, body, kind: "TRANSACTIONAL", customerId: c.id });
+  return send({ channel, to: c.phone, body, logBody, kind: "TRANSACTIONAL", customerId: c.id });
 }
 
 // ── Online order updates ─────────────────────────────────────────────────────

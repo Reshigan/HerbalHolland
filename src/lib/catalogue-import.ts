@@ -10,6 +10,7 @@ import { zar } from "./money";
 
 export const IMPORT_MAX_BYTES = 2 * 1024 * 1024;
 export const IMPORT_MAX_ROWS = 5_000;
+export const IMPORT_MAX_COLUMNS = 100; // the template has fewer than 40: more means the wrong delimiter, or not a catalogue
 export const IMPORT_MAX_IMAGES = 6;
 export const PRODUCT_LINES = ["HOUSE", "HERITAGE", "CLASSIC", "RESERVE", "PARTNER"] as const;
 const STATUSES = ["ACTIVE", "DRAFT", "ARCHIVED"] as const;
@@ -236,7 +237,10 @@ export function parseCsv(text: string): { rows: string[][]; delimiter: "," | ";"
       else if (src[i + 1] === '"') (cell += '"'), i++;
       else quoted = false;
     } else if (ch === '"' && !cell) quoted = true;
-    else if (ch === delimiter) row.push(cell), (cell = "");
+    else if (ch === delimiter) {
+      row.push(cell), (cell = "");
+      if (row.length > IMPORT_MAX_COLUMNS) return { rows, delimiter, error: `Row ${rows.length + 1} has more than ${IMPORT_MAX_COLUMNS} cells — check the file is the catalogue template, saved as CSV.` };
+    }
     else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && src[i + 1] === "\n") i++;
       row.push(cell), rows.push(row), (row = []), (cell = "");

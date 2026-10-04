@@ -41,12 +41,17 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
   const [otherDelivery, setOtherDelivery] = useState(v.otherDelivery === "on");
   const problems = Object.entries(f) as [keyof TradeErrors, string][];
   const ticked = (c: string) => (v.classes ?? "").split(" ").includes(c);
-  // The kind of business and the ranges decide which licences the form asks for; they follow what's typed, and the
-  // server's echo after a refused send (React resets the form then).
-  const [sel, setSel] = useState({ at: state.at, kind: v.kind ?? "", classes: (v.classes ?? "").split(" ").filter(Boolean) });
-  if (sel.at !== state.at) setSel({ at: state.at, kind: v.kind ?? "", classes: (v.classes ?? "").split(" ").filter(Boolean) });
-  const needed = sel.kind ? requiredLicences(sel.kind, sel.classes) : [];
-  const cipc = needed.some((r) => r.kind === "CIPC_REGISTRATION");
+  // The kind of business, the ranges and whether there's a registration number (a company, or a sole proprietor) decide
+  // which licences the form asks for; they follow what's typed, and the server's echo after a refused send (React
+  // resets the form then).
+  const fromState = () => ({ at: state.at, kind: v.kind ?? "", classes: (v.classes ?? "").split(" ").filter(Boolean), company: !!v.regNumber?.trim() });
+  const [sel, setSel] = useState(fromState);
+  if (sel.at !== state.at) setSel(fromState());
+  const needed = sel.kind ? requiredLicences(sel.kind, sel.classes, sel.company) : [];
+  // What a sole proprietor (no registration number) of this kind would need: the company certificate means it must be a company.
+  const asSole = sel.kind ? requiredLicences(sel.kind, sel.classes, false) : [];
+  const companyOnly = asSole.some((r) => r.kind === "CIPC_REGISTRATION");
+  const soleProprietorOk = asSole.some((r) => r.kind === "SARS_REGISTRATION");
   const summary = useRef<HTMLDivElement>(null);
   const refusedByServer = !!(state.fields || state.error) && !checked;
 
@@ -122,12 +127,18 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
             </SelectInput>
           </FieldRow>
           <FieldRow
-            label={cipc ? "Company registration number" : "Company registration number (optional)"}
+            label={companyOnly ? "Company registration number" : "Company registration number (optional)"}
             htmlFor="f-regNumber"
             error={f.regNumber}
-            hint={cipc ? "Like 2015/123456/07. This kind of business needs it — attach the certificate under Licences." : "Like 2015/123456/07. Leave blank if the business isn't registered."}
+            hint={
+              companyOnly
+                ? "Like 2015/123456/07. This kind of business needs it — attach the certificate under Licences."
+                : soleProprietorOk
+                  ? "Like 2015/123456/07. A sole proprietor leaves it blank and attaches the SARS tax registration under Licences instead."
+                  : "Like 2015/123456/07. Leave blank if the business isn't registered."
+            }
           >
-            <TextInput id="f-regNumber" name="regNumber" inputMode="numeric" maxLength={20} defaultValue={v.regNumber} aria-invalid={!!f.regNumber} className="tnum" />
+            <TextInput id="f-regNumber" name="regNumber" inputMode="numeric" maxLength={20} defaultValue={v.regNumber} aria-invalid={!!f.regNumber} className="tnum" onChange={(e) => setSel((x) => ({ ...x, company: !!e.target.value.trim() }))} />
           </FieldRow>
           <FieldRow label="VAT number (optional)" htmlFor="f-vatNumber" error={f.vatNumber} hint="Ten digits starting with 4, for a VAT vendor.">
             <TextInput id="f-vatNumber" name="vatNumber" inputMode="numeric" maxLength={14} defaultValue={v.vatNumber} aria-invalid={!!f.vatNumber} className="tnum" />

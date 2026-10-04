@@ -17,12 +17,10 @@ import { readPhoneToken, signPhone } from "./phone-token";
 import { checkSaId } from "@/lib/sa";
 import type { MsgChannel } from "@/generated/prisma/client";
 import type { PickerStore } from "@/components/shop/nav-client";
+import { safePath } from "@/lib/safe-path";
 
 /** Only same-site relative paths are accepted as post-sign-in destinations. */
-function safeNext(raw: FormDataEntryValue | null) {
-  const s = String(raw ?? "");
-  return s.startsWith("/") && !s.startsWith("//") && !s.includes("\\") ? s : null;
-}
+const safeNext = safePath;
 
 // ── Age gate ─────────────────────────────────────────────────────────────────
 export async function confirmAge() {

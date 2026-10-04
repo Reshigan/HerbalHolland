@@ -6,6 +6,7 @@ import { addPoints } from "@/server/loyalty";
 import { guard, DENIED, fail, flashTo, type ActionState } from "@/server/hq/guard";
 import { str } from "@/server/hq/form";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { deleteObject } from "@/server/storage";
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
@@ -23,6 +24,7 @@ export async function anonymiseCustomer(customerId: string, _: ActionState, fd: 
   if (!c) return fail("Member not found.");
   if (c.phone.startsWith("anon-")) return fail("This member has already been anonymised.");
   const reason = str(fd, "reason") || "Data subject request";
+  let photoKeys: string[] = [];
 
   await tx(async (t) => {
     if (c.points > 0) await addPoints(t, { customerId, points: -c.points, kind: "EXPIRE", note: "Forfeited on POPIA erasure request" });
@@ -44,10 +46,17 @@ export async function anonymiseCustomer(customerId: string, _: ActionState, fd: 
     await t.messageLog.updateMany({ where: { customerId }, data: { to: "[erased]", body: "[erased on POPIA request]" } });
     await t.order.updateMany({ where: { customerId }, data: { addressLine: null, suburb: null, postalCode: null, deliveryNotes: null } });
     await t.sale.updateMany({ where: { customerId }, data: { invoiceEmail: null } });
-    await t.review.updateMany({ where: { customerId }, data: { title: null, body: null } });
+    // Their review photos come down too (they were public): the rows here, the stored files once this commits.
+    const photoIds = (await t.review.findMany({ where: { customerId }, select: { photoUploadIds: true } })).flatMap((r) => r.photoUploadIds);
+    await t.review.updateMany({ where: { customerId }, data: { title: null, body: null, photoUploadIds: [] } });
+    if (photoIds.length) {
+      photoKeys = (await t.upload.findMany({ where: { id: { in: photoIds } }, select: { key: true } })).map((u) => u.key);
+      await t.upload.deleteMany({ where: { id: { in: photoIds } } });
+    }
     await t.patientAuth.updateMany({ where: { customerId }, data: { documentRef: null, status: "REVOKED" } });
     await audit(t, g.actor, "customer.anonymise", { entity: "Customer", entityId: customerId, data: { memberNo: c.memberNo, reason, pointsForfeited: Math.max(0, c.points) } });
   });
+  for (const key of photoKeys) await deleteObject(key).catch((e) => console.error("[popia] photo delete failed", key, e));
   revalidatePath(`/hq/customers/${customerId}`);
   flashTo(`/hq/customers/${customerId}`, "Personal information erased. Financial and dispensing records remain, detached from the person.");
 }
