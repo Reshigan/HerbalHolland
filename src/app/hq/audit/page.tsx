@@ -1,9 +1,12 @@
+import Link from "next/link";
 import { History } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { qs, parseDay } from "@/server/hq/form";
 import { addDays, fmtDateTime } from "@/lib/format";
+import { describeAction, describeData } from "@/lib/audit-describe";
+import { invoiceUrl } from "@/server/invoices";
 import { PageHeader } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
 import { Badge, type Tone } from "@/components/ui/badge";
@@ -11,11 +14,11 @@ import { Table, Th, Td, Tr, SortableTh, TableEmpty, sortParams } from "@/compone
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { SavedViews } from "@/components/admin/saved-views";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 
 export const metadata = { title: "Audit log" };
 
-type SP = { action?: string; store?: string; actor?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
+type SP = { q?: string; action?: string; store?: string; actor?: string; from?: string; to?: string; sort?: string; dir?: string; page?: string };
 
 const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "compliance.", label: "Compliance", tone: "red" },
@@ -67,6 +70,20 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const from = parseDay(sp.from);
   const to = parseDay(sp.to);
   const action = sp.action?.trim();
+  const q = sp.q?.trim().slice(0, 80) ?? "";
+  // Free-text search (an order number, a member number, an amount…) reads the entry's id and data, so it's bounded by
+  // date: the range picked, or the last 90 days. At most 2,000 matches, newest first.
+  const searchFrom = from ?? addDays(new Date(), -90);
+  const searchIds = q
+    ? (
+        await db.$queryRaw<{ id: string }[]>`
+          SELECT id FROM "AuditLog"
+          WHERE at >= ${searchFrom} ${to ? Prisma.sql`AND at < ${addDays(to, 1)}` : Prisma.empty}
+            ${scope.kind === "HQ" ? Prisma.empty : Prisma.sql`AND "storeId" = ANY(${ids}::text[])`}
+            AND ("entityId" = ${q} OR "actorName" ILIKE ${`%${q}%`} OR data::text ILIKE ${`%${q}%`})
+          ORDER BY at DESC LIMIT 2000`
+      ).map((r) => r.id)
+    : null;
   const where: Prisma.AuditLogWhereInput = {
     AND: [
       scope.kind === "HQ" ? {} : { storeId: { in: ids } },
@@ -75,6 +92,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       sp.actor?.trim() ? { actorName: { contains: sp.actor.trim(), mode: "insensitive" } } : {},
       from ? { at: { gte: from } } : {},
       to ? { at: { lt: addDays(to, 1) } } : {},
+      searchIds ? { id: { in: searchIds } } : {},
     ],
   };
   const [total, rows, stores] = await Promise.all([
@@ -83,6 +101,48 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const storeName = new Map(stores.map((s) => [s.id, s]));
+  // Online orders open by their code: look up the codes for this page's entries only.
+  const orderIds = rows.filter((r) => r.entity === "Order" && r.entityId).map((r) => r.entityId!);
+  const orderCode = new Map((orderIds.length ? await db.order.findMany({ where: { id: { in: orderIds } }, select: { id: true, code: true } }) : []).map((o) => [o.id, o.code]));
+  const entityHref = (entity: string | null, id: string | null): string | null => {
+    if (!entity || !id) return null;
+    switch (entity) {
+      case "Sale":
+        return invoiceUrl(id).replace(/^https?:\/\/[^/]+/, "");
+      case "TradeOrder":
+        return `/hq/trade/orders/${id}`;
+      case "TradeAccount":
+        return `/hq/trade/accounts/${id}`;
+      case "Customer":
+        return `/hq/customers/${id}`;
+      case "Batch":
+        return `/hq/batches/${id}`;
+      case "Order":
+        return orderCode.has(id) ? `/hq/orders/${orderCode.get(id)}` : null;
+      case "Product":
+        return `/hq/catalogue/${id}`;
+      case "Campaign":
+        return `/hq/marketing/${id}`;
+      case "Promotion":
+        return `/hq/promotions/${id}`;
+      case "FranchiseLead":
+        return `/hq/franchise/${id}`;
+      case "SupportTicket":
+        return `/hq/support/${id}`;
+      case "ReturnRequest":
+        return `/hq/returns/${id}`;
+      case "StockOrder":
+        return `/hq/distribution/${id}`;
+      case "StoreEvent":
+        return `/hq/events/${id}`;
+      case "Drop":
+        return `/hq/drops/${id}`;
+      case "Store":
+        return storeName.has(id) ? `/hq/stores/${storeName.get(id)!.code}` : null;
+      default:
+        return null;
+    }
+  };
   const href = (p: Record<string, string | number | undefined>) => `/hq/audit${qs({ ...sp, ...p })}`;
   const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
 
@@ -96,7 +156,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       <Card>
         <div className="space-y-3 border-b border-ink-100 p-4">
           <FilterForm action="/hq/audit" keep={{ sort: sp.sort, dir: sp.dir }}>
-            <SearchField name="actor" defaultValue={sp.actor} placeholder="Who (name)" label="Actor" />
+            <SearchField defaultValue={sp.q} placeholder="Find: order or member no., name, amount, id…" label="Search the log" />
+            <SearchField name="actor" defaultValue={sp.actor} placeholder="Who (name)" label="Actor" className="basis-40" />
             <FilterSelect name="action" label="Activity" defaultValue={action} allLabel="All" options={[...(action && !GROUPS.some((g) => g.prefix === action) ? [{ value: action, label: action }] : []), ...GROUPS.map((g) => ({ value: g.prefix, label: g.label }))]} />
             {stores.length > 1 && <FilterSelect name="store" label="Store" defaultValue={sp.store} options={stores.map((s) => ({ value: s.code, label: s.name }))} />}
             <label className="block">
@@ -123,18 +184,32 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           <tbody>
             {rows.length === 0 && (
               <TableEmpty cols={5} icon={<History className="h-5 w-5" aria-hidden />} title="No entries match these filters">
-                Widen the date range or clear the activity filter.
+                {q && !from ? "Search looks back 90 days — pick an earlier From date to go further. " : ""}Widen the date range or clear the activity filter.
               </TableEmpty>
             )}
             {rows.map((r) => {
               const s = r.storeId ? storeName.get(r.storeId) : undefined;
               const data = r.data == null ? null : JSON.stringify(r.data, null, 2);
+              const summary = describeData(r.data);
+              const link = entityHref(r.entity, r.entityId);
               return (
                 <Tr key={r.id} className="align-top">
                   <Td className="whitespace-nowrap text-xs text-ink-600">{fmtDateTime(r.at)}</Td>
                   <Td>
-                    <Badge tone={toneOf(r.action)}>{r.action}</Badge>
-                    {r.entity && <span className="mt-1 block font-mono text-[0.68rem] text-ink-500">{r.entity}{r.entityId ? ` ${r.entityId.slice(0, 8)}…` : ""}</span>}
+                    <span className="block font-medium text-ink-900" title={r.action}>{describeAction(r.action)}</span>
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <Badge tone={toneOf(r.action)}>{GROUPS.find((g) => r.action.startsWith(g.prefix))?.label ?? r.action.split(".")[0]}</Badge>
+                      {r.entity &&
+                        (link ? (
+                          <Link href={link} className="text-xs font-semibold text-brand-700 hover:underline" title={`${r.entity} ${r.entityId}`}>
+                            Open {r.entity.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase()} →
+                          </Link>
+                        ) : (
+                          <span className="font-mono text-[0.68rem] text-ink-500" title={r.entityId ?? undefined}>
+                            {r.entity}
+                          </span>
+                        ))}
+                    </span>
                   </Td>
                   <Td>
                     <span className="text-ink-850">{r.actorName ?? "—"}</span>
@@ -144,9 +219,9 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
                   <Td className="max-w-md">
                     {data ? (
                       <details className="group">
-                        <summary className="cursor-pointer list-none truncate text-xs text-ink-600 marker:hidden hover:text-ink-900">
+                        <summary className="cursor-pointer list-none text-xs text-ink-700 marker:hidden hover:text-ink-900">
                           <span className="mr-1 inline-block text-brand-700 transition group-open:rotate-90">▸</span>
-                          {data.replace(/\s+/g, " ").slice(0, 90)}
+                          {summary || "Show the raw entry"}
                         </summary>
                         <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-ink-950 p-3 text-[0.7rem] leading-relaxed text-ink-100">{data}</pre>
                       </details>

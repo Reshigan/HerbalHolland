@@ -328,14 +328,14 @@ export function Composer({
                 (confirming ? (
                   <div className="col-span-2 rounded-2xl border border-ink-200 bg-ink-50 p-4" role="group" aria-labelledby="send-confirm-title">
                     <p id="send-confirm-title" className="font-display text-sm font-semibold text-ink-950">
-                      {reach ? `Send to ${reach.reachable.toLocaleString()} members by ${CHANNELS.find((c) => c.key === v.channel)?.label}?` : "Send to this audience now?"}
+                      {loading ? "Counting the audience…" : reach ? `Send to ${reach.reachable.toLocaleString()} members by ${CHANNELS.find((c) => c.key === v.channel)?.label}?` : "Send to this audience now?"}
                     </p>
                     <p className="mt-1 text-xs text-ink-600">
                       {v.channel === "SMS" && reach ? `${(reach.reachable * parts).toLocaleString()} SMS parts (${parts} per member). ` : ""}
                       The do-not-contact list is checked as it goes{window && !window.allowed ? `; it waits until ${fmt(nextMarketingSlot(now!))}` : ""}. It can&apos;t be recalled once sent.
                     </p>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <SubmitButton name="intent" value="send" pendingLabel="Sending…">
+                      <SubmitButton name="intent" value="send" disabled={loading} pendingLabel="Sending…">
                         <Send className="h-4 w-4" /> Yes, send now
                       </SubmitButton>
                       <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>

@@ -1,5 +1,6 @@
 // Catalogue queries: paginated product list with variant counts, price ranges and
 // ranging reach; per-variant ranging by store format for the ranging tool.
+import { searchTerms } from "@/lib/text-search";
 import { db } from "@/server/db";
 import { REG_CLASSES } from "@/lib/compliance";
 import type { Prisma, ProductStatus, RegClass, StoreFormat } from "@/generated/prisma/client";
@@ -31,29 +32,43 @@ export function productOrderBy(sort: CatalogueSort | null, dir: "asc" | "desc"):
   }
 }
 
-export function productWhere(f: CatalogueFilters): Prisma.ProductWhereInput {
-  const q = f.q?.trim();
+/**
+ * Every search word must match (any order) a product's name, slug, a variant's SKU or barcode — or, through
+ * `squashed` (ids per word from `squashedNameMatches`), its name with punctuation ignored ("preroll" finds "Pre-roll").
+ */
+export function productWhere(f: CatalogueFilters, squashed?: string[][]): Prisma.ProductWhereInput {
+  const terms = searchTerms(f.q);
   return {
     AND: [
       f.category ? { category: { slug: f.category } } : {},
       f.cls && REG_CLASSES.includes(f.cls as RegClass) ? { regClass: f.cls as RegClass } : {},
       f.status && PRODUCT_STATUSES.includes(f.status as ProductStatus) ? { status: f.status as ProductStatus } : {},
       f.flag === "heritage" ? { heritage: true } : f.flag === "featured" ? { featured: true } : f.flag === "tobacco" ? { tobaccoRelated: true } : {},
-      q
-        ? {
-            OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { slug: { contains: q, mode: "insensitive" } },
-              { variants: { some: { OR: [{ sku: { contains: q, mode: "insensitive" } }, { barcode: q }] } } },
-            ],
-          }
-        : {},
+      ...terms.map((t, i) => ({
+        OR: [
+          { name: { contains: t.word, mode: "insensitive" as const } },
+          { slug: { contains: t.word, mode: "insensitive" as const } },
+          { variants: { some: { OR: [{ sku: { contains: t.word, mode: "insensitive" as const } }, { barcode: t.word }] } } },
+          ...(squashed?.[i]?.length ? [{ id: { in: squashed[i] } }] : []),
+        ],
+      })),
     ],
   };
 }
 
+/** Per search word, the products whose name contains it once punctuation and spaces are ignored. */
+export async function squashedNameMatches(q: string | undefined) {
+  return Promise.all(
+    searchTerms(q).map(async (t) =>
+      t.squashed.length < 3
+        ? []
+        : (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Product" WHERE regexp_replace(lower(name), '[^[:alnum:]]+', '', 'g') LIKE ${`%${t.squashed}%`} LIMIT 500`).map((r) => r.id),
+    ),
+  );
+}
+
 export async function productList(retailIds: string[], f: CatalogueFilters, page: number, pageSize: number, order: { sort: CatalogueSort | null; dir: "asc" | "desc" } = { sort: null, dir: "asc" }) {
-  const where = productWhere(f);
+  const where = productWhere(f, f.q?.trim() ? await squashedNameMatches(f.q) : undefined);
   const [total, products] = await Promise.all([
     db.product.count({ where }),
     db.product.findMany({
