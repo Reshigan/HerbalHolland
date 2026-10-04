@@ -1,8 +1,9 @@
 // Member figures for the store back office. Franchise privacy: a store sees only its own sales — spend, visits and
 // savings come from this store's sales (refunds are stored negative, so sums are net). Tier, points balance and RFM
 // segment stay network-wide: they belong to the Rewards programme, not to any one store.
-import { db } from "@/server/db";
-import type { Prisma } from "@/generated/prisma/client";
+import { db, Prisma } from "@/server/db";
+import { closeNameMatches } from "@/server/hq/crm";
+import { nameWords } from "@/lib/member-search";
 
 export type HereStats = { spendCents: number; visits: number; firstAt: Date | null; lastAt: Date | null; savedCents: number };
 export const NO_STATS: HereStats = { spendCents: 0, visits: 0, firstAt: null, lastAt: null, savedCents: 0 };
@@ -80,3 +81,7 @@ export function customerSearch(q: string): Prisma.CustomerWhereInput {
 
 /** Members a store may look up: its home members, and members who have bought there (Sale.customerId is indexed). */
 export const memberAtStore = (storeId: string): Prisma.CustomerWhereInput => ({ OR: [{ homeStoreId: storeId }, { sales: { some: { storeId } } }] });
+
+/** For a search that found nobody here: members a store may look up whose names are close to the words typed (a typo), closest first. */
+export const closeMembersAt = (storeId: string, q: string) =>
+  closeNameMatches(nameWords(q), Prisma.sql`(c."homeStoreId" = ${storeId} OR EXISTS (SELECT 1 FROM "Sale" s WHERE s."customerId" = c.id AND s."storeId" = ${storeId}))`);

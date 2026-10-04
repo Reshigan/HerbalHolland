@@ -4,7 +4,8 @@
 import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
-import { parseMemberQuery } from "@/lib/member-search";
+import { NAME_SIMILARITY, nameWords, parseMemberQuery } from "@/lib/member-search";
+import { CLOSE_MATCHES } from "@/lib/text-search";
 import { addDays } from "@/lib/format";
 import { Prisma, type Tier } from "@/generated/prisma/client";
 
@@ -77,4 +78,33 @@ export function memberWhere(s: MemberScope, f: { q?: string; tier?: string; segm
       f.store ? { homeStore: { code: f.store } } : {},
     ],
   };
+}
+
+/**
+ * Members whose first or last name is close to every word typed (pg_trgm word similarity ≥ NAME_SIMILARITY: "Abrahms"
+ * finds Abrahams, "ndlovo" Ndlovu), within `bound` (SQL on "Customer" c), closest first: at most CLOSE_MATCHES ids. For a
+ * name search that found nobody. The threshold is set for this transaction only, so `<%` uses the names' trigram indexes.
+ */
+export async function closeNameMatches(words: string[], bound: Prisma.Sql = Prisma.sql`TRUE`): Promise<string[]> {
+  const ws = words.map((w) => w.slice(0, 40)).filter(Boolean).slice(0, 4);
+  if (!ws.length) return [];
+  const rows = await db.$transaction(async (t) => {
+    await t.$executeRawUnsafe(`SET LOCAL pg_trgm.word_similarity_threshold = ${NAME_SIMILARITY}`);
+    return t.$queryRaw<{ id: string }[]>`
+      SELECT c.id FROM "Customer" c
+      WHERE ${bound} AND ${Prisma.join(ws.map((w) => Prisma.sql`(${w} <% c."firstName" OR ${w} <% c."lastName")`), " AND ")}
+      ORDER BY ${Prisma.join(ws.map((w) => Prisma.sql`GREATEST(word_similarity(${w}, c."firstName"), word_similarity(${w}, coalesce(c."lastName", '')))`), " + ")} DESC, c."memberNo"
+      LIMIT ${CLOSE_MATCHES}`;
+  });
+  return rows.map((r) => r.id);
+}
+
+/** A name search that found nobody, loosened (closeNameMatches) within the scope: the ids that pass the other filters, closest first. */
+export async function closeMembers(s: MemberScope, f: { q?: string; tier?: string; segment?: string; store?: string }) {
+  if (parseMemberQuery(f.q).kind !== "names") return [];
+  const ids = await closeNameMatches(nameWords(f.q), s ? Prisma.sql`c."homeStoreId" = ANY(${s}::text[])` : undefined);
+  if (!ids.length) return [];
+  const pass = await db.customer.findMany({ where: { AND: [memberWhere(s, { ...f, q: undefined }), { id: { in: ids } }] }, select: { id: true } });
+  const ok = new Set(pass.map((r) => r.id));
+  return ids.filter((id) => ok.has(id));
 }

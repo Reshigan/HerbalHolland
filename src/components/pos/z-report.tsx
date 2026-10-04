@@ -156,6 +156,9 @@ export function ZReportDocument({ z, printedAt, address }: { z: ZReport; printed
           <Row label="Rewards savings given" value={zar(z.sales.memberSavingsCents)} indent />
           {z.online.count > 0 && <Row label={`Online handovers (${z.online.count})`} value={zar(z.online.grossCents)} indent />}
           <Row label={`Refunds (${z.refunds.count})`} value={`−${zar(z.refunds.totalCents)}`} tone={z.refunds.totalCents ? "neg" : undefined} />
+          {z.refundTenders?.map((t) => (
+            <Row key={t.method} label={`${t.label} (${t.count})`} value={`${t.amountCents < 0 ? "+" : "−"}${zar(Math.abs(t.amountCents))}`} indent />
+          ))}
           <Row label="Net takings" value={zar(z.takingsCents)} strong />
         </section>
 

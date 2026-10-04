@@ -9,7 +9,7 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText } from "../lib/api";
 import { updateQueued } from "../lib/storage";
 import { tenderLine } from "../lib/rules";
-import { tradeTenderLabel } from "../lib/receipt";
+import { servedBy, tradeTenderLabel } from "../lib/receipt";
 import { Alert, PosButton, Sheet, TextInput } from "../ui";
 import type { ReceiptDTO } from "@/server/pos/types";
 
@@ -96,6 +96,11 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
             .join(" · ")}
           {receipt.pointsRedeemed > 0 && ` · Points ${fmtPoints(receipt.pointsRedeemed)}`}
         </div>
+        {receipt.soldBy && (
+          <div className="mt-1 text-sm text-ink-400" data-testid="receipt-sold-by">
+            {servedBy(receipt)}
+          </div>
+        )}
       </div>
 
       {trade && (

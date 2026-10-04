@@ -214,11 +214,11 @@ async function salesRefunded(now: Date, s: LossSettings) {
   const month = dayKey(now).slice(0, 7);
   const start = new Date(`${month}-01T00:00:00+02:00`);
   const rows = await db.$queryRaw<{ storeId: string; userId: string; sold: number; refunded: number; n: number }[]>`
-    SELECT o."storeId", o."staffId" AS "userId", SUM(o."totalCents")::int AS sold, (-COALESCE(SUM(r.value), 0))::int AS refunded, COALESCE(SUM(r.n), 0)::int AS n
+    SELECT o."storeId", COALESCE(o."soldById", o."staffId") AS "userId", SUM(o."totalCents")::int AS sold, (-COALESCE(SUM(r.value), 0))::int AS refunded, COALESCE(SUM(r.n), 0)::int AS n
     FROM "Sale" o
     LEFT JOIN (SELECT "refundOfId", SUM("totalCents") AS value, COUNT(*) AS n FROM "Sale" WHERE kind = 'REFUND' AND "createdAt" >= ${start} GROUP BY 1) r ON r."refundOfId" = o.id
-    WHERE o.kind = 'SALE' AND o.channel = 'POS' AND o."staffId" IS NOT NULL AND o."createdAt" >= ${start}
-    GROUP BY 1, 2`;
+    WHERE o.kind = 'SALE' AND o.channel = 'POS' AND COALESCE(o."soldById", o."staffId") IS NOT NULL AND o."createdAt" >= ${start}
+    GROUP BY 1, 2`; // the seller, as commission credits it (a dispenser who completed the sale isn't the seller)
   const code = await codes(rows.map((r) => r.storeId));
   return rows
     .filter((r) => r.n >= s.refundedMin && r.refunded >= r.sold * s.refundedShare)

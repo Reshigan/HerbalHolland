@@ -46,9 +46,9 @@ describe("store scope", () => {
   });
 
   it("turns other stores away", async () => {
-    await expect(storeForUser(manager, "TST02")).rejects.toThrow("NEXT_REDIRECT");
-    await expect(storeForUser(owner, "OTH01")).rejects.toThrow("NEXT_REDIRECT");
-    await expect(storeForUser(area, "OTH01")).rejects.toThrow("NEXT_REDIRECT");
+    await expect(storeForUser(manager, "TST02")).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    await expect(storeForUser(owner, "OTH01")).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
+    await expect(storeForUser(area, "OTH01")).rejects.toThrow("NEXT_HTTP_ERROR_FALLBACK;404");
     expect((await storeForUser(owner, "TST02")).id).toBe(second.id);
     expect((await storeForUser(hq, "OTH01")).id).toBe(other.id);
   });

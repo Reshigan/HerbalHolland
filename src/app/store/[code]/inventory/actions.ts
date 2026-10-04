@@ -2,6 +2,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
+import { isHq, requireStaff } from "@/server/auth";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { parseRand, parseWhole, str } from "@/server/store/rules";
 import { zar } from "@/lib/money";
@@ -35,10 +36,12 @@ export async function saveLevels(code: string, variantId: string, _: ActionState
 
 /**
  * Sets one SKU's shelf price from the stock list (empty = follow the list price). Same rules, audit entry
- * (`price.override`) and margin warning as the pricing workbench, which does the work.
+ * (`price.override`) and margin warning as the pricing workbench, which does the work — and, like it, never for HQ:
+ * shelf prices are the franchisee's (Competition Act s5(2)).
  */
 export async function saveShelfPrice(code: string, variantId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
+    if (isHq(await requireStaff())) return fail("Shelf prices are the franchisee's to set", "price");
     const { store } = await manage(code);
     const raw = str(fd, "price");
     const priceCents = raw ? parseRand(raw) : null;

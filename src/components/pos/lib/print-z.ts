@@ -28,6 +28,7 @@ export function zReportBytes(z: ZReport, o: { cols: Columns; codePage?: number; 
   p.row("  Units sold", String(z.sales.units));
   if (z.online.count > 0) p.row(`  Online handovers (${z.online.count})`, zar(z.online.grossCents));
   p.row(`Refunds (${z.refunds.count})`, `-${zar(z.refunds.totalCents)}`);
+  for (const t of z.refundTenders ?? []) p.row(`  ${t.label} (${t.count})`, zar(-t.amountCents)); // where the refunds went, by tender
   p.bold(true).row("Net takings", zar(z.takingsCents)).bold(false);
   p.rule();
   p.bold(true).line("By tender (net)").bold(false);

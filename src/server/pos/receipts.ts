@@ -6,6 +6,7 @@ import { addDays } from "@/lib/format";
 import { PosError } from "./http";
 import type { ReceiptDTO, ReceiptTrade, SaleRow, TierKey } from "./types";
 import { maskVoucherCode } from "@/lib/vouchers";
+import { moneyPartsOf } from "@/lib/pos-refund";
 import { normalisePhone } from "@/lib/sa";
 import { memberNoFrom } from "@/components/pos/lib/rules";
 import type { Prisma } from "@/generated/prisma/client";
@@ -32,13 +33,16 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
       ? await db.memberOffer.findMany({ where: { customerId: s.customerId, saleId: s.id }, select: { title: true }, orderBy: { title: "asc" } })
       : [];
 
-  // Quantities already refunded per original line (refund lines point back via allocations[].lineId).
-  const refunded = new Map<string, number>();
+  // Quantities and value already refunded per original line (refund lines point back via allocations[].lineId).
+  const refunded = new Map<string, { qty: number; cents: number }>();
   for (const r of s.refunds)
     for (const l of r.lines) {
       const src = (l.allocations as LineAlloc[])[0]?.lineId;
-      if (src) refunded.set(src, (refunded.get(src) ?? 0) - l.qty);
+      const was = src ? (refunded.get(src) ?? { qty: 0, cents: 0 }) : null;
+      if (src && was) refunded.set(src, { qty: was.qty - l.qty, cents: was.cents - l.totalCents });
     }
+  // A dispenser completed a sale someone else built: the seller is named too (and credited with it for commission).
+  const soldBy = s.soldById && s.soldById !== s.staffId ? ((await db.user.findUnique({ where: { id: s.soldById }, select: { name: true } }))?.name ?? null) : null;
   const vendor = !!s.store.company.vatNumber;
   const loyalty = s.payments.filter((p) => p.method === "LOYALTY").reduce((a, p) => a + p.amountCents, 0);
   // Gift vouchers: what's left on each (the receipt says so) and what this sale's refunds may still put back.
@@ -59,6 +63,7 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
     offline: s.offline,
     refundOf: s.refundOf,
     staff: s.staff?.name ?? null,
+    ...(soldBy && { soldBy }),
     customer: s.customer && {
       id: s.customer.id,
       name: [s.customer.firstName, s.customer.lastName].filter(Boolean).join(" "),
@@ -79,7 +84,8 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
       totalCents: l.totalCents,
       vatCents: l.vatCents,
       exCents: l.totalCents - l.vatCents,
-      refundedQty: refunded.get(l.id) ?? 0,
+      refundedQty: refunded.get(l.id)?.qty ?? 0,
+      refundedCents: refunded.get(l.id)?.cents ?? 0,
     })),
     subtotalCents: s.subtotalCents,
     discountCents: s.discountCents,
@@ -104,12 +110,19 @@ export async function receipt(saleId: string, storeId: string): Promise<ReceiptD
         ...(p.method === "VOUCHER" && p.reference && { balanceCents: balances.get(p.reference) ?? null }),
       })),
     ...(vouchers.length && { vouchers }),
+    ...(s.kind === "SALE" && { money: moneyPartsOf(s) }),
     ...(trade && { trade }),
     promoCode: s.promoCode,
     invoiceEmail: s.invoiceEmail,
     buyer: (s.buyer as ReceiptDTO["buyer"]) ?? null,
     note: s.note,
-    refunds: s.refunds.map((r) => ({ id: r.id, number: r.number, totalCents: r.totalCents, createdAt: r.createdAt.toISOString() })),
+    refunds: s.refunds.map((r) => ({
+      id: r.id,
+      number: r.number,
+      totalCents: r.totalCents,
+      createdAt: r.createdAt.toISOString(),
+      payments: r.payments.map((p) => ({ method: p.method, amountCents: p.amountCents, cardLast4: p.cardLast4, reference: p.method === "VOUCHER" && p.reference ? maskVoucherCode(p.reference) : p.reference })),
+    })),
     invoiceUrl: invoiceUrl(s.id),
   };
 }
@@ -180,7 +193,7 @@ export async function salesHistory(storeId: string, opts: { q?: string; before?:
     orderBy: { createdAt: "desc" },
     take: PAGE + 1,
     select: {
-      id: true, number: true, kind: true, channel: true, createdAt: true, totalCents: true, offline: true,
+      id: true, number: true, kind: true, channel: true, createdAt: true, totalCents: true, offline: true, staffId: true, soldById: true,
       customer: { select: { firstName: true, lastName: true } },
       tradeAccount: { select: { name: true } },
       staff: { select: { name: true } },
@@ -190,6 +203,9 @@ export async function salesHistory(storeId: string, opts: { q?: string; before?:
     },
   });
   const more = rows.length > PAGE;
+  // Sales a dispenser completed for someone else name the seller too.
+  const sellers = [...new Set(rows.flatMap((s) => (s.soldById && s.soldById !== s.staffId ? [s.soldById] : [])))];
+  const sellerName = new Map(sellers.length ? (await db.user.findMany({ where: { id: { in: sellers } }, select: { id: true, name: true } })).map((u) => [u.id, u.name]) : []);
   const sales: SaleRow[] = rows.slice(0, PAGE).map((s) => ({
     id: s.id,
     number: s.number,
@@ -199,6 +215,7 @@ export async function salesHistory(storeId: string, opts: { q?: string; before?:
     totalCents: s.totalCents,
     customer: s.customer ? [s.customer.firstName, s.customer.lastName].filter(Boolean).join(" ") : (s.tradeAccount?.name ?? null), // a trade sale names the account
     staff: s.staff?.name ?? null,
+    soldBy: (s.soldById && s.soldById !== s.staffId && sellerName.get(s.soldById)) || null,
     methods: [...new Set(s.payments.map((p) => p.method))],
     items: s.lines.reduce((a, l) => a + Math.abs(l.qty), 0),
     refunded: s._count.refunds > 0,

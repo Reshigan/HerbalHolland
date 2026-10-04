@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Scale, Tag } from "lucide-react";
-import { requireStaff } from "@/server/auth";
+import { isHq, requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { getSettings } from "@/server/settings";
 import { priceRows } from "@/server/store/pricing";
@@ -26,7 +26,9 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff();
   const store = await storeForUser(user, code);
-  const canManage = canManageStore(user);
+  // Shelf prices are the franchisee's to set (Competition Act s5(2)): HQ sees them read-only.
+  const hq = isHq(user);
+  const canManage = canManageStore(user) && !hq;
   const path = `/store/${store.code}/pricing`;
   const [all, settings] = await Promise.all([priceRows(store), getSettings()]);
   const min = settings.pricing.minMarginPct / 100;
@@ -81,6 +83,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
                 { key: "thin", label: `Below ${settings.pricing.minMarginPct}% margin`, count: byView("thin").length, tone: "amber", href: hrefWith(path, sp, { view: "thin", page: null }) },
               ]}
             />
+            {hq && <ReadOnlyNote>Shelf prices are the franchisee&apos;s to set — HQ sees them read-only.</ReadOnlyNote>}
           </div>
           {rows.length === 0 ? (
             <EmptyState icon={<Tag className="h-5 w-5" />} title="Nothing matches" />
@@ -125,7 +128,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
                 </fieldset>
               </ConfirmAction>
             ) : (
-              <ReadOnlyNote />
+              <ReadOnlyNote>{hq ? "Shelf prices are the franchisee's to set." : undefined}</ReadOnlyNote>
             )}
             <p className="mt-4 text-xs text-ink-500">
               Prices include VAT{store.company.vatNumber ? "" : " where applicable — your company isn't VAT-registered, so receipts show no VAT"}. Promotions and Rewards prices never apply to licensed medicines (Medicines Act s18A).

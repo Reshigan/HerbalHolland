@@ -6,6 +6,8 @@ import { availability, availKey, OPEN_ORDER_STATUSES } from "@/server/inventory"
 import { addDays, dateOnly, dayKey, fmtDay } from "@/lib/format";
 import { daysOfCover } from "@/lib/replenish";
 import { textMatches } from "@/lib/text-match";
+import { inRankOrder } from "@/lib/text-search";
+import { closeProducts } from "@/server/hq/catalogue";
 import { stockStatus, overstockUnits, type StockStatus } from "./rules";
 import type { RegClass } from "@/lib/compliance";
 
@@ -13,6 +15,7 @@ type LotAgg = { variantId: string; onHand: number; blocked: number; value: numbe
 
 export type StockRow = {
   variantId: string;
+  productId: string;
   sku: string;
   barcode: string | null;
   name: string;
@@ -68,7 +71,7 @@ export async function stockRows(storeId: string): Promise<StockRow[]> {
     db.variant.findMany({
       where: { id: { in: ids } },
       select: {
-        id: true, sku: true, barcode: true, name: true, priceCents: true, wholesaleCents: true,
+        id: true, productId: true, sku: true, barcode: true, name: true, priceCents: true, wholesaleCents: true,
         product: { select: { name: true, slug: true, strain: true, regClass: true, category: { select: { name: true, slug: true } } } },
       },
     }),
@@ -87,6 +90,7 @@ export async function stockRows(storeId: string): Promise<StockRow[]> {
     const negativeLots = lot?.negativeLots ?? 0;
     return {
       variantId: v.id,
+      productId: v.productId,
       sku: v.sku,
       barcode: v.barcode,
       name: `${v.product.name} · ${v.name}`,
@@ -146,6 +150,18 @@ export function sortStock(rows: StockRow[], sort: StockSort, dir: "asc" | "desc"
 
 export function matchesSearch(r: Pick<StockRow, "name" | "sku" | "barcode" | "category">, q: string) {
   return !q || textMatches(`${r.name} ${r.sku} ${r.barcode ?? ""} ${r.category}`, q);
+}
+
+/**
+ * The rows a search finds: those matching as typed — or, when none do (a typo: "durbn"), the rows whose product name or
+ * variant name is close to it (closeProducts, bounded to these rows' products), closest first. `close` says which.
+ */
+export async function searchStock<R extends Pick<StockRow, "productId" | "name" | "sku" | "barcode" | "category">>(rows: R[], q: string) {
+  const hits = rows.filter((r) => matchesSearch(r, q));
+  if (!q || hits.length) return { rows: hits, close: false };
+  const ids = await closeProducts(q, [...new Set(rows.map((r) => r.productId))]);
+  const near = inRankOrder(rows, ids, (r) => r.productId);
+  return { rows: near, close: near.length > 0 };
 }
 
 // ── Variant detail ───────────────────────────────────────────────────────────

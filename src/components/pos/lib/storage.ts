@@ -95,6 +95,8 @@ export type SalePayload = {
   buyer: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail: string | null;
   staffId: string;
+  /** Who built the basket when a dispenser (staffId) completed the sale: commission credits them. */
+  soldById?: string | null;
   /** Trade-sale mode: the account buying (the server prices and invoices it; never queued offline). */
   trade?: { tradeAccountId: string } | null;
 };

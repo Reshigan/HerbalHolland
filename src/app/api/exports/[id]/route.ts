@@ -1,11 +1,11 @@
 // A scheduled export's CSV, from the signed link in the email: the link (HMAC-signed per file, expiring after LINK_DAYS)
-// and a signed-in colleague it was sent to (or who scheduled it), whose role still runs the report. Every download is
-// audited as that person.
+// and a signed-in colleague it was sent to (or who scheduled it), whose role still runs the report and who may still see
+// what it covers (a network-wide report: the HQ team only). Every download is audited as that person.
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { getStaff } from "@/server/auth";
 import { canRun, getReport } from "@/server/reports";
-import { scheduleIdOf, verifyExportToken } from "@/server/exports";
+import { mayReceive, scheduleIdOf, scheduleReach, verifyExportToken } from "@/server/exports";
 import { getObject } from "@/server/storage";
 
 const gone = (status: number, text: string) => new Response(text, { status, headers: { "cache-control": "private, no-store" } });
@@ -20,10 +20,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const file = await db.upload.findUnique({ where: { id }, select: { key: true, fileName: true, uploadedById: true } });
   if (!file || !file.key.startsWith("exports/")) return gone(404, "Not found");
   const sid = scheduleIdOf(file.key);
-  const s = sid ? await db.scheduledExport.findUnique({ where: { id: sid }, select: { userId: true, recipients: true, reportKey: true } }) : null;
+  const s = sid ? await db.scheduledExport.findUnique({ where: { id: sid }, select: { userId: true, recipients: true, reportKey: true, params: true } }) : null;
   const def = s ? getReport(s.reportKey) : null;
   const theirs = !!s && (s.userId === user.id || s.recipients.includes((user.email ?? "").toLowerCase()));
-  if (!s || !def || !theirs || !canRun(def, user.role)) return gone(403, "This download is for the colleagues it was sent to.");
+  // What the file covers is what its owner's scope and filters cover; the person downloading must see all of it.
+  const owner = s && theirs ? await db.user.findUnique({ where: { id: s.userId }, select: { role: true, regionId: true, companyId: true, storeId: true } }) : null;
+  const covered = !!owner && (await mayReceive(user, await scheduleReach(owner, (s!.params ?? {}) as Record<string, string>)));
+  if (!s || !def || !covered || !canRun(def, user.role)) return gone(403, "This download is for the colleagues it was sent to.");
   let bytes: Uint8Array;
   try {
     bytes = await getObject(file.key);

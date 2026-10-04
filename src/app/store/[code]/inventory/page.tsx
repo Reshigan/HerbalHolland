@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { ClipboardCheck, Download, PackageSearch, Scale, Truck } from "lucide-react";
-import { requireStaff } from "@/server/auth";
+import { isHq, requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
-import { matchesSearch, sortStock, stockRows, STOCK_SORTS, type StockSort } from "@/server/store/inventory";
+import { searchStock, sortStock, stockRows, STOCK_SORTS, type StockSort } from "@/server/store/inventory";
 import { STOCK_STATUS, coverLabel, expiryState, hrefWith, sp1, type StockStatus } from "@/server/store/rules";
 import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { zar, zarCompact } from "@/lib/money";
@@ -31,6 +31,8 @@ export default async function InventoryPage({ params, searchParams }: { params: 
   const user = await requireStaff();
   const store = await storeForUser(user, code);
   const canManage = canManageStore(user);
+  // Shelf prices are the franchisee's to set (Competition Act s5(2)): HQ sees them read-only.
+  const hq = isHq(user);
   const path = `/store/${store.code}/inventory`;
 
   const all = await stockRows(store.id);
@@ -42,9 +44,12 @@ export default async function InventoryPage({ params, searchParams }: { params: 
   const dir = sp1(sp.dir) === "desc" ? "desc" : "asc";
   const page = pageParam(sp.page);
 
-  const scoped = all.filter((r) => matchesSearch(r, q) && (!cat || r.categorySlug === cat) && (!cls || r.regClass === cls));
+  // Nothing matches as typed (a typo — "durbn"): the closest product names instead, closest first unless sorted.
+  const found = await searchStock(all, q);
+  const scoped = found.rows.filter((r) => (!cat || r.categorySlug === cat) && (!cls || r.regClass === cls));
   const byStatus = (s: string) => (s === "ALL" ? scoped : s === "BLOCKED" ? scoped.filter((r) => r.blocked > 0) : scoped.filter((r) => r.status === s));
-  const filtered = sortStock(byStatus(status), sort, dir);
+  const ranked = found.close && !sp1(sp.sort); // closest first: no column is the sort
+  const filtered = ranked ? byStatus(status) : sortStock(byStatus(status), sort, dir);
   const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   // Store-wide health (unfiltered).
@@ -72,7 +77,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
       <PageHeader
         overline={`Inventory · ${store.name}`}
         title="Stock on hand"
-        description={`${ranged.length} ranged SKUs, valued at cost (FIFO by batch). Available = released stock less units reserved for open online orders.${canManage ? " Click a shelf price or reorder level to change it in place." : ""}`}
+        description={`${ranged.length} ranged SKUs, valued at cost (FIFO by batch). Available = released stock less units reserved for open online orders.${canManage ? (hq ? " Click a reorder level to change it in place." : " Click a shelf price or reorder level to change it in place.") : ""}${hq ? " Shelf prices are the franchisee's to set." : ""}`}
         actions={
           <>
             {/* A plain download link: a router <Link> fetches the CSV route once as RSC, then again as a hard navigation. */}
@@ -127,6 +132,11 @@ export default async function InventoryPage({ params, searchParams }: { params: 
               </Link>
             )}
           </SearchForm>
+          {found.close && (
+            <p className="text-xs text-ink-500">
+              <b className="text-ink-700">Showing close matches for “{q}”</b> — nothing matched exactly.
+            </p>
+          )}
           <Chips
             label="Stock status"
             current={status}
@@ -151,15 +161,15 @@ export default async function InventoryPage({ params, searchParams }: { params: 
           <Table stickyFirst density="compact" minWidth="64rem">
             <thead>
               <tr>
-                <SortableTh label="Item" sortKey="name" sort={sort} dir={dir} href={sortHref} />
-                <SortableTh label="Status" sortKey="status" sort={sort} dir={dir} href={sortHref} />
-                <SortableTh label="On hand" sortKey="onHand" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortableTh label="Available" sortKey="available" sort={sort} dir={dir} href={sortHref} align="right" title="On hand less what online orders hold" />
-                <SortableTh label="Reorder · par" sortKey="reorder" sort={sort} dir={dir} href={sortHref} align="right" title="Reorder point · par level" />
-                <SortableTh label="Shelf price" sortKey="price" sort={sort} dir={dir} href={sortHref} align="right" title="Your price; blank follows the list price" />
-                <SortableTh label="Cover" sortKey="cover" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortableTh label="Sold 28d" sortKey="sold" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortableTh label="Value at cost" sortKey="value" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Item" sortKey="name" sort={ranked ? "" : sort} dir={dir} href={sortHref} />
+                <SortableTh label="Status" sortKey="status" sort={ranked ? "" : sort} dir={dir} href={sortHref} />
+                <SortableTh label="On hand" sortKey="onHand" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Available" sortKey="available" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" title="On hand less what online orders hold" />
+                <SortableTh label="Reorder · par" sortKey="reorder" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" title="Reorder point · par level" />
+                <SortableTh label="Shelf price" sortKey="price" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" title="Your price; blank follows the list price" />
+                <SortableTh label="Cover" sortKey="cover" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Sold 28d" sortKey="sold" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Value at cost" sortKey="value" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" />
               </tr>
             </thead>
             <tbody>
@@ -220,7 +230,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
                       )}
                     </Td>
                     <Td align="right">
-                      {editable ? (
+                      {editable && !hq ? (
                         <InlineEdit
                           action={saveShelfPrice.bind(null, store.code, r.variantId)}
                           fields={[{ name: "price", label: `Shelf price for ${r.name}`, value: r.shelfCents != null ? rand(r.shelfCents) : "", prefix: "R", placeholder: rand(r.rrpCents), inputMode: "decimal", width: "w-24" }]}

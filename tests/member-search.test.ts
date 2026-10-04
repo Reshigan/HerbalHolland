@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { looserMemberQuery, parseMemberQuery } from "@/lib/member-search";
+import { looserMemberQuery, nameWords, parseMemberQuery } from "@/lib/member-search";
 
 describe("parseMemberQuery", () => {
   it("reads names in any order, with or without a comma", () => {
@@ -39,5 +39,26 @@ describe("looserMemberQuery", () => {
     expect(looserMemberQuery(parseMemberQuery("Abrahms"))).toBe("Abra");
     expect(looserMemberQuery(parseMemberQuery("Mpho"))).toBeNull();
     expect(looserMemberQuery(parseMemberQuery("9585"))).toBeNull();
+  });
+});
+
+describe("nameWords (close-match search)", () => {
+  it("keeps the words with letters, in any order, without punctuation", () => {
+    expect(nameWords("Abrahms")).toEqual(["Abrahms"]);
+    expect(nameWords("Abrahms, Mpho")).toEqual(["Abrahms", "Mpho"]);
+    expect(nameWords("  ndlovo  ")).toEqual(["ndlovo"]);
+    expect(nameWords("O'Brien")).toEqual(["O'Brien"]);
+    expect(nameWords("van der Merwe")).toEqual(["van", "der", "Merwe"]);
+  });
+  it("leaves out numbers, phone digits and email addresses (nothing to match against names)", () => {
+    expect(nameWords("Mpho 0820159585")).toEqual(["Mpho"]);
+    expect(nameWords("HH0100001")).toEqual([]);
+    expect(nameWords("9585")).toEqual([]);
+    expect(nameWords("mpho@example.com")).toEqual([]);
+    expect(nameWords("")).toEqual([]);
+    expect(nameWords(undefined)).toEqual([]);
+  });
+  it("takes at most four words", () => {
+    expect(nameWords("a b c d e f")).toEqual(["a", "b", "c", "d"]);
   });
 });

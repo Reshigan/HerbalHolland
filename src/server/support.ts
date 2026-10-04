@@ -151,12 +151,11 @@ export function cannedFor(key: string, t: { name: string; orderCode: string | nu
   return c ? fillCanned(c.body, { name: firstNameOf(t.name), orderCode: t.orderCode, agent: firstNameOf(staffName) }) : null;
 }
 
+/** Assigns a ticket to someone `assignableStaff(scope)` offers (or to nobody); anyone else is refused. */
 export async function assignTicket(id: string, userId: string | null, actor: Actor, scope: SupportScope) {
   const t = await load(id, scope);
-  if (userId) {
-    const u = await db.user.findFirst({ where: { id: userId, active: true }, select: { id: true } });
-    if (!u) throw new SupportError("That person isn't an active staff member", "assignedToId");
-  }
+  if (userId && !(await db.user.count({ where: { AND: [{ id: userId }, assignableWhere(scope)] } })))
+    throw new SupportError("You can only assign to people on this team", "assignedToId");
   if (t.assignedToId === userId) return { changed: false, ticket: t };
   const row = await db.supportTicket.update({ where: { id }, data: { assignedToId: userId } });
   await audit(db, actor, "support.assign", { storeId: t.storeId, entity: "SupportTicket", entityId: t.id, data: { number: t.number, from: t.assignedToId, to: userId } });
@@ -316,9 +315,12 @@ export async function ticketThread(id: string, scope: SupportScope) {
 }
 
 /** Active staff who can be assigned a ticket: HQ admin and team for HQ; the store's managers and owner for a store. */
+const assignableWhere = (scope: SupportScope): Prisma.UserWhereInput =>
+  scope.kind === "HQ" ? { active: true, role: { in: ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"] } } : { active: true, storeId: { in: scope.storeIds }, role: { in: ["MANAGER", "OWNER"] } };
+
 export function assignableStaff(scope: SupportScope) {
   return db.user.findMany({
-    where: scope.kind === "HQ" ? { active: true, role: { in: ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"] } } : { active: true, storeId: { in: scope.storeIds }, role: { in: ["MANAGER", "OWNER"] } },
+    where: assignableWhere(scope),
     select: { id: true, name: true, role: true },
     orderBy: { name: "asc" },
   });

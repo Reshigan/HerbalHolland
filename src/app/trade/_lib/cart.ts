@@ -26,7 +26,8 @@ export async function updateTradeCart(change: (lines: TradeCartLine[]) => TradeC
   const legacy = jar.get(TRADE_CART_COOKIE)?.value;
   const saved = await tx(async (t) => {
     const id = buyer.tradeAccountId;
-    await t.tradeCart.upsert({ where: { tradeAccountId: id }, create: { tradeAccountId: id, items: parseTradeCart(legacy) }, update: {} });
+    // Create the row if it isn't there (atomic: a second buyer's first change at the same moment waits, then finds it).
+    await t.$executeRaw`INSERT INTO "TradeCart" ("tradeAccountId", items, "updatedAt") VALUES (${id}, ${JSON.stringify(parseTradeCart(legacy))}::jsonb, now()) ON CONFLICT ("tradeAccountId") DO NOTHING`;
     await t.$queryRaw`SELECT 1 FROM "TradeCart" WHERE "tradeAccountId" = ${id} FOR UPDATE`;
     const row = await t.tradeCart.findUniqueOrThrow({ where: { tradeAccountId: id }, select: { items: true } });
     const items = clean(change(clean(row.items as TradeCartLine[])));

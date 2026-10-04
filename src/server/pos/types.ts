@@ -3,6 +3,7 @@
 import type { ComplianceSettings, RegClass } from "@/lib/compliance";
 import type { PromoInput } from "@/lib/promotions";
 import type { PriceListRule } from "@/lib/pricing-rules";
+import type { MoneyPart } from "@/lib/pos-refund";
 
 export type { TierKey } from "@/lib/loyalty-rules";
 import type { TierKey } from "@/lib/loyalty-rules";
@@ -288,6 +289,7 @@ export type ReceiptLine = {
   vatCents: number;
   exCents?: number; // the line ex VAT (totalCents − vatCents): trade tax invoices print unit ex VAT, VAT and incl (receipts cached before it have none)
   refundedQty: number;
+  refundedCents?: number; // what refunds of this line already gave back (its last units come back to exactly what's left)
 };
 
 export type ReceiptPayment = {
@@ -334,6 +336,8 @@ export type ReceiptDTO = {
   training?: boolean; // client-side: rung up in training mode — never posted, printed with a TRAINING watermark
   refundOf: { id: string; number: string } | null;
   staff: string | null;
+  /** Who built the basket when a dispenser (`staff`) completed the sale — "Sold by X · dispensed by Y". Only when they differ. */
+  soldBy?: string | null;
   customer: { id: string; name: string; memberNo: string; tier: TierKey; points: number } | null;
   lines: ReceiptLine[];
   subtotalCents: number;
@@ -347,14 +351,19 @@ export type ReceiptDTO = {
   pointsRedeemed: number;
   payments: ReceiptPayment[];
   vouchers?: ReceiptVoucher[]; // gift vouchers that paid on this sale (sales only)
+  /** Sales: each money tender (card, cash, PayShap, EFT) — what it paid and what refunds already gave back on it (the refund sheet's split). */
+  money?: MoneyPart[];
   trade?: ReceiptTrade | null; // WHOLESALE: the trade account and the on-account part
   promoCode: string | null;
   invoiceEmail: string | null;
   buyer: { name: string; address: string; vatNumber?: string } | null;
   note: string | null;
-  refunds: { id: string; number: string; totalCents: number; createdAt: string }[];
+  /** Refunds of this sale, each with where its money went (points as LOYALTY, in cents). */
+  refunds: { id: string; number: string; totalCents: number; createdAt: string; payments?: RefundPayment[] }[];
   invoiceUrl: string | null;
 };
+
+export type RefundPayment = { method: string; amountCents: number; cardLast4: string | null; reference: string | null };
 
 export type SaleRow = {
   id: string;
@@ -365,6 +374,7 @@ export type SaleRow = {
   totalCents: number;
   customer: string | null;
   staff: string | null;
+  soldBy?: string | null; // who built the basket when a dispenser (staff) completed the sale, when they differ
   methods: string[];
   items: number;
   refunded: boolean;
@@ -384,6 +394,8 @@ export type ZReport = {
   closedBy: string | null;
   sales: { count: number; grossCents: number; vatCents: number; netCents: number; discountCents: number; memberSavingsCents: number; units: number };
   refunds: { count: number; totalCents: number };
+  /** Where the shift's refunds went, by tender (positive amounts): each refund payment line. Reports cached before it have none. */
+  refundTenders?: { method: string; label: string; amountCents: number; count: number }[];
   online: { count: number; grossCents: number };
   tenders: { method: string; label: string; amountCents: number; count: number }[];
   points: { issued: number; redeemed: number };

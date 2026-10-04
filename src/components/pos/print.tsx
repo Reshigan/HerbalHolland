@@ -4,7 +4,7 @@ import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { maskMemberNo, tenderLine } from "./lib/rules";
-import { ADULTS_LINE, CBD_LINE, LICENSED_LINE, TRADE_LINE, TRAINING_LINE, tradeLineRows, tradeTenderRows, tradeTotalRows } from "./lib/receipt";
+import { ADULTS_LINE, CBD_LINE, LICENSED_LINE, TRADE_LINE, TRAINING_LINE, servedBy, tradeLineRows, tradeTenderRows, tradeTotalRows } from "./lib/receipt";
 import { incentiveExcluded } from "@/lib/compliance";
 import { ZReportPrint } from "./z-report";
 import type { PrintDoc } from "./context";
@@ -78,7 +78,7 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
       <Row l={`No. ${r.number}`} r={fmtDateTime(r.createdAt)} />
       {r.refundOf && <div>Refund of {r.refundOf.number}</div>}
       <div>
-        Served by {r.staff ?? "—"} · till {boot.device.prefix}
+        {servedBy(r)} · till {boot.device.prefix}
       </div>
       {r.queued && <div className="font-bold">Offline sale — synced later</div>}
       <Rule />

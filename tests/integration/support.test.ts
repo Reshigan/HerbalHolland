@@ -120,8 +120,10 @@ describe("working a ticket", () => {
   });
 
   it("assignment and priority are checked and audited; a store only sees its own orders' tickets", async () => {
-    await expect(assignTicket(id, "nobody", { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).rejects.toThrow(/active staff member/);
-    expect((await assignTicket(id, w.budtender.id, { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).ticket.assignedToId).toBe(w.budtender.id);
+    await expect(assignTicket(id, "nobody", { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).rejects.toThrow(/people on this team/);
+    await expect(assignTicket(id, w.budtender.id, { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).rejects.toThrow(/people on this team/);
+    const agent = await db.user.create({ data: { name: "Hana Helpdesk", role: "HQ_STAFF", companyId: w.hq.id } });
+    expect((await assignTicket(id, agent.id, { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).ticket.assignedToId).toBe(agent.id);
     expect((await setTicketPriority(id, "HIGH", { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).ticket.priority).toBe("HIGH");
     await expect(setTicketPriority(id, "URGENT", { type: "USER", id: w.manager.id, name: w.manager.name }, HQ)).rejects.toThrow(/priority/);
     expect(await db.auditLog.count({ where: { entityId: id, action: { in: ["support.assign", "support.priority"] } } })).toBe(2);

@@ -2,8 +2,8 @@
 //   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/pos.mjs [outdir]   (seeded demo data)
 // Pair PTA01 → PIN 1111 → open shift → walk-in CBD sale (ID sighted, cash) → patient flower
 // sale (card, tap on glass) → event check-in from a members' evening ticket (member attached,
-// welcome gift offered to a first-timer) → refund a line → a gift voucher scanned at the till pays
-// part of a sale, cash the rest, then the refund goes back onto the voucher → offline cash sale →
+// welcome gift offered to a first-timer) → refund a line back to how they paid (cash) → a gift voucher scanned at the
+// till pays part of a sale, cash the rest, then the refund goes back onto the voucher → offline cash sale →
 // back online & sync → hand over a READY click & collect order → trade sale for an approved
 // account (prices ex VAT, R100 cash + the rest on account, tax invoice), refund a line of it
 // (credit note) → hand over a READY trade click & collect order → close the shift (Z-report).
@@ -192,7 +192,16 @@ try {
   await page.keyboard.press("Enter");
   await page.getByText(/^Already checked in/).waitFor();
   ok("second scan: already checked in");
-  const gift = (await q(`select name from "Promotion" where "firstPurchaseOnly" and active and 'POS' = any(channels) and "startsAt" <= now() and "endsAt" >= now() limit 1`))[0];
+  // A welcome gift the till can offer: live, at the till, and with its product on PTA01's shelf (the till never offers
+  // what isn't there — the seed's stock depends on the date).
+  const gift = (
+    await q(`select pr.name from "Promotion" pr
+       where pr."firstPurchaseOnly" and pr.active and 'POS' = any(pr.channels) and pr."startsAt" <= now() and pr."endsAt" >= now()
+         and exists (select 1 from "Product" p join "Variant" v on v."productId" = p.id join "StockLevel" s on s."variantId" = v.id join "Batch" b on b.id = s."batchId"
+           where (p.id = any(pr."productIds") or p."categoryId" = any(pr."categoryIds")) and b.status = 'RELEASED' and s."onHand" > 0
+             and s."storeId" = (select id from "Store" where code = 'PTA01'))
+       limit 1`)
+  )[0];
   if (seeded.visits === 0 && gift) {
     await page.locator("[data-testid=welcome-gift]:visible").first().click();
     await page.getByTestId("cart-line").filter({ hasText: gift.name }).waitFor();
@@ -202,13 +211,14 @@ try {
   } else await page.getByRole("button", { name: "Remove member from sale" }).click();
   await page.getByTestId("customer-card").waitFor({ state: "detached" });
 
-  step("Refund the new member's balm (restock, cash)");
+  step("Refund the new member's balm (restock, back to how they paid: cash)");
   await waitOnline();
   await page.getByRole("button", { name: "Sales" }).first().click();
   await page.getByLabel("Search by receipt number").fill(walkinNo);
   await page.locator("[aria-label='Recent sales'] li button", { hasText: walkinNo }).first().click();
   await page.getByTestId("start-refund").first().click();
   await page.getByRole("button", { name: /Increase refund quantity of Recover CBD Muscle Balm/ }).click();
+  assert((await page.locator("#refund-method").inputValue()) === "ORIGINAL" && (await page.getByTestId("refund-split").textContent()) === `${zarText(walkin.totalCents)} cash`, `refund sheet defaults to back to how they paid: ${zarText(walkin.totalCents)} cash`);
   await shot("refund-sheet");
   await page.getByTestId("refund-continue").click();
   await page.getByRole("button", { name: "Confirm refund" }).click();
@@ -269,7 +279,7 @@ try {
   await page.getByTestId("start-refund").first().click();
   await page.getByRole("button", { name: /Increase refund quantity of Smell-proof Pouch/ }).click();
   const splitText = (await page.getByTestId("refund-voucher").textContent()) ?? "";
-  assert(splitText.includes(`R50.00 goes back onto gift voucher ${masked}`) && splitText.includes(`R${((vsale.totalCents - 5000) / 100).toFixed(2)} refunded by Cash`), "refund sheet: R50.00 back onto the voucher, the rest in cash");
+  assert(splitText.includes(`R50.00 goes back onto gift voucher ${masked}`) && splitText.includes(`the rest back how they paid: ${zarText(vsale.totalCents - 5000)} cash`), "refund sheet: R50.00 back onto the voucher, the rest back how they paid (cash)");
   await shot("voucher-refund-sheet");
   await page.getByTestId("refund-continue").click();
   await page.getByRole("button", { name: "Confirm refund" }).click();

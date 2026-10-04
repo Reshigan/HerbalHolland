@@ -11,20 +11,28 @@ import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { shortCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
-import { redeemOffers } from "./offers";
+import { isOffer, offerPromo, redeemOffers } from "./offers";
 import { dropBlocks } from "./drops";
 import { checkTradeBasket, evaluateBasket } from "./compliance";
 import { redeemVoucherTx, restoreVoucherTx, VoucherError } from "./shop/vouchers";
 import { lockedCreditCheck, postLedgerEntry } from "./trade/ledger";
 import { licenceProblem } from "./trade/licences";
+import { lockCustomer } from "./locks";
+import { promotionProblem } from "./pricing";
 import { addDays, dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
 import { allocateRefundAcross, maskVoucherCode, normaliseVoucherCode, voucherProblem } from "@/lib/vouchers";
+import { backHowTheyPaid, cashLeft, lineShare, moneyPartsOf, pointsBack } from "@/lib/pos-refund";
 import type { Allocation } from "@/lib/fefo";
 import type { AgeCheck, GiftVoucher, PayMethod } from "@/generated/prisma/client";
 
-export class SaleError extends Error {}
+/** A sale or refund that can't go through, in plain English; `code` names the rule for the till (e.g. NO_CASH_PAID). */
+export class SaleError extends Error {
+  constructor(message: string, public code?: string) {
+    super(message);
+  }
+}
 
 /**
  * A tender on a sale. VOUCHER is a gift voucher: `reference` is its code, and posting the sale redeems it (online only).
@@ -50,6 +58,8 @@ type PostArgs = {
   orderId?: string;
   shiftId?: string | null;
   staffId?: string | null;
+  /** Who built the basket when a dispenser (staffId) completed the sale: commission credits them. */
+  soldById?: string | null;
   deviceId?: string | null;
   customerId?: string | null;
   /** WHOLESALE: the trade account that bought (the buyer block carries its legal name, address and VAT number). */
@@ -96,7 +106,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   const sale = await t.sale.create({
     data: {
       id: a.id, number: a.number, storeId: a.storeId, channel: a.channel, orderId: a.orderId, shiftId: a.shiftId,
-      staffId: a.staffId, deviceId: a.deviceId, customerId: a.customerId, tradeAccountId: a.tradeAccountId ?? null,
+      staffId: a.staffId, soldById: a.soldById && a.soldById !== a.staffId ? a.soldById : null, deviceId: a.deviceId, customerId: a.customerId, tradeAccountId: a.tradeAccountId ?? null,
       subtotalCents: a.quote.subtotalCents + extra, discountCents: a.quote.discountCents, totalCents: total, vatCents: vat, memberSavingsCents: memberSavings,
       costCents: 0, promoCode: a.promoCode, promotionId: a.quote.promotionId, campaignId, ageCheck: a.ageCheck,
       buyer: a.buyer ?? undefined, offline: a.offline, createdAt: a.createdAt, note: a.tradeOrderRef ? `Trade order ${a.tradeOrderRef}` : undefined,
@@ -106,13 +116,21 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   let cost = 0, units = 0;
   const vstats: { variantId: string; units: number; netCents: number; costCents: number }[] = [];
   const made = await madeToOrder(a.quote.lines.map((l) => l.variantId), t); // no stock: costed at the partner's price
-  for (const l of a.quote.lines) {
-    const allocations = made.has(l.variantId)
-      ? []
-      : await takeStock(t, {
-          storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "ONLINE" ? "ONLINE" : "SALE",
-          saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true,
-        });
+  // Stock is taken in variant order — the order every sale and order locks lots in (customer → promotion → stock,
+  // locks.ts) — so two postings can't each hold a lot the other waits for. The lines keep the basket's order.
+  const taken = new Map<number, Allocation[]>();
+  for (const [i, l] of [...a.quote.lines.entries()].sort(([, x], [, y]) => (x.variantId < y.variantId ? -1 : x.variantId > y.variantId ? 1 : 0)))
+    taken.set(
+      i,
+      made.has(l.variantId)
+        ? []
+        : await takeStock(t, {
+            storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "ONLINE" ? "ONLINE" : "SALE",
+            saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true,
+          }),
+    );
+  for (const [i, l] of a.quote.lines.entries()) {
+    const allocations = taken.get(i)!;
     const c = made.has(l.variantId) ? made.get(l.variantId)! * l.qty : allocationCost(allocations);
     cost += c;
     units += l.qty;
@@ -213,6 +231,9 @@ export type PosSaleInput = {
   shiftId?: string | null;
   customerId?: string | null;
   memberNo?: string | null; // a member the till took from their card while offline
+  /** Who built the basket when a dispenser stepped in to complete the sale (credited with it for commission). Ignored
+   *  unless it's an active user at the store. */
+  soldById?: string | null;
   lines: { variantId: string; qty: number; unitPriceCents?: number }[];
   promoCode?: string | null;
   pointsRedeemed?: number;
@@ -260,18 +281,21 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   const vouchers = await checkVoucherTenders(input.payments, createdAtOf(input));
   const tenders = normaliseVoucherTenders(input.payments);
 
-  const [store, staff] = await Promise.all([
+  const [store, staff, soldBy] = await Promise.all([
     db.store.findUniqueOrThrow({ where: { id: ctx.storeId }, select: { licences: true } }),
     db.user.findUniqueOrThrow({ where: { id: ctx.staffId }, select: { canDispense: true } }),
+    // The seller a dispenser completed the sale for: only someone active at this store (anything else is ignored).
+    input.soldById && input.soldById !== ctx.staffId ? db.user.findFirst({ where: { id: input.soldById, storeId: ctx.storeId, active: true }, select: { id: true } }) : null,
   ]);
-  const comp = await evaluateBasket({
+  const basket = {
     items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass, grams: l.grams, qty: l.qty, tobaccoRelated: l.tobaccoRelated })),
-    channel: "POS",
+    channel: "POS" as const,
     customerId: input.customerId,
     storeLicences: store.licences,
     ageCheckedAtCounter: input.ageCheck === "ID_SIGHTED" || input.ageCheck === "ID_NUMBER",
     staffCanDispense: staff.canDispense,
-  });
+  };
+  const comp = await evaluateBasket(basket);
   const customer = comp.ctx.record;
   const points = Math.max(0, Math.floor(input.pointsRedeemed ?? 0));
   if (points && !customer) throw new SaleError("Attach a member to redeem points");
@@ -287,26 +311,55 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   const createdAt = createdAtOf(input);
 
   const result = await tx(async (t) => {
+    // The member's limits — patient grams, drop limits, a welcome gift or capped promotion, My Deals — are decided under
+    // the member's row lock, taken first (then the promotion's, then stock: the one order in locks.ts), and checked
+    // again: another till or the shop may have sold to this member while this sale waited. The member's own history is
+    // read first, under their lock alone (those checks read through a second connection), before any shared lock.
+    // An unpaid online sale stops here; one already paid — queued offline, or charged on a card or PayShap — posts as
+    // paid, and the exception is logged for HQ.
+    let [limits, rules] = [dropped, comp];
+    if (customer) {
+      await lockCustomer(t, customer.id);
+      limits = offline ? [] : await dropBlocks(customer.id, q.lines);
+      if (limits.length && !charged) throw new SaleError(limits[0]);
+      rules = await evaluateBasket(basket);
+      if (!rules.ok && !offline) throw new SaleError(rules.blocks[0]);
+    }
+    const promo = await promotionProblem(t, { promotionId: q.promotionId, customerId: customer?.id });
+    if (promo && !offline && !charged) throw new SaleError(promo);
+    // A My Deal another purchase used meanwhile: an unpaid sale is refused when it's redeemed (OfferError); a paid one
+    // keeps the price it was charged and the deal isn't redeemed twice.
+    const gone = customer && charged && q.offerIds.length ? await offersUsedElsewhere(t, customer.id, q.offerIds) : [];
     const taken = await t.sale.findUnique({ where: { number: input.number }, select: { id: true } });
     const number = taken ? `${input.number}-${shortCode(3)}` : input.number;
     const sale = await postSaleTx(t, {
-      id: input.id, number, storeId: ctx.storeId, channel: "POS", shiftId: input.shiftId, staffId: ctx.staffId,
-      deviceId: ctx.deviceId, customerId: customer?.id, quote: q, promoCode: input.promoCode, payments: tenders,
-      pointsRedeemed: points, redeemNow: true, ageCheck: input.ageCheck ?? (customer?.ageVerifiedAt ? "VERIFIED" : "NONE"),
+      id: input.id, number, storeId: ctx.storeId, channel: "POS", shiftId: input.shiftId, staffId: ctx.staffId, soldById: soldBy?.id,
+      deviceId: ctx.deviceId, customerId: customer?.id, quote: gone.length ? { ...q, offerIds: q.offerIds.filter((id) => !gone.includes(id)) } : q,
+      promoCode: input.promoCode, payments: tenders, pointsRedeemed: points, redeemNow: true, ageCheck: input.ageCheck ?? (customer?.ageVerifiedAt ? "VERIFIED" : "NONE"),
       offline, createdAt, campaignId: input.campaignId, buyer: input.buyer,
     });
     await redeemVoucherTendersTx(t, vouchers, { saleId: sale.id, storeId: ctx.storeId, actor });
     if (input.seq) await t.device.updateMany({ where: { id: ctx.deviceId, seq: { lt: input.seq } }, data: { seq: input.seq } });
-    if (!comp.ok) await audit(t, actor, "compliance.offline_exception", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: comp.blocks } });
+    if (!rules.ok) await audit(t, actor, "compliance.offline_exception", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: rules.blocks } });
+    if (promo) await audit(t, actor, "promotion.after_payment", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { problem: promo, promotionId: q.promotionId, offline } });
+    if (gone.length)
+      await audit(t, actor, "offer.used_after_payment", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { offers: q.applied.filter((p) => gone.includes(p.id)).map((p) => `${p.name} (${zar(p.discountCents)})`) } });
     if (paid !== q.totalCents) await audit(t, actor, "sale.tender_variance", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { paid, total: q.totalCents } });
     if (listTotal > q.totalCents) await audit(t, actor, "sale.offline_price", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { charged: q.totalCents, price: listTotal } });
     if (customer && points > customer.points) await audit(t, actor, "sale.points_overdraw", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { redeemed: points, balance: customer.points } });
-    if (dropped.length) await audit(t, actor, "drop.limit_after_payment", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: dropped } });
+    if (limits.length) await audit(t, actor, "drop.limit_after_payment", { storeId: ctx.storeId, entity: "Sale", entityId: sale.id, data: { blocks: limits } });
     return { sale, duplicate: false };
   });
   const to = input.invoiceEmail?.trim() || customer?.email;
   if (to) queueSaleInvoice(result.sale.id, to);
   return result;
+}
+
+/** The My Deals among a quote's promotions that the member no longer has unused: another purchase took them (read under the member's lock). */
+async function offersUsedElsewhere(t: Tx, customerId: string, promoIds: string[]) {
+  const unused = await t.memberOffer.findMany({ where: { customerId, redeemedAt: null }, select: { id: true, title: true, kind: true, value: true, productIds: true, categoryIds: true } });
+  const open = new Set(unused.map((o) => offerPromo(o).id));
+  return promoIds.filter((id) => isOffer(id) && !open.has(id));
 }
 
 // ── Trade sales at the till ──────────────────────────────────────────────────
@@ -396,16 +449,20 @@ export async function refundSale(a: {
   number: string;
   saleId: string;
   lines: { saleLineId: string; qty: number; restock: boolean }[];
-  /** Where the money part goes. ONLINE: back through the shop's payment gateway (a return). The voucher part never
+  /** Where the money part goes. ORIGINAL (the till's default): back to how they paid — spread over the sale's card,
+   *  cash, PayShap and EFT tenders in proportion to what each has left to give back (lib/pos-refund). One tender
+   *  instead is a manager's call. ONLINE: back through the shop's payment gateway (a return). The voucher part never
    *  goes here: it returns to the gift voucher(s) that paid, first (lib/vouchers.allocateRefund). On a trade sale the
    *  part that was on account comes back as a credit note on the account's ledger first (never as money). */
-  method: Exclude<TenderInput["method"], "VOUCHER" | "ACCOUNT"> | "ONLINE";
+  method: Exclude<TenderInput["method"], "VOUCHER" | "ACCOUNT"> | "ONLINE" | "ORIGINAL";
   extraCents?: number; // a delivery fee refunded with the lines (VAT incl.), when a whole online order comes back
   reason: string;
   staffId: string;
   staffName: string;
   deviceId?: string | null;
   shiftId?: string | null;
+  /** The till's rule: cash never goes back beyond the cash paid on the sale less cash already refunded (NO_CASH_PAID). */
+  capCash?: boolean;
 }) {
   const dup = await db.sale.findUnique({ where: { id: a.id } });
   if (dup) return dup;
@@ -423,33 +480,47 @@ export async function refundSale(a: {
     if (orig.kind !== "SALE") throw new SaleError("Only sales can be refunded");
     invoiceTo = orig.invoiceEmail ?? null;
 
-    const refunded = new Map<string, number>();
+    // What earlier refunds took from each line (refund lines point back via allocations[].lineId, with negative figures),
+    // so the last units of a line come back to exactly what was paid for it (lib/pos-refund.lineShare).
+    type Back = { qty: number; amount: number; vat: number; saved: number; offer: number };
+    const done = new Map<string, Back>();
     for (const r of orig.refunds)
       for (const l of r.lines) {
         const src = (l.allocations as LineAlloc[])[0]?.lineId;
-        if (src) refunded.set(src, (refunded.get(src) ?? 0) - l.qty);
+        if (!src) continue;
+        const b = done.get(src) ?? { qty: 0, amount: 0, vat: 0, saved: 0, offer: 0 };
+        done.set(src, { qty: b.qty - l.qty, amount: b.amount - l.totalCents, vat: b.vat - l.vatCents, saved: b.saved - l.memberSavingsCents, offer: b.offer - l.offerCents });
       }
 
-    const picks = a.lines
-      .filter((x) => x.qty > 0)
-      .map((x) => {
-        const line = orig.lines.find((l) => l.id === x.saleLineId);
-        if (!line) throw new SaleError("Unknown sale line");
-        const left = line.qty - (refunded.get(line.id) ?? 0);
-        if (x.qty > left) throw new SaleError(`Only ${left} left to refund on that line`);
-        const share = x.qty / line.qty;
-        return { x, line, amount: Math.round(line.totalCents * share), vat: Math.round(line.vatCents * share), saved: Math.round(line.memberSavingsCents * share), offer: Math.round(line.offerCents * share) };
-      });
+    const picks: { x: (typeof a.lines)[number]; line: (typeof orig.lines)[number]; amount: number; vat: number; saved: number; offer: number }[] = [];
+    for (const x of a.lines) {
+      if (x.qty <= 0) continue;
+      const line = orig.lines.find((l) => l.id === x.saleLineId);
+      if (!line) throw new SaleError("Unknown sale line");
+      const b = done.get(line.id) ?? { qty: 0, amount: 0, vat: 0, saved: 0, offer: 0 };
+      const left = line.qty - b.qty;
+      if (x.qty > left) throw new SaleError(`Only ${left} left to refund on that line`);
+      const share = (cents: number, already: number) => lineShare(cents, line.qty, x.qty, b.qty, already);
+      const p = { x, line, amount: share(line.totalCents, b.amount), vat: share(line.vatCents, b.vat), saved: share(line.memberSavingsCents, b.saved), offer: share(line.offerCents, b.offer) };
+      done.set(line.id, { qty: b.qty + x.qty, amount: b.amount + p.amount, vat: b.vat + p.vat, saved: b.saved + p.saved, offer: b.offer + p.offer }); // the same line twice counts once
+      picks.push(p);
+    }
     if (!picks.length) throw new SaleError("Choose at least one item to refund");
 
     const amount = picks.reduce((s, p) => s + p.amount, 0);
     const vat = picks.reduce((s, p) => s + p.vat, 0);
     const saved = picks.reduce((s, p) => s + p.saved, 0);
     const offer = picks.reduce((s, p) => s + p.offer, 0);
-    const loyaltyPaid = orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0);
-    const loyaltyBack = orig.totalCents > 0 ? Math.floor((amount * loyaltyPaid) / orig.totalCents / 100) * 100 : 0;
     const extra = Math.max(0, Math.min(a.extraCents ?? 0, Math.max(0, orig.totalCents - orig.subtotalCents + orig.discountCents)));
     const extraVat = orig.vatCents > 0 ? vatOf(extra) : 0; // non-VAT-vendor stores charged none
+    // Points paid come back in proportion to what's been refunded so far — whole points, all of them by the last refund.
+    const loyaltyBack = pointsBack({
+      loyaltyPaidCents: orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0),
+      loyaltyBackCents: orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "LOYALTY").reduce((s, p) => s - p.amountCents, 0),
+      totalCents: orig.totalCents,
+      refundedCents: orig.refunds.reduce((s, r) => s - r.totalCents, 0),
+      amountCents: amount + extra,
+    });
     const moneyBack = amount - loyaltyBack + extra;
     const earnedBack = orig.totalCents > 0 ? Math.round((orig.pointsEarned * amount) / orig.totalCents) : 0;
     // Gift vouchers that paid on the sale take the refund first, up to what each paid less what earlier refunds put back.
@@ -459,6 +530,25 @@ export async function refundSale(a: {
     const accountBack = orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, -p.amountCents), 0);
     const toAccount = Math.min(split.toTender, Math.max(0, accountPaid - accountBack));
     const toTender = split.toTender - toAccount;
+    // The money: back to how they paid — over the sale's money tenders, never more on one than it has left to give
+    // back — or to the one tender a manager chose. At the till, cash never goes back beyond the cash the sale took.
+    const parts = moneyPartsOf(orig);
+    let money: { method: PayMethod; cents: number; cardLast4: string | null }[];
+    if (a.method === "ORIGINAL") {
+      const how = backHowTheyPaid(parts, toTender);
+      if (!how) throw new SaleError(`Nothing on ${orig.number} was paid by card, cash, PayShap or EFT for ${zar(toTender)} to go back to — choose the tender to refund it to`);
+      money = how;
+    } else {
+      const cash = cashLeft(parts);
+      if (a.capCash && a.method === "CASH" && toTender > cash)
+        throw new SaleError(
+          cash > 0
+            ? `Only ${zar(cash)} of the cash paid on ${orig.number} is left to give back — refund it back how they paid`
+            : `No cash was paid on ${orig.number} — refund it back how they paid, to the card or account it was paid with`,
+          "NO_CASH_PAID",
+        );
+      money = toTender ? [{ method: a.method, cents: toTender, cardLast4: parts.find((p) => p.method === a.method)?.cardLast4 ?? null }] : [];
+    }
 
     const refund = await t.sale.create({
       data: {
@@ -498,7 +588,7 @@ export async function refundSale(a: {
     const payments: PaymentRow[] = [];
     for (const v of split.parts) payments.push({ method: "VOUCHER", amountCents: -v.cents, reference: v.code });
     if (toAccount) payments.push({ method: "ACCOUNT", amountCents: -toAccount, reference: refund.number });
-    if (toTender) payments.push({ method: a.method, amountCents: -toTender });
+    for (const m of money) payments.push({ method: m.method, amountCents: -m.cents, ...(m.cardLast4 && { cardLast4: m.cardLast4 }) });
     if (loyaltyBack) payments.push({ method: "LOYALTY", amountCents: -loyaltyBack });
     await t.payment.createMany({ data: payments.map((p) => ({ saleId: refund.id, ...p })) });
     await t.sale.update({ where: { id: refund.id }, data: { costCents: -cost } });
@@ -533,7 +623,12 @@ export async function refundSale(a: {
     await bumpVariantStats(t, orig.storeId, date, vstats);
     await audit(t, { type: "USER", id: a.staffId, name: a.staffName }, "sale.refund", {
       storeId: orig.storeId, entity: "Sale", entityId: refund.id,
-      data: { of: orig.number, amount, reason: a.reason, ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: maskVoucherCode(v.code), cents: v.cents })), toTender }), ...(toAccount && { creditNote: toAccount }) },
+      data: {
+        of: orig.number, amount, reason: a.reason, to: a.method,
+        ...(split.parts.length && { toVouchers: split.parts.map((v) => ({ code: maskVoucherCode(v.code), cents: v.cents })), toTender }),
+        ...(toAccount && { creditNote: toAccount }),
+        ...(money.length && { money: money.map((m) => `${m.method} ${zar(m.cents)}`) }),
+      },
     });
     return refund;
   }).then((refund) => {

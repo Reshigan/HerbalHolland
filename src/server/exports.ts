@@ -1,20 +1,22 @@
 // Scheduled report exports ("Email me this weekly/monthly"): the daily job re-runs each due report as the person who
 // scheduled it (their scope, their filters), stores the CSV and emails the staff recipients a signed download link —
-// never the file itself. Recipients are colleagues whose role may run that report (checked again at every run); the
-// link is HMAC-signed, expires after 30 days, works only for them once signed in, and never appears in the message log.
+// never the file itself. Recipients are colleagues whose role may run that report and who may see what it covers: a
+// network-wide report goes to HQ admin and the HQ team only, a region's or a store's to people whose scope includes
+// every store in it (checked again at every run and at download); the link is HMAC-signed, expires after 30 days,
+// works only for them once signed in, and never appears in the message log.
 import { createHash, createHmac, timingSafeEqual } from "node:crypto";
 import { db } from "./db";
 import { audit, SYSTEM, type Actor } from "./audit";
 import { emailLayout, esc, sendEmail } from "./email";
 import { APP_URL } from "./invoices";
 import { canRun, getReport } from "./reports";
-import { storeForUser } from "./scope";
+import { scopeOf, scopedStoreIds, storeForUser, storeWhere } from "./scope";
 import { reportContext } from "./reports/context";
 import { deleteObject, putObject } from "./storage";
 import { csvFilename, toCsv } from "@/lib/csv";
 import { addDays, dayKey, fmtDate, weekdaySA } from "@/lib/format";
 import type { Staff } from "./auth";
-import type { ExportCadence, ScheduledExport } from "@/generated/prisma/client";
+import type { ExportCadence, Role, ScheduledExport } from "@/generated/prisma/client";
 import type { ReportDef } from "./reports/types";
 import { appSecret } from "./secret";
 
@@ -55,24 +57,71 @@ export type ScheduleInput = {
   recipients: string[];
 };
 
-/** Recipients must be active staff whose role may run the report — never outside addresses, never people the report is closed to. */
-export async function validateRecipients(raw: string[], def: ReportDef) {
+// ── Who may receive what ─────────────────────────────────────────────────────
+type Who = { role: Role; regionId: string | null; companyId: string | null; storeId: string | null };
+const WHO = { email: true, role: true, regionId: true, companyId: true, storeId: true } as const;
+
+/** What a schedule's CSV covers: the whole network, or these stores. */
+export type Reach = { network: true } | { network: false; storeIds: string[] };
+
+/** A schedule's reach: its owner's scope narrowed by its store filter, read as reports/context reads it. */
+export async function scheduleReach(owner: Who, params: Record<string, string>): Promise<Reach> {
+  const scope = scopeOf(owner);
+  if (params.scope === "store") {
+    const store = await db.store.findFirst({ where: { AND: [{ code: params.store ?? "" }, storeWhere(scope)] }, select: { id: true, companyId: true } });
+    if (!store) return { network: false, storeIds: [] };
+    const company = params.stores === "company" ? await scopedStoreIds(scope, { companyId: store.companyId, kind: "RETAIL" }) : [];
+    return { network: false, storeIds: company.length > 1 ? company : [store.id] };
+  }
+  const v = params.stores ?? "";
+  const narrowed = v ? await scopedStoreIds(scope, v.startsWith("region:") ? { region: { code: v.slice(7) } } : { code: v }) : [];
+  if (narrowed.length) return { network: false, storeIds: narrowed };
+  return scope.kind === "HQ" ? { network: true } : { network: false, storeIds: await scopedStoreIds(scope) };
+}
+
+/** Network-wide reports are for HQ admin and the HQ team; anything narrower for people who may see every store in it. */
+export async function mayReceive(u: Who, reach: Reach) {
+  if (reach.network) return u.role === "HQ_ADMIN" || u.role === "HQ_STAFF";
+  const scope = scopeOf(u);
+  if (scope.kind === "HQ") return true;
+  const ids = [...new Set(reach.storeIds)];
+  return ids.length > 0 && (await db.store.count({ where: { AND: [{ id: { in: ids } }, storeWhere(scope)] } })) === ids.length;
+}
+
+/**
+ * Recipients must be active staff whose role may run the report and who may see what it covers (`reach`) — never
+ * outside addresses, never people the report or its stores are closed to.
+ */
+export async function validateRecipients(raw: string[], def: ReportDef, reach?: Reach) {
   const emails = [...new Set(raw.map((e) => e.trim().toLowerCase()).filter(Boolean))];
   if (!emails.length) throw new ExportError("Add at least one recipient", "recipients");
   if (emails.length > 10) throw new ExportError("Up to 10 recipients", "recipients");
-  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: { email: true, role: true } });
-  const role = new Map(users.map((u) => [u.email!.toLowerCase(), u.role]));
-  const unknown = emails.filter((e) => !role.has(e));
+  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: WHO });
+  const by = new Map(users.map((u) => [u.email!.toLowerCase(), u]));
+  const unknown = emails.filter((e) => !by.has(e));
   if (unknown.length) throw new ExportError(`Only staff email addresses: ${unknown.join(", ")} ${unknown.length === 1 ? "isn't" : "aren't"} on the team`, "recipients");
-  const barred = emails.filter((e) => !canRun(def, role.get(e)!));
+  const barred = emails.filter((e) => !canRun(def, by.get(e)!.role));
   if (barred.length) throw new ExportError(`${barred.join(", ")} can't open this report, so can't receive it`, "recipients");
+  if (reach) {
+    const outside: string[] = [];
+    for (const e of emails) if (!(await mayReceive(by.get(e)!, reach))) outside.push(e);
+    if (outside.length)
+      throw new ExportError(
+        reach.network
+          ? `A network-wide report goes to the HQ team only: ${outside.join(", ")} can't receive it`
+          : `${outside.join(", ")} can't see every store in this report, so can't receive it`,
+        "recipients",
+      );
+  }
   return emails;
 }
 
-/** Of a schedule's recipients, the ones who may still receive it: active, and their role still runs the report. */
-async function currentRecipients(emails: string[], def: ReportDef) {
-  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: { email: true, role: true } });
-  return users.filter((u) => canRun(def, u.role)).map((u) => u.email!.toLowerCase());
+/** Of a schedule's recipients, the ones who may still receive it: active, their role still runs the report, and it still covers only what they may see. */
+async function currentRecipients(emails: string[], def: ReportDef, reach: Reach) {
+  const users = await db.user.findMany({ where: { active: true, email: { in: emails } }, select: WHO });
+  const to: string[] = [];
+  for (const u of users) if (canRun(def, u.role) && (await mayReceive(u, reach))) to.push(u.email!.toLowerCase());
+  return to;
 }
 
 /** The schedule an export file came from (its key is exports/<user>/<day>/<schedule>.csv). */
@@ -86,11 +135,11 @@ export async function createSchedule(user: Staff, a: ScheduleInput, actor: Actor
   if (!def.scopes.includes(scope)) throw new ExportError("This report isn't available in that scope");
   if (a.cadence === "WEEKLY" && !(a.dayOfWeek && a.dayOfWeek >= 1 && a.dayOfWeek <= 7)) throw new ExportError("Choose a weekday", "day");
   if (a.cadence === "MONTHLY" && !(a.dayOfMonth && a.dayOfMonth >= 1 && a.dayOfMonth <= 28)) throw new ExportError("Choose a day of the month (1–28)", "day");
-  const recipients = await validateRecipients(a.recipients, def);
-  if ((await db.scheduledExport.count({ where: { userId: user.id, active: true } })) >= 20) throw new ExportError("You already have 20 scheduled exports — stop one first");
   const params: Record<string, string> = { scope };
   for (const [k, v] of Object.entries(a.params)) if (v && ["store", "stores", "range", "from", "to", "category", "channel", "month"].includes(k)) params[k] = String(v).slice(0, 40);
   for (const p of def.params ?? []) if (a.params[p.key]) params[p.key] = String(a.params[p.key]).slice(0, 40);
+  const recipients = await validateRecipients(a.recipients, def, await scheduleReach(user, params));
+  if ((await db.scheduledExport.count({ where: { userId: user.id, active: true } })) >= 20) throw new ExportError("You already have 20 scheduled exports — stop one first");
   const s = await db.scheduledExport.create({
     data: { userId: user.id, reportKey: def.key, params, cadence: a.cadence, dayOfWeek: a.cadence === "WEEKLY" ? a.dayOfWeek : null, dayOfMonth: a.cadence === "MONTHLY" ? a.dayOfMonth : null, recipients },
   });
@@ -142,7 +191,7 @@ export async function runExport(s: ScheduledExport, now = new Date()) {
       return null;
     }
   }
-  const to = await currentRecipients(s.recipients, def);
+  const to = await currentRecipients(s.recipients, def, await scheduleReach(user, params));
   if (!to.length) {
     await db.scheduledExport.update({ where: { id: s.id }, data: { active: false } });
     return null;

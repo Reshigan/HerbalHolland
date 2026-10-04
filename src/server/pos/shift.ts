@@ -60,7 +60,7 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
 export async function zReport(shiftId: string): Promise<ZReport> {
   const shift = await db.shift.findUniqueOrThrow({ where: { id: shiftId }, include: { store: { include: { company: true } } } });
   const licensed = (await getSettings()).compliance.licensedOnly;
-  const [kinds, tenders, units, users, device, closeLog, cash, dispensed] = await Promise.all([
+  const [kinds, tenders, refundTenders, units, users, device, closeLog, cash, dispensed] = await Promise.all([
     db.sale.groupBy({
       by: ["kind", "channel"],
       where: { shiftId },
@@ -68,6 +68,8 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       _sum: { totalCents: true, vatCents: true, discountCents: true, memberSavingsCents: true, pointsEarned: true },
     }),
     db.payment.groupBy({ by: ["method"], where: { sale: { shiftId } }, _sum: { amountCents: true }, _count: { _all: true } }),
+    // Where the refunds' money went (a refund back to how they paid has a line per tender).
+    db.payment.groupBy({ by: ["method"], where: { sale: { shiftId, kind: "REFUND" } }, _sum: { amountCents: true }, _count: { _all: true } }),
     db.saleLine.aggregate({ where: { sale: { shiftId, kind: "SALE" } }, _sum: { qty: true } }),
     db.user.findMany({ where: { id: { in: [shift.openedById, shift.closedById].filter(Boolean) as string[] } }, select: { id: true, name: true } }),
     shift.deviceId ? db.device.findUnique({ where: { id: shift.deviceId }, select: { name: true, prefix: true } }) : null,
@@ -87,6 +89,7 @@ export async function zReport(shiftId: string): Promise<ZReport> {
   const vat = sum(sales, (r) => r._sum.vatCents ?? 0);
   const loyalty = tenders.find((t) => t.method === "LOYALTY")?._sum.amountCents ?? 0;
   const counts = ((closeLog?.data as { counts?: Record<string, number> } | null)?.counts ?? null) as Record<string, number> | null;
+  const label = (method: string) => (method === "VOUCHER" ? "Gift vouchers" : (TENDER_LABEL[method] ?? method));
 
   return {
     shiftId: shift.id,
@@ -107,9 +110,13 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       units: units._sum.qty ?? 0,
     },
     refunds: { count: sum(refunds, (r) => r._count._all), totalCents: -sum(refunds, (r) => r._sum.totalCents ?? 0) },
+    refundTenders: refundTenders
+      .map((t) => ({ method: t.method, label: label(t.method), amountCents: -(t._sum.amountCents ?? 0), count: t._count._all }))
+      .filter((t) => t.amountCents !== 0)
+      .sort((a, b) => b.amountCents - a.amountCents),
     online: { count: sum(online, (r) => r._count._all), grossCents: sum(online, (r) => r._sum.totalCents ?? 0) },
     tenders: tenders
-      .map((t) => ({ method: t.method, label: t.method === "VOUCHER" ? "Gift vouchers" : (TENDER_LABEL[t.method] ?? t.method), amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
+      .map((t) => ({ method: t.method, label: label(t.method), amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
       .sort((a, b) => b.amountCents - a.amountCents),
     points: { issued: sum(kinds, (r) => r._sum.pointsEarned ?? 0), redeemed: Math.round(loyalty / 100) },
     cash: {
@@ -141,7 +148,13 @@ export async function zReport(shiftId: string): Promise<ZReport> {
 /** The X-report as a blind count needs it: nothing that gives away what the drawer should hold (managers see it all). */
 export function blindReport(r: ZReport): ZReport {
   if (r.closed) return r;
-  return { ...r, blind: true, tenders: r.tenders.filter((t) => t.method !== "CASH"), cash: { ...r.cash, cashNetCents: 0, expectedCents: 0, varianceCents: null } };
+  return {
+    ...r,
+    blind: true,
+    tenders: r.tenders.filter((t) => t.method !== "CASH"),
+    refundTenders: r.refundTenders?.filter((t) => t.method !== "CASH"),
+    cash: { ...r.cash, cashNetCents: 0, expectedCents: 0, varianceCents: null },
+  };
 }
 
 /** Most recent shift on this till (open or closed) for re-printing. */

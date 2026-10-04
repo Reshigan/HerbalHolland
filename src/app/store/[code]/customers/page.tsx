@@ -5,12 +5,13 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { SEGMENT_TONE, hrefWith, sp1 } from "@/server/store/rules";
-import { NO_STATS, customerSearch, homeMemberTotals, memberAtStore, membersByHere, statsHere } from "@/server/store/members";
+import { NO_STATS, closeMembersAt, customerSearch, homeMemberTotals, memberAtStore, membersByHere, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf, type SegmentKey } from "@/lib/rfm";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { displayPhone } from "@/lib/sa";
 import { zar, zarCompact } from "@/lib/money";
 import { timeAgo } from "@/lib/format";
+import { inRankOrder } from "@/lib/text-search";
 import { addMember } from "./actions";
 import { AddMember } from "./add-member";
 import { PageHeader, EmptyState } from "@/components/ui/page";
@@ -54,7 +55,11 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   const dir: "asc" | "desc" = SORTS[sort] ? (sp1(sp.dir) === "asc" || sp1(sp.dir) === "desc" ? (sp1(sp.dir) as "asc" | "desc") : DEFAULT_DIR[sort]) : "desc";
   const page = pageParam(sp.page);
 
-  const search = customerSearch(q);
+  // Nobody here matches as typed (a typo — "Abrahms", "ndlovo"): the closest names among the same members instead.
+  const closeIds = q && !(await db.customer.count({ where: { AND: [memberAtStore(store.id), customerSearch(q)] } })) ? await closeMembersAt(store.id, q) : [];
+  const close = closeIds.length > 0;
+  const ranked = close && !sp1(sp.sort); // closest first: no column is the sort
+  const search: Prisma.CustomerWhereInput = close ? { id: { in: closeIds } } : customerSearch(q);
   // Searching widens to members who have bought here too (a visitor at the counter isn't always a home member).
   const base: Prisma.CustomerWhereInput = { AND: [q ? memberAtStore(store.id) : { homeStoreId: store.id }, search, tier ? { tier } : {}] };
   const where: Prisma.CustomerWhereInput = { AND: [base, segmentWhere(seg)] };
@@ -64,7 +69,9 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   const [segCounts, total, members, agg, here] = await Promise.all([
     Promise.all(segKeys.map(async (k) => [k, await db.customer.count({ where: { AND: [base, segmentWhere(k)] } })] as const)),
     db.customer.count({ where }),
-    order
+    ranked
+      ? db.customer.findMany({ where }).then((rows) => inRankOrder(rows, closeIds, (c) => c.id).slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE))
+      : order
       ? db.customer.findMany({ where, orderBy: order(dir), skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE })
       : membersByHere(store.id, where, sort as "recent" | "spend", (page - 1) * PAGE_SIZE, PAGE_SIZE).then(async (ids) => {
           const rows = new Map((await db.customer.findMany({ where: { id: { in: ids } } })).map((r) => [r.id, r]));
@@ -132,7 +139,12 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
               </Link>
             </p>
           )}
-          {q && <p className="text-xs text-ink-500">Searching home members and members who have bought at {store.name}.</p>}
+          {q && (
+            <p className="text-xs text-ink-500">
+              {close && <b className="text-ink-700">Showing close matches for “{q}” — no name matched exactly. </b>}
+              Searching home members and members who have bought at {store.name}.
+            </p>
+          )}
           <span id="m-sort-hint" className="sr-only">Column headings sort the list too.</span>
           <SavedViews pageKey="store-members" userKey={user.id} />
         </div>
@@ -144,13 +156,13 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
           <Table stickyFirst minWidth="64rem">
             <thead>
               <tr>
-                <SortableTh label="Member" sortKey="name" sort={sort} dir={dir} href={sortHref} />
+                <SortableTh label="Member" sortKey="name" sort={ranked ? "" : sort} dir={dir} href={sortHref} />
                 <Th>Mobile</Th>
                 <Th>Tier · segment</Th>
-                <SortableTh label="Points" sortKey="points" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Points" sortKey="points" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" />
                 <Th align="right">Visits here</Th>
-                <SortableTh label="Last visit here" sortKey="recent" sort={sort} dir={dir} href={sortHref} title="Most recent first" />
-                <SortableTh label="Spend here" sortKey="spend" sort={sort} dir={dir} href={sortHref} align="right" title="Highest first" />
+                <SortableTh label="Last visit here" sortKey="recent" sort={ranked ? "" : sort} dir={dir} href={sortHref} title="Most recent first" />
+                <SortableTh label="Spend here" sortKey="spend" sort={ranked ? "" : sort} dir={dir} href={sortHref} align="right" title="Highest first" />
                 <Th>Consent</Th>
               </tr>
             </thead>

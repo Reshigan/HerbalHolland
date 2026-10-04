@@ -44,6 +44,7 @@ beforeAll(async () => {
   w = await buildWorld();
   await db.user.update({ where: { id: w.manager.id }, data: { email: "mia@example.co.za" } });
   hq = await staff((await db.user.create({ data: { name: "Hanna HQ", role: "HQ_ADMIN", companyId: w.hq.id, email: "hanna@example.co.za" } })).id);
+  await db.user.create({ data: { name: "Tumi Team", role: "HQ_STAFF", companyId: w.hq.id, email: "tumi@example.co.za" } });
 });
 afterAll(async () => {
   await new Promise((r) => setTimeout(r, 300));
@@ -253,9 +254,11 @@ describe("Scheduled exports", () => {
     await expect(createSchedule(hq, { reportKey: "sales-by-store", params: { scope: "hq" }, cadence: "MONTHLY", dayOfMonth: 31, recipients: ["hanna@example.co.za"] }, a)).rejects.toThrow("1–28");
     await expect(createSchedule(hq, { reportKey: "nope", params: { scope: "hq" }, cadence: "WEEKLY", dayOfWeek: 1, recipients: ["hanna@example.co.za"] }, a)).rejects.toThrow("Unknown report");
     const today = ((weekdaySA(new Date()) + 6) % 7) + 1;
-    const s = await createSchedule(hq, { reportKey: "sales-by-store", params: { scope: "hq", range: "7d", junk: "x" }, cadence: "WEEKLY", dayOfWeek: today, recipients: ["Hanna@example.co.za", "mia@example.co.za"] }, a);
+    // A network-wide report goes to the HQ team only: not to a store manager.
+    await expect(createSchedule(hq, { reportKey: "sales-by-store", params: { scope: "hq", range: "7d" }, cadence: "WEEKLY", dayOfWeek: today, recipients: ["mia@example.co.za"] }, a)).rejects.toThrow("HQ team only");
+    const s = await createSchedule(hq, { reportKey: "sales-by-store", params: { scope: "hq", range: "7d", junk: "x" }, cadence: "WEEKLY", dayOfWeek: today, recipients: ["Hanna@example.co.za", "tumi@example.co.za"] }, a);
     expect(s.params).toEqual({ scope: "hq", range: "7d" });
-    expect(s.recipients).toEqual(["hanna@example.co.za", "mia@example.co.za"]);
+    expect(s.recipients).toEqual(["hanna@example.co.za", "tumi@example.co.za"]);
     expect(isDue(s)).toBe(true);
     expect(isDue({ ...s, dayOfWeek: (today % 7) + 1 })).toBe(false);
     expect(isDue({ ...s, lastRunAt: new Date() })).toBe(false);
@@ -266,7 +269,7 @@ describe("Scheduled exports", () => {
     expect(up.key).toMatch(/^exports\//);
     expect(up.fileName).toMatch(/^herbal-holland_sales-by-store_network_\d{4}-\d{2}-\d{2}_\d{4}-\d{2}-\d{2}\.csv$/);
     const mails = await db.messageLog.findMany({ where: { channel: "EMAIL", body: { contains: "Sales by store" } } });
-    expect(mails.map((m) => m.to).sort()).toEqual(["hanna@example.co.za", "mia@example.co.za"]);
+    expect(mails.map((m) => m.to).sort()).toEqual(["hanna@example.co.za", "tumi@example.co.za"]);
     // The log keeps where the link points, never the signed link itself.
     expect(mails[0].body).toContain(`/api/exports/${uploadId} (signed link sent; not kept here)`);
     expect(mails[0].body).not.toMatch(/\?e=\d+&t=/);

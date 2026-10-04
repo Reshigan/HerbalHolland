@@ -5,7 +5,9 @@ import {
   offlineMember, rsvpTicketFrom, uuid, fmtWait,
 } from "@/components/pos/lib/rules";
 import { checkCompliance, DEFAULT_COMPLIANCE } from "@/lib/compliance";
-import type { BootPromotion } from "@/server/pos/types";
+import { receiptBytes, servedBy } from "@/components/pos/lib/receipt";
+import { zReportBytes } from "@/components/pos/lib/print-z";
+import type { BootPromotion, ReceiptDTO, ZReport } from "@/server/pos/types";
 
 const promo = (p: Partial<BootPromotion> & Pick<BootPromotion, "id" | "kind" | "value">): BootPromotion => ({
   name: p.id,
@@ -274,5 +276,48 @@ describe("till waits and offline members", () => {
     expect(m.memberNo).toBe("+27821234567");
     expect(m.lastName).toBe("082 ••• 4567");
     expect(offlineMember("HH0100002").lastName).toBe("HH0100002");
+  });
+});
+
+describe("till receipts: who sold it, and where refunds went", () => {
+  const text = (b: Uint8Array) => new TextDecoder("latin1").decode(b);
+  const store = { code: "PTA01", name: "Hatfield", legalName: "Hatfield Herbal (Pty) Ltd", vatNumber: null, addressLine: "12 Burnett Street", suburb: "Hatfield", city: "Pretoria", postalCode: "0083", phone: null, licenceRef: null, receiptFooter: null };
+  const sale = (over: Partial<ReceiptDTO> = {}): ReceiptDTO => ({
+    id: "s1", number: "PTA01-B00042", kind: "SALE", channel: "POS", title: "Invoice", createdAt: "2026-10-04T12:03:00+02:00", offline: false, refundOf: null, staff: "Mia Manager", customer: null,
+    lines: [{ id: "l1", variantId: "v1", name: "Test Haze", variantName: "3.5g", sku: "FLW", qty: 1, unitPriceCents: 65000, discountCents: 0, offerCents: 0, totalCents: 65000, vatCents: 0, refundedQty: 0 }],
+    subtotalCents: 65000, discountCents: 0, offerCents: 0, offers: [], memberSavingsCents: 0, totalCents: 65000, vatCents: 0, pointsEarned: 0, pointsRedeemed: 0,
+    payments: [{ method: "CARD", amountCents: 65000, tenderedCents: null, changeCents: null, provider: null, reference: null, cardBrand: null, cardLast4: "0005" }],
+    promoCode: null, invoiceEmail: null, buyer: null, note: null, refunds: [], invoiceUrl: null, ...over,
+  });
+
+  it("names the seller and the dispenser when a dispenser completed someone else's sale", () => {
+    expect(servedBy({ staff: "Mia Manager" })).toBe("Served by Mia Manager");
+    expect(servedBy({ staff: "Mia Manager", soldBy: "Ben Budtender" })).toBe("Sold by Ben Budtender · dispensed by Mia Manager");
+    expect(servedBy({ staff: "Mia Manager", soldBy: "Mia Manager" })).toBe("Served by Mia Manager");
+    expect(text(receiptBytes(sale({ soldBy: "Ben Budtender" }), { cols: 48, store, devicePrefix: "B", cut: false }))).toContain("Sold by Ben Budtender - dispensed by Mia Manager\nTill B\n");
+    expect(text(receiptBytes(sale(), { cols: 48, store, devicePrefix: "B", cut: false }))).toContain("Served by Mia Manager - till B");
+  });
+
+  it("prints a refund back to how they paid as a line per tender, and the Z-report's refunds by tender", () => {
+    const credit = sale({
+      kind: "REFUND", title: "Refund", refundOf: { id: "s0", number: "PTA01-B00041" }, totalCents: -39000,
+      payments: [
+        { method: "CASH", amountCents: -10000, tenderedCents: null, changeCents: null, provider: null, reference: null, cardBrand: null, cardLast4: null },
+        { method: "CARD", amountCents: -29000, tenderedCents: null, changeCents: null, provider: null, reference: null, cardBrand: null, cardLast4: "0005" },
+      ],
+    });
+    const t = text(receiptBytes(credit, { cols: 48, store, devicePrefix: "B", cut: false }));
+    expect(t).toMatch(/Cash +-R100\.00/);
+    expect(t).toMatch(/Card \*\*\*\* 0005 +-R290\.00/);
+    const z = {
+      shiftId: "s1", closed: true, store: { code: "PTA01", name: "Hatfield", legalName: store.legalName, vatNumber: null }, device: null, openedAt: "2026-10-04T08:00:00+02:00", closedAt: "2026-10-04T18:00:00+02:00", openedBy: "Mia", closedBy: "Mia",
+      sales: { count: 1, grossCents: 39000, vatCents: 0, netCents: 39000, discountCents: 0, memberSavingsCents: 0, units: 1 },
+      refunds: { count: 1, totalCents: 39000 },
+      refundTenders: [{ method: "CARD", label: "Card", amountCents: 29000, count: 1 }, { method: "CASH", label: "Cash", amountCents: 10000, count: 1 }],
+      online: { count: 0, grossCents: 0 }, tenders: [], points: { issued: 0, redeemed: 0 },
+      cash: { floatCents: 100000, cashNetCents: 0, expectedCents: 100000, countedCents: 100000, varianceCents: 0, counts: null }, takingsCents: 0, notes: null, emailedTo: null,
+    } satisfies ZReport;
+    const zt = text(zReportBytes(z, { cols: 48, cut: false }));
+    expect(zt).toMatch(/Refunds \(1\) +-R390\.00\n {2}Card \(1\) +-R290\.00\n {2}Cash \(1\) +-R100\.00/);
   });
 });

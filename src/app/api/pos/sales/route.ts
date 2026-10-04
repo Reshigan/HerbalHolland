@@ -74,6 +74,7 @@ export const POST = withStaff(async (req, pos) => {
     shiftId,
     customerId,
     memberNo,
+    soldById: b.soldById ?? null, // a dispenser completed the sale for whoever built the basket (checked: active here)
     lines: b.lines,
     promoCode: b.promoCode || null,
     pointsRedeemed: b.pointsRedeemed ?? 0,

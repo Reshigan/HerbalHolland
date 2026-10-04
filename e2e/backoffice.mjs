@@ -1142,9 +1142,9 @@ try {
   await cleanup.pop().fn(); // put the update back as it was straight away: every store in the network sees it
 
   step("Scope: a manager can't open another store's back office");
-  await page.goto(`${BASE}/store/PTA03`);
-  await page.waitForURL(/\/login\?denied=1/);
-  ok("redirected to sign-in (denied)");
+  const away = await page.goto(`${BASE}/store/PTA03`);
+  await page.getByText("This store sits outside what you look after").waitFor();
+  assert(away.status() === 404 && page.url().endsWith("/store/PTA03"), "not found (404) inside their own back office, not the sign-in page");
 
   // ───────────────────────────────────────────────────────────────────────────
   step("Owner: /store opens the consolidated view of all their stores; switch store; dispenser rights");

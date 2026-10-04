@@ -78,6 +78,11 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
             <FilterSelect name="status" label="Status" defaultValue={sp.status} options={PRODUCT_STATUSES.map((s) => ({ value: s, label: titleCase(s) }))} />
             <FilterSelect name="flag" label="Flag" defaultValue={sp.flag} options={[{ value: "heritage", label: "Heritage" }, { value: "featured", label: "Featured" }, { value: "tobacco", label: "Tobacco Bill related" }]} />
           </FilterForm>
+          {list.close && (
+            <p className="text-xs text-ink-500">
+              <b className="text-ink-700">Showing close matches for “{sp.q}”</b> — nothing matched exactly.
+            </p>
+          )}
           <SavedViews pageKey="hq-catalogue" userKey={user.id} />
         </div>
         <Table className="relative" stickyFirst minWidth="60rem">

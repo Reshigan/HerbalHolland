@@ -124,6 +124,8 @@ const T = {
   caption: `The Windmill Tee is back: the mark embroidered in Sunset thread, made in Cape Town. (${sfx})`,
   staffName: `E2E Staffer ${sfx}`,
   staffEmail: `e2e.staff.${sfx}@herbalholland.co.za`,
+  ownerName: `E2E Owner ${sfx}`,
+  ownerEmail: `e2e.owner.${sfx}@example.com`,
   annTitle: `E2E notice ${sfx}`,
   importName: `E2E Import Jar ${sfx}`,
   importSku: `E2E-${SFX}-IMP`,
@@ -246,6 +248,33 @@ try {
   const co = await one(`select "vatNumber", "contactName" from "Company" where id = $1`, [store.companyId]);
   assert(co.vatNumber === vat && co.contactName === "E2E Owner", `owner now a VAT vendor (${vat})`);
   await shot("store-detail");
+
+  step("Stores: franchisee owners — add one (validation first), reset their password, deactivate them");
+  await open(`/hq/stores/${storeCode}`, formWith("#ownerEmail"));
+  const of = formWith("#ownerEmail");
+  await hydrated(of);
+  await of.locator("#ownerName").fill(T.ownerName);
+  await of.locator("#ownerEmail").fill("not-an-email");
+  await act("stores.addOwner · invalid", () => of.getByRole("button", { name: "Add owner" }).click(), () => alertIn(of, "The email address they'll sign in with").waitFor());
+  assert(!(await one(`select 1 from "User" where name = $1`, [T.ownerName])), "nothing was created");
+  await of.locator("#ownerEmail").fill(T.ownerEmail);
+  await act("stores.addOwner", () => of.getByRole("button", { name: "Add owner" }).click(), () => notice(/can now sign in as/).waitFor());
+  const opw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+—/)?.[1];
+  const storeOwner = await one(`select id, role, "companyId", "mustChangePassword", "tempPasswordUntil" from "User" where email = $1`, [T.ownerEmail]);
+  assert(storeOwner?.role === "OWNER" && storeOwner.companyId === store.companyId && storeOwner.mustChangePassword && storeOwner.tempPasswordUntil && opw1, `${T.ownerEmail} added as an owner of ${store.coName}, with a one-time password`);
+  const orow = page.getByRole("listitem").filter({ hasText: T.ownerEmail });
+  await orow.getByRole("button", { name: "Reset password" }).click();
+  const orp = orow.getByRole("group", { name: `Reset ${T.ownerName}'s password?` });
+  await act("stores.resetOwnerPassword", () => orp.getByRole("button", { name: "Reset password" }).click(), () => orow.getByText(/New temporary password for/).waitFor());
+  const opw2 = (await orow.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+—/)?.[1];
+  assert(opw2 && opw2 !== opw1, "a new one-time password is shown once");
+  await orow.getByRole("button", { name: "Deactivate" }).click();
+  const odp = orow.getByRole("group", { name: `Deactivate ${T.ownerName}?` });
+  await act("stores.setOwnerActive (deactivate)", () => odp.getByRole("button", { name: "Deactivate" }).click(), () => notice(`${T.ownerName} has been signed out everywhere and can no longer sign in.`).waitFor());
+  const od = await one(`select active, (select count(*)::int from "Session" s where s."userId" = u.id) sessions from "User" u where id = $1`, [storeOwner.id]);
+  assert(od.active === false && od.sessions === 0, "deactivated and signed out everywhere (the store isn't trading yet, so no owner has to stay active)");
+  const ownerAudit = (await q(`select action from "AuditLog" where "entityId" = $1 order by at`, [storeOwner.id])).map((r) => r.action);
+  assert(["user.create", "user.password_reset", "user.deactivate"].every((a) => ownerAudit.includes(a)), `audited (${ownerAudit.join(", ")})`);
 
   step("Stores: the opening checklist was seeded for the new store; a task is marked done with a note; the list shows progress");
   const tasks = await q(`select id, key, title, "dueAt" from "StoreTask" where "storeId" = $1 order by "sortOrder"`, [store.id]);
@@ -1337,12 +1366,15 @@ try {
   const mine = (await q(`select code from "Store" where "regionId" = $1 and kind = 'RETAIL' order by code`, [area.regionId])).map((r) => r.code);
   assert(listed.length === mine.length && mine.every((c) => listed.includes(c)), `store list = the ${mine.length} ${area.name} stores (${mine.join(", ")})`);
   const foreign = await one(`select code, name from "Store" where "regionId" <> $1 and kind = 'RETAIL' order by code limit 1`, [area.regionId]);
-  await ap.goto(`${BASE}/hq/stores/${foreign.code}`);
-  await ap.waitForURL(/\/login\?denied=1/);
-  await ap.getByText("Your account doesn't have access to that page.").waitFor();
-  ok(`${foreign.name} (${foreign.code}, another region) → denied`);
+  const awayHq = await ap.goto(`${BASE}/hq/stores/${foreign.code}`);
+  await ap.getByRole("heading", { name: "Not found" }).waitFor();
+  assert(awayHq.status() === 404 && ap.url().endsWith(`/hq/stores/${foreign.code}`), `${foreign.name} (${foreign.code}, another region) → not found (404) in the console, not the sign-in page`);
+  const awayStore = await ap.goto(`${BASE}/store/${foreign.code}`);
+  await ap.getByText("This store sits outside what you look after").waitFor();
+  assert(awayStore.status() === 404 && ap.url().endsWith(`/store/${foreign.code}`), `its back office → not found (404) inside their own back office`);
   await open(`/hq/stores/${oneStore.code}`, ap.locator("form").first(), ap);
   assert(await ap.getByText("View only — changes are made by the HQ team.").first().isVisible(), `${oneStore.name}: profile is view-only`);
+  assert(!(await ap.getByText("Franchisee owners").count()), "owner sign-ins: not shown (HQ administrator only)");
   await ap.goto(`${BASE}/hq/stores/new`);
   await ap.waitForURL(/\/hq\/stores$/);
   ok("onboarding a store (admin only) → sent back to the store list");
@@ -1457,13 +1489,14 @@ async function cleanup() {
     await run("store variant stats", `delete from "DailyVariantStat" where "storeId" = $1`, [store.id]);
     await run("checklist", `delete from "StoreTask" where "storeId" = $1`, [store.id]);
     await run("store", `delete from "Store" where id = $1`, [store.id]);
+    await run("owner sign-in", `delete from "User" where email = $1`, [T.ownerEmail]);
     await run("owner company", `delete from "Company" where id = $1 and not exists (select 1 from "Store" where "companyId" = $1)`, [store.companyId]);
   }
   await run("team member", `delete from "User" where email = $1`, [T.staffEmail]);
   const left = await one(
     `select (select count(*) from "Store" where name = $1) + (select count(*) from "Product" where name = $2) + (select count(*) from "Customer" where email = $3 or "lastName" = $4 or id = $8)
-       + (select count(*) from "User" where email = $5) + (select count(*) from "Campaign" where name like $6) + (select count(*) from "Promotion" where name = $7) + (select count(*) from "TradeAccount" where name = $9) as n`,
-    [T.storeName, T.productName, T.memberEmail, `Member ${sfx}`, T.staffEmail, `${T.campaignName}%`, T.promoName, member?.id ?? "", T.tradeName],
+       + (select count(*) from "User" where email in ($5, $10)) + (select count(*) from "Campaign" where name like $6) + (select count(*) from "Promotion" where name = $7) + (select count(*) from "TradeAccount" where name = $9) as n`,
+    [T.storeName, T.productName, T.memberEmail, `Member ${sfx}`, T.staffEmail, `${T.campaignName}%`, T.promoName, member?.id ?? "", T.tradeName, T.ownerEmail],
   ).catch(() => ({ n: "?" }));
   if (Number(left.n)) process.exitCode = 1;
   console.log(`\nCleanup: test data removed (${left.n} left); settings ${drift.length ? `NOT as found: ${drift.join(", ")}` : "as found"}.`);

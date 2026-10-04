@@ -173,7 +173,9 @@ export async function quote(opts: QuoteInput): Promise<Quote> {
       },
     }),
     opts.storeId ? db.store.findUnique({ where: { id: opts.storeId }, select: { regionId: true, company: { select: { vatNumber: true } } } }) : null,
-    opts.customerId ? db.customer.findUnique({ where: { id: opts.customerId }, select: { tier: true, visits: true } }) : null,
+    opts.customerId
+      ? db.customer.findUnique({ where: { id: opts.customerId }, select: { tier: true, visits: true, _count: { select: { orders: { where: { status: { in: [...OPEN_ORDER_STATUSES] } } } } } } })
+      : null,
     activePriceLists(at),
     activePromotions({ storeId: opts.storeId, channel: opts.channel, at }),
     opts.storeId && opts.channel === "POS" ? markdowns(opts.storeId, variantIds, at) : Promise.resolve(new Map<string, number>()),
@@ -204,8 +206,9 @@ export async function quote(opts: QuoteInput): Promise<Quote> {
 
   const r = applyPromotions(
     base.map(({ i, v, unit, noPromo }) => ({ key: i.variantId, productId: v.productId, categoryId: v.product.categoryId, qty: i.qty, unitPriceCents: unit, noPromo })),
-    // Welcome gifts are for a member's first purchase; My Deals ride along as line deals.
-    [...(promos as (PromoInput & { firstPurchaseOnly: boolean })[]).filter((p) => !p.firstPurchaseOnly || (memberDeals && customer?.visits === 0)), ...offers.map(offerPromo)],
+    // Welcome gifts are for a member's first purchase (none yet, and no online order still open — that one has it);
+    // My Deals ride along as line deals.
+    [...(promos as (PromoInput & { firstPurchaseOnly: boolean })[]).filter((p) => !p.firstPurchaseOnly || (memberDeals && customer?.visits === 0 && !customer._count.orders)), ...offers.map(offerPromo)],
     opts.code,
   );
   const lines: QuoteLine[] = base.map(({ i, v, price, unit, noPromo, memberSavingsCents }, idx) => ({

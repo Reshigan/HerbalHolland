@@ -91,6 +91,10 @@ export function tradeTenderRows(t: Pick<ReceiptPayment, "method" | "amountCents"
   if (t.amountCents < 0) return [["Credited to the account", zar(t.amountCents)]];
   return [["On account", zar(t.amountCents)], ...(trade?.dueAt ? ([[`  Due ${fmtDate(trade.dueAt)}`, ""]] as [string, string][]) : [])];
 }
+/** "Served by Mia", or "Sold by Ben · dispensed by Mia" when a dispenser completed a sale someone else built. */
+export const servedBy = (r: Pick<ReceiptDTO, "staff" | "soldBy">, dot = " · ", none = "—") =>
+  r.soldBy && r.soldBy !== r.staff ? `Sold by ${r.soldBy}${dot}dispensed by ${r.staff ?? none}` : `Served by ${r.staff ?? none}`;
+
 export const ADULTS_LINE = "Adults 18+ only. Keep out of reach of children.";
 export const LICENSED_LINE = "Licensed medicine dispensed to the named patient under their SAHPRA authorisation by an authorised dispenser. No promotions, points or discounts apply (Medicines Act s18A).";
 export const CBD_LINE = "CBD complementary medicine: no promotions or points (Medicines Act s18A).";
@@ -120,7 +124,8 @@ export function receiptBytes(r: ReceiptDTO, o: ReceiptOptions): Uint8Array {
   p.align("centre").bold(true).line(training ? `TRAINING ${r.title.toUpperCase()}` : r.title.toUpperCase()).bold(false).align("left");
   p.row(`No. ${r.number}`, fmtDateTime(r.createdAt));
   if (r.refundOf) p.line(`Refund of ${r.refundOf.number}`);
-  p.line(`Served by ${r.staff ?? "-"} - till ${o.devicePrefix}`);
+  if (r.soldBy && r.soldBy !== r.staff) p.para(servedBy(r, " - ", "-")).line(`Till ${o.devicePrefix}`);
+  else p.line(`Served by ${r.staff ?? "-"} - till ${o.devicePrefix}`);
   if (r.queued) p.bold(true).line("Offline sale - synced later").bold(false);
   p.rule();
 

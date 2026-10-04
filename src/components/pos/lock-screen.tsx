@@ -193,7 +193,7 @@ export function LockScreen({
                 <span key={i} className={cn("h-4 w-4 rounded-full ring-2 transition", i < pin.length ? "bg-brand-500 ring-brand-500" : "ring-ink-600")} />
               ))}
             </div>
-            <div className="mt-3 h-6 text-sm font-medium text-rose-400" role="alert">
+            <div className="mt-3 min-h-6 text-center text-sm font-medium text-rose-400" role="alert">
               {error}
             </div>
             <div className="mt-3 grid w-full grid-cols-3 gap-3" role="group" aria-label="PIN pad">

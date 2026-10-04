@@ -2,16 +2,23 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
+import { isHq, requireStaff } from "@/server/auth";
 import { getSettings } from "@/server/settings";
-import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
+import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { str } from "@/server/store/rules";
 import { marginPct } from "@/lib/pricing-rules";
 import { plural } from "@/lib/plural";
 
+// Competition Act s5(2): HQ recommends prices and never sets a franchisee's selling price (docs/COMPLIANCE.md).
+async function managePrices(code: string) {
+  if (isHq(await requireStaff())) throw new UserError("Shelf prices are the franchisee's to set");
+  return manage(code);
+}
+
 /** Saves edited shelf prices (null = back to the recommended / list price). Warnings only — never blocks. */
 export async function savePrices(code: string, changes: { variantId: string; priceCents: number | null }[]): Promise<ActionState> {
   return attempt(async () => {
-    const { store, actor } = await manage(code);
+    const { store, actor } = await managePrices(code);
     if (!Array.isArray(changes) || !changes.length) return fail("No changes to save");
     if (changes.length > 2_000) return fail("Too many changes at once");
     const rows = await db.storeVariant.findMany({
@@ -48,7 +55,7 @@ export async function savePrices(code: string, changes: { variantId: string; pri
 /** Bulk: set a category to a % above/below RRP (rounded to the rand), or clear own prices. */
 export async function bulkPrices(code: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
-    const { store, actor } = await manage(code);
+    const { store, actor } = await managePrices(code);
     const category = str(fd, "category");
     const mode = str(fd, "mode") === "reset" ? "reset" : "pct";
     const pct = Number(str(fd, "pct").replace(",", "."));

@@ -33,6 +33,9 @@ export type PosCtx = {
   switchUser: (reason: "dispenser" | "manager", then?: () => void, opts?: { handBack?: "now" | "later" }) => void;
   /** The sale or refund a switched-in person finished: offer "Back to <name>" (PIN) or lock. No-op without a hand-off. */
   handoffDone: () => void;
+  /** Who built the basket when a dispenser stepped in to complete the sale (null otherwise): the sale carries them as
+   *  `soldById`, so commission credits the seller; the dispenser stays on the sale as staff. */
+  soldBy: StaffTile | null;
   print: (doc: PrintDoc) => void;
   setBusy: (busy: boolean) => void;
   goTo: (tab: PosTab) => void;

@@ -47,3 +47,23 @@ export function looserMemberQuery(q: MemberQuery): string | null {
   const w = q.words[0];
   return w.length > 4 ? w.slice(0, 4) : null;
 }
+
+// ── Close matches (typos) ───────────────────────────────────────────────────
+// When a name search finds nobody, the search runs again loosely: pg_trgm word similarity against first and last names
+// ("Abrahms" finds Abrahams, "ndlovo" Ndlovu). The database does the matching (src/server/hq/crm.ts closeNameMatches).
+
+/** How alike a typed word and a first or last name must be (pg_trgm word_similarity, 0–1). */
+export const NAME_SIMILARITY = 0.4;
+
+/** The words of a search worth matching loosely against names: those with letters and no digits, at most four. */
+export function nameWords(raw: string | undefined | null): string[] {
+  const q = (raw ?? "").trim();
+  if (!q || q.includes("@")) return [];
+  return q
+    .replace(/[,;.]/g, " ")
+    .split(/\s+/)
+    .filter((w) => !/\d/.test(w))
+    .map((w) => w.replace(/^[^\p{L}]+|[^\p{L}]+$/gu, ""))
+    .filter((w) => /\p{L}/u.test(w))
+    .slice(0, 4);
+}

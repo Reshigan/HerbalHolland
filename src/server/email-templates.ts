@@ -486,6 +486,7 @@ export function zReportEmail(r: ZReport, opts: { url?: string | null } = {}): Re
     { label: "Units sold", value: String(r.sales.units), indent: true },
     ...(r.online.count ? [{ label: `Online handovers (${r.online.count})`, value: zar(r.online.grossCents), indent: true }] : []),
     { label: `Refunds (${r.refunds.count})`, value: `−${zar(r.refunds.totalCents)}` },
+    ...(r.refundTenders ?? []).map((t) => ({ label: `Refunds · ${t.label} (${t.count})`, value: `−${zar(t.amountCents)}` })),
     { label: "Net takings", value: zar(r.takingsCents), strong: true },
     { label: "By tender", value: "", heading: true },
     ...r.tenders.map((t) => ({ label: `${t.label} (${t.count})`, value: zar(t.amountCents) })),

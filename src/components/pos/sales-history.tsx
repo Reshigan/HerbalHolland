@@ -2,7 +2,8 @@
 // Sales at this store: search by receipt number, member (number, mobile, name) or trade account, view/print a receipt, email the invoice,
 // refund selected lines (restock toggle, reason, tender) via sales.refundSale — what a gift
 // voucher paid goes back onto the voucher first, and on a trade sale what was on account comes
-// back as a credit note on the account's ledger; only the rest is paid out.
+// back as a credit note on the account's ledger; only the rest is paid out, back to how they paid
+// (split over the sale's card, cash, PayShap and EFT) unless the approving manager picks one tender.
 import { useCallback, useEffect, useState } from "react";
 import { Building2, ChevronRight, CloudOff, History, Mail, Printer, RotateCcw, Search, Undo2 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -10,16 +11,35 @@ import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, fmtTime, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { allocateRefund, allocateRefundAcross } from "@/lib/vouchers";
-import { cashRefundAllowed, defaultRefundMethod, isTillManager, refundSplit, type RefundMethod } from "@/lib/pos-refund";
+import { backHowTheyPaid, cashLeft, describeRefund, isTillManager, lineShare, moneyPartsOf, pointsBack, REFUND_METHODS, type RefundMethod, type RefundPart, type RefundTo } from "@/lib/pos-refund";
 import { api, errorText } from "./lib/api";
 import { TENDER_LABEL, tenderLine, uuid } from "./lib/rules";
-import { tradeTenderLabel } from "./lib/receipt";
+import { servedBy, tradeTenderLabel } from "./lib/receipt";
 import { usePos } from "./context";
 import { TrainingSales } from "./training";
 import { Alert, CheckRow, Chip, Confirm, EmptyPanel, Field, PosButton, SelectInput, Sheet, Spinner, Stepper, TextInput } from "./ui";
-import type { ReceiptDTO, SaleRow } from "@/server/pos/types";
+import type { ReceiptDTO, RefundPayment, SaleRow } from "@/server/pos/types";
 
 const REASONS = ["Changed mind (unopened)", "Faulty product", "Wrong item sold", "Damaged packaging", "Pricing error", "Other"];
+
+/** The money lines of a refund (card, cash, PayShap, EFT; refund rows are negative) as refund parts. */
+const moneyOut = (payments: { method: string; amountCents: number; cardLast4: string | null }[]): RefundPart[] =>
+  payments.flatMap((p) => ((REFUND_METHODS as readonly string[]).includes(p.method) && p.amountCents < 0 ? [{ method: p.method as RefundMethod, cents: -p.amountCents, cardLast4: p.cardLast4 }] : []));
+
+/** Where a refund's value went: "R100.00 cash · R290.00 to the card ending 0005 · 12 pts back". */
+const refundedTo = (payments: RefundPayment[]) =>
+  [
+    describeRefund(moneyOut(payments)),
+    ...payments.map((p) =>
+      p.method === "VOUCHER" ? `${zar(-p.amountCents)} onto gift voucher ${p.reference ?? ""}`.trim()
+      : p.method === "ACCOUNT" ? `${zar(-p.amountCents)} credited to the account`
+      : p.method === "ONLINE" ? `${zar(-p.amountCents)} through the online payment`
+      : p.method === "LOYALTY" ? `${fmtPoints(Math.round(-p.amountCents / 100))} back`
+      : "",
+    ),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
 export function SalesHistory() {
   const pos = usePos();
@@ -99,6 +119,7 @@ export function SalesHistory() {
                     {s.offline && <Chip tone="amber">Offline</Chip>}
                     <span className="truncate">
                       {fmtDay(s.createdAt)} {fmtTime(s.createdAt)} · {s.customer ?? "Walk-in"} · {s.methods.map((m) => TENDER_LABEL[m] ?? m).join(", ")}
+                      {s.soldBy && ` · ${servedBy(s)}`}
                     </span>
                   </span>
                 </span>
@@ -192,7 +213,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
           <div className="min-w-0 flex-1">
             <div className="truncate font-mono text-lg font-bold text-white">{r.number}</div>
             <div className="truncate text-xs text-ink-400">
-              {r.title} · {fmtDateTime(r.createdAt)} · {r.staff ?? "—"}
+              {r.title} · {fmtDateTime(r.createdAt)} · {r.soldBy ? servedBy(r) : (r.staff ?? "—")}
             </div>
           </div>
           <div className="hidden gap-2 sm:flex">{actions}</div>
@@ -297,10 +318,17 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
               <ul className="space-y-2">
                 {r.refunds.map((x) => (
                   <li key={x.id}>
-                    <button type="button" onClick={() => onOpen(x.id)} className="flex min-h-12 w-full items-center justify-between rounded-2xl bg-ink-900 px-4 text-sm ring-1 ring-ink-800 hover:ring-brand-500/50">
-                      <span className="font-mono text-white">{x.number}</span>
-                      <span className="text-ink-400">{fmtDateTime(x.createdAt)}</span>
-                      <span className="font-semibold text-[#f29b9b] tnum">{zar(x.totalCents)}</span>
+                    <button type="button" onClick={() => onOpen(x.id)} className="w-full rounded-2xl bg-ink-900 px-4 py-2.5 text-left text-sm ring-1 ring-ink-800 hover:ring-brand-500/50">
+                      <span className="flex min-h-7 items-center justify-between gap-3">
+                        <span className="font-mono text-white">{x.number}</span>
+                        <span className="text-ink-400">{fmtDateTime(x.createdAt)}</span>
+                        <span className="font-semibold text-[#f29b9b] tnum">{zar(x.totalCents)}</span>
+                      </span>
+                      {x.payments?.length ? (
+                        <span className="block text-xs text-ink-400" data-testid="refund-lines">
+                          {refundedTo(x.payments)}
+                        </span>
+                      ) : null}
                     </button>
                   </li>
                 ))}
@@ -316,7 +344,7 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
           onClose={() => setRefunding(false)}
           onDone={(credit) => {
             setRefunding(false);
-            pos.toast(`Refund ${credit.number} done · ${zar(-credit.totalCents)}`);
+            pos.toast(`Refund ${credit.number} done · ${describeRefund(moneyOut(credit.payments)) || zar(-credit.totalCents)}`);
             if (credit.payments.some((p) => p.method === "CASH")) pos.openDrawer("cash");
             onChanged();
             onOpen(credit.id);
@@ -330,26 +358,33 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
 
 function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () => void; onDone: (credit: ReceiptDTO) => void }) {
   const pos = usePos();
-  // The money tender to default to: the one that paid most (never a voucher, the shop's gateway or a trade account's terms).
-  // Cash only goes back out of the drawer when cash paid for the sale.
-  const cashOk = cashRefundAllowed(sale.payments);
   const manager = isTillManager(pos.me.role);
   const trade = sale.channel === "WHOLESALE" ? (sale.trade ?? null) : null;
+  // The sale's money tenders and what each has left to give back (a practice receipt carries none: read its payments).
+  const parts = sale.money ?? moneyPartsOf({ payments: sale.payments });
+  const cash = cashLeft(parts);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [restock, setRestock] = useState<Record<string, boolean>>(() => Object.fromEntries(sale.lines.map((l) => [l.id, true])));
   const [reason, setReason] = useState(REASONS[0]);
   const [other, setOther] = useState("");
-  const [method, setMethod] = useState<RefundMethod>(() => defaultRefundMethod(sale.payments));
+  const [method, setMethod] = useState<RefundTo>("ORIGINAL");
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const amount = sale.lines.reduce((s, l) => s + Math.round((l.totalCents * (qty[l.id] ?? 0)) / l.qty), 0);
+  // The server's split (sales.refundSale, lib/pos-refund): each line's share (its last units exactly what's left of it);
+  // points back in proportion to what's been refunded so far; what a gift voucher paid back onto the voucher first, up
+  // to what it paid less earlier refunds; then the account; only the rest is money.
+  const amount = sale.lines.reduce((s, l) => s + ((qty[l.id] ?? 0) > 0 ? lineShare(l.totalCents, l.qty, qty[l.id], l.refundedQty, l.refundedCents ?? Math.round((l.totalCents * l.refundedQty) / l.qty)) : 0), 0);
   const units = Object.values(qty).reduce((a, b) => a + b, 0);
   const why = reason === "Other" ? other.trim() : reason;
-  // The server's split (sales.refundSale): points come back in proportion; what a gift voucher paid returns to the
-  // voucher first, up to what it paid less earlier refunds; only the remainder goes to the tender chosen here.
-  const loyaltyBack = sale.totalCents > 0 ? Math.floor((amount * sale.pointsRedeemed * 100) / sale.totalCents / 100) * 100 : 0;
+  const loyaltyBack = pointsBack({
+    loyaltyPaidCents: sale.pointsRedeemed * 100,
+    loyaltyBackCents: sale.refunds.flatMap((r) => r.payments ?? []).filter((p) => p.method === "LOYALTY").reduce((s, p) => s - p.amountCents, 0),
+    totalCents: sale.totalCents,
+    refundedCents: sale.refunds.reduce((s, r) => s - r.totalCents, 0),
+    amountCents: amount,
+  });
   const split = allocateRefundAcross(amount - loyaltyBack, sale.vouchers ?? []);
   // Trade sales: what was on account comes back onto the account as a credit note (up to what's still open on it),
   // before any money moves — the same rule as a voucher, applied after the vouchers.
@@ -357,8 +392,21 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
   const toAccount = account.toVoucher;
   const toTender = account.toTender;
   const voucherOnly = (split.parts.length > 0 || toAccount > 0) && toTender === 0;
-  // Paid with more than one money tender: what each would get back in proportion (one tender per refund).
-  const proportion = refundSplit(sale.payments, toTender);
+  // The money: back to how they paid (over the sale's tenders, never more on one than it has left), or the one tender
+  // the approving manager picks — but never more cash than the sale was paid in cash.
+  const original = method === "ORIGINAL" ? backHowTheyPaid(parts, toTender) : null;
+  const money: RefundPart[] = method === "ORIGINAL" ? (original ?? []) : toTender > 0 ? [{ method, cents: toTender, cardLast4: parts.find((p) => p.method === method)?.cardLast4 ?? null }] : [];
+  const moneyText = describeRefund(money);
+  const problem =
+    toTender > 0 && method === "ORIGINAL" && !original
+      ? `Nothing on this sale was paid by card, cash, PayShap or EFT for ${zar(toTender)} to go back to — choose the tender to refund it to`
+      : toTender > 0 && method === "CASH" && toTender > cash
+        ? cash > 0
+          ? `Only ${zar(cash)} of the cash paid on this sale is left to give back — refund it back how they paid`
+          : "No cash was paid on this sale — refund it back how they paid"
+        : null;
+  const moneyLine = method === "ORIGINAL" ? `the rest back how they paid: ${moneyText}` : `${zar(toTender)} refunded by ${TENDER_LABEL[method]}`;
+  const cashPaid = parts.some((p) => p.method === "CASH");
 
   async function submit() {
     setBusy(true);
@@ -403,7 +451,7 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
               <div className="text-xs text-ink-400">Refund total</div>
               <div className="font-display text-2xl font-semibold text-white tnum">{zar(amount)}</div>
             </div>
-            <PosButton variant="danger" size="lg" disabled={!units || why.length < 3} onClick={() => setConfirm(true)} data-testid="refund-continue">
+            <PosButton variant="danger" size="lg" disabled={!units || why.length < 3 || !!problem} onClick={() => setConfirm(true)} data-testid="refund-continue">
               <RotateCcw className="h-5 w-5" /> Refund {units} item{units === 1 ? "" : "s"}
             </PosButton>
           </div>
@@ -444,12 +492,22 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
           <Field
             label="Refund to"
             htmlFor="refund-method"
-            hint={voucherOnly ? (toAccount > 0 ? "Nothing to pay out: it all goes back onto the account as a credit note" : "Nothing to pay out: it all goes back onto the gift voucher") : `Original payment: ${sale.payments.map((p) => (p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method))).join(", ")}`}
+            error={problem}
+            hint={
+              voucherOnly ? (
+                toAccount > 0 ? "Nothing to pay out: it all goes back onto the account as a credit note" : "Nothing to pay out: it all goes back onto the gift voucher"
+              ) : method === "ORIGINAL" && money.length ? (
+                <span data-testid="refund-split">{moneyText}</span>
+              ) : (
+                `Original payment: ${sale.payments.map((p) => (p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method))).join(", ")}`
+              )
+            }
           >
-            <SelectInput id="refund-method" value={method} disabled={voucherOnly} onChange={(e) => setMethod(e.target.value as RefundMethod)}>
+            <SelectInput id="refund-method" value={method} disabled={voucherOnly} onChange={(e) => setMethod(e.target.value as RefundTo)}>
+              <option value="ORIGINAL">Back to how they paid</option>
               <option value="CARD">Card</option>
-              <option value="CASH" disabled={!cashOk}>
-                {cashOk ? "Cash from the drawer" : "Cash (not paid in cash)"}
+              <option value="CASH" disabled={cash <= 0}>
+                {cash > 0 ? "Cash from the drawer" : cashPaid ? "Cash (already given back)" : "Cash (not paid in cash)"}
               </option>
               <option value="PAYSHAP">PayShap</option>
               <option value="EFT">EFT</option>
@@ -461,19 +519,11 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
             </Field>
           )}
         </div>
-        {proportion.length > 1 && !voucherOnly && (
-          <Alert tone="info" className="mt-4">
-            <span data-testid="refund-proportion">
-              Paid with {proportion.map((p) => TENDER_LABEL[p.method].toLowerCase()).join(" and ")}: in proportion that&apos;s {proportion.map((p) => `${zar(p.cents)} by ${TENDER_LABEL[p.method]}`).join(" and ")}.
-            </span>{" "}
-            A refund goes to one tender — refund in two goes if the customer wants it split.
-          </Alert>
-        )}
         {split.parts.length > 0 && (
           <Alert tone="info" className="mt-4">
             <span data-testid="refund-voucher">
               {split.parts.map((v) => `${zar(v.cents)} goes back onto gift voucher ${v.code}`).join("; ")}
-              {toTender > 0 ? `; ${zar(toTender)} refunded by ${TENDER_LABEL[method]}.` : " — nothing to pay out in money."}
+              {toTender > 0 ? `; ${moneyLine}.` : " — nothing to pay out in money."}
             </span>{" "}
             A voucher is never cashed out.
           </Alert>
@@ -482,7 +532,7 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
           <Alert tone="info" className="mt-4">
             <span data-testid="refund-account">
               {zar(toAccount)} goes back onto the account as a credit note ({trade.number})
-              {toTender > 0 ? `; ${zar(toTender)} refunded by ${TENDER_LABEL[method]}.` : " — nothing to pay out in money."}
+              {toTender > 0 ? `; ${moneyLine}.` : " — nothing to pay out in money."}
             </span>{" "}
             The on-account part is never cashed out.
           </Alert>
@@ -499,14 +549,17 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
               <>
                 {" "}
                 — {[...split.parts.map((v) => `${zar(v.cents)} back onto gift voucher ${v.code}`), ...(toAccount > 0 ? [`${zar(toAccount)} credited to the account as a credit note`] : [])].join(", ")}
-                {toTender > 0 ? (
+                {toTender > 0 && (
                   <>
                     {" "}
-                    and {zar(toTender)} by <b>{TENDER_LABEL[method]}</b>
+                    and <b>{method === "ORIGINAL" ? moneyText : `${zar(toTender)} by ${TENDER_LABEL[method]}`}</b>
                   </>
-                ) : (
-                  ""
                 )}
+              </>
+            ) : method === "ORIGINAL" ? (
+              <>
+                {" "}
+                back to how they paid: <b>{moneyText}</b>
               </>
             ) : (
               <>

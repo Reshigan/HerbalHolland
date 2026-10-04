@@ -14,7 +14,7 @@ import {
   loadAuditQueue, loadDisplay, loadIdleMs, loadPrinter, loadTraining, loadTrainingSales, saveAuditQueue, saveDisplay, saveIdleMs, savePrinter, saveTraining, saveTrainingSales,
   type DisplaySettings, type QueuedAudit,
 } from "./lib/storage";
-import { rememberPin, verifyOffline, canUnlockOffline } from "./lib/pin";
+import { rememberPin, verifyOffline, canUnlockOffline, forgetPin } from "./lib/pin";
 import { parseOrderQr, receiptNumber, uuid } from "./lib/rules";
 import { voucherCodeFrom } from "@/lib/vouchers";
 import { DEFAULT_PRINTER, kickDrawer, printerPaired, sendBytes, type PrinterSettings } from "./lib/print";
@@ -59,8 +59,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const [bootError, setBootError] = useState<string | null>(null);
   const [auth, setAuthState] = useState<AuthState>({ me: null, locked: true, at: 0 });
   const [switching, setSwitching] = useState<"dispenser" | "manager" | null>(null);
-  // Hand-off: who was at the till before a dispenser or manager stepped in, and whether to offer them the till back.
-  const [handoff, setHandoff] = useState<{ prev: StaffTile; ask: boolean } | null>(null);
+  // Hand-off: who was at the till before a dispenser or manager stepped in, why, and whether to offer them the till back.
+  const [handoff, setHandoff] = useState<{ prev: StaffTile; ask: boolean; reason: "dispenser" | "manager" } | null>(null);
   const [preselect, setPreselect] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
   const [online, setOnline] = useState(true);
@@ -349,8 +349,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         setAuth({ me, locked: false, offline, at: Date.now() });
         const h = handoffRef.current;
         handoffRef.current = { prev: null, when: "later" };
-        // A different person stepped in: remember who to hand the till back to.
-        if (switchingRef.current && h.prev && h.prev.id !== me.id) setHandoff({ prev: h.prev, ask: false });
+        // A different person stepped in: remember who to hand the till back to (and, for a dispenser, whose sale it is).
+        if (switchingRef.current && h.prev && h.prev.id !== me.id) setHandoff({ prev: h.prev, ask: false, reason: switchingRef.current });
         else if (!switchingRef.current) setHandoff(null);
         setSwitching(null);
         setExpired(false);
@@ -376,6 +376,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
           }
           return "That PIN isn't right";
         }
+        // The server's own words for a refused PIN (wrong, locked for a while, or disabled by a manager); a person the
+        // server won't let use this till can't unlock it offline either.
+        if (e instanceof ApiError && e.status === 403) forgetPin(staff.id);
         return errorText(e);
       }
     },
@@ -702,6 +705,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       lock,
       switchUser,
       handoffDone,
+      // A dispenser completing someone else's basket: the sale is credited to the person who built it.
+      soldBy: handoff?.reason === "dispenser" && handoff.prev.id !== auth.me.id ? handoff.prev : null,
       print: (doc: PrintDoc) => void print(doc),
       setBusy: (b: boolean) => void (busyRef.current = b),
       goTo: setTab,
@@ -723,7 +728,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setDisplaySettings,
       idleMessages,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, handoffDone, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, handoffDone, handoff, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;

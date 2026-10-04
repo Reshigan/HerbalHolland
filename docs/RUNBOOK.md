@@ -13,8 +13,9 @@
 ## First deploy
 
 Hosting: our own server in South Africa runs the app and Postgres; Cloudflare sits in front (DNS, TLS, WAF and bot
-protection, caching of `/_next/static`) through a Cloudflare Tunnel, so the server has no open inbound ports. Files go
-to Cloudflare R2. The app itself doesn't run on Cloudflare Workers (it's a Node server with Postgres, SMTP and long
+protection, caching of `/_next/static`) through a Cloudflare Tunnel, so the server has no open inbound ports. Keep it
+that way: the app trusts Cloudflare's `cf-connecting-ip` for its per-connection limits, which is only safe while nothing
+but the tunnel can reach it. Files go to Cloudflare R2. The app itself doesn't run on Cloudflare Workers (it's a Node server with Postgres, SMTP and long
 reports) and Postgres can't live on Cloudflare.
 
 1. Server: Docker + Postgres 16 (or `docker compose up -d db`), a `cloudflared` tunnel to `http://localhost:3000`, and
@@ -95,6 +96,8 @@ the approval.
 3. **Stuck on "Waiting for payment confirmation…"?** The app log shows why:
    - 401: the wrong `PEACH_PAYMENT_RESPONSE_HASH_KEY`, or a webhook from the other environment;
    - 503: the key isn't set;
+   - 200 `{"action":"repeat"}`: a redelivery of an event already handled (each event id is kept in `PaymentEvent` for
+     90 days) — normal, nothing to do;
    - nothing at all: Cloudflare, or a wrong URL.
 
    Meanwhile, if the member opens the pay page again, the app asks Peach for the payment's status and confirms the
@@ -354,7 +357,7 @@ $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live i
 | Endpoint | When | What it does |
 |---|---|---|
 | `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders |
-| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals; **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`) |
+| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals, sign-in housekeeping (`purgeAuthRecords`: expired sessions, sign-in codes after a day, rate-limit rows after two days, webhook receipts after 90); **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`) |
 | `/api/cron/staff-push` | every 5 min | Pushes to managers' and owners' phones (`src/server/staff-push.ts`): **new online orders** (polled, so an order shows up within 5 minutes — nothing hooks the checkout), **loss alerts** raised in the last day (never to the person they're about), **HQ updates that need acknowledging** (per store that hasn't). Each event is keyed in `StaffPushEvent`, so a poll never sends twice; dead subscriptions (404/410 from the push service) are pruned as they fail. |
 | `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
 
@@ -477,8 +480,9 @@ come from `validateTradeApplication`; success says "We'll be in touch within one
 terms applicants accept, `settings.trade.termsVersion`, placeholder wording marked for counsel) and `/trade/login`
 (a 6-digit code by email; in DEMO_MODE the form shows the code with "Fill it in"). Signed in (`hh_trade`, 12 hours):
 `/trade/range` (the account's DC, searchable, by category, paginated; a PENDING account browses without prices, an
-account on hold sees why ordering is paused), `/trade/cart` (the `hh_trade_cart` cookie, whole cases, re-quoted by
-the WHOLESALE engine every time; codec in `src/lib/trade-cart.ts`), `/trade/checkout` (courier to the account's
+account on hold sees why ordering is paused), `/trade/cart` (kept on the account — `TradeCart`, shared by its buyers on
+any device, changed under a row lock; whole cases, re-quoted by the WHOLESALE engine every time; codec in
+`src/lib/trade-cart.ts`), `/trade/checkout` (courier to the account's
 delivery or billing address, or click & collect with a per-store stock check from `collectStoresFor`; EFT or on
 account within `creditDecision`), `/trade/orders` and `/trade/orders/[id]` (pro forma with the bank details and
 `HH-TO-…` reference, collection code with "bring your ID (18+)", courier and tracking, the signed tax-invoice link,
@@ -626,6 +630,11 @@ rebuilt from movements if ever required (see the reconciliation queries in `pris
 | `payment.review` | A Peach or Yoco payment didn't fit its order — another amount, another checkout (payment), or paid after the order was cancelled. The order was **not** marked paid | Find the payment in the Peach Dashboard (or the Yoco portal); refund it there (or sort it out with the member) and note what you did |
 | `auth.lockout` | 8 wrong passwords in a row (sign-in or till pairing): password sign-in is locked for 15 minutes | If it wasn't them, reset their password (HQ → Team) — that clears the lock and signs them out everywhere; otherwise it lifts by itself |
 | `pos.pin_lockout` | 5 wrong PINs: that person can't use any till for 5 minutes | A manager can reset the PIN (Store → Team), which clears the lock and signs them out of every till |
+| `pos.pin_disabled` | Ten wrong PINs in a day: that person's PIN is switched off on every till until a manager sets a new one | Store → Team → Reset PIN (it switches the PIN back on); if it wasn't them, find out who was trying |
+| `auth.failed` | A wrong password for an existing account (sign-in, till pairing or the change-password form) | Nothing on its own; a run of them across accounts from one place is someone guessing — the connection is paused after 30 in 15 minutes |
+| `member.collision` | Someone tried an ID number or email already linked to another member; after three a day the answer stops saying so | A run from one phone or member is probing who's a member: look at the member and the store |
+| `otp.ceiling` | Sign-in codes by SMS paused at the network's hourly ceiling (`OTP_SMS_HOURLY_MAX`, default 500) | During normal trade (a launch, a drop): raise the ceiling. Otherwise it's SMS pumping — check the message log for the numbers |
+| `promotion.after_payment` / `offer.used_after_payment` | A paid (or offline) till sale carried a promotion that had just run out, or a My Deal already used on another purchase; the sale stands | Usually nothing; repeated cases at one store are worth a look |
 | `sale.offline_price` / `sale.points_overdraw` | An offline sale charged less than the server's price for its lines, or spent points the member no longer had | Feeds the `OFFLINE_VARIANCE` loss rule; review a pattern with the store manager |
 | `payment.refund_failed` | Peach or Yoco couldn't complete the refund of a cancelled order; the order shows paid again | Refund the member by hand (Peach Dashboard, Yoco portal or EFT) and note it |
 
@@ -699,7 +708,9 @@ never for made-to-order merch or licensed medicines, and sealed consumables only
 | **Refund** | Store manager or owner, or HQ | The amount is worked out for you: each returned unit's share of its line (what was actually paid), plus the delivery fee when the whole order has come back for a reason that's ours (not for a change of mind); never more than was paid in money — points come back as points. Tick *back on the shelf* only for sealed, sellable units (never faulty or damaged goods) |
 
 The refund goes back the way the order was paid: **Peach Payments or Yoco** refund by amount against the order's
-payment (Yoco with an idempotency key per return; Peach as a running total per order, so a retry never refunds twice);
+payment (Yoco with an idempotency key per return; Peach as a running total per order, so a retry never refunds twice).
+The return is claimed before the gateway is called, so two people pressing Refund at once refund it once ("RT-… is
+already being refunded"); a claim left by a crashed attempt can be taken over after 10 minutes;
 **pay-in-store or simulated payments** are refunded by hand (EFT, or at the till) and recorded with the reference. The
 credit note (`<store>-RT-000123`) posts at the fulfilling store as a refund sale — stock back on the shelf where ticked,
 points reversed, rollups adjusted — and the tax credit note is emailed. A gateway refund that later fails arrives as

@@ -342,6 +342,8 @@ function ReportFigures({ r }: { r: ZReport }) {
     ["Discounts given", zar(r.sales.discountCents)],
     ["Rewards savings given", zar(r.sales.memberSavingsCents)],
     ["Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`],
+    // Where the refunds went, a line per tender (a refund back to how they paid can be part cash, part card).
+    ...(r.refundTenders ?? []).map((t) => [`Refunds · ${t.label} (${t.count})`, `−${zar(t.amountCents)}`] as [string, string]),
     ...(r.online.count ? ([["Online handovers", `${r.online.count} · ${zar(r.online.grossCents)}`]] as [string, string][]) : []),
     ...(r.trade?.count
       ? ([

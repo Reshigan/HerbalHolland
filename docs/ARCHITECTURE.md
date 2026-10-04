@@ -160,35 +160,62 @@ trade prices, never the franchise stores and never THC.
 
 ## Security
 
-- Staff: scrypt-hashed passwords; sessions are random 256-bit tokens stored as SHA-256 hashes, httpOnly/SameSite cookies.
-  Wrong passwords (sign-in and till pairing) and PINs are counted on the account in the database (`src/server/lockout.ts`):
-  8 wrong passwords lock password sign-in for 15 minutes, 5 wrong PINs lock every till for 5; each lock is audited
-  (`auth.lockout`, `pos.pin_lockout`) and a reset by a manager or HQ clears it. An unknown email costs the same scrypt
-  work as a wrong password. A temporary password is no sign-in at all until it's replaced (`getStaff`). A till's PIN
-  session is never a back-office sign-in, and a PIN reset signs the person out of every till.
-  POS: long-lived device pairing cookie + short staff PIN session (per device); PINs are scrypt-hashed. POS JSON
-  endpoints accept `application/json` only, so no cross-site form can post to them.
-- Customers and trade buyers: one-time codes (`src/server/otp.ts`, hashed, 10-minute expiry) under a Postgres advisory
-  lock: 5 codes per address per 10 minutes, 5 tries per code, 10 wrong tries per hour locks the address for the hour.
+- Staff passwords and PINs: scrypt with its parameters stored beside the hash (`scrypt$N$r$p$salt$hash`, N=2^14, r=8,
+  p=5, async), upgraded on the next sign-in when the cost rises; an unknown email costs the same work as a wrong
+  password. Sessions are random 256-bit tokens stored as SHA-256 hashes in httpOnly/SameSite cookies; staff and trade
+  sessions also end after 12 hours unused. One password policy (`src/lib/password.ts`: 10+ characters, not a common
+  password, not the person's name or email). A password someone else sets is temporary: random (`temporaryPassword`),
+  it must be replaced at first sign-in and stops working after 72 hours; until it's replaced it is no sign-in at all.
+- Lockouts and rate limits live in the database, so they hold across servers (`src/server/lockout.ts`,
+  `src/server/throttle.ts` — the `Throttle` table, counted under an advisory lock): 8 wrong passwords lock the account's
+  password sign-in for 15 minutes (sign-in, till pairing and the change-password form); 30 failures from one connection
+  in 15 minutes pause sign-in from it; 5 wrong PINs lock every till for 5 minutes, and 10 in a day switch the PIN off
+  until a manager sets a new one (`User.pinDisabledAt`). Each is audited (`auth.failed`, `auth.lockout`,
+  `pos.pin_lockout`, `pos.pin_disabled`). Demo sign-in (DEMO_MODE) works only for accounts that still have the demo
+  password, so a real account can't be impersonated even if the flag is left on.
+- Customers and trade buyers: one-time codes (`src/server/otp.ts`, hashed, 10-minute expiry) under an advisory lock:
+  5 codes per address per 10 minutes, 5 tries per code, 10 wrong tries an hour lock the address for the hour; 30 codes
+  per connection an hour; a network-wide SMS ceiling (`OTP_SMS_HOURLY_MAX`, audited `otp.ceiling`). The reply is the
+  same whether or not an email belongs to a trade buyer, and an "already linked to another member" answer (ID number
+  or email) is limited to three a day per person (`member.collision`), so membership can't be probed.
+- Client IPs come from Cloudflare (`cf-connecting-ip`; the origin is reachable only through the Cloudflare Tunnel), else
+  the hop our own proxy appended (`src/lib/client-ip.ts`), and are stored only as keyed hashes.
+- Content-Security-Policy with a per-request nonce (`src/proxy.ts`, `src/lib/csp.ts`): a script runs only when it
+  carries the nonce Next stamps on its own scripts, or is the one hashed inline snippet; 'strict-dynamic' trusts what
+  those load. An injected `<script>` never runs. `Cross-Origin-Opener-Policy: same-origin`, HSTS, frame, content-type,
+  referrer and permissions headers on every response; `poweredByHeader` off.
+- Cookie-authenticated route handlers (the till API, push renewals, sign-out) refuse cross-site requests
+  (`src/lib/same-origin.ts`: Sec-Fetch-Site, else Origin vs Host) and take JSON only.
 - `SESSION_SECRET` signs invoice, export, opt-out and share links and keys the IP and ID-number hashes: a production
   server refuses to start without one of 32+ characters (`src/instrumentation.ts`), and warns when `DEMO_MODE` is on.
-- Money and stock changes that two people (or a retry) could make at once claim the record first (compare-and-set on
-  its status, or a row lock): order moves and cancellation refunds, refunds of a sale, stock orders, stock takes, trade
-  credit and payments, points redemptions, campaign sends. Cron jobs run single-flight (`pg_try_advisory_xact_lock`).
-- Offline till sales are accepted only from the last 7 days; their prices and any points overdraw are audited and fed
-  to the `OFFLINE_VARIANCE` loss rule.
+  Tokens are compared in constant time with a length check first (`safeEqual`).
+- Decisions two people (or a retry) could make at once are taken once: the record is claimed first (compare-and-set on
+  its status) or row-locked — order moves and cancellation refunds, sale refunds, return refunds through a gateway
+  (claimed before the gateway is called), stock orders and takes, trade orders, credit and payments, deposits, points,
+  My Deals, merch production orders, campaign sends. Checkout and till sales lock the member, then the promotion,
+  then the stock (`src/server/locks.ts`, always that order) and re-check patient grams, drop limits, welcome gifts and
+  promotion caps, and the last unit, under those locks. Gateway webhooks are de-duplicated by event id
+  (`PaymentEvent`); a payment that arrives for a cancelled order goes to `payment.review`. Cron jobs run single-flight.
+- Offline till sales are accepted only from the last 7 days; their prices, points overdraws and anything they couldn't
+  check are audited and fed to the `OFFLINE_VARIANCE` loss rule. A sale already paid when a limit trips posts and is
+  flagged (`drop.limit_after_payment`, `promotion.after_payment`, `offer.used_after_payment`) rather than leaving the
+  customer charged without a sale.
+- Scope: back-office pages outside the person's stores (or region) show a not-found inside their own shell; network
+  exports go only to the HQ team, region exports only to people who see the whole region; tickets are assigned only
+  within the team; area managers link only their region's promotions and see only their region's trade licence files;
+  shelf prices are the franchisee's to set (HQ can't change them).
 - Files: uploads are type-checked by their bytes; photos lose EXIF/GPS, XMP, IPTC and PNG text before storage; files
   are served only through the app with a scope check. Product images fetched by URL resolve to public addresses only,
   with no redirects and a 5MB cap. Scheduled export links need a signed-in recipient who can still run the report.
 - Gift voucher codes are random (Web Crypto) and masked (`HH-••••-••••-1234`) in logs, audits, texts and receipts.
-- Redirect targets (`next=`) are same-site paths only (`safePath`).
-- Simulated payments work only with `DEMO_MODE` or outside production.
-- Invoices: public links are HMAC-signed per sale and show no customer phone or email.
-- Security headers (HSTS, frame, content-type, referrer, permissions policy) on every response; `poweredByHeader` off.
-- Every sensitive action is written to `AuditLog` (who, what, where, data).
+- Redirect targets (`next=`) are same-site paths only (`safePath`). Simulated payments work only with `DEMO_MODE` or
+  outside production. Invoices: public links are HMAC-signed per sale and show no customer phone or email.
+- Every sensitive action is written to `AuditLog` (who, what, where, data); HQ → Audit log reads it in plain English.
 - POPIA: minimal personal data; SA ID numbers are stored only as an HMAC plus last 4 digits; clinical conditions are
   never stored; consent is a ledger; exports and anonymisation are available per customer (anonymising also deletes
-  their review photos). Patient registers are shown only to roles with patient-data access or to dispensers.
+  their review photos). Patient registers are shown only to roles with patient-data access or to dispensers. The daily
+  job deletes expired sessions, sign-in codes after a day (they hold phone numbers and emails), rate-limit rows after two
+  days and webhook receipts after 90.
 - Dependencies: `npm audit` clean; patched transitive versions pinned in `package.json` `overrides`.
 
 ## Hosting (recommended)

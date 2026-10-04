@@ -39,7 +39,7 @@ export type SellApi = { focusSearch: () => void; openCustomer: () => void; pay: 
 
 export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c: Cart | ((c: Cart) => Cart)) => void; apiRef: React.RefObject<SellApi | null> }) {
   const pos = usePos();
-  const { boot, me, online } = pos;
+  const { boot, me, online, soldBy } = pos;
   const searchRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>({ kind: "all" });
@@ -452,6 +452,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     queued: true,
     refundOf: null,
     staff: me.name,
+    soldBy: soldBy?.name ?? null,
     customer: c.customer ? { id: c.customer.id, name: `${c.customer.firstName} ${c.customer.lastName ?? ""}`.trim(), memberNo: c.customer.memberNo, tier: c.customer.tier, points: c.customer.points } : null,
     lines: q.lines.map((l) => {
       const e = index.get(l.variantId)!;
@@ -538,6 +539,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       buyer: r.buyer,
       invoiceEmail: null,
       staffId: me.id,
+      soldById: soldBy?.id ?? null, // a dispenser completing someone else's basket: the sale is theirs
       trade: c.trade ? { tradeAccountId: c.trade.id } : null,
     };
     if (training) {

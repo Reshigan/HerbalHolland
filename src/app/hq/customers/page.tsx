@@ -3,9 +3,10 @@ import { Mail, MessageSquare, Smartphone, Bell, Users, Send } from "lucide-react
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
-import { crmKpis, memberWhere, segmentCounts, tierCounts } from "@/server/hq/crm";
+import { closeMembers, crmKpis, memberWhere, segmentCounts, tierCounts } from "@/server/hq/crm";
 import { qs } from "@/server/hq/form";
 import { looserMemberQuery, parseMemberQuery } from "@/lib/member-search";
+import { inRankOrder } from "@/lib/text-search";
 import { TIERS, fmtPoints } from "@/lib/loyalty-rules";
 import { SEGMENTS } from "@/lib/rfm";
 import { zarWhole, pct } from "@/lib/money";
@@ -43,6 +44,23 @@ const ORDER_BY: Record<(typeof SORTS)[number], (d: "asc" | "desc") => Prisma.Cus
   points: (d) => [{ points: d }, { memberNo: "asc" }],
   joined: (d) => [{ createdAt: d }, { memberNo: "asc" }],
 };
+const MEMBER = {
+  id: true,
+  memberNo: true,
+  firstName: true,
+  lastName: true,
+  tier: true,
+  visits: true,
+  lifetimeCents: true,
+  lastPurchaseAt: true,
+  points: true,
+  consentSms: true,
+  consentEmail: true,
+  consentWhatsapp: true,
+  consentPush: true,
+  createdAt: true,
+  homeStore: { select: { name: true, code: true } },
+} satisfies Prisma.CustomerSelect;
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
@@ -56,50 +74,41 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   // A search lists exact matches by member number; otherwise the most recent shoppers first. Headers override both.
   const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "last", "desc");
   const orderBy = sp.q && !sp.sort ? [{ memberNo: "asc" as const }] : ORDER_BY[sort](dir);
-  const [k, segments, tiers, total, members, stores] = await Promise.all([
+  const skip = (page - 1) * pageSize;
+  const [k, segments, tiers, exactTotal, exact, stores] = await Promise.all([
     crmKpis(s),
     segmentCounts(s),
     tierCounts(s),
     db.customer.count({ where }),
-    db.customer.findMany({
-      where,
-      select: {
-        id: true,
-        memberNo: true,
-        firstName: true,
-        lastName: true,
-        tier: true,
-        visits: true,
-        lifetimeCents: true,
-        lastPurchaseAt: true,
-        points: true,
-        consentSms: true,
-        consentEmail: true,
-        consentWhatsapp: true,
-        consentPush: true,
-        createdAt: true,
-        homeStore: { select: { name: true, code: true } },
-      },
-      orderBy,
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
+    db.customer.findMany({ where, select: MEMBER, orderBy, skip, take: pageSize }),
     db.store.findMany({
       where: { id: { in: ids }, kind: "RETAIL" },
       select: { code: true, name: true },
       orderBy: { name: "asc" },
     }),
   ]);
+  const searching = !!sp.q?.trim();
+  // No name matched as typed (a typo — "Abrahms", "ndlovo"): the closest names instead, closest first unless sorted.
+  const closeIds = searching && exactTotal === 0 ? await closeMembers(s, sp) : [];
+  const close = closeIds.length > 0;
+  const total = close ? closeIds.length : exactTotal;
+  const members = !close
+    ? exact
+    : sp.sort
+      ? await db.customer.findMany({ where: { id: { in: closeIds } }, select: MEMBER, orderBy: ORDER_BY[sort](dir), skip, take: pageSize })
+      : inRankOrder(await db.customer.findMany({ where: { id: { in: closeIds } }, select: MEMBER }), closeIds, (m) => m.id).slice(skip, skip + pageSize);
   const href = (p: Record<string, string | number | undefined>) => `/hq/customers${qs({ ...sp, ...p })}`;
   const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
   const reach = (n: number) => (k.members ? pct(n / k.members, 0) : "—");
-  const searching = !!sp.q?.trim();
   // Nothing found for a name: likely a typo in one word — offer a looser search.
   const looser = searching && total === 0 ? looserMemberQuery(parseMemberQuery(sp.q)) : null;
 
   const membersCard = (
     <Card className={searching ? undefined : "mt-6"}>
-      <CardHeader title={searching ? `Members matching “${sp.q!.trim()}”` : "Members"} description={`${num(total)} matching`} />
+      <CardHeader
+        title={searching ? `Members matching “${sp.q!.trim()}”` : "Members"}
+        description={close ? `Showing close matches for “${sp.q!.trim()}” — no name matched exactly (${num(total)})` : `${num(total)} matching`}
+      />
       <div className="space-y-3 border-b border-ink-100 p-4">
         <FilterForm action="/hq/customers" keep={{ q: sp.q, sort: sp.sort, dir: sp.dir }}>
           <FilterSelect
