@@ -254,7 +254,7 @@ try {
   const of = formWith("#ownerEmail");
   await hydrated(of);
   await of.locator("#ownerName").fill(T.ownerName);
-  await of.locator("#ownerEmail").fill("not-an-email");
+  await of.locator("#ownerEmail").fill("owner@localhost"); // the browser accepts it (no dot needed); the server doesn't
   await act("stores.addOwner · invalid", () => of.getByRole("button", { name: "Add owner" }).click(), () => alertIn(of, "The email address they'll sign in with").waitFor());
   assert(!(await one(`select 1 from "User" where name = $1`, [T.ownerName])), "nothing was created");
   await of.locator("#ownerEmail").fill(T.ownerEmail);
