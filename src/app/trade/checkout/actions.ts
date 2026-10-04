@@ -10,7 +10,7 @@ import { TradeAccountError } from "@/server/trade/accounts";
 import { TradeLedgerError } from "@/server/trade/ledger";
 import { quote } from "@/server/pricing";
 import { PROVINCES } from "@/lib/sa";
-import { getTradeCart, saveTradeCart } from "../_lib/cart";
+import { getTradeCart, updateTradeCart } from "../_lib/cart";
 import { rangeStoreFor } from "../_lib/context";
 
 export type CheckoutState = { error?: string; fields?: { storeId?: string; payMethod?: string }; values?: Record<string, string> };
@@ -44,7 +44,9 @@ export async function placeOrderAction(_: CheckoutState, form: FormData): Promis
     if (e instanceof TradeOrderError || e instanceof TradeAccountError || e instanceof TradeLedgerError) return { error: e.message, values };
     throw e;
   }
-  await saveTradeCart([]);
+  // What was ordered leaves the cart; anything another buyer added meanwhile stays.
+  const ordered = new Set(items.map((l) => l.variantId));
+  await updateTradeCart((cur) => cur.filter((l) => !ordered.has(l.variantId)));
   redirect(`/trade/orders/${id}?placed=1`);
 }
 

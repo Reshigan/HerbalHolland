@@ -1,7 +1,7 @@
 // Server-side pricing: price lists (zones, scheduled changes, channel, member/tier,
 // quantity breaks), franchisee shelf prices, near-expiry markdowns, then promotions
 // (with happy-hour windows). Always recomputed server-side; clients only display.
-import { db } from "./db";
+import { db, type Tx } from "./db";
 import { getSettings } from "./settings";
 import { activeOffers, isOffer, offerPromo } from "./offers";
 import { applyPromotions, type PromoInput, type Suggestion } from "@/lib/promotions";
@@ -12,7 +12,8 @@ import type { Channel, Prisma } from "@/generated/prisma/client";
 import { incentiveExcluded, tradeAllowed, type RegClass } from "@/lib/compliance";
 import { rangeSearchTerms, vatHalfUp } from "@/lib/trade";
 import { similarProducts } from "./shop/search";
-import { availability, availKey } from "./inventory";
+import { availability, availKey, OPEN_ORDER_STATUSES } from "./inventory";
+import { lockPromotion } from "./locks";
 
 export async function activePromotions(opts: { storeId?: string | null; channel: Channel; at?: Date }) {
   const at = opts.at ?? new Date();
@@ -34,6 +35,31 @@ export async function activePromotions(opts: { storeId?: string | null; channel:
       : [],
   );
   return rows.filter((p) => promoWindowOpen(p, at) && (p.maxUses == null || (used.get(p.id) ?? 0) < p.maxUses));
+}
+
+/**
+ * Re-checks the promotion a quote applied, inside the order or sale transaction (after lockCustomer): a welcome gift
+ * (first purchase only) needs a member with no purchase and no open online order yet, and a capped promotion — locked
+ * here, then counted as sales plus open online orders — must still have a use left. Why it can't apply now, or null.
+ */
+export async function promotionProblem(t: Tx, a: { promotionId: string | null | undefined; customerId: string | null | undefined }) {
+  if (!a.promotionId) return null;
+  const p = await t.promotion.findUnique({ where: { id: a.promotionId }, select: { name: true, maxUses: true, firstPurchaseOnly: true } });
+  if (!p) return null;
+  if (p.firstPurchaseOnly) {
+    const c = a.customerId ? await t.customer.findUnique({ where: { id: a.customerId }, select: { visits: true } }) : null;
+    const open = a.customerId ? await t.order.count({ where: { customerId: a.customerId, status: { in: [...OPEN_ORDER_STATUSES] } } }) : 0;
+    if (!c || c.visits > 0 || open > 0) return `${p.name} is for a member's first purchase only`;
+  }
+  if (p.maxUses != null) {
+    await lockPromotion(t, a.promotionId);
+    const [sold, open] = await Promise.all([
+      t.sale.count({ where: { promotionId: a.promotionId, kind: "SALE" } }),
+      t.order.count({ where: { promotionId: a.promotionId, status: { in: [...OPEN_ORDER_STATUSES] } } }),
+    ]);
+    if (sold + open >= p.maxUses) return `${p.name} has been fully claimed`;
+  }
+  return null;
 }
 
 /** Price context for a shopper with their instant tier saving; `tier: null` = walk-in, "SEED" = what joining saves. */

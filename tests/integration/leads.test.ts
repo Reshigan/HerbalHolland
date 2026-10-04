@@ -118,9 +118,9 @@ describe("Franchise enquiries", () => {
     expect(r).toMatchObject({ ok: false, error: expect.stringMatching(/already have your enquiry from today/) });
   });
 
-  it("reads the visitor's IP from Cloudflare, else the first forwarded address", () => {
+  it("reads the visitor's IP from Cloudflare, else the hop our own proxy added (earlier hops are the client's claim)", () => {
     expect(clientIp(new Headers({ "cf-connecting-ip": "196.25.1.9", "x-forwarded-for": "10.0.0.1" }))).toBe("196.25.1.9");
-    expect(clientIp(new Headers({ "x-forwarded-for": " 41.13.2.3, 10.0.0.1" }))).toBe("41.13.2.3");
+    expect(clientIp(new Headers({ "x-forwarded-for": " 6.6.6.6, 41.13.2.3" }))).toBe("41.13.2.3");
     expect(clientIp(new Headers({ "x-forwarded-for": "2c0f:f4c0::1" }))).toBe("2c0f:f4c0::1");
     expect(clientIp(new Headers({ "x-forwarded-for": "<script>" }))).toBeNull();
     expect(clientIp(new Headers())).toBeNull();

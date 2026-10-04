@@ -155,6 +155,7 @@ model User {
   email              String?   @unique
   passwordHash       String?
   mustChangePassword Boolean   @default(false) // set with a temporary password; cleared when they choose their own
+  tempPasswordUntil  DateTime? // a temporary password stops working after this (HQ resets; the owner sets one for staff)
   pinHash            String?
   passwordFails      Int       @default(0) // wrong passwords since the last lock or sign-in (sign-in and till pairing)
   passwordLockedAt   DateTime? // locked out until 15 minutes after this
@@ -191,11 +192,13 @@ model Session {
   tradeBuyer   TradeBuyer? @relation(fields: [tradeBuyerId], references: [id], onDelete: Cascade)
   tradeBuyerId String? // trade portal session (cookie hh_trade)
   expiresAt    DateTime
+  lastSeenAt   DateTime    @default(now()) // staff sessions end after a stretch without use (src/server/auth.ts)
   createdAt    DateTime    @default(now())
 
   @@index([userId])
   @@index([customerId])
   @@index([tradeBuyerId])
+  @@index([expiresAt])
 }
 
 model Device {
@@ -624,6 +627,8 @@ model Customer {
   @@index([tier])
   @@index([referredById])
   @@index([createdAt])
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin) // member search: partial and misspelt names
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 enum LoyaltyKind {
@@ -720,6 +725,28 @@ model Otp {
 
   @@index([phone])
   @@index([email])
+  @@index([createdAt])
+}
+
+// Rate limits that must hold across servers (src/server/throttle.ts): one row per counted event under a key such as
+// "signin-ip:<hash>" or "otp-sms:all", counted in a sliding window under an advisory lock, pruned daily.
+model Throttle {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
+// Gateway webhook events already handled (Peach, Yoco): a redelivery of the same event id changes nothing.
+model PaymentEvent {
+  gateway   String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  @@id([gateway, eventId])
+  @@index([createdAt])
 }
 
 // ───────────────────────────── Selling ─────────────────────────────
@@ -783,6 +810,7 @@ model Sale {
   shiftId            String?
   staff              User?         @relation(fields: [staffId], references: [id])
   staffId            String?
+  soldById           String? // who built the basket when a dispenser completed the sale (commission credit); null = staffId
   deviceId           String?
   customer           Customer?     @relation(fields: [customerId], references: [id])
   customerId         String?
@@ -923,6 +951,7 @@ model Order {
   @@index([storeId, status])
   @@index([customerId])
   @@index([createdAt])
+  @@index([promotionId, status]) // promotion caps count open orders too (pricing.promotionProblem)
 }
 
 model OrderLine {
@@ -1948,9 +1977,18 @@ model TradeAccount {
   ledger   TradeLedgerEntry[]
   sales    Sale[]
   licences TradeLicence[]
+  cart     TradeCart?
 
   @@index([status])
   @@index([name])
+}
+
+// The account's open cart, shared by its buyers on any device: [{ variantId, qty }] in units (whole cases).
+model TradeCart {
+  tradeAccount   TradeAccount @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String       @id
+  items          Json         @default("[]")
+  updatedAt      DateTime     @updatedAt
 }
 
 model TradeBuyer {

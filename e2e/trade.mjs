@@ -313,8 +313,9 @@ try {
   await timed("Cart: one case fewer", () => stepperA.getByRole("button", { name: "One case fewer" }).click(), () => page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal + 6 * A.wholesaleCents) }).waitFor());
   await stepperA.getByRole("button", { name: "One case fewer" }).click();
   await page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal) }).waitFor();
-  const cookie = (await ctx.cookies()).find((c) => c.name === "hh_trade_cart");
-  assert(cookie && cookie.value.includes(`${A.id}_12`) && cookie.value.includes(`${B.id}_12`), "hh_trade_cart holds both lines in units (12 + 12)");
+  const cart = (await one(`select items from "TradeCart" where "tradeAccountId" = $1`, [account.id]))?.items ?? [];
+  assert(cart.some((l) => l.variantId === A.id && l.qty === 12) && cart.some((l) => l.variantId === B.id && l.qty === 12), "the account's cart holds both lines in units (12 + 12)");
+  assert(!(await ctx.cookies()).some((c) => c.name === "hh_trade_cart"), "the cart lives on the account, not in the browser");
   await shot(page, "cart");
 
   // ── 7. Checkout: click & collect, on account ────────────────────────────────────────────────────────
@@ -344,7 +345,7 @@ try {
   assert(lines1.length === 2 && lines1.every((l) => l.qty === 12 && l.unitCents === (l.variantId === A.id ? A.wholesaleCents : B.wholesaleCents) && l.vatCents === vatHalfUp(12 * l.unitCents)), "two lines of 12 at the trade price, VAT per line");
   assert(await one(`select 1 from "AuditLog" where action = 'trade.order' and "entityId" = $1`, [order1.id]), "audited (trade.order)");
   assert(await one(`select 1 from "MessageLog" where "to" = $1 and body like $2 and "createdAt" >= $3`, [billingEmail, `%${order1.number} is confirmed%`, t0]), "confirmation emailed to the billing address");
-  assert(!(await ctx.cookies()).some((c) => c.name === "hh_trade_cart"), "cart cleared");
+  assert(((await one(`select items from "TradeCart" where "tradeAccountId" = $1`, [account.id]))?.items ?? []).length === 0, "cart cleared");
   await page.getByText(`Thank you — order ${order1.number} is in.`).waitFor();
   assert((await page.getByTestId("collection-code").textContent()).trim() === order1.collectionCode, `order page shows the collection code ${order1.collectionCode}`);
   await page.getByText("Bring your ID (18+) and this code.").waitFor();

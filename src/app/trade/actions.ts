@@ -8,12 +8,11 @@ import { audit } from "@/server/audit";
 import { getTradeBuyer, signOutTrade } from "@/server/trade/auth";
 import { tradeActor } from "@/server/trade/accounts";
 import { addTradeLine, casesOf, removeTradeLine, setTradeLine } from "@/lib/trade-cart";
-import { getTradeCart, saveTradeCart } from "./_lib/cart";
+import { saveTradeCart, updateTradeCart } from "./_lib/cart";
 
 export async function signOutAction() {
   const buyer = await getTradeBuyer();
   await signOutTrade();
-  await saveTradeCart([]); // a shared computer's next buyer starts with an empty cart
   if (buyer) await audit(db, tradeActor(buyer), "trade.signout", { entity: "TradeAccount", entityId: buyer.tradeAccountId });
   redirect("/trade");
 }
@@ -36,8 +35,7 @@ export async function addToCartAction(_: CartActionState, form: FormData): Promi
   const r = await tradeVariant(String(form.get("variantId") ?? ""));
   if ("error" in r) return { error: r.error };
   const cases = Math.max(1, casesFrom(form));
-  const lines = addTradeLine(await getTradeCart(), r.v.id, cases * r.caseQty, r.caseQty);
-  await saveTradeCart(lines);
+  const lines = await updateTradeCart((cur) => addTradeLine(cur, r.v.id, cases * r.caseQty, r.caseQty));
   refresh();
   const line = lines.find((l) => l.variantId === r.v.id);
   return { ok: true, qty: line?.qty ?? 0, cases: casesOf(line?.qty ?? 0, r.caseQty), lines: lines.length, at: Date.now() };
@@ -47,14 +45,14 @@ export async function addToCartAction(_: CartActionState, form: FormData): Promi
 export async function setCartCasesAction(form: FormData) {
   const r = await tradeVariant(String(form.get("variantId") ?? ""));
   if ("error" in r) return;
-  await saveTradeCart(setTradeLine(await getTradeCart(), r.v.id, casesFrom(form) * r.caseQty, r.caseQty));
+  await updateTradeCart((cur) => setTradeLine(cur, r.v.id, casesFrom(form) * r.caseQty, r.caseQty));
   refresh();
 }
 
 export async function removeCartLineAction(form: FormData) {
   const variantId = String(form.get("variantId") ?? "");
   if (!variantId) return;
-  await saveTradeCart(removeTradeLine(await getTradeCart(), variantId));
+  await updateTradeCart((cur) => removeTradeLine(cur, variantId));
   refresh();
 }
 
