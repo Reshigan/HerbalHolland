@@ -385,6 +385,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
+| `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
 | `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (default) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL`. Runtime environment only (see Card present) |
 | `HALO_API_URL`, `HALO_API_KEY` | Halo Dot tap on glass (`HALO_APPLINK`) |
 | `ONLINE_GATEWAY` | Online payments: `SIMULATED` (default: demo pay page) \| `PEACH` (Peach Payments, chosen) \| `YOCO` |

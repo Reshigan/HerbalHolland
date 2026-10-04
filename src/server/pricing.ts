@@ -53,10 +53,8 @@ export async function promotionProblem(t: Tx, a: { promotionId: string | null | 
   }
   if (p.maxUses != null) {
     await lockPromotion(t, a.promotionId);
-    const [sold, open] = await Promise.all([
-      t.sale.count({ where: { promotionId: a.promotionId, kind: "SALE" } }),
-      t.order.count({ where: { promotionId: a.promotionId, status: { in: [...OPEN_ORDER_STATUSES] } } }),
-    ]);
+    const sold = await t.sale.count({ where: { promotionId: a.promotionId, kind: "SALE" } }); // one at a time: a transaction's single connection
+    const open = await t.order.count({ where: { promotionId: a.promotionId, status: { in: [...OPEN_ORDER_STATUSES] } } });
     if (sold + open >= p.maxUses) return `${p.name} has been fully claimed`;
   }
   return null;

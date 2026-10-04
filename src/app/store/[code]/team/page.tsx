@@ -4,7 +4,8 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { sp1 } from "@/server/store/rules";
 import { timeAgo } from "@/lib/format";
-import { addStaff, resetPin, setActive, setDispenser, setMemberCard } from "./actions";
+import { addStaff, resetPassword, resetPin, setActive, setDispenser, setMemberCard } from "./actions";
+import { TEMP_PASSWORD_HOURS } from "@/server/passwords";
 import { PageHeader, EmptyState, Notice } from "@/components/ui/page";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -79,7 +80,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                     <Input id="st-email" name="email" type="email" maxLength={120} autoComplete="off" />
                     <FieldError name="email" />
                   </Field>
-                  <Field label="Password" htmlFor="st-pass" hint="At least 8 characters">
+                  <Field label="Temporary password" htmlFor="st-pass" hint={`At least 10 characters, without their name or email. They choose their own at first sign-in, within ${TEMP_PASSWORD_HOURS} hours.`}>
                     <Input id="st-pass" name="password" type="password" autoComplete="new-password" />
                     <FieldError name="password" />
                   </Field>
@@ -164,6 +165,19 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                               editLabel={`New till PIN for ${s.name}`}
                               saveLabel="Save PIN"
                             />
+                          )}
+                          {s.active && s.email && s.id !== user.id && (
+                            <ConfirmAction
+                              action={resetPassword.bind(null, store.code, s.id)}
+                              label="Reset password"
+                              icon={<KeyRound className="h-3.5 w-3.5" aria-hidden />}
+                              title={`Reset ${s.name}'s password?`}
+                              confirmLabel="Reset password"
+                              variant="dark"
+                              className="min-w-64"
+                            >
+                              They&apos;re signed out of the back office and get a temporary password, shown here once.
+                            </ConfirmAction>
                           )}
                           {s.active && mayLinkCard(s) && (
                             <ConfirmAction

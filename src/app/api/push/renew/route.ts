@@ -3,6 +3,7 @@
 //   GET  → the VAPID public key (to subscribe again)
 //   POST { old: endpoint | null, sub } → saves the new subscription for the signed-in member, forgets the old one
 import { z } from "zod";
+import { sameOrigin } from "@/lib/same-origin";
 import { getCustomer } from "@/server/auth";
 import { db } from "@/server/db";
 import { savePushSubscription, vapidPublicKey } from "@/server/push";
@@ -21,6 +22,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  // The service worker posts JSON from our own origin; nothing else may change a subscription.
+  if (!sameOrigin(req.headers, req.url)) return new Response("Cross-site request refused", { status: 403 });
+  if (!req.headers.get("content-type")?.toLowerCase().startsWith("application/json")) return new Response("Expected JSON", { status: 415 });
   const c = await getCustomer();
   if (!c) return new Response("Sign in", { status: 401 });
   const b = Body.safeParse(await req.json().catch(() => null));

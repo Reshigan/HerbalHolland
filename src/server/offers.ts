@@ -2,8 +2,12 @@
 // fund and credits the selling store on its franchise statement. Never on medicines (excluded like every incentive).
 import { db, type Tx } from "./db";
 import { getSettings } from "./settings";
+import { LoyaltyError } from "./loyalty";
 import { incentiveExcluded } from "@/lib/compliance";
 import type { PromoInput } from "@/lib/promotions";
+
+/** A deal that's no longer there to use. A Rewards error, so checkout and the till show it as they show a points shortfall. */
+export class OfferError extends LoyaltyError {}
 
 const OFFER = "offer:"; // id prefix inside the pricing engine
 export const isOffer = (promoId?: string | null) => !!promoId?.startsWith(OFFER);
@@ -15,10 +19,15 @@ export const offerPromo = (o: { id: string; title: string; kind: PromoInput["kin
   id: OFFER + o.id, name: o.title, code: null, kind: o.kind, value: o.value, productIds: o.productIds, categoryIds: o.categoryIds, minSpendCents: 0,
 });
 
-/** Marks the offers a sale or order used as redeemed (single use). */
+/**
+ * Marks the offers a sale or order used as redeemed (single use). A deal another order or sale took a moment ago stops
+ * this one: the error rolls its transaction back, so a deal is never given twice.
+ */
 export async function redeemOffers(t: Tx, promoIds: string[], ref: { saleId?: string; orderId?: string }) {
   const ids = [...new Set(promoIds.filter(isOffer).map((p) => p.slice(OFFER.length)))];
-  if (ids.length) await t.memberOffer.updateMany({ where: { id: { in: ids }, redeemedAt: null }, data: { redeemedAt: new Date(), ...ref } });
+  if (!ids.length) return;
+  const { count } = await t.memberOffer.updateMany({ where: { id: { in: ids }, redeemedAt: null }, data: { redeemedAt: new Date(), ...ref } });
+  if (count !== ids.length) throw new OfferError("A My Deals offer in this basket was just used on another purchase — refresh to see the price without it");
 }
 
 /** Cancelled order: its offers go back on the member's card. */

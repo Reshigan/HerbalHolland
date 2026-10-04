@@ -1,8 +1,10 @@
 "use server";
 // Sign-in by email code: send (requestTradeCode — in DEMO_MODE the code comes back for the form to show), verify
 // (signInWithTradeCode starts the hh_trade session), restart. Problems land on the field they concern.
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { requestTradeCode, signInWithTradeCode, TradeAuthError } from "@/server/trade/auth";
+import { clientIpFrom } from "@/lib/client-ip";
 import { safeTradeNext } from "../_lib/context";
 
 export type LoginState = {
@@ -22,7 +24,7 @@ export async function loginFlow(prev: LoginState, form: FormData): Promise<Login
   if (intent === "send") {
     const raw = String(form.get("email") ?? prev.email ?? "");
     try {
-      const r = await requestTradeCode(raw);
+      const r = await requestTradeCode(raw, { ip: clientIpFrom(await headers()) });
       return { step: "code", email: r.email, demoCode: r.demoCode };
     } catch (e) {
       if (e instanceof TradeAuthError) return prev.step === "code" ? { ...prev, error: e.message, fields: undefined } : { step: "email", fields: { email: e.message } };

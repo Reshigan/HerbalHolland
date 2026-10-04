@@ -12,26 +12,32 @@ export const OPEN_TRADE_ORDER_STATUSES = ["PLACED", "PICKING", "READY"] as const
 export type Avail = { onHand: number; reserved: number; available: number };
 export const availKey = (storeId: string, variantId: string) => `${storeId}:${variantId}`;
 
-/** Sellable stock = released on-hand − open online reservations − open trade-order reservations (confirmed, not yet shipped or collected). */
-export async function availability(storeIds: string[], variantIds?: string[]) {
+/**
+ * Sellable stock = released on-hand − open online reservations − open trade-order reservations (confirmed, not yet
+ * shipped or collected). `client`: a transaction that holds the stock locks (checkout re-checks under them).
+ */
+export async function availability(storeIds: string[], variantIds?: string[], client: Tx | typeof db = db) {
   const variantFilter = variantIds ? { variantId: { in: variantIds } } : {};
-  const [levels, reservedOnline, reservedTrade] = await Promise.all([
-    db.stockLevel.groupBy({
+  const levelsQ = () =>
+    client.stockLevel.groupBy({
       by: ["storeId", "variantId"],
       where: { storeId: { in: storeIds }, ...variantFilter, batch: { status: "RELEASED" } },
       _sum: { onHand: true },
-    }),
-    db.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
+    });
+  const onlineQ = () =>
+    client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
       SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
       FROM "OrderLine" l JOIN "Order" o ON o.id = l."orderId"
       WHERE o.status::text = ANY(${[...OPEN_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
-      GROUP BY 1, 2`,
-    db.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
+      GROUP BY 1, 2`;
+  const tradeQ = () =>
+    client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
       SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
       FROM "TradeOrderLine" l JOIN "TradeOrder" o ON o.id = l."tradeOrderId"
       WHERE o.status::text = ANY(${[...OPEN_TRADE_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
-      GROUP BY 1, 2`,
-  ]);
+      GROUP BY 1, 2`;
+  // In parallel on the pool; one after another inside a transaction (its single connection can't run them at once).
+  const [levels, reservedOnline, reservedTrade] = client === db ? await Promise.all([levelsQ(), onlineQ(), tradeQ()]) : [await levelsQ(), await onlineQ(), await tradeQ()];
   const map = new Map<string, Avail>();
   for (const l of levels) {
     const onHand = l._sum.onHand ?? 0;
@@ -55,7 +61,8 @@ async function lockLots(t: Tx, storeId: string, variantId: string) {
     SELECT s.id, s."batchId", s."onHand", s."unitCostCents", b.status::text AS status, b."expiresAt", b."packedAt"
     FROM "StockLevel" s JOIN "Batch" b ON b.id = s."batchId"
     WHERE s."storeId" = ${storeId} AND s."variantId" = ${variantId}
-    FOR UPDATE OF s`;
+    ORDER BY s.id
+    FOR UPDATE OF s`; // lot order, as locks.lockStock takes them: a sale and a checkout never deadlock
 }
 
 type Refs = { saleId?: string; orderId?: string; stockOrderId?: string; stockTakeId?: string; userId?: string | null; note?: string };
@@ -188,6 +195,12 @@ export async function recordCounts(storeId: string, stockTakeId: string, counts:
         return db.stockTakeLine.update({ where: { id: c.lineId }, data });
       }),
   );
+}
+
+/** Cancels a count that's still open — once: an approval (or another cancel) that got there first wins. */
+export async function cancelStockTake(t: Tx, storeId: string, stockTakeId: string) {
+  const { count } = await t.stockTake.updateMany({ where: { id: stockTakeId, storeId, status: "COUNTING" }, data: { status: "CANCELLED" } });
+  if (count !== 1) throw new StockError("This stock take was closed a moment ago — refresh to see it");
 }
 
 export async function approveStockTake(t: Tx, stockTakeId: string, userId: string | null) {

@@ -12,6 +12,7 @@ import { readFileSync } from "node:fs";
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSecret } from "../src/server/crypto";
+import { DEMO_PASSWORD } from "../src/lib/password";
 import { allocate } from "../src/lib/fefo";
 import { pointsFor, tierFor, DEFAULT_TIER_SAVINGS, type TierKey } from "../src/lib/loyalty-rules";
 import { vatOf } from "../src/lib/money";
@@ -164,8 +165,8 @@ async function main() {
 
   // ── People ──────────────────────────────────────────────────────────────
   console.log("  hashing demo credentials…");
-  const PASSWORD = hashSecret("holland");
-  const PIN = { "1111": hashSecret("1111"), "2222": hashSecret("2222"), "3333": hashSecret("3333"), "4444": hashSecret("4444") };
+  const PASSWORD = await hashSecret(DEMO_PASSWORD);
+  const PIN = { "1111": await hashSecret("1111"), "2222": await hashSecret("2222"), "3333": await hashSecret("3333"), "4444": await hashSecret("4444") };
   const users: Prisma.UserCreateManyInput[] = [
     { id: uid(), name: "Naledi Khumalo", email: "hq@herbalholland.co.za", role: "HQ_ADMIN", passwordHash: PASSWORD, companyId: hq.id },
     { id: uid(), name: "Pieter de Vries", email: "merch@herbalholland.co.za", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },

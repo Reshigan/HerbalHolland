@@ -14,6 +14,7 @@ import { TradeAccountError } from "@/server/trade/accounts";
 import { TradeOrderError } from "@/server/trade/orders";
 import { TradeLedgerError } from "@/server/trade/ledger";
 import type { Actor } from "@/server/audit";
+import { sameOrigin } from "@/lib/same-origin";
 import { Prisma } from "@/generated/prisma/client";
 
 export class PosError extends Error {
@@ -46,9 +47,16 @@ function handleError(e: unknown) {
   return fail(500, "Something went wrong on our side — please try again");
 }
 
+// The device and PIN cookies go with any request the browser makes, so a change (anything but a read) must come from
+// the till's own pages, never from a page on another site.
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
+const crossSite = (req: Request) => !READS.has(req.method) && !sameOrigin(req.headers, req.url);
+const CROSS_SITE = () => fail(403, "This request didn't come from the till", "CROSS_SITE");
+
 /** Device-authenticated handler (pairing is done; no staff PIN needed — the lock screen). */
 export function withDevice<C = unknown>(handler: (req: Request, device: PosDevice, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
+    if (crossSite(req)) return CROSS_SITE();
     try {
       const device = await getDevice();
       if (!device) return fail(401, "This device isn't paired to a store", "UNPAIRED");
@@ -62,6 +70,7 @@ export function withDevice<C = unknown>(handler: (req: Request, device: PosDevic
 /** Device + staff session (PIN) authenticated handler. */
 export function withStaff<C = unknown>(handler: (req: Request, pos: PosStaff, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
+    if (crossSite(req)) return CROSS_SITE();
     try {
       const device = await getDevice();
       if (!device) return fail(401, "This device isn't paired to a store", "UNPAIRED");
@@ -74,9 +83,10 @@ export function withStaff<C = unknown>(handler: (req: Request, pos: PosStaff, ct
   };
 }
 
-/** Unauthenticated handler (pairing) with the same error mapping. */
+/** Unauthenticated handler (pairing) with the same error mapping and cross-site check (pairing sets the device cookie). */
 export function open<C = unknown>(handler: (req: Request, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
+    if (crossSite(req)) return CROSS_SITE();
     try {
       return await handler(req, ctx);
     } catch (e) {

@@ -161,6 +161,7 @@ model User {
   passwordLockedAt   DateTime? // locked out until 15 minutes after this
   pinFails           Int       @default(0)
   pinLockedAt        DateTime? // locked out of every till until 5 minutes after this
+  pinDisabledAt      DateTime? // ten wrong PINs in a day: off until a manager sets a new one
   canDispense        Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
   memberId           String?   @unique // their own Rewards membership: sales they ring onto it are flagged and earn no commission
   role               Role

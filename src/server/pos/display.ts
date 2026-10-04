@@ -3,6 +3,8 @@
 // TTL — nothing is stored, and there is no schema. One app instance serves a store's tills and displays; behind a
 // load balancer without sticky sessions the poll may miss the instance holding the snapshot (documented in the
 // runbook: the same-device BroadcastChannel path needs no server at all).
+import { safeEqual } from "../crypto";
+
 const TTL_MS = 3 * 60_000;
 const MAX_BYTES = 24_000;
 
@@ -22,7 +24,7 @@ export function putSnapshot(deviceId: string, key: string, snapshot: unknown) {
 
 export function getSnapshot(deviceId: string, key: string): { snapshot: unknown; ageMs: number } | null {
   const e = store.get(deviceId);
-  if (!e || e.key !== key) return null;
+  if (!e || !safeEqual(e.key, key)) return null;
   const age = Date.now() - e.at;
   if (age > TTL_MS) {
     store.delete(deviceId);

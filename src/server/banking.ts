@@ -75,7 +75,11 @@ export async function reviewDeposit(id: string, storeId: string, status: "VERIFI
   if (d.status === "VERIFIED") throw new BankingError(`${d.number} is verified and locked`);
   if (d.createdById === actor.id) throw new BankingError("Someone else has to check a deposit you recorded");
   if (status === "QUERIED" && !note) throw new BankingError("Say what doesn't match the bank statement");
-  await db.cashDeposit.update({ where: { id }, data: { status, reviewedById: actor.id, reviewedAt: new Date(), reviewNote: note } });
-  await audit(db, actor, status === "VERIFIED" ? "deposit.verify" : "deposit.query", { storeId, entity: "CashDeposit", entityId: id, data: { number: d.number, note } });
+  await tx(async (t) => {
+    // From the status it was read in: two checkers at once decide once, and a verified deposit is never overwritten.
+    const { count } = await t.cashDeposit.updateMany({ where: { id, storeId, status: d.status }, data: { status, reviewedById: actor.id, reviewedAt: new Date(), reviewNote: note } });
+    if (!count) throw new BankingError(`${d.number} was just checked by a colleague — refresh to see what they decided`);
+    await audit(t, actor, status === "VERIFIED" ? "deposit.verify" : "deposit.query", { storeId, entity: "CashDeposit", entityId: id, data: { number: d.number, note } });
+  });
   return d;
 }

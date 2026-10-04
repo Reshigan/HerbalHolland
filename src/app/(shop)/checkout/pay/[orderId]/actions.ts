@@ -38,10 +38,11 @@ export async function simulatePayment(orderId: string, _: PayState, form: FormDa
   if (order.status === "PENDING_PAYMENT") {
     const method = (Object.keys(METHODS) as (keyof typeof METHODS)[]).find((m) => m === form.get("method")) ?? "EFT";
     const reference = `SIM-${method}-${shortCode(8)}`;
-    await markOrderPaid(order.id, reference);
-    await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.pay_online", {
-      storeId: order.storeId, entity: "Order", entityId: order.id, data: { gateway: "SIMULATED", method: METHODS[method], reference, amount: await orderDue(order) },
-    });
+    const paid = await markOrderPaid(order.id, reference);
+    if (paid.moved) // a double click (or a cancel in between) moves nothing, so there's nothing to record
+      await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.pay_online", {
+        storeId: order.storeId, entity: "Order", entityId: order.id, data: { gateway: "SIMULATED", method: METHODS[method], reference, amount: await orderDue(order) },
+      });
   }
   redirect(`/orders/${order.code}?paid=1`);
 }

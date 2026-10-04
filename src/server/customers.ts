@@ -8,7 +8,8 @@ import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { nextNumber, shortCode } from "./counters";
-import { checkCode, issueCode } from "./otp";
+import { checkCode, issueCode, OtpLimitError } from "./otp";
+import { count, hit } from "./throttle";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
 import { DEALS_QUESTION, TERMS_VERSION } from "@/lib/terms";
@@ -22,10 +23,13 @@ export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That cod
 
 const idHash = (id: string) => createHmac("sha256", appSecret()).update(id).digest("hex");
 
-export async function requestOtp(raw: string) {
+/** Texts a sign-in code. Requests pass the requester's IP (clientIpFrom) for the per-connection limit (src/server/otp.ts). */
+export async function requestOtp(raw: string, opts?: { ip: string | null }) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Enter a valid South African mobile number");
-  const code = await issueCode({ phone });
+  const code = await issueCode({ phone }, opts).catch((e) => {
+    throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
+  });
   if (!code) throw new CustomerError("Too many codes requested — try again in 10 minutes");
   const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
   const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
@@ -39,6 +43,27 @@ export async function verifyOtp(raw: string, code: string) {
   const r = await checkCode({ phone }, code);
   if (r !== "ok") throw new CustomerError(CODE_PROBLEM[r]);
   return { phone, customer: await db.customer.findUnique({ where: { phone } }) };
+}
+
+// ── Someone else's ID number or email ──────────────────────────────────────────
+// "That ID number is already linked to a member" tells whoever typed it something about another person, so online it
+// is rationed: three a day per phone being joined or per signed-in member, then nothing more can be checked that way
+// (staff in a store can still help). Every collision is audited.
+const COLLISIONS_PER_DAY = 3;
+const DAY_MS = 86_400_000;
+export const COLLISION_REFUSED = "We can't check that right now — try again tomorrow, or visit a store with your ID";
+
+/** An ID number already linked to another member (a CustomerError, so staff screens show it as before). */
+export class CollisionError extends CustomerError {}
+
+/** Whether this phone (joining) or member (signed in) has used up today's collisions. */
+export const collisionsUsedUp = async (key: string) => (await count(`collision:${key}`, DAY_MS)) >= COLLISIONS_PER_DAY;
+
+/** Records a collision for `key` ("phone:+27…" or "member:<id>"); false when it's over today's limit. */
+export async function noteCollision(key: string, actor: Actor, field: "idNumber" | "email") {
+  const allowed = await hit(`collision:${key}`, COLLISIONS_PER_DAY, DAY_MS);
+  await audit(db, actor, "member.collision", { ...(actor.id && { entity: "Customer", entityId: actor.id }), data: { field, by: key, refused: !allowed } });
+  return allowed;
 }
 
 export type NewCustomer = {
@@ -83,7 +108,7 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
     hash = idHash(a.idNumber.replace(/\s/g, ""));
     last4 = a.idNumber.slice(-4);
     if (ageCheck === "NONE") ageCheck = "ID_NUMBER";
-    if (await db.customer.findUnique({ where: { idHash: hash } })) throw new CustomerError("That ID number is already linked to a member");
+    if (await db.customer.findUnique({ where: { idHash: hash } })) throw new CollisionError("That ID number is already linked to a member");
   }
   if (dob && isNaN(+dob)) throw new CustomerError("Enter a valid date of birth");
   if (dob && ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`Herbal Holland Rewards is for adults ${settings.compliance.minAge}+`);

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { nextNumber } from "@/server/counters";
-import { approveStockTake, recordCounts, startStockTake } from "@/server/inventory";
+import { approveStockTake, cancelStockTake, recordCounts, startStockTake } from "@/server/inventory";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, scopesOverlap, str } from "@/server/store/rules";
 
@@ -87,8 +87,11 @@ export async function cancelTake(code: string, id: string, _: ActionState, fd: F
   const res = await attempt(async () => {
     const { store, actor } = await manage(code);
     const take = await openTake(store.id, id);
-    await db.stockTake.update({ where: { id }, data: { status: "CANCELLED" } });
-    await audit(db, actor, "stocktake.cancel", { storeId: store.id, entity: "StockTake", entityId: id, data: { number: take.number } });
+    // Only while it's still counting: an approval that got there first keeps its variances.
+    await tx(async (t) => {
+      await cancelStockTake(t, store.id, id);
+      await audit(t, actor, "stocktake.cancel", { storeId: store.id, entity: "StockTake", entityId: id, data: { number: take.number } });
+    });
     ok = true;
     return done("Cancelled");
   });

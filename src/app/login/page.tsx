@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Lockup } from "@/components/brand/logo";
+import { DEMO_PASSWORD } from "@/lib/password";
 import { LoginForm, DemoLogin } from "./login-form";
 
 export const metadata = { title: "Sign in" };
@@ -37,7 +38,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
           {demo && (
             <div className="mt-10">
-              <div className="eyebrow mb-2 text-ink-400">Demo access · password “holland”</div>
+              <div className="eyebrow mb-2 text-ink-400">Demo access · password “{DEMO_PASSWORD}”</div>
               <div className="grid gap-2">
                 {DEMO.map((d) => (
                   <DemoLogin key={d.email} {...d} />

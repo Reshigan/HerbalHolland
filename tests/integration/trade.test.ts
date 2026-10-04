@@ -447,7 +447,9 @@ describe("Sign-in with a code", () => {
     await expect(verifyTradeCode(BUYER_EMAIL, r.demoCode!)).rejects.toThrow(/expired/);
     const unknown = await requestTradeCode("nobody@example.com");
     expect(unknown.demoCode).toBeUndefined();
-    expect(await db.otp.count({ where: { email: "nobody@example.com" } })).toBe(0);
+    // A code is issued for any address (so the reply can't tell who's a buyer), but only buyers are emailed.
+    expect(await db.otp.count({ where: { email: "nobody@example.com" } })).toBe(1);
+    expect(await db.messageLog.count({ where: { to: "nobody@example.com" } })).toBe(0);
     for (let i = 0; i < 5; i++) await requestTradeCode(BUYER_EMAIL); // the verified code's rows are gone; five fresh ones fill the window
     await expect(requestTradeCode(BUYER_EMAIL)).rejects.toThrow(/Too many codes/);
     await db.otp.deleteMany({ where: { email: BUYER_EMAIL } });

@@ -3,13 +3,13 @@
 // The rules (windows, what may come back, what's refunded) live in @/lib/returns; the money moves through
 // refundOrderAmount (@/server/orders) and the books through refundSale (a credit note at the store, stock back on the
 // shelf where it should be, points reversed). The member is told at every step, by email or SMS.
-import { db, tx } from "./db";
+import { db, tx, type Tx } from "./db";
 import { audit, type Actor } from "./audit";
 import { nextNumber } from "./counters";
 import { deliverEmail, type Email } from "./email";
 import { APP_URL, emailLayout, esc, para } from "./email-templates";
 import { notifyCustomer } from "./messaging";
-import { OrderError, refundOrderAmount } from "./orders";
+import { OrderError, REFUND_CLAIM, refundOrderAmount } from "./orders";
 import { paidOnlineWith } from "./payments";
 import { refundSale, SaleError, voucherPartsOf } from "./sales";
 import { storePhotos, UploadError } from "./uploads";
@@ -146,14 +146,26 @@ function move(r: ReturnRequest, to: ReturnStatusKey) {
   if (!canMoveReturn(r.status, to)) throw new ReturnError(`A return that is ${r.status.toLowerCase().replaceAll("_", " ")} can't be ${to.toLowerCase().replaceAll("_", " ")}`);
 }
 
+/**
+ * Moves a return on from the status it was read in — once: a second click, or a colleague at the same moment, finds it
+ * already moved. `where`: anything else that must still hold (a decline needs no refund under way or made).
+ */
+async function moveTx(t: Tx, r: ReturnRequest, to: ReturnStatusKey, data: Prisma.ReturnRequestUpdateManyMutationInput = {}, where: Prisma.ReturnRequestWhereInput = {}) {
+  const { count } = await t.returnRequest.updateMany({ where: { ...where, id: r.id, status: r.status }, data: { ...data, status: to } });
+  if (!count) throw new ReturnError(`${r.number} changed while you were on it — refresh to see where it is now`);
+  return t.returnRequest.findUniqueOrThrow({ where: { id: r.id } });
+}
+
 /** Approve (an optional note) or decline (a reason the member reads). */
 export async function decideReturn(id: string, to: "APPROVED" | "DECLINED", note: string, actor: Actor & { id: string }, scope: ReturnScope) {
   const { r, order } = await load(id, scope);
   move(r, to);
   const text = note.trim().slice(0, 500);
   if (to === "DECLINED" && text.length < 3) throw new ReturnError("Say why: the member is told the reason", "note");
+  if (to === "DECLINED" && r.refundRef) throw new ReturnError(`The refund for ${r.number} has already started, so it can't be declined now`);
   const row = await tx(async (t) => {
-    const updated = await t.returnRequest.update({ where: { id }, data: { status: to, decisionNote: text || null, decidedById: actor.id, decidedAt: new Date() } });
+    // Declining is possible until the money moves: not once a refund has started.
+    const updated = await moveTx(t, r, to, { decisionNote: text || null, decidedById: actor.id, decidedAt: new Date() }, to === "DECLINED" ? { refundRef: null } : {});
     await audit(t, actor, to === "APPROVED" ? "return.approve" : "return.decline", { storeId: r.storeId, entity: "ReturnRequest", entityId: id, data: { number: r.number, orderCode: order.code, note: text || null } });
     return updated;
   });
@@ -170,7 +182,7 @@ export async function bookCollection(id: string, a: { courier: string; waybill: 
   if (!courier) throw new ReturnError("Which courier is collecting?", "courier");
   if (!waybill) throw new ReturnError("Add the waybill or booking reference", "waybill");
   const row = await tx(async (t) => {
-    const updated = await t.returnRequest.update({ where: { id }, data: { status: "COLLECTION_BOOKED", courier, waybill } });
+    const updated = await moveTx(t, r, "COLLECTION_BOOKED", { courier, waybill });
     await audit(t, actor, "return.book_collection", { storeId: r.storeId, entity: "ReturnRequest", entityId: id, data: { number: r.number, courier, waybill } });
     return updated;
   });
@@ -182,7 +194,7 @@ export async function receiveReturn(id: string, actor: Actor & { id: string }, s
   const { r, order } = await load(id, scope);
   move(r, "RECEIVED");
   const row = await tx(async (t) => {
-    const updated = await t.returnRequest.update({ where: { id }, data: { status: "RECEIVED" } });
+    const updated = await moveTx(t, r, "RECEIVED");
     await audit(t, actor, "return.receive", { storeId: r.storeId, entity: "ReturnRequest", entityId: id, data: { number: r.number } });
     return updated;
   });
@@ -236,15 +248,17 @@ export async function refundReturn(id: string, a: { restock: Record<string, bool
   // The gift voucher part comes back onto the voucher(s) with the credit note; only the rest moves in money.
   const split = await voucherSplitFor(order, r.id, cents);
   const codes = split.parts.map((v) => v.code).join(", ");
-  const money = r.refundRef
-    ? { note: `already refunded (${r.refundRef})` }
+  // Money already sent by an earlier attempt (one under way is refundOrderAmount's to refuse, or to take over if it died).
+  const sent = r.refundRef && r.refundRef !== REFUND_CLAIM ? r.refundRef : null;
+  const money = sent
+    ? { note: `already refunded (${sent})` }
     : split.toTender > 0
       ? await refundOrderAmount(order.id, split.toTender, `Return ${r.number}: ${RETURN_REASON[r.reason].label}`, { returnId: r.id, actor, manualRef: a.manualRef }).catch((e) => {
           if (e instanceof OrderError) throw new ReturnError(e.message, plan.manual ? "manualRef" : undefined);
           throw e;
         })
       : { note: split.toVoucher > 0 ? `nothing to pay out in money: ${zar(split.toVoucher)} goes back onto gift voucher ${codes} with the credit note` : "nothing paid in money: points come back with the credit note" };
-  if (!r.refundRef && split.toTender === 0) await db.returnRequest.update({ where: { id }, data: { refundRef: split.toVoucher > 0 ? "VOUCHER" : "POINTS", refundCents: 0 } });
+  if (!sent && split.toTender === 0) await db.returnRequest.update({ where: { id }, data: { refundRef: split.toVoucher > 0 ? "VOUCHER" : "POINTS", refundCents: 0 } });
 
   // The credit note: the online sale posted at handover or dispatch is refunded line by line.
   let creditNote: string | null = null;
@@ -279,7 +293,7 @@ export async function refundReturn(id: string, a: { restock: Record<string, bool
     }
   }
   const row = await tx(async (t) => {
-    const updated = await t.returnRequest.update({ where: { id }, data: { status: "REFUNDED", refundCents: cents, decidedById: r.decidedById ?? actor.id, decidedAt: r.decidedAt ?? new Date() } });
+    const updated = await moveTx(t, r, "REFUNDED", { refundCents: cents, decidedById: r.decidedById ?? actor.id, decidedAt: r.decidedAt ?? new Date() });
     await audit(t, actor, "return.refund", {
       storeId: r.storeId, entity: "ReturnRequest", entityId: id,
       data: { number: r.number, orderCode: order.code, amount: cents, delivery: plan.breakdown.deliveryCents, money: money.note, creditNote, ...(split.toVoucher > 0 && { toVouchers: split.parts, toTender: split.toTender }) },

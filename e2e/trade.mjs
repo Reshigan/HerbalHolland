@@ -246,7 +246,12 @@ try {
   await timed("Login: send code", () => page.getByRole("button", { name: "Send my code" }).click(), () => page.getByText("Demo mode").waitFor());
   const otp = await one(`select "expiresAt" from "Otp" where email = $1 order by "createdAt" desc limit 1`, [buyerEmail]);
   assert(otp && otp.expiresAt > new Date(), "a one-time code was issued");
-  const codeMail = await one(`select body from "MessageLog" where "to" = $1 and body like '%sign-in code%' and "createdAt" >= $2`, [buyerEmail, t0]);
+  // The email goes out after the reply (next/server after): give it a moment to reach the log.
+  let codeMail;
+  for (let i = 0; i < 25 && !codeMail; i++) {
+    codeMail = await one(`select body from "MessageLog" where "to" = $1 and body like '%sign-in code%' and "createdAt" >= $2`, [buyerEmail, t0]);
+    if (!codeMail) await page.waitForTimeout(200);
+  }
   assert(codeMail && !/\d{6}/.test(codeMail.body), "the code email is logged without the code");
   await page.getByRole("button", { name: "Fill it in" }).click();
   await timed("Login: sign in → range", () => page.getByRole("button", { name: "Sign in", exact: true }).click(), () => page.waitForURL((u) => u.pathname === "/trade/range"));

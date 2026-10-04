@@ -19,3 +19,15 @@ describe("audit descriptions", () => {
     expect(describeData({ nested: { a: 1 } })).toBe("");
   });
 });
+
+describe("security and payment exceptions read plainly", () => {
+  it("labels the sign-in, PIN, code and late-payment entries", () => {
+    expect(describeAction("auth.failed")).toBe("Sign-in failed");
+    expect(describeAction("auth.lockout")).toBe("Sign-in locked for 15 minutes after wrong passwords");
+    expect(describeAction("pos.pin_disabled")).toBe("Till PIN switched off after ten wrong tries");
+    expect(describeAction("otp.ceiling")).toBe("Sign-in codes hourly limit reached");
+    expect(describeAction("member.collision")).toBe("Member's ID or email matched another member (checks limited)");
+    expect(describeAction("drop.limit_after_payment")).toBe("Drop over its limit after the payment went through");
+    expect(describeAction("offer.used_after_payment")).toBe("Offer already used when the payment went through");
+  });
+});

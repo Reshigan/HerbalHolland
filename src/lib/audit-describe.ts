@@ -17,11 +17,16 @@ const VERBS: Record<string, string> = {
   authorisation_add: "authorisation added", authorisation_revoke: "authorisation revoked", member_link: "linked to a member",
   door_list: "door list printed", dispenser: "dispenser rights changed", tender_variance: "paid amount differed from the total",
   offline_price: "sold at an offline price", points_overdraw: "redeemed more points than the balance",
+  failed: "failed", lockout: "locked for 15 minutes after wrong passwords", pin_lockout: "locked for 5 minutes after wrong PINs",
+  pin_disabled: "PIN switched off after ten wrong tries", collision: "matched another member (checks limited)",
+  ceiling: "hourly limit reached", limit_after_payment: "over its limit after the payment went through",
+  after_payment: "couldn't apply after the payment went through", used_after_payment: "already used when the payment went through",
 };
 
 const NOUNS: Record<string, string> = {
   stockorder: "stock order", stocktake: "stock take", pricelist: "price list", supplier_invoice: "supplier invoice",
   staff_push: "staff notifications", pos: "till", auth: "sign-in", lead: "franchise lead", trade: "trade", sale: "sale",
+  otp: "sign-in codes", member: "member's ID or email",
 };
 
 const words = (s: string) => NOUNS[s] ?? s.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();

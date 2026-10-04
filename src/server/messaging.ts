@@ -6,7 +6,7 @@
 //   WhatsApp has no provider (its commerce policy bans drug and medical products): with a live SMS provider, WhatsApp
 //   messages are logged as FAILED rather than silently dropped.
 // Copy rules for texts (sender name first, order code next, one GSM-7 segment where possible) live in @/lib/sms.
-import { createHmac, timingSafeEqual } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { db } from "./db";
 import { deliverEmail, sendEmail } from "./email";
 import { APP_URL, campaignEmail, orderEmail, type OrderEvent } from "./email-templates";
@@ -14,6 +14,7 @@ import { pushToCustomer } from "./push";
 import { gsmSafe, orderSms, shortLink } from "@/lib/sms";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
+import { safeEqual } from "./crypto";
 
 export type OutboundMessage = {
   channel: MsgChannel;
@@ -33,9 +34,7 @@ export const optOutToken = (customerId: string, channel: MsgChannel) =>
   createHmac("sha256", appSecret()).update(`optout:${customerId}:${channel}`).digest("base64url").slice(0, 22);
 
 export const validOptOut = (customerId: string, channel: string, token: string) =>
-  ["WHATSAPP", "SMS", "EMAIL", "PUSH"].includes(channel) &&
-  token.length === 22 &&
-  timingSafeEqual(Buffer.from(token), Buffer.from(optOutToken(customerId, channel as MsgChannel)));
+  ["WHATSAPP", "SMS", "EMAIL", "PUSH"].includes(channel) && safeEqual(token, optOutToken(customerId, channel as MsgChannel));
 
 const optOutQuery = (customerId: string, channel: MsgChannel) => `c=${customerId}&ch=${channel}&t=${optOutToken(customerId, channel)}`;
 

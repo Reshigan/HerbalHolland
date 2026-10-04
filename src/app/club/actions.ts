@@ -4,7 +4,7 @@ import { z } from "zod";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { audit } from "@/server/audit";
-import { setConsent } from "@/server/customers";
+import { COLLISION_REFUSED, collisionsUsedUp, noteCollision, setConsent } from "@/server/customers";
 import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { HOME_STORE_STATUSES } from "@/server/shop/context";
@@ -29,10 +29,16 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   if (!store) fields.homeStoreId = "Choose your home store";
   const values = { firstName, lastName, email, homeStoreId };
   if (Object.keys(fields).length) return { fields, values };
+  // "Already linked to another member" says who's a member: a few a day, then nothing more is checked (customers.ts).
+  const emailChanging = !!email && email !== (c.email ?? "");
+  if (emailChanging && (await collisionsUsedUp(`member:${c.id}`))) return { fields: { email: COLLISION_REFUSED }, values };
   try {
     await db.customer.update({ where: { id: c.id }, data: { firstName, lastName: lastName || null, email: email || null, homeStoreId: store!.id } });
   } catch (e) {
-    if ((e as { code?: string }).code === "P2002") return { fields: { email: "That email is already linked to another member" }, values };
+    if ((e as { code?: string }).code === "P2002") {
+      const allowed = await noteCollision(`member:${c.id}`, { type: "CUSTOMER", id: c.id, name: c.firstName }, "email");
+      return { fields: { email: allowed ? "That email is already linked to another member" : COLLISION_REFUSED }, values };
+    }
     throw e;
   }
   // Without an email address there is nowhere to send email marketing: withdraw that consent too.

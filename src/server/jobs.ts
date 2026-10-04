@@ -23,6 +23,7 @@ import { expireVouchers } from "./shop/vouchers";
 import { refreshWishlistStock } from "./shop/wishlist";
 import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs";
 import { tradeLicenceExpiry } from "./trade/licences";
+import { purgeAuthRecords } from "./auth";
 
 export { tradeEftExpiry, tradeOverdueHolds, tradeStatements, tradeLicenceExpiry };
 
@@ -110,6 +111,8 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     // Trade: EFT orders unpaid past the hold lapse; accounts with an invoice past due + grace go on hold; last
     // month's statements go out on the statement day (once per account and month).
     trade: { eftExpiry: await tradeEftExpiry(), overdueHolds: await tradeOverdueHolds(), licences: await tradeLicenceExpiry(), statements: await tradeStatements() },
+    // Expired sessions, day-old sign-in codes, rate-limit rows and 90-day-old payment webhook ids.
+    purged: await purgeAuthRecords(),
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),
