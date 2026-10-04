@@ -19,6 +19,7 @@ import { ProductArt } from "@/components/product/art";
 import { Chips, SearchForm } from "@/components/store/ui";
 import { AutoSelect } from "@/components/store/auto-submit";
 import { SavedViews } from "@/components/admin/saved-views";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Stock on hand" };
 
@@ -96,10 +97,10 @@ export default async function InventoryPage({ params, searchParams }: { params: 
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Stock value at cost" value={zarCompact(value)} sub={`${units.toLocaleString()} units on hand`} className="col-span-2 lg:col-span-1" />
+        <Stat label="Stock value at cost" value={zarCompact(value)} sub={`${plural(units, "unit")} on hand`} className="col-span-2 lg:col-span-1" />
         <Stat label="Out of stock" value={out.toLocaleString()} sub="ranged SKUs, nothing to sell" />
         <Stat label="At or below reorder point" value={low.toLocaleString()} sub={low || out ? <Link href={`/store/${store.code}/purchasing/new`} className="font-semibold text-brand-700 hover:underline">Build an order →</Link> : "all above reorder"} />
-        <Stat label="Tied up in overstock" value={zarCompact(overValue)} sub={over.length ? <Link href={hrefWith(path, {}, { status: "OVER" })} className="font-semibold text-brand-700 hover:underline">{over.length} SKUs over target →</Link> : "nothing over target"} />
+        <Stat label="Tied up in overstock" value={zarCompact(overValue)} sub={over.length ? <Link href={hrefWith(path, {}, { status: "OVER" })} className="font-semibold text-brand-700 hover:underline">{plural(over.length, "SKU")} over target →</Link> : "nothing over target"} />
         <Stat label="Reserved for online orders" value={reserved.toLocaleString()} sub="units held for open orders" />
       </div>
 
@@ -147,14 +148,13 @@ export default async function InventoryPage({ params, searchParams }: { params: 
             Try a different search, or clear the status filter.
           </EmptyState>
         ) : (
-          <Table stickyFirst minWidth="72rem">
+          <Table stickyFirst density="compact" minWidth="64rem">
             <thead>
               <tr>
                 <SortableTh label="Item" sortKey="name" sort={sort} dir={dir} href={sortHref} />
                 <SortableTh label="Status" sortKey="status" sort={sort} dir={dir} href={sortHref} />
                 <SortableTh label="On hand" sortKey="onHand" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortableTh label="Reserved" sortKey="reserved" sort={sort} dir={dir} href={sortHref} align="right" />
-                <SortableTh label="Available" sortKey="available" sort={sort} dir={dir} href={sortHref} align="right" />
+                <SortableTh label="Available" sortKey="available" sort={sort} dir={dir} href={sortHref} align="right" title="On hand less what online orders hold" />
                 <SortableTh label="Reorder · par" sortKey="reorder" sort={sort} dir={dir} href={sortHref} align="right" title="Reorder point · par level" />
                 <SortableTh label="Shelf price" sortKey="price" sort={sort} dir={dir} href={sortHref} align="right" title="Your price; blank follows the list price" />
                 <SortableTh label="Cover" sortKey="cover" sort={sort} dir={dir} href={sortHref} align="right" />
@@ -195,8 +195,10 @@ export default async function InventoryPage({ params, searchParams }: { params: 
                       </div>
                     </Td>
                     <Td align="right" className={r.onHand < 0 ? "font-semibold text-rose-600" : undefined}>{r.onHand.toLocaleString()}</Td>
-                    <Td align="right" className={r.reserved ? "text-ink-800" : "text-ink-500"}>{r.reserved.toLocaleString()}</Td>
-                    <Td align="right" className={r.available <= 0 ? "font-semibold text-rose-600" : "font-semibold text-ink-950"}>{r.available.toLocaleString()}</Td>
+                    <Td align="right" className="whitespace-nowrap">
+                      <span className={r.available <= 0 ? "font-semibold text-rose-600" : "font-semibold text-ink-950"}>{r.available.toLocaleString()}</span>
+                      {r.reserved > 0 && <span className="ml-1 text-xs text-ink-500">({r.reserved.toLocaleString()} held)</span>}
+                    </Td>
                     <Td align="right" className="text-ink-600">
                       {editable ? (
                         <InlineEdit
@@ -242,8 +244,8 @@ export default async function InventoryPage({ params, searchParams }: { params: 
             </tbody>
             <tfoot>
               <tr>
-                <td colSpan={9} className="px-5 py-3 text-xs text-ink-500">
-                  {filtered.length.toLocaleString()} SKUs · {filtered.reduce((s, r) => s + Math.max(0, r.onHand), 0).toLocaleString()} units
+                <td colSpan={8} className="px-5 py-3 text-xs text-ink-500">
+                  {plural(filtered.length, "SKU")} · {plural(filtered.reduce((s, r) => s + Math.max(0, r.onHand), 0), "unit")}
                 </td>
                 <td className="tnum px-5 py-3 text-right text-sm font-semibold text-ink-950">{zar(filteredValue)}</td>
               </tr>

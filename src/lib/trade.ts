@@ -482,12 +482,17 @@ export const tradeBuyerBlock = (a: { legalName: string; name: string; vatNumber?
 // ── Range search ─────────────────────────────────────────────────────────────
 
 /**
- * The words a trade range search must all match (each in a name, SKU or barcode): the query's words split on hyphens
- * (so "calm-oil" finds "Calm oil") plus the numbers it measures ("calm 600" → "calm", "600"; "cbd 30ml" → "cbd", "30").
+ * What a trade range search must all match, each term as the spellings that count (any one, in a name, SKU or
+ * barcode): the query's words split on hyphens ("calm-oil" finds "Calm oil") and its measures, with or without the
+ * space ("cbd 30ml" → ["cbd"], ["30ml", "30 ml"]; a bare "600" → ["600"]).
  */
-export function rangeSearchTerms(q: string): string[] {
+export function rangeSearchTerms(q: string): string[][] {
   const p = parseQuery(q);
-  const words = p.terms.flatMap((t) => t.split(/[-']+/)).filter((w) => w.length > 1);
-  const numbers = p.measures.map((m) => m.raw.match(/\d+(?:[.,]\d+)?/)?.[0]).filter((n): n is string => !!n);
-  return [...new Set([...words, ...numbers])].slice(0, 8);
+  const words = p.terms.flatMap((t) => t.split(/[-']+/)).filter((w) => w.length > 1).map((w) => [w]);
+  const measures = p.measures.flatMap((m) => {
+    const [, n, unit] = m.raw.match(/^(\d+(?:[.,]\d+)?)\s*(\S*)$/) ?? [];
+    return n ? [unit ? [`${n}${unit}`, `${n} ${unit}`] : [n]] : [];
+  });
+  const seen = new Set<string>();
+  return [...words, ...measures].filter((t) => !seen.has(t[0]) && seen.add(t[0])).slice(0, 8);
 }

@@ -1,6 +1,6 @@
 // Shop search: the query parser (words, measures with units, class words), the ranking and "Did you mean…".
 import { describe, expect, it } from "vitest";
-import { didYouMean, measureMatches, measuresIn, normalise, parseQuery, rankSearch, withRecentSearch, RECENT_SEARCHES_MAX, type SearchDoc } from "@/lib/search";
+import { didYouMean, similarityFloor, measureMatches, measuresIn, normalise, parseQuery, rankSearch, withRecentSearch, RECENT_SEARCHES_MAX, type SearchDoc } from "@/lib/search";
 
 const docs: SearchDoc[] = [
   { id: "oil600", name: "Calm CBD Oil 600", tagline: "Full-spectrum drops for the evening", category: "CBD wellness", cbdMgPerPack: 600, netContent: 30, netUnit: "ml", variants: [{ name: "30ml" }] },
@@ -105,5 +105,48 @@ describe("recent searches", () => {
     expect(many).toHaveLength(RECENT_SEARCHES_MAX);
     expect(many[0]).toBe("new");
     expect(withRecentSearch(["x"], "   ")).toEqual(["x"]);
+  });
+});
+
+describe("search fixes from the shopper review", () => {
+  const more: SearchDoc[] = [
+    { id: "calm", name: "Calm CBD Oil 600mg", tagline: "Our everyday oil", description: "x".repeat(80), words: ["calm", "focus", "Citrus"], effects: ["calm", "focus"], variants: [{ name: "30ml" }] },
+    { id: "rest", name: "Rest CBD Oil 300mg", tagline: "A gentler oil for the evening routine and beyond", description: "Hemp seed oil base with a long description", words: ["rest", "calm"], effects: ["rest", "calm"], variants: [{ name: "30ml" }] },
+    { id: "softgel", name: "CBD Softgels 10mg", tagline: "One a day", category: "CBD wellness", words: ["focus", "calm"], effects: ["focus", "calm"], variants: [{ name: "30 caps" }] },
+    { id: "tea", name: "Rooibos & CBD Tea", tagline: "Caffeine-free", category: "Coffee & drinks", effects: ["rest"], variants: [{ name: "20 bags" }] },
+    { id: "tent", name: "Grow Tent 80 × 80", tagline: "Reflective, zip-sealed", category: "Grow", variants: [{ name: "One size" }] },
+    { id: "soil", name: "Living Soil Mix", tagline: "Pre-amended and ready to plant", category: "Grow", variants: [{ name: "50L" }] },
+    { id: "whey", name: "CBD Whey Protein", tagline: "For after training", category: "Protein & nutrition", description: "Whey with hemp seed protein", effects: ["recover"], variants: [{ name: "1kg" }] },
+    { id: "seeds", name: "Durban Poison Heritage Seeds", tagline: "Feminised", category: "Grow", variants: [{ name: "5 seeds" }] },
+    { id: "tee", name: "Windmill Tee", tagline: "Organic cotton", category: "Apparel", variants: [{ name: "M" }] },
+    { id: "preroll", name: "Windmill Haze Pre-roll", tagline: "Ready to go", category: "Pre-rolls", variants: [{ name: "1 x 0.5g" }] },
+  ];
+  const rank = (q: string, sims: Record<string, number> = {}) => rankSearch(parseQuery(q), more.map((d) => ({ ...d, sim: sims[d.id] ?? 0 }))).map((r) => r.id);
+
+  it("searches all of a product's text, not just the first 60 characters", () => {
+    expect(rank("citrus")).toEqual(["calm"]);
+    expect(rank("calm").sort()).toEqual(["calm", "rest", "softgel"]);
+  });
+
+  it("finds products by everyday mood words", () => {
+    expect(parseQuery("something for sleep").moods).toEqual(["rest"]);
+    expect(rank("sleep").sort()).toEqual(["rest", "tea"]);
+    expect(rank("relax").sort()).toEqual(["calm", "rest", "softgel"]);
+  });
+
+  it("matches word starts only, needs every word for a text match, and prefers name matches to text or typos", () => {
+    expect(rank("rooibos te")).toEqual(["tea"]);
+    expect(rank("pre roll")).toEqual(["preroll"]);
+    expect(rank("preroll")).toEqual(["preroll"]);
+    expect(rank("pre-roll")).toEqual(["preroll"]);
+    expect(rank("seeds")[0]).toBe("seeds");
+    expect(rank("seeds")).not.toContain("whey");
+    expect(rank("tea", { tee: 0.5 })).toEqual(["tea"]);
+  });
+
+  it("asks more similarity of short queries", () => {
+    expect(similarityFloor("tea")).toBeGreaterThan(similarityFloor("grindr"));
+    expect(rank("tee", { tea: 0.5 })).toEqual(["tee"]);
+    expect(rank("tez", { tea: 0.5 })).toEqual([]);
   });
 });

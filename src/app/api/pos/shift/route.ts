@@ -3,12 +3,15 @@
 import { z } from "zod";
 import { json, readBody, withStaff } from "@/server/pos/http";
 import { currentShift } from "@/server/pos/bootstrap";
-import { closeShift, openShift, zReport } from "@/server/pos/shift";
+import { blindReport, closeShift, openShift, zReport } from "@/server/pos/shift";
+import { isTillManager } from "@/lib/pos-refund";
 import { countCash, DENOMINATIONS } from "@/components/pos/lib/rules";
 
 export const GET = withStaff(async (_req, pos) => {
   const shift = await currentShift(pos.device);
-  return json({ shift, report: shift ? await zReport(shift.id) : null });
+  const report = shift ? await zReport(shift.id) : null;
+  // Blind cash-up: only a manager sees what the drawer should hold while the shift is open.
+  return json({ shift, report: report && !isTillManager(pos.user.role) ? blindReport(report) : report });
 });
 
 // Denomination (cents) → number of notes/coins; unknown denominations are ignored.

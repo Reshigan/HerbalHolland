@@ -3,7 +3,6 @@
 // expected arrival, the items and totals (points and gift vouchers shown), "buy again", the invoice and returns.
 // A gift voucher purchase shows the voucher instead of a parcel.
 import Link from "next/link";
-import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { CheckCircle2, Circle, Clock, CreditCard, FileText, Gift, IdCard, Loader2, MapPin, Navigation, Package, Phone, Truck, Undo2, XCircle } from "lucide-react";
 import { db } from "@/server/db";
@@ -56,7 +55,8 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
       sale: { select: { id: true, number: true, pointsEarned: true } },
     },
   });
-  if (!order) notFound();
+  // An order-specific "not found" (the shop's 404 talks about products).
+  if (!order) return <OrderNotFound code={code.toUpperCase().slice(0, 12)} />;
   const [customer, settings] = await Promise.all([getCustomer(), getSettings()]);
   const mine = customer?.id === order.customerId;
   const gift = isVoucherOrder(order.lines);
@@ -78,7 +78,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
   const steps: { key: OrderStatus; label: string; sub: string }[] = gift
     ? [
         ...(order.paymentStatus !== "PAID" && order.status !== "CANCELLED" ? [{ key: "PENDING_PAYMENT" as const, label: "Awaiting payment", sub: "The voucher is issued the moment it's paid" }] : []),
-        { key: "COMPLETED", label: "Voucher issued", sub: voucher?.recipientEmail ? `Emailed to you and to ${voucher.recipientEmail}` : "Emailed to you, with the code below" },
+        { key: "COMPLETED", label: "Voucher issued", sub: voucher?.recipientEmail ? `Sent to you and emailed to ${voucher.recipientEmail}` : "Sent to you, with the code below" },
       ]
     : [
         ...(order.paymentStatus !== "PAID" && order.payMethod === "ONLINE" && order.status !== "CANCELLED" ? [{ key: "PENDING_PAYMENT" as const, label: "Awaiting payment", sub: "Complete payment to confirm your order" }] : []),
@@ -115,12 +115,12 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
       <LiveRefresh active={open} />
       {mine && sp.placed && order.status !== "CANCELLED" && (
         <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thank you${customer ? `, ${customer.firstName}` : ""} — your order is in.`} className="mb-8">
-          We&apos;ve sent a confirmation by SMS{collect ? ` and ${order.store.name} is getting it ready` : ""}. {order.payMethod !== "ONLINE" ? `Pay ${zar(due)} when you collect.` : ""}
+          We&apos;ve sent a confirmation by SMS{collect ? (store.open ? ` and ${order.store.name} is getting it ready` : ` — ${order.store.name} will get it ready when it opens (${store.label.replace(/^Opens/, "opens")})`) : ""}. {order.payMethod !== "ONLINE" ? `Pay ${zar(due)} when you collect.` : ""}
         </Callout>
       )}
       {mine && (sp.paid || pay) && order.paymentStatus === "PAID" && order.status !== "CANCELLED" && (
         <Callout tone="success" icon={<CreditCard className="h-5 w-5" />} title="Payment received — thank you." className="mb-8">
-          {gift ? "Your gift voucher is ready — the code is below, and it's on its way by email." : `Your tax invoice will be emailed${collect ? " when you collect" : " when your order is dispatched"}.`}
+          {gift ? `Your gift voucher is ready — the code is below, and it's on its way by ${customer?.email ? "email and SMS" : "SMS"}.` : `Your tax invoice will be emailed${collect ? " when you collect" : " when your order is dispatched"}.`}
         </Callout>
       )}
       {waiting && (
@@ -533,6 +533,21 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
             )}
           </Panel>
         </aside>
+      </div>
+    </Container>
+  );
+}
+
+function OrderNotFound({ code }: { code: string }) {
+  return (
+    <Container className="pt-10 sm:pt-14">
+      <div className="mx-auto max-w-lg rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
+        <Package className="mx-auto h-8 w-8 text-ink-600" />
+        <h1 className="mt-4 font-display text-2xl font-semibold text-white">We can&apos;t find order {code}</h1>
+        <p className="mt-2 text-sm text-ink-400">Check the code in your SMS, or see all your orders in Rewards.</p>
+        <ButtonLink href="/club/orders" variant="outline-dark" className="mt-6">
+          Your orders
+        </ButtonLink>
       </div>
     </Container>
   );

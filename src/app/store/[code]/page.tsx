@@ -4,7 +4,8 @@ import { requireStaff } from "@/server/auth";
 import { scopeOf, storeForUser, storeWhere } from "@/server/scope";
 import { cashWaiting, kpis, onShift, openAlerts, orderQueue, pendingAnnouncements, stockAlerts, storeExceptions, todayTakings, topProducts, type StoreException } from "@/server/dashboard";
 import { todayFacts } from "@/server/today";
-import { buildToday, stockTakesDue } from "@/lib/today";
+import { buildCompanyToday, buildToday, stockTakesDue } from "@/lib/today";
+import { plural } from "@/lib/plural";
 import { salesByStore } from "@/server/finance";
 import { db } from "@/server/db";
 import { delta, previousRange, resolveRange } from "@/lib/ranges";
@@ -77,6 +78,11 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         .sort((a, b) => (b.s?.netCents ?? 0) - (a.s?.netCents ?? 0))
     : [];
   const takingsDelta = takings.prev.grossCents ? takings.delta : null;
+  // Consolidated view: the stat cards point at the store table (each store's own pages hold the detail).
+  const across = company ? ` across ${siblings.length} stores` : "";
+  const cardHref = (path: string) => (company ? "#your-stores" : `${base}/${path}`);
+  const companyToday = company ? buildCompanyToday(league.flatMap((x) => (x.ex ? [{ ...x.ex, code: x.code, name: x.name }] : []))) : null;
+  const marginPts = k.deltas.margin;
 
   return (
     <>
@@ -116,41 +122,59 @@ export default async function StoreDashboard({ params, searchParams }: { params:
       {!manager && cash && open && (
         <section aria-label="Today" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
           <Stat label={company ? "Takings today · all stores" : "Takings today"} value={zar(takings.cur.grossCents)} delta={takingsDelta} deltaLabel="vs same day last week" sub={[takingsDelta == null ? `${takings.cur.sales} sale${takings.cur.sales === 1 ? "" : "s"} so far` : null, takings.tradeCents ? `of which trade ${zar(takings.tradeCents)}` : null].filter(Boolean).join(" · ") || undefined} />
-          <Stat label="Gross margin" value={pct(c.marginPct)} delta={k.deltas.margin} deltaLabel="pts vs previous" sub={`${zarCompact(c.grossProfitCents)} profit · ${r.preset === "custom" ? "custom range" : r.preset}`} />
+          <Stat
+            label="Gross margin"
+            value={pct(c.marginPct)}
+            sub={
+              <>
+                {marginPts != null && Number.isFinite(marginPts) && (
+                  <>
+                    <span className={`font-semibold ${marginPts >= 0 ? "text-leaf-600" : "text-rose-600"}`}>
+                      <span aria-hidden>{marginPts >= 0 ? "▲" : "▼"}</span> {Math.abs(marginPts * 100).toFixed(1)} pts
+                      <span className="sr-only">{marginPts >= 0 ? "(up)" : "(down)"}</span>
+                    </span>{" "}
+                    vs previous ·{" "}
+                  </>
+                )}
+                {zarCompact(c.grossProfitCents)} profit · {r.preset === "custom" ? "custom range" : r.preset}
+              </>
+            }
+          />
           <Stat
             label="Cash to bank"
             value={zarCompact(cash.cents)}
             upIsGood={false}
             sub={
               cash.overdueCount ? (
-                <Link href={`${base}/banking`} className="font-semibold text-rose-600 hover:underline">
-                  {cash.overdueCount} cash-up{cash.overdueCount === 1 ? "" : "s"} overdue · {zarCompact(cash.overdueCents)} →
+                <Link href={cardHref("banking")} className="font-semibold text-rose-600 hover:underline">
+                  {plural(cash.overdueCount, "cash-up")} overdue{across} · {zarCompact(cash.overdueCents)} →
                 </Link>
               ) : cash.count ? (
-                <Link href={`${base}/banking`} className="font-semibold text-brand-700 hover:underline">
-                  {cash.count} cash-up{cash.count === 1 ? "" : "s"} waiting{cash.dueOn ? ` · due ${cash.dueOn}` : ""} →
+                <Link href={cardHref("banking")} className="font-semibold text-brand-700 hover:underline">
+                  {plural(cash.count, "cash-up")} waiting{across}{cash.dueOn ? ` · due ${cash.dueOn}` : ""} →
                 </Link>
               ) : (
                 "everything banked"
               )
             }
           />
-          <Stat label="Online orders open" value={openOrders.toLocaleString()} sub={<Link href={`${base}/orders`} className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready →</Link>} />
+          <Stat label="Online orders open" value={openOrders.toLocaleString()} sub={<Link href={cardHref("orders")} className="font-semibold text-brand-700 hover:underline">{queue.PLACED ?? 0} new · {queue.READY ?? 0} ready{across} →</Link>} />
           <Stat
             label="Loss-prevention alerts"
             value={open.open.toLocaleString()}
-            sub={open.open ? <Link href={`${base}/loss-prevention`} className={`font-semibold hover:underline ${open.high ? "text-rose-600" : "text-brand-700"}`}>{open.high ? `${open.high} high severity · ` : ""}review →</Link> : "nothing open"}
+            sub={open.open ? <Link href={cardHref("loss-prevention")} className={`font-semibold hover:underline ${open.high ? "text-rose-600" : "text-brand-700"}`}>{open.high ? `${open.high} high severity · ` : ""}{company ? `review${across}` : "review"} →</Link> : "nothing open"}
           />
         </section>
       )}
 
       {!manager && today && <TodayList items={today} className="mb-6" description={today.length ? undefined : "Nothing needs your attention right now"} />}
+      {companyToday && <TodayList items={companyToday} className="mb-6" description={companyToday.length ? `${plural(companyToday.length, "thing")} to do${across}` : "Nothing needs your attention in any store right now"} />}
 
       {notes.length > 0 && (
         <Link href={`/store/${code}/updates`} className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 hover:bg-brand-100">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="flex-1">
-            <b>{notes.length} HQ update{notes.length > 1 ? "s" : ""} need your acknowledgement</b> — latest: {notes[0].title}
+            <b>{plural(notes.length, "HQ update")} {notes.length === 1 ? "needs" : "need"} your acknowledgement</b> — latest: {notes[0].title}
           </span>
           <ArrowRight className="h-4 w-4" />
         </Link>
@@ -164,14 +188,60 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         <Stat label="Member sales" value={pct(c.memberRate, 0)} sub="of transactions" />
       </div>
 
+      {company && (
+        <Card id="your-stores" className="mt-6 scroll-mt-20">
+          <CardHeader
+            title="Your stores"
+            description="Net sales ex VAT · open a store to drill in"
+            action={
+              <a href={`/api/reports/sales-by-store?store=${code}&${reportQS}`} className={buttonClass("ghost", "sm")} download>
+                <Download className="h-3.5 w-3.5" /> CSV
+              </a>
+            }
+          />
+          <Table className="mt-3" stickyFirst minWidth="34rem">
+            <thead>
+              <tr>
+                <Th>Store</Th>
+                <Th align="right">Net sales</Th>
+                <Th align="right">Growth</Th>
+                <Th align="right">Margin</Th>
+                <Th>Exceptions</Th>
+              </tr>
+            </thead>
+            <tbody>
+              {league.map((x) => {
+                const g = delta(x.s?.netCents ?? 0, x.prev);
+                return (
+                  <Tr key={x.id} href={`/store/${x.code}?${rangeQS}`}>
+                    <Td>
+                      <Link href={`/store/${x.code}?${rangeQS}`} className="group inline-flex items-center gap-1 font-medium text-ink-900 hover:text-brand-700">
+                        {x.name} <ChevronRight className="h-3.5 w-3.5 text-ink-400 group-hover:text-brand-600" aria-hidden />
+                      </Link>
+                      <div className="text-xs text-ink-500">{x.city}</div>
+                    </Td>
+                    <Td align="right">{zarCompact(x.s?.netCents ?? 0)}</Td>
+                    <Td align="right" className={g == null ? "text-ink-500" : g >= 0 ? "text-leaf-700" : "text-rose-600"}>{g == null ? "—" : `${g >= 0 ? "▲" : "▼"}${pct(Math.abs(g))}`}</Td>
+                    <Td align="right">{x.s?.netCents ? pct(x.s.marginPct) : "—"}</Td>
+                    <Td>
+                      <ExceptionBadges x={x.ex} />
+                    </Td>
+                  </Tr>
+                );
+              })}
+            </tbody>
+          </Table>
+        </Card>
+      )}
+
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+        <Card className="min-w-0 xl:col-span-2">
           <CardHeader title="Net sales" description={`Daily, ex VAT · ${r.from} to ${r.to}`} />
           <CardBody>
             <AreaChart labels={k.trend.labels} series={[{ name: "Net sales", color: "var(--color-series-1)", values: k.trend.net }]} />
           </CardBody>
         </Card>
-        <Card>
+        <Card className="min-w-0">
           <CardHeader title="How sales were paid" description="Share of takings incl. VAT" />
           <CardBody>
             <Donut data={k.payments} centerLabel={zarCompact(c.grossCents)} />
@@ -179,70 +249,26 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         </Card>
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
-        <Card>
+      <div className={`mt-6 grid gap-6 ${company ? "lg:grid-cols-2" : "lg:grid-cols-3"}`}>
+        <Card className="min-w-0">
           <CardHeader title="Best sellers" description="Net sales, ex VAT" action={<ButtonLink href={`/store/${code}/reports/sales-by-product?${reportQS}`} variant="ghost" size="sm">All</ButtonLink>} />
           <CardBody>
-            <BarList rows={top.map((t) => ({ label: t.name, value: t.netCents, sub: `${t.units} sold`, tip: `${t.name}\n${t.units} units · margin ${pct(t.marginPct)}` }))} />
+            <BarList rows={top.map((t) => ({ label: t.name, value: t.netCents, sub: `${t.units} sold`, tip: `${t.name}\n${plural(t.units, "unit")} · margin ${pct(t.marginPct)}` }))} />
           </CardBody>
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <CardHeader title="Stock health" description="Needs attention today" action={<ButtonLink href={company ? `/store/${code}/reports/stock-valuation?by=store&${reportQS}` : `/store/${code}/inventory`} variant="ghost" size="sm">Inventory</ButtonLink>} />
           <CardBody className="space-y-2">
-            <AlertRow href={company ? `/store/${code}/reports/low-stock?${reportQS}` : `/store/${code}/purchasing/new`} icon={<Boxes className="h-4 w-4" />} tone={alerts.low ? "amber" : "ok"} label="At or below reorder point" value={`${alerts.low} SKUs`} action="Reorder" />
-            <AlertRow href={`/store/${code}/reports/expiry?${reportQS}`} icon={<Clock className="h-4 w-4" />} tone={alerts.expiringUnits ? "amber" : "ok"} label="Expiring within 30 days" value={`${alerts.expiringUnits} units`} action="Review" />
-            <AlertRow href={company ? `/store/${code}/reports/recalls?${reportQS}` : `/store/${code}/batches`} icon={<FlaskConical className="h-4 w-4" />} tone={alerts.blockedUnits ? "red" : "ok"} label="Recalled or quarantined on hand" value={`${alerts.blockedUnits} units`} action="Resolve" />
+            <AlertRow href={company ? `/store/${code}/reports/low-stock?${reportQS}` : `/store/${code}/purchasing/new`} icon={<Boxes className="h-4 w-4" />} tone={alerts.low ? "amber" : "ok"} label="At or below reorder point" value={plural(alerts.low, "SKU")} action="Reorder" />
+            <AlertRow href={`/store/${code}/reports/expiry?${reportQS}`} icon={<Clock className="h-4 w-4" />} tone={alerts.expiringUnits ? "amber" : "ok"} label="Expiring within 30 days" value={plural(alerts.expiringUnits, "unit")} action="Review" />
+            <AlertRow href={company ? `/store/${code}/reports/recalls?${reportQS}` : `/store/${code}/batches`} icon={<FlaskConical className="h-4 w-4" />} tone={alerts.blockedUnits ? "red" : "ok"} label="Recalled or quarantined on hand" value={plural(alerts.blockedUnits, "unit")} action="Resolve" />
             <AlertRow href={`/store/${code}/reports/negative-stock?${reportQS}`} icon={<PackageX className="h-4 w-4" />} tone={alerts.negative ? "red" : "ok"} label="Negative stock lots" value={`${alerts.negative}`} action="Count" />
           </CardBody>
         </Card>
 
-        {company ? (
-          <Card className="lg:col-span-3 xl:col-span-1">
-            <CardHeader
-              title="Your stores"
-              description="Net sales ex VAT · open a store to drill in"
-              action={
-                <a href={`/api/reports/sales-by-store?store=${code}&${reportQS}`} className={buttonClass("ghost", "sm")} download>
-                  <Download className="h-3.5 w-3.5" /> CSV
-                </a>
-              }
-            />
-            <Table className="mt-3" stickyFirst minWidth="34rem">
-              <thead>
-                <tr>
-                  <Th>Store</Th>
-                  <Th align="right">Net sales</Th>
-                  <Th align="right">Growth</Th>
-                  <Th align="right">Margin</Th>
-                  <Th>Exceptions</Th>
-                </tr>
-              </thead>
-              <tbody>
-                {league.map((x) => {
-                  const g = delta(x.s?.netCents ?? 0, x.prev);
-                  return (
-                    <Tr key={x.id} href={`/store/${x.code}?${rangeQS}`}>
-                      <Td>
-                        <Link href={`/store/${x.code}?${rangeQS}`} className="group inline-flex items-center gap-1 font-medium text-ink-900 hover:text-brand-700">
-                          {x.name} <ChevronRight className="h-3.5 w-3.5 text-ink-400 group-hover:text-brand-600" aria-hidden />
-                        </Link>
-                        <div className="text-xs text-ink-500">{x.city}</div>
-                      </Td>
-                      <Td align="right">{zarCompact(x.s?.netCents ?? 0)}</Td>
-                      <Td align="right" className={g == null ? "text-ink-500" : g >= 0 ? "text-leaf-700" : "text-rose-600"}>{g == null ? "—" : `${g >= 0 ? "▲" : "▼"}${pct(Math.abs(g))}`}</Td>
-                      <Td align="right">{x.s?.netCents ? pct(x.s.marginPct) : "—"}</Td>
-                      <Td>
-                        <ExceptionBadges x={x.ex} />
-                      </Td>
-                    </Tr>
-                  );
-                })}
-              </tbody>
-            </Table>
-          </Card>
-        ) : (
-          <Card>
+        {!company && (
+          <Card className="min-w-0">
             <CardHeader title="Today at the counter" description={shift ? `Shift open since ${fmtTime(shift.openedAt)}` : "No shift open"} />
             <CardBody className="space-y-4">
               <Link href={`/store/${code}/orders`} className="flex items-center justify-between rounded-2xl bg-ink-950 p-4 text-white transition hover:bg-ink-900">

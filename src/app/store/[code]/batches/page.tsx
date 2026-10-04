@@ -18,6 +18,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
 import { ConfirmAction, FieldError } from "@/components/store/action-form";
 import type { Prisma } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Batches & recalls" };
 const PAGE_SIZE = 25;
@@ -84,13 +85,13 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
       />
 
       {blocked.units > 0 && (
-        <Notice tone="danger" className="mb-6" title={`${blocked.units} units in blocked batches`}>
+        <Notice tone="danger" className="mb-6" title={`${plural(blocked.units, "unit")} in blocked batches`}>
           They can&apos;t be sold. Return recalled stock to {store.dc?.name ?? "your distribution centre"} or destroy it with a witness — both are recorded on the ledger and in the destruction register.
         </Notice>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Units on hand" value={onHand.units.toLocaleString()} sub={`${onHand.lots} lots · ${zarCompact(onHand.value)} at cost`} />
+        <Stat label="Units on hand" value={onHand.units.toLocaleString()} sub={`${plural(onHand.lots, "lot")} · ${zarCompact(onHand.value)} at cost`} />
         <Stat label="Blocked units (recall / hold)" value={blocked.units.toLocaleString()} sub={blocked.units ? lotsLabel(blocked) : "nothing blocked"} />
         <Stat label="Units expiring within 30 days" value={expiring.units.toLocaleString()} sub={expiring.units ? `${lotsLabel(expiring)} · sold first` : "nothing close to expiry"} />
         <Stat label="Expired units on hand" value={expired.units.toLocaleString()} sub={expired.units ? `${lotsLabel(expired)} — write off` : "none"} />
@@ -115,7 +116,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                   <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${held ? "text-rose-600" : "text-leaf-700"}`}>
                     {held ? <ShieldAlert className="h-3.5 w-3.5" aria-hidden /> : <CircleCheck className="h-3.5 w-3.5" aria-hidden />}
                     {held ? (
-                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {held} units — resolve →</Link>
+                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {plural(held, "unit")} — resolve →</Link>
                     ) : (
                       "None on hand here"
                     )}
@@ -194,7 +195,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                             <ConfirmAction
                               action={writeOffLot.bind(null, store.code, l.id)}
                               label="Write off"
-                              title={`Write off all ${l.onHand} units of ${l.batch.code}?`}
+                              title={`Write off all ${plural(l.onHand, "unit")} of ${l.batch.code}?`}
                               confirmLabel="Write off lot"
                               className="min-w-72"
                             >

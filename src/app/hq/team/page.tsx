@@ -1,9 +1,9 @@
 import { KeyRound, UserMinus, UserPlus } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
-import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { can } from "@/server/hq/guard";
 import { fmtDate, timeAgo } from "@/lib/format";
+import { plural } from "@/lib/plural";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, type Tone } from "@/components/ui/badge";
@@ -27,12 +27,11 @@ const ROLE: Record<string, [string, Tone, string]> = {
 export default async function TeamPage({ searchParams }: { searchParams: Promise<{ m?: string }> }) {
   const sp = await searchParams;
   const user = await requireStaff(HQ_ROLES);
-  const scope = scopeOf(user);
-  const ids = await scopedStoreIds(scope);
   const [users, regions, storeCounts] = await Promise.all([
     db.user.findMany({ where: { role: { in: ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"] } }, include: { region: { select: { name: true } } }, orderBy: [{ active: "desc" }, { role: "asc" }, { name: "asc" }] }),
     db.region.findMany({ orderBy: { name: "asc" } }),
-    db.store.groupBy({ by: ["regionId"], where: { kind: "RETAIL", id: { in: ids } }, _count: true }),
+    // Store counts per region only (no store detail), so an area manager sees their colleagues' regions sized correctly.
+    db.store.groupBy({ by: ["regionId"], where: { kind: "RETAIL", status: { not: "CLOSED" } }, _count: true }),
   ]);
   const admin = can(user, "admin");
 
@@ -41,7 +40,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
       <PageHeader overline="Governance" title="Team" description="HQ staff and area managers. Store teams are managed by each store's owner or manager in the back office." />
       <Flash message={sp.m} />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
+        <Card className="min-w-0 xl:col-span-2">
           <Table stickyFirst className="relative">
             <thead>
               <tr>
@@ -70,7 +69,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                     <Badge tone={ROLE[u.role][1]}>{ROLE[u.role][0]}</Badge>
                     {u.region && (
                       <span className="mt-0.5 block text-xs text-ink-500">
-                        {u.region.name} · {storeCounts.find((c) => c.regionId === u.regionId)?._count ?? 0} stores
+                        {u.region.name} · {plural(storeCounts.find((c) => c.regionId === u.regionId)?._count ?? 0, "store")}
                       </span>
                     )}
                   </Td>

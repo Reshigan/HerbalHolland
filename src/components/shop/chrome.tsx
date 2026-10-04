@@ -2,7 +2,7 @@
 // Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
 import Link from "next/link";
 import { Suspense } from "react";
-import { ShoppingBag, UserRound } from "lucide-react";
+import { Search, ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { activePromotions } from "@/server/pricing";
@@ -117,6 +117,29 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
             </Link>
             <NavLinks items={NAV} className="ml-4 hidden lg:flex" />
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
+              {/* Product search from every page: a field on wide screens, an icon to the shop's search on smaller ones. */}
+              <form action="/shop" role="search" className="relative hidden xl:block">
+                <label htmlFor="header-q" className="sr-only">
+                  Search products
+                </label>
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" strokeWidth={1.9} />
+                <input
+                  id="header-q"
+                  name="q"
+                  type="search"
+                  enterKeyHint="search"
+                  maxLength={60}
+                  placeholder="Search products"
+                  className="h-10 w-48 rounded-full border border-ink-800 bg-ink-900/60 pl-10 pr-4 text-sm text-white placeholder:text-ink-450 transition-[width] hover:border-ink-600 focus:w-60 focus:border-brand-500 focus:outline-none"
+                />
+              </form>
+              <Link
+                href="/shop?focus=1"
+                className="grid h-11 w-11 place-items-center rounded-full text-ink-200 transition hover:bg-ink-850 hover:text-white xl:hidden"
+                aria-label="Search products"
+              >
+                <Search className="h-[22px] w-[22px]" strokeWidth={1.8} />
+              </Link>
               <StorePicker current={current} className="hidden md:flex" />
               <Link
                 href="/club"

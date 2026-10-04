@@ -285,6 +285,7 @@ export function CartPanel({
   payDisabledReason,
   checking,
   customerCard,
+  onDetachCustomer,
 }: {
   cart: Cart;
   index: VariantIndex;
@@ -304,6 +305,8 @@ export function CartPanel({
   payDisabledReason: string | null;
   checking: boolean;
   customerCard: React.ReactNode;
+  /** Removes the member (the × on the compact strip shown while their card is scrolled out of view). */
+  onDetachCustomer?: () => void;
 }) {
   const [codeOpen, setCodeOpen] = useState(!!cart.code);
   const [code, setCode] = useState(cart.code ?? "");
@@ -327,11 +330,54 @@ export function CartPanel({
     if (Date.now() - addedAt.current < 3000) scroller.current?.querySelector("[data-testid=cart-line]:last-child")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [count, quote]);
 
+  // The member card scrolled out of view: a compact strip keeps who's being served (and their 18+ status) on screen.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardHidden, setCardHidden] = useState(false);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || !scroller.current || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setCardHidden(!e.isIntersecting), { root: scroller.current, threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const member = cart.customer;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* The member card scrolls with the lines, so a member's deals never squeeze the basket; totals stay put. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      {member && cardHidden && !trade && (
+        <div className="absolute inset-x-3 top-0 z-10 flex items-center gap-2.5 rounded-b-2xl bg-ink-900/95 py-1.5 pl-2 pr-1 shadow-lg ring-1 ring-brand-500/30 backdrop-blur" data-testid="member-strip">
+          <button
+            type="button"
+            onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
+            aria-label={`${member.firstName} ${member.lastName ?? ""} — show the member card`}
+          >
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-xs font-bold text-ink-950">{(member.firstName[0] ?? "") + (member.lastName?.[0] ?? "")}</span>
+            <span className="min-w-0 truncate text-sm font-semibold text-white">
+              {member.firstName} {member.offline ? "" : member.lastName}
+            </span>
+            <Chip tone={TIER_CHIP[member.tier] ?? "neutral"}>{tierName(member.tier)}</Chip>
+            {member.ageVerified ? (
+              <Chip tone="green" icon={<BadgeCheck className="h-3 w-3" />}>
+                18+
+              </Chip>
+            ) : (
+              <Chip tone="amber" icon={<IdCard className="h-3 w-3" />}>
+                Age not verified
+              </Chip>
+            )}
+          </button>
+          {onDetachCustomer && (
+            <button type="button" onClick={onDetachCustomer} aria-label="Remove member from sale" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
       <div ref={scroller} className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-3">
-        <div className="shrink-0 pb-2 pt-3">{customerCard}</div>
+        <div ref={cardRef} className="shrink-0 pb-2 pt-3">{customerCard}</div>
         {cart.lines.length === 0 ? (
           <div className="flex min-h-40 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-ink-800 px-6 text-center text-ink-400">
             <ScanLine className="mb-2 h-7 w-7 text-ink-600" />
@@ -437,6 +483,7 @@ export function CartPanel({
             ))}
           </div>
         )}
+      </div>
       </div>
 
       <div className="shrink-0 border-t border-ink-850 p-3">

@@ -48,9 +48,10 @@ export default async function TradeCartPage() {
     );
 
   const variantIds = q.lines.map((l) => l.variantId);
-  const [variants, avail] = await Promise.all([
+  const [variants, avail, ordering] = await Promise.all([
     db.variant.findMany({ where: { id: { in: variantIds } }, select: { id: true, active: true, podSku: true, product: { select: { slug: true, strain: true, status: true, name: true } } } }),
     store ? availability([store.id], variantIds) : new Map(),
+    orderingProblem(account),
   ]);
   const byId = new Map(variants.map((v) => [v.id, v]));
   // Lines the cookie holds that the engine no longer prices (taken off sale, no trade price): shown so they can be removed.
@@ -59,7 +60,6 @@ export default async function TradeCartPage() {
   const problems = [...comp.blocks, ...validateTradeBasket(q.lines.map((l) => ({ name: l.name, qty: l.qty, unitCents: l.exCents / l.qty, caseQty: l.caseQty })), { minOrderCents: t.minOrderCents })];
   const shortAtDc = store ? q.lines.filter((l) => (avail.get(availKey(store.id, l.variantId))?.available ?? 0) < l.qty) : [];
   const progress = minOrderProgress(q.exCents ?? 0, t.minOrderCents);
-  const ordering = await orderingProblem(account);
   const units = q.lines.reduce((s, l) => s + l.qty, 0);
   const canCheckout = problems.length === 0 && !ordering && !!store;
 

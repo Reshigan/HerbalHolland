@@ -235,7 +235,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
           >
             <p>
               Net {sum.netUnits >= 0 ? "+" : "−"}
-              {Math.abs(sum.netUnits)} units, {zar(sum.netValue)} at cost. {sum.uncounted > 0 && `${sum.uncounted} uncounted lines stay as they are.`}
+              {plural(Math.abs(sum.netUnits), "unit")}, {zar(sum.netValue)} at cost. {sum.uncounted > 0 && `${plural(sum.uncounted, "uncounted line")} ${sum.uncounted === 1 ? "stays" : "stay"} as ${sum.uncounted === 1 ? "it is" : "they are"}.`}
             </p>
           </ConfirmAction>
         </div>

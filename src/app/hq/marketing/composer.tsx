@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { AlertTriangle, Bell, CheckCircle2, Clock, Mail, MessageSquare, Send, Smartphone, Users } from "lucide-react";
+import { AlertTriangle, Bell, CheckCircle2, Clock, Mail, MessageSquare, Search, Send, Smartphone, Users, X } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Label } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ import type { ActionState } from "@/server/hq/guard";
 
 export type CampaignValues = { name: string; channel: string; segment: string; storeId: string; message: string; promotionId: string; cost: string; scheduledAt: string };
 type Reach = { total: number; reachable: number; suppressionList: number } | null;
+type StoreOption = { id: string; name: string; code: string; city: string };
 
 const CHANNELS = [
   { key: "SMS", label: "SMS", icon: Smartphone, note: "Widest reach · CPA windows apply" },
@@ -36,8 +37,10 @@ const fmt = (d: Date) => new Intl.DateTimeFormat("en-ZA", { timeZone: "Africa/Jo
 export function Composer({
   action,
   estimate,
+  findStores,
   values,
-  stores,
+  selectedStore,
+  regions,
   promotions,
   footers,
   canSend,
@@ -45,8 +48,10 @@ export function Composer({
 }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>;
   estimate: (segment: string, channel: string, storeId: string | null) => Promise<Reach>;
+  findStores: (q: string, region: string) => Promise<StoreOption[]>;
   values: CampaignValues;
-  stores: { id: string; name: string }[];
+  selectedStore: StoreOption | null;
+  regions: { code: string; name: string }[];
   promotions: { id: string; label: string; code: string | null }[];
   footers: { email: string; text: string; push: string };
   canSend: boolean;
@@ -58,6 +63,7 @@ export function Composer({
   const [loading, start] = useTransition();
   const [now, setNow] = useState<Date | null>(null);
   const text = useRef<HTMLTextAreaElement>(null);
+  const [confirming, setConfirming] = useState(false);
 
   useEffect(() => {
     setNow(new Date());
@@ -148,15 +154,7 @@ export function Composer({
                 </Select>
                 <FieldError name="segment" />
               </Field>
-              <Field label="Home store" htmlFor="storeId" hint={requireStore ? "Required — members homed at one of your stores" : "Optional — only members whose home store this is"}>
-                <Select id="storeId" name="storeId" value={v.storeId} onChange={(e) => set("storeId", e.target.value)}>
-                  <option value="">{requireStore ? "Choose a store" : "Any store (network)"}</option>
-                  {stores.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
-                </Select>
-                <FieldError name="storeId" />
-              </Field>
+              <StoreField initial={selectedStore} regions={regions} findStores={findStores} required={requireStore} onChange={(id) => set("storeId", id)} />
             </div>
             {v.segment in SEGMENTS && <p className="text-xs text-ink-600"><b className="text-brand-700">Suggested play:</b> {SEGMENTS[v.segment as keyof typeof SEGMENTS].play}</p>}
           </CardBody>
@@ -325,11 +323,31 @@ export function Composer({
               </Field>
             )}
             <div className="grid grid-cols-2 gap-2">
-              {canSend && (
-                <SubmitButton name="intent" value="send" size="lg" disabled={flags.length > 0 || titleLong || bodyLong} pendingLabel="Sending…" className="col-span-2">
-                  <Send className="h-4 w-4" /> Send now
-                </SubmitButton>
-              )}
+              {/* Send now reaches thousands in one go: a second step restates who, how many and how. */}
+              {canSend &&
+                (confirming ? (
+                  <div className="col-span-2 rounded-2xl border border-ink-200 bg-ink-50 p-4" role="group" aria-labelledby="send-confirm-title">
+                    <p id="send-confirm-title" className="font-display text-sm font-semibold text-ink-950">
+                      {reach ? `Send to ${reach.reachable.toLocaleString()} members by ${CHANNELS.find((c) => c.key === v.channel)?.label}?` : "Send to this audience now?"}
+                    </p>
+                    <p className="mt-1 text-xs text-ink-600">
+                      {v.channel === "SMS" && reach ? `${(reach.reachable * parts).toLocaleString()} SMS parts (${parts} per member). ` : ""}
+                      The do-not-contact list is checked as it goes{window && !window.allowed ? `; it waits until ${fmt(nextMarketingSlot(now!))}` : ""}. It can&apos;t be recalled once sent.
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <SubmitButton name="intent" value="send" pendingLabel="Sending…">
+                        <Send className="h-4 w-4" /> Yes, send now
+                      </SubmitButton>
+                      <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>
+                        Not yet
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button type="button" size="lg" disabled={flags.length > 0 || titleLong || bodyLong || (requireStore && !v.storeId)} onClick={() => setConfirming(true)} className="col-span-2">
+                    <Send className="h-4 w-4" /> Send now…
+                  </Button>
+                ))}
               <SubmitButton name="intent" value="draft" variant="outline" pendingLabel="Saving…" className={canSend ? undefined : "col-span-2"}>
                 Save draft
               </SubmitButton>
@@ -344,5 +362,113 @@ export function Composer({
         </Card>
       </div>
     </ActionForm>
+  );
+}
+
+/** Home store: filter by region, search by name, code or city — stores load on demand (never the whole network). */
+function StoreField({
+  initial,
+  regions,
+  findStores,
+  required,
+  onChange,
+}: {
+  initial: StoreOption | null;
+  regions: { code: string; name: string }[];
+  findStores: (q: string, region: string) => Promise<StoreOption[]>;
+  required: boolean;
+  onChange: (id: string) => void;
+}) {
+  const [picked, setPicked] = useState<StoreOption | null>(initial);
+  const [region, setRegion] = useState("");
+  const [q, setQ] = useState("");
+  const [open, setOpen] = useState(false);
+  const [found, setFound] = useState<StoreOption[] | null>(null);
+  const [loading, start] = useTransition();
+  useEffect(() => {
+    if (!open) return;
+    const t = setTimeout(() => start(async () => setFound(await findStores(q, region))), 200);
+    return () => clearTimeout(t);
+  }, [open, q, region, findStores]);
+  const choose = (s: StoreOption | null) => {
+    setPicked(s);
+    onChange(s?.id ?? "");
+    setOpen(false);
+    setQ("");
+  };
+  return (
+    <div className="sm:col-span-2">
+      <input type="hidden" name="storeId" value={picked?.id ?? ""} />
+      <Label htmlFor="storeSearch">Home store</Label>
+      <p className="-mt-0.5 mb-1.5 text-xs text-ink-500">{required ? "Required — members homed at one of your stores" : "Optional — only members whose home store this is"}</p>
+      {picked && !open ? (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-ink-200 bg-white px-3 py-2 text-sm">
+          <span className="min-w-0 flex-1 truncate font-medium text-ink-900">
+            {picked.name} <span className="font-mono text-xs text-ink-500">{picked.code}</span> <span className="text-xs text-ink-500">· {picked.city}</span>
+          </span>
+          <Button type="button" size="sm" variant="ghost" onClick={() => setOpen(true)}>
+            Change
+          </Button>
+          {!required && (
+            <Button type="button" size="sm" variant="ghost" onClick={() => choose(null)} aria-label="Clear home store">
+              <X className="h-4 w-4" aria-hidden />
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <div className="flex flex-wrap gap-2">
+            {regions.length > 1 && (
+              <Select aria-label="Region" value={region} onChange={(e) => (setRegion(e.target.value), setOpen(true))} wrapperClassName="w-44 shrink-0">
+                <option value="">All regions</option>
+                {regions.map((r) => (
+                  <option key={r.code} value={r.code}>
+                    {r.name}
+                  </option>
+                ))}
+              </Select>
+            )}
+            <div className="relative min-w-0 flex-1 basis-48">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" aria-hidden />
+              <Input
+                id="storeSearch"
+                type="search"
+                value={q}
+                onFocus={() => setOpen(true)}
+                onChange={(e) => (setQ(e.target.value), setOpen(true))}
+                onKeyDown={(e) => e.key === "Enter" && e.preventDefault()}
+                placeholder={required ? "Search your stores by name, code or city" : "Any store (network) — or search by name, code or city"}
+                className="pl-9"
+                autoComplete="off"
+              />
+            </div>
+          </div>
+          {open && (
+            <ul className={cn("max-h-56 overflow-y-auto rounded-xl border border-ink-150 bg-white p-1 transition-opacity", loading && "opacity-60")} aria-label="Matching stores" aria-busy={loading}>
+              {found?.length === 0 && <li className="px-3 py-2 text-sm text-ink-500">No open store matches.</li>}
+              {!found && <li className="px-3 py-2 text-sm text-ink-500">Loading stores…</li>}
+              {found?.map((s) => (
+                <li key={s.id}>
+                  <button type="button" onClick={() => choose(s)} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-brand-50 focus-visible:bg-brand-50 focus-visible:outline-none">
+                    <span className="min-w-0 flex-1 truncate font-medium text-ink-900">{s.name}</span>
+                    <span className="shrink-0 text-xs text-ink-500">
+                      <span className="font-mono">{s.code}</span> · {s.city}
+                    </span>
+                  </button>
+                </li>
+              ))}
+              {picked && (
+                <li>
+                  <button type="button" onClick={() => setOpen(false)} className="w-full rounded-lg px-3 py-2 text-left text-xs font-semibold text-ink-600 hover:bg-ink-50">
+                    Keep {picked.name}
+                  </button>
+                </li>
+              )}
+            </ul>
+          )}
+        </div>
+      )}
+      <FieldError name="storeId" />
+    </div>
   );
 }

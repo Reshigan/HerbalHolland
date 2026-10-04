@@ -52,7 +52,11 @@ export function ProductForm({
   const [name, setName] = useState(p?.name ?? "");
   const [slug, setSlug] = useState(p?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(!!p);
-  const [regClass, setRegClass] = useState<RegClass>((p?.regClass as RegClass) ?? "CBD");
+  // A new product starts with no class: the class decides which rules apply, so nobody inherits CBD by accident.
+  const [chosen, setChosen] = useState<RegClass | "">((p?.regClass as RegClass) ?? "");
+  const regClass = (chosen || "SUPPLEMENT") as RegClass; // lookups only; nothing is checked until a class is chosen
+  // Rule issues show once someone has worked on the facts (or tried to save) — not as red errors on an empty form.
+  const [touched, setTouched] = useState(!!p);
   const [perPack, setPerPack] = useState(p?.cbdMgPerPack?.toString() ?? "");
   const [perDay, setPerDay] = useState(p?.cbdMgPerDay?.toString() ?? "");
   const [thcMax, setThcMax] = useState(p?.thcMax?.toString() ?? "");
@@ -63,14 +67,15 @@ export function ProductForm({
   const [naturalCbd, setNaturalCbd] = useState(p?.naturalCbd ?? false);
   const [claims, setClaims] = useState<string[]>(p?.claims.length ? p.claims : [""]);
   const [terps, setTerps] = useState<{ name: string; pct: string }[]>(p?.terpenes.length ? p.terpenes.map((t) => ({ name: t.name, pct: String(t.pct) })) : []);
-  const [legalBasis, setLegalBasis] = useState(p?.legalBasis ?? DEFAULT_LEGAL_BASIS.CBD ?? "");
+  const [legalBasis, setLegalBasis] = useState(p?.legalBasis ?? "");
 
   const num = (s: string) => (s.trim() === "" || Number.isNaN(Number(s)) ? null : Number(s));
-  const plant = PLANT.includes(regClass);
-  const wellness = WELLNESS.includes(regClass);
-  const facts = PRODUCT_FACTS[regClass];
+  const plant = !!chosen && PLANT.includes(regClass);
+  const wellness = !!chosen && WELLNESS.includes(regClass);
+  const facts = chosen ? PRODUCT_FACTS[regClass] : undefined;
   const ruled = !!facts; // classes with master-data rules: checked live and again on save
-  const capped = CBD_CLASSES.includes(regClass);
+  const showIssues = ruled && touched;
+  const capped = !!chosen && CBD_CLASSES.includes(regClass);
   const issues = useMemo(
     () =>
       validateProduct({
@@ -115,7 +120,13 @@ export function ProductForm({
 
   return (
     <ActionForm action={action} className="grid grid-cols-1 gap-6 xl:grid-cols-3" noticeClassName="xl:col-span-3">
-      <fieldset disabled={readOnly} className="min-w-0 contents">
+      <fieldset
+        disabled={readOnly}
+        className="min-w-0 contents"
+        onChange={(e) => {
+          if ((e.target as unknown as HTMLInputElement).name !== "regClass") setTouched(true);
+        }}
+      >
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Product" description="What everyone sees in the shop, the app and on the menu board" />
@@ -287,7 +298,7 @@ export function ProductForm({
         </div>
 
         <div className="space-y-6">
-          <Card className={cn(ruled && issues.length > 0 && "border-rose-500/40")}>
+          <Card className={cn(showIssues && issues.length > 0 && "border-rose-500/40")}>
             <CardHeader
               title={
                 <span className="inline-flex items-center gap-2">
@@ -301,20 +312,23 @@ export function ProductForm({
                 <Select
                   id="regClass"
                   name="regClass"
-                  value={regClass}
+                  value={chosen}
                   onChange={(e) => {
                     const c = e.target.value as RegClass;
-                    setRegClass(c);
+                    setChosen(c);
                     if (!legalBasis || Object.values(DEFAULT_LEGAL_BASIS).includes(legalBasis)) setLegalBasis(DEFAULT_LEGAL_BASIS[c] ?? "");
                   }}
                   aria-describedby="regClass-hint"
                 >
+                  <option value="" disabled>
+                    Choose…
+                  </option>
                   {REG_CLASSES.map((c) => (
                     <option key={c} value={c} title={REG_CLASS_HINT[c]}>{REG_CLASS_LABEL[c]}</option>
                   ))}
                 </Select>
-                <p id="regClass-hint" className="mt-1.5 text-xs text-ink-500">{REG_CLASS_HINT[regClass]}</p>
-                <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-ink-700">
+                <p id="regClass-hint" className="mt-1.5 text-xs text-ink-500">{chosen ? REG_CLASS_HINT[regClass] : "Choose a class first: it decides the facts, limits and incentives that apply."}</p>
+                {chosen && <p className="mt-1 flex items-center gap-1.5 text-xs font-medium text-ink-700">
                   {noIncentiveClasses.includes(regClass) ? (
                     <>
                       <Lock className="h-3.5 w-3.5 shrink-0 text-ink-500" aria-hidden /> No promotions, points or commission (Medicines Act s18A)
@@ -324,7 +338,7 @@ export function ProductForm({
                       <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-leaf-600" aria-hidden /> Promotions and points allowed
                     </>
                   )}
-                </p>
+                </p>}
                 <FieldError name="regClass" />
               </Field>
               {regClass === "THC" && <p className="rounded-xl bg-[#f1effb] px-3 py-2 text-xs text-[#4a3aa7]">Licence-gated: only stores holding a THC licence can sell it, and in medical mode only to patients with an active authorisation, dispensed by an authorised dispenser. No promotions, member prices or reward points apply (Medicines Act s18A).</p>}
@@ -364,7 +378,7 @@ export function ProductForm({
                   description="No CBD is added (no isolate or distillate): GN 586 allows only what the hemp in the recipe brings."
                 />
               )}
-              {regClass === "SUPPLEMENT" && <p className="rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Cannabis-free: no CBD, THC or hemp in the ingredients. Not age-restricted by law — our stores sell to adults only anyway.</p>}
+              {chosen === "SUPPLEMENT" && <p className="rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Cannabis-free: no CBD, THC or hemp in the ingredients. Not age-restricted by law — our stores sell to adults only anyway.</p>}
               <div>
                 <Label>Approved claims</Label>
                 <p className="mb-2 text-xs text-ink-500">Low-risk wellness claims only (general health, relief of minor symptoms). Each claim is screened as you type.</p>
@@ -413,7 +427,7 @@ export function ProductForm({
                 description="Pipes, water-pipes, papers, vapes. If B33-2022 mode is switched on: in-store only, no loyalty, no promotion."
               />
               <div aria-live="polite">
-                {ruled &&
+                {showIssues &&
                   (issues.length ? (
                     <div className="rounded-xl border border-rose-500/25 bg-rose-50 p-3 text-sm text-rose-600">
                       <div className="mb-1 flex items-center gap-1.5 font-semibold">
@@ -435,8 +449,8 @@ export function ProductForm({
             </CardBody>
           </Card>
           {!readOnly && (
-            <div className="flex justify-end">
-              <SubmitButton size="lg" disabled={ruled && issues.length > 0} pendingLabel="Saving…">
+            <div className="flex justify-end" onClickCapture={() => setTouched(true)}>
+              <SubmitButton size="lg" disabled={showIssues && issues.length > 0} pendingLabel="Saving…">
                 {product ? "Save product" : "Create product"}
               </SubmitButton>
             </div>

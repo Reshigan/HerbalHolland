@@ -396,6 +396,9 @@ export type ZReport = {
     counts: Record<string, number> | null;
   };
   takingsCents: number;
+  /** A blind X-report (a shift still open, seen by someone other than a manager): what the drawer should hold — expected
+   *  cash, cash takings and the cash tender — is left out until the count is in. */
+  blind?: boolean;
   /** Licensed medicines dispensed in the shift (tills cached before this field carry none). */
   dispensing?: { count: number; units: number; grams: number; cents: number } | null;
   /** Trade sales in the shift (WHOLESALE: till trade sales and trade orders handed over): ex VAT, VAT, incl, and the part invoiced on account (not money). */

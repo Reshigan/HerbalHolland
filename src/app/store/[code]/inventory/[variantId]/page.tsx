@@ -24,6 +24,7 @@ import { ColumnChart } from "@/components/charts/bar-chart";
 import { ProductArt } from "@/components/product/art";
 import { BackLink, Line, Qty, ReadOnlyNote } from "@/components/store/ui";
 import { ActionForm, FieldError, SubmitButton } from "@/components/store/action-form";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Stock item" };
 
@@ -105,7 +106,7 @@ export default async function VariantStockPage({ params, searchParams }: { param
           <Card>
             <CardHeader title="Sales velocity" description={`Units sold per day · last 28 days · avg ${avgDaily.toFixed(1)}/day`} />
             <CardBody>
-              <ColumnChart data={vel.map((d) => ({ label: d.label, value: d.units, tip: `${d.label}\n${d.units} units · ${zar(d.netCents)} net` }))} format="number" height={200} labelEvery={7} />
+              <ColumnChart data={vel.map((d) => ({ label: d.label, value: d.units, tip: `${d.label}\n${plural(d.units, "unit")} · ${zar(d.netCents)} net` }))} format="number" height={200} labelEvery={7} />
             </CardBody>
           </Card>
           <Card>
@@ -157,7 +158,7 @@ export default async function VariantStockPage({ params, searchParams }: { param
 
         <div className="min-w-0 space-y-6">
           <Card>
-            <CardHeader title="Stock levels" description={`Replenishment orders up to the higher of par and ${TARGET_DAYS} days of sales (${target} units now).`} />
+            <CardHeader title="Stock levels" description={`Replenishment orders up to the higher of par and ${TARGET_DAYS} days of sales (${plural(target, "unit")} now).`} />
             <CardBody>
               {canManage ? (
                 <ActionForm action={saveLevels.bind(null, store.code, variantId)} className="space-y-4">

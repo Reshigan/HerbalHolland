@@ -14,6 +14,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Qty } from "@/components/store/ui";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Stock takes" };
 const PAGE_SIZE = 20;
@@ -56,7 +57,7 @@ export default async function StockTakesPage({ params, searchParams }: { params:
                 </span>
                 <span className="mt-0.5 block text-xs text-ink-300">
                   Started {timeAgo(t.createdAt)}
-                  {t.createdBy ? ` by ${t.createdBy}` : ""} · {t.stats.counted} of {t.stats.lines} lines counted
+                  {t.createdBy ? ` by ${t.createdBy}` : ""} · {t.stats.counted} of {plural(t.stats.lines, "line")} counted
                 </span>
                 <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-ink-800" role="meter" aria-valuenow={t.stats.counted} aria-valuemin={0} aria-valuemax={t.stats.lines} aria-label="Lines counted">
                   <span className="block h-full rounded-full bg-brand-500" style={{ width: `${t.stats.lines ? (t.stats.counted / t.stats.lines) * 100 : 0}%` }} />

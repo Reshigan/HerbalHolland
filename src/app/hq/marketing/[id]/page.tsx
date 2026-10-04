@@ -4,7 +4,7 @@ import { Send, XCircle } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
-import { campaignResults, segmentLabel } from "@/server/marketing";
+import { audienceSize, campaignResults, segmentLabel } from "@/server/marketing";
 import { can } from "@/server/hq/guard";
 import { toLocalInput } from "@/server/hq/form";
 import { zar, zarCompact } from "@/lib/money";
@@ -16,10 +16,10 @@ import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
 import { ButtonLink } from "@/components/ui/button";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ActionButton, ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/hq/action-form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
-import { cancelCampaign, estimateReach, saveCampaign, sendNow } from "../actions";
+import { cancelCampaign, estimateReach, findCampaignStores, saveCampaign, sendNow } from "../actions";
 import { Flash } from "@/components/hq/flash";
 import { Composer } from "../composer";
 import { composerOptions } from "../load";
@@ -38,6 +38,8 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   const network = can(user, "network");
   const pending = c.status === "DRAFT" || c.status === "SCHEDULED";
   const editable = pending && (network || (!!c.storeId && ids.includes(c.storeId)));
+  // Sending reaches thousands at once: the confirm step restates how many and how.
+  const reach = network && c.status === "SCHEDULED" ? await audienceSize(c.segment, c.channel, c.storeId) : null;
 
   const header = (
     <>
@@ -56,9 +58,20 @@ export default async function CampaignPage({ params, searchParams }: { params: P
           pending && (
             <div className="flex flex-wrap items-start gap-2">
               {c.status === "SCHEDULED" && (
-                <ActionButton action={sendNow.bind(null, c.id)} variant="dark" pendingLabel="Sending…">
-                  <Send className="h-4 w-4" /> Send now
-                </ActionButton>
+                <ConfirmAction
+                  action={sendNow.bind(null, c.id)}
+                  label="Send now"
+                  icon={<Send className="h-4 w-4" />}
+                  triggerVariant="dark"
+                  variant="primary"
+                  title={`Send to ${num(reach?.reachable ?? 0)} members by ${CHANNEL_LABEL[c.channel]}?`}
+                  confirmLabel="Yes, send now"
+                  className="max-w-sm"
+                >
+                  <p>
+                    {num(reach?.reachable ?? 0)} of {num(reach?.total ?? 0)} in the audience opted in to {CHANNEL_LABEL[c.channel]}; the do-not-contact list is checked as it goes. Outside the legal send window it waits for the next slot. It can&apos;t be recalled once sent.
+                  </p>
+                </ConfirmAction>
               )}
               <ConfirmAction action={cancelCampaign.bind(null, c.id)} label="Cancel campaign" icon={<XCircle className="h-4 w-4" />} title="Cancel this campaign?" confirmLabel="Cancel campaign">
                 <p>Nothing will be sent. You can duplicate the copy into a new campaign later.</p>
@@ -72,7 +85,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
   );
 
   if (editable) {
-    const opts = await composerOptions(ids);
+    const opts = await composerOptions(ids, c.storeId);
     return (
       <>
         {header}
@@ -80,6 +93,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
         <Composer
           action={saveCampaign.bind(null, c.id)}
           estimate={estimateReach}
+          findStores={findCampaignStores}
           values={{ name: c.name, channel: c.channel, segment: c.segment, storeId: c.storeId ?? "", message: c.message, promotionId: c.promotionId ?? "", cost: c.costCents ? (c.costCents / 100).toFixed(2) : "", scheduledAt: toLocalInput(c.scheduledAt) }}
           {...opts}
           canSend={network}

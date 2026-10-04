@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
 import { api, errorText } from "./lib/api";
-import { orderSla, parseOrderQr } from "./lib/rules";
+import { fmtWait, orderSla, parseOrderQr } from "./lib/rules";
 import { usePos } from "./context";
 import { Alert, CheckRow, Chip, EmptyPanel, Field, PosButton, Segmented, SelectInput, Sheet, Spinner, TextInput, TextArea } from "./ui";
 import { PaymentSheet, type PaymentResult } from "./sell/payment-sheet";
@@ -148,8 +148,14 @@ export function OrdersBoard() {
               <Chip tone={sla.state === "late" ? "red" : sla.state === "warn" ? "amber" : "green"} icon={<Clock className="h-3 w-3" />}>
                 {sla.minutes} min{sla.state === "late" ? " · late" : ""}
               </Chip>
+            ) : o.status === "READY" && o.readyAt ? (
+              <Chip tone="neutral" icon={<Clock className="h-3 w-3" />}>
+                Waiting since {fmtTime(o.readyAt)} · {fmtWait(o.readyAt, now)}
+              </Chip>
+            ) : o.status === "COMPLETED" && o.doneAt ? (
+              <Chip tone="neutral">Took {fmtWait(o.placedAt, o.doneAt)}</Chip>
             ) : o.readyAt ? (
-              <Chip tone={sla.state === "late" ? "red" : "neutral"}>Ready in {sla.minutes} min</Chip>
+              <Chip tone="neutral">Packed in {fmtWait(o.placedAt, o.readyAt)}</Chip>
             ) : null}
           </div>
           <div className="mt-3 flex flex-wrap gap-1.5">
@@ -415,7 +421,7 @@ function OrderSheet({
             <Field
               label="Collection code"
               htmlFor="collect-code"
-              hint={trade ? "The 6-digit code from the buyer's email or text — it must match this order" : initialCode && code === initialCode ? "From the member's collection QR — checked when you hand over" : "The 6-digit code from the member's SMS or QR — or their order code"}
+              hint={trade ? "The 6-digit code from the buyer's email or text — it must match this order" : initialCode && code === initialCode ? "From the member's collection QR — checked when you hand over" : "The 6-digit code from the member's SMS, or scan their collection QR (the order code isn't accepted)"}
             >
               <div className="flex gap-2">
                 <TextInput id="collect-code" autoFocus inputMode={trade ? "numeric" : "text"} autoComplete="off" value={code} onChange={(e) => takeCode(e.target.value)} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />

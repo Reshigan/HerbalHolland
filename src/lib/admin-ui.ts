@@ -47,15 +47,22 @@ export function inTextField(el: { tagName?: string; isContentEditable?: boolean;
 
 // ── Command palette ──────────────────────────────────────────────────────────
 
-export type PaletteItem = { href: string; label: string; group?: string; kind: "nav" | "recent" | "jump" };
+export type PaletteItem = {
+  href: string;
+  label: string;
+  group?: string;
+  /** Extra words that find it (synonyms, a report's question, a store code); matched, never shown. */
+  keywords?: string;
+  kind: "nav" | "recent" | "jump" | "report" | "store" | "search";
+};
 
-/** Every query word must appear in the label or group; exact label prefixes rank first, then shorter labels. */
+/** Every query word must appear in the label, group or keywords; exact label prefixes rank first, then shorter labels. */
 export function searchPalette(items: PaletteItem[], query: string, limit = 12): PaletteItem[] {
   const words = query.toLowerCase().split(/\s+/).filter(Boolean);
   if (!words.length) return items.slice(0, limit);
   const score = (i: PaletteItem) => {
     const label = i.label.toLowerCase();
-    const hay = `${label} ${i.group?.toLowerCase() ?? ""}`;
+    const hay = `${label} ${i.group?.toLowerCase() ?? ""} ${i.keywords?.toLowerCase() ?? ""}`;
     if (!words.every((w) => hay.includes(w))) return null;
     return (label.startsWith(words[0]) ? 0 : label.includes(words[0]) ? 1 : 2) * 100 + label.length;
   };
@@ -65,6 +72,32 @@ export function searchPalette(items: PaletteItem[], query: string, limit = 12): 
     .sort((a, b) => a[1] - b[1])
     .slice(0, limit)
     .map(([i]) => i);
+}
+
+/**
+ * Record searches offered under every palette query, so a name, phone, SKU or order code typed into the palette
+ * always goes somewhere. HQ searches the network; a store searches its own members, stock and orders.
+ */
+export function paletteSearches(query: string, area: "store" | "hq", storeCode?: string): PaletteItem[] {
+  const q = query.trim();
+  if (!q) return [];
+  const e = encodeURIComponent(q);
+  const base = area === "hq" ? "/hq" : `/store/${storeCode ?? ""}`;
+  return [
+    { href: `${base}/customers?q=${e}`, label: `Search members for “${q}”`, group: "Search", kind: "search" },
+    area === "hq"
+      ? { href: `/hq/catalogue?q=${e}`, label: `Search catalogue for “${q}”`, group: "Search", kind: "search" }
+      : { href: `${base}/inventory?q=${e}`, label: `Search stock for “${q}”`, group: "Search", kind: "search" },
+    { href: `${base}/orders?q=${e}`, label: `Find order “${q}”`, group: "Search", kind: "search" },
+  ];
+}
+
+/** The same section at another store: /store/PTA01/orders/abc?range=7d&q=x → /store/PTA02/orders?range=7d (records don't carry across). */
+export function switchStorePath(path: string, search: string, to: string) {
+  const section = path.split("/")[3];
+  const keep = new URLSearchParams([...new URLSearchParams(search)].filter(([k]) => k === "range" || k === "from" || k === "to"));
+  const qs = keep.toString();
+  return `/store/${to}${section ? `/${section}` : ""}${qs ? `?${qs}` : ""}`;
 }
 
 export type Recent = { href: string; title: string; at: number };

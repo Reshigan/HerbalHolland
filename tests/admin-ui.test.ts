@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chord, inTextField, maskRecipient, normaliseQuery, pageTitle, parseViews, pushRecent, saveView, searchPalette, viewsKey, CHORD_MS } from "@/lib/admin-ui";
+import { chord, inTextField, maskRecipient, normaliseQuery, pageTitle, paletteSearches, parseViews, pushRecent, saveView, searchPalette, switchStorePath, viewsKey, CHORD_MS } from "@/lib/admin-ui";
 
 describe("keyboard chords", () => {
   it("g then o jumps to orders, per area", () => {
@@ -79,5 +79,26 @@ describe("recipient masking", () => {
     expect(maskRecipient("0821234567")).toBe("08 21 ••• 4567");
     expect(maskRecipient("user:abc123")).toBe("user:abc123");
     expect(maskRecipient("merch partner")).toBe("merch partner");
+  });
+});
+
+describe("palette keywords, record searches and store switching", () => {
+  it("matches keywords without showing them", () => {
+    const items = [
+      { href: "/store/PTA01/banking", label: "Banking", group: "Money", keywords: "deposit slip cash bank", kind: "nav" as const },
+      { href: "/store/PTA01/team", label: "Team", group: "People", keywords: "staff pin people add", kind: "nav" as const },
+    ];
+    expect(searchPalette(items, "deposit slip").map((i) => i.label)).toEqual(["Banking"]);
+    expect(searchPalette(items, "pin").map((i) => i.label)).toEqual(["Team"]);
+  });
+  it("offers record searches per area", () => {
+    expect(paletteSearches("  ", "hq")).toEqual([]);
+    expect(paletteSearches("Mpho A", "hq").map((i) => i.href)).toEqual(["/hq/customers?q=Mpho%20A", "/hq/catalogue?q=Mpho%20A", "/hq/orders?q=Mpho%20A"]);
+    expect(paletteSearches("HH01", "store", "PTA01").map((i) => i.href)).toEqual(["/store/PTA01/customers?q=HH01", "/store/PTA01/inventory?q=HH01", "/store/PTA01/orders?q=HH01"]);
+  });
+  it("switches store at the section level and keeps the date range", () => {
+    expect(switchStorePath("/store/PTA01/orders/abc123", "?range=7d&q=x", "JHB02")).toBe("/store/JHB02/orders?range=7d");
+    expect(switchStorePath("/store/PTA01", "", "JHB02")).toBe("/store/JHB02");
+    expect(switchStorePath("/store/PTA01/inventory", "?from=2026-09-01&to=2026-09-30", "JHB02")).toBe("/store/JHB02/inventory?from=2026-09-01&to=2026-09-30");
   });
 });

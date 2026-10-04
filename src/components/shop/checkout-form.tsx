@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 
 export type Fulfil = "COLLECT" | "SAME_DAY" | "COURIER";
 export type FulfilOption = { key: Fulfil; ok: boolean; reason?: string; feeCents: number; maxPoints: number };
-export type CollectStore = { id: string; name: string; suburb: string; city: string; hasAll: boolean; missing: number; km: number | null; openLabel: string; open: boolean };
+export type CollectStore = { id: string; name: string; suburb: string; city: string; hasAll: boolean; missing: number; km: number | null; openLabel: string; open: boolean; ready?: string /* "Usually ready within 2 hours", "Ready tomorrow from 09:00" */ };
 export type SummaryLine = { variantId: string; name: string; variant: string; qty: number; totalCents: number };
 export type AddressFields = { addressLine: string; suburb: string; city: string; province: string; postalCode: string; notes?: string };
 export type SavedAddress = AddressFields & { id: string; label: string; isDefault: boolean };
@@ -101,6 +101,8 @@ export function CheckoutForm(props: {
             {props.options.map((o) => {
               const on = o.key === fulfilment;
               const when = o.key === "COLLECT" ? props.estimates.collect : o.key === "SAME_DAY" ? props.estimates.sameDay : (props.estimates.courier[addr.province] ?? props.estimates.courier[""]);
+              // After the cut-off, "same-day" arrives the next working day: say so.
+              const name = o.key === "SAME_DAY" && props.estimates.sameDay !== "Today" ? "Next-day delivery" : META[o.key].label;
               return (
                 <button
                   type="button"
@@ -119,11 +121,11 @@ export function CheckoutForm(props: {
                   )}
                 >
                   <span className={cn("grid h-9 w-9 place-items-center rounded-full", on ? "bg-brand-500 text-ink-950" : "bg-ink-850 text-brand-400")}>{META[o.key].icon}</span>
-                  <span className="mt-3 font-semibold text-white">{META[o.key].label}</span>
+                  <span className="mt-3 font-semibold text-white">{name}</span>
                   <span className="mt-0.5 text-xs text-ink-400">{!o.ok ? o.reason : o.feeCents ? zar(o.feeCents) : "Free"}</span>
                   {o.ok && (
                     <span className="mt-1.5 flex items-center gap-1 text-xs font-medium text-ink-200">
-                      <Clock className="h-3.5 w-3.5 text-brand-500" /> {o.key === "COLLECT" ? `Ready ${when.toLowerCase()}` : `Arrives ${when}`}
+                      <Clock className="h-3.5 w-3.5 text-brand-500" /> {o.key === "COLLECT" ? (chosen?.ready ?? `Ready ${when.toLowerCase()}`) : `Arrives ${when}`}
                     </span>
                   )}
                   {on && <Check className="absolute right-3 top-3 h-4 w-4 text-brand-400" strokeWidth={2.6} />}

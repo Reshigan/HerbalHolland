@@ -6,6 +6,9 @@ import { addDays } from "@/lib/format";
 import { PosError } from "./http";
 import type { ReceiptDTO, ReceiptTrade, SaleRow, TierKey } from "./types";
 import { maskVoucherCode } from "@/lib/vouchers";
+import { normalisePhone } from "@/lib/sa";
+import { memberNoFrom } from "@/components/pos/lib/rules";
+import type { Prisma } from "@/generated/prisma/client";
 
 type LineAlloc = { lineId?: string };
 
@@ -141,16 +144,38 @@ async function tradeBlock(s: TradeSale): Promise<ReceiptTrade> {
 export const HISTORY_DAYS = 30;
 const PAGE = 25;
 
-/** Recent sales at the store, newest first; `q` matches the receipt number. */
+/** Who a history search could mean besides a receipt number: a member (number, mobile, name) or a trade account. */
+function saleMatch(q: string): Prisma.SaleWhereInput {
+  const ci = "insensitive" as const;
+  const or: Prisma.SaleWhereInput[] = [{ number: { contains: q, mode: ci } }];
+  const memberNo = memberNoFrom(q);
+  const phone = normalisePhone(q);
+  const digits = q.replace(/\D/g, "");
+  const words = q.split(/\s+/).filter(Boolean);
+  if (memberNo) or.push({ customer: { memberNo } });
+  else if (phone) or.push({ customer: { phone } });
+  else if (/^\d{4,9}$/.test(digits) && digits.length === q.replace(/\s/g, "").length) or.push({ customer: { phone: { endsWith: digits } } });
+  else if (/[A-Z]/i.test(q)) {
+    or.push(
+      words.length > 1
+        ? { customer: { firstName: { startsWith: words[0], mode: ci }, lastName: { startsWith: words.slice(1).join(" "), mode: ci } } }
+        : { customer: { OR: [{ firstName: { startsWith: q, mode: ci } }, { lastName: { startsWith: q, mode: ci } }] } },
+      { tradeAccount: { name: { contains: q, mode: ci } } },
+    );
+  }
+  return { OR: or };
+}
+
+/** Recent sales at the store, newest first; `q` matches the receipt number, or the member (number, mobile, name) or trade account. */
 export async function salesHistory(storeId: string, opts: { q?: string; before?: string }) {
-  const q = opts.q?.trim().toUpperCase();
+  const q = opts.q?.trim().slice(0, 60);
   const since = addDays(new Date(), -(q ? 90 : HISTORY_DAYS));
   const before = opts.before ? new Date(opts.before) : null;
   const rows = await db.sale.findMany({
     where: {
       storeId,
       createdAt: { gte: since, ...(before && !Number.isNaN(before.getTime()) && { lt: before }) },
-      ...(q && { number: { contains: q, mode: "insensitive" as const } }),
+      ...(q && saleMatch(q)),
     },
     orderBy: { createdAt: "desc" },
     take: PAGE + 1,

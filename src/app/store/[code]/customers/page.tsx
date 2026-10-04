@@ -5,7 +5,7 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { SEGMENT_TONE, hrefWith, sp1 } from "@/server/store/rules";
-import { NO_STATS, homeMemberTotals, membersByHere, statsHere } from "@/server/store/members";
+import { NO_STATS, customerSearch, homeMemberTotals, memberAtStore, membersByHere, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf, type SegmentKey } from "@/lib/rfm";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { displayPhone } from "@/lib/sa";
@@ -54,22 +54,9 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   const dir: "asc" | "desc" = SORTS[sort] ? (sp1(sp.dir) === "asc" || sp1(sp.dir) === "desc" ? (sp1(sp.dir) as "asc" | "desc") : DEFAULT_DIR[sort]) : "desc";
   const page = pageParam(sp.page);
 
-  const words = q.split(/\s+/).filter(Boolean);
-  const digits = q.replace(/\D/g, "");
-  const search: Prisma.CustomerWhereInput = words.length
-    ? {
-        AND: words.map((w) => ({
-          OR: [
-            { firstName: { contains: w, mode: "insensitive" as const } },
-            { lastName: { contains: w, mode: "insensitive" as const } },
-            { memberNo: { contains: w, mode: "insensitive" as const } },
-            { email: { contains: w, mode: "insensitive" as const } },
-            ...(digits.length >= 4 ? [{ phone: { contains: digits.replace(/^0/, "") } }] : []),
-          ],
-        })),
-      }
-    : {};
-  const base: Prisma.CustomerWhereInput = { AND: [{ homeStoreId: store.id }, search, tier ? { tier } : {}] };
+  const search = customerSearch(q);
+  // Searching widens to members who have bought here too (a visitor at the counter isn't always a home member).
+  const base: Prisma.CustomerWhereInput = { AND: [q ? memberAtStore(store.id) : { homeStoreId: store.id }, search, tier ? { tier } : {}] };
   const where: Prisma.CustomerWhereInput = { AND: [base, segmentWhere(seg)] };
 
   const segKeys = ["ALL", "CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
@@ -145,6 +132,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
               </Link>
             </p>
           )}
+          {q && <p className="text-xs text-ink-500">Searching home members and members who have bought at {store.name}.</p>}
           <span id="m-sort-hint" className="sr-only">Column headings sort the list too.</span>
           <SavedViews pageKey="store-members" userKey={user.id} />
         </div>
@@ -180,6 +168,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
                             {c.firstName} {c.lastName ?? ""}
                           </span>
                           <span className="font-mono text-xs text-ink-500">{c.memberNo}</span>
+                          {c.homeStoreId !== store.id && <span className="ml-2 text-xs text-ink-500">· home store elsewhere</span>}
                         </span>
                       </Link>
                     </Td>

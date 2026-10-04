@@ -2,11 +2,12 @@
 // totals footer and a row cap (the CSV carries everything). Wide tables get denser
 // cells and a sticky first column so they stay readable while scrolling sideways.
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/cn";
 import type { Column, Row } from "@/server/reports/types";
 import { fmtCell, isNumeric } from "./format";
+import { sortable, sortRows, type SortDir } from "@/lib/report-sort";
 
 const alignOf = (c: Column) => c.align ?? (isNumeric(c.format) ? "right" : "left");
 const ALIGN = { left: "text-left", right: "text-right", center: "text-center" } as const;
@@ -42,8 +43,14 @@ function Cell({ c, row, first }: { c: Column; row: Row; first: boolean }) {
   return <>{text}</>;
 }
 
-export function ReportTable({ columns: all, rows, totals, limit }: { columns: Column[]; rows: Row[]; totals?: Row | null; limit?: number }) {
+/**
+ * `sort` + `sortHref`: column headers become sort links (the URL carries ?sort=&dir=) and the rows are sorted before
+ * the screen cap, so "lowest growth first" really shows the lowest of all rows. Grouped tables keep their order.
+ */
+export function ReportTable({ columns: all, rows: given, totals, limit, sort, sortHref }: { columns: Column[]; rows: Row[]; totals?: Row | null; limit?: number; sort?: { key: string; dir: SortDir } | null; sortHref?: (key: string, dir: SortDir) => string }) {
   const columns = all.filter((c) => !c.csvOnly);
+  const canSort = !!sortHref && sortable(given);
+  const rows = canSort && sort ? sortRows(given, sort.key, sort.dir) : given;
   const shown = limit ? rows.slice(0, limit) : rows;
   const dense = columns.length > 8;
   const pad = dense ? "px-2.5 first:pl-5 last:pr-5" : "px-4 first:pl-5 last:pr-5";
@@ -58,6 +65,7 @@ export function ReportTable({ columns: all, rows, totals, limit }: { columns: Co
               <th
                 key={c.key}
                 scope="col"
+                aria-sort={canSort && sort?.key === c.key ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
                 className={cn(
                   "border-b border-ink-150 bg-ink-50 py-2.5 align-bottom text-[0.66rem] font-semibold uppercase leading-tight tracking-[0.08em] text-ink-500",
                   dense && ci > 0 ? "min-w-[4.5rem]" : "whitespace-nowrap",
@@ -66,7 +74,7 @@ export function ReportTable({ columns: all, rows, totals, limit }: { columns: Co
                   stick(ci),
                 )}
               >
-                {c.label || <span className="sr-only">Line</span>}
+                {canSort && c.label && c.format !== "badge" ? <SortLink c={c} sort={sort ?? null} href={sortHref!} /> : c.label || <span className="sr-only">Line</span>}
               </th>
             ))}
           </tr>
@@ -120,5 +128,23 @@ export function ReportTable({ columns: all, rows, totals, limit }: { columns: Co
         )}
       </table>
     </div>
+  );
+}
+
+function SortLink({ c, sort, href }: { c: Column; sort: { key: string; dir: SortDir } | null; href: (key: string, dir: SortDir) => string }) {
+  const active = sort?.key === c.key;
+  const right = alignOf(c) === "right";
+  // Numbers start highest first; text A–Z. Clicking the sorted column flips it.
+  const next: SortDir = active ? (sort!.dir === "asc" ? "desc" : "asc") : right ? "desc" : "asc";
+  return (
+    <Link href={href(c.key, next)} scroll={false} className={cn("group/sort inline-flex items-center gap-1 rounded-md uppercase hover:text-ink-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500/40 print:no-underline", active && "text-ink-900", right && "flex-row-reverse")}>
+      {c.label}
+      {active ? (
+        sort!.dir === "asc" ? <ArrowUp className="h-3 w-3 shrink-0" aria-hidden /> : <ArrowDown className="h-3 w-3 shrink-0" aria-hidden />
+      ) : (
+        <ArrowUpDown className="h-3 w-3 shrink-0 opacity-0 transition-opacity group-hover/sort:opacity-60 group-focus-visible/sort:opacity-60" aria-hidden />
+      )}
+      <span className="sr-only">{active ? `, sorted ${sort!.dir === "asc" ? "ascending" : "descending"}` : ", sort by this column"}</span>
+    </Link>
   );
 }

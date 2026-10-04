@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { audienceSize, sendCampaign, CampaignError } from "@/server/marketing";
+import { storeWhere } from "@/server/scope";
 import { guard, inScope, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, opt, parseRand, parseLocal, parseSuppressionList } from "@/server/hq/form";
 import { screenCopy } from "@/lib/compliance";
@@ -15,6 +16,26 @@ const CHANNELS: MsgChannel[] = ["SMS", "EMAIL", "PUSH", "WHATSAPP"];
 const PUSH_TITLE_MAX = 40;
 const PUSH_BODY_MAX = 140;
 const validSegment = isAudience;
+
+/** The composer's home-store picker: up to 20 open stores in the person's scope, by name, code or city (and region). */
+export async function findCampaignStores(q: string, region: string) {
+  const g = await guard("view");
+  if (!g) return [];
+  const term = q.trim().slice(0, 60);
+  return db.store.findMany({
+    where: {
+      AND: [
+        storeWhere(g.scope),
+        { kind: "RETAIL", status: { not: "CLOSED" } },
+        region ? { region: { code: region } } : {},
+        term ? { OR: [{ name: { contains: term, mode: "insensitive" } }, { code: { contains: term, mode: "insensitive" } }, { city: { contains: term, mode: "insensitive" } }] } : {},
+      ],
+    },
+    select: { id: true, name: true, code: true, city: true },
+    orderBy: { name: "asc" },
+    take: 20,
+  });
+}
 
 /** Live audience estimate for the composer. */
 export async function estimateReach(segment: string, channel: string, storeId: string | null) {

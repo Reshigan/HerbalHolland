@@ -1,5 +1,5 @@
 "use client";
-// Sales at this store: search by receipt number, view/print a receipt, email the invoice,
+// Sales at this store: search by receipt number, member (number, mobile, name) or trade account, view/print a receipt, email the invoice,
 // refund selected lines (restock toggle, reason, tender) via sales.refundSale — what a gift
 // voucher paid goes back onto the voucher first, and on a trade sale what was on account comes
 // back as a credit note on the account's ledger; only the rest is paid out.
@@ -10,6 +10,7 @@ import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, fmtTime, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { allocateRefund, allocateRefundAcross } from "@/lib/vouchers";
+import { cashRefundAllowed, defaultRefundMethod, isTillManager, refundSplit, type RefundMethod } from "@/lib/pos-refund";
 import { api, errorText } from "./lib/api";
 import { TENDER_LABEL, tenderLine, uuid } from "./lib/rules";
 import { tradeTenderLabel } from "./lib/receipt";
@@ -68,7 +69,7 @@ export function SalesHistory() {
           <p className="text-sm text-ink-400">This store · last {days} days</p>
           <div className="relative mt-3">
             <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
-            <TextInput value={q} onChange={(e) => setQ(e.target.value.toUpperCase())} placeholder="Receipt number" aria-label="Search by receipt number" className="rounded-full pl-12 font-mono" />
+            <TextInput value={q} onChange={(e) => setQ(e.target.value)} placeholder="Receipt, member, name or mobile" aria-label="Search by receipt number, member, name or mobile" className="rounded-full pl-12" />
           </div>
         </div>
         {error && <Alert className="mx-4 mb-3">{error}</Alert>}
@@ -329,14 +330,16 @@ function SaleDetail({ id, onBack, onChanged, onOpen }: { id: string; onBack: () 
 
 function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () => void; onDone: (credit: ReceiptDTO) => void }) {
   const pos = usePos();
-  // The money tender to default to: never a voucher, the shop's gateway or a trade account's terms.
-  const original = sale.payments.find((p) => p.method !== "ONLINE" && p.method !== "VOUCHER" && p.method !== "ACCOUNT" && p.method !== "LOYALTY")?.method ?? "CARD";
+  // The money tender to default to: the one that paid most (never a voucher, the shop's gateway or a trade account's terms).
+  // Cash only goes back out of the drawer when cash paid for the sale.
+  const cashOk = cashRefundAllowed(sale.payments);
+  const manager = isTillManager(pos.me.role);
   const trade = sale.channel === "WHOLESALE" ? (sale.trade ?? null) : null;
   const [qty, setQty] = useState<Record<string, number>>({});
   const [restock, setRestock] = useState<Record<string, boolean>>(() => Object.fromEntries(sale.lines.map((l) => [l.id, true])));
   const [reason, setReason] = useState(REASONS[0]);
   const [other, setOther] = useState("");
-  const [method, setMethod] = useState<"CARD" | "CASH" | "PAYSHAP" | "EFT">(["CARD", "CASH", "PAYSHAP", "EFT"].includes(original) ? (original as "CARD") : "CARD");
+  const [method, setMethod] = useState<RefundMethod>(() => defaultRefundMethod(sale.payments));
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -354,6 +357,8 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
   const toAccount = account.toVoucher;
   const toTender = account.toTender;
   const voucherOnly = (split.parts.length > 0 || toAccount > 0) && toTender === 0;
+  // Paid with more than one money tender: what each would get back in proportion (one tender per refund).
+  const proportion = refundSplit(sale.payments, toTender);
 
   async function submit() {
     setBusy(true);
@@ -378,8 +383,11 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
       setConfirm(false);
     } finally {
       setBusy(false);
+      pos.handoffDone(); // a manager who stepped in to approve: offer the till back
     }
   }
+  // A refund needs a manager: anyone else hands the till to a manager (PIN), who confirms it.
+  const approve = () => (manager ? void submit() : pos.switchUser("manager", () => void submit(), { handBack: "later" }));
 
   return (
     <>
@@ -438,9 +446,11 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
             htmlFor="refund-method"
             hint={voucherOnly ? (toAccount > 0 ? "Nothing to pay out: it all goes back onto the account as a credit note" : "Nothing to pay out: it all goes back onto the gift voucher") : `Original payment: ${sale.payments.map((p) => (p.method === "VOUCHER" ? tenderLine(p) : (TENDER_LABEL[p.method] ?? p.method))).join(", ")}`}
           >
-            <SelectInput id="refund-method" value={method} disabled={voucherOnly} onChange={(e) => setMethod(e.target.value as "CARD")}>
+            <SelectInput id="refund-method" value={method} disabled={voucherOnly} onChange={(e) => setMethod(e.target.value as RefundMethod)}>
               <option value="CARD">Card</option>
-              <option value="CASH">Cash from the drawer</option>
+              <option value="CASH" disabled={!cashOk}>
+                {cashOk ? "Cash from the drawer" : "Cash (not paid in cash)"}
+              </option>
               <option value="PAYSHAP">PayShap</option>
               <option value="EFT">EFT</option>
             </SelectInput>
@@ -451,6 +461,14 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
             </Field>
           )}
         </div>
+        {proportion.length > 1 && !voucherOnly && (
+          <Alert tone="info" className="mt-4">
+            <span data-testid="refund-proportion">
+              Paid with {proportion.map((p) => TENDER_LABEL[p.method].toLowerCase()).join(" and ")}: in proportion that&apos;s {proportion.map((p) => `${zar(p.cents)} by ${TENDER_LABEL[p.method]}`).join(" and ")}.
+            </span>{" "}
+            A refund goes to one tender — refund in two goes if the customer wants it split.
+          </Alert>
+        )}
         {split.parts.length > 0 && (
           <Alert tone="info" className="mt-4">
             <span data-testid="refund-voucher">
@@ -497,13 +515,14 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
               </>
             )}
             . A credit note is issued{sale.invoiceEmail ? ` and emailed to ${sale.invoiceEmail}` : ""}. This can&apos;t be undone.
+            {!manager && " A manager confirms it with their PIN."}
           </>
         }
         confirmLabel="Confirm refund"
         danger
         busy={busy}
         onClose={() => setConfirm(false)}
-        onConfirm={() => void submit()}
+        onConfirm={approve}
       />
     </>
   );

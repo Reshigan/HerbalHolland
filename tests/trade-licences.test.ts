@@ -1,7 +1,7 @@
 // The licences a trade account must hold (src/lib/trade-licences.ts): which ones each kind of business needs for its
 // ranges, whether the account holds them (verified and in date), and how a typed licence is checked.
 import { describe, expect, it } from "vitest";
-import { checkLicenceInput, expiryOf, LICENCE_REMIND_DAYS, licenceStanding, requiredLicences, type LicenceRecord } from "@/lib/trade-licences";
+import { checkLicenceInput, expiryOf, LICENCE_REMIND_DAYS, licenceStanding, licencesToHaveReady, requiredLicences, TRADE_LICENCES, type LicenceRecord } from "@/lib/trade-licences";
 
 // A company (it has a registration number) unless `company` says otherwise.
 const kinds = (kind: string, classes: string[], company = true) => requiredLicences(kind, classes, company).map((r) => r.kind);
@@ -94,5 +94,23 @@ describe("checking a licence as typed", () => {
     expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123", expiresAt: "2026-02-30" }, NOW)).toEqual({ ok: false, fields: { expiresAt: "Enter the expiry date" } });
     expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123", expiresAt: "2026-10-04" }, NOW)).toEqual({ ok: true, number: "W123", expiresAt: expiryOf("2026-10-04") });
     expect(expiryOf("2026-10-04").toISOString()).toBe("2026-10-04T21:59:59.000Z");
+  });
+});
+
+describe("licencesToHaveReady", () => {
+  it("lists a sole proprietor's SARS notice beside a company's CIPC certificate", () => {
+    expect(licencesToHaveReady("RETAILER")).toEqual([
+      { licence: "FOOD_COA", classes: ["CBD_FOOD"] },
+      { licence: "CIPC_REGISTRATION", company: true },
+      { licence: "SARS_REGISTRATION", company: false },
+    ]);
+  });
+  it("names a document once when the kind always needs it", () => {
+    expect(licencesToHaveReady("CAFE")).toEqual([{ licence: "FOOD_COA" }, { licence: "BUSINESS_LICENCE" }]);
+    expect(licencesToHaveReady("PHARMACY").map((l) => l.licence)).toEqual(["PHARMACY_LICENCE", "SAPC_RECORDING", "FOOD_COA"]);
+  });
+  it("labels a SARS registration as a tax reference, not a licence", () => {
+    expect(TRADE_LICENCES.SARS_REGISTRATION.numberLabel).toBe("Income tax reference number");
+    expect(TRADE_LICENCES.SARS_REGISTRATION.docLabel).toBe("SARS notice of registration");
   });
 });

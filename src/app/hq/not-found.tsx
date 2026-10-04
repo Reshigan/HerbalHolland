@@ -9,7 +9,7 @@ export default function HqNotFound() {
         <SearchX className="h-6 w-6" aria-hidden />
       </div>
       <h1 className="font-display text-xl font-semibold text-ink-950">Not found</h1>
-      <p className="mt-2 text-sm text-ink-500">That record doesn&apos;t exist, was removed, or sits outside the stores you look after.</p>
+      <p className="mt-2 text-sm text-ink-500">That page or record doesn&apos;t exist, was removed, or sits outside what you look after.</p>
       <div className="mt-6 flex justify-center">
         <ButtonLink href="/hq" variant="outline">
           Back to the network overview

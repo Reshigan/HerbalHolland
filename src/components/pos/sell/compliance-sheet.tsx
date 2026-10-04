@@ -40,6 +40,14 @@ const TITLE: Record<BlockKind, string> = {
   OTHER: "Can't complete this sale yet",
 };
 
+/** The block's message without a lead-in that repeats its title ("Members only: add the member…" under "Members only"). */
+function blockText(kind: BlockKind, message: string) {
+  const title = TITLE[kind];
+  if (!message.toLowerCase().startsWith(title.toLowerCase())) return message;
+  const rest = message.slice(title.length).replace(/^[\s:—–-]+/, "");
+  return rest ? rest[0].toUpperCase() + rest.slice(1) : message;
+}
+
 export function ComplianceSheet({
   open,
   result,
@@ -98,7 +106,7 @@ export function ComplianceSheet({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-white">{TITLE[b.kind]}</div>
-                  <p className="mt-0.5 text-sm text-ink-300">{b.message}</p>
+                  <p className="mt-0.5 text-sm text-ink-300">{blockText(b.kind, b.message)}</p>
                 </div>
               </div>
 

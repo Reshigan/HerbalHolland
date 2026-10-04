@@ -73,7 +73,7 @@ export function RemindMe({ variantId, signedIn, next, existing, days, channels, 
     );
   if (!open)
     return (
-      <button type="button" onClick={() => setOpen(true)} className={cn("flex items-center gap-2 text-sm text-ink-300 hover:text-white", className)}>
+      <button type="button" onClick={() => setOpen(true)} className={cn("flex min-h-11 items-center gap-2 text-sm text-ink-300 hover:text-white", className)}>
         <CalendarClock className="h-4 w-4 shrink-0 text-brand-500" /> Remind me to reorder
       </button>
     );

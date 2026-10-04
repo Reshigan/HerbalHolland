@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { priceBasket, redeemableCents, livePromotions, type PricingData } from "@/components/pos/lib/pricing";
 import {
   classifyBlock, countCash, DENOMINATIONS, denomLabel, dropIndex, maskPhone, maxRedeemable, memberNoFrom, orderSla, parseOrderQr, parseRands, quickCash, receiptNumber,
-  offlineMember, rsvpTicketFrom, uuid,
+  offlineMember, rsvpTicketFrom, uuid, fmtWait,
 } from "@/components/pos/lib/rules";
 import { checkCompliance, DEFAULT_COMPLIANCE } from "@/lib/compliance";
 import type { BootPromotion } from "@/server/pos/types";
@@ -259,5 +259,20 @@ describe("till rules", () => {
     const id = uuid();
     expect(id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
     expect(uuid()).not.toBe(id);
+  });
+});
+
+describe("till waits and offline members", () => {
+  it("formats how long an order waited", () => {
+    expect(fmtWait("2026-10-04T12:00:00Z", "2026-10-04T12:25:00Z")).toBe("25m");
+    expect(fmtWait("2026-10-04T09:39:00Z", "2026-10-04T14:09:00Z")).toBe("4h 30m");
+    expect(fmtWait("2026-10-01T10:00:00Z", "2026-10-03T13:00:00Z")).toBe("2d 3h");
+  });
+  it("takes a member by mobile offline, masked on screen", () => {
+    const m = offlineMember("+27821234567");
+    expect(m.offline).toBe(true);
+    expect(m.memberNo).toBe("+27821234567");
+    expect(m.lastName).toBe("082 ••• 4567");
+    expect(offlineMember("HH0100002").lastName).toBe("HH0100002");
   });
 });

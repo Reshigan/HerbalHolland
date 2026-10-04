@@ -99,6 +99,8 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
             <tbody>
               {shown.map((r) => {
                 const n = qty[r.variantId] ?? 0;
+                // More than the forecast suggests, and it would leave over twice par on the shelf once everything lands.
+                const overPar = r.parLevel > 0 && n > r.suggested && r.available + r.onOrder + n > r.parLevel * 2;
                 return (
                   <tr key={r.variantId} className={cn("transition-colors", n > 0 ? "bg-brand-50/50" : "hover:bg-ink-50/60")}>
                     <td className="border-b border-ink-100 px-5 py-2.5">
@@ -135,6 +137,11 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
                           <Plus className="h-3.5 w-3.5" aria-hidden />
                         </button>
                       </div>
+                      {overPar && (
+                        <span className="mt-1 flex justify-center" title={`${r.available + r.onOrder + n} after delivery · par ${r.parLevel}`}>
+                          <Badge tone="amber">Above 2× par</Badge>
+                        </span>
+                      )}
                       {r.suggested > 0 && n !== r.suggested && (
                         <button type="button" onClick={() => set(r.variantId, r.suggested)} className="mx-auto mt-0.5 block text-[0.68rem] font-semibold text-brand-700 hover:underline">
                           Suggested {r.suggested}
@@ -193,11 +200,6 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
             </SubmitButton>
           </div>
         </div>
-        {chosen.some((r) => r.available > r.parLevel * 2 && r.parLevel > 0) && (
-          <p className="mt-2 text-xs text-amber-700">
-            <Badge tone="amber">Check</Badge> Some lines are for items you already hold more than twice par of.
-          </p>
-        )}
       </div>
     </ActionForm>
   );

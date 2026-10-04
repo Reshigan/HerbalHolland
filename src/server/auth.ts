@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "./db";
 import type { Role } from "@/generated/prisma/client";
 
@@ -67,7 +67,9 @@ export async function requireStaff(roles?: Role[]) {
   const user = await getStaffChangingPassword();
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
-  if (roles && !roles.includes(user.role)) redirect("/login?denied=1");
+  // Signed in but outside their role: a not-found inside the shell ("sits outside what you look after"), not the
+  // sign-in page — that reads like being signed out. Anonymous visitors still go to /login above.
+  if (roles && !roles.includes(user.role)) notFound();
   return user;
 }
 

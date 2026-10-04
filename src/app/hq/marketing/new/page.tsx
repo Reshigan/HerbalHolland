@@ -4,7 +4,7 @@ import { can } from "@/server/hq/guard";
 import { SEGMENTS } from "@/lib/rfm";
 import { PageHeader } from "@/components/ui/page";
 import { BackLink } from "@/components/hq/ui";
-import { estimateReach, saveCampaign } from "../actions";
+import { estimateReach, findCampaignStores, saveCampaign } from "../actions";
 import { Composer } from "../composer";
 import { composerOptions } from "../load";
 
@@ -24,6 +24,7 @@ export default async function NewCampaignPage({ searchParams }: { searchParams: 
       <Composer
         action={saveCampaign.bind(null, null)}
         estimate={estimateReach}
+        findStores={findCampaignStores}
         values={{ name: "", channel: "SMS", segment, storeId: "", message: "", promotionId: "", cost: "", scheduledAt: "" }}
         {...opts}
         canSend={can(user, "network")}

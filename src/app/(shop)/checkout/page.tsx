@@ -17,7 +17,7 @@ import { getCart, getPreferredStore, getPromoCode, getRetailStores, getVoucherCo
 import { listAddresses } from "@/server/shop/addresses";
 import { voucherForCheckout } from "@/server/shop/vouchers";
 import { deliveryEstimate } from "@/lib/delivery";
-import { openState, parseHours } from "@/server/shop/hours";
+import { collectReady, openState, parseHours } from "@/server/shop/hours";
 import { redeemablePoints } from "@/server/shop/cart-codec";
 import { tierMeta } from "@/server/shop/club";
 import { readableDropBlock } from "@/server/shop/launch-rules";
@@ -133,8 +133,9 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     .map((c) => {
       const s = byId.get(c.id)!;
       const missing = q.lines.filter((l) => (c.available[l.variantId] ?? 0) < l.qty).length;
-      const o = openState(parseHours(s.hours));
-      return { id: c.id, name: s.name, suburb: s.suburb, city: s.city, hasAll: missing === 0, missing, km: origin && c.lat != null && c.lng != null ? distanceKm(origin, { lat: c.lat, lng: c.lng }) : null, openLabel: o.label, open: o.open };
+      const hours = parseHours(s.hours);
+      const o = openState(hours, now);
+      return { id: c.id, name: s.name, suburb: s.suburb, city: s.city, hasAll: missing === 0, missing, km: origin && c.lat != null && c.lng != null ? distanceKm(origin, { lat: c.lat, lng: c.lng }) : null, openLabel: o.label, open: o.open, ready: collectReady(hours, now).label };
     })
     // The shopper's own store first (even if it's short, so they see why), then stores that have everything, nearest first.
     .sort((a, b) => Number(b.id === store?.id) - Number(a.id === store?.id) || Number(b.hasAll) - Number(a.hasAll) || (a.km ?? 1e9) - (b.km ?? 1e9) || a.city.localeCompare(b.city));
@@ -149,7 +150,8 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       </p>
       {welcome && (
         <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${customer.firstName}!`} className="mb-8">
-          Your {tierMeta(customer.tier).name} member prices are already applied below, and {fmtPoints(settings.loyalty.signupBonus)} are waiting in your account.
+          {q.memberSavingsCents > 0 ? `Your ${tierMeta(customer.tier).name} member prices are already applied below, and ` : "You're in — "}
+          {fmtPoints(settings.loyalty.signupBonus)} are waiting in your account.
         </Callout>
       )}
       {needsAge && (

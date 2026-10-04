@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  ageing, caseMultiple, tradeKindPhrase, creditDecision, eftExpired, eftReference, normaliseTradePhone, normaliseRegNumber, normaliseVatNumber, openInvoices, overdueBeyondGrace, previousMonth,
+  ageing, rangeSearchTerms, caseMultiple, tradeKindPhrase, creditDecision, eftExpired, eftReference, normaliseTradePhone, normaliseRegNumber, normaliseVatNumber, openInvoices, overdueBeyondGrace, previousMonth,
   statementMonth, tradeAccountNumber, tradeAllowed, tradeBuyerBlock, tradeCreditNumber, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeNumberQuery, tradeOrderNumber,
   tradeProblem, tradeStatement, tradeTotals, validateTradeApplication, validateTradeBasket, vatHalfUp, TRADE_CLASSES, type LedgerEntryLike,
 } from "@/lib/trade";
@@ -384,5 +384,18 @@ describe("tradeKindPhrase", () => {
     expect(tradeKindPhrase("DISTRIBUTOR")).toBe("a wholesaler or distributor");
     expect(tradeKindPhrase("OTHER")).toBe("a business");
     expect(tradeKindPhrase("NONSENSE")).toBe("a business");
+  });
+});
+
+describe("rangeSearchTerms", () => {
+  it("splits a query into words and the numbers it measures", () => {
+    expect(rangeSearchTerms("Calm oil")).toEqual([["calm"], ["oil"]]);
+    expect(rangeSearchTerms("calm 600")).toEqual([["calm"], ["600"]]);
+    expect(rangeSearchTerms("cbd 30ml")).toEqual([["cbd"], ["30ml", "30 ml"]]);
+    expect(rangeSearchTerms("soft gels")).toEqual([["soft"], ["gels"]]);
+  });
+  it("ignores hyphens and stop words", () => {
+    expect(rangeSearchTerms("calm-oil for the dog")).toEqual([["calm"], ["oil"], ["dog"]]);
+    expect(rangeSearchTerms("  ")).toEqual([]);
   });
 });

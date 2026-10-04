@@ -343,8 +343,8 @@ export function PaymentSheet({
                 {trade
                   ? "Offline — a trade sale is priced and invoiced on the server, so it can't be completed until the till is back online."
                   : tapProvider === "YOCO"
-                    ? "Offline — cash, or card on the Yoco machine. PayShap, points and gift vouchers need a connection."
-                    : "Offline — cash only. Card, PayShap, points and gift vouchers need a connection."}
+                    ? "Offline — cash, or card on the Yoco machine or a bank terminal. PayShap, points and gift vouchers need a connection."
+                    : "Offline — cash, or card on a bank terminal (key in its approval code). Tap on glass, PayShap, points and gift vouchers need a connection."}
               </Alert>
             )}
             {voucherPending && (
@@ -357,14 +357,14 @@ export function PaymentSheet({
               {tapProvider === "YOCO"
                 ? method("yoco", "Card · Yoco", <CreditCard className="h-5 w-5" />, false, "Charge it on the Yoco machine")
                 : method("card", "Card · tap", <Nfc className="h-5 w-5" />, !online || tapProvider === "EXTERNAL", "Card, phone or watch")}
-              {method("external", "Bank terminal", <Landmark className="h-5 w-5" />, !online, "Enter the approval code")}
+              {method("external", "Bank terminal", <Landmark className="h-5 w-5" />, false, "Enter the approval code")}
               {method("cash", "Cash", <Banknote className="h-5 w-5" />, false, "Change calculated")}
               {method("payshap", "PayShap", <QrCode className="h-5 w-5" />, !online, "Instant EFT by QR")}
               {tradeRules && method("eft", "EFT", <Landmark className="h-5 w-5" />, !tradeRules.eft, "Paid by EFT · bank reference")}
               {tradeRules &&
                 trade &&
                 method("account", "On account", <Building2 className="h-5 w-5" />, !tradeRules.account, tradeRules.account ? `${zar(accountLeft)} available on account` : (tradeRules.accountReason ?? "Needs a connection"))}
-              {!trade && points && method("points", "Points", <Sparkles className="h-5 w-5" />, !online || maxPts === 0, points.balance < points.minRedeem ? `Min ${points.minRedeem} pts to redeem` : `${fmtPoints(points.balance)} available`)}
+              {!trade && points && method("points", "Points", <Sparkles className="h-5 w-5" />, !online || maxPts === 0, !online ? "Needs a connection" : points.balance < points.minRedeem ? `Min ${points.minRedeem} pts to redeem` : `${fmtPoints(points.balance)} available`)}
               {!trade && method("voucher", "Gift voucher", <Gift className="h-5 w-5" />, !online, online ? "Type or scan the code" : "Needs a connection")}
             </div>
 

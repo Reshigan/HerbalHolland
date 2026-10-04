@@ -11,7 +11,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { ArrowRight, Clock, Command, CornerDownLeft, Search, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { CHORD_MS, JUMPS, chord, inTextField, pageTitle, pushRecent, recentKey, searchPalette, type Chord, type PaletteItem, type Recent } from "@/lib/admin-ui";
+import { CHORD_MS, JUMPS, chord, inTextField, pageTitle, paletteSearches, pushRecent, recentKey, searchPalette, type Chord, type PaletteItem, type Recent } from "@/lib/admin-ui";
 import { Kbd } from "@/components/ui/misc";
 import type { NavGroup } from "./nav-config";
 
@@ -51,7 +51,8 @@ export function PaletteButton({ className }: { className?: string }) {
   );
 }
 
-export function AdminShortcuts({ groups, area, storeCode, userKey }: { groups: NavGroup[]; area: "store" | "hq"; storeCode?: string; userKey: string }) {
+/** `extra`: more palette destinations from the server (the reports this person can run, the stores they look after). */
+export function AdminShortcuts({ groups, area, storeCode, userKey, extra = [] }: { groups: NavGroup[]; area: "store" | "hq"; storeCode?: string; userKey: string; extra?: PaletteItem[] }) {
   const router = useRouter();
   const pathname = usePathname();
   const [palette, setPalette] = useState(false);
@@ -121,16 +122,16 @@ export function AdminShortcuts({ groups, area, storeCode, userKey }: { groups: N
     };
   }, [palette, help, area, storeCode, router, open, close]);
 
-  // Recent pages first (everywhere but the page you're on), then every section of the sidebar.
+  // Recent pages first (everywhere but the page you're on), then every section of the sidebar, then reports and stores.
   const items = useMemo<PaletteItem[]>(() => {
-    const nav = groups.flatMap((g) => g.items.filter((i) => !i.external).map((i) => ({ href: i.href, label: i.label, group: g.title, kind: "nav" as const })));
+    const nav = groups.flatMap((g) => g.items.filter((i) => !i.external).map((i) => ({ href: i.href, label: i.label, group: g.title, keywords: i.keywords, kind: "nav" as const })));
     const rec = recent.filter((r) => r.href !== pathname).slice(0, 6).map((r) => ({ href: r.href, label: r.title, group: "Recent", kind: "recent" as const }));
-    return [...rec, ...nav];
-  }, [groups, recent, pathname]);
+    return [...rec, ...nav, ...extra];
+  }, [groups, recent, pathname, extra]);
 
   return (
     <>
-      {palette && <Palette items={items} onClose={close} onGo={(href) => (close(), window.dispatchEvent(new Event("hh:navigate")), router.push(href))} />}
+      {palette && <Palette items={items} area={area} storeCode={storeCode} onClose={close} onGo={(href) => (close(), window.dispatchEvent(new Event("hh:navigate")), router.push(href))} />}
       {help && <CheatSheet area={area} onClose={close} />}
     </>
   );
@@ -175,13 +176,16 @@ function Backdrop({ children, onClose, label, labelledBy, onKeyDown, dialogRef, 
   );
 }
 
-function Palette({ items, onClose, onGo }: { items: PaletteItem[]; onClose: () => void; onGo: (href: string) => void }) {
+function Palette({ items, area, storeCode, onClose, onGo }: { items: PaletteItem[]; area: "store" | "hq"; storeCode?: string; onClose: () => void; onGo: (href: string) => void }) {
   const { ref, onKeyDown } = useDialog(onClose);
   const [q, setQ] = useState("");
   const [active, setActive] = useState(0);
   const listId = useId();
-  // No query: the whole list (recents, then the sidebar); a query: the best dozen matches.
-  const results = useMemo(() => searchPalette(items, q, q.trim() ? 12 : 80), [items, q]);
+  // No query: recents and the sidebar; a query: the best dozen matches, then record searches (members, stock, orders).
+  const results = useMemo(
+    () => (q.trim() ? [...searchPalette(items, q, 12), ...paletteSearches(q, area, storeCode)] : searchPalette(items.filter((i) => i.kind === "nav" || i.kind === "recent"), q, 80)),
+    [items, q, area, storeCode],
+  );
   const current = Math.min(active, Math.max(0, results.length - 1));
 
   return (
@@ -206,7 +210,7 @@ function Palette({ items, onClose, onGo }: { items: PaletteItem[]; onClose: () =
           aria-activedescendant={results[current] ? `${listId}-${current}` : undefined}
           aria-autocomplete="list"
           aria-label="Jump to a page"
-          placeholder="Where to? Type a section or a recent page"
+          placeholder="Where to? A section, report, store — or a name, SKU or order to find"
           autoComplete="off"
           spellCheck={false}
           value={q}
@@ -235,7 +239,7 @@ function Palette({ items, onClose, onGo }: { items: PaletteItem[]; onClose: () =
               }}
               className={cn("flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm", i === current ? "bg-brand-50 text-ink-950" : "text-ink-800")}
             >
-              {r.kind === "recent" ? <Clock className="h-4 w-4 shrink-0 text-ink-500" aria-hidden /> : <ArrowRight className="h-4 w-4 shrink-0 text-ink-500" aria-hidden />}
+              {r.kind === "recent" ? <Clock className="h-4 w-4 shrink-0 text-ink-500" aria-hidden /> : r.kind === "search" ? <Search className="h-4 w-4 shrink-0 text-ink-500" aria-hidden /> : <ArrowRight className="h-4 w-4 shrink-0 text-ink-500" aria-hidden />}
               <span className="min-w-0 flex-1 truncate font-medium">{r.label}</span>
               {r.group && <span className="shrink-0 text-xs text-ink-500">{r.group}</span>}
               {i === current && <CornerDownLeft className="h-3.5 w-3.5 shrink-0 text-ink-500" aria-hidden />}
@@ -257,7 +261,7 @@ function CheatSheet({ area, onClose }: { area: "store" | "hq"; onClose: () => vo
   const { ref, onKeyDown } = useDialog(onClose);
   const id = useId();
   const rows: [React.ReactNode, string][] = [
-    [<><Kbd>⌘</Kbd> / <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd></>, "Jump to any section or a recent page"],
+    [<><Kbd>⌘</Kbd> / <Kbd>Ctrl</Kbd> + <Kbd>K</Kbd></>, "Jump to a section, report or store, or search members, stock and orders"],
     [<Kbd key="s">/</Kbd>, "Focus the search on this page"],
     ...JUMPS.map((j): [React.ReactNode, string] => [<><Kbd>g</Kbd> then <Kbd>{j.key}</Kbd></>, `Go to ${area === "hq" && j.key === "i" ? "the catalogue" : j.label.toLowerCase()}`]),
     [<Kbd key="q">?</Kbd>, "This cheat sheet"],

@@ -74,7 +74,7 @@ console.log("welcome callout:", await page.getByText(/Welcome to Herbal Holland 
 
 // 3. Fulfilment + payment
 if (fulfil !== "COLLECT") {
-  await page.getByRole("radio", { name: fulfil === "COURIER" ? /Courier delivery/ : /Same-day delivery/ }).click();
+  await page.getByRole("radio", { name: fulfil === "COURIER" ? /Courier delivery/ : /(Same|Next)-day delivery/ }).click();
   await page.getByLabel("Street address").fill("14 Jacaranda Street");
   await page.getByLabel("Suburb").fill("Hatfield");
   await page.getByLabel("Town or city").fill("Pretoria");

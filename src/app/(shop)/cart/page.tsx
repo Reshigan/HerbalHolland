@@ -83,6 +83,9 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
   const byId = new Map(variants.map((v) => [v.id, v]));
   const stockOf = (variantId: string) => (made.has(variantId) ? 99 : net.all.reduce((s, id) => s + Math.max(0, avail.get(availKey(id, variantId))?.available ?? 0), 0));
   const licensedLines = q.lines.filter((l) => classes.licensed.includes(l.regClass));
+  // Medicines Act s18A: medicines and CBD supplements (noIncentives classes) carry no member prices or points.
+  const noIncentiveLines = q.lines.filter((l) => classes.noIncentives.includes(l.regClass) || classes.licensed.includes(l.regClass));
+  const noIncentiveWhat = noIncentiveLines.every((l) => classes.licensed.includes(l.regClass)) ? "Medicines" : licensedLines.length ? "Medicines and CBD supplements" : "CBD supplements";
   const blockedLicensed = licensedLines.length > 0 && access && !access.allowed;
 
   const earnable = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
@@ -310,7 +313,25 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
           </Panel>
           <Panel className="p-5">
             <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
-            {customer ? (
+            {earn === 0 && q.joinSavingsCents === 0 && noIncentiveLines.length > 0 ? (
+              <p className="mt-2 text-sm leading-relaxed text-ink-300">
+                {noIncentiveWhat} don&apos;t carry member prices or points (Medicines Act).
+                {customer ? (
+                  <>
+                    {" "}
+                    You have <strong className="text-white">{fmtPoints(customer.points)}</strong> for your next order.
+                  </>
+                ) : (
+                  <>
+                    {" "}
+                    Members still earn on everything else, plus {fmtPoints(settings.loyalty.signupBonus)} for joining.{" "}
+                    <Link href="/club/join?next=/cart" className="font-semibold text-brand-400 hover:underline">
+                      Join free
+                    </Link>
+                  </>
+                )}
+              </p>
+            ) : customer ? (
               <p className="mt-2 text-sm leading-relaxed text-ink-300">
                 You&apos;ll earn about <strong className="text-white">{fmtPoints(earn)}</strong> on this order
                 {q.pointsMultiplier > 1 ? ` (${q.pointsMultiplier}× points today)` : ""}. You have <strong className="text-white">{fmtPoints(customer.points)}</strong> to spend at checkout.
@@ -323,7 +344,7 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
                 </Link>
               </p>
             )}
-            {licensedLines.length > 0 && <p className="mt-2 text-xs text-ink-450">Medicines don&apos;t earn points and can&apos;t be discounted.</p>}
+            {noIncentiveLines.length > 0 && !(earn === 0 && q.joinSavingsCents === 0) && <p className="mt-2 text-xs text-ink-450">{noIncentiveWhat} don&apos;t earn points and can&apos;t be discounted.</p>}
           </Panel>
         </aside>
       </div>

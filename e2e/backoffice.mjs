@@ -333,7 +333,7 @@ try {
   // ───────────────────────────────────────────────────────────────────────────
   step("Inventory: CSV export (all and filtered), stock levels on an item");
   await visit(page, `/store/${CODE}/inventory`, page.locator("#inv-cat"));
-  const skuCount = async () => Number((await page.locator("tfoot").textContent()).match(/([\d,]+) SKUs/)[1].replace(/,/g, ""));
+  const skuCount = async () => Number((await page.locator("tfoot").textContent()).match(/([\d,]+) SKUs?/)[1].replace(/,/g, ""));
   const exportCsv = async (label) => {
     const since = new Date();
     const t0 = performance.now();

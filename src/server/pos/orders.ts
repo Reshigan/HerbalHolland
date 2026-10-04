@@ -133,8 +133,11 @@ export async function orderFromScan(storeId: string, text: string): Promise<Orde
   return toCard(o, settings);
 }
 
-/** The customer proves it's their order with the 6-digit collection code (or the order code). */
+/** The customer proves it's their order with the 6-digit collection code from their SMS, or their collection QR. The order
+ *  code is not proof: it's printed on the board and the order card. */
 export function codeMatches(order: { code: string; collectionCode: string }, entered: string) {
-  const v = entered.replace(/\s/g, "").toUpperCase();
-  return !!v && (v === order.collectionCode || v === order.code.toUpperCase());
+  const qr = parseOrderQr(entered.trim());
+  if (qr) return qr.orderCode === order.code.toUpperCase() && qr.collectionCode === order.collectionCode;
+  const v = entered.replace(/\s/g, "");
+  return !!v && v === order.collectionCode;
 }

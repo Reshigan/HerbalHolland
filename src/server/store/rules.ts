@@ -310,7 +310,7 @@ export function hrefWith(path: string, params: Record<string, string | string[] 
 
 
 /** "1 line", "3 lines". */
-export const plural = (n: number, word: string, many = `${word}s`) => `${n.toLocaleString()} ${n === 1 ? word : many}`;
+export { plural } from "@/lib/plural";
 
 /** First value of a search param. */
 export const sp1 = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

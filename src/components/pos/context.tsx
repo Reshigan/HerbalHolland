@@ -28,7 +28,11 @@ export type PosCtx = {
   commitSeq: (seq: number) => void;
   nextNumber: () => { seq: number; number: string };
   lock: () => void;
-  switchUser: (reason: "dispenser" | "manager", then?: () => void) => void;
+  /** Hands the till to a dispenser or a manager (PIN), then runs `then`. Who was signed in is offered the till back:
+   *  `handBack` "now" right after `then` (a quick approval; the default for a manager), "later" on handoffDone(). */
+  switchUser: (reason: "dispenser" | "manager", then?: () => void, opts?: { handBack?: "now" | "later" }) => void;
+  /** The sale or refund a switched-in person finished: offer "Back to <name>" (PIN) or lock. No-op without a hand-off. */
+  handoffDone: () => void;
   print: (doc: PrintDoc) => void;
   setBusy: (busy: boolean) => void;
   goTo: (tab: PosTab) => void;

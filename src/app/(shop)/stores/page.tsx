@@ -1,9 +1,12 @@
 import Link from "next/link";
+import Form from "next/form";
 import type { Metadata } from "next";
+import { Search } from "lucide-react";
 import { getRetailStores, getPreferredStore } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
 import { StoreCard } from "@/components/shop/store-card";
-import { Container, Pager } from "@/components/shop/ui";
+import { NearMeButton } from "@/components/shop/nav-client";
+import { Container, Pager, inputClass } from "@/components/shop/ui";
 import { pageParam } from "@/components/ui/pagination";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
@@ -18,18 +21,35 @@ export const metadata: Metadata = {
 const ALL_ON_ONE_PAGE = 60;
 const PAGE = 30;
 
-export default async function StoresPage({ searchParams }: { searchParams: Promise<{ province?: string; page?: string }> }) {
+const COORD = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/;
+
+export default async function StoresPage({ searchParams }: { searchParams: Promise<{ province?: string; page?: string; q?: string; near?: string }> }) {
   const [stores, preferred, sp] = await Promise.all([getRetailStores(), getPreferredStore(), searchParams]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const soon = stores.filter((s) => s.status === "OPENING_SOON");
   const openNow = trading.filter((s) => openState(parseHours(s.hours)).open).length;
   const provinces = [...new Set(trading.map((s) => s.province))];
-  const origin = preferred?.lat != null && preferred?.lng != null ? { lat: preferred.lat, lng: preferred.lng } : null;
+  // "Near me" sends the shopper's position (rounded) in the URL; else distances are from their chosen store.
+  const nearMatch = COORD.exec(sp.near ?? "");
+  const here = nearMatch ? { lat: Number(nearMatch[1]), lng: Number(nearMatch[2]) } : null;
+  const origin = here ?? (preferred?.lat != null && preferred?.lng != null ? { lat: preferred.lat, lng: preferred.lng } : null);
   const km = (s: (typeof stores)[number]) => (origin && s.lat != null && s.lng != null ? distanceKm(origin, { lat: s.lat, lng: s.lng }) : null);
   const nearby = preferred ? trading.filter((s) => s.id !== preferred.id).map((s) => ({ s, km: km(s) ?? 1e9 })).sort((a, b) => a.km - b.km).slice(0, 3) : [];
   const big = trading.length > ALL_ON_ONE_PAGE;
   const chosen = big ? (provinces.find((p) => p === sp.province) ?? provinces.find((p) => p === preferred?.province) ?? provinces[0]) : null;
   const page = pageParam(sp.page);
+  // Search by name, suburb, city or province; nearest first when we know where the shopper is.
+  const q = (sp.q ?? "").trim().slice(0, 60);
+  const needle = q.toLowerCase();
+  const found = q
+    ? trading
+        .filter((s) => `${s.name} ${s.suburb} ${s.city} ${PROVINCES[s.province as ProvinceCode] ?? s.province}`.toLowerCase().includes(needle))
+        .sort((a, b) => (km(a) ?? 1e9) - (km(b) ?? 1e9))
+    : here
+      ? [...trading].sort((a, b) => (km(a) ?? 1e9) - (km(b) ?? 1e9))
+      : null;
+  const finding = found != null;
+  const params = (n: number) => `/stores?${new URLSearchParams({ ...(q ? { q } : {}), ...(sp.near && here ? { near: sp.near } : {}), page: String(n) })}`;
 
   return (
     <Container className="pt-10 sm:pt-14">
@@ -41,6 +61,40 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         </p>
       </div>
 
+      <div className="mt-8 flex max-w-xl gap-2">
+        <Form action="/stores" role="search" className="relative flex-1">
+          <label htmlFor="stores-q" className="sr-only">
+            Search stores by name, suburb or city
+          </label>
+          <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-ink-400" />
+          <input id="stores-q" name="q" type="search" enterKeyHint="search" defaultValue={q} maxLength={60} placeholder="Suburb, city or store name" className={`${inputClass} h-12 rounded-full pl-11`} />
+        </Form>
+        <NearMeButton />
+      </div>
+
+      {finding && (
+        <section className="mt-10" aria-labelledby="found">
+          <h2 id="found" className="font-display text-2xl font-semibold text-white">
+            {q ? `${found.length} store${found.length === 1 ? "" : "s"} matching “${q}”` : "Nearest to you"}
+          </h2>
+          {found.length ? (
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {found.slice((page - 1) * PAGE, page * PAGE).map((s) => (
+                <StoreCard key={s.id} s={s} preferred={s.id === preferred?.id} km={km(s)} />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-ink-400">No stores match that — try a suburb or city nearby, or use Near me.</p>
+          )}
+          <Pager page={page} pageSize={PAGE} total={found.length} href={params} noun="stores" />
+          <Link href="/stores" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand-400 hover:underline">
+            ← All stores by province
+          </Link>
+        </section>
+      )}
+
+      {!finding && (
+      <>
       <nav className="scrollbar-none -mx-4 mt-8 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0" aria-label="Provinces">
         {provinces.map((p) => (
           <a
@@ -98,6 +152,8 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
           </section>
         );
       })}
+      </>
+      )}
 
       {soon.length > 0 && (
         <section id="soon" className="mt-14 scroll-mt-32" aria-labelledby="h-soon">

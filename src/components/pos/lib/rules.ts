@@ -49,6 +49,15 @@ export function orderSla(placedAt: Date | string, doneAt: Date | string | null, 
   return { minutes, state: minutes >= limitMin ? "late" : minutes >= Math.ceil((limitMin * 2) / 3) ? "warn" : "ok" };
 }
 
+/** "4h 30m", "25m", "2d 3h" — how long something took or has been waiting. */
+export function fmtWait(from: Date | string, to: Date | string): string {
+  const m = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000));
+  if (m < 60) return `${m}m`;
+  if (m < 24 * 60) return `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}`;
+  const h = Math.floor(m / 60);
+  return `${Math.floor(h / 24)}d${h % 24 ? ` ${h % 24}h` : ""}`;
+}
+
 /**
  * Points a member can put towards this sale: whole points (1 point = R1), within their
  * balance, within what's still due, never against medicines, and only once they hold
@@ -156,9 +165,10 @@ export function uuid() {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** Offline, the till can't look members up: it takes the member number from their card and the server resolves it on sync. */
+/** Offline, the till can't look members up: it takes the member number from their card (or their SA mobile, as E.164)
+ *  and the server resolves it on sync. */
 export const offlineMember = (memberNo: string): CustomerDetail => ({
-  id: "", memberNo, firstName: "Member", lastName: memberNo, phone: "", email: null, tier: "SEED", points: 0, ageCheck: "NONE", ageVerified: false, age: null,
+  id: "", memberNo, firstName: "Member", lastName: memberNo.startsWith("+27") ? maskPhone(memberNo) : memberNo, phone: memberNo.startsWith("+27") ? memberNo : "", email: null, tier: "SEED", points: 0, ageCheck: "NONE", ageVerified: false, age: null,
   homeStore: null, visitsHere: 0, lastVisitHere: null, foundingNo: null, tierFloor: null, offers: [], patient: null, offline: true,
 });
 

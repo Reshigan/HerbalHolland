@@ -6,6 +6,7 @@ import { getSettings } from "@/server/settings";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
 import { str } from "@/server/store/rules";
 import { marginPct } from "@/lib/pricing-rules";
+import { plural } from "@/lib/plural";
 
 /** Saves edited shelf prices (null = back to the recommended / list price). Warnings only — never blocks. */
 export async function savePrices(code: string, changes: { variantId: string; priceCents: number | null }[]): Promise<ActionState> {
@@ -61,6 +62,6 @@ export async function bulkPrices(code: string, _: ActionState, fd: FormData): Pr
     await db.$transaction(rows.map((r) => db.storeVariant.update({ where: { storeId_variantId: { storeId: store.id, variantId: r.variantId } }, data: { priceCents: next(r.variant.priceCents) } })));
     await audit(db, actor, "price.override", { storeId: store.id, data: { bulk: true, category: category || "ALL", mode, pct: mode === "pct" ? pct : null, count: rows.length } });
     revalidatePath(`/store/${store.code}/pricing`);
-    return done(mode === "reset" ? `Cleared your own prices on ${rows.length} items — they follow the recommended price again.` : `Set ${rows.length} items to ${pct >= 0 ? "+" : ""}${pct}% vs RRP, rounded to the rand.`);
+    return done(mode === "reset" ? `Cleared your own prices on ${plural(rows.length, "item")} — they follow the recommended price again.` : `Set ${plural(rows.length, "item")} to ${pct >= 0 ? "+" : ""}${pct}% vs RRP, rounded to the rand.`);
   });
 }

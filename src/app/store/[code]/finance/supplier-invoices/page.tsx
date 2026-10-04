@@ -78,7 +78,13 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
         </div>
         {rows.length === 0 ? (
           <EmptyState icon={<ReceiptText className="h-5 w-5" />} title={q || status ? "No invoices match" : "No supplier invoices yet"}>
-            {q || status ? "Try another status or search." : "Capture an invoice here, or from a received stock order under Purchasing."}
+            {q || status ? (
+              "Try another status or search."
+            ) : (
+              <>
+                Stock ordered from your Herbal Holland distribution centre doesn&apos;t appear here — it settles on your monthly franchise statement. Capture invoices from other suppliers here, or from a received stock order under Purchasing.
+              </>
+            )}
           </EmptyState>
         ) : (
           <Table stickyFirst>

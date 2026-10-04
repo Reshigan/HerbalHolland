@@ -120,7 +120,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
 
         <p className="mt-6 text-sm text-ink-400" aria-live="polite">
           {res.total === 0 ? "No lines" : `${res.total.toLocaleString()} ${res.total === 1 ? "line" : "lines"}`}
-          {q ? (res.didYouMean ? ` like “${res.didYouMean}” — nothing matched “${q}” exactly` : ` for “${q}”`) : ""}
+          {q ? (res.didYouMean ? ` with names close to “${q}”` : ` for “${q}”`) : ""}
           {cat ? ` in ${cat.name}` : ""}
           {res.didYouMean && (
             <>

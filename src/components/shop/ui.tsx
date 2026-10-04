@@ -196,7 +196,7 @@ export function Chip({ href, active, children, className, count }: { href: strin
       scroll={false}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition",
+        "inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition lg:h-9 lg:px-3.5",
         active ? "border-brand-500 bg-brand-500 text-ink-950" : "border-ink-700 text-ink-200 hover:border-ink-500 hover:text-white",
         className,
       )}

@@ -72,7 +72,7 @@ export const CTA = {
 
 export const APPLY = {
   title: "Apply for a trade account",
-  lead: "About five minutes. We reply by email within one business day. Fields marked optional can wait.",
+  lead: "It takes about ten minutes. We reply by email within one business day. Fields marked optional can wait.",
   done: "We'll be in touch within one business day.",
   doneText: "Thanks for applying. Our trade team reads every application and emails the buyer's address with the terms once the account is approved. From then on you sign in with a code sent to that address.",
 };

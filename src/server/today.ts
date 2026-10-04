@@ -93,7 +93,7 @@ export async function todayFacts(store: TodayStore, user: Pick<Staff, "id">, now
     },
     alerts: { open: alerts.reduce((t, a) => t + a._count, 0), high: alerts.find((a) => a.severity === "HIGH")?._count ?? 0 },
     batches: { lots: expiring._count, units: expiring._sum.onHand ?? 0, soonest: soonestLot?.batch.expiresAt ?? null, withinDays: ops.batchExpiryDays },
-    lowStock: { skus: low.length, out: low.filter((r) => r.available <= 0).length },
+    lowStock: { skus: low.length, out: low.filter((r) => r.available <= 0).length, onOrder: low.filter((r) => r.available + r.onOrder > r.reorderPoint).length },
     patients: { expiring: auths.length, soonest: auths[0]?.validTo ?? null, withinDays: ops.patientAuthDays },
     announcements: { pending: acks, urgent, latestTitle: latest?.title ?? null },
     supplierInvoices: { overdue: overdueInv._count, overdueCents: overdueInv._sum.totalCents ?? 0, dueSoon: dueSoonInv._count, dueSoonCents: dueSoonInv._sum.totalCents ?? 0 },

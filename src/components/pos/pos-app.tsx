@@ -59,6 +59,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const [bootError, setBootError] = useState<string | null>(null);
   const [auth, setAuthState] = useState<AuthState>({ me: null, locked: true, at: 0 });
   const [switching, setSwitching] = useState<"dispenser" | "manager" | null>(null);
+  // Hand-off: who was at the till before a dispenser or manager stepped in, and whether to offer them the till back.
+  const [handoff, setHandoff] = useState<{ prev: StaffTile; ask: boolean } | null>(null);
+  const [preselect, setPreselect] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
   const [online, setOnline] = useState(true);
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
@@ -81,6 +84,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
 
   const authRef = useRef(auth);
   authRef.current = auth;
+  const switchingRef = useRef(switching);
+  switchingRef.current = switching;
   const bootRef = useRef(boot);
   bootRef.current = boot;
   const onlineRef = useRef(online);
@@ -88,6 +93,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const busyRef = useRef(false);
   const syncingRef = useRef(false);
   const afterUnlock = useRef<(() => void) | null>(null);
+  const handoffRef = useRef<{ prev: StaffTile | null; when: "now" | "later" }>({ prev: null, when: "later" });
   const sellApi = useRef<SellApi | null>(null);
   const printerRef = useRef(printer);
   printerRef.current = printer;
@@ -321,25 +327,38 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   // ── Locking ─────────────────────────────────────────────────────────────
   const lock = useCallback(() => {
     setSwitching(null);
+    setHandoff(null);
     setExpired(false);
     setAuth({ me: null, locked: true, at: Date.now() });
     if (onlineRef.current) void api("/api/pos/session", { method: "DELETE", quiet401: true }).catch(() => undefined);
   }, [setAuth]);
 
-  const switchUser = useCallback((reason: "dispenser" | "manager", then?: () => void) => {
+  /** `handBack`: when to offer the till back to who was signed in — "later" (after the sale or refund: handoffDone),
+   *  "now" (straight after a quick approval). Default: a dispenser finishes the sale; a manager approves and hands back. */
+  const switchUser = useCallback((reason: "dispenser" | "manager", then?: () => void, opts?: { handBack?: "now" | "later" }) => {
     afterUnlock.current = then ?? null;
+    handoffRef.current = { prev: authRef.current.me, when: opts?.handBack ?? (reason === "manager" ? "now" : "later") };
     setSwitching(reason);
   }, []);
+  /** The switched sale or refund is done: offer "Back to <name>" (their PIN) or lock. */
+  const handoffDone = useCallback(() => setHandoff((h) => (h ? { ...h, ask: true } : h)), []);
 
   const unlock = useCallback(
     async (staff: StaffTile, pin: string): Promise<string | null> => {
       const finish = (me: StaffTile, offline: boolean) => {
         setAuth({ me, locked: false, offline, at: Date.now() });
+        const h = handoffRef.current;
+        handoffRef.current = { prev: null, when: "later" };
+        // A different person stepped in: remember who to hand the till back to.
+        if (switchingRef.current && h.prev && h.prev.id !== me.id) setHandoff({ prev: h.prev, ask: false });
+        else if (!switchingRef.current) setHandoff(null);
         setSwitching(null);
         setExpired(false);
+        setPreselect(null);
         const then = afterUnlock.current;
         afterUnlock.current = null;
         if (then) setTimeout(then, 50);
+        if (switchingRef.current && h.prev && h.prev.id !== me.id && h.when === "now") setTimeout(() => setHandoff((x) => (x ? { ...x, ask: true } : x)), 120);
       };
       try {
         const r = await api<{ me: StaffTile }>("/api/pos/session", { body: { userId: staff.id, pin }, quiet401: true });
@@ -682,6 +701,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       },
       lock,
       switchUser,
+      handoffDone,
       print: (doc: PrintDoc) => void print(doc),
       setBusy: (b: boolean) => void (busyRef.current = b),
       goTo: setTab,
@@ -703,21 +723,21 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setDisplaySettings,
       idleMessages,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, handoffDone, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;
 
   const lockScreen = session && (auth.locked || !auth.me || switching) && (
     <LockScreen
-      key={switching ?? "lock"}
+      key={`${switching ?? "lock"}-${preselect ?? ""}`}
       session={session}
       online={online}
       queued={outbox.length}
       reason={switching ?? (expired ? "expired" : null)}
-      preselect={null}
+      preselect={preselect}
       onUnlock={unlock}
-      onCancel={switching ? () => (setSwitching(null), (afterUnlock.current = null)) : undefined}
+      onCancel={switching ? () => (setSwitching(null), (afterUnlock.current = null), (handoffRef.current = { prev: null, when: "later" })) : undefined}
     />
   );
 
@@ -839,6 +859,34 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       </div>
 
       <OutboxSheet open={outboxOpen} onClose={() => setOutboxOpen(false)} />
+      <Sheet
+        open={!!handoff?.ask && !switching}
+        onClose={() => setHandoff(null)}
+        title={handoff ? `Back to ${handoff.prev.name.split(" ")[0]}?` : ""}
+        subtitle={`${auth.me!.name.split(" ")[0]} is still signed in on this till`}
+        size="sm"
+      >
+        <div className="grid gap-2" data-testid="handoff">
+          <PosButton
+            variant="primary"
+            size="lg"
+            onClick={() => {
+              const prev = handoff!.prev;
+              setHandoff(null);
+              setPreselect(prev.id);
+              lock();
+            }}
+          >
+            Back to {handoff?.prev.name.split(" ")[0]} (PIN)
+          </PosButton>
+          <PosButton variant="outline" size="lg" onClick={() => (setHandoff(null), lock())}>
+            <Lock className="h-4 w-4" /> Lock the till
+          </PosButton>
+          <PosButton variant="ghost" onClick={() => setHandoff(null)}>
+            Stay signed in as {auth.me!.name.split(" ")[0]}
+          </PosButton>
+        </div>
+      </Sheet>
       {training && <TrainingOutline />}
       <TrainingTour
         open={tour}
@@ -894,7 +942,7 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
       open={open}
       onClose={onClose}
       title={online ? "Online" : "Offline"}
-      subtitle={online ? "Connected to Herbal Holland" : "Cash sales are saved on this till and sync automatically"}
+      subtitle={online ? "Connected to Herbal Holland" : "Cash and card-machine sales are saved on this till and sync automatically"}
       size="sm"
       footer={
         <div className="flex justify-between gap-2">

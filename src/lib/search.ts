@@ -5,7 +5,8 @@
 
 export type Unit = "mg" | "g" | "ml";
 export type Measure = { value: number; unit: Unit | null; raw: string };
-export type ParsedQuery = { raw: string; norm: string; terms: string[]; measures: Measure[]; classes: string[] };
+/** `moods`: the shop moods (product effects) the query asks for ("sleep" → rest). */
+export type ParsedQuery = { raw: string; norm: string; terms: string[]; measures: Measure[]; classes: string[]; moods?: string[] };
 
 export const QUERY_MAX = 60;
 
@@ -39,7 +40,7 @@ export const CLASS_WORDS: Record<string, string[]> = {
   oil: ["oil", "oils", "tincture", "tinctures", "drops", "dropper"],
   cream: ["cream", "creams", "balm", "balms", "salve", "lotion", "topical", "skin"],
   coffee: ["coffee", "espresso", "beans", "brew"],
-  tea: ["tea", "teas", "rooibos", "infusion", "chai"],
+  tea: ["tea", "teas", "infusion", "chai"],
   gummies: ["gummy", "gummies", "sweets", "jellies", "edible", "edibles"],
   capsules: ["capsule", "capsules", "softgel", "softgels", "caps", "tablets"],
   protein: ["protein", "whey", "collagen", "shake", "powder"],
@@ -51,6 +52,34 @@ export const CLASS_WORDS: Record<string, string[]> = {
 };
 const CLASS_OF = new Map<string, string>();
 for (const [k, words] of Object.entries(CLASS_WORDS)) for (const w of words) CLASS_OF.set(w, k);
+
+/**
+ * Everyday words for the shop's moods (the effects products are tagged with). Search only: they find products by
+ * mood, they never claim anything about them.
+ */
+export const MOOD_WORDS: Record<string, string[]> = {
+  rest: ["rest", "restful", "sleep", "sleepy", "sleeping", "bedtime", "night", "nighttime", "evening", "wind-down", "winddown", "unwind"],
+  calm: ["calm", "calming", "relax", "relaxed", "relaxing", "chill", "mellow", "unwind"],
+  focus: ["focus", "focused", "work", "study", "concentrate"],
+  recover: ["recover", "recovery", "gym", "training", "workout"],
+  uplifted: ["uplift", "uplifted", "uplifting", "upbeat", "energy", "energised", "energized", "energetic"],
+  social: ["social", "party"],
+  creative: ["creative", "creativity"],
+  happy: ["happy", "euphoric"],
+};
+/** The product effects that count as each mood. */
+const MOOD_EFFECTS: Record<string, string[]> = {
+  rest: ["rest", "sleepy"],
+  calm: ["calm", "relaxed"],
+  focus: ["focus", "focused", "clear"],
+  recover: ["recover"],
+  uplifted: ["uplifted", "energised"],
+  social: ["social"],
+  creative: ["creative"],
+  happy: ["happy", "euphoric"],
+};
+const MOODS_OF = new Map<string, string[]>();
+for (const [k, words] of Object.entries(MOOD_WORDS)) for (const w of words) MOODS_OF.set(w, [...(MOODS_OF.get(w) ?? []), k]);
 
 /** Lower-case, no accents, one space between words (no length cap: for product text). */
 export const normaliseText = (s: string) =>
@@ -87,7 +116,8 @@ export function parseQuery(raw: string): ParsedQuery {
     .filter((w) => w.length > 1 && !STOP.has(w));
   const terms = [...new Set(words)];
   const classes = [...new Set(terms.map((t) => CLASS_OF.get(t)).filter((c): c is string => !!c))];
-  return { raw, norm, terms, measures, classes };
+  const moods = [...new Set(terms.flatMap((t) => MOODS_OF.get(t) ?? []))];
+  return { raw, norm, terms, measures, classes, moods };
 }
 
 // ── Ranking ─────────────────────────────────────────────────────────────────
@@ -100,6 +130,8 @@ export type SearchDoc = {
   description?: string | null;
   category?: string | null;
   words?: string[]; // effects, flavours, origin…
+  /** The moods the product is tagged with (Product.effects). */
+  effects?: string[];
   netContent?: number | null;
   netUnit?: string | null; // "g" | "ml"
   cbdMgPerPack?: number | null;
@@ -107,13 +139,17 @@ export type SearchDoc = {
   /** Trigram similarity from the database (0–1), when it was computed for this product. */
   sim?: number | null;
 };
-export type MatchKind = "exact" | "prefix" | "word" | "measure" | "fuzzy" | "text";
+export type MatchKind = "exact" | "prefix" | "word" | "mood" | "measure" | "fuzzy" | "text";
 export type Ranked = { id: string; score: number; kind: MatchKind };
 
 /** Similarity below this is noise: the database ignores it and so does the ranking. */
 export const SIMILARITY_THRESHOLD = 0.25;
 /** A whole query word inside a name (word_similarity) counts from here. */
 export const WORD_SIMILARITY_THRESHOLD = 0.5;
+/** Short queries ("tea") are close to too many words ("tee"): they need this much similarity. */
+export const SHORT_SIMILARITY_THRESHOLD = 0.6;
+/** The similarity a query needs before a product counts as a typo match. */
+export const similarityFloor = (norm: string) => (norm.replace(/\s/g, "").length <= 4 ? SHORT_SIMILARITY_THRESHOLD : SIMILARITY_THRESHOLD);
 
 const near = (a: number, b: number) => Math.abs(a - b) < 1e-6;
 
@@ -129,40 +165,94 @@ export function measureMatches(m: Measure, doc: Pick<SearchDoc, "netContent" | "
   return facts.some((f) => near(f.value, m.value) && (m.unit == null || f.unit == null || f.unit === m.unit));
 }
 
-const wordsOf = (s: string) => normalise(s).split(" ").filter(Boolean);
+/** Hyphens and apostrophes don't matter: "pre-roll", "preroll" and "pre roll" are the same. */
+const squash = (w: string) => w.replace(/[-']/g, "");
+
+/** The words of a text a query word can match: each word, its hyphen-free form, its hyphen parts, and adjacent pairs joined. */
+function keysOf(text: string): string[] {
+  const words = normaliseText(text)
+    .split(" ")
+    .map((w) => w.replace(/^[.,'-]+|[.,'-]+$/g, ""))
+    .filter(Boolean);
+  const keys = new Set<string>();
+  words.forEach((w, i) => {
+    keys.add(squash(w));
+    for (const part of w.split("-")) if (part) keys.add(squash(part));
+    if (i > 0) keys.add(squash(words[i - 1] + w));
+  });
+  return [...keys];
+}
+
+/** A whole word, or (for words of 3+ letters) the start of one: word starts only, never the middle of a word. */
+const hit = (keys: string[], t: string) => keys.includes(t) || (t.length >= 3 && keys.some((k) => k.startsWith(t)));
+
+const STRONG: MatchKind[] = ["exact", "prefix", "word", "mood", "measure"];
 
 /**
  * Scores every document against the query and returns the matches, best first. Exact name > name prefix > every word
- * in the name > similar name (typos) > tagline and other text. Measures and class words add to whatever matched.
+ * in the name > mood > similar name (typos) > tagline and other text. Measures and class words add to whatever matched.
+ * Words match on word starts; words under 3 letters only as whole words (or, last in a longer query, to break ties).
+ * When some products match by name, mood or measure, products found only in their text, a class word or by
+ * similarity are left out; a text-only match needs every word of the query, and when some product matches every
+ * word, those matching only some are left out.
  */
 export function rankSearch(q: ParsedQuery, docs: SearchDoc[]): Ranked[] {
-  const out: Ranked[] = [];
+  const terms = q.terms.map(squash).filter(Boolean);
+  const long = terms.filter((t) => t.length >= 3);
+  const short = terms.filter((t) => t.length < 3);
+  const countable = long.length ? long : terms;
+  const phrase = terms.length > 1 ? terms.join("") : null;
+  const floor = similarityFloor(q.norm);
+  const moods = q.moods ?? [];
+  const scored: (Ranked & { covered: number })[] = [];
   for (const d of docs) {
-    const name = normalise(d.name);
-    const nameWords = wordsOf(d.name);
-    const tagline = normalise(d.tagline ?? "");
-    const rest = normalise([d.description ?? "", d.category ?? "", ...(d.words ?? [])].join(" "));
-    const variantText = normalise(d.variants.map((v) => v.name).join(" "));
+    const name = normaliseText(d.name);
+    const nameKeys = keysOf(d.name);
+    const taglineKeys = keysOf(d.tagline ?? "");
+    const variantKeys = keysOf(d.variants.map((v) => v.name).join(" "));
+    const categoryKeys = keysOf(d.category ?? "");
+    const restKeys = keysOf([d.description ?? "", d.category ?? "", ...(d.words ?? [])].join(" "));
+    const effects = new Set((d.effects ?? []).map((e) => normaliseText(e)));
+    const moodOf = (t: string) => (MOODS_OF.get(t) ?? []).some((m) => moods.includes(m) && (MOOD_EFFECTS[m] ?? [m]).some((e) => effects.has(e)));
+    const classIn = (t: string, keys: string[]) => {
+      const c = CLASS_OF.get(t);
+      return !!c && (CLASS_WORDS[c] ?? []).some((w) => keys.includes(squash(w)));
+    };
     let score = 0;
     let kind: MatchKind | null = null;
+    let covered = 0;
+    let moodHit = false;
 
     if (q.norm && name === q.norm) (score += 1000), (kind = "exact");
     else if (q.norm && name.startsWith(q.norm)) (score += 500), (kind = "prefix");
 
     let inName = 0;
-    for (const t of q.terms) {
-      if (nameWords.some((w) => w === t)) (inName++, (score += 120));
-      else if (nameWords.some((w) => w.startsWith(t))) (inName++, (score += 90));
-      else if (name.includes(t)) (inName++, (score += 50));
-      else if (tagline.split(" ").some((w) => w.startsWith(t))) score += 40;
-      else if (variantText.includes(t)) score += 30;
-      else if (rest.includes(t)) score += 15;
+    for (const t of long.length ? long : short) {
+      let found = true;
+      if (nameKeys.includes(t)) (inName++, (score += 120));
+      else if (hit(nameKeys, t)) (inName++, (score += 90));
+      else if (moodOf(t)) (moodHit = true), (score += 80);
+      else if (classIn(t, nameKeys)) score += 60; // "balm" for "cream": shown when nothing is called a cream
+      else if (hit(taglineKeys, t)) score += 40;
+      else if (classIn(t, categoryKeys)) score += 30;
+      else if (hit(variantKeys, t)) score += 30;
+      else if (t.length >= 3 && hit(restKeys, t)) score += 15;
+      else found = false;
+      if (found) covered++;
     }
-    if (inName && q.terms.length && inName === q.terms.length) score += 100; // every word of the query is in the name
+    // Short words in a longer query ("rooibos te"): only a whole word, or the start of a name word, and only as a tie-break.
+    if (long.length && score > 0)
+      for (const t of short) {
+        if (nameKeys.includes(t) || taglineKeys.includes(t)) score += 20;
+        else if (nameKeys.some((k) => k.startsWith(t))) score += 10;
+      }
+    if (phrase && (nameKeys.includes(phrase) || taglineKeys.includes(phrase))) (score += 150), (inName = Math.max(inName, countable.length));
+    if (inName && countable.length && inName >= countable.length) (score += 100), (covered = countable.length); // every word of the query is in the name
     if (inName && !kind) kind = "word";
+    if (moodHit && !kind) kind = "mood";
 
     const sim = d.sim ?? 0;
-    if (sim >= SIMILARITY_THRESHOLD) {
+    if (sim >= floor) {
       score += Math.round(sim * 200);
       if (!kind) kind = "fuzzy";
     }
@@ -173,18 +263,17 @@ export function rankSearch(q: ParsedQuery, docs: SearchDoc[]): Ranked[] {
       else if (score > 0) score -= 40; // the product is about the right thing, but not that size or strength
     if (measured && !kind) kind = "measure";
 
-    for (const c of q.classes) {
-      const words = CLASS_WORDS[c] ?? [];
-      const hay = `${name} ${tagline} ${rest}`.split(" ");
-      if (words.some((w) => hay.includes(w))) score += 60;
-    }
-
-    if (score <= 0 || !kind) {
-      if (score > 0) kind = "text";
-      else continue;
-    }
-    out.push({ id: d.id, score, kind });
+    if (score <= 0) continue;
+    if (!kind) kind = "text";
+    if (kind === "text" && covered < countable.length) continue; // text alone must match every word
+    scored.push({ id: d.id, score, kind, covered });
   }
+  const strong = scored.some((r) => STRONG.includes(r.kind));
+  // When some product matches every word ("cbd oil"), products matching only some of them are left out.
+  const full = countable.length > 1 && scored.some((r) => STRONG.includes(r.kind) && r.covered >= countable.length);
+  const out: Ranked[] = scored
+    .filter((r) => (!strong || STRONG.includes(r.kind)) && (!full || r.covered >= countable.length || r.kind === "exact" || r.kind === "prefix"))
+    .map(({ id, score, kind }) => ({ id, score, kind }));
   const byName = new Map(docs.map((d) => [d.id, d.name]));
   return out.sort((a, b) => b.score - a.score || (byName.get(a.id) ?? "").localeCompare(byName.get(b.id) ?? ""));
 }

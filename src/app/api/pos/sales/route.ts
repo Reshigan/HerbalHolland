@@ -8,6 +8,7 @@ import { quote } from "@/server/pricing";
 import { json, readBody, withStaff, PosError } from "@/server/pos/http";
 import { SaleBody } from "@/server/pos/schemas";
 import { receipt, salesHistory } from "@/server/pos/receipts";
+import { normalisePhone } from "@/lib/sa";
 
 export const GET = withStaff(async (req, pos) => {
   const sp = new URL(req.url).searchParams;
@@ -52,6 +53,15 @@ export const POST = withStaff(async (req, pos) => {
     if (b.pointsRedeemed * 100 > eligible) throw new PosError("Points can't be used towards medicines (licensed or CBD supplements)", 422);
   }
 
+  // A member taken offline by their mobile (not their card): resolved by phone here; member numbers by sales.postPosSale.
+  let customerId = b.customerId ?? null;
+  let memberNo = b.memberNo ?? null;
+  const phone = !customerId && memberNo && !/^HH\d{7}$/i.test(memberNo) ? normalisePhone(memberNo) : null;
+  if (phone) {
+    customerId = (await db.customer.findUnique({ where: { phone }, select: { id: true } }))?.id ?? null;
+    memberNo = null;
+  }
+
   // A queued offline sale keeps the time it was rung up — from the last 7 days only (else it's dated when it arrives).
   const now = Date.now();
   const createdAt = b.createdAt && Date.parse(b.createdAt) < now && Date.parse(b.createdAt) > now - 7 * 86_400_000 ? b.createdAt : undefined;
@@ -62,8 +72,8 @@ export const POST = withStaff(async (req, pos) => {
     createdAt,
     offline: !!b.offline,
     shiftId,
-    customerId: b.customerId ?? null,
-    memberNo: b.memberNo ?? null,
+    customerId,
+    memberNo,
     lines: b.lines,
     promoCode: b.promoCode || null,
     pointsRedeemed: b.pointsRedeemed ?? 0,
@@ -75,7 +85,7 @@ export const POST = withStaff(async (req, pos) => {
   };
   const r = await postPosSale(input, { storeId, deviceId: pos.device.id, staffId: staff.id, staffName: staff.name });
   const dto = await receipt(r.sale.id, storeId);
-  const customerEmail = b.customerId ? (await db.customer.findUnique({ where: { id: b.customerId }, select: { email: true } }))?.email : null;
+  const customerEmail = customerId ? (await db.customer.findUnique({ where: { id: customerId }, select: { email: true } }))?.email : null;
   const invoiceTo = b.trade ? b.invoiceEmail || account!.email : b.invoiceEmail || customerEmail || null;
   return json({ receipt: dto, duplicate: r.duplicate, invoiceTo }, r.duplicate ? 200 : 201);
 });

@@ -5,6 +5,8 @@ import { ArrowRight, BookOpen, FlaskConical, Search, ShieldCheck, SlidersHorizon
 import { getCustomer } from "@/server/auth";
 import { listCatalogue, PAGE_SIZE, SORTS, type SortKey } from "@/server/shop/catalogue";
 import { getPreferredStore, getStoreFootprint } from "@/server/shop/context";
+import { getClasses } from "@/server/shop/access";
+import { dispensaryHasMatch, storeMatching } from "@/server/shop/search";
 import { db } from "@/server/db";
 import { ProductGrid } from "@/components/shop/product-card";
 import { AutoSubmitSelect } from "@/components/shop/auto-submit";
@@ -20,7 +22,7 @@ import { zarWhole } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import type { RegClass } from "@/lib/compliance";
 
-type SP = { category?: string; mood?: string; sort?: string; min?: string; max?: string; q?: string; page?: string };
+type SP = { category?: string; mood?: string; sort?: string; min?: string; max?: string; q?: string; page?: string; focus?: string };
 
 const num = (v?: string) => (v && /^\d{1,6}$/.test(v) ? Number(v) : undefined);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -61,20 +63,24 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
 export default async function ShopPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const [customer, store, footprint] = await Promise.all([getCustomer(), getPreferredStore(), getStoreFootprint()]);
-  const sort = (SORTS.find((s) => s.key === sp.sort)?.key ?? "featured") as SortKey;
   const q = (sp.q ?? "").trim().slice(0, 60);
+  // A search is ranked by best match unless another sort is chosen; without one there is nothing to match.
+  const defaultSort: SortKey = q ? "relevance" : "featured";
+  const sort = (SORTS.find((s) => s.key === sp.sort && (q || s.key !== "relevance"))?.key ?? defaultSort) as SortKey;
   const query = { category: sp.category || undefined, mood: sp.mood || undefined, sort, min: num(sp.min), max: num(sp.max), q: q || undefined, page: pageParam(sp.page) };
   const [res, cat] = await Promise.all([
     listCatalogue("public", query, { tier: customer?.tier ?? null, storeId: store?.id, storeName: store?.name }),
     query.category ? db.category.findUnique({ where: { slug: query.category } }) : null,
   ]);
+  // Nothing found: perhaps it's a licensed medicine (said without naming it), or a store's name.
+  const [inDispensary, storeHit] = q && !res.total ? await Promise.all([getClasses().then((c) => dispensaryHasMatch(q, c)), storeMatching(q)]) : [false, null];
   const licensedCategory = !!cat && !res.categories.some((c) => c.slug === cat.slug);
   const crumbs = cat && !licensedCategory ? [{ name: "Shop", path: "/shop" }, { name: cat.name, path: `/shop?category=${cat.slug}` }] : null;
   const catCount = cat ? (res.categories.find((c) => c.slug === cat.slug)?.count ?? 0) : 0;
 
   const href = (o: Partial<Record<keyof SP, string | undefined>>) => {
     const p = new URLSearchParams();
-    const merged = { category: query.category, mood: query.mood, sort: sort === "featured" ? undefined : sort, min: sp.min, max: sp.max, q: q || undefined, ...o };
+    const merged = { category: query.category, mood: query.mood, sort: sort === defaultSort ? undefined : sort, min: sp.min, max: sp.max, q: q || undefined, ...o };
     for (const [k, v] of Object.entries(merged)) if (v) p.set(k, String(v));
     const s = p.toString();
     return s ? `/shop?${s}` : "/shop";
@@ -93,7 +99,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const article = guide ? articleBySlug(guide) : null;
   const consumable = catClasses.some((c) => CONSUMABLE.includes(c));
   const prices = res.items.map((i) => i.priceCents);
-  const heroTitle = cat && !licensedCategory ? cat.name : query.mood ? `For ${query.mood}` : "The range";
+  const heroTitle = q ? `Results for “${q}”` : cat && !licensedCategory ? cat.name : query.mood ? `For ${query.mood}` : "The range";
   const heroLine = cat && !licensedCategory ? cat.blurb : query.mood ? "Everyday CBD and hemp rituals for the moment they're made for." : "CBD wellness, accessories, grow and apparel. Every consumable lab-tested and traceable by batch.";
 
   return (
@@ -101,12 +107,13 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
       {crumbs && <JsonLd data={breadcrumbJsonLd(siteUrl(), crumbs)} />}
       {/* The hero: the site's sky over the hills, with the category's name and line, and the search. */}
       <Sky time={cat ? "dusk" : "night"} className="border-b border-ink-850">
-        <Container className="pb-14 pt-10 sm:pb-16 sm:pt-14">
+        {/* With a search the hero is compact, so results start above the fold on a phone. */}
+        <Container className={q ? "pb-6 pt-6 sm:pb-8 sm:pt-8" : "pb-14 pt-10 sm:pb-16 sm:pt-14"}>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-2xl">
               <div className="eyebrow text-brand-500">{cat && !licensedCategory ? "Shop · category" : query.mood ? "Shop · by mood" : "Shop"}</div>
-              <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">{heroTitle}</h1>
-              <p className="mt-3 max-w-xl text-[1.02rem] leading-relaxed text-ink-200">
+              <h1 className={cn("mt-2 break-words font-display font-semibold tracking-tight text-white", q ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl lg:text-6xl")}>{heroTitle}</h1>
+              <p className={cn("mt-3 max-w-xl text-[1.02rem] leading-relaxed text-ink-200", q && "hidden")}>
                 {heroLine}
                 {store && (
                   <>
@@ -122,8 +129,8 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               <label htmlFor="shop-q" className="sr-only">
                 Search the range
               </label>
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" />
-              <input id="shop-q" name="q" defaultValue={q} placeholder="Search oils, grinders, tees…" className={cn(inputClass, "h-12 rounded-full border-ink-600 bg-ink-950/80 pl-11 backdrop-blur")} />
+              <Search className="pointer-events-none absolute left-4 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-ink-400" />
+              <input id="shop-q" name="q" type="search" enterKeyHint="search" autoFocus={sp.focus === "1"} defaultValue={q} placeholder="Search oils, grinders, tees…" className={cn(inputClass, "h-12 rounded-full border-ink-600 bg-ink-950/80 pl-11 backdrop-blur")} />
             </Form>
           </div>
         </Container>
@@ -177,11 +184,11 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               {res.total} result{res.total === 1 ? "" : "s"} for
             </span>
             {active.map((a) => (
-              <Link key={a.label} href={a.clear} scroll={false} className="inline-flex items-center gap-1.5 rounded-full bg-ink-850 py-1 pl-3 pr-2 text-ink-100 hover:bg-ink-800" aria-label={`Remove filter ${a.label}`}>
+              <Link key={a.label} href={a.clear} scroll={false} className="inline-flex min-h-11 items-center gap-1.5 rounded-full bg-ink-850 py-1 pl-3.5 pr-3 text-ink-100 hover:bg-ink-800 lg:min-h-8" aria-label={`Remove filter ${a.label}`}>
                 {a.label} <X className="h-3.5 w-3.5 text-ink-400" />
               </Link>
             ))}
-            <Link href="/shop" scroll={false} className="ml-1 text-xs font-semibold text-brand-400 hover:underline">
+            <Link href="/shop" scroll={false} className="ml-1 inline-flex min-h-11 items-center px-2 text-xs font-semibold text-brand-400 hover:underline lg:min-h-8">
               Clear all
             </Link>
           </div>
@@ -259,6 +266,22 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
               <Pager page={query.page} pageSize={PAGE_SIZE} total={res.total} href={(p) => href({ page: String(p) })} noun="products" />
             </>
           ) : (
+            <>
+            {inDispensary && (
+              <Callout tone="brand" icon={<ShieldCheck className="h-5 w-5" />} title="This may be in the dispensary" className="mb-4">
+                Licensed medicines are for registered patients with a SAHPRA authorisation, so they aren&apos;t listed in the shop.{" "}
+                <Link href="/dispensary" className="font-semibold text-white underline">
+                  How the dispensary works
+                </Link>
+              </Callout>
+            )}
+            {storeHit && (
+              <Callout tone="info" icon={<Store className="h-5 w-5" />} className="mb-4">
+                <Link href={`/stores/${storeHit.slug}`} className="font-semibold text-white underline">
+                  Looking for our {storeHit.name} store?
+                </Link>
+              </Callout>
+            )}
             <div className="rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
               <Search className="mx-auto h-8 w-8 text-ink-600" />
               <h2 className="mt-4 font-display text-xl font-semibold text-white">{q ? `Nothing matches “${q}”` : "Nothing matches those filters"}</h2>
@@ -267,6 +290,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
                 Clear filters
               </Link>
             </div>
+            </>
           )}
         </div>
       </Container>
@@ -299,7 +323,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           <label className="flex w-48 flex-col text-xs font-semibold text-ink-400">
             Sort
             <AutoSubmitSelect name="sort" defaultValue={sort} className={cn(inputClass, "mt-1 h-10 cursor-pointer text-sm")}>
-              {SORTS.map((s) => (
+              {SORTS.filter((s) => q || s.key !== "relevance").map((s) => (
                 <option key={s.key} value={s.key}>
                   {s.label}
                 </option>

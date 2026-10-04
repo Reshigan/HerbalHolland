@@ -17,7 +17,7 @@ import { getClasses, getDispensaryAccess } from "@/server/shop/access";
 import { cardsWhere, currentBatch, dealsFor, directDeal, getNetwork, getPricing, getProductBySlug, productReviews, rewardsPrice, storesWithStock, withDeal } from "@/server/shop/catalogue";
 import { getPreferredStore } from "@/server/shop/context";
 import { tierMeta } from "@/server/shop/club";
-import { openState, parseHours } from "@/server/shop/hours";
+import { collectReady, openState, parseHours } from "@/server/shop/hours";
 import { productImages, productImageUrl } from "@/server/shop/images";
 import { wishlistVariantIds } from "@/server/shop/wishlist";
 import { REMINDER_CHANNELS, REMINDER_DAYS, reminderFor } from "@/server/shop/reminders";
@@ -38,6 +38,7 @@ import { NotifyMe, ReviewForm } from "@/components/shop/product-forms";
 import { asLab, asTerps, range, TerpeneBars } from "@/components/shop/product-parts";
 import { RemindMe } from "@/components/shop/remind-me";
 import { WishlistButton } from "@/components/shop/wishlist-button";
+import { ChooseStoreButton } from "@/components/shop/nav-client";
 import { Countdown } from "@/components/shop/countdown";
 import { DropFacts, DropStatus, fmtWhen } from "@/components/shop/launch-cards";
 import { WatchDrop } from "@/components/shop/launch-forms";
@@ -164,6 +165,47 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const sameDayHere = !!store?.sameDay && hereQty > 0 && channels.SAME_DAY.includes(product.regClass);
   const eco = settings.ecommerce;
   const estimate = deliveryEstimate({ fulfilment: "COURIER", province: (store?.province as ProvinceCode | undefined) ?? null, days: eco.deliveryDays, cutoffHour: eco.sameDayCutoffHour });
+
+  // "Ready within 2 hours" only while the store is open long enough; otherwise when it opens.
+  const collectLine = (hours: unknown) => {
+    const state = openState(parseHours(hours));
+    const ready = collectReady(parseHours(hours));
+    return ready.soon ? `Click & collect, usually ready within 2 hours. ${state.label}.` : `Click & collect. ${ready.label}.`;
+  };
+  // On phones, the nearest stores with stock right under the Collect row (the full list is in the side panel, far below).
+  // The stores are already loaded (nearest first when we know the shopper's store), so no extra query.
+  const nearby = withStock.filter((x) => x.store.id !== store?.id).slice(0, 3);
+  function NearbyStock() {
+    if (!nearby.length) return null;
+    return (
+      <div className="mt-2 lg:hidden">
+        <ul className="divide-y divide-ink-800">
+          {nearby.map((x) => {
+            const n = x.qty[variant.id] ?? 0;
+            return (
+              <li key={x.store.id}>
+                <Link href={`/stores/${x.store.slug}`} className="flex min-h-11 items-center justify-between gap-3 py-1.5">
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-ink-100">{x.store.name}</span>
+                    <span className="block truncate text-xs text-ink-450">
+                      {x.store.city}
+                      {x.km != null && ` · ${x.km < 10 ? x.km.toFixed(1) : Math.round(x.km)} km`}
+                    </span>
+                  </span>
+                  <span className={cn("shrink-0 text-xs font-semibold", n > 3 ? "text-leaf-100" : "text-amber-100")}>{n > 3 ? "In stock" : `${n} left`}</span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+        {withStock.length > nearby.length && (
+          <a href="#stock-in-stores" className="inline-flex min-h-11 items-center text-xs font-semibold text-brand-400 hover:underline">
+            See all stores with stock →
+          </a>
+        )}
+      </div>
+    );
+  }
 
   const deals = licensed ? [] : dealsFor(product, pricing);
   // Deal nudges for this product only: never on medicines, and a multi-buy is only suggested when this product counts towards it.
@@ -435,23 +477,22 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                             In stock at {store.name}
                             {hereQty <= 3 && <span className="ml-2 font-medium text-amber-100">· only {hereQty} left</span>}
                           </div>
-                          <div className="text-ink-400">Click &amp; collect, usually ready within 2 hours. {openState(parseHours(store.hours)).label}.</div>
+                          <div className="text-ink-400">{collectLine(store.hours)}</div>
                         </>
                       ) : (
                         <>
                           <div className="font-semibold text-white">Not in stock at {store.name}</div>
-                          <div className="text-ink-400">{withStock.length ? `Available to collect from ${withStock.length} other store${withStock.length === 1 ? "" : "s"} — see below.` : "Not available to collect right now."}</div>
+                          <div className="text-ink-400">{withStock.length ? `Available to collect from ${withStock.length} other store${withStock.length === 1 ? "" : "s"}.` : "Not available to collect right now."}</div>
+                          <NearbyStock />
                         </>
                       )
                     ) : (
                       <>
                         <div className="font-semibold text-white">{withStock.length ? `Collect from ${withStock.length} store${withStock.length === 1 ? "" : "s"}` : "Not available to collect right now"}</div>
                         <div className="text-ink-400">
-                          <Link href="/stores" className="font-medium text-brand-400 hover:underline">
-                            Choose your store
-                          </Link>{" "}
-                          to see what&apos;s on the shelf.
+                          <ChooseStoreButton className="-my-2 inline-flex min-h-11 items-center font-medium text-brand-400 hover:underline">Choose your store</ChooseStoreButton> to see what&apos;s on the shelf.
                         </div>
+                        <NearbyStock />
                       </>
                     )}
                   </div>
@@ -792,7 +833,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           <Suspense>
             <aside className="space-y-6 lg:sticky lg:top-28 lg:self-start">
               {canCollect && (
-                <Panel className="p-5">
+                <Panel id="stock-in-stores" className="scroll-mt-28 p-5">
                   <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
                     <MapPin className="h-5 w-5 text-brand-500" /> {store ? "Stock near you" : "Stock in stores"}
                   </h2>

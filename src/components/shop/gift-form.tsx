@@ -49,7 +49,7 @@ export function GiftForm({ amounts, messageMax, defaultEmail }: { amounts: reado
         <Gift className="h-5 w-5" /> {pending ? "One moment…" : `Buy ${zarWhole(amount)} voucher`} {!pending && <ArrowRight className="h-5 w-5" />}
       </button>
       <p className="text-xs text-ink-450">
-        You pay {zarWhole(amount)} — no fees, no bonus value. The voucher is emailed to you{defaultEmail ? ` at ${defaultEmail}` : ""} the moment your payment goes through.
+        You pay {zarWhole(amount)} — no fees, no bonus value. {defaultEmail ? `The voucher is emailed to you at ${defaultEmail}, and the code texted to your phone,` : "The code is texted to your phone"} the moment your payment goes through.
       </p>
     </form>
   );

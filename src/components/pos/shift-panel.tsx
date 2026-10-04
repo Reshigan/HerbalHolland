@@ -9,7 +9,9 @@ import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDateTime, fmtTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { api, errorText } from "./lib/api";
+import { DEFAULT_LOSS } from "@/lib/loss";
+import { isTillManager } from "@/lib/pos-refund";
+import { api, ApiError, errorText } from "./lib/api";
 import { countCash, DENOMINATIONS, denomLabel, isNote } from "./lib/rules";
 import { usePos } from "./context";
 import { CommissionTile } from "./commission-tile";
@@ -41,7 +43,7 @@ export function ShiftPanel() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online]);
-  useEffect(() => void loadX(), [loadX, shift?.id]);
+  useEffect(() => void loadX(), [loadX, shift?.id, pos.me.id]); // re-read on a hand-over: the X-report is blind for non-managers
 
   return (
     <div className="h-full overflow-y-auto">
@@ -156,9 +158,14 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noteNeeded, setNoteNeeded] = useState(false);
   const counted = countCash(counts);
-  const expected = x?.cash.expectedCents ?? null;
+  // Blind cash-up: only a manager sees what the drawer should hold before the count is in (the server leaves it out).
+  const manager = isTillManager(pos.me.role);
+  const expected = manager && x && !x.blind ? x.cash.expectedCents : null;
   const variance = expected != null ? counted - expected : null;
+  // Out by more than the cash-short tolerance: a note is needed (the server checks it against the HQ setting too).
+  const needNote = (noteNeeded || (variance != null && Math.abs(variance) > DEFAULT_LOSS.cashShortCents)) && !notes.trim();
   const queued = pos.outbox.filter((o) => !o.deviceId || o.deviceId === pos.boot.device.id).length;
   const blocked = queued > 0 ? `Sync ${queued} offline sale${queued === 1 ? "" : "s"} before closing` : !pos.online ? "Closing a shift needs a connection" : null;
 
@@ -170,7 +177,10 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
       onClosed(r.report);
       pos.toast("Shift closed — Z-report ready");
     } catch (e) {
-      setError(errorText(e));
+      if (e instanceof ApiError && e.code === "NOTE_REQUIRED") {
+        setNoteNeeded(true);
+        document.getElementById("shift-notes")?.focus();
+      } else setError(errorText(e));
     } finally {
       setBusy(false);
       setConfirm(false);
@@ -189,23 +199,36 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
       <div className="mt-5">
         <DenominationGrid counts={counts} onChange={setCounts} />
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
-        <Figure label="Expected" value={expected != null ? zar(expected) : "…"} />
-        <Figure label="Counted" value={zar(counted)} />
-        <Figure
-          className="col-span-2 sm:col-span-1"
-          label="Variance"
-          value={variance != null ? `${variance > 0 ? "+" : ""}${zar(variance)}` : "…"}
-          tone={variance == null || variance === 0 ? "ok" : Math.abs(variance) <= 1000 ? "warn" : "bad"}
-          testId="variance"
-        />
-      </div>
-      <Field label="Notes (optional)" htmlFor="shift-notes" className="mt-4" hint={variance ? "Explain any variance — it goes on the Z-report." : undefined}>
-        <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. R50 paid out for milk, slip in drawer" />
+      {manager ? (
+        <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
+          <Figure label="Expected" value={expected != null ? zar(expected) : "…"} />
+          <Figure label="Counted" value={zar(counted)} />
+          <Figure
+            className="col-span-2 sm:col-span-1"
+            label="Variance"
+            value={variance != null ? `${variance > 0 ? "+" : ""}${zar(variance)}` : "…"}
+            tone={variance == null || variance === 0 ? "ok" : Math.abs(variance) <= 1000 ? "warn" : "bad"}
+            testId="variance"
+          />
+        </div>
+      ) : (
+        <div className="mt-4 flex items-end justify-between gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800">
+          <Figure label="Counted" value={zar(counted)} />
+          <p className="max-w-[16rem] text-right text-xs text-ink-400">Blind count: what the drawer should hold shows on the Z-report once you close.</p>
+        </div>
+      )}
+      <Field
+        label={needNote ? "Notes (needed)" : "Notes (optional)"}
+        htmlFor="shift-notes"
+        className="mt-4"
+        error={needNote && noteNeeded ? "The count doesn't match what the till expects — count again, or explain the difference here." : undefined}
+        hint={needNote ? "The count is out by more than the tolerance — explain it. It goes on the Z-report." : variance ? "Explain any variance — it goes on the Z-report." : undefined}
+      >
+        <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-invalid={needNote && noteNeeded ? true : undefined} placeholder="e.g. R50 paid out for milk, slip in drawer" />
       </Field>
       {blocked && <Alert tone="warn" className="mt-4">{blocked}</Alert>}
       <div className={STICKY_ACTION}>
-        <PosButton variant="primary" size="xl" className="w-full" disabled={!!blocked || busy} onClick={() => setConfirm(true)} data-testid="close-shift">
+        <PosButton variant="primary" size="xl" className="w-full" disabled={!!blocked || busy || (needNote && variance != null)} onClick={() => setConfirm(true)} data-testid="close-shift">
           Close shift &amp; print Z-report
         </PosButton>
       </div>
@@ -214,7 +237,13 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
         title="Close this shift?"
         body={
           <>
-            Counted <b>{zar(counted)}</b> against <b>{expected != null ? zar(expected) : "—"}</b> expected
+            Counted <b>{zar(counted)}</b>
+            {expected != null && (
+              <>
+                {" "}
+                against <b>{zar(expected)}</b> expected
+              </>
+            )}
             {variance ? (
               <>
                 {" "}
@@ -322,7 +351,7 @@ function ReportFigures({ r }: { r: ZReport }) {
       : []),
     ...r.tenders.map((t) => [t.label, zar(t.amountCents)] as [string, string]),
     ["Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`],
-    ["Cash expected in drawer", zar(r.cash.expectedCents)],
+    ["Cash expected in drawer", r.blind ? "After the count" : zar(r.cash.expectedCents)],
   ];
   return (
     <dl className="mt-3 divide-y divide-ink-850 text-sm">

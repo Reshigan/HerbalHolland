@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { availability, availKey, OPEN_ORDER_STATUSES } from "@/server/inventory";
 import { addDays, dateOnly, dayKey, fmtDay } from "@/lib/format";
 import { daysOfCover } from "@/lib/replenish";
+import { textMatches } from "@/lib/text-match";
 import { stockStatus, overstockUnits, type StockStatus } from "./rules";
 import type { RegClass } from "@/lib/compliance";
 
@@ -144,9 +145,7 @@ export function sortStock(rows: StockRow[], sort: StockSort, dir: "asc" | "desc"
 }
 
 export function matchesSearch(r: Pick<StockRow, "name" | "sku" | "barcode" | "category">, q: string) {
-  if (!q) return true;
-  const hay = `${r.name} ${r.sku} ${r.barcode ?? ""} ${r.category}`.toLowerCase();
-  return q.toLowerCase().split(/\s+/).filter(Boolean).every((t) => hay.includes(t));
+  return !q || textMatches(`${r.name} ${r.sku} ${r.barcode ?? ""} ${r.category}`, q);
 }
 
 // ── Variant detail ───────────────────────────────────────────────────────────

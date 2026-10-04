@@ -15,6 +15,7 @@ import { OrderStatusTag } from "@/components/trade/status";
 import { ReorderTradeButton } from "@/components/trade/reorder-button";
 import { FULFILMENT_LABEL, PAY_LABEL, fmtCases } from "@/components/trade/format";
 import { addressLineOf, eftReference } from "@/lib/trade";
+import { CopyButton } from "@/components/trade/copy-button";
 import { addDays, fmtDate, fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { displayPhone, PROVINCES, type ProvinceCode } from "@/lib/sa";
@@ -93,9 +94,12 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
                 Pay <strong className="tnum text-white">{zar(order.totalCents)}</strong> by EFT using the reference <strong className="tnum text-white">{eftReference(order.number)}</strong>, by {fmtDate(payBy)}. Unpaid orders lapse after {t.eftHoldDays} {t.eftHoldDays === 1 ? "day" : "days"}; stock is reserved as soon as we confirm the payment.
               </p>
               <dl className="tnum mt-4 grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2">
-                <div className="flex justify-between gap-4 border-b border-ink-800 py-1.5">
+                <div className="flex items-center justify-between gap-4 border-b border-ink-800 py-1.5">
                   <dt className="text-ink-400">Reference</dt>
-                  <dd className="font-semibold text-white" data-testid="eft-reference">{eftReference(order.number)}</dd>
+                  <dd className="flex items-center gap-1 font-semibold text-white">
+                    <span data-testid="eft-reference">{eftReference(order.number)}</span>
+                    <CopyButton text={eftReference(order.number)} label="Copy the EFT reference" className="-my-1" />
+                  </dd>
                 </div>
                 <div className="flex justify-between gap-4 border-b border-ink-800 py-1.5">
                   <dt className="text-ink-400">Amount</dt>
@@ -219,7 +223,38 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
             <h2 id="lines" className="font-display text-xl font-semibold text-white">
               Lines
             </h2>
-            <div className="mt-4 overflow-x-auto rounded-2xl border border-ink-800">
+            <ul className="tnum mt-4 divide-y divide-ink-800 rounded-2xl border border-ink-800 sm:hidden">
+              {order.lines.map((l) => {
+                const qty = l.shippedQty ?? l.qty;
+                const isShort = l.shippedQty != null && l.shippedQty < l.qty;
+                return (
+                  <li key={l.id} className="p-4 text-sm">
+                    <div className="font-medium text-white">
+                      {l.variant.product.name} <span className="text-ink-300">· {l.variant.name}</span>
+                    </div>
+                    <div className="text-xs text-ink-400">
+                      {l.variant.sku} · {fmtCases(l.qty, l.variant.caseQty)} · {zar(l.unitCents)} ex VAT each
+                      {isShort ? ` · ordered ${l.qty}, ${l.shippedQty} supplied — invoiced for ${l.shippedQty}` : ""}
+                    </div>
+                    <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
+                      <div>
+                        <dt className="text-ink-400">Ex VAT</dt>
+                        <dd className="text-white">{zar(l.unitCents * (posted ? qty : l.qty))}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-ink-400">VAT</dt>
+                        <dd className="text-ink-200">{posted && isShort ? "—" : zar(l.vatCents)}</dd>
+                      </div>
+                      <div className="text-right">
+                        <dt className="text-ink-400">Incl.</dt>
+                        <dd className="text-ink-200">{posted && isShort ? "—" : zar(l.unitCents * l.qty + l.vatCents)}</dd>
+                      </div>
+                    </dl>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="mt-4 hidden overflow-x-auto rounded-2xl border border-ink-800 sm:block">
               <table className="w-full min-w-[36rem] text-sm">
                 <thead className="text-left text-[0.68rem] uppercase tracking-[0.12em] text-ink-400">
                   <tr className="border-b border-ink-800">

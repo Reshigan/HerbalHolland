@@ -5,10 +5,11 @@ import { ArrowLeft, CloudOff, Delete, ShieldCheck, Wifi } from "lucide-react";
 import { Mark } from "@/components/brand/logo";
 import { cn } from "@/lib/cn";
 import { fmtTime } from "@/lib/format";
+import { isTillManager } from "@/lib/pos-refund";
 import { Alert, Chip } from "./ui";
 import type { SessionInfo, StaffTile } from "@/server/pos/types";
 
-const ROLE: Record<string, string> = { MANAGER: "Store manager", BUDTENDER: "Budtender" };
+const ROLE: Record<string, string> = { MANAGER: "Store manager", OWNER: "Owner", BUDTENDER: "Budtender" };
 
 export function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");
@@ -43,7 +44,7 @@ export function LockScreen({
     return () => clearInterval(t);
   }, []);
 
-  const eligible = (s: StaffTile) => (reason === "dispenser" ? s.canDispense : reason === "manager" ? s.role === "MANAGER" : true);
+  const eligible = (s: StaffTile) => (reason === "dispenser" ? s.canDispense : reason === "manager" ? isTillManager(s.role) : true);
 
   const submit = useCallback(
     async (code: string) => {
@@ -92,7 +93,7 @@ export function LockScreen({
   }, [picked]);
 
   return (
-    <div className="fixed inset-0 z-40 flex flex-col overflow-y-auto bg-ink-950 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink-100 print:hidden lg:flex-row">
+    <div className="fixed inset-0 z-[55] flex flex-col overflow-y-auto bg-ink-950 pb-[env(safe-area-inset-bottom)] pt-[env(safe-area-inset-top)] text-ink-100 print:hidden lg:flex-row">
       {/* Brand + store panel */}
       <section className="relative flex shrink-0 flex-col justify-between gap-6 border-b border-ink-850 px-6 py-6 lg:w-[38%] lg:border-b-0 lg:border-r lg:px-10 lg:py-10">
         <div className="flex items-center gap-3 text-brand-500">

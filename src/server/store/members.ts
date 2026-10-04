@@ -56,3 +56,27 @@ export async function homeMemberTotals(storeId: string, since: Date) {
   ]);
   return { active: active?.n ?? 0, spendCents: spend._sum.totalCents ?? 0 };
 }
+
+/**
+ * A member search from the box on Members / Online orders: every word must match a name, member number or email,
+ * and a run of 4+ digits also matches the mobile (stored without the leading 0). "Mpho Baloyi", "082 555 0101".
+ */
+export function customerSearch(q: string): Prisma.CustomerWhereInput {
+  const words = q.split(/\s+/).filter(Boolean);
+  if (!words.length) return {};
+  const digits = q.replace(/\D/g, "");
+  return {
+    AND: words.map((w) => ({
+      OR: [
+        { firstName: { contains: w, mode: "insensitive" as const } },
+        { lastName: { contains: w, mode: "insensitive" as const } },
+        { memberNo: { contains: w, mode: "insensitive" as const } },
+        { email: { contains: w, mode: "insensitive" as const } },
+        ...(digits.length >= 4 ? [{ phone: { contains: digits.replace(/^0/, "") } }] : []),
+      ],
+    })),
+  };
+}
+
+/** Members a store may look up: its home members, and members who have bought there (Sale.customerId is indexed). */
+export const memberAtStore = (storeId: string): Prisma.CustomerWhereInput => ({ OR: [{ homeStoreId: storeId }, { sales: { some: { storeId } } }] });

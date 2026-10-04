@@ -30,6 +30,10 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
   const clean = Object.fromEntries(DENOMINATIONS.map((d) => [String(d), Math.max(0, Math.floor(counts[String(d)] ?? 0))]));
   const counted = countCash(clean);
   const cash = await shiftCash(shift.id);
+  // A count out by more than the cash-short tolerance needs a reason on record (without saying by how much: it's blind).
+  const tolerance = (await getSettings()).loss.cashShortCents;
+  if (Math.abs(counted - cash.expectedCents) > tolerance && !notes?.trim())
+    throw new PosError("The count doesn't match what the till expects — count the drawer again, or add a note explaining the difference", 422, "NOTE_REQUIRED");
   const done = await db.shift.updateMany({
     where: { id: shift.id, closedAt: null },
     data: { closedAt: new Date(), closedById: pos.user.id, expectedCashCents: cash.expectedCents, countedCashCents: counted, notes: notes?.trim() || null },
@@ -132,6 +136,12 @@ export async function zReport(shiftId: string): Promise<ZReport> {
     notes: shift.notes,
     emailedTo: null,
   };
+}
+
+/** The X-report as a blind count needs it: nothing that gives away what the drawer should hold (managers see it all). */
+export function blindReport(r: ZReport): ZReport {
+  if (r.closed) return r;
+  return { ...r, blind: true, tenders: r.tenders.filter((t) => t.method !== "CASH"), cash: { ...r.cash, cashNetCents: 0, expectedCents: 0, varianceCents: null } };
 }
 
 /** Most recent shift on this till (open or closed) for re-printing. */

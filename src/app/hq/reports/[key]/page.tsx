@@ -35,6 +35,8 @@ export default async function HqReport({ params, searchParams }: { params: Promi
       scopeLabel={r.scopeLabel}
       rangeLabel={r.rangeLabel}
       clamped={r.clamped}
+      sort={sp.sort}
+      dir={sp.dir}
       extraActions={
         <ScheduleExport
           me={user.email ?? ""}

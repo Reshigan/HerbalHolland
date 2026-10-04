@@ -306,10 +306,12 @@ try {
   assert((await lineB.getByTestId("line-ex").textContent()) === zar(exB) && (await lineB.getByTestId("line-vat").textContent()) === zar(vatHalfUp(exB)), `line B: ${zar(exB)} ex · ${zar(vatHalfUp(exB))} VAT`);
   assert((await page.getByTestId("subtotal-ex").textContent()) === zar(subtotal) && (await page.getByTestId("total-vat").textContent()) === zar(vat) && (await page.getByTestId("total-incl").textContent()) === zar(subtotal + vat), `totals: ${zar(subtotal)} ex VAT · ${zar(vat)} VAT · ${zar(subtotal + vat)} incl.`);
   const stepperA = lineA.getByRole("group", { name: /^Cases of/ });
-  await timed("Cart: one case more", () => stepperA.getByRole("button", { name: "One case more" }).click(), () => stepperA.getByText("3 cases", { exact: true }).waitFor());
-  await page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal + 6 * A.wholesaleCents) }).waitFor();
+  await timed("Cart: one case more", () => stepperA.getByRole("button", { name: "One case more" }).click(), () => page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal + 6 * A.wholesaleCents) }).waitFor());
+  assert((await stepperA.getByRole("spinbutton").inputValue()) === "3", "the case count reads 3");
   ok(`3 cases (18 units): subtotal ${zar(subtotal + 6 * A.wholesaleCents)}`);
-  await timed("Cart: one case fewer", () => stepperA.getByRole("button", { name: "One case fewer" }).click(), () => stepperA.getByText("2 cases", { exact: true }).waitFor());
+  await timed("Cart: type 4 cases", async () => (await stepperA.getByRole("spinbutton").fill("4"), await stepperA.getByRole("spinbutton").press("Enter")), () => page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal + 12 * A.wholesaleCents) }).waitFor());
+  await timed("Cart: one case fewer", () => stepperA.getByRole("button", { name: "One case fewer" }).click(), () => page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal + 6 * A.wholesaleCents) }).waitFor());
+  await stepperA.getByRole("button", { name: "One case fewer" }).click();
   await page.getByTestId("subtotal-ex").filter({ hasText: zar(subtotal) }).waitFor();
   const cookie = (await ctx.cookies()).find((c) => c.name === "hh_trade_cart");
   assert(cookie && cookie.value.includes(`${A.id}_12`) && cookie.value.includes(`${B.id}_12`), "hh_trade_cart holds both lines in units (12 + 12)");

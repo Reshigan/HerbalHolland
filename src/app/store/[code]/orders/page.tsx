@@ -3,6 +3,7 @@ import { Briefcase, ShoppingBag } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
+import { customerSearch } from "@/server/store/members";
 import { FULFIL_LABEL, hrefWith, sp1 } from "@/server/store/rules";
 import { zar } from "@/lib/money";
 import { fmtDateTime, timeAgo } from "@/lib/format";
@@ -52,16 +53,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
   // Oldest first while there's work to do; newest first in the history tabs. Column headers override that.
   const { sort, dir } = sortParams(SORTS, sp.sort, sp.dir, "age", tab === "todo" ? "asc" : "desc");
 
-  const search: Prisma.OrderWhereInput = q
-    ? {
-        OR: [
-          { code: { contains: q, mode: "insensitive" } },
-          { customer: { firstName: { contains: q, mode: "insensitive" } } },
-          { customer: { lastName: { contains: q, mode: "insensitive" } } },
-          { customer: { memberNo: { contains: q, mode: "insensitive" } } },
-        ],
-      }
-    : {};
+  const search: Prisma.OrderWhereInput = q ? { OR: [{ code: { contains: q, mode: "insensitive" } }, { customer: customerSearch(q) }] } : {};
   const where: Prisma.OrderWhereInput = { storeId: store.id, status: { in: TABS[tab].statuses }, ...search };
   const [counts, total, orders, tradeOpen] = await Promise.all([
     db.order.groupBy({ by: ["status"], where: { storeId: store.id, ...search }, _count: true }),
@@ -97,7 +89,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
       <Card>
         <TabLinks className="px-4" current={tabHref(tab)} tabs={Object.entries(TABS).map(([k, t]) => ({ href: tabHref(k), label: t.label, count: n(t.statuses) }))} />
         <div className="space-y-3 border-b border-ink-100 p-4 sm:px-5">
-          <SearchForm path={path} q={q} keep={{ tab: tab === "todo" ? undefined : tab, sort: sp1(sp.sort), dir: sp1(sp.dir) }} placeholder="Order code, member name or number" />
+          <SearchForm path={path} q={q} keep={{ tab: tab === "todo" ? undefined : tab, sort: sp1(sp.sort), dir: sp1(sp.dir) }} placeholder="Order code, member name, number or mobile" />
           <SavedViews pageKey="store-orders" userKey={user.id} />
         </div>
         {orders.length === 0 ? (

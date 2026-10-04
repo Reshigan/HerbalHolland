@@ -7,6 +7,8 @@ import { SideNav, StoreSwitcher, MobileNav } from "./nav";
 import { AdminShortcuts, PaletteButton } from "./shortcuts";
 import { NavProgress } from "./nav-progress";
 import type { NavGroup } from "./nav-config";
+import { catalogue } from "@/server/reports";
+import type { PaletteItem } from "@/lib/admin-ui";
 import type { Staff } from "@/server/auth";
 
 const ROLE: Record<string, string> = {
@@ -33,6 +35,13 @@ export function AdminShell({
   stores?: { code: string; name: string }[];
   children: React.ReactNode;
 }) {
+  // The command palette also finds every report this person can run and the stores they look after.
+  const reports: PaletteItem[] = catalogue(area, user.role, { multiStore: stores.length > 1 }).flatMap((g) =>
+    g.reports.map((r) => ({ href: area === "hq" ? `/hq/reports/${r.key}` : `/store/${store?.code}/reports/${r.key}`, label: r.title, group: "Reports", keywords: `${g.group} ${r.description}`, kind: "report" as const })),
+  );
+  const storeItems: PaletteItem[] = stores
+    .filter((s) => s.code !== store?.code)
+    .map((s) => ({ href: area === "hq" ? `/hq/stores/${s.code}` : `/store/${s.code}`, label: s.name, group: area === "hq" ? "Stores" : "Switch store", keywords: s.code, kind: "store" as const }));
   const sidebar = (
     <div className="flex h-full flex-col">
       <Link href={area === "hq" ? "/hq" : `/store/${store?.code}`} className="mb-4 flex items-center justify-between px-2">
@@ -83,7 +92,7 @@ export function AdminShell({
         Skip to content
       </a>
       <NavProgress />
-      <AdminShortcuts groups={nav} area={area} storeCode={store?.code} userKey={user.id} />
+      <AdminShortcuts groups={nav} area={area} storeCode={store?.code} userKey={user.id} extra={[...reports, ...storeItems]} />
       <aside className="sticky top-0 hidden h-screen overflow-y-auto bg-ink-950 p-4 lg:block" aria-label="Sidebar">
         {sidebar}
       </aside>

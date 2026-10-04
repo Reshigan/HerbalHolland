@@ -7,6 +7,7 @@ import { shortCode } from "@/server/counters";
 import { json, readBody, withStaff, PosError } from "@/server/pos/http";
 import { Uuid } from "@/server/pos/schemas";
 import { receipt } from "@/server/pos/receipts";
+import { cashRefundAllowed, isTillManager } from "@/lib/pos-refund";
 
 const Body = z.object({
   id: Uuid,
@@ -19,10 +20,14 @@ const Body = z.object({
 });
 
 export const POST = withStaff(async (req, pos) => {
+  // Money going back out is a manager's call: the till signs a manager in (PIN) before it posts the refund.
+  if (!isTillManager(pos.user.role)) throw new PosError("A manager must approve refunds — sign in with a manager's PIN", 403, "MANAGER_ONLY");
   const b = await readBody(req, Body);
   const storeId = pos.device.storeId;
-  const orig = await db.sale.findUnique({ where: { id: b.saleId }, select: { storeId: true } });
+  const orig = await db.sale.findUnique({ where: { id: b.saleId }, select: { storeId: true, payments: { select: { method: true, amountCents: true } } } });
   if (!orig || orig.storeId !== storeId) throw new PosError("Sale not found at this store", 404);
+  if (b.method === "CASH" && !cashRefundAllowed(orig.payments))
+    throw new PosError("No cash was paid on this sale — refund it to the card or account it was paid with", 422, "NO_CASH_PAID");
   const shift = await db.shift.findFirst({ where: { storeId, deviceId: pos.device.id, closedAt: null }, select: { id: true } });
   if (!shift && b.method === "CASH") throw new PosError("Open a shift before paying out cash", 409, "NO_SHIFT");
 

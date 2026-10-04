@@ -209,6 +209,7 @@ export async function cardsWhere(where: Prisma.ProductWhereInput, classes: RegCl
 
 // ── Listing ──────────────────────────────────────────────────────────────────
 export const SORTS = [
+  { key: "relevance", label: "Best match" },
   { key: "featured", label: "Featured" },
   { key: "price-asc", label: "Price: low to high" },
   { key: "price-desc", label: "Price: high to low" },
@@ -251,7 +252,7 @@ export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, 
     const docs: SearchDoc[] = rows.map((c) => {
       const p = byId.get(c.id)!;
       return {
-        id: c.id, name: c.name, tagline: c.tagline, description: p.description, category: c.category.name, words: [...p.effects, ...p.flavours, p.origin ?? "", p.lineage ?? ""],
+        id: c.id, name: c.name, tagline: c.tagline, description: p.description, category: c.category.name, words: [...p.effects, ...p.flavours, p.origin ?? "", p.lineage ?? ""], effects: p.effects,
         netContent: p.netContent, netUnit: p.netUnit, cbdMgPerPack: p.cbdMgPerPack, variants: p.variants.map((v) => ({ name: v.name, grams: v.grams })), sim: sims.get(c.id) ?? 0,
       };
     });
@@ -262,14 +263,16 @@ export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, 
   }
   const byName = (a: ProductCard, b: ProductCard) => a.name.localeCompare(b.name);
   const sorters: Record<SortKey, (a: ProductCard, b: ProductCard) => number> = {
+    relevance: (a, b) => (relevance ? relevance.get(a.id)! - relevance.get(b.id)! : 0) || byName(a, b),
     featured: (a, b) => Number(b.featured) - Number(a.featured) || Number(b.heritage) - Number(a.heritage) || a.category.sortOrder - b.category.sortOrder || byName(a, b),
     "price-asc": (a, b) => a.priceCents - b.priceCents || byName(a, b),
     "price-desc": (a, b) => b.priceCents - a.priceCents || byName(a, b),
     rating: (a, b) => (b.rating?.avg ?? 0) - (a.rating?.avg ?? 0) || (b.rating?.count ?? 0) - (a.rating?.count ?? 0) || byName(a, b),
     new: (a, b) => b.createdAt.getTime() - a.createdAt.getTime() || byName(a, b),
   };
-  const sortKey = q.sort ?? "featured";
-  rows = relevance && sortKey === "featured" ? [...rows].sort((a, b) => relevance!.get(a.id)! - relevance!.get(b.id)!) : [...rows].sort(sorters[sortKey]);
+  // Best match is the default with a search, Featured without one (there is nothing to match then).
+  const sortKey: SortKey = q.sort && (q.sort !== "relevance" || relevance) ? q.sort : relevance ? "relevance" : "featured";
+  rows = [...rows].sort(sorters[sortKey]);
   const prices = all.map((c) => c.priceCents);
   return {
     items: rows.slice((q.page - 1) * PAGE_SIZE, q.page * PAGE_SIZE),

@@ -92,12 +92,12 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
         <Table stickyFirst className="relative">
           <thead>
             <tr>
-              <Th>Number</Th>
+              <Th className="whitespace-nowrap">Number</Th>
               <Th className="hidden md:table-cell">Received</Th>
               <Th>Name</Th>
               <Th className="hidden sm:table-cell">Area</Th>
               <Th className="hidden lg:table-cell">{CAPITAL_LABEL}</Th>
-              <Th className="hidden lg:table-cell">Pharmacist partner</Th>
+              <Th className="hidden lg:table-cell">Pharmacist</Th>
               <Th className="hidden sm:table-cell">Status</Th>
               <Th className="hidden md:table-cell">Owner</Th>
             </tr>
@@ -128,11 +128,11 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
                   <span className="text-ink-800">{fmtDate(l.createdAt)}</span>
                   <span className="block text-xs text-ink-500">{timeAgo(l.createdAt, now)}</span>
                 </Td>
-                <Td className="min-w-40 sm:min-w-48">
+                <Td className="min-w-40 max-w-64 sm:min-w-48">
                   <Link href={`/hq/franchise/${l.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                     {l.name}
                   </Link>
-                  <span className="block text-xs text-ink-500 [overflow-wrap:anywhere]">{l.email}</span>
+                  <span className="block truncate text-xs text-ink-500" title={l.email}>{l.email}</span>
                   <span className="tnum block whitespace-nowrap text-xs text-ink-500">{displayPhone(l.phone)}</span>
                 </Td>
                 <Td className="hidden min-w-32 sm:table-cell">

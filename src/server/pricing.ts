@@ -387,12 +387,14 @@ export async function tradeRange(
     },
   };
   // Every word must match somewhere (name, SKU, barcode or product name) — or the whole query must (a SKU like "HH-CBD-001").
-  const matches = (t: string): Prisma.VariantWhereInput => {
-    const like = { contains: t, mode: "insensitive" as const };
-    return { OR: [{ name: like }, { sku: like }, { barcode: like }, { product: { name: like } }] };
-  };
+  const matches = (spellings: string[]): Prisma.VariantWhereInput => ({
+    OR: spellings.flatMap((t) => {
+      const like = { contains: t, mode: "insensitive" as const };
+      return [{ name: like }, { sku: like }, { barcode: like }, { product: { name: like } }];
+    }),
+  });
   const terms = q ? rangeSearchTerms(q) : [];
-  let where: Prisma.VariantWhereInput = q ? { AND: [base, { OR: [matches(q), ...(terms.length ? [{ AND: terms.map(matches) }] : [])] }] } : base;
+  let where: Prisma.VariantWhereInput = q ? { AND: [base, { OR: [matches([q]), ...(terms.length ? [{ AND: terms.map(matches) }] : [])] }] } : base;
   let didYouMean: string | null = null;
   // Nothing by words (a typo: "colagen")? Fall back to products with a similar name, and say which we think was meant.
   if (q && !(await db.variant.count({ where }))) {

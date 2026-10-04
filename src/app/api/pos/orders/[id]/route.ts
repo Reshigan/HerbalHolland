@@ -1,5 +1,5 @@
 // Moves an online order along (domain: orders.advanceOrder). Handover needs the customer's
-// collection code (or order code), an 18+ ID check, a dispenser for licensed items and
+// collection code (or their collection QR — never the order code), an 18+ ID check, a dispenser for licensed items and
 // payment if unpaid; delivery orders are dispatched with a courier/driver and tracking.
 import { z } from "zod";
 import { db } from "@/server/db";
@@ -13,7 +13,7 @@ type Ctx = { params: Promise<{ id: string }> };
 
 const Body = z.object({
   to: z.enum(["PICKING", "READY", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"]),
-  code: z.string().trim().max(20).optional(),
+  code: z.string().trim().max(60).optional(), // the 6-digit collection code, or the collection QR's text
   idChecked: z.boolean().optional(),
   payments: z.array(MoneyTender).max(6).optional(),
   courier: z.string().trim().max(60).optional(),

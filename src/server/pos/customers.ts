@@ -30,12 +30,14 @@ export async function searchCustomers(raw: string, storeId: string): Promise<Cus
   const phone = normalisePhone(q);
   const digits = q.replace(/\D/g, "");
   const words = q.split(/\s+/).filter(Boolean);
+  // Part of a mobile, from either end: "1234" (the last digits) or "063015" / "82555" (the start, as +27…).
+  const prefix = digits.startsWith("0") ? `+27${digits.slice(1)}` : digits.startsWith("27") ? `+${digits}` : /^[6-8]/.test(digits) ? `+27${digits}` : null;
   const where = memberNo
     ? { memberNo }
     : phone
       ? { phone }
       : /^\d{4,9}$/.test(digits) && digits.length === q.replace(/\s/g, "").length
-        ? { phone: { endsWith: digits } }
+        ? { OR: [{ phone: { endsWith: digits } }, ...(prefix && prefix.length > 4 ? [{ phone: { startsWith: prefix } }] : [])] }
         : q.includes("@")
           ? { email: q.toLowerCase() }
           : words.length > 1

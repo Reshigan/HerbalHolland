@@ -24,6 +24,7 @@ import { ReadOnlyNote } from "@/components/store/ui";
 import { Drawer } from "@/components/store/drawer";
 import { ActionButton, ConfirmAction } from "@/components/store/action-form";
 import type { Promotion } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Local marketing" };
 type SP = Record<string, string | string[] | undefined>;
@@ -275,7 +276,7 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
                   {c.result.orders ? (
                     <>
                       <span className="font-medium text-ink-900">{zar(c.result.revenueCents)}</span>
-                      <div className="text-xs text-ink-500">{c.result.orders} sales</div>
+                      <div className="text-xs text-ink-500">{plural(c.result.orders, "sale")}</div>
                     </>
                   ) : (
                     <span className="text-ink-500">—</span>

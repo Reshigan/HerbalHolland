@@ -37,6 +37,11 @@ export function CustomerSheet({
   /** Training mode: sign-ups are simulated on the till (nothing is written). */
   training?: boolean;
 }) {
+  // "Sign up 082…" from a search with no match: the New member form starts with that number.
+  const [prefill, setPrefill] = useState("");
+  useEffect(() => {
+    if (!open) setPrefill("");
+  }, [open]);
   return (
     <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name, member number — or scan their member QR" : "Takes about 20 seconds"} size="lg">
       <Segmented
@@ -52,15 +57,15 @@ export function CustomerSheet({
       {!online ? (
         <OfflineMember onPick={onPick} />
       ) : mode === "find" ? (
-        <FindMember onPick={onPick} initialQuery={initialQuery} />
+        <FindMember onPick={onPick} initialQuery={initialQuery} onSignUp={(phone) => (setPrefill(phone), onMode("new"))} />
       ) : (
-        <NewMember onCreated={onPick} joinUrl={joinUrl} minAge={minAge} training={training} />
+        <NewMember key={prefill} onCreated={onPick} joinUrl={joinUrl} minAge={minAge} training={training} phone={prefill} />
       )}
     </Sheet>
   );
 }
 
-function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => void; initialQuery?: string }) {
+function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDetail) => void; initialQuery?: string; onSignUp: (phone: string) => void }) {
   const [q, setQ] = useState(initialQuery ?? "");
   const [hits, setHits] = useState<CustomerHit[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -82,8 +87,8 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
         if (n !== seq.current) return;
         setHits(r.customers);
         setError(null);
-        // A scanned member QR or exact member number opens straight away.
-        if (memberNoFrom(term) && r.customers.length === 1) void open(r.customers[0].id);
+        // A scanned member QR, an exact member number or a full mobile number with one match opens straight away.
+        if ((memberNoFrom(term) || normalisePhone(term)) && r.customers.length === 1) void open(r.customers[0].id);
       } catch (e) {
         if (n === seq.current) setError(errorText(e));
       } finally {
@@ -110,7 +115,22 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
     <div>
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
-        <TextInput autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="082 555 1234 · Thandi Mokoena · HH0100002" aria-label="Search members" className="h-14 pl-12 text-lg" />
+        <TextInput
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter takes the first member found.
+            if (e.key === "Enter" && hits?.length && !opening) {
+              e.preventDefault();
+              void open(hits[0].id);
+            }
+          }}
+          enterKeyHint="go"
+          placeholder="082 555 1234 · Thandi Mokoena · HH0100002"
+          aria-label="Search members"
+          className="h-14 pl-12 text-lg"
+        />
         {loading && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
       </div>
       {error && <Alert className="mt-3">{error}</Alert>}
@@ -147,13 +167,20 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
           </li>
         ))}
       </ul>
-      {hits && hits.length === 0 && !loading && <p className="mt-6 text-center text-sm text-ink-400">No members match “{q.trim()}”. Check the number, or sign them up.</p>}
+      {hits && hits.length === 0 && !loading && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-ink-400">No members match “{q.trim()}”. Check the number, or sign them up.</p>
+          <PosButton variant="primary" className="mt-3" onClick={() => onSignUp(normalisePhone(q) ? q.trim() : "")} data-testid="sign-up-from-search">
+            <UserPlus className="h-4 w-4" /> {normalisePhone(q) ? `Sign up ${q.trim()}` : "Sign up a new member"}
+          </PosButton>
+        </div>
+      )}
     </div>
   );
 }
 
-function NewMember({ onCreated, joinUrl, minAge, training }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number; training?: boolean }) {
-  const [f, setF] = useState({ phone: "", firstName: "", lastName: "", email: "", idNumber: "" });
+function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number; training?: boolean; phone?: string }) {
+  const [f, setF] = useState({ phone, firstName: "", lastName: "", email: "", idNumber: "" });
   const [passport, setPassport] = useState(false);
   const [deals, setDeals] = useState<boolean | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
@@ -208,10 +235,10 @@ function NewMember({ onCreated, joinUrl, minAge, training }: { onCreated: (c: Cu
         {error && <Alert>{error}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Mobile number" htmlFor="nm-phone" error={touched && !phoneOk ? "Enter a South African mobile number" : undefined}>
-            <TextInput id="nm-phone" autoFocus inputMode="tel" autoComplete="off" value={f.phone} onChange={set("phone")} placeholder="082 555 1234" aria-invalid={touched && !phoneOk} />
+            <TextInput id="nm-phone" autoFocus={!phone} inputMode="tel" autoComplete="off" value={f.phone} onChange={set("phone")} placeholder="082 555 1234" aria-invalid={touched && !phoneOk} />
           </Field>
           <Field label="First name" htmlFor="nm-first" error={touched && !f.firstName.trim() ? "Enter their first name" : undefined}>
-            <TextInput id="nm-first" autoComplete="off" value={f.firstName} onChange={set("firstName")} aria-invalid={touched && !f.firstName.trim()} />
+            <TextInput id="nm-first" autoFocus={!!phone} autoComplete="off" value={f.firstName} onChange={set("firstName")} aria-invalid={touched && !f.firstName.trim()} />
           </Field>
           <Field label="Surname (optional)" htmlFor="nm-last">
             <TextInput id="nm-last" autoComplete="off" value={f.lastName} onChange={set("lastName")} />
@@ -301,10 +328,10 @@ function NewMember({ onCreated, joinUrl, minAge, training }: { onCreated: (c: Cu
   );
 }
 
-/** Offline: members can't be looked up, so take the number from their card; it's checked when the till reconnects. */
+/** Offline: members can't be looked up, so take the number from their card or their mobile; it's checked when the till reconnects. */
 function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
   const [no, setNo] = useState("");
-  const memberNo = memberNoFrom(no);
+  const memberNo = memberNoFrom(no) ?? normalisePhone(no);
   return (
     <form
       onSubmit={(e) => {
@@ -313,9 +340,9 @@ function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
       }}
       className="space-y-3"
     >
-      <Alert tone="warn">Offline — members can&apos;t be looked up or signed up. Scan their card QR or type the member number from their card: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
-      <Field label="Member number" htmlFor="off-member" error={no && !memberNo ? "Member numbers look like HH0123456" : undefined}>
-        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456" />
+      <Alert tone="warn">Offline — members can&apos;t be looked up or signed up. Scan their card QR, or type the member number from their card or their mobile number: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
+      <Field label="Member number or mobile" htmlFor="off-member" error={no.trim().length >= 9 && !memberNo ? "Member numbers look like HH0123456; mobiles like 082 555 1234" : undefined}>
+        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456 or 082 555 1234" />
       </Field>
       <PosButton type="submit" variant="primary" size="lg" className="w-full" disabled={!memberNo}>
         Add to sale

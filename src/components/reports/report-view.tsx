@@ -16,6 +16,7 @@ import { ReportChart } from "./report-chart";
 import { ReportTable } from "./report-table";
 import { ReportIcon } from "./icons";
 import { fmtTile } from "./format";
+import { reportSort } from "@/lib/report-sort";
 
 export const SCREEN_LIMIT = 200;
 
@@ -46,6 +47,9 @@ type Props = {
   clamped?: boolean;
   /** Extra header actions (e.g. the HQ "Email me this" schedule control). */
   extraActions?: React.ReactNode;
+  /** ?sort= and ?dir= from the URL: sorts the main table by one of its columns. */
+  sort?: string | string[];
+  dir?: string | string[];
 };
 
 function tileValue(v: number | string | null, format?: Format) {
@@ -64,7 +68,9 @@ function SecondaryTable({ t }: { t: Table }) {
   );
 }
 
-export function ReportView({ def, result, controls, query, path, catalogueHref, csvHref, scopeLabel, rangeLabel, clamped, extraActions }: Props) {
+export function ReportView({ def, result, controls, query, path, catalogueHref, csvHref, scopeLabel, rangeLabel, clamped, extraActions, sort: sortParam, dir: dirParam }: Props) {
+  const sort = reportSort(result.columns, sortParam, dirParam);
+  const sortHref = (key: string, dir: "asc" | "desc") => `${path}?${new URLSearchParams({ ...query, sort: key, dir })}`;
   const tiles = result.summary ?? [];
   const chart = result.rows.length || result.chart?.kind === "area" ? result.chart : null;
   const aside = !!chart && (chart.kind === "bar" || chart.kind === "donut");
@@ -210,7 +216,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
           />
           <div className="mt-4">
             {result.rows.length ? (
-              <ReportTable columns={result.columns} rows={result.rows} totals={result.totals} limit={SCREEN_LIMIT} />
+              <ReportTable columns={result.columns} rows={result.rows} totals={result.totals} limit={SCREEN_LIMIT} sort={sort} sortHref={sortHref} />
             ) : (
               <EmptyState icon={<ReportIcon reportKey={def.key} className="h-5 w-5" />} title={result.emptyTitle ?? "Nothing to show"} className="border-t border-ink-100">
                 {result.empty ?? "No data for these filters. Try a longer date range or another store."}

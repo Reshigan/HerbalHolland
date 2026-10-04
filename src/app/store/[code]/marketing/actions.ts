@@ -9,6 +9,7 @@ import { screenCopy } from "@/lib/compliance";
 import { isAudience } from "@/lib/rfm";
 import { fmtDateTime } from "@/lib/format";
 import type { MsgChannel, PromoKind, Prisma } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 const KINDS: PromoKind[] = ["PERCENT", "FIXED", "BUY_X_GET_Y", "MULTIBUY"];
 const CHANNELS: MsgChannel[] = ["SMS", "EMAIL"];
@@ -153,7 +154,7 @@ export async function createCampaign(code: string, _: ActionState, fd: FormData)
     if (str(fd, "intent") !== "send") return done(`“${name}” saved as a draft.`);
     const r = await sendCampaign(c.id, actor);
     if ("scheduledAt" in r && r.scheduledAt) return done(`${r.reason ?? "Outside the legal send window"}. “${name}” is scheduled for ${fmtDateTime(r.scheduledAt)} — the first legal send time.`);
-    return done(`Sent to ${r.sent.toLocaleString()} members. ${r.suppressed.toLocaleString()} were skipped (no consent or on a do-not-contact list).`);
+    return done(`Sent to ${plural(r.sent, "member")}. ${r.suppressed.toLocaleString()} ${r.suppressed === 1 ? "was" : "were"} skipped (no consent or on a do-not-contact list).`);
   });
 }
 
@@ -167,7 +168,7 @@ export async function sendDraft(code: string, id: string, _: ActionState, fd: Fo
     const r = await sendCampaign(c.id, actor);
     revalidatePath(`/store/${store.code}/marketing`);
     if ("scheduledAt" in r && r.scheduledAt) return done(`Scheduled for ${fmtDateTime(r.scheduledAt)} (${(r.reason ?? "outside the legal send window").toLowerCase()}).`);
-    return done(`Sent to ${r.sent.toLocaleString()} members.`);
+    return done(`Sent to ${plural(r.sent, "member")}.`);
   });
 }
 

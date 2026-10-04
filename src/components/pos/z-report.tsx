@@ -172,8 +172,8 @@ export function ZReportDocument({ z, printedAt, address }: { z: ZReport; printed
         <section className="zr-sec">
           <h2>Cash drawer</h2>
           <Row label="Opening float" value={zar(z.cash.floatCents)} />
-          <Row label="Cash sales less cash refunds" value={zar(z.cash.cashNetCents)} />
-          <Row label="Expected in drawer" value={zar(z.cash.expectedCents)} strong />
+          <Row label="Cash sales less cash refunds" value={z.blind ? "After the count" : zar(z.cash.cashNetCents)} />
+          <Row label="Expected in drawer" value={z.blind ? "After the count" : zar(z.cash.expectedCents)} strong />
           <Row label="Cash counted" value={z.cash.countedCents != null ? zar(z.cash.countedCents) : "—"} />
           <Row label="Variance" value={variance != null ? signed(variance) : "—"} strong tone={variance == null || variance === 0 ? undefined : variance < 0 ? "neg" : "pos"} />
           {z.cash.counts && (
@@ -224,14 +224,16 @@ export function ZReportDocument({ z, printedAt, address }: { z: ZReport; printed
         <div>
           <div className="zr-eyebrow">{variance == null ? "Shift still open" : variance === 0 ? "Drawer balanced" : variance < 0 ? "Drawer short" : "Drawer over"}</div>
           <p>
-            {variance == null
+            {variance == null && z.blind
+              ? "Blind count: what the drawer should hold shows on the Z-report once the shift is closed."
+              : variance == null
               ? `Expected in the drawer right now: ${zar(z.cash.expectedCents)}. Close the shift with a blind count to finish the Z-report.`
               : variance === 0
                 ? "Counted cash matches the expected float plus cash takings."
                 : `Counted ${zar(z.cash.countedCents ?? 0)} against ${zar(z.cash.expectedCents)} expected.${Math.abs(variance) > 5_000 ? " Over the R50 tolerance: the owner and area manager see a loss-prevention alert." : " Within the R50 tolerance."}`}
           </p>
         </div>
-        <div className="zr-display">{variance == null ? zar(z.cash.expectedCents) : signed(variance)}</div>
+        <div className="zr-display">{variance == null ? (z.blind ? "—" : zar(z.cash.expectedCents)) : signed(variance)}</div>
       </div>
 
       {z.notes && <p className="zr-notes">Notes from the till: {z.notes}</p>}

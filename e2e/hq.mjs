@@ -279,6 +279,7 @@ try {
   await pf.locator("#tagline").fill("A calm wind-down, made in small batches.");
   await pf.locator("#description").fill("Too short");
   await pf.locator("#categoryId").selectOption(cat.id);
+  await pf.locator("#regClass").selectOption("CBD"); // a new product starts with no class
   assert(await pf.getByRole("button", { name: "Create product" }).isDisabled(), "Create is blocked until the Schedule 0 fields are filled");
   await pf.locator("#cbdMgPerPack").fill("300");
   await pf.locator("#cbdMgPerDay").fill("10");
@@ -741,7 +742,12 @@ try {
     if (!shown) fail(`reach never matched the database (${JSON.stringify(await readReach())} vs ${JSON.stringify(lo)})`);
   });
   ok(`${shown.reachable.toLocaleString()} reachable by SMS of ${shown.total.toLocaleString()} members into CBD & wellness (matches the database)`);
-  await act("marketing.estimateReach (+ home store)", () => cf.locator("#storeId").selectOption(store.id), async () => {
+  const pickStore = async (form, st) => {
+    // The home-store picker loads stores on demand: search by code, then pick the match.
+    await form.locator("#storeSearch").fill(st.code);
+    await form.getByRole("list", { name: "Matching stores" }).getByRole("button", { name: new RegExp(`^${st.name}`) }).click();
+  };
+  await act("marketing.estimateReach (+ home store)", () => pickStore(cf, store), async () => {
     if (!(await until(async () => { const r = await readReach(); return r?.total === 1 && r.reachable === 1; }))) fail(`home-store reach: ${JSON.stringify(await readReach())}`);
   });
   ok("narrowed to the test store: 1 of 1 (the fixture member)");
@@ -765,7 +771,9 @@ try {
   assert(camp.status === "SCHEDULED" && localInput(camp.scheduledAt) >= when, `scheduled for ${localInput(camp.scheduledAt)}`);
   const campId = created.campaigns[0];
   await headerOf().getByRole("button", { name: "Send now" }).waitFor();
-  await act("marketing.sendNow", () => headerOf().getByRole("button", { name: "Send now" }).click(), () => notice(/^(Sent to [\d,]+ members|.+: held until )/).waitFor());
+  await headerOf().getByRole("button", { name: "Send now" }).click(); // confirm step restates the reach
+  await headerOf().getByText(/^Send to [\d,]+ members by SMS\?$/).waitFor();
+  await act("marketing.sendNow", () => headerOf().getByRole("button", { name: "Yes, send now" }).click(), () => notice(/^(Sent to [\d,]+ members|.+: held until )/).waitFor());
   camp = await one(`select status, "sentCount", "suppressedCount", "scheduledAt" from "Campaign" where id = $1`, [campId]);
   const sms = await q(`select "to", body from "MessageLog" where "campaignId" = $1`, [campId]);
   if (camp.status === "SENT") assert(camp.sentCount === 1 && sms.length === 1 && sms[0].to === member.phone && sms[0].body.startsWith("Hi E2E, the Windmill Tee") && /Reply STOP/.test(sms[0].body), "sent inside the CPA window: 1 SMS to the fixture member, personalised, with the opt-out footer");
@@ -1360,7 +1368,8 @@ try {
   await open("/hq/marketing/new", ap.locator("form").filter({ has: ap.locator("#segment") }), ap);
   const acf = ap.locator("form").filter({ has: ap.locator("#segment") });
   assert(!(await acf.getByRole("button", { name: "Send now" }).count()), "campaigns: drafts only (no Send now)");
-  await acf.locator("#storeId").selectOption({ label: oneStore.name });
+  await acf.locator("#storeSearch").fill(oneStore.code);
+  await acf.getByRole("list", { name: "Matching stores" }).getByRole("button", { name: new RegExp(`^${oneStore.name}`) }).click();
   await acf.locator("#name").fill(`${T.campaignName} (area)`);
   await acf.locator("#message").fill("Hi {{firstName}}, join us for a members' morning at the store this Saturday.");
   await act("marketing.saveCampaign (area manager draft)", () => acf.getByRole("button", { name: "Save draft" }).click(), () => notice("Draft saved.", ap).waitFor(), { p: ap });

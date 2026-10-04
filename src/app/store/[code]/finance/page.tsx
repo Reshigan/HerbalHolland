@@ -15,6 +15,7 @@ import { RangeTabs } from "@/components/ui/range-tabs";
 import { AreaChart } from "@/components/charts/area-chart";
 import { Line } from "@/components/store/ui";
 import { cn } from "@/lib/cn";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Finance" };
 
@@ -56,7 +57,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${pl.summary.sales.toLocaleString()} transactions${trade.netCents ? ` · of which trade ${zarCompact(trade.netCents)}` : ""}`} className="col-span-2 lg:col-span-1" />
+        <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${plural(pl.summary.sales, "transaction")}${trade.netCents ? ` · of which trade ${zarCompact(trade.netCents)}` : ""}`} className="col-span-2 lg:col-span-1" />
         <Stat label="Gross profit" value={zarCompact(pl.grossProfit)} sub={`${pct(pl.marginPct)} gross margin`} />
         <Stat label="Operating expenses" value={zarCompact(pl.opex)} sub="ex VAT, as captured" />
         <Stat label="Franchise fees" value={zarCompact(pl.fees.total)} sub="royalty, levy, e-commerce" />

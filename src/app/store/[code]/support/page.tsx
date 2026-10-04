@@ -20,7 +20,7 @@ export default async function StoreSupportPage({ params, searchParams }: { param
   const base = `/store/${store.code}/support`;
   return (
     <>
-      <PageHeader overline="Members" title="Support" description={`Requests from members about orders ${store.name} fulfilled. Reply within one business day; HQ sees these too and handles everything else.`} />
+      <PageHeader overline={`Members · ${store.name}`} title="Support" description={`Requests from members about orders ${store.name} fulfilled. Reply within one business day; HQ sees these too and handles everything else.`} />
       <TicketQueue base={base} rows={rows} total={total} page={page} pageSize={PAGE_SIZE} counts={counts} view={ticketView(sp.view)} sp={sp} staff={staff} now={now} orderHref={(t) => (t.orderCode ? `/store/${store.code}/orders?q=${t.orderCode}` : null)} />
     </>
   );

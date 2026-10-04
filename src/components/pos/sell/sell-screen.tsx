@@ -8,7 +8,8 @@
 // check stays), "On account" may pay within the account's terms, and nothing is ever queued.
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingBag } from "lucide-react";
-import { checkCompliance, incentiveExcluded } from "@/lib/compliance";
+import { checkCompliance, incentiveExcluded, REG_CLASS_LABEL } from "@/lib/compliance";
+import { search as searchProducts, searchIndex } from "@/lib/pos-search";
 import { zar, zarWhole } from "@/lib/money";
 import { voucherCodeFrom } from "@/lib/vouchers";
 import { api, ApiError, errorText, OfflineError, TillError } from "../lib/api";
@@ -65,6 +66,10 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   // One sale id per payment: a retry after a lost answer posts nothing twice (the server answers with the receipt).
   const saleIdRef = useRef<string | null>(null);
   const training = !!pos.training;
+  const licensedToldRef = useRef(false);
+  useEffect(() => {
+    licensedToldRef.current = false;
+  }, [me.id]);
 
   const cartRef = useRef(cart);
   cartRef.current = cart;
@@ -78,6 +83,15 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     return m;
   }, [boot.products]);
   const drops = useMemo(() => dropIndex(boot.drops), [boot.drops]);
+  // One product search for the grid and Enter-to-add (typos, plurals, category and class words).
+  const productSearch = useMemo(() => {
+    const cats = new Map(boot.categories.map((c) => [c.id, c.name]));
+    const idx = searchIndex(boot.products, (p) => [
+      p.name, p.brand, p.strain, p.tagline, cats.get(p.categoryId), REG_CLASS_LABEL[p.regClass],
+      ...p.variants.flatMap((v) => [v.name, v.sku, v.barcode]),
+    ]);
+    return (q: string) => searchProducts(idx, q);
+  }, [boot.products, boot.categories]);
 
   const pricing: PricingData = useMemo(
     () => ({
@@ -135,7 +149,8 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const giftable = boot.products.filter((p) => !incentiveExcluded(boot.settings.compliance).includes(p.regClass)); // never a medicine (s18A)
     const product = giftable.find((p) => s.productIds.includes(p.id)) ?? giftable.find((p) => s.categoryIds.includes(p.categoryId));
     if (!product || cart.lines.some((l) => index.get(l.variantId)?.product.id === product.id)) return null;
-    const variant = product.variants.find((v) => v.available > 0) ?? product.variants[0];
+    const variant = product.variants.find((v) => v.available > 0); // never offer what isn't on the shelf
+    if (!variant) return null;
     const pct = boot.promotions.find((p) => p.id === s.promoId)?.rewardPercent ?? 100;
     return { promoId: s.promoId, variantId: variant.id, label: `Welcome gift: ${product.name} ${pct >= 100 ? "free" : `${pct}% off`} — add it` };
   }, [memberQuote, welcomeIds, boot.products, boot.promotions, boot.settings.compliance, cart.lines, index]);
@@ -155,8 +170,12 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         return { ...c, lines: ex ? c.lines.map((l) => (l.variantId === variantId ? { ...l, qty: l.qty + 1 } : l)) : [...c.lines, { variantId, qty: 1 }] };
       });
       if (e.variant.available <= 0) pos.toast(`${e.product.name} shows none on hand here — check the shelf`, "warn");
+      else if (!me.canDispense && licensedClasses.includes(e.product.regClass) && !licensedToldRef.current) {
+        licensedToldRef.current = true; // once per sign-in: the compliance step says it again at Charge
+        pos.toast("Licensed — a dispenser must complete this sale", "warn");
+      }
     },
-    [index, drops, setCart, pos],
+    [index, drops, setCart, pos, me.canDispense, licensedClasses],
   );
 
   const scan = useCallback(
@@ -249,8 +268,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       setQuery("");
       return;
     }
-    const words = q.toLowerCase().split(/\s+/);
-    const matches = boot.products.filter((p) => words.every((w) => `${p.name} ${p.brand} ${p.strain ?? ""} ${p.variants.map((v) => v.name).join(" ")}`.toLowerCase().includes(w)));
+    const matches = productSearch(q);
     if (matches.length === 1 && matches[0].variants.length === 1) {
       add(matches[0].variants[0].id);
       setQuery("");
@@ -698,6 +716,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       onPay={() => void checkout()}
       payDisabledReason={payDisabledReason}
       checking={checking}
+      onDetachCustomer={() => setCart((c) => ({ ...c, customer: null, ageCheck: null }))}
       customerCard={
         cart.trade ? (
           <TradeCard account={cart.trade} ageCheck={cart.ageCheck} onLeave={leaveTrade} />
@@ -737,6 +756,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
             onScanCamera={() => setScanning("product")}
             licensedClasses={licensedClasses}
             drops={drops}
+            search={productSearch}
             // Phones and portrait tablets: a first-time member's welcome gift is one tap from the catalogue.
             notice={welcome && <WelcomeGiftButton gift={welcome} onAdd={addGift} />}
           />
@@ -857,6 +877,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         onPrint={() => done && pos.print({ kind: "receipt", receipt: done.receipt })}
         onDone={() => {
           setDone(null);
+          pos.handoffDone(); // a dispenser who stepped in for this sale: offer the till back
           setTimeout(() => searchRef.current?.focus(), 50);
         }}
       />
@@ -872,6 +893,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           setCart(EMPTY_CART);
           setConfirmClear(false);
           setCartOpen(false);
+          pos.handoffDone();
         }}
       />
     </div>

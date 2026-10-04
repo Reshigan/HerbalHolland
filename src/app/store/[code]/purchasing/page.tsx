@@ -18,6 +18,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Purchasing" };
 const PAGE_SIZE = 20;
@@ -61,7 +62,7 @@ export default async function PurchasingPage({ params, searchParams }: { params:
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="On order" value={zarCompact(openValue._sum.totalCents ?? 0)} sub={`${n(["SUBMITTED", "APPROVED", "SHIPPED"])} open order${n(["SUBMITTED", "APPROVED", "SHIPPED"]) === 1 ? "" : "s"}, incl. VAT`} />
         <Stat label="Deliveries to receive" value={inTransit.toLocaleString()} sub={inTransit ? "in transit — receive on arrival" : "nothing in transit"} />
-        <Stat label="Received this month" value={zarCompact(receivedMonth.reduce((s, o) => s + receivedValue(o), 0))} sub={`${receivedMonth.length} deliveries, incl. VAT`} />
+        <Stat label="Received this month" value={zarCompact(receivedMonth.reduce((s, o) => s + receivedValue(o), 0))} sub={`${plural(receivedMonth.length, "delivery", "deliveries")}, incl. VAT`} />
         <Stat
           label="Below reorder point"
           value={alerts.low.toLocaleString()}

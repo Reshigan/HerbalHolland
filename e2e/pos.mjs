@@ -342,13 +342,13 @@ try {
   await page.getByTestId(`order-${ready.code}`).waitFor();
   await shot("orders-board");
   await page.getByTestId(`order-action-${ready.code}`).click();
-  await page.locator("#collect-code").fill("000000");
+  await page.locator("#collect-code").fill(ready.code); // the order code (on the board) is no proof: only the collection code is
   const idCheck = page.getByText(/I've checked their ID/);
   const needsId = (await idCheck.count()) > 0; // only orders with 18+ items ask for it
   if (needsId) await idCheck.click();
   await page.getByTestId("confirm-handover").click();
   await page.getByText(/doesn't match this order/).waitFor();
-  ok("wrong collection code rejected");
+  ok("the order code is not accepted as the collection code");
   await page.locator("#collect-code").fill(ready.collectionCode);
   await shot("handover");
   await page.getByTestId("confirm-handover").click();
@@ -542,6 +542,8 @@ try {
   const mine = (await tile.textContent()).replace("Your commission this month", "");
   assert(/^R[\d,]+\.\d\d$|^Held — see your manager$/.test(mine), `commission tile: ${mine}`);
   await page.getByTestId("denom-20000").fill("7");
+  // A count out by more than the R50 tolerance needs a note before the shift can close.
+  await page.locator("#shift-notes").fill("E2E run: test count");
   await page.getByTestId("close-shift").click();
   await page.getByRole("button", { name: "Close shift", exact: true }).click();
   await page.getByTestId("z-report").waitFor();

@@ -6,7 +6,7 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { SEGMENT_TONE, hrefWith } from "@/server/store/rules";
-import { NO_STATS, statsHere } from "@/server/store/members";
+import { NO_STATS, memberAtStore, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf } from "@/lib/rfm";
 import { fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { ageOn, displayPhone } from "@/lib/sa";
@@ -27,6 +27,7 @@ import { BackLink, Line, Qty, ReadOnlyNote } from "@/components/store/ui";
 import { Select } from "@/components/store/select";
 import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/store/action-form";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Member" };
 const PAGE_SIZE = 10;
@@ -38,8 +39,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const user = await requireStaff();
   const store = await storeForUser(user, code);
   const canManage = canManageStore(user);
-  const c = await db.customer.findFirst({ where: { id, homeStoreId: store.id } });
+  // Home members, and members who have bought here (read-only: their home store keeps their record up to date).
+  const c = await db.customer.findFirst({ where: { AND: [{ id }, memberAtStore(store.id)] } });
   if (!c) notFound();
+  const canEdit = canManage && c.homeStoreId === store.id;
   const page = pageParam(sp.page);
   const [sales, salesTotal, ledger, consents, auths, referrer, here, settings] = await Promise.all([
     db.sale.findMany({
@@ -97,7 +100,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title={`Purchases at ${store.name}`} description={`${salesTotal} transactions`} />
+            <CardHeader title={`Purchases at ${store.name}`} description={plural(salesTotal, "transaction")} />
             {sales.length === 0 ? (
               <EmptyState title="No purchases here yet" />
             ) : (
@@ -191,7 +194,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <div className="text-xs opacity-90">{c.ageVerifiedAt ? `Recorded ${fmtDate(c.ageVerifiedAt)}` : "Check ID before any age-restricted sale."}</div>
                 </div>
               </div>
-              {canManage && c.ageCheck !== "VERIFIED" && (
+              {canEdit && c.ageCheck !== "VERIFIED" && (
                 <ActionForm action={checkAge.bind(null, store.code, c.id)} className="space-y-3">
                   <Field label="Record a check" htmlFor="age-method">
                     <Select id="age-method" name="method" defaultValue="ID_SIGHTED">
@@ -218,7 +221,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <span className="text-sm font-medium text-ink-850">{CHANNEL[ch]}</span>
                   <span className="flex items-center gap-2">
                     <Badge tone={consent[ch] ? "green" : "neutral"} dot>{consent[ch] ? "Opted in" : "Opted out"}</Badge>
-                    {canManage && (
+                    {canEdit && (
                       <ActionButton action={changeConsent.bind(null, store.code, c.id, ch, !consent[ch])} variant="ghost" title={consent[ch] ? `Record opt-out of ${CHANNEL[ch]}` : `Record opt-in to ${CHANNEL[ch]}`}>
                         {consent[ch] ? "Opt out" : "Opt in"}
                       </ActionButton>
@@ -242,6 +245,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </details>
               )}
               {!canManage && <ReadOnlyNote className="mt-2" />}
+              {canManage && !canEdit && <p className="mt-2 text-xs text-ink-500">Their home store records consent and age checks.</p>}
             </CardBody>
           </Card>
 

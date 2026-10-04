@@ -52,8 +52,11 @@ export function zReportBytes(z: ZReport, o: { cols: Columns; codePage?: number; 
   p.rule();
   p.bold(true).line("Cash drawer").bold(false);
   p.row("  Opening float", zar(z.cash.floatCents));
-  p.row("  Cash sales less refunds", zar(z.cash.cashNetCents));
-  p.bold(true).row("  Expected", zar(z.cash.expectedCents)).bold(false);
+  if (z.blind) p.row("  Expected", "after the count");
+  else {
+    p.row("  Cash sales less refunds", zar(z.cash.cashNetCents));
+    p.bold(true).row("  Expected", zar(z.cash.expectedCents)).bold(false);
+  }
   if (z.cash.countedCents != null) p.row("  Counted", zar(z.cash.countedCents));
   if (z.cash.varianceCents != null) p.bold(true).row("  Variance", `${z.cash.varianceCents > 0 ? "+" : ""}${zar(z.cash.varianceCents)}`).bold(false);
   if (z.cash.counts) for (const d of DENOMINATIONS) if (z.cash.counts[String(d)]) p.row(`  ${denomLabel(d)} x ${z.cash.counts[String(d)]}`, zar(d * z.cash.counts[String(d)]));

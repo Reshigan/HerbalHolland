@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getSettings } from "@/server/settings";
 import { ApplyForm } from "@/components/trade/apply-form";
+import { HaveReady } from "@/components/trade/have-ready";
 import { Container } from "@/components/shop/ui";
 import { APPLY } from "@/components/trade/copy";
 import { LOCALE, SITE_NAME } from "@/lib/seo";
@@ -31,6 +32,9 @@ export default async function ApplyPage() {
         </Link>
         .
       </p>
+      <div className="mt-8">
+        <HaveReady />
+      </div>
       <div className="mt-10 pb-8">
         <ApplyForm termsVersion={trade.termsVersion} />
       </div>
