@@ -30,6 +30,7 @@ export async function unscheduleExport(reportKey: string, id: string, _: ActionS
   try {
     await stopSchedule(user, id, actorOf(user));
     revalidatePath(`/hq/reports/${reportKey}`);
+    revalidatePath("/hq/reports");
     return done("Schedule stopped.");
   } catch (e) {
     if (e instanceof ExportError) return fail(e.message);
