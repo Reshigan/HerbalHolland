@@ -84,7 +84,7 @@ describe("Today list", () => {
     expect(f.cash).toMatchObject({ waitingCount: 1, waitingCents: 120_000, overdueCount: 1, overdueCents: 120_000 });
     expect(f.alerts).toEqual({ open: 1, high: 1 }); // the alert about the manager is not theirs to see
     expect(f.batches).toMatchObject({ lots: 1, units: 2 }); // OIL-A expires in 30 days
-    expect(f.lowStock).toEqual({ skus: 1, out: 0 });
+    expect(f.lowStock).toEqual({ skus: 1, out: 0, onOrder: 0 });
     expect(f.patients.expiring).toBe(1);
     expect(f.announcements).toMatchObject({ pending: 1, urgent: 1, latestTitle: "Recall: OIL-A" });
     expect(f.supplierInvoices).toMatchObject({ overdue: 1, overdueCents: 115_000 });

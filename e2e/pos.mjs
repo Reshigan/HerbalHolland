@@ -269,7 +269,7 @@ try {
   await page.getByTestId("start-refund").first().click();
   await page.getByRole("button", { name: /Increase refund quantity of Smell-proof Pouch/ }).click();
   const splitText = (await page.getByTestId("refund-voucher").textContent()) ?? "";
-  assert(splitText.includes(`R50.00 goes back onto gift voucher ${VOUCHER}`) && splitText.includes(`R${((vsale.totalCents - 5000) / 100).toFixed(2)} refunded by Cash`), "refund sheet: R50.00 back onto the voucher, the rest in cash");
+  assert(splitText.includes(`R50.00 goes back onto gift voucher ${masked}`) && splitText.includes(`R${((vsale.totalCents - 5000) / 100).toFixed(2)} refunded by Cash`), "refund sheet: R50.00 back onto the voucher, the rest in cash");
   await shot("voucher-refund-sheet");
   await page.getByTestId("refund-continue").click();
   await page.getByRole("button", { name: "Confirm refund" }).click();

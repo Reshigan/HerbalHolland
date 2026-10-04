@@ -104,8 +104,35 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   // Online orders open by their code: look up the codes for this page's entries only.
   const orderIds = rows.filter((r) => r.entity === "Order" && r.entityId).map((r) => r.entityId!);
   const orderCode = new Map((orderIds.length ? await db.order.findMany({ where: { id: { in: orderIds } }, select: { id: true, code: true } }) : []).map((o) => [o.id, o.code]));
+  // Link only records that still exist (deleted ones — e2e clean-ups, erasures — would open a 404): one look-up per kind on this page.
+  const finders: Record<string, (ids: string[]) => Promise<{ id: string }[]>> = {
+    TradeOrder: (i) => db.tradeOrder.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    TradeAccount: (i) => db.tradeAccount.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    Customer: (i) => db.customer.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    Batch: (i) => db.batch.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    Product: (i) => db.product.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    Campaign: (i) => db.campaign.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    Promotion: (i) => db.promotion.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    FranchiseLead: (i) => db.franchiseLead.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    SupportTicket: (i) => db.supportTicket.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    ReturnRequest: (i) => db.returnRequest.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    StockOrder: (i) => db.stockOrder.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    StoreEvent: (i) => db.storeEvent.findMany({ where: { id: { in: i } }, select: { id: true } }),
+    Drop: (i) => db.drop.findMany({ where: { id: { in: i } }, select: { id: true } }),
+  };
+  const alive = new Set(
+    (
+      await Promise.all(
+        Object.entries(finders).map(([kind, find]) => {
+          const ids = [...new Set(rows.filter((r) => r.entity === kind && r.entityId).map((r) => r.entityId!))];
+          return ids.length ? find(ids) : [];
+        }),
+      )
+    ).flat().map((r) => r.id),
+  );
   const entityHref = (entity: string | null, id: string | null): string | null => {
     if (!entity || !id) return null;
+    if (entity in finders && !alive.has(id)) return null;
     switch (entity) {
       case "Sale":
         return invoiceUrl(id).replace(/^https?:\/\/[^/]+/, "");
