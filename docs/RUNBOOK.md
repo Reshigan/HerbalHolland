@@ -730,28 +730,31 @@ note didn't post (a crash half-way), pressing Refund again posts only the credit
 Every company keeps its books at `/books/<company>`: owners and their accountants for their company, HQ admins for
 HQ's books (and read-only for any franchisee's), area managers read-only in their region. Store staff have no books.
 
-**Set-up at go-live (per company).**
-- Settings: the VAT category SARS gave the company (A, B or C; none if it isn't a VAT vendor) and the month its
-  financial year ends.
-- Add the accountant (they get a temporary password and choose their own at first sign-in).
-- Import the opening balances: the trial balance from the old system at the day before go-live, as a CSV of account
-  code, debit, credit and, on control accounts, the supplier, trade account or franchisee. Stock must equal the
-  opening stock take.
+**Set-up at go-live (per company).** Owners open the books from the store sidebar (Money → Accounts), HQ from
+HQ → Money → Accounts, accountants land on them when they sign in.
+- Settings → VAT and financial year: the VAT category SARS gave the company (A, B or C; none if it isn't a VAT vendor)
+  and the month its financial year ends.
+- Settings → Accountants → Add an accountant (they get a temporary password and choose their own at first sign-in).
+- Settings → Opening balances: download the template, fill in the trial balance from the old system at the day before
+  go-live (account code, debit, credit; on control accounts the supplier, trade account or franchisee; a store code to
+  split by store) and import it with "Balances at" that day. Stock must equal the opening stock take; at HQ include the
+  Rewards points and gift vouchers members held.
 - Banking: add the bank account(s). The first one carries the "Bank" account that deposits and payments post to.
 
 **Every day: nothing to do.** Store trading posts nightly (one journal per store per day). Everything else (stock
 orders, supplier invoices and payments, deposits, expenses, online payments, vouchers, points, trade payments,
 statement payments) posts within 15 minutes, from the queue (`/api/cron/frequent`).
 - A change to a past day (a till sale that synced late, a refund) posts only the difference.
-- A posting that fails stays queued with its reason and is emailed to `ALERT_EMAIL`. HQ → Books → Month end lists
-  failures with Retry. Fix the cause (usually the source data), then retry.
+- A posting that fails stays queued with its reason and is emailed to `ALERT_EMAIL`. HQ's books → Month end →
+  "Postings that failed" lists them with Retry. Fix the cause (usually the source data), then retry.
 
 **Month end (by the 7th).**
 1. Banking: import the month's bank statements. Most lines match by themselves (deposits, payouts, supplier and
    statement payments). Match or allocate the rest (bank charges, card payouts net of fees, transfers), then check
    that the reconciliation shows no difference.
-2. Record statement payments (HQ → Statements → a store → Record payment) as they arrive.
-3. Month end → choose the month → every check green:
+2. Record statement payments as they arrive: HQ → Statements → the month and the store → Payments → Record payment
+   (a payment recorded by mistake: Delete, which reverses its postings).
+3. Month end → choose the month → every check agrees:
    - trial balance zero;
    - each store's Herbal Holland account vs its statement;
    - HQ vs franchisee current accounts;
@@ -761,12 +764,13 @@ statement payments) posts within 15 minutes, from the queue (`/api/cron/frequent
    - no unmatched bank lines.
    A red check names the store or account and the difference.
 4. Approve or delete draft journals (accruals, depreciation, the payroll journal from the payroll provider).
-5. Close the month. Nothing can post into it any more: a late change lands in the first open month, flagged late.
-   Reopening is possible for the owner (or HQ admin for HQ) and is audited.
+5. Close the month ("Close anyway" if a check still disagrees; correct it in an open month). Nothing can post into it
+   any more: a late change lands in the first open month, flagged late. Reopen opens the last closed month again, one
+   month at a time, for the owner (or an HQ admin for HQ's books); both are audited.
 
-**VAT period end (category A/B: every second month; C: monthly).** Books → VAT → the period:
+**VAT period end (category A/B: every second month; C: monthly).** The books → VAT → the period:
 - check the VAT201 working against the invoices;
-- close the VAT period (it moves the period's output and input VAT into "VAT due to / from SARS");
+- "Close this VAT period" (it moves the period's output and input VAT into "VAT due to / from SARS");
 - file on eFiling;
 - allocate the SARS payment or refund line on the bank statement to "VAT due to / from SARS".
 

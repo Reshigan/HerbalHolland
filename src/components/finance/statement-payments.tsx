@@ -80,7 +80,7 @@ export function StatementPayments({
         </Tile>
       </div>
       {form && <div className="mx-5 mt-4 rounded-2xl border border-ink-150 p-4">{form}</div>}
-      <Table className="mt-4" density="comfortable">
+      <Table className="mt-4">
         <thead>
           <tr>
             <Th>Paid on</Th>
@@ -88,24 +88,25 @@ export function StatementPayments({
             <Th align="right">Amount</Th>
             <Th>Bank reference</Th>
             <Th className="hidden md:table-cell">Note</Th>
-            <Th className="hidden lg:table-cell">Recorded by</Th>
             {remove && <Th align="right">Actions</Th>}
           </tr>
         </thead>
         <tbody>
           {rows.length === 0 && (
-            <TableEmpty cols={remove ? 7 : 6} icon={<Banknote className="h-5 w-5" />} title="No payments yet">
+            <TableEmpty cols={remove ? 6 : 5} icon={<Banknote className="h-5 w-5" />} title="No payments yet">
               {perspective === "hq" ? "Payments you record against this statement appear here." : "HQ records payments against your statement as they're made."}
             </TableEmpty>
           )}
           {rows.map((p) => (
             <Tr key={p.id}>
-              <Td className="whitespace-nowrap">{fmtDate(`${p.paidOn.toISOString().slice(0, 10)}T12:00:00Z`)}</Td>
+              <Td className="whitespace-nowrap">
+                {fmtDate(`${p.paidOn.toISOString().slice(0, 10)}T12:00:00Z`)}
+                {p.createdBy && <div className="text-xs text-ink-500">by {p.createdBy}</div>}
+              </Td>
               <Td>{p.amountCents > 0 ? who.toHq : who.fromHq}</Td>
               <Td align="right" className="font-medium text-ink-900">{zar(Math.abs(p.amountCents))}</Td>
               <Td className="font-mono text-xs">{p.reference}</Td>
               <Td className="hidden max-w-xs truncate text-ink-600 md:table-cell" title={p.note ?? undefined}>{p.note ?? "—"}</Td>
-              <Td className="hidden text-ink-600 lg:table-cell">{p.createdBy ?? "—"}</Td>
               {remove && <Td align="right">{remove(p)}</Td>}
             </Tr>
           ))}

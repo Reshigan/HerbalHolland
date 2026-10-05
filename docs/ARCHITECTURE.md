@@ -157,7 +157,8 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   - `LedgerAccount`: a company's chart, created from the template on first use. System accounts carry a `key` the
     rules post to, so renaming them is safe.
   - `Journal` + `JournalLine`: amounts are signed (debit +, credit −) and balance to the cent. A line carries
-    `storeId` and, on control accounts, `partyId` (supplier, trade account or franchisee company).
+    `storeId` and, on control accounts, `partyId` (supplier, trade account or franchisee company). A line holds at
+    most R20m (a 32-bit column): `writeJournal` stores a bigger amount as several lines on the same account.
   - `LedgerBalance`: running totals per company × account × store × month, kept in the posting transaction. Reports
     at 1,000 stores read these, not millions of lines.
 - **Posting is a sync, never an edit.**
@@ -168,9 +169,14 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   - Posting into a closed month lands in the first open month, flagged late.
   - Business code only calls `queuePosting(t, source, id)` (or `queueStoreDay`) inside its own transaction. The
     queue (`LedgerQueue`) is drained every 15 minutes and nightly, and a failure stays queued with its reason.
+  - `ledgerBackfill(from, to)` queues and posts every source with activity in a range (each rule set's `BACKFILL`
+    lister): the demo seed posts its history this way; idempotent, so re-posting a period posts nothing new.
+  - Measured on 1,000 stores: the heaviest night (a trading day, its online orders and the month's 1,000 franchise
+    statements; 5,231 postings) takes about 2.5 minutes.
 - **Store trading posts per day, not per sale.** The day's sales, VAT and tenders come from `DailyStoreStat`, the same
   rollup the franchise statement reads, so the two agree to the cent. Stock comes from that day's `StockMovement`
-  costs, so the stock account equals the stock valuation.
+  costs, plus `revalueCents` — what a lot's value moved by beyond qty × cost when receiving re-averaged its cost — so
+  the stock account equals the stock valuation to the cent.
 - **Between HQ and franchisees.**
   - Everything HQ collects or funds for a store moves a franchisee's "Herbal Holland current account" (`hq`) and
     HQ's mirror "Franchisee current accounts" (`franchisees`, per company and store): online payments, gift

@@ -188,19 +188,33 @@ try {
     acct = await one(`select id, name from "BankAccount" where "companyId" = $1 and active order by "createdAt" limit 1`, [company.id]);
     assert(acct, "bank account added: it carries the books' Bank account");
   } else ok(`bank account ${acct.name} already there`);
-  // Two deposits nothing has matched yet, each the only posting of its amount near its day (so each fits exactly one).
-  const deposits = await q(
-    `select j.id, j.number, to_char(j.date, 'YYYY-MM-DD') as day, l."amountCents" as cents from "Journal" j
-     join "JournalLine" l on l."journalId" = j.id join "LedgerAccount" a on a.id = l."accountId" and a.key = 'bank'
-     where j."companyId" = $1 and j.source = 'deposit' and j.status = 'POSTED' and l."amountCents" > 0
-       and not exists (select 1 from "BankLine" b where b."journalId" = j.id)
-       and not exists (select 1 from "JournalLine" o join "Journal" oj on oj.id = o."journalId" where o."accountId" = a.id and o."amountCents" = l."amountCents" and o.id <> l.id and abs(o.date - l.date) <= 7)
-     order by j.date desc limit 2`,
-    [company.id],
-  );
-  assert(deposits.length === 2, `two unmatched deposits to put on the statement: journals ${deposits.map((d) => d.number).join(" and ")}`);
+  // Two postings on the bank that no statement line has matched yet, each the only one of its amount near its day (so
+  // each fits exactly one). The demo's statements match nearly everything; if two aren't left, two seeded lines are
+  // set aside (ignored) so their postings are free again.
+  const candidates = () =>
+    q(
+      `with p as (
+         select j.id, j.number, j.date, sum(l."amountCents")::bigint as cents from "Journal" j join "JournalLine" l on l."journalId" = j.id
+         where j."companyId" = $1 and l."accountId" = $2 and j.status = 'POSTED' and j.source in ('deposit', 'store-day', 'expense', 'statement-payment')
+         group by j.id having sum(l."amountCents") <> 0)
+       select p.id, p.number, to_char(p.date, 'YYYY-MM-DD') as day, p.cents from p
+       where not exists (select 1 from "BankLine" b where b."journalId" = p.id and b.status in ('MATCHED', 'ALLOCATED'))
+         and not exists (select 1 from p o where o.id <> p.id and o.cents = p.cents and abs(o.date - p.date) <= 7)
+       order by p.date desc limit 2`,
+      [company.id, bank.id],
+    );
+  let deposits = await candidates();
+  if (deposits.length < 2) {
+    await db.query(
+      `update "BankLine" set status = 'IGNORED', "journalId" = null where id in (
+         select b.id from "BankLine" b join "Journal" j on j.id = b."journalId" where b."companyId" = $1 and b.status = 'MATCHED' and j.source = 'deposit' order by b.date desc limit 2)`,
+      [company.id],
+    );
+    deposits = await candidates();
+  }
+  assert(deposits.length === 2, `two postings no statement line has matched yet: journals ${deposits.map((d) => d.number).join(" and ")}`);
   const lines = [
-    ...deposits.map((d) => ({ day: d.day, text: `Cash deposit ${store.code} ${run}`, cents: d.cents })),
+    ...deposits.map((d) => ({ day: d.day, text: `${Number(d.cents) > 0 ? "Receipt" : "Payment"} ${store.code} ${run}`, cents: Number(d.cents) })),
     { day: today, text: `Monthly account fee ${run}`, cents: -8_500 },
   ].sort((a, b) => a.day.localeCompare(b.day));
   let bal = 10_000_000;
@@ -212,7 +226,7 @@ try {
   await act(ap, "import statement", () => ap.getByRole("button", { name: "Import statement" }).click(), () => status(ap, "matched automatically").waitFor());
   const imported = await q(`select id, status, "journalId", "amountCents" from "BankLine" where "bankAccountId" = $1 and description like $2`, [acct.id, `%${run}`]);
   const matched = imported.filter((l) => l.status === "MATCHED");
-  assert(imported.length === 3 && matched.length === 2 && matched.every((l) => deposits.some((d) => d.id === l.journalId)), "3 lines in: both deposits matched to their own postings");
+  assert(imported.length === 3 && matched.length === 2 && matched.every((l) => deposits.some((d) => d.id === l.journalId)), "3 lines in: both matched to their own postings by themselves");
   await shot(ap, "statement-imported");
 
   step("Accountant allocates the bank charge");

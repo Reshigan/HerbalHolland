@@ -2,7 +2,7 @@
 // full-page phone captures to the part the caption talks about. Sources are the CI journey captures (resolved by
 // name, since the journeys number their screenshots as they go), the member, admin, till-hardware, operations and
 // document captures under test-results/, and the herbalholland.com captures.
-//   node docs/guide/prepare-images.mjs
+//   node docs/guide/prepare-images.mjs [name prefix …]   (only the images whose names start with one of them)
 import sharp from "sharp";
 import { mkdirSync, existsSync, readdirSync, statSync } from "node:fs";
 import { basename, dirname, join } from "node:path";
@@ -21,6 +21,7 @@ const MADMIN = join(T, "m-admin"); // the admin conveniences: palette, cheat she
 const TILL = join(T, "till-shots"); // e2e/till-hardware.mjs: printer, customer display, training mode, quiet hours
 const OPS = join(T, "ops-shots"); // Today list, supplier invoices, forecast order, opening checklist, cohorts
 const DOCS = join(T, "docs-shots"); // rendered documents: invoices, statements, Z-reports, emails, menu board
+const BOOKS = join(T, "books-shots"); // the books: overview, journals, banking, reports, VAT, month end, settings
 const DESKTOP_W = 1100; // desktop captures are downscaled to this width (well under the 1400 px cap)
 const PHONE_W = 390;
 
@@ -206,10 +207,14 @@ const IMAGES = [
   ["site-paia", `${COM}/paia-1440-top.png`],
   ["site-under-18", `${COM}/nope-1440-top.png`],
   ["site-menu-phone", `${COM}/menu-390.png`],
+  // The books
+  ...["overview", "index", "journal-new", "journal-draft", "bank", "reconcile", "trial-balance", "income", "vat", "close", "settings"].map((n) => [`books-${n}`, `${BOOKS}/books-${n}.png`]),
+  ["hq-statement-payments", `${BOOKS}/hq-statement-payments.png`],
 ];
+const only = process.argv.slice(2);
 
 let total = 0;
-for (const [name, src, opts = {}] of IMAGES) {
+for (const [name, src, opts = {}] of IMAGES.filter(([n]) => !only.length || only.some((o) => n.startsWith(o)))) {
   if (!existsSync(src)) {
     console.error("missing", src);
     process.exitCode = 1;

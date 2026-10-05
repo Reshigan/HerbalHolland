@@ -60,8 +60,9 @@ const dateCol = (s: string) => new Date(`${s}T00:00:00Z`);
 const shift = (s: string, n: number) => day(new Date(Date.parse(`${s}T00:00:00Z`) + n * 86_400_000));
 const lock = (t: Tx, bankAccountId: string) => t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank:${bankAccountId}`}))`;
 
-/** The signed-in person, allowed to change these books — or a refusal. */
-async function writer(companyId: string) {
+/** The signed-in person, allowed to change these books — or a refusal. `by`: server code acting for someone (the demo seed). */
+async function writer(companyId: string, by?: { id: string; name: string }) {
+  if (by) return { actor: { type: "USER" as const, id: by.id, name: by.name }, user: by };
   const a = await booksAccess(companyId, "write");
   if (!a) throw new BankError("You don't have permission to change these books.");
   return { ...a, actor: { type: "USER" as const, id: a.user.id, name: a.user.name } };
@@ -102,8 +103,8 @@ async function ownStore(t: Tx | typeof db, companyId: string, storeId: string | 
  * Adds a bank account. The company's first carries the books' Bank account (1000), which deposits and payments post
  * to; each further one gets a ledger account of its own (the next free code from 1001, named after it).
  */
-export async function createBankAccount(companyId: string, input: { bank: string; name: string; number: string; storeId?: string | null }) {
-  const { actor } = await writer(companyId);
+export async function createBankAccount(companyId: string, input: { bank: string; name: string; number: string; storeId?: string | null }, by?: { id: string; name: string }) {
+  const { actor } = await writer(companyId, by);
   const bank = (Object.keys(BANKS) as Bank[]).find((b) => b === input.bank);
   if (!bank) throw new BankError("Choose the bank", "bank");
   const { name, number } = accountFields(input);
@@ -162,8 +163,8 @@ export type ImportResult = {
  * file kept with the lines it added, then the open lines matched automatically. A file for another account (by its
  * number) is refused.
  */
-export async function importStatement(companyId: string, bankAccountId: string, a: { file: File; format: StatementFormat; map?: ColumnMap }): Promise<ImportResult> {
-  const { actor, user } = await writer(companyId);
+export async function importStatement(companyId: string, bankAccountId: string, a: { file: File; format: StatementFormat; map?: ColumnMap }, by?: { id: string; name: string }): Promise<ImportResult> {
+  const { actor, user } = await writer(companyId, by);
   const acct = await db.bankAccount.findFirst({ where: { id: bankAccountId, companyId } });
   if (!acct) throw new BankError("Choose one of these books' bank accounts", "bankAccountId");
   if (!acct.active) throw new BankError(`${acct.name} is closed — reopen it to import a statement`, "bankAccountId");
@@ -360,8 +361,8 @@ export async function suggestionsFor(companyId: string, acct: { id: string; acco
  * Matches a line to a posted journal (by id, or by its number): the journal's posting must have at least the line's
  * amount, in the same direction, still unmatched on this bank account.
  */
-export async function matchLine(companyId: string, lineId: string, journal: { id?: string; number?: number }) {
-  const { actor } = await writer(companyId);
+export async function matchLine(companyId: string, lineId: string, journal: { id?: string; number?: number }, by?: { id: string; name: string }) {
+  const { actor } = await writer(companyId, by);
   return tx(async (t) => {
     const { line, acct } = await lockedLine(t, companyId, lineId);
     if (line.status !== "UNMATCHED") throw already(line.status);
@@ -441,8 +442,8 @@ async function partyOf(t: Tx, companyId: string, kind: string, raw: string | nul
 }
 
 /** Posts a journal for a line nothing in the books covers yet, and marks it allocated. */
-export async function allocateLine(companyId: string, lineId: string, a: Allocation) {
-  const { actor } = await writer(companyId);
+export async function allocateLine(companyId: string, lineId: string, a: Allocation, by?: { id: string; name: string }) {
+  const { actor } = await writer(companyId, by);
   return tx(async (t) => {
     const { line, acct } = await lockedLine(t, companyId, lineId);
     if (line.status !== "UNMATCHED") throw already(line.status);

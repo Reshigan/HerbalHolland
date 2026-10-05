@@ -26,8 +26,8 @@
   <div class="adults"><span>18+</span> Adults only</div>
   <div class="eyebrow">Herbal Holland platform</div>
   <h1><span class="thin">The complete</span><br>system guide<br><span class="orange">for the whole team.</span></h1>
-  <div class="sub">Every surface and every function: the <b>online shop and Rewards app</b>, the <b>till</b>, the <b>store back office</b>, the <b>HQ console</b>, the <b>trade portal</b>, the menu boards and invoices, and <b>herbalholland.com</b> — for franchisees, store managers, HQ staff and dispensers.</div>
-  <div class="version"><b>Version 1.2</b> · 3 October 2026</div>
+  <div class="sub">Every surface and every function: the <b>online shop and Rewards app</b>, the <b>till</b>, the <b>store back office</b>, the <b>HQ console</b>, the <b>trade portal</b>, <b>the books</b>, the menu boards and invoices, and <b>herbalholland.com</b> — for franchisees, their accountants, store managers, HQ staff and dispensers.</div>
+  <div class="version"><b>Version 1.3</b> · 5 October 2026</div>
   <div class="brandline">Dutch heritage.<br><b>African soil.</b></div>
 </section>
 
@@ -45,7 +45,7 @@
     <div class="num">1</div>
     <div class="eyebrow">Chapter 1</div>
     <h1>About this guide, and who does what</h1>
-    <div class="lede">How to use this manual, the <b>eight surfaces</b> of the platform, and the <b>roles</b> — from a dispenser at the till to the HQ administrator — with what each can see and do.</div>
+    <div class="lede">How to use this manual, the <b>nine surfaces</b> of the platform, and the <b>roles</b> — from a dispenser at the till to the HQ administrator — with what each can see and do.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
   </div>
   <div class="body">
@@ -57,14 +57,15 @@
       <li><strong>Members and patients</strong> live in chapter 3. Store teams should read it too — it is what your members see.</li>
       <li><strong>Dispensers and cashiers</strong> need chapter 4 (the till) and the compliance rules in chapter 10.</li>
       <li><strong>Store managers and franchisees</strong> need chapters 4, 5, 10 and 11.</li>
-      <li><strong>HQ staff and area managers</strong> need chapters 6 to 11.</li>
+      <li><strong>Owners and their accountants</strong> keep the books in chapter 12.</li>
+      <li><strong>HQ staff and area managers</strong> need chapters 6 to 12.</li>
       <li>The appendices hold the demo logins, the catalogue import columns, a glossary and the open decisions.</li>
     </ul>
     <p>Procedures are written as numbered steps in the second person ("Tap <strong>Charge</strong>"). Rules the software enforces are set out in orange callouts; things that can go wrong, in amber ones. Money is in rand; retail prices include VAT; wholesale prices and costs exclude it. Times are South African (SAST). We say <em>members</em>, never customers, and everything is for <strong>adults 18+</strong>.</p>
 
     <div class="callout note"><div class="lab">A word on the demo</div><p>Screenshots come from the demo network (24 stores, about 18,000 members, 60 days of trading) with <code>DEMO_MODE=true</code>: names, numbers and prices are made up, payments are simulated, and one-click logins exist that a live system must never have. Chapter 11 says how production differs.</p></div>
 
-    <h2>The eight surfaces</h2>
+    <h2>The nine surfaces</h2>
     <p>Everything shares one database and one set of rules, so a sale, a stock movement or a Rewards point means the same thing everywhere.</p>
     <table class="wide">
       <colgroup><col style="width:34mm"><col style="width:58mm"><col style="width:36mm"><col></colgroup>
@@ -74,6 +75,7 @@
         <tr><td class="k">The till (POS)</td><td class="route">/pos · /pos/pair · /pos/display</td><td>Cashiers ("budtenders"), dispensers, managers</td><td>Dark, touch-first, offline-first; installs full-screen on Android</td></tr>
         <tr><td class="k">Store back office</td><td class="route">/store/&lt;code&gt;/…</td><td>Store managers, franchise owners (area managers and HQ can open any store in their scope)</td><td>Light content, dark sidebar; installs as "HH Office"</td></tr>
         <tr><td class="k">HQ console</td><td class="route">/hq/…</td><td>HQ administrators, HQ team, area managers</td><td>Light content, dark sidebar</td></tr>
+        <tr><td class="k">The books (accounting)</td><td class="route">/books · /books/&lt;company&gt;/…</td><td>Owners, their accountants, HQ administrators, area managers (read-only)</td><td>Light content, dark sidebar; print-ready reports</td></tr>
         <tr><td class="k">Trade portal (Herbal Holland Trade)</td><td class="route">/trade · /trade/apply · /trade/login · /trade/range · /trade/cart · /trade/checkout · /trade/orders · /trade/statements · /trade/account · /trade/terms</td><td>Trade buyers: pharmacies, independent retailers, cafés, wellness practices, online shops (adults 18+)</td><td>Dark brand surfaces like the shop, with a "Trade" badge; a code by email, no passwords (chapter 7)</td></tr>
         <tr><td class="k">Menu board</td><td class="route">/menu/&lt;store-slug&gt;</td><td>A TV in each store</td><td>Dark, 16:9, rotates on its own</td></tr>
         <tr><td class="k">Public documents</td><td class="route">/invoice/&lt;id&gt;?t=… · /batch/&lt;code&gt; · /unsubscribe · /legal/…</td><td>Anyone with the link</td><td>Print-friendly tax invoices; lab certificates; opt-out; policies</td></tr>
@@ -92,6 +94,7 @@
         <tr><td class="k">HQ team (staff)</td><td>The whole network</td><td><span class="route">/login</span> › HQ console</td><td>Catalogue, batches, pricing, promotions, campaigns and social posts, distribution, online orders, members, drops, events, finance and statements, reports. Sees franchise leads. Cannot change compliance settings or fees.</td></tr>
         <tr><td class="k">Area manager</td><td>One region</td><td><span class="route">/login</span> › HQ console (their region only)</td><td>The same console limited to their region's stores, members and orders, whatever the URL asks for; prepares campaign <em>drafts</em> for HQ to send; verifies deposits and works loss-prevention alerts for their region; opens any store back office in the region.</td></tr>
         <tr><td class="k">Owner (franchisee)</td><td>Every store their company owns</td><td><span class="route">/login</span> › "All my stores" when they own more than one</td><td>Runs each store's back office; the only role that can add managers, change a manager's PIN or card, authorise dispensers, switch commission on and approve it for payroll, and verify banking deposits. Consolidated dashboard, comparison and CSV across their stores.</td></tr>
+        <tr><td class="k">Accountant</td><td>One company's books</td><td><span class="route">/login</span> › the company's books</td><td>Keeps the books (chapter 12): reports, banking, journals as drafts for the owner to approve. No store screens, no till.</td></tr>
         <tr><td class="k">Store manager</td><td>One store</td><td><span class="route">/login</span> › their store; also the till with a PIN</td><td>Everything in the store back office (orders, stock, buying, members, patients, money, team, settings) except what is reserved for the owner; pairs and unpairs tills; closes shifts.</td></tr>
         <tr><td class="k">Budtender (cashier / dispenser)</td><td>One store</td><td>The till, with a PIN</td><td>Sells, refunds, hands over online orders, checks in event guests, counts the float. A budtender with <strong>Authorised dispenser</strong> ticked may complete sales of licensed medicines. No back-office login (the sign-in page sends them to the till).</td></tr>
       </tbody>
@@ -826,6 +829,7 @@
     <p>Members' evenings and opening weekends at your store: name, when, capacity, description (screened), an optional welcome gift. Changes show in the Rewards app straight away; an event with tickets can't be deleted, only changed. Each event has a <strong>door list</strong> (CSV) as the paper fallback for the till's ticket scanner.</p>
 
     <h2>Money: finance, cash-ups, banking, expenses, commission and the statement</h2>
+    <p>Everything in this section also posts itself to the company's books — the general ledger, banking, VAT and month end — which owners and their accountants keep under <strong>Money › Accounts</strong> (chapter 12).</p>
     <h3>Finance</h3>
     <p>Your <strong>profit &amp; loss</strong> ex VAT for the range: net sales, cost of sales (FIFO), gross profit, operating expenses, franchise fees, net profit, with the monthly trend; a <strong>VAT201 working</strong> (output tax on sales against input tax on stock, expenses and fees) or "Not VAT-registered"; and links to cash-ups, expenses, the statement and reports.</p>
     <h3>Cash-ups</h3>
@@ -842,7 +846,7 @@
     <p>Capture running costs from supplier invoices: date, category (rent, salaries, utilities, security, marketing, supplies, bank fees, other), description, supplier, amount incl. VAT, and whether VAT is claimable (only if your company is VAT-registered and the supplier's invoice shows VAT). They feed the P&amp;L and the VAT201 input tax; the page shows spend by category.</p>
     <h3>Supplier invoices</h3>
     <figure><img src="images/bo-supplier-invoices.jpg" alt="The supplier invoices page"><figcaption><b>Supplier invoices.</b> Due (with how much of it is on the statement), Overdue, Due within 7 days and Paid in the last 30 days; each invoice with its supplier and number, the stock order it belongs to, dates, total and VAT, status, the photo or PDF (or the stock order, for stock from the DC or another store), and Mark paid or Query.</figcaption></figure>
-    <p>What the store owes its suppliers. A stock order — from the <strong>distribution centre</strong> or <strong>another store</strong> — is put on automatically when you receive it, for what you counted in: the stock order is its tax invoice (the <strong>Stock order</strong> link), it shows as <em>On statement</em>, due on the month's last day, and is settled on that month's franchise statement — so there's nothing to capture, pay or query, and once the month is over it shows as <em>Settled</em>. Invoices from outside suppliers come with a photo or PDF: capture them under Finance › <strong>Supplier invoices › Add invoice</strong>: supplier, invoice number, invoice date and due date, total incl. VAT, whether it is a tax invoice with 15% VAT (it counts towards your input tax only if your company is VAT-registered), the file (JPEG, PNG or PDF up to 8 MB — the bytes are checked, not the name) and a note. The same invoice can't be captured twice. <strong>Mark paid</strong> (with the date and a note) as you settle them; <strong>Query</strong> one that doesn't match the delivery, saying what's wrong, and <strong>Reopen</strong> it ("It's due again") once that is settled. Invoices due within seven days and overdue ones appear on the Today list (stock orders never do — the statement settles them); HQ › Finance sees what every store owes and what is overdue. Every step is audited, and the files are served only through the app.</p>
+    <p>What the store owes its suppliers. A stock order — from the <strong>distribution centre</strong> or <strong>another store</strong> — is put on automatically when you receive it, for what you counted in: the stock order is its tax invoice (the <strong>Stock order</strong> link), it shows as <em>On statement</em>, due on the month's last day, and is settled on that month's franchise statement — so there's nothing to capture, pay or query, and once the month is over it shows as <em>Settled</em>. Invoices from outside suppliers come with a photo or PDF: capture them under Finance › <strong>Supplier invoices › Add invoice</strong>: supplier, invoice number, invoice date and due date, total incl. VAT, <strong>Charged to</strong> (the account in the books — rent, utilities, supplies and so on), whether it is a tax invoice with 15% VAT (it counts towards your input tax only if your company is VAT-registered), the file (JPEG, PNG or PDF up to 8 MB — the bytes are checked, not the name) and a note. The same invoice can't be captured twice. <strong>Mark paid</strong> (with the date and a note) as you settle them; <strong>Query</strong> one that doesn't match the delivery, saying what's wrong, and <strong>Reopen</strong> it ("It's due again") once that is settled. Invoices due within seven days and overdue ones appear on the Today list (stock orders never do — the statement settles them); HQ › Finance sees what every store owes and what is overdue. Every step is audited, and the files are served only through the app.</p>
     <h3>Commission</h3>
     <p>What each person earned on their <strong>own till sales</strong> at HQ's rates (2% of net sales ex VAT by default, by product class; <strong>0% on licensed medicines and CBD supplements by law</strong>), after refunds, never below zero for a month. The <strong>owner</strong> switches it on (it is remuneration — agree it with staff in writing), approves each month for payroll once the month has ended, downloads the CSV, and can release a person held by an open loss-prevention alert. Staff see their own figure on the till.</p>
     <h3>Franchise statement</h3>
@@ -1453,7 +1457,7 @@
     <p>Every document the platform issues is designed once and follows the paper: on a receipt printer it prints as a slip, on A4 as a sheet, and from any page as a PDF through the print dialog's "Save as PDF".</p>
     <ul>
       <li><strong>Tax invoices</strong> — every sale, emailed (abridged up to R5,000, full above) with a signed link to the hosted copy (<span class="route">/invoice/&lt;id&gt;?t=…</span>, also under Rewards › Invoices): batch numbers per line, VAT per rate, the payment and its reference, and a QR code back to the order. Print on A4, save as a PDF, or print on till paper with <strong>Print receipt</strong>; a walk-in can have it emailed from the till. Failed sends are retried for three days.</li>
-      <li><strong>Franchise statements</strong> — Store › Money › Franchise statement and HQ › Statements show the month as a document: the parties, credits and debits netted to one amount, how the fees were worked out. Print or save as PDF from the page; <strong>Email to owner</strong> sends it to the owner company's statement address.</li>
+      <li><strong>Franchise statements</strong> — Store › Money › Franchise statement and HQ › Statements show the month as a document: the parties, credits and debits netted to one amount, how the fees were worked out. Print or save as PDF from the page; <strong>Email to owner</strong> sends it to the owner company's statement address. Under it, HQ records each <strong>payment</strong> as it arrives, and both companies' books follow (chapter 12).</li>
       <li><strong>Z-reports</strong> — printed at the till on shift close (80 mm) and emailed to the store; the same report under Store › Money › Cash-ups › the shift, printable on A4 or as a PDF.</li>
       <li><strong>The menu board</strong> — the in-store TV page, in landscape or portrait, described with the till (chapter 4).</li>
     </ul>
@@ -1648,8 +1652,8 @@
     <table class="compact">
       <thead><tr><th>When</th><th>Task</th><th>Where</th></tr></thead>
       <tbody>
-        <tr><td class="k">Every 15 minutes (job)</td><td>Release campaigns held for a legal send window; cancel unpaid online orders after the hold; retry failed invoice emails; number Founding Members once the list closes; send drop alerts to watchers; email paid merch orders to the partner; note when a wished-for item runs out across the network and when it is back</td><td><code>/api/cron/frequent</code></td></tr>
-        <tr><td class="k">Daily 02:00 (job)</td><td>Birthday points; cancel pay-in-store collections not collected within the hold; lapse expired tier floors; loss-prevention rules and the digest email to owners and area managers; purge not-a-fit leads; load the week's My Deals (Mondays); settle the stock-order invoices of a month that's over (on its statement); send the day's reorder reminders; expire gift vouchers at three years and cancel voucher orders unpaid for two days</td><td><code>/api/cron/daily</code></td></tr>
+        <tr><td class="k">Every 15 minutes (job)</td><td>Release campaigns held for a legal send window; cancel unpaid online orders after the hold; retry failed invoice emails; number Founding Members once the list closes; send drop alerts to watchers; email paid merch orders to the partner; note when a wished-for item runs out across the network and when it is back; post what's waiting for the books</td><td><code>/api/cron/frequent</code></td></tr>
+        <tr><td class="k">Daily 02:00 (job)</td><td>Birthday points; cancel pay-in-store collections not collected within the hold; lapse expired tier floors; loss-prevention rules and the digest email to owners and area managers; purge not-a-fit leads; load the week's My Deals (Mondays); settle the stock-order invoices of a month that's over (on its statement); send the day's reorder reminders; expire gift vouchers at three years and cancel voucher orders unpaid for two days; post the day's trading (and on the 1st, the month's franchise statements) to the books, then match open bank lines again</td><td><code>/api/cron/daily</code></td></tr>
         <tr><td class="k">Every 5 minutes (job)</td><td>Staff phone notifications: new online orders (polled, so an order shows within five minutes), loss alerts raised in the last day (never to the person they're about), HQ updates that still need acknowledging — each event keyed, so a poll never sends twice</td><td><code>/api/cron/staff-push</code></td></tr>
         <tr><td class="k">Daily 03:00 (job)</td><td>Lots entering the 30-day expiry window (once per lot), cash due at the bank today or overdue (once per store per day), the low-stock digest per store from the replenishment plan, every scheduled report export due today (emailed as a signed link), and pruning of old push-event keys and export files</td><td><code>/api/cron/operations</code></td></tr>
         <tr><td class="k">Daily (store)</td><td>Close every cash-up; bank yesterday's cash by the next business day (Banking: tick the cash-ups, amount, reference, photo of the stamped slip); review negative-stock and compliance-event reports</td><td>Till · Store › Banking, Reports</td></tr>
@@ -1731,11 +1735,125 @@
 </section>
 
 <!-- ═══════════════════════════════════════════ CHAPTER 12 ══════════════════════════════════════ -->
-<section class="chapter" data-num="12" data-title="Appendices" data-short="Appendices" data-letters="1">
+<section class="chapter" data-num="12" data-title="The books: accounting for every company in the network" data-short="The books">
   <div class="dark-page opener">
     <div class="rail"></div>
     <div class="num">12</div>
     <div class="eyebrow">Chapter 12</div>
+    <h1>The books: accounting for every company in the network</h1>
+    <div class="lede">A full set of books for <b>HQ and every franchisee company</b>, with each store as a dimension. Every sale, refund, deposit, expense, stock order, statement and payment <b>posts itself</b>; the accountant adds journals, imports the bank statements and closes the month; the reports, the <b>VAT201 working</b> and the management pack come straight from the ledger.</div>
+    <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
+  </div>
+  <div class="body">
+    <h2>Whose books, and who keeps them</h2>
+    <p class="lede">Each legal entity keeps its own books: <strong>Herbal Holland (HQ)</strong>, and every franchisee company, however many stores it owns. Stores are a <strong>dimension</strong> on every line, so one company's books report per store or for the whole company. Between the two sides of the network, HQ's <em>Franchisees</em> account mirrors each franchisee's <em>Herbal Holland</em> account — what HQ collected for the store, what the store owes for stock and fees — to the cent.</p>
+    <table class="compact">
+      <thead><tr><th>Who</th><th>Which books</th><th>What they can do</th></tr></thead>
+      <tbody>
+        <tr><td class="k">Owner (franchisee)</td><td>Their company's</td><td>Everything: journals (posted straight away), approving the accountant's drafts, banking, closing months and VAT periods, settings, adding accountants</td></tr>
+        <tr><td class="k">Accountant</td><td>Their company's only</td><td>Journals as <em>drafts</em> for the owner to approve, banking (import, match, allocate), every report and export. No store screens: they sign in straight to the books</td></tr>
+        <tr><td class="k">HQ admin</td><td>HQ's; every franchisee's to read</td><td>Everything in HQ's books; reads franchisee books (never changes them); records statement payments; retries a posting that failed</td></tr>
+        <tr><td class="k">Area manager</td><td>Franchisees with a store in their region, to read</td><td>Reports and journals, read-only</td></tr>
+        <tr><td class="k">Everyone else</td><td>—</td><td>No books: managers, dispensers and HQ staff never see them</td></tr>
+      </tbody>
+    </table>
+    <p>Owners open them from the store sidebar, <strong>Money › Accounts</strong>; HQ from <strong>HQ › Money › Accounts</strong>, a list of every company's books with how far each is closed, drafts waiting and any check that disagrees; an accountant lands in their company's books when they sign in (<span class="route">/books/&lt;company&gt;</span>). The books have their own sidebar: <strong>Overview</strong>; <strong>Record</strong> (Journals, Banking); <strong>Reports</strong> (Trial balance, Income statement, Balance sheet, Cash flow, General ledger, Debtors &amp; creditors, VAT, Management pack); <strong>Set-up</strong> (Chart of accounts, Month end, Settings).</p>
+    <figure><img src="images/books-overview.jpg" alt="A franchisee's books: the overview"><figcaption><b>Overview.</b> The money in the bank and the tills, what's owed either way, VAT due, stock at cost; profit this month and for the year; where month end stands; and the latest journals.</figcaption></figure>
+    <figure><img src="images/books-index.jpg" alt="HQ's list of every company's books"><figcaption><b>HQ › Accounts.</b> Every company's books: closed through which month, drafts waiting, and whether the month-end checks agree.</figcaption></figure>
+
+    <h2>What posts by itself</h2>
+    <p>Nobody types in a sale. Each money event is a <strong>source</strong> with its own posting, rebuilt from the records behind it: when the records change — a sale synced late, a deposit corrected, a refund — only the <em>difference</em> posts, as a new journal, and a source that disappears is reversed. Trading days post overnight (the nightly job at 02:00); everything else within 15 minutes; a correction to a past day re-posts that day.</p>
+    <table class="compact">
+      <thead><tr><th>Event</th><th>The franchisee's books</th><th>HQ's books</th></tr></thead>
+      <tbody>
+        <tr><td class="k">A trading day (per store)</td><td>Sales ex VAT by channel and the output VAT; cash, card, PayShap and EFT; what HQ collected (online, vouchers, points, trade on account) on the Herbal Holland account; stock sold, written off or counted at cost</td><td>What it collected or funds for the store, against the franchisee</td></tr>
+        <tr><td class="k">A cash-up, a deposit</td><td>Over or short in the drawer; cash to the bank</td><td>—</td></tr>
+        <tr><td class="k">An expense, an outside supplier's invoice and its payment</td><td>The account it's charged to, input VAT (VAT vendors only), the supplier, the bank</td><td>—</td></tr>
+        <tr><td class="k">A stock order from the DC or another store</td><td>Stock in at the agreed price, input VAT, owed to HQ; the seller's sale and cost of sales; units lost in transit</td><td>The DC's wholesale sale; the trade carried on both franchisees' accounts</td></tr>
+        <tr><td class="k">The month's franchise statement</td><td>Royalty, marketing levy and e-commerce fees with their VAT; points issued</td><td>The same fees as income; the points liability</td></tr>
+        <tr><td class="k">A statement payment</td><td>The bank, the Herbal Holland account</td><td>The bank, the franchisee's account</td></tr>
+        <tr><td class="k">Online orders, gift vouchers, Rewards points, trade on account</td><td>—</td><td>Prepayments and the payment gateway; vouchers in issue (and expiry); the points liability (sign-up, referral, birthday and bonus points are HQ's cost); trade debtors and their EFTs</td></tr>
+      </tbody>
+    </table>
+    <div class="callout"><div class="lab">Rule</div><p>A month that's closed never changes. Anything that would post into it — a late sale, a corrected deposit — posts into the first open month instead, marked <em>late</em>, so the closed month's reports stay as they were filed.</p></div>
+    <p>Postings that fail (a day whose payments don't agree with its rollup, say) stay in the queue with the reason, are retried, and are listed for HQ under <strong>Month end › Postings that failed</strong>, with <strong>Retry</strong> once the cause is fixed; an alert email goes to <code>ALERT_EMAIL</code>.</p>
+
+    <h2>Journals</h2>
+    <p><strong>Journals</strong> lists everything posted, newest first, filtered by month, source (trading day, deposit, statement, bank, manual…), status (drafts) and store, with a <strong>Download CSV</strong>. Each journal shows its lines, where it came from (a link to the trading day, the deposit, the bank line…), who entered and approved it, and any reversal.</p>
+    <ol class="steps">
+      <li><strong>New journal</strong>: the <strong>Date</strong>, <strong>What it's for</strong> ("September depreciation", "Payroll from the payroll provider"), then a line per account — the <strong>Account</strong>, a <strong>Store</strong> if it belongs to one, the supplier, trade account or franchisee where the account needs one, a note, and a <strong>Debit</strong> or a <strong>Credit</strong>. The totals show as you type; <strong>✓ Balanced</strong> means you can save.</li>
+      <li>An owner taps <strong>Post journal</strong>. An accountant can only <strong>Save as draft</strong>: the owner sees "Drafts waiting for approval" on the overview, opens the draft and taps <strong>Approve and post</strong> — or <strong>Delete draft</strong>.</li>
+      <li>A posted manual journal is never edited: <strong>Reverse</strong> posts every line the other way round on the date you choose, then you enter the right one. Automatic journals can't be reversed by hand — they follow their source.</li>
+    </ol>
+    <figure><img src="images/books-journal-new.jpg" alt="Entering a manual journal"><figcaption><b>New journal</b>, by the company's accountant: rent for one store, balanced — saved as a draft for the owner.</figcaption></figure>
+    <figure><img src="images/books-journal-draft.jpg" alt="A draft journal waiting for the owner"><figcaption>The draft, as the owner sees it: <b>Approve and post</b> or <b>Delete draft</b>.</figcaption></figure>
+
+    <h2>Banking</h2>
+    <p><strong>Banking</strong> holds the company's bank accounts — the first carries the books' <em>Bank</em> account (1000), which deposits, payments and payouts post to — with each one's balance in the books against the statement's, and the lines still to do.</p>
+    <ol class="steps">
+      <li><strong>Add bank account</strong>: the bank, a name and at least the last four digits of the account number (a store if the account is one store's).</li>
+      <li><strong>Import a bank statement</strong>: the account, the file, and the <strong>Format</strong> — <em>Work it out from the file</em> reads the CSV downloads of FNB, Absa, Standard Bank, Nedbank and Capitec and OFX/QFX files; any other CSV works by naming its columns. A line imported before is skipped, so overlapping downloads are safe; pending lines are left out; the file is kept.</li>
+      <li>Lines that fit exactly one posting in the books — a deposit, an expense paid, a statement payment, a day's PayShap — <strong>match themselves</strong>. For the rest the page suggests what each could be ("Could be: journal 1042 · Cash deposit…"); tap <strong>Match</strong>, or match by journal number.</li>
+      <li>What nothing in the books covers yet, <strong>Allocate…</strong>: to an account (bank charges, interest, insurance, a SARS payment, a transfer between the company's own accounts) with the VAT in it, or as <strong>A card payout (net of fees)</strong> — the gross clears the card takings, the fee and its VAT go to card fees. <strong>Ignore</strong> is for lines that aren't transactions of the books (a duplicate download, a payment and its reversal).</li>
+      <li><strong>Reconcile</strong> sets the statement's balance against the books' <strong>At the end of</strong> any day (the imported balance, or type the <strong>Balance on the statement</strong>) and lists what explains the difference: postings not through the bank yet, and statement lines still to settle. Print it for the month's file.</li>
+    </ol>
+    <figure><img src="images/books-bank.jpg" alt="A bank account's statement lines"><figcaption>A bank account's lines: deposits and statement payments matched by themselves, card payouts allocated net of their fees, and what's left to do with its suggestions.</figcaption></figure>
+    <figure><img src="images/books-reconcile.jpg" alt="The bank reconciliation"><figcaption><b>Reconcile</b>: the statement's balance against the books', and every item between them.</figcaption></figure>
+    <div class="callout note"><div class="lab">Every night</div><p>Statements often arrive before the postings they match (a deposit banked today posts tonight). The nightly job tries every open line again, so most of yesterday's leftovers are matched by morning.</p></div>
+
+    <h2>Reports</h2>
+    <p>Every report takes a period (a month, the financial year to date, or any range), the whole company or <strong>one store</strong>, and offers <strong>Print</strong> (a clean page, sidebar and buttons left off) and <strong>Download CSV</strong>. Every amount opens the ledger behind it.</p>
+    <ul>
+      <li><strong>Trial balance</strong> — every account's debits and credits for the period; it must balance, and says so in red if it doesn't.</li>
+      <li><strong>Income statement</strong> — sales by channel, cost of sales, gross profit, the running costs and franchise fees, net profit; <strong>Month by month</strong> or <strong>Store by store</strong>, and against the previous period or last year.</li>
+      <li><strong>Balance sheet</strong> — what the company owns and owes on a day, with retained earnings and the year's profit worked out.</li>
+      <li><strong>Cash flow</strong> — cash and bank at the start, what came in and went out by kind, and the end.</li>
+      <li><strong>General ledger</strong> — one account's lines with the running balance, filtered by store or party.</li>
+      <li><strong>Debtors &amp; creditors</strong> — who owes what and for how long (current, 30, 60, 90+ days): suppliers, trade accounts, and the franchisees on HQ's side.</li>
+      <li><strong>Management pack</strong> — the month on a few pages for the owner or the bank: key ratios, the income statement for the month and the year to date, the balance sheet against the last year end, and the cash flow — print it or save it as a PDF.</li>
+    </ul>
+    <figure><img src="images/books-trial-balance.jpg" alt="The trial balance"><figcaption><b>Trial balance</b> for the year to date, every account with its debits and credits.</figcaption></figure>
+    <figure><img src="images/books-income.jpg" alt="The income statement"><figcaption><b>Income statement</b>: sales, gross profit and running costs, month by month.</figcaption></figure>
+
+    <h2>VAT</h2>
+    <p><strong>VAT</strong> shows the <strong>VAT201 working</strong> for each SARS period of the company's category (A or B: every two months; C: monthly) — standard-rated supplies and output tax, capital and other goods and input tax, and the amount payable or refundable — every figure opening the ledger behind it. When the return is filed, the owner taps <strong>Close this VAT period</strong>: a journal dated the period's last day moves its output and input tax into <em>VAT due to / from SARS</em>, which the SARS payment then clears from the bank. Anything posted into a closed period later shows on the page, to close again. A company that isn't a VAT vendor charges no VAT and claims none; the page says so.</p>
+    <figure><img src="images/books-vat.jpg" alt="The VAT201 working"><figcaption><b>VAT</b>: the period's VAT201 working, ready to transfer to SARS eFiling, and <b>Close this VAT period</b>.</figcaption></figure>
+
+    <h2>Month end, year end and settings</h2>
+    <p><strong>Month end</strong> runs the checks for the month and closes it. Each check sets the books against the register they mirror, and names the difference:</p>
+    <ul>
+      <li>debits equal credits; account balances match the journals;</li>
+      <li>each store's Herbal Holland account against its franchise statement and the payments on it; HQ's franchisee accounts against each franchisee's books;</li>
+      <li>gift vouchers in issue, Rewards points owed and trade debtors against their registers;</li>
+      <li>each store's stock against on hand at cost — to the cent;</li>
+      <li>nothing waiting or failed in the posting queue; every bank line matched, allocated or ignored.</li>
+    </ul>
+    <p>Known timing items — points or voucher money taken at checkout for orders not handed over yet, points issued this month that the statement charges at month end — are allowed for and named. Then <strong>Close &lt;month&gt;</strong> closes every month up to it ("Close anyway" if a check still disagrees: correct it in an open month). <strong>Reopen</strong> opens the last closed month again, one month at a time; both are in the audit log. There's no separate year end: the income statement starts again with the new financial year and the balance sheet carries the year's profit into retained earnings.</p>
+    <figure><img src="images/books-close.jpg" alt="Month end"><figcaption><b>Month end</b>: the checks for the month, and closing it.</figcaption></figure>
+    <p><strong>Settings</strong>: the <strong>VAT category</strong> and the month the <strong>financial year ends</strong> (February by default); the company's <strong>accountants</strong> — <strong>Add an accountant</strong> with a name and email gives them a temporary password, which they change at first sign-in; deactivate or reset one any time; and <strong>Opening balances</strong>. <strong>Chart of accounts</strong> lists every account by type with this year's movement and its balance: add accounts (a four-digit code), rename any, switch off an added one with nothing on it. The system's own accounts can be renamed but never removed.</p>
+    <figure><img src="images/books-settings.jpg" alt="The books' settings"><figcaption><b>Settings</b>: VAT and the financial year, the accountants, and the opening balances.</figcaption></figure>
+
+    <h2>Starting the books: the cut-over</h2>
+    <p>The books start on the day the platform goes live for a company — the <strong>cut-over</strong>. History before it isn't re-posted; the company's position on that day goes in as <strong>opening balances</strong>, from its previous accountant's trial balance:</p>
+    <ol class="steps">
+      <li><strong>Settings › Opening balances</strong> › download the <strong>template</strong>: the company's chart with a row per account.</li>
+      <li>Fill in each balance as at the cut-over (debit or credit; the supplier, trade account or franchisee where an account needs one; a store code to split by store). It must balance.</li>
+      <li><strong>Import opening balances</strong> with <strong>Balances at</strong> the day before the cut-over. It posts as one <em>opening</em> journal (a draft for the owner, if the accountant imports it). A second import is refused unless <strong>Add to the opening balances already in</strong> is ticked; a wrong one is reversed like any manual journal.</li>
+    </ol>
+    <p>At HQ the opening balances include what members held in Rewards points and gift vouchers on the day — after that, the registers and the books move together.</p>
+
+    <h2>HQ: statements and payments</h2>
+    <p>The franchise statement settles through the books. On <strong>HQ › Statements</strong>, a store's statement shows <strong>Payments</strong> — <strong>Statement</strong>, <strong>Paid</strong> and <strong>Outstanding</strong> — and an HQ admin records each one as it arrives: <strong>Who paid</strong> (the store paid HQ, or HQ paid the store), <strong>Amount (R)</strong>, <strong>Paid on</strong>, <strong>Bank reference</strong>, a note; <strong>Record payment</strong>. It posts in both companies' books within 15 minutes. A payment recorded by mistake is deleted, and its postings are reversed. The owner sees the same payments, read-only, on the store's statement.</p>
+    <figure><img src="images/hq-statement-payments.jpg" alt="Recording a statement payment"><figcaption>A store's statement in HQ with its <b>Payments</b>: what's outstanding, and <b>Record payment</b>.</figcaption></figure>
+    <div class="callout note"><div class="lab">In the demo</div><p>Every company's books are posted from the seeded history, as the nightly job would have: HQ opened with the points members held at the cut-over; each franchisee with R350,000 in the bank, and its FNB statement imported — deposits, takings and statement payments matched, card payouts allocated net of fees, the last two days and an insurance debit order still to do. August's statements are paid (Umhlanga paid part). Mokoena Retail has an accountant, Priya Naidoo (<code>books@mokoenaretail.co.za</code>), and HQ has one too (<code>accounts@herbalholland.co.za</code>).</p></div>
+  </div>
+</section>
+
+<section class="chapter" data-num="13" data-title="Appendices" data-short="Appendices" data-letters="1">
+  <div class="dark-page opener">
+    <div class="rail"></div>
+    <div class="num">13</div>
+    <div class="eyebrow">Chapter 13</div>
     <h1>Appendices</h1>
     <div class="lede"><b>A</b> Demo logins and PINs · <b>B</b> The catalogue import columns · <b>C</b> Glossary · <b>D</b> What's still to be decided.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
@@ -1749,6 +1867,8 @@
         <tr><td class="k">HQ administrator</td><td>hq@herbalholland.co.za</td><td>HQ console (network, catalogue, marketing, compliance)</td></tr>
         <tr><td class="k">Area manager</td><td>area.gpn@herbalholland.co.za</td><td>HQ console, Tshwane &amp; North region</td></tr>
         <tr><td class="k">Franchise owner</td><td>thabo@mokoenaretail.co.za</td><td>All my stores: Mokoena Retail — Hatfield and Brooklyn</td></tr>
+        <tr><td class="k">Accountant (Mokoena Retail)</td><td>books@mokoenaretail.co.za</td><td>Mokoena Retail's books</td></tr>
+        <tr><td class="k">Accountant (HQ)</td><td>accounts@herbalholland.co.za</td><td>Herbal Holland's books</td></tr>
         <tr><td class="k">Store manager (and responsible dispenser)</td><td>manager.pta01@herbalholland.co.za</td><td>Hatfield's back office</td></tr>
         <tr><td class="k">Trade buyer (owner of Greenleaf Pharmacy, TA-000001, on account)</td><td>trade@greenleafpharmacy.co.za</td><td>The trade portal — no password: the 6-digit code is shown on screen in demo mode (<span class="route">/trade/login</span>)</td></tr>
       </tbody>
@@ -1859,7 +1979,7 @@
         <tr><td class="k">Social profiles</td><td>The brand's profile URLs for <code>ORG_SAME_AS</code> and <code>facts.ts</code>; Google Business Profiles per store.</td></tr>
       </tbody>
     </table>
-    <p class="small" style="margin-top:14pt">Herbal Holland platform — complete system guide, version 1.2, 3 October 2026. Written from the code at that date; the platform keeps changing, so check the screen in front of you when it differs from this page.</p>
+    <p class="small" style="margin-top:14pt">Herbal Holland platform — complete system guide, version 1.3, 5 October 2026. Written from the code at that date; the platform keeps changing, so check the screen in front of you when it differs from this page.</p>
   </div>
 </section>
 

@@ -1973,18 +1973,86 @@ async function main() {
   const { tx } = await import("../src/server/db");
   const [{ first }] = await db.$queryRaw<{ first: Date }[]>`SELECT MIN("createdAt") AS first FROM "StockMovement"`;
   const start = dayKey(first);
+  const openingDay = dayKey(addDays(new Date(`${start}T12:00:00+02:00`), -1));
   const [{ points }] = await db.$queryRaw<{ points: bigint }[]>`SELECT COALESCE(SUM(points), 0)::bigint AS points FROM "LoyaltyEntry" WHERE "createdAt" < ${new Date(`${start}T00:00:00+02:00`)}`;
   if (points) {
     const hqBooks = await tx((t) => booksFor(t, hq.id as string));
     const cents = Number(points) * POINT_VALUE_CENTS;
     await createManualJournal({
-      companyId: hq.id as string, date: dayKey(addDays(new Date(`${start}T12:00:00+02:00`), -1)), memo: "Opening balances: Rewards points members held at the cut-over", source: "opening", post: true,
+      companyId: hq.id as string, date: openingDay, memo: "Opening balances: Rewards points members held at the cut-over", source: "opening", post: true,
       actor: { type: "USER", id: naledi.id as string, name: naledi.name }, lines: [{ accountId: hqBooks.accounts.get("retained")!, cents }, { accountId: hqBooks.accounts.get("points")!, cents: -cents }],
     });
   }
   const books = await ledgerBackfill(start, TODAY);
+
+  // Each franchisee banks with FNB: R350,000 in the bank at the cut-over, and its statement since trading began imported
+  // as its accountant (or owner) would. Deposits, PayShap and EFT takings, expenses and statement payments match
+  // themselves; card payouts (net of a 2.75% fee) and the monthly account fees are allocated; the last two days' payouts
+  // and an insurance debit order are still to do.
+  const { allocateLine, createBankAccount, importStatement, matchLine } = await import("../src/server/ledger/bank");
+  const fnbDay = (d: string) => new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", day: "2-digit", month: "short", year: "numeric" }).format(new Date(`${d}T12:00:00Z`));
+  const plain = (s: string) => s.replace(/[',]/g, "").slice(0, 40);
+  const [stmtFrom, stmtTo] = [dayKeys[0], dayKeys[dayKeys.length - 2]];
+  const settled = dayKey(addDays(new Date(`${stmtTo}T12:00:00+02:00`), -2));
+  const PAID_FROM_BANK: Record<string, string> = { "store-day": "PayShap and EFT receipts", deposit: "Cash Deposit", expense: "FNB App Payment To", "statement-payment": "Payment To Herbal Holland", "supplier-payment": "FNB App Payment To" };
+  let bankLines = 0, allocated = 0;
+  for (const co of companies.filter((c) => c.kind === "FRANCHISEE")) {
+    const coId = co.id as string;
+    const person = users.find((u) => u.companyId === coId && u.role === "ACCOUNTANT") ?? users.find((u) => u.companyId === coId && u.role === "OWNER");
+    if (!person) continue;
+    const by = { id: person.id as string, name: person.name };
+    const book = await tx((t) => booksFor(t, coId));
+    const [bankId, cardId] = [book.accounts.get("bank")!, book.accounts.get("card")!];
+    await createManualJournal({
+      companyId: coId, date: openingDay, memo: "Opening balances: the bank at the cut-over", source: "opening", post: true, actor: { type: "USER", ...by },
+      lines: [{ accountId: bankId, cents: 35_000_000 }, { accountId: book.accounts.get("capital")!, cents: -35_000_000 }],
+    });
+    const acct = await createBankAccount(coId, { bank: "FNB", name: "Gold Business Account", number: `62${int(100_000_000, 999_999_999)}` }, by);
+    const posted = await db.$queryRaw<{ id: string; source: string; memo: string; day: string; store: string | null; cents: bigint }[]>`
+      SELECT j.id, j.source, j.memo, to_char(j.date, 'YYYY-MM-DD') AS day, s.code AS store, SUM(l."amountCents")::bigint AS cents
+      FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId" LEFT JOIN "Store" s ON s.id = j."storeId"
+      WHERE l."companyId" = ${coId} AND l."accountId" = ${bankId} AND j.status = 'POSTED' AND j.date BETWEEN ${stmtFrom}::date AND ${stmtTo}::date
+      GROUP BY j.id, s.code HAVING SUM(l."amountCents") <> 0`;
+    const cards = await db.$queryRaw<{ day: string; storeId: string; store: string; cents: bigint }[]>`
+      SELECT to_char(j.date, 'YYYY-MM-DD') AS day, s.id AS "storeId", s.code AS store, SUM(l."amountCents")::bigint AS cents
+      FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId" JOIN "Store" s ON s.id = l."storeId"
+      WHERE l."companyId" = ${coId} AND l."accountId" = ${cardId} AND j.source = 'store-day' AND j.date BETWEEN ${stmtFrom}::date AND ${stmtTo}::date
+      GROUP BY 1, 2, 3 HAVING SUM(l."amountCents") > 0`;
+    type Planned = { day: string; cents: number; d: [string, string, string]; journalId?: string; payout?: { feeCents: number; feeVatCents: number; storeId: string }; fee?: boolean };
+    const plan: Planned[] = posted.filter((p) => PAID_FROM_BANK[p.source]).map((p) => ({ day: p.day, cents: Number(p.cents), d: [PAID_FROM_BANK[p.source], p.store ?? "", plain(p.memo)], journalId: p.id }));
+    for (const c of cards) {
+      const gross = Number(c.cents), feeCents = Math.round(gross * 0.0275), day = dayKey(addDays(new Date(`${c.day}T12:00:00+02:00`), 1));
+      if (day <= stmtTo) plan.push({ day, cents: gross - feeCents, d: ["Merchant Settlement", `YOCO ${c.store}`, c.day], payout: { feeCents, feeVatCents: co.vatNumber ? Math.round((feeCents * 15) / 115) : 0, storeId: c.storeId } });
+    }
+    for (const m of new Set(dayKeys.map((d) => d.slice(0, 7)))) {
+      const last = new Date(Date.UTC(+m.slice(0, 4), +m.slice(5), 0)).toISOString().slice(0, 10);
+      if (last >= stmtFrom && last <= stmtTo) plan.push({ day: last, cents: -18_975, d: ["#Monthly Account Fee", "", ""], fee: true });
+    }
+    plan.push({ day: stmtTo, cents: -245_000, d: ["Debit Order", "SANTAM INSURANCE", "POLICY 4471"] });
+    plan.sort((a, b) => a.day.localeCompare(b.day));
+    let balance = 35_000_000;
+    const rows = plan.map((l, i) => `5,${i + 1},'${fnbDay(l.day)}','${l.d[0]}','${l.d[1]}','${l.d[2]}',${(l.cents / 100).toFixed(2)},${((balance += l.cents) / 100).toFixed(2)},0.00`);
+    const csv = [
+      `2,'${acct.number}','Gold Business Account','${plain(co.legalName as string).toUpperCase()}'`,
+      "3,'Statement Number','Statement Date','Opening Balance','Closing Balance','VAT Amount','Interest Rate'",
+      `3,'1','${stmtTo.replace(/-/g, "/")}','350000.00','${(balance / 100).toFixed(2)}','0.00','0.00'`,
+      "5,'Number','Date','Description1','Description2','Description3','Amount','Balance','Accrued Charges'",
+      ...rows,
+    ].join("\r\n");
+    await importStatement(coId, acct.id, { file: new File([csv], `fnb-${stmtTo}.csv`, { type: "text/csv" }), format: "FNB" }, by);
+    bankLines += plan.length;
+    for (const l of await db.bankLine.findMany({ where: { bankAccountId: acct.id, status: "UNMATCHED" }, select: { id: true, date: true, amountCents: true, description: true } })) {
+      const day = l.date.toISOString().slice(0, 10);
+      // Two of the company's stores paying the same on the same day don't match by themselves: matched by store here.
+      const p = day <= settled ? plan.find((x) => x.day === day && x.cents === l.amountCents && l.description.includes(x.d.filter(Boolean).join(" "))) : undefined;
+      if (p?.journalId) await matchLine(coId, l.id, { id: p.journalId }, by);
+      else if (p?.payout) await allocateLine(coId, l.id, { kind: "payout", ...p.payout, clears: "card" }, by);
+      else if (p?.fee) await allocateLine(coId, l.id, { kind: "account", accountId: book.accounts.get("exp.BANK_FEES")!, vatCents: co.vatNumber ? 2_475 : 0 }, by);
+      if (p?.payout || p?.fee) allocated++;
+    }
+  }
   await db.$executeRawUnsafe(`ANALYZE "Journal", "JournalLine", "LedgerBalance", "LedgerAccount"`);
-  console.log(`  books                  ${books.journals.toLocaleString()} journals from ${books.queued.toLocaleString()} postings${books.failed ? ` · ${books.failed} FAILED (see LedgerQueue)` : ""}`);
+  console.log(`  books                  ${books.journals.toLocaleString()} journals from ${books.queued.toLocaleString()} postings${books.failed ? ` · ${books.failed} FAILED (see LedgerQueue)` : ""} · ${bankLines.toLocaleString()} bank statement lines, ${allocated.toLocaleString()} allocated`);
 
   // Commission: Mokoena Retail pays it at Hatfield and Brooklyn; last month is approved at Hatfield.
   const { approveMonth, thisMonth } = await import("../src/server/commission");
