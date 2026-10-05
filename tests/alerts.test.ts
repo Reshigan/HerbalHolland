@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { admitAlert, alertGate, alertKey, isControlFlow, HOUR, MAX_PER_HOUR } from "@/lib/alerts";
+import { admitAlert, alertGate, alertKey, alertSummary, isControlFlow, HOUR, MAX_PER_HOUR } from "@/lib/alerts";
 
 describe("server-error alerts", () => {
   it("sends one alert per distinct error an hour, whatever ids its message carries", () => {
@@ -19,6 +19,12 @@ describe("server-error alerts", () => {
     expect(sent).toHaveLength(MAX_PER_HOUR);
     expect(admitAlert(g, "/r a new error", 1000 + HOUR)).toBe(true);
     expect(g.last.size).toBe(1); // last hour's keys are dropped with the window
+  });
+
+  it("puts the cause in the subject", () => {
+    expect(alertSummary("\nInvalid `prisma.store.findMany()` invocation:\n\n\nDatabase `hh` does not exist on the database server\n")).toBe("Database `hh` does not exist on the database server");
+    expect(alertSummary("Order not found")).toBe("Order not found");
+    expect(alertSummary("")).toBe("Unknown error");
   });
 
   it("ignores Next.js control flow", () => {

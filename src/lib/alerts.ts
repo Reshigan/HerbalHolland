@@ -9,6 +9,9 @@ export const alertGate = (): AlertGate => ({ last: new Map(), windowStart: 0, se
 /** The same error on the same route is one alert, whatever ids, numbers or codes its message carries. */
 export const alertKey = (route: string, message: string) => `${route} ${message.replace(/\S*\d\S*/g, "#")}`.slice(0, 300);
 
+/** An email subject's worth of the error: its last line, where multi-line errors (Prisma's) put the cause. */
+export const alertSummary = (message: string) => (message.split("\n").map((l) => l.trim()).filter(Boolean).at(-1) ?? "Unknown error").slice(0, 120);
+
 /** Next.js control flow (redirect, notFound, bailouts) arrives as thrown errors with these digests: not failures. */
 export const isControlFlow = (digest: string | null) => !!digest && /^(NEXT_REDIRECT|NEXT_NOT_FOUND|NEXT_HTTP_ERROR_FALLBACK|BAILOUT_TO_CLIENT_SIDE_RENDERING|DYNAMIC_SERVER_USAGE)/.test(digest);
 
