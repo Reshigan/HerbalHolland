@@ -143,6 +143,7 @@ export const ROLE_LABEL: Record<string, string> = {
   OWNER: "Owner",
   MANAGER: "Store manager",
   BUDTENDER: "Budtender",
+  ACCOUNTANT: "Accountant",
 };
 
 export const CHANNEL_LABEL: Record<string, string> = { POS: "In store", ONLINE: "Online", WHOLESALE: "Trade" };

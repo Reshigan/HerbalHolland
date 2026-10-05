@@ -18,6 +18,7 @@ const ROLE: Record<string, string> = {
   OWNER: "Owner",
   MANAGER: "Store manager",
   BUDTENDER: "Budtender",
+  ACCOUNTANT: "Accountant",
 };
 
 export function AdminShell({
@@ -26,17 +27,19 @@ export function AdminShell({
   nav,
   store,
   stores = [],
+  home,
   children,
 }: {
   user: Staff;
-  area: "store" | "hq";
+  area: "store" | "hq" | "books";
+  home?: string; // where the logo goes in the books (a company's books)
   nav: NavGroup[];
   store?: { code: string; name: string };
   stores?: { code: string; name: string }[];
   children: React.ReactNode;
 }) {
   // The command palette also finds every report this person can run and the stores they look after.
-  const reports: PaletteItem[] = catalogue(area, user.role, { multiStore: stores.length > 1 }).flatMap((g) =>
+  const reports: PaletteItem[] = (area === "books" ? [] : catalogue(area, user.role, { multiStore: stores.length > 1 })).flatMap((g) =>
     g.reports.map((r) => ({ href: area === "hq" ? `/hq/reports/${r.key}` : `/store/${store?.code}/reports/${r.key}`, label: r.title, group: "Reports", keywords: `${g.group} ${r.description}`, kind: "report" as const })),
   );
   const storeItems: PaletteItem[] = stores
@@ -44,18 +47,18 @@ export function AdminShell({
     .map((s) => ({ href: area === "hq" ? `/hq/stores/${s.code}` : `/store/${s.code}`, label: s.name, group: area === "hq" ? "Stores" : "Switch store", keywords: s.code, kind: "store" as const }));
   const sidebar = (
     <div className="flex h-full flex-col">
-      <Link href={area === "hq" ? "/hq" : `/store/${store?.code}`} className="mb-4 flex items-center justify-between px-2">
+      <Link href={area === "hq" ? "/hq" : area === "books" ? (home ?? "/books") : `/store/${store?.code}`} className="mb-4 flex items-center justify-between px-2">
         <Logo />
-        <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-brand-400">{area === "hq" ? "HQ" : "Store"}</span>
+        <span className="rounded-full border border-brand-500/40 px-2 py-0.5 text-[0.6rem] font-bold uppercase tracking-[0.14em] text-brand-400">{area === "hq" ? "HQ" : area === "books" ? "Books" : "Store"}</span>
       </Link>
       <PaletteButton className="mb-5" />
       {store && (
         <div className="mb-5 space-y-2 px-1">
           <div className="px-2">
-            <div className="eyebrow text-[0.6rem] text-ink-450">Store</div>
+            <div className="eyebrow text-[0.6rem] text-ink-450">{area === "books" ? "Company" : "Store"}</div>
             <div className="font-display text-lg font-semibold leading-tight text-white">{store.name}</div>
           </div>
-          <StoreSwitcher current={store.code} stores={stores} />
+          {area !== "books" && <StoreSwitcher current={store.code} stores={stores} />}
         </div>
       )}
       <div className="flex-1">
@@ -78,7 +81,7 @@ export function AdminShell({
       </div>
       {/* Only where the browser can install the back office and it isn't installed yet. */}
       <InstallPrompt app="staff" variant="menu" className="mt-1" />
-      {area === "store" && (user.role === "HQ_ADMIN" || user.role === "HQ_STAFF" || user.role === "AREA_MANAGER") && (
+      {area !== "hq" && (user.role === "HQ_ADMIN" || user.role === "HQ_STAFF" || user.role === "AREA_MANAGER") && (
         <Link href="/hq" className="mt-2 rounded-xl px-3 py-2 text-center text-xs font-medium text-ink-400 hover:bg-ink-900 hover:text-white">
           ← Back to HQ console
         </Link>
@@ -92,7 +95,7 @@ export function AdminShell({
         Skip to content
       </a>
       <NavProgress />
-      <AdminShortcuts groups={nav} area={area} storeCode={store?.code} userKey={user.id} extra={[...reports, ...storeItems]} />
+      {area !== "books" && <AdminShortcuts groups={nav} area={area} storeCode={store?.code} userKey={user.id} extra={[...reports, ...storeItems]} />}
       <aside className="sticky top-0 hidden h-screen overflow-y-auto bg-ink-950 p-4 lg:block" aria-label="Sidebar">
         {sidebar}
       </aside>

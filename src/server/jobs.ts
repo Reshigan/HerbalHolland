@@ -25,6 +25,7 @@ import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs
 import { tradeLicenceExpiry } from "./trade/licences";
 import { purgeAuthRecords } from "./auth";
 import { settleStatementInvoices } from "./supplier-invoices";
+import { ledgerNightly, processLedgerQueue } from "./ledger/core";
 
 export { tradeEftExpiry, tradeOverdueHolds, tradeStatements, tradeLicenceExpiry };
 
@@ -93,6 +94,8 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     merchSent: await submitMerchOrders(),
     // Wishlists: note what the network ran out of and what came back ("Back in stock" on /club/wishlist).
     wishlists: await refreshWishlistStock(),
+    // The books: whatever changed since the last run (invoices, deposits, stock orders, late till sales…), posted.
+    ledger: await processLedgerQueue({ deadline: Date.now() + 5 * 60_000 }),
   }),
   daily: async () => ({
     birthdays: await birthdayPoints(),
@@ -115,6 +118,8 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     // Expired sessions, day-old sign-in codes, rate-limit rows and 90-day-old payment webhook ids.
     purged: await purgeAuthRecords(),
     statementInvoices: await settleStatementInvoices(), // stock orders from a month that's over: settled on its statement
+    // The books: the day that ended (and month-end work on the 1st) queued and posted, after everything above.
+    ledger: await ledgerNightly(),
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),

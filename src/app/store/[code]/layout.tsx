@@ -19,7 +19,7 @@ export default async function StoreLayout({ children, params }: { children: Reac
   const [store, stores] = await Promise.all([shellStoreFor(user, code), accessibleStores(user)]);
   if (!store) notFound();
   return (
-    <AdminShell user={user} area="store" nav={storeNav(store.code, store.slug)} store={{ code: store.code, name: store.name }} stores={stores}>
+    <AdminShell user={user} area="store" nav={storeNav(store.code, store.slug, store.companyId).map((g) => ({ ...g, items: g.items.filter((i) => !i.roles || i.roles.includes(user.role)) }))} store={{ code: store.code, name: store.name }} stores={stores}>
       {children}
     </AdminShell>
   );

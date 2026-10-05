@@ -45,4 +45,5 @@ export const ROLE_LABEL: Record<string, string> = {
   OWNER: "Owner",
   MANAGER: "Store manager",
   BUDTENDER: "Budtender",
+  ACCOUNTANT: "Accountant",
 };

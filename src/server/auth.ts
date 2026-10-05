@@ -168,6 +168,7 @@ export const getTradeBuyer = cache(async () => tradeBuyerForToken((await cookies
 export async function homeFor(u: { role: Role; storeId: string | null; companyId: string | null }) {
   if (isHq(u)) return "/hq";
   if (u.role === "BUDTENDER") return "/pos";
+  if (u.role === "ACCOUNTANT") return u.companyId ? `/books/${u.companyId}` : "/login?nostore=1";
   if (u.storeId) {
     const store = await db.store.findUnique({ where: { id: u.storeId }, select: { code: true } });
     return store ? `/store/${store.code}` : "/login?nostore=1";

@@ -10,7 +10,8 @@ export type Scope =
   | { kind: "HQ" }
   | { kind: "REGION"; regionId: string }
   | { kind: "COMPANY"; companyId: string }
-  | { kind: "STORE"; storeId: string };
+  | { kind: "STORE"; storeId: string }
+  | { kind: "NONE" }; // no stores at all (an accountant: the books only)
 
 export function scopeOf(u: Pick<Staff, "role" | "regionId" | "companyId" | "storeId">): Scope {
   switch (u.role) {
@@ -21,8 +22,11 @@ export function scopeOf(u: Pick<Staff, "role" | "regionId" | "companyId" | "stor
       return { kind: "REGION", regionId: u.regionId! };
     case "OWNER":
       return { kind: "COMPANY", companyId: u.companyId! };
+    case "ACCOUNTANT":
+      return { kind: "NONE" };
     default:
-      return { kind: "STORE", storeId: u.storeId! };
+      // A store role without a store sees nothing (an undefined id would filter nothing out).
+      return u.storeId ? { kind: "STORE", storeId: u.storeId } : { kind: "NONE" };
   }
 }
 
@@ -36,6 +40,8 @@ export function storeWhere(scope: Scope): Prisma.StoreWhereInput {
       return { companyId: scope.companyId };
     case "STORE":
       return { id: scope.storeId };
+    case "NONE":
+      return { id: { in: [] } };
   }
 }
 
@@ -72,7 +78,7 @@ export async function storeForUser(u: Staff, code: string) {
  */
 export async function shellStoreFor(u: Staff, code: string) {
   const mine = storeWhere(scopeOf(u));
-  const select = { code: true, name: true, slug: true } as const;
+  const select = { code: true, name: true, slug: true, companyId: true } as const;
   return (
     (await db.store.findFirst({ where: { AND: [{ code }, mine] }, select })) ??
     (await db.store.findFirst({ where: { AND: [mine, { kind: "RETAIL" }] }, orderBy: { code: "asc" }, select }))

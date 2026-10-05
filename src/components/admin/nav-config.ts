@@ -4,7 +4,7 @@ export type NavGroup = { title?: string; items: NavItem[] };
 
 // Grouped by the day's work: what's happening today, selling, stock, buying, money, people, insight; the
 // least-used screens wait under "More" at the end.
-export const storeNav = (code: string, slug: string): NavGroup[] => [
+export const storeNav = (code: string, slug: string, companyId: string): NavGroup[] => [
   {
     title: "Today",
     items: [
@@ -48,6 +48,7 @@ export const storeNav = (code: string, slug: string): NavGroup[] => [
       { label: "Banking", href: `/store/${code}/banking`, icon: "PiggyBank", keywords: "deposit slip cash bank" },
       { label: "Expenses", href: `/store/${code}/expenses`, icon: "Receipt", keywords: "costs petty cash" },
       { label: "Commission", href: `/store/${code}/commission`, icon: "HandCoins", keywords: "incentive staff pay" },
+      { label: "Accounts", href: `/books/${companyId}`, icon: "BookOpen", roles: ["OWNER", "HQ_ADMIN", "AREA_MANAGER"], keywords: "books ledger accounting trial balance balance sheet vat201 journals" },
     ],
   },
   {
@@ -128,6 +129,7 @@ export const hqNav: NavGroup[] = [
     items: [
       { label: "Finance", href: "/hq/finance", icon: "Wallet", keywords: "z report vat profit royalty" },
       { label: "Statements", href: "/hq/statements", icon: "Landmark", keywords: "franchise fees royalty levy" },
+      { label: "Accounts", href: "/books", icon: "BookOpen", roles: ["HQ_ADMIN", "AREA_MANAGER"], keywords: "books ledger accounting trial balance balance sheet vat201 journals" },
       { label: "Commission", href: "/hq/commission", icon: "HandCoins", keywords: "incentive staff pay" },
     ],
   },
@@ -148,6 +150,41 @@ export const hqNav: NavGroup[] = [
       { label: "Founding Members", href: "/hq/launch", icon: "Rocket", keywords: "launch founders" },
       { label: "Drops", href: "/hq/drops", icon: "Sparkles", keywords: "limited release" },
       { label: "Events", href: "/hq/events", icon: "CalendarDays", keywords: "rsvp" },
+    ],
+  },
+];
+
+/** A company's books (/books/[companyId]): record, report, set up. */
+export const booksNav = (id: string): NavGroup[] => [
+  {
+    items: [{ label: "Overview", href: `/books/${id}`, icon: "BookOpen", exact: true, keywords: "books home balances" }],
+  },
+  {
+    title: "Record",
+    items: [
+      { label: "Journals", href: `/books/${id}/journals`, icon: "NotebookPen", keywords: "entries manual journal post approve" },
+      { label: "Banking", href: `/books/${id}/bank`, icon: "PiggyBank", keywords: "bank statement import reconcile match" },
+    ],
+  },
+  {
+    title: "Reports",
+    items: [
+      { label: "Trial balance", href: `/books/${id}/reports/trial-balance`, icon: "Scale", keywords: "tb balances" },
+      { label: "Income statement", href: `/books/${id}/reports/income`, icon: "ChartColumn", keywords: "profit loss p&l" },
+      { label: "Balance sheet", href: `/books/${id}/reports/balance-sheet`, icon: "Layers", keywords: "assets liabilities equity" },
+      { label: "Cash flow", href: `/books/${id}/reports/cash-flow`, icon: "Banknote", keywords: "cash movement" },
+      { label: "General ledger", href: `/books/${id}/reports/ledger`, icon: "ListTree", keywords: "account detail transactions" },
+      { label: "Debtors & creditors", href: `/books/${id}/reports/ageing`, icon: "Users", keywords: "ageing aged owed suppliers trade" },
+      { label: "VAT", href: `/books/${id}/vat`, icon: "Percent", keywords: "vat201 sars return" },
+      { label: "Management pack", href: `/books/${id}/pack`, icon: "FileSpreadsheet", keywords: "monthly accounts print pdf" },
+    ],
+  },
+  {
+    title: "Set-up",
+    items: [
+      { label: "Chart of accounts", href: `/books/${id}/accounts`, icon: "ListTree", keywords: "accounts codes" },
+      { label: "Month end", href: `/books/${id}/close`, icon: "CalendarCheck", keywords: "close lock period year end checks" },
+      { label: "Settings", href: `/books/${id}/settings`, icon: "Settings", keywords: "vat category year end accountants opening balances" },
     ],
   },
 ];

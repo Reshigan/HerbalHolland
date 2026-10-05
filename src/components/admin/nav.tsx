@@ -3,8 +3,8 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, Briefcase, Building2, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FileText, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, Menu, MessageSquare, Nfc, Package, PackageCheck, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  ArrowLeftRight, BadgePercent, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, CalendarCheck, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FileSpreadsheet, FileText, FlaskConical, History, Landmark,
+  HandCoins, Handshake, Layers, LayoutDashboard, LifeBuoy, ListTree, Megaphone, Menu, MessageSquare, Nfc, NotebookPen, Package, PackageCheck, Percent, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
   Star, Stethoscope, Store, Tag, Tags,
   Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
@@ -14,8 +14,8 @@ import type { NavGroup } from "./nav-config";
 
 // Explicit map (not `import *`) so the client bundle carries only the icons the nav uses.
 const ICONS: Record<string, LucideIcon> = {
-  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, Briefcase, Building2, CalendarDays, ChartColumn, ClipboardCheck, Crown, FileText, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, LifeBuoy, Megaphone, MessageSquare, Nfc, Package, PackageCheck, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  ArrowLeftRight, BadgePercent, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, CalendarCheck, CalendarDays, ChartColumn, ClipboardCheck, Crown, FileSpreadsheet, FileText, FlaskConical, History, Landmark,
+  HandCoins, Handshake, Layers, LayoutDashboard, LifeBuoy, ListTree, Megaphone, MessageSquare, Nfc, NotebookPen, Package, PackageCheck, Percent, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
   Star, Stethoscope, Store, Tag, Tags,
   Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse,
 };

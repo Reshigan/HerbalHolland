@@ -68,6 +68,11 @@ model Company {
   email       String?
   phone       String?
   address     String?
+  // Books (the company's general ledger): months up to this one are closed; VAT category A/B (two-monthly) or C
+  // (monthly), null when not a VAT vendor; the financial year ends with this month (February is the SA default).
+  booksLockedThrough String? // YYYY-MM
+  vatCategory        String?
+  yearEndMonth       Int     @default(2)
   stores      Store[]
   users       User[]
   createdAt   DateTime    @default(now())
@@ -147,6 +152,7 @@ enum Role {
   OWNER
   MANAGER
   BUDTENDER
+  ACCOUNTANT // a company's bookkeeper: its books (/books) only — no store, POS or HQ pages
 }
 
 model User {
@@ -1706,6 +1712,7 @@ model SupplierInvoice {
   vatCents     Int                   @default(0)
   uploadId     String?               @unique // the Upload holding the photo or PDF (none for a statement invoice)
   stockOrderId String? // the stock order it invoices (onStatement)
+  accountId    String? // the ledger account it's charged to (an expense, or stock received at a DC); null = other expenses
   onStatement  Boolean               @default(false) // a stock order (from a DC or another store): its own tax invoice, settled on the month's franchise statement
   status       SupplierInvoiceStatus @default(DUE)
   paidAt       DateTime?
@@ -2134,4 +2141,173 @@ model TradeLicence {
   @@index([tradeAccountId, kind])
   @@index([status])
   @@index([expiresAt])
+}
+
+// ── Accounting ─────────────────────────────────────────────────────────────────
+// One general ledger per company (HQ and every franchisee), stores as a dimension. Journals are posted automatically
+// from what happens in the platform (src/server/ledger) and by hand; a posted journal is never edited.
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+/// A company's chart of accounts. System accounts carry the `key` the posting rules use, so renaming one is safe.
+model LedgerAccount {
+  id        String        @id @default(cuid())
+  companyId String
+  code      String
+  name      String
+  type      AccountType
+  key       String? // "sales.pos", "vat.output", … (null for accounts the company adds)
+  party     String? // control account whose lines name a party: "SUPPLIER" | "TRADE_ACCOUNT" | "COMPANY"
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  lines     JournalLine[]
+
+  @@unique([companyId, code])
+  @@unique([companyId, key])
+}
+
+enum JournalStatus {
+  DRAFT // a manual journal waiting for approval
+  POSTED
+}
+
+/// A balanced entry in one company's books. Automatic journals name their source; a change to the source posts a
+/// further journal with the difference (never an edit), and a manual journal is corrected by its reversal.
+model Journal {
+  id           String        @id @default(cuid())
+  companyId    String
+  number       Int // per company, in posting order
+  date         DateTime      @db.Date // accounting date (SAST)
+  period       String // YYYY-MM of `date`
+  source       String // "store-day", "stock-receive", "statement", "bank", "manual", "opening", … (src/lib/ledger SOURCES)
+  sourceId     String?
+  storeId      String?
+  memo         String
+  status       JournalStatus @default(POSTED)
+  late         Boolean       @default(false) // its own month was closed, so it went into the first open one
+  reversalOfId String?       @unique
+  createdById  String?
+  approvedById String?
+  createdAt    DateTime      @default(now())
+  lines        JournalLine[]
+
+  @@unique([companyId, number])
+  @@index([companyId, source, sourceId])
+  @@index([companyId, period])
+  @@index([companyId, status])
+}
+
+model JournalLine {
+  id          String        @id @default(cuid())
+  journal     Journal       @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId   String
+  companyId   String
+  account     LedgerAccount @relation(fields: [accountId], references: [id])
+  accountId   String
+  storeId     String?
+  partyId     String? // supplier name, trade account id or franchisee company id (the account's `party` kind)
+  amountCents Int // debit positive, credit negative; a journal's lines sum to zero
+  memo        String?
+  date        DateTime      @db.Date
+  period      String
+
+  @@index([journalId])
+  @@index([companyId, accountId, period])
+  @@index([companyId, accountId, partyId])
+}
+
+/// Running totals per company × account × store × month, kept in the posting transaction: reports at 1,000 stores read
+/// these, not millions of lines.
+model LedgerBalance {
+  companyId   String
+  accountId   String
+  storeId     String @default("") // "" = no store
+  period      String
+  debitCents  BigInt @default(0)
+  creditCents BigInt @default(0)
+
+  @@id([companyId, accountId, storeId, period])
+  @@index([companyId, period])
+}
+
+/// Sources waiting to be posted (or re-posted after a change): queued inside the business transaction, posted every
+/// 15 minutes and nightly. Posting is idempotent, so a source queued twice posts once.
+model LedgerQueue {
+  source   String
+  sourceId String
+  queuedAt DateTime @default(now())
+  attempts Int      @default(0)
+  error    String?
+
+  @@id([source, sourceId])
+  @@index([queuedAt])
+}
+
+/// A payment settling a store's franchise statement: positive = the store paid HQ, negative = HQ paid the store.
+model StatementPayment {
+  id          String   @id @default(cuid())
+  storeId     String
+  companyId   String // the store's company
+  month       String // YYYY-MM statement it settles
+  amountCents Int
+  paidOn      DateTime @db.Date
+  reference   String
+  note        String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([storeId, month])
+  @@index([companyId])
+}
+
+/// A company's bank account, reconciled against its statements; its ledger account carries the balance.
+model BankAccount {
+  id        String   @id @default(cuid())
+  companyId String
+  accountId String   @unique // LedgerAccount
+  bank      String // FNB | ABSA | STANDARD | NEDBANK | CAPITEC | OTHER
+  name      String
+  number    String // last digits only
+  storeId   String? // the store whose takings are banked here, when one
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
+enum BankLineStatus {
+  UNMATCHED
+  MATCHED // to a journal already in the books (a deposit, a payout, a payment…)
+  ALLOCATED // a journal was posted for it (bank charges, a payment nobody captured…)
+  IGNORED
+}
+
+/// One line of an imported bank statement. Re-importing the same statement adds nothing (hash).
+model BankLine {
+  id            String         @id @default(cuid())
+  companyId     String
+  bankAccountId String
+  date          DateTime       @db.Date
+  amountCents   Int // money in positive, out negative
+  description   String
+  reference     String?
+  balanceCents  Int?
+  hash          String
+  uploadId      String?
+  status        BankLineStatus @default(UNMATCHED)
+  journalId     String?
+  matchedById   String?
+  matchedAt     DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@unique([bankAccountId, hash])
+  @@index([companyId, status])
+  @@index([bankAccountId, date])
+  @@index([journalId])
 }
