@@ -52,7 +52,7 @@ export async function todayFacts(store: TodayStore, user: Pick<Staff, "id">, now
       db.announcement.count({ where: pendingAck }),
       db.announcement.count({ where: { ...pendingAck, kind: "RECALL" } }),
       db.announcement.findFirst({ where: pendingAck, orderBy: { createdAt: "desc" }, select: { title: true } }),
-      // Invoices the store pays itself (DC deliveries settle on the franchise statement, so nothing to do there).
+      // Invoices the store pays itself (stock orders settle on the franchise statement, so nothing to do there).
       db.supplierInvoice.aggregate({ where: { storeId: store.id, status: "DUE", onStatement: false, dueDate: { lt: new Date(`${today}T00:00:00Z`) } }, _count: true, _sum: { totalCents: true } }),
       db.supplierInvoice.aggregate({
         where: { storeId: store.id, status: "DUE", onStatement: false, dueDate: { gte: new Date(`${today}T00:00:00Z`), lte: new Date(`${dayKey(addDays(now, ops.supplierInvoiceDays))}T00:00:00Z`) } },

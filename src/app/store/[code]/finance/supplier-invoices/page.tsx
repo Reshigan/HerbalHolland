@@ -48,7 +48,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
       <PageHeader
         overline={`Money · ${store.name}`}
         title="Supplier invoices"
-        description="What you owe your suppliers. Capture invoices from other stores and outside suppliers with a photo or PDF, then mark them paid or query one that doesn't match the delivery. Deliveries from the distribution centre are added when you receive them and settle on your franchise statement."
+        description="What you owe your suppliers. Capture invoices from outside suppliers with a photo or PDF, then mark them paid or query one that doesn't match the delivery. Stock orders from the distribution centre and other stores are added when you receive them and settle on your franchise statement."
         actions={
           canManage && (
             <Drawer label="Add invoice" icon={<Plus className="h-4 w-4" aria-hidden />} title="Capture a supplier invoice" description="Details from the invoice, and a photo or PDF of it">
@@ -82,7 +82,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
               "Try another status or search."
             ) : (
               <>
-                Deliveries from your Herbal Holland distribution centre appear here when you receive them and settle on your monthly franchise statement. Capture invoices from other suppliers here, or from a received stock order under Purchasing.
+                Stock you receive from your Herbal Holland distribution centre or other stores appears here and settles on your monthly franchise statement. Capture invoices from outside suppliers here.
               </>
             )}
           </EmptyState>
@@ -102,7 +102,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
             </thead>
             <tbody>
               {rows.map((r) => {
-                // A DC delivery is never overdue: it settles on the month's statement.
+                // A stock order is never overdue: it settles on the month's statement.
                 const d = r.onStatement ? { key: r.status === "PAID" ? "paid" : "due", label: "" } : dueState(r.status, r.dueDay, today, operations.supplierInvoiceDays);
                 return (
                   <Tr key={r.id} id={r.id}>
@@ -110,12 +110,6 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
                       <div className="font-medium text-ink-900">{r.supplierName}</div>
                       <div className="text-xs text-ink-500">
                         <span className="font-mono">{r.number}</span>
-                        {r.stockOrderNumber && !r.onStatement && (
-                          <>
-                            {" · "}
-                            <Link href={`/store/${store.code}/purchasing/${r.stockOrderId}`} className="font-medium text-brand-700 hover:underline">{r.stockOrderNumber}</Link>
-                          </>
-                        )}
                         {r.note && <span className="block truncate text-ink-500" title={r.note}>{r.note}</span>}
                       </div>
                     </Td>

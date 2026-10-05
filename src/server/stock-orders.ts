@@ -122,7 +122,7 @@ export async function actOnStockOrder(
         }
         await t.stockOrderLine.update({ where: { id: line.id }, data: { receivedQty } });
       }
-      // From a DC: on the store's supplier invoices for what was received, settled on the month's statement.
+      // On the buyer's supplier invoices for what was received, settled on the month's statement.
       await recordStatementInvoice(t, id, actor, now);
     }
     const stamp = { submit: "submittedAt", approve: "approvedAt", ship: "shippedAt", receive: "receivedAt" } as const;

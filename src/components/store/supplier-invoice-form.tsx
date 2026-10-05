@@ -6,7 +6,7 @@ import { Checkbox, Field, Input, Textarea } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
 import { MAX_INVOICE_BYTES } from "@/lib/supplier-invoice-rules";
 
-export type InvoiceDefaults = { supplierName?: string; number?: string; invoiceDate?: string; dueDate?: string; total?: string; vat?: boolean; stockOrderId?: string; note?: string };
+export type InvoiceDefaults = { supplierName?: string; number?: string; invoiceDate?: string; dueDate?: string; total?: string; vat?: boolean; note?: string };
 
 export function InvoiceFileInput({ id, name = "file" }: { id: string; name?: string }) {
   const [msg, setMsg] = useState<string | null>(null);
@@ -40,7 +40,6 @@ export function SupplierInvoiceForm({ action, defaults = {}, vendor, idPrefix = 
   const id = (k: string) => `${idPrefix}-${k}`;
   return (
     <ActionForm action={action} className="space-y-4" resetOnSuccess={resetOnSuccess} aria-label="Capture a supplier invoice">
-      {defaults.stockOrderId && <input type="hidden" name="stockOrderId" value={defaults.stockOrderId} />}
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="Supplier" htmlFor={id("supplier")}>
           <Input id={id("supplier")} name="supplierName" defaultValue={defaults.supplierName ?? ""} maxLength={120} required placeholder="Who invoiced you" />

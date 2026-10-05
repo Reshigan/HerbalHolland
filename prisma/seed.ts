@@ -1159,8 +1159,8 @@ async function main() {
       shippedAt: status === "RECEIVED" || status === "SHIPPED" ? shippedTs : null, receivedAt: status === "RECEIVED" ? ts : null,
       invoiceSentAt: status === "RECEIVED" ? ts : null, notes: kind === "NETWORK" ? "Network trade" : "Replenishment",
     });
-    // A DC delivery goes on the store's supplier invoices when received, settled once its month's statement is drawn up.
-    if (kind === "WHOLESALE" && status === "RECEIVED" && receivedEx > 0) {
+    // A received stock order goes on the buyer's supplier invoices, settled once its month's statement is drawn up.
+    if (status === "RECEIVED" && receivedEx > 0) {
       const terms = statementTerms(day);
       const settled = terms.month < TODAY.slice(0, 7);
       const vatIn = Math.round(receivedEx * 0.15);

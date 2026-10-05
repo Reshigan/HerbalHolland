@@ -57,7 +57,7 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
       <PageHeader
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Network"}
         title="Supplier invoices"
-        description={`What stores owe their suppliers: outside suppliers and each other, as captured in each store's back office, and deliveries from the distribution centres, which settle on the franchise statements${chosen ? ` · ${chosen.name}` : ""}.`}
+        description={`What stores owe their suppliers: outside suppliers, as captured in each store's back office, and stock orders from the distribution centres and each other, which settle on the franchise statements${chosen ? ` · ${chosen.name}` : ""}.`}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Due" value={zarCompact(summary.dueCents)} sub={`${num(summary.due)} invoices${summary.onStatement ? ` · ${zarCompact(summary.onStatementCents)} on statements` : ""}`} />
@@ -139,7 +139,7 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
                   </Td>
                   <Td>
                     <div className="font-medium text-ink-900">{r.supplierName}</div>
-                    <div className="font-mono text-xs text-ink-500">{r.number}{r.stockOrderNumber && !r.onStatement ? ` · ${r.stockOrderNumber}` : ""}</div>
+                    <div className="font-mono text-xs text-ink-500">{r.number}</div>
                   </Td>
                   <Td className="whitespace-nowrap">
                     <span className={cn("block", d.key === "overdue" && "font-semibold text-rose-600", d.key === "soon" && "font-semibold text-amber-700")}>{fmtDate(`${r.dueDay}T12:00:00Z`)}</span>

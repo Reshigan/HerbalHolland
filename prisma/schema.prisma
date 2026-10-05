@@ -1705,8 +1705,8 @@ model SupplierInvoice {
   totalCents   Int // incl. VAT
   vatCents     Int                   @default(0)
   uploadId     String?               @unique // the Upload holding the photo or PDF (none for a statement invoice)
-  stockOrderId String? // the stock order it invoices, when captured at receiving
-  onStatement  Boolean               @default(false) // a DC delivery: the stock order is the tax invoice, settled on the month's franchise statement
+  stockOrderId String? // the stock order it invoices (onStatement)
+  onStatement  Boolean               @default(false) // a stock order (from a DC or another store): its own tax invoice, settled on the month's franchise statement
   status       SupplierInvoiceStatus @default(DUE)
   paidAt       DateTime?
   paidById     String?

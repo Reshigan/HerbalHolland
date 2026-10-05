@@ -565,7 +565,7 @@ try {
   const inMv = await one(`select sum(qty)::int as qty from "StockMovement" where "stockOrderId" = $1 and type = 'TRANSFER_IN'`, [wpo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1 && inMv.qty === 1 && /Receiving: E2E/.test(po.notes), `${wpo.number} received: 1 in stock, 1 short flagged`);
   assert((await audits("stockorder.discrepancy", me.id, t0)) === 1, "discrepancy recorded for the supplier");
-  // The DC's invoice is put on for what was counted in, and settles on the franchise statement.
+  // The order is put on the supplier invoices for what was counted in, and settles on the franchise statement.
   const dcUnit = (await one(`select "unitCostCents" from "StockOrderLine" where "stockOrderId" = $1`, [wpo.id])).unitCostCents;
   const dcInv = await one(`select number, "totalCents", "vatCents", "onStatement", status, "uploadId" from "SupplierInvoice" where "stockOrderId" = $1`, [wpo.id]);
   assert(
@@ -656,6 +656,12 @@ try {
   await act(page, "receiveOrder · network", () => page.getByRole("button", { name: /^Confirm — book 1 unit in/ }).click(), () => receivedNotice("").waitFor());
   po = await one(`select o.status, l."receivedQty" from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [npo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1, `${npo.number} received — batch traceability travels with the unit`);
+  const netInv = await one(`select "supplierName", "totalCents", "onStatement", status from "SupplierInvoice" where "stockOrderId" = $1`, [npo.id]);
+  const netUnit = (await one(`select "unitCostCents" from "StockOrderLine" where "stockOrderId" = $1`, [npo.id])).unitCostCents;
+  assert(
+    netInv?.onStatement && netInv.status === "DUE" && netInv.supplierName === sellerStore.name && netInv.totalCents === netUnit + Math.round(netUnit * 0.15),
+    `${npo.number} on our supplier invoices from ${sellerStore.name}, settled on the statement`,
+  );
 
   step("Network trading: list our own surplus, then close the listing");
   await visit(page, `/store/${CODE}/network?tab=mine`, page.locator("#list-item"));

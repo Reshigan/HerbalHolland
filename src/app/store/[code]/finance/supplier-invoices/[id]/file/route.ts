@@ -17,7 +17,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ code: stri
   const store = await storeForUser(user, code);
   const inv = await db.supplierInvoice.findFirst({ where: { id, storeId: store.id }, select: { id: true, number: true, supplierName: true, uploadId: true, stockOrderId: true } });
   if (!inv) return notFound();
-  // A DC delivery has no uploaded file: its tax invoice is the stock order.
+  // A stock order's invoice has no uploaded file: the stock order is the tax invoice.
   if (!inv.uploadId) return inv.stockOrderId ? new Response(null, { status: 303, headers: { location: `/store/${store.code}/purchasing/${inv.stockOrderId}` } }) : notFound();
   const file = await db.upload.findUnique({ where: { id: inv.uploadId }, select: { key: true, contentType: true } });
   if (!file) return notFound();

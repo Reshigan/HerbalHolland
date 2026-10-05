@@ -16,7 +16,7 @@ export function dueState(status: "DUE" | "PAID" | "QUERIED", dueDay: string, tod
 }
 
 /**
- * A delivery from an HQ distribution centre is its own tax invoice (the stock order) and settles on the franchise
+ * A stock order (from an HQ distribution centre or another store) is its own tax invoice and settles on the franchise
  * statement for the month it was received (SAST): due on that month's last day, settled once the month is over.
  */
 export function statementTerms(receivedDay: string) {

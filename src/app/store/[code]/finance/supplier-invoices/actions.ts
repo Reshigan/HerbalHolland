@@ -14,7 +14,7 @@ const refresh = (code: string) => {
 
 const asField = (e: unknown) => (e instanceof SupplierInvoiceError ? fail(e.message, e.field) : null);
 
-/** From Finance → Supplier invoices, or from a received stock order (stockOrderId set). */
+/** From Finance → Supplier invoices (stock orders are put on when they're received). */
 export async function captureInvoice(code: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
     const { store, user, actor } = await manage(code);
@@ -27,12 +27,11 @@ export async function captureInvoice(code: string, _: ActionState, fd: FormData)
       const inv = await captureSupplierInvoice(
         {
           storeId: store.id, storeCode: store.code, supplierName: str(fd, "supplierName"), number: str(fd, "number"), invoiceDate: str(fd, "invoiceDate"), dueDate: str(fd, "dueDate"),
-          totalCents: total, vatCents: bool(fd, "vat") ? vatOf(total) : 0, note: str(fd, "note") || null, stockOrderId: str(fd, "stockOrderId") || null, file,
+          totalCents: total, vatCents: bool(fd, "vat") ? vatOf(total) : 0, note: str(fd, "note") || null, file,
         },
         { ...actor, id: user.id },
       );
       refresh(store.code);
-      if (inv.stockOrderId) revalidatePath(`/store/${store.code}/purchasing/${inv.stockOrderId}`);
       return done(`Captured invoice ${inv.number} from ${inv.supplierName}: ${zar(inv.totalCents)}, due ${inv.dueDate.toISOString().slice(0, 10)}.`);
     } catch (e) {
       return asField(e) ?? Promise.reject(e);

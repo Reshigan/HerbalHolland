@@ -1,7 +1,7 @@
-// Supplier invoices: what a store owes its suppliers (the DC, another store, or an outside supplier). Captured with a
-// photo or PDF of the invoice when a delivery is received or from Finance → Supplier invoices; paid or queried from
-// there. A delivery from an HQ distribution centre is put on automatically when it's received (recordStatementInvoice):
-// the stock order is its tax invoice and it settles on the month's franchise statement, so it's never paid on its own.
+// Supplier invoices: what a store owes its suppliers. An outside supplier's is captured with a photo or PDF of the
+// invoice from Finance → Supplier invoices, and paid or queried there. A stock order (from an HQ distribution centre or
+// another store) is put on automatically when it's received (recordStatementInvoice): the stock order is its tax
+// invoice and it settles on the month's franchise statement, so it's never paid on its own.
 // HQ Finance sees them per store (scoped). Files go through the storage service and are only ever served through the app.
 import { createHash, randomUUID } from "node:crypto";
 import { db, tx, type Tx } from "./db";
@@ -39,7 +39,6 @@ export type CaptureInput = {
   totalCents: number; // incl. VAT
   vatCents: number;
   note?: string | null;
-  stockOrderId?: string | null;
   file: File;
 };
 
@@ -70,9 +69,6 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
   if (await db.supplierInvoice.count({ where: { storeId: a.storeId, supplierName: { equals: supplierName, mode: "insensitive" }, number: { equals: number, mode: "insensitive" } } }))
     throw new SupplierInvoiceError(`Invoice ${number} from ${supplierName} is already captured`, "number");
-  const order = a.stockOrderId ? await db.stockOrder.findFirst({ where: { id: a.stockOrderId, buyerId: a.storeId }, select: { kind: true } }) : null;
-  if (a.stockOrderId && !order) throw new SupplierInvoiceError("That stock order isn't one of this store's");
-  if (order?.kind === "WHOLESALE") throw new SupplierInvoiceError("Deliveries from the distribution centre are invoiced automatically when you receive them, and settle on the franchise statement");
 
   const file = await storeInvoiceFile({ storeCode: a.storeCode, storeId: a.storeId, file: a.file, day: a.invoiceDate }, actor.id);
   const inv = await tx(async (t) => {
@@ -80,10 +76,10 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
     const row = await t.supplierInvoice.create({
       data: {
         storeId: a.storeId, supplierName, number, invoiceDate: dateCol(a.invoiceDate), dueDate: dateCol(a.dueDate), totalCents: a.totalCents, vatCents: a.vatCents,
-        uploadId: upload.id, stockOrderId: a.stockOrderId ?? null, note: a.note?.trim().slice(0, 300) || null, createdById: actor.id,
+        uploadId: upload.id, note: a.note?.trim().slice(0, 300) || null, createdById: actor.id,
       },
     });
-    await audit(t, actor, "supplier_invoice.create", { storeId: a.storeId, entity: "SupplierInvoice", entityId: row.id, data: { supplierName, number, totalCents: a.totalCents, vatCents: a.vatCents, dueDate: a.dueDate, stockOrderId: a.stockOrderId ?? null } });
+    await audit(t, actor, "supplier_invoice.create", { storeId: a.storeId, entity: "SupplierInvoice", entityId: row.id, data: { supplierName, number, totalCents: a.totalCents, vatCents: a.vatCents, dueDate: a.dueDate } });
     return row;
   });
   return inv;
@@ -142,14 +138,12 @@ export async function supplierInvoiceList(f: InvoiceFilters, page: number, pageS
     db.supplierInvoice.count({ where }),
     db.supplierInvoice.findMany({ where, orderBy: f.status === "PAID" ? [{ paidAt: "desc" }] : [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }], skip: (page - 1) * pageSize, take: pageSize }),
   ]);
-  const [uploads, users, orders] = await Promise.all([
+  const [uploads, users] = await Promise.all([
     db.upload.findMany({ where: { id: { in: rows.map((r) => r.uploadId).filter((x): x is string => !!x) } }, select: { id: true, contentType: true, sizeBytes: true } }),
     db.user.findMany({ where: { id: { in: [...new Set(rows.flatMap((r) => [r.createdById, r.paidById]).filter((x): x is string => !!x))] } }, select: { id: true, name: true } }),
-    db.stockOrder.findMany({ where: { id: { in: rows.map((r) => r.stockOrderId).filter((x): x is string => !!x) } }, select: { id: true, number: true } }),
   ]);
   const up = new Map(uploads.map((u) => [u.id, u]));
   const who = new Map(users.map((u) => [u.id, u.name]));
-  const so = new Map(orders.map((o) => [o.id, o.number]));
   return {
     total,
     rows: rows.map((r) => ({
@@ -159,7 +153,6 @@ export async function supplierInvoiceList(f: InvoiceFilters, page: number, pageS
       file: r.uploadId ? up.get(r.uploadId) ?? null : null,
       createdBy: who.get(r.createdById) ?? null,
       paidBy: r.paidById ? who.get(r.paidById) ?? null : null,
-      stockOrderNumber: r.stockOrderId ? so.get(r.stockOrderId) ?? null : null,
     })),
   };
 }
@@ -171,7 +164,7 @@ export async function supplierInvoiceSummary(storeIds: string[], now = new Date(
   const today = dateCol(dayKey(now));
   const soon = dateCol(dayKey(addDays(now, soonDays)));
   const sum = (where: Prisma.SupplierInvoiceWhereInput) => db.supplierInvoice.aggregate({ where: { storeId: { in: storeIds }, ...where }, _count: true, _sum: { totalCents: true } });
-  // Due includes this month's DC deliveries (on the statement); overdue and due-soon are what the store pays itself.
+  // Due includes this month's stock orders (on the statement); overdue and due-soon are what the store pays itself.
   const [due, overdue, dueSoon, queried, paid30, onStatement] = await Promise.all([
     sum({ status: "DUE" }),
     sum({ status: "DUE", onStatement: false, dueDate: { lt: today } }),
@@ -201,24 +194,23 @@ export async function supplierInvoicesByStore(storeIds: string[], now = new Date
       COUNT(*) FILTER (WHERE status = 'QUERIED')::int AS queried,
       MIN("dueDate") FILTER (WHERE status = 'DUE') AS "oldestDue"
     FROM "SupplierInvoice" WHERE "storeId" = ANY(${storeIds}::text[]) AND status IN ('DUE', 'QUERIED') AND NOT "onStatement"
-    GROUP BY 1`; // HQ's own DC deliveries settle on the statements, so this is what stores owe outside suppliers
+    GROUP BY 1`; // stock orders settle on the statements, so this is what stores owe outside suppliers
 }
 
-/** Invoices captured against one stock order (shown on the order page). */
+/** A stock order's invoice (shown on the order page). */
 export const invoicesForOrder = (storeId: string, stockOrderId: string) =>
   db.supplierInvoice.findMany({ where: { storeId, stockOrderId }, orderBy: { createdAt: "desc" } });
 
-// ── DC deliveries: on the statement ─────────────────────────────────────────────
+// ── Stock orders: on the statement ──────────────────────────────────────────────
 
 /**
- * A delivery received from an HQ distribution centre, put on the store's supplier invoices (inside the receive
- * transaction): the stock order is the tax invoice (emailed to the owner), for what was received, due on the last day
- * of the month and settled on that month's franchise statement. Nothing when nothing was received, or when an invoice
- * for the delivery is already on file.
+ * A stock order received from an HQ distribution centre or another store, put on the buyer's supplier invoices (inside
+ * the receive transaction): the stock order is the tax invoice (emailed to the owner), for what was received, due on the
+ * last day of the month and settled on that month's franchise statement. Nothing when nothing was received, or when an
+ * invoice for the order is already on file. Orders received before this was automatic: the 20261005130000 migration.
  */
 export async function recordStatementInvoice(t: Tx, stockOrderId: string, actor: Actor, now = new Date()) {
   const o = await t.stockOrder.findUniqueOrThrow({ where: { id: stockOrderId }, include: { seller: { select: { name: true } }, lines: { select: { receivedQty: true, unitCostCents: true } } } });
-  if (o.kind !== "WHOLESALE") return null;
   const ex = o.lines.reduce((sum, l) => sum + (l.receivedQty ?? 0) * l.unitCostCents, 0);
   if (ex <= 0 || (await t.supplierInvoice.count({ where: { stockOrderId: o.id } }))) return null;
   const day = dayKey(now);
@@ -234,7 +226,7 @@ export async function recordStatementInvoice(t: Tx, stockOrderId: string, actor:
   return row;
 }
 
-/** Daily: DC delivery invoices from months that are over are settled — their franchise statement has been drawn up. */
+/** Daily: stock-order invoices from months that are over are settled — their franchise statement has been drawn up. */
 export async function settleStatementInvoices(now = new Date()) {
   const monthStart = dateCol(`${dayKey(now).slice(0, 7)}-01`);
   const open = await db.supplierInvoice.findMany({ where: { onStatement: true, status: "DUE", invoiceDate: { lt: monthStart } }, select: { id: true, invoiceDate: true } });

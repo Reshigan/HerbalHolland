@@ -238,7 +238,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       <Card className="mt-6">
         <CardHeader
           title="Supplier invoices"
-          description="As of now · what stores owe outside suppliers and each other, as captured in their back offices, and this month's distribution-centre deliveries, which settle on the franchise statements"
+          description="As of now · what stores owe outside suppliers, as captured in their back offices, and this month's stock orders from the distribution centres and each other, which settle on the franchise statements"
           action={
             <Link href="/hq/finance/supplier-invoices" className="text-xs font-semibold text-brand-700 hover:underline">
               Per store →
