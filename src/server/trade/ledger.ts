@@ -6,6 +6,7 @@ import { audit, type Actor } from "../audit";
 import { nextNumber } from "../counters";
 import { getSettings } from "../settings";
 import { deliverEmail, sendEmail } from "../email";
+import { queuePosting } from "../ledger/core";
 import { ageing, creditDecision, overdueBeyondGrace, statementMonth, tradeCreditNumber, tradeStatement, type CreditDecision } from "@/lib/trade";
 import { OPEN_TRADE_ORDER_STATUSES } from "../inventory";
 import { tradeHoldLiftedEmail, tradePortalUrl, tradeStatementEmail } from "./emails";
@@ -99,6 +100,7 @@ export async function recordTradePayment(accountId: string, a: { cents: number; 
     const entry = await t.tradeLedgerEntry.create({
       data: { tradeAccountId: accountId, kind: "PAYMENT", cents: -cents, reference, note: a.note ?? null, tradeOrderId: a.tradeOrderId ?? null, createdById: actor.id ?? null, ...(a.receivedAt ? { createdAt: a.receivedAt } : {}) },
     });
+    await queuePosting(t, "trade-entry", entry.id); // HQ's books
     await audit(t, actor, "trade.payment", { entity: "TradeAccount", entityId: accountId, data: { number: account.number, cents, reference } });
     const released = await releaseHoldIfClear(t, accountId, actor);
     return { entry, released, account, balanceCents: await tradeBalance(accountId, t) };
@@ -120,6 +122,7 @@ export async function issueCreditNote(accountId: string, a: { cents: number; ref
     const entry = await t.tradeLedgerEntry.create({
       data: { tradeAccountId: accountId, kind: "CREDIT_NOTE", cents: -cents, reference, note, saleId: a.saleId ?? null, tradeOrderId: a.tradeOrderId ?? null, createdById: actor.id ?? null },
     });
+    await queuePosting(t, "trade-entry", entry.id); // HQ's books
     await audit(t, actor, "trade.credit_note", { entity: "TradeAccount", entityId: accountId, data: { number: account.number, cents, reference, note } });
     const released = await releaseHoldIfClear(t, accountId, actor);
     return { entry, released, account };
@@ -138,6 +141,7 @@ export async function adjustTradeLedger(accountId: string, a: { cents: number; n
     await checkLinks(t, accountId, a);
     const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
     const entry = await t.tradeLedgerEntry.create({ data: { tradeAccountId: accountId, kind: "ADJUSTMENT", cents, note, reference: a.reference?.trim().slice(0, 80) || null, tradeOrderId: a.tradeOrderId ?? null, saleId: a.saleId ?? null, createdById: actor.id ?? null } });
+    await queuePosting(t, "trade-entry", entry.id); // HQ's books
     await audit(t, actor, "trade.ledger.adjust", { entity: "TradeAccount", entityId: accountId, data: { number: account.number, cents, note } });
     if (cents < 0) await releaseHoldIfClear(t, accountId, actor);
     return entry;

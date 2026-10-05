@@ -22,6 +22,7 @@ import { addDays } from "@/lib/format";
 import { tradeAllowed, type RegClass } from "@/lib/compliance";
 import { ACCOUNT_STATUS_PROBLEM, addressLineOf, caseMultiple, tradeBuyerBlock, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeTotals, validateTradeBasket, vatHalfUp } from "@/lib/trade";
 import { lockedCreditCheck, postLedgerEntry } from "./ledger";
+import { queuePosting } from "../ledger/core";
 import { licenceProblem } from "./licences";
 import { tradeActor } from "./accounts";
 import { tradeOrderEmail, tradePortalUrl, tradeProFormaEmail, tradeReadySms, type TradeOrderEmailInfo, type TradeOrderEvent } from "./emails";
@@ -284,6 +285,7 @@ export async function confirmTradePayment(orderId: string, a: { reference: strin
     const { count } = await t.tradeOrder.updateMany({ where: { id: orderId, status: "PENDING_PAYMENT" }, data: { status: "PLACED", paymentRef: reference, paidAt, reservedAt: now, events } });
     if (!count) return false;
     await postLedgerEntry(t, { accountId: before.tradeAccountId, kind: "PAYMENT", cents: -before.totalCents, reference, tradeOrderId: orderId, note: `EFT for ${before.number}`, createdAt: paidAt, actor });
+    await queuePosting(t, "trade-eft", orderId); // in the bank, held until it ships: HQ's books
     await audit(t, actor, "trade.order.paid", { storeId: before.storeId, entity: "TradeOrder", entityId: orderId, data: { number: before.number, reference, cents: before.totalCents } });
     return true;
   });
@@ -373,6 +375,7 @@ export async function advanceTradeOrder(orderId: string, action: TradeOrderActio
     if (action === "pick") data.reservedAt = o.reservedAt ?? now;
     if (action === "ready") data.readyAt = now;
     if (action === "cancel") data.cancelledAt = now;
+    if (refundByHand) await queuePosting(t, "trade-eft", `${o.id}:refund`); // the EFT goes back: HQ's books
     if (posting) {
       const invoiceNumber = tradeInvoiceNumber(await nextNumber(t, "trade-invoice"));
       saleId = randomUUID();

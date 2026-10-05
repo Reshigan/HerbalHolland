@@ -10,6 +10,7 @@ import { deliverEmail, type Email } from "./email";
 import { APP_URL, emailLayout, esc, para } from "./email-templates";
 import { notifyCustomer } from "./messaging";
 import { OrderError, REFUND_CLAIM, refundOrderAmount } from "./orders";
+import { queuePosting } from "./ledger/core";
 import { paidOnlineWith } from "./payments";
 import { refundSale, SaleError, voucherPartsOf } from "./sales";
 import { storePhotos, UploadError } from "./uploads";
@@ -294,6 +295,7 @@ export async function refundReturn(id: string, a: { restock: Record<string, bool
   }
   const row = await tx(async (t) => {
     const updated = await moveTx(t, r, "REFUNDED", { refundCents: cents, decidedById: r.decidedById ?? actor.id, decidedAt: r.decidedAt ?? new Date() });
+    if (creditNote && plan.gateway) await queuePosting(t, "online-payment", `${order.id}:return-${r.id}`); // out through the gateway: HQ's books
     await audit(t, actor, "return.refund", {
       storeId: r.storeId, entity: "ReturnRequest", entityId: id,
       data: { number: r.number, orderCode: order.code, amount: cents, delivery: plan.breakdown.deliveryCents, money: money.note, creditNote, ...(split.toVoucher > 0 && { toVouchers: split.parts, toTender: split.toTender }) },

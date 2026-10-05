@@ -1,7 +1,10 @@
 // Herbal Holland Rewards ledger operations. Points are a network liability: the issuing store
 // funds them and the redeeming store is reimbursed on the franchise statement.
 import type { Tx } from "./db";
+import { queuePosting } from "./ledger/core";
 import { heldTier, pointsFor, tierFor, type TierKey } from "@/lib/loyalty-rules";
+import { POINTS_SOURCE_KINDS } from "@/lib/ledger-hq";
+import { dayKey } from "@/lib/format";
 import type { LoyaltyKind } from "@/generated/prisma/client";
 
 export class LoyaltyError extends Error {}
@@ -19,6 +22,7 @@ export async function addPoints(
   if (!a.points) return;
   await t.loyaltyEntry.create({ data: a });
   await t.customer.update({ where: { id: a.customerId }, data: { points: { increment: a.points } } });
+  if (POINTS_SOURCE_KINDS.includes(a.kind)) await queuePosting(t, "points", dayKey(new Date())); // points HQ gives, or that expire: HQ's books
 }
 
 /**

@@ -3,6 +3,7 @@ import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { franchiseStatement } from "@/server/finance";
+import { statementPayments } from "@/server/ledger/statement-payments";
 import { sp1 } from "@/server/store/rules";
 import { dayKey, fmtMonth } from "@/lib/format";
 import { emailToOwner } from "./actions";
@@ -11,10 +12,13 @@ import { AutoSelect } from "@/components/store/auto-submit";
 import { ActionButton, PrintButton } from "@/components/store/action-form";
 import { DocumentPrintStyles } from "@/components/finance/document";
 import { StatementDocument } from "@/components/finance/statement-document";
+import { StatementPayments } from "@/components/finance/statement-payments";
+import { pageParam } from "@/components/ui/pagination";
 
 export const metadata = { title: "Franchise statement" };
+const PAY_PAGE = 10;
 
-export default async function StatementPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ month?: string }> }) {
+export default async function StatementPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ month?: string; page?: string }> }) {
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff();
   const store = await storeForUser(user, code);
@@ -25,7 +29,8 @@ export default async function StatementPage({ params, searchParams }: { params: 
     return new Date(Date.UTC(y, m - 1 - i, 1)).toISOString().slice(0, 7);
   });
   const month = months.includes(sp1(sp.month)) ? sp1(sp.month) : months[1];
-  const [st, hq] = await Promise.all([franchiseStatement(store.id, month), db.company.findFirst({ where: { kind: "FRANCHISOR" } })]);
+  const payPage = pageParam(sp.page);
+  const [st, hq, pays] = await Promise.all([franchiseStatement(store.id, month), db.company.findFirst({ where: { kind: "FRANCHISOR" } }), statementPayments(store.id, month, payPage, PAY_PAGE)]);
 
   return (
     <>
@@ -61,6 +66,19 @@ export default async function StatementPage({ params, searchParams }: { params: 
       {month === current && <Notice tone="info" className="no-print mb-4">This month is still running — figures are to date and final once the month closes.</Notice>}
 
       <StatementDocument st={st} company={store.company} hq={hq} current={month === current} issuedAt={new Date()} />
+      {store.company.kind === "FRANCHISEE" && (
+        <StatementPayments
+          perspective="store"
+          netCents={st.net}
+          paidCents={pays.paidCents}
+          rows={pays.rows}
+          total={pays.total}
+          page={payPage}
+          pageSize={PAY_PAGE}
+          current={month === current}
+          href={(p) => `/store/${store.code}/statement?month=${month}&page=${p}`}
+        />
+      )}
     </>
   );
 }

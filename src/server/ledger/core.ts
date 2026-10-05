@@ -8,7 +8,6 @@ import { reportError } from "../alerts";
 import { nextNumber } from "../counters";
 import { chartFor, diffLines, netLines, periodOf, postingDay, sumCents, type Line } from "@/lib/ledger";
 import { dayKey } from "@/lib/format";
-import { SOURCES } from "./sources";
 
 export class LedgerError extends Error {}
 
@@ -123,6 +122,8 @@ export async function syncPosting(t: Tx, source: string, sourceId: string, compa
 
 /** Posts one source now, inside `t`: every company it touches (or touched before) synced to what its rules say. */
 export async function postSourceTx(t: Tx, source: string, sourceId: string) {
+  // Loaded when first needed: the rules import services that import this file (no cycle at start-up).
+  const { SOURCES } = await import("./sources");
   const handler = SOURCES[source];
   if (!handler) throw new LedgerError(`Unknown ledger source "${source}"`);
   await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger:${source}:${sourceId}`}))`;
@@ -159,7 +160,10 @@ export async function queuePosting(t: Tx | typeof db, source: string, sourceId: 
  */
 export async function queueStoreDay(t: Tx | typeof db, storeId: string, day: string, now = new Date()) {
   const today = dayKey(now);
-  if (day < today) await queuePosting(t, "store-day", `${storeId}:${day}`);
+  if (day < today) {
+    await queuePosting(t, "store-day", `${storeId}:${day}`);
+    await queuePosting(t, "points", day); // HQ's points for the day (stores HQ owns have no statement)
+  }
   if (periodOf(day) < periodOf(today)) await queuePosting(t, "statement", `${storeId}:${periodOf(day)}`);
 }
 

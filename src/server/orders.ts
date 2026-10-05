@@ -15,6 +15,7 @@ import { notifyOrder } from "./messaging";
 import { audit, type Actor } from "./audit";
 import { shortCode, pinCode } from "./counters";
 import { queueSaleInvoice } from "./invoices";
+import { queuePosting } from "./ledger/core";
 import { redeemOffers, releaseOffers } from "./offers";
 import { dropBlocks } from "./drops";
 import { completeVoucherOrder, isVoucherOrder, onOrderCancelledTx, orderDue, redeemVoucherTx, voucherApply, voucherCentsOf, voucherForCheckout, voucherTenderOf } from "./shop/vouchers";
@@ -232,7 +233,11 @@ export async function markOrderPaid(orderId: string, reference: string, note = "
   }
   const events = [...(o.events as Event[]), { status: "PLACED" as const, at: new Date().toISOString(), note }];
   // Compare-and-set: when the same confirmation arrives twice at once, only one moves the order (and texts the member).
-  const { count } = await db.order.updateMany({ where: { id: orderId, status: "PENDING_PAYMENT" }, data: { status: "PLACED", paymentStatus: "PAID", paymentRef: reference, events } });
+  const { count } = await tx(async (t) => {
+    const moved = await t.order.updateMany({ where: { id: orderId, status: "PENDING_PAYMENT" }, data: { status: "PLACED", paymentStatus: "PAID", paymentRef: reference, events } });
+    if (moved.count) await queuePosting(t, "online-payment", orderId); // the money in the gateway: HQ's books
+    return moved;
+  });
   if (count) await notifyPlaced(orderId);
   return { ...(await db.order.findUniqueOrThrow({ where: { id: orderId } })), moved: count > 0 };
 }
@@ -362,9 +367,12 @@ async function applyOnlineEvent(
   if (e.kind === "payment.refund_failed" && order.status === "CANCELLED" && order.paymentStatus === "REFUNDED") {
     const note = `${name} refund failed${f.failureReason ? ` (${f.failureReason})` : ""}: refund the member by hand`;
     // Once: a second refund failure arriving with this one finds the payment already back on the order.
-    await db.order.updateMany({
-      where: { id: order.id, status: "CANCELLED", paymentStatus: "REFUNDED" },
-      data: { paymentStatus: "PAID", events: [...(order.events as Event[]), { status: order.status, at: new Date().toISOString(), note }] },
+    await tx(async (t) => {
+      const back = await t.order.updateMany({
+        where: { id: order.id, status: "CANCELLED", paymentStatus: "REFUNDED" },
+        data: { paymentStatus: "PAID", events: [...(order.events as Event[]), { status: order.status, at: new Date().toISOString(), note }] },
+      });
+      if (back.count) await queuePosting(t, "online-payment", `${order.id}:cancel`); // the refund didn't go out after all
     });
   }
   if (!e.kind) return { action: "ignore", reason: `${e.type} isn't used` };
@@ -520,6 +528,7 @@ export async function advanceOrder(
       }
     }
     if (to === "CANCELLED") {
+      if (o.paymentStatus === "PAID" && o.payMethod === "ONLINE") await queuePosting(t, "online-payment", `${o.id}:cancel`); // refunded through the gateway
       await releaseOffers(t, o.id);
       if (o.pointsRedeemed) await addPoints(t, { customerId: o.customerId, points: o.pointsRedeemed, kind: "REVERSAL", orderId: o.id, note: `Order ${o.code} cancelled` });
       await onOrderCancelledTx(t, o.id, actor); // money back on any voucher used; a voucher being bought is cancelled

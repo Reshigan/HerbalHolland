@@ -11,6 +11,7 @@ import { pinCode, shortCode } from "@/server/counters";
 import { deliverEmail } from "@/server/email";
 import { APP_URL, callout, emailLayout, esc, facts, para, textDoc } from "@/server/email-templates";
 import { notifyCustomer } from "@/server/messaging";
+import { queuePosting } from "@/server/ledger/core";
 import { sms } from "@/lib/sms";
 import { fmtDate } from "@/lib/format";
 import { zar, zarWhole } from "@/lib/money";
@@ -113,7 +114,13 @@ export async function completeVoucherOrder(o: { id: string; code: string; custom
   if (!count) return;
   const v = await db.giftVoucher.findFirst({ where: { purchaseOrderId: o.id } });
   if (!v) return;
-  const issued = v.status === "PENDING" ? await db.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE", issuedAt: now, expiresAt: voucherExpiry(now) } }) : v;
+  const issued =
+    v.status === "PENDING"
+      ? await tx(async (t) => {
+          await queuePosting(t, "voucher", v.id); // sold: HQ's books
+          return t.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE", issuedAt: now, expiresAt: voucherExpiry(now) } });
+        })
+      : v;
   await audit(db, SYSTEM, "voucher.issue", { entity: "GiftVoucher", entityId: v.id, data: { code: maskVoucherCode(v.code), amount: v.amountCents, orderId: o.id, expiresAt: issued.expiresAt } });
   await sendVoucher(issued);
 }
@@ -216,6 +223,7 @@ export async function restoreVoucherTx(t: Tx, a: { code: string; cents: number; 
   if (!v) throw new VoucherError(`Gift voucher ${a.code} is no longer on record — refund that part another way`);
   const updated = await t.giftVoucher.update({ where: { id: v.id }, data: { balanceCents: { increment: a.cents } } });
   if (updated.status === "REDEEMED" && updated.expiresAt > new Date()) await t.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE" } });
+  if (updated.expiresAt <= new Date()) await queuePosting(t, "voucher", `${v.id}:expiry`); // back onto an expired voucher: more breakage
   await t.voucherRedemption.create({ data: { voucherId: v.id, orderId: a.orderId ?? null, saleId: a.saleId, cents: -a.cents } });
   await audit(t, a.actor, "voucher.refund", {
     storeId: a.storeId ?? undefined, entity: "GiftVoucher", entityId: v.id,
@@ -260,6 +268,7 @@ export async function onOrderCancelledTx(t: Tx, orderId: string, actor: Actor) {
     await t.voucherRedemption.update({ where: { id: r.id }, data: { reversed: true } });
     const v = await t.giftVoucher.update({ where: { id: r.voucherId }, data: { balanceCents: { increment: r.cents } } });
     if (v.status === "REDEEMED" && v.expiresAt > new Date()) await t.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE" } });
+    if (v.expiresAt <= new Date()) await queuePosting(t, "voucher", `${v.id}:expiry`); // back onto an expired voucher: more breakage
     await audit(t, actor, "voucher.release", { entity: "GiftVoucher", entityId: v.id, data: { code: maskVoucherCode(v.code), orderId, amount: r.cents } });
   }
   const pending = await t.giftVoucher.updateMany({ where: { purchaseOrderId: orderId, status: "PENDING" }, data: { status: "CANCELLED" } });
@@ -270,7 +279,11 @@ export async function onOrderCancelledTx(t: Tx, orderId: string, actor: Actor) {
 
 /** Daily: vouchers past their three years expire; purchases never paid for (their orders lapsed) are cancelled. */
 export async function expireVouchers(now = new Date()) {
-  const expired = await db.giftVoucher.updateMany({ where: { status: "ACTIVE", expiresAt: { lt: now } }, data: { status: "EXPIRED" } });
+  const due = (await db.giftVoucher.findMany({ where: { status: "ACTIVE", expiresAt: { lt: now } }, select: { id: true } })).map((v) => v.id);
+  const expired = await tx(async (t) => {
+    for (const id of due) await queuePosting(t, "voucher", `${id}:expiry`); // what's left on it is breakage, in HQ's books
+    return t.giftVoucher.updateMany({ where: { id: { in: due }, status: "ACTIVE" }, data: { status: "EXPIRED" } });
+  });
   const lapsed = await db.giftVoucher.updateMany({ where: { status: "PENDING", createdAt: { lt: new Date(now.getTime() - 2 * 86_400_000) } }, data: { status: "CANCELLED" } });
   return { expired: expired.count, lapsed: lapsed.count };
 }
