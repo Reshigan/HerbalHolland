@@ -172,7 +172,9 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   - `ledgerBackfill(from, to)` queues and posts every source with activity in a range (each rule set's `BACKFILL`
     lister): the demo seed posts its history this way; idempotent, so re-posting a period posts nothing new.
   - Measured on 1,000 stores: the heaviest night (a trading day, its online orders and the month's 1,000 franchise
-    statements; 5,231 postings) takes about 2.5 minutes.
+    statements; 5,231 postings) takes about 2.5 minutes. With a month posted (about 93,000 journals), HQ's trial
+    balance, income statement and balance sheet take about 15 ms each, the VAT201 working 80 ms and the month-end
+    checks 1.1 s; a franchisee's are under 30 ms (`scripts/bench.ts`).
 - **Store trading posts per day, not per sale.** The day's sales, VAT and tenders come from `DailyStoreStat`, the same
   rollup the franchise statement reads, so the two agree to the cent. Stock comes from that day's `StockMovement`
   costs, plus `revalueCents` — what a lot's value moved by beyond qty × cost when receiving re-averaged its cost — so

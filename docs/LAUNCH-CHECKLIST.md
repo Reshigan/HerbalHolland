@@ -53,7 +53,9 @@ Tick every line before the first store trades on the platform.
 - [ ] Migrations applied; backups + PITR verified with a restore test
 - [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (server errors), an external uptime check on `/api/health`
 - [ ] First HQ admin created with `scripts/create-admin.ts` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), step 5)
-- [ ] Load test: peak-hour POS posting and month-end reports against a production-sized dataset (`SEED_STORES=1000`,
-      `scripts/bench.ts --write`)
+- [ ] Load test: peak-hour POS posting, month-end reports and the books (HQ's and a franchisee's reports and month-end
+      checks) against a production-sized dataset (`SEED_STORES=1000`, which posts its last week to the books;
+      `scripts/bench.ts --write`). The nightly books job on the heaviest night at 1,000 stores (a trading day plus the
+      month's franchise statements) took about 2.5 minutes in testing.
 - [ ] End-to-end journeys green against staging (`e2e/checkout.mjs`, `e2e/pos.mjs`) on the real devices (Android till,
       phone, tablet)

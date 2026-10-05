@@ -1983,7 +1983,9 @@ async function main() {
       actor: { type: "USER", id: naledi.id as string, name: naledi.name }, lines: [{ accountId: hqBooks.accounts.get("retained")!, cents }, { accountId: hqBooks.accounts.get("points")!, cents: -cents }],
     });
   }
-  const books = await ledgerBackfill(start, TODAY);
+  // A load-test network (synthetic stores) posts its last week only, and imports no bank statements: its whole history
+  // would take hours to post.
+  const books = await ledgerBackfill(extra ? dayKey(addDays(NOW, -7)) : start, TODAY);
 
   // Each franchisee banks with FNB: R350,000 in the bank at the cut-over, and its statement since trading began imported
   // as its accountant (or owner) would. Deposits, PayShap and EFT takings, expenses and statement payments match
@@ -1996,7 +1998,7 @@ async function main() {
   const settled = dayKey(addDays(new Date(`${stmtTo}T12:00:00+02:00`), -2));
   const PAID_FROM_BANK: Record<string, string> = { "store-day": "PayShap and EFT receipts", deposit: "Cash Deposit", expense: "FNB App Payment To", "statement-payment": "Payment To Herbal Holland", "supplier-payment": "FNB App Payment To" };
   let bankLines = 0, allocated = 0;
-  for (const co of companies.filter((c) => c.kind === "FRANCHISEE")) {
+  for (const co of extra ? [] : companies.filter((c) => c.kind === "FRANCHISEE")) {
     const coId = co.id as string;
     const person = users.find((u) => u.companyId === coId && u.role === "ACCOUNTANT") ?? users.find((u) => u.companyId === coId && u.role === "OWNER");
     if (!person) continue;
