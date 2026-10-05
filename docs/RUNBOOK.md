@@ -358,8 +358,8 @@ $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live i
 
 | Endpoint | When | What it does |
 |---|---|---|
-| `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders |
-| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals, `settleStatementInvoices` (stock-order invoices — from the DC or another store — from a month that's over are marked settled on that month's franchise statement), sign-in housekeeping (`purgeAuthRecords`: expired sessions, sign-in codes after a day, rate-limit rows after two days, webhook receipts after 90); **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`) |
+| `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders; the books: queued postings (`processLedgerQueue`) |
+| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals, `settleStatementInvoices` (stock-order invoices — from the DC or another store — from a month that's over are marked settled on that month's franchise statement), sign-in housekeeping (`purgeAuthRecords`: expired sessions, sign-in codes after a day, rate-limit rows after two days, webhook receipts after 90); **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`); **the books** (`ledgerNightly`, last): yesterday's store-days and HQ-given points, and on the 1st last month's franchise statements, queued and posted |
 | `/api/cron/staff-push` | every 5 min | Pushes to managers' and owners' phones (`src/server/staff-push.ts`): **new online orders** (polled, so an order shows up within 5 minutes — nothing hooks the checkout), **loss alerts** raised in the last day (never to the person they're about), **HQ updates that need acknowledging** (per store that hasn't). Each event is keyed in `StaffPushEvent`, so a poll never sends twice; dead subscriptions (404/410 from the push service) are pruned as they fail. |
 | `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
 
@@ -724,6 +724,58 @@ credit note (`<store>-RT-000123`) posts at the fulfilling store as a refund sale
 points reversed, rollups adjusted — and the tax credit note is emailed. A gateway refund that later fails arrives as
 `payment.refund_failed` in the audit log: refund the member by hand and note it. If the money moved but the credit
 note didn't post (a crash half-way), pressing Refund again posts only the credit note.
+
+## Accounting (the books)
+
+Every company keeps its books at `/books/<company>`: owners and their accountants for their company, HQ admins for
+HQ's books (and read-only for any franchisee's), area managers read-only in their region. Store staff have no books.
+
+**Set-up at go-live (per company).**
+- Settings: the VAT category SARS gave the company (A, B or C; none if it isn't a VAT vendor) and the month its
+  financial year ends.
+- Add the accountant (they get a temporary password and choose their own at first sign-in).
+- Import the opening balances: the trial balance from the old system at the day before go-live, as a CSV of account
+  code, debit, credit and, on control accounts, the supplier, trade account or franchisee. Stock must equal the
+  opening stock take.
+- Banking: add the bank account(s). The first one carries the "Bank" account that deposits and payments post to.
+
+**Every day: nothing to do.** Store trading posts nightly (one journal per store per day). Everything else (stock
+orders, supplier invoices and payments, deposits, expenses, online payments, vouchers, points, trade payments,
+statement payments) posts within 15 minutes, from the queue (`/api/cron/frequent`).
+- A change to a past day (a till sale that synced late, a refund) posts only the difference.
+- A posting that fails stays queued with its reason and is emailed to `ALERT_EMAIL`. HQ → Books → Month end lists
+  failures with Retry. Fix the cause (usually the source data), then retry.
+
+**Month end (by the 7th).**
+1. Banking: import the month's bank statements. Most lines match by themselves (deposits, payouts, supplier and
+   statement payments). Match or allocate the rest (bank charges, card payouts net of fees, transfers), then check
+   that the reconciliation shows no difference.
+2. Record statement payments (HQ → Statements → a store → Record payment) as they arrive.
+3. Month end → choose the month → every check green:
+   - trial balance zero;
+   - each store's Herbal Holland account vs its statement;
+   - HQ vs franchisee current accounts;
+   - vouchers, points and trade debtors vs their registers;
+   - stock vs valuation;
+   - nothing failed in the queue;
+   - no unmatched bank lines.
+   A red check names the store or account and the difference.
+4. Approve or delete draft journals (accruals, depreciation, the payroll journal from the payroll provider).
+5. Close the month. Nothing can post into it any more: a late change lands in the first open month, flagged late.
+   Reopening is possible for the owner (or HQ admin for HQ) and is audited.
+
+**VAT period end (category A/B: every second month; C: monthly).** Books → VAT → the period:
+- check the VAT201 working against the invoices;
+- close the VAT period (it moves the period's output and input VAT into "VAT due to / from SARS");
+- file on eFiling;
+- allocate the SARS payment or refund line on the bank statement to "VAT due to / from SARS".
+
+**Year end.** Close the last month of the financial year; retained earnings are carried forward automatically (they
+are computed, not posted). Give the auditor or tax practitioner the trial balance, general ledger and journals
+exports (Books → Reports, CSV) and the management pack.
+
+**Not in the books:** payroll (post the provider's monthly journal as a manual journal), income tax and provisional
+tax, eFiling, a fixed-asset register (post depreciation as a recurring manual journal).
 
 ## Data reconciliation checks
 

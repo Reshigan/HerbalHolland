@@ -109,6 +109,24 @@ only basket rule it uses; `src/lib/trade.ts` holds the pricing, case, credit and
    foodstuffs rather than health supplements (complementary medicines — if so, add `SUPPLEMENT` to `noIncentives`);
    and the CBD food products' labels (net content, ingredients, allergens, the naturally-occurring statement).
 
+## Books and records (accounting)
+
+Each company's books are kept in the platform (`/books`) and meet what the record-keeping laws ask of them:
+
+- **Kept for five years and complete** (Tax Administration Act 28 of 2011 s29–s30; Companies Act 71 of 2008 s24, s28).
+  Journals are never deleted or edited once posted: a mistake is reversed, and an automatic journal is corrected
+  by correcting its source (the sale, invoice or deposit), which posts the difference. Drafts can be deleted until
+  approved.
+- **Traceable.** Every automatic journal names its source document. Every manual journal records who drafted and who
+  approved it. Closing and reopening a month, VAT-period closes, imports and exports are all audit-logged.
+- **VAT** (Value-Added Tax Act 89 of 1991):
+  - Output and input VAT come from the tax invoices themselves, never recomputed.
+  - Non-vendors (below the registration threshold) charge none, and the VAT they pay is part of their cost.
+  - The VAT201 working is produced per the company's SARS category (A, B or C). Filing stays with the vendor or
+    their accountant on eFiling.
+- **Retention after a company leaves the network:** its books stay readable for five years after its last
+  transaction. Removing a company never removes its journals.
+
 ## Gift vouchers (CPA s63) and reorder reminders
 
 **Gift vouchers are money, not an incentive.** A prepaid voucher is consideration the member already paid; it carries

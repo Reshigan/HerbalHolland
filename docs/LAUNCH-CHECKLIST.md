@@ -19,7 +19,7 @@ Tick every line before the first store trades on the platform.
 - [ ] Online payments on Peach Payments (Vantax (Pty) Ltd): Peach's written approval for the product mix (CBD is restricted; licensed THC is always paid in store — the app enforces it), only refundable payment methods on, live key, hash key and webhook set, a live payment and a refund tested ([RUNBOOK → Peach Payments go-live](RUNBOOK.md#peach-payments-go-live-online-payments))
 - [ ] VAT numbers per franchisee captured (non-vendors marked); invoice templates checked against SARS requirements
 - [ ] Royalty / levy / e-commerce commission rates confirmed per store; first statement dry-run reconciled
-- [ ] Accounting export (Sage/Xero daily journal) agreed with each owner's bookkeeper
+- [ ] Books per company (HQ and every franchisee), [RUNBOOK → Accounting](RUNBOOK.md#accounting-the-books): VAT category and year end set, the accountant added, opening balances imported at the day before go-live (stock = opening stock take), bank accounts added; a first month end done with every check green
 
 ## Stock
 - [ ] Catalogue, variants, barcodes (GS1 600-prefix) and RRPs loaded; ranging by format. The loader is ready: HQ → Catalogue → Import (CSV template, dry-run preview, create or update by SKU, every product checked against its class's rules)

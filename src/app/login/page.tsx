@@ -9,6 +9,7 @@ const DEMO = [
   { email: "hq@herbalholland.co.za", label: "HQ administrator", sub: "Network, catalogue, marketing, compliance" },
   { email: "area.gpn@herbalholland.co.za", label: "Area manager", sub: "Tshwane & North region" },
   { email: "thabo@mokoenaretail.co.za", label: "Franchise owner", sub: "Mokoena Retail — Hatfield & Brooklyn" },
+  { email: "books@mokoenaretail.co.za", label: "Accountant", sub: "Mokoena Retail's books" },
   { email: "manager.pta01@herbalholland.co.za", label: "Store manager", sub: "Hatfield · responsible dispenser" },
 ];
 

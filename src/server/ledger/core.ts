@@ -4,6 +4,7 @@
 // writeJournal. The rules for each source live in ./sources.
 import { db, tx, Prisma, type Tx } from "../db";
 import { audit, SYSTEM, type Actor } from "../audit";
+import { reportError } from "../alerts";
 import { nextNumber } from "../counters";
 import { chartFor, diffLines, netLines, periodOf, postingDay, sumCents, type Line } from "@/lib/ledger";
 import { dayKey } from "@/lib/format";
@@ -193,7 +194,7 @@ export async function processLedgerQueue(opts: { limit?: number; deadline?: numb
         progress = true;
         failedNow.push(q);
         const why = String((e as Error)?.message ?? e).slice(0, 500);
-        console.error(`[ledger] ${q.source} ${q.sourceId}`, e);
+        await reportError(e, { method: "QUEUE", path: `ledger ${q.source} ${q.sourceId}`, route: `ledger:${q.source}`, kind: "posting" }); // logged, and emailed to ops (throttled)
         await db.ledgerQueue.updateMany({ where: q, data: { attempts: { increment: 1 }, error: why } }).catch(() => {});
       }
     }

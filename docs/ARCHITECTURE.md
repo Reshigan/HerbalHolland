@@ -32,6 +32,7 @@ Postgres handles comfortably. Services are separated by module, not by network h
 | AREA_MANAGER | Region | Their region's stores, customers, orders |
 | OWNER | Company | Every store their franchise company owns |
 | MANAGER / BUDTENDER | Store | Their store (budtenders read-only in the back office; sell at the POS) |
+| ACCOUNTANT | Company | Their company's books (`/books`) only — no store, POS or HQ pages (scope `NONE`) |
 
 `src/server/scope.ts` turns a user into a scope and every query into a scoped `where`. Pages *and* server actions re-check
 access (`storeForUser`), so a crafted request can't reach another franchisee's data. Other franchisees' retail prices
@@ -144,6 +145,51 @@ trade prices, never the franchise stores and never THC.
   that item first, then FIFO by due date; `recordTradePayment`, `issueCreditNote`, `adjustTradeLedger`, monthly
   statements (`tradeStatementFor`, `emailTradeStatement`, once per account and month). Jobs (`daily`): lapsed EFT
   orders, overdue holds (`ON_HOLD` with reason "overdue", lifted by itself when settled), statements on the statement day.
+
+## Accounting (the general ledger)
+
+Every company keeps its own books in the platform: HQ (the franchisor, with the DCs as its stores) and each franchisee
+company (its stores as a dimension). Code: `src/lib/ledger.ts` (chart template, line arithmetic, months, financial
+years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the rules per source), `access.ts`,
+`reports.ts`, `checks.ts`, `bank.ts`, `admin.ts`; screens under `/books/[companyId]`.
+
+- **Model.**
+  - `LedgerAccount`: a company's chart, created from the template on first use. System accounts carry a `key` the
+    rules post to, so renaming them is safe.
+  - `Journal` + `JournalLine`: amounts are signed (debit +, credit −) and balance to the cent. A line carries
+    `storeId` and, on control accounts, `partyId` (supplier, trade account or franchisee company).
+  - `LedgerBalance`: running totals per company × account × store × month, kept in the posting transaction. Reports
+    at 1,000 stores read these, not millions of lines.
+- **Posting is a sync, never an edit.**
+  - Each automatic source ("store-day" for a store's trading day, "stock-receive", "supplier-invoice", "deposit",
+    "statement", …) has a handler that says what the source should show now, in every company it touches.
+  - `syncPosting` posts only the difference from what's already posted: the first posting, a correction after a
+    late till sale, or the reversal of a deleted deposit.
+  - Posting into a closed month lands in the first open month, flagged late.
+  - Business code only calls `queuePosting(t, source, id)` (or `queueStoreDay`) inside its own transaction. The
+    queue (`LedgerQueue`) is drained every 15 minutes and nightly, and a failure stays queued with its reason.
+- **Store trading posts per day, not per sale.** The day's sales, VAT and tenders come from `DailyStoreStat`, the same
+  rollup the franchise statement reads, so the two agree to the cent. Stock comes from that day's `StockMovement`
+  costs, so the stock account equals the stock valuation.
+- **Between HQ and franchisees.**
+  - Everything HQ collects or funds for a store moves a franchisee's "Herbal Holland current account" (`hq`) and
+    HQ's mirror "Franchisee current accounts" (`franchisees`, per company and store): online payments, gift
+    vouchers, trade on account, points, wholesale stock, network trades, fees, and statement payments.
+  - For each store and month the movement equals the franchise statement's net.
+- **Never posted.**
+  - Retained earnings are computed per financial year (`Company.yearEndMonth`).
+  - Manual journals are drafts until approved (an accountant drafts, the owner approves).
+  - A posted manual journal is corrected by its reversal; an automatic one by correcting its source.
+- **Controls.**
+  - Month close (`Company.booksLockedThrough`).
+  - VAT periods closed into "VAT due to / from SARS".
+  - Reconciliation checks per company and month, shown at month end: trial balance zero, statements vs current
+    accounts, HQ vs franchisee mirrors, gift vouchers and points vs their registers, trade debtors vs the trade
+    ledger, stock vs valuation, the posting queue, unmatched bank lines.
+  - Bank statements (FNB, Absa, Standard Bank, Nedbank, Capitec, OFX or a mapped CSV) are imported, matched to
+    postings, and the rest allocated.
+- **Not in the platform:** payroll (import the provider's monthly journal), income tax, eFiling, a fixed-asset
+  register (depreciation by recurring journal).
 
 ## Scale to 1,000 stores
 

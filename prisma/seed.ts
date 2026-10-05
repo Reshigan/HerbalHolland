@@ -106,13 +106,13 @@ async function main() {
   await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
 
   // ── Network ─────────────────────────────────────────────────────────────
-  const hq = { id: uid(), kind: "FRANCHISOR" as const, ...HQ_COMPANY };
+  const hq = { id: uid(), kind: "FRANCHISOR" as const, ...HQ_COMPANY, vatCategory: "B" };
   const regionId = Object.fromEntries(REGIONS.map((r) => [r.code, uid()]));
   const companies: Prisma.CompanyCreateManyInput[] = [hq];
   const companyId: Record<string, string> = {};
   for (const o of OWNERS) {
     companyId[o.key] = uid();
-    companies.push({ id: companyId[o.key], kind: "FRANCHISEE", name: o.legalName.replace(" (Pty) Ltd", ""), legalName: o.legalName, contactName: o.contact, email: o.email, vatNumber: o.vat, phone: `0${int(10, 87)} ${int(100, 999)} ${int(1000, 9999)}`, regNumber: `20${int(15, 24)}/${int(100000, 999999)}/07` });
+    companies.push({ id: companyId[o.key], kind: "FRANCHISEE", name: o.legalName.replace(" (Pty) Ltd", ""), legalName: o.legalName, contactName: o.contact, email: o.email, vatNumber: o.vat, vatCategory: o.vat ? "B" : null, phone: `0${int(10, 87)} ${int(100, 999)} ${int(1000, 9999)}`, regNumber: `20${int(15, 24)}/${int(100000, 999999)}/07` });
   }
 
   // Optional synthetic stores for scale testing.
@@ -123,7 +123,7 @@ async function main() {
     const owner = `syn${Math.floor(i / 3)}`;
     if (!companyId[owner]) {
       companyId[owner] = uid();
-      companies.push({ id: companyId[owner], kind: "FRANCHISEE", name: `Franchisee ${Math.floor(i / 3) + 1}`, legalName: `Franchisee ${Math.floor(i / 3) + 1} (Pty) Ltd`, vatNumber: `49${String(i).padStart(8, "0")}`, email: `owner${Math.floor(i / 3) + 1}@example.co.za` });
+      companies.push({ id: companyId[owner], kind: "FRANCHISEE", name: `Franchisee ${Math.floor(i / 3) + 1}`, legalName: `Franchisee ${Math.floor(i / 3) + 1} (Pty) Ltd`, vatNumber: `49${String(i).padStart(8, "0")}`, vatCategory: "B", email: `owner${Math.floor(i / 3) + 1}@example.co.za` });
     }
     return { code: `S${String(i + 1).padStart(4, "0")}`, slug: `store-${i + 1}`, name: `${city} ${i + 1}`, owner, region, dc: region === "WC" ? "DC-WC" : region === "KZN" ? "DC-KZN" : "DC-GP", format: weighted([["STANDARD", 6], ["EXPRESS", 3], ["FLAGSHIP", 1]] as const), addressLine: `${int(1, 400)} Main Road`, suburb: "Central", city, province, postalCode: String(int(1000, 9999)), lat: -26 + rand(-4, 4), lng: 26 + rand(-6, 6) };
   });
@@ -177,6 +177,11 @@ async function main() {
   const areaNames = ["Karabo Molefe", "Chantelle Hendricks", "Wian Steyn", "Zinhle Cele", "Deon Olivier"];
   REGIONS.forEach((r, i) => users.push({ id: uid(), name: areaNames[i], email: `area.${r.code.toLowerCase()}@herbalholland.co.za`, role: "AREA_MANAGER", passwordHash: PASSWORD, regionId: regionId[r.code] }));
   for (const o of OWNERS) users.push({ id: uid(), name: o.contact, email: o.email, role: "OWNER", passwordHash: PASSWORD, companyId: companyId[o.key] });
+  // Bookkeepers: their company's books only (/books), no store or HQ pages.
+  users.push(
+    { id: uid(), name: "Lerato Dube", email: "accounts@herbalholland.co.za", role: "ACCOUNTANT", passwordHash: PASSWORD, companyId: hq.id },
+    { id: uid(), name: "Priya Naidoo", email: "books@mokoenaretail.co.za", role: "ACCOUNTANT", passwordHash: PASSWORD, companyId: companyId.mokoena },
+  );
   const person = () => `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
   for (const s of retail) {
     const code = s.code.toLowerCase();
@@ -1961,7 +1966,7 @@ async function main() {
   const tradeSales = sales.filter((s) => s.channel === "WHOLESALE");
   console.log(`  trade                  ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · ${ledgerRows.length} ledger entries`);
   console.log(`\nDone. ${active.length} trading stores · ${customers.length.toLocaleString()} members · ${sales.length.toLocaleString()} sales · R${(gross / 100 / 1e6).toFixed(2)}m turnover · trade: ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · R${(tradeSales.reduce((a, s) => a + (s.totalCents as number), 0) / 100 / 1e3).toFixed(1)}k.`);
-  console.log("Demo logins (password: holland) — HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444 · Trade buyer: trade@greenleafpharmacy.co.za at /trade/login (the code is shown in demo mode)");
+  console.log("Demo logins (password: holland) — HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Accountant: books@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444 · Trade buyer: trade@greenleafpharmacy.co.za at /trade/login (the code is shown in demo mode)");
 }
 
 main()
