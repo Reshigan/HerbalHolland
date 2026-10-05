@@ -7,6 +7,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { db, tx, type Tx } from "./db";
 import { audit, SYSTEM, type Actor } from "./audit";
 import { putObject } from "./storage";
+import { booksFor, queuePosting } from "./ledger/core";
 import { extFor, sniffType, type UploadType } from "@/lib/files";
 import { MAX_INVOICE_BYTES, statementTerms } from "@/lib/supplier-invoice-rules";
 import { vatOnExcl } from "@/lib/money";
@@ -38,9 +39,40 @@ export type CaptureInput = {
   dueDate: string; // YYYY-MM-DD
   totalCents: number; // incl. VAT
   vatCents: number;
+  accountId?: string | null; // what it's charged to (invoiceAccounts); other expenses when none is chosen
   note?: string | null;
   file: File;
 };
+
+/**
+ * What an outside supplier's invoice can be charged to: the company's active expense accounts and, at a store HQ owns
+ * (a DC), stock received at the warehouse that's waiting for its invoice. Opens the company's books if need be.
+ */
+export async function invoiceAccounts(t: Tx, companyId: string) {
+  const book = await booksFor(t, companyId);
+  const rows = await t.ledgerAccount.findMany({
+    where: { companyId, active: true, OR: [{ type: "EXPENSE" }, ...(book.kind === "FRANCHISOR" ? [{ key: "grni" }] : [])] },
+    orderBy: { code: "asc" },
+    select: { id: true, code: true, name: true, key: true },
+  });
+  return rows.map((a) => (a.key === "grni" ? { ...a, name: "Stock received at the warehouse, not yet invoiced" } : a));
+}
+
+/** The account an invoice is charged to: one of the store's company's invoiceAccounts, other expenses by default. */
+async function chargedTo(storeId: string, accountId?: string | null) {
+  return tx(async (t) => {
+    const { companyId } = await t.store.findUniqueOrThrow({ where: { id: storeId }, select: { companyId: true } });
+    const account = (await invoiceAccounts(t, companyId)).find((x) => (accountId ? x.id === accountId : x.key === "exp.OTHER"));
+    if (!account) throw new SupplierInvoiceError("Choose what the invoice is charged to", "accountId");
+    return account.id;
+  });
+}
+
+/** Both of an outside supplier's invoice's ledger sources, queued with the change. */
+async function queueLedger(t: Tx | typeof db, id: string) {
+  await queuePosting(t, "supplier-invoice", id);
+  await queuePosting(t, "supplier-payment", id);
+}
 
 /** Checks the file's bytes (never its name or the browser's type) and stores it; returns what the Upload row needs. */
 async function storeInvoiceFile(a: { storeCode: string; storeId: string; file: File; day: string }, actorId: string) {
@@ -69,6 +101,7 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
   if (await db.supplierInvoice.count({ where: { storeId: a.storeId, supplierName: { equals: supplierName, mode: "insensitive" }, number: { equals: number, mode: "insensitive" } } }))
     throw new SupplierInvoiceError(`Invoice ${number} from ${supplierName} is already captured`, "number");
+  const accountId = await chargedTo(a.storeId, a.accountId);
 
   const file = await storeInvoiceFile({ storeCode: a.storeCode, storeId: a.storeId, file: a.file, day: a.invoiceDate }, actor.id);
   const inv = await tx(async (t) => {
@@ -76,10 +109,11 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
     const row = await t.supplierInvoice.create({
       data: {
         storeId: a.storeId, supplierName, number, invoiceDate: dateCol(a.invoiceDate), dueDate: dateCol(a.dueDate), totalCents: a.totalCents, vatCents: a.vatCents,
-        uploadId: upload.id, note: a.note?.trim().slice(0, 300) || null, createdById: actor.id,
+        uploadId: upload.id, accountId, note: a.note?.trim().slice(0, 300) || null, createdById: actor.id,
       },
     });
-    await audit(t, actor, "supplier_invoice.create", { storeId: a.storeId, entity: "SupplierInvoice", entityId: row.id, data: { supplierName, number, totalCents: a.totalCents, vatCents: a.vatCents, dueDate: a.dueDate } });
+    await queueLedger(t, row.id);
+    await audit(t, actor, "supplier_invoice.create", { storeId: a.storeId, entity: "SupplierInvoice", entityId: row.id, data: { supplierName, number, totalCents: a.totalCents, vatCents: a.vatCents, dueDate: a.dueDate, accountId } });
     return row;
   });
   return inv;
@@ -94,6 +128,7 @@ export async function paySupplierInvoice(id: string, storeId: string, a: { paidO
   if (paidAt > addDays(new Date(), 1)) throw new SupplierInvoiceError("The payment date can't be in the future", "paidOn");
   const note = a.note?.trim().slice(0, 300) || null;
   await db.supplierInvoice.update({ where: { id }, data: { status: "PAID", paidAt, paidById: actor.id, note: note ?? inv.note } });
+  await queueLedger(db, id);
   await audit(db, actor, "supplier_invoice.pay", { storeId, entity: "SupplierInvoice", entityId: id, data: { number: inv.number, supplierName: inv.supplierName, totalCents: inv.totalCents, paidAt, note } });
   return inv;
 }
@@ -106,6 +141,7 @@ export async function querySupplierInvoice(id: string, storeId: string, note: st
   const text = note.trim().slice(0, 300);
   if (text.length < 3) throw new SupplierInvoiceError("Say what's wrong with the invoice", "note");
   await db.supplierInvoice.update({ where: { id }, data: { status: "QUERIED", note: text } });
+  await queueLedger(db, id); // still owed: the books don't change
   await audit(db, actor, "supplier_invoice.query", { storeId, entity: "SupplierInvoice", entityId: id, data: { number: inv.number, supplierName: inv.supplierName, note: text } });
   return inv;
 }
@@ -116,6 +152,7 @@ export async function reopenSupplierInvoice(id: string, storeId: string, actor: 
   if (!inv) throw new SupplierInvoiceError("Invoice not found");
   if (inv.status !== "QUERIED") throw new SupplierInvoiceError(`${inv.number} isn't queried`);
   await db.supplierInvoice.update({ where: { id }, data: { status: "DUE" } });
+  await queueLedger(db, id);
   await audit(db, actor, "supplier_invoice.reopen", { storeId, entity: "SupplierInvoice", entityId: id, data: { number: inv.number } });
   return inv;
 }
@@ -131,19 +168,21 @@ export function invoiceWhere(f: InvoiceFilters): Prisma.SupplierInvoiceWhereInpu
   };
 }
 
-/** A page of invoices, soonest due first (paid ones newest first), with their file and the people involved. */
+/** A page of invoices, soonest due first (paid ones newest first), with their file, the people involved and the account charged. */
 export async function supplierInvoiceList(f: InvoiceFilters, page: number, pageSize: number) {
   const where = invoiceWhere(f);
   const [total, rows] = await Promise.all([
     db.supplierInvoice.count({ where }),
     db.supplierInvoice.findMany({ where, orderBy: f.status === "PAID" ? [{ paidAt: "desc" }] : [{ status: "asc" }, { dueDate: "asc" }, { createdAt: "desc" }], skip: (page - 1) * pageSize, take: pageSize }),
   ]);
-  const [uploads, users] = await Promise.all([
+  const [uploads, users, accounts] = await Promise.all([
     db.upload.findMany({ where: { id: { in: rows.map((r) => r.uploadId).filter((x): x is string => !!x) } }, select: { id: true, contentType: true, sizeBytes: true } }),
     db.user.findMany({ where: { id: { in: [...new Set(rows.flatMap((r) => [r.createdById, r.paidById]).filter((x): x is string => !!x))] } }, select: { id: true, name: true } }),
+    db.ledgerAccount.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.accountId).filter((x): x is string => !!x))] } }, select: { id: true, name: true } }),
   ]);
   const up = new Map(uploads.map((u) => [u.id, u]));
   const who = new Map(users.map((u) => [u.id, u.name]));
+  const account = new Map(accounts.map((a) => [a.id, a.name]));
   return {
     total,
     rows: rows.map((r) => ({
@@ -153,6 +192,7 @@ export async function supplierInvoiceList(f: InvoiceFilters, page: number, pageS
       file: r.uploadId ? up.get(r.uploadId) ?? null : null,
       createdBy: who.get(r.createdById) ?? null,
       paidBy: r.paidById ? who.get(r.paidById) ?? null : null,
+      account: r.accountId ? account.get(r.accountId) ?? null : null,
     })),
   };
 }

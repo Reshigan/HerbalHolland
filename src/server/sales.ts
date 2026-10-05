@@ -19,6 +19,7 @@ import { lockedCreditCheck, postLedgerEntry } from "./trade/ledger";
 import { licenceProblem } from "./trade/licences";
 import { lockCustomer } from "./locks";
 import { promotionProblem } from "./pricing";
+import { queuePosting, queueStoreDay } from "./ledger/core";
 import { addDays, dayKey, fmtDate } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
 import { ACCOUNT_STATUS_PROBLEM, tradeBuyerBlock } from "@/lib/trade";
@@ -172,6 +173,8 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   }
   await bumpStoreStat(t, delta);
   await bumpVariantStats(t, a.storeId, date, vstats);
+  await queueStoreDay(t, a.storeId, date); // a till sale that synced after its day: that day's books again
+  if (a.offline && a.shiftId) await queuePosting(t, "shift", a.shiftId); // and its cash-up, if it's closed already
   return { ...sale, costCents: cost, pointsEarned };
 }
 
@@ -621,6 +624,7 @@ export async function refundSale(a: {
     }
     await bumpStoreStat(t, delta);
     await bumpVariantStats(t, orig.storeId, date, vstats);
+    await queueStoreDay(t, orig.storeId, date);
     await audit(t, { type: "USER", id: a.staffId, name: a.staffName }, "sale.refund", {
       storeId: orig.storeId, entity: "Sale", entityId: refund.id,
       data: {

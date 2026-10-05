@@ -6,6 +6,7 @@ import { takeStock, putStock, availability, availKey } from "./inventory";
 import { nextNumber } from "./counters";
 import { audit, type Actor } from "./audit";
 import { recordStatementInvoice } from "./supplier-invoices";
+import { queuePosting } from "./ledger/core";
 import { vatOnExcl } from "@/lib/money";
 import type { StockOrderKind, StockOrderStatus } from "@/generated/prisma/client";
 
@@ -130,6 +131,7 @@ export async function actOnStockOrder(
       where: { id },
       data: { status: STATUS_AFTER[action], ...(action in stamp && { [stamp[action as keyof typeof stamp]]: now }) },
     });
+    if (action === "ship" || action === "receive") await queuePosting(t, `stock-${action}`, id);
     await audit(t, actor, `stockorder.${action}`, { storeId: action === "receive" || action === "submit" ? o.buyerId : o.sellerId, entity: "StockOrder", entityId: id, data: { number: o.number } });
     return updated;
   });

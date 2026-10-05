@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { FileText, ImageIcon, Plus, ReceiptText } from "lucide-react";
 import { requireStaff } from "@/server/auth";
+import { tx } from "@/server/db";
 import { canManageStore, storeForUser } from "@/server/scope";
-import { supplierInvoiceList, supplierInvoiceSummary, STATUS_LABEL } from "@/server/supplier-invoices";
+import { invoiceAccounts, supplierInvoiceList, supplierInvoiceSummary, STATUS_LABEL } from "@/server/supplier-invoices";
 import { getSettings } from "@/server/settings";
 import { hrefWith, plural, sp1 } from "@/server/store/rules";
 import { dueState, DEFAULT_TERMS_DAYS } from "@/lib/supplier-invoice-rules";
@@ -39,7 +40,12 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
   const status = STATUSES.find((s) => s === sp1(sp.status)) ?? null;
   const q = sp1(sp.q).trim();
   const page = pageParam(sp.page);
-  const [{ operations }, summary, { total, rows }] = await Promise.all([getSettings(), supplierInvoiceSummary([store.id], now), supplierInvoiceList({ storeIds: [store.id], status, q }, page, PAGE_SIZE)]);
+  const [{ operations }, summary, { total, rows }, accounts] = await Promise.all([
+    getSettings(),
+    supplierInvoiceSummary([store.id], now),
+    supplierInvoiceList({ storeIds: [store.id], status, q }, page, PAGE_SIZE),
+    canManage ? tx((t) => invoiceAccounts(t, store.companyId)) : [], // opens the company's books the first time
+  ]);
   const vendor = !!store.company.vatNumber;
 
   return (
@@ -52,7 +58,13 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
         actions={
           canManage && (
             <Drawer label="Add invoice" icon={<Plus className="h-4 w-4" aria-hidden />} title="Capture a supplier invoice" description="Details from the invoice, and a photo or PDF of it">
-              <SupplierInvoiceForm action={captureInvoice.bind(null, store.code)} vendor={vendor} defaults={{ invoiceDate: today, dueDate: dayKey(addDays(now, DEFAULT_TERMS_DAYS)) }} resetOnSuccess />
+              <SupplierInvoiceForm
+                action={captureInvoice.bind(null, store.code)}
+                vendor={vendor}
+                accounts={accounts.map((a) => ({ id: a.id, name: a.name }))}
+                defaults={{ invoiceDate: today, dueDate: dayKey(addDays(now, DEFAULT_TERMS_DAYS)) }}
+                resetOnSuccess
+              />
             </Drawer>
           )
         }
@@ -92,6 +104,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
               <tr>
                 <Th>Supplier · invoice</Th>
                 <Th className="hidden md:table-cell">Dated</Th>
+                <Th className="hidden lg:table-cell">Charged to</Th>
                 <Th>Due</Th>
                 <Th align="right">Total incl. VAT</Th>
                 <Th align="right" className="hidden sm:table-cell">VAT</Th>
@@ -114,6 +127,8 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
                       </div>
                     </Td>
                     <Td className="hidden whitespace-nowrap text-ink-600 md:table-cell">{fmtDate(`${r.invoiceDay}T12:00:00Z`)}</Td>
+                    {/* A stock order's invoice goes to stock with the order; one captured without a choice, to other expenses. */}
+                    <Td className="hidden text-ink-600 lg:table-cell">{r.onStatement ? "Stock on hand" : (r.account ?? "Other expenses")}</Td>
                     <Td className="whitespace-nowrap">
                       <span className={cn("block", d.key === "overdue" && "font-semibold text-rose-600", d.key === "soon" && "font-semibold text-amber-700")}>{fmtDate(`${r.dueDay}T12:00:00Z`)}</span>
                       {r.status === "DUE" && d.key !== "due" && <span className="text-xs text-ink-500">{d.label}</span>}

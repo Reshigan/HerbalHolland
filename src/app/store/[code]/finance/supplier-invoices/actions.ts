@@ -23,11 +23,13 @@ export async function captureInvoice(code: string, _: ActionState, fd: FormData)
     const file = fd.get("file");
     if (!(file instanceof File) || !file.size) return fail("Add a photo or PDF of the invoice", "file");
     if (file.size > MAX_INVOICE_BYTES) return fail("The file is over 8 MB — take the photo again or use a smaller PDF", "file");
+    const accountId = str(fd, "accountId");
+    if (!accountId) return fail("Choose what the invoice is charged to", "accountId");
     try {
       const inv = await captureSupplierInvoice(
         {
           storeId: store.id, storeCode: store.code, supplierName: str(fd, "supplierName"), number: str(fd, "number"), invoiceDate: str(fd, "invoiceDate"), dueDate: str(fd, "dueDate"),
-          totalCents: total, vatCents: bool(fd, "vat") ? vatOf(total) : 0, note: str(fd, "note") || null, file,
+          totalCents: total, vatCents: bool(fd, "vat") ? vatOf(total) : 0, accountId, note: str(fd, "note") || null, file,
         },
         { ...actor, id: user.id },
       );

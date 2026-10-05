@@ -10,6 +10,7 @@ import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
 import { getSettings } from "@/server/settings";
 import { checkShifts, raiseAlerts } from "@/server/loss";
+import { queuePosting } from "@/server/ledger/core";
 
 const actor = (pos: PosStaff): Actor => ({ type: "USER", id: pos.user.id, name: pos.user.name });
 
@@ -39,6 +40,7 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
     data: { closedAt: new Date(), closedById: pos.user.id, expectedCashCents: cash.expectedCents, countedCashCents: counted, notes: notes?.trim() || null },
   });
   if (!done.count) throw new PosError("This shift is already closed", 409);
+  await queuePosting(db, "shift", shift.id);
   await audit(db, actor(pos), "shift.close", {
     storeId: shift.storeId,
     entity: "Shift",

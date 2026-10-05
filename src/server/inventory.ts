@@ -1,6 +1,8 @@
 // Inventory control: batch-level stock, FEFO picking, FIFO cost, immutable ledger.
 import { db, type Tx } from "./db";
 import { allocate, allocationCost, type Allocation } from "@/lib/fefo";
+import { dayKey } from "@/lib/format";
+import { queueStoreDay } from "./ledger/core";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
 
 export class StockError extends Error {}
@@ -152,6 +154,7 @@ export async function adjustStock(
       reason: a.reason, unitCostCents: cost, userId: a.userId, note: a.note, stockTakeId: a.stockTakeId,
     },
   });
+  await queueStoreDay(t, a.storeId, dayKey(new Date())); // write-offs and stock-take counts post with the store's day
   return cost;
 }
 

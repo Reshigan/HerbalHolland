@@ -2,11 +2,13 @@
 // Capture a supplier invoice: the invoice's details plus a photo or PDF (checked against the 8 MB limit before it's
 // sent). Used from Purchasing → a received order (prefilled from the order) and from Finance → Supplier invoices.
 import { useState } from "react";
-import { Checkbox, Field, Input, Textarea } from "@/components/ui/form";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
 import { MAX_INVOICE_BYTES } from "@/lib/supplier-invoice-rules";
 
-export type InvoiceDefaults = { supplierName?: string; number?: string; invoiceDate?: string; dueDate?: string; total?: string; vat?: boolean; note?: string };
+export type InvoiceDefaults = { supplierName?: string; number?: string; invoiceDate?: string; dueDate?: string; total?: string; vat?: boolean; accountId?: string; note?: string };
+/** What an invoice can be charged to in the company's books (invoiceAccounts). */
+export type InvoiceAccount = { id: string; name: string };
 
 export function InvoiceFileInput({ id, name = "file" }: { id: string; name?: string }) {
   const [msg, setMsg] = useState<string | null>(null);
@@ -36,7 +38,9 @@ export function InvoiceFileInput({ id, name = "file" }: { id: string; name?: str
   );
 }
 
-export function SupplierInvoiceForm({ action, defaults = {}, vendor, idPrefix = "si", submitLabel = "Capture invoice", resetOnSuccess }: { action: FormAction; defaults?: InvoiceDefaults; vendor: boolean; idPrefix?: string; submitLabel?: string; resetOnSuccess?: boolean }) {
+export function SupplierInvoiceForm({
+  action, defaults = {}, vendor, accounts, idPrefix = "si", submitLabel = "Capture invoice", resetOnSuccess,
+}: { action: FormAction; defaults?: InvoiceDefaults; vendor: boolean; accounts: InvoiceAccount[]; idPrefix?: string; submitLabel?: string; resetOnSuccess?: boolean }) {
   const id = (k: string) => `${idPrefix}-${k}`;
   return (
     <ActionForm action={action} className="space-y-4" resetOnSuccess={resetOnSuccess} aria-label="Capture a supplier invoice">
@@ -68,6 +72,19 @@ export function SupplierInvoiceForm({ action, defaults = {}, vendor, idPrefix = 
           <Checkbox name="vat" defaultChecked={defaults.vat ?? vendor} label="Tax invoice — 15% VAT included" description={vendor ? "Counts towards your input tax" : "You're not VAT-registered: recorded for your books only"} />
         </div>
       </div>
+      <Field label="Charged to" htmlFor={id("account")} hint="Where the invoice shows in your books">
+        <Select id={id("account")} name="accountId" defaultValue={defaults.accountId ?? ""} required>
+          <option value="" disabled>
+            Choose an account
+          </option>
+          {accounts.map((a) => (
+            <option key={a.id} value={a.id}>
+              {a.name}
+            </option>
+          ))}
+        </Select>
+        <FieldError name="accountId" />
+      </Field>
       <Field label="Photo or PDF of the invoice" htmlFor={id("file")} hint="JPEG, PNG or PDF up to 8 MB">
         <InvoiceFileInput id={id("file")} />
         <FieldError name="file" />

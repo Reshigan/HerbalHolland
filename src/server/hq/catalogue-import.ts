@@ -6,6 +6,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { db, type Tx } from "@/server/db";
 import { audit, type Actor } from "@/server/audit";
 import { putStock } from "@/server/inventory";
+import { queueStoreDay } from "@/server/ledger/core";
 import { getSettings } from "@/server/settings";
 import { getObject, putObject } from "@/server/storage";
 import { importProductImages, type ImageImportResult } from "@/server/shop/images";
@@ -175,5 +176,6 @@ async function applyPlan(t: Tx, plan: ImportPlan, snap: ImportSnapshot, userId: 
       storeId: snap.location.id, variantId: ids.get(s.sku)!, batchId: s.batchId ?? batchId.get(s.batchCode)!, qty: s.qty, unitCostCents: s.unitCostCents,
       type: "RECEIVE", reason: "CORRECTION", userId, note,
     });
+  await queueStoreDay(t, snap.location.id, dayKey(new Date())); // the receipts post with the location's day
   return productId;
 }
