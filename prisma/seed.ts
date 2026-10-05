@@ -14,7 +14,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSecret } from "../src/server/crypto";
 import { DEMO_PASSWORD } from "../src/lib/password";
 import { allocate } from "../src/lib/fefo";
-import { pointsFor, tierFor, DEFAULT_TIER_SAVINGS, type TierKey } from "../src/lib/loyalty-rules";
+import { pointsFor, tierFor, DEFAULT_TIER_SAVINGS, POINT_VALUE_CENTS, type TierKey } from "../src/lib/loyalty-rules";
 import { vatOf } from "../src/lib/money";
 import { addDays, dayKey } from "../src/lib/format";
 import { statementTerms } from "../src/lib/supplier-invoice-rules";
@@ -322,10 +322,12 @@ async function main() {
     let lot = arr.find((l) => l.batchId === batchId);
     if (!lot) arr.push((lot = { batchId, onHand: 0, unitCost }));
     const base = Math.max(lot.onHand, 0);
+    const before = lot.onHand * lot.unitCost;
     lot.unitCost = base + qty > 0 ? Math.round((base * lot.unitCost + qty * unitCost) / (base + qty)) : unitCost;
     lot.onHand += qty;
     lots.set(lk(storeId, variantId), arr);
-    movements.push({ id: uid(), storeId, variantId, batchId, qty, type, unitCostCents: unitCost, createdAt: ts, ...extra });
+    const revalueCents = lot.onHand * lot.unitCost - before - qty * unitCost; // as putStock records it
+    movements.push({ id: uid(), storeId, variantId, batchId, qty, type, unitCostCents: unitCost, revalueCents, createdAt: ts, ...extra });
   }
   const sellableLots = (storeId: string, variantId: string, ts: Date) =>
     (lots.get(lk(storeId, variantId)) ?? []).filter((l) => l.onHand > 0 && sellable(bById.get(l.batchId)!, ts) && bById.get(l.batchId)!.packedAt <= ts);
@@ -1946,6 +1948,43 @@ async function main() {
   // Fresh planner statistics, as autovacuum gives a live database (without them small tables like Product have none,
   // and the planner picks network-wide scans for store-level queries).
   await db.$executeRawUnsafe("ANALYZE");
+
+  // Franchise statements settled by EFT a week into the next month, all but the latest (not yet due); one store paid part.
+  const { franchiseStatement } = await import("../src/server/finance");
+  const franchiseStores = active.filter((x) => companies.find((c) => c.id === companyId[x.companyKey])?.kind === "FRANCHISEE");
+  const paidMonths = [...new Set(dayKeys.map((d) => d.slice(0, 7)))].slice(0, -2);
+  const statementPayments: Prisma.StatementPaymentCreateManyInput[] = [];
+  for (const month of paidMonths) {
+    for (const st of franchiseStores) {
+      const { net } = await franchiseStatement(st.id as string, month);
+      const amountCents = -(st.code === "DBN01" ? Math.round(net * 0.6) : net);
+      if (!amountCents) continue;
+      const [y, m] = month.split("-").map(Number);
+      const paidOn = new Date(Date.UTC(y, m, int(5, 9)));
+      statementPayments.push({ storeId: st.id as string, companyId: companyId[st.companyKey], month, amountCents, paidOn, reference: `HH ${st.code} ${month.replace("-", "")}`, createdById: naledi.id as string, createdAt: new Date(paidOn.getTime() + 10 * 3600_000) });
+    }
+  }
+  await insert("statement payments", db.statementPayment, statementPayments);
+
+  // The books start on the day of the first stock received (the cut-over), with what HQ owed members in points from
+  // before then (sign-up points since they joined) as its opening balance; then every company's postings to today, as
+  // the nightly job would have made them.
+  const { booksFor, createManualJournal, ledgerBackfill } = await import("../src/server/ledger/core");
+  const { tx } = await import("../src/server/db");
+  const [{ first }] = await db.$queryRaw<{ first: Date }[]>`SELECT MIN("createdAt") AS first FROM "StockMovement"`;
+  const start = dayKey(first);
+  const [{ points }] = await db.$queryRaw<{ points: bigint }[]>`SELECT COALESCE(SUM(points), 0)::bigint AS points FROM "LoyaltyEntry" WHERE "createdAt" < ${new Date(`${start}T00:00:00+02:00`)}`;
+  if (points) {
+    const hqBooks = await tx((t) => booksFor(t, hq.id as string));
+    const cents = Number(points) * POINT_VALUE_CENTS;
+    await createManualJournal({
+      companyId: hq.id as string, date: dayKey(addDays(new Date(`${start}T12:00:00+02:00`), -1)), memo: "Opening balances: Rewards points members held at the cut-over", source: "opening", post: true,
+      actor: { type: "USER", id: naledi.id as string, name: naledi.name }, lines: [{ accountId: hqBooks.accounts.get("retained")!, cents }, { accountId: hqBooks.accounts.get("points")!, cents: -cents }],
+    });
+  }
+  const books = await ledgerBackfill(start, TODAY);
+  await db.$executeRawUnsafe(`ANALYZE "Journal", "JournalLine", "LedgerBalance", "LedgerAccount"`);
+  console.log(`  books                  ${books.journals.toLocaleString()} journals from ${books.queued.toLocaleString()} postings${books.failed ? ` · ${books.failed} FAILED (see LedgerQueue)` : ""}`);
 
   // Commission: Mokoena Retail pays it at Hatfield and Brooklyn; last month is approved at Hatfield.
   const { approveMonth, thisMonth } = await import("../src/server/commission");

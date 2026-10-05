@@ -295,14 +295,24 @@ export async function setBooksLock(companyId: string, through: string | null, ac
 /** Nightly: every rule set's sources for the day just ended (and month ends), queued, then posted. */
 export async function ledgerNightly(now = new Date()) {
   const { NIGHTLY } = await import("./sources");
+  return queueAndPost(NIGHTLY.map((nightly) => nightly(now)), 20);
+}
+
+/** Every source with activity between two SAST days, queued, then posted: history (the demo seed) or a period re-posted. */
+export async function ledgerBackfill(from: string, to: string) {
+  const { BACKFILL } = await import("./sources");
+  return queueAndPost(BACKFILL.map((list) => list(from, to)), 60);
+}
+
+async function queueAndPost(lists: Promise<{ source: string; sourceId: string }[]>[], minutes: number) {
   let queued = 0;
-  for (const nightly of NIGHTLY) {
-    for (const s of await nightly(now)) {
+  for (const list of lists) {
+    for (const s of await list) {
       await queuePosting(db, s.source, s.sourceId);
       queued++;
     }
   }
-  return { queued, ...(await processLedgerQueue({ limit: 50_000, deadline: Date.now() + 20 * 60_000 })) };
+  return { queued, ...(await processLedgerQueue({ limit: 1_000_000, deadline: Date.now() + minutes * 60_000 })) };
 }
 
 export { SYSTEM };

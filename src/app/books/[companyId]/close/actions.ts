@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { booksAction, closeMonth, done, reopenMonth, retryPosting, type ActionState } from "@/server/ledger/admin";
+import { booksAction, closeMonth, reopenMonth, retryPosting, type ActionState } from "@/server/ledger/admin";
 import { fmtMonth } from "@/lib/format";
 
 const name = (m: string) => fmtMonth(`${m}-15T12:00:00Z`);
@@ -30,6 +30,6 @@ export async function retryPostingAction(companyId: string, source: string, sour
   return booksAction(companyId, "approve", async ({ user }) => {
     await retryPosting(user, companyId, source, sourceId);
     revalidatePath(`/books/${companyId}/close`);
-    return done("Queued again — it posts within 15 minutes.");
+    redirect(`/books/${companyId}/close?m=${encodeURIComponent("Queued again — it posts within 15 minutes.")}`);
   });
 }

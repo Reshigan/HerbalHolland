@@ -19,7 +19,7 @@ function back(companyId: string, bankAccountId: string, view: string, message: s
   if (show && Object.hasOwn(LINE_FILTERS, show)) to.set("show", show);
   if (/^\d{1,4}$/.test(from.get("page") ?? "")) to.set("page", from.get("page")!);
   to.set("m", message);
-  if (!/^[a-z0-9]+$/i.test(companyId) || !/^[a-z0-9]+$/i.test(bankAccountId)) redirect("/books");
+  if (!/^[a-z0-9-]+$/i.test(companyId) || !/^[a-z0-9-]+$/i.test(bankAccountId)) redirect("/books"); // cuids and UUIDs
   redirect(`/books/${companyId}/bank/${bankAccountId}?${to}`);
 }
 

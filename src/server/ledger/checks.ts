@@ -215,8 +215,8 @@ async function mirrorChecks({ companyId, period, accounts, ledger }: Ctx): Promi
 }
 
 // What checkout takes for an online order (gift voucher money, points) leaves the register at once, but the books move
-// when the store hands the order over (its trading day posts it): orders still open at the cutoff are a timing item.
-// Online orders don't stay open for months, so the look-back is bounded.
+// with the order's sale (posted at collection, or when a delivery goes out; its trading day posts it): orders with no
+// sale yet at the cutoff are a timing item. Online orders don't stay open for months, so the look-back is bounded.
 const OPEN_ORDER_DAYS = 120;
 
 /**
@@ -229,8 +229,8 @@ async function voucherCheck({ companyId, when, accounts, ledger }: Ctx): Promise
     FROM "GiftVoucher" v
     LEFT JOIN (
       SELECT r."voucherId", SUM(r.cents) AS used,
-        SUM(r.cents) FILTER (WHERE r."saleId" IS NULL AND r."orderId" IS NOT NULL AND NOT (o.status = 'COMPLETED' AND COALESCE(o."completedAt", o."updatedAt") < ${when.cutoff})) AS held
-      FROM "VoucherRedemption" r LEFT JOIN "Order" o ON o.id = r."orderId"
+        SUM(r.cents) FILTER (WHERE r."saleId" IS NULL AND r."orderId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "Sale" s WHERE s."orderId" = r."orderId" AND s."createdAt" < ${when.cutoff})) AS held
+      FROM "VoucherRedemption" r
       WHERE NOT r.reversed AND r."createdAt" < ${when.cutoff}
       GROUP BY 1
     ) x ON x."voucherId" = v.id
@@ -262,13 +262,12 @@ async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<
         UNION ALL
         SELECT points FROM "LoyaltyEntry" WHERE "storeId" = ANY(${storeIds}::text[]) AND "createdAt" >= ${when.cutoff}
       ) x`,
-    // Online orders open at the cutoff: placed before it, not handed over or cancelled by then.
+    // Points checkout took for online orders with no sale yet at the cutoff, and not given back by cancelling before it.
     db.$queryRaw<{ points: bigint }[]>`
-      SELECT COALESCE(SUM("pointsRedeemed"), 0)::bigint AS points FROM "Order"
-      WHERE "createdAt" >= ${from} AND "createdAt" < ${when.cutoff} AND "pointsRedeemed" > 0
-        AND (status IN ('PENDING_PAYMENT', 'PLACED', 'PICKING', 'READY', 'OUT_FOR_DELIVERY')
-          OR (status = 'COMPLETED' AND COALESCE("completedAt", "updatedAt") >= ${when.cutoff})
-          OR (status = 'CANCELLED' AND "updatedAt" >= ${when.cutoff}))`,
+      SELECT COALESCE(SUM(o."pointsRedeemed"), 0)::bigint AS points FROM "Order" o
+      WHERE o."createdAt" >= ${from} AND o."createdAt" < ${when.cutoff} AND o."pointsRedeemed" > 0
+        AND NOT EXISTS (SELECT 1 FROM "Sale" s WHERE s."orderId" = o.id AND s."createdAt" < ${when.cutoff})
+        AND NOT (o.status = 'CANCELLED' AND o."updatedAt" < ${when.cutoff})`,
     // A month not over yet (the cutoff falls inside it): what franchisee stores issued in it isn't on a statement yet.
     when.asAt === monthEnd(asAtMonth)
       ? [{ points: BigInt(0) }]
@@ -317,15 +316,17 @@ async function debtorChecks({ companyId, when, accounts, ledger }: Ctx): Promise
 }
 
 /**
- * Stock per store = Σ on hand × unit cost, taken back to the cutoff by the movements since (at their unit cost, as the
- * store-day posts them). A single-store company's stock on no store counts as that store's.
+ * Stock per store = Σ on hand × unit cost, taken back to the cutoff by the movements since (each at its unit cost plus
+ * any revaluation of its lot, as the store-day posts them), so it agrees to the cent. A single-store company's stock on
+ * no store counts as that store's.
  */
 async function stockChecks({ companyId, when, stores, accounts, ledger }: Ctx): Promise<BooksCheck[]> {
   if (!stores.length) return [];
   const ids = stores.map((s) => s.id);
   const [levels, later, kept] = await Promise.all([
     db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM("onHand"::bigint * "unitCostCents")::bigint AS cents FROM "StockLevel" WHERE "storeId" = ANY(${ids}::text[]) GROUP BY 1`,
-    db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM(qty::bigint * "unitCostCents")::bigint AS cents FROM "StockMovement" WHERE "storeId" = ANY(${ids}::text[]) AND "createdAt" >= ${when.cutoff} GROUP BY 1`,
+    // Each later movement at its cost, plus what it revalued the lot by (a re-averaged cost): the store-day posts both.
+    db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM(qty::bigint * "unitCostCents" + "revalueCents")::bigint AS cents FROM "StockMovement" WHERE "storeId" = ANY(${ids}::text[]) AND "createdAt" >= ${when.cutoff} GROUP BY 1`,
     storeBalances(companyId, [accounts.get("stock")!], when.asAt),
   ]);
   if (stores.length === 1) {

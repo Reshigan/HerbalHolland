@@ -131,7 +131,7 @@ export async function resolveLines(companyId: string, lines: LineDraft[], where:
     if (!acc) return say(l.account ? `there's no account ${l.account} in these books` : "choose an account");
     if (!acc.active) return say(`${acc.code} ${acc.name} is switched off — switch it on in the chart of accounts first`);
     if (!Number.isInteger(l.cents) || l.cents === 0) return say("enter a debit or a credit");
-    if (Math.abs(l.cents) > MAX_LINE_CENTS) return say(`more than ${zar(MAX_LINE_CENTS)} — split it over two lines`);
+    if (Math.abs(l.cents) > MAX_LINE_CENTS) return say(`more than ${zar(MAX_LINE_CENTS)} — check the amount`);
     const ref = l.store?.trim();
     const store = ref ? stores.find((s) => s.id === ref || s.code === ref.toUpperCase()) : null;
     if (ref && !store) return say(`store ${ref} isn't one of this company's`);

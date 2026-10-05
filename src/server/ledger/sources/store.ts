@@ -49,7 +49,9 @@ const storeDay: SourceHandler = async (sourceId, t) => {
   const stock = await t.$queryRaw<{ type: string; cents: bigint }[]>`
     SELECT type::text AS type, SUM(qty::bigint * "unitCostCents")::bigint AS cents FROM "StockMovement"
     WHERE "storeId" = ${storeId} AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end} AND type::text = ANY(${DAY_STOCK_TYPES}::text[])
-    GROUP BY 1`;
+    GROUP BY 1
+    UNION ALL
+    SELECT 'REVALUE', SUM("revalueCents")::bigint FROM "StockMovement" WHERE "storeId" = ${storeId} AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end}`;
   const out = storeDayLines({
     store, hqCompanyId: await hqCompanyId(t), label: `${store.code} ${day}`, days,
     tenders: tenders.map((x) => ({ method: x.method, tradeAccountId: x.tradeAccountId, collectedByHq: x.byHq, cents: Number(x.cents) })),

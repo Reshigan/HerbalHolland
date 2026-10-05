@@ -40,7 +40,8 @@ describe("opening balances CSV", () => {
     expect(() => readCents("1.234")).toThrow(/two ways/);
     expect(() => readCents("0.001")).toThrow(/two decimals/);
     expect(() => readCents("(50)")).toThrow(/other column/);
-    expect(() => readCents("21474836.48")).toThrow(/split it/);
+    expect(readCents("50,000,000.00")).toBe(5_000_000_000); // a big opening balance: the core splits the line
+    expect(() => readCents("100000000000.01")).toThrow(/check the amount/);
   });
 
   it("shortens long problem lists", () => {
@@ -54,6 +55,7 @@ describe("accounts and figures", () => {
     expect(accountCodeProblem("6550")).toBeNull();
     expect(accountCodeProblem("655")).toMatch(/four-digit/);
     expect(sourceLabel("store-day")).toBe("Trading day");
+    expect(sourceLabel("vat-period")).toBe("VAT period closed");
     expect(sourceLabel("some-new-source")).toBe("Some new source");
     expect(natural("ASSET", 500)).toBe(500);
     expect(natural("INCOME", -500)).toBe(500);

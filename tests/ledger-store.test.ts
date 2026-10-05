@@ -60,9 +60,10 @@ describe("store day", () => {
         { type: "COUNT", cents: 500 },
         { type: "RECEIVE", cents: 20_000 },
         { type: "TRANSFER_IN", cents: 9_999 }, // a stock order's: posted with the order
+        { type: "REVALUE", cents: 3 }, // a lot's cost re-averaged on receiving
       ],
     });
-    expect(books(out)).toEqual({ c1: { "cogs#s1": 46_000, "stock.loss#s1": 1_500, "stock.count#s1": -500, "grni#s1": -20_000, "stock#s1": -27_000 } });
+    expect(books(out)).toEqual({ c1: { "cogs#s1": 45_997, "stock.loss#s1": 1_500, "stock.count#s1": -500, "grni#s1": -20_000, "stock#s1": -26_997 } });
     balanced(out);
   });
 

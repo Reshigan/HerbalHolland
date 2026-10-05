@@ -119,9 +119,11 @@ export async function putStock(
   const [lot] = await t.$queryRaw<{ id: string; onHand: number; unitCostCents: number }[]>`
     SELECT id, "onHand", "unitCostCents" FROM "StockLevel"
     WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId} FOR UPDATE`;
+  let revalueCents = 0; // re-averaging the lot's cost moves its value by more than this movement (rounding, a negative lot)
   if (lot) {
     const base = Math.max(lot.onHand, 0);
     const cost = base + a.qty > 0 ? Math.round((base * lot.unitCostCents + a.qty * a.unitCostCents) / (base + a.qty)) : a.unitCostCents;
+    revalueCents = (lot.onHand + a.qty) * cost - lot.onHand * lot.unitCostCents - a.qty * a.unitCostCents;
     await t.stockLevel.update({ where: { id: lot.id }, data: { onHand: { increment: a.qty }, unitCostCents: cost } });
   } else {
     await t.stockLevel.create({ data: { storeId: a.storeId, variantId: a.variantId, batchId: a.batchId, onHand: a.qty, unitCostCents: a.unitCostCents } });
@@ -129,7 +131,7 @@ export async function putStock(
   await t.stockMovement.create({
     data: {
       storeId: a.storeId, variantId: a.variantId, batchId: a.batchId, qty: a.qty, type: a.type, reason: a.reason,
-      unitCostCents: a.unitCostCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId,
+      unitCostCents: a.unitCostCents, revalueCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId,
       stockTakeId: a.stockTakeId, userId: a.userId, note: a.note,
     },
   });

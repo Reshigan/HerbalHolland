@@ -35,12 +35,12 @@ export type DayChannel = {
 };
 /** Tenders on the day's sales and refunds, by method. `collectedByHq`: a trade order's EFT, paid to HQ. */
 export type DayTender = { method: string; cents: number; tradeAccountId?: string | null; collectedByHq?: boolean };
-/** The day's stock movements of one type at their cost: Σ qty × unitCostCents (qty is signed, positive in). */
+/** The day's stock movements of one type at their cost: Σ qty × unitCostCents (qty is signed, positive in); type REVALUE: Σ revalueCents of every movement (lots whose cost re-averaged). */
 export type DayStock = { type: string; cents: number };
 
 const SALES: Record<DayChannel["channel"], string> = { POS: "sales.pos", ONLINE: "sales.online", WHOLESALE: "sales.trade" };
 /** What each kind of stock movement is charged against (transfers belong to the stock orders). */
-const STOCK_CONTRA: Record<string, string> = { SALE: "cogs", ONLINE: "cogs", REFUND: "cogs", ADJUST: "stock.loss", COUNT: "stock.count", RECEIVE: "grni" };
+const STOCK_CONTRA: Record<string, string> = { SALE: "cogs", ONLINE: "cogs", REFUND: "cogs", ADJUST: "stock.loss", COUNT: "stock.count", RECEIVE: "grni", REVALUE: "cogs" };
 export const DAY_STOCK_TYPES = Object.keys(STOCK_CONTRA);
 
 /** HQ's account for a tender it collected or funds; null for the store's own money. */

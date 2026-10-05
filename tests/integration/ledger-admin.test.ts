@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db, tx } from "@/server/db";
 import { syncPosting } from "@/server/ledger/core";
+import { putStock } from "@/server/inventory";
 import {
   addAccountant, approveDraft, closeMonth, createAccount, deleteDraftJournal, importOpeningBalances, renameAccount, reopenMonth, resetAccountantPassword, retryPosting,
   reverseManual, saveBooksSettings, saveJournal, setAccountActive, setAccountantActive, sourceLink,
@@ -114,6 +115,9 @@ describe("Opening balances", () => {
     expect(parties.map((p) => p.partyId)).toEqual([ta.id, w.owner.id, "acme supplies"]);
     await expect(importOpeningBalances(hqAdmin, w.hq.id, { text: csv, date: today })).rejects.toThrow("already in");
     await expect(importOpeningBalances(hqAdmin, w.hq.id, { text: "1200,1,,TA-999999\n3000,,1,\n", date: today, addToExisting: true })).rejects.toThrow("Row 1: there's no trade account TA-999999.");
+    // A balance far over what one line holds: the core splits it into several lines on the account.
+    const big = await importOpeningBalances(hqAdmin, w.hq.id, { text: "1000,\"50,000,000.00\",,\n3100,,\"50,000,000.00\",\n", date: today, addToExisting: true });
+    expect(await db.journalLine.aggregate({ where: { journalId: big.journal.id, amountCents: { gt: 0 } }, _sum: { amountCents: true }, _count: true })).toMatchObject({ _sum: { amountCents: 5_000_000_000 }, _count: 3 });
 
     const fr = w.owner.id;
     await expect(importOpeningBalances(hqAdmin, fr, { text: csv, date: today })).rejects.toThrow("can read these books, but not change them");
@@ -129,7 +133,7 @@ describe("Opening balances", () => {
     expect(stock.posted).toBe(true);
     const more = await importOpeningBalances(accountant, fr, { text: "1050,100,,,\n3000,,100,,\n", date: today, addToExisting: true });
     expect(more).toMatchObject({ posted: false, journal: { status: "DRAFT", source: "opening" } });
-    expect(await db.auditLog.count({ where: { action: "ledger.opening_import" } })).toBe(3);
+    expect(await db.auditLog.count({ where: { action: "ledger.opening_import" } })).toBe(4);
   });
 });
 
@@ -162,6 +166,11 @@ describe("Reconciliation checks", () => {
     await saveJournal(owner, fr, { date: today, memo: "Statement paid", post: true, lines: pay("1150", "1000", 100_000, { store: w.store.id }) });
     expect(pick(await booksChecks(fr, P, later), `statement:${w.store.id}`).ok).toBe(true);
     expect(await sourceLink({ companyId: fr, source: "bank", sourceId: line.id }, accountant)).toEqual({ label: expect.stringContaining("Bank charges"), href: `/books/${fr}/bank/${bankAccount.id}?line=${line.id}` });
+
+    // Stock received into a lot at another cost re-averages it; taken back to a day before, the valuation is exact.
+    await tx((t) => putStock(t, { storeId: w.store.id, variantId: w.flowerV.id, batchId: w.flowerOld.id, qty: 3, unitCostCents: 30_001, type: "RECEIVE" }));
+    expect((await db.stockMovement.findFirstOrThrow({ where: { storeId: w.store.id, unitCostCents: 30_001 } })).revalueCents).toBe(3);
+    expect(pick(await booksChecks(fr, "2026-03", new Date("2026-03-20T12:00:00+02:00")), `stock:${w.store.id}`)).toMatchObject({ ok: true, expected: 0, actual: 0 });
   });
 
   it("set HQ's books against the franchisees' books and the registers", async () => {
@@ -265,5 +274,6 @@ describe("Rights", () => {
     expect(await sourceLink(statement, owner)).toMatchObject({ href: `/store/TST01/statement?month=${P}` });
     expect(await sourceLink({ ...day, source: "manual", sourceId: null }, owner)).toBeNull();
     expect(await sourceLink({ ...day, source: "points", sourceId: today }, owner)).toBeNull();
+    expect(await sourceLink({ ...day, source: "vat-period", sourceId: `${fr}:${P}` }, accountant)).toMatchObject({ href: `/books/${fr}/vat?period=${P}` });
   });
 });

@@ -16,6 +16,7 @@ import { InlineEdit } from "@/components/ui/inline-edit";
 import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
 import { Drawer } from "@/components/store/drawer";
 import { ReadOnlyNote } from "@/components/store/ui";
+import { Flash } from "@/components/hq/flash";
 import { cn } from "@/lib/cn";
 import { addAccountAction, renameAccountAction, retypeAccountAction, setAccountActiveAction } from "./actions";
 
@@ -25,8 +26,8 @@ const PARTY: Record<string, string> = { SUPPLIER: "Per supplier", TRADE_ACCOUNT:
 const sum = (rows: { accountId: string; _sum: { debitCents: bigint | null; creditCents: bigint | null } }[]) => new Map(rows.map((r) => [r.accountId, Number(r._sum.debitCents ?? 0) - Number(r._sum.creditCents ?? 0)]));
 
 /** The company's chart, by type: this financial year's movement and each balance; added accounts can be renamed, re-typed and switched off. */
-export default async function AccountsPage({ params }: { params: Promise<{ companyId: string }> }) {
-  const { companyId } = await params;
+export default async function AccountsPage({ params, searchParams }: { params: Promise<{ companyId: string }>; searchParams: Promise<{ m?: string }> }) {
+  const [{ companyId }, sp] = await Promise.all([params, searchParams]);
   const { company, role } = await requireBooks(companyId);
   await tx((t) => booksFor(t, companyId));
   const current = periodOf(dayKey(new Date()));
@@ -84,6 +85,7 @@ export default async function AccountsPage({ params }: { params: Promise<{ compa
           )
         }
       />
+      <Flash message={sp.m} />
       {!role.write && <ReadOnlyNote className="mb-6">Read-only — the owner and the company&apos;s accountant change the chart.</ReadOnlyNote>}
       <div className="space-y-6">
         {ACCOUNT_TYPES.map((t) => {

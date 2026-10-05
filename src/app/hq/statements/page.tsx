@@ -114,29 +114,31 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
               href={(p) => `/hq/statements${qs({ month, store: sp.store, page: p })}`}
               form={
                 admin && (
-                  <ActionForm action={recordPayment.bind(null, store.id, month)} resetOnSuccess className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                    <Field label="Who paid" htmlFor="pay-direction">
-                      <Select id="pay-direction" name="direction" defaultValue={outstanding > 0 ? "HQ_PAID" : "STORE_PAID"}>
-                        <option value="STORE_PAID">Store paid HQ</option>
-                        <option value="HQ_PAID">HQ paid store</option>
-                      </Select>
-                    </Field>
-                    <Field label="Amount (R)" htmlFor="pay-amount">
-                      <Input id="pay-amount" name="amount" inputMode="decimal" placeholder="1734.00" defaultValue={outstanding ? (Math.abs(outstanding) / 100).toFixed(2) : undefined} required />
-                      <FieldError name="amount" />
-                    </Field>
-                    <Field label="Paid on" htmlFor="pay-date">
-                      <Input id="pay-date" name="paidOn" type="date" defaultValue={today} max={today} required />
-                      <FieldError name="paidOn" />
-                    </Field>
-                    <Field label="Bank reference" htmlFor="pay-reference">
-                      <Input id="pay-reference" name="reference" maxLength={80} required />
-                      <FieldError name="reference" />
-                    </Field>
-                    <Field label="Note (optional)" htmlFor="pay-note">
-                      <Input id="pay-note" name="note" maxLength={300} />
-                    </Field>
-                    <div className="flex justify-end sm:col-span-2 lg:col-span-5">
+                  <ActionForm action={recordPayment.bind(null, store.id, month)} resetOnSuccess className="space-y-3">
+                    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      <Field label="Who paid" htmlFor="pay-direction">
+                        <Select id="pay-direction" name="direction" defaultValue={outstanding > 0 ? "HQ_PAID" : "STORE_PAID"}>
+                          <option value="STORE_PAID">Store paid HQ</option>
+                          <option value="HQ_PAID">HQ paid store</option>
+                        </Select>
+                      </Field>
+                      <Field label="Amount (R)" htmlFor="pay-amount">
+                        <Input id="pay-amount" name="amount" inputMode="decimal" placeholder="1734.00" defaultValue={outstanding ? (Math.abs(outstanding) / 100).toFixed(2) : undefined} required />
+                        <FieldError name="amount" />
+                      </Field>
+                      <Field label="Paid on" htmlFor="pay-date">
+                        <Input id="pay-date" name="paidOn" type="date" defaultValue={today} max={today} required />
+                        <FieldError name="paidOn" />
+                      </Field>
+                      <Field label="Bank reference" htmlFor="pay-reference">
+                        <Input id="pay-reference" name="reference" maxLength={80} required />
+                        <FieldError name="reference" />
+                      </Field>
+                      <Field label="Note (optional)" htmlFor="pay-note">
+                        <Input id="pay-note" name="note" maxLength={300} />
+                      </Field>
+                    </div>
+                    <div className="flex justify-end">
                       <SubmitButton pendingLabel="Recording…">Record payment</SubmitButton>
                     </div>
                   </ActionForm>

@@ -1,8 +1,9 @@
 // Scheduler endpoints — POST with `Authorization: Bearer $CRON_SECRET`.
 //   /api/cron/frequent  every 15 min: campaigns held for a send window (CPA Reg 4), unpaid orders, invoice retries,
-//                       founding numbers at launch, drop alerts
+//                       founding numbers at launch, drop alerts, ledger postings waiting in the queue
 //   /api/cron/daily     02:00 SAST: birthday points, uncollected orders, expired tier floors, reorder reminders, voucher expiry, loss-prevention rules and
-//                       digest, My Deals (Mondays), deleting not-a-fit franchise leads after a year (POPIA)
+//                       digest, My Deals (Mondays), deleting not-a-fit franchise leads after a year (POPIA), the day's
+//                       postings to the books, then bank lines still open matched again
 import { NextResponse } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import { sha256 } from "@/server/crypto";

@@ -46,8 +46,8 @@ export const accountCodeProblem = (code: string) => (/^\d{4}$/.test(code) ? null
 /** A balance the way an account normally reads: assets and expenses as debits, the rest as credits (positive). */
 export const natural = (type: AccountType, cents: number) => (debitNormal(type) ? cents : -cents);
 
-/** The most a journal line holds (a 32-bit amount in cents): R21,474,836.47. */
-export const MAX_LINE_CENTS = 2_147_483_647;
+/** The most one manual or opening line may carry: R100bn, a guard against typos (the core splits big lines itself). */
+export const MAX_LINE_CENTS = 10_000_000_000_000;
 
 // ── Opening balances (CSV) ────────────────────────────────────────────────────
 
@@ -77,7 +77,7 @@ export function readCents(raw: string): number {
   const n = readNumber(s);
   const cents = Math.round(n * 100);
   if (Math.abs(n * 100 - cents) > 1e-6) throw new CellError("at most two decimals (cents)");
-  if (cents > MAX_LINE_CENTS) throw new CellError(`more than ${zar(MAX_LINE_CENTS)} on one row — split it over two rows`);
+  if (cents > MAX_LINE_CENTS) throw new CellError(`more than ${zar(MAX_LINE_CENTS)} — check the amount`);
   return cents;
 }
 

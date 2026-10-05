@@ -436,6 +436,7 @@ model StockMovement {
   type          MovementType
   reason        AdjustReason?
   unitCostCents Int
+  revalueCents  Int           @default(0) // what the lot's value changed by beyond qty × unitCostCents (its cost re-averaged)
   note          String?
   saleId        String?
   orderId       String?

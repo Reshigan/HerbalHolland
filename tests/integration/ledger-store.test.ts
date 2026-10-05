@@ -16,7 +16,7 @@ import { postSource, processLedgerQueue, queuePosting } from "@/server/ledger/co
 import { storeBackfill, storeNightly } from "@/server/ledger/sources/store";
 import { postPosSale, postSaleTx, refundSale, type TenderInput } from "@/server/sales";
 import { quote } from "@/server/pricing";
-import { putStock } from "@/server/inventory";
+import { adjustStock, putStock } from "@/server/inventory";
 import { actOnStockOrder, createStockOrder, receivedValue } from "@/server/stock-orders";
 import { recordDeposit } from "@/server/banking";
 import { captureSupplierInvoice, invoiceAccounts, paySupplierInvoice, querySupplierInvoice, reopenSupplierInvoice, supplierInvoiceList } from "@/server/supplier-invoices";
@@ -397,6 +397,16 @@ describe("the books", () => {
   });
 
   it("balance: every trial balance is zero, stock is its valuation, HQ mirrors each store's current account — and posting again posts nothing", async () => {
+    // Lots whose cost re-averages: one received again at a new cost, one sold below zero and then received.
+    const again = await lot("REAVG");
+    await receive(w.store.id, w.flowerV.id, again.id, 3, 10_001);
+    await receive(w.store.id, w.flowerV.id, again.id, 4, 12_347); // 7 at R113.42: 3 cents more than the two receipts
+    const under = await lot("UNDER");
+    await tx((t) => adjustStock(t, { storeId: w.store.id, variantId: w.flowerV.id, batchId: under.id, delta: -2, reason: "DAMAGED", allowNegative: true }));
+    await receive(w.store.id, w.flowerV.id, under.id, 5, w.flowerV.wholesaleCents + 1_000); // the two below zero now cost R10 more each
+    const revalued = await db.stockMovement.findMany({ where: { batchId: { in: [again.id, under.id] }, revalueCents: { not: 0 } }, select: { revalueCents: true } });
+    expect(revalued.map((m) => m.revalueCents).sort((a, b) => a - b)).toEqual([-2_000, 3]);
+
     const listed = await storeBackfill(yesterday, today);
     for (const s of listed) await postSource(s.source, s.sourceId); // today's days, with everything since they were first posted
 

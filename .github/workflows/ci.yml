@@ -62,6 +62,7 @@ jobs:
       SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
       APP_URL: http://127.0.0.1:3000
       DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
+      CRON_SECRET: ci-only-cron-secret # the books journey runs the posting queue through /api/cron/frequent
       UPLOAD_DIR: ${{ github.workspace }}/.data/uploads # shared by the seed and the standalone server (its own cwd)
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
@@ -99,6 +100,9 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
       - run: node e2e/trade.mjs test-results/e2e-trade
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/accounting.mjs test-results/e2e-accounting
         env:
           BASE_URL: http://127.0.0.1:3000
       - name: Crawl every page as every role (broken links, server errors, crashes, timings)

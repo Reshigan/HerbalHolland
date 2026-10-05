@@ -43,6 +43,8 @@ const GROUPS: { prefix: string; label: string; tone: Tone }[] = [
   { prefix: "company.", label: "Owner companies", tone: "neutral" },
   { prefix: "settings.", label: "Settings", tone: "neutral" },
   { prefix: "statement.", label: "Statements", tone: "neutral" },
+  { prefix: "ledger.", label: "Books", tone: "neutral" },
+  { prefix: "bank.", label: "Bank statements", tone: "neutral" },
   { prefix: "announcement.", label: "Announcements", tone: "neutral" },
   { prefix: "pos.", label: "Till sign-ins", tone: "dark" },
   { prefix: "shift.", label: "Shifts & cash-ups", tone: "dark" },

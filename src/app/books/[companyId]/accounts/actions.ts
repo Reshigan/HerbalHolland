@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { booksAction, createAccount, done, renameAccount, setAccountActive, type ActionState } from "@/server/ledger/admin";
 import { str } from "@/server/store/rules";
 
@@ -33,6 +34,7 @@ export async function setAccountActiveAction(companyId: string, accountId: strin
   return booksAction(companyId, "write", async ({ user }) => {
     const a = await setAccountActive(user, companyId, accountId, active);
     refresh(companyId);
-    return done(active ? `${a.code} ${a.name} is switched on.` : `${a.code} ${a.name} is switched off.`);
+    // The button changes with the account, so the confirmation comes back as a one-time message on the page.
+    redirect(`/books/${companyId}/accounts?m=${encodeURIComponent(active ? `${a.code} ${a.name} is switched on.` : `${a.code} ${a.name} is switched off.`)}`);
   });
 }

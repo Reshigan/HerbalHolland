@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { approveDraft, booksAction, deleteDraftJournal, done, failed, reverseManual, saveJournal, type ActionState } from "@/server/ledger/admin";
+import { approveDraft, booksAction, deleteDraftJournal, failed, reverseManual, saveJournal, type ActionState } from "@/server/ledger/admin";
 import { parseRand, str } from "@/server/store/rules";
 
 const MAX_LINES = 200;
@@ -45,7 +45,7 @@ export async function approveJournalAction(companyId: string, journalId: string,
   return booksAction(companyId, "approve", async ({ user }) => {
     const j = await approveDraft(user, companyId, journalId);
     revalidatePath(`/books/${companyId}`, "layout");
-    return done(`Journal ${j.number} is approved and posted.`);
+    redirect(`/books/${companyId}/journals/${journalId}?m=${encodeURIComponent(`Journal ${j.number} is approved and posted.`)}`);
   });
 }
 

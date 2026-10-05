@@ -6,7 +6,10 @@ const VERBS: Record<string, string> = {
   create: "created", update: "updated", delete: "deleted", cancel: "cancelled", approve: "approved", reject: "rejected",
   refund: "refunded", email: "emailed", email_all: "emailed to every store", hold: "put on hold", release: "released",
   adjust: "adjusted", writeoff: "written off", payment_delete: "payment deleted", vat_close: "VAT period closed", match: "matched", unmatch: "unmatched", allocate: "allocated",
-  unallocate: "allocation undone", ignore: "ignored", unignore: "no longer ignored", auto_match: "matched automatically", override: "overridden", export: "exported", signin: "signed in",
+  unallocate: "allocation undone", ignore: "ignored", unignore: "no longer ignored", auto_match: "matched automatically",
+  journal_draft: "journal saved as a draft", journal_post: "journal posted", journal_approve: "journal approved", journal_delete: "draft journal deleted",
+  journal_reverse: "journal reversed", opening_import: "opening balances imported", account_create: "account added", account_rename: "account renamed",
+  account_deactivate: "account switched off", account_reactivate: "account switched back on", retry: "posting retried", payment: "payment recorded", override: "overridden", export: "exported", signin: "signed in",
   signout: "signed out", start: "started", open: "opened", close: "closed", issue: "issued", redeem: "redeemed",
   pay: "paid", paid: "paid", reopen: "reopened", query: "queried", assign: "assigned", reply: "replied to", resolve: "resolved",
   receive: "received", add: "added", remove: "removed", verify: "verified", submit: "submitted", send: "sent", end: "ended",
@@ -27,7 +30,7 @@ const VERBS: Record<string, string> = {
 const NOUNS: Record<string, string> = {
   stockorder: "stock order", stocktake: "stock take", pricelist: "price list", supplier_invoice: "supplier invoice",
   staff_push: "staff notifications", pos: "till", auth: "sign-in", lead: "franchise lead", trade: "trade", sale: "sale",
-  otp: "sign-in codes", member: "member's ID or email",
+  otp: "sign-in codes", member: "member's ID or email", ledger: "books",
 };
 
 const words = (s: string) => NOUNS[s] ?? s.replace(/_/g, " ").replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase();
