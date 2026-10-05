@@ -48,7 +48,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
       <PageHeader
         overline={`Money · ${store.name}`}
         title="Supplier invoices"
-        description="Every invoice from the distribution centre, other stores and outside suppliers, with its photo or PDF. Mark them paid as you settle them, or query one that doesn't match the delivery."
+        description="What you owe your suppliers. Capture invoices from other stores and outside suppliers with a photo or PDF, then mark them paid or query one that doesn't match the delivery. Deliveries from the distribution centre are added when you receive them and settle on your franchise statement."
         actions={
           canManage && (
             <Drawer label="Add invoice" icon={<Plus className="h-4 w-4" aria-hidden />} title="Capture a supplier invoice" description="Details from the invoice, and a photo or PDF of it">
@@ -58,7 +58,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
         }
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Due" value={zarCompact(summary.dueCents)} sub={plural(summary.due, "invoice")} />
+        <Stat label="Due" value={zarCompact(summary.dueCents)} sub={`${plural(summary.due, "invoice")}${summary.onStatement ? ` · ${zarCompact(summary.onStatementCents)} on the statement` : ""}`} />
         <Stat label="Overdue" value={<span className={summary.overdue ? "text-rose-600" : undefined}>{zarCompact(summary.overdueCents)}</span>} sub={summary.overdue ? plural(summary.overdue, "invoice") + " past due" : "Nothing overdue"} />
         <Stat label={`Due within ${operations.supplierInvoiceDays} days`} value={zarCompact(summary.dueSoonCents)} sub={plural(summary.dueSoon, "invoice")} />
         <Stat label="Paid · last 30 days" value={zarCompact(summary.paid30Cents)} sub={plural(summary.paid30, "invoice")} />
@@ -82,7 +82,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
               "Try another status or search."
             ) : (
               <>
-                Stock ordered from your Herbal Holland distribution centre doesn&apos;t appear here — it settles on your monthly franchise statement. Capture invoices from other suppliers here, or from a received stock order under Purchasing.
+                Deliveries from your Herbal Holland distribution centre appear here when you receive them and settle on your monthly franchise statement. Capture invoices from other suppliers here, or from a received stock order under Purchasing.
               </>
             )}
           </EmptyState>
@@ -102,14 +102,15 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
             </thead>
             <tbody>
               {rows.map((r) => {
-                const d = dueState(r.status, r.dueDay, today, operations.supplierInvoiceDays);
+                // A DC delivery is never overdue: it settles on the month's statement.
+                const d = r.onStatement ? { key: r.status === "PAID" ? "paid" : "due", label: "" } : dueState(r.status, r.dueDay, today, operations.supplierInvoiceDays);
                 return (
                   <Tr key={r.id} id={r.id}>
                     <Td>
                       <div className="font-medium text-ink-900">{r.supplierName}</div>
                       <div className="text-xs text-ink-500">
                         <span className="font-mono">{r.number}</span>
-                        {r.stockOrderNumber && (
+                        {r.stockOrderNumber && !r.onStatement && (
                           <>
                             {" · "}
                             <Link href={`/store/${store.code}/purchasing/${r.stockOrderId}`} className="font-medium text-brand-700 hover:underline">{r.stockOrderNumber}</Link>
@@ -122,23 +123,31 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
                     <Td className="whitespace-nowrap">
                       <span className={cn("block", d.key === "overdue" && "font-semibold text-rose-600", d.key === "soon" && "font-semibold text-amber-700")}>{fmtDate(`${r.dueDay}T12:00:00Z`)}</span>
                       {r.status === "DUE" && d.key !== "due" && <span className="text-xs text-ink-500">{d.label}</span>}
-                      {r.status === "PAID" && r.paidAt && <span className="text-xs text-ink-500">paid {fmtDate(r.paidAt)}{r.paidBy ? ` by ${r.paidBy}` : ""}</span>}
+                      {r.onStatement && r.status === "DUE" && <span className="text-xs text-ink-500">on the statement</span>}
+                      {r.status === "PAID" && r.paidAt && <span className="text-xs text-ink-500">{r.onStatement ? "settled" : "paid"} {fmtDate(r.paidAt)}{r.paidBy ? ` by ${r.paidBy}` : ""}</span>}
                     </Td>
                     <Td align="right" className="font-medium text-ink-900">{zar(r.totalCents)}</Td>
                     <Td align="right" className="hidden text-ink-600 sm:table-cell">{r.vatCents ? zar(r.vatCents) : "—"}</Td>
                     <Td>
-                      <Badge tone={DUE_TONE[d.key]} dot>{r.status === "DUE" ? (d.key === "overdue" ? "Overdue" : "Due") : STATUS_LABEL[r.status]}</Badge>
+                      <Badge tone={DUE_TONE[d.key]} dot>{r.onStatement ? (r.status === "PAID" ? "Settled" : "On statement") : r.status === "DUE" ? (d.key === "overdue" ? "Overdue" : "Due") : STATUS_LABEL[r.status]}</Badge>
                     </Td>
                     <Td align="right">
-                      <a href={`${path}/${r.id}/file`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
-                        {r.file?.contentType === "application/pdf" ? <FileText className="h-3.5 w-3.5" aria-hidden /> : <ImageIcon className="h-3.5 w-3.5" aria-hidden />}
-                        {r.file?.contentType === "application/pdf" ? "PDF" : "Photo"}
-                      </a>
+                      {r.onStatement ? (
+                        <Link href={`/store/${store.code}/purchasing/${r.stockOrderId}`} className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
+                          <FileText className="h-3.5 w-3.5" aria-hidden />
+                          Stock order
+                        </Link>
+                      ) : (
+                        <a href={`${path}/${r.id}/file`} target="_blank" rel="noopener" className="inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
+                          {r.file?.contentType === "application/pdf" ? <FileText className="h-3.5 w-3.5" aria-hidden /> : <ImageIcon className="h-3.5 w-3.5" aria-hidden />}
+                          {r.file?.contentType === "application/pdf" ? "PDF" : "Photo"}
+                        </a>
+                      )}
                     </Td>
                     {canManage && (
                       <Td align="right">
                         <div className="flex flex-wrap justify-end gap-2">
-                          {r.status !== "PAID" && (
+                          {r.status !== "PAID" && !r.onStatement && (
                             <ConfirmAction action={payInvoice.bind(null, store.code, r.id)} label="Mark paid" title={`Mark ${r.number} as paid?`} confirmLabel="Mark paid" variant="primary" className="min-w-64 text-left">
                               <Field label="Paid on" htmlFor={`paid-${r.id}`}>
                                 <Input id={`paid-${r.id}`} name="paidOn" type="date" defaultValue={today} max={today} />
@@ -149,7 +158,7 @@ export default async function SupplierInvoicesPage({ params, searchParams }: { p
                               </Field>
                             </ConfirmAction>
                           )}
-                          {r.status === "DUE" && (
+                          {r.status === "DUE" && !r.onStatement && (
                             <ConfirmAction action={queryInvoice.bind(null, store.code, r.id)} label="Query" title={`Query ${r.number}?`} confirmLabel="Query invoice" className="min-w-64 text-left">
                               <Field label="What doesn't match?" htmlFor={`qnote-${r.id}`}>
                                 <Textarea id={`qnote-${r.id}`} name="note" maxLength={300} className="min-h-16" placeholder="Short delivery, wrong price…" />

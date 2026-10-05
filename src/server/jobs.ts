@@ -24,6 +24,7 @@ import { refreshWishlistStock } from "./shop/wishlist";
 import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs";
 import { tradeLicenceExpiry } from "./trade/licences";
 import { purgeAuthRecords } from "./auth";
+import { settleStatementInvoices } from "./supplier-invoices";
 
 export { tradeEftExpiry, tradeOverdueHolds, tradeStatements, tradeLicenceExpiry };
 
@@ -113,6 +114,7 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     trade: { eftExpiry: await tradeEftExpiry(), overdueHolds: await tradeOverdueHolds(), licences: await tradeLicenceExpiry(), statements: await tradeStatements() },
     // Expired sessions, day-old sign-in codes, rate-limit rows and 90-day-old payment webhook ids.
     purged: await purgeAuthRecords(),
+    statementInvoices: await settleStatementInvoices(), // DC deliveries from a month that's over: settled on its statement
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),

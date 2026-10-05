@@ -57,10 +57,10 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
       <PageHeader
         overline={scope.kind === "REGION" ? `Region · ${user.region?.name}` : "Network"}
         title="Supplier invoices"
-        description={`What stores owe their suppliers — the distribution centres, each other and outside suppliers — as captured in each store's back office${chosen ? ` · ${chosen.name}` : ""}.`}
+        description={`What stores owe their suppliers: outside suppliers and each other, as captured in each store's back office, and deliveries from the distribution centres, which settle on the franchise statements${chosen ? ` · ${chosen.name}` : ""}.`}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Due" value={zarCompact(summary.dueCents)} sub={`${num(summary.due)} invoices`} />
+        <Stat label="Due" value={zarCompact(summary.dueCents)} sub={`${num(summary.due)} invoices${summary.onStatement ? ` · ${zarCompact(summary.onStatementCents)} on statements` : ""}`} />
         <Stat label="Overdue" value={<span className={summary.overdue ? "text-rose-600" : undefined}>{zarCompact(summary.overdueCents)}</span>} sub={summary.overdue ? `${num(summary.overdue)} invoices past due` : "Nothing overdue"} />
         <Stat label={`Due within ${operations.supplierInvoiceDays} days`} value={zarCompact(summary.dueSoonCents)} sub={`${num(summary.dueSoon)} invoices`} />
         <Stat label="Queried" value={num(summary.queried)} sub={summary.queried ? `${zarCompact(summary.queriedCents)} in dispute` : "None open"} />
@@ -130,7 +130,7 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
             )}
             {rows.map((r) => {
               const s = storeInfo.get(r.storeId);
-              const d = dueState(r.status, r.dueDay, today, operations.supplierInvoiceDays);
+              const d = r.onStatement ? { key: r.status === "PAID" ? "paid" : "due", label: "" } : dueState(r.status, r.dueDay, today, operations.supplierInvoiceDays);
               return (
                 <Tr key={r.id}>
                   <Td>
@@ -139,21 +139,26 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
                   </Td>
                   <Td>
                     <div className="font-medium text-ink-900">{r.supplierName}</div>
-                    <div className="font-mono text-xs text-ink-500">{r.number}{r.stockOrderNumber ? ` · ${r.stockOrderNumber}` : ""}</div>
+                    <div className="font-mono text-xs text-ink-500">{r.number}{r.stockOrderNumber && !r.onStatement ? ` · ${r.stockOrderNumber}` : ""}</div>
                   </Td>
                   <Td className="whitespace-nowrap">
                     <span className={cn("block", d.key === "overdue" && "font-semibold text-rose-600", d.key === "soon" && "font-semibold text-amber-700")}>{fmtDate(`${r.dueDay}T12:00:00Z`)}</span>
                     {r.status === "DUE" && d.key !== "due" && <span className="text-xs text-ink-500">{d.label}</span>}
+                    {r.onStatement && <span className="text-xs text-ink-500">{r.status === "PAID" ? "settled on the statement" : "on the statement"}</span>}
                   </Td>
                   <Td align="right" className="font-medium text-ink-900">{zar(r.totalCents)}</Td>
                   <Td align="right" className="hidden text-ink-600 sm:table-cell">{r.vatCents ? zar(r.vatCents) : "—"}</Td>
                   <Td>
-                    <Badge tone={DUE_TONE[d.key]} dot>{r.status === "DUE" ? (d.key === "overdue" ? "Overdue" : "Due") : STATUS_LABEL[r.status]}</Badge>
+                    <Badge tone={DUE_TONE[d.key]} dot>{r.onStatement ? (r.status === "PAID" ? "Settled" : "On statement") : r.status === "DUE" ? (d.key === "overdue" ? "Overdue" : "Due") : STATUS_LABEL[r.status]}</Badge>
                   </Td>
                   <Td align="right">
-                    <a href={`/store/${s?.code}/finance/supplier-invoices/${r.id}/file`} target="_blank" rel="noopener" className="text-xs font-semibold text-brand-700 hover:underline">
-                      {r.file?.contentType === "application/pdf" ? "PDF" : "Photo"}
-                    </a>
+                    {r.onStatement ? (
+                      <Link href={`/store/${s?.code}/purchasing/${r.stockOrderId}`} className="text-xs font-semibold text-brand-700 hover:underline">Stock order</Link>
+                    ) : (
+                      <a href={`/store/${s?.code}/finance/supplier-invoices/${r.id}/file`} target="_blank" rel="noopener" className="text-xs font-semibold text-brand-700 hover:underline">
+                        {r.file?.contentType === "application/pdf" ? "PDF" : "Photo"}
+                      </a>
+                    )}
                   </Td>
                 </Tr>
               );

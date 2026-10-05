@@ -9,13 +9,15 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-ops-"));
 
-import { db } from "@/server/db";
+import { db, tx } from "@/server/db";
 import { placeOrder } from "@/server/orders";
 import { postPosSale } from "@/server/sales";
 import { quote } from "@/server/pricing";
 import { raiseAlerts } from "@/server/loss";
 import { todayFacts, todayList } from "@/server/today";
-import { captureSupplierInvoice, invoicesForOrder, paySupplierInvoice, querySupplierInvoice, reopenSupplierInvoice, supplierInvoiceList, supplierInvoiceSummary, supplierInvoicesByStore } from "@/server/supplier-invoices";
+import { captureSupplierInvoice, invoicesForOrder, paySupplierInvoice, querySupplierInvoice, recordStatementInvoice, reopenSupplierInvoice, settleStatementInvoices, supplierInvoiceList, supplierInvoiceSummary, supplierInvoicesByStore } from "@/server/supplier-invoices";
+import { actOnStockOrder, createStockOrder } from "@/server/stock-orders";
+import { statementTerms } from "@/lib/supplier-invoice-rules";
 import { checklist, checklistProgressByStore, completeTask, reopenTask, rescheduleChecklist, seedChecklist } from "@/server/store-tasks";
 import { createSchedule, exportUrl, isDue, runDueExports, runExport, verifyExportToken } from "@/server/exports";
 import { claimEvents, lowStockDigest, notifyAlerts, notifyAnnouncements, notifyDepositsDue, notifyExpiringBatches, notifyNewOrders, pushToStaff, saveStaffSubscription, subscribedStores } from "@/server/staff-push";
@@ -173,10 +175,10 @@ describe("Supplier invoices", () => {
     await expect(captureSupplierInvoice({ ...base, number: "INV-1", dueDate: dayKey(days(-3)), file: png() }, a)).rejects.toThrow("before the invoice date");
     await expect(captureSupplierInvoice({ ...base, number: "", file: png() }, a)).rejects.toThrow("invoice number");
 
-    const order = await db.stockOrder.create({ data: { number: "PO-T1", kind: "WHOLESALE", status: "RECEIVED", buyerId: w.store.id, sellerId: w.dc.id, totalCents: 230_000, receivedAt: new Date() } });
+    const order = await db.stockOrder.create({ data: { number: "PO-T1", kind: "NETWORK", status: "RECEIVED", buyerId: w.store.id, sellerId: w.dc.id, totalCents: 230_000, receivedAt: new Date() } });
     const inv = await captureSupplierInvoice({ ...base, number: "INV-1", stockOrderId: order.id, file: pdf() }, a);
     expect(inv).toMatchObject({ status: "DUE", supplierName: "Test DC", number: "INV-1", totalCents: 230_000, vatCents: 30_000, stockOrderId: order.id });
-    const upload = await db.upload.findUniqueOrThrow({ where: { id: inv.uploadId } });
+    const upload = await db.upload.findUniqueOrThrow({ where: { id: inv.uploadId! } });
     expect(upload).toMatchObject({ contentType: "application/pdf", storeId: w.store.id, uploadedById: w.manager.id });
     expect(upload.key).toMatch(new RegExp(`^supplier-invoices/${w.store.code}/\\d{4}-\\d{2}/.+\\.pdf$`));
     expect(await audits("supplier_invoice.create", inv.id)).toBe(1);
@@ -204,6 +206,46 @@ describe("Supplier invoices", () => {
     await captureSupplierInvoice({ ...base, number: "INV-2", dueDate: dayKey(days(3)), file: png() }, a);
     expect(await supplierInvoiceSummary([w.store.id])).toMatchObject({ due: 1, dueSoon: 1, dueSoonCents: 230_000 });
     expect((await supplierInvoicesByStore([w.store.id]))[0]).toMatchObject({ storeId: w.store.id, due: 1, dueCents: 230_000, overdue: 0 });
+  });
+
+  it("puts a DC delivery on when it's received, for what was counted in, settled on the statement once the month is over", async () => {
+    const a = actor(w.manager.id, "Mia");
+    const po = await createStockOrder({ buyerId: w.store.id, sellerId: w.dc.id, kind: "WHOLESALE", lines: [{ variantId: w.oilV.id, qty: 4 }], actor: a, submit: true });
+    const file = { storeId: w.store.id, storeCode: w.store.code, supplierName: "Test DC", number: "DC-1", invoiceDate: dayKey(new Date()), dueDate: dayKey(days(30)), totalCents: 128_800, vatCents: 16_800, file: pdf() };
+    await expect(captureSupplierInvoice({ ...file, stockOrderId: po.id }, a)).rejects.toThrow("invoiced automatically");
+    const before = { summary: await supplierInvoiceSummary([w.store.id]), byStore: await supplierInvoicesByStore([w.store.id]), today: (await todayFacts(storeRef(), w.manager)).supplierInvoices };
+    await actOnStockOrder(po.id, "approve", a);
+    await actOnStockOrder(po.id, "ship", a);
+    const line = await db.stockOrderLine.findFirstOrThrow({ where: { stockOrderId: po.id } });
+    await actOnStockOrder(po.id, "receive", a, { received: { [line.id]: 3 } }); // one short
+
+    const terms = statementTerms(dayKey(new Date()));
+    const inv = await db.supplierInvoice.findFirstOrThrow({ where: { stockOrderId: po.id } });
+    expect(inv).toMatchObject({ storeId: w.store.id, supplierName: "Test DC", number: po.number, totalCents: 96_600, vatCents: 12_600, onStatement: true, status: "DUE", uploadId: null, note: terms.settles, createdById: w.manager.id });
+    expect(inv.dueDate.toISOString().slice(0, 10)).toBe(terms.dueDay);
+    expect(await audits("supplier_invoice.create", inv.id)).toBe(1);
+    expect(await tx((t) => recordStatementInvoice(t, po.id, a))).toBeNull(); // once per delivery
+    const net = await db.stockOrder.create({ data: { number: "PO-T9", kind: "NETWORK", status: "RECEIVED", buyerId: w.store.id, sellerId: w.dc.id, receivedAt: new Date(), lines: { create: [{ variantId: w.oilV.id, qty: 2, receivedQty: 2, unitCostCents: 28_000 }] } } });
+    expect(await tx((t) => recordStatementInvoice(t, net.id, a))).toBeNull(); // only DC deliveries
+
+    await expect(paySupplierInvoice(inv.id, w.store.id, {}, a)).rejects.toThrow("settles on the franchise statement");
+    await expect(querySupplierInvoice(inv.id, w.store.id, "One unit short", a)).rejects.toThrow("take any problem with it up with HQ");
+    await expect(captureSupplierInvoice({ ...file, number: "DC-2", stockOrderId: po.id }, a)).rejects.toThrow("invoiced automatically");
+    // In what's due, but never overdue or due soon: not on HQ's outside-supplier totals or the Today list.
+    expect(await supplierInvoiceSummary([w.store.id])).toMatchObject({
+      ...before.summary, due: before.summary.due + 1, dueCents: before.summary.dueCents + 96_600, onStatement: 1, onStatementCents: 96_600,
+    });
+    expect(await supplierInvoicesByStore([w.store.id])).toEqual(before.byStore);
+    expect((await todayFacts(storeRef(), w.manager)).supplierInvoices).toEqual(before.today);
+    expect((await supplierInvoiceList({ storeIds: [w.store.id], q: po.number }, 1, 10)).rows[0]).toMatchObject({ id: inv.id, file: null, stockOrderNumber: po.number });
+
+    expect(await settleStatementInvoices()).toEqual({ settled: 0 }); // the month isn't over
+    const next = new Date(`${terms.settledFrom}T09:00:00+02:00`);
+    expect(await settleStatementInvoices(next)).toEqual({ settled: 1 });
+    expect(await db.supplierInvoice.findUniqueOrThrow({ where: { id: inv.id } })).toMatchObject({ status: "PAID", paidAt: new Date(`${terms.settledFrom}T00:00:00+02:00`), paidById: null, note: terms.settled });
+    expect(await settleStatementInvoices(next)).toEqual({ settled: 0 });
+    expect(await audits("supplier_invoice.settle_statement")).toBe(1);
+    expect(await supplierInvoiceSummary([w.store.id])).toMatchObject({ onStatement: 0, paid30Cents: before.summary.paid30Cents }); // settled, not paid by the store
   });
 });
 

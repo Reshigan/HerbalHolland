@@ -238,7 +238,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
       <Card className="mt-6">
         <CardHeader
           title="Supplier invoices"
-          description="As of now · what stores owe the distribution centres, each other and outside suppliers, as captured in their back offices"
+          description="As of now · what stores owe outside suppliers and each other, as captured in their back offices, and this month's distribution-centre deliveries, which settle on the franchise statements"
           action={
             <Link href="/hq/finance/supplier-invoices" className="text-xs font-semibold text-brand-700 hover:underline">
               Per store →
@@ -246,7 +246,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
           }
         />
         <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <MiniStat label="Due" value={zarCompact(invoices.dueCents)} sub={`${num(invoices.due)} invoices`} />
+          <MiniStat label="Due" value={zarCompact(invoices.dueCents)} sub={`${num(invoices.due)} invoices${invoices.onStatement ? ` · ${zarCompact(invoices.onStatementCents)} on statements` : ""}`} />
           <MiniStat label="Overdue" value={<span className={invoices.overdue ? "text-rose-600" : undefined}>{zarCompact(invoices.overdueCents)}</span>} sub={invoices.overdue ? `${num(invoices.overdue)} invoices past due` : "Nothing overdue"} />
           <MiniStat label="Due within 7 days" value={zarCompact(invoices.dueSoonCents)} sub={`${num(invoices.dueSoon)} invoices`} />
           <MiniStat label="Queried" value={num(invoices.queried)} sub={invoices.queried ? `${zarCompact(invoices.queriedCents)} in dispute` : "None open"} />

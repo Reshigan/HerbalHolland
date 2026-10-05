@@ -412,6 +412,8 @@ describe("Trade sales at the till", () => {
     const p2 = await db.payment.findMany({ where: { saleId: second.id }, orderBy: { amountCents: "asc" } });
     expect(p2.map((p) => [p.method, p.amountCents])).toEqual([["CASH", -20_000], ["ACCOUNT", -3_000]]);
     expect(await tradeBalance(accountId)).toBe(0);
+    // Both credit notes are emailed after the refund commits; wait for them so they don't land among the next test's mail.
+    await vi.waitFor(async () => expect((await mailsTo(BILLING)).filter((m) => [first.number, second.number].some((n) => m.body.includes(`Credit note ${n} `)))).toHaveLength(2));
   });
 
   it("lets a held account pay in money but not on account; a closed account can't trade at all", async () => {

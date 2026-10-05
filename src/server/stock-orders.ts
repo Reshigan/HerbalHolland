@@ -5,6 +5,7 @@ import { db, tx } from "./db";
 import { takeStock, putStock, availability, availKey } from "./inventory";
 import { nextNumber } from "./counters";
 import { audit, type Actor } from "./audit";
+import { recordStatementInvoice } from "./supplier-invoices";
 import { vatOnExcl } from "@/lib/money";
 import type { StockOrderKind, StockOrderStatus } from "@/generated/prisma/client";
 
@@ -121,6 +122,8 @@ export async function actOnStockOrder(
         }
         await t.stockOrderLine.update({ where: { id: line.id }, data: { receivedQty } });
       }
+      // From a DC: on the store's supplier invoices for what was received, settled on the month's statement.
+      await recordStatementInvoice(t, id, actor, now);
     }
     const stamp = { submit: "submittedAt", approve: "approvedAt", ship: "shippedAt", receive: "receivedAt" } as const;
     const updated = await t.stockOrder.update({

@@ -44,6 +44,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
   const shortReceived = lines.reduce((s, l) => s + (l.receivedQty != null && l.shippedQty != null ? Math.max(0, l.shippedQty - l.receivedQty) : 0), 0);
   const invoices = isBuyer && ["SHIPPED", "RECEIVED"].includes(o.status) ? await invoicesForOrder(store.id, o.id) : [];
   const invoiceDay = dayKey(o.receivedAt ?? o.shippedAt ?? new Date());
+  const fromDc = o.kind === "WHOLESALE"; // invoiced automatically on receipt, settled on the franchise statement
 
   return (
     <>
@@ -145,56 +146,68 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
         <Card className="mb-6" data-testid="supplier-invoice-card">
           <CardHeader
             title="Supplier invoice"
-            description={invoices.length ? `${invoices.length} invoice${invoices.length === 1 ? "" : "s"} captured against this order` : `Attach ${o.seller.name}'s invoice for this delivery — it goes to Finance → Supplier invoices to be paid.`}
+            description={
+              fromDc
+                ? o.status === "SHIPPED"
+                  ? "Added to your supplier invoices when you receive this delivery, for what you count in. It settles on your franchise statement — nothing to capture or pay."
+                  : invoices.length
+                    ? "This order is the tax invoice. It's on your supplier invoices and settles on the franchise statement — nothing to pay separately."
+                    : "It settles on the franchise statement — nothing to capture or pay."
+                : invoices.length
+                  ? `${invoices.length} invoice${invoices.length === 1 ? "" : "s"} captured against this order`
+                  : `Attach ${o.seller.name}'s invoice for this delivery — it goes to Finance → Supplier invoices to be paid.`
+            }
             action={<Link href={`/store/${store.code}/finance/supplier-invoices`} className="text-xs font-semibold text-brand-700 hover:underline">All supplier invoices →</Link>}
           />
-          <CardBody className="pt-3">
-            {invoices.length > 0 && (
-              <ul className="mb-4 divide-y divide-ink-100 rounded-xl border border-ink-150">
-                {invoices.map((i) => (
-                  <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
-                    <span>
-                      <span className="font-mono font-medium text-ink-900">{i.number}</span> · {i.supplierName} · due {fmtDate(`${i.dueDate.toISOString().slice(0, 10)}T12:00:00Z`)}
-                    </span>
-                    <span className="flex items-center gap-3">
-                      <span className="tnum font-medium">{zar(i.totalCents)}</span>
-                      <Badge tone={i.status === "PAID" ? "green" : i.status === "QUERIED" ? "red" : "amber"} dot>{STATUS_LABEL[i.status]}</Badge>
-                      <a href={`/store/${store.code}/finance/supplier-invoices/${i.id}/file`} target="_blank" rel="noopener" className="text-xs font-semibold text-brand-700 hover:underline">View</a>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {canManage ? (
-              invoices.length ? (
-                <details className="group">
-                  <summary className="cursor-pointer list-none text-xs font-semibold text-brand-700 hover:underline">
-                    <span className="group-open:hidden">Capture another invoice for this order</span>
-                    <span className="hidden group-open:inline">Hide</span>
-                  </summary>
-                  <div className="mt-3">
-                    <SupplierInvoiceForm action={captureInvoice.bind(null, store.code)} vendor={!!store.company.vatNumber} idPrefix="po-inv" defaults={{ supplierName: o.seller.name, invoiceDate: invoiceDay, dueDate: dayKey(addDays(new Date(`${invoiceDay}T12:00:00+02:00`), DEFAULT_TERMS_DAYS)), stockOrderId: o.id, vat: true }} />
-                  </div>
-                </details>
+          {(!fromDc || invoices.length > 0) && (
+            <CardBody className="pt-3">
+              {invoices.length > 0 && (
+                <ul className={cn("divide-y divide-ink-100 rounded-xl border border-ink-150", !fromDc && "mb-4")}>
+                  {invoices.map((i) => (
+                    <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                      <span>
+                        <span className="font-mono font-medium text-ink-900">{i.number}</span> · {i.supplierName} · {i.onStatement ? i.note : `due ${fmtDate(`${i.dueDate.toISOString().slice(0, 10)}T12:00:00Z`)}`}
+                      </span>
+                      <span className="flex items-center gap-3">
+                        <span className="tnum font-medium">{zar(i.totalCents)}</span>
+                        <Badge tone={i.status === "PAID" ? "green" : i.status === "QUERIED" ? "red" : i.onStatement ? "neutral" : "amber"} dot>{i.onStatement ? (i.status === "PAID" ? "Settled" : "On statement") : STATUS_LABEL[i.status]}</Badge>
+                        {!i.onStatement && <a href={`/store/${store.code}/finance/supplier-invoices/${i.id}/file`} target="_blank" rel="noopener" className="text-xs font-semibold text-brand-700 hover:underline">View</a>}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {fromDc ? null : canManage ? (
+                invoices.length ? (
+                  <details className="group">
+                    <summary className="cursor-pointer list-none text-xs font-semibold text-brand-700 hover:underline">
+                      <span className="group-open:hidden">Capture another invoice for this order</span>
+                      <span className="hidden group-open:inline">Hide</span>
+                    </summary>
+                    <div className="mt-3">
+                      <SupplierInvoiceForm action={captureInvoice.bind(null, store.code)} vendor={!!store.company.vatNumber} idPrefix="po-inv" defaults={{ supplierName: o.seller.name, invoiceDate: invoiceDay, dueDate: dayKey(addDays(new Date(`${invoiceDay}T12:00:00+02:00`), DEFAULT_TERMS_DAYS)), stockOrderId: o.id, vat: true }} />
+                    </div>
+                  </details>
+                ) : (
+                  <SupplierInvoiceForm
+                    action={captureInvoice.bind(null, store.code)}
+                    vendor={!!store.company.vatNumber}
+                    idPrefix="po-inv"
+                    defaults={{
+                      supplierName: o.seller.name,
+                      invoiceDate: invoiceDay,
+                      dueDate: dayKey(addDays(new Date(`${invoiceDay}T12:00:00+02:00`), DEFAULT_TERMS_DAYS)),
+                      total: o.status === "RECEIVED" ? ((received ?? 0) / 100).toFixed(2) : (o.totalCents / 100).toFixed(2),
+                      stockOrderId: o.id,
+                      vat: true,
+                    }}
+                  />
+                )
               ) : (
-                <SupplierInvoiceForm
-                  action={captureInvoice.bind(null, store.code)}
-                  vendor={!!store.company.vatNumber}
-                  idPrefix="po-inv"
-                  defaults={{
-                    supplierName: o.seller.name,
-                    invoiceDate: invoiceDay,
-                    dueDate: dayKey(addDays(new Date(`${invoiceDay}T12:00:00+02:00`), DEFAULT_TERMS_DAYS)),
-                    total: o.status === "RECEIVED" ? ((received ?? 0) / 100).toFixed(2) : (o.totalCents / 100).toFixed(2),
-                    stockOrderId: o.id,
-                    vat: true,
-                  }}
-                />
-              )
-            ) : (
-              !invoices.length && <p className="text-sm text-ink-500">A manager or owner captures the invoice.</p>
-            )}
-          </CardBody>
+                !invoices.length && <p className="text-sm text-ink-500">A manager or owner captures the invoice.</p>
+              )}
+            </CardBody>
+          )}
         </Card>
       )}
 

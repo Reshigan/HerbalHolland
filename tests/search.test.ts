@@ -139,6 +139,7 @@ describe("search fixes from the shopper review", () => {
     expect(rank("pre roll")).toEqual(["preroll"]);
     expect(rank("preroll")).toEqual(["preroll"]);
     expect(rank("pre-roll")).toEqual(["preroll"]);
+    expect(rank("pre rolls")).toEqual(["preroll"]);
     expect(rank("seeds")[0]).toBe("seeds");
     expect(rank("seeds")).not.toContain("whey");
     expect(rank("tea", { tee: 0.5 })).toEqual(["tea"]);
@@ -150,3 +151,29 @@ describe("search fixes from the shopper review", () => {
     expect(rank("tez", { tea: 0.5 })).toEqual([]);
   });
 });
+
+describe("product types written apart (\"pre roll\")", () => {
+  const shelf: SearchDoc[] = [
+    { id: "tray", name: "Rolling Tray", tagline: "Bamboo, with a lip", category: "Accessories", variants: [{ name: "Large" }] },
+    { id: "papers", name: "King Size Rolling Papers", tagline: "Unbleached", category: "Accessories", variants: [{ name: "32 leaves" }] },
+  ];
+  const rank = (q: string, sims: Record<string, number> = {}) => rankSearch(parseQuery(q), shelf.map((d) => ({ ...d, sim: sims[d.id] ?? 0 }))).map((r) => r.id);
+
+  it("keeps the type as one word that a product must be", () => {
+    expect(parseQuery("pre roll").terms).toEqual(["preroll"]);
+    expect(parseQuery("Pre-Roll 0.5g").required).toEqual(["preroll"]);
+    expect(parseQuery("rolling tray").required).toBeUndefined();
+    expect(parseQuery("pre rolls").required).toEqual(["preroll"]); // plural or singular, the product only has to be one
+    const single = { id: "pr", name: "Durban Poison Pre-Roll", category: "Flower", variants: [{ name: "1 × 0.5 g" }] };
+    expect(rankSearch(parseQuery("pre rolls"), [...shelf, { ...single, sim: 0.5 }]).map((r) => r.id)).toEqual(["pr"]);
+  });
+
+  it("finds no rolling tray or papers for a pre-roll, even when the names look alike", () => {
+    expect(rank("pre roll")).toEqual([]);
+    expect(rank("preroll", { tray: 0.44, papers: 0.3 })).toEqual([]);
+    expect(rank("pre-rolls")).toEqual([]);
+    expect(rank("rolling").sort()).toEqual(["papers", "tray"]); // the words themselves still find them
+    expect(rank("roll").sort()).toEqual(["papers", "tray"]);
+  });
+});
+

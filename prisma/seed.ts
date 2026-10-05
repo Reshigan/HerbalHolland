@@ -17,6 +17,7 @@ import { allocate } from "../src/lib/fefo";
 import { pointsFor, tierFor, DEFAULT_TIER_SAVINGS, type TierKey } from "../src/lib/loyalty-rules";
 import { vatOf } from "../src/lib/money";
 import { addDays, dayKey } from "../src/lib/format";
+import { statementTerms } from "../src/lib/supplier-invoice-rules";
 import { bankBy, cashToBank } from "../src/lib/banking";
 import { applyPromotions, type PromoInput } from "../src/lib/promotions";
 import { promoWindowOpen } from "../src/lib/pricing-rules";
@@ -1120,6 +1121,7 @@ async function main() {
   // Replenishment, adjustments and stock takes run on the same clock as sales.
   const stockOrders: Prisma.StockOrderCreateManyInput[] = [];
   const stockOrderLines: Prisma.StockOrderLineCreateManyInput[] = [];
+  const supplierInvoices: Prisma.SupplierInvoiceCreateManyInput[] = [];
   let poSeq = 0;
   function stockOrder(kind: "WHOLESALE" | "NETWORK", buyer: SimStore, seller: SimStore, lines: { v: SimVariant; qty: number; unit: number }[], day: string, status: "RECEIVED" | "SHIPPED" | "APPROVED" | "SUBMITTED") {
     if (!lines.length) return;
@@ -1127,6 +1129,7 @@ async function main() {
     const ts = at(day, 9 * 60 + 30);
     const shippedTs = new Date(ts.getTime() - 25 * 3_600_000);
     let sub = 0;
+    let receivedEx = 0;
     for (const l of lines) {
       let shipped: { batchId: string; qty: number }[] | undefined;
       let received: number | undefined;
@@ -1145,6 +1148,7 @@ async function main() {
         }
       }
       sub += l.qty * l.unit;
+      receivedEx += (received ?? 0) * l.unit;
       stockOrderLines.push({ id: uid(), stockOrderId: id, variantId: l.v.id, qty: l.qty, unitCostCents: l.unit, shipped, receivedQty: received });
     }
     const vat = Math.round(sub * 0.15);
@@ -1155,6 +1159,17 @@ async function main() {
       shippedAt: status === "RECEIVED" || status === "SHIPPED" ? shippedTs : null, receivedAt: status === "RECEIVED" ? ts : null,
       invoiceSentAt: status === "RECEIVED" ? ts : null, notes: kind === "NETWORK" ? "Network trade" : "Replenishment",
     });
+    // A DC delivery goes on the store's supplier invoices when received, settled once its month's statement is drawn up.
+    if (kind === "WHOLESALE" && status === "RECEIVED" && receivedEx > 0) {
+      const terms = statementTerms(day);
+      const settled = terms.month < TODAY.slice(0, 7);
+      const vatIn = Math.round(receivedEx * 0.15);
+      supplierInvoices.push({
+        id: uid(), storeId: buyer.id, supplierName: seller.name, number: `PO-${String(poSeq).padStart(6, "0")}`, invoiceDate: new Date(`${day}T00:00:00Z`), dueDate: new Date(`${terms.dueDay}T00:00:00Z`),
+        totalCents: receivedEx + vatIn, vatCents: vatIn, stockOrderId: id, onStatement: true, status: settled ? "PAID" : "DUE", paidAt: settled ? new Date(`${terms.settledFrom}T00:00:00+02:00`) : null,
+        note: settled ? terms.settled : terms.settles, createdById: buyer.staff[0]?.id ?? "system", createdAt: ts,
+      });
+    }
   }
   function replenish(s: SimStore, day: string, status: "RECEIVED" | "SUBMITTED" | "APPROVED" | "SHIPPED" = "RECEIVED") {
     const ts = at(day, 8 * 60);
@@ -1782,6 +1797,7 @@ async function main() {
   await insert("trade ledger", db.tradeLedgerEntry, ledgerRows);
   await insert("stock orders", db.stockOrder, stockOrders);
   await insert("stock order lines", db.stockOrderLine, stockOrderLines);
+  await insert("supplier invoices", db.supplierInvoice, supplierInvoices);
   await insert("stock takes", db.stockTake, stockTakes);
   await insert("stock take lines", db.stockTakeLine, stockTakeLines);
   await insert("stock movements", db.stockMovement, movements);

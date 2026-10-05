@@ -565,6 +565,14 @@ try {
   const inMv = await one(`select sum(qty)::int as qty from "StockMovement" where "stockOrderId" = $1 and type = 'TRANSFER_IN'`, [wpo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1 && inMv.qty === 1 && /Receiving: E2E/.test(po.notes), `${wpo.number} received: 1 in stock, 1 short flagged`);
   assert((await audits("stockorder.discrepancy", me.id, t0)) === 1, "discrepancy recorded for the supplier");
+  // The DC's invoice is put on for what was counted in, and settles on the franchise statement.
+  const dcUnit = (await one(`select "unitCostCents" from "StockOrderLine" where "stockOrderId" = $1`, [wpo.id])).unitCostCents;
+  const dcInv = await one(`select number, "totalCents", "vatCents", "onStatement", status, "uploadId" from "SupplierInvoice" where "stockOrderId" = $1`, [wpo.id]);
+  assert(
+    dcInv?.onStatement && dcInv.status === "DUE" && !dcInv.uploadId && dcInv.number === wpo.number && dcInv.vatCents === Math.round(dcUnit * 0.15) && dcInv.totalCents === dcUnit + dcInv.vatCents,
+    `${wpo.number} on the supplier invoices for the 1 unit received (R${((dcInv?.totalCents ?? 0) / 100).toFixed(2)} incl. VAT), settled on the statement`,
+  );
+  await page.getByTestId("supplier-invoice-card").getByText("On statement").waitFor();
 
   step("Purchasing: a second order submitted straight from the builder, then cancelled");
   const cancelNotes = `E2E ${run} (to cancel)`;

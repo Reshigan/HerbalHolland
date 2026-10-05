@@ -171,7 +171,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         {[
           { href: `${base}/cash-ups`, icon: Banknote, title: "Cash-ups", sub: "Shifts, floats and till variances" },
           { href: `${base}/expenses`, icon: Receipt, title: "Expenses", sub: "Capture rent, wages and bills" },
-          { href: `${base}/finance/supplier-invoices`, icon: ReceiptText, title: "Supplier invoices", sub: invoices.overdue ? `${invoices.overdue} overdue · ${zarCompact(invoices.dueCents)} due` : invoices.due ? `${zarCompact(invoices.dueCents)} due · ${invoices.dueSoon} due this week` : "Capture, pay and query invoices" },
+          { href: `${base}/finance/supplier-invoices`, icon: ReceiptText, title: "Supplier invoices", sub: invoices.overdue ? `${invoices.overdue} overdue · ${zarCompact(invoices.dueCents)} due` : invoices.due ? `${zarCompact(invoices.dueCents)} due${invoices.onStatement ? ` · ${zarCompact(invoices.onStatementCents)} on the statement` : ""}${invoices.dueSoon ? ` · ${invoices.dueSoon} due this week` : ""}` : "Capture, pay and query invoices" },
           { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: pl.summary.hqCollectedCents ? `${zarCompact(pl.summary.hqCollectedCents)} collected by HQ for you this period` : "What you owe HQ, or HQ owes you" },
           { href: `${base}/reports`, icon: ChartColumn, title: "Reports", sub: "Sales, margins, stock and staff" },
         ].map((l) => (

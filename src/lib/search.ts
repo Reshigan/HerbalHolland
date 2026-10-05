@@ -6,9 +6,15 @@
 export type Unit = "mg" | "g" | "ml";
 export type Measure = { value: number; unit: Unit | null; raw: string };
 /** `moods`: the shop moods (product effects) the query asks for ("sleep" → rest). */
-export type ParsedQuery = { raw: string; norm: string; terms: string[]; measures: Measure[]; classes: string[]; moods?: string[] };
+export type ParsedQuery = { raw: string; norm: string; terms: string[]; measures: Measure[]; classes: string[]; moods?: string[]; required?: string[] };
 
 export const QUERY_MAX = 60;
+
+/**
+ * Product types written as one word, apart or hyphenated ("pre roll", "pre-roll", "preroll"), to the stem a product
+ * must have to be one. The query keeps them as one word: "pre roll" never finds a rolling tray by the start of "rolling".
+ */
+const JOINED = new Map([["preroll", "preroll"], ["prerolls", "preroll"], ["prerolled", "preroll"]]);
 
 /** Words that carry no meaning on their own. */
 const STOP = new Set(["a", "an", "and", "the", "for", "of", "with", "in", "to", "my", "some", "any"]);
@@ -114,10 +120,18 @@ export function parseQuery(raw: string): ParsedQuery {
     .split(/[\s,]+/)
     .map((w) => w.replace(/^[.'-]+|[.'-]+$/g, ""))
     .filter((w) => w.length > 1 && !STOP.has(w));
-  const terms = [...new Set(words)];
+  // "pre roll" → "preroll": adjacent words that make a known product type become that one word.
+  const joined: string[] = [];
+  for (let i = 0; i < words.length; i++) {
+    const pair = i + 1 < words.length ? squash(words[i] + words[i + 1]) : "";
+    if (JOINED.has(pair)) (joined.push(pair), i++);
+    else joined.push(words[i]);
+  }
+  const terms = [...new Set(joined)];
+  const required = [...new Set(terms.map((t) => JOINED.get(squash(t))).filter((r): r is string => !!r))];
   const classes = [...new Set(terms.map((t) => CLASS_OF.get(t)).filter((c): c is string => !!c))];
   const moods = [...new Set(terms.flatMap((t) => MOODS_OF.get(t) ?? []))];
-  return { raw, norm, terms, measures, classes, moods };
+  return { raw, norm, terms, measures, classes, moods, ...(required.length && { required }) };
 }
 
 // ── Ranking ─────────────────────────────────────────────────────────────────
@@ -218,6 +232,8 @@ export function rankSearch(q: ParsedQuery, docs: SearchDoc[]): Ranked[] {
       const c = CLASS_OF.get(t);
       return !!c && (CLASS_WORDS[c] ?? []).some((w) => keys.includes(squash(w)));
     };
+    // A product type the query names ("pre roll") must be what the product is — not a near-miss by name or typo.
+    if (q.required?.some((r) => ![nameKeys, taglineKeys, variantKeys, categoryKeys, restKeys].some((keys) => keys.some((k) => k.startsWith(r))))) continue;
     let score = 0;
     let kind: MatchKind | null = null;
     let covered = 0;
