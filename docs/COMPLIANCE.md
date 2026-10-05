@@ -113,7 +113,8 @@ only basket rule it uses; `src/lib/trade.ts` holds the pricing, case, credit and
 
 Each company's books are kept in the platform (`/books`) and meet what the record-keeping laws ask of them:
 
-- **Kept for five years and complete** (Tax Administration Act 28 of 2011 s29–s30; Companies Act 71 of 2008 s24, s28).
+- **Kept for at least seven years and complete** (Companies Act 71 of 2008 s24 — seven years — and s28; Tax
+  Administration Act 28 of 2011 s29–s30 — five years from the return).
   Journals are never deleted or edited once posted: a mistake is reversed, and an automatic journal is corrected
   by correcting its source (the sale, invoice or deposit), which posts the difference. Drafts can be deleted until
   approved.
@@ -124,8 +125,8 @@ Each company's books are kept in the platform (`/books`) and meet what the recor
   - Non-vendors (below the registration threshold) charge none, and the VAT they pay is part of their cost.
   - The VAT201 working is produced per the company's SARS category (A, B or C). Filing stays with the vendor or
     their accountant on eFiling.
-- **Retention after a company leaves the network:** its books stay readable for five years after its last
-  transaction. Removing a company never removes its journals.
+- **Retention after a company leaves the network:** its books stay readable for seven years after its last
+  transaction. Removing a company never removes its journals, and nothing purges them.
 
 ## Gift vouchers (CPA s63) and reorder reminders
 

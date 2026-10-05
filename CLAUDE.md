@@ -35,6 +35,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 | POS (offline-first, tap on glass) | `/pos`, `/api/pos/*` | dark, touch-first |
 | Store back office | `/store/[code]/*` | light content, dark sidebar |
 | HQ console | `/hq/*` | light content, dark sidebar |
+| The books (accounting per company: HQ and each franchisee) | `/books`, `/books/[companyId]/*` | light content, dark sidebar |
 | Menu board (in-store TV) | `/menu/[slug]` | dark, 16:9 |
 | Tax invoice (public, signed link) | `/invoice/[id]?t=` | print-friendly |
 | Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com` — static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
@@ -52,7 +53,9 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   `sales` (postPosSale, refundSale), `orders` (placeOrder, advanceOrder), `inventory` (availability, adjustStock, stock takes),
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
   `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`,
-  `banking` (recordDeposit, reviewDeposit), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
+  `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
+  `queueStoreDay` inside its own transaction — postings are rebuilt from their source, never written by hand; manual
+  journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
   alert about themselves), `commission`, `storage` (putObject/getObject: R2/S3 or `UPLOAD_DIR`; serve files through the app).
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
   `zarCompact` from `@/lib/money`. Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.

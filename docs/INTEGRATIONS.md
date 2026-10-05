@@ -248,9 +248,16 @@ can read the Smart ID card's PDF417 barcode (DOB + ID number) with a camera scan
 
 ## Accounting
 
-Per-store ledgers in **Sage Business Cloud** or **Xero**: post a daily summary journal per store (net sales, VAT,
-tenders, COGS, points) from `DailyStoreStat`. Invoices already carry structured data for SARS e-invoicing (VAT
-modernisation, phased from 2030).
+The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so there is no outside ledger to sync.
+- **Bank statements** arrive as files; there is no live bank feed. The import reads the CSV downloads of FNB, Absa,
+  Standard Bank, Nedbank and Capitec (online banking → the account → download or export the transactions as CSV),
+  OFX/QFX, or any CSV once its columns are named. Each file is kept in storage (`putObject`: R2/S3 or `UPLOAD_DIR`)
+  under `bank-statements/<company>/<month>/` and served only through the app, to that company's books users.
+- **For an outside accountant or auditor:** every report downloads as CSV (trial balance, general ledger, journals,
+  ageing, VAT), and the management pack and reconciliations print to PDF. The company's accountant can also sign in
+  with their own login (role Accountant, one company only).
+- **SARS:** the VAT201 working per period is copied into eFiling; filing stays with the vendor. Invoices already carry
+  structured data for SARS e-invoicing (VAT modernisation, phased from 2030).
 
 ## Merch partner — made-to-order merch (`src/server/pod.ts`, `merch.ts`)
 
