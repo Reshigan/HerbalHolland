@@ -45,7 +45,9 @@ reports) and Postgres can't live on Cloudflare.
    Without them slips are stored on the server under `UPLOAD_DIR` (the image's `/data/uploads` volume) — include it in backups.
 3. Build the image: `docker build -t herbal-holland .`; run migrations: `docker compose run --rm migrate`.
 4. Start the app (`node server.js`, port 3000, behind the tunnel); health check `GET /api/health`.
-5. Create the first HQ admin (SQL or a one-off script) and set `DEMO_MODE=false`.
+5. Create the first HQ admin: `docker compose run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"`
+   (the franchisor company too, if there's none yet). It prints a temporary password once; they choose their own at
+   first sign-in, and everyone after them is added from HQ → Team. Set `DEMO_MODE=false`.
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
 7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences); Catalogue: products, variants, batches with COAs
    (HQ → Catalogue → Import loads the range from a spreadsheet, with the warehouse's opening stock, after a dry run).
@@ -584,6 +586,12 @@ the feature gets a checklist from **Start the opening checklist** on its page. A
 `store.task_done`, `store.task_reopen`.
 
 ## Incidents
+
+**Alerts.** Every server error is logged with `[error]` (method, path without its query string, route, digest and
+stack). With `ALERT_EMAIL` set (and `SMTP_URL`), it's also emailed there: one email per distinct error an hour, and
+no more than 20 an hour in all, so an outage can't flood the inbox (`src/server/alerts.ts`). The app can't report
+its own absence: add an external uptime check on `GET /api/health` (every minute, alert after two failures), which
+also catches the tunnel or the database being down.
 
 **POS offline (power/network).** Tills keep selling cash and queue sales locally; card and PayShap are disabled until
 connectivity returns. Do not clear browser storage on a till with queued sales. Queued sales sync automatically

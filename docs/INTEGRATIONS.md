@@ -399,6 +399,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
 | `CRON_SECRET` | Protects `/api/cron/*` |
+| `ALERT_EMAIL` | Ops inbox for server errors (by SMTP, throttled: one per distinct error an hour, at most 20 an hour); unset = errors are only logged |
 | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Banking slips in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
 | `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image — mount a volume there) — back it up |
 | `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |
