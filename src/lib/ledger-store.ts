@@ -163,7 +163,7 @@ export function stockReceiveLines(a: {
   add(s, "transit", -a.shippedCostCents);
   if (b.companyId === s.companyId) {
     if (!b.hqOwned) add(b, "interstore", vat), add(s, "interstore", -vat); // HQ's own stores settle nothing, so carry no VAT legs
-    add(s, s.hqOwned ? "other.income" : "transfer.diff", cost - ex); // HQ's chart has no transfer-difference account
+    add(s, "transfer.diff", cost - ex);
   } else {
     add(b, b.vendor && s.vendor ? "vat.input" : "vat.nonclaimable", vat);
     add(s, s.hqOwned ? "sales.wholesale" : "sales.network", -(s.vendor ? ex : value));

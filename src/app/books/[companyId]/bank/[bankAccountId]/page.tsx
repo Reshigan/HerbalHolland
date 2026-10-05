@@ -25,6 +25,7 @@ import { AccountForm } from "../account-form";
 import { ImportForm } from "../import-form";
 import { importBankStatement } from "../actions";
 import { AllocateForm } from "./allocate-form";
+import { ScrollTo } from "./scroll-to";
 import { allocate, editBankAccount, ignore, matchNow, matchTo, restore, setAccountOpen, unallocate, unmatch } from "./actions";
 
 export const metadata = { title: "Bank account" };
@@ -42,8 +43,18 @@ export default async function BankAccountPage({ params, searchParams }: { params
   const { company, role } = await requireBooks(companyId);
   const acct = await bankAccountOf(company.id, bankAccountId);
   if (!acct) notFound();
-  const filter = (Object.keys(LINE_FILTERS) as LineFilter[]).find((f) => f === sp1(sp.show)) ?? "todo";
-  const page = pageParam(sp.page);
+  let filter = (Object.keys(LINE_FILTERS) as LineFilter[]).find((f) => f === sp1(sp.show)) ?? "todo";
+  let page = pageParam(sp.page);
+  // ?line= (from a journal, or "Allocate…") opens the list and page that hold the line.
+  const focus = sp1(sp.line);
+  const asked = focus && !sp.show && !sp.page ? await db.bankLine.findFirst({ where: { id: focus, bankAccountId: acct.id, companyId: company.id }, select: { status: true, date: true, createdAt: true } }) : null;
+  if (asked) {
+    const todo = asked.status === "UNMATCHED";
+    filter = todo ? "todo" : "all";
+    const same = { date: asked.date, createdAt: todo ? { lt: asked.createdAt } : { gt: asked.createdAt } };
+    const before = await db.bankLine.count({ where: { bankAccountId: acct.id, ...(todo && { status: "UNMATCHED" as const }), OR: [{ date: todo ? { lt: asked.date } : { gt: asked.date } }, same] } });
+    page = Math.floor(before / PAGE_SIZE) + 1;
+  }
   const path = `/books/${company.id}/bank/${acct.id}`;
   const journal = (id: string) => `/books/${company.id}/journals/${id}`;
   const [{ total, counts, rows }, summary, files, stores] = await Promise.all([
@@ -52,7 +63,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
     statementFiles(company.id, acct.id),
     db.store.findMany({ where: { companyId: company.id, status: { not: "CLOSED" } }, select: { id: true, code: true, name: true }, orderBy: { code: "asc" } }),
   ]);
-  const opened = role.write ? rows.find((r) => r.id === sp1(sp.line) && r.status === "UNMATCHED") : undefined;
+  const opened = role.write ? rows.find((r) => r.id === focus && r.status === "UNMATCHED") : undefined;
   // The list a line is settled from, to come back to (its filter and page).
   const view = new URLSearchParams({ ...(filter !== "todo" && { show: filter }), ...(page > 1 && { page: String(page) }) }).toString();
   const choices = opened ? await allocationChoices(company.id, acct) : null;
@@ -95,6 +106,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
         }
       />
       <Flash message={sp1(sp.m) || undefined} />
+      {focus && rows.some((r) => r.id === focus) && <ScrollTo id={`line-${focus}`} />}
       {!acct.active && <Notice tone="warn" className="mb-6">This bank account is closed: nothing more is imported to it.</Notice>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -138,7 +150,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
             </thead>
             <tbody>
               {rows.map((r) => (
-                <LineRow key={r.id} r={r} write={role.write} companyId={company.id} acctId={acct.id} path={path} sp={sp} view={view} journal={journal} open={opened?.id === r.id}>
+                <LineRow key={r.id} r={r} write={role.write} companyId={company.id} acctId={acct.id} path={path} sp={sp} view={view} journal={journal} open={opened?.id === r.id} focused={r.id === focus}>
                   {opened?.id === r.id && choices && (
                     <tr>
                       <td colSpan={cols} className="border-b border-ink-100 bg-ink-50/70 px-5 py-5">
@@ -227,7 +239,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
   );
 }
 
-function LineRow({ r, write, companyId, acctId, path, sp, view, journal, open, children }: {
+function LineRow({ r, write, companyId, acctId, path, sp, view, journal, open, focused, children }: {
   r: BankLineRow;
   write: boolean;
   companyId: string;
@@ -237,16 +249,17 @@ function LineRow({ r, write, companyId, acctId, path, sp, view, journal, open, c
   view: string;
   journal: (id: string) => string;
   open: boolean;
+  focused: boolean;
   children?: React.ReactNode;
 }) {
   return (
     <>
-      <Tr id={`line-${r.id}`} className={cn("scroll-mt-24 align-top target:bg-brand-50", open && "bg-brand-50/50")}>
+      <Tr id={`line-${r.id}`} className={cn("scroll-mt-24 align-top target:bg-brand-50", (open || focused) && "bg-brand-50/50")}>
         <Td className="whitespace-nowrap text-ink-800">{day(r.day)}</Td>
         <Td className="min-w-56">
           <div className="font-medium text-ink-900">{r.description}</div>
           {r.reference && <div className="text-xs text-ink-500">Ref {r.reference}</div>}
-          {r.balanceCents != null && <div className="tnum text-xs text-ink-500">Balance {zar(r.balanceCents)}</div>}
+          {r.balanceCents != null && <div className="tnum text-xs text-ink-500">Balance {zar(Number(r.balanceCents))}</div>}
         </Td>
         <Td align="right">
           <Money cents={r.amountCents} />
@@ -270,8 +283,9 @@ function LineRow({ r, write, companyId, acctId, path, sp, view, journal, open, c
                 {r.suggestions.map((s) => (
                   <li key={s.key} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-600">
                     <span>
-                      <Link href={journal(s.journalId)} className="font-semibold text-ink-800 hover:text-brand-700">Journal {s.number}</Link> · {fmtDay(`${s.date}T12:00:00Z`)} · {s.memo}
-                      {s.leftCents !== s.cents && <span className="text-ink-500"> ({zar(s.leftCents)} of {zar(s.cents)} left)</span>}
+                      {s.part && "Part of "}
+                      <Link href={journal(s.journalId)} className="font-semibold text-ink-800 hover:text-brand-700">{s.part ? "journal" : "Journal"} {s.number}</Link> · {fmtDay(`${s.date}T12:00:00Z`)} · {s.memo}
+                      {(s.part || s.leftCents !== s.cents) && <span className="text-ink-500"> ({zar(s.leftCents)}{s.leftCents !== s.cents ? ` of ${zar(s.cents)}` : ""} left)</span>}
                     </span>
                     {write && (
                       <ActionButton action={matchTo.bind(null, companyId, acctId, r.id, s.journalId, view)} pendingLabel="Matching…" title={`Match to journal ${s.number}`}>

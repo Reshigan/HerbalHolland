@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  CHART, chartFor, diffLines, fiscalYearEnd, fiscalYearStart, isBalanced, monthEnd, monthsBetween, netLines, postingDay, supplierParty, vatPeriodOf, addMonths,
+  CHART, chartFor, diffLines, fiscalYearEnd, fiscalYearStart, isBalanced, monthEnd, monthsBetween, netLines, postingDay, splitLarge, supplierParty, vatPeriodOf, addMonths,
 } from "@/lib/ledger";
 
 describe("chart of accounts", () => {
@@ -50,6 +50,18 @@ describe("posting lines", () => {
     expect(diffLines([], posted)).toEqual([
       { key: "sales.pos", cents: 1000, storeId: null, partyId: null },
       { key: "cash", cents: -1000, storeId: null, partyId: null },
+    ]);
+  });
+
+  it("stores an amount over a line's limit as several lines on the same account", () => {
+    expect(splitLarge([{ key: "capital", cents: -45, storeId: "s1" }, { key: "bank", cents: 45 }, { key: "fees", cents: 7 }], 20)).toEqual([
+      { key: "capital", cents: -20, storeId: "s1" },
+      { key: "capital", cents: -20, storeId: "s1" },
+      { key: "capital", cents: -5, storeId: "s1" },
+      { key: "bank", cents: 20 },
+      { key: "bank", cents: 20 },
+      { key: "bank", cents: 5 },
+      { key: "fees", cents: 7 },
     ]);
   });
 });

@@ -25,6 +25,7 @@ import { tradeEftExpiry, tradeOverdueHolds, tradeStatements } from "./trade/jobs
 import { tradeLicenceExpiry } from "./trade/licences";
 import { purgeAuthRecords } from "./auth";
 import { settleStatementInvoices } from "./supplier-invoices";
+import { autoMatchAll } from "./ledger/bank";
 import { ledgerNightly, processLedgerQueue } from "./ledger/core";
 
 export { tradeEftExpiry, tradeOverdueHolds, tradeStatements, tradeLicenceExpiry };
@@ -120,6 +121,7 @@ export const JOBS: Record<string, () => Promise<Record<string, unknown>>> = {
     statementInvoices: await settleStatementInvoices(), // stock orders from a month that's over: settled on its statement
     // The books: the day that ended (and month-end work on the 1st) queued and posted, after everything above.
     ledger: await ledgerNightly(),
+    bank: await autoMatchAll(),
   }),
   // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": () => runStaffPush(),

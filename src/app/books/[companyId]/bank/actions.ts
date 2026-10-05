@@ -32,7 +32,6 @@ export async function importBankStatement(companyId: string, bankAccountId: stri
       r.duplicates && `${plural(r.duplicates, "line")} already imported`,
       r.matched && `${plural(r.matched, "line")} matched automatically`,
       r.skipped && `${plural(r.skipped, "balance or pending line")} left out`,
-      r.balancesLeftOff && `${plural(r.balancesLeftOff, "balance")} over R21 million left off`,
     ].filter(Boolean);
     const failed = r.failed.length ? ` ${plural(r.failed.length, "line")} couldn't be read: ${r.failed.slice(0, 3).map((f) => `row ${f.row}, ${f.error}`).join("; ")}${r.failed.length > 3 ? "; …" : ""}.` : "";
     const [from, to] = [`${r.from}T12:00:00Z`, `${r.to}T12:00:00Z`];

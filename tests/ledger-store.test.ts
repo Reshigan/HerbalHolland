@@ -205,7 +205,7 @@ describe("stock orders", () => {
     const lost = receive(s1, dc, { receivedCents: 0, valueCents: 0, receivedCostCents: 0 });
     expect(books(lost)).toEqual({ hq: { "stock.transit#dc": 60_000, "transit#dc": -60_000 } });
     const own = receive(hqShop, dc, { receivedCents: 40_000, valueCents: 46_000, shippedCostCents: 30_000, receivedCostCents: 24_000 });
-    expect(books(own)).toEqual({ hq: { "stock#hs": 40_000, "stock.transit#dc": 6_000, "other.income#dc": -16_000, "transit#dc": -30_000 } });
+    expect(books(own)).toEqual({ hq: { "stock#hs": 40_000, "stock.transit#dc": 6_000, "transfer.diff#dc": -16_000, "transit#dc": -30_000 } });
     balanced(own);
   });
 });

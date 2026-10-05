@@ -117,7 +117,7 @@ describe("Importing a statement", () => {
     expect(r).toMatchObject({ format: "FNB", lines: 5, added: 5, duplicates: 0, failed: [], matched: 1, from: "2026-10-01", to: "2026-10-04" });
     const deposit = await lineOf(fnb.id, "Magtape");
     const depositJournal = await db.journal.findFirstOrThrow({ where: { source: "deposit", sourceId: "dep-1" } });
-    expect(deposit).toMatchObject({ status: "MATCHED", journalId: depositJournal.id, amountCents: 500_000, balanceCents: 1_500_000, matchedById: owner.id });
+    expect(deposit).toMatchObject({ status: "MATCHED", journalId: depositJournal.id, amountCents: 500_000, balanceCents: 1_500_000n, matchedById: owner.id });
     expect(await db.bankLine.count({ where: { bankAccountId: fnb.id, status: "UNMATCHED" } })).toBe(4);
     const upload = await db.upload.findUniqueOrThrow({ where: { id: deposit.uploadId! } });
     expect(upload).toMatchObject({ fileName: "fnb-oct.csv", contentType: "text/csv", storeId: w.store.id, uploadedById: owner.id });
@@ -166,12 +166,13 @@ describe("Settling lines", () => {
     const [a, b] = [await lineOf(fnb.id, "SALE 41"), await lineOf(fnb.id, "SALE 42")];
     const page = await bankLinePage(w.owner.id, fnb, "todo", 1, 25);
     expect(page.rows.map((r) => r.description)).toEqual(["PayShap Credit TST01 SALE 41", "PayShap Credit TST01 SALE 42"]);
-    expect(page.rows[0].suggestions).toEqual([]); // no posting of exactly R300
+    // No posting of exactly R300: the day's trading it could be part of.
+    expect(page.rows[0].suggestions).toMatchObject([{ number: day.number, part: true, leftCents: 50_000 }]);
     await matchLine(w.owner.id, a.id, { number: day.number });
     await expect(matchLine(w.owner.id, b.id, { number: 9999 })).rejects.toThrow("There's no posted journal 9999");
     const deposit = await db.journal.findFirstOrThrow({ where: { source: "deposit" } });
     await expect(matchLine(w.owner.id, b.id, { id: deposit.id })).rejects.toThrow("already matched in full");
-    expect((await bankLinePage(w.owner.id, fnb, "todo", 1, 25)).rows[0].suggestions).toMatchObject([{ number: day.number, leftCents: 20_000 }]);
+    expect((await bankLinePage(w.owner.id, fnb, "todo", 1, 25)).rows[0].suggestions).toMatchObject([{ number: day.number, leftCents: 20_000, part: false }]);
     await matchLine(w.owner.id, b.id, { number: day.number });
     expect(await db.bankLine.count({ where: { bankAccountId: fnb.id, status: "UNMATCHED" } })).toBe(0);
   });

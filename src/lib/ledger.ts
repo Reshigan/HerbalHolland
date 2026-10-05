@@ -44,7 +44,7 @@ export const CHART: ChartRow[] = [
   { key: "sales.online", code: "4010", name: "Online sales", type: "INCOME" },
   { key: "sales.trade", code: "4020", name: "Trade sales", type: "INCOME" },
   { key: "sales.network", code: "4030", name: "Stock sold to other stores", type: "INCOME", only: "FRANCHISEE" },
-  { key: "transfer.diff", code: "4040", name: "Transfer price differences between own stores", type: "INCOME", only: "FRANCHISEE" },
+  { key: "transfer.diff", code: "4040", name: "Transfer price differences between own stores", type: "INCOME" },
   { key: "sales.wholesale", code: "4100", name: "Sales to franchisees", type: "INCOME", only: "HQ" },
   { key: "royalty", code: "4200", name: "Royalties", type: "INCOME", only: "HQ" },
   { key: "ecom", code: "4210", name: "E-commerce commission", type: "INCOME", only: "HQ" },
@@ -109,6 +109,20 @@ export function netLines(lines: Line[]): Line[] {
 
 export const sumCents = (lines: { cents: number }[]) => lines.reduce((s, l) => s + l.cents, 0);
 export const isBalanced = (lines: { cents: number }[]) => sumCents(lines) === 0;
+
+/** A journal line holds at most R20m (a 32-bit column); a bigger amount is stored as several lines on the same account. */
+export const LINE_CAP_CENTS = 2_000_000_000;
+export function splitLarge<T extends { cents: number }>(lines: T[], cap = LINE_CAP_CENTS): T[] {
+  return lines.flatMap((l) => {
+    const parts: T[] = [];
+    let left = l.cents;
+    while (Math.abs(left) > cap) {
+      parts.push({ ...l, cents: Math.sign(left) * cap });
+      left -= Math.sign(left) * cap;
+    }
+    return [...parts, { ...l, cents: left }];
+  });
+}
 
 /** What must be posted so that `posted` becomes `desired`: the difference, netted. Both must balance. */
 export function diffLines(desired: Line[], posted: Line[]): Line[] {

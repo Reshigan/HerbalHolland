@@ -67,7 +67,7 @@ export default async function BankingPage({ params }: { params: Promise<{ compan
       )}
 
       <div className={cn("grid gap-6", accounts.length > 0 && "mt-6", role.write && open.length > 0 && "xl:grid-cols-3")}>
-        <Card className="min-w-0 xl:col-span-2">
+        <Card className={cn("min-w-0", role.write && open.length > 0 && "xl:col-span-2")}>
           <CardHeader title="Bank accounts" description="The books' balance is everything posted; the statement's is the newest imported balance." />
           {accounts.length === 0 ? (
             <EmptyState icon={<Landmark className="h-5 w-5" aria-hidden />} title="No bank accounts yet">

@@ -15,7 +15,7 @@ import { putObject } from "../storage";
 import { booksAccess } from "./access";
 import { booksFor, syncPosting, type Posting } from "./core";
 import {
-  assignMatches, BANKS, decodeStatement, hashLines, LINE_MAX_CENTS, matchCandidates, parseStatement, reconcile, STATEMENT_MAX_BYTES,
+  assignMatches, BANKS, daysApart, decodeStatement, hashLines, matchCandidates, parseStatement, reconcile, STATEMENT_MAX_BYTES,
   type Bank, type ColumnMap, type LedgerItem, type StatementFormat,
 } from "@/lib/bank-import";
 import { periodOf, supplierParty, type Line } from "@/lib/ledger";
@@ -154,7 +154,7 @@ export async function setBankAccountActive(companyId: string, id: string, active
 
 export type ImportResult = {
   format: string; lines: number; added: number; duplicates: number; failed: { row: number; error: string }[]; skipped: number; matched: number;
-  from: string | null; to: string | null; balancesLeftOff: number;
+  from: string | null; to: string | null;
 };
 
 /**
@@ -184,7 +184,6 @@ export async function importStatement(companyId: string, bankAccountId: string, 
   const ofx = read.format === "OFX";
   const key = `bank-statements/${companyId}/${dayKey(new Date()).slice(0, 7)}/${randomUUID()}.${ofx ? "ofx" : "csv"}`;
   if (fresh.length) await putObject(key, bytes, ofx ? "application/x-ofx" : "text/csv");
-  const fits = (n?: number) => (n != null && Math.abs(n) <= LINE_MAX_CENTS ? n : null);
   const base = Date.now(); // createdAt keeps the statement's order within a day
   const [from, to] = [lines[0].date, lines[lines.length - 1].date];
   const added = await tx(async (t) => {
@@ -201,7 +200,7 @@ export async function importStatement(companyId: string, bankAccountId: string, 
     for (const part of slices(fresh, 1000)) {
       const data = part.map((l) => ({
         companyId, bankAccountId: acct.id, date: dateCol(l.date), amountCents: l.amountCents, description: l.description, reference: l.reference ?? null,
-        balanceCents: fits(l.balanceCents), hash: l.hash, uploadId: upload?.id ?? null, createdAt: new Date(base + l.i),
+        balanceCents: l.balanceCents == null ? null : BigInt(l.balanceCents), hash: l.hash, uploadId: upload?.id ?? null, createdAt: new Date(base + l.i),
       }));
       count += (await t.bankLine.createMany({ data, skipDuplicates: true })).count;
     }
@@ -214,7 +213,6 @@ export async function importStatement(companyId: string, bankAccountId: string, 
   const matched = await autoMatch(companyId, acct.id, actor);
   return {
     format: read.format, lines: lines.length, added, duplicates: lines.length - added, failed: read.failed, skipped: read.skipped, matched, from, to,
-    balancesLeftOff: fresh.filter((l) => l.balanceCents != null && fits(l.balanceCents) == null).length,
   };
 }
 
@@ -324,17 +322,35 @@ export async function autoMatchAll() {
   return { accounts: open.length, matched };
 }
 
-/** For each open line given: the postings it could be, best first (three at most), with what's left of each to match. */
+/** Postings that take many statement lines: a trading day's PayShap and EFT at the till post as one amount. */
+const MANY_LINES = new Set(["store-day"]);
+const PART_DAYS = 3;
+
+/**
+ * For each open line given: the postings it could be, best first (three at most), with what's left of each to match —
+ * the same amount, or (when none has it) a trading day it could be part of.
+ */
 export async function suggestionsFor(companyId: string, acct: { id: string; accountId: string }, lines: { id: string; status: BankLineStatus; date: Date; amountCents: number; description: string; reference: string | null }[]) {
   const open = lines.filter((l) => l.status === "UNMATCHED");
-  const out = new Map<string, (BookPosting & { leftCents: number; days: number })[]>();
+  const out = new Map<string, (BookPosting & { leftCents: number; days: number; part: boolean })[]>();
   if (!open.length) return out;
   const days = open.map((l) => day(l.date)).sort();
   const ps = await postings(db, companyId, acct, { from: shift(days[0], -SUGGEST_DAYS), to: shift(days[days.length - 1], SUGGEST_DAYS) });
   const text = await postingWords(ps);
   const byKey = new Map(ps.map((p) => [p.key, p]));
-  const items = byAmount(ps.filter((p) => p.cents !== p.matchedCents).map((p) => ({ id: p.key, date: p.date, amountCents: p.cents - p.matchedCents, text: text(p) })));
-  for (const l of open) out.set(l.id, matchCandidates(asLine(l), items(l.amountCents), SUGGEST_DAYS).slice(0, 3).map((c) => ({ ...byKey.get(c.item.id)!, leftCents: c.item.amountCents, days: c.days })));
+  const left = ps.filter((p) => p.cents !== p.matchedCents).map((p) => ({ id: p.key, date: p.date, amountCents: p.cents - p.matchedCents, text: text(p) }));
+  const items = byAmount(left);
+  for (const l of open) {
+    const line = asLine(l);
+    const exact = matchCandidates(line, items(l.amountCents), SUGGEST_DAYS).map((c) => ({ ...byKey.get(c.item.id)!, leftCents: c.item.amountCents, days: c.days, part: false }));
+    const parts = exact.length
+      ? []
+      : left
+          .filter((i) => MANY_LINES.has(byKey.get(i.id)!.source) && Math.sign(i.amountCents) === Math.sign(l.amountCents) && Math.abs(i.amountCents) > Math.abs(l.amountCents) && daysApart(i.date, line.date) <= PART_DAYS)
+          .map((i) => ({ ...byKey.get(i.id)!, leftCents: i.amountCents, days: daysApart(i.date, line.date), part: true }))
+          .sort((a, b) => a.days - b.days || a.number - b.number);
+    out.set(l.id, [...exact, ...parts].slice(0, 3));
+  }
   return out;
 }
 
@@ -510,7 +526,7 @@ async function statementAt(bankAccountId: string, on: string) {
   const [after] = await db.$queryRaw<{ cents: bigint | null; n: number }[]>`
     SELECT SUM(b."amountCents")::bigint AS cents, COUNT(*)::int AS n FROM "BankLine" b, "BankLine" lb
     WHERE lb.id = ${last.id} AND b."bankAccountId" = ${bankAccountId} AND b.date <= ${on}::date AND (b.date, b."createdAt", b.id) > (lb.date, lb."createdAt", lb.id)`;
-  return { cents: last.balanceCents! + Number(after?.cents ?? 0), asOf: day(last.date), later: after?.n ?? 0 };
+  return { cents: Number(last.balanceCents!) + Number(after?.cents ?? 0), asOf: day(last.date), later: after?.n ?? 0 };
 }
 
 /** The balance before the first imported line: the first balance given, less the lines up to it. */

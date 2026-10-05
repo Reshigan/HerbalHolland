@@ -2297,7 +2297,7 @@ model BankLine {
   amountCents   Int // money in positive, out negative
   description   String
   reference     String?
-  balanceCents  Int?
+  balanceCents  BigInt?
   hash          String
   uploadId      String?
   status        BankLineStatus @default(UNMATCHED)

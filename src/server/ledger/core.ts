@@ -6,7 +6,7 @@ import { db, tx, Prisma, type Tx } from "../db";
 import { audit, SYSTEM, type Actor } from "../audit";
 import { reportError } from "../alerts";
 import { nextNumber } from "../counters";
-import { chartFor, diffLines, netLines, periodOf, postingDay, sumCents, type Line } from "@/lib/ledger";
+import { chartFor, diffLines, netLines, periodOf, postingDay, splitLarge, sumCents, type Line } from "@/lib/ledger";
 import { dayKey } from "@/lib/format";
 
 export class LedgerError extends Error {}
@@ -56,7 +56,7 @@ export async function writeJournal(t: Tx, j: JournalInput) {
     data: {
       companyId: j.companyId, number: await nextNumber(t, `journal:${j.companyId}`), date, period, source: j.source, sourceId: j.sourceId ?? null, storeId: j.storeId ?? null,
       memo: j.memo.slice(0, 300), status, late: !!j.late, reversalOfId: j.reversalOfId ?? null, createdById: j.createdById ?? null, approvedById: j.approvedById ?? null,
-      lines: { create: lines.map((l) => ({ companyId: j.companyId, accountId: l.accountId, storeId: l.storeId ?? null, partyId: l.partyId ?? null, amountCents: l.cents, memo: l.memo?.slice(0, 200) ?? null, date, period })) },
+      lines: { create: splitLarge(lines).map((l) => ({ companyId: j.companyId, accountId: l.accountId, storeId: l.storeId ?? null, partyId: l.partyId ?? null, amountCents: l.cents, memo: l.memo?.slice(0, 200) ?? null, date, period })) },
     },
   });
   if (status === "POSTED") await addBalances(t, j.companyId, period, lines);
