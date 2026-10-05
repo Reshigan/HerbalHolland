@@ -333,7 +333,7 @@ export type SourceLink = { label: string; href: string };
 
 /**
  * The page an automatic journal came from — a store's trading day, a cash-up, a deposit, an expense, a supplier
- * invoice, a stock order, a statement, an online order, a trade account, a bank line — when the viewer may open it
+ * invoice, a stock order, a statement, an online order, a trade account, a bank line, a VAT period — when the viewer may open it
  * (an accountant sees only the books, so only bank lines link for them). Null for manual journals and unknown sources.
  */
 export async function sourceLink(j: { companyId: string; source: string; sourceId: string | null; storeId?: string | null }, viewer: Viewer): Promise<SourceLink | null> {
@@ -418,6 +418,8 @@ export async function sourceLink(j: { companyId: string; source: string; sourceI
       const o = await db.tradeOrder.findUnique({ where: { id: first }, select: { id: true, number: true } });
       return o ? { label: `Trade order ${o.number}`, href: `/hq/trade/orders/${o.id}` } : null;
     }
+    case "vat-period":
+      return /^\d{4}-\d{2}$/.test(second ?? "") ? { label: `VAT period to ${fmtMonth(`${second}-15T12:00:00Z`)}`, href: `/books/${j.companyId}/vat?period=${second}` } : null;
     case "bank": {
       const line = await db.bankLine.findFirst({ where: { id: first, companyId: j.companyId }, select: { id: true, bankAccountId: true, date: true, description: true } });
       return line ? { label: `Bank statement · ${fmtDate(line.date)} · ${line.description.slice(0, 40)}`, href: `/books/${j.companyId}/bank/${line.bankAccountId}?line=${line.id}` } : null;

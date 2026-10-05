@@ -32,8 +32,9 @@ export default async function BankingPage({ params }: { params: Promise<{ compan
     db.store.findMany({ where: { companyId: company.id, status: { not: "CLOSED" } }, select: { id: true, code: true, name: true }, orderBy: { code: "asc" } }),
   ]);
   const open = accounts.filter((a) => a.active);
-  const todo = open.reduce((n, a) => n + a.todo, 0);
-  const lastImport = open.flatMap((a) => (a.lastImport ? [a.lastImport] : [])).sort((a, b) => +b - +a)[0];
+  const closed = accounts.length - open.length;
+  const todo = accounts.reduce((n, a) => n + a.todo, 0);
+  const lastImport = accounts.flatMap((a) => (a.lastImport ? [a.lastImport] : [])).sort((a, b) => +b - +a)[0];
   const path = `/books/${company.id}/bank`;
 
   return (
@@ -58,8 +59,8 @@ export default async function BankingPage({ params }: { params: Promise<{ compan
 
       {accounts.length > 0 && (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          <Stat label="In the books" value={zarCompact(open.reduce((s, a) => s + a.ledgerCents, 0))} sub={plural(open.length, "bank account")} />
-          <Stat label="On the statements" value={zarCompact(open.reduce((s, a) => s + (a.statement?.cents ?? 0), 0))} sub="the latest balance of each" />
+          <Stat label="In the books" value={zarCompact(accounts.reduce((s, a) => s + a.ledgerCents, 0))} sub={`${plural(open.length, "open account")}${closed ? `, ${closed} closed` : ""}`} />
+          <Stat label="On the statements" value={zarCompact(accounts.reduce((s, a) => s + (a.statement?.cents ?? 0), 0))} sub="the latest balance of each" />
           <Stat label="Lines to do" value={<span className={todo ? "text-amber-700" : "text-leaf-700"}>{todo.toLocaleString()}</span>} sub={todo ? "to match, allocate or ignore" : "all settled"} />
           <Stat label="Last import" value={lastImport ? fmtDate(lastImport) : "—"} sub={lastImport ? "the newest statement file" : "nothing imported yet"} />
         </div>
@@ -96,7 +97,7 @@ export default async function BankingPage({ params }: { params: Promise<{ compan
                       </div>
                       {!a.active && <Badge className="mt-1">Closed</Badge>}
                     </Td>
-                    <Td className="hidden whitespace-nowrap text-ink-600 md:table-cell">
+                    <Td className="hidden text-ink-600 md:table-cell">
                       {a.ledgerAccount ? `${a.ledgerAccount.code} · ${a.ledgerAccount.name}` : "—"}
                       {a.ledgerAccount?.key === "bank" && <div className="text-xs text-ink-500">where deposits and payments post</div>}
                     </Td>
@@ -118,7 +119,7 @@ export default async function BankingPage({ params }: { params: Promise<{ compan
                           <span className="block text-xs font-normal text-ink-500">{zar(a.todoCents)}</span>
                         </Link>
                       ) : (
-                        <Badge tone={a.lines ? "green" : "neutral"}>{a.lines ? "All settled" : "—"}</Badge>
+                        a.lines ? <Badge tone="green">All settled</Badge> : <span className="text-ink-500">—</span>
                       )}
                     </Td>
                   </Tr>

@@ -21,7 +21,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ companyId:
     console.error("[bank] statement file read failed", file.id, e);
     return notFound();
   }
-  await audit(db, { type: "USER", id: access.user.id, name: access.user.name }, "bank.statement_download", { entity: "Upload", entityId: file.id, data: { companyId, bankAccountId } });
+  await audit(db, { type: "USER", id: access.user.id, name: access.user.name }, "bank.statement.file_view", { entity: "Upload", entityId: file.id, data: { companyId, bankAccountId } });
   const ofx = file.contentType === "application/x-ofx";
   // The name is built from the import date, never from what was uploaded.
   const name = `bank-statement-${file.createdAt.toISOString().slice(0, 10)}.${ofx ? "ofx" : "csv"}`;

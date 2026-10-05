@@ -166,8 +166,19 @@ describe("Reconciliation checks", () => {
 
   it("set HQ's books against the franchisees' books and the registers", async () => {
     const hq = w.hq.id;
-    const voucher = await db.giftVoucher.create({ data: { code: "GV-TEST-1", amountCents: 50_000, balanceCents: 30_000, status: "ACTIVE", issuedAt: new Date(), expiresAt: new Date(Date.now() + 365 * 86_400_000) } });
+    const voucher = await db.giftVoucher.create({ data: { code: "GV-TEST-1", amountCents: 50_000, balanceCents: 25_000, status: "ACTIVE", issuedAt: new Date(), expiresAt: new Date(Date.now() + 365 * 86_400_000) } });
     await db.voucherRedemption.create({ data: { voucherId: voucher.id, cents: 20_000 } });
+    // An online order still being picked: checkout took R50 off the voucher and 50 points; the books move at handover.
+    const order = await db.order.create({
+      data: { code: "HHT0001", customerId: w.walkIn.id, storeId: w.store.id, status: "PICKING", fulfilment: "COLLECT", subtotalCents: 10_000, totalCents: 10_000, vatCents: 1_304, payMethod: "VOUCHER", collectionCode: "4321", events: [], pointsRedeemed: 50 },
+    });
+    await db.voucherRedemption.create({ data: { voucherId: voucher.id, orderId: order.id, cents: 5_000 } });
+    await db.loyaltyEntry.create({ data: { customerId: w.walkIn.id, points: -50, kind: "REDEEM", orderId: order.id, storeId: w.store.id } });
+    await db.customer.update({ where: { id: w.walkIn.id }, data: { points: { decrement: 50 } } });
+    // An EFT trade order paid ahead: it goes through prepaid, never the trade account.
+    const ta = await db.tradeAccount.findFirstOrThrow();
+    const eft = await db.tradeOrder.create({ data: { number: "TO-000001", tradeAccountId: ta.id, storeId: w.dc.id, payMethod: "EFT", subtotalCents: 6_087, vatCents: 913, totalCents: 7_000, events: [], paidAt: new Date(), paymentRef: "EFT-77" } });
+    await db.tradeLedgerEntry.create({ data: { tradeAccountId: ta.id, kind: "PAYMENT", cents: -7_000, reference: "EFT-77", tradeOrderId: eft.id } });
     let checks = await booksChecks(hq, P, later);
     expect(pick(checks, "trial-balance").ok).toBe(true);
     expect(pick(checks, "debtors")).toMatchObject({ ok: true, expected: 10_000, actual: 10_000 }); // the opening balance
@@ -184,12 +195,23 @@ describe("Reconciliation checks", () => {
     await tx((t) => syncPosting(t, "test-payment", "p1", hq, { companyId: hq, date: today, memo: "Statement payment", lines: [{ key: "bank", cents: 100_000 }, { key: "franchisees", cents: -100_000, storeId: w.store.id, partyId: w.owner.id }] }));
     checks = await booksChecks(hq, P, later);
     for (const key of ["vouchers", "points", "franchisees", "debtors", "trial-balance", "running-balances"]) expect(pick(checks, key)).toMatchObject({ ok: true });
-    await db.tradeLedgerEntry.create({ data: { tradeAccountId: (await db.tradeAccount.findFirstOrThrow()).id, kind: "PAYMENT", cents: -4_000, reference: "EFT" } });
-    expect(pick(await booksChecks(hq, P, later), `debtors:${(await db.tradeAccount.findFirstOrThrow()).id}`)).toMatchObject({ ok: false, expected: 6_000, actual: 10_000 });
+    // Only the known timing items differ, so they agree — and say so.
+    expect(pick(checks, "vouchers")).toMatchObject({ expected: 30_000, detail: expect.stringContaining("plus R50.00 taken at checkout for online orders not handed over yet") });
+    expect(pick(checks, "points")).toMatchObject({ expected: 20_000, detail: expect.stringContaining("Members held 150 points") });
+    expect(pick(checks, "debtors").detail).toContain("Entries for EFT orders are left out");
+    await db.tradeLedgerEntry.create({ data: { tradeAccountId: ta.id, kind: "PAYMENT", cents: -4_000, reference: "EFT" } });
+    expect(pick(await booksChecks(hq, P, later), `debtors:${ta.id}`)).toMatchObject({ ok: false, expected: 6_000, actual: 10_000 });
 
     const health = await booksHealth([{ id: hq, kind: "FRANCHISOR" }, { id: w.owner.id, kind: "FRANCHISEE" }], later);
     expect(health.get(hq)).toEqual({ drafts: 0, issues: ["1 posting failed"] });
     expect(health.get(w.owner.id)).toEqual({ drafts: 1, issues: ["1 posting failed", "1 unmatched bank line"] });
+
+    // In a month under way, points franchisee stores issued wait for the month's statements: a timing item too.
+    await db.dailyStoreStat.create({ data: { storeId: w.store.id, date: new Date("2026-03-10T00:00:00Z"), channel: "POS", pointsIssued: 30 } });
+    await db.loyaltyEntry.create({ data: { customerId: w.walkIn.id, points: 30, kind: "EARN", storeId: w.store.id, createdAt: new Date("2026-03-10T10:00:00+02:00") } });
+    await db.customer.update({ where: { id: w.walkIn.id }, data: { points: { increment: 30 } } });
+    const march = pick(await booksChecks(hq, "2026-03", new Date("2026-03-20T12:00:00+02:00")), "points");
+    expect(march).toMatchObject({ ok: true, expected: 0, actual: 0, detail: expect.stringContaining("Members held 30 points on 19 Mar 2026, less 30 issued at franchisee stores this month") });
   });
 });
 

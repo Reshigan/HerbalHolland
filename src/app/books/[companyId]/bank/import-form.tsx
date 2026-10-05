@@ -14,6 +14,7 @@ const COLUMNS = [
   ["mapBalance", "Balance (optional)", "e.g. Balance", false],
   ["mapReference", "Reference (optional)", "e.g. Reference", false],
 ] as const;
+const WIDE = new Set<string>(["mapAmount"]);
 
 export function ImportForm({ action, accounts, formats, maxBytes, idPrefix = "imp" }: {
   action: FormAction;
@@ -72,7 +73,7 @@ export function ImportForm({ action, accounts, formats, maxBytes, idPrefix = "im
           <p className="mb-3 text-xs text-ink-500">Each column&apos;s heading as it is in the file, or its number (1 for the first column). One amount column with money out negative, or a money out and a money in column.</p>
           <div className="grid gap-3 sm:grid-cols-2">
             {COLUMNS.map(([name, label, placeholder, required]) => (
-              <Field key={name} label={label} htmlFor={id(name)}>
+              <Field key={name} label={label} htmlFor={id(name)} className={WIDE.has(name) ? "sm:col-span-2" : undefined}>
                 <Input id={id(name)} name={name} placeholder={placeholder} required={required} maxLength={60} autoComplete="off" />
               </Field>
             ))}

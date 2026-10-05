@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
-  csvRows, decodeStatement, hashLines, lineHash, matchCandidates, parseStatement, readAmount, readDay, reconcile, StatementError, type LedgerItem,
+  assignMatches, csvRows, decodeStatement, hashLines, lineHash, matchCandidates, parseStatement, readAmount, readDay, reconcile, StatementError, type LedgerItem,
 } from "@/lib/bank-import";
 
 const lines = (text: string, format?: Parameters<typeof parseStatement>[1], map?: Parameters<typeof parseStatement>[2]) => parseStatement(text, format, map).lines;
@@ -282,6 +282,18 @@ describe("matching", () => {
     expect(c.map((x) => x.item.id)).toEqual(["same-day", "two-days-ref", "two-days"]);
     expect(c[1]).toMatchObject({ days: 2, overlap: 2 });
     expect(matchCandidates(line, items, 10).map((x) => x.item.id)).toContain("far");
+  });
+});
+
+describe("matching by itself", () => {
+  const assign = (c: Record<string, string[]>) => Object.fromEntries(assignMatches(new Map(Object.entries(c))));
+
+  it("takes a line's only candidate, then what that leaves the others; never guesses between two", () => {
+    expect(assign({ a: ["p"], b: ["p", "q"] })).toEqual({ a: "p", b: "q" });
+    expect(assign({ a: ["p"], b: ["q"], c: ["q", "r"] })).toEqual({ a: "p", b: "q", c: "r" });
+    expect(assign({ a: ["p"], b: ["p"] })).toEqual({});
+    expect(assign({ a: ["p", "q"], b: ["p", "q"] })).toEqual({});
+    expect(assign({ a: [], b: ["p"] })).toEqual({ b: "p" });
   });
 });
 

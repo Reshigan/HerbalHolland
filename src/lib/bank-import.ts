@@ -573,6 +573,30 @@ export function matchCandidates(line: { date: string; amountCents: number; descr
     .sort((a, b) => a.days - b.days || b.overlap - a.overlap || a.item.date.localeCompare(b.item.date) || a.item.id.localeCompare(b.item.id));
 }
 
+/**
+ * Which lines match which postings by themselves, given each line's candidates: a line whose one candidate is no
+ * other line's one candidate takes it, the posting is gone for the rest, and again until nothing changes. A line with
+ * several candidates left, or two lines with the same single one, is left to a person.
+ */
+export function assignMatches(candidates: Map<string, string[]>) {
+  const left = new Map([...candidates].map(([line, c]) => [line, new Set(c)]));
+  const out = new Map<string, string>();
+  for (let progress = true; progress; ) {
+    progress = false;
+    const singles = [...left].flatMap(([line, c]) => (c.size === 1 ? [[line, [...c][0]] as const] : []));
+    const wanted = new Map<string, number>();
+    for (const [, p] of singles) wanted.set(p, (wanted.get(p) ?? 0) + 1);
+    for (const [line, p] of singles) {
+      if (wanted.get(p) !== 1) continue;
+      out.set(line, p);
+      left.delete(line);
+      for (const c of left.values()) c.delete(p);
+      progress = true;
+    }
+  }
+  return out;
+}
+
 // ── Reconciliation ─────────────────────────────────────────────────────────────
 
 /**

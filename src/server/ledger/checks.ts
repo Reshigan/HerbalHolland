@@ -14,7 +14,7 @@ import { franchiseStatement } from "../finance";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { checkDate, differences } from "@/lib/ledger-admin";
 import { addMonths, monthEnd, monthStart, periodOf } from "@/lib/ledger";
-import { dayKey, fmtDate, fmtMonth } from "@/lib/format";
+import { addDays, dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { plural } from "@/lib/plural";
 
@@ -87,7 +87,7 @@ export async function booksChecks(companyId: string, period: string, now = new D
   const book = await tx((t) => booksFor(t, companyId));
   const stores = await db.store.findMany({ where: { companyId }, select: { id: true, code: true, name: true, kind: true }, orderBy: { code: "asc" } });
   const base = `/books/${companyId}`;
-  const ledger = (key: string, q: Record<string, string> = {}) => `${base}/reports/ledger?${new URLSearchParams({ account: book.accounts.get(key)!, month: period, ...q })}`;
+  const ledger = (key: string, q: Record<string, string> = {}) => `${base}/reports/ledger?${new URLSearchParams({ account: book.accounts.get(key)!, from: period, to: period, ...q })}`;
   const ctx = { companyId, period, when, stores, accounts: book.accounts, base, ledger };
   const parts = await Promise.all([
     ledgerChecks(ctx),
@@ -123,7 +123,7 @@ async function ledgerChecks({ companyId, period, base }: Ctx): Promise<BooksChec
     check({
       key: "trial-balance", label: "Debits equal credits", expected: credits, actual: debits,
       detail: `${zar(debits)} of debits and ${zar(credits)} of credits to the end of ${monthName(period)}.`,
-      href: `${base}/reports/trial-balance?month=${period}`,
+      href: `${base}/reports/trial-balance?from=${period}&to=${period}`,
     }),
     check({
       key: "running-balances", label: "Account balances match the journals",
@@ -165,8 +165,8 @@ async function statementChecks({ companyId, period, stores, accounts, ledger }: 
 
 /** HQ: franchisee accounts vs each franchisee's books (the month's movement), vouchers, points and trade debtors. */
 async function networkChecks(ctx: Ctx): Promise<BooksCheck[]> {
-  const [mirror, vouchers, points, debtors] = await Promise.all([mirrorChecks(ctx), voucherCheck(ctx), ctx.when.over ? pointsCheck(ctx) : [], debtorChecks(ctx)]);
-  return [...mirror, vouchers, ...points, ...debtors];
+  const [mirror, vouchers, points, debtors] = await Promise.all([mirrorChecks(ctx), voucherCheck(ctx), pointsCheck(ctx), debtorChecks(ctx)]);
+  return [...mirror, vouchers, points, ...debtors];
 }
 
 /**
@@ -214,25 +214,46 @@ async function mirrorChecks({ companyId, period, accounts, ledger }: Ctx): Promi
   return rows;
 }
 
-/** Gift vouchers in issue = what's left on every voucher issued (paid for) and not expired, taken back to the cutoff. */
+// What checkout takes for an online order (gift voucher money, points) leaves the register at once, but the books move
+// when the store hands the order over (its trading day posts it): orders still open at the cutoff are a timing item.
+// Online orders don't stay open for months, so the look-back is bounded.
+const OPEN_ORDER_DAYS = 120;
+
+/**
+ * Gift vouchers in issue = what's left on every voucher sold and not expired, plus what checkout took for online
+ * orders not handed over yet, all taken back to the cutoff.
+ */
 async function voucherCheck({ companyId, when, accounts, ledger }: Ctx): Promise<BooksCheck> {
-  const [register] = await db.$queryRaw<{ cents: bigint }[]>`
-    SELECT COALESCE(SUM(v."amountCents" - COALESCE(r.used, 0)), 0)::bigint AS cents
+  const [r] = await db.$queryRaw<{ left: bigint; held: bigint }[]>`
+    SELECT COALESCE(SUM(v."amountCents" - COALESCE(x.used, 0)), 0)::bigint AS left, COALESCE(SUM(x.held), 0)::bigint AS held
     FROM "GiftVoucher" v
-    LEFT JOIN (SELECT "voucherId", SUM(cents) AS used FROM "VoucherRedemption" WHERE NOT reversed AND "createdAt" < ${when.cutoff} GROUP BY 1) r ON r."voucherId" = v.id
+    LEFT JOIN (
+      SELECT r."voucherId", SUM(r.cents) AS used,
+        SUM(r.cents) FILTER (WHERE r."saleId" IS NULL AND r."orderId" IS NOT NULL AND NOT (o.status = 'COMPLETED' AND COALESCE(o."completedAt", o."updatedAt") < ${when.cutoff})) AS held
+      FROM "VoucherRedemption" r LEFT JOIN "Order" o ON o.id = r."orderId"
+      WHERE NOT r.reversed AND r."createdAt" < ${when.cutoff}
+      GROUP BY 1
+    ) x ON x."voucherId" = v.id
     WHERE v."issuedAt" < ${when.cutoff} AND v.status IN ('ACTIVE', 'REDEEMED', 'EXPIRED') AND NOT (v.status = 'EXPIRED' AND v."expiresAt" < ${when.cutoff})`;
+  const left = n(r?.left), held = n(r?.held);
   const kept = 0 - total(await storeBalances(companyId, [accounts.get("vouchers")!], when.asAt));
   return check({
-    key: "vouchers", label: "Gift vouchers in issue vs voucher balances", expected: n(register?.cents), actual: kept,
-    detail: `Vouchers held ${zar(n(register?.cents))} on ${dayLabel(when.asAt)}; the books show ${zar(kept)}.`,
+    key: "vouchers", label: "Gift vouchers in issue vs voucher balances", expected: left + held, actual: kept,
+    detail: `Vouchers held ${zar(left)} on ${dayLabel(when.asAt)}${held ? `, plus ${zar(held)} taken at checkout for online orders not handed over yet (the books move at handover)` : ""}; the books show ${zar(kept)}.`,
     href: ledger("vouchers"),
   });
 }
 
-/** Rewards points owed = members' points at the cutoff × the point value (a month that's over: issued points post with the statements). */
-async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<BooksCheck[]> {
+/**
+ * Rewards points owed = members' points at the cutoff × the point value, plus points taken at checkout for online
+ * orders not handed over yet, less points franchisee stores issued in a month that isn't over (its statements charge
+ * them at month end).
+ */
+async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<BooksCheck> {
   const storeIds = (await db.store.findMany({ select: { id: true } })).map((s) => s.id);
-  const [[held], [since]] = await Promise.all([
+  const from = addDays(when.cutoff, -OPEN_ORDER_DAYS);
+  const asAtMonth = periodOf(when.asAt);
+  const [[held], [since], [onOrders], [unbilled]] = await Promise.all([
     db.$queryRaw<{ points: bigint }[]>`SELECT COALESCE(SUM(points), 0)::bigint AS points FROM "Customer"`,
     // Entries since the cutoff, through the (storeId, createdAt) index: HQ's own (no store) and every store's.
     db.$queryRaw<{ points: bigint }[]>`
@@ -241,32 +262,55 @@ async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<
         UNION ALL
         SELECT points FROM "LoyaltyEntry" WHERE "storeId" = ANY(${storeIds}::text[]) AND "createdAt" >= ${when.cutoff}
       ) x`,
+    // Online orders open at the cutoff: placed before it, not handed over or cancelled by then.
+    db.$queryRaw<{ points: bigint }[]>`
+      SELECT COALESCE(SUM("pointsRedeemed"), 0)::bigint AS points FROM "Order"
+      WHERE "createdAt" >= ${from} AND "createdAt" < ${when.cutoff} AND "pointsRedeemed" > 0
+        AND (status IN ('PENDING_PAYMENT', 'PLACED', 'PICKING', 'READY', 'OUT_FOR_DELIVERY')
+          OR (status = 'COMPLETED' AND COALESCE("completedAt", "updatedAt") >= ${when.cutoff})
+          OR (status = 'CANCELLED' AND "updatedAt" >= ${when.cutoff}))`,
+    // A month not over yet (the cutoff falls inside it): what franchisee stores issued in it isn't on a statement yet.
+    when.asAt === monthEnd(asAtMonth)
+      ? [{ points: BigInt(0) }]
+      : db.$queryRaw<{ points: bigint }[]>`
+          SELECT COALESCE(SUM(d."pointsIssued"), 0)::bigint AS points FROM "DailyStoreStat" d JOIN "Store" s ON s.id = d."storeId" JOIN "Company" c ON c.id = s."companyId"
+          WHERE d.date >= ${dateOf(monthStart(asAtMonth))} AND d.date <= ${dateOf(when.asAt)} AND c.kind = 'FRANCHISEE'`,
   ]);
-  const points = n(held?.points) - n(since?.points);
+  const points = n(held?.points) - n(since?.points), open = n(onOrders?.points), issued = n(unbilled?.points);
   const kept = 0 - total(await storeBalances(companyId, [accounts.get("points")!], when.asAt));
-  return [
-    check({
-      key: "points", label: "Rewards points owed vs members' points", expected: points * POINT_VALUE_CENTS, actual: kept,
-      detail: `Members held ${points.toLocaleString("en-US")} points (${zar(points * POINT_VALUE_CENTS)}) on ${dayLabel(when.asAt)}; the books show ${zar(kept)}.`,
-      href: ledger("points"),
-    }),
-  ];
+  const timing = [
+    open ? `plus ${open.toLocaleString("en-US")} taken at checkout for online orders not handed over yet` : "",
+    issued ? `less ${issued.toLocaleString("en-US")} issued at franchisee stores this month (the statements charge them at month end)` : "",
+  ].filter(Boolean);
+  return check({
+    key: "points", label: "Rewards points owed vs members' points", expected: (points + open - issued) * POINT_VALUE_CENTS, actual: kept,
+    detail: `Members held ${points.toLocaleString("en-US")} points on ${dayLabel(when.asAt)}${timing.length ? `, ${timing.join(", ")}` : ""}: ${zar((points + open - issued) * POINT_VALUE_CENTS)} at ${zar(POINT_VALUE_CENTS)} a point; the books show ${zar(kept)}.`,
+    href: ledger("points"),
+  });
 }
 
-/** Trade debtors per trade account = that account's trade-ledger balance at the cutoff. */
+/**
+ * Trade debtors per trade account = that account's trade-ledger balance at the cutoff. Entries for EFT orders are left
+ * out: those are paid ahead and go through "Online orders paid, not yet fulfilled", never the account.
+ */
 async function debtorChecks({ companyId, when, accounts, ledger }: Ctx): Promise<BooksCheck[]> {
   const [register, kept] = await Promise.all([
-    db.tradeLedgerEntry.groupBy({ by: ["tradeAccountId"], where: { createdAt: { lt: when.cutoff } }, _sum: { cents: true } }),
+    db.$queryRaw<{ tradeAccountId: string; cents: bigint; eft: bigint }[]>`
+      SELECT e."tradeAccountId", COALESCE(SUM(e.cents) FILTER (WHERE o."payMethod" IS DISTINCT FROM 'EFT'), 0)::bigint AS cents, count(*) FILTER (WHERE o."payMethod" = 'EFT') AS eft
+      FROM "TradeLedgerEntry" e LEFT JOIN "TradeOrder" o ON o.id = e."tradeOrderId"
+      WHERE e."createdAt" < ${when.cutoff}
+      GROUP BY 1`,
     db.journalLine.groupBy({ by: ["partyId"], where: { companyId, accountId: accounts.get("debtors")!, date: { lte: dateOf(when.asAt) }, journal: { status: "POSTED" } }, _sum: { amountCents: true } }),
   ]);
-  const expected = new Map(register.map((r) => [r.tradeAccountId, n(r._sum.cents)]));
+  const expected = new Map(register.map((r) => [r.tradeAccountId, n(r.cents)]));
   const actual = new Map(kept.map((k) => [k.partyId ?? "", n(k._sum.amountCents)]));
+  const eft = register.some((r) => n(r.eft) > 0) ? " Entries for EFT orders are left out: those are paid ahead, through prepaid." : "";
   const off = differences(expected, actual);
   if (!off.length)
-    return [check({ key: "debtors", label: "Trade debtors vs the trade ledger", expected: total(expected), actual: total(actual), detail: `Every trade account agrees with the trade ledger on ${dayLabel(when.asAt)}.`, href: ledger("debtors") })];
+    return [check({ key: "debtors", label: "Trade debtors vs the trade ledger", expected: total(expected), actual: total(actual), detail: `Every trade account agrees with the trade ledger on ${dayLabel(when.asAt)}.${eft}`, href: ledger("debtors") })];
   const names = new Map((await db.tradeAccount.findMany({ where: { id: { in: off.slice(0, SHOWN).map((o) => o.key) } }, select: { id: true, name: true, number: true } })).map((a) => [a.id, `${a.name} (${a.number})`]));
   const rows = off.slice(0, SHOWN).map((o) =>
-    check({ key: `debtors:${o.key}`, label: `${names.get(o.key) ?? (o.key ? "A trade account" : "No trade account")}: books vs trade ledger`, expected: o.expected, actual: o.actual, detail: `The trade ledger says ${zar(o.expected)} on ${dayLabel(when.asAt)}; the books show ${zar(o.actual)}.`, href: ledger("debtors", { party: o.key }) }),
+    check({ key: `debtors:${o.key}`, label: `${names.get(o.key) ?? (o.key ? "A trade account" : "No trade account")}: books vs trade ledger`, expected: o.expected, actual: o.actual, detail: `The trade ledger says ${zar(o.expected)} on ${dayLabel(when.asAt)}; the books show ${zar(o.actual)}.${eft}`, href: ledger("debtors", { party: o.key }) }),
   );
   if (off.length > SHOWN) rows.push(check({ key: "debtors:more", label: `${plural(off.length - SHOWN, "more trade account")} differ`, expected: 0, actual: 0, ok: false, detail: "Fix the ones above first, then check again.", href: ledger("debtors") }));
   return rows;
@@ -294,7 +338,7 @@ async function stockChecks({ companyId, when, stores, accounts, ledger }: Ctx): 
     return check({ key: `stock:${s.id}`, label: `${s.name}: stock vs valuation`, expected: valued, actual: books, detail: `On hand at cost ${zar(valued)} on ${dayLabel(when.asAt)}; the books show ${zar(books)}.`, href: ledger("stock", { store: s.id }) });
   });
   const loose = kept.get("") ?? 0;
-  if (loose) rows.push(check({ key: "stock:none", label: "Stock on no store", expected: 0, actual: loose, detail: `${zar(loose)} of stock is on journal lines without a store — add the store to those lines (reverse and re-enter them).`, href: ledger("stock", { store: "none" }) }));
+  if (loose) rows.push(check({ key: "stock:none", label: "Stock on no store", expected: 0, actual: loose, detail: `${zar(loose)} of stock is on journal lines without a store — add the store to those lines (reverse and re-enter them).`, href: ledger("stock") }));
   return rows;
 }
 

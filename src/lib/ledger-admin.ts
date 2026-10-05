@@ -24,7 +24,7 @@ export const SOURCE_LABEL: Record<string, string> = {
   "trade-entry": "Trade account",
   "trade-eft": "Trade EFT",
   bank: "Bank statement",
-  vat: "VAT period",
+  "vat-period": "VAT period closed",
   manual: "Manual journal",
   opening: "Opening balances",
 };

@@ -47,7 +47,8 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
   const r = (await reconciliation(company.id, acct.id, on, { statementCents: given }))!;
   const path = `/books/${company.id}/bank/${acct.id}`;
   const journal = (id: string) => `/books/${company.id}/journals/${id}`;
-  const needsBalance = !!r.start && (r.statement == null || r.statement.asOf == null);
+  const early = !!r.start && on < r.start; // before the first imported line: nothing to compare yet
+  const needsBalance = !!r.start && !early && (r.statement == null || r.statement.asOf == null);
   const reconciled = r.unexplainedCents === 0;
 
   return (
@@ -75,6 +76,7 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
         {needsBalance && r.statement == null && (
           <Notice tone="warn" className="mb-6">The imported statements carry no balances: enter the balance from the bank statement at this date to reconcile.</Notice>
         )}
+        {early && <Notice className="mb-6">The statements imported so far start on {day(r.start!)}: choose that day or a later one.</Notice>}
       </div>
 
       <Sheet aria-label={`Bank reconciliation of ${acct.name} at ${day(on)}`}>
@@ -104,6 +106,8 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
             <dd className="pt-2">
               {r.unexplainedCents == null ? (
                 <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">{r.start ? "No statement balance" : "No statement imported"}</span>
+              ) : reconciled && r.notInBooks.unmatched.count ? (
+                <span className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">Explained · {plural(r.notInBooks.unmatched.count, "line")} to do</span>
               ) : reconciled ? (
                 <span className="rounded-full bg-leaf-50 px-2.5 py-0.5 text-xs font-semibold text-leaf-700 ring-1 ring-leaf-100">Reconciled</span>
               ) : (

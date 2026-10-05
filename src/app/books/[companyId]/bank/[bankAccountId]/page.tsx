@@ -205,7 +205,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
               {files.map((f) => (
                 <Tr key={f.id}>
                   <Td>
-                    <a href={`${path}/files/${f.id}`} className="inline-flex items-center gap-1.5 font-medium text-ink-900 hover:text-brand-700">
+                    <a href={`${path}/files/${f.id}`} className="inline-flex items-center gap-1.5 whitespace-nowrap font-medium text-ink-900 hover:text-brand-700">
                       <Download className="h-3.5 w-3.5 text-ink-400" aria-hidden />
                       {f.fileName}
                     </a>

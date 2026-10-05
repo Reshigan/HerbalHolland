@@ -15,7 +15,7 @@ import { putObject } from "../storage";
 import { booksAccess } from "./access";
 import { booksFor, syncPosting, type Posting } from "./core";
 import {
-  BANKS, decodeStatement, hashLines, LINE_MAX_CENTS, matchCandidates, parseStatement, reconcile, STATEMENT_MAX_BYTES,
+  assignMatches, BANKS, decodeStatement, hashLines, LINE_MAX_CENTS, matchCandidates, parseStatement, reconcile, STATEMENT_MAX_BYTES,
   type Bank, type ColumnMap, type LedgerItem, type StatementFormat,
 } from "@/lib/bank-import";
 import { periodOf, supplierParty, type Line } from "@/lib/ledger";
@@ -50,6 +50,7 @@ const KEPT: Record<string, string> = {
   grni: "Stock received but not invoiced is posted from receiving and supplier invoices.",
   "vat.input": "VAT goes with what it's on: allocate to the expense and enter the VAT, or a SARS payment to “VAT due to / from SARS”.",
   "vat.output": "VAT goes with what it's on: a SARS payment or refund goes to “VAT due to / from SARS”.",
+  retained: "Retained earnings are worked out from the year's results, not posted.",
 };
 
 export const STATUS_LABEL: Record<BankLineStatus, string> = { UNMATCHED: "To do", MATCHED: "Matched", ALLOCATED: "Allocated", IGNORED: "Ignored" };
@@ -76,7 +77,9 @@ async function lockedLine(t: Tx, companyId: string, lineId: string) {
   return { line, acct };
 }
 
-const already = (s: BankLineStatus) => new BankError(s === "MATCHED" ? "This line is already matched." : s === "ALLOCATED" ? "This line is already allocated." : s === "IGNORED" ? "This line is ignored — restore it first." : "This line isn't settled yet.");
+const already = (s: BankLineStatus) => new BankError(s === "IGNORED" ? "This line is ignored — restore it first." : `This line is already ${s === "MATCHED" ? "matched" : "allocated"}.`);
+/** A long list in slices (a year's statement is more than one query's worth of values). */
+const slices = <T,>(list: T[], size: number) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
 
 // ── Bank accounts ──────────────────────────────────────────────────────────────
 
@@ -116,7 +119,7 @@ export async function createBankAccount(companyId: string, input: { bank: string
       accountId = (await t.ledgerAccount.create({ data: { companyId, code: String(code), name, type: "ASSET" } })).id;
     }
     const row = await t.bankAccount.create({ data: { companyId, accountId, bank, name, number, storeId } });
-    await audit(t, actor, "bank.account_create", { entity: "BankAccount", entityId: row.id, data: { companyId, bank, name, number, storeId, ledgerAccountId: accountId, main: accountId === main } });
+    await audit(t, actor, "bank.account.create", { entity: "BankAccount", entityId: row.id, data: { companyId, bank, name, number, storeId, ledgerAccountId: accountId, main: accountId === main } });
     return row;
   });
 }
@@ -131,7 +134,7 @@ export async function updateBankAccount(companyId: string, id: string, input: { 
   return tx(async (t) => {
     const row = await t.bankAccount.update({ where: { id }, data: { name, number, storeId } });
     await t.ledgerAccount.updateMany({ where: { id: before.accountId, companyId, key: null }, data: { name } });
-    await audit(t, actor, "bank.account_update", { entity: "BankAccount", entityId: id, data: { companyId, from: { name: before.name, number: before.number, storeId: before.storeId }, to: { name, number, storeId } } });
+    await audit(t, actor, "bank.account.update", { entity: "BankAccount", entityId: id, data: { companyId, from: { name: before.name, number: before.number, storeId: before.storeId }, to: { name, number, storeId } } });
     return row;
   });
 }
@@ -143,7 +146,7 @@ export async function setBankAccountActive(companyId: string, id: string, active
   if (!before) throw new BankError("That bank account isn't in these books.");
   if (before.active === active) return before;
   const row = await db.bankAccount.update({ where: { id }, data: { active } });
-  await audit(db, actor, active ? "bank.account_reopen" : "bank.account_close", { entity: "BankAccount", entityId: id, data: { companyId, name: before.name } });
+  await audit(db, actor, active ? "bank.account.reopen" : "bank.account.close", { entity: "BankAccount", entityId: id, data: { companyId, name: before.name } });
   return row;
 }
 
@@ -174,7 +177,9 @@ export async function importStatement(companyId: string, bankAccountId: string, 
     throw new BankError(read.failed.length ? `None of the lines could be read: row ${read.failed[0].row}, ${read.failed[0].error}.` : "There are no transactions in this file.", "file");
 
   const lines = hashLines(acct.id, read.lines);
-  const known = new Set((await db.bankLine.findMany({ where: { bankAccountId: acct.id, hash: { in: lines.map((l) => l.hash) } }, select: { hash: true } })).map((l) => l.hash));
+  const known = new Set<string>();
+  for (const part of slices(lines, 5000))
+    for (const l of await db.bankLine.findMany({ where: { bankAccountId: acct.id, hash: { in: part.map((x) => x.hash) } }, select: { hash: true } })) known.add(l.hash);
   const fresh = lines.map((l, i) => ({ ...l, i })).filter((l) => !known.has(l.hash));
   const ofx = read.format === "OFX";
   const key = `bank-statements/${companyId}/${dayKey(new Date()).slice(0, 7)}/${randomUUID()}.${ofx ? "ofx" : "csv"}`;
@@ -192,16 +197,15 @@ export async function importStatement(companyId: string, bankAccountId: string, 
           },
         })
       : null;
-    const { count } = fresh.length
-      ? await t.bankLine.createMany({
-          data: fresh.map((l) => ({
-            companyId, bankAccountId: acct.id, date: dateCol(l.date), amountCents: l.amountCents, description: l.description, reference: l.reference ?? null,
-            balanceCents: fits(l.balanceCents), hash: l.hash, uploadId: upload?.id ?? null, createdAt: new Date(base + l.i),
-          })),
-          skipDuplicates: true,
-        })
-      : { count: 0 };
-    await audit(t, actor, "bank.import", {
+    let count = 0;
+    for (const part of slices(fresh, 1000)) {
+      const data = part.map((l) => ({
+        companyId, bankAccountId: acct.id, date: dateCol(l.date), amountCents: l.amountCents, description: l.description, reference: l.reference ?? null,
+        balanceCents: fits(l.balanceCents), hash: l.hash, uploadId: upload?.id ?? null, createdAt: new Date(base + l.i),
+      }));
+      count += (await t.bankLine.createMany({ data, skipDuplicates: true })).count;
+    }
+    await audit(t, actor, "bank.statement.add", {
       entity: "BankAccount", entityId: acct.id,
       data: { companyId, format: read.format, fileName: a.file.name.slice(0, 120), uploadId: upload?.id ?? null, lines: lines.length, added: count, duplicates: lines.length - count, failed: read.failed.length, from, to },
     });
@@ -272,10 +276,17 @@ async function postingWords(ps: BookPosting[]) {
 
 const asLine = (l: { date: Date; amountCents: number; description: string; reference: string | null }) => ({ date: day(l.date), amountCents: l.amountCents, description: l.description, reference: l.reference });
 
+/** Postings by amount, so each line only weighs those of its own amount (thousands of open lines stay quick). */
+function byAmount(items: LedgerItem[]) {
+  const m = new Map<number, LedgerItem[]>();
+  for (const i of items) (m.get(i.amountCents) ?? m.set(i.amountCents, []).get(i.amountCents)!).push(i);
+  return (cents: number) => m.get(cents) ?? [];
+}
+
 /**
  * Matches a bank account's open lines to postings already in the books: the same amount, within five days either
- * way, only when that posting is the line's one candidate and the line is the posting's (nothing is guessed), and only
- * postings nothing on this account is matched to yet. System work (after an import, or nightly); returns how many.
+ * way, only postings nothing on this account is matched to yet, and only where a line has one candidate left that no
+ * other line needs (nothing is guessed). System work (after an import, or nightly); returns how many.
  */
 export async function autoMatch(companyId: string, bankAccountId: string, actor: Actor = SYSTEM) {
   return tx(async (t) => {
@@ -286,18 +297,15 @@ export async function autoMatch(companyId: string, bankAccountId: string, actor:
     if (!open.length) return 0;
     const ps = await postings(t, companyId, acct, { from: shift(day(open[0].date), -AUTO_DAYS), to: shift(day(open[open.length - 1].date), AUTO_DAYS) });
     const byKey = new Map(ps.map((p) => [p.key, p]));
-    const free: LedgerItem[] = ps.filter((p) => p.cents && !p.matchedCents).map((p) => ({ id: p.key, date: p.date, amountCents: p.cents, text: p.memo }));
-    const fits = open.map((l) => ({ l, c: matchCandidates(asLine(l), free, AUTO_DAYS) }));
-    const wanted = new Map<string, number>();
-    for (const { c } of fits) for (const x of c) wanted.set(x.item.id, (wanted.get(x.item.id) ?? 0) + 1);
+    const free = byAmount(ps.filter((p) => p.cents && !p.matchedCents).map((p) => ({ id: p.key, date: p.date, amountCents: p.cents, text: p.memo })));
+    const pairs = assignMatches(new Map(open.map((l) => [l.id, matchCandidates(asLine(l), free(l.amountCents), AUTO_DAYS).map((c) => c.item.id)])));
     let n = 0;
     const now = new Date();
-    for (const { l, c } of fits) {
-      if (c.length !== 1 || wanted.get(c[0].item.id) !== 1) continue;
-      const { count } = await t.bankLine.updateMany({ where: { id: l.id, status: "UNMATCHED" }, data: { status: "MATCHED", journalId: byKey.get(c[0].item.id)!.journalId, matchedById: actor.id ?? null, matchedAt: now } });
+    for (const [lineId, key] of pairs) {
+      const { count } = await t.bankLine.updateMany({ where: { id: lineId, status: "UNMATCHED" }, data: { status: "MATCHED", journalId: byKey.get(key)!.journalId, matchedById: actor.id ?? null, matchedAt: now } });
       n += count;
     }
-    if (n) await audit(t, actor, "bank.auto_match", { entity: "BankAccount", entityId: bankAccountId, data: { companyId, matched: n } });
+    if (n) await audit(t, actor, "bank.line.auto_match", { entity: "BankAccount", entityId: bankAccountId, data: { companyId, matched: n } });
     return n;
   });
 }
@@ -325,8 +333,8 @@ export async function suggestionsFor(companyId: string, acct: { id: string; acco
   const ps = await postings(db, companyId, acct, { from: shift(days[0], -SUGGEST_DAYS), to: shift(days[days.length - 1], SUGGEST_DAYS) });
   const text = await postingWords(ps);
   const byKey = new Map(ps.map((p) => [p.key, p]));
-  const items: LedgerItem[] = ps.filter((p) => p.cents !== p.matchedCents).map((p) => ({ id: p.key, date: p.date, amountCents: p.cents - p.matchedCents, text: text(p) }));
-  for (const l of open) out.set(l.id, matchCandidates(asLine(l), items, SUGGEST_DAYS).slice(0, 3).map((c) => ({ ...byKey.get(c.item.id)!, leftCents: c.item.amountCents, days: c.days })));
+  const items = byAmount(ps.filter((p) => p.cents !== p.matchedCents).map((p) => ({ id: p.key, date: p.date, amountCents: p.cents - p.matchedCents, text: text(p) })));
+  for (const l of open) out.set(l.id, matchCandidates(asLine(l), items(l.amountCents), SUGGEST_DAYS).slice(0, 3).map((c) => ({ ...byKey.get(c.item.id)!, leftCents: c.item.amountCents, days: c.days })));
   return out;
 }
 
@@ -351,7 +359,7 @@ export async function matchLine(companyId: string, lineId: string, journal: { id
     if (Math.sign(left) !== Math.sign(line.amountCents) || Math.abs(line.amountCents) > Math.abs(left))
       throw new BankError(`Journal ${j.number} has ${zar(left)} left to match on ${acct.name}; this line is ${zar(line.amountCents)}.`, "number");
     await t.bankLine.update({ where: { id: line.id }, data: { status: "MATCHED", journalId: j.id, matchedById: actor.id, matchedAt: new Date() } });
-    await audit(t, actor, "bank.match", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, journal: j.number, amountCents: line.amountCents, date: day(line.date) } });
+    await audit(t, actor, "bank.line.match", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, journal: j.number, amountCents: line.amountCents, date: day(line.date) } });
     return { number: j.number };
   });
 }
@@ -362,7 +370,7 @@ export async function unmatchLine(companyId: string, lineId: string) {
     const { line, acct } = await lockedLine(t, companyId, lineId);
     if (line.status !== "MATCHED") throw new BankError("This line isn't matched.");
     await t.bankLine.update({ where: { id: line.id }, data: { status: "UNMATCHED", journalId: null, matchedById: null, matchedAt: null } });
-    await audit(t, actor, "bank.unmatch", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, journalId: line.journalId, amountCents: line.amountCents, date: day(line.date) } });
+    await audit(t, actor, "bank.line.unmatch", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, journalId: line.journalId, amountCents: line.amountCents, date: day(line.date) } });
   });
 }
 
@@ -373,7 +381,7 @@ export async function ignoreLine(companyId: string, lineId: string, reason?: str
     const { line, acct } = await lockedLine(t, companyId, lineId);
     if (line.status !== "UNMATCHED") throw already(line.status);
     await t.bankLine.update({ where: { id: line.id }, data: { status: "IGNORED", matchedById: actor.id, matchedAt: new Date() } });
-    await audit(t, actor, "bank.ignore", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, amountCents: line.amountCents, date: day(line.date), reason: reason?.trim().slice(0, 200) || null } });
+    await audit(t, actor, "bank.line.ignore", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, amountCents: line.amountCents, date: day(line.date), reason: reason?.trim().slice(0, 200) || null } });
   });
 }
 
@@ -383,7 +391,7 @@ export async function unignoreLine(companyId: string, lineId: string) {
     const { line, acct } = await lockedLine(t, companyId, lineId);
     if (line.status !== "IGNORED") throw new BankError("This line isn't ignored.");
     await t.bankLine.update({ where: { id: line.id }, data: { status: "UNMATCHED", matchedById: null, matchedAt: null } });
-    await audit(t, actor, "bank.unignore", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, amountCents: line.amountCents, date: day(line.date) } });
+    await audit(t, actor, "bank.line.unignore", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, amountCents: line.amountCents, date: day(line.date) } });
   });
 }
 
@@ -465,7 +473,7 @@ export async function allocateLine(companyId: string, lineId: string, a: Allocat
     const j = (await syncPosting(t, "bank", line.id, companyId, posting)) ?? (await t.journal.findFirst({ where: { companyId, source: "bank", sourceId: line.id, status: "POSTED" }, orderBy: { number: "desc" } }));
     if (!j) throw new BankError("Nothing was posted — try again.");
     await t.bankLine.update({ where: { id: line.id }, data: { status: "ALLOCATED", journalId: j.id, matchedById: actor.id, matchedAt: new Date() } });
-    await audit(t, actor, "bank.allocate", {
+    await audit(t, actor, "bank.line.allocate", {
       entity: "BankLine", entityId: line.id,
       data: { companyId, bankAccountId: acct.id, journal: j.number, to, amountCents: amount, date: day(line.date), ...(a.kind === "payout" ? { feeCents: a.feeCents, vatCents: a.feeVatCents ?? 0 } : { vatCents: a.vatCents ?? 0 }) },
     });
@@ -479,9 +487,16 @@ export async function unallocateLine(companyId: string, lineId: string) {
   return tx(async (t) => {
     const { line, acct } = await lockedLine(t, companyId, lineId);
     if (line.status !== "ALLOCATED") throw new BankError("This line isn't allocated.");
+    // A transfer to another of the company's accounts may be matched on that account's statement: unmatch it there first.
+    const journals = await t.journal.findMany({ where: { companyId, source: "bank", sourceId: line.id }, select: { id: true } });
+    const elsewhere = await t.bankLine.findFirst({ where: { companyId, id: { not: line.id }, status: "MATCHED", journalId: { in: journals.map((j) => j.id) } }, select: { bankAccountId: true } });
+    if (elsewhere) {
+      const other = await t.bankAccount.findUnique({ where: { id: elsewhere.bankAccountId }, select: { name: true } });
+      throw new BankError(`This allocation is matched on ${other?.name ?? "another account"}'s statement — unmatch it there first.`);
+    }
     const r = await syncPosting(t, "bank", line.id, companyId, null);
     await t.bankLine.update({ where: { id: line.id }, data: { status: "UNMATCHED", journalId: null, matchedById: null, matchedAt: null } });
-    await audit(t, actor, "bank.unallocate", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, reversal: r?.number ?? null, amountCents: line.amountCents, date: day(line.date) } });
+    await audit(t, actor, "bank.line.unallocate", { entity: "BankLine", entityId: line.id, data: { companyId, bankAccountId: acct.id, reversal: r?.number ?? null, amountCents: line.amountCents, date: day(line.date) } });
     return { reversal: r?.number ?? null };
   });
 }

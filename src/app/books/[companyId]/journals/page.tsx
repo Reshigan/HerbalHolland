@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { NotebookPen, Plus } from "lucide-react";
+import { Download, NotebookPen, Plus } from "lucide-react";
 import { requireBooks } from "@/server/ledger/access";
 import { db } from "@/server/db";
 import { MANUAL_SOURCES } from "@/server/ledger/core";
@@ -76,12 +76,18 @@ export default async function JournalsPage({ params, searchParams }: { params: P
         title="Journals"
         description="Every entry in the books: posted automatically from trading, stock, banking and statements, or by hand. A posted journal is never changed — an automatic one corrects itself through its source, a manual one by its reversal."
         actions={
-          role.write && (
-            <ButtonLink href={`${path}/new`}>
-              <Plus className="h-4 w-4" aria-hidden />
-              New journal
+          <>
+            <ButtonLink href={`${base}/export/journals${month ? `?from=${month}&to=${month}` : ""}`} variant="outline" prefetch={false} title={month ? `Posted journals for ${fmtMonth(`${month}-15T12:00:00Z`)}` : "Posted journals for the financial year to date"}>
+              <Download className="h-4 w-4" aria-hidden />
+              Download CSV
             </ButtonLink>
-          )
+            {role.write && (
+              <ButtonLink href={`${path}/new`}>
+                <Plus className="h-4 w-4" aria-hidden />
+                New journal
+              </ButtonLink>
+            )}
+          </>
         }
       />
       <Flash message={sp1(sp.m) || undefined} />

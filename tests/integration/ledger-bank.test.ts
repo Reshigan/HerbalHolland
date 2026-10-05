@@ -107,7 +107,7 @@ describe("Bank accounts", () => {
     await setBankAccountActive(w.owner.id, capitec.id, false);
     await expect(importStatement(w.owner.id, capitec.id, { file: csv("x.csv", "Date,Description,Amount\n2026-10-01,x,1"), format: "AUTO" })).rejects.toThrow("is closed");
     await setBankAccountActive(w.owner.id, capitec.id, true);
-    expect(await db.auditLog.count({ where: { action: { startsWith: "bank.account_" } } })).toBe(6);
+    expect(await db.auditLog.count({ where: { action: { startsWith: "bank.account." } } })).toBe(6);
   });
 });
 
@@ -121,7 +121,7 @@ describe("Importing a statement", () => {
     expect(await db.bankLine.count({ where: { bankAccountId: fnb.id, status: "UNMATCHED" } })).toBe(4);
     const upload = await db.upload.findUniqueOrThrow({ where: { id: deposit.uploadId! } });
     expect(upload).toMatchObject({ fileName: "fnb-oct.csv", contentType: "text/csv", storeId: w.store.id, uploadedById: owner.id });
-    expect(await db.auditLog.findFirst({ where: { action: "bank.import" } })).toMatchObject({ actorId: owner.id, data: { added: 5, duplicates: 0, format: "FNB" } });
+    expect(await db.auditLog.findFirst({ where: { action: "bank.statement.add" } })).toMatchObject({ actorId: owner.id, data: { added: 5, duplicates: 0, format: "FNB" } });
   });
 
   it("adds nothing the second time (and keeps no second copy of the file)", async () => {
@@ -213,7 +213,7 @@ describe("Settling lines", () => {
     await expect(allocateLine(w.owner.id, line.id, { kind: "payout", feeCents: 0 })).rejects.toThrow("A card payout is money in");
     await ignoreLine(w.owner.id, line.id, "Reversed the next day");
     expect((await db.bankLine.findUniqueOrThrow({ where: { id: line.id } })).status).toBe("IGNORED");
-    expect(await db.auditLog.findFirst({ where: { action: "bank.ignore", entityId: line.id } })).toMatchObject({ data: { reason: "Reversed the next day" } });
+    expect(await db.auditLog.findFirst({ where: { action: "bank.line.ignore", entityId: line.id } })).toMatchObject({ data: { reason: "Reversed the next day" } });
     await unignoreLine(w.owner.id, line.id);
     // A supplier nobody captured: on creditors, with the supplier as the party.
     await allocateLine(w.owner.id, line.id, { kind: "account", accountId: await key("creditors"), party: "Acme  Packaging (Pty) Ltd" });
@@ -234,6 +234,20 @@ describe("Settling lines", () => {
     });
     expect(into).toMatchObject({ added: 1, matched: 1 });
     expect((await lineOf(fnb.id, "Transfer From")).status).toBe("MATCHED");
+    await expect(unallocateLine(w.owner.id, (await lineOf(capitec.id, "Transfer to FNB")).id)).rejects.toThrow("matched on FNB Cheque's statement — unmatch it there first");
+  });
+
+  it("matches by itself step by step: a line's only posting first, then what that leaves the next line", async () => {
+    const topUp = (id: string, date: string) =>
+      tx((t) => syncPosting(t, "test-savings", id, w.owner.id, { companyId: w.owner.id, date, memo: `Savings top-up ${id}`, lines: [{ accountId: capitec.accountId, cents: 70_000 }, { key: "capital", cents: -70_000 }] }));
+    const [s1, s2] = [await topUp("s1", "2026-10-01"), await topUp("s2", "2026-10-09")];
+    // The 1st's line can only be s1 (s2 is 8 days off); the 5th's could be either, until s1 is taken.
+    const r = await importStatement(w.owner.id, capitec.id, {
+      file: csv("savings.csv", "When;What;Value\n2026-10-01;Owner top-up A;700,00\n2026-10-05;Owner top-up B;700,00"), format: "CSV", map: { date: "When", description: "What", amount: "Value" },
+    });
+    expect(r).toMatchObject({ format: "CSV", added: 2, matched: 2 });
+    expect((await lineOf(capitec.id, "Owner top-up A")).journalId).toBe(s1!.id);
+    expect((await lineOf(capitec.id, "Owner top-up B")).journalId).toBe(s2!.id);
   });
 });
 
@@ -270,7 +284,7 @@ describe("The reconciliation", () => {
     const rows = await bankAccountsOf(w.owner.id);
     expect(rows.map((r) => [r.name, r.ledgerCents, r.statement?.cents, r.todo])).toEqual([
       ["FNB Cheque", 1_989_650, 1_739_650, 0],
-      ["Capitec Business Savings", -100_000, 400_000, 0],
+      ["Capitec Business Savings", 40_000, 470_000, 0],
     ]);
   });
 
@@ -284,11 +298,23 @@ describe("The reconciliation", () => {
   });
 });
 
+describe("A year's statement", () => {
+  it("imports thousands of lines at once, and none of them twice", async () => {
+    const big = await createBankAccount(w.owner.id, { bank: "OTHER", name: "Call deposit", number: "99887766" });
+    const rows = Array.from({ length: 2_500 }, (_, i) => `${new Date(Date.UTC(2026, 0, 1) + (i % 270) * 86_400_000).toISOString().slice(0, 10)},Interest ${i % 7},${(i % 13) + 1}.25`);
+    const file = () => csv("year.csv", ["Date,Description,Amount", ...rows].join("\n"));
+    expect(await importStatement(w.owner.id, big.id, { file: file(), format: "AUTO" })).toMatchObject({ format: "CSV", lines: 2_500, added: 2_500, matched: 0 });
+    expect(await importStatement(w.owner.id, big.id, { file: file(), format: "AUTO" })).toMatchObject({ added: 0, duplicates: 2_500 });
+    expect(await db.bankLine.count({ where: { bankAccountId: big.id } })).toBe(2_500);
+    await setBankAccountActive(w.owner.id, big.id, false);
+  });
+});
+
 describe("Who may change it", () => {
   it("the accountant may; HQ and the area manager only look", async () => {
     await signIn(accountant);
     const a = await createBankAccount(w.owner.id, { bank: "NEDBANK", name: "Nedbank Call Account", number: "1987654321" });
-    expect((await db.ledgerAccount.findUniqueOrThrow({ where: { id: a.accountId } })).code).toBe("1002");
+    expect((await db.ledgerAccount.findUniqueOrThrow({ where: { id: a.accountId } })).code).toBe("1003");
     const before = await db.journal.count();
     const line = await lineOf(fnb.id, "Transfer From");
     for (const u of [hqAdmin, area]) {
