@@ -48,6 +48,7 @@ export const CHART: ChartRow[] = [
   { key: "sales.wholesale", code: "4100", name: "Sales to franchisees", type: "INCOME", only: "HQ" },
   { key: "royalty", code: "4200", name: "Royalties", type: "INCOME", only: "HQ" },
   { key: "ecom", code: "4210", name: "E-commerce commission", type: "INCOME", only: "HQ" },
+  { key: "levy", code: "4220", name: "Marketing fund levies", type: "INCOME", only: "HQ" },
   { key: "offers.recovered", code: "4300", name: "My Deals funded by Herbal Holland", type: "INCOME", only: "FRANCHISEE" },
   { key: "breakage", code: "4400", name: "Expired gift vouchers and points", type: "INCOME", only: "HQ" },
   { key: "other.income", code: "4900", name: "Other income", type: "INCOME" },

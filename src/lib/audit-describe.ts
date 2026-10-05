@@ -5,7 +5,7 @@ import { bps, zar } from "./money";
 const VERBS: Record<string, string> = {
   create: "created", update: "updated", delete: "deleted", cancel: "cancelled", approve: "approved", reject: "rejected",
   refund: "refunded", email: "emailed", email_all: "emailed to every store", hold: "put on hold", release: "released",
-  adjust: "adjusted", writeoff: "written off", payment_delete: "payment deleted", override: "overridden", export: "exported", signin: "signed in",
+  adjust: "adjusted", writeoff: "written off", payment_delete: "payment deleted", vat_close: "VAT period closed", override: "overridden", export: "exported", signin: "signed in",
   signout: "signed out", start: "started", open: "opened", close: "closed", issue: "issued", redeem: "redeemed",
   pay: "paid", paid: "paid", reopen: "reopened", query: "queried", assign: "assigned", reply: "replied to", resolve: "resolved",
   receive: "received", add: "added", remove: "removed", verify: "verified", submit: "submitted", send: "sent", end: "ended",

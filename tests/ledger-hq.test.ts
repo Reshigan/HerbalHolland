@@ -26,7 +26,7 @@ describe("franchise statement", () => {
     // The current account moves by exactly the statement's own lines: −fees − VAT − points + My Deals.
     expect(amount(franchisee, "hq")).toBe(10_000 - 133_400 - 50_000);
     expect(amount(hq, "franchisees", "co1")).toBe(-amount(franchisee, "hq"));
-    expect([amount(hq, "royalty"), amount(hq, "fund"), amount(hq, "ecom"), amount(hq, "vat.output"), amount(hq, "points")]).toEqual([-72_000, -24_000 + 10_000, -20_000, -17_400, -50_000]);
+    expect([amount(hq, "royalty"), amount(hq, "levy"), amount(hq, "ecom"), amount(hq, "vat.output"), amount(hq, "points"), amount(hq, "offers.funded")]).toEqual([-72_000, -24_000, -20_000, -17_400, -50_000, 10_000]);
   });
 
   it("keeps a non-vendor's VAT on fees as a cost, and treats VAT a non-vendor HQ charged as income", () => {

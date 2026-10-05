@@ -113,7 +113,7 @@ describe("the franchise statement", () => {
     expect(await posted(w.owner.id, { source: "statement" })).toEqual({
       "fees.royalty": 72_000, "fees.levy": 24_000, "fees.ecom": 20_000, "vat.input": 17_400, "points.issued": 50_000, "offers.recovered": -10_000, hq: -173_400,
     });
-    expect(await posted(w.hq.id, { source: "statement" })).toEqual({ franchisees: 173_400, royalty: -72_000, fund: -24_000 + 10_000, ecom: -20_000, "vat.output": -17_400, points: -50_000 });
+    expect(await posted(w.hq.id, { source: "statement" })).toEqual({ franchisees: 173_400, royalty: -72_000, levy: -24_000, ecom: -20_000, "vat.output": -17_400, points: -50_000, "offers.funded": 10_000 });
     // The current account moves by the statement's own lines (credits − debits): My Deals less fees, VAT and points.
     const own = st.lines.filter((l) => ["My Deals given", "Royalty", "Marketing fund levy", "E-commerce commission", "VAT on fees", "Points issued"].includes(l.label));
     expect(await amount(w.owner.id, "hq", { source: "statement", storeId: w.store.id })).toBe(own.reduce((s, l) => s + (l.kind === "credit" ? l.cents : -l.cents), 0));

@@ -553,11 +553,11 @@ export async function vatReturn(companyId: string, period: string, now = new Dat
   const over = p.to < thisMonth(now);
   const status: VatStatus = !over ? "open" : journals.length ? (pending.length ? "changed" : "closed") : movements.length ? "due" : "nil";
   return {
-    vendor: true as const, company, category, categorySet: !!company.vatCategory, period: p, over, status, journals,
+    vendor: true as const, company, category, categorySet: !!company.vatCategory, period: p, over, status, journals, accounts: ids,
     output, input, payable: output - input, suppliesEx, suppliesIncl: suppliesEx + output, supplies: supplyRows, inputBy,
     rows: vat201Rows({ suppliesInclCents: suppliesEx + output, outputCents: output, input: inputBy }),
-    // Output tax against 15% of the standard-rated income: they differ by rounding, or by VAT charged on supplies
-    // credited elsewhere (HQ's marketing levy is credited to the marketing fund).
+    // Output tax against 15% of the standard-rated income: they differ only by rounding (VAT is per invoice), unless
+    // VAT was charged on a supply credited outside the income accounts.
     outputGap: output - Math.round(suppliesEx * 0.15),
     pendingPayable: -pending.filter((l) => l.accountId === ids.control).reduce((s, l) => s + l.cents, 0) || 0,
   };
@@ -585,7 +585,7 @@ export async function closeVatPeriod(companyId: string, period: string, actor: A
     const output = -movements.filter((m) => m.accountId === ids.output).reduce((s, m) => s + m.cents, 0) || 0;
     const input = movements.filter((m) => m.accountId === ids.input).reduce((s, m) => s + m.cents, 0);
     const journal = await syncPosting(t, "vat-period", sourceId, companyId, lines.length ? { companyId, date: monthEnd(p.to), memo: `VAT period ${rangeLabel(p)} closed`, lines } : null);
-    await audit(t, actor, "ledger.vat_close", { entity: "Company", entityId: companyId, data: { from: p.from, to: p.to, output, input, payable: output - input, journal: journal?.number ?? null } });
+    await audit(t, actor, "ledger.vat_close", { entity: "Company", entityId: companyId, data: { from: p.from, to: p.to, outputCents: output, inputCents: input, payableCents: output - input, journal: journal?.number ?? null } });
     return { period: p, journal, output, input, payable: output - input };
   });
 }

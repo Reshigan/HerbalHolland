@@ -10,7 +10,9 @@ export type StatementFigures = { royalty: number; levy: number; ecom: number; fe
 
 /**
  * A store's monthly statement, in both books: the fees (royalty, marketing levy, e-commerce commission) plus VAT, the
- * points it issued (into the network pool) and the My Deals HQ funds from the marketing fund. The franchisee claims
+ * points it issued (into the network pool) and the My Deals HQ funds. HQ takes the levy as income (a supply it charges
+ * VAT on, so it belongs in the VAT201's standard-rated supplies) and My Deals as its marketing cost; ring-fencing what's
+ * unspent in the marketing fund, when the franchise agreements ask for it, is a year-end journal. The franchisee claims
  * the VAT on the fees only when it and HQ are both VAT vendors (otherwise it's a cost); HQ owes it to SARS only when it
  * is a vendor. The statement's other lines (what HQ collected, points redeemed, stock) are posted where they happen.
  */
@@ -29,8 +31,9 @@ export function statementLines(s: StatementFigures & { storeId: string; franchis
   const hq = netLines([
     at("franchisees", fees + s.pointsIssuedCents - s.offersFundedCents, s.franchiseeId),
     at("royalty", -s.royalty),
-    at("fund", s.offersFundedCents - s.levy),
+    at("levy", -s.levy),
     at("ecom", -s.ecom),
+    at("offers.funded", s.offersFundedCents),
     at(vendor.hq ? "vat.output" : "other.income", -s.feesVat),
     at("points", -s.pointsIssuedCents),
   ]);

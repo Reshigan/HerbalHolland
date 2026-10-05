@@ -58,6 +58,8 @@ export default async function VatPage({ params, searchParams }: { params: Promis
   const refund = v.payable < 0;
   const canClose = role.approve && v.categorySet && (v.status === "due" || v.status === "changed");
   const gapMatters = Math.abs(v.outputGap) > Math.max(100, Math.round(v.output * 0.001));
+  // Each VAT201 amount opens the VAT account behind it for the period.
+  const fieldAccount: Record<string, string> = { "1 · 4": v.accounts.output, "14": v.accounts.input, "15": v.accounts.input, "19": v.accounts.input, "20": v.accounts.control };
 
   return (
     <>
@@ -167,7 +169,7 @@ export default async function VatPage({ params, searchParams }: { params: Promis
                       <Td>{r.line}</Td>
                       <Td className="tnum whitespace-nowrap text-ink-600">{r.field}</Td>
                       {r.amount == null ? <Td /> : <AmountCell cents={r.amount} />}
-                      <AmountCell cents={r.vat ?? 0} strong={r.style === "strong"} />
+                      <AmountCell cents={r.vat ?? 0} strong={r.style === "strong"} href={r.field && fieldAccount[r.field] ? ledger(fieldAccount[r.field]) : undefined} />
                     </tr>
                   ),
                 )}
