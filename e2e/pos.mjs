@@ -569,6 +569,14 @@ try {
 
   step("Offline reload: the service worker serves the till shell and assets");
   await page.getByRole("button", { name: "Done" }).click();
+  // The till's service worker must control the page, with the shell in its cache (the app primes it with what it
+  // loaded), before the network goes. Without one the till can't reload offline at all, so that fails plainly here.
+  const controlled = await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30_000 }).then(() => true, () => false);
+  assert(controlled, "the till's service worker controls the page (/sw.js is served)");
+  for (let i = 0; !(await page.evaluate(async () => !!(await caches.match("/pos")))); i++) {
+    if (i === 120) fail("the till's shell never reached the offline cache");
+    await page.waitForTimeout(250);
+  }
   await ctx.setOffline(true);
   const fromSw = [];
   const onResp = (r) => fromSw.push({ url: r.url(), sw: r.fromServiceWorker(), status: r.status() });

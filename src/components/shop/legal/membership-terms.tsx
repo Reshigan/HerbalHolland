@@ -119,7 +119,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
         <b className="text-white">Ordering online.</b> Before you place an order you can review it, correct mistakes and cancel (ECTA s43). Your order is accepted when we confirm it by SMS or email. An order not paid within {e.unpaidHoldMinutes} minutes is cancelled and its stock released. Collect click &amp; collect orders within {e.collectHoldDays} days; after that we cancel them and refund anything you paid. We deliver within 30 days unless we agree otherwise; if we can&apos;t, you may cancel and we&apos;ll refund you (ECTA s46).
       </P>
       <P>
-        <b className="text-white">Collection and delivery.</b> Age-restricted products are handed over only to an adult who shows ID, at the counter or at your door. Licensed medicines are collected in store only. Delivery costs are shown at checkout. Made-to-order merch is made for you by our merch partner and couriered separately, in {MADE_TO_ORDER_LEAD}, with a {zar(e.merchCourierCents)} courier fee on top.
+        <b className="text-white">Collection and delivery.</b> Age-restricted products are handed over only to an adult who shows ID, at the counter or at your door. Licensed medicines are collected in store only. Delivery costs are shown at checkout. Anything made to order for you (its product page says so) is couriered separately, in {MADE_TO_ORDER_LEAD}, with a {zar(e.merchCourierCents)} courier fee on top.
       </P>
       <P>
         <b className="text-white">Limited drops.</b> Some releases are for members only, with a limit per member. We may cancel orders that go over it.

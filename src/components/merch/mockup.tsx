@@ -1,4 +1,4 @@
-// Flat-lay mockups of the made-to-order merch (the garment in its colour with the real print at true scale),
+// Flat-lay mockups of the merch (the garment in its colour with the real print at true scale),
 // used as the product art for merch (we don't use stock photography). Drawn in the same 120-unit box as ProductArt.
 import { Artwork, ART } from "@/components/merch/art";
 import { merchFor, type Garment, type MerchItem, type Side } from "@/lib/merch";
@@ -166,7 +166,7 @@ export function GarmentView({ item, side, id }: { item: MerchItem; side: Side; i
   );
 }
 
-/** Product art for a made-to-order merch item (null when `slug` isn't merch). */
+/** Product art for a merch item (null when `slug` isn't merch). */
 export function MerchArt({ slug, className, label, side }: { slug: string; className?: string; label?: string; side?: Side }) {
   const item = merchFor(slug);
   if (!item) return null;

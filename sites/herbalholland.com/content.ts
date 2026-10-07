@@ -2,7 +2,7 @@
 // and tests/site-copy.test.ts runs every string through screenCopy() (no allow-list) and our voice rules, so edit copy
 // here and keep that test green. `{name}` placeholders are filled at build time from ./facts by `fill`.
 // What .com may say (docs/MARKETING-PLAN.md §1, docs/COMPLIANCE.md): brand, standards, the categories we sell (never
-// products), stores, franchise, press and careers, and the way into the online shop. No product names, prices, amounts,
+// products), stores, press and careers, and the way into the online shop. No product names, prices, amounts,
 // deals or health claims; licensed medicines only as a pharmacist service for registered patients; facts only from
 // ./facts (no invented numbers, founders, partners, awards or dates).
 // In running text, {email}, {privacy}, {terms}, {press} and {regulator} become links (see Rich in ./src/ui).
@@ -12,7 +12,6 @@ import { num } from "@/lib/format";
 import { FACTS } from "./facts";
 
 export type Item = { key: string; title: string; body: string };
-export type Faq = { q: string; a: string };
 /** A press release: its own page at /press/{slug} from its date (YYYY-MM-DD, SAST). `pageTitle` is the browser/search title (60 characters with the brand); the headline stays whole. */
 export type Release = { slug: string; date: string; title: string; pageTitle: string; description: string; summary: string; body: readonly string[] };
 /** A release as written: `date: null` holds it back (a draft) until the day it goes out is known. Never guess a date. */
@@ -36,7 +35,7 @@ export const BRAND = {
   idea: "Holland, meet South Africa.",
   adults: "Adults 18+",
   // Share image (og.png).
-  og: { alt: "Herbal Holland: Dutch heritage. African soil.", sub: "Our story · Franchise · Press · Careers", age: "Adults 18+ only" },
+  og: { alt: "Herbal Holland: Dutch heritage. African soil.", sub: "Our story · Stores · Press · Careers", age: "Adults 18+ only" },
 } as const;
 
 // ── The 18+ gate: the first scene ────────────────────────────────────────────
@@ -65,7 +64,6 @@ export const CHROME = {
   nav: [
     { key: "about", label: "About" },
     { key: "stores", label: "Stores" },
-    { key: "franchise", label: "Franchise" },
     { key: "press", label: "Press" },
     { key: "careers", label: "Careers" },
     { key: "contact", label: "Contact" },
@@ -83,7 +81,7 @@ export const CHROME = {
   footer: {
     line: ["Dutch heritage.", "African soil."],
     cols: { company: "Herbal Holland", members: "Members", contact: "Talk to us" },
-    contact: { hello: "General", franchise: "Franchising", press: "Press", careers: "Careers" },
+    contact: { hello: "General", press: "Press", careers: "Careers" },
     age: "For adults 18 and older only. Licensed medicines are supplied only to registered patients with a valid SAHPRA authorisation, by an authorised dispenser. Nothing on this site is medical advice.",
     owned: "Herbal Holland stores are independently owned and operated by franchisees.",
     copy: "© {year} Herbal Holland",
@@ -151,9 +149,7 @@ export const HOME = {
     all: "All our stores",
     // Read after a store's name by screen readers.
     page: "store page",
-    // Beneath the stores: the one door to opening one, and the shop for everyone else.
-    more: "More towns to come.",
-    own: "Own the first one in yours",
+    // Beneath the stores: the shop, for everyone not near one.
     shop: "Not near a store? Our online shop delivers nationwide.",
   },
   // Scene 4: what's in store, as dusk deepens. Categories only (no product names, prices or anything a product does).
@@ -177,7 +173,7 @@ export const HOME = {
   // Between dusk and night: what we stand for, in five words.
   marquee: {
     label: "What we stand for",
-    words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Pharmacist-led"],
+    words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Good neighbours"],
   },
   // Scene 5: night under the Southern Cross. Founding Members, and the one early-access sign-up.
   founding: {
@@ -191,7 +187,7 @@ export const HOME = {
     sky: "The Southern Cross",
   },
   // Organization structured data.
-  org: { franchise: "franchise enquiries", press: "media enquiries", careers: "careers", hello: "general enquiries" },
+  org: { press: "media enquiries", careers: "careers", hello: "general enquiries" },
 } as const;
 
 // ── Early access: "Get first access" (the home page's last scene, and /stores) ─
@@ -270,12 +266,6 @@ export const STORES = {
   list: { open: "Open now", opening: "Opening {date}", count: ["{n} store", "{n} stores"] },
   card: { open: "Open now", opens: "Opening {opening}", page: "store page" },
   finder: { title: "Opening hours and directions", body: "Each store's opening hours and directions are on our online shop's store finder.", cta: "Find a store" },
-  more: {
-    eyebrow: "More towns to come",
-    title: "Own the first one in your town",
-    body: "Every Herbal Holland store is owned and run by a local franchisee. If you know retail and your community, we'd like to hear from you.",
-    cta: "About franchising",
-  },
   concept: {
     eyebrow: "Store concept",
     title: "How a Herbal Holland store looks",
@@ -305,7 +295,6 @@ export const STORES = {
     photo: "Herbal Holland {name}",
     nearby: { title: "Our other stores", all: "All our stores" },
     shop: { title: "Not near {town}?", body: "Our online shop delivers nationwide, to members aged 18 and over." },
-    own: { title: "Own the next one", body: "Every Herbal Holland store is owned and run by a local franchisee. If you know retail and your community, we'd like to hear from you.", cta: "About franchising" },
   },
 } as const;
 
@@ -313,7 +302,7 @@ export const STORES = {
 export const ABOUT = {
   meta: {
     title: "Our story and standards",
-    updated: "2026-09-28",
+    updated: "2026-10-07",
     description: "Where Herbal Holland comes from and the standards we keep: every batch lab-tested, members only, adults 18+, and licensed medicines only through a pharmacist.",
   },
   hero: {
@@ -406,144 +395,6 @@ export const ABOUT = {
     // Until the online shop is live: where the stores are open, and first access to the shop.
     soon: "Our stores in {open} are open now, and our online shop opens soon: get first access, and we'll tell you the day it does.",
     stores: "Find a store",
-    own: "Own a store",
-  },
-} as const;
-
-// ── Franchise ────────────────────────────────────────────────────────────────
-export const FRANCHISE = {
-  meta: {
-    title: "Own a store",
-    updated: "2026-10-07",
-    description: "Own a Herbal Holland store: who we're looking for, what owners get, how it works from enquiry to opening day, and how to register your interest.",
-  },
-  hero: {
-    eyebrow: "Franchise with Herbal Holland",
-    title: "Own a Herbal Holland store",
-    lede: "Every Herbal Holland store is owned and run by a local franchisee. We're growing carefully, with owner-operators who know retail and their community, and who want to do this properly.",
-    timing: "We open in new towns in stages. Register your interest now, and we'll be in touch as we come to yours.",
-    enquire: "Register your interest",
-    how: "How it works",
-    stores: "See our stores",
-  },
-  who: {
-    eyebrow: "Who we're looking for",
-    title: "Owner-operators, rooted locally",
-    items: [
-      { key: "operator", title: "An owner-operator with retail experience", body: "You'll run the store yourself: leading the team, looking after members and keeping the standards. You've run a store or led a team in retail before." },
-      { key: "capital", title: "Capital", body: "Opening a store takes investment, and you'll need your own capital. The full investment and fees are set out in our disclosure document." },
-      { key: "standing", title: "Standing in your community", body: "People know you and trust you. Our stores are good neighbours, and that starts with the owner." },
-      { key: "pharmacist", title: "A pharmacist partner", body: "Licensed medicines go only through a pharmacist, to registered patients, so you'll need access to a pharmacist who is part of the store." },
-    ] satisfies Item[],
-  },
-  offer: {
-    eyebrow: "What owners get",
-    title: "A platform, a brand and a playbook",
-    intro: "One platform runs every store in the network, and it comes with the brand, the opening playbook and the training to use them.",
-    groups: [
-      {
-        title: "The platform",
-        items: [
-          { key: "tills", title: "Offline-first tills", body: "Tap-on-glass tills that keep trading through load-shedding and dropped connections, and sync when they're back." },
-          { key: "stock", title: "Stock and ordering", body: "Suggested orders filled from HQ distribution centres, batch tracking from delivery to sale, and simple stock counts." },
-          { key: "rewards", title: "Herbal Holland Rewards", body: "One national membership that works in every store and online, so members can come back to yours." },
-          { key: "compliance", title: "Compliance built in", body: "ID checks, the patient register, Schedule 0 limits and screened marketing are part of the software, not an afterthought." },
-        ] satisfies Item[],
-      },
-      {
-        title: "The brand and the launch",
-        items: [
-          { key: "brand", title: "The brand", body: "The windmill, the orange frame and the standards behind them, with artwork for your windows, signs and in-store screens." },
-          { key: "playbook", title: "A launch playbook", body: "A ten-week opening plan: meeting the neighbours, hiring, the reveal, press, the opening evening and Open Day." },
-          { key: "training", title: "Training", body: "Training for you and your team before you open: the platform, ID checks, compliance and the dispensary. HQ stays on hand after that." },
-        ] satisfies Item[],
-      },
-    ],
-  },
-  steps: {
-    eyebrow: "How it works",
-    title: "From enquiry to opening day",
-    intro: "Seven steps, taken at your pace. Nothing is signed until you've had our disclosure document for at least 14 days.",
-    step: "Step {n}: ",
-    badge: "At least 14 days before signing",
-    items: [
-      { key: "enquire", title: "Enquire", body: "Tell us about yourself and the area you have in mind. It takes a few minutes." },
-      { key: "call", title: "A call", body: "We'll call you to talk about your experience, your area and your questions." },
-      { key: "evening", title: "An information evening", body: "Meet the team, see how a store runs and ask us anything." },
-      { key: "disclosure", title: "The disclosure document", body: "You receive our disclosure document at least 14 days before anything is signed, as the Consumer Protection Act's franchise regulations require. It sets out the full investment and fees. Take advice, and take your time." },
-      { key: "site", title: "Site, licences and permits", body: "We work with you on the right site and on the licences and permits the store needs." },
-      { key: "training", title: "Training", body: "You and your team train on the platform, ID checks, compliance and the dispensary." },
-      { key: "opening", title: "Opening", body: "The launch playbook takes you from the reveal to opening day, with HQ beside you." },
-    ] satisfies Item[],
-  },
-  faq: {
-    eyebrow: "Questions",
-    title: "Straight answers",
-    intro: "Can't see yours? Ask us at",
-    items: [
-      { q: "What does it cost to open a store?", a: "The full investment and fees are set out in the disclosure document, which you receive at least 14 days before anything is signed. We're glad to talk them through on the call and at the information evening." },
-      { q: "How much will I earn?", a: "We don't publish earnings projections. What a store earns depends on its site, its team and how it's run, and we'll only ever share figures we can back up." },
-      { q: "When can I open a store?", a: "We open in new towns in stages, so each new store gets the playbook, the training and HQ beside it. Register your interest now and we'll invite you to an information evening when the time comes." },
-      { q: "Do I need to be a pharmacist?", a: "No, but you need a pharmacist partner. Licensed medicines are dispensed only by a pharmacist, to registered patients with a SAHPRA authorisation, so every store needs one." },
-      { q: "Can I set my own prices?", a: "Yes. HQ recommends retail prices, and you set your own." },
-      { q: "What happens to my enquiry?", a: "Only our head-office team reads it, and we use it only to reply to you. If it doesn't go ahead, we delete it within 12 months of it arriving. If it moves into our franchise system, we delete the website's copy within 30 days. You can ask us to delete it sooner at any time." },
-    ] satisfies Faq[],
-  },
-  enquire: {
-    eyebrow: "Register your interest",
-    title: "Tell us about yourself",
-    body: "It takes a few minutes, and we read every enquiry. If it looks like a fit, we'll be in touch to arrange a call.",
-    email: "Prefer email? Write to us at",
-  },
-  // The enquiry form (posts JSON to /api/enquiry). Field errors normally come back from the server; these mirror its
-  // wording for the checks the page makes before sending.
-  form: {
-    label: "Franchise enquiry",
-    fields: {
-      name: { label: "Your name" },
-      email: { label: "Email address" },
-      phone: { label: "Mobile number", hint: "A South African mobile, e.g. 082 123 4567" },
-      area: { label: "Where would you like to open?", hint: "A town or area, e.g. Ballito, or Parkhurst in Johannesburg" },
-      province: { label: "Province", placeholder: "Choose a province" },
-      capital: { placeholder: "Choose a band", hint: "Your own funds you could invest; a rough band is fine. It isn't what a store costs: we'll take you through the full investment." },
-      experience: { label: "Your retail or business experience", hint: "A few lines on what you've run or managed, and for how long." },
-      pharmacist: { label: "Do you have access to a pharmacist partner?", yes: "Yes", no: "No", hint: "Our stores need a pharmacist for licensed medicines. No partner yet? That's fine: say no." },
-      message: { label: "Anything else you'd like us to know?", optional: "(optional)", hint: "Up to {n} characters." },
-      consent: { label: "Herbal Holland may use these details to reply to my franchise enquiry, as set out in the {privacy}." },
-      website: { label: "Website (leave this empty)" },
-    },
-    privacy: "We keep your enquiry only to reply to you, and we delete enquiries that don't go ahead within 12 months.",
-    submit: "Send my enquiry",
-    sending: "Sending your enquiry…",
-    noscript: "Please enable JavaScript to send this form, or email us at",
-    errors: {
-      summary: "Please check the highlighted fields.",
-      name: "Tell us your name.",
-      email: "Enter your email address. We reply by email.",
-      emailShape: "That doesn't look like an email address. Check it for typos.",
-      phone: "Enter a mobile number we can call you on.",
-      area: "Tell us where you'd like to open: a town or area.",
-      province: "Choose a province.",
-      experience: "Tell us about your retail or business experience.",
-      experienceShort: "A little more, please: at least {n} characters.",
-      capital: "Choose the band closest to what you could put in.",
-      pharmacist: "Choose yes or no.",
-      consent: "Tick the box so we can use your details to reply.",
-      busy: "You've sent us a few enquiries in a short time. Please try again later, or email us at {email}.",
-      server: "Something went wrong sending your enquiry. Please try again in a minute, or email us at {email}.",
-      network: "We couldn't reach our server just now. Check your connection and try again, or email us at {email}.",
-    },
-    done: {
-      title: "Thank you: your enquiry is in",
-      reference: "Your reference is",
-      keep: "Keep it handy if you write to us.",
-      next: "What happens next",
-      steps: [
-        "We read every enquiry and reply by email within a few working days.",
-        "If it looks like a fit, we'll invite you to an information evening to meet the team and see how a Herbal Holland store works.",
-        "If you'd like to go further, you'll get our disclosure document at least 14 days before anything is signed, as the Consumer Protection Act's franchise regulations require.",
-      ],
-    },
   },
 } as const;
 
@@ -729,8 +580,8 @@ export const CAREERS = {
 export const CONTACT = {
   meta: {
     title: "Contact",
-    updated: "2026-09-28",
-    description: "How to reach Herbal Holland: the right inbox for general questions, franchising, press, careers and membership, and our company details.",
+    updated: "2026-10-07",
+    description: "How to reach Herbal Holland: the right inbox for general questions, press, careers and membership, and our company details.",
   },
   hero: {
     eyebrow: "Contact",
@@ -741,7 +592,6 @@ export const CONTACT = {
     eyebrow: "Who to contact",
     title: "The right inbox for each question",
     general: { title: "General", body: "Anything about Herbal Holland that isn't covered below." },
-    franchise: { title: "Franchising", body: "Owning a Herbal Holland store. You can also use the enquiry form.", link: "Franchise enquiry form" },
     press: { title: "Press", body: "Interviews, store visits, pictures and questions from journalists.", link: "Press room" },
     careers: { title: "Careers", body: "Jobs in our stores and at HQ.", link: "Careers" },
     members: {
@@ -791,18 +641,19 @@ export const LEGAL = {
 
 /**
  * The Privacy Policy for herbalholland.com (POPIA, Act 4 of 2013). It describes what the pages and ./worker.ts do: the
- * enquiry form and the early-access sign-up and their fields, the ?src tag, the scrambled connection code, Cloudflare's
- * EU region and email routing, how long enquiries and sign-ups are kept, and the 18+ answer kept in the browser. Change
- * how any of that works, and change this too.
+ * early-access sign-up and its fields, the franchise enquiries sent before that form closed (kept until the Worker's
+ * daily clean-up deletes them), the ?src tag, the scrambled connection code, Cloudflare's EU region and email routing,
+ * how long enquiries and sign-ups are kept, and the 18+ answer kept in the browser. Change how any of that works, and
+ * change this too.
  */
 export const PRIVACY = {
   meta: {
     title: "Privacy Policy",
     description: "How herbalholland.com collects, uses, stores and protects personal information under POPIA: who sees it, how long we keep it and how to use your rights.",
-    updated: "2026-09-28",
+    updated: "2026-10-07",
   },
-  version: "1.2",
-  updated: "2026-09-28",
+  version: "1.3",
+  updated: "2026-10-07",
   hero: {
     eyebrow: "Legal",
     title: "Privacy Policy",
@@ -811,10 +662,10 @@ export const PRIVACY = {
   summary: {
     title: "In short",
     points: [
-      "We collect only what you send us: a franchise enquiry, an early-access sign-up or an email.",
+      "We collect only what you send us: an early-access sign-up or an email.",
       "We use it to reply to you, to tell you when our online shop opens if you've asked us to, and to keep the site secure, and for nothing else.",
       "No tracking or advertising cookies, no analytics, and we never sell your details.",
-      "Enquiries and sign-ups are stored with Cloudflare in the EU. Enquiries that don't go ahead are deleted within 12 months; sign-ups are kept until the shop opens, and 12 months at most.",
+      "Sign-ups are stored with Cloudflare in the EU and kept until the shop opens, and 12 months at most. Franchise enquiries sent before our enquiry form closed are stored there too, and deleted within 12 months if they don't go ahead.",
       "You can ask to see, correct or delete your details at any time, and every launch message lets you unsubscribe.",
     ],
     scope: "This policy covers herbalholland.com only. Our online shop and Herbal Holland Rewards have their own privacy policy, which applies when you use them.",
@@ -833,13 +684,13 @@ export const PRIVACY = {
       key: "collect",
       title: "What this site collects",
       body: [
-        ["The franchise enquiry form.", "If you send us an enquiry: your name, email address and mobile number, the area and province where you'd like to open, your retail or business experience, the band of capital you could put in, whether you have a pharmacist partner, and any message you add. If you reached the form through a link with a campaign tag (such as ?src=linkedin), we note the tag, so we know where enquiries come from."],
         ["The early-access sign-up.", "If you ask for first access to our online shop: your first name if you give it, your email address or mobile number (or both), your province if you choose one, and your consent to hear from us, with the date you gave it. You also confirm that you're 18 or older. If you reached the sign-up through a link with a campaign tag (such as ?src=instagram), we note the tag."],
-        ["Your connection address.", "When you send either form, we use your connection (IP) address only to stop the same form being sent over and over, and we keep it only as a scrambled code, never the address itself."],
+        ["Franchise enquiries.", "This site no longer takes franchise enquiries. If you sent one before the form closed, we hold what it asked for: your name, email address and mobile number, the area and province where you'd like to open, your retail or business experience, the band of capital you could put in, whether you have a pharmacist partner, any message you added and, if you came through a link with a campaign tag (such as ?src=linkedin), the tag."],
+        ["Your connection address.", "When you send the sign-up form, we use your connection (IP) address only to stop the same form being sent over and over, and we keep it only as a scrambled code, never the address itself."],
         ["Routine security logs.", "Like any website, our host keeps routine logs of requests to the site, such as the connection address, the browser used and the time, to keep the site secure and working."],
         ["Emails.", "If you email us, we receive your email address, your message and anything you attach."],
         ["Your answer to the 18+ question.", "It stays in your own browser's local storage: for a year if you confirm you're 18 or older, and only until you close the tab if you're younger. It's never sent to us."],
-        ["What we don't do.", "This site sets no tracking or advertising cookies, runs no analytics and builds no profiles. Sending an enquiry never signs you up for marketing: we send launch news only if you ask for first access and tick the box to hear from us."],
+        ["What we don't do.", "This site sets no tracking or advertising cookies, runs no analytics and builds no profiles. Emailing us never signs you up for marketing: we send launch news only if you ask for first access and tick the box to hear from us."],
       ],
     },
     {
@@ -926,18 +777,17 @@ export const PRIVACY = {
 export const TERMS = {
   meta: {
     title: "Terms of Use",
-    description: "The terms for using herbalholland.com: who we are, what the site is for, franchise and careers information, our content, and the law that applies.",
-    updated: "2026-09-28",
+    description: "The terms for using herbalholland.com: who we are, what the site is for, careers information, our content, and the law that applies.",
+    updated: "2026-10-07",
   },
-  version: "1.1",
-  updated: "2026-09-28",
+  version: "1.2",
+  updated: "2026-10-07",
   hero: { eyebrow: "Legal", title: "Terms of Use", lede: "The terms for using herbalholland.com, in plain English." },
   summary: {
     title: "In short",
     points: [
       "This site is for adults 18 and over, and by using it you accept these terms.",
       "It's information only: nothing is sold here, and nothing on it is medical advice.",
-      "Franchise information is general, not an offer: any franchise depends on our disclosure document and a signed agreement.",
       "Our name, windmill and content are ours. Press may use our logos, unaltered, to refer to us.",
       "South African law applies.",
     ],
@@ -956,7 +806,7 @@ export const TERMS = {
     {
       key: "what",
       title: "What this site is",
-      body: ["It's information about Herbal Holland: who we are, franchising, press and careers.", "Nothing is sold on this site. Our online shop and Herbal Holland Rewards have their own terms, which apply when you use them."],
+      body: ["It's information about Herbal Holland: who we are, our stores, press and careers.", "Nothing is sold on this site. Our online shop and Herbal Holland Rewards have their own terms, which apply when you use them."],
     },
     {
       key: "medical",
@@ -965,15 +815,6 @@ export const TERMS = {
         "Nothing on this site is medical advice. For advice about your health, speak to a doctor or pharmacist.",
         "Licensed medicines are supplied only by our pharmacists, to registered patients with a SAHPRA authorisation.",
         "Nothing on this site is an offer to supply any product.",
-      ],
-    },
-    {
-      key: "franchise",
-      title: "Franchise information",
-      body: [
-        "What we say about franchising on this site is general information. It isn't an offer, a disclosure document or a contract, and we make no representations about earnings.",
-        "Any franchise depends on our disclosure document, which you'll receive at least 14 days before you sign anything, as the Consumer Protection Act's franchise regulations require, and on a franchise agreement signed by both sides.",
-        "Sending an enquiry creates no obligation for you or for us.",
       ],
     },
     {
@@ -1046,10 +887,10 @@ export const PAIA = {
   meta: {
     title: "PAIA manual",
     description: "How to request the records we hold under the Promotion of Access to Information Act (PAIA), the fees and timelines, and how we handle personal information.",
-    updated: "2026-09-28",
+    updated: "2026-10-07",
   },
-  version: "1.1",
-  updated: "2026-09-28",
+  version: "1.2",
+  updated: "2026-10-07",
   hero: {
     eyebrow: "Legal",
     title: "PAIA manual",
@@ -1094,7 +935,7 @@ export const PAIA = {
       title: "Records anyone can see",
       body: [
         "These records are available without a PAIA request (section 52):",
-        ["On this website.", "Information about Herbal Holland, franchising, careers and our stores; press releases and our logos; and our Privacy Policy, Terms of Use and this manual."],
+        ["On this website.", "Information about Herbal Holland, careers and our stores; press releases and our logos; and our Privacy Policy, Terms of Use and this manual."],
         ["In the online shop, once it opens.", "Product information and labels, laboratory results for each product batch, store locations and trading hours, our articles, and the membership terms and privacy notice."],
       ],
     },
@@ -1127,7 +968,7 @@ export const PAIA = {
         ["Members:", "membership and age checks, the membership terms each member accepted, orders and invoices, payments, deliveries and collections, Rewards points and tiers, referrals, communication preferences and marketing consents, and messages with us."],
         ["Registered patients:", "for licensed medicines, SAHPRA authorisation details, prescribers, and what was supplied and when."],
         ["Products:", "product details and labels, suppliers' certificates, batches and laboratory results, and recalls."],
-        ["Franchising:", "franchise enquiries, disclosure documents and franchise agreements, and the trading and compliance records of franchisee stores."],
+        ["Franchisees:", "franchise enquiries, disclosure documents and franchise agreements, and the trading and compliance records of franchisee stores."],
         ["Stores and stock:", "stock, purchasing, sales and cash-banking records from the platform our stores use."],
         ["Suppliers and partners:", "contracts, orders, invoices and contact details."],
         ["Marketing and media:", "campaigns, early-access sign-ups and their consents, other consent records, press releases and media contacts."],

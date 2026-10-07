@@ -1,11 +1,11 @@
 import { existsSync } from "node:fs";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { limitFor, needsImage, postizPost, screenSocial, SOCIAL_IMAGES } from "@/lib/social";
-import { postizConnected, publishSocial, socialChannels } from "@/server/social";
+import { postizConnected, postizPosts, publishSocial, socialChannels } from "@/server/social";
 
 describe("social copy screening", () => {
   it("passes brand posts", () => {
-    expect(screenSocial("The Windmill Tee is back: the mark embroidered in Sunset thread, made to order in Cape Town. Shop the merch.")).toEqual([]);
+    expect(screenSocial("The Windmill Tee is back: the mark embroidered in Sunset thread on black cotton. Shop the merch.")).toEqual([]);
     expect(screenSocial("New in Learn: what a CBD label tells you, line by line.")).toEqual([]);
   });
   it("stops THC, selling cannabis or CBD, and health claims", () => {
@@ -70,11 +70,28 @@ describe("Postiz adapter", () => {
     });
     const channels = await socialChannels();
     expect(channels).toEqual([{ id: "ig", name: "herbalholland", identifier: "instagram", picture: "p" }]);
-    expect(await publishSocial({ content: "Hello", image: "windmill-tee", channels, mode: "now", at: new Date() })).toEqual(["p1"]);
+    expect(await publishSocial({ content: "Hello", picture: { image: "windmill-tee" }, channels, mode: "now", at: new Date() })).toEqual(["p1"]);
     expect(calls.map((c) => c.url.split("/v1")[1])).toEqual(["/integrations", "/upload-from-url", "/posts"]);
     expect((calls[1].init?.headers as Record<string, string>).Authorization).toBe("key-1");
     expect(JSON.parse(String(calls[1].init?.body))).toEqual({ url: "https://herbalholland.co.za/social/windmill-tee.jpg" });
     expect(JSON.parse(String(calls[2].init?.body)).posts[0].value[0].image).toEqual([{ id: "up1", path: "https://uploads/up1.jpg" }]);
+  });
+  it("uploads a Studio card as a file, and reads back how posts went", async () => {
+    vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1");
+    vi.stubEnv("POSTIZ_API_KEY", "key-1");
+    const calls: { url: string; init?: RequestInit }[] = [];
+    vi.stubGlobal("fetch", async (url: string, init?: RequestInit) => {
+      calls.push({ url, init });
+      const path = url.replace("https://social.example.com/api/public/v1", "");
+      const body = path === "/upload" ? { id: "f1", path: "https://uploads/f1.jpg" } : path === "/posts" ? [{ postId: "p9" }] : { posts: [{ id: "p9", state: "PUBLISHED", releaseURL: "https://instagram.com/p/x" }] };
+      return new Response(JSON.stringify(body), { status: 200 });
+    });
+    const channels = [{ id: "ig", name: "hh", identifier: "instagram" }];
+    expect(await publishSocial({ content: "Hello", picture: { file: { data: Buffer.from([1, 2, 3]), name: "card.jpg", type: "image/jpeg" } }, channels, mode: "schedule", at: new Date("2026-11-01T08:00:00Z") })).toEqual(["p9"]);
+    expect(calls[0].init?.body).toBeInstanceOf(FormData);
+    expect(((calls[0].init?.body as FormData).get("file") as File).name).toBe("card.jpg");
+    expect(await postizPosts(new Date("2026-11-01T00:00:00Z"), new Date("2026-11-02T00:00:00Z"))).toEqual([{ id: "p9", state: "PUBLISHED", releaseURL: "https://instagram.com/p/x" }]);
+    expect(calls[2].url).toContain("/posts?startDate=2026-11-01T00%3A00%3A00.000Z&endDate=2026-11-02T00%3A00%3A00.000Z");
   });
   it("reports Postiz errors", async () => {
     vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1");

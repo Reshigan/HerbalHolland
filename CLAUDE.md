@@ -39,7 +39,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 | Trade portal (wholesale buyers) | `/trade`, `/trade/*` | dark brand |
 | Menu board (in-store TV) | `/menu/[slug]` | dark, 16:9 |
 | Tax invoice (public, signed link) | `/invoice/[id]?t=` | print-friendly |
-| Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com`, with static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
+| Corporate site herbalholland.com (about, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com`, with static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/early-access` (the early-access list, in D1). No franchise page or enquiry form: `/franchise` redirects to `/about`. Deploy notes in `wrangler.jsonc` | dark brand, motion |
 
 ## Engineering rules
 
@@ -53,7 +53,8 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Reuse the domain services instead of writing new business logic in pages:
   `sales` (postPosSale, refundSale), `orders` (placeOrder, advanceOrder), `inventory` (availability, adjustStock, stock takes),
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
-  `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`,
+  `compliance` (evaluateBasket), `finance`, `marketing`, `studio` (campaign playbooks: createPlan, scheduleApproved; the playbooks
+  are in `src/lib/studio-playbooks/`, one file per pack, and `tests/studio-calendar.test.ts` holds the six months' limits), `invoices`, `dashboard`, `settings`, `audit`,
   `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
   `queueStoreDay` inside its own transaction; postings are rebuilt from their source, never written by hand, and manual
   journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts`, so nobody sees an

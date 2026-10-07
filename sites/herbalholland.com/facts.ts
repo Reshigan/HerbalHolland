@@ -50,7 +50,6 @@ export const FACTS = {
 
   email: {
     hello: "hello@herbalholland.com",
-    franchise: "franchise@herbalholland.com",
     press: "press@herbalholland.com",
     careers: "careers@herbalholland.com",
   },

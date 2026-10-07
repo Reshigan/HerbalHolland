@@ -1,4 +1,4 @@
-// Franchise enquiries from herbalholland.com/franchise: what the form accepts, the pipeline HQ works them through, the
+// Franchise enquiries (from herbalholland.com's former enquiry form): what it accepted, the pipeline HQ works them through, the
 // CPA franchise-regulation signing rule and the POPIA retention date. Pure: safe on the server, in the browser and in tests.
 import { PROVINCES, normalisePhone, type ProvinceCode } from "./sa";
 import { addDays, dayKey, fmtDate, startOfDaySA } from "./format";

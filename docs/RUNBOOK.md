@@ -28,7 +28,7 @@ reports) and Postgres can't live on Cloudflare.
    a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: proxied DNS
    record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
    herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
-   (`sites/herbalholland.com`: static pages plus `/api/enquiry`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
+   (`sites/herbalholland.com`: static pages plus `/api/early-access`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
    up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
    TLS ≥ 1.2 (1.3 on), SSL Full (strict), HSTS (1 year, include subdomains, no preload; the site's `_headers` sends
    the same, so keep them in step), Email Routing forwarding hello@, franchise@, press@ and careers@ to the team. To
@@ -36,16 +36,23 @@ reports) and Postgres can't live on Cloudflare.
    repository secret `CLOUDFLARE_API_TOKEN`). By hand: `npx tsx sites/herbalholland.com/build.ts`, then from
    `sites/herbalholland.com` `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. For a change the owner
    should see first: `npx wrangler@4 versions upload --preview-alias preview` (→ `https://preview-herbalholland-com.<account>.workers.dev`,
-   same database and email as live, so don't send test enquiries), then `npx wrangler@4 versions deploy <version-id>`
+   same database as live, so don't send test sign-ups), then `npx wrangler@4 versions deploy <version-id>`
    to make that exact version live. The early-access list (`early_access` in the same database; the Worker deletes
-   sign-ups after 12 months): export it for the launch message with `npx wrangler@4 d1 execute herbalholland-com-eu
-   --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`,
-   send only through the platform's consent-checked messaging (every message with an opt-out), and delete anyone who
-   asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. The workflow also runs just
-   after midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop opens. Once the
-   platform is live, give the Worker `APP_ENQUIRY_URL` (`https://herbalholland.co.za/api/site/enquiries`) and
-   `APP_ENQUIRY_SECRET` (= the app's `SITE_ENQUIRY_SECRET`) with `wrangler secret put`, so enquiries land in HQ →
-   Franchise leads instead of email.
+   sign-ups after 12 months) goes to the platform once, for the online shop launch. The day before the shop opens,
+   export it with `npx wrangler@4 d1 execute herbalholland-com-eu
+   --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`
+   and paste the output into HQ → Marketing → Studio → **First-access list** (it says how many people it added and
+   left out). The shop launch's opening-day SMS (09:00, to those who gave only a mobile) and email (09:05, to those who
+   gave an email) tell each person once, with an opt-out and the do-not-contact list applied, and the platform deletes
+   each sign-up as its message goes. Afterwards delete the site's copy: clear the table with
+   `npx wrangler@4 d1 execute herbalholland-com-eu --remote --command "DELETE FROM early_access"`; until then, delete
+   anyone who asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. The workflow also runs just after
+   midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop
+   opens: that closes the site's first-access sign-up, and every way to shop on the site leads to the shop instead. The
+   site no longer takes franchise enquiries (`/franchise` redirects to `/about`): the enquiries already handed to HQ stay
+   in HQ → Franchise leads, and the Worker's daily clean-up deletes the site's own copies (a year after they came in, or
+   30 days after HQ had them). The Worker no longer reads `NOTIFY_TO`, `APP_ENQUIRY_URL` or `APP_ENQUIRY_SECRET`: if they're
+   set, remove them with `npx wrangler@4 secret delete <name>`.
 2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location, so record the cross-border
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
@@ -313,19 +320,19 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 | When | Task | Where |
 |---|---|---|
 | Continuous | Liveness (`/api/health`), scheduler heartbeat (`/api/health/jobs`), error alerts (`ALERT_EMAIL`), disk and DB connections | Uptime monitor + server monitoring |
-| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the list closes; drop alerts to watchers; email paid merch orders to the print partner | `/api/cron/frequent` |
+| Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the list closes; drop alerts to watchers; email paid made-to-order orders (if any variant is made to order) to the merch partner | `/api/cron/frequent` |
 | Every 5 min | Staff push notifications: new online orders (polled; nothing hooks the checkout), loss alerts about other people, HQ updates that need acknowledging | `/api/cron/staff-push` |
 | Daily 03:00 | Staff push digests (lots entering the expiry window, cash due at the bank, low stock per store); scheduled report exports emailed as signed CSV links; pruning of old push-event keys and export files | `/api/cron/operations` |
 | Daily (manager) | Work the **Today** list on the store overview: orders to pick or hand over, cycle counts due, cash to bank, open alerts, expiring lots, low stock, lapsing patient authorisations, HQ updates, supplier invoices due | Store → Overview |
 | As delivered | Capture an outside supplier's invoice (photo or PDF, ≤ 8 MB) under Finance → Supplier invoices; mark paid as settled, query one that doesn't match. A stock order (from the DC or another store) is put on automatically when received (for what was counted in) and settles on the franchise statement, so there's nothing to capture or pay; orders received before this was automatic were put on by the `20261005130000_backfill_statement_invoices` migration | Store → Finance |
-| Daily (DC) | Print partner's shipping emails → enter courier + tracking on each merch order (**Merch shipped**); chase anything "sent" for more than 7 working days; mark delivered merch orders delivered | Store back office → DC → Online orders |
+| Daily (DC), only while a variant is made to order | Merch partner's shipping emails → enter courier + tracking on each made-to-order order (**Merch shipped**); chase anything "sent" for more than 7 working days; mark delivered ones delivered | Store back office → DC → Online orders |
 | Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; loss-prevention rules + the digest email to owners and area managers; load weekly My Deals (Mondays); reorder reminders; gift-voucher expiry; trade holds, licences and statements; POPIA purges (leads, resolved tickets, message texts after 12 months); stock-order invoices from a month that's over marked settled on its statement; the books' nightly posting and bank auto-match | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |
 | Daily (store) | Bank yesterday's cash by the next business day: Banking → tick the cash-ups → amount, reference and a photo of the stamped slip | Store → Banking |
 | Daily (owner / area manager) | Check new deposits against the bank statement (Verify, or Query with a note); work the loss-prevention alerts: investigate, then resolve or dismiss with a note | Store → Banking / Loss prevention |
 | Monthly (owner) | Approve last month's commission for payroll (people with open alerts are held until they're closed), download the CSV | Store → Commission |
 | Weekly | Replenishment orders submitted/approved/shipped; expiry report actioned | Purchasing / Distribution |
-| Weekly | Schedule the week's social posts (merch, store news, events, Learn); answer comments and DMs in Postiz or the apps, but never take orders there | HQ → Campaigns → Social |
+| Weekly | Open the Studio: approve and queue what's coming (pause a campaign that has to wait), post the WhatsApp Channel and Google posts that are due by hand, and look at any that failed; answer comments and DMs in Postiz or the apps, but never take orders there | HQ → Marketing → Studio |
 | Monthly | Cycle counts per category; franchise statements emailed; NCC opt-out registry import into Suppression; VAT201 working per store | Stock takes / HQ Statements / Marketing |
 | Quarterly | Access review (users, roles, devices); restore test from backup | HQ Team / DB |
 

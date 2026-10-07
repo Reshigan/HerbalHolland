@@ -1,6 +1,6 @@
-// Form pieces shared by the franchise enquiry (./pages/franchise) and the early-access sign-up (./access): a labelled
-// field with its hint and error lines, and the summary alert. Every id carries the form's prefix ("f", "ea"), so two
-// forms could share a page; the page's script (client/main.ts) fills and clears the errors.
+// Form pieces, used by the early-access sign-up (./access): a labelled field with its hint and error lines, and the
+// summary alert. Every id carries the form's prefix ("ea"), so two forms could share a page; the page's script
+// (client/main.ts) fills and clears the errors.
 import { cx } from "./art";
 
 /** Hint and error lines under a field; the script swaps aria-describedby to the error when there is one. */
@@ -31,9 +31,6 @@ export function Field({ p, name, label, hint, optional, children, wide }: { p: s
     </div>
   );
 }
-
-/** aria-describedby for a control with a hint (the script adds the error line's id when there's an error). */
-export const described = (p: string, name: string, hint?: unknown) => (hint ? { "aria-describedby": `${p}-${name}-hint` } : {});
 
 /** The alert at the top of a form: what went wrong, focused when it matters. */
 export function FormAlert() {

@@ -4,7 +4,8 @@
 // owner) → new product, variants, ranging → catalogue import (template → preview → import) → batch lab results, quarantine/release → DC orders (approve + ship,
 // reject, cancel) → recall → compliance rules and licences → pricing → promotions → drops → events → campaigns
 // (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
-// connected) → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
+// connected) → the Studio (a merch drop laid out, approved and queued, paused and resumed, a post marked posted by hand, the QR maker)
+// → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
 // Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → trade (an application
 // whose licence HQ first doesn't accept and then verifies (approval waits for it), approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
 // statement emailed, hold and release, the trade settings card) → an area manager's scope.
@@ -108,7 +109,7 @@ function weekdayAt(days, hh) {
 // ── Test data: unique per run, removed at the end ───────────────────────────
 const sfx = `${Date.now().toString(36).slice(-5)}${Math.floor(Math.random() * 36).toString(36)}`;
 const SFX = sfx.toUpperCase();
-const created = { announcements: [], offers: [], mails: [], campaigns: [] };
+const created = { announcements: [], offers: [], mails: [], campaigns: [], studioPlans: [] };
 const T = {
   storeName: `E2E Store ${sfx}`,
   productName: `E2E Calm Tonic ${sfx}`,
@@ -121,7 +122,7 @@ const T = {
   dropName: `E2E drop ${sfx}`,
   eventTitle: `E2E members' evening ${sfx}`,
   campaignName: `E2E campaign ${sfx}`,
-  caption: `The Windmill Tee is back: the mark embroidered in Sunset thread, made in Cape Town. (${sfx})`,
+  caption: `The Windmill Tee is back: the mark embroidered in Sunset thread on black cotton. (${sfx})`,
   staffName: `E2E Staffer ${sfx}`,
   staffEmail: `e2e.staff.${sfx}@herbalholland.co.za`,
   ownerName: `E2E Owner ${sfx}`,
@@ -870,6 +871,61 @@ try {
   }
   await shot("social");
 
+  // ── Campaign Studio ───────────────────────────────────────────────────────
+  step("Studio: lay out a merch drop, approve it, queue members' messages for release, pause and resume; social and WhatsApp wait to be posted by hand");
+  // A merch drop opens on a Thursday, at least nine days out (its teasers come first). A day whose pinned posts would
+  // land on a public holiday is refused, so the next Thursday is tried.
+  const sastDay = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(d);
+  const thursdays = [9, 16, 23].map((from) => {
+    const d = new Date(Date.now() + from * 86_400_000);
+    while (new Date(`${sastDay(d)}T12:00:00Z`).getUTCDay() !== 4) d.setTime(d.getTime() + 86_400_000);
+    return sastDay(d);
+  });
+  await open("/hq/marketing/studio", page.getByRole("heading", { name: "New campaign" }));
+  const nf = formWith("#playbook");
+  await hydrated(nf);
+  await nf.locator("#playbook").selectOption("merch-drop");
+  // The database says which it was once the action has answered (a refused day's message may still be on screen).
+  const drops = async () => (await one(`select count(*)::int as n from "StudioPlan" where playbook = 'merch-drop'`)).n;
+  const before = await drops();
+  let dayT = null;
+  for (const day of thursdays) {
+    await nf.locator("#anchor").fill(day);
+    await act("studio.createStudioPlan", () => nf.getByRole("button", { name: "Lay it out" }).click(), async () => {
+      if ((await drops()) > before) await notice("Laid out.").waitFor(), (dayT = day);
+      else await alertIn(nf, "Day T doesn't work").waitFor();
+    });
+    if (dayT) break;
+  }
+  assert(dayT, `a merch drop laid out on Thursday ${dayT} (of ${thursdays.join(", ")})`);
+  const studioPlan = await one(`select id from "StudioPlan" where playbook = 'merch-drop' order by "createdAt" desc limit 1`);
+  created.studioPlans.push(studioPlan.id);
+  const drafts = await q(`select id, key, channel, status from "StudioItem" where "planId" = $1`, [studioPlan.id]);
+  assert(drafts.length > 0 && drafts.every((i) => i.status === "DRAFT"), `${drafts.length} drafts laid out around day T (${dayT})`);
+  // Fetched from the page: the session cookie is Secure in a production build, which page.request won't send over http.
+  const cardRes = await page.evaluate(async (u) => { const r = await fetch(u); return { ok: r.ok, type: r.headers.get("content-type") }; }, `${BASE}/hq/marketing/studio/card/${drafts.find((i) => i.channel === "SOCIAL").id}?size=portrait`);
+  assert(cardRes.ok && cardRes.type === "image/png", "a post's card renders in the brand's fonts on the server");
+  await hydrated(page.getByRole("button", { name: "Approve every post that passes" }));
+  await act("studio.approveStudio (all)", () => page.getByRole("button", { name: "Approve every post that passes" }).click(), () => notice(/posts? approved/).waitFor());
+  await act("studio.scheduleStudio", () => page.getByRole("button", { name: "Schedule what's approved" }).click(), () => notice(/queued/).waitFor());
+  const planned = await q(`select i.key, i.channel, i.status, i."releasedAt", i."campaignId" from "StudioItem" i where i."planId" = $1`, [studioPlan.id]);
+  const ownSends = planned.filter((i) => ["EMAIL", "SMS", "PUSH"].includes(i.channel));
+  assert(ownSends.length > 0 && ownSends.every((i) => i.status === "SCHEDULED" && !i.releasedAt && !i.campaignId), `${ownSends.length} member messages queued in the platform; the scheduler releases each at its time`);
+  await act("studio.pauseStudio", () => page.getByRole("button", { name: "Pause releases" }).click(), () => notice("Paused: nothing more goes out").waitFor());
+  assert((await one(`select paused from "StudioPlan" where id = $1`, [studioPlan.id])).paused === true, "the campaign is paused: nothing is released while it is");
+  await act("studio.pauseStudio (resume)", () => page.getByRole("button", { name: "Resume releases" }).click(), () => notice("Resumed").waitFor());
+  assert((await one(`select paused from "StudioPlan" where id = $1`, [studioPlan.id])).paused === false, "and resumed");
+  const byHand = planned.filter((i) => !["EMAIL", "SMS", "PUSH"].includes(i.channel));
+  assert(byHand.every((i) => i.status === "APPROVED"), `${byHand.length} social and WhatsApp posts wait, approved, to be posted by hand (no Postiz here)`);
+  const handPost = page.locator(`#p-${byHand[0].key}`);
+  await handPost.getByRole("button", { name: "Mark posted" }).waitFor();
+  await act("studio.postedStudioItem", () => handPost.getByRole("button", { name: "Mark posted" }).click(), () => handPost.getByText("Out", { exact: true }).waitFor());
+  assert((await one(`select status from "StudioItem" where "planId" = $1 and key = $2`, [studioPlan.id, byHand[0].key])).status === "POSTED", "a by-hand post is marked posted");
+  await shot("studio");
+  await open("/hq/marketing/studio/qr?kind=join&code=PTA01&tag=e2e-window", page.getByRole("img", { name: /QR code for/ }));
+  const svg = await page.evaluate(async (u) => { const r = await fetch(u); return r.ok ? r.text() : ""; }, `${BASE}/hq/marketing/studio/qr/svg?kind=join&code=PTA01&tag=e2e-window`);
+  assert(svg.includes("<svg") && (await page.getByText("/club/join?src=e2e-window&store=PTA01").count()) > 0, "QR maker: a tagged join link for a store, and its SVG for print");
+
   // ── Online orders ─────────────────────────────────────────────────────────
   step("Online orders: cancel the fixture order (reason required); the member is told");
   await open(`/hq/orders?q=${order.code}`, page.getByRole("link", { name: order.code }));
@@ -1446,6 +1502,8 @@ async function cleanup() {
   await run("deals", `delete from "MemberOffer" where id = any($1) and "redeemedAt" is null`, [created.offers]);
   await run("announcements", `delete from "Announcement" where id = any($1) or title = $2 or (kind = 'RECALL' and title like $3)`, [created.announcements.filter(Boolean), T.annTitle, `%batch ${T.batchCode}`]);
   await run("social post", `delete from "SocialPost" where content = $1`, [T.caption]);
+  await run("studio campaigns", `delete from "Campaign" where id in (select "campaignId" from "StudioItem" where "planId" = any($1))`, [created.studioPlans]);
+  await run("studio", `delete from "StudioPlan" where id = any($1)`, [created.studioPlans]);
   await run("campaign messages", `delete from "MessageLog" where "campaignId" in (select id from "Campaign" where name like $1)`, [`${T.campaignName}%`]);
   await run("campaigns", `delete from "Campaign" where name like $1`, [`${T.campaignName}%`]);
   await run("statement emails", `delete from "MessageLog" where id = any($1)`, [created.mails]);

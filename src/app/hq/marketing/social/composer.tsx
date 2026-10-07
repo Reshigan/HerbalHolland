@@ -56,7 +56,7 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
               value={text}
               onChange={(e) => setText(e.target.value)}
               aria-invalid={over || flags.length > 0 || undefined}
-              placeholder="e.g. The Windmill Tee is back: the mark embroidered in Sunset thread, made for you in Cape Town."
+              placeholder="e.g. The Windmill Tee is back: the mark embroidered in Sunset thread on black cotton, in store and online."
               className={cn(
                 "min-h-36 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-ink-900 transition placeholder:text-ink-400 focus:outline-none focus:ring-4",
                 over || flags.length ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",

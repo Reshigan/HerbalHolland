@@ -58,25 +58,25 @@ model Region {
 }
 
 model Company {
-  id          String      @id @default(cuid())
-  kind        CompanyKind
-  name        String
-  legalName   String
-  regNumber   String?
-  vatNumber   String?
-  contactName String?
-  email       String?
-  phone       String?
-  address     String?
-  directors   String? // names of the directors, as the website must disclose them (ECTA s43)
+  id                 String      @id @default(cuid())
+  kind               CompanyKind
+  name               String
+  legalName          String
+  regNumber          String?
+  vatNumber          String?
+  contactName        String?
+  email              String?
+  phone              String?
+  address            String?
+  directors          String? // names of the directors, as the website must disclose them (ECTA s43)
   // Books (the company's general ledger): months up to this one are closed; VAT category A/B (two-monthly) or C
   // (monthly), null when not a VAT vendor; the financial year ends with this month (February is the SA default).
   booksLockedThrough String? // YYYY-MM
   vatCategory        String?
-  yearEndMonth       Int     @default(2)
-  stores      Store[]
-  users       User[]
-  createdAt   DateTime    @default(now())
+  yearEndMonth       Int         @default(2)
+  stores             Store[]
+  users              User[]
+  createdAt          DateTime    @default(now())
 }
 
 model Store {
@@ -135,6 +135,7 @@ model Store {
   customers      Customer[]
   loyalty        LoyaltyEntry[]
   campaigns      Campaign[]
+  studioPlans    StudioPlan[]
   dailyStats     DailyStoreStat[]
   tradeOrders    TradeOrder[]       @relation("tradeStore")
   variantStats   DailyVariantStat[]
@@ -1123,6 +1124,7 @@ model Campaign {
   suppressedCount Int            @default(0)
   createdAt       DateTime       @default(now())
   messages        MessageLog[]
+  studioItems     StudioItem[]
 }
 
 model MessageLog {
@@ -1275,7 +1277,9 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
-/** The scheduler's heartbeat: when each job last started, last finished cleanly and last failed (/api/health reads it). */
+/**
+ * The scheduler's heartbeat: when each job last started, last finished cleanly and last failed (/api/health reads it).
+ */
 model JobRun {
   job       String    @id
   startedAt DateTime?
@@ -1410,17 +1414,86 @@ model QuestCompletion {
 
 // Posts handed to Postiz for the brand's social accounts (HQ → Campaigns → Social).
 model SocialPost {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   content     String
   image       String? // public/social/<image>.jpg
-  channels    String[]  @default([]) // "Instagram · herbalholland", as posted; empty when Postiz isn't connected
+  channels    String[]     @default([]) // "Instagram · herbalholland", as posted; empty when Postiz isn't connected
   mode        String // now | schedule | draft
   scheduledAt DateTime?
-  postizIds   String[]  @default([])
+  postizIds   String[]     @default([])
   createdBy   String?
-  createdAt   DateTime  @default(now())
+  createdAt   DateTime     @default(now())
+  studioItems StudioItem[]
 
   @@index([createdAt])
+}
+
+// Campaign Studio (HQ → Marketing → Studio): a playbook (src/lib/studio-playbooks.ts) laid out from day T into dated
+// drafts. Approved posts wait here until their time and the scheduler releases them: social to Postiz, members' own
+// channels as Campaigns. WhatsApp Channel and Google posts are made by hand from the draft's text and card.
+model StudioPlan {
+  id        String       @id @default(cuid())
+  playbook  String
+  name      String
+  anchor    String // day T, YYYY-MM-DD in South African time
+  store     Store?       @relation(fields: [storeId], references: [id])
+  storeId   String?
+  paused    Boolean      @default(false) // nothing more is released until HQ resumes it
+  createdBy String?
+  createdAt DateTime     @default(now())
+  items     StudioItem[]
+
+  @@index([createdAt])
+}
+
+enum StudioChannel {
+  SOCIAL
+  WHATSAPP
+  GOOGLE
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum StudioStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED // queued for its time; released by the scheduler (releasedAt), then posted or sent
+  POSTED
+  FAILED
+  SKIPPED
+}
+
+model StudioItem {
+  id           String        @id @default(cuid())
+  plan         StudioPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId       String
+  key          String // the playbook item it came from
+  channel      StudioChannel
+  at           DateTime
+  title        String? // email subject or push title
+  text         String
+  short        String? // social: the version for Threads, Bluesky and X
+  card         Json? // { template, eyebrow?, headline, sub?, lines?, image? } (src/lib/studio.ts Card)
+  status       StudioStatus  @default(DRAFT)
+  note         String? // why it moved, or what Postiz said when it failed
+  link         String? // the published post
+  releasedAt   DateTime? // when the scheduler handed it to Postiz or sent it as a Campaign
+  audience     String? // members' channels: the campaign audience (src/lib/rfm.ts); null = everyone (the store's members)
+  linkedin     String? // social: "also" or "only"; null = not LinkedIn
+  brief        String? // what to shoot for it (a photo, a Reel)
+  hand         Boolean       @default(false) // social: posted by hand with the team's own photo or video, not queued
+  approvedBy   String?
+  doneBy       String?
+  doneAt       DateTime?
+  socialPost   SocialPost?   @relation(fields: [socialPostId], references: [id], onDelete: SetNull)
+  socialPostId String?
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaignId   String?
+  updatedAt    DateTime      @updatedAt
+
+  @@index([planId, at])
+  @@index([status, at])
 }
 
 // ── Cash banking ────────────────────────────────────────────────────────────
@@ -1531,7 +1604,7 @@ enum LeadStatus {
   NOT_A_FIT
 }
 
-/// A franchise enquiry from herbalholland.com/franchise, worked by HQ. Personal information (POPIA): HQ only, and
+/// A franchise enquiry sent through herbalholland.com before its enquiry form closed, kept for HQ. Personal information (POPIA): HQ only, and
 /// not-a-fit enquiries are deleted a year after their last change.
 model FranchiseLead {
   id               String     @id @default(cuid())
@@ -2327,4 +2400,17 @@ model BankLine {
   @@index([companyId, status])
   @@index([bankAccountId, date])
   @@index([journalId])
+}
+
+// Someone who asked herbalholland.com for first access to the online shop (not a member yet): imported once from the
+// site's export for the shop-day message (src/server/early-access.ts), and deleted once that message has gone.
+model EarlyAccessContact {
+  id         String   @id @default(cuid())
+  firstName  String?
+  email      String?  @unique // lower-case
+  mobile     String?  @unique // E.164
+  province   String?
+  source     String?
+  signedUpAt DateTime
+  createdAt  DateTime @default(now())
 }

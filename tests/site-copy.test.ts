@@ -17,7 +17,7 @@ const ALL = strings(content, "");
 
 describe("site copy", () => {
   it("covers every page's copy", () => {
-    for (const page of ["HOME", "ABOUT", "FRANCHISE", "PRESS", "CAREERS", "CONTACT"]) expect(ALL.some(([p]) => p.startsWith(`${page}.`)), page).toBe(true);
+    for (const page of ["HOME", "ABOUT", "STORES", "PRESS", "CAREERS", "CONTACT"]) expect(ALL.some(([p]) => p.startsWith(`${page}.`)), page).toBe(true);
     expect(ALL.length).toBeGreaterThan(250);
   });
 

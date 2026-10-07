@@ -276,7 +276,7 @@ function Footer({ page }: { page: string }) {
           <div>
             <h2 className="ftr__h">{f.cols.contact}</h2>
             <ul className="ftr__mail">
-              {(["hello", "franchise", "press", "careers"] as const).map((k) => (
+              {(["hello", "press", "careers"] as const).map((k) => (
                 <li key={k}>
                   <span className="ftr__k">{f.contact[k]}</span>
                   <MailTo email={EMAIL[k]} />

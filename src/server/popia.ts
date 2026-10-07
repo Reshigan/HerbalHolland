@@ -23,6 +23,8 @@ type Member = { id: string; phone: string; email: string | null };
 const insensitive = (email: string) => ({ equals: email, mode: "insensitive" as const });
 /** Their mobile and email, as the do-not-contact list keeps them. */
 const contactOf = (c: Member) => (c.email ? [c.phone, c.email] : [c.phone]);
+// Their herbalholland.com first-access sign-up, if it hasn't been told and deleted yet (src/server/early-access.ts).
+const firstAccessOf = (c: Member): Prisma.EarlyAccessContactWhereInput => ({ OR: [{ mobile: c.phone }, ...(c.email ? [{ email: c.email.toLowerCase() }] : [])] });
 // Support requests, messages and vouchers can be theirs without their member id: a sign-in code, a request sent before
 // they signed in, a voucher someone bought them.
 const ticketsOf = (c: Member): Prisma.SupportTicketWhereInput => ({ OR: [{ customerId: c.id }, { phone: c.phone }, ...(c.email ? [{ email: insensitive(c.email) }] : [])] });
@@ -65,7 +67,7 @@ export async function memberExport(customerId: string) {
     },
   });
   if (!c) return null;
-  const [messages, addresses, wishlist, reminders, tickets, returns, vouchers, photos, doNotContact, activity] = await Promise.all([
+  const [messages, addresses, wishlist, reminders, tickets, returns, vouchers, photos, doNotContact, activity, firstAccess] = await Promise.all([
     db.messageLog.findMany({ where: messagesOf(c), orderBy: { createdAt: "asc" }, select: { channel: true, kind: true, to: true, body: true, status: true, createdAt: true } }),
     db.address.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { label: true, line: true, suburb: true, city: true, province: true, postalCode: true, notes: true, isDefault: true, createdAt: true } }),
     db.wishlist.findMany({ where: { customerId }, orderBy: { createdAt: "asc" }, select: { variantId: true, createdAt: true } }),
@@ -83,6 +85,7 @@ export async function memberExport(customerId: string) {
     db.upload.findMany({ where: { uploadedById: customerId }, orderBy: { createdAt: "asc" }, select: { fileName: true, contentType: true, sizeBytes: true, createdAt: true } }),
     db.suppression.findMany({ where: { value: { in: contactOf(c) } }, select: { value: true, channel: true, source: true, createdAt: true } }),
     db.auditLog.findMany({ where: { actorType: "CUSTOMER", actorId: customerId }, orderBy: { at: "asc" }, select: { at: true, action: true } }),
+    db.earlyAccessContact.findMany({ where: firstAccessOf(c), select: { firstName: true, email: true, mobile: true, province: true, source: true, signedUpAt: true } }),
   ]);
   const [variants, orderCodes] = await Promise.all([
     db.variant.findMany({ where: { id: { in: [...wishlist, ...reminders].map((w) => w.variantId) } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } }),
@@ -107,6 +110,7 @@ export async function memberExport(customerId: string) {
     photos,
     doNotContact,
     activity,
+    firstAccess,
   };
 }
 
@@ -135,6 +139,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     // What only served the member: deleted.
     await t.session.deleteMany({ where: { customerId } });
     await t.otp.deleteMany({ where: { OR: [{ phone: c.phone }, ...(c.email ? [{ email: c.email }] : [])] } });
+    await t.earlyAccessContact.deleteMany({ where: firstAccessOf(c) });
     await t.throttle.deleteMany({ where: { key: { in: [`collision:phone:${c.phone}`, `collision:member:${c.id}`] } } });
     await t.address.deleteMany({ where: { customerId } });
     await t.wishlist.deleteMany({ where: { customerId } });

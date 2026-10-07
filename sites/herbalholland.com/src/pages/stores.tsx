@@ -1,6 +1,6 @@
 // herbalholland.com/stores: the stores that are open now, then each opening day's, each in its frame (the drawn
 // storefront until the owner's photograph replaces it); the store map (the provinces with a store, until there are three
-// or more); the door to opening one; the store concept renders; and the early-access sign-up. And /stores/{key}: each
+// or more); the store concept renders; and the early-access sign-up. And /stores/{key}: each
 // store's own page (Store structured data), with only what ../../facts knows: the town, the province, its status and,
 // once we have them, its address, phone and hours.
 import { PROVINCES } from "@/lib/sa";
@@ -89,14 +89,6 @@ export function StoresPage() {
           </div>
           <div className="nation__map">
             <ZaMap id="map-stores" />
-            <div className="nation__side" data-r="">
-              <p className="eyebrow">{s.more.eyebrow}</p>
-              <h3 className="h3">{s.more.title}</h3>
-              <p>{s.more.body}</p>
-              <Btn href="/franchise" magnetic>
-                {s.more.cta}
-              </Btn>
-            </div>
           </div>
         </div>
       </section>
@@ -234,19 +226,6 @@ export function StorePage({ store }: { store: Store }) {
           </div>
         </section>
       )}
-
-      <section className="sheet sec" aria-labelledby="own-h">
-        <div className="wrap panel panel--wide" data-r="">
-          <p className="eyebrow">{t.more.eyebrow}</p>
-          <h2 id="own-h" className="h2 panel__title">
-            {s.own.title}
-          </h2>
-          <p className="panel__body">{s.own.body}</p>
-          <Btn href="/franchise" magnetic>
-            {s.own.cta}
-          </Btn>
-        </div>
-      </section>
     </Page>
   );
 }

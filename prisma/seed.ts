@@ -255,10 +255,7 @@ async function main() {
       const wholesale = Math.round((price / 1.15) * (p.reg === "THC" ? 0.52 : p.reg === "APPAREL" ? 0.5 : 0.55));
       const cost = Math.round(wholesale * (p.reg === "THC" ? 0.55 : 0.62));
       const sku = `${CAT_CODE[p.cat]}-${code}${pi}-${label.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 6)}`;
-      // Made-to-order merch costs what the print partner charges and has no stock anywhere.
-      const podSku = p.pod ? `${p.pod.code}-${label === "One size" ? "OS" : label}` : null;
-      variantRows.push({ id, productId: pid, sku, barcode: eanCheck(`6001234${String(ean++).padStart(5, "0")}`), name: label, grams, priceCents: price, wholesaleCents: wholesale, caseQty: caseQtyFor(p.cat, price), costCents: p.pod ? p.pod.cost * 100 : cost, podSku, sortOrder: vi });
-      if (podSku) return;
+      variantRows.push({ id, productId: pid, sku, barcode: eanCheck(`6001234${String(ean++).padStart(5, "0")}`), name: label, grams, priceCents: price, wholesaleCents: wholesale, caseQty: caseQtyFor(p.cat, price), costCents: cost, sortOrder: vi });
       variants.push({ id, sku, productId: pid, slug: p.slug, name: p.name, label, grams, price, wholesale, cost, caseQty: caseQtyFor(p.cat, price), reg: p.reg, cat: p.cat, heritage: !!p.heritage, featured: !!p.featured, tobacco: !!p.tobacco, line: p.line, shelfMonths: p.shelfMonths, supplier: p.supplier, thc: p.thc, cbd: p.cbd, terps: p.terps });
     });
   });
@@ -1635,7 +1632,7 @@ async function main() {
   const reviewRows: Prisma.ReviewCreateManyInput[] = [];
   const reviewed = new Set<string>();
   const REVIEW = {
-    5: [["Exactly as described", "Beautiful quality and the budtender knew their stuff."], ["My new favourite", "Consistent every time. Love that I can see the lab results."], ["Worth it", "Great value with my Rewards points. Collection was ready in 10 minutes."]],
+    5: [["Exactly as described", "Beautiful quality and the staff knew their stuff."], ["My new favourite", "Consistent every time. Love that I can see the lab results."], ["Worth it", "Great value with my Rewards points. Collection was ready in 10 minutes."]],
     4: [["Really good", "Lovely product, would buy again."], ["Solid", "Good quality, slightly pricey but you get what you pay for."]],
     3: [["Decent", "Okay, not my favourite from the range."]],
     2: [["Not for me", "Didn't suit me, but the staff were great about it."]],
@@ -1858,12 +1855,12 @@ async function main() {
     }
     return NOW;
   };
-  // All variants of these products, made-to-order merch included (it isn't in the stock simulation's `variants`).
+  // All variants of these products.
   const vids = (...slugs: string[]) => variantRows.filter((v) => slugs.some((s) => productIdBySlug[s] === v.productId)).map((v) => v.id as string);
   const hoodie = uid();
   await db.drop.createMany({
     data: [
-      { id: uid(), slug: "heritage-cap-and-hat", name: "Heritage Month: cap + bucket hat", blurb: "The Mark, embroidered on our washed-cotton cap and our sun-ready bucket hat, made to order for Heritage Month.", variantIds: vids("windmill-cap", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
+      { id: uid(), slug: "heritage-cap-and-hat", name: "Heritage Month: cap + bucket hat", blurb: "The Mark, embroidered on our washed-cotton cap and our sun-ready bucket hat, for Heritage Month.", variantIds: vids("windmill-cap", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
       { id: hoodie, slug: "sunset-hoodie-no-1", name: "Sunset Hoodie No. 1", blurb: "A numbered first run of our brushed-fleece hoodie. One per member; Harvest members get in two hours early.", variantIds: vids("sunset-hoodie"), startsAt: nextAt(5, 9), earlyTier: "HARVEST", earlyMinutes: 120, perMemberLimit: 1 },
     ],
   });
@@ -2082,7 +2079,22 @@ async function main() {
   if (shortDeposit)
     await raiseAlerts([shortDepositAlert(shortDeposit as Parameters<typeof shortDepositAlert>[0], shortStore.code, shifts.filter((x) => x.depositId === shortDeposit!.id).length)]);
   const loss = await runLossRules(NOW);
+
+  // Campaign Studio: the opening campaign for a store that's opening soon, laid out and approved, and the brand launch
+  // as drafts, each on the first day it can start (src/lib/studio-playbooks/).
+  const { createPlan, approveItems, playbookOf } = await import("../src/server/studio");
+  const { firstDayT } = await import("../src/lib/studio");
+  const dayT = (key: string, days: number) => firstDayT(playbookOf(key)!, dayKey(new Date(NOW.getTime() + days * DAY)));
+  const studioActor = { type: "USER" as const, id: users[0].id as string, name: users[0].name as string };
+  const soon = stores.find((x) => x.status === "OPENING_SOON" && x.kind === "RETAIL");
+  let studioItems = 0;
+  if (soon) {
+    const plan = await createPlan({ playbook: "store-opening", anchor: dayT("store-opening", 40), storeId: soon.id, by: studioActor.name, actor: studioActor }, NOW);
+    studioItems += (await approveItems(plan.id, "all", studioActor.name, studioActor)).approved;
+  }
+  await createPlan({ playbook: "brand-launch", anchor: dayT("brand-launch", 7), storeId: null, by: studioActor.name, actor: studioActor }, NOW);
   console.log(`  banking · alerts       ${depositRows.length} deposits · ${loss.raised} loss-prevention alerts`);
+  console.log(`  studio                 ${soon ? `store opening for ${soon.name} (${studioItems} posts approved) · ` : ""}brand launch drafts`);
   const gross = sales.reduce((a, s) => a + (s.totalCents as number), 0);
   const tradeSales = sales.filter((s) => s.channel === "WHOLESALE");
   console.log(`  trade                  ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · ${ledgerRows.length} ledger entries`);

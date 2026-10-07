@@ -259,76 +259,139 @@ The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so t
 - **SARS:** the VAT201 working per period is copied into eFiling; filing stays with the vendor. Invoices already carry
   structured data for SARS e-invoicing (VAT modernisation, phased from 2030).
 
-## Merch partner: made-to-order merch (`src/server/pod.ts`, `merch.ts`)
+## Merch (`src/lib/merch.ts`; made to order: `src/server/pod.ts`, `merch.ts`)
 
-Merch is made to order in South Africa and couriered, white-label, straight to the customer: no stock, no minimums.
-Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed.
+The merch range (Windmill Tee, Sunset Hoodie, Heritage Crewneck, Windmill Cap, Sunset Bucket Hat, Windmill Beanie and
+Windmill Tote) is held in stock and sold like the rest of the range: received, counted and ranged to the stores, then
+delivered to the member's door or collected in store. Upmarket by design: every logo is embroidered, and only the big
+back graphics and the tote are printed (DTF). `scripts/merch-export.tsx` renders the embroidery and print files.
 
-**Partner: Lucani, Cape Town** (Digihuis (Pty) Ltd; trade account: lucani.co.za/trade-account-application). The only
-South African partner found that does all of it from one piece: embroidery on tees, hoodies and caps, DTF prints on
-the same garment, white-label trade fulfilment (advertised), a digital proof before every job, and terms that only
-refuse unlawful/obscene artwork (nothing on cannabis or CBD). Digitising is once-off per design (R200–R500 in their
-guides; our three stitched designs are digitised once each). Production 3–5 business days, then 1–3 days to metros
-(3–5 regional). Not VAT-registered: their invoices carry no VAT. Blanks are mid-weight (185 g tee, 240–280 g
-fleece), so ask for heavier.
+The platform can also sell a variant made to order: give it a merch partner code (HQ → Catalogue) and it carries no
+stock and ships by courier only, with the merch courier fee on top. Nothing in the range uses it today. Partners have
+no API, so the platform works by email:
 
-- **Runner-up: OneOff, Johannesburg.** Better 100% cotton blanks (260 g hoodie, 220 g tee), DTF++ with an orange ink
-  channel, embroidery up to 27 × 27 cm, flat R150 drop-ship; but its terms bar products that "encourage the use of
-  drugs" and it doesn't proof by default.
-- **Beanies and bucket hats:** Lucani embroiders trade blanks it buys per order (its quote form already lists both):
-  Captivity's Glacier Ribbed cuffed beanie and Phoenix 100% cotton-twill bucket hat (Cape Town wholesaler, no minimum,
-  ready in 24–48 h), or TwentyFour's Rib Knit Cuffed and Max Wash for a more premium feel. The beanie cuff takes the
-  40 mm cut of the Mark, stitched through the outer layer only. Fallback: GetCapped (Johannesburg; beanie R99.95,
-  Phoenix bucket hat R129.95, embroidery included, R180 digitising once, 5–7 days + 2–3 courier), only if it confirms
-  blind shipping in writing.
-- No global print-on-demand network embroiders in South Africa (Printful, Gelato, Printify, Teelaunch).
-
-No South African partner has an API, so the platform works by email:
-
-1. A paid order with merch → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
+1. A paid order with a made-to-order variant → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
    items (our product code, blank, size, quantity) and, per placement, embroidery or DTF, where it goes, its size and
    links to our files (the vector PDF for digitising and DTF, and a 300 dpi PNG). Also kept in HQ → Messages.
 2. The partner makes it, packs white-label and couriers to the customer, then emails back the courier and tracking.
-3. The distribution centre enters it on the order (**Merch shipped**): the customer is texted their tracking, and a
-   merch-only order goes out for delivery (the sale posts at the partner's price, booked to the DC).
+3. The distribution centre enters it on the order (**Merch shipped**): the customer is texted their tracking, and an
+   order of only made-to-order items goes out for delivery (the sale posts at the partner's price, booked to the DC).
 4. On delivery the DC marks the order delivered, as for any courier order.
 
-Before the first sale, get in writing: that they'll make merch for a CBD/hemp wellness brand (send the logo and a back
-print); that they'll add the beanie and bucket hat as trade products (blanks bought per order or a few kept in stock,
-and the extra lead time); embroidery at quantity 1 with no per-order setup or reseller minimum; digitising cost per design and who owns
-the stitch file; per-piece prices at 1, 5 and 10 units for the tee, hoodie, crewneck, cap and tote; their thread
-chart (a sew-out of the closest match to Sunset 500 #F5913C); which blanks (black and orange in stock, heavier
-options, a crewneck and a tote); white-label details (plain packaging, no partner invoice inside, our insert, return
-address); email ordering and tracking replies; courier rates; payment terms; misprint/reprint policy; and an opt-out
-from promotional photography. Then approve a paid sample set, set each variant's partner code and cost (HQ →
-Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
+Before selling anything made to order, get the partner's terms in writing (that it makes merch for a CBD and hemp
+wellness brand, per-piece prices, white-label packing, tracking by email), then set the variant's partner code and
+cost (HQ → Catalogue), `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
-## Social posting with Postiz (`src/server/social.ts`)
+## Social posting with Postiz, and the Campaign Studio (`src/server/social.ts`, `src/server/studio.ts`)
 
-HQ → Campaigns → **Social** writes a post once and publishes or schedules it on the brand's Instagram, Facebook,
-LinkedIn, X and Threads through [Postiz](https://postiz.com): open source, free when self-hosted, no limit on
-channels or posts. Captions are screened as you type (`screenSocial`: every `screenCopy` rule, plus no THC and no
-selling cannabis or CBD) and the pictures on offer are brand artwork only (`public/social`, rendered by
-`npx tsx scripts/merch-export.tsx --social`). Without Postiz, posts are only recorded on the page.
+HQ → Marketing → **Studio** lays a whole campaign out from one day, its day T. The playbooks are in
+`src/lib/studio-playbooks/`, one file per pack: the launch's six campaigns (`launch.ts`: brand launch, online shop
+launch, store opening, Founding Members, hiring, merch drop), a product launch (`new-online.ts`), a month of Google
+posts for one store (`google.ts`), the gift email (`gifts.ts`) and the month packs (`festive.ts`, `january.ts`,
+`february.ts`, `march.ts`). Every post comes with its brand card, checked for the channel it goes on (`screenDraft`:
+the copy rules, the platforms' rules, lengths, public holidays). HQ approves, then **Schedule what's approved** queues
+them in the platform, and the `frequent` job (every 15 minutes) releases each at its time: a social post goes to
+[Postiz](https://postiz.com) with its card, to publish straight away, and an email, SMS or push becomes a Campaign to
+the members who said yes (held for the next legal send window when needed). **Pause releases** holds a whole campaign
+until it's resumed; **Take back** returns a queued post to draft. A post more than six hours late (paused, or the
+scheduler stopped) isn't sent: it fails, to be given a new time. HQ → Marketing → **Social** still posts one-off
+captions with the brand pictures in `public/social`. Postiz is open source and free when self-hosted, with no limit on
+channels or posts. Without it, social posts wait in the Studio to be posted by hand (copy the words, download the card).
 
-1. Run Postiz with its Docker Compose file (it brings its own PostgreSQL and Redis) on a small VPS behind HTTPS,
-   e.g. `https://social.herbalholland.co.za`. Postiz cloud (paid) has the same API.
-2. Connect the accounts in Postiz: Instagram (business account linked to the Facebook Page), Facebook Page, LinkedIn
-   Page, X and Threads. A self-hosted Postiz needs each network's developer-app keys in its environment (Postiz docs →
-   Providers).
+**Laying a campaign out** (`layout`, `spreadFeed` and `firstDayT` in `src/lib/studio.ts`; `createPlan` in
+`src/server/studio.ts`):
+
+- **Day T falls on the pack's weekday.** Each playbook names its weekday and why: a Tuesday for the brand launch, the
+  shop launch, a store opening and a product launch; a Friday for hiring (applications close at the end of a working
+  week); a Sunday for the Founding Members list (it closes at midnight); a Thursday for a merch drop; a Monday for a
+  Google month. Any other day is refused, with the reason. The month packs and the gift email are written for their
+  own dates and can't be laid out once those have passed. A post whose day has already gone is left out.
+- **Pinned posts never move.** A post whose words name its day ("today", "tonight", "tomorrow", "7 days to go", "last
+  call") is pinned. If that day is a public holiday, or a Sunday for an email, SMS or push, the Studio refuses day T
+  and names the post; `firstDayT` finds the first day T a pack can start on. Any other post moves off a public holiday
+  to the next day that allows it, and members' messages move off Sundays (CPA Regulation 4), each with a note.
+- **One feed post a day, across every campaign.** A feed post that lands on a day another campaign already posts on
+  moves up to three days later, at the same time and never onto a public holiday; with no room, it keeps its day and
+  is marked "Shares its day with another post: move one". A pinned post stays where it is (opening day has its
+  morning and its evening) and notes any other campaign's post that day. LinkedIn-only posts don't count.
+- **Product launches** (New online): name the product by its page address (slug) or a SKU. Its name, its facts
+  (`productFacts`: the pack size, the CBD a pack and a day, its allergens), its category and its link fill the copy,
+  and the email and push go to the members who chose its interest (`interestFor`). Licensed medicines are refused:
+  they're never marketed.
+
+**The launch** (`createLaunch`; HQ → Marketing → Studio → The launch): three days in order, the brand, the shop and
+the doors, and the stores that open. The brand launches at least 14 days before the shop, and the doors open at least
+33 days after it (`LAUNCH_GAPS`), so every store is revealed once the shop is open; the brand's posts stop when the
+shop opens. Stores opening on the same day share their big moments: the shared posts (the invitations, _The Windmill_,
+No. 2, the windows, the countdown, and opening week on the feed, by email and on the WhatsApp Channel) go out once, from the
+first store's campaign, naming every town. The stores take turns with their own feed posts (the reveal, promise,
+neighbourhood, team and thank-you), a week apart: the second store's go 7 days after the first's, off public holidays,
+so each town gets its moment. Each store's members' messages and Google posts keep their days.
+
+**Audiences.** A store's email, SMS and push go to that store's members, and a network campaign's to every member,
+unless the post names an audience: then its Campaign goes to that segment, network-wide (`ALL`, a tier, an interest or
+an RFM segment). The shared opening-week email and _The Windmill_, No. 2 are `ALL`, so every member hears once however
+many stores open, and a merch drop's email goes to the members who chose merch. Each post shows who it goes to ("To:
+All members", "To: Into Merch & apparel", "To: First-access list").
+
+**LinkedIn.** A social post goes to LinkedIn only when its playbook says so, and the post shows it: **LinkedIn too**
+(`also`) goes to every connected account, LinkedIn included; **LinkedIn only** (`only`) goes to the LinkedIn page
+alone, and fails at its time if no LinkedIn page is connected in Postiz. Every other social post skips LinkedIn.
+
+**Briefs, and posting by hand.** Many social posts carry a brief, shown as **Shoot:**: the photo or Reel that makes
+the post, with adults over 25 who've signed a release. Until someone shoots it, the card goes out. **I'll post it by
+hand** keeps a post out of Postiz (copy the words, post it with the photo or video, then **Mark posted** with its
+link); **Send the card through Postiz** puts it back. A post can switch while it's a draft, approved or failed.
+
+**The first-access list** (`src/server/early-access.ts`, `src/lib/early-access.ts`): the people who asked
+herbalholland.com to hear the day the online shop opens. The day before, HQ pastes the site's D1 export into the
+Studio's **First-access list** card ([RUNBOOK.md](RUNBOOK.md) has the command): the `--json` output of
+`wrangler d1 execute`, a plain JSON array, or a CSV with a header row. Emails are kept lower-case and mobiles as +27; a
+row with neither is left out, and anyone already on the list is skipped. The online shop launch is its only use: on
+opening day an SMS at 09:00 goes to those who gave only a mobile, and an email at 09:05 to those who gave an email (the
+`early-access` audience, which only email and SMS can have), so each person hears once, inside the legal send times
+and with an opt-out. The do-not-contact list applies, and anyone who has joined Rewards by then hears with the members
+instead. Every sign-up is deleted as its message goes (POPIA: kept no longer than its purpose), and **Delete the
+list** clears it by hand. Until then, a member's POPIA export and erasure (`src/server/popia.ts`) include any sign-up
+with their mobile or email.
+
+**Setting up Postiz:**
+
+1. Run Postiz with its Docker Compose file on the server, behind HTTPS on its own subdomain (e.g.
+   `https://social.herbalholland.co.za`): it brings PostgreSQL, Redis and Temporal (with Temporal's own PostgreSQL and
+   Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory. Set `API_LIMIT=500` in its environment: the
+   default (30 public API calls an hour) is less than a launch day needs (an upload and a post per card, and the
+   read-back every 15 minutes).
+2. Connect the accounts, all set to adults 18+:
+   - **Facebook, Instagram (a professional account) and Threads**: one Meta developer app owned by HQ, with the
+     marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
+     Review is needed. Its keys go in Postiz's environment (Postiz docs → Providers).
+   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin.
+   - **LinkedIn page**: the Community Management API needs LinkedIn's approval. Until then, mark each LinkedIn-only
+     post **I'll post it by hand** (or it fails at its time) and post the LinkedIn-too ones on LinkedIn by hand as well.
+   - **X** charges for API posts ($0.015 a post, $0.20 with a link), so it's left to by-hand posting.
+   - TikTok, Pinterest and YouTube keep API posts private until an audit, and TikTok bans cannabis content: not used.
 3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.co.za/api/public/v1`;
    Postiz cloud: `https://api.postiz.com/public/v1`) and `POSTIZ_API_KEY`.
-4. `APP_URL` must be public HTTPS: Postiz fetches the picture from `${APP_URL}/social/<picture>.jpg`.
+4. For the Social page's pictures only, `APP_URL` must be public HTTPS (Postiz fetches `${APP_URL}/social/<picture>.jpg`).
+   Studio cards are uploaded with the post.
 
-A post goes out **now**, **scheduled** (Postiz publishes it at that time, SAST in the composer) or as a **draft** in
-Postiz (to add a video or edit per network). Edit or delete scheduled posts in Postiz. Postiz accepts 90 posts an hour
-through its API; the composer holds captions to X's 280 and Threads' 500 characters when those are ticked, and
-Instagram needs a picture. TikTok and YouTube aren't offered (video only, and TikTok bans cannabis content). Meta
+The same job (`syncStudio`) reads back how each released post went: published (with its link) or failed (with Postiz's
+reason), and marks members' messages out once their campaign has sent. Postiz only gets a post at its time, so the
+Studio is where a post is changed, held or taken back; once released, delete it in Postiz if it must come down. Meta
 rejects cannabis and CBD ads, so this is organic posting only, with no boosting.
 
-Free alternatives if Postiz doesn't suit: Buffer's free plan (3 channels, 10 queued posts each), Meta Business Suite
-(Facebook and Instagram only) or Mixpost Lite (self-hosted, fewer networks). None of them gives us a free API for all
-five networks, so they're used by hand, outside this platform.
+**WhatsApp and Google** are never posted through an API: WhatsApp's Business Messaging Policy (the app and the API
+alike) bans promoting or facilitating drugs and medical products whatever the licences, and Google's posts bar offers
+of regulated products. The Studio keeps them to store, brand and event news, posted by hand (the brand's WhatsApp
+Channel on a number that isn't a store's line; each store's Google Business Profile). Store service chats start from
+the QR maker's "WhatsApp the store" codes.
+
+**AI drafting (optional).** With `WORKERS_AI_ACCOUNT_ID` and `WORKERS_AI_TOKEN` (a Cloudflare API token with Workers AI
+read and edit), any Studio post can be rewritten in the brand's voice through Cloudflare Workers AI: a free daily
+allowance (10,000 neurons, about a thousand captions), and Cloudflare doesn't train on prompts. It only sees the draft
+and the brand rules, never a member's details; the suggestion is screened like any draft and a person decides.
+`WORKERS_AI_MODEL` picks another model (`@cf/meta/llama-3.3-70b-instruct-fp8-fast` by default).
 
 ## Wallet passes: Apple Wallet and Google Wallet (`src/lib/wallet.ts`, `src/server/shop/wallet.ts`)
 
@@ -384,7 +447,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `DATABASE_POOL_MAX` | Connections per app instance (default 10); keep instances × pool under the database's limit (or use PgBouncer) |
 | `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers |
 | `APP_URL` | The shop's public https address: every link in emails and texts, and the payment return URLs (a production server won't serve without it) |
-| `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything. The Worker has its own secrets too: `IP_SALT` (keys the IP hashes behind its rate limits) and `NOTIFY_TO` (`sites/herbalholland.com/wrangler.jsonc`) |
+| `SITE_ENQUIRY_SECRET` | The bearer secret for `POST /api/site/enquiries`, which files a franchise enquiry as an HQ → Franchise lead. herbalholland.com no longer takes franchise enquiries, so its Worker sends none; the enquiries it already handed over stay in HQ → Franchise leads. Unset, the endpoint refuses everything. The Worker's own secret is `IP_SALT`, which keys the IP hashes behind its rate limits (`sites/herbalholland.com/wrangler.jsonc`) |
 | `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
 | `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.com`; the franchisor company's email is shown on `/support`) |
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen. It **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
@@ -403,8 +466,9 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `YOCO_SECRET_KEY` | Yoco Checkout API secret key: `sk_test_…` while testing, `sk_live_…` once a domain is verified. Server only |
 | `YOCO_WEBHOOK_SECRET` | The `whsec_…` secret Yoco returned when the webhook (`/api/payments/yoco`) was registered with that same mode's key. Unset: the webhook answers 503 |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
-| `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
+| `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name, for a variant made to order (none in the range today); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
+| `WORKERS_AI_ACCOUNT_ID`, `WORKERS_AI_TOKEN`, `WORKERS_AI_MODEL` | Optional: Studio rewrites in the brand's voice through Cloudflare Workers AI (free allowance); unset = no AI |
 | `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |
 | `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
 | `TRADE_EMAIL` | Where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |

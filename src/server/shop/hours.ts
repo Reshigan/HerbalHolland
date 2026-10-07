@@ -84,3 +84,19 @@ export function collectReady(hours: Hours, at = new Date()): { soon: boolean; la
   }
   return { soon: false, label: "Ready when the store reopens" };
 }
+
+const SHORT: Record<DayKey, string> = { sun: "Sun", mon: "Mon", tue: "Tue", wed: "Wed", thu: "Thu", fri: "Fri", sat: "Sat" };
+
+/** The week in one line for posts and listings: "Mon–Fri 09:00–19:00, Sat 09:00–17:00, Sun closed". Empty when no hours are set. */
+export function hoursLine(hours: Hours) {
+  const runs: { from: DayKey; to: DayKey; v: string }[] = [];
+  for (const d of ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const) {
+    const h = hours[d];
+    const v = h ? `${h[0]}–${h[1]}` : "closed";
+    const last = runs.at(-1);
+    if (last?.v === v) last.to = d;
+    else runs.push({ from: d, to: d, v });
+  }
+  if (runs.length === 1 && runs[0].v === "closed") return "";
+  return runs.map((r) => `${SHORT[r.from]}${r.from === r.to ? "" : `–${SHORT[r.to]}`} ${r.v}`).join(", ");
+}

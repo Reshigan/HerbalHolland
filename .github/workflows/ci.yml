@@ -90,7 +90,9 @@ jobs:
       - run: npx playwright install --with-deps chromium
       - name: Start the production server
         run: |
-          cp -r .next/static .next/standalone/.next/static && cp -r public .next/standalone/public
+          # public/'s contents, merged: the build may already have traced part of public/ into the standalone folder (the
+          # Studio's cards read the merch photos), and copying the folder itself would then nest it (no /sw.js, no offline till).
+          cp -r .next/static .next/standalone/.next/static && mkdir -p .next/standalone/public && cp -r public/. .next/standalone/public/
           (cd .next/standalone && PORT=3000 HOSTNAME=127.0.0.1 node server.js > ../../server.log 2>&1 &)
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/api/health && break; sleep 2; done
       - run: node e2e/checkout.mjs test-results/e2e-checkout

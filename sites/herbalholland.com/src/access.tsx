@@ -1,9 +1,9 @@
 // The early-access sign-up, "Get first access": the home page's last scene (a box under the stars) and a section on
 // /stores, where every "Shop online" leads until the online shop opens. The form posts JSON to /api/early-access (the
 // Worker): first name, email and/or mobile, province, the 18+ and consent ticks, the ?src tag and the "website"
-// honeypot. It follows the franchise form's patterns (./form): errors under each field, a summary alert, a busy
-// button, then a thank-you. Limits and province codes come from the platform (src/lib/leads.ts, src/lib/sa.ts), so the
-// Worker and the form agree.
+// honeypot. It's built from the shared form pieces (./form): errors under each field, a summary alert, a busy button,
+// then a thank-you. Limits and province codes come from the platform (src/lib/leads.ts, src/lib/sa.ts), so the Worker
+// and the form agree.
 import { EARLY_ACCESS_LIMITS, LEAD_LIMITS } from "@/lib/leads";
 import { PROVINCES } from "@/lib/sa";
 import { ACCESS, EMAIL } from "../content";
