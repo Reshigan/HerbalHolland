@@ -3,6 +3,10 @@
 import { useEffect } from "react";
 
 export function ScrollTo({ id }: { id: string }) {
-  useEffect(() => document.getElementById(id)?.scrollIntoView({ block: "center" }), [id]);
+  // A block body: newer Chrome returns a Promise from scrollIntoView, and React calls whatever an effect returns as its
+  // cleanup ("is not a function", and the page shows its error screen).
+  useEffect(() => {
+    document.getElementById(id)?.scrollIntoView({ block: "center" });
+  }, [id]);
   return null;
 }

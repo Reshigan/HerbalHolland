@@ -669,8 +669,8 @@ export const shopOpenClaim = (text: string) =>
 export const CAREERS = {
   meta: {
     title: "Careers",
-    updated: "2026-09-28",
-    description: "Work with Herbal Holland: member advisors, store managers and pharmacists in our stores, and teams at HQ. What we look for and how to apply.",
+    updated: "2026-10-07",
+    description: "Work with Herbal Holland: member advisors and store managers in our stores, and teams at HQ. What we look for and how to apply.",
   },
   hero: {
     eyebrow: "Careers",
@@ -696,7 +696,6 @@ export const CAREERS = {
       items: [
         { key: "advisor", title: "Member advisors", aka: "Sometimes called budtenders", body: "The first person a member meets: a warm welcome, an ID check, and clear, plain-English answers to their questions." },
         { key: "manager", title: "Store managers", aka: "", body: "Run the store and the team: rosters, stock, cash-ups, the neighbours and the standards." },
-        { key: "pharmacist", title: "Pharmacists", aka: "For registered pharmacists", body: "Lead the dispensary for registered patients: verifying SAHPRA authorisations, dispensing, and straight answers for anyone who asks." },
       ],
     },
     hq: {
