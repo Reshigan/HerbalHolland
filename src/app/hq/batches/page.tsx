@@ -72,7 +72,7 @@ export default async function BatchesPage({ searchParams }: { searchParams: Prom
             <FilterSelect name="expiring" label="Expiry" allLabel="Any" defaultValue={sp.expiring} options={[{ value: "30", label: "Expiring in 30 days" }, { value: "60", label: "Expiring in 60 days" }, { value: "90", label: "Expiring in 90 days" }]} />
           </FilterForm>
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Batch</Th>

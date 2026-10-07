@@ -3,7 +3,7 @@ import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
-import { matchesSearch, sortStock, stockRows, STOCK_SORTS, type StockSort } from "@/server/store/inventory";
+import { searchStock, sortStock, stockRows, STOCK_SORTS, type StockSort } from "@/server/store/inventory";
 import { STOCK_STATUS } from "@/server/store/rules";
 import { actorOf } from "@/server/store/context";
 import { REG_CLASS_LABEL } from "@/lib/compliance";
@@ -17,14 +17,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   const u = new URL(req.url).searchParams;
   const q = u.get("q") ?? "", cat = u.get("cat") ?? "", cls = u.get("cls") ?? "", status = u.get("status") ?? "";
   const sort = (STOCK_SORTS as readonly string[]).includes(u.get("sort") ?? "") ? (u.get("sort") as StockSort) : "name";
+  // The same search as the screen: exact matches, else close ones (typos).
+  const found = (await searchStock(await stockRows(store.id), q)).rows;
   const rows = sortStock(
-    (await stockRows(store.id)).filter(
-      (r) =>
-        matchesSearch(r, q) &&
-        (!cat || r.categorySlug === cat) &&
-        (!cls || r.regClass === cls) &&
-        (!status || (status === "BLOCKED" ? r.blocked > 0 : r.status === status)),
-    ),
+    found.filter((r) => (!cat || r.categorySlug === cat) && (!cls || r.regClass === cls) && (!status || (status === "BLOCKED" ? r.blocked > 0 : r.status === status))),
     sort,
     u.get("dir") === "desc" ? "desc" : "asc",
   );

@@ -129,7 +129,7 @@ async function pnlByStore(ctx: ReportCtx, ids: string[]) {
 export const vat: ReportDef = {
   key: "vat",
   title: "VAT (VAT201 working)",
-  description: "What VAT do we owe SARS for the period — output tax against input tax?",
+  description: "What VAT do we owe SARS for the period, output tax against input tax?",
   group: "Finance",
   scopes: ["store", "hq"],
   filters: ["range"],
@@ -153,7 +153,7 @@ export const vat: ReportDef = {
     const refund = v.payable < 0;
     const rows: Row[] = [
       { line: "Output tax", _style: "section" },
-      { line: "Standard-rated sales (in store and online)", field: "1 · 4", amount: v.salesInclCents, vat: v.output },
+      { line: "Standard-rated sales (in store, online and trade)", field: "1 · 4", amount: v.salesInclCents, vat: v.output },
       { line: "Input tax", _style: "section" },
       { line: "Stock purchases (HQ and network tax invoices)", field: "15", amount: purchases, vat: v.stockInput },
       { line: "Operating expenses with VAT", field: "15", amount: vatableExpenses, vat: v.expenseInput },
@@ -175,7 +175,7 @@ export const vat: ReportDef = {
         { label: "Input tax", value: v.input, format: "zar", sub: "stock, expenses and fees" },
         { label: refund ? "Refundable by SARS" : "Payable to SARS", value: Math.abs(v.payable), format: "zar" },
       ],
-      note: `A working paper for the VAT201 return at 15% — check it against your tax invoices before filing. Returns are filed per VAT vendor (company), so choose the date range that matches your VAT period.${multi(ctx) || ids.length > 1 ? ` Combines ${ids.length} VAT-registered store${ids.length === 1 ? "" : "s"}.` : ""}${skipped ? ` ${skipped} store${skipped === 1 ? " isn't" : "s aren't"} registered for VAT and ${skipped === 1 ? "is" : "are"} left out.` : ""}`,
+      note: `A working paper for the VAT201 return at 15%. Check it against your tax invoices before filing. Returns are filed per VAT vendor (company), so choose the date range that matches your VAT period.${multi(ctx) || ids.length > 1 ? ` Combines ${ids.length} VAT-registered store${ids.length === 1 ? "" : "s"}.` : ""}${skipped ? ` ${skipped} store${skipped === 1 ? " isn't" : "s aren't"} registered for VAT and ${skipped === 1 ? "is" : "are"} left out.` : ""}`,
     };
   },
 };
@@ -416,7 +416,7 @@ function monthOptions({ now }: { now: Date }): Option[] {
 export const statements: ReportDef = {
   key: "statements",
   title: "Franchise statements",
-  description: "What does each franchisee owe HQ — or get paid — for the month?",
+  description: "What does each franchisee owe HQ, or get paid, for the month?",
   group: "Finance",
   scopes: ["hq"],
   roles: ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"],
@@ -433,14 +433,14 @@ export const statements: ReportDef = {
     const rows: Row[] = list.map((st) => {
       const i = st.input;
       return {
-        store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents, fees: st.royalty + st.levy + st.ecom,
+        store: st.store.name, code: st.store.code, company: ctx.stores.get(st.store.id)?.company ?? "", sales: i.netSalesExVatCents, trade: i.tradeSalesExVatCents ?? 0, fees: st.royalty + st.levy + st.ecom,
         online: i.onlineCollectedCents, redeemed: i.pointsRedeemedCents, netSold: i.networkSoldCents,
         royalty: st.royalty, levy: st.levy, ecom: st.ecom, feesVat: st.feesVat, issued: i.pointsIssuedCents, savings: savedBy.get(st.store.id) ?? 0, wholesale: i.wholesaleCents, netBought: i.networkBoughtCents,
         credits: st.credits, debits: st.debits, net: st.net, position: st.net >= 0 ? "HQ pays store" : "Store pays HQ",
         _href: `/store/${st.store.code}/statement?month=${month}`,
       };
     });
-    const t = sumRows(rows, ["sales", "fees", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
+    const t = sumRows(rows, ["sales", "trade", "fees", "online", "redeemed", "netSold", "royalty", "levy", "ecom", "feesVat", "issued", "savings", "wholesale", "netBought", "credits", "debits", "net"], { store: "Total" });
     const due = rows.filter((r) => (r.net as number) < 0).reduce((s, r) => s - (r.net as number), 0);
     const pay = rows.filter((r) => (r.net as number) >= 0).reduce((s, r) => s + (r.net as number), 0);
     const current = month === dayKey(ctx.now).slice(0, 7);
@@ -452,12 +452,13 @@ export const statements: ReportDef = {
         { key: "position", label: "Settlement", format: "badge", tones: { "HQ pays store": "green", "Store pays HQ": "amber" } },
         { key: "net", label: "Net", format: "zar" },
         { key: "sales", label: "Net sales ex VAT", format: "zar" },
+        { key: "trade", label: "Trade sales ex VAT", format: "zar", csvOnly: true },
         { key: "fees", label: "Fees ex VAT", format: "zar" },
         { key: "royalty", label: "Royalty", format: "zar", csvOnly: true },
         { key: "levy", label: "Marketing levy", format: "zar", csvOnly: true },
         { key: "ecom", label: "E-com commission", format: "zar", csvOnly: true },
         { key: "feesVat", label: "VAT on fees", format: "zar" },
-        { key: "online", label: "Online collected", format: "zar", csvOnly: true },
+        { key: "online", label: "Collected by HQ", format: "zar", csvOnly: true },
         { key: "redeemed", label: "Points redeemed", format: "zar", csvOnly: true },
         { key: "issued", label: "Points issued", format: "zar" },
         { key: "savings", label: "Rewards savings (memo)", format: "zar" },
@@ -478,7 +479,7 @@ export const statements: ReportDef = {
       ],
       emptyTitle: "No statements",
       empty: "No trading stores in this selection.",
-      note: `${current ? "This month is still open — figures will change until month end. " : ""}Credits: online sales collected by HQ, points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
+      note: `${current ? "This month is still open, so figures will change until month end. " : ""}Credits: money collected by HQ (online sales, gift vouchers and trade sales on account or collected at the store), points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Royalty and levy run on all net sales, trade included; the e-commerce commission on online sales only. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
     };
   },
 };
@@ -564,7 +565,7 @@ export const loyaltyLiability: ReportDef = {
       extra: hqRows.length
         ? [{ title: "Issued by HQ (not charged to stores)", description: "Sign-up, birthday and other network bonuses", columns: [{ key: "kind", label: "Type" }, { key: "n", label: "Entries", format: "number" }, { key: "points", label: "Points", format: "points" }, { key: "value", label: "Value", format: "zar" }], rows: hqRows, totals: sumRows(hqRows, ["n", "points", "value"], { kind: "Total" }) }]
         : [],
-      note: `1 point = R1. The issuing store funds the points it awards; the store where they're redeemed is reimbursed — both settle on the monthly franchise statement. Instant savings are the tier-price reductions members got at the till: already in net sales, not a liability and not settled between stores. Outstanding liability is every member's current balance${ctx.networkWide ? " across the network" : " for members whose home store is in this selection"}, as of today.`,
+      note: `1 point = R1. The issuing store funds the points it awards; the store where they're redeemed is reimbursed, and both settle on the monthly franchise statement. Instant savings are the tier-price reductions members got at the till: already in net sales, not a liability and not settled between stores. Outstanding liability is every member's current balance${ctx.networkWide ? " across the network" : " for members whose home store is in this selection"}, as of today.`,
     };
   },
 };

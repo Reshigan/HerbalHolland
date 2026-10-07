@@ -25,6 +25,7 @@ describe("shop policies", () => {
     expect(all.flatMap((t) => screenCopy(t).map((f) => `“${f.term}” in: ${t}`))).toEqual([]);
     expect(all.filter((t) => /\b(customers?|shoppers?|clients?)\b/i.test(t))).toEqual([]);
     expect(all.some((t) => /\bmembers?\b/.test(t))).toBe(true);
+    expect(all.filter((t) => /(once|as) (our stores|they) open/i.test(t))).toEqual([]); // the stores are trading
   });
 
   it("state the returns rights: CPA s56, ECTA s44 cooling-off, how to return, refunds to the payment method", () => {

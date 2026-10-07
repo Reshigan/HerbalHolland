@@ -17,7 +17,7 @@ import { Stat } from "@/components/ui/stat";
 import { TabLinks } from "@/components/ui/tabs";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionForm, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, SubmitButton } from "@/components/ui/action-form";
 import { FilterForm } from "@/components/hq/filter-form";
 import { Select } from "@/components/ui/form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
@@ -71,7 +71,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
               <ol className="list-decimal space-y-2.5 pl-4 text-sm text-ink-600 marker:font-semibold marker:text-brand-700">
                 <li>Fill in the template, one row per SKU. Rows with the same product name are one product; after its first row, a product&apos;s details can be left empty.</li>
                 <li>Upload it and check every row: new, updated, unchanged or an error, and why.</li>
-                <li>Import. Rows with errors are skipped: fix them and upload the file again — what&apos;s already in shows as unchanged.</li>
+                <li>Import. Rows with errors are skipped: fix them and upload the file again. What&apos;s already in shows as unchanged.</li>
               </ol>
               <ul className="mt-4 space-y-2 rounded-xl bg-ink-50 px-3 py-2.5 text-xs text-ink-600">
                 <li>Prices are in rand: RRP including VAT; wholesale and cost excluding VAT.</li>
@@ -85,7 +85,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
         <Card className="mt-6">
           <details>
             <summary className="cursor-pointer px-5 py-4 font-display text-sm font-semibold text-ink-900">The columns ({IMPORT_COLUMNS.length})</summary>
-            <Table>
+            <Table stickyFirst>
               <thead>
                 <tr>
                   <Th>Column</Th>
@@ -209,7 +209,7 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
 
       <Card>
         <TabLinks className="px-4 pt-1" current={href({})} tabs={SHOW.map((s) => ({ href: `${PATH}${qs({ file: sp.file, at: at?.id, show: s.key === "all" ? undefined : s.key })}`, label: s.label, count: s.count(c) }))} />
-        <Table>
+        <Table stickyFirst>
           <thead>
             <tr>
               <Th align="right" className="w-14">Row</Th>

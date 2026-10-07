@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Detail } from "@/components/ui/misc";
 import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ActionButton, ConfirmAction, FieldError } from "@/components/hq/action-form";
+import { ActionButton, ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { actOnDcOrder } from "../actions";
@@ -82,14 +82,14 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card>
             <CardHeader title="Actions" />
-            <CardBody className="space-y-3">
+            <CardBody className="flex flex-col gap-3">
               {!act && <ViewOnly>Orders are approved and shipped by the HQ distribution team.</ViewOnly>}
               {act && order.status === "SUBMITTED" && (
                 <>
                   <ActionButton action={actOnDcOrder.bind(null, order.id, "approve")} variant="dark" size="md" pendingLabel="Approving…" className="w-full">
                     <Check className="h-4 w-4" /> Approve order
                   </ActionButton>
-                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "reject")} label="Reject" icon={<X className="h-4 w-4" />} title="Reject this order" confirmLabel="Reject order" className="w-full">
+                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "reject")} label="Reject" icon={<X className="h-4 w-4" />} title="Reject this order" confirmLabel="Reject order">
                     <Field label="Reason for the store" htmlFor="reject-reason">
                       <Textarea id="reject-reason" name="reason" className="min-h-16" placeholder="e.g. Duplicate of PO-000123" />
                       <FieldError name="reason" />
@@ -107,11 +107,10 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                     variant="primary"
                     title="Ship now?"
                     confirmLabel="Confirm shipment"
-                    className="w-full"
                   >
                     <p>Stock leaves {order.seller.name} from the batches on the pick list (first expiry first). {short > 0 ? `${num(short)} units will ship short.` : "Everything is available."}</p>
                   </ConfirmAction>
-                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "cancel")} label="Cancel order" title="Cancel this order" confirmLabel="Cancel order" className="w-full">
+                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "cancel")} label="Cancel order" title="Cancel this order" confirmLabel="Cancel order">
                     <Field label="Reason for the store" htmlFor="cancel-reason">
                       <Textarea id="cancel-reason" name="reason" className="min-h-16" />
                       <FieldError name="reason" />
@@ -143,7 +142,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                   <li key={label} className="flex items-start gap-3 text-sm">
                     <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${at ? "bg-brand-500" : "bg-ink-200"}`} aria-hidden />
                     <span className="flex-1">
-                      <span className={at ? "font-medium text-ink-900" : "text-ink-400"}>{label}</span>
+                      <span className={at ? "font-medium text-ink-900" : "text-ink-500"}>{label}</span>
                       {who && <span className="text-ink-500"> by {who}</span>}
                     </span>
                     <span className="text-xs text-ink-500">{at ? fmtDateTime(at) : "—"}</span>
@@ -158,7 +157,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
         </div>
         <Card className="mt-6">
           <CardHeader title={order.status === "APPROVED" ? "Pick list" : "Lines"} description={order.status === "APPROVED" ? "Pick first-expiry-first-out from these batches" : undefined} />
-          <Table className="relative mt-4">
+          <Table stickyFirst className="relative mt-4">
             <thead>
               <tr>
                 <Th>Item</Th>
@@ -188,7 +187,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                             <li key={x.batchId} className="flex items-center gap-2 text-xs">
                               <span className="tnum w-8 text-right font-semibold text-ink-900">{x.qty}×</span>
                               <Link href={`/hq/batches/${x.batchId}`} className="font-mono text-ink-700 hover:text-brand-700">{x.code}</Link>
-                              {x.expiresAt && <span className="text-ink-400">exp {fmtDate(x.expiresAt)}</span>}
+                              {x.expiresAt && <span className="text-ink-500">exp {fmtDate(x.expiresAt)}</span>}
                             </li>
                           ))}
                           {p.short > 0 && <li><Badge tone="red">{p.short} short</Badge></li>}
@@ -203,7 +202,7 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                           ))}
                         </ul>
                       ) : (
-                        <span className="text-xs text-ink-400">—</span>
+                        <span className="text-xs text-ink-500">—</span>
                       )}
                     </Td>
                     <Td align="right">

@@ -1,11 +1,7 @@
 "use client";
 // Filter controls that submit their (GET) form as soon as they change.
-import { Select, type SelectProps } from "./select";
+import { Select, type SelectProps } from "@/components/ui/form";
 
 export function AutoSelect(props: SelectProps) {
   return <Select {...props} onChange={(e) => e.currentTarget.form?.requestSubmit()} />;
-}
-
-export function AutoInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
-  return <input {...props} onChange={(e) => e.currentTarget.form?.requestSubmit()} />;
 }

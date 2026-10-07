@@ -11,7 +11,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { BackLink, ReadOnlyNote } from "@/components/store/ui";
-import { ConfirmAction } from "@/components/store/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 import { EventForm } from "@/components/hq/event-form";
 import { EVENT_PHASE, EventStats, GuestList } from "@/components/hq/events";

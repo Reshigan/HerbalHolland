@@ -20,7 +20,7 @@ import { Meter } from "@/components/ui/stat";
 import { buttonClass } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { BackLink, EmptyRow, MiniStat } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
 import { Flash } from "@/components/hq/flash";
@@ -112,7 +112,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   ))}
               </CardBody>
             )}
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -144,7 +144,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
 
           <Card>
             <CardHeader title="Points ledger" description="Latest movements · 1 point = R1" />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>When</Th>
@@ -223,7 +223,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           </Card>
 
           <Card>
-            <CardHeader title="Marketing consent" description="POPIA s69 — per channel, with the evidence trail" />
+            <CardHeader title="Marketing consent" description="POPIA s69: per channel, with the evidence trail" />
             <CardBody>
               <div className="grid grid-cols-2 gap-2">
                 {(
@@ -256,7 +256,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           </Card>
 
           <Card>
-            <CardHeader title="Patient authorisations" description="SAHPRA Section 21 — the condition itself is never stored" />
+            <CardHeader title="Patient authorisations" description="SAHPRA Section 21. The condition itself is never stored" />
             <CardBody className="space-y-3">
               {auths.length === 0 && <p className="text-sm text-ink-500">None on file.</p>}
               {auths.map((a) => {
@@ -303,7 +303,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
 
           {admin && !anonymised && (
             <Card className="border-rose-500/20">
-              <CardHeader title="Right to erasure" description="POPIA s24 — for a verified request from the member" />
+              <CardHeader title="Right to erasure" description="POPIA s24: for a verified request from the member" />
               <CardBody>
                 <ConfirmAction
                   action={anonymiseCustomer.bind(null, c.id)}
@@ -314,8 +314,8 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   typeToConfirm="ANONYMISE"
                   className="w-full"
                 >
-                  <p>This can&apos;t be undone. Name, mobile, email, date of birth and ID details are erased, marketing consent is withdrawn and {fmtPoints(Math.max(0, c.points))} are forfeited. Their mobile and email stay on the do-not-contact list so they&apos;re never marketed to again.</p>
-                  <p className="text-xs text-ink-500">Sales, tax invoices, the points ledger and dispensing records are kept for statutory retention, detached from the person. Export their data first if they asked for a copy.</p>
+                  <p>This can&apos;t be undone. Name, mobile, email, date of birth and ID details are erased, marketing consent is withdrawn and {fmtPoints(Math.max(0, c.points))} are forfeited. Saved addresses, the wishlist, reminders, alerts, app notifications and upcoming event tickets are deleted; what they wrote to us (support requests, return notes, reviews, messages) is blanked and their photos are deleted. Their mobile and email stay on the do-not-contact list so they&apos;re never marketed to again.</p>
+                  <p className="text-xs text-ink-500">Sales, tax invoices, the points ledger, dispensing records, returns and gift voucher balances are kept for statutory retention, detached from the person. Export their data first if they asked for a copy.</p>
                   <Field label="Request reference" htmlFor="erase-reason">
                     <Input id="erase-reason" name="reason" placeholder="e.g. Email request 27 Sep 2026, ID verified" />
                   </Field>

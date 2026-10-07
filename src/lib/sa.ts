@@ -31,7 +31,7 @@ export function checkSaId(raw: string, now = new Date()): IdCheck {
   if (dob.getUTCMonth() !== mm - 1 || dob.getUTCDate() !== dd) return { valid: false, reason: "Date of birth in ID is not a real date" };
   const c = Number(id[10]);
   if (c > 2) return { valid: false, reason: "Invalid citizenship digit" };
-  if (!luhn(id)) return { valid: false, reason: "Check digit does not match — please re-check the number" };
+  if (!luhn(id)) return { valid: false, reason: "Check digit does not match. Please re-check the number." };
   return { valid: true, dob, sex: Number(id.slice(6, 10)) < 5000 ? "F" : "M", citizen: c === 0 };
 }
 

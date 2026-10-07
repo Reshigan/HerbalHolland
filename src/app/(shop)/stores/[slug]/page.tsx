@@ -25,7 +25,8 @@ import { directionsUrl, StoreServices } from "@/components/shop/store-card";
 import { SetStoreButton } from "@/components/shop/set-store-button";
 import { Callout, Container, Panel, Price, Tag } from "@/components/shop/ui";
 import { JsonLd } from "@/components/shop/json-ld";
-import { describePromo, type PromoInput } from "@/lib/promotions";
+import { describePromo } from "@/lib/promotions";
+import { plural } from "@/lib/plural";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import {
   breadcrumbJsonLd,
@@ -75,7 +76,7 @@ export async function generateMetadata({
     `${SITE_NAME} ${s.name}${soon ? " (opening soon)" : ""}: ${address}.`,
     soon
       ? "Join Rewards to hear the day the doors open."
-      : `Opening hours, what's in stock, click & collect${s.sameDay ? ", same-day delivery" : ""} and directions.`,
+      : `Opening hours, what's in stock${s.clickCollect ? ", click & collect" : ""}${s.sameDay ? ", same-day delivery" : ""} and directions.`,
     "Adults 18+.",
   );
   return {
@@ -241,7 +242,7 @@ export default async function StorePage({
               ))}
             </dl>
             <p className="mt-3 text-xs text-ink-450">
-              Public holiday hours may differ — call ahead.
+              Public holiday hours may differ, so call ahead.
             </p>
           </Panel>
           {!soon && (
@@ -292,7 +293,7 @@ export default async function StorePage({
             {soon ? "Come to the opening" : `What's on at ${s.name}`}
           </h2>
           <p className="mt-1 text-sm text-ink-400">
-            Free for Rewards members — RSVP to hold your place. Adults 18+,
+            Free for Rewards members. RSVP to hold your place. Adults 18+,
             bring your ID.
           </p>
           <div className="mt-5 grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -323,8 +324,8 @@ export default async function StorePage({
                     <div className="text-sm">
                       <div className="font-semibold text-white">{d.name}</div>
                       <div className="text-ink-300">
-                        {describePromo(d as unknown as PromoInput)}
-                        {d.description ? ` — ${d.description}` : ""}
+                        {describePromo(d)}
+                        {d.description ? ` · ${d.description}` : ""}
                       </div>
                     </div>
                   </div>
@@ -344,27 +345,29 @@ export default async function StorePage({
                   In stock at {s.name}
                 </h2>
                 <p className="mt-1 text-sm text-ink-400">
-                  {total} products · live stock · in-store prices
+                  {plural(total, "product")} · live stock · in-store prices
                   {customer ? " (your member prices)" : ""}, set by this store
                 </p>
               </div>
             </div>
-            <Callout
-              tone="info"
-              icon={<ShieldCheck className="h-5 w-5" />}
-              className="mt-5"
-              title="Registered patient?"
-            >
-              Licensed medicines aren&apos;t listed publicly. Our authorised
-              dispenser here can help —{" "}
-              <Link
-                href="/dispensary"
-                className="font-semibold text-white underline"
+            {s.licences.length > 0 && (
+              <Callout
+                tone="info"
+                icon={<ShieldCheck className="h-5 w-5" />}
+                className="mt-5"
+                title="Registered patient?"
               >
-                sign in to view the dispensary
-              </Link>
-              .
-            </Callout>
+                Licensed medicines aren&apos;t listed publicly. Our authorised
+                dispenser here can help.{" "}
+                <Link
+                  href="/dispensary"
+                  className="font-semibold text-white underline"
+                >
+                  Sign in to view the dispensary
+                </Link>
+                .
+              </Callout>
+            )}
             <div className="mt-8 space-y-10">
               {memberMenu.map((c) => (
                 <div key={c.slug}>
@@ -412,7 +415,7 @@ export default async function StorePage({
               ))}
               {!memberMenu.length && (
                 <p className="text-ink-400">
-                  Stock information isn&apos;t available right now — give the
+                  Stock information isn&apos;t available right now, so give the
                   store a call.
                 </p>
               )}

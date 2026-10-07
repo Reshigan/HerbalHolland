@@ -1,36 +1,51 @@
 // Inventory control: batch-level stock, FEFO picking, FIFO cost, immutable ledger.
 import { db, type Tx } from "./db";
 import { allocate, allocationCost, type Allocation } from "@/lib/fefo";
+import { dayKey } from "@/lib/format";
+import { queueStoreDay } from "./ledger/core";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
 
 export class StockError extends Error {}
 
 export const OPEN_ORDER_STATUSES = ["PENDING_PAYMENT", "PLACED", "PICKING", "READY"] as const;
+/** Trade orders that hold stock at their fulfilling store (an EFT order reserves nothing until HQ confirms the payment). */
+export const OPEN_TRADE_ORDER_STATUSES = ["PLACED", "PICKING", "READY"] as const;
 
 export type Avail = { onHand: number; reserved: number; available: number };
 export const availKey = (storeId: string, variantId: string) => `${storeId}:${variantId}`;
 
-/** Sellable stock = released on-hand − open online reservations. */
-export async function availability(storeIds: string[], variantIds?: string[]) {
+/**
+ * Sellable stock = released on-hand − open online reservations − open trade-order reservations (confirmed, not yet
+ * shipped or collected). `client`: a transaction that holds the stock locks (checkout re-checks under them).
+ */
+export async function availability(storeIds: string[], variantIds?: string[], client: Tx | typeof db = db) {
   const variantFilter = variantIds ? { variantId: { in: variantIds } } : {};
-  const [levels, reserved] = await Promise.all([
-    db.stockLevel.groupBy({
+  const levelsQ = () =>
+    client.stockLevel.groupBy({
       by: ["storeId", "variantId"],
       where: { storeId: { in: storeIds }, ...variantFilter, batch: { status: "RELEASED" } },
       _sum: { onHand: true },
-    }),
-    db.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
+    });
+  const onlineQ = () =>
+    client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
       SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
       FROM "OrderLine" l JOIN "Order" o ON o.id = l."orderId"
       WHERE o.status::text = ANY(${[...OPEN_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
-      GROUP BY 1, 2`,
-  ]);
+      GROUP BY 1, 2`;
+  const tradeQ = () =>
+    client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
+      SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
+      FROM "TradeOrderLine" l JOIN "TradeOrder" o ON o.id = l."tradeOrderId"
+      WHERE o.status::text = ANY(${[...OPEN_TRADE_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
+      GROUP BY 1, 2`;
+  // In parallel on the pool; one after another inside a transaction (its single connection can't run them at once).
+  const [levels, reservedOnline, reservedTrade] = client === db ? await Promise.all([levelsQ(), onlineQ(), tradeQ()]) : [await levelsQ(), await onlineQ(), await tradeQ()];
   const map = new Map<string, Avail>();
   for (const l of levels) {
     const onHand = l._sum.onHand ?? 0;
     map.set(availKey(l.storeId, l.variantId), { onHand, reserved: 0, available: onHand });
   }
-  for (const r of reserved) {
+  for (const r of [...reservedOnline, ...reservedTrade]) {
     if (variantIds && !variantIds.includes(r.variantId)) continue;
     const k = availKey(r.storeId, r.variantId);
     const a = map.get(k) ?? { onHand: 0, reserved: 0, available: 0 };
@@ -48,10 +63,12 @@ async function lockLots(t: Tx, storeId: string, variantId: string) {
     SELECT s.id, s."batchId", s."onHand", s."unitCostCents", b.status::text AS status, b."expiresAt", b."packedAt"
     FROM "StockLevel" s JOIN "Batch" b ON b.id = s."batchId"
     WHERE s."storeId" = ${storeId} AND s."variantId" = ${variantId}
-    FOR UPDATE OF s`;
+    ORDER BY s.id
+    FOR UPDATE OF s`; // lot order, as locks.lockStock takes them: a sale and a checkout never deadlock
 }
 
-type Refs = { saleId?: string; orderId?: string; stockOrderId?: string; stockTakeId?: string; userId?: string | null; note?: string };
+// `at`: when the movement happened, if not now (a till sale queued offline moves stock at the time it was made).
+type Refs = { saleId?: string; orderId?: string; stockOrderId?: string; stockTakeId?: string; userId?: string | null; note?: string; at?: Date };
 
 /**
  * Removes stock FEFO. The till is never blocked: with `allowNegative`, any shortfall
@@ -88,7 +105,7 @@ export async function takeStock(
     await t.stockMovement.create({
       data: {
         storeId: a.storeId, variantId: a.variantId, batchId: al.batchId, qty: -al.qty, type: a.type,
-        unitCostCents: al.unitCostCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId, userId: a.userId, note: a.note,
+        unitCostCents: al.unitCostCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId, userId: a.userId, note: a.note, createdAt: a.at,
       },
     });
   }
@@ -103,9 +120,11 @@ export async function putStock(
   const [lot] = await t.$queryRaw<{ id: string; onHand: number; unitCostCents: number }[]>`
     SELECT id, "onHand", "unitCostCents" FROM "StockLevel"
     WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId} FOR UPDATE`;
+  let revalueCents = 0; // re-averaging the lot's cost moves its value by more than this movement (rounding, a negative lot)
   if (lot) {
     const base = Math.max(lot.onHand, 0);
     const cost = base + a.qty > 0 ? Math.round((base * lot.unitCostCents + a.qty * a.unitCostCents) / (base + a.qty)) : a.unitCostCents;
+    revalueCents = (lot.onHand + a.qty) * cost - lot.onHand * lot.unitCostCents - a.qty * a.unitCostCents;
     await t.stockLevel.update({ where: { id: lot.id }, data: { onHand: { increment: a.qty }, unitCostCents: cost } });
   } else {
     await t.stockLevel.create({ data: { storeId: a.storeId, variantId: a.variantId, batchId: a.batchId, onHand: a.qty, unitCostCents: a.unitCostCents } });
@@ -113,7 +132,7 @@ export async function putStock(
   await t.stockMovement.create({
     data: {
       storeId: a.storeId, variantId: a.variantId, batchId: a.batchId, qty: a.qty, type: a.type, reason: a.reason,
-      unitCostCents: a.unitCostCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId,
+      unitCostCents: a.unitCostCents, revalueCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId,
       stockTakeId: a.stockTakeId, userId: a.userId, note: a.note,
     },
   });
@@ -138,6 +157,7 @@ export async function adjustStock(
       reason: a.reason, unitCostCents: cost, userId: a.userId, note: a.note, stockTakeId: a.stockTakeId,
     },
   });
+  await queueStoreDay(t, a.storeId, dayKey(new Date())); // write-offs and stock-take counts post with the store's day
   return cost;
 }
 
@@ -183,9 +203,17 @@ export async function recordCounts(storeId: string, stockTakeId: string, counts:
   );
 }
 
+/** Cancels a count that's still open — once: an approval (or another cancel) that got there first wins. */
+export async function cancelStockTake(t: Tx, storeId: string, stockTakeId: string) {
+  const { count } = await t.stockTake.updateMany({ where: { id: stockTakeId, storeId, status: "COUNTING" }, data: { status: "CANCELLED" } });
+  if (count !== 1) throw new StockError("This stock take was closed a moment ago, so refresh to see it");
+}
+
 export async function approveStockTake(t: Tx, stockTakeId: string, userId: string | null) {
+  // Closed once: only the approval that moves it out of COUNTING posts the variances.
+  const claimed = await t.stockTake.updateMany({ where: { id: stockTakeId, status: "COUNTING" }, data: { status: "APPROVED", approvedAt: new Date(), approvedById: userId } });
+  if (claimed.count !== 1) throw new StockError("Stock take is already closed");
   const st = await t.stockTake.findUniqueOrThrow({ where: { id: stockTakeId }, include: { lines: true } });
-  if (st.status !== "COUNTING") throw new StockError("Stock take is already closed");
   let varianceValue = 0;
   for (const line of st.lines) {
     if (line.countedQty == null) continue;
@@ -200,6 +228,5 @@ export async function approveStockTake(t: Tx, stockTakeId: string, userId: strin
     });
     varianceValue += delta * cost;
   }
-  await t.stockTake.update({ where: { id: stockTakeId }, data: { status: "APPROVED", approvedAt: new Date(), approvedById: userId } });
   return varianceValue;
 }

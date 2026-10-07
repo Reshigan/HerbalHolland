@@ -125,9 +125,9 @@ export async function reportContext(a: {
   let channel: ReportCtx["channel"];
   if (uses("channel")) {
     const fallback = a.def.defaults?.channel;
-    channel = q.channel === "POS" || q.channel === "ONLINE" ? q.channel : q.channel === "all" ? undefined : fallback;
+    channel = q.channel === "POS" || q.channel === "ONLINE" || q.channel === "WHOLESALE" ? q.channel : q.channel === "all" ? undefined : fallback;
     const all = fallback ? "all" : "";
-    selects.push({ name: "channel", label: "Channel", value: channel ?? all, options: [{ value: all, label: "All channels" }, { value: "POS", label: "In store" }, { value: "ONLINE", label: "Online" }] });
+    selects.push({ name: "channel", label: "Channel", value: channel ?? all, options: [{ value: all, label: "All channels" }, { value: "POS", label: "In store" }, { value: "ONLINE", label: "Online" }, { value: "WHOLESALE", label: "Trade" }] });
   }
 
   const args = { scope: a.scope, storeIds, multi: storeIds.length > 1, now };

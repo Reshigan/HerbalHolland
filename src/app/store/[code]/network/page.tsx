@@ -21,7 +21,7 @@ import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ReadOnlyNote, SearchForm } from "@/components/store/ui";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 
 export const metadata = { title: "Network trading" };
 const PAGE_SIZE = 20;
@@ -107,7 +107,7 @@ async function Marketplace({ store, canManage, q, page, sp, path }: { store: Sto
           When stores list surplus stock it appears here, stores in {store.region.name} first.
         </EmptyState>
       ) : (
-        <Table>
+        <Table stickyFirst>
           <thead>
             <tr>
               <Th>Item</Th>
@@ -130,7 +130,7 @@ async function Marketplace({ store, canManage, q, page, sp, path }: { store: Sto
                     <div className="font-medium text-ink-900">
                       {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                     </div>
-                    <div className="font-mono text-xs text-ink-400">{l.variant.sku}</div>
+                    <div className="font-mono text-xs text-ink-500">{l.variant.sku}</div>
                     {l.note && <div className="mt-0.5 text-xs text-ink-500">“{l.note}”</div>}
                   </Td>
                   <Td className="min-w-40">
@@ -146,11 +146,11 @@ async function Marketplace({ store, canManage, q, page, sp, path }: { store: Sto
                   <Td align="right" className="font-semibold text-ink-900">{zar(l.unitCostCents)}</Td>
                   <Td align="right">
                     {saving > 0.001 ? <span className="font-semibold text-leaf-700">{(saving * 100).toFixed(0)}% below</span> : saving < -0.001 ? <span className="text-amber-700">{(-saving * 100).toFixed(0)}% above</span> : <span className="text-ink-500">at wholesale</span>}
-                    <div className="text-xs text-ink-400">{zar(l.variant.wholesaleCents)}</div>
+                    <div className="text-xs text-ink-500">{zar(l.variant.wholesaleCents)}</div>
                   </Td>
                   <Td align="right" className={rp != null && have <= rp ? "font-semibold text-amber-700" : "text-ink-700"}>
                     {have}
-                    {rp == null ? <div className="text-xs font-normal text-ink-400">not ranged</div> : have <= rp && <div className="text-xs font-normal">below reorder</div>}
+                    {rp == null ? <div className="text-xs font-normal text-ink-500">not ranged</div> : have <= rp && <div className="text-xs font-normal">below reorder</div>}
                   </Td>
                   {canManage && (
                     <Td className="min-w-44">
@@ -206,10 +206,10 @@ async function MyListings({ store, canManage }: { store: StoreCtx; canManage: bo
       <div className="min-w-0 xl:col-span-2 xl:border-r xl:border-ink-100">
         {listings.length === 0 ? (
           <EmptyState icon={<ArrowLeftRight className="h-5 w-5" />} title="You haven't listed anything">
-            List overstock so other stores can buy it — it turns slow stock into cash and helps the network avoid out-of-stocks.
+            List overstock so other stores can buy it. It turns slow stock into cash and helps the network avoid out-of-stocks.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Item</Th>
@@ -225,12 +225,12 @@ async function MyListings({ store, canManage }: { store: StoreCtx; canManage: bo
                 const have = by.get(l.variantId)?.available ?? 0;
                 const short = l.active && have < l.qty;
                 return (
-                  <Tr key={l.id} className={!l.active ? "text-ink-400" : undefined}>
+                  <Tr key={l.id} className={!l.active ? "text-ink-500" : undefined}>
                     <Td className="min-w-48">
                       <div className="font-medium text-ink-900">
                         {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                       </div>
-                      <div className="text-xs text-ink-400">
+                      <div className="text-xs text-ink-500">
                         <span className="font-mono">{l.variant.sku}</span> · listed {fmtDate(l.createdAt)}
                       </div>
                     </Td>
@@ -245,7 +245,7 @@ async function MyListings({ store, canManage }: { store: StoreCtx; canManage: bo
                     </Td>
                     <Td align="right">
                       {zar(l.unitCostCents)}
-                      <div className="text-xs text-ink-400">wholesale {zar(l.variant.wholesaleCents)}</div>
+                      <div className="text-xs text-ink-500">wholesale {zar(l.variant.wholesaleCents)}</div>
                     </Td>
                     <Td>{l.active ? <Badge tone="green" dot>Live</Badge> : <Badge>{l.qty === 0 ? "Sold out" : "Closed"}</Badge>}</Td>
                     {canManage && (
@@ -282,7 +282,7 @@ async function Fulfil({ store, canManage, page, sp, path }: { store: StoreCtx; c
     );
   return (
     <>
-      <Table>
+      <Table stickyFirst>
         <thead>
           <tr>
             <Th>Order</Th>

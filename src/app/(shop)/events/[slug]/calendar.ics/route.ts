@@ -12,7 +12,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ slug: stri
   const body = icsEvent({
     uid: `${e.id}@${host}`,
     title: `${e.title} · Herbal Holland`,
-    description: `${e.blurb}\n\nAdults 18+ — bring your ID and your ticket (in Herbal Holland Rewards).\n${url}`,
+    description: `${e.blurb}\n\nAdults 18+. Bring your ID and your ticket (in Herbal Holland Rewards).\n${url}`,
     location: `Herbal Holland ${e.store.name}, ${e.store.addressLine}, ${e.store.suburb}, ${e.store.city}`,
     url,
     startsAt: e.startsAt,

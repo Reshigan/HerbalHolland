@@ -36,7 +36,7 @@ export async function saveCategory(categoryId: string | null, _: ActionState, fd
   if (!isCategoryIcon(icon)) fields.icon = "Choose an icon";
   // Category names and blurbs are consumer-facing copy: the same screen as campaigns and product claims.
   const flag = screenCopy(`${name} ${blurb ?? ""}`)[0];
-  if (flag && !fields.name && !fields.blurb) fields[screenCopy(name).length ? "name" : "blurb"] = `“${flag.term}” — ${flag.reason}`;
+  if (flag && !fields.name && !fields.blurb) fields[screenCopy(name).length ? "name" : "blurb"] = `“${flag.term}”: ${flag.reason}`;
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
 
   if (!before) {

@@ -4,14 +4,19 @@
 // and is emailed to the store. Also this till's device details and the signed-in person's commission.
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { CloudOff, LogOut, Printer, RefreshCw, Tablet, Wallet } from "lucide-react";
+import { InstallPrompt } from "@/components/ui/install-prompt";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDateTime, fmtTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { api, errorText } from "./lib/api";
+import { DEFAULT_LOSS } from "@/lib/loss";
+import { isTillManager } from "@/lib/pos-refund";
+import { api, ApiError, errorText } from "./lib/api";
 import { countCash, DENOMINATIONS, denomLabel, isNote } from "./lib/rules";
 import { usePos } from "./context";
 import { CommissionTile } from "./commission-tile";
+import { DisplayCard, PrinterCard, TrainingCard } from "./hardware-panel";
+import { TrainingShiftCard } from "./training";
 import { Alert, Confirm, EmptyPanel, Field, PosButton, Spinner, TextArea } from "./ui";
 import type { BootShift, ZReport } from "@/server/pos/types";
 
@@ -32,20 +37,22 @@ export function ShiftPanel() {
     try {
       const r = await api<{ shift: BootShift | null; report: ZReport | null }>("/api/pos/shift");
       setX(r.report);
-      if ((r.shift?.id ?? null) !== (pos.boot.shift?.id ?? null)) pos.setShift(r.shift);
+      if (!pos.training && (r.shift?.id ?? null) !== (pos.boot.shift?.id ?? null)) pos.setShift(r.shift);
     } catch (e) {
       setError(errorText(e));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [online]);
-  useEffect(() => void loadX(), [loadX, shift?.id]);
+  useEffect(() => void loadX(), [loadX, shift?.id, pos.me.id]); // re-read on a hand-over: the X-report is blind for non-managers
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="mx-auto grid max-w-6xl gap-5 px-4 py-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)]">
         <div className="space-y-5">
           {error && <Alert>{error}</Alert>}
-          {closed ? (
+          {pos.training ? (
+            <TrainingShiftCard />
+          ) : closed ? (
             <ZReportCard report={closed} onPrint={() => pos.print({ kind: "z", report: closed })} onDone={() => setClosed(null)} />
           ) : shift ? (
             <CloseShift shift={shift} x={x} onClosed={(r) => (setClosed(r), pos.setShift(null))} />
@@ -55,9 +62,12 @@ export function ShiftPanel() {
         </div>
         <div className="space-y-5">
           <CommissionTile />
-          {shift && x && !closed && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
-          {!shift && !closed && <LastShift />}
+          {shift && x && !closed && !pos.training && <XReportCard x={x} onRefresh={loadX} onPrint={() => pos.print({ kind: "z", report: x })} />}
+          {!shift && !closed && !pos.training && <LastShift />}
           <DeviceCard />
+          <PrinterCard />
+          <DisplayCard />
+          <TrainingCard />
         </div>
       </div>
     </div>
@@ -148,9 +158,14 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
   const [confirm, setConfirm] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [noteNeeded, setNoteNeeded] = useState(false);
   const counted = countCash(counts);
-  const expected = x?.cash.expectedCents ?? null;
+  // Blind cash-up: only a manager sees what the drawer should hold before the count is in (the server leaves it out).
+  const manager = isTillManager(pos.me.role);
+  const expected = manager && x && !x.blind ? x.cash.expectedCents : null;
   const variance = expected != null ? counted - expected : null;
+  // Out by more than the cash-short tolerance: a note is needed (the server checks it against the HQ setting too).
+  const needNote = (noteNeeded || (variance != null && Math.abs(variance) > DEFAULT_LOSS.cashShortCents)) && !notes.trim();
   const queued = pos.outbox.filter((o) => !o.deviceId || o.deviceId === pos.boot.device.id).length;
   const blocked = queued > 0 ? `Sync ${queued} offline sale${queued === 1 ? "" : "s"} before closing` : !pos.online ? "Closing a shift needs a connection" : null;
 
@@ -160,9 +175,12 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
     try {
       const r = await api<{ report: ZReport }>("/api/pos/shift", { body: { action: "close", shiftId: shift.id, counts, notes: notes.trim() || undefined } });
       onClosed(r.report);
-      pos.toast("Shift closed — Z-report ready");
+      pos.toast("Shift closed and Z-report ready");
     } catch (e) {
-      setError(errorText(e));
+      if (e instanceof ApiError && e.code === "NOTE_REQUIRED") {
+        setNoteNeeded(true);
+        document.getElementById("shift-notes")?.focus();
+      } else setError(errorText(e));
     } finally {
       setBusy(false);
       setConfirm(false);
@@ -181,23 +199,36 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
       <div className="mt-5">
         <DenominationGrid counts={counts} onChange={setCounts} />
       </div>
-      <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
-        <Figure label="Expected" value={expected != null ? zar(expected) : "…"} />
-        <Figure label="Counted" value={zar(counted)} />
-        <Figure
-          className="col-span-2 sm:col-span-1"
-          label="Variance"
-          value={variance != null ? `${variance > 0 ? "+" : ""}${zar(variance)}` : "…"}
-          tone={variance == null || variance === 0 ? "ok" : Math.abs(variance) <= 1000 ? "warn" : "bad"}
-          testId="variance"
-        />
-      </div>
-      <Field label="Notes (optional)" htmlFor="shift-notes" className="mt-4" hint={variance ? "Explain any variance — it goes on the Z-report." : undefined}>
-        <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="e.g. R50 paid out for milk, slip in drawer" />
+      {manager ? (
+        <div className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800 sm:grid-cols-3">
+          <Figure label="Expected" value={expected != null ? zar(expected) : "…"} />
+          <Figure label="Counted" value={zar(counted)} />
+          <Figure
+            className="col-span-2 sm:col-span-1"
+            label="Variance"
+            value={variance != null ? `${variance > 0 ? "+" : ""}${zar(variance)}` : "…"}
+            tone={variance == null || variance === 0 ? "ok" : Math.abs(variance) <= 1000 ? "warn" : "bad"}
+            testId="variance"
+          />
+        </div>
+      ) : (
+        <div className="mt-4 flex items-end justify-between gap-3 rounded-2xl bg-ink-950 p-4 ring-1 ring-ink-800">
+          <Figure label="Counted" value={zar(counted)} />
+          <p className="max-w-[16rem] text-right text-xs text-ink-400">Blind count: what the drawer should hold shows on the Z-report once you close.</p>
+        </div>
+      )}
+      <Field
+        label={needNote ? "Notes (needed)" : "Notes (optional)"}
+        htmlFor="shift-notes"
+        className="mt-4"
+        error={needNote && noteNeeded ? "The count doesn't match what the till expects. Count again, or explain the difference here." : undefined}
+        hint={needNote ? "The count is out by more than the tolerance, so explain it. It goes on the Z-report." : variance ? "Explain any variance. It goes on the Z-report." : undefined}
+      >
+        <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-invalid={needNote && noteNeeded ? true : undefined} placeholder="e.g. R50 paid out for milk, slip in drawer" />
       </Field>
       {blocked && <Alert tone="warn" className="mt-4">{blocked}</Alert>}
       <div className={STICKY_ACTION}>
-        <PosButton variant="primary" size="xl" className="w-full" disabled={!!blocked || busy} onClick={() => setConfirm(true)} data-testid="close-shift">
+        <PosButton variant="primary" size="xl" className="w-full" disabled={!!blocked || busy || (needNote && variance != null)} onClick={() => setConfirm(true)} data-testid="close-shift">
           Close shift &amp; print Z-report
         </PosButton>
       </div>
@@ -206,11 +237,16 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
         title="Close this shift?"
         body={
           <>
-            Counted <b>{zar(counted)}</b> against <b>{expected != null ? zar(expected) : "—"}</b> expected
-            {variance ? (
+            Counted <b>{zar(counted)}</b>
+            {expected != null && (
               <>
                 {" "}
-                — a variance of <b>{zar(variance)}</b>
+                against <b>{zar(expected)}</b> expected
+              </>
+            )}
+            {variance ? (
+              <>
+                , a variance of <b>{zar(variance)}</b>
               </>
             ) : null}
             . Sales can&apos;t continue on this till until a new shift is opened.
@@ -305,10 +341,18 @@ function ReportFigures({ r }: { r: ZReport }) {
     ["Discounts given", zar(r.sales.discountCents)],
     ["Rewards savings given", zar(r.sales.memberSavingsCents)],
     ["Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`],
+    // Where the refunds went, a line per tender (a refund back to how they paid can be part cash, part card).
+    ...(r.refundTenders ?? []).map((t) => [`Refunds · ${t.label} (${t.count})`, `−${zar(t.amountCents)}`] as [string, string]),
     ...(r.online.count ? ([["Online handovers", `${r.online.count} · ${zar(r.online.grossCents)}`]] as [string, string][]) : []),
+    ...(r.trade?.count
+      ? ([
+          ["Trade sales (ex VAT · VAT · incl)", `${r.trade.count} · ${zar(r.trade.exCents)} · ${zar(r.trade.vatCents)} · ${zar(r.trade.inclCents)}`],
+          ["On account (invoiced, not money)", zar(r.trade.onAccountCents)],
+        ] as [string, string][])
+      : []),
     ...r.tenders.map((t) => [t.label, zar(t.amountCents)] as [string, string]),
     ["Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`],
-    ["Cash expected in drawer", zar(r.cash.expectedCents)],
+    ["Cash expected in drawer", r.blind ? "After the count" : zar(r.cash.expectedCents)],
   ];
   return (
     <dl className="mt-3 divide-y divide-ink-850 text-sm">
@@ -433,6 +477,7 @@ function DeviceCard() {
         >
           <RefreshCw className="h-4 w-4" /> Refresh catalogue
         </PosButton>
+        <InstallPrompt app="till" variant="button" />
         {manager && (
           <PosButton variant="ghost" onClick={() => setConfirm(true)} disabled={!pos.online || !!boot.shift}>
             <LogOut className="h-4 w-4" /> Unpair this till

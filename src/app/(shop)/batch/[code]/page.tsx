@@ -34,7 +34,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
       </div>
 
       {batch.status === "RECALLED" && (
-        <Callout tone="danger" icon={<AlertOctagon className="h-6 w-6" />} title="This batch has been recalled — please don't use it" className="mt-6 text-base">
+        <Callout tone="danger" icon={<AlertOctagon className="h-6 w-6" />} title="This batch has been recalled, so please don't use it" className="mt-6 text-base">
           {batch.statusReason ? `${batch.statusReason}. ` : ""}Please return it to any Herbal Holland store for a refund or replacement. We&apos;re sorry for the inconvenience.
         </Callout>
       )}
@@ -146,7 +146,7 @@ export default async function BatchPage({ params }: { params: Promise<{ code: st
         </div>
       ) : (
         <Callout tone="info" className="mt-12" title="No laboratory testing required">
-          This is a non-consumable product, so there&apos;s no certificate of analysis — but every unit is still traceable to its supplier and packing date below.
+          This is a non-consumable product, so there&apos;s no certificate of analysis. But every unit is still traceable to its supplier and packing date below.
         </Callout>
       )}
 

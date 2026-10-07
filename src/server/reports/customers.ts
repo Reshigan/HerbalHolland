@@ -12,7 +12,7 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, multi, n, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
 
 const ORDER: SegmentKey[] = ["CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
 const CONSENTED: Prisma.CustomerWhereInput = { OR: [{ consentSms: true }, { consentWhatsapp: true }, { consentEmail: true }, { consentPush: true }] };
@@ -69,7 +69,7 @@ export const segments: ReportDef = {
       chart: total ? { kind: "bar", title: "Members by segment", description: "As of today", format: "number", rows: data.map((d) => ({ label: SEGMENTS[d.seg].name, value: d.n, sub: `${((ratio(d.n, total) ?? 0) * 100).toFixed(0)}%` })) } : null,
       emptyTitle: "No members yet",
       empty: "No Rewards members have this store as their home store yet.",
-      note: `Segments are calculated as of today from each member's visits and last purchase — the same rules the campaign builder targets. ${ctx.networkWide ? "Covers every member in the network." : "Members are counted at their home store."} Marketing reach respects POPIA consent; do-not-contact suppression is applied again when a campaign sends.`,
+      note: `Segments are calculated as of today from each member's visits and last purchase, by the same rules the campaign builder targets. ${ctx.networkWide ? "Covers every member in the network." : "Members are counted at their home store."} Marketing reach respects POPIA consent; do-not-contact suppression is applied again when a campaign sends.`,
     };
   },
 };
@@ -77,7 +77,7 @@ export const segments: ReportDef = {
 export const newVsReturning: ReportDef = {
   key: "new-vs-returning",
   title: "New vs returning members",
-  description: "Are we winning new members each week — and bringing them back?",
+  description: "Are we winning new members each week, and bringing them back?",
   group: "Members",
   scopes: ["store", "hq"],
   filters: ["range"],
@@ -217,7 +217,7 @@ export const memberAttach: ReportDef = {
 export const rewardsSavings: ReportDef = {
   key: "rewards-savings",
   title: "Rewards savings",
-  description: "How much do members save instantly at the till — and do they spend more than walk-ins?",
+  description: "How much do members save instantly at the till, and do they spend more than walk-ins?",
   group: "Members",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -300,7 +300,7 @@ export const rewardsSavings: ReportDef = {
         : null,
       emptyTitle: "No member sales",
       empty: "No sales were linked to a Rewards member in this period.",
-      note: `Members pay their tier's Rewards price at the till (${tiers}); the saving is measured against the walk-in price and nets off refunds. It's a price reduction already reflected in net sales — not a points liability.${savings === 0 ? " No instant savings were recorded in this period — savings are captured from the launch of tier pricing." : ""}`,
+      note: `Members pay their tier's Rewards price at the till (${tiers}); the saving is measured against the walk-in price and nets off refunds. It's a price reduction already reflected in net sales, not a points liability.${savings === 0 ? " No instant savings were recorded in this period: savings are captured from the launch of tier pricing." : ""}`,
     };
   },
 };

@@ -18,7 +18,7 @@ npm run typecheck
 ```
 
 User journeys (Playwright + DB checks, DEMO_MODE=true, seeded data; CI runs them against a production build):
-`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop>.mjs`, and `node e2e/crawl.mjs` visits every
+`BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop|trade|accounting>.mjs`, and `node e2e/crawl.mjs` visits every
 page as every role (fails on broken links, server errors and crashes; prints server and paint timings).
 
 Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev --name <change>` and commit the new
@@ -35,6 +35,8 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 | POS (offline-first, tap on glass) | `/pos`, `/api/pos/*` | dark, touch-first |
 | Store back office | `/store/[code]/*` | light content, dark sidebar |
 | HQ console | `/hq/*` | light content, dark sidebar |
+| The books (accounting per company: HQ and each franchisee) | `/books`, `/books/[companyId]/*` | light content, dark sidebar |
+| Trade portal (wholesale buyers) | `/trade`, `/trade/*` | dark brand |
 | Menu board (in-store TV) | `/menu/[slug]` | dark, 16:9 |
 | Tax invoice (public, signed link) | `/invoice/[id]?t=` | print-friendly |
 | Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com` — static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
@@ -52,15 +54,22 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   `sales` (postPosSale, refundSale), `orders` (placeOrder, advanceOrder), `inventory` (availability, adjustStock, stock takes),
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
   `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`,
-  `banking` (recordDeposit, reviewDeposit), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
+  `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
+  `queueStoreDay` inside its own transaction — postings are rebuilt from their source, never written by hand; manual
+  journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
   alert about themselves), `commission`, `storage` (putObject/getObject: R2/S3 or `UPLOAD_DIR`; serve files through the app).
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
-  `zarCompact` from `@/lib/money`. Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
+  `zarCompact` from `@/lib/money`; read typed amounts with `parseRand` and fill amount inputs with `centsToInput` (same file). Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
 - Consumer pages stay light at 1,000 stores: never render or serialise the whole store list on every page (the header
   store picker loads it when opened; counts come from `getStoreFootprint`), and paginate anything per store.
 - Reporting at network scale reads the rollups (`DailyStoreStat`, `DailyVariantStat`), not raw sales. Raw-sales queries must be
   bounded by store(s) and date range. Every list is paginated (`Pagination`, `pageParam`).
 - Every sensitive action writes `audit(...)`.
+- Who "we" are and where people write: `legalNameOf` / `contactEmailOf` from `@/lib/contact` (the franchisor record first).
+- POPIA: a new table that holds a member's details must be added to both `eraseMember` and `memberExport` in
+  `src/server/popia.ts` (`tests/integration/popia.test.ts` sweeps every table).
+- Scheduled work is a step in `JOBS` (`src/server/jobs.ts`): steps run on their own (a failure is reported, the rest still
+  run) and must be idempotent; a new job needs its window in `JOB_WINDOWS` (`src/lib/jobs.ts`).
 - Compliance is data-driven (`@/lib/compliance` + HQ settings): licence-gated THC (medical mode by default: SAHPRA patient
   authorisation + authorised dispenser), 18+ checks, Schedule 0 CBD limits, Medicines Act s18A (no incentives on medicines),
   POPIA consent + CPA send windows for marketing. Don't bypass it in UI code.
@@ -77,7 +86,11 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Shapes: cards `rounded-2xl`, buttons pill (`rounded-full`), inputs `rounded-xl`. The window-poster frame (`.hh-frame`)
   is reserved for hero/brand moments.
 - Components: `@/components/ui/*` (Button/ButtonLink, Card, Badge, StatusBadge/TierBadge, Field/Input/Select/Checkbox,
-  Table/Th/Td/Tr, PageHeader/EmptyState/Notice, Stat/Meter, TabLinks, RangeTabs, Pagination, Avatar/Detail),
+  Table/Th/Td/Tr (+ SortableTh/sortParams for URL sorting, TableEmpty, TableSkeleton; `Table` takes `density`, `stickyFirst`,
+  `minWidth`, `Tr` takes `href` for row links), InlineEdit (a cell that posts to a server action with optimistic feedback), ActionForm/ConfirmAction/SubmitButton
+  (server-action forms with inline errors),
+  PageHeader/EmptyState/Notice, Stat/Meter, TabLinks, RangeTabs, Pagination, Avatar/Detail),
+  admin shell `@/components/admin/*` (AdminShell with keyboard shortcuts + command palette, NavProgress, SavedViews),
   brand `@/components/brand/logo` (Mark, Logo, Lockup, Wordmark), `@/components/product/art` (ProductArt — no stock photos),
   charts `@/components/charts/*` (AreaChart, ColumnChart, Donut, BarList, Heatmap, Sparkline).
 - Charts follow the dataviz rules: series colours `var(--color-series-1..8)` in fixed order (validated palette), one axis,

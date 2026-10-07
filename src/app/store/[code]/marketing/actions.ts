@@ -9,6 +9,7 @@ import { screenCopy } from "@/lib/compliance";
 import { isAudience } from "@/lib/rfm";
 import { fmtDateTime } from "@/lib/format";
 import type { MsgChannel, PromoKind, Prisma } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 const KINDS: PromoKind[] = ["PERCENT", "FIXED", "BUY_X_GET_Y", "MULTIBUY"];
 const CHANNELS: MsgChannel[] = ["SMS", "EMAIL"];
@@ -55,7 +56,7 @@ export async function savePromotion(code: string, promoId: string | null, _: Act
     const [categoryIds, productIds, rewardCategoryIds, rewardProductIds] = ["categoryIds", "productIds", "rewardCategoryIds", "rewardProductIds"].map((k) => list(fd, k));
     const cats = await db.category.count({ where: { id: { in: [...categoryIds, ...rewardCategoryIds] } } });
     const prods = await db.product.count({ where: { id: { in: [...productIds, ...rewardProductIds] } } });
-    if (cats !== new Set([...categoryIds, ...rewardCategoryIds]).size || prods !== new Set([...productIds, ...rewardProductIds]).size) return fail("Some selected items no longer exist — refresh and try again");
+    if (cats !== new Set([...categoryIds, ...rewardCategoryIds]).size || prods !== new Set([...productIds, ...rewardProductIds]).size) return fail("Some selected items no longer exist. Refresh and try again.");
 
     const promoCode = str(fd, "code").toUpperCase().replace(/\s/g, "");
     if (promoCode && !/^[A-Z0-9]{4,16}$/.test(promoCode)) return fail("Codes are 4–16 letters or numbers", "code");
@@ -105,7 +106,7 @@ export async function savePromotion(code: string, promoId: string | null, _: Act
     const saved = existing ? await db.promotion.update({ where: { id: existing.id }, data }) : await db.promotion.create({ data });
     await audit(db, actor, existing ? "promotion.update" : "promotion.create", { storeId: store.id, entity: "Promotion", entityId: saved.id, data: { name, kind, value, firstPurchaseOnly: data.firstPurchaseOnly } });
     revalidatePath(`/store/${store.code}/marketing`);
-    return done(existing ? `“${name}” updated.` : `“${name}” created — it runs at your tills from ${fmtDateTime(startsAt)}.`);
+    return done(existing ? `“${name}” updated.` : `“${name}” created. It runs at your tills from ${fmtDateTime(startsAt)}.`);
   });
 }
 
@@ -143,7 +144,7 @@ export async function createCampaign(code: string, _: ActionState, fd: FormData)
     if (message.length < 10) return fail("Write the message", "message");
     if (message.length > (channel === "SMS" ? 459 : 2_000)) return fail(channel === "SMS" ? "Keep SMS under 3 parts (459 characters)" : "Keep the email under 2,000 characters", "message");
     const flags = screenCopy(message);
-    if (flags.length) return fail(`Change “${flags[0].term}” — ${flags[0].reason}`, "message");
+    if (flags.length) return fail(`Change “${flags[0].term}”: ${flags[0].reason}`, "message");
     const promotionId = str(fd, "promotionId") || null;
     if (promotionId && !(await db.promotion.findFirst({ where: { id: promotionId, ownerStoreId: store.id } }))) return fail("Choose one of your store's promotions", "promotionId");
     if (message.includes("{{code}}") && !promotionId) return fail("Link a promotion with a code, or remove {{code}}", "promotionId");
@@ -152,8 +153,8 @@ export async function createCampaign(code: string, _: ActionState, fd: FormData)
     revalidatePath(`/store/${store.code}/marketing`);
     if (str(fd, "intent") !== "send") return done(`“${name}” saved as a draft.`);
     const r = await sendCampaign(c.id, actor);
-    if ("scheduledAt" in r && r.scheduledAt) return done(`${r.reason ?? "Outside the legal send window"}. “${name}” is scheduled for ${fmtDateTime(r.scheduledAt)} — the first legal send time.`);
-    return done(`Sent to ${r.sent.toLocaleString()} members. ${r.suppressed.toLocaleString()} were skipped (no consent or on a do-not-contact list).`);
+    if ("scheduledAt" in r && r.scheduledAt) return done(`${r.reason ?? "Outside the legal send window"}. “${name}” is scheduled for ${fmtDateTime(r.scheduledAt)}, the first legal send time.`);
+    return done(`Sent to ${plural(r.sent, "member")}. ${r.suppressed.toLocaleString()} ${r.suppressed === 1 ? "was" : "were"} skipped (no consent or on a do-not-contact list).`);
   });
 }
 
@@ -167,7 +168,7 @@ export async function sendDraft(code: string, id: string, _: ActionState, fd: Fo
     const r = await sendCampaign(c.id, actor);
     revalidatePath(`/store/${store.code}/marketing`);
     if ("scheduledAt" in r && r.scheduledAt) return done(`Scheduled for ${fmtDateTime(r.scheduledAt)} (${(r.reason ?? "outside the legal send window").toLowerCase()}).`);
-    return done(`Sent to ${r.sent.toLocaleString()} members.`);
+    return done(`Sent to ${plural(r.sent, "member")}.`);
   });
 }
 

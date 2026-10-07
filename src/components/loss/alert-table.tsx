@@ -78,13 +78,13 @@ export function AlertTable({ rows, showStore = false }: { rows: AlertRow[]; show
             </Td>
             <Td className="whitespace-nowrap text-ink-700">
               {fmtDate(a.createdAt)}
-              <span className="block text-xs text-ink-400">{fmtTime(a.createdAt)}</span>
+              <span className="block text-xs text-ink-500">{fmtTime(a.createdAt)}</span>
             </Td>
             <Td align="right" className="whitespace-nowrap font-medium text-ink-900">
               {a.amountCents != null ? (
                 zar(a.amountCents)
               ) : (
-                <span className="text-ink-300">
+                <span className="text-ink-500">
                   —<span className="sr-only">no amount</span>
                 </span>
               )}

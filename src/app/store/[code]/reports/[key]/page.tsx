@@ -33,6 +33,8 @@ export default async function StoreReport({ params, searchParams }: { params: Pr
       scopeLabel={r.scopeLabel}
       rangeLabel={r.rangeLabel}
       clamped={r.clamped}
+      sort={typeof sp.sort === "string" ? sp.sort : undefined}
+      dir={typeof sp.dir === "string" ? sp.dir : undefined}
     />
   );
 }

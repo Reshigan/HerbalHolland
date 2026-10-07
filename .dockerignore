@@ -1,10 +1,16 @@
 node_modules
 .next
 .git
+.github
 coverage
 test-results
 playwright-report
 *.tsbuildinfo
-.env
-.env.local
+.env*
+!.env.example
 src/generated
+# Not needed to build: files uploaded on this machine, the docs (and the guide PDF), the journeys. Tests and the
+# corporate site stay: the build type-checks them. None of it reaches the runner image (next.config.ts tracing excludes).
+.data
+docs
+e2e

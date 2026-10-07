@@ -79,6 +79,8 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
     staffTiles(store.id),
     db.device.findUniqueOrThrow({ where: { id: device.id }, select: { seq: true } }),
   ]);
+  // The store's next event: the till's quiet-hours dashboard and customer display mention it.
+  const nextEvent = await db.storeEvent.findFirst({ where: { storeId: store.id, endsAt: { gte: now } }, orderBy: { startsAt: "asc" }, select: { title: true, startsAt: true, endsAt: true } });
 
   const shelf = new Map(ranged.map((r) => [r.variantId, r.priceCents]));
   const licensedOnly = settings.compliance.licensedOnly;
@@ -140,6 +142,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       licenceRef: store.licenceRef,
       receiptFooter: store.receiptFooter,
       regionId: store.regionId,
+      payshapId: store.payshapId,
     },
     staff,
     categories,
@@ -205,6 +208,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       },
     },
     shift,
+    nextEvent: nextEvent ? { title: nextEvent.title, startsAt: nextEvent.startsAt.toISOString(), endsAt: nextEvent.endsAt.toISOString() } : null,
     tapProvider: tapProvider(),
     joinUrl: `${process.env.APP_URL ?? origin}/club/join?store=${encodeURIComponent(store.code)}`,
   };

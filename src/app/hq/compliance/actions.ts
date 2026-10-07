@@ -21,10 +21,11 @@ export async function saveCompliance(_: ActionState, fd: FormData): Promise<Acti
   const thcMode = str(fd, "thcMode") as ThcMode;
   if (thcMode !== "MEDICAL" && thcMode !== "ADULT_USE") fields.thcMode = "Choose a mode";
   const minAge = parseInt10(str(fd, "minAge"));
-  if (minAge == null || minAge < 18 || minAge > 25) fields.minAge = "Between 18 and 25 — never below 18";
+  if (minAge == null || minAge < 18 || minAge > 25) fields.minAge = "Between 18 and 25 (never below 18)";
   const dailyLimitGrams = parseNum(str(fd, "dailyLimitGrams"));
   if (dailyLimitGrams == null || dailyLimitGrams <= 0 || dailyLimitGrams > 750) fields.dailyLimitGrams = "Between 0 and 750 g";
-  const before = (await getSettings()).compliance;
+  const settings = await getSettings();
+  const before = settings.compliance;
   if (thcMode === "ADULT_USE" && before.thcMode !== "ADULT_USE" && str(fd, "confirmAdult").toUpperCase() !== "ADULT USE") fields.confirmAdult = "Type ADULT USE to confirm the switch";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
 
@@ -44,14 +45,30 @@ export async function saveCompliance(_: ActionState, fd: FormData): Promise<Acti
   for (const c of next.licensedOnly) if (!next.ageRestricted.includes(c)) next.ageRestricted.push(c);
 
   const changed = (Object.keys(next) as (keyof ComplianceSettings)[]).filter((k) => !same(before[k], next[k]));
-  if (!changed.length) return done("No changes to save.");
-  await saveSetting("compliance", next);
-  await audit(db, g.actor, "compliance.settings", {
-    entity: "Setting", entityId: "compliance",
-    data: { changed, before: Object.fromEntries(changed.map((k) => [k, before[k]])), after: Object.fromEntries(changed.map((k) => [k, next[k]])) },
-  });
+  // Counsel's sign-off on the legal texts is its own setting, saved from the same form (legalShown says it was on it).
+  const reviewed = bool(fd, "legalReviewed");
+  const signOff = fd.has("legalShown") && reviewed !== settings.legal.reviewed;
+  if (!changed.length && !signOff) return done("No changes to save.");
+  if (changed.length) {
+    await saveSetting("compliance", next);
+    await audit(db, g.actor, "compliance.settings", {
+      entity: "Setting", entityId: "compliance",
+      data: { changed, before: Object.fromEntries(changed.map((k) => [k, before[k]])), after: Object.fromEntries(changed.map((k) => [k, next[k]])) },
+    });
+  }
+  if (signOff) {
+    await saveSetting("legal", { ...settings.legal, reviewed });
+    await audit(db, g.actor, "compliance.legal_review", { entity: "Setting", entityId: "legal", data: { reviewed } });
+  }
   revalidatePath("/hq/compliance");
-  return done(`Compliance rules saved (${changed.join(", ")}). Tills and the web shop use them on the next basket.`);
+  return done(
+    [
+      changed.length ? `Compliance rules saved (${changed.join(", ")}). Tills and the web shop use them on the next basket.` : null,
+      signOff ? (reviewed ? "Legal texts signed off: the review notes are off the live pages." : "Legal texts back under review: the live pages show the review notes again.") : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
+  );
 }
 
 export async function saveLicences(storeId: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -61,7 +78,7 @@ export async function saveLicences(storeId: string, _: ActionState, fd: FormData
   if (!store) return fail("Store not found.");
   const licences = classes(fd, "licences");
   const licenceRef = opt(fd, "licenceRef");
-  if (licences.length && !licenceRef) return fail("Record the licence or permit number — it prints on receipts and invoices.", { licenceRef: "Required when a licence is held" });
+  if (licences.length && !licenceRef) return fail("Record the licence or permit number: it prints on receipts and invoices.", { licenceRef: "Required when a licence is held" });
   const added = licences.filter((l) => !store.licences.includes(l));
   const removed = store.licences.filter((l) => !licences.includes(l));
   if (!added.length && !removed.length && licenceRef === store.licenceRef) return done("No changes to save.");

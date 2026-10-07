@@ -1,6 +1,8 @@
 // Small pure rules for the till: receipt numbering, cash handling, compliance block
 // types, order SLAs and points redemption. Isomorphic and unit-tested (tests/pos.test.ts).
-import type { BlockKind, CustomerDetail } from "@/server/pos/types";
+import { voucherCodeFrom } from "@/lib/vouchers";
+import { zar } from "@/lib/money";
+import type { BlockKind, CustomerDetail, TradeAccountDTO } from "@/server/pos/types";
 import type { QueuedTender } from "./storage";
 
 /** Device-local receipt number, e.g. PTA01-B00042 (store code · device prefix · sequence). */
@@ -26,6 +28,7 @@ export function quickCash(dueCents: number): number[] {
 /** Maps the compliance engine's messages to the action the cashier can take. */
 export function classifyBlock(message: string): BlockKind {
   if (/^Members only/i.test(message)) return "MEMBER";
+  if (/isn't available to trade customers|isn't approved to buy|isn't available right now/i.test(message)) return "TRADE";
   if (/^Age verification required/i.test(message)) return "AGE";
   if (/^Under \d+/i.test(message)) return "UNDERAGE";
   if (/patient authorisation/i.test(message)) return "PATIENT";
@@ -46,6 +49,15 @@ export function orderSla(placedAt: Date | string, doneAt: Date | string | null, 
   return { minutes, state: minutes >= limitMin ? "late" : minutes >= Math.ceil((limitMin * 2) / 3) ? "warn" : "ok" };
 }
 
+/** "4h 30m", "25m", "2d 3h" — how long something took or has been waiting. */
+export function fmtWait(from: Date | string, to: Date | string): string {
+  const m = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000));
+  if (m < 60) return `${m}m`;
+  if (m < 24 * 60) return `${Math.floor(m / 60)}h${m % 60 ? ` ${m % 60}m` : ""}`;
+  const h = Math.floor(m / 60);
+  return `${Math.floor(h / 24)}d${h % 24 ? ` ${h % 24}h` : ""}`;
+}
+
 /**
  * Points a member can put towards this sale: whole points (1 point = R1), within their
  * balance, within what's still due, never against medicines, and only once they hold
@@ -64,7 +76,14 @@ export const TENDER_LABEL: Record<string, string> = {
   EFT: "EFT",
   LOYALTY: "Points",
   ONLINE: "Paid online",
+  VOUCHER: "Gift voucher", ACCOUNT: "On account",
 };
+
+/** A tender as a receipt line: "Gift voucher HH-K7PM-3QXR-9ZAB", "Card •••• 1234 (ref)", "Cash". */
+export function tenderLine(t: { method: string; reference?: string | null; cardLast4?: string | null }, dots = "••••") {
+  if (t.method === "VOUCHER") return `${TENDER_LABEL.VOUCHER} ${t.reference ?? ""}`.trim();
+  return `${TENDER_LABEL[t.method] ?? t.method}${t.cardLast4 ? ` ${dots} ${t.cardLast4}` : ""}${t.reference ? ` (${t.reference})` : ""}`;
+}
 
 /**
  * A card payment taken on a stand-alone card machine: the store's Yoco machine, or any bank terminal. The cashier charges
@@ -76,6 +95,26 @@ export function cardMachineTender(provider: "YOCO" | "EXTERNAL", amountCents: nu
   if (!/^[A-Za-z0-9-]{4,40}$/.test(ref)) return { error: provider === "YOCO" ? "Key in the reference from the Yoco machine" : "Enter the approval code printed on the terminal slip" };
   if (last4 && !/^\d{4}$/.test(last4)) return { error: "The card's last 4 digits, or leave it blank" };
   return { tender: { method: "CARD", amountCents, provider, reference: provider === "EXTERNAL" ? ref.toUpperCase() : ref, cardLast4: last4 || undefined } };
+}
+
+/** HH••••002 — a member number as printed on receipts (the card keeps the full number). */
+export function maskMemberNo(memberNo: string) {
+  const m = memberNo.match(/^([A-Z]*)(\d+)$/i);
+  if (!m || m[2].length <= 3) return memberNo.replace(/\d(?=\d{3})/g, "•");
+  return `${m[1]}${"•".repeat(m[2].length - 3)}${m[2].slice(-3)}`;
+}
+
+/**
+ * A batch code from a scan or a typed value: the code printed on the pack ("DUPO0-35G-2605A") or the lab-certificate
+ * QR that links to /batch/{code}. Never a barcode (digits only), a member number, an order QR, a ticket or a gift
+ * voucher code (HH-XXXX-XXXX-XXXX, which is also dashed).
+ */
+export function parseBatchScan(text: string): string | null {
+  const t = text.trim();
+  const url = t.match(/\/batch\/([A-Z0-9][A-Z0-9-]{3,40})\/?(?:[?#].*)?$/i);
+  if (url) return url[1].toUpperCase();
+  if (parseOrderQr(t) || rsvpTicketFrom(t) || memberNoFrom(t) || voucherCodeFrom(t) || /^\d+$/.test(t)) return null;
+  return /^[A-Z0-9]{2,12}(?:-[A-Z0-9]{1,12}){1,4}$/i.test(t) && /\d/.test(t) ? t.toUpperCase() : null;
 }
 
 /** 082 ••• 1234 — enough for the cashier to confirm who they're serving. */
@@ -109,12 +148,9 @@ export function dropIndex<D extends { variantIds: string[]; endsAt: string | nul
   return out;
 }
 
-/** Parses "123.45" / "R 1 234,50" style amounts into cents; null when not a number. */
-export function parseRands(input: string): number | null {
-  const s = input.replace(/[R\s]/gi, "").replace(",", ".");
-  if (!/^\d+(\.\d{0,2})?$/.test(s)) return null;
-  return Math.round(Number(s) * 100);
-}
+// Typed amounts ("123.45", "R 1 234,50", "1,234.50") → cents, with the shared parser: null when not an amount, and
+// never negative at the till.
+export { parseRand as parseRands } from "@/lib/money";
 
 /** RFC 4122 v4 id (crypto.randomUUID needs a secure context; getRandomValues doesn't). */
 export function uuid() {
@@ -126,8 +162,73 @@ export function uuid() {
   return `${h.slice(0, 8)}-${h.slice(8, 12)}-${h.slice(12, 16)}-${h.slice(16, 20)}-${h.slice(20)}`;
 }
 
-/** Offline, the till can't look members up: it takes the member number from their card and the server resolves it on sync. */
+/** Offline, the till can't look members up: it takes the member number from their card (or their SA mobile, as E.164)
+ *  and the server resolves it on sync. */
 export const offlineMember = (memberNo: string): CustomerDetail => ({
-  id: "", memberNo, firstName: "Member", lastName: memberNo, phone: "", email: null, tier: "SEED", points: 0, ageCheck: "NONE", ageVerified: false, age: null,
+  id: "", memberNo, firstName: "Member", lastName: memberNo.startsWith("+27") ? maskPhone(memberNo) : memberNo, phone: memberNo.startsWith("+27") ? memberNo : "", email: null, tier: "SEED", points: 0, ageCheck: "NONE", ageVerified: false, age: null,
   homeStore: null, visitsHere: 0, lastVisitHere: null, foundingNo: null, tierFloor: null, offers: [], patient: null, offline: true,
 });
+
+// ── Trade-sale mode ──────────────────────────────────────────────────────────
+
+/** "On account · 30 days" / "Prepaid (EFT)" — an account's terms as the till shows them. */
+export const tradeTermsLabel = (a: Pick<TradeAccountDTO, "terms" | "paymentDays">) => (a.terms === "ACCOUNT" ? `On account · ${a.paymentDays} days` : "Prepaid (EFT)");
+
+export type TradeTenderRules = {
+  cash: boolean;
+  card: boolean; // tap on glass / the Yoco machine / a bank terminal
+  eft: boolean; // an EFT the buyer makes now (bank reference)
+  payshap: boolean;
+  account: boolean; // "On account": only when the credit decision allows the amount
+  accountReason: string | null; // why not, in plain English (shown under the tender)
+  points: false;
+  voucher: false;
+};
+
+/**
+ * Which tenders a trade sale may take. Money as usual (card, EFT and PayShap need the connection the sale needs
+ * anyway), never points or a gift voucher (consumer money), and "On account" only for an APPROVED account on
+ * ACCOUNT terms while the amount — this tender plus what's already on account in the sale — stays within what the
+ * account may still put on account (`availableCents`, the server's credit decision less what's open). The server
+ * re-runs the credit check when the sale posts.
+ */
+export function tradeTenders(a: { account: Pick<TradeAccountDTO, "terms" | "status" | "availableCents">; online: boolean; amountCents: number; onAccountSoFarCents?: number }): TradeTenderRules {
+  const left = Math.max(0, a.account.availableCents - (a.onAccountSoFarCents ?? 0));
+  let accountReason: string | null = null;
+  if (a.account.status !== "APPROVED") accountReason = "On hold, so money only";
+  else if (a.account.terms !== "ACCOUNT") accountReason = "Prepaid account, so money only";
+  else if (a.account.availableCents <= 0) accountReason = "Nothing available on account";
+  else if (a.amountCents > left) accountReason = `Only ${zar(left)} available on account`;
+  else if (a.amountCents <= 0) accountReason = "Nothing left to put on account";
+  return { cash: true, card: a.online, eft: a.online, payshap: a.online, account: a.online && !accountReason, accountReason, points: false, voucher: false };
+}
+
+/**
+ * The 6-digit collection code a trade buyer gets when their click & collect order is ready: it must match the
+ * order's exactly (the TO-… number is not a fallback — the buyer may not be the person who collects).
+ */
+export function tradeCodeMatches(collectionCode: string | null | undefined, entered: string) {
+  const v = entered.replace(/\D/g, "");
+  return !!collectionCode && /^\d{6}$/.test(v) && v === collectionCode;
+}
+
+/**
+ * The Z-report's trade section from the shift's sales grouped by kind and channel: WHOLESALE sales (till trade
+ * sales and trade orders handed over) ex VAT, VAT and incl, their refunds, and the part invoiced on account
+ * (the ACCOUNT tender, net of credit notes) — which is not money and never changes the cash-up.
+ */
+export function tradeSummary(rows: { kind: string; channel: string; count: number; totalCents: number; vatCents: number }[], tenders: { method: string; amountCents: number }[]) {
+  const sum = (xs: { totalCents: number; vatCents: number }[], f: (r: { totalCents: number; vatCents: number }) => number) => xs.reduce((a, r) => a + f(r), 0);
+  const sales = rows.filter((r) => r.kind === "SALE" && r.channel === "WHOLESALE");
+  const refunds = rows.filter((r) => r.kind === "REFUND" && r.channel === "WHOLESALE");
+  const inclCents = sum(sales, (r) => r.totalCents);
+  const vatCents = sum(sales, (r) => r.vatCents);
+  return {
+    count: sales.reduce((a, r) => a + r.count, 0),
+    exCents: inclCents - vatCents,
+    vatCents,
+    inclCents,
+    refundCents: sum(refunds, (r) => -r.totalCents),
+    onAccountCents: tenders.filter((t) => t.method === "ACCOUNT").reduce((a, t) => a + t.amountCents, 0),
+  };
+}

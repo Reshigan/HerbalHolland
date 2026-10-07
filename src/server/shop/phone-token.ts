@@ -2,9 +2,9 @@
 // httpOnly cookie between "verify code" and "finish registration" so a new member
 // can only ever be created for a number they control.
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { appSecret } from "../secret";
 
-const secret = () => process.env.SESSION_SECRET ?? "dev";
-const mac = (body: string) => createHmac("sha256", secret()).update(`verified-phone:${body}`).digest("base64url");
+const mac = (body: string) => createHmac("sha256", appSecret()).update(`verified-phone:${body}`).digest("base64url");
 
 export function signPhone(phone: string, ttlMinutes = 20, now = Date.now()) {
   const body = `${phone}.${now + ttlMinutes * 60_000}`;

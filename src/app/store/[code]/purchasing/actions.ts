@@ -16,7 +16,7 @@ export async function placeWholesaleOrder(code: string, _: ActionState, fd: Form
   let id = "";
   const res = await attempt(async () => {
     const { store, actor } = await manage(code);
-    if (!store.dcId) return fail("Your store isn't linked to a distribution centre yet — ask HQ to set one up.");
+    if (!store.dcId) return fail("Your store isn't linked to a distribution centre yet. Ask HQ to set one up.");
     const lines: { variantId: string; qty: number }[] = [];
     for (const [k, v] of fd.entries()) {
       if (!k.startsWith("qty:")) continue;
@@ -31,7 +31,7 @@ export async function placeWholesaleOrder(code: string, _: ActionState, fd: Form
     });
     const ok = new Set(ranged.map((r) => r.variantId));
     const bad = lines.filter((l) => !ok.has(l.variantId));
-    if (bad.length) return fail(`${bad.length} item${bad.length > 1 ? "s are" : " is"} no longer ranged or available — refresh and try again`);
+    if (bad.length) return fail(`${bad.length} item${bad.length > 1 ? "s are" : " is"} no longer ranged or available. Refresh and try again.`);
     const draft = str(fd, "intent") === "draft";
     const order = await createStockOrder({ buyerId: store.id, sellerId: store.dcId, kind: "WHOLESALE", lines, notes: str(fd, "notes").slice(0, 500) || undefined, actor, submit: !draft });
     id = order.id;
@@ -63,7 +63,7 @@ export async function receiveOrder(code: string, id: string, _: ActionState, fd:
   return attempt(async () => {
     const { store, actor } = await manage(code);
     const o = await buyerOrder(store.id, id);
-    if (o.status !== "SHIPPED") return fail(`This order is ${o.status.toLowerCase()} — only shipped orders can be received`);
+    if (o.status !== "SHIPPED") return fail(`This order is ${o.status.toLowerCase()}. Only shipped orders can be received.`);
     const received: Record<string, number> = {};
     const check: { ordered: number; shipped: number; received: number }[] = [];
     for (const line of o.lines) {
@@ -82,7 +82,7 @@ export async function receiveOrder(code: string, id: string, _: ActionState, fd:
     revalidatePath(`/store/${store.code}/purchasing`);
     revalidatePath(`/store/${store.code}/inventory`);
     return done(
-      `Received ${plural(summary.units, "unit")} into stock.${summary.shortReceived ? ` ${summary.shortReceived} short against the delivery note — flagged for the supplier.` : ""} The tax invoice is on its way to ${store.company.email ?? "the owner"}.`,
+      `Received ${plural(summary.units, "unit")} into stock.${summary.shortReceived ? ` ${summary.shortReceived} short against the delivery note, flagged for the supplier.` : ""} The tax invoice is on its way to ${store.company.email ?? "the owner"}.`,
     );
   });
 }
@@ -121,7 +121,7 @@ export async function sellerAct(code: string, id: string, action: "approve" | "r
     if (action === "ship") {
       const avail = await availability([store.id], o.lines.map((l) => l.variantId));
       const shippable = o.lines.reduce((s, l) => s + Math.min(l.qty, Math.max(0, avail.get(availKey(store.id, l.variantId))?.available ?? 0)), 0);
-      if (!shippable) return fail("You have none of these items available to ship — reject the order instead.");
+      if (!shippable) return fail("You have none of these items available to ship. Reject the order instead.");
     }
     await actOnStockOrder(id, action, actor);
     if (action === "reject") await restoreListing(o);

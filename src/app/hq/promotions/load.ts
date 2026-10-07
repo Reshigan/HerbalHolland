@@ -1,6 +1,7 @@
 // Shared loaders for the promotion editor pages (options + form values).
 import { db } from "@/server/db";
 import { clock, toLocalInput } from "@/server/hq/form";
+import { centsToInput } from "@/lib/money";
 import type { Promotion } from "@/generated/prisma/client";
 import type { PromoValues } from "./promotion-form";
 
@@ -26,13 +27,12 @@ export function promoValues(p: Promotion | null): PromoValues {
       startTime: "", endTime: "", startsAt: toLocalInput(nextHour), endsAt: toLocalInput(new Date(nextHour.getTime() + 30 * 86_400_000)),
       code: "", maxUses: "", active: true, firstPurchaseOnly: false,
     };
-  const r = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
   return {
     name: p.name, description: p.description ?? "", kind: p.kind,
-    percent: p.kind === "PERCENT" ? String(p.value) : "", amount: p.kind === "FIXED" ? r(p.value) : "",
-    multiplier: p.kind === "MULTIPLIER" ? String(p.value / 100) : "2", bundlePrice: p.kind === "MULTIBUY" ? r(p.value) : "",
+    percent: p.kind === "PERCENT" ? String(p.value) : "", amount: p.kind === "FIXED" ? centsToInput(p.value) : "",
+    multiplier: p.kind === "MULTIPLIER" ? String(p.value / 100) : "2", bundlePrice: p.kind === "MULTIBUY" ? centsToInput(p.value) : "",
     buyQty: p.buyQty?.toString() ?? "", getQty: p.getQty?.toString() ?? "1", rewardPercent: p.rewardPercent?.toString() ?? "100",
-    minSpend: p.minSpendCents ? r(p.minSpendCents) : "", categoryIds: p.categoryIds, productIds: p.productIds,
+    minSpend: p.minSpendCents ? centsToInput(p.minSpendCents) : "", categoryIds: p.categoryIds, productIds: p.productIds,
     rewardCategoryIds: p.rewardCategoryIds, rewardProductIds: p.rewardProductIds, channels: p.channels, storeIds: p.storeIds, days: p.days,
     startTime: clock(p.startMinute), endTime: clock(p.endMinute), startsAt: toLocalInput(p.startsAt), endsAt: toLocalInput(p.endsAt),
     code: p.code ?? "", maxUses: p.maxUses?.toString() ?? "", active: p.active, firstPurchaseOnly: p.firstPurchaseOnly,

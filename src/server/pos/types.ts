@@ -3,11 +3,17 @@
 import type { ComplianceSettings, RegClass } from "@/lib/compliance";
 import type { PromoInput } from "@/lib/promotions";
 import type { PriceListRule } from "@/lib/pricing-rules";
+import type { MoneyPart } from "@/lib/pos-refund";
 
 export type { TierKey } from "@/lib/loyalty-rules";
 import type { TierKey } from "@/lib/loyalty-rules";
 export type AgeCheckKind = "NONE" | "ID_SIGHTED" | "ID_NUMBER" | "VERIFIED";
-export type TenderMethod = "CARD" | "CASH" | "PAYSHAP" | "EFT";
+/**
+ * VOUCHER is a gift voucher (its code in `reference`): looked up and redeemed on the server, so never on a queued sale.
+ * ACCOUNT is a trade account's credit terms (trade-sale mode only; `reference` = the account number): invoiced on the
+ * account's ledger, never money at the till, so never on a queued sale either.
+ */
+export type TenderMethod = "CARD" | "CASH" | "PAYSHAP" | "EFT" | "VOUCHER" | "ACCOUNT";
 export type TapProviderKind = "SIMULATED" | "HALO_APPLINK" | "YOCO" | "EXTERNAL";
 
 export type StaffTile = { id: string; name: string; role: string; canDispense: boolean };
@@ -101,6 +107,8 @@ export type BootStore = {
   licenceRef: string | null;
   receiptFooter: string | null;
   regionId: string;
+  /** The ShapID the store's bank issued (store settings): the till offers PayShap only when it's set. Tills cached before this field have none. */
+  payshapId?: string | null;
 };
 
 export type BootData = {
@@ -119,8 +127,42 @@ export type BootData = {
     loyalty: { earnPer100: number; minRedeem: number; maxRedeemPct: number; tierSavingsPct: Record<TierKey, number> };
   };
   shift: BootShift | null;
+  /** The store's next event (for the till's quiet-hours dashboard); tills cached before this field have none. */
+  nextEvent?: { title: string; startsAt: string; endsAt: string } | null;
   tapProvider: TapProviderKind;
   joinUrl: string; // Herbal Holland Rewards self-registration link for this store
+};
+
+// ── Trade (wholesale) ───────────────────────────────────────────────────────
+
+/**
+ * A trade account as the till's lookup returns it (POST /api/pos/trade/accounts): approved accounts, and those on
+ * hold (who may still pay in money), with their terms and what may still go on account right now.
+ */
+export type TradeAccountDTO = {
+  id: string;
+  number: string; // TA-000123
+  name: string; // trading name
+  legalName: string;
+  vatNumber: string | null;
+  status: "APPROVED" | "ON_HOLD";
+  terms: "PREPAID" | "ACCOUNT";
+  classes: string[]; // the ranges it may buy (never THC)
+  creditLimitCents: number;
+  paymentDays: number;
+  balanceCents: number; // what it owes on its ledger
+  availableCents: number; // what may still go on account (0 unless APPROVED on ACCOUNT terms)
+  licenceProblem: string | null; // a required licence missing, waiting for HQ or lapsed: no trade sale until it's sorted
+};
+
+/** A trade click & collect order on the till's order board (alongside consumer orders, tagged "Trade · TO-…"). */
+export type TradeOrderInfo = {
+  id: string;
+  number: string; // TO-000123
+  account: { number: string; name: string };
+  payMethod: "EFT" | "ACCOUNT";
+  handlingCents: number; // the store's handling fee, ex VAT (invoiced with the lines at handover)
+  reference: string | null; // the buyer's own PO number
 };
 
 // ── Pricing ─────────────────────────────────────────────────────────────────
@@ -141,6 +183,8 @@ export type QuoteLineDTO = {
   memberSavingsCents: number; // instant Rewards saving vs the walk-in price
   offerCents: number; // My Deals part of discountCents (online only)
   offerName: string | null; // e.g. "15% off Calm CBD Oil"
+  exCents?: number; // the line ex VAT (trade quotes: unitPriceCents is the ex-VAT trade price and totalCents = ex + VAT)
+  blocked?: string | null; // trade quotes: why this line can't be sold to the account (the trade basket rule), in plain English
 };
 
 export type QuoteDTO = {
@@ -157,6 +201,10 @@ export type QuoteDTO = {
   pointsEstimate: number;
   memberSavingsCents: number; // "Rewards savings" on this basket (members)
   joinSavingsCents: number; // walk-ins: what joining Rewards (Seed) would save on this basket now
+  /** Trade-sale mode (WHOLESALE quote for a trade account): the lines ex VAT, the account and every blocked line's reason. */
+  exCents?: number;
+  tradeAccountId?: string | null;
+  blocks?: string[];
 };
 
 // ── Customers ───────────────────────────────────────────────────────────────
@@ -204,6 +252,9 @@ export type CustomerDetail = {
   offline?: boolean; // taken from the member's card while the till was offline: checked when it reconnects
 };
 
+/** A gift voucher looked up at the till (POST /api/pos/vouchers), ready to tender. */
+export type VoucherLookupDTO = { code: string; balanceCents: number; amountCents: number; expiresAt: string };
+
 /** Door check-in from an event ticket (HHRSVP:{code}): the member to attach and their event. */
 export type CheckInDTO = {
   customer: CustomerDetail;
@@ -213,7 +264,7 @@ export type CheckInDTO = {
 
 // ── Compliance ──────────────────────────────────────────────────────────────
 
-export type BlockKind = "MEMBER" | "AGE" | "UNDERAGE" | "PATIENT" | "QUANTITY" | "DISPENSER" | "LICENCE" | "CHANNEL" | "DAILY_LIMIT" | "DROP" | "OTHER";
+export type BlockKind = "MEMBER" | "AGE" | "UNDERAGE" | "PATIENT" | "QUANTITY" | "DISPENSER" | "LICENCE" | "CHANNEL" | "DAILY_LIMIT" | "DROP" | "TRADE" | "OTHER";
 
 export type ComplianceDTO = {
   ok: boolean;
@@ -238,7 +289,9 @@ export type ReceiptLine = {
   offerCents: number; // My Deals part of discountCents
   totalCents: number;
   vatCents: number;
+  exCents?: number; // the line ex VAT (totalCents − vatCents): trade tax invoices print unit ex VAT, VAT and incl (receipts cached before it have none)
   refundedQty: number;
+  refundedCents?: number; // what refunds of this line already gave back (its last units come back to exactly what's left)
 };
 
 export type ReceiptPayment = {
@@ -247,22 +300,46 @@ export type ReceiptPayment = {
   tenderedCents: number | null;
   changeCents: number | null;
   provider: string | null;
-  reference: string | null;
+  reference: string | null; // a gift voucher's code on a VOUCHER tender; the account number on an ACCOUNT tender
   cardBrand: string | null;
   cardLast4: string | null;
+  balanceCents?: number | null; // gift voucher: what's left on it (as of printing)
+};
+
+/** A gift voucher on a sale: what it paid and what refunds of the sale have already put back (the refund sheet's split). */
+export type ReceiptVoucher = { code: string; paidCents: number; refundedCents: number };
+
+/**
+ * A WHOLESALE (trade) sale or its credit note: the account, what went on its ledger and when it's due — what the tax
+ * invoice prints under "On account · due …" and the refund sheet needs for its split (the on-account part comes back
+ * as a credit note before any money moves).
+ */
+export type ReceiptTrade = {
+  accountId: string;
+  number: string; // TA-000123
+  name: string;
+  terms: "PREPAID" | "ACCOUNT";
+  paymentDays: number;
+  onAccountCents: number; // the ACCOUNT tender on this document (negative on a credit note)
+  creditedCents: number; // sales: what refunds of it have already put back on the account
+  dueAt: string | null; // the ledger invoice's due date when something is on account
+  orderNumber: string | null; // TO-… when the sale handed over a trade click & collect order
 };
 
 export type ReceiptDTO = {
   id: string;
   number: string;
   kind: "SALE" | "REFUND";
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   title: string;
   createdAt: string;
   offline: boolean;
   queued?: boolean; // client-side: not yet synced
+  training?: boolean; // client-side: rung up in training mode — never posted, printed with a TRAINING watermark
   refundOf: { id: string; number: string } | null;
   staff: string | null;
+  /** Who built the basket when a dispenser (`staff`) completed the sale — "Sold by X · dispensed by Y". Only when they differ. */
+  soldBy?: string | null;
   customer: { id: string; name: string; memberNo: string; tier: TierKey; points: number } | null;
   lines: ReceiptLine[];
   subtotalCents: number;
@@ -275,23 +352,31 @@ export type ReceiptDTO = {
   pointsEarned: number;
   pointsRedeemed: number;
   payments: ReceiptPayment[];
+  vouchers?: ReceiptVoucher[]; // gift vouchers that paid on this sale (sales only)
+  /** Sales: each money tender (card, cash, PayShap, EFT) — what it paid and what refunds already gave back on it (the refund sheet's split). */
+  money?: MoneyPart[];
+  trade?: ReceiptTrade | null; // WHOLESALE: the trade account and the on-account part
   promoCode: string | null;
   invoiceEmail: string | null;
   buyer: { name: string; address: string; vatNumber?: string } | null;
   note: string | null;
-  refunds: { id: string; number: string; totalCents: number; createdAt: string }[];
+  /** Refunds of this sale, each with where its money went (points as LOYALTY, in cents). */
+  refunds: { id: string; number: string; totalCents: number; createdAt: string; payments?: RefundPayment[] }[];
   invoiceUrl: string | null;
 };
+
+export type RefundPayment = { method: string; amountCents: number; cardLast4: string | null; reference: string | null };
 
 export type SaleRow = {
   id: string;
   number: string;
   kind: "SALE" | "REFUND";
-  channel: "POS" | "ONLINE";
+  channel: "POS" | "ONLINE" | "WHOLESALE";
   createdAt: string;
   totalCents: number;
   customer: string | null;
   staff: string | null;
+  soldBy?: string | null; // who built the basket when a dispenser (staff) completed the sale, when they differ
   methods: string[];
   items: number;
   refunded: boolean;
@@ -311,6 +396,8 @@ export type ZReport = {
   closedBy: string | null;
   sales: { count: number; grossCents: number; vatCents: number; netCents: number; discountCents: number; memberSavingsCents: number; units: number };
   refunds: { count: number; totalCents: number };
+  /** Where the shift's refunds went, by tender (positive amounts): each refund payment line. Reports cached before it have none. */
+  refundTenders?: { method: string; label: string; amountCents: number; count: number }[];
   online: { count: number; grossCents: number };
   tenders: { method: string; label: string; amountCents: number; count: number }[];
   points: { issued: number; redeemed: number };
@@ -323,6 +410,13 @@ export type ZReport = {
     counts: Record<string, number> | null;
   };
   takingsCents: number;
+  /** A blind X-report (a shift still open, seen by someone other than a manager): what the drawer should hold — expected
+   *  cash, cash takings and the cash tender — is left out until the count is in. */
+  blind?: boolean;
+  /** Licensed medicines dispensed in the shift (tills cached before this field carry none). */
+  dispensing?: { count: number; units: number; grams: number; cents: number } | null;
+  /** Trade sales in the shift (WHOLESALE: till trade sales and trade orders handed over): ex VAT, VAT, incl, and the part invoiced on account (not money). */
+  trade?: { count: number; exCents: number; vatCents: number; inclCents: number; refundCents: number; onAccountCents: number } | null;
   notes: string | null;
   emailedTo: string | null;
 };
@@ -351,6 +445,8 @@ export type OrderCard = {
   courier: string | null;
   trackingNo: string | null;
   idChecked: boolean;
+  /** A trade click & collect order (READY ones are handed over at the till; PLACED/PICKING are packed in the back office). */
+  trade?: TradeOrderInfo | null;
 };
 
 // ── Stock lookup ────────────────────────────────────────────────────────────

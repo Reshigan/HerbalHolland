@@ -6,7 +6,7 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { SEGMENT_TONE, hrefWith } from "@/server/store/rules";
-import { NO_STATS, statsHere } from "@/server/store/members";
+import { NO_STATS, memberAtStore, statsHere } from "@/server/store/members";
 import { SEGMENTS, segmentOf } from "@/lib/rfm";
 import { fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { ageOn, displayPhone } from "@/lib/sa";
@@ -19,14 +19,14 @@ import { Stat, Meter } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge, TierBadge } from "@/components/ui/status";
 import { ButtonLink } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, Select } from "@/components/ui/form";
 import { Avatar } from "@/components/ui/misc";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { BackLink, Line, Qty, ReadOnlyNote } from "@/components/store/ui";
-import { Select } from "@/components/store/select";
-import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Member" };
 const PAGE_SIZE = 10;
@@ -38,8 +38,10 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
   const user = await requireStaff();
   const store = await storeForUser(user, code);
   const canManage = canManageStore(user);
-  const c = await db.customer.findFirst({ where: { id, homeStoreId: store.id } });
+  // Home members, and members who have bought here (read-only: their home store keeps their record up to date).
+  const c = await db.customer.findFirst({ where: { AND: [{ id }, memberAtStore(store.id)] } });
   if (!c) notFound();
+  const canEdit = canManage && c.homeStoreId === store.id;
   const page = pageParam(sp.page);
   const [sales, salesTotal, ledger, consents, auths, referrer, here, settings] = await Promise.all([
     db.sale.findMany({
@@ -97,11 +99,11 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       <div className="mt-6 grid gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title={`Purchases at ${store.name}`} description={`${salesTotal} transactions`} />
+            <CardHeader title={`Purchases at ${store.name}`} description={plural(salesTotal, "transaction")} />
             {sales.length === 0 ? (
               <EmptyState title="No purchases here yet" />
             ) : (
-              <Table className="mt-3">
+              <Table stickyFirst className="mt-3">
                 <thead>
                   <tr>
                     <Th>When</Th>
@@ -124,7 +126,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                       <Td className="text-ink-600">{s.channel === "ONLINE" ? "Online" : "In store"}</Td>
                       <Td align="right">{s.lines.reduce((a, l) => a + l.qty, 0)}</Td>
                       <Td align="right" className="font-medium text-ink-900">{zar(s.totalCents)}</Td>
-                      <Td align="right" className="text-leaf-700">{s.memberSavingsCents ? zar(s.memberSavingsCents) : <span className="text-ink-300">—</span>}</Td>
+                      <Td align="right" className="text-leaf-700">{s.memberSavingsCents ? zar(s.memberSavingsCents) : <span className="text-ink-500">—</span>}</Td>
                       <Td align="right" className="text-ink-600">{s.pointsEarned ? `+${s.pointsEarned.toLocaleString()}` : "—"}</Td>
                     </Tr>
                   ))}
@@ -141,7 +143,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             {ledger.length === 0 ? (
               <EmptyState title="No points activity" />
             ) : (
-              <Table className="mt-3">
+              <Table stickyFirst className="mt-3">
                 <thead>
                   <tr>
                     <Th>When</Th>
@@ -173,9 +175,9 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
             <CardHeader title="Profile" />
             <CardBody className="pt-3">
               <Line label="Mobile" value={displayPhone(c.phone)} />
-              <Line label="Email" value={c.email ?? <span className="text-ink-400">—</span>} />
-              <Line label="Date of birth" value={c.dob ? `${fmtDate(c.dob)} (${ageOn(c.dob)})` : <span className="text-ink-400">Not captured</span>} />
-              <Line label="SA ID" value={c.idLast4 ? <span className="font-mono">•••••••••{c.idLast4}</span> : <span className="text-ink-400">Not captured</span>} />
+              <Line label="Email" value={c.email ?? <span className="text-ink-500">—</span>} />
+              <Line label="Date of birth" value={c.dob ? `${fmtDate(c.dob)} (${ageOn(c.dob)})` : <span className="text-ink-500">Not captured</span>} />
+              <Line label="SA ID" value={c.idLast4 ? <span className="font-mono">•••••••••{c.idLast4}</span> : <span className="text-ink-500">Not captured</span>} />
               <Line label="Referral code" value={<span className="font-mono">{c.referralCode}</span>} />
               {referrer && <Line label="Referred by" value={`${referrer.firstName} (${referrer.memberNo})`} />}
             </CardBody>
@@ -191,7 +193,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <div className="text-xs opacity-90">{c.ageVerifiedAt ? `Recorded ${fmtDate(c.ageVerifiedAt)}` : "Check ID before any age-restricted sale."}</div>
                 </div>
               </div>
-              {canManage && c.ageCheck !== "VERIFIED" && (
+              {canEdit && c.ageCheck !== "VERIFIED" && (
                 <ActionForm action={checkAge.bind(null, store.code, c.id)} className="space-y-3">
                   <Field label="Record a check" htmlFor="age-method">
                     <Select id="age-method" name="method" defaultValue="ID_SIGHTED">
@@ -218,7 +220,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                   <span className="text-sm font-medium text-ink-850">{CHANNEL[ch]}</span>
                   <span className="flex items-center gap-2">
                     <Badge tone={consent[ch] ? "green" : "neutral"} dot>{consent[ch] ? "Opted in" : "Opted out"}</Badge>
-                    {canManage && (
+                    {canEdit && (
                       <ActionButton action={changeConsent.bind(null, store.code, c.id, ch, !consent[ch])} variant="ghost" title={consent[ch] ? `Record opt-out of ${CHANNEL[ch]}` : `Record opt-in to ${CHANNEL[ch]}`}>
                         {consent[ch] ? "Opt out" : "Opt in"}
                       </ActionButton>
@@ -233,7 +235,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                     {consents.map((e) => (
                       <li key={e.id} className="flex items-start justify-between gap-3 text-xs">
                         <span>
-                          <b className="text-ink-800">{CHANNEL[e.channel]}</b> {e.granted ? "granted" : "withdrawn"} <span className="text-ink-400">· {e.source.toLowerCase().replaceAll("_", " ")}</span>
+                          <b className="text-ink-800">{CHANNEL[e.channel]}</b> {e.granted ? "granted" : "withdrawn"} <span className="text-ink-500">· {e.source.toLowerCase().replaceAll("_", " ")}</span>
                         </span>
                         <span className="whitespace-nowrap text-ink-500">{fmtDate(e.createdAt)}</span>
                       </li>
@@ -242,13 +244,14 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
                 </details>
               )}
               {!canManage && <ReadOnlyNote className="mt-2" />}
+              {canManage && !canEdit && <p className="mt-2 text-xs text-ink-500">Their home store records consent and age checks.</p>}
             </CardBody>
           </Card>
 
           <Card>
             <CardHeader
               title="Patient authorisations"
-              description="SAHPRA Section 21 — for licensed medicines"
+              description="SAHPRA Section 21, for licensed medicines"
               action={canManage && <ButtonLink href={`${base}/patients?member=${c.memberNo}`} variant="ghost" size="sm">Add</ButtonLink>}
             />
             <CardBody className="space-y-2 pt-3">

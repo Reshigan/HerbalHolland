@@ -20,6 +20,7 @@ import { BarList } from "@/components/charts/bar-list";
 import { Chips, Qty, ReadOnlyNote, SearchForm } from "@/components/store/ui";
 import { AutoSelect } from "@/components/store/auto-submit";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Adjustments" };
 const PAGE_SIZE = 25;
@@ -62,8 +63,8 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label={kind === "count" ? "Stock-take losses" : "Written off"} value={zarCompact(Math.round(outValue))} sub={`${outUnits.toLocaleString()} units at cost`} />
-        <Stat label={kind === "count" ? "Stock-take finds" : "Booked in"} value={zarCompact(Math.round(inValue))} sub={`${inUnits.toLocaleString()} units at cost`} />
+        <Stat label={kind === "count" ? "Stock-take losses" : "Written off"} value={zarCompact(Math.round(outValue))} sub={`${plural(outUnits, "unit")} at cost`} />
+        <Stat label={kind === "count" ? "Stock-take finds" : "Booked in"} value={zarCompact(Math.round(inValue))} sub={`${plural(inUnits, "unit")} at cost`} />
         <Stat label="Net impact" value={<span className={outValue > inValue ? "text-rose-600" : undefined}>{zar(Math.round(inValue - outValue))}</span>} sub={`${r.from} to ${r.to}`} />
         <Stat label="Movements" value={totals.reduce((s, t) => s + t.n, 0).toLocaleString()} sub={kind === "count" ? "from approved stock takes" : "manual adjustments"} />
       </div>
@@ -94,8 +95,8 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                 rows={byReason.map((t) => ({
                   label: ADJUST_REASONS[t.reason!].label,
                   value: Math.round(-t.value),
-                  sub: `${-t.units} units`,
-                  tip: `${ADJUST_REASONS[t.reason!].label}\n${-t.units} units · ${t.n} movements`,
+                  sub: plural(-t.units, "unit"),
+                  tip: `${ADJUST_REASONS[t.reason!].label}\n${plural(-t.units, "unit")} · ${plural(t.n, "movement")}`,
                 }))}
               />
             ) : (
@@ -135,7 +136,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
             Change the date range or filters to see more.
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>When</Th>
@@ -156,7 +157,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                     <Link href={`/store/${store.code}/inventory/${m.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                       {m.variant.product.name} <span className="text-ink-500">· {m.variant.name}</span>
                     </Link>
-                    <div className="font-mono text-xs text-ink-400">{m.variant.sku}</div>
+                    <div className="font-mono text-xs text-ink-500">{m.variant.sku}</div>
                   </Td>
                   <Td className="whitespace-nowrap font-mono text-xs text-ink-600">{m.batch.code}</Td>
                   <Td>{m.reason ? <Badge tone={m.reason === "DESTROYED" || m.reason === "THEFT" || m.reason === "RECALL" ? "red" : m.qty < 0 ? "amber" : "green"}>{ADJUST_REASONS[m.reason].label}</Badge> : "—"}</Td>
@@ -167,7 +168,7 @@ export default async function AdjustmentsPage({ params, searchParams }: { params
                     {m.stockTakeId ? (
                       <Link href={`/store/${store.code}/stock-takes/${m.stockTakeId}`} className="font-medium text-brand-700 hover:underline">{m.note ?? "Stock take"}</Link>
                     ) : (
-                      <span className="line-clamp-2" title={m.note ?? undefined}>{m.note ?? <span className="text-ink-300">—</span>}</span>
+                      <span className="line-clamp-2" title={m.note ?? undefined}>{m.note ?? <span className="text-ink-500">—</span>}</span>
                     )}
                   </Td>
                 </Tr>

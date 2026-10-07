@@ -26,7 +26,7 @@ doesn't permit cannabis products and dispensaries. Describe the business honestl
 before taking live payments: Peach for Vantax (Pty) Ltd online, and Yoco for every store's account in store. Never
 mis-code the MCC. For reference: PayFast allows CBD only via EFT; Paystack bans drugs and paraphernalia.
 
-Env: `NEXT_PUBLIC_TAP_PROVIDER`; for Halo also `HALO_API_URL`, `HALO_API_KEY` and per-store merchant IDs (roadmap field).
+Env: `NEXT_PUBLIC_TAP_PROVIDER`; for Halo also `HALO_API_URL`, `HALO_API_KEY` and `HALO_MERCHANT_ID` (or a store's own `HALO_MERCHANT_ID_<STORECODE>`, which wins).
 
 ## Online payments — Peach Payments (chosen) and Yoco
 
@@ -248,9 +248,16 @@ can read the Smart ID card's PDF417 barcode (DOB + ID number) with a camera scan
 
 ## Accounting
 
-Per-store ledgers in **Sage Business Cloud** or **Xero**: post a daily summary journal per store (net sales, VAT,
-tenders, COGS, points) from `DailyStoreStat`. Invoices already carry structured data for SARS e-invoicing (VAT
-modernisation, phased from 2030).
+The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so there is no outside ledger to sync.
+- **Bank statements** arrive as files; there is no live bank feed. The import reads the CSV downloads of FNB, Absa,
+  Standard Bank, Nedbank and Capitec (online banking → the account → download or export the transactions as CSV),
+  OFX/QFX, or any CSV once its columns are named. Each file is kept in storage (`putObject`: R2/S3 or `UPLOAD_DIR`)
+  under `bank-statements/<company>/<month>/` and served only through the app, to that company's books users.
+- **For an outside accountant or auditor:** every report downloads as CSV (trial balance, general ledger, journals,
+  ageing, VAT), and the management pack and reconciliations print to PDF. The company's accountant can also sign in
+  with their own login (role Accountant, one company only).
+- **SARS:** the VAT201 working per period is copied into eFiling; filing stays with the vendor. Invoices already carry
+  structured data for SARS e-invoicing (VAT modernisation, phased from 2030).
 
 ## Merch partner — made-to-order merch (`src/server/pod.ts`, `merch.ts`)
 
@@ -323,6 +330,52 @@ Free alternatives if Postiz doesn't suit: Buffer's free plan (3 channels, 10 que
 (Facebook and Instagram only) or Mixpost Lite (self-hosted, fewer networks). None of them gives us a free API for all
 five networks, so they're used by hand, outside this platform.
 
+## Wallet passes — Apple Wallet and Google Wallet (`src/lib/wallet.ts`, `src/server/shop/wallet.ts`)
+
+The Rewards card as a wallet pass: member number as the till's QR code, tier, points and first name — nothing else
+personal. The buttons appear under the card on `/club` only once a wallet is configured; until then the routes answer
+404 with a plain "isn't set up yet" message and the card page shows no buttons.
+
+- **Apple Wallet** — `GET /club/wallet/apple.pkpass` builds `pass.json` (a `storeCard`), the icons (drawn from the app
+  icon), `manifest.json` (SHA-1 of every file) and a PKCS#7 detached signature, zipped (stored, no compression) as a
+  `.pkpass`. Signing uses the **openssl CLI** (`openssl smime -sign … -outform DER`): Node's `crypto` has no CMS
+  signer, so `openssl` must be on the server (it is in the Docker image's Debian base). Needs, from the Apple
+  Developer account: a Pass Type ID (`pass.co.za.herbalholland.rewards`), the Team ID, the pass certificate and its
+  private key (PEM), and Apple's WWDR G4 intermediate certificate (PEM). Passes are built on request and never stored;
+  there is no pass-update web service yet (the pass shows the balance as it was when added — members re-add it, or the
+  Rewards app has the live figure).
+- **Google Wallet** — `GET /club/wallet/google` redirects to `https://pay.google.com/gp/v/save/<jwt>`: a "Save to
+  Google Wallet" JWT (RS256, signed with the issuer's service-account key using `node:crypto`) carrying a generic
+  class and the member's generic object, so nothing has to be created in the Google Pay & Wallet Console ahead of
+  time beyond the issuer account. Needs the Issuer ID and a service account (JSON key) added to the issuer with
+  developer access; the site's origin must be listed for the save button (the JWT's `origins` is `APP_URL`).
+
+| Variable | What it is |
+|---|---|
+| `WALLET_APPLE_PASS_TYPE_ID` | The Pass Type ID (e.g. `pass.co.za.herbalholland.rewards`) |
+| `WALLET_APPLE_TEAM_ID` | The Apple Developer Team ID |
+| `WALLET_APPLE_CERT_PEM` | The pass certificate (PEM; `\n` for newlines is accepted) |
+| `WALLET_APPLE_KEY_PEM` | Its private key (PEM, unencrypted) |
+| `WALLET_APPLE_WWDR_PEM` | Apple's WWDR intermediate certificate (PEM) |
+| `WALLET_GOOGLE_ISSUER_ID` | Google Wallet issuer id (a number) |
+| `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | The service account's JSON key, as one line |
+
+Both builders are pure (`src/lib/wallet.ts`, tests in `tests/wallet.test.ts`): `applePassJson`, `appleManifest`,
+`zipStore`, `googleGenericObject`, `googleSaveJwtClaims`, `signJwtRS256`.
+
+## Product photos — the catalogue import (`image_urls`)
+
+Product photos come in through HQ → Catalogue → Import, in the `image_urls` column: `https://` addresses separated
+by `|`, up to six per product (the first is the main picture). After the import commits, each address is fetched
+(15 s timeout, 5 MB at most, JPG/PNG/WebP by its bytes — never by its name), kept through `@/server/storage` (R2/S3 or
+`UPLOAD_DIR`, under `products/<productId>/`) and recorded as an `Upload` plus a `ProductImage` row. The same bytes
+already on the product are skipped, so re-importing a file never doubles a gallery; failures are listed in the
+import's result and audited as `catalogue.import_images` (`data.failed`). Only public hosts are fetched (no IP
+literals, no `localhost`). Photos are served to everyone at `/media/<uploadId>` (a week's cache) and appear on cards,
+the product page gallery, the bag and orders, Open Graph and the product's JSON-LD `image`; products without photos
+keep the generated art. Removing or reordering photos is an HQ job (delete the `ProductImage` row or change
+`sortOrder`); there is no member-facing upload.
+
 ## Environment variables
 
 | Variable | Purpose |
@@ -330,16 +383,18 @@ five networks, so they're used by hand, outside this platform.
 | `DATABASE_URL` | PostgreSQL connection |
 | `DATABASE_POOL_MAX` | Connections per app instance (default 10); keep instances × pool under the database's limit (or use PgBouncer) |
 | `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers |
-| `APP_URL` | Public base URL (links in emails) |
-| `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything |
+| `APP_URL` | The shop's public https address: every link in emails and texts, and the payment return URLs (a production server won't serve without it) |
+| `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything. The Worker has its own secrets too: `IP_SALT` (keys the IP hashes behind its rate limits) and `NOTIFY_TO` (`sites/herbalholland.com/wrangler.jsonc`) |
 | `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
-| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |
+| `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.co.za`; the franchisor company's email is shown on `/support`) |
+| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
-| `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (default) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL`. Runtime environment only (see Card present) |
-| `HALO_API_URL`, `HALO_API_KEY` | Halo Dot tap on glass (`HALO_APPLINK`) |
+| `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
+| `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (the default in demos and development) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL` (the default in production). Runtime environment only (see Card present) |
+| `HALO_API_URL`, `HALO_API_KEY`, `HALO_MERCHANT_ID` | Halo Dot tap on glass (`HALO_APPLINK`); `HALO_MERCHANT_ID_<STORECODE>` gives one store its own merchant id |
 | `ONLINE_GATEWAY` | Online payments: `SIMULATED` (default: demo pay page) \| `PEACH` (Peach Payments, chosen) \| `YOCO` |
 | `PEACH_ENV` | Peach Payments environment: `test` (default: the sandbox, `https://app.sandbox-next.peachpayments.com/api`) \| `live` (`https://app.next.peachpayments.com/api`) |
 | `PEACH_API_KEY` | Peach Orchestration secret API key (`snd_…` sandbox, `prd_…` live; Dashboard → Peach Orchestration), sent in the `api-key` header. Server only |
@@ -350,6 +405,10 @@ five networks, so they're used by hand, outside this platform.
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
-| `CRON_SECRET` | Protects `/api/cron/*` |
-| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Banking slips in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
+| `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |
+| `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
+| `SUPPORT_EMAIL`, `FRANCHISE_EMAIL`, `TRADE_EMAIL` | Member support's address; where new franchise leads go (default `franchise@herbalholland.com`); where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Uploaded files (banking slips, licence documents, photos, report exports) in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
 | `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image — mount a volume there) — back it up |
+| `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |
+| `WALLET_GOOGLE_ISSUER_ID`, `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | Google Wallet pass for the Rewards card; both, or the button stays hidden |

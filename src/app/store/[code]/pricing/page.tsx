@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Scale, Tag } from "lucide-react";
-import { requireStaff } from "@/server/auth";
+import { isHq, requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { getSettings } from "@/server/settings";
 import { priceRows } from "@/server/store/pricing";
@@ -11,12 +11,11 @@ import { PriceTable } from "./price-table";
 import { PageHeader, EmptyState, Notice } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, Select } from "@/components/ui/form";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, ReadOnlyNote, SearchForm } from "@/components/store/ui";
 import { AutoSelect } from "@/components/store/auto-submit";
-import { Select } from "@/components/store/select";
-import { ConfirmAction, FieldError } from "@/components/store/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 
 export const metadata = { title: "Pricing" };
 const PAGE_SIZE = 50;
@@ -26,7 +25,9 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff();
   const store = await storeForUser(user, code);
-  const canManage = canManageStore(user);
+  // Shelf prices are the franchisee's to set (Competition Act s5(2)): HQ sees them read-only.
+  const hq = isHq(user);
+  const canManage = canManageStore(user) && !hq;
   const path = `/store/${store.code}/pricing`;
   const [all, settings] = await Promise.all([priceRows(store), getSettings()]);
   const min = settings.pricing.minMarginPct / 100;
@@ -50,7 +51,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
       <PageHeader overline={`Buying · ${store.name}`} title="Pricing" description="Set your own shelf prices for your tills. Online prices are set nationally; Rewards member prices and deals apply on top of your price." />
 
       <Notice tone="info" className="mb-6" title="Your prices, your call">
-        Herbal Holland publishes recommended retail prices (RRP) only. As an independent franchisee you decide your own selling prices — HQ never sets or enforces a minimum resale price (Competition Act 89 of 1998). The {settings.pricing.minMarginPct}% margin guide is a warning, never a block.
+        Herbal Holland publishes recommended retail prices (RRP) only. As an independent franchisee you decide your own selling prices. HQ never sets or enforces a minimum resale price (Competition Act 89 of 1998). The {settings.pricing.minMarginPct}% margin guide is a warning, never a block.
       </Notice>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -81,6 +82,7 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
                 { key: "thin", label: `Below ${settings.pricing.minMarginPct}% margin`, count: byView("thin").length, tone: "amber", href: hrefWith(path, sp, { view: "thin", page: null }) },
               ]}
             />
+            {hq && <ReadOnlyNote>Shelf prices are the franchisee&apos;s to set. HQ sees them read-only.</ReadOnlyNote>}
           </div>
           {rows.length === 0 ? (
             <EmptyState icon={<Tag className="h-5 w-5" />} title="Nothing matches" />
@@ -125,10 +127,10 @@ export default async function PricingPage({ params, searchParams }: { params: Pr
                 </fieldset>
               </ConfirmAction>
             ) : (
-              <ReadOnlyNote />
+              <ReadOnlyNote>{hq ? "Shelf prices are the franchisee's to set." : undefined}</ReadOnlyNote>
             )}
             <p className="mt-4 text-xs text-ink-500">
-              Prices include VAT{store.company.vatNumber ? "" : " where applicable — your company isn't VAT-registered, so receipts show no VAT"}. Promotions and Rewards prices never apply to licensed medicines (Medicines Act s18A).
+              Prices include VAT{store.company.vatNumber ? "" : " where applicable. Your company isn't VAT-registered, so receipts show no VAT"}. Promotions and Rewards prices never apply to licensed medicines (Medicines Act s18A).
             </p>
           </CardBody>
         </Card>

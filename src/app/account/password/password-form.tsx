@@ -14,7 +14,7 @@ export function PasswordForm() {
       <Field label="Current password" htmlFor="current" error={err("current")}>
         <Input id="current" name="current" type="password" autoComplete="current-password" required aria-invalid={!!err("current")} />
       </Field>
-      <Field label="New password" htmlFor="next" hint="At least 10 characters. A short sentence works well." error={err("next")}>
+      <Field label="New password" htmlFor="next" hint="At least 10 characters, without your name or email. A short sentence works well." error={err("next")}>
         <Input id="next" name="next" type="password" autoComplete="new-password" minLength={10} required aria-invalid={!!err("next")} />
       </Field>
       <Field label="Confirm new password" htmlFor="confirm" error={err("confirm")}>

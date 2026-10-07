@@ -57,7 +57,7 @@ card acquiring, pharmacies, malls, landlords and investors.
 | 5 | Card surcharges, cash-only, prepay-only | Surcharge-free tap-on-glass, PayShap, EFT, cash; pay online or on collection | POS payment sheet |
 | 6 | Walk-in only; slow delivery | Click & collect in 15 min, same-day metro, nationwide courier (non-medicinal) with fair franchise routing | Order routing + POS orders queue |
 | 7 | Load-shedding stops trading | Offline-first POS: cash sales queue and sync | POS outbox + service worker |
-| 8 | No member data, no CRM | RFM segments, lifecycle journeys, attribution, consent ledger | HQ Campaigns, CRM |
+| 8 | No member data, no CRM | RFM segments, campaigns, attribution, consent ledger | HQ Campaigns, CRM |
 | 9 | Heritage used as a sticker | Grower partnerships (Mpondo co-op) with provenance on every pack and in content | Catalogue + Learn |
 | 10 | Edible scares (children, mislabelled potency) | 5 mg per piece, child-resistant packs, recall in minutes, customers traced | Batches & recalls |
 | 11 | Franchise channel conflict | Online orders fulfilled and credited to the local store; network stock trading; transparent statements | Routing, network trading, statements |
@@ -108,6 +108,10 @@ STOP opt-out; the platform holds sends outside CPA windows and suppresses NCC-re
 | Drop alert | Customer tapped "Notify me" | Back in stock / new release |
 | Review ask | 5 days after purchase | Rate what you bought (verified reviews) |
 | Referral | Champions & loyal | "Give 50 points, get 50 points" link |
+
+Built into the platform: birthday points (the daily job), drop alerts ("Notify me"), referral links and the
+first-purchase welcome gift. The other rows are campaigns HQ sends to the matching RFM segment (HQ → Campaigns);
+trigger-based journeys that send themselves aren't built.
 
 Segments come from RFM (`src/lib/rfm.ts`): Champions, Loyal, Promising, New, At risk, Lapsed, Prospects — each with a
 recommended play in the CRM.
@@ -177,7 +181,7 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 |---|---|---|
 | 0. Readiness | Weeks 0–6 | Legal sign-off on MEDICAL-mode flows and claims library; acquirer approvals per store (Halo Dot / bank), PayShap & EFT rails; courier allow-list; SMS/email providers; NCC registry registration; Information Officer & POPIA notices; staff training (dispensers, ID checks) |
 | 1. Pilot | Weeks 6–10 | 5 Gauteng stores + DC-GP live on POS, inventory, purchasing; Herbal Holland Rewards sign-ups; daily reconciliation |
-| 2. Omnichannel | Weeks 10–16 | E-commerce live (public range + patient dispensary), click & collect, same-day in Pretoria/Joburg, courier nationwide; lifecycle journeys on |
+| 2. Omnichannel | Weeks 10–16 | E-commerce live (public range + patient dispensary), click & collect, same-day in Pretoria/Joburg, courier nationwide; segment campaigns running |
 | 3. Network | Months 4–9 | Western Cape & KZN DCs; 24 → 100 stores; network trading; statements automated |
 | 4. Adult-use ready | On commencement | Flip licensed stores to ADULT_USE by region; update channel matrix and limits; launch brand campaign within the new rules |
 

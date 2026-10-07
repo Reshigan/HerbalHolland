@@ -22,6 +22,8 @@ const KEYWORDS: Record<string, string> = {
   refunds: "returns credit notes",
   payments: "bank reconciliation recon card cash payshap eft tenders takings",
   "online-orders": "ecommerce click collect delivery courier sla fulfilment",
+  "trade-sales": "wholesale business accounts b2b pharmacies retailers trade portal ex vat",
+  "trade-sales-store": "wholesale business accounts b2b trade portal collect till ex vat",
   "stock-valuation": "inventory value worth cost insurance",
   "stock-movements": "ledger history audit receipts transfers adjustments",
   shrinkage: "theft damage loss missing write-off",
@@ -37,11 +39,14 @@ const KEYWORDS: Record<string, string> = {
   "cash-ups": "till drawer float shift variance short over",
   statements: "franchise royalty levy settlement owe",
   "loyalty-liability": "rewards points loyalty liability settlement",
+  "trade-aged-balances": "debtors age analysis overdue ledger owed credit terms 30 60 90 days accounts receivable",
   segments: "rfm champions lapsed at risk crm members",
   "new-vs-returning": "retention acquisition first time repeat",
   "member-attach": "rewards members linked sign in",
   "rewards-savings": "tier pricing member prices instant savings discount basket walk-in",
   "join-sources": "sign-ups qr codes links flyers src tags founding members acquisition",
+  cohorts: "cohort retention join month heatmap came back churn",
+  retention: "repeat purchase rate 90-day retention average order value aov basket trend churn",
   promotions: "discounts deals specials bonus buys",
   campaigns: "sms whatsapp email push roi marketing",
   "age-checks": "18+ id verification minors",
@@ -89,7 +94,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={`Search ${total} reports — try “VAT”, “expiry” or “staff”`}
+            placeholder={`Search ${total} reports (try “VAT”, “expiry” or “staff”)`}
             className="h-11 w-full rounded-xl border border-ink-200 bg-white pl-10 pr-10 text-sm text-ink-900 shadow-card placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
           />
           {q ? (
@@ -107,7 +112,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
               <a key={g.group} href={`#${slug(g.group)}`} className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-ink-150 bg-white px-3 py-1.5 text-xs font-semibold text-ink-600 shadow-card transition hover:border-brand-300 hover:text-ink-900">
                 <Icon className="h-3.5 w-3.5 text-brand-600" strokeWidth={2} aria-hidden />
                 {g.group}
-                <span className="tnum text-ink-400">{g.reports.length}</span>
+                <span className="tnum text-ink-500">{g.reports.length}</span>
               </a>
             );
           })}

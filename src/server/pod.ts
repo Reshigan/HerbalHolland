@@ -26,15 +26,15 @@ export const partnerName = () => process.env.POD_PARTNER_NAME ?? "our merch part
 export async function sendProductionOrder(o: PodOrder) {
   const r = o.recipient;
   const address = [r.addressLine, r.suburb, r.city, r.province, r.postalCode].filter(Boolean).join(", ");
-  const subject = `Production order ${o.ref} — Herbal Holland (${o.items.reduce((s, i) => s + i.qty, 0)} pcs)`;
+  const subject = `Production order ${o.ref} · Herbal Holland (${o.items.reduce((s, i) => s + i.qty, 0)} pcs)`;
   const text = [
     `Production order ${o.ref}. Please make, pack white-label and courier to:`,
     `${r.name} · ${r.phone}${r.email ? ` · ${r.email}` : ""}`,
     address + (r.notes ? ` (${r.notes})` : ""),
     "",
     ...o.items.flatMap((i) => [
-      `${i.qty} × ${i.name} — ${i.blank}, size ${i.size} [${i.code}]`,
-      ...i.prints.map((p) => `   ${p.technique} — ${p.placement}: ${p.note}, ${p.size}. Files: ${p.vector} · ${p.url}`),
+      `${i.qty} × ${i.name}: ${i.blank}, size ${i.size} [${i.code}]`,
+      ...i.prints.map((p) => `   ${p.technique} · ${p.placement}: ${p.note}, ${p.size}. Files: ${p.vector} · ${p.url}`),
     ]),
     "",
     `Reply with the courier and tracking number when it ships. Our order reference: ${o.ref}.`,
@@ -42,7 +42,7 @@ export async function sendProductionOrder(o: PodOrder) {
   const rows = o.items
     .map(
       (i) => `<tr><td style="padding:10px 0;border-top:1px solid #ECE5DD;vertical-align:top"><b>${i.qty} × ${esc(i.name)}</b><br/><span style="color:#6B5F57">${esc(i.blank)} · size ${esc(i.size)} · ${esc(i.code)}</span>
-        ${i.prints.map((p) => `<br/><span style="font-size:13px"><b>${esc(p.technique)}</b> — ${esc(p.placement)}: ${esc(p.note)}, ${esc(p.size)} · <a href="${esc(p.vector)}" style="color:#C05F18">PDF (vector)</a> · <a href="${esc(p.url)}" style="color:#C05F18">PNG</a></span>`).join("")}</td></tr>`,
+        ${i.prints.map((p) => `<br/><span style="font-size:13px"><b>${esc(p.technique)}</b> · ${esc(p.placement)}: ${esc(p.note)}, ${esc(p.size)} · <a href="${esc(p.vector)}" style="color:#C05F18">PDF (vector)</a> · <a href="${esc(p.url)}" style="color:#C05F18">PNG</a></span>`).join("")}</td></tr>`,
     )
     .join("");
   const html = emailLayout({

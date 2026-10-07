@@ -6,7 +6,7 @@ import { Container } from "@/components/shop/ui";
 
 export const metadata: Metadata = {
   title: { default: "Rewards", template: "%s · Herbal Holland Rewards" },
-  description: "Herbal Holland Rewards: your digital card, points balance, tier, orders and invoices — in store and online.",
+  description: "Herbal Holland Rewards: your digital card, points balance, tier, orders and invoices, in store and online.",
   robots: { index: false, follow: true },
 };
 

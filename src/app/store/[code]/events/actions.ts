@@ -19,7 +19,7 @@ export async function saveStoreEvent(code: string, eventId: string | null, _: Ac
       const e = await db.storeEvent.create({ data: { ...read.data, storeId: store.id } });
       await audit(db, actor, "event.create", { storeId: store.id, entity: "StoreEvent", entityId: e.id, data: { title: e.title, startsAt: e.startsAt.toISOString(), capacity: e.capacity } });
       revalidatePath(`/store/${store.code}/events`);
-      redirect(`/store/${store.code}/events/${e.id}?m=${encodeURIComponent(`“${e.title}” is on for ${fmtDateTime(e.startsAt)} — members can RSVP from its page.`)}`);
+      redirect(`/store/${store.code}/events/${e.id}?m=${encodeURIComponent(`“${e.title}” is on for ${fmtDateTime(e.startsAt)}. Members can RSVP from its page.`)}`);
     }
     const changed = (Object.keys(read.data) as (keyof EventData)[]).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(read.data[k]));
     if (!changed.length) return done("No changes to save.");
@@ -36,7 +36,7 @@ export async function deleteStoreEvent(code: string, eventId: string, _: ActionS
     const { store, actor } = await manage(code);
     const e = await db.storeEvent.findFirst({ where: { id: eventId, storeId: store.id }, include: { _count: { select: { rsvps: true } } } });
     if (!e) return fail("Event not found");
-    if (e._count.rsvps) return fail("Members hold tickets for this event — change the details instead of deleting it.");
+    if (e._count.rsvps) return fail("Members hold tickets for this event. Change the details instead of deleting it.");
     await db.storeEvent.delete({ where: { id: e.id } });
     await audit(db, actor, "event.delete", { storeId: store.id, entity: "StoreEvent", entityId: e.id, data: { title: e.title, startsAt: e.startsAt.toISOString() } });
     revalidatePath(`/store/${store.code}/events`);

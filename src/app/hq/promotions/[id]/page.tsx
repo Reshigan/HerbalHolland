@@ -12,7 +12,7 @@ import { num } from "@/lib/format";
 import { PageHeader, Notice } from "@/components/ui/page";
 import { Badge } from "@/components/ui/badge";
 import { Stat } from "@/components/ui/stat";
-import { ActionButton } from "@/components/hq/action-form";
+import { ActionButton } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { listStatus } from "@/components/hq/tones";
 import { savePromotion, setPromotionActive } from "../actions";
@@ -79,7 +79,7 @@ export default async function PromotionPage({ params, searchParams }: { params: 
         <Stat label="Discount given" value={zarCompact(usage._sum.discountCents ?? 0)} />
         <Stat label="Average basket" value={uses ? zar(Math.round((usage._sum.totalCents ?? 0) / uses)) : "—"} />
       </div>
-      {!edit && <ViewOnly className="mb-6">View only — network promotions are managed by the HQ team.</ViewOnly>}
+      {!edit && <ViewOnly className="mb-6">View only: network promotions are managed by the HQ team.</ViewOnly>}
       <PromotionForm
         action={savePromotion.bind(null, promo.id)}
         values={promoValues(promo)}

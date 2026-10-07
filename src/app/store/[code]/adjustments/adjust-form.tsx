@@ -3,10 +3,9 @@ import { useId, useMemo, useState } from "react";
 import { Search, X } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
-import { Field, Input, Label } from "@/components/ui/form";
+import { Field, Input, Label, Select } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
-import { Select } from "@/components/store/select";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { ADJUST_REASONS, REASON_ORDER } from "@/server/store/rules";
 import type { AdjustItem } from "@/server/store/adjustments";
 import type { AdjustReason } from "@/generated/prisma/client";
@@ -129,7 +128,7 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
                   >
                     <span className="min-w-0">
                       <span className="block truncate font-medium">{i.name}</span>
-                      <span className="font-mono text-xs text-ink-400">{i.sku}</span>
+                      <span className="font-mono text-xs text-ink-500">{i.sku}</span>
                     </span>
                     <span className="tnum shrink-0 text-xs text-ink-500">{i.onHand} on hand</span>
                   </li>
@@ -202,7 +201,7 @@ export function AdjustForm({ items, action, initialVariant, initialBatch, initia
                   <span className="min-w-0 flex-1">
                     <span className="font-mono text-xs font-semibold text-ink-900">{b.code}</span>
                     <span className="ml-2 text-xs text-ink-500">{b.expires ? `exp ${b.expires}` : "no expiry"}</span>
-                    {!b.atStore && <span className="ml-2 text-xs text-ink-400">· not at this store yet</span>}
+                    {!b.atStore && <span className="ml-2 text-xs text-ink-500">· not at this store yet</span>}
                   </span>
                   {b.status !== "RELEASED" && <Badge tone={b.status === "RECALLED" ? "red" : "amber"}>{b.status === "RECALLED" ? "Recalled" : "Quarantine"}</Badge>}
                   <span className="tnum w-20 text-right text-xs font-semibold text-ink-700">{b.onHand} on hand</span>

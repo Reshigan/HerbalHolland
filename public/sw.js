@@ -5,8 +5,8 @@
  * falls back to the last good copy. API calls (/api/*) are never cached here — the app
  * caches its own data (bootstrap, outbox) and knows when it is offline.
  */
-const CACHE = "hh-till-v1";
-const SHELL = ["/pos", "/pos/manifest.webmanifest", "/pos/app-icon"];
+const CACHE = "hh-till-v2";
+const SHELL = ["/pos", "/pos/display", "/pos/manifest.webmanifest", "/pos/app-icon"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

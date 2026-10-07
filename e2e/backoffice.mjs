@@ -6,7 +6,8 @@
 // export, stock levels) → adjustments → batches (recall write-off) → stock takes (start, save, approve,
 // cancel) → purchasing (builder draft → submit → HQ approves and ships → received one short; a second
 // order cancelled) → network trading (buy another store's listing → they accept and ship → receive; list
-// and close our own) → online orders (collect handover, courier with merch shipped, cancel) → marketing
+// and close our own) → online orders (collect handover, courier with merch shipped, cancel) → a trade (business
+// account) click & collect order: pick → ready → hand over with ID + collection code → marketing
 // (promotion create/edit/end; campaigns to a tier and to an "Into …" interest audience, CPA send window,
 // cancel) → pricing (shelf price, category bulk change) → settings (hours, till revoke) → statement email →
 // team (add, PIN, own member card, deactivate/reactivate) → banking (deposit with its slip) → an alert about the
@@ -76,6 +77,16 @@ const row = (scope, text) => scope.getByRole("row").filter({ hasText: text });
 const dayKey = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(d);
 const daysFromNow = (n) => dayKey(new Date(Date.now() + n * 86_400_000));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+/** Polls until fn returns something truthy (or gives up and returns null) — for emails sent after an action returns. */
+async function until(fn, ms = 20_000, every = 150) {
+  const end = Date.now() + ms;
+  for (;;) {
+    const v = await fn().catch(() => null);
+    if (v) return v;
+    if (Date.now() > end) return null;
+    await sleep(every);
+  }
+}
 
 // ── Timing: click → visible result. For a server-action form we also wait for the action's
 // response, so a notice with the same text left over from an earlier submit can't stop the clock.
@@ -163,6 +174,32 @@ try {
   assert(new URL(tv.url()).pathname === `/menu/${store.slug}`, `menu board for ${store.name} renders`);
   await shot(tv, "menu-board");
   await tv.close();
+
+  // ───────────────────────────────────────────────────────────────────────────
+  step("Today: the manager's prioritised list on the overview matches the store's open work");
+  const todayCard = page.getByTestId("today-list");
+  await todayCard.waitFor();
+  const todayRows = todayCard.getByRole("listitem");
+  const todayCount = await todayRows.count();
+  const openOrders = (await one(`select count(*)::int n from "Order" where "storeId" = $1 and status in ('PLACED', 'PICKING', 'READY')`, [store.id])).n;
+  const pendingAcks = (
+    await one(
+      `select count(*)::int n from "Announcement" a where a."requiresAck" and a.audience in ('ALL', 'format:' || (select format from "Store" where id = $1), 'region:' || (select r.code from "Region" r join "Store" s on s."regionId" = r.id where s.id = $1))
+         and not exists (select 1 from "AnnouncementAck" k where k."announcementId" = a.id and k."storeId" = $1)`,
+      [store.id],
+    )
+  ).n;
+  if (todayCount === 0) assert(await todayCard.getByText("All clear").isVisible(), "nothing to do: the list says All clear");
+  else {
+    const text = await todayCard.innerText();
+    const orderRow = todayRows.filter({ hasText: /online orders? to fulfil/ });
+    assert((await orderRow.count()) === (openOrders ? 1 : 0), openOrders ? `${openOrders} open online orders → one row (${(await orderRow.innerText()).split("\n")[0]})` : "no open orders → no orders row");
+    if (openOrders) assert((await orderRow.getAttribute("href")) === null && (await orderRow.locator("a").getAttribute("href")) === `/store/${CODE}/orders`, "the orders row links to Online orders");
+    assert(((await todayRows.filter({ hasText: /HQ updates? to acknowledge/ }).count()) === 1) === pendingAcks > 0, pendingAcks ? `${pendingAcks} HQ updates to acknowledge → one row` : "no updates → no HQ row");
+    const labels = (text.match(/\b(NOW|TODAY|SOON)\b/g) ?? []).map((l) => ["NOW", "TODAY", "SOON"].indexOf(l));
+    assert(labels.length === todayCount && labels.every((l, i) => i === 0 || l >= labels[i - 1]), `${todayCount} rows, most urgent first (${labels.map((l) => ["now", "today", "soon"][l]).join(" › ")})`);
+  }
+  await shot(page, "today-list");
 
   // ───────────────────────────────────────────────────────────────────────────
   step("Members: enrol a walk-in adult (deals question + interests, key terms)");
@@ -284,7 +321,7 @@ try {
   await page.locator("#ex-sup").fill("Waltons Hatfield");
   await page.locator("#ex-amt").fill("345.50");
   later("delete the test expense", () => q(`delete from "Expense" where "storeId" = $1 and description = $2`, [store.id, exDesc]));
-  await act(page, "addExpense", () => page.getByRole("button", { name: "Add expense" }).click(), () => status(page, `Added R345.50 — ${exDesc}`).waitFor());
+  await act(page, "addExpense", () => page.getByRole("button", { name: "Add expense" }).click(), () => status(page, `Added R345.50 for ${exDesc}`).waitFor());
   const expense = await one(`select id, "amountCents", "vatCents", category from "Expense" where "storeId" = $1 and description = $2`, [store.id, exDesc]);
   const vat = store.vatNumber ? Math.round((34550 * 15) / 115) : 0;
   assert(expense?.amountCents === 34550 && expense.vatCents === vat && expense.category === "SUPPLIES", `R345.50 expense saved (VAT R${(vat / 100).toFixed(2)})`);
@@ -296,7 +333,7 @@ try {
   // ───────────────────────────────────────────────────────────────────────────
   step("Inventory: CSV export (all and filtered), stock levels on an item");
   await visit(page, `/store/${CODE}/inventory`, page.locator("#inv-cat"));
-  const skuCount = async () => Number((await page.locator("tfoot").textContent()).match(/([\d,]+) SKUs/)[1].replace(/,/g, ""));
+  const skuCount = async () => Number((await page.locator("tfoot").textContent()).match(/([\d,]+) SKUs?/)[1].replace(/,/g, ""));
   const exportCsv = async (label) => {
     const since = new Date();
     const t0 = performance.now();
@@ -522,12 +559,20 @@ try {
   await shot(page, "receive");
   t0 = new Date();
   // The page re-renders as Received (the receive form goes away) and says what was booked in and what was short.
-  const receivedNotice = (text) => status(page, new RegExp(`^Received \\d{1,2} \\w{3} \\d{4}.* incl\\. VAT\\..*${text}`));
-  await act(page, "receiveOrder · wholesale (1 short)", () => page.getByRole("button", { name: /^Confirm — book 1 unit in/ }).click(), () => receivedNotice(`1 unit short against the delivery note — recorded on the order for ${esc(store.dcName)}`).waitFor());
+  const receivedNotice = (text) => status(page, new RegExp(`^Received \\d{1,2} \\w{3} \\d{4}.* incl\\. VAT\\)\\..*${text}`));
+  await act(page, "receiveOrder · wholesale (1 short)", () => page.getByRole("button", { name: /^Confirm and book 1 unit in/ }).click(), () => receivedNotice(`1 unit short against the delivery note, recorded on the order for ${esc(store.dcName)}`).waitFor());
   po = await one(`select o.status, l."receivedQty", o.notes from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [wpo.id]);
   const inMv = await one(`select sum(qty)::int as qty from "StockMovement" where "stockOrderId" = $1 and type = 'TRANSFER_IN'`, [wpo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1 && inMv.qty === 1 && /Receiving: E2E/.test(po.notes), `${wpo.number} received: 1 in stock, 1 short flagged`);
   assert((await audits("stockorder.discrepancy", me.id, t0)) === 1, "discrepancy recorded for the supplier");
+  // The order is put on the supplier invoices for what was counted in, and settles on the franchise statement.
+  const dcUnit = (await one(`select "unitCostCents" from "StockOrderLine" where "stockOrderId" = $1`, [wpo.id])).unitCostCents;
+  const dcInv = await one(`select number, "totalCents", "vatCents", "onStatement", status, "uploadId" from "SupplierInvoice" where "stockOrderId" = $1`, [wpo.id]);
+  assert(
+    dcInv?.onStatement && dcInv.status === "DUE" && !dcInv.uploadId && dcInv.number === wpo.number && dcInv.vatCents === Math.round(dcUnit * 0.15) && dcInv.totalCents === dcUnit + dcInv.vatCents,
+    `${wpo.number} on the supplier invoices for the 1 unit received (R${((dcInv?.totalCents ?? 0) / 100).toFixed(2)} incl. VAT), settled on the statement`,
+  );
+  await page.getByTestId("supplier-invoice-card").getByText("On statement").waitFor();
 
   step("Purchasing: a second order submitted straight from the builder, then cancelled");
   const cancelNotes = `E2E ${run} (to cancel)`;
@@ -608,9 +653,15 @@ try {
   seller = null;
   await visit(page, `/store/${CODE}/purchasing/${npo.id}`, page.getByRole("button", { name: "Receive 1 unit" }));
   await page.getByRole("button", { name: "Receive 1 unit" }).click();
-  await act(page, "receiveOrder · network", () => page.getByRole("button", { name: /^Confirm — book 1 unit in/ }).click(), () => receivedNotice("").waitFor());
+  await act(page, "receiveOrder · network", () => page.getByRole("button", { name: /^Confirm and book 1 unit in/ }).click(), () => receivedNotice("").waitFor());
   po = await one(`select o.status, l."receivedQty" from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [npo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1, `${npo.number} received — batch traceability travels with the unit`);
+  const netInv = await one(`select "supplierName", "totalCents", "onStatement", status from "SupplierInvoice" where "stockOrderId" = $1`, [npo.id]);
+  const netUnit = (await one(`select "unitCostCents" from "StockOrderLine" where "stockOrderId" = $1`, [npo.id])).unitCostCents;
+  assert(
+    netInv?.onStatement && netInv.status === "DUE" && netInv.supplierName === sellerStore.name && netInv.totalCents === netUnit + Math.round(netUnit * 0.15),
+    `${npo.number} on our supplier invoices from ${sellerStore.name}, settled on the statement`,
+  );
 
   step("Network trading: list our own surplus, then close the listing");
   await visit(page, `/store/${CODE}/network?tab=mine`, page.locator("#list-item"));
@@ -675,7 +726,7 @@ try {
   await page.waitForURL(new RegExp(`/orders/${collect.id}$`));
   await hydrated(page.getByRole("button", { name: "Start picking" }));
   await move("moveOrder · PICKING", "Start picking", "Picking");
-  await move("moveOrder · READY", "Packed — ready for collection", "Ready");
+  await move("moveOrder · READY", "Packed and ready for collection", "Ready");
   const ready = await one(`select m.body from "MessageLog" m where m."customerId" = $1 and m.body like $2 order by m."createdAt" desc limit 1`, [member.id, `%${collect.code} is ready%`]);
   assert(ready, "the member was sent their collection message");
   await page.getByRole("button", { name: "Hand over to member" }).click();
@@ -694,12 +745,12 @@ try {
   if (merch) {
     await page.locator("#merch-courier").fill("Aramex");
     await page.locator("#merch-tracking").fill(`ARX${run}`);
-    await act(page, "shipMerch", () => page.getByRole("button", { name: "Merch shipped" }).click(), () => page.getByText(/^Shipped — the tracking number is in the timeline/).waitFor());
+    await act(page, "shipMerch", () => page.getByRole("button", { name: "Merch shipped" }).click(), () => page.getByText(/^Shipped\. The tracking number is in the timeline/).waitFor());
     o = await one(`select "podStatus", "podTracking" from "Order" where id = $1`, [courier.id]);
     assert(o.podStatus === "shipped" && o.podTracking === `Aramex · ARX${run}`, "merch tracking recorded and texted to the member");
   } else ok("no made-to-order merch in the catalogue — shipMerch skipped");
   await move("moveOrder · PICKING (courier)", "Start picking", "Picking");
-  await move("moveOrder · READY (courier)", "Packed — ready to dispatch", "Ready");
+  await move("moveOrder · READY (courier)", "Packed and ready to dispatch", "Ready");
   await page.getByRole("button", { name: "Dispatch", exact: true }).click();
   await page.getByLabel("Courier", { exact: true }).fill("The Courier Guy");
   await act(page, "moveOrder · OUT_FOR_DELIVERY", () => page.getByRole("button", { name: "Dispatch order" }).click(), () => heading("Out for delivery").waitFor());
@@ -718,6 +769,95 @@ try {
   await act(page, "moveOrder · CANCELLED", () => cancelGroup.getByRole("button", { name: "Cancel order" }).click(), () => heading("Cancelled").waitFor());
   o = await one(`select status, events from "Order" where id = $1`, [toCancel.id]);
   assert(o.status === "CANCELLED" && o.events.at(-1).note === `Cancelled by ${me.name}: E2E: member asked to cancel`, `${toCancel.code} cancelled, reason on the timeline`);
+
+
+  // ───────────────────────────────────────────────────────────────────────────
+  step("Trade: a click & collect order from a business account (SQL fixture) is picked → ready (code texted) → handed over with ID and code → the WHOLESALE sale posts here");
+  const tradeItem = await ranged(`p."regClass" = 'ACCESSORY' and v."wholesaleCents" > 0 and ${RELEASED("$1")} >= 6`, [], `${RELEASED("$1")} desc`);
+  if (!tradeItem) fail(`${CODE} needs 6+ released units of an accessory for the trade order`);
+  const tradeHandling = (await one(`select value from "Setting" where key = 'trade'`))?.value?.collectHandlingCents ?? 7500;
+  const halfUp = (n) => Math.floor((n * 1500 + 5000) / 10000);
+  const tQty = 4;
+  const tEx = tQty * tradeItem.wholesaleCents;
+  const tTotal = tEx + halfUp(tEx) + tradeHandling + halfUp(tradeHandling);
+  let tNo;
+  while (!tNo) {
+    const c = `TA-8${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
+    if (!(await one(`select 1 from "TradeAccount" where number = $1`, [c]))) tNo = c;
+  }
+  const tAcc = await one(
+    `insert into "TradeAccount" (id, number, name, "legalName", kind, email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, "creditLimitCents", "paymentDays", classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "approvedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, $2, $3, 'PHARMACY', $4, '+27125550140', '1 Burnett Street', 'Hatfield', 'Pretoria', 'GP', '0083', 'APPROVED', 'ACCOUNT', 5000000, 30, '{ACCESSORY,CBD}'::"RegClass"[], now(), 'trade-1', now(), now(), now())
+     returning id, number, name, email`,
+    [tNo, `E2E Pharmacy ${run}`, `E2E Pharmacy ${run} (Pty) Ltd`, `e2e.trade.${run.toLowerCase()}@example.com`],
+  );
+  later(`remove trade account ${tAcc.number}`, () => q(`delete from "TradeAccount" where id = $1`, [tAcc.id])); // licences go with it
+  // What a pharmacy needs, verified by HQ (the document is a seeded one: nobody opens it here).
+  await q(
+    `insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId", status, "reviewedAt")
+     select gen_random_uuid()::text, $1, k::"TradeLicenceKind", 'E2E/' || k, (select "uploadId" from "TradeLicence" order by "createdAt" limit 1), 'VERIFIED', now() from unnest($2::text[]) k`,
+    [tAcc.id, ["PHARMACY_LICENCE", "SAPC_RECORDING"]],
+  );
+  later("unlink the trade sale, drop the trade messages", async () => {
+    await q(`update "Sale" set "tradeAccountId" = null where "tradeAccountId" = $1`, [tAcc.id]); // the sale stays, like every other trading record
+    await q(`delete from "MessageLog" where "to" in ($1, $2)`, [tAcc.email, "+27825550199"]);
+  });
+  const tBuyer = await one(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, phone, role) values (gen_random_uuid()::text, $1, 'E2E Buyer', $2, '+27825550199', 'OWNER') returning id, phone`, [tAcc.id, `e2e.trade.buyer.${run.toLowerCase()}@example.com`]);
+  let tNum;
+  while (!tNum) {
+    const c = `TO-8${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
+    if (!(await one(`select 1 from "TradeOrder" where number = $1`, [c]))) tNum = c;
+  }
+  const tOrder = await one(
+    `insert into "TradeOrder" (id, number, "tradeAccountId", "buyerId", "storeId", fulfilment, status, "payMethod", "subtotalCents", "deliveryCents", "handlingCents", "vatCents", "totalCents", "collectionCode", events, "reservedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, $2, $3, $4, 'COLLECT', 'PLACED', 'ACCOUNT', $5, 0, $6, $7, $8, $9, $10::jsonb, now(), now()) returning id, number, "collectionCode"`,
+    [tNum, tAcc.id, tBuyer.id, store.id, tEx, tradeHandling, halfUp(tEx) + halfUp(tradeHandling), tTotal, String(100000 + Math.floor(Math.random() * 900000)), JSON.stringify([{ status: "PLACED", at: new Date().toISOString(), note: "E2E fixture: placed on account; stock reserved" }])],
+  );
+  later(`remove trade order ${tOrder.number}`, () => q(`delete from "TradeOrder" where id = $1`, [tOrder.id]));
+  await q(`insert into "TradeOrderLine" (id, "tradeOrderId", "variantId", qty, "unitCents", "vatCents") values (gen_random_uuid()::text, $1, $2, $3, $4, $5)`, [tOrder.id, tradeItem.id, tQty, tradeItem.wholesaleCents, halfUp(tEx)]);
+  ok(`${tOrder.number} for ${tAcc.name}: ${tQty} × ${tradeItem.label} at R${(tradeItem.wholesaleCents / 100).toFixed(2)} ex VAT + handling → R${(tTotal / 100).toFixed(2)} incl. VAT, on account`);
+  await page.goto(`${BASE}/store/${CODE}`);
+  const todayTrade = page.getByTestId("today-list").getByRole("listitem").filter({ hasText: /trade orders? to fulfil/ });
+  await todayTrade.first().waitFor();
+  assert((await todayTrade.count()) === 1 && (await todayTrade.locator("a").getAttribute("href")) === `/store/${CODE}/trade`, "Today lists the trade order to fulfil, linking to Trade orders");
+  await visit(page, `/store/${CODE}/orders`, page.getByRole("searchbox"));
+  assert((await page.getByRole("link", { name: /trade orders? to fulfil/ }).count()) === 1, "the Online orders page points to the open trade order");
+  await visit(page, `/store/${CODE}/trade`, page.getByRole("link", { name: tOrder.number, exact: true }));
+  await row(page, tOrder.number).getByRole("link", { name: tOrder.number, exact: true }).click();
+  await page.waitForURL(new RegExp(`/trade/${tOrder.id}$`));
+  await hydrated(page.getByRole("button", { name: "Start picking" }));
+  const tHeading = (text) => page.getByRole("heading", { level: 1 }).filter({ hasText: text });
+  await act(page, "pickTradeOrder", () => page.getByRole("button", { name: "Start picking" }).click(), () => tHeading("Picking").waitFor());
+  assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "PICKING", "picking");
+  await act(page, "readyTradeOrder", () => page.getByRole("button", { name: "Packed and ready for collection" }).click(), () => tHeading("Ready to collect").waitFor());
+  const tReady = await one(`select status, "readyAt" from "TradeOrder" where id = $1`, [tOrder.id]);
+  const readyText = await one(`select body from "MessageLog" where channel = 'SMS' and "to" = $1 and body like $2`, [tBuyer.phone, `%${tOrder.number} is ready%`]);
+  assert(tReady.status === "READY" && tReady.readyAt && readyText?.body.includes(tOrder.collectionCode), "ready: the collection code texted to the buyer");
+  await hydrated(page.getByRole("button", { name: `Hand over ${tOrder.number}` }));
+  await page.getByRole("button", { name: `Hand over ${tOrder.number}` }).click();
+  const hg = page.getByRole("group", { name: `Hand over ${tOrder.number}` });
+  await act(page, "collectTradeOrder · no ID check", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => alert(hg, "Check the collector's ID").waitFor());
+  await hg.getByLabel(/I've seen the collector's ID/).check();
+  await hg.locator("#collection-code").fill("000000");
+  await act(page, "collectTradeOrder · wrong code", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => alert(hg, "That isn't this order's collection code").waitFor());
+  assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "READY", "nothing posted on a wrong code");
+  await hg.locator("#collection-code").fill(tOrder.collectionCode);
+  await shot(page, "trade-handover");
+  await act(page, "collectTradeOrder", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => status(page, "Handed over: sale").waitFor());
+  const tDone = await one(
+    `select o.status, o."invoiceNumber", o."collectedAt", s.channel, s."storeId", s."totalCents", s."tradeAccountId", s."ageCheck",
+       (select method from "Payment" p where p."saleId" = s.id limit 1) method,
+       (select cents from "TradeLedgerEntry" e where e."tradeOrderId" = o.id and e.kind = 'INVOICE') invoiced
+     from "TradeOrder" o join "Sale" s on s.id = o."saleId" where o.id = $1`,
+    [tOrder.id],
+  );
+  assert(
+    tDone?.status === "COLLECTED" && tDone.collectedAt && tDone.channel === "WHOLESALE" && tDone.storeId === store.id && tDone.totalCents === tTotal && tDone.method === "ACCOUNT" && tDone.invoiced === tTotal && /^TI-\d{6}$/.test(tDone.invoiceNumber ?? "") && tDone.ageCheck === "ID_SIGHTED",
+    `collected: sale ${tDone?.invoiceNumber} at ${CODE} in the trade channel, R${(tTotal / 100).toFixed(2)} incl. the handling fee, on account, ID sighted`,
+  );
+  const tMail = await until(() => one(`select 1 from "MessageLog" where channel = 'EMAIL' and "to" = $1 and body like $2`, [tAcc.email, `%${tDone.invoiceNumber}%`]));
+  assert(tMail && (await one(`select 1 from "AuditLog" where action = 'trade.order.collected' and "entityId" = $1 and "actorId" = $2`, [tOrder.id, me.id])), "tax invoice emailed to the account; handover audited (trade.order.collected)");
+  assert((await page.getByRole("button", { name: `Hand over ${tOrder.number}` }).count()) === 0, "nothing left to do on the order");
 
   // ───────────────────────────────────────────────────────────────────────────
   step("Local marketing: a coded happy-hour promotion — create, edit, end");
@@ -965,7 +1105,7 @@ try {
   await act(page, "addDeposit · not a slip", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => alert(depForm, "must be a photo").waitFor());
   await depForm.locator("#dep-slip").setInputFiles({ name: "slip.jpg", mimeType: "image/jpeg", buffer: slipBytes });
   t0 = new Date();
-  await act(page, "addDeposit", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => status(page, "it matches the cash counted").waitFor());
+  await act(page, "addDeposit", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => status(page, "It matches the cash counted").waitFor());
   const dep = await one(
     `select d.id, d.number, d."amountCents", d."expectedCents", d.status, d."slipId", u.sha256, u."contentType" from "CashDeposit" d join "Upload" u on u.id = d."slipId" where d.reference = $1`,
     [`E2E-${run}`],
@@ -1016,9 +1156,9 @@ try {
   await cleanup.pop().fn(); // put the update back as it was straight away: every store in the network sees it
 
   step("Scope: a manager can't open another store's back office");
-  await page.goto(`${BASE}/store/PTA03`);
-  await page.waitForURL(/\/login\?denied=1/);
-  ok("redirected to sign-in (denied)");
+  const away = await page.goto(`${BASE}/store/PTA03`);
+  await page.getByText("This store sits outside what you look after").waitFor();
+  assert(away.status() === 404 && page.url().endsWith("/store/PTA03"), "not found (404) inside their own back office, not the sign-in page");
 
   // ───────────────────────────────────────────────────────────────────────────
   step("Owner: /store opens the consolidated view of all their stores; switch store; dispenser rights");

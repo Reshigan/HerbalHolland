@@ -37,7 +37,7 @@ export async function saveLoyalty(_: ActionState, fd: FormData): Promise<ActionS
   await saveSetting("loyalty", after);
   await audit(db, g.actor, "settings.loyalty", { entity: "Setting", entityId: "loyalty", data: { before: Object.fromEntries(changed.map((k) => [k, before[k]])), after: Object.fromEntries(changed.map((k) => [k, next[k]])) } });
   revalidatePath("/hq/loyalty");
-  return done("Programme rules saved — they apply to the next sale, sign-up and redemption network-wide.");
+  return done("Programme rules saved. They apply to the next sale, sign-up and redemption network-wide.");
 }
 
 /** Instant Rewards savings (% off the shelf price) per tier — the Xtra-Savings-style member price. */
@@ -59,7 +59,7 @@ export async function saveTierSavings(_: ActionState, fd: FormData): Promise<Act
   await saveSetting("loyalty", { ...before, tierSavingsPct: pct });
   await audit(db, g.actor, "settings.tier_savings", { entity: "Setting", entityId: "loyalty", data: { before: before.tierSavingsPct, after: pct } });
   revalidatePath("/hq/loyalty");
-  return done("Instant savings updated — members see the new prices on their next basket.");
+  return done("Instant savings updated. Members see the new prices on their next basket.");
 }
 
 /** My Deals programme settings (settings.offers). Deals already on members' cards keep their terms. */
@@ -81,8 +81,8 @@ export async function saveOffers(_: ActionState, fd: FormData): Promise<ActionSt
   revalidatePath("/hq/loyalty");
   return done(
     next.enabled
-      ? `My Deals saved — new deals are ${next.percent}% off for ${next.validDays} days. Deals already on cards keep their terms.`
-      : "My Deals switched off — no new deals load. Deals already on members' cards stay valid until they expire.",
+      ? `My Deals saved. New deals are ${next.percent}% off for ${next.validDays} days. Deals already on cards keep their terms.`
+      : "My Deals switched off, so no new deals load. Deals already on members' cards stay valid until they expire.",
   );
 }
 
@@ -90,13 +90,13 @@ export async function saveOffers(_: ActionState, fd: FormData): Promise<ActionSt
 export async function generateDealsNow(_: ActionState): Promise<ActionState> {
   const g = await guard("admin");
   if (!g) return DENIED;
-  if (!(await getSettings()).offers.enabled) return fail("My Deals is switched off — switch it on and save first.");
+  if (!(await getSettings()).offers.enabled) return fail("My Deals is switched off. Switch it on and save first.");
   const { created } = await generateOffers();
   await audit(db, g.actor, "offers.generate", { entity: "MemberOffer", data: { created } });
   revalidatePath("/hq/loyalty");
   return done(
     created
-      ? `${created.toLocaleString()} new deals loaded onto members' cards — they apply automatically at the till and online.`
-      : "Every opted-in member who bought recently already has a live deal — nothing new to load.",
+      ? `${created.toLocaleString()} new deals loaded onto members' cards. They apply automatically at the till and online.`
+      : "Every opted-in member who bought recently already has a live deal, so there's nothing new to load.",
   );
 }

@@ -1,6 +1,6 @@
 // Icons for report groups and individual reports (lucide, 1.9 stroke).
 import {
-  ArrowLeftRight, BadgePercent, Banknote, Boxes, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins, Hourglass,
+  ArrowLeftRight, BadgePercent, Banknote, Boxes, Briefcase, CalendarClock, ChartColumn, ChartLine, ChartPie, ClipboardList, CreditCard, Gauge, Grid3x3, HandCoins, Hourglass,
   IdCard, Landmark, Megaphone, PackageSearch, PackageX, PiggyBank, QrCode, Receipt, ReceiptText, Repeat, Route, Scale, ScanSearch, Send, ShieldAlert,
   ShieldCheck, ShoppingBag, Siren, Snowflake, Stethoscope, Tags, TrendingUp, Trophy, Truck, Undo2, UserCheck, Users, UsersRound, Wallet,
   type LucideIcon,
@@ -8,7 +8,7 @@ import {
 import type { ReportGroup } from "@/server/reports/types";
 
 export const GROUP_META: Record<ReportGroup, { icon: LucideIcon; blurb: string }> = {
-  Sales: { icon: TrendingUp, blurb: "Trading by day, product, store, hour and staff — plus refunds, tenders and online orders." },
+  Sales: { icon: TrendingUp, blurb: "Trading by day, product, store, hour and staff, plus refunds, tenders and online orders." },
   Inventory: { icon: Boxes, blurb: "What the stock is worth, how it moves, what goes missing, expires or runs low." },
   Purchasing: { icon: Truck, blurb: "What you bought from the distribution centres and other stores, and how it arrived." },
   Finance: { icon: Wallet, blurb: "Profit, VAT, cash-ups, franchise statements and the Rewards points liability." },
@@ -27,6 +27,8 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   refunds: Undo2,
   payments: CreditCard,
   "online-orders": ShoppingBag,
+  "trade-sales": Briefcase,
+  "trade-sales-store": Briefcase,
   "stock-valuation": Landmark,
   "stock-movements": ArrowLeftRight,
   shrinkage: PackageX,
@@ -43,11 +45,14 @@ export const REPORT_ICON: Record<string, LucideIcon> = {
   "cash-banking": PiggyBank,
   statements: Receipt,
   "loyalty-liability": HandCoins,
+  "trade-aged-balances": CalendarClock,
   segments: UsersRound,
   "new-vs-returning": Repeat,
   "member-attach": IdCard,
   "rewards-savings": PiggyBank,
   "join-sources": QrCode,
+  cohorts: Grid3x3,
+  retention: Repeat,
   promotions: BadgePercent,
   campaigns: Send,
   "age-checks": ShieldCheck,

@@ -10,7 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips } from "@/components/store/ui";
-import { ActionButton } from "@/components/store/action-form";
+import { ActionButton } from "@/components/ui/action-form";
 import { cn } from "@/lib/cn";
 import type { Prisma } from "@/generated/prisma/client";
 

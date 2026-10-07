@@ -21,7 +21,7 @@ export default async function NewPromotionPage() {
   return (
     <>
       <BackLink href="/hq/promotions">Promotions</BackLink>
-      <PageHeader overline="Network promotion" title="New promotion" description="Deals apply automatically at every till and in the web shop — close-but-not-quite baskets get a nudge to add the complementary item." />
+      <PageHeader overline="Network promotion" title="New promotion" description="Deals apply automatically at every till and in the web shop, and close-but-not-quite baskets get a nudge to add the complementary item." />
       <PromotionForm action={savePromotion.bind(null, null)} values={promoValues(null)} {...opts} excluded={incentiveExcluded(settings.compliance).map((c) => REG_CLASS_LABEL[c])} />
     </>
   );

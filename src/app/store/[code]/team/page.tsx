@@ -4,17 +4,18 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { sp1 } from "@/server/store/rules";
 import { timeAgo } from "@/lib/format";
-import { addStaff, resetPin, setActive, setDispenser, setMemberCard } from "./actions";
+import { addStaff, resetPassword, resetPin, setActive, setDispenser, setMemberCard } from "./actions";
+import { TEMP_PASSWORD_HOURS } from "@/server/passwords";
 import { PageHeader, EmptyState, Notice } from "@/components/ui/page";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/misc";
-import { Checkbox, Field, Input } from "@/components/ui/form";
+import { Checkbox, Field, Input, Select } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { InlineEdit } from "@/components/ui/inline-edit";
 import { ReadOnlyNote } from "@/components/store/ui";
-import { Select } from "@/components/store/select";
 import { Drawer } from "@/components/store/drawer";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 
 export const metadata = { title: "Team" };
@@ -78,7 +79,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                     <Input id="st-email" name="email" type="email" maxLength={120} autoComplete="off" />
                     <FieldError name="email" />
                   </Field>
-                  <Field label="Password" htmlFor="st-pass" hint="At least 8 characters">
+                  <Field label="Temporary password" htmlFor="st-pass" hint={`At least 10 characters, without their name or email. They choose their own at first sign-in, within ${TEMP_PASSWORD_HOURS} hours.`}>
                     <Input id="st-pass" name="password" type="password" autoComplete="new-password" />
                     <FieldError name="password" />
                   </Field>
@@ -102,7 +103,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
         {staff.length === 0 ? (
           <EmptyState icon={<UsersRound className="h-5 w-5" />} title="No staff yet" />
         ) : (
-          <Table>
+          <Table density="comfortable" stickyFirst minWidth="56rem">
             <thead>
               <tr>
                 <Th>Name</Th>
@@ -115,14 +116,14 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
             </thead>
             <tbody>
               {staff.map((s) => (
-                <Tr key={s.id} className={!s.active ? "text-ink-400" : undefined}>
+                <Tr key={s.id} className={!s.active ? "text-ink-500" : undefined}>
                   <Td className="min-w-48">
                     <div className="flex items-center gap-3">
                       <Avatar name={s.name} className={!s.active ? "opacity-50" : undefined} />
                       <div>
                         <div className="font-medium text-ink-900">
                           {s.name}
-                          {s.id === user.id && <span className="ml-1.5 text-xs font-normal text-ink-400">(you)</span>}
+                          {s.id === user.id && <span className="ml-1.5 text-xs font-normal text-ink-500">(you)</span>}
                         </div>
                         <div className="text-xs text-ink-500">{s.email ?? "Till PIN only"}</div>
                         {s.memberId && cardNo.get(s.memberId) && (
@@ -147,18 +148,34 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                       {s.email && <Badge tone="blue">Back office</Badge>}
                     </div>
                   </Td>
-                  <Td className="whitespace-nowrap text-ink-600">{seen.get(s.id) ? timeAgo(seen.get(s.id)!) : <span className="text-ink-300">Not yet</span>}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{seen.get(s.id) ? timeAgo(seen.get(s.id)!) : <span className="text-ink-500">Not yet</span>}</Td>
                   <Td>{s.active ? <Badge tone="green" dot>Active</Badge> : <Badge dot>Inactive</Badge>}</Td>
                   {canManage && (
                     <Td className="text-right">
                       {may(s) && (
                         <div className="flex flex-wrap justify-end gap-2">
                           {s.active && (
-                            <ConfirmAction action={resetPin.bind(null, store.code, s.id)} label={s.pinHash ? "Reset PIN" : "Set PIN"} icon={<KeyRound className="h-3.5 w-3.5" aria-hidden />} title={`New till PIN for ${s.name}`} confirmLabel="Save PIN" variant="dark" className="min-w-64">
-                              <Field label="New 4-digit PIN" htmlFor={`pin-${s.id}`}>
-                                <Input id={`pin-${s.id}`} name="pin" inputMode="numeric" maxLength={4} autoComplete="off" className="tnum tracking-[0.4em]" />
-                                <FieldError name="pin" />
-                              </Field>
+                            <InlineEdit
+                              variant="button"
+                              action={resetPin.bind(null, store.code, s.id)}
+                              secret
+                              fields={[{ name: "pin", label: "New 4-digit PIN", value: "", type: "password", inputMode: "numeric", maxLength: 4, placeholder: "••••", width: "w-24", className: "tracking-[0.35em]" }]}
+                              display={<><KeyRound className="h-3.5 w-3.5" aria-hidden /> {s.pinHash ? "Reset PIN" : "Set PIN"}</>}
+                              editLabel={`New till PIN for ${s.name}`}
+                              saveLabel="Save PIN"
+                            />
+                          )}
+                          {s.active && s.email && s.id !== user.id && (
+                            <ConfirmAction
+                              action={resetPassword.bind(null, store.code, s.id)}
+                              label="Reset password"
+                              icon={<KeyRound className="h-3.5 w-3.5" aria-hidden />}
+                              title={`Reset ${s.name}'s password?`}
+                              confirmLabel="Reset password"
+                              variant="dark"
+                              className="min-w-64"
+                            >
+                              They&apos;re signed out of the back office and get a temporary password, shown here once.
                             </ConfirmAction>
                           )}
                           {s.active && mayLinkCard(s) && (
@@ -172,7 +189,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                               className="min-w-72"
                             >
                               <p>Sales they ring onto their own card are flagged and don&apos;t earn commission.</p>
-                              <Field label="Member number" htmlFor={`card-${s.id}`} hint={s.memberId ? "Clear it to unlink the card" : "Optional — from their Rewards card or app"}>
+                              <Field label="Member number" htmlFor={`card-${s.id}`} hint={s.memberId ? "Clear it to unlink the card" : "Optional, from their Rewards card or app"}>
                                 <Input id={`card-${s.id}`} name="memberNo" defaultValue={(s.memberId && cardNo.get(s.memberId)) || ""} placeholder="HH0123456" autoComplete="off" maxLength={24} className="font-mono uppercase" />
                                 <FieldError name="memberNo" />
                               </Field>
@@ -203,7 +220,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
       </Card>
 
       <Card className="mt-6">
-        <CardHeader title="Owners" description={`${store.company.legalName} — owners see every store in the company`} />
+        <CardHeader title="Owners" description={`Owners of ${store.company.legalName} see every store in the company`} />
         <div className="flex flex-wrap gap-3 p-5">
           {owners.map((o) => (
             <div key={o.id} className="flex items-center gap-3 rounded-xl border border-ink-150 px-3 py-2">

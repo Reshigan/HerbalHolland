@@ -24,7 +24,7 @@ import { PageHeader, Notice } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Detail } from "@/components/ui/misc";
 import { Field, Input, Label, Select, Textarea } from "@/components/ui/form";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { LeadStatusBadge } from "../ui";

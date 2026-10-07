@@ -6,8 +6,9 @@ import { audit } from "@/server/audit";
 import { markOrderPaid, onlineCheckoutFor, type OnlineCheckout } from "@/server/orders";
 import { shortCode } from "@/server/counters";
 import { APP_URL } from "@/server/invoices";
-import { hostedGateway, HOSTED_GATEWAYS, onlineGateway, PaymentError } from "@/server/payments";
+import { simulationAllowed, hostedGateway, HOSTED_GATEWAYS, onlineGateway, PaymentError } from "@/server/payments";
 import { possessive } from "@/lib/online-payments";
+import { orderDue } from "@/server/shop/vouchers";
 
 export type PayState = { error?: string };
 const METHODS = { EFT: "Instant EFT", PAYSHAP: "PayShap", CARD: "Card" } as const;
@@ -29,17 +30,19 @@ async function unpaidOrder(orderId: string) {
  * markOrderPaid; this action only exists while ONLINE_GATEWAY is SIMULATED.
  */
 export async function simulatePayment(orderId: string, _: PayState, form: FormData): Promise<PayState> {
-  if (onlineGateway() !== "SIMULATED") return { error: "Payments are handled by our payment partner — please use their page." };
+  if (onlineGateway() !== "SIMULATED") return { error: "Payments are handled by our payment partner. Please use their page." };
+  if (!simulationAllowed()) return { error: "Online payment isn't switched on yet. Please choose click & collect and pay in store." };
   const r = await unpaidOrder(orderId);
   if ("error" in r) return r;
   const { customer, order } = r;
   if (order.status === "PENDING_PAYMENT") {
     const method = (Object.keys(METHODS) as (keyof typeof METHODS)[]).find((m) => m === form.get("method")) ?? "EFT";
     const reference = `SIM-${method}-${shortCode(8)}`;
-    await markOrderPaid(order.id, reference);
-    await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.pay_online", {
-      storeId: order.storeId, entity: "Order", entityId: order.id, data: { gateway: "SIMULATED", method: METHODS[method], reference, amount: order.totalCents - order.pointsRedeemed * 100 },
-    });
+    const paid = await markOrderPaid(order.id, reference);
+    if (paid.moved) // a double click (or a cancel in between) moves nothing, so there's nothing to record
+      await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "order.pay_online", {
+        storeId: order.storeId, entity: "Order", entityId: order.id, data: { gateway: "SIMULATED", method: METHODS[method], reference, amount: await orderDue(order) },
+      });
   }
   redirect(`/orders/${order.code}?paid=1`);
 }
@@ -67,7 +70,7 @@ export async function payOnline(orderId: string, _: PayState): Promise<PayState>
     if (/start at|Too many/.test(e.message)) return { error: `${e.message}, so this order can't be paid online. Please contact us and quote order ${order.code}.` };
     return { error: `We couldn't open ${possessive(name)} payment page just now. Please try again in a minute.` };
   }
-  if (c.step === "review") return { error: `A payment on this order needs a quick check by our team, so please don't pay again. We'll be in touch — quote order ${order.code}.` };
+  if (c.step === "review") return { error: `A payment on this order needs a quick check by our team, so please don't pay again. We'll be in touch. Quote order ${order.code}.` };
   // Paid already (applied just now) or still processing: the order page shows it, and waits for the gateway if need be.
   if (c.step !== "open") redirect(`/orders/${order.code}?pay=success`);
   if (c.created)

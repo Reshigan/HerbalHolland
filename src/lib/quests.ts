@@ -18,7 +18,7 @@ export const QUESTS: Record<string, Quest> = {
     questions: [
       { q: "How much CBD may a Schedule 0 sales pack contain?", options: ["Any amount", "No more than 600 mg", "No more than 2,000 mg"], answer: 1 },
       { q: "What is the maximum daily serving of CBD?", options: ["20 mg", "100 mg", "There's no limit"], answer: 0 },
-      { q: "Can Schedule 0 CBD claim to treat a condition?", options: ["Yes, if it's on the label", "Only when sold online", "No — only general health claims are allowed"], answer: 2 },
+      { q: "Can Schedule 0 CBD claim to treat a condition?", options: ["Yes, if it's on the label", "Only when sold online", "No. Only general health claims are allowed"], answer: 2 },
     ],
   },
   "heritage-landraces": {
@@ -27,7 +27,7 @@ export const QUESTS: Record<string, Quest> = {
     questions: [
       { q: "Where does Swazi Gold come from?", options: ["The Eswatini highlands", "The Karoo", "Amsterdam"], answer: 0 },
       { q: "Which landrace left South Africa in the 1970s and became a global benchmark?", options: ["Malawi Gold", "Durban Poison", "Mpondo Gold"], answer: 1 },
-      { q: "How are our Pondoland growers paid?", options: ["Whatever the market pays at harvest", "In Rewards points", "A price agreed before planting, paid on delivery"], answer: 2 },
+      { q: "What is a landrace?", options: ["A plant shaped over generations by one place and its growers", "A hybrid bred in a lab", "A brand of rolling papers"], answer: 0 },
     ],
   },
   "responsible-use": {
@@ -36,7 +36,7 @@ export const QUESTS: Record<string, Quest> = {
     questions: [
       { q: "Who can buy from Herbal Holland?", options: ["Adults 18+ only", "Anyone with a Rewards card", "Anyone 16+ with a parent"], answer: 0 },
       { q: "How long can edibles take to have an effect?", options: ["About two minutes", "Up to two hours", "They take effect immediately"], answer: 1 },
-      { q: "Can you drive after using products that contain THC?", options: ["Yes, after an hour", "Only short distances", "No — plan your journey home first"], answer: 2 },
+      { q: "Can you drive after using products that contain THC?", options: ["Yes, after an hour", "Only short distances", "No. Plan your journey home first"], answer: 2 },
     ],
   },
   "section-21": {
@@ -44,7 +44,7 @@ export const QUESTS: Record<string, Quest> = {
     points: 10,
     questions: [
       { q: "Who applies to SAHPRA for a Section 21 authorisation?", options: ["Your doctor", "The store", "You, online"], answer: 0 },
-      { q: "Can licensed medicines be discounted or earn points?", options: ["Yes, double points on Fridays", "No — the Medicines Act prohibits incentives on medicines", "Only for Harvest members"], answer: 1 },
+      { q: "Can licensed medicines be discounted or earn points?", options: ["Yes, double points on Fridays", "No. The Medicines Act prohibits incentives on medicines", "Only for Harvest members"], answer: 1 },
     ],
   },
   points: {

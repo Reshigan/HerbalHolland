@@ -14,7 +14,7 @@ const monthLabel = (m: string) => fmtMonth(`${m}-15T12:00:00Z`);
 /** The owner pays commission, so only they (or the HQ administrator) switch it, approve it and release held amounts. */
 async function owner(code: string) {
   const ctx = await manage(code);
-  if (ctx.user.role !== "OWNER" && ctx.user.role !== "HQ_ADMIN") throw new UserError("Only the owner can do that — they pay the commission.");
+  if (ctx.user.role !== "OWNER" && ctx.user.role !== "HQ_ADMIN") throw new UserError("Only the owner can do that, because they pay the commission.");
   return { ...ctx, approver: { ...ctx.actor, id: ctx.user.id } };
 }
 
@@ -64,6 +64,6 @@ export async function release(code: string, month: string, userId: string, _: Ac
     await releaseHeld(store.id, month, userId, approver);
     const run = await db.commissionRun.findUnique({ where: { storeId_month: { storeId: store.id, month } }, select: { lines: true } });
     const line = ((run?.lines ?? []) as CommissionLine[]).find((l) => l.userId === userId);
-    back(store.code, `Released ${line ? `${zar(line.commissionCents)} for ${line.name}` : "the held amount"} — pay it with the next payroll.`, month);
+    back(store.code, `Released ${line ? `${zar(line.commissionCents)} for ${line.name}` : "the held amount"}. Pay it with the next payroll.`, month);
   });
 }

@@ -34,6 +34,10 @@ export async function submitMerchOrders() {
   });
   let done = 0, failed = 0;
   for (const o of due) {
+    // Claimed before it goes, so two runs of the job at once send it once. Our order code is the partner's reference.
+    const claimed = await db.order.updateMany({ where: { id: o.id, podRef: null }, data: { podRef: o.code, podStatus: "sending" } });
+    if (claimed.count !== 1) continue;
+    let sent = false;
     try {
       await sendProductionOrder({
         ref: o.code,
@@ -54,12 +58,15 @@ export async function submitMerchOrders() {
             };
           }),
       });
-      await db.order.update({ where: { id: o.id }, data: { podRef: o.code, podStatus: "sent", events: withNote(o, `Production order sent to ${partnerName()}`) } });
+      sent = true;
+      await db.order.update({ where: { id: o.id }, data: { podStatus: "sent", events: withNote(o, `Production order sent to ${partnerName()}`) } });
       // Merch-only orders have nothing for the distribution centre to pick: they're "being made" from here.
       if (o.status === "PLACED" && o.lines.every((l) => l.variant.podSku)) await advanceOrder(o.id, "PICKING", SYSTEM, { note: "Being made by our merch partner" });
       done++;
     } catch (e) {
       failed++;
+      // Not sent: let go, so the next run tries again. (Sent: keep the claim — the partner never gets it twice.)
+      if (!sent) await db.order.updateMany({ where: { id: o.id, podRef: o.code, podStatus: "sending" }, data: { podRef: null, podStatus: null } }).catch(() => undefined);
       console.error("[merch] production order", o.code, e);
     }
   }

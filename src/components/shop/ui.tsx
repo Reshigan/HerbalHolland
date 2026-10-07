@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
+import { num } from "@/lib/format";
 
 export function Container({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
   return <div className={cn("mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8", className)} {...props} />;
@@ -115,10 +116,12 @@ export function Callout({ tone = "info", title, icon, children, className }: { t
 /** Dark pagination. `href` builds the URL for a page. */
 export function Pager({ page, pageSize, total, href, noun = "results" }: { page: number; pageSize: number; total: number; href: (page: number) => string; noun?: string }) {
   const pages = Math.max(1, Math.ceil(total / pageSize));
-  if (pages <= 1) return total ? <p className="py-4 text-center text-xs text-ink-400">{total.toLocaleString()} {noun}</p> : null;
+  if (pages <= 1) return total ? <p className="py-4 text-center text-xs text-ink-400">{num(total)} {noun}</p> : null;
   const link = (p: number, label: string, disabled: boolean) =>
     disabled ? (
-      <span className="rounded-full px-4 py-2 text-ink-600">{label}</span>
+      <span className="rounded-full px-4 py-2 text-ink-450" aria-disabled="true">
+        {label}
+      </span>
     ) : (
       <Link href={href(p)} scroll={false} className="rounded-full border border-ink-700 px-4 py-2 font-medium text-ink-100 transition hover:border-brand-500 hover:text-brand-300">
         {label}
@@ -128,7 +131,7 @@ export function Pager({ page, pageSize, total, href, noun = "results" }: { page:
     <nav className="flex items-center justify-between gap-3 py-4 text-sm" aria-label="Pagination">
       {link(page - 1, "← Previous", page <= 1)}
       <span className="tnum text-xs text-ink-400">
-        Page {page} of {pages} · {total.toLocaleString()} {noun}
+        Page {page} of {pages} · {num(total)} {noun}
       </span>
       {link(page + 1, "Next →", page >= pages)}
     </nav>
@@ -196,7 +199,7 @@ export function Chip({ href, active, children, className, count }: { href: strin
       scroll={false}
       aria-current={active ? "page" : undefined}
       className={cn(
-        "inline-flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-sm font-medium transition",
+        "inline-flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-4 text-sm font-medium transition lg:h-9 lg:px-3.5",
         active ? "border-brand-500 bg-brand-500 text-ink-950" : "border-ink-700 text-ink-200 hover:border-ink-500 hover:text-white",
         className,
       )}

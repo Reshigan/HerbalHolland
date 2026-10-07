@@ -1,8 +1,10 @@
 import Link from "next/link";
-import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt } from "lucide-react";
+import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt, ReceiptText } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
-import { monthRange, profitAndLoss, vatReport } from "@/server/finance";
+import { booksRole } from "@/server/ledger/access";
+import { monthRange, profitAndLoss, salesSummary, vatReport } from "@/server/finance";
+import { supplierInvoiceSummary } from "@/server/supplier-invoices";
 import { resolveRange } from "@/lib/ranges";
 import { pct, zar, zarCompact } from "@/lib/money";
 import { fmtMonth, dayKey } from "@/lib/format";
@@ -14,6 +16,7 @@ import { RangeTabs } from "@/components/ui/range-tabs";
 import { AreaChart } from "@/components/charts/area-chart";
 import { Line } from "@/components/store/ui";
 import { cn } from "@/lib/cn";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Finance" };
 
@@ -31,10 +34,13 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
     const d = new Date(Date.UTC(y, m - 1 - (5 - i), 1));
     return d.toISOString().slice(0, 7);
   });
-  const [pl, vat, trend] = await Promise.all([
+  const [pl, vat, trade, trend, invoices, books] = await Promise.all([
     profitAndLoss(ids, r),
     vatReport(ids, r),
+    salesSummary(ids, r, "WHOLESALE"),
     Promise.all(months.map(async (m) => ({ month: m, pl: await profitAndLoss(ids, monthRange(m)) }))),
+    supplierInvoiceSummary(ids),
+    booksRole(user, store.company),
   ]);
   const firstWithData = trend.findIndex((t) => t.pl.revenue !== 0);
   const shown = firstWithData < 0 ? trend.slice(-3) : trend.slice(firstWithData);
@@ -48,12 +54,12 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
       <PageHeader
         overline={`Money · ${store.name}`}
         title="Finance"
-        description={`Profit and loss and VAT working for ${store.company.legalName}${store.company.vatNumber ? ` (VAT ${store.company.vatNumber})` : ""}, from posted sales, received stock, expenses and franchise fees. ${r.from} to ${r.to}.`}
+        description={`This store's profit and loss and a VAT estimate, from posted sales, received stock, expenses and franchise fees. ${store.company.legalName}${store.company.vatNumber ? ` (VAT ${store.company.vatNumber})` : ""}, ${r.from} to ${r.to}.`}
         actions={<RangeTabs path={`${base}/finance`} current={r.preset} />}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
-        <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${pl.summary.sales.toLocaleString()} transactions`} className="col-span-2 lg:col-span-1" />
+        <Stat label="Net sales (ex VAT)" value={zarCompact(pl.revenue)} sub={`${plural(pl.summary.sales, "transaction")}${trade.netCents ? ` · of which trade ${zarCompact(trade.netCents)}` : ""}`} className="col-span-2 lg:col-span-1" />
         <Stat label="Gross profit" value={zarCompact(pl.grossProfit)} sub={`${pct(pl.marginPct)} gross margin`} />
         <Stat label="Operating expenses" value={zarCompact(pl.opex)} sub="ex VAT, as captured" />
         <Stat label="Franchise fees" value={zarCompact(pl.fees.total)} sub="royalty, levy, e-commerce" />
@@ -65,13 +71,14 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
           <CardHeader title="Profit & loss" description="Ex VAT" />
           <CardBody className="pt-3">
             <Line label="Net sales" value={zar(pl.revenue)} strong />
+            {trade.netCents !== 0 && <Line label={<span className="pl-4">of which trade sales to business accounts</span>} value={zar(trade.netCents)} muted />}
             <Line label={<span className="pl-4">incl. Rewards savings given to members</span>} value={saved ? `−${zar(saved)}` : zar(0)} muted />
             {pl.summary.discountCents > 0 && <Line label={<span className="pl-4">incl. promotions and discounts</span>} value={`−${zar(pl.summary.discountCents)}`} muted />}
             {pl.summary.offerCents > 0 && (
               <Line
                 label={
                   <span className="pl-8">
-                    of which My Deals — <Link href={`${base}/statement`} className="font-medium text-brand-700 hover:underline">HQ credits these on your statement</Link>
+                    of which My Deals (<Link href={`${base}/statement`} className="font-medium text-brand-700 hover:underline">HQ credits these on your statement</Link>)
                   </span>
                 }
                 value={zar(pl.summary.offerCents)}
@@ -81,14 +88,14 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
             <Line label="Cost of sales (FIFO)" value={`−${zar(pl.cogs)}`} />
             <div className="my-1 border-t border-ink-100" />
             <Line label="Gross profit" value={<>{zar(pl.grossProfit)} <span className="ml-2 text-xs font-normal text-ink-500">{pct(pl.marginPct)}</span></>} strong />
-            <div className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-400">Operating expenses</div>
-            {pl.expenses.length === 0 && <Line label={<span className="pl-4 text-ink-400">No expenses captured</span>} value="—" muted />}
+            <div className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">Operating expenses</div>
+            {pl.expenses.length === 0 && <Line label={<span className="pl-4 text-ink-500">No expenses captured</span>} value="—" muted />}
             {pl.expenses
               .sort((a, b) => b.exVatCents - a.exVatCents)
               .map((e) => (
                 <Line key={e.category} label={<span className="pl-4">{EXPENSE_LABEL[e.category] ?? e.category}</span>} value={`−${zar(e.exVatCents)}`} />
               ))}
-            <div className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-400">Franchise fees</div>
+            <div className="mt-3 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">Franchise fees</div>
             <Line label={<span className="pl-4">Royalty ({store.royaltyBps / 100}% of net sales)</span>} value={`−${zar(pl.fees.royalty)}`} />
             <Line label={<span className="pl-4">Marketing fund levy ({store.levyBps / 100}%)</span>} value={`−${zar(pl.fees.levy)}`} />
             <Line label={<span className="pl-4">E-commerce commission ({store.ecomBps / 100}% of online)</span>} value={`−${zar(pl.fees.ecom)}`} />
@@ -99,18 +106,31 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         </Card>
 
         <Card className="h-fit xl:col-span-2">
-          <CardHeader title="VAT201 working" description={`${r.from} to ${r.to}`} />
+          <CardHeader title="VAT estimate for this store" description={`${r.from} to ${r.to}`} />
           <CardBody className="pt-3">
             {vendor ? (
               <>
                 <Line label="Output tax on sales" value={zar(vat.output)} />
-                <div className="mt-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-400">Input tax</div>
+                <div className="mt-2 text-[0.68rem] font-semibold uppercase tracking-[0.08em] text-ink-500">Input tax</div>
                 <Line label={<span className="pl-4">Stock received</span>} value={`−${zar(vat.stockInput)}`} />
                 <Line label={<span className="pl-4">Expenses (claimable)</span>} value={`−${zar(vat.expenseInput)}`} />
                 <Line label={<span className="pl-4">Franchise fees</span>} value={`−${zar(vat.feeInput)}`} />
                 <div className="my-1 border-t border-ink-900" />
                 <Line label={vat.payable >= 0 ? "VAT payable to SARS" : "VAT refund due"} value={zar(Math.abs(vat.payable))} strong className="text-base" />
-                <p className="mt-2 text-xs text-ink-500">A working, not a return: confirm against your tax invoices before filing on eFiling. Standard rate 15%.</p>
+                <p className="mt-2 text-xs text-ink-500">
+                  An estimate for this store only, at the standard 15%. {store.company.legalName} files one VAT201 per SARS VAT period, covering all its stores
+                  {books.read ? (
+                    <>
+                      {". "}
+                      <Link href={`/books/${store.companyId}/vat`} className="font-medium text-brand-700 hover:underline">
+                        Open the company&apos;s VAT return
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    ", from the company's books."
+                  )}
+                </p>
               </>
             ) : (
               <Notice tone="info" title="Not VAT-registered">
@@ -148,7 +168,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
                   <tr key={t.month} className="border-t border-ink-100">
                     <td className="py-2 text-ink-800">
                       {fmtMonth(`${t.month}-15T12:00:00Z`)}
-                      {t.month === thisMonth && <span className="ml-2 text-xs text-ink-400">to date</span>}
+                      {t.month === thisMonth && <span className="ml-2 text-xs text-ink-500">to date</span>}
                     </td>
                     <td className="tnum py-2 text-right">{zar(t.pl.revenue)}</td>
                     <td className="tnum py-2 text-right text-ink-600">{pct(t.pl.marginPct)}</td>
@@ -162,11 +182,12 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         </CardBody>
       </Card>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         {[
           { href: `${base}/cash-ups`, icon: Banknote, title: "Cash-ups", sub: "Shifts, floats and till variances" },
           { href: `${base}/expenses`, icon: Receipt, title: "Expenses", sub: "Capture rent, wages and bills" },
-          { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: "What you owe HQ, or HQ owes you" },
+          { href: `${base}/finance/supplier-invoices`, icon: ReceiptText, title: "Supplier invoices", sub: invoices.overdue ? `${invoices.overdue} overdue · ${zarCompact(invoices.dueCents)} due` : invoices.due ? `${zarCompact(invoices.dueCents)} due${invoices.onStatement ? ` · ${zarCompact(invoices.onStatementCents)} on the statement` : ""}${invoices.dueSoon ? ` · ${invoices.dueSoon} due this week` : ""}` : "Capture, pay and query invoices" },
+          { href: `${base}/statement`, icon: Landmark, title: "Franchise statement", sub: pl.summary.hqCollectedCents ? `${zarCompact(pl.summary.hqCollectedCents)} collected by HQ for you this period` : "What you owe HQ, or HQ owes you" },
           { href: `${base}/reports`, icon: ChartColumn, title: "Reports", sub: "Sales, margins, stock and staff" },
         ].map((l) => (
           <Link key={l.href} href={l.href} className="group flex items-center gap-3 rounded-2xl border border-ink-150 bg-white p-4 shadow-card transition hover:border-brand-300">

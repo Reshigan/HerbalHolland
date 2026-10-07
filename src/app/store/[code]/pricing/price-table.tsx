@@ -2,15 +2,13 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2, RotateCcw, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { pct, zar } from "@/lib/money";
+import { centsToInput, pct, zar } from "@/lib/money";
 import { marginPct } from "@/lib/pricing-rules";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/page";
 import type { ActionState } from "@/server/store/context";
 import type { PriceRow } from "@/server/store/pricing";
 import { parseRand } from "@/server/store/rules";
-
-const rands = (c: number | null) => (c == null ? "" : (c / 100).toFixed(2));
 
 export function PriceTable({ rows, minMargin, canManage, save }: {
   rows: PriceRow[];
@@ -22,7 +20,7 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
   const [result, setResult] = useState<ActionState | null>(null);
   const [saving, start] = useTransition();
 
-  const value = (r: PriceRow) => (r.variantId in edit ? edit[r.variantId] : rands(r.shelfCents));
+  const value = (r: PriceRow) => (r.variantId in edit ? edit[r.variantId] : centsToInput(r.shelfCents));
   const parsed = (r: PriceRow): number | null | "bad" => {
     const v = value(r).trim();
     if (!v) return null;
@@ -64,31 +62,31 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
                 <tr key={r.variantId} className={cn(dirty ? "bg-brand-50/60" : "hover:bg-ink-50/60")}>
                   <td className="border-b border-ink-100 px-5 py-2.5">
                     <div className="font-medium text-ink-900">{r.name}</div>
-                    <div className="text-xs text-ink-400">
+                    <div className="text-xs text-ink-500">
                       <span className="font-mono">{r.sku}</span> · {r.category}
                     </div>
                   </td>
                   <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-500">{zar(r.rrpCents)}</td>
                   <td className="tnum border-b border-ink-100 px-3 py-2.5 text-right text-ink-700">
                     {zar(r.listCents)}
-                    {r.listName && <div className="text-[0.68rem] text-ink-400">{r.listName}</div>}
+                    {r.listName && <div className="text-[0.68rem] text-ink-500">{r.listName}</div>}
                   </td>
                   <td className="border-b border-ink-100 px-3 py-2">
                     <div className="flex items-center gap-1.5">
                       <div className="relative">
-                        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-400">R</span>
+                        <span className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-ink-500">R</span>
                         <input
                           value={value(r)}
                           disabled={!canManage}
                           inputMode="decimal"
-                          placeholder={rands(r.listCents)}
+                          placeholder={centsToInput(r.listCents)}
                           aria-label={`Shelf price for ${r.name}`}
                           aria-invalid={p === "bad" || undefined}
                           onChange={(e) => (setEdit((x) => ({ ...x, [r.variantId]: e.target.value })), setResult(null))}
                           className={cn(
                             "tnum h-9 w-28 rounded-xl border bg-white pl-6 pr-2 text-right text-sm font-semibold focus:outline-none focus:ring-4 disabled:bg-ink-50",
                             p === "bad" ? "border-rose-500 focus:ring-rose-500/15" : dirty ? "border-brand-400 focus:ring-brand-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
-                            p == null && "font-normal text-ink-400",
+                            p == null && "font-normal text-ink-500",
                           )}
                         />
                       </div>

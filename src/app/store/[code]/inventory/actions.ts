@@ -2,8 +2,11 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
+import { isHq, requireStaff } from "@/server/auth";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
-import { parseWhole, str } from "@/server/store/rules";
+import { parseRand, parseWhole, str } from "@/server/store/rules";
+import { zar } from "@/lib/money";
+import { savePrices } from "../pricing/actions";
 
 /** Sets the reorder point and par level for a SKU (ranging it at the store if needed). */
 export async function saveLevels(code: string, variantId: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -26,6 +29,30 @@ export async function saveLevels(code: string, variantId: string, _: ActionState
       data: { reorderPoint, parLevel, before: before ? { reorderPoint: before.reorderPoint, parLevel: before.parLevel } : null },
     });
     revalidatePath(`/store/${store.code}/inventory/${variantId}`);
+    revalidatePath(`/store/${store.code}/inventory`);
     return done(before ? "Stock levels saved." : "Item ranged at your store with these levels.");
+  });
+}
+
+/**
+ * Sets one SKU's shelf price from the stock list (empty = follow the list price). Same rules, audit entry
+ * (`price.override`) and margin warning as the pricing workbench, which does the work — and, like it, never for HQ:
+ * shelf prices are the franchisee's (Competition Act s5(2)).
+ */
+export async function saveShelfPrice(code: string, variantId: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  return attempt(async () => {
+    if (isHq(await requireStaff())) return fail("Shelf prices are the franchisee's to set", "price");
+    const { store } = await manage(code);
+    const raw = str(fd, "price");
+    const priceCents = raw ? parseRand(raw) : null;
+    if (raw && (priceCents == null || priceCents <= 0)) return fail("Enter a price like 249.00, or leave it empty to follow the list price", "price");
+    const current = await db.storeVariant.findUnique({ where: { storeId_variantId: { storeId: store.id, variantId } }, select: { priceCents: true } });
+    if (!current) return fail("Range the item at your store before setting a price");
+    if (current.priceCents === priceCents) return done(priceCents == null ? "Already following the list price." : `Already ${zar(priceCents)}.`);
+    const r = await savePrices(code, [{ variantId, priceCents }]);
+    if (r.error) return fail(r.error, "price");
+    revalidatePath(`/store/${store.code}/inventory`);
+    revalidatePath(`/store/${store.code}/inventory/${variantId}`);
+    return done(priceCents == null ? "Back to the list price. Tills pick it up straight away." : `Shelf price ${zar(priceCents)} saved. Tills pick it up straight away.${r.ok?.includes("margin guide") ? " It's below the margin guide, but it's your call." : ""}`);
   });
 }

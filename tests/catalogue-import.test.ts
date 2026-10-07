@@ -20,7 +20,7 @@ const existingOil: ExistingProduct = {
   heritage: false, featured: false, tobaccoRelated: false, legalBasis: "Schedule 0 CBD — GN 586 of 22 May 2020", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: [],
   netContent: null, netUnit: null, ingredients: "MCT oil, hemp extract", allergens: ["none"], naturalCbd: false,
 };
-const existingVariant: ExistingVariant = { id: "v-rest", productId: "p-oil", sku: "REST-30", name: "30 ml", barcode: "6001234000017", grams: null, priceCents: 29_900, wholesaleCents: 14_000, costCents: 8_000, podSku: null, active: true };
+const existingVariant: ExistingVariant = { id: "v-rest", productId: "p-oil", sku: "REST-30", name: "30 ml", barcode: "6001234000017", grams: null, priceCents: 29_900, wholesaleCents: 14_000, costCents: 8_000, podSku: null, active: true, caseQty: 1 };
 const snap = (over: Partial<ImportSnapshot> = {}): ImportSnapshot => ({
   categories: [{ id: "c-well", name: "CBD Wellness", slug: "wellness" }, { id: "c-acc", name: "Accessories", slug: "accessories" }, { id: "c-flower", name: "Flower", slug: "flower" }],
   products: [existingOil],
@@ -139,6 +139,22 @@ describe("the dry run", () => {
     expect(p.products).toHaveLength(1);
   });
 
+  it("reads the case pack (case_qty, aliases case / case_pack): default 1 for a new SKU, kept on an update, 0 refused", () => {
+    const p = plan(csv(`${HEAD},description,case_qty`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,An airtight glass jar with a bamboo lid for the shelf.,6", "JAR-500,Stash Jar,500 ml,Accessories,ACCESSORY,249,112,60,,"));
+    expect(p.variants.map((v) => [v.data.sku, v.data.caseQty])).toEqual([["JAR-250", 6], ["JAR-500", 1]]);
+    const alias = plan(csv(`${HEAD},description,Case pack`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,An airtight glass jar with a bamboo lid for the shelf.,12"));
+    expect(alias.variants[0].data.caseQty).toBe(12);
+    const kept = plan(csv(HEAD, "REST-30,Rest Oil,30 ml,CBD Wellness,CBD,299.00,140.00,80.00"));
+    expect(kept.rows[0].action).toBe("unchanged");
+    expect(kept.variants[0].data.caseQty).toBe(1);
+    const changed = plan(csv(`${HEAD},case`, "REST-30,Rest Oil,30 ml,CBD Wellness,CBD,299.00,140.00,80.00,24"));
+    expect(changed.rows[0]).toMatchObject({ action: "update", notes: ["Changes case_qty"] });
+    expect(changed.variants[0]).toMatchObject({ changed: ["caseQty"], data: { caseQty: 24 } });
+    const zero = plan(csv(`${HEAD},case_qty`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,0"));
+    expect(row(zero, 2).errors).toContain("case_qty: at least 1 (leave it empty for single units)");
+    expect(row(plan(csv(`${HEAD},case_qty`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189,85,45,1.5")), 2).errors).toContain("case_qty: a whole number");
+  });
+
   it("needs the facts a class carries: CBD food without its net content or natural-CBD tick is an error", () => {
     const p = plan(csv(`${HEAD},description,cbd_mg_per_pack,thc_max_pct,ingredients,allergens`, "COF-250,Hemp Coffee,250 g,CBD Wellness,CBD_FOOD,229,110,65,Arabica coffee with South African hemp in the blend.,15,0.001,Arabica coffee,none"));
     expect(row(p, 2).errors).toEqual(expect.arrayContaining(["CBD food & drink may only hold the CBD naturally in its ingredients: tick to confirm none is added", "Net content is required (g or ml): the CBD limit is worked out from it"]));
@@ -146,7 +162,7 @@ describe("the dry run", () => {
 
   it("matches categories by name, never creating one", () => {
     const p = plan(csv(HEAD, "GRD-1,Brass Grinder,One size,accessories,ACCESSORY,299,140,80", "TENT-1,Grow Tent,One size,Grow tents,GROW,2999,1400,800"));
-    expect(row(p, 2).errors).toContain("description: at least a sentence (20 characters or more) — it appears on the product page");
+    expect(row(p, 2).errors).toContain("description: at least a sentence (20 characters or more) for the product page");
     expect(row(p, 3).errors).toContain("Unknown category “Grow tents”: add it in HQ → Catalogue → Categories first (the import never creates categories)");
     expect(p.products).toEqual([]);
   });
@@ -219,7 +235,7 @@ describe("opening stock", () => {
   const jar = (sku: string, stock: string, batch = "", expires = "", pod = "") => `${sku},Stash Jar,${sku},Accessories,ACCESSORY,189,85,45,An airtight glass jar with a bamboo lid.,${pod},${stock},${batch},${expires}`;
 
   it("needs a location, and goes in at HQ cost at a warehouse or at wholesale at a store", () => {
-    expect(plan(csv(STOCK, jar("JAR-1", "12")), { location: null }).fileErrors).toEqual(["Some rows have opening stock: choose where it is — a warehouse or a store — or clear the stock column."]);
+    expect(plan(csv(STOCK, jar("JAR-1", "12")), { location: null }).fileErrors).toEqual(["Some rows have opening stock: choose where it is (a warehouse or a store), or clear the stock column."]);
     const dc = plan(csv(STOCK, jar("JAR-1", "12", "LOT-7", "2027-06-30"), jar("JAR-2", "0")));
     expect(dc.stock).toEqual([{ line: 2, sku: "JAR-1", qty: 12, batchCode: "LOT-7", batchId: null, expires: "2027-06-30", unitCostCents: 4_500 }]);
     expect(row(dc, 2).notes).toContain("Opening stock: 12 at Midrand Distribution Centre · batch LOT-7, expires 2027-06-30");
@@ -233,8 +249,8 @@ describe("opening stock", () => {
       batches: [{ id: "b-old", code: "OLD-LOT", variantId: "v-rest" }],
     });
     expect(row(p, 2).errors).toEqual(["stock: made to order by the merch partner, so it carries no stock"]);
-    expect(row(p, 3).errors).toEqual(["expires: that date has passed — expired stock can't be loaded"]);
-    expect(row(p, 4).errors).toEqual(["batch: OLD-LOT belongs to another SKU — use a different code"]);
+    expect(row(p, 3).errors).toEqual(["expires: that date has passed, and expired stock can't be loaded"]);
+    expect(row(p, 4).errors).toEqual(["batch: OLD-LOT belongs to another SKU, so use a different code"]);
     expect(row(p, 6).errors).toEqual(["batch: LOT-1 is also used for JAR-3 in this file"]);
     const thc = plan(csv(`${HEAD},description,stock`, "HAZE-35,Test Haze,3.5g,Flower,THC,650,290,160,A bright sativa grown under the Highveld sun.,10"));
     expect(thc.rows[0].errors).toEqual(["stock: Licensed (THC) can only be held under a licence, and Midrand Distribution Centre doesn't hold one"]);
@@ -270,5 +286,12 @@ describe("the template", () => {
     expect(own.rows.flatMap((r) => r.errors)).toEqual([]);
     expect(own.counts).toMatchObject({ create: 3, productsNew: 2, variantsNew: 3, stockUnits: 48 });
     expect(own.products.find((p) => p.slug === "example-calm-oil-300mg")?.data).toMatchObject({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: ["Supports everyday calm"], effects: ["calm", "focus"] });
+  });
+});
+
+describe("oversized files", () => {
+  it("stops at a row with more cells than any catalogue has", () => {
+    const r = parseCsv(`sku,name\n${",".repeat(5_000)}\n`);
+    expect(r.error).toMatch(/more than 100 cells/);
   });
 });

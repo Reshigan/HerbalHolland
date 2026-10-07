@@ -16,7 +16,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ColumnChart } from "@/components/charts/bar-chart";
 import { BarList } from "@/components/charts/bar-list";
 import { FilterForm, FilterSelect } from "@/components/hq/filter-form";
-import { ActionButton } from "@/components/hq/action-form";
+import { ActionButton } from "@/components/ui/action-form";
 import { ViewOnly } from "@/components/hq/ui";
 import { AlertTable, type AlertRow } from "@/components/loss/alert-table";
 import { WatchList } from "@/components/loss/watch-list";
@@ -250,7 +250,7 @@ export default async function HqLossPreventionPage({ searchParams }: { searchPar
         <div className={admin ? "min-w-0 space-y-6" : "min-w-0 space-y-6 xl:col-span-3"}>
           {admin && (
             <Card>
-              <CardHeader title="Run the checks now" description="They run every night, at each shift close and when cash is banked. Run them now after changing a threshold — alerts already raised aren't raised twice." />
+              <CardHeader title="Run the checks now" description="They run every night, at each shift close and when cash is banked. Run them now after changing a threshold. Alerts already raised aren't raised twice." />
               <CardBody>
                 <ActionButton action={runChecks} variant="dark" size="md" pendingLabel="Running the checks…">
                   <Play className="h-4 w-4" aria-hidden />
@@ -262,7 +262,7 @@ export default async function HqLossPreventionPage({ searchParams }: { searchPar
           <Card>
             <CardHeader title="What the checks watch" description="Every rule in plain words, with today's thresholds" />
             <CardBody>
-              {!admin && <ViewOnly className="mb-4">View only — the thresholds are set by the HQ administrator.</ViewOnly>}
+              {!admin && <ViewOnly className="mb-4">View only: the thresholds are set by the HQ administrator.</ViewOnly>}
               <WatchList settings={settings} columns={admin ? 1 : 2} />
             </CardBody>
           </Card>

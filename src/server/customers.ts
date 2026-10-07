@@ -1,6 +1,6 @@
 // Herbal Holland Rewards membership: phone OTP sign-in, adult-only enrolment, consent ledger,
 // age verification and the SAHPRA patient register.
-import { createHmac, randomInt } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { db, tx } from "./db";
 import { send } from "./messaging";
 import { APP_URL } from "./invoices";
@@ -8,40 +8,62 @@ import { addPoints } from "./loyalty";
 import { getSettings } from "./settings";
 import { audit, type Actor } from "./audit";
 import { nextNumber, shortCode } from "./counters";
-import { sha256 } from "./crypto";
+import { checkCode, issueCode, OtpLimitError } from "./otp";
+import { count, hit } from "./throttle";
 import { ageOn, checkSaId, normalisePhone } from "@/lib/sa";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
 import { DEALS_QUESTION, TERMS_VERSION } from "@/lib/terms";
 import { interestsFrom } from "@/lib/rfm";
+import { appSecret } from "./secret";
 
 export class CustomerError extends Error {}
 
-const idHash = (id: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(id).digest("hex");
+/** Why a sign-in code didn't work (members and trade buyers alike). */
+export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That code has expired. Request a new one", locked: "Too many wrong codes. Try again in an hour" } as const;
 
-export async function requestOtp(raw: string) {
+const idHash = (id: string) => createHmac("sha256", appSecret()).update(id).digest("hex");
+
+/** Texts a sign-in code. Requests pass the requester's IP (clientIpFrom) for the per-connection limit (src/server/otp.ts). */
+export async function requestOtp(raw: string, opts?: { ip: string | null }) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Enter a valid South African mobile number");
-  const recent = await db.otp.count({ where: { phone, createdAt: { gte: new Date(Date.now() - 10 * 60_000) } } });
-  if (recent >= 5) throw new CustomerError("Too many codes requested — try again in 10 minutes");
-  const code = String(randomInt(100_000, 1_000_000));
-  await db.otp.create({ data: { phone, codeHash: sha256(`${phone}:${code}`), expiresAt: new Date(Date.now() + 10 * 60_000) } });
+  const code = await issueCode({ phone }, opts).catch((e) => {
+    throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
+  });
+  if (!code) throw new CustomerError("Too many codes requested. Try again in 10 minutes");
   const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
   const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
-  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now — please try again in a minute");
+  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
   return { phone, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
 }
 
 export async function verifyOtp(raw: string, code: string) {
   const phone = normalisePhone(raw);
   if (!phone) throw new CustomerError("Invalid phone number");
-  const otp = await db.otp.findFirst({ where: { phone, expiresAt: { gt: new Date() } }, orderBy: { createdAt: "desc" } });
-  if (!otp || otp.attempts >= 5) throw new CustomerError("That code has expired — request a new one");
-  if (otp.codeHash !== sha256(`${phone}:${code.trim()}`)) {
-    await db.otp.update({ where: { id: otp.id }, data: { attempts: { increment: 1 } } });
-    throw new CustomerError("That code isn't right");
-  }
-  await db.otp.deleteMany({ where: { phone } });
+  const r = await checkCode({ phone }, code);
+  if (r !== "ok") throw new CustomerError(CODE_PROBLEM[r]);
   return { phone, customer: await db.customer.findUnique({ where: { phone } }) };
+}
+
+// ── Someone else's ID number or email ──────────────────────────────────────────
+// "That ID number is already linked to a member" tells whoever typed it something about another person, so online it
+// is rationed: three a day per phone being joined or per signed-in member, then nothing more can be checked that way
+// (staff in a store can still help). Every collision is audited.
+const COLLISIONS_PER_DAY = 3;
+const DAY_MS = 86_400_000;
+export const COLLISION_REFUSED = "We can't check that right now. Try again tomorrow, or visit a store with your ID";
+
+/** An ID number already linked to another member (a CustomerError, so staff screens show it as before). */
+export class CollisionError extends CustomerError {}
+
+/** Whether this phone (joining) or member (signed in) has used up today's collisions. */
+export const collisionsUsedUp = async (key: string) => (await count(`collision:${key}`, DAY_MS)) >= COLLISIONS_PER_DAY;
+
+/** Records a collision for `key` ("phone:+27…" or "member:<id>"); false when it's over today's limit. */
+export async function noteCollision(key: string, actor: Actor, field: "idNumber" | "email") {
+  const allowed = await hit(`collision:${key}`, COLLISIONS_PER_DAY, DAY_MS);
+  await audit(db, actor, "member.collision", { ...(actor.id && { entity: "Customer", entityId: actor.id }), data: { field, by: key, refused: !allowed } });
+  return allowed;
 }
 
 export type NewCustomer = {
@@ -86,7 +108,7 @@ export async function createCustomer(a: NewCustomer, actor: Actor) {
     hash = idHash(a.idNumber.replace(/\s/g, ""));
     last4 = a.idNumber.slice(-4);
     if (ageCheck === "NONE") ageCheck = "ID_NUMBER";
-    if (await db.customer.findUnique({ where: { idHash: hash } })) throw new CustomerError("That ID number is already linked to a member");
+    if (await db.customer.findUnique({ where: { idHash: hash } })) throw new CollisionError("That ID number is already linked to a member");
   }
   if (dob && isNaN(+dob)) throw new CustomerError("Enter a valid date of birth");
   if (dob && ageOn(dob) < settings.compliance.minAge) throw new CustomerError(`Herbal Holland Rewards is for adults ${settings.compliance.minAge}+`);

@@ -2,8 +2,10 @@
 // do-not-contact suppression (NCC opt-out registry), CPA Regulation 4 send windows,
 // copy screening and a full sender footer on every message.
 import { db } from "./db";
+import { contactEmailOf, legalNameOf } from "@/lib/contact";
 import { sendBulk } from "./messaging";
 import { audit, type Actor } from "./audit";
+import { reportFailure } from "./alerts";
 import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
 import { addDays } from "@/lib/format";
 import { INTERESTS, SEGMENTS, type InterestKey, type SegmentKey } from "@/lib/rfm";
@@ -77,7 +79,8 @@ export async function audienceSize(segment: string, channel: MsgChannel, storeId
 export async function senderFooter(channel?: MsgChannel) {
   if (channel === "PUSH") return "\nTurn off in Rewards settings.";
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" } });
-  return `\n— ${hq?.legalName ?? "Herbal Holland"}, ${hq?.address ?? ""}, ${hq?.phone ?? ""}, ${hq?.email ?? ""}.${channel === "EMAIL" ? "" : " Reply STOP to opt out."}`;
+  const who = [legalNameOf(hq), hq?.address, hq?.phone, contactEmailOf(hq)].map((x) => x?.trim()).filter(Boolean).join(", ");
+  return `\n— ${who}.${channel === "EMAIL" ? "" : " Reply STOP to opt out."}`;
 }
 
 function render(tpl: string, c: { firstName: string; points: number }, code?: string | null) {
@@ -100,6 +103,9 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
     return { sent: 0, suppressed: 0, audience: 0, scheduledAt: at, reason: window.reason };
   }
 
+  // Claim it before sending, so a double click or two scheduler runs send it once.
+  const claimed = await db.campaign.updateMany({ where: { id, status: c.status }, data: { status: "SENT", sentAt: now } });
+  if (!claimed.count) throw new CampaignError("This campaign has already been sent");
   const promo = c.promotionId ? await db.promotion.findUnique({ where: { id: c.promotionId } }) : null;
   const footer = await senderFooter(c.channel);
   const field = CONSENT_FIELD[c.channel];
@@ -137,11 +143,18 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
   return { sent, suppressed, audience };
 }
 
-/** Called by the scheduler (cron/worker) to release campaigns held for a legal send window. */
+/** Called by the scheduler (cron/worker) to release campaigns held for a legal send window. One that fails is reported and the rest still go. */
 export async function runDueCampaigns(now = new Date()) {
   const due = await db.campaign.findMany({ where: { status: "SCHEDULED", scheduledAt: { lte: now } }, select: { id: true } });
   const results = [];
-  for (const c of due) results.push(await sendCampaign(c.id, { type: "SYSTEM", name: "Scheduler" }, now));
+  for (const c of due) {
+    try {
+      results.push(await sendCampaign(c.id, { type: "SYSTEM", name: "Scheduler" }, now));
+    } catch (e) {
+      // A CampaignError is expected: sent by someone else meanwhile, or its copy needs changes.
+      if (!(e instanceof CampaignError)) await reportFailure(e, "cron runDueCampaigns");
+    }
+  }
   return results;
 }
 

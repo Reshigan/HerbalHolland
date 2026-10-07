@@ -5,7 +5,8 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { getFranchisor } from "@/server/shop/context";
-import { hostedGateway, HOSTED_GATEWAYS } from "@/server/payments";
+import { hostedGateway, HOSTED_GATEWAYS, simulationAllowed } from "@/server/payments";
+import { isVoucherOrder, orderDue, redemptionsOf } from "@/server/shop/vouchers";
 import { payOnline, simulatePayment } from "./actions";
 import { HostedPayForm, PayForm } from "@/components/shop/pay-form";
 import { Container, Panel } from "@/components/shop/ui";
@@ -28,7 +29,8 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
   ]);
   if (!order) notFound();
   if (order.status !== "PENDING_PAYMENT") redirect(`/orders/${order.code}`);
-  const due = order.totalCents - order.pointsRedeemed * 100;
+  const [due, vouchers] = await Promise.all([orderDue(order), redemptionsOf(order.id)]);
+  const giftOrder = isVoucherOrder(order.lines);
   const holdUntil = new Date(order.createdAt.getTime() + settings.ecommerce.unpaidHoldMinutes * 60_000);
   // Peach or Yoco: online payments go to the company that owns the online shop. Simulated: the fulfilling store, as before.
   const merchant = gateway ? (company?.legalName ?? "Herbal Holland") : order.store.company.legalName;
@@ -47,7 +49,7 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
             <Mark className="h-10 w-10 text-brand-500" />
             <div>
               <div className="text-sm text-ink-400">Paying {merchant}</div>
-              <div className="font-semibold text-white">Herbal Holland order {order.code}</div>
+              <div className="font-semibold text-white">{giftOrder ? `Gift voucher · order ${order.code}` : `Herbal Holland order ${order.code}`}</div>
             </div>
           </div>
           <div className="mt-6 rounded-2xl bg-ink-950 p-5">
@@ -74,13 +76,27 @@ export default async function PayPage({ params }: { params: Promise<{ orderId: s
                   <span className="tnum">−{zar(order.pointsRedeemed * 100)}</span>
                 </li>
               )}
+              {vouchers.map((v) => (
+                <li key={v.code} className="flex justify-between gap-3 text-leaf-100">
+                  <span className="truncate">Gift voucher {v.code}</span>
+                  <span className="tnum shrink-0">−{zar(v.cents)}</span>
+                </li>
+              ))}
             </ul>
           </div>
           <p className="mt-4 flex items-start gap-2 text-sm text-amber-100">
             <Clock className="mt-0.5 h-4 w-4 shrink-0" />
-            Complete payment by {fmtTime(holdUntil)} ({settings.ecommerce.unpaidHoldMinutes} minutes) or the order is released and the stock goes back on the shelf.
+            {giftOrder ? `Complete payment by ${fmtTime(holdUntil)} (${settings.ecommerce.unpaidHoldMinutes} minutes); the voucher is issued and emailed the moment it's paid.` : `Complete payment by ${fmtTime(holdUntil)} (${settings.ecommerce.unpaidHoldMinutes} minutes) or the order is released and the stock goes back on the shelf.`}
           </p>
-          {name ? <HostedPayForm action={payOnline.bind(null, order.id)} amount={zar(due)} gateway={name} /> : <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />}
+          {name ? (
+            <HostedPayForm action={payOnline.bind(null, order.id)} amount={zar(due)} gateway={name} />
+          ) : simulationAllowed() ? (
+            <PayForm action={simulatePayment.bind(null, order.id)} amount={zar(due)} />
+          ) : (
+            <p className="mt-6 rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50" role="status">
+              Online payment isn&apos;t switched on yet. Choose click &amp; collect and pay in store.
+            </p>
+          )}
           <p className="mt-5 flex items-start gap-2 text-xs leading-relaxed text-ink-450">
             <ShieldCheck className="mt-px h-3.5 w-3.5 shrink-0" />
             {gateway === "PEACH"

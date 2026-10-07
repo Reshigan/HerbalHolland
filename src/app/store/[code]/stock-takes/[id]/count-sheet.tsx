@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransit
 import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Loader2, Minus, Plus, ScanLine } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { num } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Notice } from "@/components/ui/page";
@@ -245,7 +246,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
           <div className="h-full rounded-full bg-brand-500 transition-[width] duration-300" style={{ width: `${lines.length ? (counted.length / lines.length) * 100 : 0}%` }} />
         </div>
         <div className="mt-1.5 text-xs text-ink-500">
-          <span className="tnum font-semibold text-ink-800">{counted.length}</span> of <span className="tnum">{lines.length}</span> lines counted · <span className="tnum">{units.toLocaleString()}</span> units
+          <span className="tnum font-semibold text-ink-800">{counted.length}</span> of <span className="tnum">{lines.length}</span> lines counted · <span className="tnum">{num(units)}</span> units
           {!blind && variances > 0 && <> · <span className="font-semibold text-amber-700">{variances} with a variance</span></>}
         </div>
       </div>
@@ -256,7 +257,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
         </Notice>
       )}
       {error && <Notice tone="danger" className="mt-4">{error}</Notice>}
-      {invalid > 0 && <Notice tone="warn" className="mt-4">{invalid} count{invalid > 1 ? "s aren't" : " isn't"} a whole number — fix {invalid > 1 ? "them" : "it"} before approving.</Notice>}
+      {invalid > 0 && <Notice tone="warn" className="mt-4">{invalid} count{invalid > 1 ? "s aren't" : " isn't"} a whole number. Fix {invalid > 1 ? "them" : "it"} before approving.</Notice>}
 
       <div className="mt-4 overflow-x-auto rounded-2xl border border-ink-150 bg-white shadow-card">
         <table className="w-full border-collapse text-sm">
@@ -293,12 +294,12 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                           <div className="font-medium text-ink-900">
                             {l.productName} <span className="text-ink-500">· {l.variantName}</span>
                           </div>
-                          <div className="hidden font-mono text-xs text-ink-400 sm:block">{l.sku}</div>
+                          <div className="hidden font-mono text-xs text-ink-500 sm:block">{l.sku}</div>
                           <div className="font-mono text-xs text-ink-600 sm:hidden">
                             {l.batchCode}
                             {l.blocked && <Badge tone="red" className="ml-1">Blocked</Badge>}
                           </div>
-                          <div className="text-xs text-ink-400 sm:hidden">
+                          <div className="text-xs text-ink-500 sm:hidden">
                             {l.expiry ?? "No expiry"}
                             {!blind && l.expected != null && (
                               <>
@@ -312,7 +313,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                     </td>
                     <td className="hidden whitespace-nowrap border-b border-ink-100 px-4 py-2.5 sm:table-cell">
                       <div className="font-mono text-xs font-semibold text-ink-700">{l.batchCode}</div>
-                      <div className="flex items-center gap-1 text-xs text-ink-400">
+                      <div className="flex items-center gap-1 text-xs text-ink-500">
                         {l.expiry ?? "No expiry"}
                         {l.blocked && <Badge tone="red">Blocked</Badge>}
                       </div>
@@ -359,7 +360,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
                     </td>
                     {!blind && (
                       <td className="tnum hidden border-b border-ink-100 px-5 py-2.5 text-right font-semibold sm:table-cell">
-                        {diff == null ? <span className="text-ink-300">—</span> : diff === 0 ? <span className="text-leaf-700">0</span> : <span className={diff > 0 ? "text-leaf-700" : "text-rose-600"}>{diff > 0 ? "+" : "−"}{Math.abs(diff)}</span>}
+                        {diff == null ? <span className="text-ink-500">—</span> : diff === 0 ? <span className="text-leaf-700">0</span> : <span className={diff > 0 ? "text-leaf-700" : "text-rose-600"}>{diff > 0 ? "+" : "−"}{Math.abs(diff)}</span>}
                       </td>
                     )}
                   </tr>

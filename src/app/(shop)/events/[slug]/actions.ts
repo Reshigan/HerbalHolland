@@ -31,7 +31,7 @@ export async function cancelRsvpAction(eventId: string): Promise<RsvpState> {
   const event = await db.storeEvent.findUnique({ where: { id: eventId }, select: { id: true, storeId: true } });
   if (!event) return { error: "That event doesn't exist" };
   const { count } = await cancelRsvp(event.id, customer.id);
-  if (!count) return { error: "There's no place to cancel — tickets already used at the door can't be cancelled" };
+  if (!count) return { error: "There's no place to cancel: tickets already used at the door can't be cancelled" };
   await audit(db, { type: "CUSTOMER", id: customer.id, name: customer.firstName }, "event.rsvp_cancel", { storeId: event.storeId, entity: "StoreEvent", entityId: event.id });
   refresh();
   return { ok: true };

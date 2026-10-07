@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { Check, Copy, CreditCard, Download, History, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
+import { Check, Copy, CreditCard, History, LifeBuoy, MessageCircle, Package, Receipt, Settings, Share2 } from "lucide-react";
 import { copyText, whatsappUrl } from "./share";
 import { cn } from "@/lib/cn";
 
@@ -11,6 +11,7 @@ const TABS = [
   { href: "/club/orders", label: "Orders", icon: Package },
   { href: "/club/points", label: "Points", icon: History },
   { href: "/club/invoices", label: "Invoices", icon: Receipt },
+  { href: "/club/support", label: "Help", icon: LifeBuoy },
   { href: "/club/settings", label: "Settings", icon: Settings },
 ];
 
@@ -29,7 +30,7 @@ export function ClubNav() {
         ))}
       </nav>
       <nav aria-label="Rewards" className="fixed inset-x-0 bottom-0 z-40 border-t border-ink-800 bg-ink-950/95 pb-[env(safe-area-inset-bottom)] backdrop-blur sm:hidden">
-        <ul className="grid grid-cols-5">
+        <ul className="grid grid-cols-6">
           {TABS.map((t) => (
             <li key={t.href}>
               <Link href={t.href} aria-current={active(t.href) ? "page" : undefined} className={cn("flex h-16 flex-col items-center justify-center gap-1 text-[0.68rem] font-semibold", active(t.href) ? "text-brand-400" : "text-ink-400")}>
@@ -71,51 +72,6 @@ export function ShareLink({ url, text, shareLabel = "Share your invite" }: { url
           <MessageCircle className="h-4 w-4 text-leaf-500" /> WhatsApp
         </a>
       </div>
-    </div>
-  );
-}
-
-type InstallEvent = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
-
-/** "Add to home screen" for the Rewards PWA (Android prompt; iOS instructions). */
-export function InstallPrompt() {
-  const [evt, setEvt] = useState<InstallEvent | null>(null);
-  const [ios, setIos] = useState(false);
-  const [done, setDone] = useState(true);
-  useEffect(() => {
-    const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone;
-    if (standalone) return;
-    setDone(false);
-    setIos(/iphone|ipad|ipod/i.test(navigator.userAgent));
-    const on = (e: Event) => {
-      e.preventDefault();
-      setEvt(e as InstallEvent);
-    };
-    window.addEventListener("beforeinstallprompt", on);
-    return () => window.removeEventListener("beforeinstallprompt", on);
-  }, []);
-  if (done || (!evt && !ios)) return null;
-  return (
-    <div className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/70 p-4">
-      <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-500 text-ink-950">
-        <Download className="h-5 w-5" />
-      </span>
-      <div className="min-w-0 flex-1 text-sm">
-        <div className="font-semibold text-white">Keep your card on your home screen</div>
-        <div className="text-ink-400">{ios ? "Tap Share, then “Add to Home Screen”." : "Open it in one tap at the till — works like an app."}</div>
-      </div>
-      {evt && (
-        <button
-          onClick={async () => {
-            await evt.prompt();
-            await evt.userChoice;
-            setDone(true);
-          }}
-          className="h-10 shrink-0 rounded-full bg-brand-500 px-4 text-sm font-semibold text-ink-950 hover:bg-brand-400"
-        >
-          Install
-        </button>
-      )}
     </div>
   );
 }

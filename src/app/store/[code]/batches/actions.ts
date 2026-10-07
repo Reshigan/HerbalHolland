@@ -21,14 +21,14 @@ export async function writeOffLot(code: string, lotId: string, _: ActionState, f
     });
     if (!lot) return fail("That lot is no longer at this store");
     if (lot.onHand <= 0) return fail("Nothing on hand in this lot to write off");
-    if (reason === "EXPIRED" && (!lot.batch.expiresAt || lot.batch.expiresAt > new Date())) return fail("This batch hasn't expired — use Recall return or Destroyed");
+    if (reason === "EXPIRED" && (!lot.batch.expiresAt || lot.batch.expiresAt > new Date())) return fail("This batch hasn't expired. Use Recall return or Destroyed.");
     const witness = str(fd, "witness").slice(0, 120);
     const noteIn = str(fd, "note").slice(0, 300);
     const check = checkAdjustment({ reason, qty: lot.onHand, onHand: lot.onHand, witness, note: noteIn });
     if ("error" in check) return fail(check.error, check.field);
     const note =
       reason === "DESTROYED"
-        ? `Destroyed — witnessed by ${witness}${noteIn ? ` · ${noteIn}` : ""}`
+        ? `Destroyed, witnessed by ${witness}${noteIn ? ` · ${noteIn}` : ""}`
         : reason === "RECALL"
           ? `Recall return to ${store.dc?.name ?? "distribution centre"}${noteIn ? ` · ${noteIn}` : ""}`
           : noteIn || "Expired stock written off";

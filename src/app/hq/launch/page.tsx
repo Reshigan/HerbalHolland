@@ -15,11 +15,10 @@ import { PageHeader, Notice } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Stat, Meter } from "@/components/ui/stat";
 import { Button } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, Select } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ColumnChart } from "@/components/charts/bar-chart";
-import { Select } from "@/components/hq/select";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { Prisma } from "@/generated/prisma/client";
 import { assignFoundingNow, saveLaunch } from "./actions";
@@ -93,7 +92,7 @@ export default async function LaunchPage() {
           title: `Closed ${fmtDate(at)}`,
           sub: assigned
             ? `${num(assignedNetwork)} Founding Members numbered · at least ${tier.name} until ${fmtDate(floorEnds!)}.`
-            : "The list has closed — the scheduler numbers the Founding Members within 15 minutes.",
+            : "The list has closed. The scheduler numbers the Founding Members within 15 minutes.",
         };
 
   return (
@@ -101,7 +100,7 @@ export default async function LaunchPage() {
       <PageHeader
         overline="Launch programme"
         title="Founding Members"
-        description="The Founding Members list, the referral ladder and the numbered cards. Win on value, status and trust — never on medicines."
+        description="The Founding Members list, the referral ladder and the numbered cards. Win on value, status and trust, never on medicines."
       />
 
       <div className="mb-6 flex flex-col gap-4 rounded-2xl bg-ink-950 p-5 text-white shadow-card sm:flex-row sm:items-center sm:justify-between sm:p-6">
@@ -143,7 +142,7 @@ export default async function LaunchPage() {
           <div className="mt-1 font-display text-[1.65rem] font-semibold leading-none tracking-tight text-ink-950 tnum">{assigned ? num(founders) : at ? (hq ? num(filled) : "Pending") : "—"}</div>
           {hq && at && <Meter value={assigned ? founders : filled} max={l.foundingCap} className="mt-3" />}
           <div className="mt-2 text-xs text-ink-500">
-            {assigned ? (hq ? `numbered, of ${num(l.foundingCap)} places` : "numbered, homed in your region") : at ? (hq ? `of ${num(l.foundingCap)} places filled — numbered at launch` : "numbered at launch, network-wide") : "set a launch date"}
+            {assigned ? (hq ? `numbered, of ${num(l.foundingCap)} places` : "numbered, homed in your region") : at ? (hq ? `of ${num(l.foundingCap)} places filled, numbered at launch` : "numbered at launch, network-wide") : "set a launch date"}
           </div>
         </div>
         {pre || !at ? (
@@ -173,7 +172,7 @@ export default async function LaunchPage() {
 
           <Card>
             <CardHeader title="Top referrers" description={`Most friends who joined before launch · each moved them up ${num(l.referralBoost)} places`} />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th className="w-10">#</Th>
@@ -203,7 +202,7 @@ export default async function LaunchPage() {
                     <Td className="hidden text-ink-600 sm:table-cell">{r.store ?? "—"}</Td>
                     <Td align="right" className="font-semibold text-ink-900">{num(r.friends)}</Td>
                     <Td align="right" className="hidden text-ink-600 md:table-cell">+{num(r.friends * l.referralBoost)}</Td>
-                    <Td align="right" className="font-mono text-xs">{r.foundingNo ? four(r.foundingNo) : <span className="text-ink-300">—</span>}</Td>
+                    <Td align="right" className="font-mono text-xs">{r.foundingNo ? four(r.foundingNo) : <span className="text-ink-500">—</span>}</Td>
                   </Tr>
                 ))}
               </tbody>
@@ -214,7 +213,7 @@ export default async function LaunchPage() {
             <CardBody className="pt-4">
               <ol className="grid gap-5 text-sm md:grid-cols-3">
                 {[
-                  { icon: Users, title: "Join the list", body: "Every member who joins before the list closes gets a place — first come, first served. Joining is free and needs no purchase." },
+                  { icon: Users, title: "Join the list", body: "Every member who joins before the list closes gets a place: first come, first served. Joining is free and needs no purchase." },
                   { icon: Share2, title: "Bring friends, move up", body: `Each friend who joins with their link (/club/join?ref=CODE) before the list closes moves them up ${num(l.referralBoost)} places. The friend gets their own place at the bottom of the list.` },
                   {
                     icon: Crown,
@@ -244,8 +243,8 @@ export default async function LaunchPage() {
           <Card>
             <CardHeader title="Founding Members settings" description="The list, its closing date and what founding members get" />
             <CardBody>
-              {!admin && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
-              {admin && assigned && <ViewOnly className="mb-4">Locked — founding numbers are assigned, so the list can&apos;t be rewritten.</ViewOnly>}
+              {!admin && <ViewOnly className="mb-4">View only: set by the HQ administrator.</ViewOnly>}
+              {admin && assigned && <ViewOnly className="mb-4">Locked: founding numbers are assigned, so the list can&apos;t be rewritten.</ViewOnly>}
               <ActionForm action={saveLaunch}>
                 <fieldset disabled={locked} className="min-w-0 grid grid-cols-2 gap-3">
                   <Field label="List closes (SAST)" htmlFor="launchAt" hint="Members who join before this moment are on the list; the shop stays open. Leave empty for no list." className="col-span-2">
@@ -287,7 +286,7 @@ export default async function LaunchPage() {
           </Card>
 
           <Card>
-            <CardHeader title="Founding numbers" description="Assigned once, when the list closes — numbers are permanent" />
+            <CardHeader title="Founding numbers" description="Assigned once, when the list closes. Numbers are permanent." />
             <CardBody className="space-y-3 text-sm text-ink-600">
               {assigned ? (
                 <p className="flex gap-2.5">
@@ -305,7 +304,7 @@ export default async function LaunchPage() {
                 </>
               ) : admin ? (
                 <>
-                  <p>The list has closed. The scheduler assigns numbers within 15 minutes — or do it now.</p>
+                  <p>The list has closed. The scheduler assigns numbers within 15 minutes, or you can do it now.</p>
                   <ConfirmAction
                     action={assignFoundingNow}
                     variant="primary"
@@ -319,7 +318,7 @@ export default async function LaunchPage() {
                   </ConfirmAction>
                 </>
               ) : (
-                <ViewOnly>Numbers are pending — the HQ administrator or the scheduler assigns them.</ViewOnly>
+                <ViewOnly>Numbers are pending. The HQ administrator or the scheduler assigns them.</ViewOnly>
               )}
             </CardBody>
           </Card>

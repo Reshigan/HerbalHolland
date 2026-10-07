@@ -1,5 +1,6 @@
 // Staff commission, switched on per store by the owner (the employer, who pays it): HQ's rates × each person's net
-// till sales ex VAT, less refunds of their sales — whoever processes the refund — never below zero for the month.
+// till sales ex VAT, less refunds of their sales — whoever processes the refund — never below zero for the month. A sale
+// a dispenser completed for someone else (Sale.soldById) is the seller's: the dispenser stays on it as staff.
 // None on medicines (Medicines Act s18A: licensed, and the noIncentives classes) or on sales rung onto their own member
 // card; anyone with an open loss-prevention alert at the store is held until it's closed. An owner's approval freezes
 // the month for payroll.
@@ -25,15 +26,16 @@ export async function monthCommission(storeId: string, month: string, onlyUserId
   const { start, end } = monthRange(month);
   const { commission, compliance } = await getSettings();
   const excluded = incentiveExcluded(compliance);
-  // A refund counts against whoever made the original sale; sales on the seller's own member card don't count at all.
+  // A sale is the seller's (soldById, else whoever rang it up); a refund counts against whoever made the original sale;
+  // sales on the seller's own member card don't count at all.
   const rows = await db.$queryRaw<{ userId: string; regClass: RegClass; sold: number; refunded: number }[]>`
-    SELECT COALESCE(o."staffId", s."staffId") AS "userId", p."regClass"::text AS "regClass",
+    SELECT COALESCE(o."soldById", o."staffId", s."soldById", s."staffId") AS "userId", p."regClass"::text AS "regClass",
       COALESCE(SUM(l."totalCents" - l."vatCents") FILTER (WHERE s.kind = 'SALE'), 0)::int AS sold,
       COALESCE(SUM(l."totalCents" - l."vatCents") FILTER (WHERE s.kind = 'REFUND'), 0)::int AS refunded
     FROM "Sale" s
     JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"
     LEFT JOIN "Sale" o ON o.id = s."refundOfId"
-    JOIN "User" u ON u.id = COALESCE(o."staffId", s."staffId")
+    JOIN "User" u ON u.id = COALESCE(o."soldById", o."staffId", s."soldById", s."staffId")
     WHERE s."storeId" = ${storeId} AND s.channel = 'POS' AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
       AND COALESCE(o."customerId", s."customerId") IS DISTINCT FROM u."memberId"
       ${onlyUserId ? Prisma.sql`AND u.id = ${onlyUserId}` : Prisma.empty}

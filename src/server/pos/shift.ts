@@ -3,15 +3,14 @@
 import { db } from "@/server/db";
 import { shiftCash } from "@/server/finance";
 import { audit, type Actor } from "@/server/audit";
-import { sendEmail, emailLayout, esc } from "@/server/email";
-import { zar } from "@/lib/money";
-import { fmtDateTime } from "@/lib/format";
-import { fmtPoints } from "@/lib/loyalty-rules";
-import { countCash, denomLabel, DENOMINATIONS, TENDER_LABEL } from "@/components/pos/lib/rules";
+import { sendEmail } from "@/server/email";
+import { APP_URL, zReportEmail } from "@/server/email-templates";
+import { countCash, DENOMINATIONS, TENDER_LABEL, tradeSummary } from "@/components/pos/lib/rules";
 import { PosError, type PosStaff } from "./http";
 import type { ZReport } from "./types";
 import { getSettings } from "@/server/settings";
 import { checkShifts, raiseAlerts } from "@/server/loss";
+import { queuePosting } from "@/server/ledger/core";
 
 const actor = (pos: PosStaff): Actor => ({ type: "USER", id: pos.user.id, name: pos.user.name });
 
@@ -32,11 +31,16 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
   const clean = Object.fromEntries(DENOMINATIONS.map((d) => [String(d), Math.max(0, Math.floor(counts[String(d)] ?? 0))]));
   const counted = countCash(clean);
   const cash = await shiftCash(shift.id);
+  // A count out by more than the cash-short tolerance needs a reason on record (without saying by how much: it's blind).
+  const tolerance = (await getSettings()).loss.cashShortCents;
+  if (Math.abs(counted - cash.expectedCents) > tolerance && !notes?.trim())
+    throw new PosError("The count doesn't match what the till expects: count the drawer again, or add a note explaining the difference", 422, "NOTE_REQUIRED");
   const done = await db.shift.updateMany({
     where: { id: shift.id, closedAt: null },
     data: { closedAt: new Date(), closedById: pos.user.id, expectedCashCents: cash.expectedCents, countedCashCents: counted, notes: notes?.trim() || null },
   });
   if (!done.count) throw new PosError("This shift is already closed", 409);
+  await queuePosting(db, "shift", shift.id);
   await audit(db, actor(pos), "shift.close", {
     storeId: shift.storeId,
     entity: "Shift",
@@ -57,7 +61,8 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
 
 export async function zReport(shiftId: string): Promise<ZReport> {
   const shift = await db.shift.findUniqueOrThrow({ where: { id: shiftId }, include: { store: { include: { company: true } } } });
-  const [kinds, tenders, units, users, device, closeLog, cash] = await Promise.all([
+  const licensed = (await getSettings()).compliance.licensedOnly;
+  const [kinds, tenders, refundTenders, units, users, device, closeLog, cash, dispensed] = await Promise.all([
     db.sale.groupBy({
       by: ["kind", "channel"],
       where: { shiftId },
@@ -65,11 +70,17 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       _sum: { totalCents: true, vatCents: true, discountCents: true, memberSavingsCents: true, pointsEarned: true },
     }),
     db.payment.groupBy({ by: ["method"], where: { sale: { shiftId } }, _sum: { amountCents: true }, _count: { _all: true } }),
+    // Where the refunds' money went (a refund back to how they paid has a line per tender).
+    db.payment.groupBy({ by: ["method"], where: { sale: { shiftId, kind: "REFUND" } }, _sum: { amountCents: true }, _count: { _all: true } }),
     db.saleLine.aggregate({ where: { sale: { shiftId, kind: "SALE" } }, _sum: { qty: true } }),
     db.user.findMany({ where: { id: { in: [shift.openedById, shift.closedById].filter(Boolean) as string[] } }, select: { id: true, name: true } }),
     shift.deviceId ? db.device.findUnique({ where: { id: shift.deviceId }, select: { name: true, prefix: true } }) : null,
     db.auditLog.findFirst({ where: { action: "shift.close", entity: "Shift", entityId: shiftId }, orderBy: { at: "desc" } }),
     shiftCash(shiftId),
+    // Licensed medicines dispensed in the shift (the Z-report's dispensing totals): sales, units, grams and value.
+    licensed.length
+      ? db.saleLine.findMany({ where: { sale: { shiftId, kind: "SALE" }, variant: { product: { regClass: { in: licensed } } } }, select: { saleId: true, qty: true, totalCents: true, variant: { select: { grams: true } } } })
+      : [],
   ]);
   const name = (id: string | null) => users.find((u) => u.id === id)?.name ?? null;
   const sum = (rows: typeof kinds, f: (r: (typeof kinds)[number]) => number) => rows.reduce((a, r) => a + f(r), 0);
@@ -80,6 +91,7 @@ export async function zReport(shiftId: string): Promise<ZReport> {
   const vat = sum(sales, (r) => r._sum.vatCents ?? 0);
   const loyalty = tenders.find((t) => t.method === "LOYALTY")?._sum.amountCents ?? 0;
   const counts = ((closeLog?.data as { counts?: Record<string, number> } | null)?.counts ?? null) as Record<string, number> | null;
+  const label = (method: string) => (method === "VOUCHER" ? "Gift vouchers" : (TENDER_LABEL[method] ?? method));
 
   return {
     shiftId: shift.id,
@@ -100,9 +112,13 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       units: units._sum.qty ?? 0,
     },
     refunds: { count: sum(refunds, (r) => r._count._all), totalCents: -sum(refunds, (r) => r._sum.totalCents ?? 0) },
+    refundTenders: refundTenders
+      .map((t) => ({ method: t.method, label: label(t.method), amountCents: -(t._sum.amountCents ?? 0), count: t._count._all }))
+      .filter((t) => t.amountCents !== 0)
+      .sort((a, b) => b.amountCents - a.amountCents),
     online: { count: sum(online, (r) => r._count._all), grossCents: sum(online, (r) => r._sum.totalCents ?? 0) },
     tenders: tenders
-      .map((t) => ({ method: t.method, label: TENDER_LABEL[t.method] ?? t.method, amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
+      .map((t) => ({ method: t.method, label: label(t.method), amountCents: t._sum.amountCents ?? 0, count: t._count._all }))
       .sort((a, b) => b.amountCents - a.amountCents),
     points: { issued: sum(kinds, (r) => r._sum.pointsEarned ?? 0), redeemed: Math.round(loyalty / 100) },
     cash: {
@@ -114,8 +130,32 @@ export async function zReport(shiftId: string): Promise<ZReport> {
       counts,
     },
     takingsCents: sum(kinds, (r) => r._sum.totalCents ?? 0),
+    dispensing: {
+      count: new Set(dispensed.map((l) => l.saleId)).size,
+      units: dispensed.reduce((a, l) => a + l.qty, 0),
+      grams: Math.round(dispensed.reduce((a, l) => a + (l.variant.grams ?? 0) * l.qty, 0) * 10) / 10,
+      cents: dispensed.reduce((a, l) => a + l.totalCents, 0),
+    },
+    // Trade sales (WHOLESALE) in the shift, and the part invoiced on account — which is not money: the cash-up
+    // (shiftCash) counts CASH tenders only, so "On account" never changes what's expected in the drawer.
+    trade: tradeSummary(
+      kinds.map((k) => ({ kind: k.kind, channel: k.channel, count: k._count._all, totalCents: k._sum.totalCents ?? 0, vatCents: k._sum.vatCents ?? 0 })),
+      tenders.map((t) => ({ method: t.method, amountCents: t._sum.amountCents ?? 0 })),
+    ),
     notes: shift.notes,
     emailedTo: null,
+  };
+}
+
+/** The X-report as a blind count needs it: nothing that gives away what the drawer should hold (managers see it all). */
+export function blindReport(r: ZReport): ZReport {
+  if (r.closed) return r;
+  return {
+    ...r,
+    blind: true,
+    tenders: r.tenders.filter((t) => t.method !== "CASH"),
+    refundTenders: r.refundTenders?.filter((t) => t.method !== "CASH"),
+    cash: { ...r.cash, cashNetCents: 0, expectedCents: 0, varianceCents: null },
   };
 }
 
@@ -125,38 +165,7 @@ export async function lastShiftId(device: { id: string; storeId: string }) {
   return s?.id ?? null;
 }
 
+/** The store's copy of the cash-up (email-templates.ts), linking to the printable Z-report in the back office. */
 async function emailZReport(r: ZReport, to: string) {
-  const row = (label: string, value: string, strong = false) =>
-    `<tr><td style="padding:5px 0;border-bottom:1px solid #EFE9E3;color:#4A403A">${esc(label)}</td><td align="right" style="padding:5px 0;border-bottom:1px solid #EFE9E3">${strong ? `<b>${value}</b>` : value}</td></tr>`;
-  const variance = r.cash.varianceCents ?? 0;
-  const body = `
-<p style="margin:0 0 16px;color:#6B5F57;font-size:14px;line-height:21px">${esc(r.store.legalName)} · Herbal Holland ${esc(r.store.name)} (${esc(r.store.code)})${r.device ? ` · ${esc(r.device.name)}` : ""}<br/>
-Opened ${fmtDateTime(r.openedAt)} by ${esc(r.openedBy)}${r.closedAt ? `<br/>Closed ${fmtDateTime(r.closedAt)} by ${esc(r.closedBy ?? "—")}` : ""}</p>
-<table role="presentation" width="100%" style="font-size:14px">
-${row("Sales", `${r.sales.count} · ${zar(r.sales.grossCents)}`, true)}
-${row("VAT included", zar(r.sales.vatCents))}
-${row("Net of VAT", zar(r.sales.netCents))}
-${row("Discounts given", zar(r.sales.discountCents))}
-${row("Rewards savings given", zar(r.sales.memberSavingsCents))}
-${row("Refunds", `${r.refunds.count} · ${zar(r.refunds.totalCents)}`)}
-${r.tenders.map((t) => row(t.label, zar(t.amountCents))).join("")}
-${row("Points issued / redeemed", `${fmtPoints(r.points.issued)} / ${fmtPoints(r.points.redeemed)}`)}
-${row("Cash expected in drawer", zar(r.cash.expectedCents))}
-${row("Cash counted", r.cash.countedCents != null ? zar(r.cash.countedCents) : "—")}
-${row("Variance", `${variance > 0 ? "+" : ""}${zar(variance)}`, true)}
-</table>${r.notes ? `<p style="margin:14px 0 0;font-size:13px;color:#6B5F57">Notes: ${esc(r.notes)}</p>` : ""}`;
-  const text = [
-    `Z-report ${r.store.name} (${r.store.code})`,
-    `Sales ${r.sales.count} · ${zar(r.sales.grossCents)} (VAT ${zar(r.sales.vatCents)})`,
-    `Refunds ${r.refunds.count} · ${zar(r.refunds.totalCents)}`,
-    ...r.tenders.map((t) => `${t.label} ${zar(t.amountCents)}`),
-    `Cash expected ${zar(r.cash.expectedCents)} · counted ${r.cash.countedCents != null ? zar(r.cash.countedCents) : "—"} · variance ${zar(variance)}`,
-    ...(r.cash.counts ? [DENOMINATIONS.filter((d) => r.cash.counts![String(d)]).map((d) => `${denomLabel(d)}×${r.cash.counts![String(d)]}`).join(", ")] : []),
-  ].join("\n");
-  await sendEmail({
-    to,
-    subject: `Z-report — ${r.store.name} ${r.device ? `(${r.device.name}) ` : ""}${fmtDateTime(r.closedAt ?? r.openedAt)}`,
-    text,
-    html: emailLayout({ preheader: `Takings ${zar(r.takingsCents)} · variance ${zar(variance)}`, heading: `Z-report · ${r.store.name}`, body }),
-  });
+  await sendEmail({ to, ...zReportEmail(r, { url: `${APP_URL()}/store/${r.store.code}/cash-ups/${r.shiftId}/z-report` }) });
 }

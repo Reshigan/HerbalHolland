@@ -1,14 +1,14 @@
 "use server";
 // Storefront server actions shared across pages: age gate, preferred store, the bag,
 // promo codes and the phone-OTP sign-in / one-step registration flow.
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { endSession, getCustomer, startSession } from "@/server/auth";
 import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
-import { createCustomer, CustomerError, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
+import { COLLISION_REFUSED, CollisionError, collisionsUsedUp, createCustomer, CustomerError, noteCollision, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
 import { getDispensaryAccess, getClasses } from "./access";
 import { getCart, getRetailStores, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
 import { openState, parseHours } from "./hours";
@@ -17,12 +17,12 @@ import { readPhoneToken, signPhone } from "./phone-token";
 import { checkSaId } from "@/lib/sa";
 import type { MsgChannel } from "@/generated/prisma/client";
 import type { PickerStore } from "@/components/shop/nav-client";
+import { safePath } from "@/lib/safe-path";
+import { clientIpFrom } from "@/lib/client-ip";
+import { isEmail } from "@/lib/email";
 
 /** Only same-site relative paths are accepted as post-sign-in destinations. */
-function safeNext(raw: FormDataEntryValue | null) {
-  const s = String(raw ?? "");
-  return s.startsWith("/") && !s.startsWith("//") && !s.includes("\\") ? s : null;
-}
+const safeNext = safePath;
 
 // ── Age gate ─────────────────────────────────────────────────────────────────
 export async function confirmAge() {
@@ -59,7 +59,7 @@ export async function addToBag(_: BagState, form: FormData): Promise<BagState> {
   const classes = await getClasses();
   if (classes.licensed.includes(v.product.regClass)) {
     const access = await getDispensaryAccess();
-    if (!access.allowed) return { error: access.mode === "MEDICAL" ? "Dispensary items are for registered patients — sign in first" : "Sign in and verify your age to order this item" };
+    if (!access.allowed) return { error: access.mode === "MEDICAL" ? "Dispensary items are for registered patients. Sign in first" : "Sign in and verify your age to order this item" };
   }
   const items = withItem(await getCart(), v.id, qty);
   await saveCart(items);
@@ -102,7 +102,6 @@ export type AuthState = {
 };
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export async function authFlow(prev: AuthState, form: FormData): Promise<AuthState> {
   const intent = String(form.get("intent") ?? "");
@@ -117,7 +116,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
   if (intent === "send") {
     const raw = String(form.get("phone") ?? "");
     try {
-      const r = await requestOtp(raw);
+      const r = await requestOtp(raw, { ip: clientIpFrom(await headers()) });
       return { step: "code", phone: r.phone, demoCode: r.demoCode };
     } catch (e) {
       // Resending from the code step keeps the member where they are; a first send shows the error on the number.
@@ -149,13 +148,16 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
 
   if (intent === "register") {
     const phone = readPhoneToken(jar.get(SHOP_COOKIE.phone)?.value);
-    if (!phone) return { step: "phone", error: "Your verification expired — please confirm your number again" };
+    if (!phone) return { step: "phone", error: "Your verification expired. Please confirm your number again" };
+    // Three tries a day that hit someone else's ID number or email, then this number can't check any more online.
+    const refused = (): AuthState => (jar.delete(SHOP_COOKIE.phone), { step: "phone", error: COLLISION_REFUSED });
+    if (await collisionsUsedUp(`phone:${phone}`)) return refused();
     // Everything comes back with an error, ticks too: React resets the form after the action, and a lost opt-in goes unnoticed.
     const v = Object.fromEntries(["firstName", "email", "idType", "idNumber", "dob", "homeStoreId", "ref", "accept", ...CHANNELS.map((ch) => `consent_${ch}`)].map((k) => [k, String(form.get(k) ?? "").trim()]));
     v.interests = form.getAll("interest").map(String).join(" ");
     const fields: AuthState["fields"] = {};
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
-    if (v.email && !EMAIL.test(v.email)) fields.email = "That email address doesn't look right";
+    if (v.email && !isEmail(v.email)) fields.email = "That email address doesn't look right";
     let dob: Date | undefined;
     if (v.idType === "passport") {
       dob = /^\d{4}-\d{2}-\d{2}$/.test(v.dob) ? new Date(`${v.dob}T00:00:00Z`) : undefined;
@@ -192,12 +194,14 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
       await startSession("customer", { customerId: c.id }, 24 * 30);
       await audit(db, { type: "CUSTOMER", id: c.id, name: c.firstName }, "customer.sign_in", { entity: "Customer", entityId: c.id, data: { firstVisit: true } });
     } catch (e) {
+      const collision = e instanceof CollisionError ? "idNumber" : (e as { code?: string }).code === "P2002" ? "email" : null;
+      if (collision && !(await noteCollision(`phone:${phone}`, { type: "CUSTOMER", name: v.firstName }, collision))) return refused();
+      if (collision === "email") return { step: "register", phone, fields: { email: "That email is already linked to another member" }, values: v };
       if (e instanceof CustomerError) {
         const msg = e.message;
         const field: Field | null = /ID number|Check digit|citizenship|13 digits|date of birth in id/i.test(msg) ? "idNumber" : /adults/i.test(msg) ? (v.idType === "passport" ? "dob" : "idNumber") : null;
         return field ? { step: "register", phone, fields: { [field]: msg }, values: v } : { step: "register", phone, error: msg, values: v };
       }
-      if ((e as { code?: string }).code === "P2002") return { step: "register", phone, fields: { email: "That email is already linked to another member" }, values: v };
       throw e;
     }
     // New members land with a welcome message wherever they were heading.
@@ -228,11 +232,17 @@ export async function verifyAgeWithId(_: AgeCheckState, form: FormData): Promise
   const idNumber = String(form.get("idNumber") ?? "").replace(/\s/g, "");
   const id = checkSaId(idNumber);
   if (!id.valid) return { error: idNumber ? id.reason : "Enter your 13-digit SA ID number" };
+  // Three tries a day that hit someone else's ID number, then the member checks it in a store instead.
+  if (await collisionsUsedUp(`member:${c.id}`)) return { error: COLLISION_REFUSED };
+  const me = { type: "CUSTOMER" as const, id: c.id, name: c.firstName };
   try {
-    await recordAgeCheck(c.id, "ID_NUMBER", { type: "CUSTOMER", id: c.id, name: c.firstName }, idNumber);
+    await recordAgeCheck(c.id, "ID_NUMBER", me, idNumber);
   } catch (e) {
     if (e instanceof CustomerError) return { error: e.message };
-    if ((e as { code?: string }).code === "P2002") return { error: "That ID number is already linked to another member — please visit a store so we can help." };
+    if ((e as { code?: string }).code === "P2002") {
+      if (!(await noteCollision(`member:${c.id}`, me, "idNumber"))) return { error: COLLISION_REFUSED };
+      return { error: "That ID number is already linked to another member. Please visit a store so we can help." };
+    }
     throw e;
   }
   refresh();

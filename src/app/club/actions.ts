@@ -1,15 +1,15 @@
 "use server";
 import { refresh } from "next/cache";
-import { z } from "zod";
+import { PushSub } from "@/lib/push-sub";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { audit } from "@/server/audit";
-import { setConsent } from "@/server/customers";
+import { COLLISION_REFUSED, collisionsUsedUp, noteCollision, setConsent } from "@/server/customers";
 import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { HOME_STORE_STATUSES } from "@/server/shop/context";
+import { isEmail } from "@/lib/email";
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
 // `values` echoes what was submitted: React resets the form after the action, so the member's input survives an error.
@@ -24,15 +24,21 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   const homeStoreId = String(form.get("homeStoreId") ?? "");
   const fields: ProfileState["fields"] = {};
   if (!firstName || firstName.length > 60) fields.firstName = "Tell us your first name";
-  if (email && !EMAIL.test(email)) fields.email = "That email address doesn't look right";
+  if (email && !isEmail(email)) fields.email = "That email address doesn't look right";
   const store = homeStoreId ? await db.store.findFirst({ where: { id: homeStoreId, kind: "RETAIL", status: { in: HOME_STORE_STATUSES } }, select: { id: true } }) : null;
   if (!store) fields.homeStoreId = "Choose your home store";
   const values = { firstName, lastName, email, homeStoreId };
   if (Object.keys(fields).length) return { fields, values };
+  // "Already linked to another member" says who's a member: a few a day, then nothing more is checked (customers.ts).
+  const emailChanging = !!email && email !== (c.email ?? "");
+  if (emailChanging && (await collisionsUsedUp(`member:${c.id}`))) return { fields: { email: COLLISION_REFUSED }, values };
   try {
     await db.customer.update({ where: { id: c.id }, data: { firstName, lastName: lastName || null, email: email || null, homeStoreId: store!.id } });
   } catch (e) {
-    if ((e as { code?: string }).code === "P2002") return { fields: { email: "That email is already linked to another member" }, values };
+    if ((e as { code?: string }).code === "P2002") {
+      const allowed = await noteCollision(`member:${c.id}`, { type: "CUSTOMER", id: c.id, name: c.firstName }, "email");
+      return { fields: { email: allowed ? "That email is already linked to another member" : COLLISION_REFUSED }, values };
+    }
     throw e;
   }
   // Without an email address there is nowhere to send email marketing: withdraw that consent too.
@@ -56,18 +62,13 @@ export async function setChannelConsent(channel: MsgChannel, granted: boolean): 
 }
 
 // ── App notifications (Web Push) ─────────────────────────────────────────────
-const PushSub = z.object({
-  endpoint: z.string().max(1000).refine((s) => s.startsWith("https://"), "Invalid endpoint"),
-  keys: z.object({ p256dh: z.string().min(16).max(200), auth: z.string().min(8).max(100) }),
-});
-
 /** Saves this device's subscription and records consent to app notifications (POPIA ledger). */
 export async function enablePush(sub: unknown): Promise<{ error?: string }> {
   const c = await getCustomer();
   if (!c) return { error: "Please sign in again" };
   if (!vapidPublicKey()) return { error: "App notifications aren't available yet" };
   const p = PushSub.safeParse(sub);
-  if (!p.success) return { error: "Your browser didn't send a complete subscription — please try again" };
+  if (!p.success) return { error: "Your browser didn't send a complete subscription. Please try again." };
   await savePushSubscription(c.id, p.data);
   await setConsent(c.id, "PUSH", true, "CLUB_APP");
   refresh();

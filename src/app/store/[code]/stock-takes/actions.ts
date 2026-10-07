@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { nextNumber } from "@/server/counters";
-import { approveStockTake, recordCounts, startStockTake } from "@/server/inventory";
+import { approveStockTake, cancelStockTake, recordCounts, startStockTake } from "@/server/inventory";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, scopesOverlap, str } from "@/server/store/rules";
 
@@ -24,7 +24,7 @@ export async function startTake(code: string, _: ActionState, fd: FormData): Pro
     if (scope !== "FULL" && !(await db.category.findUnique({ where: { slug: scope } }))) return fail("Unknown category", "category");
     const open = await db.stockTake.findMany({ where: { storeId: store.id, status: "COUNTING" }, select: { number: true, scope: true } });
     const clash = open.find((o) => scopesOverlap(o.scope, scope));
-    if (clash) return fail(`${clash.number} is still counting ${clash.scope === "FULL" ? "the whole store" : "that category"} — approve or cancel it first.`);
+    if (clash) return fail(`${clash.number} is still counting ${clash.scope === "FULL" ? "the whole store" : "that category"}. Approve or cancel it first.`);
     const n = await tx((t) => nextNumber(t, "ST"));
     const take = await startStockTake(store.id, scope, bool(fd, "blind"), user.id, `ST-${String(n).padStart(5, "0")}`);
     const lines = await db.stockTakeLine.count({ where: { stockTakeId: take.id } });
@@ -87,8 +87,11 @@ export async function cancelTake(code: string, id: string, _: ActionState, fd: F
   const res = await attempt(async () => {
     const { store, actor } = await manage(code);
     const take = await openTake(store.id, id);
-    await db.stockTake.update({ where: { id }, data: { status: "CANCELLED" } });
-    await audit(db, actor, "stocktake.cancel", { storeId: store.id, entity: "StockTake", entityId: id, data: { number: take.number } });
+    // Only while it's still counting: an approval that got there first keeps its variances.
+    await tx(async (t) => {
+      await cancelStockTake(t, store.id, id);
+      await audit(t, actor, "stocktake.cancel", { storeId: store.id, entity: "StockTake", entityId: id, data: { number: take.number } });
+    });
     ok = true;
     return done("Cancelled");
   });

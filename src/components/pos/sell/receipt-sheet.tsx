@@ -2,14 +2,17 @@
 // After payment: change due, points earned, "invoice emailed to …" (or email it now),
 // print an 80 mm receipt, start the next sale.
 import { useState } from "react";
-import { CheckCircle2, CloudOff, Mail, Printer, Sparkles } from "lucide-react";
+import { Building2, CheckCircle2, CloudOff, Mail, Printer, Sparkles } from "lucide-react";
 import { zar } from "@/lib/money";
+import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { api, errorText } from "../lib/api";
 import { updateQueued } from "../lib/storage";
-import { TENDER_LABEL } from "../lib/rules";
+import { tenderLine } from "../lib/rules";
+import { servedBy, tradeTenderLabel } from "../lib/receipt";
 import { Alert, PosButton, Sheet, TextInput } from "../ui";
 import type { ReceiptDTO } from "@/server/pos/types";
+import { isEmail } from "@/lib/email";
 
 export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt: ReceiptDTO | null; invoiceTo: string | null; onPrint: () => void; onDone: () => void }) {
   const [email, setEmail] = useState("");
@@ -19,13 +22,15 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
   if (!receipt) return null;
   const change = receipt.payments.reduce((s, p) => s + (p.changeCents ?? 0), 0);
   const to = sentTo ?? invoiceTo;
+  const training = !!receipt.training;
   const offer = Math.max(0, receipt.offerCents ?? 0);
   const deals = receipt.discountCents - offer;
+  const trade = receipt.channel === "WHOLESALE" ? (receipt.trade ?? null) : null;
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const v = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return setError("That email doesn't look right");
+    if (!isEmail(v)) return setError("That email doesn't look right");
     setBusy(true);
     setError(null);
     try {
@@ -43,8 +48,8 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
     <Sheet
       open
       onClose={onDone}
-      title={receipt.queued ? "Sale saved offline" : "Sale complete"}
-      subtitle={`${receipt.number}${receipt.customer ? ` · ${receipt.customer.name}` : ""}`}
+      title={training ? "Practice sale: nothing is real" : receipt.queued ? "Sale saved offline" : "Sale complete"}
+      subtitle={`${receipt.number}${trade ? ` · ${trade.name}` : receipt.customer ? ` · ${receipt.customer.name}` : ""}`}
       size="md"
       footer={
         <div className="grid grid-cols-2 gap-2">
@@ -80,19 +85,53 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
             )}
           </div>
         )}
-        <div className="mt-2 text-sm text-ink-400">
-          {receipt.payments.map((p) => `${TENDER_LABEL[p.method] ?? p.method} ${zar(p.amountCents)}`).join(" · ")}
+        <div className="mt-2 text-sm text-ink-400" data-testid="receipt-tenders">
+          {receipt.payments
+            .map((p) =>
+              p.method === "VOUCHER"
+                ? `${tenderLine(p)} ${zar(p.amountCents)}${p.balanceCents != null ? ` (${zar(p.balanceCents)} left on the voucher)` : ""}`
+                : p.method === "ACCOUNT"
+                  ? `${tradeTenderLabel(p, trade, "••••").replace(" - due ", " · due ")} ${zar(p.amountCents)}`
+                  : `${tenderLine({ method: p.method })} ${zar(p.amountCents)}`,
+            )
+            .join(" · ")}
           {receipt.pointsRedeemed > 0 && ` · Points ${fmtPoints(receipt.pointsRedeemed)}`}
         </div>
+        {receipt.soldBy && (
+          <div className="mt-1 text-sm text-ink-400" data-testid="receipt-sold-by">
+            {servedBy(receipt)}
+          </div>
+        )}
       </div>
 
+      {trade && (
+        <div className="mt-5 rounded-2xl bg-sky-500/10 px-4 py-3 text-sm ring-1 ring-sky-500/40" data-testid="receipt-trade">
+          <div className="flex items-center gap-2 font-display text-base font-semibold uppercase tracking-wide text-white">
+            <Building2 className="h-4 w-4 text-[#8fbdf2]" /> {receipt.title}
+          </div>
+          <div className="mt-1 text-ink-200">
+            Trade account {trade.number} · {trade.name}
+            {trade.orderNumber ? ` · order ${trade.orderNumber}` : ""}
+          </div>
+          <div className="text-xs text-ink-400">
+            Prices ex VAT · VAT {zar(receipt.vatCents)} · total {zar(receipt.totalCents)} incl VAT
+            {trade.onAccountCents > 0 && ` · ${zar(trade.onAccountCents)} on account${trade.dueAt ? `, due ${fmtDate(trade.dueAt)}` : ""}`}
+          </div>
+        </div>
+      )}
+
+      {training && (
+        <Alert tone="warn" className="mt-5">
+          <span data-testid="training-receipt">Training mode: this sale was not posted, no stock moved and no points were awarded. Receipts print with a TRAINING watermark.</span>
+        </Alert>
+      )}
       {receipt.queued && (
         <Alert tone="warn" className="mt-5">
           No connection right now. This sale is stored on the till as <b>{receipt.number}</b> and syncs automatically when you&apos;re back online.
         </Alert>
       )}
 
-      {receipt.customer && !receipt.queued && (
+      {receipt.customer && !trade && !receipt.queued && !training && (
         <div className="mt-5 flex items-center gap-3 rounded-2xl bg-brand-500/10 px-4 py-3 ring-1 ring-brand-500/30">
           <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
           <div className="text-sm text-brand-100">
@@ -109,7 +148,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
       )}
 
       <div className="mt-5">
-        {to ? (
+        {training ? null : to ? (
           <div className="flex items-center gap-3 rounded-2xl bg-ink-850 px-4 py-3 text-sm text-ink-200 ring-1 ring-ink-800" data-testid="invoice-emailed">
             <Mail className="h-5 w-5 shrink-0 text-[#7fd49a]" />
             <span>
@@ -121,7 +160,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
             <label htmlFor="inv-email" className="text-sm font-semibold text-white">
               Email the tax invoice?
             </label>
-            <p className="mb-3 mt-0.5 text-xs text-ink-400">Optional — a copy to another address.</p>
+            <p className="mb-3 mt-0.5 text-xs text-ink-400">Optional: a copy to another address.</p>
             <div className="flex gap-2">
               <TextInput id="inv-email" type="email" inputMode="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.co.za" />
               <PosButton type="submit" variant="secondary" busy={busy}>

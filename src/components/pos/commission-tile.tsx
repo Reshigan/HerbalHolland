@@ -35,7 +35,7 @@ export function CommissionTile() {
       <div className="min-w-0">
         <div className="text-sm text-ink-400">Your commission this month</div>
         {mine.data.held ? (
-          <div className="font-display text-lg font-semibold text-[#f3c65a]">Held — see your manager</div>
+          <div className="font-display text-lg font-semibold text-[#f3c65a]">Held: see your manager</div>
         ) : (
           <div className="font-display text-2xl font-semibold text-white tnum">{zar(mine.data.commissionCents)}</div>
         )}

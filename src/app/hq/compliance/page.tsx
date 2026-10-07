@@ -15,7 +15,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
 import { Input } from "@/components/ui/form";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { FilterForm, SearchField } from "@/components/hq/filter-form";
 import { ViewOnly } from "@/components/hq/ui";
 import { saveCompliance, saveLicences } from "./actions";
@@ -24,16 +24,16 @@ import { ComplianceForm } from "./compliance-form";
 export const metadata = { title: "Compliance" };
 
 const CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
-const EVENT: Record<string, string> = { "compliance.block": "Sale blocked", "compliance.settings": "Rules changed", "compliance.licence": "Licence updated", "compliance.product": "Product compliance data changed" };
+const EVENT: Record<string, string> = { "compliance.block": "Sale blocked", "compliance.settings": "Rules changed", "compliance.licence": "Licence updated", "compliance.product": "Product compliance data changed", "compliance.legal_review": "Legal texts sign-off" };
 
 // Regulatory watch-list — from docs/research/COMPLIANCE-RESEARCH.md (researched 27 Sep 2026; not legal advice).
 const WATCH: { item: string; status: string; tone: "amber" | "blue" | "neutral" | "red"; date: string; action: string }[] = [
-  { item: "Cannabis for Private Purposes Act 7 of 2024", status: "Commencement pending", tone: "amber", date: "Draft s6 regulations published 2 Feb 2026; Parliament must approve them before the President proclaims commencement (reply NW4480, 18 Sep 2026)", action: "Commercial THC trade stays unlawful — keep THC licence-gated" },
+  { item: "Cannabis for Private Purposes Act 7 of 2024", status: "Commencement pending", tone: "amber", date: "Draft s6 regulations published 2 Feb 2026; Parliament must approve them before the President proclaims commencement (reply NW4480, 18 Sep 2026)", action: "Commercial THC trade stays unlawful: keep THC licence-gated" },
   { item: "Cannabis Bill (commercial framework)", status: "Expected mid-2027", tone: "blue", date: "Portfolio Committee, 6 Mar 2026; repeated 25 Sep 2026", action: "Adult-use mode stays off until a licensing regime commences" },
-  { item: "Tobacco Products & Electronic Delivery Systems Control Bill B33-2022", status: "In committee", tone: "amber", date: "Clause-by-clause deliberation since 12 Aug 2026", action: "Ready: Tobacco Bill mode (in-store only, no loyalty or promotion for related products)" },
+  { item: "Tobacco Products & Electronic Delivery Systems Control Bill B33-2022", status: "In committee", tone: "amber", date: "Clause-by-clause deliberation since 12 Aug 2026", action: "Ready: Tobacco Bill mode (related products in-store only)" },
   { item: "SAHPRA Schedule 0 CBD (GN 586 of 2020)", status: "In force", tone: "neutral", date: "Supplements: ≤600 mg per pack, ≤20 mg daily dose, low-risk claims only. Foods: ≤0.0075% CBD, naturally occurring only, ≤0.001% THC. Re-confirm with SAHPRA", action: "Enforced in the catalogue (rules per class + claim screening)" },
-  { item: "VAT Act s7(4) — Minister's rate-change power", status: "ConCourt judgment pending", tone: "blue", date: "Declared invalid by WC High Court 5 Mar 2026 (suspended 24 months); heard late Aug 2026", action: "VAT stays 15%; watch for a rate change with effective date" },
-  { item: "CPA Amendment Regulations — NCC opt-out registry", status: "Launching 2026", tone: "amber", date: "GN R.7380 of 15 Apr 2026; registration opened Jul 2026, launch expected 'in the coming weeks' (15 Sep 2026)", action: "Import the registry monthly under Campaigns → Do-not-contact list" },
+  { item: "VAT Act s7(4): the Minister's rate-change power", status: "ConCourt judgment pending", tone: "blue", date: "Declared invalid by WC High Court 5 Mar 2026 (suspended 24 months); heard late Aug 2026", action: "VAT stays 15%; watch for a rate change with effective date" },
+  { item: "CPA Amendment Regulations: the NCC opt-out registry", status: "Launching 2026", tone: "amber", date: "GN R.7380 of 15 Apr 2026; registration opened Jul 2026, launch expected 'in the coming weeks' (15 Sep 2026)", action: "Import the registry monthly under Campaigns → Do-not-contact list" },
 ];
 
 export default async function CompliancePage({ searchParams }: { searchParams: Promise<{ q?: string; page?: string }> }) {
@@ -72,7 +72,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
       <PageHeader
         overline="Governance"
         title="Compliance"
-        description="The rules every till, the web shop and the Rewards app enforce. They're data, not code — so the network can follow South African regulation as it changes, without a release."
+        description="The rules every till, the web shop and the Rewards app enforce. They're data, not code, so the network can follow South African regulation as it changes, without a release."
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="THC mode" value={c.thcMode === "MEDICAL" ? "Medical" : "Adult use"} sub={c.thcMode === "MEDICAL" ? "SAHPRA pathway, dispenser required" : `${c.dailyLimitGrams} g daily limit`} />
@@ -85,8 +85,8 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
         <Card className="xl:col-span-2">
           <CardHeader title="Rules" description="Changes are audited and apply to the next basket everywhere" />
           <CardBody>
-            {!admin && <ViewOnly className="mb-4">View only — compliance rules are set by the HQ administrator.</ViewOnly>}
-            <ComplianceForm action={saveCompliance} value={c} readOnly={!admin} />
+            {!admin && <ViewOnly className="mb-4">View only: compliance rules are set by the HQ administrator.</ViewOnly>}
+            <ComplianceForm action={saveCompliance} value={c} legalReviewed={settings.legal.reviewed} readOnly={!admin} />
           </CardBody>
         </Card>
         <div className="space-y-6">
@@ -201,7 +201,7 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
             {events.length === 0 && <li className="px-5 py-6 text-center text-sm text-ink-500">No compliance events yet.</li>}
             {events.map((e) => {
               const d = (e.data ?? {}) as Record<string, unknown>;
-              const detail = typeof d.reason === "string" ? d.reason : Array.isArray(d.blocks) ? String(d.blocks[0] ?? "") : Array.isArray(d.changed) ? `Changed: ${(d.changed as string[]).join(", ")}` : "";
+              const detail = typeof d.reason === "string" ? d.reason : Array.isArray(d.blocks) ? String(d.blocks[0] ?? "") : Array.isArray(d.changed) ? `Changed: ${(d.changed as string[]).join(", ")}` : typeof d.reviewed === "boolean" ? (d.reviewed ? "Signed off by counsel" : "Back under review") : "";
               return (
                 <li key={e.id} className="px-5 py-2.5 text-sm">
                   <div className="flex items-center justify-between gap-2">

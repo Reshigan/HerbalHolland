@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 export function VerifyAge({ className }: { className?: string }) {
   const [state, action, pending] = useActionState<AgeCheckState, FormData>(verifyAgeWithId, {});
   const [id, setId] = useState(""); // controlled, so the number survives React's form reset after an error and a typo can be fixed
-  if (state.ok) return <p className={cn("font-semibold text-leaf-100", className)} role="status">Thanks — you&apos;re verified.</p>;
+  if (state.ok) return <p className={cn("font-semibold text-leaf-100", className)} role="status">Thanks, you&apos;re verified.</p>;
   return (
     <form action={action} className={className}>
       <label htmlFor="verify-id" className="mb-1.5 block text-[0.8rem] font-semibold text-ink-100">

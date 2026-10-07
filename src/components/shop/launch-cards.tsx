@@ -107,7 +107,7 @@ export function DropFacts({ d, earlyTime, className }: { d: DropView; earlyTime?
           <Crown className="mt-px h-3.5 w-3.5 shrink-0 text-brand-400" />
           <span>
             {early}
-            {earlyTime && ` — from ${fmtWhen(new Date(d.startsAt.getTime() - d.earlyMinutes * 60_000))}`}
+            {earlyTime && `, from ${fmtWhen(new Date(d.startsAt.getTime() - d.earlyMinutes * 60_000))}`}
           </span>
         </li>
       )}

@@ -7,6 +7,7 @@ import { createCustomer, recordAgeCheck, setConsent, STORE_CONSENT_WORDING } fro
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, str } from "@/server/store/rules";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
@@ -26,7 +27,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const phone = str(fd, "phone");
     if (!phone) return fail("A South African mobile number is required", "phone");
     const email = str(fd, "email").slice(0, 120);
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address doesn't look right", "email");
+    if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
     const idNumber = str(fd, "idNumber").replace(/\s/g, "");
     const sighted = bool(fd, "idSighted");
     if (!idNumber && !sighted) return fail("Confirm the member is 18+: capture an SA ID number or tick that you've seen their ID", "idSighted");
@@ -34,7 +35,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const dob = /^\d{4}-\d{2}-\d{2}$/.test(dobRaw) ? new Date(`${dobRaw}T00:00:00Z`) : undefined;
     if (!idNumber && !dob) return fail("Without an SA ID number, enter their date of birth from the document you saw", "dob");
     const deals = str(fd, "deals");
-    if (deals !== "yes" && deals !== "no") return fail("Ask whether they want member deals and news — their answer is recorded", "deals");
+    if (deals !== "yes" && deals !== "no") return fail("Ask whether they want member deals and news. Their answer is recorded.", "deals");
     if (!bool(fd, "acceptTerms")) return fail("The member must read the key terms and accept the membership terms", "acceptTerms");
     const c = await createCustomer(
       {

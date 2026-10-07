@@ -8,22 +8,24 @@ import { deadStock, expiry, lowStock, negativeStock, sellThrough, shrinkage, sto
 import { purchases, receiving } from "./purchasing";
 import { cashBanking, cashUps, loyaltyLiability, pnl, statements, vat } from "./finance";
 import { joinSources, memberAttach, newVsReturning, rewardsSavings, segments } from "./customers";
+import { cohorts, retention } from "./cohorts";
 import { campaigns, promotions } from "./marketing";
 import { ageChecks, batchTrace, complianceEvents, dispensingRegister, recalls } from "./compliance";
+import { tradeAgedBalances, tradeSalesAtStore, tradeSalesReport } from "./trade";
 
 export * from "./types";
 
 export const REPORTS: ReportDef[] = [
   // Sales
-  salesOverview, salesByProduct, salesByCategory, salesByStore, salesByHour, salesByStaff, refunds, payments, onlineOrders,
+  salesOverview, salesByProduct, salesByCategory, salesByStore, salesByHour, salesByStaff, refunds, payments, onlineOrders, tradeSalesReport, tradeSalesAtStore,
   // Inventory
   stockValuation, stockMovements, shrinkage, expiry, deadStock, sellThrough, lowStock, negativeStock,
   // Purchasing
   purchases, receiving,
   // Finance
-  pnl, vat, cashUps, cashBanking, statements, loyaltyLiability,
+  pnl, vat, cashUps, cashBanking, statements, loyaltyLiability, tradeAgedBalances,
   // Members
-  segments, newVsReturning, memberAttach, rewardsSavings, joinSources,
+  segments, newVsReturning, memberAttach, rewardsSavings, joinSources, cohorts, retention,
   // Marketing
   promotions, campaigns,
   // Compliance

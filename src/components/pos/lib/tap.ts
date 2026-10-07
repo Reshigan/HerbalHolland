@@ -43,7 +43,7 @@ export async function startCardPayment(opts: {
     }
     // SIMULATED: the customer taps, the "acquirer" answers.
     await wait(2200, opts.signal);
-    if (opts.simulate === "decline") return { status: "DECLINED", provider: "SIMULATED", message: "Declined by the card issuer — try another card" };
+    if (opts.simulate === "decline") return { status: "DECLINED", provider: "SIMULATED", message: "Declined by the card issuer. Try another card." };
     const [brand, last4] = BRANDS[Math.floor(Math.random() * BRANDS.length)];
     return { status: "APPROVED", provider: "SIMULATED", reference: String(Math.floor(100000 + Math.random() * 900000)), cardBrand: brand, cardLast4: last4 };
   } catch (e) {

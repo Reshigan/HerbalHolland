@@ -1,10 +1,9 @@
 "use client";
 import { useState } from "react";
 import { Building2, MapPin, Percent, Boxes } from "lucide-react";
-import { Field, Input } from "@/components/ui/form";
-import { Select } from "@/components/hq/select";
+import { Field, Input, Select } from "@/components/ui/form";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { PROVINCES } from "@/lib/sa";
 import { cn } from "@/lib/cn";
 import { createStore } from "../actions";
@@ -30,7 +29,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
         <Card>
           {heading(<MapPin className="h-4 w-4" />, "Store", "Identity, territory and trading address")}
           <CardBody className="grid gap-4 sm:grid-cols-2">
-            <Field label="Store code" htmlFor="code" hint="Three letters + number, e.g. PTA06 — used on receipts and reports">
+            <Field label="Store code" htmlFor="code" hint="Three letters and a number, e.g. PTA06, used on receipts and reports">
               <Input id="code" name="code" required maxLength={6} className="font-mono uppercase" placeholder="PTA06" />
               <FieldError name="code" />
             </Field>
@@ -109,7 +108,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
         </Card>
 
         <Card>
-          {heading(<Building2 className="h-4 w-4" />, "Owner", "Each store is owned by a franchisee company — the merchant of record")}
+          {heading(<Building2 className="h-4 w-4" />, "Owner", "Each store is owned by a franchisee company, the merchant of record")}
           <CardBody>
             <input type="hidden" name="companyMode" value={mode} />
             <div className="mb-4 inline-flex rounded-full border border-ink-150 bg-ink-50 p-1" role="radiogroup" aria-label="Owner">
@@ -188,7 +187,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
               <Field key={n} label={label} htmlFor={n}>
                 <div className="relative">
                   <Input id={n} name={n} defaultValue={v} inputMode="decimal" className="tnum pr-7" />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                 </div>
                 <FieldError name={n} />
               </Field>
@@ -198,9 +197,9 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
         <Card>
           {heading(<Boxes className="h-4 w-4" />, "Ranging", "Start from a similar store's range")}
           <CardBody className="space-y-3">
-            <Field label="Copy range from" htmlFor="templateId" hint="Copies which products are ranged plus reorder points and par levels. Shelf prices are never copied — each franchisee sets its own.">
+            <Field label="Copy range from" htmlFor="templateId" hint="Copies which products are ranged plus reorder points and par levels. Shelf prices are never copied: each franchisee sets its own.">
               <Select id="templateId" name="templateId" defaultValue={templates[0]?.id ?? ""}>
-                <option value="">Don&apos;t copy — range later</option>
+                <option value="">Don&apos;t copy (range later)</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}

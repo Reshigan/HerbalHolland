@@ -3,8 +3,14 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
-import { WEEK, bool, hoursJson, str, type TradingHours } from "@/server/store/rules";
+import { WEEK, bool, hoursJson, readHours, str, type DayKey, type TradingHours } from "@/server/store/rules";
 import { normalisePhone } from "@/lib/sa";
+import { PushSub } from "@/lib/push-sub";
+import { requireStaff } from "@/server/auth";
+import { storeForUser } from "@/server/scope";
+import { actorOf } from "@/server/store/context";
+import { removeStaffSubscription, saveStaffSubscription, STAFF_PUSH_ROLES, staffVapidKey } from "@/server/staff-push";
+import { isEmail } from "@/lib/email";
 
 export async function saveStoreDetails(code: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
@@ -12,7 +18,7 @@ export async function saveStoreDetails(code: string, _: ActionState, fd: FormDat
     const phone = str(fd, "phone").slice(0, 20);
     if (phone && !/^[+\d][\d\s()-]{8,}$/.test(phone)) return fail("Enter the store's phone number, e.g. 012 345 6789", "phone");
     const email = str(fd, "email").toLowerCase().slice(0, 120);
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address doesn't look right", "email");
+    if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
     const whatsappRaw = str(fd, "whatsapp");
     const whatsapp = whatsappRaw ? normalisePhone(whatsappRaw) : null;
     if (whatsappRaw && !whatsapp) return fail("WhatsApp needs a South African mobile number", "whatsapp");
@@ -22,10 +28,39 @@ export async function saveStoreDetails(code: string, _: ActionState, fd: FormDat
     if ("error" in hours) return fail(hours.error, "hours");
     const clickCollect = bool(fd, "clickCollect");
     const sameDay = bool(fd, "sameDay");
-    await db.store.update({ where: { id: store.id }, data: { phone: phone || null, email: email || null, whatsapp, hours: hours.json, clickCollect, sameDay } });
-    await audit(db, actor, "store.settings", { storeId: store.id, entity: "Store", entityId: store.id, data: { clickCollect, sameDay, hours: hours.json } });
+    // The ShapID the store's bank issued: checked loosely (banks format them differently); empty switches PayShap off.
+    const payshapId = str(fd, "payshapId") || null;
+    if (payshapId && payshapId.length > 60) return fail("A ShapID is 60 characters or fewer: check it against your bank's details", "payshapId");
+    const shapChanged = payshapId !== (store.payshapId ?? null);
+    await db.store.update({ where: { id: store.id }, data: { phone: phone || null, email: email || null, whatsapp, hours: hours.json, clickCollect, sameDay, payshapId } });
+    await audit(db, actor, "store.settings", {
+      storeId: store.id,
+      entity: "Store",
+      entityId: store.id,
+      data: { clickCollect, sameDay, hours: hours.json, payshap: payshapId, ...(shapChanged ? { payshapBefore: store.payshapId } : {}) },
+    });
     revalidatePath(`/store/${store.code}/settings`);
-    return done("Store details saved. The website and store finder update straight away.");
+    return done(`Store details saved. The website and store finder update straight away${shapChanged ? ", and the tills pick up the ShapID within a few minutes" : ""}.`);
+  });
+}
+
+/** Saves one day's trading hours from the inline editor (the rest of the week is kept), with the same checks and audit entry as the details form. */
+export async function saveHours(code: string, day: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  return attempt(async () => {
+    const { store, actor } = await manage(code);
+    const entry = WEEK.find(([k]) => k === day);
+    if (!entry) return fail("Unknown day");
+    const [k, name] = entry;
+    const week = readHours(store.hours);
+    week[k as DayKey] = bool(fd, "closed") ? null : { open: str(fd, "open"), close: str(fd, "close") };
+    const hours = hoursJson(week);
+    if ("error" in hours) return fail(hours.error, "hours");
+    await db.store.update({ where: { id: store.id }, data: { hours: hours.json } });
+    await audit(db, actor, "store.settings", { storeId: store.id, entity: "Store", entityId: store.id, data: { hours: hours.json, day: k } });
+    revalidatePath(`/store/${store.code}/settings`);
+    revalidatePath(`/store/${store.code}`);
+    const d = week[k as DayKey];
+    return done(d ? `${name}: ${d.open}–${d.close} saved. The website and store finder update straight away.` : `${name}: closed. The website and store finder update straight away.`);
   });
 }
 
@@ -42,4 +77,29 @@ export async function revokeDevice(code: string, deviceId: string, _: ActionStat
     revalidatePath(`/store/${store.code}/settings`);
     return done(`${d.name} can no longer trade. Pair it again from the POS if it was a mistake.`);
   });
+}
+
+// ── Notify me on this phone (staff Web Push) ─────────────────────────────────
+/** Saves this phone's subscription for the signed-in staff member (managers, owners, area managers and HQ). */
+export async function enableStaffPush(code: string, sub: unknown, userAgent: unknown): Promise<{ error?: string }> {
+  const user = await requireStaff();
+  await storeForUser(user, code);
+  if (!STAFF_PUSH_ROLES.includes(user.role)) return { error: "Notifications are for managers, owners and area managers." };
+  if (!staffVapidKey()) return { error: "Push notifications aren't set up on this server yet." };
+  const p = PushSub.safeParse(sub);
+  if (!p.success) return { error: "Your browser didn't send a complete subscription. Please try again." };
+  await saveStaffSubscription(user.id, p.data, typeof userAgent === "string" ? userAgent : null);
+  await audit(db, actorOf(user), "staff_push.enable", { entity: "User", entityId: user.id, data: { endpoint: p.data.endpoint.slice(0, 60) } });
+  revalidatePath(`/store/${code}/settings`);
+  return {};
+}
+
+/** Forgets this phone's subscription. */
+export async function disableStaffPush(code: string, endpoint: unknown): Promise<{ error?: string }> {
+  const user = await requireStaff();
+  await storeForUser(user, code);
+  if (typeof endpoint === "string" && endpoint) await removeStaffSubscription(user.id, endpoint.slice(0, 1000));
+  await audit(db, actorOf(user), "staff_push.disable", { entity: "User", entityId: user.id });
+  revalidatePath(`/store/${code}/settings`);
+  return {};
 }

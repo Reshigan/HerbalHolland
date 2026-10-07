@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 
 /** ▲ 12.3% / ▼ 4.0% with colour AND arrow (never colour alone). */
 export function DeltaText({ value, upIsGood = true, className }: { value: number | null | undefined; upIsGood?: boolean; className?: string }) {
-  if (value == null || !Number.isFinite(value)) return <span className={cn("text-ink-300", className)}>—</span>;
+  if (value == null || !Number.isFinite(value)) return <span className={cn("text-ink-500", className)}>—</span>;
   const good = value >= 0 === upIsGood;
   return (
     <span className={cn("tnum inline-flex items-center gap-0.5 text-xs font-semibold", good ? "text-leaf-600" : "text-rose-600", className)}>
@@ -30,7 +30,7 @@ export function ViewOnly({ children, className }: { children?: React.ReactNode; 
   return (
     <div className={cn("flex items-start gap-2.5 rounded-xl border border-ink-150 bg-white px-4 py-3 text-sm text-ink-600", className)} role="note">
       <Eye className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />
-      <span>{children ?? "View only — changes are made by the HQ team."}</span>
+      <span>{children ?? "View only: changes are made by the HQ team."}</span>
     </div>
   );
 }
@@ -54,11 +54,11 @@ export function MiniStat({ label, value, sub, className, tone }: { label: React.
   );
 }
 
-/** A table row that spans every column — for empty states inside tables. */
+/** A table row that spans every column — for empty states inside tables (see also TableEmpty in @/components/ui/table). */
 export function EmptyRow({ cols, children }: { cols: number; children: React.ReactNode }) {
   return (
     <tr>
-      <td colSpan={cols} className="px-5 py-10 text-center text-sm text-ink-500">
+      <td colSpan={cols} className="px-5 py-10 text-center text-sm text-ink-500" role="status">
         {children}
       </td>
     </tr>

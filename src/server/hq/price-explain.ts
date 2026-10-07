@@ -59,21 +59,21 @@ export function explainPrice(v: ExplainInput, lists: PriceListRule[], ctx: Price
       name: l.name,
       kind: l.kind,
       applies: !reason && !excluded,
-      reason: reason ?? (excluded ? "Medicines Act s18A — no incentives" : !p ? "No price for this item" : l === zone ? "Sets the shelf price" : l === incentive ? "Lowest price — wins" : l.kind === "MEMBER" || p.minQty > 1 ? "Doesn't beat the price already reached" : storeShelf ? "Store's own shelf price wins in store" : "Lower priority than the winning list"),
+      reason: reason ?? (excluded ? "Medicines Act s18A: no incentives" : !p ? "No price for this item" : l === zone ? "Sets the shelf price" : l === incentive ? "Lowest price wins" : l.kind === "MEMBER" || p.minQty > 1 ? "Doesn't beat the price already reached" : storeShelf ? "Store's own shelf price wins in store" : "Lower priority than the winning list"),
       priceCents: p?.price ?? null,
       minQty: p?.minQty ?? 1,
       won: l === zone || l === incentive,
     };
   });
 
-  const steps: { label: string; cents: number; note: string }[] = [{ label: "Recommended retail price", cents: v.rrpCents, note: "National RRP incl. VAT — a recommendation only" }];
+  const steps: { label: string; cents: number; note: string }[] = [{ label: "Recommended retail price", cents: v.rrpCents, note: "National RRP incl. VAT (a recommendation only)" }];
   if (storeShelf) steps.push({ label: "Store shelf price", cents: v.storeShelfCents!, note: "The franchisee's own price always wins in store" });
-  else if (zone) steps.push({ label: `Shelf price from “${zone.name}”`, cents: result.shelfCents, note: zone.kind === "CHANNEL" ? "Channel price list" : "Zone / scheduled price list — highest priority that applies" });
+  else if (zone) steps.push({ label: `Shelf price from “${zone.name}”`, cents: result.shelfCents, note: zone.kind === "CHANNEL" ? "Channel price list" : "Zone / scheduled price list: the highest priority that applies" });
   const tierPct = v.incentives && ctx.member && ctx.tier && ctx.tierPct ? ctx.tierPct : 0;
-  if (!v.incentives) steps.push({ label: "No incentives", cents: result.unitCents, note: "A medicine — licensed, or a CBD supplement on the Compliance page's no-incentives list: tier savings, member prices, quantity breaks and promotions don't apply (Medicines Act s18A)" });
+  if (!v.incentives) steps.push({ label: "No incentives", cents: result.unitCents, note: "A medicine (licensed, or a CBD supplement on the Compliance page's no-incentives list), so tier savings, member prices, quantity breaks and promotions don't apply (Medicines Act s18A)" });
   else {
     if (tierPct) steps.push({ label: `${tierInfo(ctx.tier!).name} Rewards price`, cents: Math.round((result.shelfCents * (100 - tierPct)) / 100), note: `Instant ${tierPct}% tier saving on the shelf price` });
-    if (incentive) steps.push({ label: incentive.kind === "MEMBER" ? `Member price from “${incentive.name}”` : `Quantity break from “${incentive.name}”`, cents: result.unitCents, note: incentive.kind === "MEMBER" ? "Lowest member price — beats the shelf and tier price" : "Quantity break reached at this quantity" });
+    if (incentive) steps.push({ label: incentive.kind === "MEMBER" ? `Member price from “${incentive.name}”` : `Quantity break from “${incentive.name}”`, cents: result.unitCents, note: incentive.kind === "MEMBER" ? "Lowest member price: beats the shelf and tier price" : "Quantity break reached at this quantity" });
   }
   return { result, verdicts, steps, lineCents: result.unitCents * v.qty };
 }

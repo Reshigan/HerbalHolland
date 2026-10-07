@@ -24,6 +24,14 @@ export async function rememberPin(staffId: string, pin: string) {
   savePins(pins);
 }
 
+/** The server refused this person at the till (their PIN was disabled, say): the till stops unlocking for them offline too. */
+export function forgetPin(staffId: string) {
+  const pins = loadPins();
+  if (!pins[staffId]) return;
+  delete pins[staffId];
+  savePins(pins);
+}
+
 export function canUnlockOffline(staffId: string) {
   const v = loadPins()[staffId];
   return !!v && v.exp > Date.now();

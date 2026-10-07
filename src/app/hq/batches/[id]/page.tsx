@@ -13,11 +13,10 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status";
 import { Badge } from "@/components/ui/badge";
 import { Detail } from "@/components/ui/misc";
-import { Field, Input, Textarea } from "@/components/ui/form";
+import { Field, Input, Textarea, Select } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { Select } from "@/components/hq/select";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { BackLink, EmptyRow, MiniStat, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { saveLabResults, setBatchStatus } from "../actions";
@@ -77,7 +76,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
 
       <Flash message={sp.m} />
       {batch.status !== "RELEASED" && (
-        <Notice tone={batch.status === "RECALLED" ? "danger" : "warn"} className="mb-6" title={batch.status === "RECALLED" ? "Recalled — blocked everywhere" : "Quarantined — blocked from sale and shipping"}>
+        <Notice tone={batch.status === "RECALLED" ? "danger" : "warn"} className="mb-6" title={batch.status === "RECALLED" ? "Recalled and blocked everywhere" : "Quarantined and blocked from sale and shipping"}>
           {batch.statusReason}
           {recall && (
             <>
@@ -105,7 +104,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
               <MiniStat label="Members reached" value={num(summary.customers)} sub="contactable for a recall" />
               <MiniStat label="Stores" value={num(summary.stores)} />
             </CardBody>
-            <Table className="relative">
+            <Table stickyFirst className="relative">
               <thead>
                 <tr>
                   <Th>Sale</Th>
@@ -130,11 +129,11 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                           <span className="block font-mono text-xs font-normal text-ink-500">{s.memberNo}</span>
                         </Link>
                       ) : (
-                        <span className="text-ink-400">Walk-in (no member)</span>
+                        <span className="text-ink-500">Walk-in (no member)</span>
                       )}
                     </Td>
                     <Td className="hidden text-ink-600 sm:table-cell">
-                      {s.storeName} <span className="font-mono text-xs text-ink-400">{s.storeCode}</span>
+                      {s.storeName} <span className="font-mono text-xs text-ink-500">{s.storeCode}</span>
                     </Td>
                     <Td align="right">{s.kind === "REFUND" ? `−${s.qty}` : s.qty}</Td>
                   </Tr>
@@ -145,9 +144,9 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
           </Card>
 
           <Card>
-            <CardHeader title="Lab results" description="Certificate of analysis for this lot — shown on the public batch page" />
+            <CardHeader title="Lab results" description="Certificate of analysis for this lot, shown on the public batch page" />
             <CardBody>
-              {!edit && <ViewOnly className="mb-4">View only — lab results are recorded by HQ quality.</ViewOnly>}
+              {!edit && <ViewOnly className="mb-4">View only: lab results are recorded by HQ quality.</ViewOnly>}
               <ActionForm action={saveLabResults.bind(null, batch.id)}>
                 <fieldset disabled={!edit} className="min-w-0 space-y-4">
                   <div className="grid gap-4 sm:grid-cols-4">
@@ -208,7 +207,7 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
         <div className="space-y-6">
           <Card>
             <CardHeader title="Batch control" description="Blocks or releases this lot at every till, DC and the web shop" />
-            <CardBody className="space-y-3">
+            <CardBody className="flex flex-col gap-3">
               <dl className="divide-y divide-ink-100">
                 <Detail label="Product">
                   <Link href={`/hq/catalogue/${batch.variant.product.id}`} className="hover:text-brand-700">
@@ -232,7 +231,6 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                   title="Quarantine this batch"
                   confirmLabel="Quarantine now"
                   variant="dark"
-                  className="w-full"
                 >
                   <p>Stock stays where it is but can&apos;t be sold, reserved or shipped until it&apos;s released.</p>
                   <Field label="Reason" htmlFor="q-reason">
@@ -249,7 +247,6 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                   title="Release for sale"
                   confirmLabel="Release"
                   variant="primary"
-                  className="w-full"
                 >
                   <p>Only release once the lab results above are complete and passing.</p>
                   <Field label="Note" htmlFor="r-reason">
@@ -266,7 +263,6 @@ export default async function BatchPage({ params, searchParams }: { params: Prom
                   confirmLabel="Recall and notify"
                   typeToConfirm={batch.code}
                   triggerVariant="danger"
-                  className="w-full"
                 >
                   <div className="flex gap-2 rounded-xl bg-white/70 p-3 text-xs text-ink-700">
                     <AlertTriangle className="h-4 w-4 shrink-0 text-rose-600" aria-hidden />

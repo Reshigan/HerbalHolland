@@ -7,7 +7,7 @@ import type { Option, ParamArgs, ReportDef, Row } from "./types";
 import { MANAGERS, PATIENT_DATA } from "./types";
 import { CHANNEL_LABEL, bounds, multi, n, ratio, storeCols, storeLabel, storeVals, sumRows } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
 
 // ── Age checks ──────────────────────────────────────────────────────────────
 const METHODS = [
@@ -20,7 +20,7 @@ const METHODS = [
 export const ageChecks: ReportDef = {
   key: "age-checks",
   title: "Age checks",
-  description: "How was each buyer's age confirmed — and did any restricted sale slip through?",
+  description: "How was each buyer's age confirmed, and did any restricted sale slip through?",
   group: "Compliance",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -63,14 +63,14 @@ export const ageChecks: ReportDef = {
       summary: [
         { label: "Age-restricted sales", value: restrictedTotal, format: "number", sub: `of ${n(total)} transactions` },
         { label: "Verified or ID sighted", value: ratio(strong, restrictedTotal), format: "pct", sub: "of age-restricted sales" },
-        { label: "Restricted sales with no check", value: missed, format: "number", sub: missed ? "investigate — see below" : "none — every restricted sale was checked", upIsGood: false },
+        { label: "Restricted sales with no check", value: missed, format: "number", sub: missed ? "investigate (see below)" : "none: every restricted sale was checked", upIsGood: false },
       ],
       chart: total ? { kind: "donut", title: "How age was confirmed", description: "Share of transactions", format: "number", data: rows.map((r) => ({ label: String(r.method), value: r.n as number })), center: total.toLocaleString() } : null,
       extra: exceptions.length
         ? [{ title: "Restricted sales without an age check", description: "Usually offline sales posted after the till lost its connection", columns: [{ key: "store", label: "Store" }, { key: "n", label: "Sales", format: "number" }], rows: exceptions.map((e) => ({ store: storeLabel(ctx, e.storeId), n: e.restricted })) }]
         : [],
       empty: "No sales in this period.",
-      note: `Age-restricted classes (from HQ compliance settings): ${restricted.join(", ")}; minimum age ${compliance.minAge}. "ID number validated" only proves the number is well-formed — ID sighted or live verification is stronger evidence.`,
+      note: `Age-restricted classes (from HQ compliance settings): ${restricted.join(", ")}; minimum age ${compliance.minAge}. "ID number validated" only proves the number is well-formed: ID sighted or live verification is stronger evidence.`,
     };
   },
 };
@@ -163,7 +163,7 @@ export const dispensingRegister: ReportDef = {
       ],
       emptyTitle: "Nothing dispensed",
       empty: "No licensed products were dispensed in this period.",
-      note: "Contains health-related personal information (POPIA s26) — view and export only for SAHPRA record-keeping and inspections; exports are logged. The authorisation shown is the one valid at the time of sale. Clinical conditions are never stored.",
+      note: "Contains health-related personal information (POPIA s26): view and export it only for SAHPRA record-keeping and inspections. Exports are logged. The authorisation shown is the one valid at the time of sale. Clinical conditions are never stored.",
     };
   },
 };
@@ -226,7 +226,7 @@ export const complianceEvents: ReportDef = {
       chart: top.length ? { kind: "bar", title: "Events by rule", description: "What the compliance engine caught", format: "number", rows: top.slice(0, 8).map(([label, value]) => ({ label, value })) } : null,
       emptyTitle: "No compliance events",
       empty: "Nothing was blocked or flagged in this period.",
-      note: "A block means the till or checkout refused the sale until the rule was met (age, patient authorisation, monthly quantity, dispenser, licence). Offline exceptions are sales a disconnected till posted anyway — each needs a manager's follow-up.",
+      note: "A block means the till or checkout refused the sale until the rule was met (age, patient authorisation, monthly quantity, dispenser, licence). Offline exceptions are sales a disconnected till posted anyway, and each needs a manager's follow-up.",
     };
   },
 };
@@ -402,7 +402,7 @@ export const batchTrace: ReportDef = {
       ],
       emptyTitle: "No sales of this batch",
       empty: "None of it has been sold in the stores you can see.",
-      note: "Traced from each sale line's batch allocation. Contact details are personal information (POPIA) — use them only to manage this batch; exports are logged.",
+      note: "Traced from each sale line's batch allocation. Contact details are personal information (POPIA): use them only to manage this batch. Exports are logged.",
     };
   },
 };

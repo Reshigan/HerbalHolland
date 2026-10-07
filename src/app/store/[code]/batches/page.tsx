@@ -16,8 +16,9 @@ import { Field, Input } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
-import { ConfirmAction, FieldError } from "@/components/store/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 import type { Prisma } from "@/generated/prisma/client";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Batches & recalls" };
 const PAGE_SIZE = 25;
@@ -80,20 +81,20 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
       <PageHeader
         overline={`Inventory · ${store.name}`}
         title="Batches & recalls"
-        description="Every lot on hand, traceable to its certificate of analysis. Recalled and quarantined batches are blocked at the till — send them back or destroy them here."
+        description="Every lot on hand, traceable to its certificate of analysis. Recalled and quarantined batches are blocked at the till. Send them back or destroy them here."
       />
 
       {blocked.units > 0 && (
-        <Notice tone="danger" className="mb-6" title={`${blocked.units} units in blocked batches`}>
-          They can&apos;t be sold. Return recalled stock to {store.dc?.name ?? "your distribution centre"} or destroy it with a witness — both are recorded on the ledger and in the destruction register.
+        <Notice tone="danger" className="mb-6" title={`${plural(blocked.units, "unit")} in blocked batches`}>
+          They can&apos;t be sold. Return recalled stock to {store.dc?.name ?? "your distribution centre"} or destroy it with a witness. Both are recorded on the ledger and in the destruction register.
         </Notice>
       )}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Units on hand" value={onHand.units.toLocaleString()} sub={`${onHand.lots} lots · ${zarCompact(onHand.value)} at cost`} />
+        <Stat label="Units on hand" value={onHand.units.toLocaleString()} sub={`${plural(onHand.lots, "lot")} · ${zarCompact(onHand.value)} at cost`} />
         <Stat label="Blocked units (recall / hold)" value={blocked.units.toLocaleString()} sub={blocked.units ? lotsLabel(blocked) : "nothing blocked"} />
         <Stat label="Units expiring within 30 days" value={expiring.units.toLocaleString()} sub={expiring.units ? `${lotsLabel(expiring)} · sold first` : "nothing close to expiry"} />
-        <Stat label="Expired units on hand" value={expired.units.toLocaleString()} sub={expired.units ? `${lotsLabel(expired)} — write off` : "none"} />
+        <Stat label="Expired units on hand" value={expired.units.toLocaleString()} sub={expired.units ? `${lotsLabel(expired)} · write off` : "none"} />
       </div>
 
       {recalls.length > 0 && (
@@ -115,7 +116,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                   <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${held ? "text-rose-600" : "text-leaf-700"}`}>
                     {held ? <ShieldAlert className="h-3.5 w-3.5" aria-hidden /> : <CircleCheck className="h-3.5 w-3.5" aria-hidden />}
                     {held ? (
-                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {held} units — resolve →</Link>
+                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {plural(held, "unit")} · resolve →</Link>
                     ) : (
                       "None on hand here"
                     )}
@@ -147,7 +148,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
               {view === "blocked" ? "Nothing recalled or quarantined is on hand here." : "Try another filter or search."}
             </EmptyState>
           ) : (
-            <Table>
+            <Table stickyFirst>
               <thead>
                 <tr>
                   <Th>Batch</Th>
@@ -170,13 +171,13 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                         <Link href={`/batch/${l.batch.code}`} target="_blank" className="inline-flex items-center gap-1 font-mono text-xs font-semibold text-ink-900 hover:text-brand-700">
                           {l.batch.code} <ExternalLink className="h-3 w-3" aria-label="Certificate of analysis (opens in a new tab)" />
                         </Link>
-                        <div className="text-xs text-ink-400">Packed {fmtDate(l.batch.packedAt)}</div>
+                        <div className="text-xs text-ink-500">Packed {fmtDate(l.batch.packedAt)}</div>
                       </Td>
                       <Td className="min-w-44">
                         <Link href={`/store/${store.code}/inventory/${l.variantId}`} className="font-medium text-ink-900 hover:text-brand-700">
                           {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                         </Link>
-                        <div className="font-mono text-xs text-ink-400">{l.variant.sku}</div>
+                        <div className="font-mono text-xs text-ink-500">{l.variant.sku}</div>
                       </Td>
                       <Td>
                         <StatusBadge status={l.batch.status} />
@@ -194,7 +195,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                             <ConfirmAction
                               action={writeOffLot.bind(null, store.code, l.id)}
                               label="Write off"
-                              title={`Write off all ${l.onHand} units of ${l.batch.code}?`}
+                              title={`Write off all ${plural(l.onHand, "unit")} of ${l.batch.code}?`}
                               confirmLabel="Write off lot"
                               className="min-w-72"
                             >
@@ -207,7 +208,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                                 )}
                                 {isExpired && (
                                   <label className="flex items-center gap-2">
-                                    <input type="radio" name="reason" value="EXPIRED" defaultChecked={!isBlocked} className="accent-brand-500" /> Expired — write off
+                                    <input type="radio" name="reason" value="EXPIRED" defaultChecked={!isBlocked} className="accent-brand-500" /> Expired (write off)
                                   </label>
                                 )}
                                 <label className="flex items-center gap-2">

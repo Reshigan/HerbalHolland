@@ -15,7 +15,7 @@ export type ComplianceSettings = {
   thcMode: ThcMode;
   dailyLimitGrams: number; // ADULT_USE: per customer per day, licensed classes
   channels: Record<SellChannel, RegClass[]>;
-  tobaccoBillMode: boolean; // B33-2022 in force: related products in-store only, no loyalty
+  tobaccoBillMode: boolean; // B33-2022 in force: related products in-store only (no click & collect or delivery)
   membersOnly: boolean; // every sale needs a registered member (online and at the till)
   // Classes that never get promotions, points or commission — Medicines Act s18A covers every medicine, including
   // Schedule 0 complementary medicines (CBD supplements) until counsel says otherwise. Licensed classes are always out.
@@ -98,6 +98,49 @@ export function checkCompliance(input: {
   return { ok: blocks.length === 0, blocks, needsAgeCheck, needsPrescription, gramsInCart };
 }
 
+// ── Trade (wholesale) baskets ────────────────────────────────────────────────
+
+export type TradeComplianceItem = { name: string; regClass: RegClass; productStatus?: string };
+export type TradeAllowedInput = { accountClasses: readonly string[]; sellerLicences: readonly string[]; productClass: RegClass; productStatus: string; licensedOnly?: readonly string[] };
+
+/**
+ * May this product be sold to this trade account by this seller? The account's allow-list, the seller's licence where
+ * the class needs one (`licensedOnly`, THC by default), and the product must be live. THC is never traded, whatever
+ * either side holds.
+ */
+export function tradeAllowed(a: TradeAllowedInput) {
+  if (a.productClass === "THC") return false;
+  if (a.productStatus !== "ACTIVE") return false;
+  if (!a.accountClasses.includes(a.productClass)) return false;
+  if ((a.licensedOnly ?? ["THC"]).includes(a.productClass) && !a.sellerLicences.includes(a.productClass)) return false;
+  return true;
+}
+
+/** Why `tradeAllowed` said no, in plain English — null when it's allowed. */
+export function tradeProblem(a: TradeAllowedInput & { name: string }) {
+  if (a.productClass === "THC") return `${a.name} is a licensed medicine and isn't available to trade customers`;
+  if (a.productStatus !== "ACTIVE") return `${a.name} isn't available right now`;
+  if (!a.accountClasses.includes(a.productClass)) return `${a.name} is ${REG_CLASS_LABEL[a.productClass]}, which this account isn't approved to buy`;
+  if ((a.licensedOnly ?? ["THC"]).includes(a.productClass) && !a.sellerLicences.includes(a.productClass)) return `${a.name} needs a licence this store doesn't hold`;
+  return null;
+}
+
+/**
+ * The trade rule (Medicines Act s22A: Schedule 0 CBD and excluded products may be sold to any business; THC never):
+ * each line's class must be in the account's allow-list and, where the class needs a licence, held by the seller;
+ * the product must be live. No member, age-gate or members-only rules — the buyer is a business whose buyers are
+ * attested adults — and no quantity limits.
+ */
+export function evaluateTradeBasket(input: { items: TradeComplianceItem[]; accountClasses: readonly string[]; sellerLicences: readonly string[]; settings?: ComplianceSettings }) {
+  const s = input.settings ?? DEFAULT_COMPLIANCE;
+  const blocks: string[] = [];
+  for (const it of input.items) {
+    const problem = tradeProblem({ name: it.name, accountClasses: input.accountClasses, sellerLicences: input.sellerLicences, productClass: it.regClass, productStatus: it.productStatus ?? "ACTIVE", licensedOnly: s.licensedOnly });
+    if (problem) blocks.push(problem);
+  }
+  return { ok: blocks.length === 0, blocks };
+}
+
 /**
  * Classes excluded from incentives (promotions, member/volume prices, markdowns, points earn, commission).
  * Medicines Act s18A prohibits supplying medicine under a bonus, rebate or other incentive scheme: licensed products in
@@ -106,7 +149,7 @@ export function checkCompliance(input: {
  */
 export const incentiveExcluded = (s: ComplianceSettings): RegClass[] => [...new Set([...(s.thcMode === "MEDICAL" ? s.licensedOnly : []), ...(s.noIncentives ?? [])])];
 
-/** Loyalty earn is switched off for Tobacco-Bill related products when that regime is active. */
+/** Not used yet: Tobacco Bill mode only makes related products in-store only (checkCompliance); points still apply. */
 export const earnsLoyalty = (item: { tobaccoRelated?: boolean }, s: ComplianceSettings) => !(s.tobaccoBillMode && item.tobaccoRelated);
 
 // ── Product facts: net content, ingredients and allergens ────────────────────
@@ -246,14 +289,14 @@ export function validateProduct(p: ProductMaster): string[] {
 
 // ── Marketing copy screening (ARB Code, Medicines Act s20, CfPPA "advertise for sale", R146 for foodstuffs) ─
 const RULES: { re: RegExp; reason: string }[] = [
-  { re: /\b(cure[sd]?|treat(s|ment)?|heal(s|ing)?|prevent(s|ion)?|remed(y|ies))\b/i, reason: "Medicinal claim — Schedule 0 CBD may only make low-risk wellness claims" },
+  { re: /\b(cure[sd]?|treat(s|ment)?|heal(s|ing)?|prevent(s|ion)?|remed(y|ies))\b/i, reason: "Medicinal claim. Schedule 0 CBD may only make low-risk wellness claims" },
   { re: /\b(anxiety|depression|cancer|epilepsy|seizures?|insomnia|arthritis|ptsd|diabetes|chronic pain)\b/i, reason: "Names a medical condition" },
-  { re: /\b(get(ting)? high|stoned|baked|wasted|zooted|faded|blazed)\b/i, reason: "Glamorises intoxication — keep copy responsible (ARB Code 3.3)" },
+  { re: /\b(get(ting)? high|stoned|baked|wasted|zooted|faded|blazed)\b/i, reason: "Glamorises intoxication. Keep copy responsible (ARB Code 3.3)" },
   { re: /\b(kids?|children|teens?|school|students?|under ?18)\b/i, reason: "May appeal to or reference minors" },
   { re: /\b(100% safe|no side[- ]effects|guaranteed|miracle|clinically proven)\b/i, reason: "Absolute or unsubstantiated claim (ARB Code 4.1–4.2)" },
   {
     re: /\b(boost(s|ed|er|ers|ing)?|detox(es|ed|ing|ify|ifies|ifying|ification)?|fat[- ]?burn(s|er|ers|ing)?|burn(s|ing)? (body |belly )?fat|anti[- ]?age?ing|immun(e|ity)|weight[- ]?loss|los(e|es|ing) weight|slimming|metaboli(sm|c))\b/i,
-    reason: "Health claim — foods and supplements can't promise to boost, detox, burn fat, slow ageing, help immunity or cause weight loss (R146)",
+    reason: "Health claim. Foods and supplements can't promise to boost, detox, burn fat, slow ageing, help immunity or cause weight loss (R146)",
   },
 ];
 
@@ -291,7 +334,7 @@ export const DEFAULT_LEGAL_BASIS: Partial<Record<RegClass, string>> = {
   CBD: "Schedule 0 CBD — GN 586 of 22 May 2020",
   CBD_FOOD: "CBD food — GN 586 of 22 May 2020 (≤ 0.0075% CBD, naturally occurring)",
   CBD_TOPICAL: "Cosmetic — Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972",
-  HEMP: "Hemp — Plant Improvement Act 2018 (≤ 2% THC)",
+  HEMP: "Hemp — Schedule 6 exclusion, GN 586 of 22 May 2020 (≤ 0.2% THC, not for ingestion; hemp-seed food ≤ 0.001%)",
   SUPPLEMENT: "Foodstuff — Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972 (labelling: R146)",
 };
 
@@ -301,7 +344,7 @@ export const REG_CLASS_HINT: Record<RegClass, string> = {
   CBD: "Oils and softgels (complementary medicines): at most 20 mg a day and 600 mg a pack, approved claims only",
   CBD_FOOD: "Coffee, tea and protein: at most 0.0075% CBD, only what's naturally in the ingredients; THC at most 0.001%",
   CBD_TOPICAL: "Creams and balms: THC at most 0.001%, no daily dose, claims screened",
-  HEMP: "Hemp seed and fibre products with no CBD claims (hemp at most 2% THC)",
+  HEMP: "Hemp seed and fibre products with no CBD claims: THC at most 0.2% if not for eating, 0.001% in hemp-seed food",
   SUPPLEMENT: "Collagen, plain protein and other supplements with no cannabis or CBD at all",
   ACCESSORY: "Grinders, glass, papers and other gear",
   APPAREL: "Clothing and merch",

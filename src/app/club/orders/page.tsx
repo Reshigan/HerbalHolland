@@ -4,6 +4,7 @@ import { Package } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { memberOrders } from "@/server/shop/club";
 import { ProductArt } from "@/components/product/art";
+import { ReorderButton } from "@/components/shop/reorder-button";
 import { Container, Pager, Tag, type TagTone } from "@/components/shop/ui";
 import { ButtonLink } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
@@ -34,8 +35,8 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
             {rows.map((o) => {
               const [label, tone] = TONE[o.status];
               return (
-                <li key={o.id}>
-                  <Link href={`/orders/${o.code}`} className="flex flex-col gap-4 rounded-2xl border border-ink-800 bg-ink-900/60 p-4 transition hover:border-ink-600 sm:flex-row sm:items-center">
+                <li key={o.id} className="rounded-2xl border border-ink-800 bg-ink-900/60 transition hover:border-ink-600">
+                  <Link href={`/orders/${o.code}`} className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center">
                     <div className="flex -space-x-3">
                       {o.lines.map((l) => (
                         <ProductArt key={l.id} slug={l.variant.product.slug} strain={l.variant.product.strain} regClass={l.variant.product.regClass} label={l.variant.product.name} className="h-14 w-14 rounded-xl ring-2 ring-ink-950" />
@@ -56,6 +57,11 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
                     </div>
                     <div className="tnum shrink-0 font-display text-lg font-semibold text-white sm:text-right">{zar(o.totalCents - o.pointsRedeemed * 100)}</div>
                   </Link>
+                  {o.status === "COMPLETED" && (
+                    <div className="border-t border-ink-800 px-4 py-3">
+                      <ReorderButton orderId={o.id} size="sm" />
+                    </div>
+                  )}
                 </li>
               );
             })}
@@ -66,7 +72,7 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Package className="mx-auto h-9 w-9 text-ink-600" />
           <h2 className="mt-4 font-display text-xl font-semibold text-white">No online orders yet</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Order online and collect in store, or have it delivered — your orders will show up here.</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Order online and collect in store, or have it delivered. Your orders will show up here.</p>
           <ButtonLink href="/shop" className="mt-6">
             Shop the range
           </ButtonLink>

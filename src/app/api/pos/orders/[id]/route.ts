@@ -1,21 +1,21 @@
 // Moves an online order along (domain: orders.advanceOrder). Handover needs the customer's
-// collection code (or order code), an 18+ ID check, a dispenser for licensed items and
+// collection code (or their collection QR — never the order code), an 18+ ID check, a dispenser for licensed items and
 // payment if unpaid; delivery orders are dispatched with a courier/driver and tracking.
 import { z } from "zod";
 import { db } from "@/server/db";
 import { advanceOrder } from "@/server/orders";
 import { getSettings } from "@/server/settings";
 import { json, readBody, withStaff, actorOf, PosError } from "@/server/pos/http";
-import { Tender } from "@/server/pos/schemas";
+import { MoneyTender } from "@/server/pos/schemas";
 import { codeMatches } from "@/server/pos/orders";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 const Body = z.object({
   to: z.enum(["PICKING", "READY", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"]),
-  code: z.string().trim().max(20).optional(),
+  code: z.string().trim().max(60).optional(), // the 6-digit collection code, or the collection QR's text
   idChecked: z.boolean().optional(),
-  payments: z.array(Tender).max(6).optional(),
+  payments: z.array(MoneyTender).max(6).optional(),
   courier: z.string().trim().max(60).optional(),
   trackingNo: z.string().trim().max(60).optional(),
   note: z.string().trim().max(200).optional(),
@@ -29,7 +29,7 @@ export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
   if (!order || order.storeId !== pos.device.storeId) throw new PosError("Order not found at this store", 404);
 
   const handover = b.to === "COMPLETED" && order.fulfilment === "COLLECT";
-  if (handover && !codeMatches(order, b.code ?? "")) throw new PosError("That code doesn't match this order — ask for the 6-digit collection code", 422, "BAD_CODE");
+  if (handover && !codeMatches(order, b.code ?? "")) throw new PosError("That code doesn't match this order. Ask for the 6-digit collection code", 422, "BAD_CODE");
   if (b.to === "CANCELLED" && !b.note) throw new PosError("Give a reason for cancelling", 422);
 
   const shift = await db.shift.findFirst({ where: { storeId: pos.device.storeId, deviceId: pos.device.id, closedAt: null }, select: { id: true } });

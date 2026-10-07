@@ -1,6 +1,6 @@
 "use client";
 import { Field, Input } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 export function AddAuthForm({ action, member, today }: { action: FormAction; member?: string; today: string }) {
   return (

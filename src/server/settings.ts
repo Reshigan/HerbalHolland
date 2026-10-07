@@ -3,6 +3,7 @@ import { db } from "./db";
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "@/lib/compliance";
 import { DEFAULT_TIER_SAVINGS, type TierKey } from "@/lib/loyalty-rules";
 import { DEFAULT_LOSS } from "@/lib/loss";
+import { DEFAULT_DELIVERY_DAYS, type DeliveryDays } from "@/lib/delivery";
 import type { RegClass } from "@/lib/compliance";
 
 export const DEFAULT_SETTINGS = {
@@ -23,9 +24,9 @@ export const DEFAULT_SETTINGS = {
   },
   launch: {
     launchAt: null as string | null, // ISO date-time when the Founding Members list closes (null = no list)
-    foundingCap: 10_000, // the first N waitlist places become numbered Founding Members
+    foundingCap: 2_026, // the first N waitlist places become numbered Founding Members
     foundingTier: "SPROUT" as TierKey, // …who hold at least this tier
-    foundingMonths: 12, // …for this long after launch
+    foundingMonths: 14, // …for this long after launch
     referralBoost: 250, // waitlist places gained per friend who joins before launch
   },
   offers: {
@@ -42,6 +43,7 @@ export const DEFAULT_SETTINGS = {
     sameDayCutoffHour: 15,
     unpaidHoldMinutes: 60, // unpaid online orders are cancelled (stock released) after this
     collectHoldDays: 7, // pay-in-store collections not picked up are cancelled after this
+    deliveryDays: DEFAULT_DELIVERY_DAYS as DeliveryDays, // courier working days door to door, by province (min, max)
   },
   banking: {
     dueBusinessDays: 1, // cash from a cash-up is in the bank by the end of this many business days
@@ -53,8 +55,36 @@ export const DEFAULT_SETTINGS = {
     // earn commission (s18A), whatever is set.
     bps: { THC: 0, CBD: 200, CBD_FOOD: 200, CBD_TOPICAL: 200, HEMP: 200, SUPPLEMENT: 200, ACCESSORY: 200, APPAREL: 200, GROW: 200 } as Record<RegClass, number>,
   },
+  operations: {
+    // The store's Today list: a category is due a cycle count this many days after its last approved count…
+    cycleCountDays: 30,
+    cycleCountByCategory: {} as Record<string, number>, // …or its own cadence by category slug
+    batchExpiryDays: 30, // lots expiring within this many days are flagged
+    patientAuthDays: 14, // patient authorisations lapsing within this many days are flagged
+    supplierInvoiceDays: 7, // supplier invoices due within this many days are flagged
+  },
+  trade: {
+    // The trade (wholesale) channel: businesses buying at ex-VAT prices online (courier from the DC, or click &
+    // collect at a store) and at the till. Amounts are cents ex VAT; VAT is added per line.
+    minOrderCents: 200_000, // R2,000 ex VAT, after any promotion
+    deliveryCents: 15_000, // courier from the DC: a flat R150 ex VAT…
+    freeDeliveryOverCents: 500_000, // …free from R5,000 ex VAT
+    collectHandlingCents: 7_500, // click & collect: the store's handling fee, R75 ex VAT (no delivery fee)
+    eftHoldDays: 3, // an EFT order's payment must arrive within this many days or the order lapses
+    overdueGraceDays: 7, // an invoice this many days past due puts an account on hold (lifted when it's settled)
+    statementDay: 1, // day of the month the previous month's statements go out
+    termsVersion: "trade-1", // the trade terms applicants accept (stored on the account)
+    bank: { bank: "", accountName: "", accountNumber: "", branchCode: "" }, // where EFT payments go (printed on pro formas)
+  },
+  legal: {
+    // HQ → Compliance: ticked once counsel has signed off the legal texts. Until then the legal pages and the trade terms
+    // carry a review note, and each line counsel must confirm shows its question.
+    reviewed: false,
+  },
 };
-export type Settings = typeof DEFAULT_SETTINGS;
+type Defaults = typeof DEFAULT_SETTINGS;
+/** The settings as read: `ecommerce.deliveryDays` is optional in a saved value (older rows, the HQ form) and falls back to the defaults. */
+export type Settings = Omit<Defaults, "ecommerce"> & { ecommerce: Omit<Defaults["ecommerce"], "deliveryDays"> & { deliveryDays?: DeliveryDays } };
 export type SettingKey = keyof Settings;
 
 export const getSettings = cache(async (): Promise<Settings> => {

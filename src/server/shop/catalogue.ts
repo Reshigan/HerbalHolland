@@ -9,7 +9,9 @@ import { getClasses } from "./access";
 import { STORE_SELECT } from "./context";
 import { resolvePrice, type Tier } from "@/lib/pricing-rules";
 import { tierInfo, type TierKey } from "@/lib/loyalty-rules";
-import { describePromo, type PromoInput } from "@/lib/promotions";
+import { describePromo } from "@/lib/promotions";
+import { didYouMean, parseQuery, rankSearch, type SearchDoc } from "@/lib/search";
+import { similarProducts } from "./search";
 import { distanceKm } from "@/lib/routing";
 import type { RegClass } from "@/lib/compliance";
 import type { Prisma, Promotion } from "@/generated/prisma/client";
@@ -69,9 +71,9 @@ export const withDeal = (cents: number, d?: Promotion | null) => (!d ? cents : c
 
 /** Plain headline for a deal; bonus buys with a different reward item read better by name. */
 export const dealHeadline = (d: Promotion) =>
-  d.kind === "BUY_X_GET_Y" && (d.rewardProductIds.length || d.rewardCategoryIds.length) ? d.name : describePromo(d as unknown as PromoInput);
+  d.kind === "BUY_X_GET_Y" && (d.rewardProductIds.length || d.rewardCategoryIds.length) ? d.name : describePromo(d);
 
-export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d as unknown as PromoInput));
+export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d));
 
 // ── Stock ────────────────────────────────────────────────────────────────────
 export const getNetwork = cache(async () => {
@@ -126,7 +128,7 @@ export type ProductCard = {
 
 async function ratingsFor(productIds: string[]) {
   if (!productIds.length) return new Map<string, { avg: number; count: number }>();
-  const rows = await db.review.groupBy({ by: ["productId"], where: { productId: { in: productIds }, verified: true }, _avg: { rating: true }, _count: true });
+  const rows = await db.review.groupBy({ by: ["productId"], where: { productId: { in: productIds }, verified: true, hidden: false }, _avg: { rating: true }, _count: true });
   return new Map(rows.map((r) => [r.productId, { avg: r._avg.rating ?? 0, count: r._count }]));
 }
 
@@ -207,6 +209,7 @@ export async function cardsWhere(where: Prisma.ProductWhereInput, classes: RegCl
 
 // ── Listing ──────────────────────────────────────────────────────────────────
 export const SORTS = [
+  { key: "relevance", label: "Best match" },
   { key: "featured", label: "Featured" },
   { key: "price-asc", label: "Price: low to high" },
   { key: "price-desc", label: "Price: high to low" },
@@ -238,19 +241,38 @@ export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, 
   if (q.mood) rows = rows.filter((c) => c.effects.includes(q.mood!));
   if (q.min != null) rows = rows.filter((c) => c.priceCents >= q.min! * 100);
   if (q.max != null) rows = rows.filter((c) => c.priceCents <= q.max! * 100);
+  // Search: words, measures ("600mg", "30ml", "3.5g") and class words, plus trigram similarity for typos; ranked by
+  // relevance unless another sort is chosen. "Did you mean…" when the best hit was found only by similarity.
+  let suggestion: string | null = null;
+  let relevance: Map<string, number> | null = null;
   if (q.q) {
-    const words = q.q.toLowerCase().split(/\s+/).filter(Boolean);
-    rows = rows.filter((c) => words.every((w) => c.search.includes(w)));
+    const parsed = parseQuery(q.q);
+    const sims = await similarProducts(parsed.norm, scope === "public" ? classes.public : classes.licensed);
+    const byId = new Map(products.map((p) => [p.id, p]));
+    const docs: SearchDoc[] = rows.map((c) => {
+      const p = byId.get(c.id)!;
+      return {
+        id: c.id, name: c.name, tagline: c.tagline, description: p.description, category: c.category.name, words: [...p.effects, ...p.flavours, p.origin ?? "", p.lineage ?? ""], effects: p.effects,
+        netContent: p.netContent, netUnit: p.netUnit, cbdMgPerPack: p.cbdMgPerPack, variants: p.variants.map((v) => ({ name: v.name, grams: v.grams })), sim: sims.get(c.id) ?? 0,
+      };
+    });
+    const ranked = rankSearch(parsed, docs);
+    suggestion = didYouMean(ranked, docs, parsed);
+    relevance = new Map(ranked.map((r, i) => [r.id, i]));
+    rows = rows.filter((c) => relevance!.has(c.id));
   }
   const byName = (a: ProductCard, b: ProductCard) => a.name.localeCompare(b.name);
   const sorters: Record<SortKey, (a: ProductCard, b: ProductCard) => number> = {
+    relevance: (a, b) => (relevance ? relevance.get(a.id)! - relevance.get(b.id)! : 0) || byName(a, b),
     featured: (a, b) => Number(b.featured) - Number(a.featured) || Number(b.heritage) - Number(a.heritage) || a.category.sortOrder - b.category.sortOrder || byName(a, b),
     "price-asc": (a, b) => a.priceCents - b.priceCents || byName(a, b),
     "price-desc": (a, b) => b.priceCents - a.priceCents || byName(a, b),
     rating: (a, b) => (b.rating?.avg ?? 0) - (a.rating?.avg ?? 0) || (b.rating?.count ?? 0) - (a.rating?.count ?? 0) || byName(a, b),
     new: (a, b) => b.createdAt.getTime() - a.createdAt.getTime() || byName(a, b),
   };
-  rows = [...rows].sort(sorters[q.sort ?? "featured"]);
+  // Best match is the default with a search, Featured without one (there is nothing to match then).
+  const sortKey: SortKey = q.sort && (q.sort !== "relevance" || relevance) ? q.sort : relevance ? "relevance" : "featured";
+  rows = [...rows].sort(sorters[sortKey]);
   const prices = all.map((c) => c.priceCents);
   return {
     items: rows.slice((q.page - 1) * PAGE_SIZE, q.page * PAGE_SIZE),
@@ -258,6 +280,7 @@ export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, 
     categories,
     moods,
     priceBounds: { min: prices.length ? Math.floor(Math.min(...prices) / 100) : 0, max: prices.length ? Math.ceil(Math.max(...prices) / 100) : 0 },
+    suggestion,
   };
 }
 
@@ -299,7 +322,7 @@ export async function storesWithStock(variantIds: string[], from?: { lat: number
 }
 
 export async function productReviews(productId: string, take: number) {
-  const where = { productId, verified: true };
+  const where = { productId, verified: true, hidden: false }; // hidden reviews never show or count (nor in the structured data)
   const [agg, rows, dist] = await Promise.all([
     db.review.aggregate({ where, _avg: { rating: true }, _count: true }),
     db.review.findMany({ where, orderBy: { createdAt: "desc" }, take, include: { customer: { select: { firstName: true, lastName: true } } } }),

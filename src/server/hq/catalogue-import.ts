@@ -6,8 +6,10 @@ import { createHash, randomUUID } from "node:crypto";
 import { db, type Tx } from "@/server/db";
 import { audit, type Actor } from "@/server/audit";
 import { putStock } from "@/server/inventory";
+import { queueStoreDay } from "@/server/ledger/core";
 import { getSettings } from "@/server/settings";
 import { getObject, putObject } from "@/server/storage";
+import { importProductImages, type ImageImportResult } from "@/server/shop/images";
 import { IMPORT_MAX_BYTES, importKeys, planDigest, planImport, readImport, type ImportPlan, type ImportRead, type ImportSnapshot } from "@/lib/catalogue-import";
 import { dayKey, fmtDateTime } from "@/lib/format";
 
@@ -98,10 +100,12 @@ const chunks = <T>(xs: T[]) => Array.from({ length: Math.ceil(xs.length / CHUNK)
 /**
  * Imports an uploaded file: plans it again inside the transaction (refusing if it would now do something other than
  * the preview showed), writes the rows without errors, and records one catalogue.import audit entry. A file imports once.
+ * Product photos (image_urls) are fetched after the transaction commits: a slow or missing picture never holds up or
+ * undoes the import — what couldn't be fetched is reported (and audited) instead.
  */
 export async function runImport(a: { uploadId: string; fileName: string; sha256: string; text: string; locationId: string | null; digest: string | null; actor: Actor; userId: string }) {
   const read = readImport(a.text);
-  return db.$transaction(
+  const done = await db.$transaction(
     async (t) => {
       await t.$queryRaw`SELECT 1 AS ok FROM (SELECT pg_advisory_xact_lock(hashtext(${a.uploadId}))) x`;
       const done = await t.auditLog.findFirst({ where: { action: "catalogue.import", entity: "Upload", entityId: a.uploadId }, select: { at: true } });
@@ -113,7 +117,7 @@ export async function runImport(a: { uploadId: string; fileName: string; sha256:
       if (a.digest && a.digest !== planDigest(plan.counts)) throw new ImportError("The catalogue has changed since this preview: check the preview again, then import.");
       const c = plan.counts;
       if (!c.productsNew && !c.productsUpdated && !c.variantsNew && !c.variantsUpdated && !c.stockLines) throw new ImportError("Nothing to import: every row is unchanged or has an error.");
-      await applyPlan(t, plan, snap, a.userId, `Opening stock · ${a.fileName}`.slice(0, 120));
+      const ids = await applyPlan(t, plan, snap, a.userId, `Opening stock · ${a.fileName}`.slice(0, 120));
       await audit(t, a.actor, "catalogue.import", {
         storeId: c.stockLines ? snap.location?.id : null,
         entity: "Upload",
@@ -127,12 +131,24 @@ export async function runImport(a: { uploadId: string; fileName: string; sha256:
           prices: plan.variants.filter((v) => v.before && v.changed.some((k) => k.endsWith("Cents"))).slice(0, 100).map((v) => ({ sku: v.data.sku, before: v.before, after: [v.data.priceCents, v.data.wholesaleCents, v.data.costCents] })),
         },
       });
-      return { counts: c, location: c.stockLines ? snap.location : null };
+      const photos = plan.products.filter((p) => p.images.length).map((p) => ({ productId: p.id ?? ids.get(p.slug)!, name: p.data.name, urls: p.images }));
+      return { counts: c, location: c.stockLines ? snap.location : null, photos };
     },
     { timeout: TIMEOUT_MS, maxWait: 10_000 },
   );
+  const images: ImageImportResult = { fetched: 0, skipped: 0, failed: [] };
+  for (const p of done.photos) {
+    const r = await importProductImages(p.productId, p.urls, { uploadedById: a.userId, alt: p.name });
+    images.fetched += r.fetched;
+    images.skipped += r.skipped;
+    images.failed.push(...r.failed);
+  }
+  if (done.photos.length)
+    await audit(db, a.actor, "catalogue.import_images", { entity: "Upload", entityId: a.uploadId, data: { products: done.photos.length, fetched: images.fetched, skipped: images.skipped, failed: images.failed.slice(0, 50) } });
+  return { counts: done.counts, location: done.location, images };
 }
 
+/** Writes the plan; returns each new product's id by its key (slug), for the photos fetched afterwards. */
 async function applyPlan(t: Tx, plan: ImportPlan, snap: ImportSnapshot, userId: string, note: string) {
   const productId = new Map<string, string>(); // a new product's key (its slug) → id
   for (const part of chunks(plan.products.filter((p) => !p.id)))
@@ -145,7 +161,7 @@ async function applyPlan(t: Tx, plan: ImportPlan, snap: ImportSnapshot, userId: 
 
   // Opening stock: a new batch per new code (released, packed today), then each lot through the inventory service —
   // received at the location's cost, with the correction reason and the file named in the note.
-  if (!plan.stock.length || !snap.location) return;
+  if (!plan.stock.length || !snap.location) return productId;
   const ids = new Map((await t.variant.findMany({ where: { sku: { in: plan.stock.map((s) => s.sku) } }, select: { id: true, sku: true } })).map((v) => [v.sku, v.id]));
   const batchId = new Map<string, string>();
   const packedAt = new Date();
@@ -160,4 +176,6 @@ async function applyPlan(t: Tx, plan: ImportPlan, snap: ImportSnapshot, userId: 
       storeId: snap.location.id, variantId: ids.get(s.sku)!, batchId: s.batchId ?? batchId.get(s.batchCode)!, qty: s.qty, unitCostCents: s.unitCostCents,
       type: "RECEIVE", reason: "CORRECTION", userId, note,
     });
+  await queueStoreDay(t, snap.location.id, dayKey(new Date())); // the receipts post with the location's day
+  return productId;
 }

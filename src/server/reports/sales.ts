@@ -4,20 +4,20 @@ import { db, Prisma } from "../db";
 import { sast } from "../sql";
 import { delta, previousRange } from "@/lib/ranges";
 import { dayKey, fmtDate, fmtDay } from "@/lib/format";
-import { zar } from "@/lib/money";
+import { zar, zarCompact } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import {
   CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio, storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap, rangeQS, storeDrill,
 } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
 
 // ── Sales overview ──────────────────────────────────────────────────────────
 export const salesOverview: ReportDef = {
   key: "sales-overview",
   title: "Sales overview",
-  description: "How did we trade each day — sales, VAT, discounts, baskets and margin?",
+  description: "How did we trade each day? Sales, VAT, discounts, baskets and margin.",
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -209,30 +209,36 @@ export const salesByStore: ReportDef = {
   filters: ["range", "channel"],
   async run(ctx) {
     const prevR = previousRange(ctx.range);
-    const [cur, before, online] = await Promise.all([
+    const [cur, before, online, trade] = await Promise.all([
       db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx), _sum: STAT_SUMS }),
       db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx, prevR), _sum: { grossCents: true, vatCents: true } }),
       db.dailyStoreStat.groupBy({ by: ["storeId"], where: { ...statWhere(ctx), channel: "ONLINE" }, _sum: { grossCents: true, vatCents: true } }),
+      db.dailyStoreStat.groupBy({ by: ["storeId"], where: { ...statWhere(ctx), channel: "WHOLESALE" }, _sum: { grossCents: true, vatCents: true } }),
     ]);
     const now = new Map(cur.map((x) => [x.storeId, summaryOf(x._sum)]));
     const prev = new Map(before.map((x) => [x.storeId, (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0)]));
-    const onl = new Map(online.map((x) => [x.storeId, (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0)]));
+    const netOf = (x: { _sum: { grossCents: number | null; vatCents: number | null } }) => (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0);
+    const onl = new Map(online.map((x) => [x.storeId, netOf(x)]));
+    const trd = new Map(trade.map((x) => [x.storeId, netOf(x)]));
     const ids = [...ctx.stores.values()].filter((s) => now.has(s.id) || prev.has(s.id) || (s.kind === "RETAIL" && s.status === "ACTIVE")).map((s) => s.id);
     const list = ids
-      .map((id) => ({ id, s: now.get(id) ?? summaryOf(null), prev: prev.get(id) ?? 0 }))
-      .sort((a, b) => b.s.netCents - a.s.netCents);
+      .map((id) => ({ id, s: now.get(id) ?? summaryOf(null), prev: prev.get(id) ?? 0, dc: ctx.stores.get(id)!.kind === "WAREHOUSE" }))
+      // Stores are ranked; distribution centres (courier and trade fulfilment) follow, unranked.
+      .sort((a, b) => Number(a.dc) - Number(b.dc) || b.s.netCents - a.s.netCents);
     const rows: Row[] = list.map((x, i) => {
       const st = ctx.stores.get(x.id)!;
       return {
         _link: "store", _href: storeDrill(ctx, st.code, "sales-overview"),
-        rank: i + 1, store: storeLabel(ctx, x.id), code: st.code, region: st.region, net: x.s.netCents, prev: x.prev,
+        rank: x.dc ? null : i + 1, store: storeLabel(ctx, x.id), code: st.code, region: st.region, net: x.s.netCents, prev: x.prev,
         growth: delta(x.s.netCents, x.prev), sales: x.s.sales, atv: x.s.sales ? x.s.atvCents : null, margin: x.s.netCents ? x.s.marginPct : null,
-        members: x.s.sales ? x.s.memberRate : null, online: ratio(onl.get(x.id) ?? 0, x.s.netCents),
+        members: x.s.sales ? x.s.memberRate : null, online: ratio(onl.get(x.id) ?? 0, x.s.netCents), trade: ratio(trd.get(x.id) ?? 0, x.s.netCents),
       };
     });
     const t = summaryOf(Object.fromEntries(Object.keys(STAT_SUMS).map((k) => [k, cur.reduce((s, x) => s + ((x._sum as Record<string, number | null>)[k] ?? 0), 0)])));
     const prevTotal = list.reduce((s, x) => s + x.prev, 0);
-    const growing = rows.filter((r) => (r.growth as number | null) != null && (r.growth as number) > 0).length;
+    const retailRows = rows.filter((_, i) => !list[i].dc);
+    const dcTrading = rows.filter((r, i) => list[i].dc && (r.sales as number) > 0).length;
+    const growing = retailRows.filter((r) => (r.growth as number | null) != null && (r.growth as number) > 0).length;
     return {
       columns: [
         { key: "rank", label: "#", format: "number" },
@@ -247,24 +253,26 @@ export const salesByStore: ReportDef = {
         { key: "margin", label: "Margin", format: "pct" },
         { key: "members", label: "Member sales", format: "pct" },
         { key: "online", label: "Online share", format: "pct" },
+        { key: "trade", label: "Trade share", format: "pct" },
       ],
       rows,
       title: "League table",
       totals: {
         rank: "", store: "Total", net: t.netCents, prev: prevTotal, growth: delta(t.netCents, prevTotal), sales: t.sales,
         atv: t.sales ? t.atvCents : null, margin: t.netCents ? t.marginPct : null, members: t.sales ? t.memberRate : null,
-        online: ratio(online.reduce((s, x) => s + (x._sum.grossCents ?? 0) - (x._sum.vatCents ?? 0), 0), t.netCents),
+        online: ratio(online.reduce((s, x) => s + netOf(x), 0), t.netCents),
+        trade: ratio(trade.reduce((s, x) => s + netOf(x), 0), t.netCents),
       },
       summary: [
         { label: "Net sales (ex VAT)", value: t.netCents, format: "zar", delta: delta(t.netCents, prevTotal) },
-        { label: "Stores trading", value: rows.filter((r) => (r.sales as number) > 0).length, format: "number" },
-        { label: "Growing vs last period", value: growing, format: "number", sub: `of ${rows.length}` },
+        { label: "Stores trading", value: retailRows.filter((r) => (r.sales as number) > 0).length, format: "number", sub: dcTrading ? `+ ${dcTrading} distribution centre${dcTrading === 1 ? "" : "s"}` : undefined },
+        { label: "Growing vs last period", value: growing, format: "number", sub: `of ${retailRows.length} stores` },
         { label: "Average basket", value: t.atvCents, format: "zar", sub: "incl VAT" },
       ],
-      chart: rows.length > 1
-        ? { kind: "bar", title: "Store league", description: "Net sales ex VAT · top 15", format: "zar", rows: rows.slice(0, 15).map((r) => ({ label: `${String(r.rank).padStart(2, "0")}  ${r.store}`, value: r.net as number, sub: r.growth == null ? "new" : `${(r.growth as number) >= 0 ? "▲" : "▼"} ${Math.abs((r.growth as number) * 100).toFixed(1)}%`, tip: `${r.store} (${r.code})\n${zar(r.net as number)} net · ${r.region}` })) }
+      chart: retailRows.length > 1
+        ? { kind: "bar", title: "Store league", description: "Net sales ex VAT · top 15", format: "zar", rows: retailRows.slice(0, 15).map((r) => ({ label: `${String(r.rank).padStart(2, "0")}  ${r.store}`, value: r.net as number, sub: r.growth == null ? "new" : `${(r.growth as number) >= 0 ? "▲" : "▼"} ${Math.abs((r.growth as number) * 100).toFixed(1)}%`, tip: `${r.store} (${r.code})\n${zar(r.net as number)} net · ${r.region}` })) }
         : null,
-      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Distribution centres appear when they fulfil courier orders.`,
+      note: `Growth compares with ${fmtDate(`${prevR.from}T12:00:00Z`)} – ${fmtDate(`${prevR.to}T12:00:00Z`)}, the same number of days immediately before. Online share is online orders the store fulfilled; trade share is sales to business accounts (the trade portal's orders collected at the store, and trade sales rung up at a till). Distribution centres (DC) are listed after the stores, unranked, when they fulfil courier or trade orders; they don't count as stores trading.`,
     };
   },
 };
@@ -349,7 +357,7 @@ export const salesByHour: ReportDef = {
 export const salesByStaff: ReportDef = {
   key: "sales-by-staff",
   title: "Sales by staff",
-  description: "How is each budtender performing — sales, baskets, member sign-in and refunds?",
+  description: "How is each budtender performing? Sales, baskets, member sign-in and refunds.",
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -492,8 +500,9 @@ const TENDERS = [
   { key: "cashCents", label: "Cash" },
   { key: "payshapCents", label: "PayShap" },
   { key: "eftCents", label: "EFT" },
-  { key: "onlineCents", label: "Paid online" },
+  { key: "onlineCents", label: "Collected by HQ" },
   { key: "loyaltyCents", label: "Points" },
+  { key: "accountCents", label: "On account" },
 ] as const;
 
 export const payments: ReportDef = {
@@ -539,13 +548,12 @@ export const payments: ReportDef = {
         { label: "Cash", value: t.cashCents as number, format: "zar", sub: pctOf(t.cashCents, t.total) },
         { label: "PayShap", value: t.payshapCents as number, format: "zar", sub: pctOf(t.payshapCents, t.total) },
       ],
-      chart: (t.total as number) > 0 ? { kind: "donut", title: "How sales were paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarShort(t.total as number) } : null,
-      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account; online payments are collected by HQ and redeemed Rewards points are reimbursed — both on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to.",
+      chart: (t.total as number) > 0 ? { kind: "donut", title: "How sales were paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarCompact(t.total as number) } : null,
+      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account. Collected by HQ is money HQ took on the store's behalf: online payments, gift vouchers (paid for online, HQ's liability) and trade orders collected at the store. Redeemed Rewards points are reimbursed. On account is trade sales invoiced to a business account on HQ's trade ledger, not money at the till. All of those are settled on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to; the voucher part of a refund goes back onto the voucher.",
     };
   },
 };
 const pctOf = (a: unknown, b: unknown) => (Number(b) ? `${((Number(a) / Number(b)) * 100).toFixed(1)}% of takings` : undefined);
-const zarShort = (c: number) => (Math.abs(c) >= 1_000_000_00 ? `R${(c / 100_000_000).toFixed(2)}m` : Math.abs(c) >= 1_000_000 ? `R${Math.round(c / 100_000)}k` : zar(c));
 
 // ── Online orders ───────────────────────────────────────────────────────────
 export const onlineOrders: ReportDef = {

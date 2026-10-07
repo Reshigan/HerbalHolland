@@ -107,7 +107,7 @@ export default async function LossPreventionPage({ params, searchParams }: { par
       <PageHeader
         overline={`Insight · ${store.name}`}
         title="Loss prevention"
-        description="Automatic checks on cash-ups, banking, refunds, stock and the tills — every night, at each shift close and when cash is banked. Each alert shows its evidence, and nobody sees an alert about themselves."
+        description="Automatic checks run on cash-ups, banking, refunds, stock and the tills every night, at each shift close and when cash is banked. Each alert shows its evidence, and nobody sees an alert about themselves."
       />
 
       {personId && !person && <Notice className="mb-6">That profile isn&apos;t available here, so everyone&apos;s alerts are shown.</Notice>}

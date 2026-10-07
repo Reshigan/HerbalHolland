@@ -1,25 +1,28 @@
 # Herbal Holland — production image (Next.js standalone output).
-FROM node:22-bookworm-slim AS deps
+FROM node:22-bookworm-slim AS base
+# OpenSSL: Prisma's migration engine needs libssl, and Apple Wallet passes are signed with the openssl command.
+RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+
+FROM base AS deps
 COPY package.json package-lock.json prisma.config.ts ./
 COPY prisma ./prisma
 RUN npm ci --no-audit --no-fund
 
-FROM node:22-bookworm-slim AS build
-WORKDIR /app
+FROM base AS build
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 ENV NEXT_TELEMETRY_DISABLED=1 UPLOAD_DIR=/data/uploads
-RUN npx prisma generate && npm run build && mkdir -p /data/uploads && chown 1001 /data/uploads
+# prisma.config.ts needs a DATABASE_URL to load, though generating the client and building never connect to it.
+RUN DATABASE_URL=postgresql://build@localhost/build sh -c 'npx prisma generate && npm run build' && mkdir -p /data/uploads && chown 1001 /data/uploads
 
-FROM node:22-bookworm-slim AS runner
-WORKDIR /app
+FROM base AS runner
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 UPLOAD_DIR=/data/uploads
 RUN useradd --system --uid 1001 app && mkdir -p /data/uploads && chown app /data/uploads
 COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
-# Migrations run from a separate one-off container using the build stage (see docker-compose.yml).
+# Migrations and admin scripts run in a one-off container from the build stage (docker-compose.prod.yml → migrate).
 # Banking slips live in /data/uploads when no S3/R2 bucket is set: mount a volume there and back it up.
 VOLUME /data/uploads
 USER app

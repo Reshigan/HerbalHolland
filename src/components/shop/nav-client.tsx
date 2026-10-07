@@ -90,9 +90,70 @@ function km(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
   return 12742 * Math.asin(Math.sqrt(h));
 }
 
+/** The store finder's "Near me": asks for the device's position and lists stores nearest to it (rounded to ~100 m). */
+export function NearMeButton() {
+  const router = useRouter();
+  const [locating, setLocating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const locate = () => {
+    if (!navigator.geolocation) return setError("Location isn't available on this device");
+    setLocating(true);
+    setError(null);
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        setLocating(false);
+        router.push(`/stores?near=${p.coords.latitude.toFixed(3)},${p.coords.longitude.toFixed(3)}`);
+      },
+      () => {
+        setLocating(false);
+        setError("We couldn't get your location, so search by suburb or city instead");
+      },
+      { timeout: 8000, maximumAge: 600_000 },
+    );
+  };
+  return (
+    <div className="shrink-0">
+      <button type="button" onClick={locate} disabled={locating} className="flex h-12 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-medium text-ink-100 hover:border-brand-500 disabled:opacity-60">
+        <LocateFixed className="h-4 w-4 text-brand-500" />
+        {locating ? "Locating…" : "Near me"}
+      </button>
+      {error && (
+        <p className="mt-2 max-w-[14rem] text-xs font-medium text-rose-100" role="alert">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+const OPEN_PICKER = "hh:choose-store";
+
+/**
+ * Opens the header's store picker in place (the one on screen: the pill on wide screens, the bar on phones); falls
+ * back to the store finder if no picker is on the page.
+ */
+export function ChooseStoreButton({ className, children }: { className?: string; children: React.ReactNode }) {
+  const router = useRouter();
+  return (
+    <button
+      type="button"
+      aria-haspopup="dialog"
+      className={className}
+      onClick={() => {
+        const e = new Event(OPEN_PICKER, { cancelable: true });
+        window.dispatchEvent(e);
+        if (!e.defaultPrevented) router.push("/stores");
+      }}
+    >
+      {children}
+    </button>
+  );
+}
+
 /** Preferred-store selector: a searchable dialog of stores (nearest first with location). */
 export function StorePicker({ current, variant = "pill", className }: { current: { code: string; name: string; openLabel: string; open: boolean } | null; variant?: "pill" | "bar"; className?: string }) {
   const ref = useRef<HTMLDialogElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
   const router = useRouter();
   const [q, setQ] = useState("");
   const [here, setHere] = useState<{ lat: number; lng: number } | null>(null);
@@ -109,7 +170,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
     loading.current = true;
     pickerStores()
       .then(setStores)
-      .catch(() => setError("We couldn't load the stores — try again"))
+      .catch(() => setError("We couldn't load the stores. Try again."))
       .finally(() => (loading.current = false));
   };
 
@@ -138,28 +199,41 @@ export function StorePicker({ current, variant = "pill", className }: { current:
         setLocating(false);
       },
       () => {
-        setError("We couldn't get your location — search by suburb or city instead");
+        setError("We couldn't get your location, so search by suburb or city instead");
         setLocating(false);
       },
       { timeout: 8000, maximumAge: 600_000 },
     );
   };
 
+  const open = () => {
+    setError(null);
+    setOpened(true);
+    load();
+    if (!ref.current?.open) ref.current?.showModal();
+  };
+  // ChooseStoreButton elsewhere on the page opens whichever picker is visible (the other is display: none).
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      if (e.defaultPrevented || !button.current?.getClientRects().length) return;
+      e.preventDefault();
+      open();
+    };
+    window.addEventListener(OPEN_PICKER, onOpen);
+    return () => window.removeEventListener(OPEN_PICKER, onOpen);
+  });
+
   return (
     <>
       <button
+        ref={button}
         onPointerEnter={load}
         onFocus={load}
-        onClick={() => {
-          setError(null);
-          setOpened(true);
-          load();
-          ref.current?.showModal();
-        }}
+        onClick={open}
         className={cn(
           variant === "pill"
             ? "flex h-10 max-w-[14rem] items-center gap-2 rounded-full border border-ink-800 pl-3 pr-2.5 text-sm text-ink-200 transition hover:border-ink-600 hover:text-white"
-            : "flex w-full items-center gap-2 py-2 text-left text-[0.8rem] text-ink-300",
+            : "flex min-h-11 w-full items-center gap-2 py-2 text-left text-[0.8rem] text-ink-300",
           className,
         )}
         aria-haspopup="dialog"

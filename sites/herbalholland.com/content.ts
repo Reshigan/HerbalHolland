@@ -13,9 +13,10 @@ import { FACTS } from "./facts";
 
 export type Item = { key: string; title: string; body: string };
 export type Faq = { q: string; a: string };
-/** A press release, on its own page at /press/{slug}. `date` is YYYY-MM-DD (SAST); a release shows from that day on. */
-/** A press release: its own page at /press/{slug} from its date. `pageTitle` is the browser/search title (60 characters with the brand); the headline stays whole. */
+/** A press release: its own page at /press/{slug} from its date (YYYY-MM-DD, SAST). `pageTitle` is the browser/search title (60 characters with the brand); the headline stays whole. */
 export type Release = { slug: string; date: string; title: string; pageTitle: string; description: string; summary: string; body: readonly string[] };
+/** A release as written: `date: null` holds it back (a draft) until the day it goes out is known. Never guess a date. */
+export type ReleaseDraft = Omit<Release, "date"> & { date: string | null };
 /** A page's title (the build checks it's 60 characters or fewer with " · Herbal Holland"), its description (120–160) and the day its copy last changed. */
 export type PageMeta = { title: string; description: string; updated: string };
 
@@ -413,7 +414,7 @@ export const ABOUT = {
 export const FRANCHISE = {
   meta: {
     title: "Own a store",
-    updated: "2026-09-28",
+    updated: "2026-10-07",
     description: "Own a Herbal Holland store: who we're looking for, what owners get, how it works from enquiry to opening day, and how to register your interest.",
   },
   hero: {
@@ -517,17 +518,17 @@ export const FRANCHISE = {
     noscript: "Please enable JavaScript to send this form, or email us at",
     errors: {
       summary: "Please check the highlighted fields.",
-      name: "Tell us your name",
-      email: "Enter your email address — we reply by email",
-      emailShape: "That doesn't look like an email address — check it for typos",
-      phone: "Enter a mobile number we can call you on",
-      area: "Tell us where you'd like to open — a town or area",
-      province: "Choose a province",
-      experience: "Tell us about your retail or business experience",
-      experienceShort: "A little more, please — at least {n} characters",
-      capital: "Choose the band closest to what you could put in",
-      pharmacist: "Choose yes or no",
-      consent: "Tick the box so we can use your details to reply",
+      name: "Tell us your name.",
+      email: "Enter your email address. We reply by email.",
+      emailShape: "That doesn't look like an email address. Check it for typos.",
+      phone: "Enter a mobile number we can call you on.",
+      area: "Tell us where you'd like to open: a town or area.",
+      province: "Choose a province.",
+      experience: "Tell us about your retail or business experience.",
+      experienceShort: "A little more, please: at least {n} characters.",
+      capital: "Choose the band closest to what you could put in.",
+      pharmacist: "Choose yes or no.",
+      consent: "Tick the box so we can use your details to reply.",
       busy: "You've sent us a few enquiries in a short time. Please try again later, or email us at {email}.",
       server: "Something went wrong sending your enquiry. Please try again in a minute, or email us at {email}.",
       network: "We couldn't reach our server just now. Check your connection and try again, or email us at {email}.",
@@ -550,7 +551,7 @@ export const FRANCHISE = {
 export const PRESS = {
   meta: {
     title: "Press",
-    updated: "2026-09-28",
+    updated: "2026-10-07",
     description: "Herbal Holland's press room: releases, the fact sheet, logo downloads, notes on how to write about us, and the media contact for interviews and pictures.",
   },
   hero: {
@@ -564,9 +565,10 @@ export const PRESS = {
     empty: "No releases yet: our first one is on its way. For news in the meantime, email",
     read: "Read the release",
     items: [
+      // Held back until the online shop is live (FACTS.shop.url): set its date to that day, and check every line then.
       {
         slug: "online-shop-opens",
-        date: "2026-10-01",
+        date: null,
         title: "Herbal Holland opens online for adults 18+ across South Africa",
         pageTitle: "Online shop opens for adults 18+",
         description: "Herbal Holland's online shop opens nationwide for adults 18+, with its Founding Members list; two new stores open in Hillcrest and Hilton on 1 December 2026.",
@@ -579,7 +581,7 @@ export const PRESS = {
           "Every batch is tested by an independent laboratory before it's sold, and the code on each pack opens that batch's result. Licensed medicines are supplied only to registered patients with a SAHPRA authorisation, through a pharmacist, and are never advertised.",
         ],
       },
-    ] satisfies Release[],
+    ] satisfies ReleaseDraft[],
   },
   // A release's own page.
   release: { eyebrow: "Press release", back: "All releases", contact: "Media contact", about: "About Herbal Holland", facts: "Fact sheet", published: "Published" },
@@ -649,8 +651,19 @@ export const PRESS = {
   },
 } as const;
 
-/** Releases dated `day` (YYYY-MM-DD, SAST) or earlier, newest first — a planned release appears on its date. */
-export const releasesOn = (day: string): Release[] => PRESS.releases.items.filter((r) => r.date <= day).sort((a, b) => b.date.localeCompare(a.date));
+const RELEASES: readonly ReleaseDraft[] = PRESS.releases.items;
+
+/** Releases dated `day` (YYYY-MM-DD, SAST) or earlier, newest first: a planned release appears on its date, a draft never. */
+export const releasesOn = (day: string): Release[] =>
+  RELEASES.filter((r): r is Release => r.date != null && r.date <= day).sort((a, b) => b.date.localeCompare(a.date));
+
+/**
+ * The first sentence of `text` that says the online shop is open, or null: one that mentions "online" with "open(s)",
+ * "live", "now", "today" or "deliver(s/ing)", and doesn't say "soon". The build refuses a live release with one while
+ * FACTS.shop.url is null.
+ */
+export const shopOpenClaim = (text: string) =>
+  text.split(/(?<=[.!?])\s+/).find((s) => /\bonline\b/i.test(s) && /\b(opens?|live|now|today|deliver(s|ing)?)\b/i.test(s) && !/\bsoon\b/i.test(s)) ?? null;
 
 // ── Careers ──────────────────────────────────────────────────────────────────
 export const CAREERS = {

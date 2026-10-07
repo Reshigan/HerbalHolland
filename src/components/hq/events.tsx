@@ -117,7 +117,7 @@ export function GuestList({
           {list.rows.length === 0 && (
             <EmptyRow cols={4}>
               <Users className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-              {q ? "Nobody on the list matches that search." : filter === "in" ? "Nobody has checked in yet." : filter === "waiting" ? "Everyone on the list has checked in." : "No RSVPs yet — members book from the event page in the Rewards app."}
+              {q ? "Nobody on the list matches that search." : filter === "in" ? "Nobody has checked in yet." : filter === "waiting" ? "Everyone on the list has checked in." : "No RSVPs yet. Members book from the event page in the Rewards app."}
             </EmptyRow>
           )}
           {list.rows.map((r) => (
@@ -138,7 +138,7 @@ export function GuestList({
                     {fmtTime(r.checkedInAt)}
                   </Badge>
                 ) : (
-                  <span className="text-xs text-ink-400">Not yet</span>
+                  <span className="text-xs text-ink-500">Not yet</span>
                 )}
               </Td>
             </Tr>

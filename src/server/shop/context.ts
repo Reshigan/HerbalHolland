@@ -7,7 +7,7 @@ import { getCustomer } from "@/server/auth";
 import { cartCount, parseCart, serializeCart, type CartItem } from "./cart-codec";
 import type { Prisma, StoreStatus } from "@/generated/prisma/client";
 
-export const SHOP_COOKIE = { cart: "hh_cart", store: "hh_store", age: "hh_age", promo: "hh_promo", phone: "hh_phone" } as const;
+export const SHOP_COOKIE = { cart: "hh_cart", store: "hh_store", age: "hh_age", promo: "hh_promo", voucher: "hh_voucher", phone: "hh_phone" } as const;
 
 const opts = (maxAge?: number) => ({
   httpOnly: true,
@@ -35,6 +35,15 @@ export async function savePromoCode(code: string | null) {
   const jar = await cookies();
   if (code) jar.set(SHOP_COOKIE.promo, code.trim().toUpperCase().slice(0, 32), opts(7 * DAY));
   else jar.delete(SHOP_COOKIE.promo);
+}
+
+/** A gift voucher code entered in the bag or at checkout, kept until the order is placed. */
+export const getVoucherCode = cache(async () => (await cookies()).get(SHOP_COOKIE.voucher)?.value || null);
+
+export async function saveVoucherCode(code: string | null) {
+  const jar = await cookies();
+  if (code) jar.set(SHOP_COOKIE.voucher, code.trim().toUpperCase().slice(0, 24), opts(7 * DAY));
+  else jar.delete(SHOP_COOKIE.voucher);
 }
 
 // ── Age gate ─────────────────────────────────────────────────────────────────

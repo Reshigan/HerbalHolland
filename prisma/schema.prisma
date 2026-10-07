@@ -68,6 +68,12 @@ model Company {
   email       String?
   phone       String?
   address     String?
+  directors   String? // names of the directors, as the website must disclose them (ECTA s43)
+  // Books (the company's general ledger): months up to this one are closed; VAT category A/B (two-monthly) or C
+  // (monthly), null when not a VAT vendor; the financial year ends with this month (February is the SA default).
+  booksLockedThrough String? // YYYY-MM
+  vatCategory        String?
+  yearEndMonth       Int     @default(2)
   stores      Store[]
   users       User[]
   createdAt   DateTime    @default(now())
@@ -100,6 +106,7 @@ model Store {
   email         String?
   hours         Json?
   clickCollect  Boolean     @default(true)
+  payshapId     String? // the ShapID the store's bank issued; the till offers PayShap only when it's set
   sameDay       Boolean     @default(false)
   licences      RegClass[]  @default([]) // classes this store is licensed/permitted to sell
   licenceRef    String? // e.g. SAHPRA licence / permit numbers, printed on receipts
@@ -129,6 +136,7 @@ model Store {
   loyalty        LoyaltyEntry[]
   campaigns      Campaign[]
   dailyStats     DailyStoreStat[]
+  tradeOrders    TradeOrder[]       @relation("tradeStore")
   variantStats   DailyVariantStat[]
   acks           AnnouncementAck[]
   deposits       CashDeposit[]
@@ -146,6 +154,7 @@ enum Role {
   OWNER
   MANAGER
   BUDTENDER
+  ACCOUNTANT // a company's bookkeeper: its books (/books) only — no store, POS or HQ pages
 }
 
 model User {
@@ -154,7 +163,13 @@ model User {
   email              String?   @unique
   passwordHash       String?
   mustChangePassword Boolean   @default(false) // set with a temporary password; cleared when they choose their own
+  tempPasswordUntil  DateTime? // a temporary password stops working after this (HQ resets; the owner sets one for staff)
   pinHash            String?
+  passwordFails      Int       @default(0) // wrong passwords since the last lock or sign-in (sign-in and till pairing)
+  passwordLockedAt   DateTime? // locked out until 15 minutes after this
+  pinFails           Int       @default(0)
+  pinLockedAt        DateTime? // locked out of every till until 5 minutes after this
+  pinDisabledAt      DateTime? // ten wrong PINs in a day: off until a manager sets a new one
   canDispense        Boolean   @default(false) // responsible pharmacist / authorised dispenser for licensed products
   memberId           String?   @unique // their own Rewards membership: sales they ring onto it are flagged and earn no commission
   role               Role
@@ -176,18 +191,23 @@ model User {
 }
 
 model Session {
-  id         String    @id // sha256(token)
-  user       User?     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId     String?
-  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  customerId String?
-  storeId    String? // POS store context
-  deviceId   String?
-  expiresAt  DateTime
-  createdAt  DateTime  @default(now())
+  id           String      @id // sha256(token)
+  user         User?       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId       String?
+  customer     Customer?   @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId   String?
+  storeId      String? // POS store context
+  deviceId     String?
+  tradeBuyer   TradeBuyer? @relation(fields: [tradeBuyerId], references: [id], onDelete: Cascade)
+  tradeBuyerId String? // trade portal session (cookie hh_trade)
+  expiresAt    DateTime
+  lastSeenAt   DateTime    @default(now()) // staff sessions end after a stretch without use (src/server/auth.ts)
+  createdAt    DateTime    @default(now())
 
   @@index([userId])
   @@index([customerId])
+  @@index([tradeBuyerId])
+  @@index([expiresAt])
 }
 
 model Device {
@@ -283,6 +303,10 @@ model Product {
 
   variants Variant[]
   reviews  Review[]
+
+  // Shop search: typo-tolerant matching on the name and tagline (pg_trgm similarity).
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
+  @@index([tagline(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 model Variant {
@@ -294,7 +318,8 @@ model Variant {
   name           String
   grams          Float? // dried-flower equivalent grams, used for purchase limits
   priceCents     Int // national RRP, VAT incl.
-  wholesaleCents Int // price to stores, VAT excl.
+  wholesaleCents Int // price to stores and the trade fallback price, VAT excl.
+  caseQty        Int     @default(1) // units per case: trade orders are placed in multiples of this
   costCents      Int // HQ landed cost, VAT excl. (made to order: the print partner's price)
   podSku         String? // print partner's product code: set = made to order (no stock; ships from the partner)
   active         Boolean @default(true)
@@ -307,9 +332,12 @@ model Variant {
   saleLines       SaleLine[]
   orderLines      OrderLine[]
   stockOrderLines StockOrderLine[]
+  tradeOrderLines TradeOrderLine[]
   listings        Listing[]
   stockTakeLines  StockTakeLine[]
   alerts          StockAlert[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 enum BatchStatus {
@@ -410,6 +438,7 @@ model StockMovement {
   type          MovementType
   reason        AdjustReason?
   unitCostCents Int
+  revalueCents  Int           @default(0) // what the lot's value changed by beyond qty × unitCostCents (its cost re-averaged)
   note          String?
   saleId        String?
   orderId       String?
@@ -608,6 +637,8 @@ model Customer {
   @@index([tier])
   @@index([referredById])
   @@index([createdAt])
+  @@index([firstName(ops: raw("gin_trgm_ops"))], type: Gin) // member search: partial and misspelt names
+  @@index([lastName(ops: raw("gin_trgm_ops"))], type: Gin)
 }
 
 enum LoyaltyKind {
@@ -695,13 +726,37 @@ model Suppression {
 
 model Otp {
   id        String   @id @default(cuid())
-  phone     String
+  phone     String? // members: a code by SMS
+  email     String? // trade buyers: a code by email
   codeHash  String
   attempts  Int      @default(0)
   expiresAt DateTime
   createdAt DateTime @default(now())
 
   @@index([phone])
+  @@index([email])
+  @@index([createdAt])
+}
+
+// Rate limits that must hold across servers (src/server/throttle.ts): one row per counted event under a key such as
+// "signin-ip:<hash>" or "otp-sms:all", counted in a sliding window under an advisory lock, pruned daily.
+model Throttle {
+  id        String   @id @default(cuid())
+  key       String
+  createdAt DateTime @default(now())
+
+  @@index([key, createdAt])
+  @@index([createdAt])
+}
+
+// Gateway webhook events already handled (Peach, Yoco): a redelivery of the same event id changes nothing.
+model PaymentEvent {
+  gateway   String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  @@id([gateway, eventId])
+  @@index([createdAt])
 }
 
 // ───────────────────────────── Selling ─────────────────────────────
@@ -714,6 +769,7 @@ enum SaleKind {
 enum Channel {
   POS
   ONLINE
+  WHOLESALE // trade sales: the trade portal (DC-fulfilled) and trade sales rung up at a till
 }
 
 enum PayMethod {
@@ -723,6 +779,8 @@ enum PayMethod {
   EFT
   LOYALTY
   ONLINE
+  VOUCHER // a gift voucher: redeemed online at checkout or at the till (refunds go back onto the voucher)
+  ACCOUNT // a trade account's credit terms: invoiced, settled later (never money at the time of sale)
 }
 
 model Shift {
@@ -747,48 +805,53 @@ model Shift {
 }
 
 model Sale {
-  id                 String    @id // client-generated UUID (idempotent offline sync)
-  number             String    @unique
-  kind               SaleKind  @default(SALE)
-  refundOf           Sale?     @relation("refunds", fields: [refundOfId], references: [id])
+  id                 String        @id // client-generated UUID (idempotent offline sync)
+  number             String        @unique
+  kind               SaleKind      @default(SALE)
+  refundOf           Sale?         @relation("refunds", fields: [refundOfId], references: [id])
   refundOfId         String?
-  refunds            Sale[]    @relation("refunds")
-  channel            Channel   @default(POS)
-  order              Order?    @relation(fields: [orderId], references: [id])
-  orderId            String?   @unique
-  store              Store     @relation(fields: [storeId], references: [id])
+  refunds            Sale[]        @relation("refunds")
+  channel            Channel       @default(POS)
+  order              Order?        @relation(fields: [orderId], references: [id])
+  orderId            String?       @unique
+  store              Store         @relation(fields: [storeId], references: [id])
   storeId            String
-  shift              Shift?    @relation(fields: [shiftId], references: [id])
+  shift              Shift?        @relation(fields: [shiftId], references: [id])
   shiftId            String?
-  staff              User?     @relation(fields: [staffId], references: [id])
+  staff              User?         @relation(fields: [staffId], references: [id])
   staffId            String?
+  soldById           String? // who built the basket when a dispenser completed the sale (commission credit); null = staffId
   deviceId           String?
-  customer           Customer? @relation(fields: [customerId], references: [id])
+  customer           Customer?     @relation(fields: [customerId], references: [id])
   customerId         String?
+  tradeAccount       TradeAccount? @relation(fields: [tradeAccountId], references: [id])
+  tradeAccountId     String? // WHOLESALE channel: the business that bought (buyer block = its details)
+  tradeOrder         TradeOrder?
   subtotalCents      Int
-  discountCents      Int       @default(0)
-  memberSavingsCents Int       @default(0)
+  discountCents      Int           @default(0)
+  memberSavingsCents Int           @default(0)
   totalCents         Int
   vatCents           Int
   costCents          Int
-  pointsEarned       Int       @default(0)
+  pointsEarned       Int           @default(0)
   promoCode          String?
   promotionId        String?
   campaignId         String?
-  ageCheck           AgeCheck  @default(NONE)
+  ageCheck           AgeCheck      @default(NONE)
   buyer              Json? // full tax invoice (> R5,000): { name, address, vatNumber }
   invoiceEmail       String? // where the tax invoice was emailed
   invoiceSentAt      DateTime?
-  offline            Boolean   @default(false)
+  offline            Boolean       @default(false)
   note               String?
-  createdAt          DateTime  @default(now())
-  syncedAt           DateTime  @default(now())
+  createdAt          DateTime      @default(now())
+  syncedAt           DateTime      @default(now())
 
   lines    SaleLine[]
   payments Payment[]
 
   @@index([storeId, createdAt])
   @@index([customerId])
+  @@index([tradeAccountId])
   @@index([createdAt])
   @@index([promotionId]) // promotion usage caps (maxUses) and redemption reporting
 }
@@ -898,6 +961,7 @@ model Order {
   @@index([storeId, status])
   @@index([customerId])
   @@index([createdAt])
+  @@index([promotionId, status]) // promotion caps count open orders too (pricing.promotionProblem)
 }
 
 model OrderLine {
@@ -953,23 +1017,25 @@ enum PriceListKind {
   ZONE // regional / scheduled price changes (stores or regions; empty = network)
   CHANNEL // e.g. online-only prices
   MEMBER // Rewards member prices, optionally tier-specific
+  TRADE // trade (wholesale) prices for the WHOLESALE channel — items hold ex-VAT prices; quantity breaks via minQty
 }
 
 model PriceList {
-  id        String          @id @default(cuid())
-  name      String
-  kind      PriceListKind
-  channel   Channel?
-  tiers     Tier[]          @default([]) // MEMBER: empty = all members
-  storeIds  String[]        @default([])
-  regionIds String[]        @default([])
-  adjustPct Float? // blanket adjustment on RRP for items without an explicit price (e.g. -5)
-  startsAt  DateTime?
-  endsAt    DateTime?
-  active    Boolean         @default(true)
-  priority  Int             @default(0)
-  createdAt DateTime        @default(now())
-  items     PriceListItem[]
+  id            String          @id @default(cuid())
+  name          String
+  kind          PriceListKind
+  channel       Channel?
+  tiers         Tier[]          @default([]) // MEMBER: empty = all members
+  storeIds      String[]        @default([])
+  regionIds     String[]        @default([])
+  adjustPct     Float? // blanket adjustment on RRP for items without an explicit price (e.g. -5)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  active        Boolean         @default(true)
+  priority      Int             @default(0)
+  createdAt     DateTime        @default(now())
+  items         PriceListItem[]
+  tradeAccounts TradeAccount[]
 }
 
 model PriceListItem {
@@ -1075,6 +1141,9 @@ model MessageLog {
 
   @@index([campaignId])
   @@index([customerId])
+  @@index([to]) // POPIA erasure and export find a member's messages by their phone or email
+  @@index([createdAt])
+  @@index([channel, status, createdAt])
 }
 
 model StockAlert {
@@ -1090,18 +1159,25 @@ model StockAlert {
 }
 
 model Review {
-  id         String   @id @default(cuid())
-  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  productId  String
-  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  customerId String
-  rating     Int
-  title      String?
-  body       String?
-  verified   Boolean  @default(false)
-  createdAt  DateTime @default(now())
+  id             String    @id @default(cuid())
+  product        Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId      String
+  customer       Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  customerId     String
+  rating         Int
+  title          String?
+  body           String?
+  verified       Boolean   @default(false)
+  // Photos (Upload ids, up to 3) and HQ moderation: a hidden review stays on record but is never shown or counted.
+  photoUploadIds String[]  @default([])
+  hidden         Boolean   @default(false)
+  hiddenReason   String?
+  moderatedById  String?
+  moderatedAt    DateTime?
+  createdAt      DateTime  @default(now())
 
   @@unique([productId, customerId])
+  @@index([hidden, createdAt])
 }
 
 // ───────────────────────────── Rollups ─────────────────────────────
@@ -1128,6 +1204,7 @@ model DailyStoreStat {
   eftCents           Int      @default(0)
   loyaltyCents       Int      @default(0)
   onlineCents        Int      @default(0)
+  accountCents       Int      @default(0) // trade sales on account (invoiced, not yet money)
   members            Int      @default(0) // transactions linked to a member
   pointsIssued       Int      @default(0)
 
@@ -1189,12 +1266,22 @@ model AuditLog {
 
   @@index([storeId, at])
   @@index([action])
+  @@index([actorType, actorId]) // POPIA erasure takes a member's name off what they did
 }
 
 model Setting {
   key       String   @id
   value     Json
   updatedAt DateTime @updatedAt
+}
+
+/** The scheduler's heartbeat: when each job last started, last finished cleanly and last failed (/api/health reads it). */
+model JobRun {
+  job       String    @id
+  startedAt DateTime?
+  okAt      DateTime?
+  failedAt  DateTime?
+  error     String?
 }
 
 model Counter {
@@ -1470,4 +1557,774 @@ model FranchiseLead {
   @@index([status, createdAt])
   @@index([email])
   @@index([ipHash, createdAt])
+}
+
+// ── Member support & returns ─────────────────────────────────────────────────
+// A member (or a guest) asks for help at /support; HQ works the inbox (SLA: first reply within 1 business day, resolved
+// within 5), store managers see tickets about their own orders. Personal information stays in the ticket (POPIA:
+// resolved tickets are deleted a year after they close by the daily job).
+enum SupportCategory {
+  ORDER
+  DELIVERY
+  PRODUCT
+  REWARDS
+  ACCOUNT
+  OTHER
+}
+
+enum SupportStatus {
+  OPEN
+  WAITING_MEMBER
+  RESOLVED
+}
+
+enum SupportPriority {
+  LOW
+  NORMAL
+  HIGH
+}
+
+enum SupportAuthor {
+  MEMBER
+  STAFF
+  SYSTEM
+}
+
+model SupportTicket {
+  id                 String          @id @default(cuid())
+  number             String          @unique // ST-000123, quoted by the member
+  customerId         String? // the signed-in member, if any (no relation: tickets outlive anonymised members)
+  email              String? // where we reply; a signed-in member without one is texted
+  phone              String?
+  name               String
+  subject            String
+  category           SupportCategory
+  orderCode          String?
+  storeId            String? // the store that fulfilled the order it's about (store managers see these)
+  body               String
+  status             SupportStatus   @default(OPEN)
+  priority           SupportPriority @default(NORMAL)
+  assignedToId       String?
+  firstResponseDueAt DateTime
+  firstRespondedAt   DateTime?
+  resolveDueAt       DateTime
+  resolvedAt         DateTime?
+  ipHash             String? // keyed hash of a guest's IP, to limit repeat submissions — never the IP itself
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+
+  messages SupportMessage[]
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([storeId, status])
+  @@index([assignedToId, status])
+  @@index([email, createdAt])
+  @@index([ipHash, createdAt])
+}
+
+model SupportMessage {
+  id                 String        @id @default(cuid())
+  ticket             SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  ticketId           String
+  authorType         SupportAuthor
+  authorId           String?
+  authorName         String? // shown on the thread ("Naledi from Herbal Holland")
+  body               String
+  attachmentUploadId String? // an Upload (photo) sent with the message
+  createdAt          DateTime      @default(now())
+
+  @@index([ticketId, createdAt])
+}
+
+enum ReturnReason {
+  DEFECTIVE
+  WRONG_ITEM
+  COOLING_OFF
+  DAMAGED
+  OTHER
+}
+
+enum ReturnStatus {
+  REQUESTED
+  APPROVED
+  COLLECTION_BOOKED
+  RECEIVED
+  REFUNDED
+  DECLINED
+}
+
+/// A member's request to return part (or all) of a delivered online order, from the request to the refund. Rules in
+/// @/lib/returns (CPA s56 faulty goods, ECTA s44 cooling-off); money moves through refundOrderAmount in @/server/orders.
+model ReturnRequest {
+  id             String       @id @default(cuid())
+  number         String       @unique // RT-000123
+  orderId        String
+  customerId     String
+  storeId        String // the store that fulfilled the order (its back office handles the return)
+  reason         ReturnReason
+  items          Json // [{ variantId, qty }]
+  note           String?
+  photoUploadIds String[]     @default([])
+  status         ReturnStatus @default(REQUESTED)
+  courier        String? // collection booked by hand for now: the courier and its waybill
+  waybill        String?
+  refundCents    Int? // what was (or will be) refunded, from refundBreakdown()
+  refundRef      String? // the gateway's refund id, or the manual refund reference
+  decisionNote   String? // why it was declined, or a note with the approval
+  decidedById    String?
+  decidedAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([status, createdAt])
+  @@index([customerId, createdAt])
+  @@index([storeId, status])
+  @@index([orderId])
+}
+
+// ── Operations: staff push, supplier invoices, opening checklist, scheduled exports ──
+// Plain id columns (no relations), so these models append without touching the core models above.
+
+/// Web Push subscription for a staff member's phone (one per browser/device): new online orders, low stock,
+/// expiring batches, cash to bank, loss alerts about others and HQ updates that need acknowledging.
+model StaffPushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  endpoint   String    @unique
+  p256dh     String // the subscription's keys
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([userId])
+}
+
+/// Staff pushes already sent (key = event + subject), so a poll never notifies twice; pruned after 60 days.
+model StaffPushEvent {
+  key    String   @id
+  sentAt DateTime @default(now())
+}
+
+enum SupplierInvoiceStatus {
+  DUE
+  PAID
+  QUERIED
+}
+
+/// A supplier's invoice to a store (DC wholesale, network trading or an outside supplier), with its photo or PDF,
+/// captured when the delivery is received or from Finance → Supplier invoices; paid or queried from there.
+model SupplierInvoice {
+  id           String                @id @default(cuid())
+  storeId      String
+  supplierName String
+  number       String
+  invoiceDate  DateTime              @db.Date
+  dueDate      DateTime              @db.Date
+  totalCents   Int // incl. VAT
+  vatCents     Int                   @default(0)
+  uploadId     String?               @unique // the Upload holding the photo or PDF (none for a statement invoice)
+  stockOrderId String? // the stock order it invoices (onStatement)
+  accountId    String? // the ledger account it's charged to (an expense, or stock received at a DC); null = other expenses
+  onStatement  Boolean               @default(false) // a stock order (from a DC or another store): its own tax invoice, settled on the month's franchise statement
+  status       SupplierInvoiceStatus @default(DUE)
+  paidAt       DateTime?
+  paidById     String?
+  note         String?
+  createdById  String
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+
+  @@index([storeId, status, dueDate])
+  @@index([stockOrderId])
+}
+
+/// One item of a store's opening checklist (seeded from the template in @/lib/opening when HQ onboards a store).
+model StoreTask {
+  id        String    @id @default(cuid())
+  storeId   String
+  key       String
+  title     String
+  group     String
+  sortOrder Int       @default(0)
+  dueAt     DateTime?
+  doneAt    DateTime?
+  doneById  String?
+  note      String?
+  createdAt DateTime  @default(now())
+
+  @@unique([storeId, key])
+  @@index([storeId, doneAt])
+}
+
+enum ExportCadence {
+  WEEKLY
+  MONTHLY
+}
+
+/// "Email me this weekly/monthly": a report run by the daily job as the person who scheduled it (their scope),
+/// stored as a CSV and sent to staff recipients as a signed download link.
+model ScheduledExport {
+  id         String        @id @default(cuid())
+  userId     String
+  reportKey  String
+  params     Json // the report's query (scope, stores, range, category, channel…)
+  cadence    ExportCadence
+  dayOfWeek  Int? // weekly: 1 = Monday … 7 = Sunday (SAST)
+  dayOfMonth Int? // monthly: 1–28
+  recipients String[]      @default([]) // staff email addresses
+  lastRunAt  DateTime?
+  active     Boolean       @default(true)
+  createdAt  DateTime      @default(now())
+
+  @@index([userId, reportKey])
+  @@index([active, cadence])
+}
+
+// ── Shop features (wishlists, vouchers, reminders, wallet) ─────────────────────
+// Appended without relations to the core models above (plain id columns, indexed), like the operations block.
+
+/// A product photo: comes in through the catalogue import's `image_urls` column (fetched and kept in storage), served
+/// to everyone at /media/[id] while the product is on sale. Ordered by sortOrder; the first is the main picture.
+model ProductImage {
+  id        String   @id @default(cuid())
+  productId String
+  uploadId  String
+  alt       String   @default("")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@unique([productId, uploadId])
+  @@index([productId, sortOrder])
+}
+
+/// A member's saved delivery address ("Home", "Work"…); the default one is offered first at checkout.
+model Address {
+  id         String   @id @default(cuid())
+  customerId String
+  label      String   @default("Home")
+  line       String
+  suburb     String
+  city       String
+  province   Province
+  postalCode String
+  notes      String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([customerId, isDefault])
+}
+
+/// A variant a member wants to come back to. `outOfStockAt` is set by the frequent job while nothing in the network
+/// can ship it; when stock returns it becomes `restockedAt` (the "back in stock" flag on the wishlist).
+model Wishlist {
+  id           String    @id @default(cuid())
+  customerId   String
+  variantId    String
+  outOfStockAt DateTime?
+  restockedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  @@unique([customerId, variantId])
+  @@index([variantId])
+}
+
+enum VoucherStatus {
+  PENDING // being paid for
+  ACTIVE
+  REDEEMED // balance used up
+  EXPIRED
+  CANCELLED
+}
+
+/// A gift voucher: money, not an incentive — it pays for anything, including medicines, and carries no bonus value.
+/// Bought online as an order for the virtual "Gift voucher" product (@/server/shop/vouchers) and issued when that
+/// order is paid; valid for three years from issue (CPA s63(2)); redeemed against orders at checkout.
+model GiftVoucher {
+  id                    String        @id @default(cuid())
+  code                  String        @unique
+  amountCents           Int
+  balanceCents          Int
+  purchasedByCustomerId String?
+  purchaseOrderId       String?       @unique
+  recipientEmail        String?
+  recipientName         String?
+  message               String?
+  status                VoucherStatus @default(PENDING)
+  issuedAt              DateTime?
+  expiresAt             DateTime
+  redeemedOrderIds      String[]      @default([])
+  sentAt                DateTime?
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+
+  @@index([purchasedByCustomerId, createdAt])
+  @@index([status, expiresAt])
+}
+
+/// Money taken from a voucher: by an online order at checkout (orderId), by a till sale (saleId), or by a counter
+/// voucher on a pay-in-store order handed over at the till (both). A cancelled unpaid order marks its rows reversed.
+/// A refund puts money back with a negative row against the credit note (saleId, and the order id when there is one):
+/// the order-level sums (voucherCentsOf, voucherTenderOf) count only positive rows, so a refund never changes what an
+/// order took; the voucher's own rows net to its balance movement.
+model VoucherRedemption {
+  id        String   @id @default(cuid())
+  voucherId String
+  orderId   String?
+  saleId    String?
+  cents     Int
+  reversed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([saleId])
+  @@index([voucherId])
+}
+
+enum ReminderChannel {
+  SMS
+  EMAIL
+  PUSH
+}
+
+/// "Remind me to reorder": a schedule the member set for one product (coffee, collagen, oils). The daily job sends a
+/// message with a one-tap reorder link on the channel chosen — nothing is charged (no card on file until Peach
+/// tokenisation is approved).
+model ReorderReminder {
+  id         String          @id @default(cuid())
+  customerId String
+  variantId  String
+  everyDays  Int
+  nextAt     DateTime
+  active     Boolean         @default(true)
+  channel    ReminderChannel @default(SMS)
+  lastSentAt DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@unique([customerId, variantId])
+  @@index([active, nextAt])
+}
+
+// ───────────────────────────── Trade (wholesale) channel ─────────────────────────────
+// Businesses that buy at trade prices (ex VAT): online from the DC (EFT up front or on an approved account) and at
+// any till (trade-sale mode). Every trade sale posts in the WHOLESALE channel. THC is never traded in this version.
+
+enum TradeAccountStatus {
+  PENDING // applied; HQ hasn't approved yet
+  APPROVED
+  ON_HOLD // overdue, or held by HQ: no new on-account orders
+  CLOSED
+}
+
+enum TradeTerms {
+  PREPAID // EFT before the order is picked
+  ACCOUNT // invoiced on shipping, due after paymentDays, within creditLimitCents
+}
+
+enum TradeAccountKind {
+  PHARMACY
+  RETAILER
+  CAFE
+  PRACTICE // wellness / health practice
+  ONLINE_SHOP
+  DISTRIBUTOR // wholesaler or distributor: resells to other businesses
+  OTHER
+}
+
+enum TradeBuyerRole {
+  OWNER // may manage buyers and the account's details
+  BUYER
+}
+
+enum TradeOrderStatus {
+  PENDING_PAYMENT // EFT: held (no stock reserved) until HQ confirms the payment
+  PLACED // confirmed: DC stock reserved
+  PICKING
+  READY // click & collect: packed at the store, waiting for the buyer (collection code)
+  SHIPPED // courier: invoiced for what shipped; the final state
+  COLLECTED // click & collect: handed over at the store and invoiced; the final state
+  CANCELLED
+}
+
+enum TradeLedgerKind {
+  INVOICE // + what the account owes
+  PAYMENT // − money received (EFT reference)
+  CREDIT_NOTE // − a return or correction
+  ADJUSTMENT // ± HQ correction, with a note
+}
+
+model TradeAccount {
+  id                 String             @id @default(cuid())
+  number             String             @unique // TA-000123
+  name               String // trading name
+  legalName          String
+  kind               TradeAccountKind   @default(RETAILER)
+  regNumber          String?
+  vatNumber          String?
+  email              String // billing: pro formas, invoices, statements
+  phone              String?
+  addressLine        String
+  suburb             String?
+  city               String
+  province           Province
+  postalCode         String
+  deliveryLine       String? // null = deliver to the billing address
+  deliverySuburb     String?
+  deliveryCity       String?
+  deliveryProvince   Province?
+  deliveryPostalCode String?
+  status             TradeAccountStatus @default(PENDING)
+  terms              TradeTerms         @default(PREPAID)
+  paymentDays        Int                @default(30)
+  creditLimitCents   Int                @default(0) // ACCOUNT terms: open invoices + unshipped on-account orders may not exceed this
+  classes            RegClass[]         @default([]) // what the account may buy (∩ the seller's licences; never THC)
+  priceList          PriceList?         @relation(fields: [priceListId], references: [id])
+  priceListId        String? // a TRADE price list assigned to this account (null = the active TRADE lists by priority)
+  dcId               String? // the warehouse that serves its courier orders (null = the default DC)
+  notes              String?
+  adultAttestedAt    DateTime? // the applicant confirmed every buyer is 18 or older
+  termsVersion       String?
+  termsAcceptedAt    DateTime?
+  approvedAt         DateTime?
+  approvedById       String?
+  holdReason         String? // "overdue" and "licence" are the jobs' own holds; they lift themselves
+  ipHash             String? // portal applications: a keyed hash of the applicant's IP, for the hourly limit
+  createdAt          DateTime           @default(now())
+  updatedAt          DateTime           @updatedAt
+
+  buyers   TradeBuyer[]
+  orders   TradeOrder[]
+  ledger   TradeLedgerEntry[]
+  sales    Sale[]
+  licences TradeLicence[]
+  cart     TradeCart?
+
+  @@index([status])
+  @@index([name])
+}
+
+// The account's open cart, shared by its buyers on any device: [{ variantId, qty }] in units (whole cases).
+model TradeCart {
+  tradeAccount   TradeAccount @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String       @id
+  items          Json         @default("[]")
+  updatedAt      DateTime     @updatedAt
+}
+
+model TradeBuyer {
+  id             String         @id @default(cuid())
+  account        TradeAccount   @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String
+  name           String
+  email          String         @unique // signs in with a code emailed here
+  phone          String?
+  role           TradeBuyerRole @default(BUYER)
+  active         Boolean        @default(true)
+  lastSignInAt   DateTime?
+  createdAt      DateTime       @default(now())
+
+  sessions Session[]
+  orders   TradeOrder[]
+
+  @@index([tradeAccountId])
+}
+
+model TradeOrder {
+  id             String           @id @default(cuid())
+  number         String           @unique // TO-000123
+  account        TradeAccount     @relation(fields: [tradeAccountId], references: [id])
+  tradeAccountId String
+  buyer          TradeBuyer?      @relation(fields: [buyerId], references: [id])
+  buyerId        String? // null when HQ placed it for the account
+  store          Store            @relation("tradeStore", fields: [storeId], references: [id])
+  storeId        String // the fulfilling store: the DC for courier orders, a retail store for click & collect
+  fulfilment     Fulfilment       @default(COURIER) // COURIER from the DC, or COLLECT at a store (handling fee)
+  status         TradeOrderStatus @default(PENDING_PAYMENT)
+  payMethod      PayMethod // EFT (pro forma; held until HQ confirms) or ACCOUNT (within the credit limit)
+  paymentRef     String?
+  paidAt         DateTime?
+  subtotalCents  Int // ex VAT
+  deliveryCents  Int              @default(0) // ex VAT (courier)
+  handlingCents  Int              @default(0) // ex VAT (click & collect: the store's handling fee)
+  vatCents       Int
+  totalCents     Int // incl. VAT
+  addressLine    String? // courier: where it goes (null for click & collect)
+  suburb         String?
+  city           String?
+  province       Province?
+  postalCode     String?
+  collectionCode String? // click & collect: shown at the counter with the buyer's ID
+  readyAt        DateTime?
+  collectedAt    DateTime?
+  reference      String? // the buyer's own order / PO number, printed on the invoice
+  notes          String?
+  courier        String?
+  trackingNo     String?
+  invoiceNumber  String?          @unique
+  sale           Sale?            @relation(fields: [saleId], references: [id])
+  saleId         String?          @unique // the WHOLESALE sale posted at the DC when it shipped
+  events         Json // [{ status, at, note }]
+  reservedAt     DateTime?
+  shippedAt      DateTime?
+  cancelledAt    DateTime?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  lines TradeOrderLine[]
+
+  @@index([tradeAccountId, status])
+  @@index([storeId, status])
+  @@index([createdAt])
+}
+
+model TradeOrderLine {
+  id           String     @id @default(cuid())
+  order        TradeOrder @relation(fields: [tradeOrderId], references: [id], onDelete: Cascade)
+  tradeOrderId String
+  variant      Variant    @relation(fields: [variantId], references: [id])
+  variantId    String
+  qty          Int // ordered, in case multiples
+  unitCents    Int // ex VAT, after quantity breaks
+  vatCents     Int // VAT on the ordered quantity
+  shippedQty   Int? // null until shipped; short-shipped lines are invoiced for this
+  shipped      Json? // [{ batchId, qty }]
+
+  @@index([tradeOrderId])
+  @@index([variantId])
+}
+
+/// The account's ledger: invoices raise what it owes, payments and credit notes lower it. Balance = sum(cents).
+model TradeLedgerEntry {
+  id             String          @id @default(cuid())
+  account        TradeAccount    @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String
+  kind           TradeLedgerKind
+  cents          Int // signed
+  reference      String? // invoice number, bank reference, credit note number
+  tradeOrderId   String?
+  saleId         String? // the WHOLESALE sale (till or shipped order) an invoice or credit note belongs to
+  dueAt          DateTime? // invoices on ACCOUNT terms: when payment is due
+  note           String?
+  createdById    String?
+  createdAt      DateTime        @default(now())
+
+  @@index([tradeAccountId, createdAt])
+  @@index([saleId])
+  @@index([tradeOrderId])
+}
+
+/// The licences and registrations a trade account must hold to buy (src/lib/trade-licences.ts decides which, by the
+/// kind of business and the ranges it buys). Submitted with a document at registration or on renewal; HQ verifies
+/// each against the issuer before the account may trade, and a lapsed one pauses trading until a renewal is verified.
+enum TradeLicenceKind {
+  PHARMACY_LICENCE // Pharmacy Act 53 of 1974 s22: the licence to own the pharmacy (Department of Health)
+  SAPC_RECORDING // the pharmacy's recording with the South African Pharmacy Council
+  SAHPRA_LICENCE // Medicines and Related Substances Act 101 of 1965 s22C: licence to wholesale or distribute medicines
+  FOOD_COA // R638 of 2018: certificate of acceptability for food premises (municipal environmental health)
+  BUSINESS_LICENCE // Businesses Act 71 of 1991: municipal business licence (meals and perishable foodstuffs)
+  PRACTICE_NUMBER // BHF PCNS practice number, with the practitioner's HPCSA or AHPCSA registration
+  CIPC_REGISTRATION // the CIPC registration certificate (CoR14.3 or equivalent)
+  SARS_REGISTRATION // a sole proprietor's SARS notice of registration (income tax reference number)
+}
+
+enum TradeLicenceStatus {
+  SUBMITTED // waiting for HQ to check it
+  VERIFIED // HQ checked the document against the issuer
+  REJECTED // HQ couldn't accept it (reason given); a new one is needed
+}
+
+model TradeLicence {
+  id             String             @id @default(cuid())
+  account        TradeAccount       @relation(fields: [tradeAccountId], references: [id], onDelete: Cascade)
+  tradeAccountId String
+  kind           TradeLicenceKind
+  number         String
+  expiresAt      DateTime? // null: it doesn't lapse
+  uploadId       String // the document (PDF or photo), served through the app only
+  status         TradeLicenceStatus @default(SUBMITTED)
+  submittedById  String? // the trade buyer who uploaded it (null: HQ or the seed)
+  reviewedAt     DateTime?
+  reviewedById   String?
+  rejectReason   String?
+  remindedAt     DateTime? // the expiry reminder went out
+  createdAt      DateTime           @default(now())
+
+  @@index([tradeAccountId, kind])
+  @@index([status])
+  @@index([expiresAt])
+}
+
+// ── Accounting ─────────────────────────────────────────────────────────────────
+// One general ledger per company (HQ and every franchisee), stores as a dimension. Journals are posted automatically
+// from what happens in the platform (src/server/ledger) and by hand; a posted journal is never edited.
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  INCOME
+  EXPENSE
+}
+
+/// A company's chart of accounts. System accounts carry the `key` the posting rules use, so renaming one is safe.
+model LedgerAccount {
+  id        String        @id @default(cuid())
+  companyId String
+  code      String
+  name      String
+  type      AccountType
+  key       String? // "sales.pos", "vat.output", … (null for accounts the company adds)
+  party     String? // control account whose lines name a party: "SUPPLIER" | "TRADE_ACCOUNT" | "COMPANY"
+  active    Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  lines     JournalLine[]
+
+  @@unique([companyId, code])
+  @@unique([companyId, key])
+}
+
+enum JournalStatus {
+  DRAFT // a manual journal waiting for approval
+  POSTED
+}
+
+/// A balanced entry in one company's books. Automatic journals name their source; a change to the source posts a
+/// further journal with the difference (never an edit), and a manual journal is corrected by its reversal.
+model Journal {
+  id           String        @id @default(cuid())
+  companyId    String
+  number       Int // per company, in posting order
+  date         DateTime      @db.Date // accounting date (SAST)
+  period       String // YYYY-MM of `date`
+  source       String // "store-day", "stock-receive", "statement", "bank", "manual", "opening", … (src/lib/ledger SOURCES)
+  sourceId     String?
+  storeId      String?
+  memo         String
+  status       JournalStatus @default(POSTED)
+  late         Boolean       @default(false) // its own month was closed, so it went into the first open one
+  reversalOfId String?       @unique
+  createdById  String?
+  approvedById String?
+  createdAt    DateTime      @default(now())
+  lines        JournalLine[]
+
+  @@unique([companyId, number])
+  @@index([companyId, source, sourceId])
+  @@index([source, sourceId]) // posting looks a source's journals up without the company
+  @@index([companyId, period])
+  @@index([companyId, status])
+}
+
+model JournalLine {
+  id          String        @id @default(cuid())
+  journal     Journal       @relation(fields: [journalId], references: [id], onDelete: Cascade)
+  journalId   String
+  companyId   String
+  account     LedgerAccount @relation(fields: [accountId], references: [id])
+  accountId   String
+  storeId     String?
+  partyId     String? // supplier name, trade account id or franchisee company id (the account's `party` kind)
+  amountCents Int // debit positive, credit negative; a journal's lines sum to zero
+  memo        String?
+  date        DateTime      @db.Date
+  period      String
+
+  @@index([journalId])
+  @@index([companyId, accountId, period])
+  @@index([companyId, accountId, partyId])
+  @@index([companyId, period])
+  @@index([accountId])
+}
+
+/// Running totals per company × account × store × month, kept in the posting transaction: reports at 1,000 stores read
+/// these, not millions of lines.
+model LedgerBalance {
+  companyId   String
+  accountId   String
+  storeId     String @default("") // "" = no store
+  period      String
+  debitCents  BigInt @default(0)
+  creditCents BigInt @default(0)
+
+  @@id([companyId, accountId, storeId, period])
+  @@index([companyId, period])
+}
+
+/// Sources waiting to be posted (or re-posted after a change): queued inside the business transaction, posted every
+/// 15 minutes and nightly. Posting is idempotent, so a source queued twice posts once.
+model LedgerQueue {
+  source   String
+  sourceId String
+  queuedAt DateTime @default(now())
+  attempts Int      @default(0)
+  error    String?
+
+  @@id([source, sourceId])
+  @@index([queuedAt])
+}
+
+/// A payment settling a store's franchise statement: positive = the store paid HQ, negative = HQ paid the store.
+model StatementPayment {
+  id          String   @id @default(cuid())
+  storeId     String
+  companyId   String // the store's company
+  month       String // YYYY-MM statement it settles
+  amountCents Int
+  paidOn      DateTime @db.Date
+  reference   String
+  note        String?
+  createdById String
+  createdAt   DateTime @default(now())
+
+  @@index([storeId, month])
+  @@index([companyId])
+}
+
+/// A company's bank account, reconciled against its statements; its ledger account carries the balance.
+model BankAccount {
+  id        String   @id @default(cuid())
+  companyId String
+  accountId String   @unique // LedgerAccount
+  bank      String // FNB | ABSA | STANDARD | NEDBANK | CAPITEC | OTHER
+  name      String
+  number    String // last digits only
+  storeId   String? // the store whose takings are banked here, when one
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+}
+
+enum BankLineStatus {
+  UNMATCHED
+  MATCHED // to a journal already in the books (a deposit, a payout, a payment…)
+  ALLOCATED // a journal was posted for it (bank charges, a payment nobody captured…)
+  IGNORED
+}
+
+/// One line of an imported bank statement. Re-importing the same statement adds nothing (hash).
+model BankLine {
+  id            String         @id @default(cuid())
+  companyId     String
+  bankAccountId String
+  date          DateTime       @db.Date
+  amountCents   Int // money in positive, out negative
+  description   String
+  reference     String?
+  balanceCents  BigInt?
+  hash          String
+  uploadId      String?
+  status        BankLineStatus @default(UNMATCHED)
+  journalId     String?
+  matchedById   String?
+  matchedAt     DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@unique([bankAccountId, hash])
+  @@index([companyId, status])
+  @@index([bankAccountId, date])
+  @@index([journalId])
 }

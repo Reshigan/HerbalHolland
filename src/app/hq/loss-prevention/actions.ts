@@ -80,7 +80,7 @@ export async function saveLossRules(_: ActionState, fd: FormData): Promise<Actio
   }
   revalidatePath("/hq/loss-prevention");
   const n = lossChanged.length + bankingChanged.length;
-  return done(`Saved ${n} change${n === 1 ? "" : "s"}. The next check uses them — tonight, at the next shift close or deposit, or run the checks now.`);
+  return done(`Saved ${n} change${n === 1 ? "" : "s"}. The next check uses them (tonight, at the next shift close or deposit), or run the checks now.`);
 }
 
 /** Runs every rule over recent trading now (the nightly job, on demand). Idempotent: alerts already raised are skipped. */
@@ -93,10 +93,10 @@ export async function runChecks(_: ActionState, fd: FormData): Promise<ActionSta
     r = await runLossRules();
   } catch (e) {
     console.error("[loss] manual run failed", e);
-    return fail("The checks didn't finish — try again in a minute.");
+    return fail("The checks didn't finish. Try again in a minute.");
   }
   await audit(db, g.actor, "loss.run", { data: { found: r.found, raised: r.raised, digestEmails: r.digest.emails } });
   revalidatePath("/hq/loss-prevention");
-  if (!r.raised) return done(`Checks run — no new alerts${r.found ? ` (${r.found} finding${r.found === 1 ? " was" : "s were"} already raised)` : ""}.`);
-  return done(`Checks run — ${r.raised} new alert${r.raised === 1 ? "" : "s"} raised${r.digest.emails ? `, ${r.digest.emails} digest email${r.digest.emails === 1 ? "" : "s"} sent` : ""}.`);
+  if (!r.raised) return done(`Checks run: no new alerts${r.found ? ` (${r.found} finding${r.found === 1 ? " was" : "s were"} already raised)` : ""}.`);
+  return done(`Checks run: ${r.raised} new alert${r.raised === 1 ? "" : "s"} raised${r.digest.emails ? `, ${r.digest.emails} digest email${r.digest.emails === 1 ? "" : "s"} sent` : ""}.`);
 }

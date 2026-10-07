@@ -11,9 +11,10 @@
 // The CSS: the first screen's rules (styles/site.css above its @@rest marker) are inlined in every page, allowed by their
 // sha256 hash in the CSP; the rest is a stylesheet per page, pruned to the rules that page can use, loaded without
 // blocking the first paint. The head script is inlined the same way (hashed). No nonces, no 'unsafe-inline'.
-// The build checks: distances against coordinates, opening days, every page's title (≤ 60 characters) and description
-// (120–160), that no page's `updated` day is in the future, no inline style attribute or unhashed script, no demo company
-// details, and the size budgets.
+// The build checks: distances against coordinates, opening days, that no live press release says the online shop is
+// open before FACTS.shop.url is set, every page's title (≤ 60 characters) and description (120–160), that no page's
+// `updated` day is in the future, no inline style attribute or unhashed script, no demo company details, and the size
+// budgets.
 import { createHash } from "node:crypto";
 import { copyFileSync, existsSync, mkdirSync, readFileSync, readdirSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative } from "node:path";
@@ -22,7 +23,7 @@ import { gzipSync } from "node:zlib";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { dayKey } from "@/lib/format";
-import { ABOUT, CAREERS, CONTACT, FRANCHISE, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn } from "./content";
+import { ABOUT, CAREERS, CONTACT, FRANCHISE, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn, shopOpenClaim } from "./content";
 import { FACTS, greatCircleKm, newStores } from "./facts";
 import { patternUrl } from "./src/art";
 import { site } from "./src/layout";
@@ -158,6 +159,13 @@ async function main() {
     if (!/^[a-z0-9-]+$/.test(s.key)) off.push(`facts.ts: ${s.name}'s key "${s.key}" isn't a URL slug (a-z, 0-9, -)`);
   }
   for (const r of PRESS.releases.items) if (!/^[a-z0-9-]+$/.test(r.slug)) off.push(`content.ts: the release "${r.title}" has a slug that isn't a-z, 0-9, -`);
+  // A release that goes out while the online shop isn't live (FACTS.shop.url is null) can't say it's open.
+  if (!FACTS.shop.url)
+    for (const r of releasesOn(day)) {
+      const said = [r.title, r.pageTitle, r.description, r.summary, ...r.body].map(shopOpenClaim).find(Boolean);
+      if (said)
+        off.push(`content.ts: the release "${r.slug}" is live from ${r.date} and says the online shop is open ("${said}"), but facts.ts has no shop.url yet. Hold the release back (date: null) until the shop opens, or set FACTS.shop.url.`);
+    }
   if (off.length) throw new Error(off.join("\n"));
   // A store still marked "opening" after its day: the pages would go on saying when it opens.
   for (const s of FACTS.stores)

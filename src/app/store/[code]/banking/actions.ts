@@ -20,20 +20,20 @@ export async function addDeposit(code: string, _: ActionState, fd: FormData): Pr
     const { store, user, actor } = await manage(code);
     const shiftIds = list(fd, "shift");
     if (!shiftIds.length) return fail("Tick the cash-ups this deposit covers", "shift");
-    if (shiftIds.length > 200) return fail("That's more than 200 cash-ups — record them in smaller deposits", "shift");
+    if (shiftIds.length > 200) return fail("That's more than 200 cash-ups. Record them in smaller deposits.", "shift");
     const amount = parseRand(str(fd, "amount"));
     if (amount == null || amount <= 0 || amount > 100_000_000) return fail("Enter the amount on the deposit slip", "amount");
     const day = str(fd, "bankedOn");
     if (!parseDay(day)) return fail("Choose the day the cash was banked", "bankedOn");
     const today = dayKey(new Date());
     if (day > today) return fail("The date can't be in the future", "bankedOn");
-    if (day < dayKey(addDays(new Date(), -60))) return fail("That's more than 60 days ago — check the date", "bankedOn");
+    if (day < dayKey(addDays(new Date(), -60))) return fail("That's more than 60 days ago. Check the date.", "bankedOn");
     const reference = str(fd, "reference").replace(/\s+/g, " ");
     if (!reference) return fail("Enter the deposit reference from the slip", "reference");
     if (reference.length > 40) return fail("Keep the reference to 40 characters", "reference");
     const file = fd.get("slip");
     if (!(file instanceof File) || !file.size) return fail("Add a photo or PDF of the stamped deposit slip", "slip");
-    if (file.size > MAX_UPLOAD_BYTES) return fail("The slip is over 10 MB — take the photo again or use a smaller PDF", "slip");
+    if (file.size > MAX_UPLOAD_BYTES) return fail("The slip is over 10 MB. Take the photo again or use a smaller PDF.", "slip");
 
     const d = await recordDeposit(
       {
@@ -51,11 +51,11 @@ export async function addDeposit(code: string, _: ActionState, fd: FormData): Pr
     refresh(store.code);
     const diff = d.amountCents - d.expectedCents;
     const covers = plural(shiftIds.length, "cash-up");
-    if (diff === 0) return done(`Recorded ${d.number}: ${zar(d.amountCents)} for ${covers} — it matches the cash counted.`);
-    if (diff > 0) return done(`Recorded ${d.number}: ${zar(d.amountCents)} for ${covers} — ${zar(diff)} over the ${zar(d.expectedCents)} counted.`);
+    if (diff === 0) return done(`Recorded ${d.number}: ${zar(d.amountCents)} for ${covers}. It matches the cash counted.`);
+    if (diff > 0) return done(`Recorded ${d.number}: ${zar(d.amountCents)} for ${covers}, ${zar(diff)} over the ${zar(d.expectedCents)} counted.`);
     const { banking } = await getSettings();
     return done(
-      `Recorded ${d.number}: ${zar(d.amountCents)} for ${covers} — ${zar(-diff)} short of the ${zar(d.expectedCents)} counted.${-diff > banking.shortToleranceCents ? " Your owner and area manager have been alerted." : ""}`,
+      `Recorded ${d.number}: ${zar(d.amountCents)} for ${covers}, ${zar(-diff)} short of the ${zar(d.expectedCents)} counted.${-diff > banking.shortToleranceCents ? " Your owner and area manager have been alerted." : ""}`,
     );
   });
 }
@@ -84,6 +84,6 @@ export async function queryDeposit(code: string, id: string, _: ActionState, fd:
     if (note.length < 3) return fail("Say what doesn't match the bank statement", "note");
     const d = await reviewDeposit(id, store.id, "QUERIED", note, actor);
     refresh(store.code);
-    return done(`${d.number} queried — the store sees your note.`);
+    return done(`${d.number} queried. The store sees your note.`);
   });
 }

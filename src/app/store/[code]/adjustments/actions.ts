@@ -33,7 +33,7 @@ export async function postAdjustment(code: string, _: ActionState, fd: FormData)
       note: noteIn,
     });
     if ("error" in check) return fail(check.error, check.field);
-    const note = reason === "DESTROYED" ? `Destroyed — witnessed by ${witness}${noteIn ? ` · ${noteIn}` : ""}` : noteIn || undefined;
+    const note = reason === "DESTROYED" ? `Destroyed, witnessed by ${witness}${noteIn ? ` · ${noteIn}` : ""}` : noteIn || undefined;
     const value = await tx(async (t) => {
       const cost = await adjustStock(t, { storeId: store.id, variantId, batchId, delta: check.delta, reason, userId: user.id, note });
       await audit(t, actor, "stock.adjust", {
@@ -48,7 +48,7 @@ export async function postAdjustment(code: string, _: ActionState, fd: FormData)
     revalidatePath(`/store/${store.code}/inventory`);
     const n = Math.abs(check.delta);
     return done(
-      `${check.delta < 0 ? "Wrote off" : "Booked in"} ${n} × ${batch.variant.product.name} · ${batch.variant.name} (${ADJUST_REASONS[reason].label.toLowerCase()}, batch ${batch.code}) — ${zar(Math.abs(value))} at cost.`,
+      `${check.delta < 0 ? "Wrote off" : "Booked in"} ${n} × ${batch.variant.product.name} · ${batch.variant.name} (${ADJUST_REASONS[reason].label.toLowerCase()}, batch ${batch.code}), ${zar(Math.abs(value))} at cost.`,
     );
   });
 }

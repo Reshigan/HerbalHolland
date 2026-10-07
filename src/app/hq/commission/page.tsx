@@ -16,7 +16,7 @@ import { Stat } from "@/components/ui/stat";
 import { Input } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { ViewOnly } from "@/components/hq/ui";
 import { saveCommissionRates } from "./actions";
 
@@ -86,10 +86,10 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
           <CardHeader title="Stores paying commission" description={`${monthLabel(month)} to date, worked out live · the last month each owner approved`} />
           {rows.length === 0 ? (
             <EmptyState icon={<HandCoins className="h-5 w-5" />} title="No store pays commission yet">
-              Owners switch it on from their store&apos;s Commission page — they pay it.
+              Owners pay it, so they switch it on from their store&apos;s Commission page.
             </EmptyState>
           ) : (
-            <Table className="mt-4">
+            <Table stickyFirst className="mt-4">
               <thead>
                 <tr>
                   <Th>Store</Th>
@@ -125,7 +125,7 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
                           <div className="text-xs text-ink-500">{monthLabel(r.last.month)}</div>
                         </>
                       ) : (
-                        <span className="text-ink-400">None yet</span>
+                        <span className="text-ink-500">None yet</span>
                       )}
                     </Td>
                     <Td className="text-right">
@@ -151,7 +151,7 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
         <Card className="min-w-0">
           <CardHeader title="Rates" description="A share of each person's till sales ex VAT, by product class. Stores' unapproved months use them straight away." />
           <CardBody>
-            {!admin && <ViewOnly className="mb-4">View only — rates are set by the HQ administrator.</ViewOnly>}
+            {!admin && <ViewOnly className="mb-4">View only: rates are set by the HQ administrator.</ViewOnly>}
             <ActionForm action={saveCommissionRates}>
               <fieldset disabled={!admin} className="min-w-0 divide-y divide-ink-100">
                 {CLASSES.map((c) =>
@@ -184,7 +184,7 @@ export default async function HqCommissionPage({ searchParams }: { searchParams:
                         </label>
                         <div className="relative w-28 shrink-0">
                           <Input id={`rate_${c}`} name={`rate_${c}`} defaultValue={String((rates[c] ?? 0) / 100)} inputMode="decimal" className="tnum pr-7 text-right" />
-                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-400">%</span>
+                          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-ink-500">%</span>
                         </div>
                       </div>
                       <FieldError name={`rate_${c}`} />

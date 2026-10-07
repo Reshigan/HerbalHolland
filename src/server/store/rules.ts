@@ -2,6 +2,7 @@
 // components, and covered by tests/store-backoffice.test.ts.
 import type { Tone } from "@/components/ui/badge";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
+import { parseRand as parseAmount } from "@/lib/money";
 import type { SegmentKey } from "@/lib/rfm";
 
 // ── Stock health ─────────────────────────────────────────────────────────────
@@ -13,11 +14,11 @@ export const OVERSTOCK_FACTOR = 1.5;
 export type StockStatus = "NEGATIVE" | "OUT" | "LOW" | "HEALTHY" | "OVER";
 
 export const STOCK_STATUS: Record<StockStatus, { label: string; tone: Tone; hint: string }> = {
-  NEGATIVE: { label: "Negative", tone: "red", hint: "The till sold more than the system held — count it" },
+  NEGATIVE: { label: "Negative", tone: "red", hint: "The till sold more than the system held, so count it" },
   OUT: { label: "Out", tone: "red", hint: "Nothing available to sell" },
   LOW: { label: "Low", tone: "amber", hint: "At or below the reorder point" },
   HEALTHY: { label: "Healthy", tone: "green", hint: "Above the reorder point, within target" },
-  OVER: { label: "Over", tone: "violet", hint: `More than ${OVERSTOCK_FACTOR}× target stock — consider listing it on the network` },
+  OVER: { label: "Over", tone: "violet", hint: `More than ${OVERSTOCK_FACTOR}× target stock, so consider listing it on the network` },
 };
 
 /** Target stock: par level, or 17 days of trailing demand when that is higher. */
@@ -79,9 +80,9 @@ export const ADJUST_REASONS: Record<AdjustReason, { label: string; dir: Directio
   SAMPLE: { label: "Sample / tester", dir: "OUT", hint: "Opened for display or staff training" },
   QUALITY: { label: "Quality issue", dir: "OUT", hint: "A complaint or a failed inspection" },
   RECALL: { label: "Recall return", dir: "OUT", hint: "Sent back to the distribution centre" },
-  DESTROYED: { label: "Destroyed (witnessed)", dir: "OUT", hint: "Destruction register — a witness must sign off" },
+  DESTROYED: { label: "Destroyed (witnessed)", dir: "OUT", hint: "Destruction register: a witness must sign off" },
   FOUND: { label: "Found", dir: "IN", hint: "Stock found that the system didn't know about" },
-  CORRECTION: { label: "Correction", dir: "EITHER", hint: "Fix a capture error — say what happened" },
+  CORRECTION: { label: "Correction", dir: "EITHER", hint: "Fix a capture error and say what happened" },
 };
 
 export const REASON_ORDER = Object.keys(ADJUST_REASONS) as AdjustReason[];
@@ -98,7 +99,7 @@ export function checkAdjustment(a: {
   const meta = ADJUST_REASONS[a.reason];
   if (!meta) return { error: "Choose a reason", field: "reason" };
   if (!Number.isInteger(a.qty) || a.qty <= 0) return { error: "Enter a whole number of units", field: "qty" };
-  if (a.qty > 10_000) return { error: "That's more than 10,000 units — check the quantity", field: "qty" };
+  if (a.qty > 10_000) return { error: "That's more than 10,000 units. Check the quantity.", field: "qty" };
   const dir = meta.dir === "EITHER" ? a.direction : meta.dir;
   if (dir !== "OUT" && dir !== "IN") return { error: "Choose whether stock goes in or out", field: "direction" };
   if (dir === "OUT" && a.qty > a.onHand) return { error: `Only ${Math.max(0, a.onHand)} on hand in that batch`, field: "qty" };
@@ -226,20 +227,17 @@ export function hoursJson(week: TradingHours): { json: Record<DayKey, [string, s
 }
 
 // ── Form parsing (everything from the browser is untrusted text) ─────────────
+// The HQ console's form helpers (server/hq/form) re-export these basics: one definition each.
 
 export const str = (fd: FormData, name: string) => String(fd.get(name) ?? "").trim();
 export const bool = (fd: FormData, name: string) => ["on", "true", "1"].includes(String(fd.get(name) ?? ""));
 export const list = (fd: FormData, name: string) => [...new Set(fd.getAll(name).map((v) => String(v).trim()).filter(Boolean))];
 
-/** "R1,234.50" / "1234.5" / "1 234" / "12,50" → cents; null when empty or not a number. */
-export function parseRand(raw: string | null | undefined): number | null {
-  let s = String(raw ?? "").trim().replace(/^R\s*/i, "").replace(/\s/g, "");
-  if (!s) return null;
-  if (/^-?\d+,\d{1,2}$/.test(s)) s = s.replace(",", "."); // decimal comma
-  s = s.replace(/,/g, "");
-  if (!/^-?\d+(\.\d{0,2})?$/.test(s)) return null;
-  return Math.round(Number(s) * 100);
-}
+/**
+ * "R1,234.50" / "1 234,50" / "12,50" → cents (@/lib/money's parseRand); null when empty or not an amount. Signed:
+ * journals, bank balances and trade adjustments go below zero, and every other action range-checks what it takes.
+ */
+export const parseRand = (raw: string | null | undefined) => parseAmount(raw, { signed: true });
 
 /** Whole number within [min, max]; null when empty or invalid. */
 export function parseWhole(raw: string | null | undefined, min = 0, max = 1_000_000): number | null {
@@ -265,14 +263,14 @@ export function parseLocal(raw: string | null | undefined): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+const localFmt = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Africa/Johannesburg", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
+});
+
 /** Date → "YYYY-MM-DDTHH:mm" in SAST (datetime-local default value). */
 export function toLocalInput(d: Date | string | null | undefined) {
   if (!d) return "";
-  const p = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false })
-      .formatToParts(new Date(d))
-      .map((x) => [x.type, x.value]),
-  );
+  const p = Object.fromEntries(localFmt.formatToParts(new Date(d)).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}`;
 }
 
@@ -310,7 +308,7 @@ export function hrefWith(path: string, params: Record<string, string | string[] 
 
 
 /** "1 line", "3 lines". */
-export const plural = (n: number, word: string, many = `${word}s`) => `${n.toLocaleString()} ${n === 1 ? word : many}`;
+export { plural } from "@/lib/plural";
 
 /** First value of a search param. */
 export const sp1 = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";

@@ -18,6 +18,7 @@ import { ButtonLink } from "@/components/ui/button";
 import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
+import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Purchasing" };
 const PAGE_SIZE = 20;
@@ -60,8 +61,8 @@ export default async function PurchasingPage({ params, searchParams }: { params:
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="On order" value={zarCompact(openValue._sum.totalCents ?? 0)} sub={`${n(["SUBMITTED", "APPROVED", "SHIPPED"])} open order${n(["SUBMITTED", "APPROVED", "SHIPPED"]) === 1 ? "" : "s"}, incl. VAT`} />
-        <Stat label="Deliveries to receive" value={inTransit.toLocaleString()} sub={inTransit ? "in transit — receive on arrival" : "nothing in transit"} />
-        <Stat label="Received this month" value={zarCompact(receivedMonth.reduce((s, o) => s + receivedValue(o), 0))} sub={`${receivedMonth.length} deliveries, incl. VAT`} />
+        <Stat label="Deliveries to receive" value={inTransit.toLocaleString()} sub={inTransit ? "in transit · receive on arrival" : "nothing in transit"} />
+        <Stat label="Received this month" value={zarCompact(receivedMonth.reduce((s, o) => s + receivedValue(o), 0))} sub={`${plural(receivedMonth.length, "delivery", "deliveries")}, incl. VAT`} />
         <Stat
           label="Below reorder point"
           value={alerts.low.toLocaleString()}
@@ -76,7 +77,7 @@ export default async function PurchasingPage({ params, searchParams }: { params:
           </span>
           <span className="flex-1 text-sm">
             <b className="font-display text-base">{inTransit} deliver{inTransit === 1 ? "y is" : "ies are"} on the way.</b>
-            <span className="block text-ink-300">Check each box against the delivery note and receive it — stock only becomes sellable once received.</span>
+            <span className="block text-ink-300">Check each box against the delivery note and receive it. Stock only becomes sellable once received.</span>
           </span>
           <span className="text-sm font-semibold text-brand-400">Receive →</span>
         </Link>
@@ -93,7 +94,7 @@ export default async function PurchasingPage({ params, searchParams }: { params:
             {tab === "transit" ? "Nothing is on its way right now." : "Orders you place will show up here."}
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Order</Th>

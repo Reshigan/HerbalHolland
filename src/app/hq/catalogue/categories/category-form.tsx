@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { Field, Input, Label } from "@/components/ui/form";
 import { ButtonLink } from "@/components/ui/button";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { CATEGORY_ICONS, CATEGORY_ICON_LABEL, CATEGORY_ICON_NAMES, categoryIcon } from "@/components/product/category-icons";
 import { screenCopy } from "@/lib/compliance";
 import { slugify } from "@/server/hq/form";
@@ -30,13 +30,13 @@ export function CategoryForm({ action, category, cancelHref }: { action: (s: Act
         <Input id="cat-slug" name="slug" value={slug} onChange={(e) => (setSlug(e.target.value), setSlugTouched(true))} className="font-mono text-[0.8rem]" />
         <FieldError name="slug" />
       </Field>
-      <Field label="Blurb" htmlFor="cat-blurb" hint={`One line under the name in the shop (${blurb.length}/140) — no health claims`}>
+      <Field label="Blurb" htmlFor="cat-blurb" hint={`One line under the name in the shop, with no health claims (${blurb.length}/140)`}>
         <Input id="cat-blurb" name="blurb" value={blurb} maxLength={140} onChange={(e) => setBlurb(e.target.value)} placeholder="e.g. Coffee and rooibos with South African hemp" />
         <FieldError name="blurb" />
       </Field>
       {flags.map((f) => (
         <p key={f.term} className="-mt-2 text-xs font-medium text-rose-600">
-          “{f.term}” — {f.reason}
+          “{f.term}”: {f.reason}
         </p>
       ))}
       <fieldset>

@@ -5,6 +5,7 @@
 import { db } from "./db";
 import { audit, SYSTEM } from "./audit";
 import { emailLayout, esc, sendEmail } from "./email";
+import { reportFailure } from "./alerts";
 import { getSettings } from "./settings";
 import { APP_URL } from "./invoices";
 import { sast } from "./sql";
@@ -30,6 +31,7 @@ export const RULES = {
   OFFLINE_SHARE: "Unusual offline selling",
   AFTER_HOURS: "Sales outside trading hours",
   COMPLIANCE: "Compliance exception",
+  OFFLINE_VARIANCE: "Offline sale off price or tender",
 } as const;
 export type Rule = keyof typeof RULES;
 
@@ -82,22 +84,34 @@ async function notifyHigh(keys: string[]) {
   }
 }
 
-/** One email per owner / area manager with yesterday's other new alerts in their stores. */
+/**
+ * One email per owner / area manager with yesterday's other new alerts in their stores. An alert counts as notified
+ * once a digest with it has gone (or nobody covers it); one whose every digest failed goes out again the next night.
+ */
 export async function sendDigest(now = new Date()) {
   const alerts = await db.alert.findMany({ where: { notifiedAt: null }, orderBy: { createdAt: "asc" }, take: 5_000, include: { store: { select: { code: true, name: true, companyId: true, regionId: true } } } });
-  if (!alerts.length) return { emails: 0, alerts: 0 };
-  let emails = 0;
+  if (!alerts.length) return { emails: 0, failed: 0, alerts: 0 };
+  let emails = 0, failed = 0;
+  const sent = new Set<string>(), unsent = new Set<string>();
   for (const u of await recipients(alerts.map((a) => a.store))) {
     const mine = alerts.filter((a) => a.userId !== u.id && covers(u, a.store));
     if (!mine.length) continue;
     const subject = `Loss prevention: ${mine.length} new alert${mine.length === 1 ? "" : "s"} (${dayKey(now)})`;
     const items = mine.map((a) => `<li style="margin:0 0 8px"><a href="${esc(link(a.store.code, a.id))}">${esc(a.store.name)}: ${esc(a.title)}</a> <span style="color:#78716C">(${a.severity.toLowerCase()})</span></li>`);
     const html = emailLayout({ preheader: subject, heading: "New loss-prevention alerts", body: `<ul style="padding-left:18px">${items.join("")}</ul>` });
-    await sendEmail({ to: u.email!, subject, html, text: mine.map((a) => `• [${a.severity.toLowerCase()}] ${a.store.name}: ${a.title} — ${link(a.store.code, a.id)}`).join("\n") });
-    emails++;
+    try {
+      await sendEmail({ to: u.email!, subject, html, text: mine.map((a) => `• [${a.severity.toLowerCase()}] ${a.store.name}: ${a.title} — ${link(a.store.code, a.id)}`).join("\n") });
+      emails++;
+      for (const a of mine) sent.add(a.id);
+    } catch (e) {
+      failed++;
+      for (const a of mine) unsent.add(a.id);
+      await reportFailure(e, "cron sendDigest");
+    }
   }
-  await db.alert.updateMany({ where: { id: { in: alerts.map((a) => a.id) } }, data: { notifiedAt: now } });
-  return { emails, alerts: alerts.length };
+  const notified = alerts.filter((a) => sent.has(a.id) || !unsent.has(a.id)).map((a) => a.id);
+  await db.alert.updateMany({ where: { id: { in: notified } }, data: { notifiedAt: now } });
+  return { emails, failed, alerts: notified.length };
 }
 
 // ── Rules ────────────────────────────────────────────────────────────────────
@@ -156,7 +170,7 @@ async function overdueCash(now: Date, dueDays: number) {
     // An escalation to high goes out with tonight's digest.
     else await db.alert.update({ where: { id: cur.id }, data: { title: a.title, detail: a.detail, amountCents: a.amountCents, severity: a.severity, ...(a.severity === "HIGH" && cur.severity !== "HIGH" && { notifiedAt: null }) } });
   }
-  const note = "Everything overdue has been banked — closed automatically.";
+  const note = "Everything overdue has been banked, so this closed automatically.";
   for (const cur of live.filter((l) => !byStore.has(l.storeId))) {
     await db.alert.update({ where: { id: cur.id }, data: { status: "RESOLVED", note, closedAt: now } });
     await audit(db, SYSTEM, "alert.update", { storeId: cur.storeId, entity: "Alert", entityId: cur.id, data: { from: cur.status, to: "RESOLVED", note } });
@@ -213,11 +227,11 @@ async function salesRefunded(now: Date, s: LossSettings) {
   const month = dayKey(now).slice(0, 7);
   const start = new Date(`${month}-01T00:00:00+02:00`);
   const rows = await db.$queryRaw<{ storeId: string; userId: string; sold: number; refunded: number; n: number }[]>`
-    SELECT o."storeId", o."staffId" AS "userId", SUM(o."totalCents")::int AS sold, (-COALESCE(SUM(r.value), 0))::int AS refunded, COALESCE(SUM(r.n), 0)::int AS n
+    SELECT o."storeId", COALESCE(o."soldById", o."staffId") AS "userId", SUM(o."totalCents")::int AS sold, (-COALESCE(SUM(r.value), 0))::int AS refunded, COALESCE(SUM(r.n), 0)::int AS n
     FROM "Sale" o
     LEFT JOIN (SELECT "refundOfId", SUM("totalCents") AS value, COUNT(*) AS n FROM "Sale" WHERE kind = 'REFUND' AND "createdAt" >= ${start} GROUP BY 1) r ON r."refundOfId" = o.id
-    WHERE o.kind = 'SALE' AND o.channel = 'POS' AND o."staffId" IS NOT NULL AND o."createdAt" >= ${start}
-    GROUP BY 1, 2`;
+    WHERE o.kind = 'SALE' AND o.channel = 'POS' AND COALESCE(o."soldById", o."staffId") IS NOT NULL AND o."createdAt" >= ${start}
+    GROUP BY 1, 2`; // the seller, as commission credits it (a dispenser who completed the sale isn't the seller)
   const code = await codes(rows.map((r) => r.storeId));
   return rows
     .filter((r) => r.n >= s.refundedMin && r.refunded >= r.sold * s.refundedShare)
@@ -281,7 +295,7 @@ async function offlineShare(now: Date, s: LossSettings) {
     .filter((r) => r.weekOff >= s.offlineMin && aboveNorm(share(r.weekOff, r.weekAll), share(r.normOff, r.normAll), s.offlineFactor, 0))
     .map((r): NewAlert => ({
       key: `OFFLINE_SHARE:${r.storeId}:${weekOf(now)}`, rule: "OFFLINE_SHARE", severity: "LOW", storeId: r.storeId,
-      title: `${r.weekOff} offline sales this week`, detail: `${(share(r.weekOff, r.weekAll) * 100).toFixed(1)}% of till sales this week were rung up offline (normally ${(share(r.normOff, r.normAll) * 100).toFixed(1)}%). Offline sales skip the live member and compliance checks — check the connection, then the tills.`,
+      title: `${r.weekOff} offline sales this week`, detail: `${(share(r.weekOff, r.weekAll) * 100).toFixed(1)}% of till sales this week were rung up offline (normally ${(share(r.normOff, r.normAll) * 100).toFixed(1)}%). Offline sales skip the live member and compliance checks. Check the connection, then the tills.`,
       evidence: [{ label: "Cash-ups", href: `/store/${code.get(r.storeId)}/cash-ups` }],
     }));
 }
@@ -317,6 +331,19 @@ async function complianceExceptions(since: Date) {
   }));
 }
 
+/** Offline sales the server would have charged more for, that were paid short or over, or that took more points than the member had. */
+async function offlineVariances(since: Date) {
+  const rows = await db.auditLog.findMany({ where: { action: { in: ["sale.offline_price", "sale.tender_variance", "sale.points_overdraw"] }, at: { gte: since }, storeId: { not: null } }, select: { id: true, action: true, storeId: true, actorId: true, at: true, data: true } });
+  return rows.map((r): NewAlert => {
+    const d = (r.data ?? {}) as { charged?: number; price?: number; paid?: number; total?: number; redeemed?: number; balance?: number };
+    const [title, detail, amountCents] =
+      r.action === "sale.offline_price" ? ["Offline sale below price", `Charged ${zar(d.charged ?? 0)} for what costs ${zar(d.price ?? 0)} today.`, (d.price ?? 0) - (d.charged ?? 0)]
+      : r.action === "sale.points_overdraw" ? ["Offline sale took more points than the member had", `${d.redeemed} points redeemed with ${d.balance} on the card.`, ((d.redeemed ?? 0) - (d.balance ?? 0)) * 100]
+      : ["Sale paid short or over", `Tendered ${zar(d.paid ?? 0)} against a total of ${zar(d.total ?? 0)}.`, Math.abs((d.total ?? 0) - (d.paid ?? 0))];
+    return { key: `OFFLINE_VARIANCE:${r.id}`, rule: "OFFLINE_VARIANCE", severity: "MEDIUM", storeId: r.storeId!, userId: r.actorId, title, detail: `${fmtDateTime(r.at)}: ${detail}`, amountCents, evidence: [{ label: `Logged as ${r.action} in the HQ audit log` }] };
+  });
+}
+
 /** The nightly run: every rule over recent trading, then the digest. Idempotent — re-running raises nothing new. */
 export async function runLossRules(now = new Date()) {
   const { loss: s, banking } = await getSettings();
@@ -333,6 +360,7 @@ export async function runLossRules(now = new Date()) {
     ...(await offlineShare(now, s)),
     ...(await afterHours(since)),
     ...(await complianceExceptions(since)),
+    ...(await offlineVariances(since)),
   ];
   const raised = await raiseAlerts(found);
   return { found: found.length, raised, digest: await sendDigest(now) };

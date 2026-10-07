@@ -2,7 +2,7 @@
 // Used by the (shop) route group and Rewards (/club) so the consumer surfaces share one frame.
 import Link from "next/link";
 import { Suspense } from "react";
-import { ShoppingBag, UserRound } from "lucide-react";
+import { Search, ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { activePromotions } from "@/server/pricing";
@@ -13,12 +13,15 @@ import { openState, parseHours } from "@/server/shop/hours";
 import { tierMeta } from "@/server/shop/club";
 import { Logo, Mark, Wordmark } from "@/components/brand/logo";
 import { buttonClass } from "@/components/ui/button";
+import { ServiceWorker } from "@/components/ui/service-worker";
 import { MobileMenu, NavLinks, StorePicker, type NavItem } from "./nav-client";
 import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { screenCopy } from "@/lib/compliance";
 import { zarWhole } from "@/lib/money";
 import { fmtDate, num } from "@/lib/format";
+import { plural } from "@/lib/plural";
+import { contactEmailOf, legalNameOf } from "@/lib/contact";
 import { cn } from "@/lib/cn";
 
 const SITE = "https://herbalholland.com";
@@ -66,7 +69,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   // While the Founding Members list is open, lead with its closing date.
   const messages = launch.preLaunch && launch.at
     ? [
-        { text: `Founding Members close ${fmtDate(launch.at)} — join free`, href: customer ? "/club" : "/club/join" },
+        { text: `Founding Members close ${fmtDate(launch.at)}. Join free`, href: customer ? "/club" : "/club/join" },
         { text: `The first ${num(launch.foundingCap)} members get a numbered card`, href: customer ? "/club" : "/club/join" },
         { text: "Every friend you bring moves you up the list", href: customer ? "/club#founding" : "/club/join" },
       ]
@@ -111,11 +114,34 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 </div>
               }
             />
-            <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland — home">
+            <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland home">
               <Logo markClassName="h-9 w-9 lg:h-10 lg:w-10" />
             </Link>
             <NavLinks items={NAV} className="ml-4 hidden lg:flex" />
             <div className="ml-auto flex items-center gap-1 sm:gap-2">
+              {/* Product search from every page: a field on wide screens, an icon to the shop's search on smaller ones. */}
+              <form action="/shop" role="search" className="relative hidden xl:block">
+                <label htmlFor="header-q" className="sr-only">
+                  Search products
+                </label>
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-400" strokeWidth={1.9} />
+                <input
+                  id="header-q"
+                  name="q"
+                  type="search"
+                  enterKeyHint="search"
+                  maxLength={60}
+                  placeholder="Search products"
+                  className="h-10 w-48 rounded-full border border-ink-800 bg-ink-900/60 pl-10 pr-4 text-sm text-white placeholder:text-ink-450 transition-[width] hover:border-ink-600 focus:w-60 focus:border-brand-500 focus:outline-none"
+                />
+              </form>
+              <Link
+                href="/shop?focus=1"
+                className="grid h-11 w-11 place-items-center rounded-full text-ink-200 transition hover:bg-ink-850 hover:text-white xl:hidden"
+                aria-label="Search products"
+              >
+                <Search className="h-[22px] w-[22px]" strokeWidth={1.8} />
+              </Link>
               <StorePicker current={current} className="hidden md:flex" />
               <Link
                 href="/club"
@@ -153,7 +179,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         <footer className="mt-24 border-t border-ink-850 bg-ink-950">
           <Container className="grid grid-cols-1 gap-12 py-14 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
-              <Link href="/" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland — home">
+              <Link href="/" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland home">
                 <Mark className="h-14 w-14" />
                 <Wordmark className="text-xl" />
               </Link>
@@ -161,17 +187,17 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Dutch heritage. <span className="font-semibold text-white">African soil.</span>
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
-                Lab-tested, batch-traceable cannabis wellness, accessories and gear — in {footprint.trading} stores across {footprint.provinces.length} provinces and online.
+                Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")} and online.` : ", online."}
               </p>
               <Link href="/club/join" className={buttonClass("outline-dark", "md", "mt-6")}>
                 Join Herbal Holland Rewards
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-              <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Dispensary (patients)", "/dispensary"]]} />
-              <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${company?.email ?? "hello@herbalholland.co.za"}`]]} />
-              <FooterCol title="Rewards" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"]]} />
-              <FooterCol title="Legal" links={[["Terms of use", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["Returns & refunds", "/legal/returns"], ["Delivery", "/legal/delivery"], ["PAIA manual", `${SITE}/paia`], ["Responsible use", "/learn/responsible-use"]]} />
+              <FooterCol title="Shop" links={[["CBD wellness", "/shop?category=wellness"], ["Accessories", "/shop?category=accessories"], ["Grow", "/shop?category=grow"], ["Apparel", "/shop?category=apparel"], ["Gift vouchers", "/gift"], ["Dispensary (patients)", "/dispensary"]]} />
+              <FooterCol title="Help" links={[["Store finder", "/stores"], ["Track an order", "/club/orders"], ["Learn", "/learn"], ["Read a lab result", "/learn/reading-lab-results"], ["Contact us", `mailto:${contactEmailOf(company)}`]]} />
+              <FooterCol title="Rewards" links={[["Join free", "/club/join"], ["Sign in", "/club"], ["How points work", "/learn/points"], ["Refer a friend", "/club#refer"], ["Wishlist", "/club/wishlist"], ["Reorder reminders", "/club/reminders"]]} />
+              <FooterCol title="Legal" links={[["Membership terms", "/legal/terms"], ["Privacy notice (POPIA)", "/legal/privacy"], ["Returns & refunds", "/legal/returns"], ["Delivery", "/legal/delivery"], ["PAIA manual", `${SITE}/paia`], ["Responsible use", "/learn/responsible-use"]]} />
               {/* The corporate site (sites/herbalholland.com, on Cloudflare) */}
               <FooterCol title="About Herbal Holland" links={[["About us", `${SITE}/about`], ["Own a store", `${SITE}/franchise`], ["Press", `${SITE}/press`], ["Careers", `${SITE}/careers`]]} />
             </div>
@@ -199,7 +225,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 </p>
               </div>
               <p className="md:max-w-sm md:text-right">
-                © {new Date().getFullYear()} {company?.legalName ?? "Herbal Holland (Pty) Ltd"}
+                © {new Date().getFullYear()} {legalNameOf(company)}
                 {company?.regNumber && ` · Reg. ${company.regNumber}`}
                 {company?.vatNumber && ` · VAT ${company.vatNumber}`}. Herbal Holland stores are independently owned and operated by franchisees.
               </p>
@@ -209,6 +235,8 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         </Suspense>
       </div>
       {age === "unknown" && <AgeGate />}
+      {/* The Rewards worker (push only) registers once the page is idle, so the app is installable from any consumer page. */}
+      <ServiceWorker src="/rewards-sw.js" scope="/" />
     </>
   );
 }
@@ -275,7 +303,7 @@ export function UnderAge() {
         <Mark className="mx-auto h-20 w-20 text-ink-600" />
         <h1 className="mt-8 font-display text-3xl font-semibold text-white">Sorry, this site is for adults</h1>
         <p className="mt-4 leading-relaxed text-ink-300">
-          You need to be 18 or older to visit Herbal Holland. Thanks for being honest — we look forward to welcoming you when you&apos;re older.
+          You need to be 18 or older to visit Herbal Holland. Thanks for being honest.
         </p>
         <p className="mt-8 text-sm text-ink-400">
           Looking for support or information for young people? Visit{" "}

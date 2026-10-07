@@ -1,6 +1,6 @@
 // Load test against a production-sized dataset (seed a scratch database with SEED_STORES=1000).
 //   DATABASE_URL=postgresql://…/hh_scale npx tsx scripts/bench.ts [--write] [--sales=400] [--tills=20]
-// Times the heaviest reads (network dashboards, month-end finance, stock, pricing, every report) and, with --write,
+// Times the heaviest reads (network dashboards, month-end finance, stock, pricing, every report, the books) and, with --write,
 // peak-hour POS posting from many tills at once. --write creates real sales: never point it at production.
 import "dotenv/config";
 import { randomUUID } from "node:crypto";
@@ -12,6 +12,9 @@ import { replenishmentPlan } from "@/server/replenishment";
 import { quote } from "@/server/pricing";
 import { postPosSale } from "@/server/sales";
 import { resolveRange } from "@/lib/ranges";
+import { accountLedger, ageing, balanceSheet, incomeStatement, trialBalance, vatReturn } from "@/server/ledger/reports";
+import { booksChecks } from "@/server/ledger/checks";
+import { addMonths, monthEnd } from "@/lib/ledger";
 
 const arg = (k: string, d: number) => Number(process.argv.find((a) => a.startsWith(`--${k}=`))?.split("=")[1] ?? d);
 const ms = (t: number) => `${Math.round(t).toLocaleString("en-ZA")} ms`.padStart(10);
@@ -58,7 +61,27 @@ async function main() {
   const variants = await db.variant.findMany({ where: { product: { regClass: { not: "THC" } } }, select: { id: true }, take: 5 });
   await time("Quote (5 lines)", () => quote({ storeId: one.id, channel: "POS", items: variants.map((v) => ({ variantId: v.id, qty: 1 })) }));
 
-  if (process.argv.includes("--write")) await postingLoad(arg("sales", 400), arg("tills", 20));
+  // The books for last month: HQ's carry every store as a dimension; a franchisee's are one company.
+  const prev = addMonths(month, -1);
+  const hq = await db.company.findFirstOrThrow({ where: { kind: "FRANCHISOR" }, orderBy: { createdAt: "asc" }, select: { id: true } });
+  const own = await db.store.findUniqueOrThrow({ where: { id: one.id }, select: { companyId: true } });
+  for (const [label, companyId] of [["HQ", hq.id], [`the franchisee owning ${one.code}`, own.companyId]]) {
+    console.log(`\nBooks — ${label}, ${prev}`);
+    await time("Trial balance", () => trialBalance(companyId, { from: prev, to: prev }));
+    await time("Income statement, month by month (6 months)", () => incomeStatement(companyId, { from: addMonths(prev, -5), to: prev, by: "month" }));
+    await time("Balance sheet", () => balanceSheet(companyId, monthEnd(prev)));
+    await time("VAT201 working", () => vatReturn(companyId, prev));
+    await time("Creditors' ageing", () => ageing(companyId, "creditors", monthEnd(prev)));
+    await time("Month-end checks", () => booksChecks(companyId, prev));
+  }
+  const franchisees = await db.ledgerAccount.findFirst({ where: { companyId: hq.id, key: "franchisees" }, select: { id: true } });
+  if (franchisees) await time("General ledger: HQ's franchisee accounts, a page", () => accountLedger(hq.id, franchisees.id, { from: prev, to: prev }));
+
+  if (process.argv.includes("--write")) {
+    // Real sales: only on a database the demo seed made (prisma/seed.ts leaves this marker).
+    if (!(await db.setting.count({ where: { key: "demo.seeded" } }))) throw new Error("--write creates real sales: run it only against a seeded demo database");
+    await postingLoad(arg("sales", 400), arg("tills", 20));
+  }
 }
 
 /** Peak hour: many tills posting card sales concurrently (row locks, rollup upserts, loyalty all included). */

@@ -6,7 +6,7 @@ import { unsubscribe } from "./actions";
 export function Confirm({ c, ch, t, what }: { c: string; ch: string; t: string; what: string }) {
   const [state, action, pending] = useActionState(unsubscribe, null);
   if (state && "done" in state)
-    return <p role="status" className="rounded-xl bg-ink-900 px-4 py-3 text-ink-100">Done — you won&apos;t get {what} from us any more. It can take up to 48 hours for scheduled messages to stop.</p>;
+    return <p role="status" className="rounded-xl bg-ink-900 px-4 py-3 text-ink-100">Done. You won&apos;t get {what} from us any more. It can take up to 48 hours for scheduled messages to stop.</p>;
   return (
     <form action={action} className="grid gap-3">
       {["c", "ch", "t"].map((k, i) => <input key={k} type="hidden" name={k} value={[c, ch, t][i]} />)}

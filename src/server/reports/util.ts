@@ -7,7 +7,7 @@ import type { Column, ReportCtx, Row } from "./types";
 /** DailyStoreStat columns summed by every rollup query. */
 export const STAT_SUMS = {
   sales: true, refunds: true, units: true, grossCents: true, vatCents: true, costCents: true, discountCents: true,
-  cardCents: true, cashCents: true, payshapCents: true, eftCents: true, loyaltyCents: true, onlineCents: true,
+  cardCents: true, cashCents: true, payshapCents: true, eftCents: true, loyaltyCents: true, onlineCents: true, accountCents: true,
   members: true, pointsIssued: true,
 } as const;
 
@@ -143,8 +143,9 @@ export const ROLE_LABEL: Record<string, string> = {
   OWNER: "Owner",
   MANAGER: "Store manager",
   BUDTENDER: "Budtender",
+  ACCOUNTANT: "Accountant",
 };
 
-export const CHANNEL_LABEL: Record<string, string> = { POS: "In store", ONLINE: "Online" };
+export const CHANNEL_LABEL: Record<string, string> = { POS: "In store", ONLINE: "Online", WHOLESALE: "Trade" };
 export const FULFIL_LABEL: Record<string, string> = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier" };
-export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online" };
+export const PAY_LABEL: Record<string, string> = { CARD: "Card", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Rewards points", ONLINE: "Paid online", VOUCHER: "Gift voucher", ACCOUNT: "On account" };

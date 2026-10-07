@@ -4,24 +4,20 @@ import { Plus } from "lucide-react";
 import { Field, Input, Checkbox } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { marginPct } from "@/lib/pricing-rules";
+import { centsToInput, parseRand } from "@/lib/money";
+import { num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { saveVariant } from "./actions";
 
 export type VariantRow = {
   id: string; sku: string; barcode: string | null; name: string; grams: number | null;
-  priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; batches: number; onHand: number;
-};
-
-const rand = (c: number) => (c / 100).toFixed(2);
-const cents = (s: string) => {
-  const n = Number(s.replace(/[R\s,]/gi, ""));
-  return Number.isFinite(n) && s.trim() ? Math.round(n * 100) : null;
+  priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; batches: number; onHand: number; caseQty: number;
 };
 
 function Margins({ price, wholesale, cost, minMarginPct }: { price: string; wholesale: string; cost: string; minMarginPct: number }) {
-  const p = cents(price), w = cents(wholesale), c = cents(cost);
+  const p = parseRand(price), w = parseRand(wholesale), c = parseRand(cost);
   const store = p && w != null ? marginPct(p, w) : null;
   const hq = w && c != null ? (w - c) / w : null;
   const low = store != null && store * 100 < minMarginPct;
@@ -40,9 +36,9 @@ function Margins({ price, wholesale, cost, minMarginPct }: { price: string; whol
 }
 
 function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPct: number; isNew?: boolean }) {
-  const [price, setPrice] = useState(v ? rand(v.priceCents) : "");
-  const [wholesale, setWholesale] = useState(v ? rand(v.wholesaleCents) : "");
-  const [cost, setCost] = useState(v ? rand(v.costCents) : "");
+  const [price, setPrice] = useState(centsToInput(v?.priceCents));
+  const [wholesale, setWholesale] = useState(centsToInput(v?.wholesaleCents));
+  const [cost, setCost] = useState(centsToInput(v?.costCents));
   const k = v?.id ?? "new";
   return (
     <>
@@ -76,7 +72,7 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
           {isNew && <input type="hidden" name="active" value="on" />}
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-3 items-end gap-3 md:max-w-xl">
+      <div className="mt-3 grid grid-cols-2 items-end gap-3 sm:grid-cols-4 md:max-w-2xl">
         <Field label="RRP incl. VAT" htmlFor={`price-${k}`}>
           <Input id={`price-${k}`} name="price" value={price} onChange={(e) => setPrice(e.target.value)} inputMode="decimal" className="tnum" required />
           <FieldError name="price" />
@@ -88,6 +84,10 @@ function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPc
         <Field label="Cost ex VAT" htmlFor={`cost-${k}`}>
           <Input id={`cost-${k}`} name="cost" value={cost} onChange={(e) => setCost(e.target.value)} inputMode="decimal" className="tnum" required />
           <FieldError name="cost" />
+        </Field>
+        <Field label="Case pack" htmlFor={`caseQty-${k}`} hint="Units per case: trade orders come in multiples">
+          <Input id={`caseQty-${k}`} name="caseQty" defaultValue={v?.caseQty ?? 1} inputMode="numeric" className="tnum" />
+          <FieldError name="caseQty" />
         </Field>
       </div>
       <div className="mt-2">
@@ -108,7 +108,7 @@ export function VariantEditor({ productId, variants, minMarginPct, readOnly }: {
             <span className="font-display text-sm font-semibold text-ink-900">{v.name}</span>
             {!v.active && <Badge tone="neutral">Inactive</Badge>}
             <span className="text-xs text-ink-500">
-              {v.batches} batch{v.batches === 1 ? "" : "es"} · {v.onHand.toLocaleString()} units on hand network-wide
+              {v.batches} batch{v.batches === 1 ? "" : "es"} · {num(v.onHand)} units on hand network-wide
             </span>
           </div>
           <fieldset disabled={readOnly} className="min-w-0">

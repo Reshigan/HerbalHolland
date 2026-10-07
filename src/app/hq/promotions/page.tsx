@@ -91,7 +91,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
       <PageHeader
         overline="Product"
         title="Promotions"
-        description="Network deals and store-run offers: % and rand off, bonus buys and gifts with purchase, multi-buys and points multipliers — with happy hours and promo codes."
+        description="Network deals and store-run offers: % and rand off, bonus buys and gifts with purchase, multi-buys and points multipliers, plus happy hours and promo codes."
         actions={
           can(user, "network") && (
             <ButtonLink href="/hq/promotions/new">
@@ -122,7 +122,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
             <FilterSelect name="owner" label="Run by" defaultValue={sp.owner} allLabel="Everyone" options={[{ value: "network", label: "HQ (network)" }, { value: "store", label: "Stores (local)" }]} />
           </FilterForm>
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Promotion</Th>
@@ -176,7 +176,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                   </Td>
                   <Td align="right">
                     {num(u?._count ?? 0)}
-                    {p.maxUses != null && <span className="text-ink-400"> / {num(p.maxUses)}</span>}
+                    {p.maxUses != null && <span className="text-ink-500"> / {num(p.maxUses)}</span>}
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">
                     {u?._sum.totalCents ? zarCompact(u._sum.totalCents) : "—"}

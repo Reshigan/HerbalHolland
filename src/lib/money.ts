@@ -3,7 +3,6 @@ export const VAT_RATE = 0.15;
 
 export const vatOf = (inclCents: number) => Math.round((inclCents * 15) / 115);
 export const exVat = (inclCents: number) => inclCents - vatOf(inclCents);
-export const incVat = (exclCents: number) => Math.round(exclCents * (1 + VAT_RATE));
 export const vatOnExcl = (exclCents: number) => Math.round(exclCents * VAT_RATE);
 
 const two = new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -29,6 +28,38 @@ export function zarCompact(cents: number) {
   if (a >= 1_000_000) return `R${(v / 1_000_000).toFixed(a >= 10_000_000 ? 1 : 2)}m`;
   if (a >= 10_000) return `R${(v / 1_000).toFixed(a >= 100_000 ? 0 : 1)}k`;
   return zarWhole(Math.round(cents));
+}
+
+/** An amount input's value: "1234.50" (no grouping, so it reads straight back); "" for none. */
+export const centsToInput = (cents: number | null | undefined) => (cents == null ? "" : (cents / 100).toFixed(2));
+
+// A rand amount as typed: digits, then a decimal point or comma and up to two digits; or thousands grouped by commas
+// (then only a decimal point can follow) or by spaces. Linear patterns, run on at most 40 characters.
+const PLAIN = /^(\d+)(?:[.,](\d{0,2}))?$/;
+const COMMA_GROUPS = /^(\d{1,3}(?:,\d{3})+)(?:\.(\d{0,2}))?$/;
+const SPACE_GROUPS = /^(\d{1,3}(?: \d{3})+)(?:[.,](\d{0,2}))?$/;
+const isMinus = (c: string) => c === "-" || c === "\u2212"; // U+2212: the minus sign the app prints on adjustments
+
+/**
+ * A rand amount someone typed → integer cents; null when empty, malformed or ambiguous. Takes "12", "12.5", "12,50"
+ * (decimal comma), "1 234,50", "1 234.50", "1,234.50", "R1,234.50" and "R 1 234"; no-break and thin spaces group
+ * thousands like a space. A comma before exactly three digits groups thousands ("1,234" is R1,234.00); before one or
+ * two digits at the end it's the decimal comma. A leading minus ("-R50", "R -50") only with `signed`.
+ */
+export function parseRand(raw: string | null | undefined, { signed = false }: { signed?: boolean } = {}): number | null {
+  const text = String(raw ?? "");
+  if (text.length > 40) return null;
+  let s = text.replace(/[\u00A0\u2009\u202F]/g, " ").trim();
+  let negative = isMinus(s.charAt(0));
+  if (negative) s = s.slice(1).trimStart();
+  if (s.charAt(0) === "R" || s.charAt(0) === "r") s = s.slice(1).trimStart();
+  if (!negative && isMinus(s.charAt(0))) (negative = true), (s = s.slice(1).trimStart());
+  if (negative && !signed) return null;
+  const m = PLAIN.exec(s) ?? COMMA_GROUPS.exec(s) ?? SPACE_GROUPS.exec(s);
+  if (!m) return null;
+  const cents = Number(m[1].replace(/[ ,]/g, "")) * 100 + Number((m[2] ?? "").padEnd(2, "0"));
+  if (!Number.isSafeInteger(cents)) return null;
+  return negative && cents ? -cents : cents;
 }
 
 export const pct = (n: number, digits = 1) => `${(n * 100).toFixed(digits)}%`;

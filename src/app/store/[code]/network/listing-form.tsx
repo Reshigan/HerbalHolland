@@ -1,31 +1,28 @@
 "use client";
 import { useState } from "react";
-import { zar } from "@/lib/money";
-import { Field, Input } from "@/components/ui/form";
-import { Select } from "@/components/store/select";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { centsToInput, zar } from "@/lib/money";
+import { Field, Input, Select } from "@/components/ui/form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 export type ListableItem = { id: string; name: string; sku: string; available: number; overUnits: number; wholesaleCents: number; unitCostCents: number };
-
-const rands = (cents: number) => (cents / 100).toFixed(2);
 
 export function ListingForm({ items, action }: { items: ListableItem[]; action: FormAction }) {
   const first = items[0];
   const [id, setId] = useState(first?.id ?? "");
   const [qty, setQty] = useState(first ? String(first.overUnits || 1) : "1");
-  const [price, setPrice] = useState(first ? rands(Math.round(first.wholesaleCents * 0.95)) : "");
+  const [price, setPrice] = useState(first ? centsToInput(Math.round(first.wholesaleCents * 0.95)) : "");
   const item = items.find((i) => i.id === id);
   const choose = (nid: string) => {
     const i = items.find((x) => x.id === nid);
     setId(nid);
-    if (i) (setQty(String(i.overUnits || 1)), setPrice(rands(Math.round(i.wholesaleCents * 0.95))));
+    if (i) (setQty(String(i.overUnits || 1)), setPrice(centsToInput(Math.round(i.wholesaleCents * 0.95))));
   };
   if (!items.length) return <p className="text-sm text-ink-500">Nothing available to list right now.</p>;
   return (
     <ActionForm action={action} className="space-y-4">
       <Field label="Item" htmlFor="list-item" hint={item ? `${item.available} available · wholesale ${zar(item.wholesaleCents)} · your cost ${zar(item.unitCostCents)} (ex VAT)` : undefined}>
         <Select id="list-item" name="variantId" value={id} onChange={(e) => choose(e.target.value)}>
-          <optgroup label="Over target — good to list">
+          <optgroup label="Over target (good to list)">
             {items.filter((i) => i.overUnits > 0).map((i) => (
               <option key={i.id} value={i.id}>
                 {i.name} · {i.overUnits} over

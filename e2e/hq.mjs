@@ -5,7 +5,9 @@
 // reject, cancel) → recall → compliance rules and licences → pricing → promotions → drops → events → campaigns
 // (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
 // connected) → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
-// Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → an area manager's scope.
+// Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → trade (an application
+// whose licence HQ first doesn't accept and then verifies — approval waits for it — approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
+// statement emailed, hold and release, the trade settings card) → an area manager's scope.
 // Everything it creates is named "E2E …" and removed at the end; every setting it changes is put back as found.
 // Prints how long each action took, from the click to its visible result.
 import { chromium } from "@playwright/test";
@@ -122,12 +124,17 @@ const T = {
   caption: `The Windmill Tee is back: the mark embroidered in Sunset thread, made in Cape Town. (${sfx})`,
   staffName: `E2E Staffer ${sfx}`,
   staffEmail: `e2e.staff.${sfx}@herbalholland.co.za`,
+  ownerName: `E2E Owner ${sfx}`,
+  ownerEmail: `e2e.owner.${sfx}@example.com`,
   annTitle: `E2E notice ${sfx}`,
   importName: `E2E Import Jar ${sfx}`,
   importSku: `E2E-${SFX}-IMP`,
   importFile: `e2e-import-${sfx}.csv`,
   memberEmail: `e2e.member.${sfx}@example.com`,
   dncEmail: `e2e.dnc.${sfx}@example.com`,
+  tradeName: `E2E Trade ${sfx}`,
+  tradeEmail: `e2e.trade.${sfx}@example.com`,
+  tradeBuyerEmail: `e2e.trade.buyer.${sfx}@example.com`,
 };
 const freePhone = async () => {
   for (;;) {
@@ -137,7 +144,7 @@ const freePhone = async () => {
 };
 
 // Settings are shared with everyone using this database: remember them exactly (row or no row) and put them back.
-const SETTING_KEYS = ["compliance", "loyalty", "offers", "pricing", "ecommerce", "launch", "loss", "banking", "commission"];
+const SETTING_KEYS = ["compliance", "loyalty", "offers", "pricing", "ecommerce", "launch", "loss", "banking", "commission", "trade"];
 const originalSettings = new Map((await q(`select key, value from "Setting" where key = any($1)`, [SETTING_KEYS])).map((r) => [r.key, r.value]));
 const setting = async (key) => (await one(`select value from "Setting" where key = $1`, [key]))?.value ?? null;
 async function restoreSetting(key) {
@@ -148,7 +155,7 @@ async function restoreSetting(key) {
   } else if (now) await q(`delete from "Setting" where key = $1`, [key]); // no row = the built-in defaults
 }
 
-let store, product, variant, batch, member, order, dc, area;
+let store, product, variant, batch, member, order, dc, area, tradeAccount, tradeOrder;
 
 try {
   step("Sign in as the HQ administrator (demo link)");
@@ -220,7 +227,7 @@ try {
   await fees.locator("#royalty").fill("40");
   await act("stores.saveStoreFees · invalid", () => fees.getByRole("button", { name: "Update fees" }).click(), () => alertIn(fees, "Fees must be percentages of net sales.").waitFor());
   await fees.locator("#royalty").fill("5.5");
-  await act("stores.saveStoreFees", () => fees.getByRole("button", { name: "Update fees" }).click(), () => notice("Fees updated — they apply from the next statement.").waitFor());
+  await act("stores.saveStoreFees", () => fees.getByRole("button", { name: "Update fees" }).click(), () => notice("Fees updated. They apply from the next statement.").waitFor());
   s1 = await one(`select "royaltyBps", "levyBps", "ecomBps" from "Store" where id = $1`, [store.id]);
   assert(s1.royaltyBps === 550 && s1.levyBps === 200 && s1.ecomBps === 1000, "royalty 5.5% (550 bps), levy and e-com unchanged");
   const status = formWith("#status");
@@ -242,6 +249,53 @@ try {
   assert(co.vatNumber === vat && co.contactName === "E2E Owner", `owner now a VAT vendor (${vat})`);
   await shot("store-detail");
 
+  step("Stores: franchisee owners — add one (validation first), reset their password, deactivate them");
+  await open(`/hq/stores/${storeCode}`, formWith("#ownerEmail"));
+  const of = formWith("#ownerEmail");
+  await hydrated(of);
+  await of.locator("#ownerName").fill(T.ownerName);
+  await of.locator("#ownerEmail").fill("owner@localhost"); // the browser accepts it (no dot needed); the server doesn't
+  await act("stores.addOwner · invalid", () => of.getByRole("button", { name: "Add owner" }).click(), () => alertIn(of, "The email address they'll sign in with").waitFor());
+  assert(!(await one(`select 1 from "User" where name = $1`, [T.ownerName])), "nothing was created");
+  await of.locator("#ownerEmail").fill(T.ownerEmail);
+  await act("stores.addOwner", () => of.getByRole("button", { name: "Add owner" }).click(), () => notice(/can now sign in as/).waitFor());
+  const opw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+\(/)?.[1];
+  const storeOwner = await one(`select id, role, "companyId", "mustChangePassword", "tempPasswordUntil" from "User" where email = $1`, [T.ownerEmail]);
+  assert(storeOwner?.role === "OWNER" && storeOwner.companyId === store.companyId && storeOwner.mustChangePassword && storeOwner.tempPasswordUntil && opw1, `${T.ownerEmail} added as an owner of ${store.coName}, with a one-time password`);
+  const orow = page.getByRole("listitem").filter({ hasText: T.ownerEmail });
+  await orow.getByRole("button", { name: "Reset password" }).click();
+  const orp = orow.getByRole("group", { name: `Reset ${T.ownerName}'s password?` });
+  await act("stores.resetOwnerPassword", () => orp.getByRole("button", { name: "Reset password" }).click(), () => orow.getByText(/New temporary password for/).waitFor());
+  const opw2 = (await orow.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+\(/)?.[1];
+  assert(opw2 && opw2 !== opw1, "a new one-time password is shown once");
+  await orow.getByRole("button", { name: "Deactivate" }).click();
+  const odp = orow.getByRole("group", { name: `Deactivate ${T.ownerName}?` });
+  await act("stores.setOwnerActive (deactivate)", () => odp.getByRole("button", { name: "Deactivate" }).click(), () => notice(`${T.ownerName} has been signed out everywhere and can no longer sign in.`).waitFor());
+  const od = await one(`select active, (select count(*)::int from "Session" s where s."userId" = u.id) sessions from "User" u where id = $1`, [storeOwner.id]);
+  assert(od.active === false && od.sessions === 0, "deactivated and signed out everywhere (the store isn't trading yet, so no owner has to stay active)");
+  const ownerAudit = (await q(`select action from "AuditLog" where "entityId" = $1 order by at`, [storeOwner.id])).map((r) => r.action);
+  assert(["user.create", "user.password_reset", "user.deactivate"].every((a) => ownerAudit.includes(a)), `audited (${ownerAudit.join(", ")})`);
+
+  step("Stores: the opening checklist was seeded for the new store; a task is marked done with a note; the list shows progress");
+  const tasks = await q(`select id, key, title, "dueAt" from "StoreTask" where "storeId" = $1 order by "sortOrder"`, [store.id]);
+  assert(tasks.length === 21 && tasks[0].key === "lease" && !tasks.some((t) => t.key === "sahpra"), `${tasks.length} tasks seeded (no SAHPRA line: the store isn't licensed for THC)`);
+  const cl = page.getByTestId("opening-checklist");
+  await open(`/hq/stores/${storeCode}`, cl.getByRole("button", { name: "Mark done" }).first());
+  await cl.getByText(`0 of ${tasks.length} done`).waitFor();
+  await cl.getByRole("button", { name: "Mark done" }).first().click();
+  const panel = cl.getByRole("group", { name: tasks[0].title });
+  await panel.getByLabel("Note (optional)").fill(`Signed by E2E ${sfx}`);
+  // The revalidated row re-renders as done (with Undo), so wait for that rather than the panel's notice.
+  await act("stores.markTaskDone", () => panel.getByRole("button", { name: "Mark done" }).click(), () => cl.getByText(`Signed by E2E ${sfx}`).waitFor());
+  const doneTask = await one(`select "doneAt", "doneById", note from "StoreTask" where id = $1`, [tasks[0].id]);
+  assert(doneTask.doneAt && doneTask.doneById === admin.id && doneTask.note === `Signed by E2E ${sfx}`, "task done with the note, by the admin");
+  assert(await one(`select 1 from "AuditLog" where action = 'store.task_done' and "entityId" = $1`, [tasks[0].id]), "audited (store.task_done)");
+  await cl.getByText(`1 of ${tasks.length} done`).waitFor();
+  await open(`/hq/stores?q=${storeCode}`, null);
+  await page.getByText(`1/${tasks.length}`).first().waitFor();
+  ok(`stores list shows the progress line 1/${tasks.length}`);
+  await shot("store-checklist");
+
   // ── Catalogue ─────────────────────────────────────────────────────────────
   step("Catalogue: new draft CBD supplement (validation first: Schedule 0 limits and product facts), reclassify it as CBD food & drink (0.0075% limit), add + edit a variant, range and unrange it");
   const cat = await one(`select c.id, c.name from "Category" c where exists (select 1 from "Product" p where p."categoryId" = c.id and p."regClass" = 'CBD') order by c."sortOrder" limit 1`);
@@ -254,6 +308,7 @@ try {
   await pf.locator("#tagline").fill("A calm wind-down, made in small batches.");
   await pf.locator("#description").fill("Too short");
   await pf.locator("#categoryId").selectOption(cat.id);
+  await pf.locator("#regClass").selectOption("CBD"); // a new product starts with no class
   assert(await pf.getByRole("button", { name: "Create product" }).isDisabled(), "Create is blocked until the Schedule 0 fields are filled");
   await pf.locator("#cbdMgPerPack").fill("300");
   await pf.locator("#cbdMgPerDay").fill("10");
@@ -453,7 +508,7 @@ try {
   const qp = page.getByRole("group", { name: "Quarantine this batch" });
   await act("batches.setBatchStatus · no reason", () => qp.getByRole("button", { name: "Quarantine now" }).click(), () => alertIn(qp, "Give a reason").waitFor());
   await qp.locator("#q-reason").fill("E2E: awaiting a microbial re-test");
-  await act("batches.setBatchStatus (quarantine)", () => qp.getByRole("button", { name: "Quarantine now" }).click(), () => notice("Batch quarantined — it can't be sold or shipped until released.").waitFor());
+  await act("batches.setBatchStatus (quarantine)", () => qp.getByRole("button", { name: "Quarantine now" }).click(), () => notice("Batch quarantined. It can't be sold or shipped until released.").waitFor());
   assert((await one(`select status from "Batch" where id = $1`, [batch.id])).status === "QUARANTINE", "batch quarantined");
   await page.getByRole("button", { name: "Release batch" }).click();
   const rp = page.getByRole("group", { name: "Release for sale" });
@@ -477,7 +532,7 @@ try {
   };
   const poShip = await mkOrder(2), poReject = await mkOrder(1), poCancel = await mkOrder(1);
   await open(`/hq/distribution?dc=${dc.code}`, page.getByRole("row").filter({ hasText: poShip.number }).getByRole("button", { name: "Approve" }));
-  await act("distribution.actOnDcOrder (approve, from the list)", () => page.getByRole("row").filter({ hasText: poShip.number }).getByRole("button", { name: "Approve" }).click(), () => notice(`${poShip.number} approved — ready to pick for ${T.storeName}.`).waitFor());
+  await act("distribution.actOnDcOrder (approve, from the list)", () => page.getByRole("row").filter({ hasText: poShip.number }).getByRole("button", { name: "Approve" }).click(), () => notice(`${poShip.number} approved and ready to pick for ${T.storeName}.`).waitFor());
   assert(page.url().includes("/hq/distribution?") && (await one(`select status from "StockOrder" where id = $1`, [poShip.id])).status === "APPROVED", `${poShip.number} approved; back on the list with a confirmation`);
   await open(`/hq/distribution/${poShip.id}`, page.getByRole("button", { name: "Ship order" }));
   await page.getByRole("button", { name: "Ship order" }).click();
@@ -511,7 +566,7 @@ try {
   await act("batches.setBatchStatus (recall)", () => rc.getByRole("button", { name: "Recall and notify" }).click(), () => notice(/^Batch recalled\. 0 members notified by SMS/).waitFor());
   const recall = await one(`select a.id, a."requiresAck", b.status from "Announcement" a, "Batch" b where b.id = $1 and a.kind = 'RECALL' and a.title like $2`, [batch.id, `%batch ${T.batchCode}`]);
   assert(recall?.status === "RECALLED" && recall.requiresAck, "batch recalled; recall notice raised for every store to acknowledge");
-  await page.getByText("Recalled — blocked everywhere").waitFor();
+  await page.getByText("Recalled and blocked everywhere").waitFor();
   await shot("recalled");
   await q(`delete from "Announcement" where id = $1`, [recall.id]); // test data: don't leave a recall notice on every store's dashboard
   ok("test recall notice removed again");
@@ -527,7 +582,7 @@ try {
   await act("compliance.saveCompliance · adult use unconfirmed", () => rules.getByRole("button", { name: "Save compliance rules" }).click(), () => alertIn(rules, "Type ADULT USE to confirm the switch").waitFor());
   await rules.getByRole("radio", { name: /Medical/ }).click();
   await rules.locator("#minAge").fill("16");
-  await act("compliance.saveCompliance · under 18", () => rules.getByRole("button", { name: "Save compliance rules" }).click(), () => alertIn(rules, "Between 18 and 25 — never below 18").waitFor());
+  await act("compliance.saveCompliance · under 18", () => rules.getByRole("button", { name: "Save compliance rules" }).click(), () => alertIn(rules, "Between 18 and 25 (never below 18)").waitFor());
   assert(JSON.stringify(await setting("compliance")) === JSON.stringify(compBefore), "nothing saved (still medical mode, minimum age unchanged)");
   await rules.locator("#minAge").fill(orig.minAge);
   const daily = String(Number(orig.daily) + 1);
@@ -623,9 +678,9 @@ try {
   prf = formWith("#maxUses");
   await hydrated(prf);
   await prf.locator("#percent").fill("15");
-  await act("promotions.savePromotion (update)", () => prf.getByRole("button", { name: "Save promotion" }).click(), () => notice("Promotion saved — tills pick it up on the next basket.").waitFor());
+  await act("promotions.savePromotion (update)", () => prf.getByRole("button", { name: "Save promotion" }).click(), () => notice("Promotion saved. Tills pick it up on the next basket.").waitFor());
   assert((await one(`select value from "Promotion" where id = $1`, [promo.id])).value === 15, "now 15% off");
-  await act("promotions.setPromotionActive (pause)", () => headerOf().getByRole("button", { name: "Pause" }).click(), () => notice("Promotion paused — it stops applying immediately.").waitFor());
+  await act("promotions.setPromotionActive (pause)", () => headerOf().getByRole("button", { name: "Pause" }).click(), () => notice("Promotion paused. It stops applying immediately.").waitFor());
   assert((await one(`select active from "Promotion" where id = $1`, [promo.id])).active === false, "paused");
   await act("promotions.setPromotionActive (resume)", () => headerOf().getByRole("button", { name: "Resume" }).click(), () => notice("Promotion resumed.").waitFor());
   assert((await one(`select active from "Promotion" where id = $1`, [promo.id])).active === true, "resumed");
@@ -716,7 +771,12 @@ try {
     if (!shown) fail(`reach never matched the database (${JSON.stringify(await readReach())} vs ${JSON.stringify(lo)})`);
   });
   ok(`${shown.reachable.toLocaleString()} reachable by SMS of ${shown.total.toLocaleString()} members into CBD & wellness (matches the database)`);
-  await act("marketing.estimateReach (+ home store)", () => cf.locator("#storeId").selectOption(store.id), async () => {
+  const pickStore = async (form, st) => {
+    // The home-store picker loads stores on demand: search by code, then pick the match.
+    await form.locator("#storeSearch").fill(st.code);
+    await form.getByRole("list", { name: "Matching stores" }).getByRole("button", { name: new RegExp(`^${st.name}`) }).click();
+  };
+  await act("marketing.estimateReach (+ home store)", () => pickStore(cf, store), async () => {
     if (!(await until(async () => { const r = await readReach(); return r?.total === 1 && r.reachable === 1; }))) fail(`home-store reach: ${JSON.stringify(await readReach())}`);
   });
   ok("narrowed to the test store: 1 of 1 (the fixture member)");
@@ -740,7 +800,9 @@ try {
   assert(camp.status === "SCHEDULED" && localInput(camp.scheduledAt) >= when, `scheduled for ${localInput(camp.scheduledAt)}`);
   const campId = created.campaigns[0];
   await headerOf().getByRole("button", { name: "Send now" }).waitFor();
-  await act("marketing.sendNow", () => headerOf().getByRole("button", { name: "Send now" }).click(), () => notice(/^(Sent to [\d,]+ members|.+: held until )/).waitFor());
+  await headerOf().getByRole("button", { name: "Send now" }).click(); // confirm step restates the reach
+  await headerOf().getByText(/^Send to [\d,]+ members by SMS\?$/).waitFor();
+  await act("marketing.sendNow", () => headerOf().getByRole("button", { name: "Yes, send now" }).click(), () => notice(/^(Sent to [\d,]+ members|.+: held until )/).waitFor());
   camp = await one(`select status, "sentCount", "suppressedCount", "scheduledAt" from "Campaign" where id = $1`, [campId]);
   const sms = await q(`select "to", body from "MessageLog" where "campaignId" = $1`, [campId]);
   if (camp.status === "SENT") assert(camp.sentCount === 1 && sms.length === 1 && sms[0].to === member.phone && sms[0].body.startsWith("Hi E2E, the Windmill Tee") && /Reply STOP/.test(sms[0].body), "sent inside the CPA window: 1 SMS to the fixture member, personalised, with the opt-out footer");
@@ -758,7 +820,7 @@ try {
   }
   await headerOf().getByRole("button", { name: "Cancel campaign" }).click();
   const cc = page.getByRole("group", { name: "Cancel this campaign?" });
-  await act("marketing.cancelCampaign", () => cc.getByRole("button", { name: "Cancel campaign" }).click(), () => notice("Campaign cancelled — nothing will be sent.").waitFor());
+  await act("marketing.cancelCampaign", () => cc.getByRole("button", { name: "Cancel campaign" }).click(), () => notice("Campaign cancelled. Nothing will be sent.").waitFor());
   assert((await one(`select status, "scheduledAt" from "Campaign" where id = $1`, [cancelId])).status === "CANCELLED", "campaign cancelled");
   await shot("campaign-cancelled");
 
@@ -797,7 +859,7 @@ try {
   await sc.locator("#content").fill(T.caption);
   await sc.getByText("Caption passes screening").waitFor();
   if (offline) {
-    await act("social.postSocial (not connected)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => notice("Recorded here only — connect Postiz to publish (docs/INTEGRATIONS.md).").waitFor());
+    await act("social.postSocial (not connected)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => notice("Recorded here only. Connect Postiz to publish (docs/INTEGRATIONS.md).").waitFor());
     const post = await one(`select id, mode, "postizIds", image from "SocialPost" where content = $1`, [T.caption]);
     assert(post && post.postizIds.length === 0 && post.image === "brand", "post recorded (nothing sent to Postiz)");
     await page.getByRole("listitem").filter({ hasText: T.caption }).getByText("Recorded only").waitFor();
@@ -831,12 +893,195 @@ try {
   await act("orders.saveEcommerceSettings · invalid", () => es.getByRole("button", { name: "Save settings" }).click(), () => alertIn(es, "15 minutes to 24 hours").waitFor());
   await es.locator("#unpaidHoldMinutes").fill(origEco.unpaid);
   await es.locator("#collectHoldDays").fill(String(Number(origEco.hold) + 1));
-  await act("orders.saveEcommerceSettings", () => es.getByRole("button", { name: "Save settings" }).click(), () => notice("Delivery and collection settings saved — checkout uses them immediately.").waitFor());
+  await act("orders.saveEcommerceSettings", () => es.getByRole("button", { name: "Save settings" }).click(), () => notice("Delivery and collection settings saved. Checkout uses them immediately.").waitFor());
   assert((await setting("ecommerce"))?.collectHoldDays === Number(origEco.hold) + 1, `collection hold ${origEco.hold} → ${Number(origEco.hold) + 1} days`);
   await es.locator("#collectHoldDays").fill(origEco.hold);
   await act("orders.saveEcommerceSettings (restore)", () => es.getByRole("button", { name: "Save settings" }).click(), () => notice("Delivery and collection settings saved").waitFor());
   assert(String((await setting("ecommerce"))?.collectHoldDays) === origEco.hold, `restored to ${origEco.hold} days`);
   await restoreSetting("ecommerce");
+
+
+  // ── Trade (wholesale) ─────────────────────────────────────────────────────
+  step("Trade: an application (SQL) with its company registration certificate — approval waits for the licence");
+  const tVat = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, "0")}`;
+  const tReg = `2018/${String(Math.floor(Math.random() * 1e6)).padStart(6, "0")}/07`;
+  let tNo;
+  while (!tNo) {
+    const c = `TA-9${String(Math.floor(Math.random() * 1e5)).padStart(5, "0")}`;
+    if (!(await one(`select 1 from "TradeAccount" where number = $1`, [c]))) tNo = c;
+  }
+  tradeAccount = await one(
+    `insert into "TradeAccount" (id, number, name, "legalName", kind, "regNumber", "vatNumber", email, phone, "addressLine", suburb, city, province, "postalCode", status, terms, classes, "adultAttestedAt", "termsVersion", "termsAcceptedAt", "updatedAt")
+     values (gen_random_uuid()::text, $1, $2, $3, 'RETAILER', $6, $4, $5, '+27115550123', '12 Jan Smuts Avenue', 'Rosebank', 'Johannesburg', 'GP', '2196', 'PENDING', 'PREPAID', '{ACCESSORY,CBD}'::"RegClass"[], now(), 'trade-1', now(), now())
+     returning id, number, name, email`,
+    [tNo, T.tradeName, `${T.tradeName} (Pty) Ltd`, tVat, T.tradeEmail, tReg],
+  );
+  await q(`insert into "TradeBuyer" (id, "tradeAccountId", name, email, phone, role) values (gen_random_uuid()::text, $1, 'E2E Buyer', $2, '+27825550123', 'OWNER')`, [tradeAccount.id, T.tradeBuyerEmail]);
+  // A retailer needs its company registration certificate for these ranges; the buyer sent it with the application.
+  const sendCertificate = async () => {
+    const u = await one(`insert into "Upload" (id, key, "fileName", "contentType", "sizeBytes", sha256) values (gen_random_uuid()::text, 'e2e/cor14-3.pdf', 'cor14-3.pdf', 'application/pdf', 1024, 'e2e') returning id`);
+    return one(`insert into "TradeLicence" (id, "tradeAccountId", kind, number, "uploadId") values (gen_random_uuid()::text, $1, 'CIPC_REGISTRATION', $2, $3) returning id`, [tradeAccount.id, tReg, u.id]);
+  };
+  const firstCert = await sendCertificate();
+  await open(`/hq/trade/accounts?status=LICENCES&q=${encodeURIComponent(T.tradeName)}`, page.getByRole("link", { name: T.tradeName, exact: true }));
+  ok("the application is under Licences to check");
+  await open("/hq/trade/accounts?status=PENDING", page.getByRole("link", { name: T.tradeName, exact: true }));
+  await page.getByRole("link", { name: T.tradeName, exact: true }).click();
+  await page.waitForURL(new RegExp(`/hq/trade/accounts/${tradeAccount.id}$`));
+  const cert = page.getByTestId("hq-licence-CIPC_REGISTRATION");
+  await cert.getByText("To check").waitFor();
+  await page.getByText("Verify the licences first").waitFor();
+  let taf = formWith("#creditLimit");
+  await hydrated(taf);
+  await taf.locator("#terms").selectOption("ACCOUNT");
+  await taf.locator("#creditLimit").fill("");
+  await act("trade.approveAccount · invalid", () => taf.getByRole("button", { name: "Approve account" }).click(), () => alertIn(taf, "An account on credit terms needs a limit").waitFor());
+  await taf.locator("#creditLimit").fill("20000");
+  await act("trade.approveAccount · licence not verified", () => taf.getByRole("button", { name: "Approve account" }).click(), () => alertIn(taf, "Verify the licences first").waitFor());
+  assert((await one(`select status from "TradeAccount" where id = $1`, [tradeAccount.id])).status === "PENDING", "still pending: terms checked first, then the licence");
+
+  step("Trade: HQ doesn't accept the certificate (the account is told why), then verifies the one sent again");
+  await hydrated(cert.getByRole("button", { name: "Not accepted" }));
+  await cert.getByRole("button", { name: "Not accepted" }).click();
+  const rg = page.getByRole("group", { name: "Can't accept this company registration certificate?" });
+  await act("trade.rejectLicence · no reason", () => rg.getByRole("button", { name: "Send the reason" }).click(), () => alertIn(rg, "Say what's wrong").waitFor());
+  await rg.getByLabel("What's wrong (in the email the account gets)").fill("The certificate is for a different company");
+  await act("trade.rejectLicence", () => rg.getByRole("button", { name: "Send the reason" }).click(), () => notice("Licence not accepted").waitFor());
+  const rejected = await one(`select status, "rejectReason", "reviewedById" from "TradeLicence" where id = $1`, [firstCert.id]);
+  assert(rejected.status === "REJECTED" && rejected.rejectReason === "The certificate is for a different company" && rejected.reviewedById === admin.id, "not accepted, with the reason, by the admin");
+  assert(await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%not accepted (${tradeAccount.number})%The certificate is for a different company%`])), "the account is emailed the reason");
+  assert(await one(`select 1 from "AuditLog" where action = 'trade.licence.reject' and "entityId" = $1 and "actorId" = $2`, [firstCert.id, admin.id]), "audited (trade.licence.reject)");
+  await cert.getByText("Not accepted").first().waitFor();
+  const secondCert = await sendCertificate();
+  await open(`/hq/trade/accounts/${tradeAccount.id}`, cert.getByRole("button", { name: "Verify" }));
+  await shot("trade-licence");
+  await act("trade.verifyLicence", () => cert.getByRole("button", { name: "Verify" }).click(), () => notice("Licence verified").waitFor());
+  const verified = await one(`select status, "reviewedById", "reviewedAt" from "TradeLicence" where id = $1`, [secondCert.id]);
+  assert(verified.status === "VERIFIED" && verified.reviewedById === admin.id && verified.reviewedAt, "verified by the admin");
+  assert(await one(`select 1 from "AuditLog" where action = 'trade.licence.verify' and "entityId" = $1 and "actorId" = $2`, [secondCert.id, admin.id]), "audited (trade.licence.verify)");
+  await cert.getByText("Verified").first().waitFor();
+  assert(!(await page.getByText("Verify the licences first").count()), "nothing left to verify");
+
+  step("Trade: approved on account terms; the account is emailed");
+  taf = formWith("#creditLimit");
+  await hydrated(taf);
+  await taf.locator("#terms").selectOption("ACCOUNT");
+  await taf.locator("#creditLimit").fill("20000");
+  await taf.getByRole("checkbox", { name: "Supplements", exact: true }).check();
+  await shot("trade-approve");
+  await act("trade.approveAccount", () => taf.getByRole("button", { name: "Approve account" }).click(), () => notice(`${tradeAccount.number} approved on account terms`).waitFor());
+  let tacc = await one(`select status, terms, "creditLimitCents", "paymentDays", classes::text[] classes, "approvedById", "approvedAt" from "TradeAccount" where id = $1`, [tradeAccount.id]);
+  assert(tacc.status === "APPROVED" && tacc.terms === "ACCOUNT" && tacc.creditLimitCents === 2_000_000 && tacc.paymentDays === 30 && tacc.classes.includes("SUPPLEMENT") && tacc.approvedById === admin.id && tacc.approvedAt, "approved on account: R20,000 limit, 30 days, three ranges, by the admin");
+  assert(await one(`select 1 from "AuditLog" where action = 'trade.account.approve' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id]), "audited (trade.account.approve)");
+  assert(await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%account ${tradeAccount.number} approved%`])), "approval email logged for the account");
+
+  step(`Trade: HQ places a courier order on account for ${T.tradeName} (whole cases above the minimum) → it queues to pick at ${dc.name}`);
+  const tVariant = await one(
+    `select v.id, v.sku, v.name, p.name product, v."wholesaleCents", v."caseQty",
+       (select coalesce(sum(sl."onHand"), 0) from "StockLevel" sl join "Batch" b on b.id = sl."batchId" where sl."variantId" = v.id and sl."storeId" = $1 and b.status = 'RELEASED')::int "onHand"
+     from "Variant" v join "Product" p on p.id = v."productId"
+     where v.active and p.status = 'ACTIVE' and v."podSku" is null and p."regClass" in ('ACCESSORY', 'CBD') and v."wholesaleCents" between 5000 and 60000 order by "onHand" desc limit 1`,
+    [dc.id],
+  );
+  const tSetting = (await setting("trade")) ?? {};
+  const tMinOrder = tSetting.minOrderCents ?? 200_000;
+  const tCases = Math.ceil(tMinOrder / (tVariant.wholesaleCents * tVariant.caseQty)) + 1;
+  const tUnits = tCases * tVariant.caseQty;
+  if (tVariant.onHand < tUnits) fail(`${dc.code} needs ${tUnits} of ${tVariant.sku} on hand for the trade order`);
+  const tLabel = `${tVariant.product} · ${tVariant.name}`;
+  await open(`/hq/trade/accounts/${tradeAccount.id}/order`, page.getByRole("button", { name: "Search", exact: true }));
+  await page.getByPlaceholder("Product, SKU or barcode").fill(tVariant.sku);
+  await page.getByRole("button", { name: "Search", exact: true }).click();
+  await page.getByRole("button", { name: `Add a case of ${tLabel}` }).click();
+  await page.getByLabel(`Cases of ${tLabel}`).fill(String(tCases));
+  await page.locator("#reference").fill(`E2E-PO-${SFX}`);
+  await shot("trade-order-builder");
+  await act("trade.placeOrderForAccount", () => page.getByRole("button", { name: `Place order for ${T.tradeName}` }).click(), () => page.waitForURL(/\/hq\/trade\/orders\/[^/?]+\?m=/));
+  tradeOrder = await one(`select id, number, status, "payMethod", fulfilment, "storeId", "totalCents", "subtotalCents", "deliveryCents", reference from "TradeOrder" where "tradeAccountId" = $1`, [tradeAccount.id]);
+  const tLine = await one(`select id, qty, "unitCents" from "TradeOrderLine" where "tradeOrderId" = $1`, [tradeOrder?.id ?? ""]);
+  assert(tradeOrder?.status === "PLACED" && tradeOrder.payMethod === "ACCOUNT" && tradeOrder.fulfilment === "COURIER" && tradeOrder.storeId === dc.id && tLine?.qty === tUnits && tradeOrder.reference === `E2E-PO-${SFX}`, `${tradeOrder?.number}: placed on account, courier from ${dc.code}, ${tUnits} units at R${(tLine?.unitCents / 100).toFixed(2)} ex VAT`);
+  assert(tradeOrder.subtotalCents === tUnits * tLine.unitCents && tradeOrder.totalCents > tradeOrder.subtotalCents, `ex VAT ${tradeOrder.subtotalCents} + VAT and courier = ${tradeOrder.totalCents} incl.`);
+  await open("/hq/trade/orders?view=pick", null);
+  await page.getByRole("link", { name: tradeOrder.number, exact: true }).waitFor();
+  ok(`${tradeOrder.number} is in To pick`);
+
+  step(`Trade: ${tradeOrder.number} picked → shipped one case short with the courier and tracking → tax invoice on the ledger, WHOLESALE sale at ${dc.code}`);
+  await open(`/hq/trade/orders/${tradeOrder.id}`, page.getByRole("button", { name: "Start picking" }));
+  await act("trade.pickOrder", () => page.getByRole("button", { name: "Start picking" }).click(), () => notice("is being picked").waitFor());
+  assert((await one(`select status from "TradeOrder" where id = $1`, [tradeOrder.id])).status === "PICKING", "picking");
+  await hydrated(page.getByRole("button", { name: "Ship order" }));
+  await page.getByRole("button", { name: "Ship order" }).click();
+  const tsg = page.getByRole("group", { name: `Ship ${tradeOrder.number}?` });
+  await act("trade.shipOrder · no courier", () => tsg.getByRole("button", { name: "Ship and invoice" }).click(), () => alertIn(tsg, "Which courier is it with?").waitFor());
+  await tsg.locator("#ship-courier").fill("The Courier Guy");
+  await tsg.locator("#ship-tracking").fill(`E2E${SFX}`);
+  const tShippedUnits = tUnits - tVariant.caseQty;
+  await tsg.locator(`#short-${tLine.id}`).fill(String(tShippedUnits));
+  await shot("trade-ship");
+  await act("trade.shipOrder", () => tsg.getByRole("button", { name: "Ship and invoice" }).click(), () => notice("shipped with The Courier Guy").waitFor());
+  const tShipped = await one(`select o.status, o.courier, o."trackingNo", o."invoiceNumber", o."saleId", l."shippedQty" from "TradeOrder" o join "TradeOrderLine" l on l."tradeOrderId" = o.id where o.id = $1`, [tradeOrder.id]);
+  const tHalfUp = (n) => Math.floor((n * 1500 + 5000) / 10000);
+  const tInvoiced = tShippedUnits * tLine.unitCents + tHalfUp(tShippedUnits * tLine.unitCents) + tradeOrder.deliveryCents + tHalfUp(tradeOrder.deliveryCents);
+  const tInv = await one(`select cents, reference, "dueAt" from "TradeLedgerEntry" where "tradeOrderId" = $1 and kind = 'INVOICE'`, [tradeOrder.id]);
+  const tSale = await one(`select channel, "storeId", "totalCents", "tradeAccountId", number from "Sale" where id = $1`, [tShipped.saleId ?? ""]);
+  assert(tShipped.status === "SHIPPED" && tShipped.courier === "The Courier Guy" && tShipped.trackingNo === `E2E${SFX}` && /^TI-\d{6}$/.test(tShipped.invoiceNumber ?? "") && tShipped.shippedQty === tShippedUnits, `shipped: ${tShipped.shippedQty} of ${tUnits}, invoice ${tShipped.invoiceNumber}`);
+  const tDueDays = tInv?.dueAt ? Math.round((tInv.dueAt.getTime() - Date.now()) / 86_400_000) : null;
+  assert(tInv?.cents === tInvoiced && tInv.reference === tShipped.invoiceNumber && tDueDays === 30, `ledger INVOICE for the shipped quantity (R${(tInvoiced / 100).toFixed(2)}), due in 30 days`);
+  assert(tSale?.channel === "WHOLESALE" && tSale.storeId === dc.id && tSale.totalCents === tInvoiced && tSale.tradeAccountId === tradeAccount.id && tSale.number === tShipped.invoiceNumber, `WHOLESALE sale ${tSale?.number} posted at ${dc.code}`);
+  assert(await one(`select 1 from "AuditLog" where action = 'trade.order.shipped' and "entityId" = $1 and "actorId" = $2`, [tradeOrder.id, admin.id]), "audited (trade.order.shipped)");
+  await open("/hq/trade/orders?view=done", null);
+  await page.getByRole("link", { name: tradeOrder.number, exact: true }).waitFor();
+  ok(`${tradeOrder.number} is Done`);
+
+  step(`Trade: the EFT recorded against ${tShipped.invoiceNumber} → balance zero; the statement emailed; hold and release`);
+  await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger`, formWith("#pay-amount"));
+  const tpf = formWith("#pay-amount");
+  await tpf.locator("#pay-amount").fill("0");
+  await tpf.locator("#pay-reference").fill("x");
+  await act("trade.recordPayment · invalid", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => alertIn(tpf, "The amount received, like 2500.00").waitFor());
+  await tpf.locator("#pay-amount").fill((tInvoiced / 100).toFixed(2));
+  await tpf.locator("#pay-reference").fill(`E2E-EFT-${SFX}`);
+  await tpf.locator("#pay-order").selectOption(tradeOrder.id);
+  await act("trade.recordPayment", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => notice(`Payment of R${(tInvoiced / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded`).waitFor()); // zar(): R2,345.60
+  const tBalance = (await one(`select coalesce(sum(cents), 0)::int n from "TradeLedgerEntry" where "tradeAccountId" = $1`, [tradeAccount.id])).n;
+  assert(tBalance === 0 && (await one(`select 1 from "AuditLog" where action = 'trade.payment' and "entityId" = $1`, [tradeAccount.id])), "balance R0.00 after the payment (audited: trade.payment)");
+  const tNow = sastParts(new Date());
+  const tMonth = `${tNow.year}-${tNow.month}`;
+  await open(`/hq/trade/accounts/${tradeAccount.id}?tab=ledger&month=${tMonth}`, page.getByRole("button", { name: "Email statement" }));
+  await page.getByRole("row").filter({ hasText: tShipped.invoiceNumber }).first().waitFor();
+  await shot("trade-ledger");
+  await act("trade.sendStatement", () => page.getByRole("button", { name: "Email statement" }).click(), () => notice(`Statement for ${tMonth} emailed`).waitFor());
+  const tStLog = await one(`select status, kind from "MessageLog" where id = $1`, [`trade-statement-${tradeAccount.id}-${tMonth}`]);
+  created.mails.push(`trade-statement-${tradeAccount.id}-${tMonth}`);
+  assert(tStLog?.kind === "trade-statement" && tStLog.status === "SENT" && (await one(`select 1 from "AuditLog" where action = 'trade.statement.send' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id])), `statement for ${tMonth} logged (message-log receipt) and the send audited`);
+  await open(`/hq/trade/accounts/${tradeAccount.id}`, page.getByRole("button", { name: "Put on hold" }));
+  await page.getByRole("button", { name: "Put on hold" }).click();
+  const thg = page.getByRole("group", { name: `Put ${T.tradeName} on hold?` });
+  await act("trade.holdAccount · no reason", () => thg.getByRole("button", { name: "Put on hold" }).click(), () => alertIn(thg, "Say why").waitFor());
+  await thg.locator("#hold-reason").fill("E2E: invoice query");
+  await act("trade.holdAccount", () => thg.getByRole("button", { name: "Put on hold" }).click(), () => notice("Account on hold").waitFor());
+  tacc = await one(`select status, "holdReason" from "TradeAccount" where id = $1`, [tradeAccount.id]);
+  assert(tacc.status === "ON_HOLD" && tacc.holdReason === "E2E: invoice query" && (await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%${tradeAccount.number} on hold%`]))), "on hold with the reason; the account emailed");
+  await hydrated(page.getByRole("button", { name: "Lift the hold" }));
+  await act("trade.releaseAccount", () => page.getByRole("button", { name: "Lift the hold" }).click(), () => notice("Hold lifted").waitFor());
+  assert((await one(`select status, "holdReason" from "TradeAccount" where id = $1`, [tradeAccount.id])).status === "APPROVED" && (await one(`select 1 from "AuditLog" where action = 'trade.account.release' and "entityId" = $1 and "actorId" = $2`, [tradeAccount.id, admin.id])), "approved again (audited: trade.account.release)");
+  await shot("trade-account");
+
+  step("Trade: the settings card (validation first), changed and restored");
+  await open("/hq/settings", formWith("#minOrder"));
+  const tsf = formWith("#minOrder");
+  const tOrig = { handling: await tsf.locator("#collectHandling").inputValue(), eft: await tsf.locator("#eftHoldDays").inputValue() };
+  await tsf.locator("#eftHoldDays").fill("0");
+  await act("settings.saveTradeSettings · invalid", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => alertIn(tsf, "1 to 30 days").waitFor());
+  await tsf.locator("#eftHoldDays").fill(tOrig.eft);
+  await tsf.locator("#collectHandling").fill(String(Number(tOrig.handling) + 1));
+  await act("settings.saveTradeSettings", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => notice("Trade settings saved").waitFor());
+  assert((await setting("trade"))?.collectHandlingCents === Math.round((Number(tOrig.handling) + 1) * 100) && (await one(`select 1 from "AuditLog" where action = 'settings.trade' and "actorId" = $1`, [admin.id])), `collect handling R${tOrig.handling} → R${Number(tOrig.handling) + 1} (audited: settings.trade)`);
+  await tsf.locator("#collectHandling").fill(tOrig.handling);
+  await act("settings.saveTradeSettings (restore)", () => tsf.getByRole("button", { name: "Save trade settings" }).click(), () => notice("Trade settings saved").waitFor());
+  await restoreSetting("trade");
+  assert(JSON.stringify(await setting("trade")) === JSON.stringify(originalSettings.get("trade") ?? null), "trade settings as found");
+  await shot("trade-settings");
 
   // ── Members (POPIA) ───────────────────────────────────────────────────────
   step("Members: POPIA access export, then erasure of the fixture member (type-to-confirm)");
@@ -876,7 +1121,7 @@ try {
   const launchBefore = await setting("launch");
   if (founders) {
     assert(
-      (await page.getByText("Locked — founding numbers are assigned").isVisible()) && (await lf.locator("fieldset").evaluate((f) => f.disabled)) && !(await lf.getByRole("button", { name: "Save" }).count()),
+      (await page.getByText("Locked: founding numbers are assigned").isVisible()) && (await lf.locator("fieldset").evaluate((f) => f.disabled)) && !(await lf.getByRole("button", { name: "Save" }).count()),
       `${founders.toLocaleString()} founding numbers assigned: the form is read-only, no Save button`,
     );
     await act("launch.saveLaunch (forced submit while locked)", () => lf.evaluate((f) => ((f.querySelector("fieldset").disabled = false), f.requestSubmit())), () => alertIn(lf, "Founding numbers are already assigned").waitFor());
@@ -983,14 +1228,14 @@ try {
   await act("team.addUser · no region", () => tf.getByRole("button", { name: "Add and create password" }).click(), () => alertIn(tf, "Area managers need a region").waitFor());
   await tf.locator("#role").selectOption("HQ_STAFF");
   await act("team.addUser", () => tf.getByRole("button", { name: "Add and create password" }).click(), () => notice(/can now sign in as/).waitFor());
-  const pw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+—/)?.[1];
+  const pw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+\(/)?.[1];
   const staff = await one(`select id, role, "mustChangePassword", active from "User" where email = $1`, [T.staffEmail]);
   assert(staff?.role === "HQ_STAFF" && staff.mustChangePassword && pw1, `${T.staffEmail} added as HQ team with a one-time password`);
   const row = page.getByRole("row").filter({ hasText: T.staffEmail });
   await row.getByRole("button", { name: "Reset password" }).click();
   const rpw = row.getByRole("group", { name: `Reset ${T.staffName}'s password?` });
   await act("team.resetPassword", () => rpw.getByRole("button", { name: "Reset password" }).click(), () => row.getByText(/New temporary password for/).waitFor());
-  const pw2 = (await row.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+—/)?.[1];
+  const pw2 = (await row.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+\(/)?.[1];
   assert(pw2 && pw2 !== pw1, "a new one-time password is shown once");
   const c2 = await browser.newContext();
   const p2 = await c2.newPage();
@@ -1121,12 +1366,15 @@ try {
   const mine = (await q(`select code from "Store" where "regionId" = $1 and kind = 'RETAIL' order by code`, [area.regionId])).map((r) => r.code);
   assert(listed.length === mine.length && mine.every((c) => listed.includes(c)), `store list = the ${mine.length} ${area.name} stores (${mine.join(", ")})`);
   const foreign = await one(`select code, name from "Store" where "regionId" <> $1 and kind = 'RETAIL' order by code limit 1`, [area.regionId]);
-  await ap.goto(`${BASE}/hq/stores/${foreign.code}`);
-  await ap.waitForURL(/\/login\?denied=1/);
-  await ap.getByText("Your account doesn't have access to that page.").waitFor();
-  ok(`${foreign.name} (${foreign.code}, another region) → denied`);
+  const awayHq = await ap.goto(`${BASE}/hq/stores/${foreign.code}`);
+  await ap.getByRole("heading", { name: "Not found" }).waitFor();
+  assert(awayHq.status() === 404 && ap.url().endsWith(`/hq/stores/${foreign.code}`), `${foreign.name} (${foreign.code}, another region) → not found (404) in the console, not the sign-in page`);
+  const awayStore = await ap.goto(`${BASE}/store/${foreign.code}`);
+  await ap.getByText("This store sits outside what you look after").waitFor();
+  assert(awayStore.status() === 404 && ap.url().endsWith(`/store/${foreign.code}`), `its back office → not found (404) inside their own back office`);
   await open(`/hq/stores/${oneStore.code}`, ap.locator("form").first(), ap);
-  assert(await ap.getByText("View only — changes are made by the HQ team.").first().isVisible(), `${oneStore.name}: profile is view-only`);
+  assert(await ap.getByText("View only: changes are made by the HQ team.").first().isVisible(), `${oneStore.name}: profile is view-only`);
+  assert(!(await ap.getByText("Franchisee owners").count()), "owner sign-ins: not shown (HQ administrator only)");
   await ap.goto(`${BASE}/hq/stores/new`);
   await ap.waitForURL(/\/hq\/stores$/);
   ok("onboarding a store (admin only) → sent back to the store list");
@@ -1152,7 +1400,8 @@ try {
   await open("/hq/marketing/new", ap.locator("form").filter({ has: ap.locator("#segment") }), ap);
   const acf = ap.locator("form").filter({ has: ap.locator("#segment") });
   assert(!(await acf.getByRole("button", { name: "Send now" }).count()), "campaigns: drafts only (no Send now)");
-  await acf.locator("#storeId").selectOption({ label: oneStore.name });
+  await acf.locator("#storeSearch").fill(oneStore.code);
+  await acf.getByRole("list", { name: "Matching stores" }).getByRole("button", { name: new RegExp(`^${oneStore.name}`) }).click();
   await acf.locator("#name").fill(`${T.campaignName} (area)`);
   await acf.locator("#message").fill("Hi {{firstName}}, join us for a members' morning at the store this Saturday.");
   await act("marketing.saveCampaign (area manager draft)", () => acf.getByRole("button", { name: "Save draft" }).click(), () => notice("Draft saved.", ap).waitFor(), { p: ap });
@@ -1210,6 +1459,13 @@ async function cleanup() {
     await run("member orders", `delete from "Order" where "customerId" = $1`, [member.id]);
     await run("member", `delete from "Customer" where id = $1`, [member.id]);
   }
+  if (tradeAccount) {
+    await run("trade messages", `delete from "MessageLog" where "to" in ($1, $2) or id like $3`, [tradeAccount.email, T.tradeBuyerEmail, `trade-statement-${tradeAccount.id}-%`]);
+    await run("trade sale link", `update "Sale" set "tradeAccountId" = null where "tradeAccountId" = $1`, [tradeAccount.id]); // the WHOLESALE sale stays, like other trading records
+    await run("trade orders", `delete from "TradeOrder" where "tradeAccountId" = $1`, [tradeAccount.id]);
+    await run("trade licence documents", `delete from "Upload" where id in (select "uploadId" from "TradeLicence" where "tradeAccountId" = $1)`, [tradeAccount.id]);
+    await run("trade account", `delete from "TradeAccount" where id = $1`, [tradeAccount.id]); // buyers, licences and ledger go with it
+  }
   if (store) await run("stock orders", `delete from "StockOrder" where "buyerId" = $1`, [store.id]);
   if (variant) {
     await run("movements", `delete from "StockMovement" where "variantId" = $1`, [variant.id]);
@@ -1231,14 +1487,16 @@ async function cleanup() {
     await run("store range", `delete from "StoreVariant" where "storeId" = $1`, [store.id]);
     await run("store stats", `delete from "DailyStoreStat" where "storeId" = $1`, [store.id]);
     await run("store variant stats", `delete from "DailyVariantStat" where "storeId" = $1`, [store.id]);
+    await run("checklist", `delete from "StoreTask" where "storeId" = $1`, [store.id]);
     await run("store", `delete from "Store" where id = $1`, [store.id]);
+    await run("owner sign-in", `delete from "User" where email = $1`, [T.ownerEmail]);
     await run("owner company", `delete from "Company" where id = $1 and not exists (select 1 from "Store" where "companyId" = $1)`, [store.companyId]);
   }
   await run("team member", `delete from "User" where email = $1`, [T.staffEmail]);
   const left = await one(
     `select (select count(*) from "Store" where name = $1) + (select count(*) from "Product" where name = $2) + (select count(*) from "Customer" where email = $3 or "lastName" = $4 or id = $8)
-       + (select count(*) from "User" where email = $5) + (select count(*) from "Campaign" where name like $6) + (select count(*) from "Promotion" where name = $7) as n`,
-    [T.storeName, T.productName, T.memberEmail, `Member ${sfx}`, T.staffEmail, `${T.campaignName}%`, T.promoName, member?.id ?? ""],
+       + (select count(*) from "User" where email in ($5, $10)) + (select count(*) from "Campaign" where name like $6) + (select count(*) from "Promotion" where name = $7) + (select count(*) from "TradeAccount" where name = $9) as n`,
+    [T.storeName, T.productName, T.memberEmail, `Member ${sfx}`, T.staffEmail, `${T.campaignName}%`, T.promoName, member?.id ?? "", T.tradeName, T.ownerEmail],
   ).catch(() => ({ n: "?" }));
   if (Number(left.n)) process.exitCode = 1;
   console.log(`\nCleanup: test data removed (${left.n} left); settings ${drift.length ? `NOT as found: ${drift.join(", ")}` : "as found"}.`);

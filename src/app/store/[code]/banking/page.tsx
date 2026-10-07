@@ -20,7 +20,7 @@ import { Field, Input, Textarea } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, ReadOnlyNote } from "@/components/store/ui";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { CashUpPicker, SlipInput } from "@/components/store/deposit-form";
 import type { DepositStatus, Prisma } from "@/generated/prisma/client";
 
@@ -148,7 +148,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
               Every closed cash-up&apos;s cash is in a deposit.
             </EmptyState>
           ) : (
-            <Table className="mt-4">
+            <Table stickyFirst className="mt-4">
               <thead>
                 <tr>
                   <Th>Closed · by</Th>
@@ -187,7 +187,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                 <tr>
                   <td colSpan={3} className="px-5 py-3 text-xs text-ink-500">
                     {plural(waiting.length, "cash-up")} waiting{overdue.length ? ` · ${overdue.length} overdue` : ""}
-                    {waiting.length >= 200 && " · the oldest 200 are listed — bank these first"}
+                    {waiting.length >= 200 && " · the oldest 200 are listed; bank these first"}
                   </td>
                   <td className="tnum whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-ink-950">{zar(waitingCents)}</td>
                   <td />
@@ -242,7 +242,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                 <Field
                   label={
                     <>
-                      Stamped deposit slip <span className="font-normal text-ink-500">— a phone photo is fine</span>
+                      Stamped deposit slip <span className="font-normal text-ink-500">(a phone photo is fine)</span>
                     </>
                   }
                   htmlFor="dep-slip"
@@ -266,7 +266,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
       <Card className="mt-6">
         <CardHeader
           title="Deposits"
-          description={`Newest first. ${checker ? "Check each one against the bank statement — a verified deposit is locked. You can't check a deposit you recorded." : "The owner, area manager or HQ checks each one against the bank statement; a verified deposit is locked."}`}
+          description={`Newest first. ${checker ? "Check each one against the bank statement; a verified deposit is locked. You can't check a deposit you recorded." : "The owner, area manager or HQ checks each one against the bank statement; a verified deposit is locked."}`}
         />
         <div className="mt-4 border-y border-ink-100 p-4 sm:px-5">
           <Chips
@@ -283,7 +283,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
             {status ? "Nothing in this list right now." : "Deposits show here once they're recorded with their slip."}
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Banked on</Th>
@@ -309,7 +309,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                     <Td className="min-w-44">
                       <div className="font-semibold text-ink-900">{d.number}</div>
                       <div className="text-xs text-ink-600">Ref {d.reference}</div>
-                      <div className="text-xs text-ink-400">by {who.get(d.createdById) ?? "—"}</div>
+                      <div className="text-xs text-ink-500">by {who.get(d.createdById) ?? "—"}</div>
                       {d.note && <div className="mt-1 max-w-64 text-xs italic text-ink-500">“{d.note}”</div>}
                     </Td>
                     <Td align="right" className="whitespace-nowrap">
@@ -323,7 +323,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                           </Badge>
                         )}
                       </div>
-                      <div className="mt-0.5 text-xs text-ink-400">of {zar(d.expectedCents)} counted</div>
+                      <div className="mt-0.5 text-xs text-ink-500">of {zar(d.expectedCents)} counted</div>
                     </Td>
                     <Td className="whitespace-nowrap">
                       <div className="text-ink-800">{plural(closedFor.get(d.id)?.length ?? 0, "cash-up")}</div>
@@ -333,7 +333,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                       <Badge tone={st.tone} dot>{st.label}</Badge>
                       {d.reviewNote && <div className={cn("mt-1 max-w-64 text-xs", d.status === "QUERIED" ? "font-medium text-rose-600" : "text-ink-600")}>{d.reviewNote}</div>}
                       {d.reviewedAt && (
-                        <div className="mt-0.5 text-xs text-ink-400">
+                        <div className="mt-0.5 text-xs text-ink-500">
                           {d.status === "QUERIED" ? "queried" : "checked"} by {(d.reviewedById && who.get(d.reviewedById)) ?? "—"} · {fmtDate(d.reviewedAt)}
                         </div>
                       )}
@@ -350,12 +350,12 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                         <ExternalLink className="h-3.5 w-3.5 text-ink-400" strokeWidth={1.9} aria-hidden />
                         <span className="sr-only">(opens in a new tab)</span>
                       </a>
-                      <div className="text-xs text-ink-400">{pdf ? "PDF" : "Photo"} · {Math.max(1, Math.round(d.slip.sizeBytes / 1024)).toLocaleString()} KB</div>
+                      <div className="text-xs text-ink-500">{pdf ? "PDF" : "Photo"} · {Math.max(1, Math.round(d.slip.sizeBytes / 1024)).toLocaleString()} KB</div>
                     </Td>
                     {withActions && (
                       <Td className="text-right">
                         {d.status === "VERIFIED" ? null : d.createdById === user.id ? (
-                          <span className="text-xs text-ink-500">You recorded it — someone else checks it</span>
+                          <span className="text-xs text-ink-500">You recorded it, so someone else checks it</span>
                         ) : (
                           <div className="flex flex-wrap justify-end gap-2">
                             <ConfirmAction

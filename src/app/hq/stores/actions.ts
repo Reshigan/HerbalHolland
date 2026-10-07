@@ -6,11 +6,12 @@ import { audit } from "@/server/audit";
 import { guard, inScope, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
 import { str, opt, bool, parsePctToBps, parseNum, parseDay, slugify } from "@/server/hq/form";
 import { normalisePhone, PROVINCES } from "@/lib/sa";
+import { rescheduleChecklist, seedChecklist } from "@/server/store-tasks";
 import type { Province, StoreFormat, StoreStatus } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const FORMATS: StoreFormat[] = ["FLAGSHIP", "STANDARD", "EXPRESS"];
 const STATUSES: StoreStatus[] = ["ACTIVE", "OPENING_SOON", "CLOSED"];
-const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
 function readAddress(fd: FormData) {
   const fields: Record<string, string> = {};
@@ -90,7 +91,7 @@ export async function saveStoreFees(storeId: string, _: ActionState, fd: FormDat
   await db.store.update({ where: { id: storeId }, data: fees });
   await audit(db, g.actor, "store.fees", { storeId, entity: "Store", entityId: storeId, data: { before: { royaltyBps: before.royaltyBps, levyBps: before.levyBps, ecomBps: before.ecomBps }, after: fees } });
   revalidatePath(`/hq/stores/${before.code}`);
-  return done("Fees updated — they apply from the next statement.");
+  return done("Fees updated. They apply from the next statement.");
 }
 
 export async function saveStoreStatus(storeId: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -99,9 +100,11 @@ export async function saveStoreStatus(storeId: string, _: ActionState, fd: FormD
   const status = str(fd, "status") as StoreStatus;
   if (!STATUSES.includes(status)) return fail("Choose a status.");
   const openedAt = parseDay(str(fd, "openedAt"));
-  const before = await db.store.findUniqueOrThrow({ where: { id: storeId }, select: { code: true, status: true } });
-  await db.store.update({ where: { id: storeId }, data: { status, openedAt: openedAt ?? (status === "ACTIVE" && before.status !== "ACTIVE" ? new Date() : undefined) } });
+  const before = await db.store.findUniqueOrThrow({ where: { id: storeId }, select: { code: true, status: true, openedAt: true } });
+  const after = await db.store.update({ where: { id: storeId }, data: { status, openedAt: openedAt ?? (status === "ACTIVE" && before.status !== "ACTIVE" ? new Date() : undefined) } });
   await audit(db, g.actor, "store.status", { storeId, entity: "Store", entityId: storeId, data: { from: before.status, to: status } });
+  // The opening checklist follows the opening day while the store is still opening.
+  if (status !== "ACTIVE" && after.openedAt?.getTime() !== before.openedAt?.getTime()) await rescheduleChecklist(storeId, after.openedAt);
   revalidatePath(`/hq/stores/${before.code}`);
   return done(status === before.status ? "Saved." : `Store is now ${status.replace("_", " ").toLowerCase()}.`);
 }
@@ -117,12 +120,16 @@ export async function saveCompany(companyId: string, storeCode: string, _: Actio
   const email = str(fd, "email").toLowerCase();
   if (email && !isEmail(email)) fields.email = "Enter a valid email";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
+  const directors = opt(fd, "directors");
   const before = await db.company.findUniqueOrThrow({ where: { id: companyId } });
   await db.company.update({
     where: { id: companyId },
-    data: { legalName, name: str(fd, "name") || legalName.replace(/\s*\(Pty\) Ltd\.?$/i, ""), regNumber: opt(fd, "regNumber"), vatNumber: vat || null, contactName: opt(fd, "contactName"), email: email || null, phone: opt(fd, "phone"), address: opt(fd, "address") },
+    data: { legalName, name: str(fd, "name") || legalName.replace(/\s*\(Pty\) Ltd\.?$/i, ""), regNumber: opt(fd, "regNumber"), vatNumber: vat || null, contactName: opt(fd, "contactName"), email: email || null, phone: opt(fd, "phone"), address: opt(fd, "address"), directors },
   });
-  await audit(db, g.actor, "company.update", { entity: "Company", entityId: companyId, data: { vatBefore: before.vatNumber, vatAfter: vat || null } });
+  await audit(db, g.actor, "company.update", {
+    entity: "Company", entityId: companyId,
+    data: { vatBefore: before.vatNumber, vatAfter: vat || null, ...(before.directors !== directors && { directorsBefore: before.directors, directorsAfter: directors }) },
+  });
   revalidatePath(`/hq/stores/${storeCode}`);
   return done(before.vatNumber !== (vat || null) ? "Owner saved. VAT status changes apply to invoices from now on." : "Owner saved.");
 }
@@ -181,6 +188,8 @@ export async function createStore(_: ActionState, fd: FormData): Promise<ActionS
       ranged = r.count;
     }
     await audit(t, g.actor, "store.create", { storeId: s.id, entity: "Store", entityId: s.id, data: { code, companyId, templateId, ranged } });
+    // Franchisee onboarding: the opening checklist, due dates counted back from the opening day (once it's set).
+    if (s.kind === "RETAIL") await seedChecklist(t, s, g.actor);
     return s;
   });
   revalidatePath("/hq/stores");

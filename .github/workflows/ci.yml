@@ -32,6 +32,8 @@ jobs:
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
+      - name: The migrations build exactly the schema (no drift)
+        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: npm run typecheck
       - run: npm test
       - name: Integration tests (disposable CI database)
@@ -41,6 +43,13 @@ jobs:
       - run: npm run build
       - name: herbalholland.com builds (its own Cloudflare Worker; size budgets and content checks)
         run: npx tsx sites/herbalholland.com/build.ts
+
+  image:
+    # The production image (Dockerfile) builds: nothing else exercises it before a deploy.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build --target runner -t herbal-holland .
 
   e2e:
     # Every user journey (checkout, till, back office, HQ, shop & Rewards) and a crawl of every page, against a production
@@ -62,6 +71,7 @@ jobs:
       SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
       APP_URL: http://127.0.0.1:3000
       DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
+      CRON_SECRET: ci-only-cron-secret # the books journey runs the posting queue through /api/cron/frequent
       UPLOAD_DIR: ${{ github.workspace }}/.data/uploads # shared by the seed and the standalone server (its own cwd)
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
@@ -96,6 +106,12 @@ jobs:
         env:
           BASE_URL: http://127.0.0.1:3000
       - run: node e2e/shop.mjs test-results/e2e-shop
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/trade.mjs test-results/e2e-trade
+        env:
+          BASE_URL: http://127.0.0.1:3000
+      - run: node e2e/accounting.mjs test-results/e2e-accounting
         env:
           BASE_URL: http://127.0.0.1:3000
       - name: Crawl every page as every role (broken links, server errors, crashes, timings)

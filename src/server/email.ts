@@ -1,11 +1,14 @@
 // Email transport. SMTP (any ESP — Amazon SES af-south-1, Everlytic, Postmark…) via
-// SMTP_URL; without it, emails are written to the message log for review.
+// SMTP_URL; without it, emails are written to the message log for review (HQ → Messages).
+// The layout and templates live in email-templates.ts (pure, unit-tested); this file only delivers and logs.
 import { createTransport, type Transporter } from "nodemailer";
 import { db } from "./db";
+import { esc, emailLayout, LEGAL_MARK, legalLine } from "./email-templates";
 
 let transport: Transporter | null | undefined;
 function smtp() {
-  if (transport === undefined) transport = process.env.SMTP_URL ? createTransport({ url: process.env.SMTP_URL, pool: true }) : null;
+  // Short timeouts: a mail host that hangs must fail one send in seconds, not hold up every send in a job for minutes.
+  if (transport === undefined) transport = process.env.SMTP_URL ? createTransport({ url: process.env.SMTP_URL, pool: true, connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000 }) : null;
   return transport;
 }
 
@@ -14,47 +17,60 @@ export type Email = {
   subject: string;
   html: string;
   text: string;
+  logText?: string; // what the message log keeps instead of `text`, when the text carries a link that is a credential
   customerId?: string | null;
   kind?: "TRANSACTIONAL" | "MARKETING";
   headers?: Record<string, string>;
 };
 
+// ── Sender identity ────────────────────────────────────────────────────────────
+// The footer's legal line comes from the franchisor Company record (HQ → Stores → the distribution centre → Owner), cached briefly so a
+// burst of invoices doesn't query it every time. A database hiccup never stops an email: the brand name stands in.
+type Sender = { legalName: string; regNumber: string | null; vatNumber: string | null; address: string | null; phone: string | null; email: string | null } | null;
+let sender: { at: number; value: Sender } | undefined;
+const SENDER_TTL = 10 * 60_000;
+
+export async function senderIdentity(): Promise<Sender> {
+  if (sender && Date.now() - sender.at < SENDER_TTL) return sender.value;
+  try {
+    const c = await db.company.findFirst({ where: { kind: "FRANCHISOR" }, select: { legalName: true, regNumber: true, vatNumber: true, address: true, phone: true, email: true } });
+    sender = { at: Date.now(), value: c };
+  } catch (e) {
+    console.error("[email] couldn't read the franchisor company for the footer", e);
+    sender = { at: Date.now() - SENDER_TTL + 30_000, value: sender?.value ?? null };
+  }
+  return sender.value;
+}
+
+/** Fills the layout's legal line (HTML) and appends it to the plain text. Safe to call twice: the mark is consumed once. */
+export async function finalizeEmail(e: Email): Promise<Email> {
+  if (!e.html.includes(LEGAL_MARK)) return e;
+  const line = legalLine(await senderIdentity());
+  return { ...e, html: e.html.replace(LEGAL_MARK, esc(line)), text: `${e.text.trimEnd()}\n\n— ${line}\nAdults 18+ only. Keep out of reach of children.` };
+}
+
 /** Hands an email to SMTP; false when SMTP_URL isn't set (nothing sent). Throws on SMTP failure. */
 export async function deliverEmail(e: Email) {
+  const m = await finalizeEmail(e);
   const t = smtp();
   if (!t) return false;
   const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.co.za>";
-  await t.sendMail({ from, to: e.to, subject: e.subject, html: e.html, text: e.text, headers: e.headers });
+  await t.sendMail({ from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers });
   return true;
 }
 
+/** Sends and logs. An SMTP failure is logged as FAILED (with the reason) and rethrown so callers can retry or tell the user. */
 export async function sendEmail(e: Email) {
-  const t = await deliverEmail(e);
-  await db.messageLog.create({
-    data: {
-      channel: "EMAIL", to: e.to, kind: e.kind ?? "TRANSACTIONAL", status: "SENT", customerId: e.customerId,
-      body: `${e.subject}\n\n${e.text}`, reason: t ? null : "logged (SMTP_URL not set)",
-    },
-  });
+  const m = await finalizeEmail(e);
+  const row = { channel: "EMAIL" as const, to: m.to, kind: m.kind ?? ("TRANSACTIONAL" as const), customerId: m.customerId, body: `${m.subject}\n\n${e.logText ?? m.text}` };
+  let delivered = false;
+  try {
+    delivered = await deliverEmail(m);
+  } catch (err) {
+    await db.messageLog.create({ data: { ...row, status: "FAILED", reason: String((err as Error)?.message ?? err).slice(0, 300) } }).catch(() => {});
+    throw err;
+  }
+  await db.messageLog.create({ data: { ...row, status: "SENT", reason: delivered ? null : "logged (SMTP_URL not set)" } });
 }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
-
-/** Branded, email-client-safe HTML shell (tables + inline styles). */
-export function emailLayout(opts: { preheader: string; heading: string; body: string; cta?: { label: string; href: string }; footerHtml?: string }) {
-  const cta = opts.cta
-    ? `<tr><td style="padding:8px 32px 28px"><a href="${esc(opts.cta.href)}" style="display:inline-block;background:#F5913C;color:#0C0A09;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:999px;font-family:Arial,sans-serif">${esc(opts.cta.label)}</a></td></tr>`
-    : "";
-  return `<!doctype html><html><body style="margin:0;background:#F4EFEA;padding:24px 0">
-<span style="display:none;max-height:0;overflow:hidden">${esc(opts.preheader)}</span>
-<table role="presentation" width="100%" cellspacing="0" cellpadding="0"><tr><td align="center">
-<table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width:600px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;font-family:Arial,Helvetica,sans-serif;color:#1A1614">
-<tr><td style="background:#0C0A09;padding:22px 32px;border-bottom:6px solid #F5913C">
-<span style="color:#F5913C;font-size:20px;letter-spacing:3px;font-weight:300">HERBAL</span> <span style="color:#F5913C;font-size:20px;letter-spacing:2px;font-weight:800">HOLLAND</span>
-</td></tr>
-<tr><td style="padding:28px 32px 8px"><h1 style="margin:0 0 12px;font-size:22px">${esc(opts.heading)}</h1>${opts.body}</td></tr>
-${cta}
-<tr><td style="padding:18px 32px;background:#FBF6F1;color:#6B5F57;font-size:12px;line-height:18px">Herbal Holland · Adults 18+ only · Keep out of reach of children.<br/>${opts.footerHtml ?? "You received this because you made a purchase. Manage email preferences in Herbal Holland Rewards."}</td></tr>
-</table></td></tr></table></body></html>`;
-}
-export { esc };
+export { esc, emailLayout };

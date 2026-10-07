@@ -1,18 +1,19 @@
 "use client";
 import { useState } from "react";
-import { AlertTriangle, BadgePercent, Lock, Stethoscope, Users } from "lucide-react";
+import { AlertTriangle, BadgePercent, Lock, Scale, Stethoscope, Users } from "lucide-react";
 import { Field, Input, Checkbox, Label } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { REG_CLASS_LABEL, REG_CLASSES as CLASSES, channelLabel, type ComplianceSettings, type SellChannel } from "@/lib/compliance";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/server/hq/guard";
 
 const CHANNELS: SellChannel[] = ["POS", "COLLECT", "SAME_DAY", "COURIER"];
 
-export function ComplianceForm({ action, value, readOnly }: { action: (s: ActionState, fd: FormData) => Promise<ActionState>; value: ComplianceSettings; readOnly: boolean }) {
+export function ComplianceForm({ action, value, legalReviewed, readOnly }: { action: (s: ActionState, fd: FormData) => Promise<ActionState>; value: ComplianceSettings; legalReviewed: boolean; readOnly: boolean }) {
   const [mode, setMode] = useState(value.thcMode);
   const [tobacco, setTobacco] = useState(value.tobaccoBillMode);
   const [members, setMembers] = useState(value.membersOnly);
+  const [reviewed, setReviewed] = useState(legalReviewed);
   const modes = [
     {
       key: "MEDICAL" as const,
@@ -24,7 +25,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
       key: "ADULT_USE" as const,
       icon: Users,
       title: "Adult use",
-      body: "Verified adults may buy licensed products within the daily limit — for when a commercial adult-use regime is in force. Commercial THC trade is still unlawful today; the Cannabis Bill isn't expected before mid-2027.",
+      body: "Verified adults may buy licensed products within the daily limit. This is for when a commercial adult-use regime is in force. Commercial THC trade is still unlawful today; the Cannabis Bill isn't expected before mid-2027.",
     },
   ];
   return (
@@ -44,7 +45,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                 className={cn("rounded-2xl border p-4 text-left transition disabled:cursor-default", mode === m.key ? "border-brand-500 bg-brand-50 ring-4 ring-brand-500/15" : "border-ink-200 bg-white hover:border-ink-300")}
               >
                 <span className="flex items-center gap-2 font-display text-sm font-semibold text-ink-900">
-                  <m.icon className={cn("h-4 w-4", mode === m.key ? "text-brand-700" : "text-ink-400")} /> {m.title}
+                  <m.icon className={cn("h-4 w-4", mode === m.key ? "text-brand-700" : "text-ink-500")} /> {m.title}
                   {value.thcMode === m.key && <span className="rounded-full bg-ink-900 px-2 py-0.5 text-[0.65rem] font-semibold text-white">Current</span>}
                 </span>
                 <span className="mt-1.5 block text-xs leading-relaxed text-ink-600">{m.body}</span>
@@ -136,7 +137,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
                 <span key={cl} className="inline-flex items-center gap-2 text-sm text-ink-600" title="Licensed medicines never get incentives in medical mode">
                   {(value.noIncentives ?? []).includes(cl) && <input type="hidden" name="noIncentives" value={cl} />}
                   <Lock className="h-4 w-4 text-ink-400" aria-hidden />
-                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-400">— always, in medical mode</span>
+                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-500">— always, in medical mode</span>
                 </span>
               ) : (
                 <Checkbox key={cl} name="noIncentives" value={cl} defaultChecked={(value.noIncentives ?? []).includes(cl)} label={REG_CLASS_LABEL[cl]} />
@@ -151,7 +152,7 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
             checked={members}
             onChange={(e) => setMembers(e.target.checked)}
             label="Members only"
-            description="Every sale needs a registered member who has accepted the membership terms — online and at the till. Walk-ins sign up at the till in about 20 seconds; offline, the till takes the member number from their card and checks it when it reconnects."
+            description="Every sale needs a registered member who has accepted the membership terms, online and at the till. Walk-ins sign up at the till in about 20 seconds; offline, the till takes the member number from their card and checks it when it reconnects."
           />
         </div>
 
@@ -161,7 +162,22 @@ export function ComplianceForm({ action, value, readOnly }: { action: (s: Action
             checked={tobacco}
             onChange={(e) => setTobacco(e.target.checked)}
             label="Tobacco Bill (B33-2022) mode"
-            description="Switch on if the Bill is enacted as introduced: pipes, water-pipes, papers and vapes become in-store only, with no online or courier sales, no points and no promotion. Products are flagged in the catalogue."
+            description="Switch on if the Bill is enacted as introduced: products flagged in the catalogue (pipes, water-pipes, papers, vapes) can then only be bought in store, not for click & collect or delivery. It doesn't change their points or promotions."
+          />
+        </div>
+
+        <div className={cn("rounded-2xl border p-4", reviewed ? "border-ink-150" : "border-amber-500/40 bg-amber-50")}>
+          <input type="hidden" name="legalShown" value="1" />
+          <Checkbox
+            name="legalReviewed"
+            checked={reviewed}
+            onChange={(e) => setReviewed(e.target.checked)}
+            label={
+              <span className="inline-flex items-center gap-1.5">
+                <Scale className="h-4 w-4 text-brand-700" aria-hidden /> Counsel has signed off the legal texts
+              </span>
+            }
+            description="Until this is ticked, the membership terms, privacy notice, returns and delivery policies and the trade terms say they're under review, and each line counsel must confirm shows its question. Tick it once counsel has signed them off: the notes come off the live pages."
           />
         </div>
       </fieldset>

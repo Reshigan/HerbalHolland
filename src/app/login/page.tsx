@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { Lockup } from "@/components/brand/logo";
+import { DEMO_PASSWORD } from "@/lib/password";
 import { LoginForm, DemoLogin } from "./login-form";
 
-export const metadata = { title: "Sign in" };
+export const metadata = { title: "Sign in", robots: { index: false, follow: false } };
 
 const DEMO = [
   { email: "hq@herbalholland.co.za", label: "HQ administrator", sub: "Network, catalogue, marketing, compliance" },
   { email: "area.gpn@herbalholland.co.za", label: "Area manager", sub: "Tshwane & North region" },
-  { email: "thabo@mokoenaretail.co.za", label: "Franchise owner", sub: "Mokoena Retail — Hatfield & Brooklyn" },
+  { email: "thabo@mokoenaretail.co.za", label: "Franchise owner", sub: "Mokoena Retail · Hatfield & Brooklyn" },
+  { email: "books@mokoenaretail.co.za", label: "Accountant", sub: "Mokoena Retail's books" },
   { email: "manager.pta01@herbalholland.co.za", label: "Store manager", sub: "Hatfield · responsible dispenser" },
 ];
 
@@ -22,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <Lockup spin className="h-full w-full text-[2.6rem] [&>svg]:h-[52%]" />
         </div>
         <p className="max-w-md font-display text-2xl font-light leading-snug text-ink-200">
-          One platform for every store: <span className="font-semibold text-white">tills, stock, buying, money and members</span> — from Hatfield to Sea Point.
+          One platform for every store, from Hatfield to Sea Point: <span className="font-semibold text-white">tills, stock, buying, money and members</span>.
         </p>
       </section>
       <section className="flex items-center justify-center bg-ink-50 px-6 py-12">
@@ -37,7 +39,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           </div>
           {demo && (
             <div className="mt-10">
-              <div className="eyebrow mb-2 text-ink-400">Demo access · password “holland”</div>
+              <div className="eyebrow mb-2 text-ink-400">Demo access · password “{DEMO_PASSWORD}”</div>
               <div className="grid gap-2">
                 {DEMO.map((d) => (
                   <DemoLogin key={d.email} {...d} />

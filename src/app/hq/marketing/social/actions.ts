@@ -28,7 +28,7 @@ export async function postSocial(_: ActionState, fd: FormData): Promise<ActionSt
   const flags = screenSocial(content);
   if (content.length < 10) fields.content = "Write the caption";
   else if (content.length > limitFor(ids)) fields.content = `Keep it to ${limitFor(ids).toLocaleString()} characters`;
-  else if (flags.length) fields.content = flags.map((f) => `“${f.term}” — ${f.reason}`).join(" · ");
+  else if (flags.length) fields.content = flags.map((f) => `“${f.term}”: ${f.reason}`).join(" · ");
   if (image && !SOCIAL_IMAGES.some((i) => i.key === image)) fields.image = "Choose one of the pictures";
   else if (!image && needsImage(ids)) fields.image = "Instagram needs a picture";
   let at = new Date();
@@ -53,8 +53,8 @@ export async function postSocial(_: ActionState, fd: FormData): Promise<ActionSt
   const post = await db.socialPost.create({ data: { content, image, channels: names, mode, scheduledAt: mode === "schedule" ? at : null, postizIds, createdBy: g.user.name } });
   await audit(db, g.actor, "social.post", { entity: "SocialPost", entityId: post.id, data: { mode, channels: names, image } });
   revalidatePath("/hq/marketing/social");
-  if (!postizConnected()) return done("Recorded here only — connect Postiz to publish (docs/INTEGRATIONS.md).");
+  if (!postizConnected()) return done("Recorded here only. Connect Postiz to publish (docs/INTEGRATIONS.md).");
   return done(
-    mode === "now" ? `Posting now to ${names.join(", ")}.` : mode === "schedule" ? `Scheduled for ${fmtDateTime(at)} on ${names.join(", ")}.` : "Saved in Postiz as a draft — finish and schedule it there.",
+    mode === "now" ? `Posting now to ${names.join(", ")}.` : mode === "schedule" ? `Scheduled for ${fmtDateTime(at)} on ${names.join(", ")}.` : "Saved in Postiz as a draft. Finish and schedule it there.",
   );
 }

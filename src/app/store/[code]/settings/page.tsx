@@ -1,4 +1,4 @@
-import { MonitorSmartphone, ShieldCheck } from "lucide-react";
+import { Bell, MonitorSmartphone, ShieldCheck } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
@@ -7,7 +7,9 @@ import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { bps } from "@/lib/money";
 import { displayPhone, PROVINCES } from "@/lib/sa";
 import { fmtDate, timeAgo } from "@/lib/format";
-import { revokeDevice, saveStoreDetails } from "./actions";
+import { disableStaffPush, enableStaffPush, revokeDevice, saveHours, saveStoreDetails } from "./actions";
+import { StaffPushToggle } from "@/components/store/push-toggle";
+import { STAFF_PUSH_ROLES, staffDeviceCount, staffVapidKey } from "@/server/staff-push";
 import { HoursEditor } from "./hours-editor";
 import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -16,7 +18,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { ButtonLink } from "@/components/ui/button";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Line, ReadOnlyNote } from "@/components/store/ui";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 
 export const metadata = { title: "Store settings" };
 
@@ -29,6 +31,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
   const live = devices.filter((d) => d.active);
   const revoked = devices.filter((d) => !d.active).sort((a, b) => (b.lastSeenAt?.getTime() ?? 0) - (a.lastSeenAt?.getTime() ?? 0));
   const hours = readHours(store.hours);
+  const pushRole = STAFF_PUSH_ROLES.includes(user.role);
+  const pushDevices = pushRole ? await staffDeviceCount(user.id) : 0;
 
   return (
     <>
@@ -39,7 +43,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
       />
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">
-          <CardHeader title="Store details" description="Shown on the website, store finder, receipts and order messages" />
+          <CardHeader title="Store details" description="Shown on the website, store finder, receipts and order messages. A changed day of trading hours can be saved on its own from its row." />
           <CardBody>
             {canManage ? (
               <ActionForm action={saveStoreDetails.bind(null, store.code)} className="space-y-5">
@@ -57,13 +61,17 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                     <FieldError name="email" />
                   </Field>
                 </div>
-                <HoursEditor initial={hours} />
+                <HoursEditor initial={hours} saveDay={Object.fromEntries(WEEK.map(([k]) => [k, saveHours.bind(null, store.code, k)]))} />
                 <FieldError name="hours" />
                 <fieldset className="grid gap-3 rounded-2xl bg-ink-50 p-4 sm:grid-cols-2">
                   <legend className="sr-only">Online fulfilment</legend>
                   <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Members can order online and collect here. Turn off during stock takes or renovations." />
                   <Checkbox name="sameDay" defaultChecked={store.sameDay} label="Same-day delivery" description="This store may be picked for same-day orders within 30 km." />
                 </fieldset>
+                <Field label="PayShap ShapID" htmlFor="s-shapid" hint="The ShapID your bank issued for this store's account. The tills offer PayShap only while one is set: leave it empty to switch PayShap off.">
+                  <Input id="s-shapid" name="payshapId" defaultValue={store.payshapId ?? ""} maxLength={60} autoComplete="off" spellCheck={false} className="max-w-sm font-mono" />
+                  <FieldError name="payshapId" />
+                </Field>
                 <SubmitButton pendingLabel="Saving…">Save details</SubmitButton>
               </ActionForm>
             ) : (
@@ -74,6 +82,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                   <Line label="Email" value={store.email ?? "—"} />
                   <Line label="Click & collect" value={store.clickCollect ? "On" : "Off"} />
                   <Line label="Same-day delivery" value={store.sameDay ? "On" : "Off"} />
+                  <Line label="PayShap ShapID" value={store.payshapId ? <span className="font-mono">{store.payshapId}</span> : "Not set: no PayShap at the till"} />
                 </div>
                 <div>
                   {WEEK.map(([k, name]) => (
@@ -87,8 +96,19 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
         </Card>
 
         <div className="min-w-0 space-y-6">
+          {pushRole && (
+            <Card>
+              <CardHeader title="Notifications" description="Push notifications to your phone for the stores you look after" action={<Bell className="h-4 w-4 text-brand-600" aria-hidden />} />
+              <CardBody className="space-y-3 pt-3">
+                <StaffPushToggle vapidKey={staffVapidKey()} devices={pushDevices} enable={enableStaffPush.bind(null, store.code)} disable={disableStaffPush.bind(null, store.code)} />
+                <p className="text-xs leading-relaxed text-ink-500">
+                  You&apos;ll hear about new online orders as they come in (checked every 5 minutes), loss-prevention alerts about other people, HQ updates that need acknowledging, lots about to expire, cash due at the bank and a daily low-stock digest.
+                </p>
+              </CardBody>
+            </Card>
+          )}
           <Card>
-            <CardHeader title="Licences & VAT" description="Held on record by HQ — contact HQ to change" />
+            <CardHeader title="Licences & VAT" description="Held on record by HQ. Contact HQ to change them." />
             <CardBody className="space-y-4 pt-3">
               <div>
                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink-900">
@@ -129,14 +149,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                 <DeviceRow key={d.id} d={d}>
                   {canManage ? (
                     <ConfirmAction action={revokeDevice.bind(null, store.code, d.id)} label="Revoke" title={`Revoke ${d.name}?`} confirmLabel="Revoke till" className="min-w-56">
-                      It stops trading immediately and signs out whoever is on it — sync any offline sales on it first.
+                      It stops trading immediately and signs out whoever is on it. Sync any offline sales on it first.
                     </ConfirmAction>
                   ) : (
                     <Badge tone="green" dot>Active</Badge>
                   )}
                 </DeviceRow>
               ))}
-              {live.length === 0 && revoked.length > 0 && <p className="text-sm text-ink-500">No active tills — pair one to start trading.</p>}
+              {live.length === 0 && revoked.length > 0 && <p className="text-sm text-ink-500">No active tills. Pair one to start trading.</p>}
               {revoked.length > 0 && (
                 <details className="group pt-1">
                   <summary className="cursor-pointer list-none text-xs font-semibold text-ink-500 hover:text-ink-800">

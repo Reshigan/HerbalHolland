@@ -22,7 +22,7 @@ export const metadata = { title: "Drops" };
 const PAGE_SIZE = 20;
 const TABS = [
   { key: "live", label: "Live now", empty: "Nothing is dropping right now." },
-  { key: "upcoming", label: "Upcoming", empty: "No drops scheduled — plan the next one." },
+  { key: "upcoming", label: "Upcoming", empty: "No drops scheduled. Plan the next one." },
   { key: "past", label: "Past", empty: "No drops have ended yet." },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];
@@ -68,7 +68,7 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
       {scope.kind !== "HQ" && <Notice className="mb-6">Units sold and stock cover the stores and distribution centre in your region.</Notice>}
       <TabLinks className="mb-4" current={href(tab)} tabs={TABS.map((t) => ({ label: t.label, count: counts[t.key], href: href(t.key) }))} />
       <Card>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Drop</Th>
@@ -97,7 +97,7 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
                       {d.name}
                     </Link>
                     <span className="mt-1 flex flex-wrap items-center gap-1.5">
-                      <span className="font-mono text-xs text-ink-400">/drops/{d.slug}</span>
+                      <span className="font-mono text-xs text-ink-500">/drops/{d.slug}</span>
                       <Pill>Limit {d.perMemberLimit}</Pill>
                       {d.membersOnly && <Pill>Members only</Pill>}
                     </span>
@@ -110,7 +110,7 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">{num(s.watchers)}</Td>
                   <Td align="right" className="font-medium text-ink-900">
-                    {phase === "upcoming" ? <span className="font-normal text-ink-300">—</span> : num(s.sold)}
+                    {phase === "upcoming" ? <span className="font-normal text-ink-500">—</span> : num(s.sold)}
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">
                     {num(s.inStores)}

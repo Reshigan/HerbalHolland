@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Download, FileText, Plus, Stethoscope } from "lucide-react";
 import { requireStaff } from "@/server/auth";
+import { seesPatientData } from "@/server/reports/types";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { db } from "@/server/db";
 import { authRegister, authWhere, dispensingRegister, type AuthView } from "@/server/store/patients";
@@ -17,7 +18,7 @@ import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
-import { ConfirmAction } from "@/components/store/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { Drawer } from "@/components/store/drawer";
 import { AddAuthForm } from "./add-auth-form";
 
@@ -30,6 +31,13 @@ export default async function PatientsPage({ params, searchParams }: { params: P
   const [{ code }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff();
   const store = await storeForUser(user, code);
+  if (!seesPatientData(user))
+    return (
+      <>
+        <PageHeader title="Patient register" />
+        <Notice tone="warn" title="Not available to your role">Patient authorisations and the dispensing register are health information: managers, owners and authorised dispensers see them.</Notice>
+      </>
+    );
   const canManage = canManageStore(user);
   const path = `/store/${store.code}/patients`;
   const tab = sp1(sp.tab) === "register" ? "register" : "auths";
@@ -93,7 +101,7 @@ async function Authorisations({ store, canManage, sp, path }: { store: StoreCtx;
             {view === "expiring" ? "Nothing expires in the next 30 days." : "Add a member's SAHPRA authorisation to let them buy licensed medicines."}
           </EmptyState>
         ) : (
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 <Th>Patient</Th>
@@ -114,25 +122,25 @@ async function Authorisations({ store, canManage, sp, path }: { store: StoreCtx;
                       <Link href={`/store/${store.code}/customers/${a.customer.id}`} className="font-medium text-ink-900 hover:text-brand-700">
                         {a.customer.firstName} {a.customer.lastName ?? ""}
                       </Link>
-                      <div className="font-mono text-xs text-ink-400">{a.customer.memberNo}</div>
+                      <div className="font-mono text-xs text-ink-500">{a.customer.memberNo}</div>
                     </Td>
                     <Td className="min-w-44">
                       <div className="font-mono text-xs font-semibold text-ink-900">{a.authNumber}</div>
                       <div className="max-w-56 truncate text-xs text-ink-500" title={a.scope}>{a.scope}</div>
                       {a.documentRef && (
-                        <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-ink-400" title={a.documentRef}>
+                        <div className="mt-0.5 flex items-center gap-1 text-[0.7rem] text-ink-500" title={a.documentRef}>
                           <FileText className="h-3 w-3" aria-hidden /> Document on file
                         </div>
                       )}
                     </Td>
                     <Td className="min-w-36">
                       <div className="text-ink-800">{a.prescriber}</div>
-                      <div className="font-mono text-xs text-ink-400">HPCSA {a.prescriberRegNo}</div>
+                      <div className="font-mono text-xs text-ink-500">HPCSA {a.prescriberRegNo}</div>
                     </Td>
                     <Td className="min-w-44">
                       <div className="flex items-baseline justify-between gap-2 text-xs">
                         <span className="tnum font-semibold text-ink-900">{left.toFixed(1)} g left</span>
-                        <span className="tnum text-ink-400">of {a.monthlyLimitGrams} g</span>
+                        <span className="tnum text-ink-500">of {a.monthlyLimitGrams} g</span>
                       </div>
                       <Meter value={a.usedGrams} max={a.monthlyLimitGrams} tone={left <= 0 ? "red" : left < a.monthlyLimitGrams * 0.2 ? "amber" : "green"} className="mt-1.5" />
                     </Td>
@@ -193,13 +201,13 @@ async function Register({ store, sp, path }: { store: StoreCtx; sp: SP; path: st
       </form>
       {unauthorised > 0 && (
         <Notice tone="warn" className="mx-5 mt-4">
-          {unauthorised} line{unauthorised > 1 ? "s" : ""} on this page have no matching authorisation or weren&apos;t dispensed by an authorised dispenser — review them with your responsible pharmacist.
+          {unauthorised} line{unauthorised > 1 ? "s" : ""} on this page have no matching authorisation or weren&apos;t dispensed by an authorised dispenser. Review them with your responsible pharmacist.
         </Notice>
       )}
       {rows.length === 0 ? (
         <EmptyState icon={<Stethoscope className="h-5 w-5" />} title="No licensed medicines dispensed in this period" />
       ) : (
-        <Table className="mt-2">
+        <Table stickyFirst className="mt-2">
           <thead>
             <tr>
               <Th>Date</Th>
@@ -222,7 +230,7 @@ async function Register({ store, sp, path }: { store: StoreCtx; sp: SP; path: st
                 </Td>
                 <Td className="min-w-32">
                   {x.patient ?? <span className="text-rose-600">No patient</span>}
-                  {x.memberNo && <div className="font-mono text-xs text-ink-400">{x.memberNo}</div>}
+                  {x.memberNo && <div className="font-mono text-xs text-ink-500">{x.memberNo}</div>}
                 </Td>
                 <Td className="min-w-40">
                   {x.authNumber ? <span className="font-mono text-xs font-semibold">{x.authNumber}</span> : <span className="text-xs font-semibold text-rose-600">None valid</span>}
@@ -230,7 +238,7 @@ async function Register({ store, sp, path }: { store: StoreCtx; sp: SP; path: st
                 </Td>
                 <Td className="min-w-44">
                   <div className="text-ink-850">{x.product}</div>
-                  <div className="font-mono text-[0.7rem] text-ink-400">{x.batches || "—"}</div>
+                  <div className="font-mono text-[0.7rem] text-ink-500">{x.batches || "—"}</div>
                 </Td>
                 <Td align="right">{x.qty}</Td>
                 <Td align="right">{x.grams.toFixed(1)}</Td>

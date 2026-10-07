@@ -18,7 +18,7 @@ import { Detail } from "@/components/ui/misc";
 import { ButtonLink } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ConfirmAction, FieldError } from "@/components/hq/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { BackLink } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { cancelOrder } from "../actions";
@@ -27,7 +27,7 @@ export const metadata = { title: "Online order" };
 
 type Event = { status: string; at: string; note?: string };
 const FULFIL = { COLLECT: "Click & collect", SAME_DAY: "Same-day delivery", COURIER: "Courier delivery" } as const;
-const PAY = { ONLINE: "Paid online", CARD: "Pay in store", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points" } as const;
+const PAY = { ONLINE: "Paid online", CARD: "Pay in store", CASH: "Cash", PAYSHAP: "PayShap", EFT: "EFT", LOYALTY: "Points", VOUCHER: "Gift voucher", ACCOUNT: "On account" } as const;
 
 export default async function OrderPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<{ m?: string }> }) {
   const [{ code }, sp] = await Promise.all([params, searchParams]);
@@ -76,7 +76,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         <div className="space-y-6 xl:col-span-2">
           <Card>
             <CardHeader title="Items" />
-            <Table className="relative mt-4">
+            <Table stickyFirst className="relative mt-4">
               <thead>
                 <tr>
                   <Th>Item</Th>
@@ -217,12 +217,12 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
             <Card>
               <CardHeader title="Member service" description="Cancelling releases the stock, returns points and refunds online payments" />
               <CardBody>
-                <ConfirmAction action={cancelOrder.bind(null, order.id)} label="Cancel order" title={`Cancel order ${order.code}?`} confirmLabel="Cancel order" className="w-full">
+                <ConfirmAction action={cancelOrder.bind(null, order.id)} label="Cancel order" title={`Cancel order ${order.code}?`} confirmLabel="Cancel order">
                   <Field label="Reason (the member is told their order was cancelled)" htmlFor="cancel-reason">
                     <Textarea id="cancel-reason" name="reason" className="min-h-16" placeholder="e.g. Member asked to cancel by phone" />
                     <FieldError name="reason" />
                   </Field>
-                  {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online — cancelling refunds it in full</Badge>}
+                  {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online, so cancelling refunds it in full</Badge>}
                 </ConfirmAction>
               </CardBody>
             </Card>

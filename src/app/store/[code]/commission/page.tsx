@@ -19,7 +19,7 @@ import { buttonClass } from "@/components/ui/button";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { ReadOnlyNote } from "@/components/store/ui";
 import { AutoSelect } from "@/components/store/auto-submit";
-import { ConfirmAction } from "@/components/store/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 
 export const metadata = { title: "Commission" };
@@ -143,7 +143,7 @@ export default async function CommissionPage({ params, searchParams }: { params:
                   </p>
                 </ConfirmAction>
               ) : (
-                <ReadOnlyNote>Only the owner can switch commission on — they pay it.</ReadOnlyNote>
+                <ReadOnlyNote>Only the owner can switch commission on, because they pay it.</ReadOnlyNote>
               )}
             </div>
           </CardBody>
@@ -180,7 +180,7 @@ export default async function CommissionPage({ params, searchParams }: { params:
                   run
                     ? `Approved for payroll by ${approver?.name ?? "the owner"}, ${fmtDateTime(run.approvedAt)}. These figures are frozen.`
                     : isCurrent
-                      ? "Month to date — approve after the month ends."
+                      ? "Month to date. Approve after the month ends."
                       : "This month has ended and is ready to approve for payroll."
                 }
                 action={
@@ -214,7 +214,7 @@ export default async function CommissionPage({ params, searchParams }: { params:
                   {onlyMe ? "Your commission shows here once you ring up sales." : "Everyone who rings up sales at the till shows here, with what they've earned."}
                 </EmptyState>
               ) : (
-                <Table className="mt-4">
+                <Table stickyFirst className="mt-4">
                   <thead>
                     <tr>
                       <Th>Person</Th>
@@ -234,12 +234,12 @@ export default async function CommissionPage({ params, searchParams }: { params:
                               <Avatar name={l.name} />
                               <span className="whitespace-nowrap font-medium text-ink-900">
                                 {l.name}
-                                {self && <span className="ml-1.5 text-xs font-normal text-ink-400">(you)</span>}
+                                {self && <span className="ml-1.5 text-xs font-normal text-ink-500">(you)</span>}
                               </span>
                             </div>
                           </Td>
                           <Td align="right" className="whitespace-nowrap">{zar(l.salesCents)}</Td>
-                          <Td align="right" className="whitespace-nowrap text-ink-600">{l.refundsCents ? zar(l.refundsCents) : <span className="text-ink-300">—</span>}</Td>
+                          <Td align="right" className="whitespace-nowrap text-ink-600">{l.refundsCents ? zar(l.refundsCents) : <span className="text-ink-500">—</span>}</Td>
                           <Td align="right" className="whitespace-nowrap font-semibold text-ink-950">{zar(l.commissionCents)}</Td>
                           <Td className="min-w-44">
                             {l.held ? (
@@ -265,10 +265,10 @@ export default async function CommissionPage({ params, searchParams }: { params:
                                     confirmLabel="Release"
                                     className="min-w-64"
                                   >
-                                    Their alerts here are closed. It&apos;s added to {monthLabel(month)}&apos;s payable total — pay it with the next payroll.
+                                    Their alerts here are closed. It&apos;s added to {monthLabel(month)}&apos;s payable total. Pay it with the next payroll.
                                   </ConfirmAction>
                                 )}
-                                {run && !ownerLevel && !stillOpen.has(l.userId) && <span className="text-xs text-ink-500">Alerts closed — the owner can release it</span>}
+                                {run && !ownerLevel && !stillOpen.has(l.userId) && <span className="text-xs text-ink-500">Alerts closed. The owner can release it.</span>}
                               </div>
                             ) : run ? (
                               <Badge tone="green" dot>Approved</Badge>
@@ -306,7 +306,7 @@ export default async function CommissionPage({ params, searchParams }: { params:
                   <CardBody>
                     <ConfirmAction action={setCommission.bind(null, store.code, false)} label="Switch commission off" title="Switch commission off?" confirmLabel="Switch off">
                       <p>
-                        Your team stops seeing commission on the till. Approved months stay on record, but nothing can be approved while it&apos;s off — including {monthLabel(current)} so far.
+                        Your team stops seeing commission on the till. Approved months stay on record, but nothing can be approved while it&apos;s off, including {monthLabel(current)} so far.
                       </p>
                     </ConfirmAction>
                   </CardBody>
@@ -353,9 +353,9 @@ function HowItWorks({ rates, code }: { rates: { cls: RegClass; label: string; me
           </li>
           <li>A refund claws back from whoever made the original sale, in the month of the refund.</li>
           <li>
-            Sales rung onto the seller&apos;s own Rewards card don&apos;t count —{" "}
+            Sales rung onto the seller&apos;s own Rewards card don&apos;t count.{" "}
             <Link href={`/store/${code}/team`} className="font-medium text-brand-700 hover:underline">
-              link each person&apos;s card on the Team page
+              Link each person&apos;s card on the Team page
             </Link>
             .
           </li>

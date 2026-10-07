@@ -1,39 +1,22 @@
 // Till sales: history (GET) and posting (POST, idempotent on the client-generated Sale.id,
-// so queued offline sales can be retried safely). Domain: sales.postPosSale.
-import { z } from "zod";
+// so queued offline sales can be retried safely). Domain: sales.postPosSale — which hands a
+// trade sale (`trade.tradeAccountId`) to postTradeSale: WHOLESALE, ex-VAT prices, the
+// account's buyer block, "On account" within its credit terms, never offline.
 import { db } from "@/server/db";
 import { postPosSale, type PosSaleInput } from "@/server/sales";
 import { quote } from "@/server/pricing";
 import { json, readBody, withStaff, PosError } from "@/server/pos/http";
-import { AgeCheck, Tender, Uuid } from "@/server/pos/schemas";
+import { SaleBody } from "@/server/pos/schemas";
 import { receipt, salesHistory } from "@/server/pos/receipts";
+import { normalisePhone } from "@/lib/sa";
 
 export const GET = withStaff(async (req, pos) => {
   const sp = new URL(req.url).searchParams;
   return json(await salesHistory(pos.device.storeId, { q: sp.get("q") ?? undefined, before: sp.get("before") ?? undefined }));
 });
 
-const Body = z.object({
-  id: Uuid,
-  number: z.string().regex(/^[A-Z0-9]{2,12}-[A-Z0-9]{1,3}\d{3,9}$/, "Invalid receipt number"),
-  seq: z.number().int().min(1).optional(),
-  createdAt: z.string().datetime({ offset: true }).optional(),
-  offline: z.boolean().optional(),
-  shiftId: z.string().nullish(),
-  customerId: z.string().nullish(),
-  memberNo: z.string().trim().max(20).nullish(),
-  lines: z.array(z.object({ variantId: z.string().min(1), qty: z.number().int().min(1).max(999), unitPriceCents: z.number().int().min(0).optional() })).min(1, "The sale has no items").max(200),
-  promoCode: z.string().trim().max(40).nullish(),
-  pointsRedeemed: z.number().int().min(0).optional(),
-  payments: z.array(Tender).max(10),
-  ageCheck: AgeCheck.optional(),
-  buyer: z.object({ name: z.string().trim().min(1), address: z.string().trim().min(1), vatNumber: z.string().trim().optional() }).nullish(),
-  invoiceEmail: z.union([z.literal(""), z.string().trim().email("That email doesn't look right")]).nullish(),
-  staffId: z.string().optional(), // who rang it up (offline sales sync later under whoever is signed in)
-});
-
 export const POST = withStaff(async (req, pos) => {
-  const b = await readBody(req, Body);
+  const b = await readBody(req, SaleBody);
   const storeId = pos.device.storeId;
 
   const existing = await db.sale.findUnique({ where: { id: b.id }, select: { storeId: true } });
@@ -59,15 +42,29 @@ export const POST = withStaff(async (req, pos) => {
     shiftId = given?.id ?? open?.id ?? null;
   }
 
+  // Trade-sale mode: the account's billing address gets the tax invoice (unless another address was given).
+  const account = b.trade ? await db.tradeAccount.findUnique({ where: { id: b.trade.tradeAccountId }, select: { email: true } }) : null;
+  if (b.trade && !account) throw new PosError("Unknown trade account", 404);
+
   // Medicines Act s18A: points (an incentive) can't pay for medicines (licensed, or the noIncentives classes).
-  if (!b.offline && b.pointsRedeemed) {
+  if (!b.offline && !b.trade && b.pointsRedeemed) {
     const q = await quote({ storeId, channel: "POS", items: b.lines, code: b.promoCode, customerId: b.customerId });
     const eligible = q.lines.filter((l) => !l.noEarn).reduce((s, l) => s + l.totalCents, 0);
     if (b.pointsRedeemed * 100 > eligible) throw new PosError("Points can't be used towards medicines (licensed or CBD supplements)", 422);
   }
 
+  // A member taken offline by their mobile (not their card): resolved by phone here; member numbers by sales.postPosSale.
+  let customerId = b.customerId ?? null;
+  let memberNo = b.memberNo ?? null;
+  const phone = !customerId && memberNo && !/^HH\d{7}$/i.test(memberNo) ? normalisePhone(memberNo) : null;
+  if (phone) {
+    customerId = (await db.customer.findUnique({ where: { phone }, select: { id: true } }))?.id ?? null;
+    memberNo = null;
+  }
+
+  // A queued offline sale keeps the time it was rung up — from the last 7 days only (else it's dated when it arrives).
   const now = Date.now();
-  const createdAt = b.createdAt && Date.parse(b.createdAt) < now ? b.createdAt : undefined;
+  const createdAt = b.createdAt && Date.parse(b.createdAt) < now && Date.parse(b.createdAt) > now - 7 * 86_400_000 ? b.createdAt : undefined;
   const input: PosSaleInput = {
     id: b.id,
     number: b.number,
@@ -75,8 +72,9 @@ export const POST = withStaff(async (req, pos) => {
     createdAt,
     offline: !!b.offline,
     shiftId,
-    customerId: b.customerId ?? null,
-    memberNo: b.memberNo ?? null,
+    customerId,
+    memberNo,
+    soldById: b.soldById ?? null, // a dispenser completed the sale for whoever built the basket (checked: active here)
     lines: b.lines,
     promoCode: b.promoCode || null,
     pointsRedeemed: b.pointsRedeemed ?? 0,
@@ -84,9 +82,11 @@ export const POST = withStaff(async (req, pos) => {
     ageCheck: b.ageCheck,
     buyer: b.buyer ?? null,
     invoiceEmail: b.invoiceEmail || null,
+    trade: b.trade ? { tradeAccountId: b.trade.tradeAccountId } : null,
   };
   const r = await postPosSale(input, { storeId, deviceId: pos.device.id, staffId: staff.id, staffName: staff.name });
   const dto = await receipt(r.sale.id, storeId);
-  const customerEmail = b.customerId ? (await db.customer.findUnique({ where: { id: b.customerId }, select: { email: true } }))?.email : null;
-  return json({ receipt: dto, duplicate: r.duplicate, invoiceTo: b.invoiceEmail || customerEmail || null }, r.duplicate ? 200 : 201);
+  const customerEmail = customerId ? (await db.customer.findUnique({ where: { id: customerId }, select: { email: true } }))?.email : null;
+  const invoiceTo = b.trade ? b.invoiceEmail || account!.email : b.invoiceEmail || customerEmail || null;
+  return json({ receipt: dto, duplicate: r.duplicate, invoiceTo }, r.duplicate ? 200 : 201);
 });

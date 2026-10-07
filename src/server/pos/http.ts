@@ -3,13 +3,20 @@
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getDevice, getPosStaff } from "@/server/auth";
+import { reportFailure } from "@/server/alerts";
 import { SaleError } from "@/server/sales";
 import { OrderError } from "@/server/orders";
 import { CustomerError } from "@/server/customers";
 import { StockError } from "@/server/inventory";
 import { LoyaltyError } from "@/server/loyalty";
 import { EventError } from "@/server/events";
+import { VoucherError } from "@/server/shop/vouchers";
+import { TradeAccountError } from "@/server/trade/accounts";
+import { TradeOrderError } from "@/server/trade/orders";
+import { TradeLedgerError } from "@/server/trade/ledger";
 import type { Actor } from "@/server/audit";
+import { readCapped } from "@/lib/body";
+import { sameOrigin } from "@/lib/same-origin";
 import { Prisma } from "@/generated/prisma/client";
 
 export class PosError extends Error {
@@ -31,17 +38,27 @@ export const actorOf = (pos: PosStaff): Actor => ({ type: "USER", id: pos.user.i
 function handleError(e: unknown) {
   if (e instanceof PosError) return fail(e.status, e.message, e.code);
   if (e instanceof ZodError) return fail(400, e.issues[0]?.message ?? "Invalid request");
-  if (e instanceof SaleError || e instanceof OrderError || e instanceof CustomerError || e instanceof StockError || e instanceof LoyaltyError || e instanceof EventError)
+  if (
+    e instanceof SaleError || e instanceof OrderError || e instanceof CustomerError || e instanceof StockError || e instanceof LoyaltyError || e instanceof EventError || e instanceof VoucherError ||
+    e instanceof TradeAccountError || e instanceof TradeOrderError || e instanceof TradeLedgerError
+  )
     return fail(422, e.message);
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail(409, "That's already on record for another member or sale");
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") return fail(404, "Not found");
-  console.error("[pos]", e);
-  return fail(500, "Something went wrong on our side — please try again");
+  void reportFailure(e, "POS API"); // unexpected (a sale that won't sync, say): logged and emailed to ops, without holding up the answer
+  return fail(500, "Something went wrong on our side. Please try again");
 }
+
+// The device and PIN cookies go with any request the browser makes, so a change (anything but a read) must come from
+// the till's own pages, never from a page on another site.
+const READS = new Set(["GET", "HEAD", "OPTIONS"]);
+const crossSite = (req: Request) => !READS.has(req.method) && !sameOrigin(req.headers, req.url);
+const CROSS_SITE = () => fail(403, "This request didn't come from the till", "CROSS_SITE");
 
 /** Device-authenticated handler (pairing is done; no staff PIN needed — the lock screen). */
 export function withDevice<C = unknown>(handler: (req: Request, device: PosDevice, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
+    if (crossSite(req)) return CROSS_SITE();
     try {
       const device = await getDevice();
       if (!device) return fail(401, "This device isn't paired to a store", "UNPAIRED");
@@ -55,6 +72,7 @@ export function withDevice<C = unknown>(handler: (req: Request, device: PosDevic
 /** Device + staff session (PIN) authenticated handler. */
 export function withStaff<C = unknown>(handler: (req: Request, pos: PosStaff, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
+    if (crossSite(req)) return CROSS_SITE();
     try {
       const device = await getDevice();
       if (!device) return fail(401, "This device isn't paired to a store", "UNPAIRED");
@@ -67,9 +85,10 @@ export function withStaff<C = unknown>(handler: (req: Request, pos: PosStaff, ct
   };
 }
 
-/** Unauthenticated handler (pairing) with the same error mapping. */
+/** Unauthenticated handler (pairing) with the same error mapping and cross-site check (pairing sets the device cookie). */
 export function open<C = unknown>(handler: (req: Request, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
+    if (crossSite(req)) return CROSS_SITE();
     try {
       return await handler(req, ctx);
     } catch (e) {
@@ -79,31 +98,15 @@ export function open<C = unknown>(handler: (req: Request, ctx: C) => Promise<Res
 }
 
 export async function readBody<T>(req: Request, schema: ZodType<T>): Promise<T> {
+  // JSON only: a page on another site can't send that without the browser asking first (no cross-site form posts).
+  if (!req.headers.get("content-type")?.toLowerCase().startsWith("application/json")) throw new PosError("Expected a JSON body", 415);
+  const buf = await readCapped(req, 256_000); // a full 200-line sale is ~25 KB
+  if (!buf) throw new PosError("That request is too large", 413);
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = JSON.parse(buf.toString("utf8"));
   } catch {
     throw new PosError("Expected a JSON body");
   }
   return schema.parse(raw);
-}
-
-/** Simple in-memory attempt limiter (per process) for PINs and pairing sign-ins. */
-export function limiter(max: number, windowMs: number) {
-  const hits = new Map<string, { n: number; at: number }>();
-  return {
-    blocked(key: string) {
-      const h = hits.get(key);
-      if (h && Date.now() - h.at > windowMs) hits.delete(key);
-      return (hits.get(key)?.n ?? 0) >= max;
-    },
-    fail(key: string) {
-      const h = hits.get(key);
-      hits.set(key, { n: (h && Date.now() - h.at <= windowMs ? h.n : 0) + 1, at: Date.now() });
-      return (hits.get(key)?.n ?? 0) >= max;
-    },
-    reset(key: string) {
-      hits.delete(key);
-    },
-  };
 }

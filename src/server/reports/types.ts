@@ -36,6 +36,7 @@ export type ReportChart = { title: string; description?: string; format?: ChartF
   | { kind: "bar"; rows: { label: string; value: number; sub?: string; tip?: string }[] }
   | { kind: "donut"; data: { label: string; value: number }[]; center?: string }
   | { kind: "heatmap"; cells: { day: number; hour: number; value: number }[]; hours: number[] }
+  | { kind: "matrix"; rows: string[]; cols: string[]; cells: { row: number; col: number; value: number | null; tip?: string }[] }
 );
 
 export type ReportResult = Table & {
@@ -75,7 +76,7 @@ export type ReportCtx = {
   networkWide: boolean;
   range: DateRange & { preset: string };
   category?: { id: string; slug: string; name: string };
-  channel?: "POS" | "ONLINE";
+  channel?: "POS" | "ONLINE" | "WHOLESALE";
   /** Validated values of the report's own params. */
   params: Record<string, string>;
   /** Screen: 200 rows. CSV: everything up to a hard cap. */
@@ -104,7 +105,7 @@ export type ReportDef = {
   params?: ParamDef[];
   defaultRange?: PresetKey;
   /** Defaults for built-in filters (the select then offers an explicit "All" choice). */
-  defaults?: { channel?: "POS" | "ONLINE" };
+  defaults?: { channel?: "POS" | "ONLINE" | "WHOLESALE" };
   /** Who may run it (default: anyone who can open the scope). */
   roles?: Role[];
   /** Contains customer personal information (POPIA): restricted roles, exports audited. */
@@ -117,3 +118,5 @@ export type ReportDef = {
 export const MANAGERS: Role[] = ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER", "OWNER", "MANAGER"];
 /** Health-related records (patients, prescriptions): no general HQ staff, no budtenders. */
 export const PATIENT_DATA: Role[] = ["HQ_ADMIN", "AREA_MANAGER", "OWNER", "MANAGER"];
+/** Who may open patient records (authorisations, the dispensing register): those roles, and authorised dispensers. */
+export const seesPatientData = (u: { role: Role; canDispense?: boolean | null }) => PATIENT_DATA.includes(u.role) || !!u.canDispense;

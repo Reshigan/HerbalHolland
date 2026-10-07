@@ -1,5 +1,6 @@
 // Schedule 6 dispensing register as CSV for the responsible pharmacist / inspectors.
 import { requireStaff } from "@/server/auth";
+import { seesPatientData } from "@/server/reports/types";
 import { storeForUser } from "@/server/scope";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
@@ -12,6 +13,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
   const { code } = await params;
   const user = await requireStaff();
   const store = await storeForUser(user, code);
+  if (!seesPatientData(user)) return new Response("Patient records are for managers, owners and authorised dispensers.", { status: 403, headers: { "cache-control": "private, no-store" } });
   const u = new URL(req.url).searchParams;
   const today = dayKey(new Date());
   const r = rangeFromParams({ from: u.get("from") || `${today.slice(0, 7)}-01`, to: u.get("to") || today });

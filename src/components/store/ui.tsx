@@ -1,8 +1,7 @@
 // Small presentational building blocks for the store back office (server-safe).
 import Link from "next/link";
-import { ArrowDown, ArrowUp, ChevronLeft, Lock, Search } from "lucide-react";
+import { ChevronLeft, Lock, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { Th } from "@/components/ui/table";
 import { Input } from "@/components/ui/form";
 import type { Tone } from "@/components/ui/badge";
 
@@ -38,28 +37,6 @@ export function Chips({ items, current, className, label = "Filter" }: {
   );
 }
 
-/** Sortable column header: the link toggles direction when already sorted by this key. */
-export function SortTh({ label, sortKey, sort, dir, href, align = "left", className }: {
-  label: React.ReactNode;
-  sortKey: string;
-  sort: string;
-  dir: "asc" | "desc";
-  href: (sort: string, dir: "asc" | "desc") => string;
-  align?: "left" | "right" | "center";
-  className?: string;
-}) {
-  const active = sort === sortKey;
-  const next = active ? (dir === "asc" ? "desc" : "asc") : align === "right" ? "desc" : "asc";
-  return (
-    <Th align={align} className={className} aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : undefined}>
-      <Link href={href(sortKey, next)} className={cn("inline-flex items-center gap-1 hover:text-ink-900", active && "text-ink-900")}>
-        {label}
-        {active && (dir === "asc" ? <ArrowUp className="h-3 w-3" aria-hidden /> : <ArrowDown className="h-3 w-3" aria-hidden />)}
-      </Link>
-    </Th>
-  );
-}
-
 /** GET search form that keeps the other filters. */
 export function SearchForm({ path, q, keep = {}, placeholder = "Search", className, children }: {
   path: string;
@@ -86,7 +63,7 @@ export function ReadOnlyNote({ children, className }: { children?: React.ReactNo
   return (
     <p className={cn("inline-flex items-center gap-2 rounded-xl bg-ink-100 px-3 py-2 text-xs font-medium text-ink-600", className)}>
       <Lock className="h-3.5 w-3.5" aria-hidden />
-      {children ?? "Read-only — managers and owners can make changes here."}
+      {children ?? "Read-only. Managers and owners can make changes here."}
     </p>
   );
 }
@@ -94,7 +71,7 @@ export function ReadOnlyNote({ children, className }: { children?: React.ReactNo
 /** Signed quantity: +3 in green, −2 in red, 0 muted. */
 export function Qty({ n, className, unit }: { n: number; className?: string; unit?: string }) {
   return (
-    <span className={cn("tnum font-semibold", n > 0 ? "text-leaf-700" : n < 0 ? "text-rose-600" : "text-ink-400", className)}>
+    <span className={cn("tnum font-semibold", n > 0 ? "text-leaf-700" : n < 0 ? "text-rose-600" : "text-ink-500", className)}>
       {n > 0 ? "+" : n < 0 ? "−" : ""}
       {Math.abs(n).toLocaleString()}
       {unit}

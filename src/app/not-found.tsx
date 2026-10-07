@@ -1,15 +1,17 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Mark } from "@/components/brand/logo";
 import { ShopSurface } from "@/components/shop/chrome";
 import { buttonClass } from "@/components/ui/button";
 
 export const metadata = { title: "Page not found" };
 
-export default function NotFound() {
+export default async function NotFound() {
+  await connection(); // rendered per request, so its scripts carry the request's CSP nonce (src/proxy.ts)
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-ink-950 px-6 py-16 text-center text-ink-100">
       <ShopSurface />
-      <Link href="/" aria-label="Herbal Holland — home">
+      <Link href="/" aria-label="Herbal Holland home">
         <Mark spin className="h-24 w-24 text-brand-500" />
       </Link>
       <p className="eyebrow mt-10 text-brand-500">Error 404</p>

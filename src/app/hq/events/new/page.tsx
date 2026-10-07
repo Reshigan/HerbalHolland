@@ -42,7 +42,7 @@ export default async function NewEventPage({ searchParams }: { searchParams: Pro
           <CardBody>
             <ol className="list-decimal space-y-2.5 pl-4 text-sm text-ink-600 marker:font-semibold marker:text-brand-700">
               <li>Members RSVP from the event page in the Rewards app. Each gets a ticket with a QR code; RSVPs stop at capacity.</li>
-              <li>On the day, the till scans the ticket from two hours before the start — it checks the guest in and attaches them to their purchase.</li>
+              <li>On the day, the till scans the ticket from two hours before the start. It checks the guest in and attaches them to their purchase.</li>
               <li>Download the door list (name and member number only) from the event page if you want a printed backup.</li>
             </ol>
             <p className="mt-4 rounded-xl bg-ink-50 px-3 py-2.5 text-xs text-ink-600">

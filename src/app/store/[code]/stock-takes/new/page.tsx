@@ -47,8 +47,8 @@ export default async function NewStockTakePage({ params }: { params: Promise<{ c
                   {o.number}
                 </Link>
               </span>
-            ))}{" "}
-            — overlapping counts would double-post variances, so finish or cancel it before counting the same stock again.
+            ))}
+            : overlapping counts would double-post variances, so finish or cancel it before counting the same stock again.
           </Notice>
         )}
         <Card>

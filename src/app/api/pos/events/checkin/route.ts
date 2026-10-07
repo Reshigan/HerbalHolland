@@ -41,11 +41,11 @@ async function explain(code: string, storeId: string, fallback: string) {
     where: { code },
     select: { event: { select: { storeId: true, title: true, startsAt: true, endsAt: true, store: { select: { name: true } } } } },
   });
-  if (!t) return "We can't find that ticket — check the code, or find the member by phone instead";
+  if (!t) return "We can't find that ticket. Check the code, or find the member by phone instead";
   const e = t.event;
   if (e.storeId !== storeId) return `That ticket is for ${e.title} at Herbal Holland ${e.store.name}, not this store`;
   const now = new Date();
-  if (e.endsAt < now) return `That ticket was for ${e.title} on ${fmtDate(e.startsAt)} — the event is over`;
-  if (e.startsAt.getTime() - 2 * 3_600_000 > now.getTime()) return `That ticket is for ${e.title} on ${fmtDateTime(e.startsAt)} — check-in opens 2 hours before it starts`;
+  if (e.endsAt < now) return `That ticket was for ${e.title} on ${fmtDate(e.startsAt)}. The event is over`;
+  if (e.startsAt.getTime() - 2 * 3_600_000 > now.getTime()) return `That ticket is for ${e.title} on ${fmtDateTime(e.startsAt)}. Check-in opens 2 hours before it starts`;
   return fallback;
 }

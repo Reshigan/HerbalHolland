@@ -14,7 +14,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
       <Mark className="h-20 w-20 text-brand-500" />
       <p className="eyebrow mt-10 text-brand-500">Something went wrong</p>
       <h1 className="mt-3 max-w-lg font-display text-4xl font-semibold tracking-tight text-white">We hit a snag loading this page</h1>
-      <p className="mt-4 max-w-md leading-relaxed text-ink-300">It&apos;s on our side, not yours. Try again — and if it keeps happening, let us know the reference below.</p>
+      <p className="mt-4 max-w-md leading-relaxed text-ink-300">It&apos;s on our side, not yours. Try again, and if it keeps happening, let us know the reference below.</p>
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         <button onClick={() => retry()} className={buttonClass("primary", "lg")}>
           <RotateCcw className="h-4 w-4" /> Try again
@@ -23,7 +23,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
           Go home
         </Link>
       </div>
-      {error.digest && <p className="tnum mt-10 font-mono text-xs text-ink-500">Reference {error.digest}</p>}
+      {error.digest && <p className="tnum mt-10 font-mono text-xs text-ink-450">Reference {error.digest}</p>}
     </main>
   );
 }

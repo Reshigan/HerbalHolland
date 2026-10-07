@@ -3,7 +3,7 @@
 import { db } from "./db";
 import { getSettings } from "./settings";
 import { OPEN_ORDER_STATUSES } from "./inventory";
-import { checkCompliance, type ComplianceItem, type RegClass, type SellChannel } from "@/lib/compliance";
+import { checkCompliance, evaluateTradeBasket, type ComplianceItem, type RegClass, type SellChannel, type TradeComplianceItem } from "@/lib/compliance";
 import { ageOn } from "@/lib/sa";
 import { addDays, startOfDaySA } from "@/lib/format";
 
@@ -51,6 +51,16 @@ export async function customerContext(customerId: string | null | undefined, at 
     },
     gramsToday: today,
   };
+}
+
+/**
+ * The trade (wholesale) basket rule with HQ's settings: each line's class in the account's allow-list and, where a
+ * class needs a licence (`licensedOnly`), held by the selling store; live products only; THC never. No member or
+ * age rules: the buyer is a business whose buyers attested they're adults.
+ */
+export async function checkTradeBasket(a: { items: TradeComplianceItem[]; accountClasses: readonly string[]; storeLicences: readonly string[] }) {
+  const settings = await getSettings();
+  return { ...evaluateTradeBasket({ items: a.items, accountClasses: a.accountClasses, sellerLicences: a.storeLicences, settings: settings.compliance }), settings };
 }
 
 export async function evaluateBasket(a: {

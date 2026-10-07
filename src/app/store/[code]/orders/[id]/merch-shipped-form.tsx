@@ -1,6 +1,6 @@
 "use client";
 import { Field, Input } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 /** The merch partner's shipping email → the order: courier and tracking number. */
 export function MerchShippedForm({ action }: { action: FormAction }) {

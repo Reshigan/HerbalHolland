@@ -95,7 +95,7 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
                 {ended
                   ? "Thanks to everyone who came. Keep an eye on Rewards for the next one."
                   : full
-                    ? "Every place has been taken — but come and see us in store any day."
+                    ? "Every place has been taken, but come and see us in store any day."
                     : "Free for Rewards members, adults 18+. We'll hold your place and your ticket lives in Rewards."}
               </p>
               {!ended && !full && (
@@ -128,10 +128,10 @@ export default async function EventPage({ params }: { params: Promise<{ slug: st
             <h2 className="font-display text-lg font-semibold text-white">Good to know</h2>
             <ul className="mt-3 space-y-2.5 text-sm text-ink-300">
               <li className="flex gap-2.5">
-                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Adults 18+ only — bring your ID; it&apos;s checked at the door.
+                <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Adults 18+ only. Bring your ID; it&apos;s checked at the door.
               </li>
               <li className="flex gap-2.5">
-                <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Free for Herbal Holland Rewards members. RSVP to hold your place — it&apos;s one ticket per member.
+                <Ticket className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Free for Herbal Holland Rewards members. RSVP to hold your place. It&apos;s one ticket per member.
               </li>
               <li className="flex gap-2.5">
                 <QrIcon className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" /> Your ticket is a QR code in Rewards. Show it at the till when you arrive.
@@ -165,7 +165,7 @@ function Ticketed({ title, when, store, code, checkedInAt, ended, slug, cancel }
       <div className="p-5 sm:p-6">
         {checkedInAt ? (
           <p className="flex items-start gap-2 text-sm text-leaf-100">
-            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-leaf-500" /> You&apos;re checked in — enjoy it.
+            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-leaf-500" /> You&apos;re checked in. Enjoy it.
           </p>
         ) : (
           <>

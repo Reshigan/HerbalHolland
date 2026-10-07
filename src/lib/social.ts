@@ -32,9 +32,9 @@ const SELLING = /\b(buy|order|shop|in stock|deliver(y|ed|s)?|prices?|specials?|d
 export function screenSocial(text: string) {
   const found = screenCopy(text);
   const thc = text.match(/\bthc\b/i);
-  if (thc) found.push({ term: thc[0], reason: "THC products are licensed medicines — never advertised to the public (Medicines Act s20)" });
+  if (thc) found.push({ term: thc[0], reason: "THC products are licensed medicines, never advertised to the public (Medicines Act General Regulations reg 42)" });
   const product = text.match(PRODUCT), selling = text.match(SELLING);
-  if (product && selling) found.push({ term: `${product[0]} … ${selling[0]}`, reason: "Sells cannabis or CBD — Meta and TikTok remove these posts and can close the account. Talk about the brand, not products for sale" });
+  if (product && selling) found.push({ term: `${product[0]} … ${selling[0]}`, reason: "Sells cannabis or CBD: Meta and TikTok remove these posts and can close the account. Talk about the brand, not products for sale" });
   return found;
 }
 

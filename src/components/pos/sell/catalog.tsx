@@ -36,9 +36,11 @@ type Props = {
   licensedClasses: string[];
   drops: Map<string, BootDrop>; // variant id → the drop governing it
   notice?: React.ReactNode; // phones / portrait: a prompt under the search (e.g. a welcome gift)
+  /** The till's product search (lib/pos-search: typos, plurals, category and class words), shared with Enter-to-add. */
+  search: (q: string) => BootProduct[];
 };
 
-export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ boot, filter, setFilter, query, setQuery, onSubmitSearch, onAdd, onScanCamera, licensedClasses, drops, notice }, searchRef) {
+export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ boot, filter, setFilter, query, setQuery, onSubmitSearch, onAdd, onScanCamera, licensedClasses, drops, notice, search }, searchRef) {
   const [picking, setPicking] = useState<BootProduct | null>(null);
 
   const deals = useMemo(() => {
@@ -52,18 +54,14 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
   }, [boot.promotions, boot.products, boot.settings.compliance]);
 
   const products = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    if (query.trim()) return search(query);
     return boot.products.filter((p) => {
-      if (q) {
-        const hay = `${p.name} ${p.brand} ${p.strain ?? ""} ${p.tagline ?? ""} ${p.variants.map((v) => `${v.name} ${v.sku} ${v.barcode ?? ""}`).join(" ")}`.toLowerCase();
-        return q.split(/\s+/).every((w) => hay.includes(w));
-      }
       if (filter.kind === "category") return p.categoryId === filter.id;
       if (filter.kind === "deals") return deals.has(p);
       if (filter.kind === "suggestion") return filter.productIds.includes(p.id) || filter.categoryIds.includes(p.categoryId);
       return true;
     });
-  }, [boot.products, query, filter, deals]);
+  }, [boot.products, query, filter, deals, search]);
 
   const pick = (p: BootProduct) => (p.variants.length === 1 ? onAdd(p.variants[0].id) : setPicking(p));
 
@@ -117,7 +115,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
               }}
               placeholder="Search or scan a barcode"
               aria-label="Search products or scan a barcode (F2)"
-              className="h-12 w-full rounded-full border border-ink-800 bg-ink-900 pl-12 pr-16 text-base text-white placeholder:text-ink-500 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20"
+              className="h-12 w-full rounded-full border border-ink-800 bg-ink-900 pl-12 pr-16 [&::-webkit-search-cancel-button]:appearance-none [&::-webkit-search-decoration]:appearance-none text-base text-white placeholder:text-ink-500 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/20"
             />
             {query ? (
               <button type="button" onClick={() => setQuery("")} aria-label="Clear search" className="absolute right-0 top-1/2 grid h-12 w-12 -translate-y-1/2 place-items-center rounded-full text-ink-400 hover:bg-ink-800">
@@ -154,7 +152,7 @@ export const Catalog = forwardRef<HTMLInputElement, Props>(function Catalog({ bo
               <p className="mt-1 text-sm">Check the spelling, or scan the barcode.</p>
             </div>
           ) : (
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 2xl:grid-cols-5" aria-label="Products">
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" aria-label="Products">
               {products.map((p) => {
                 const prices = p.variants.map(shelfPrice);
                 const min = Math.min(...prices);

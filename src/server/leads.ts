@@ -34,6 +34,8 @@ import {
   type RawLead,
 } from "@/lib/leads";
 import type { FranchiseLead, Prisma, Role } from "@/generated/prisma/client";
+import { appSecret } from "./secret";
+import { clientIpFrom } from "@/lib/client-ip";
 
 /** Who may see and work franchise leads: HQ admin and the HQ team — not area managers. */
 export const LEAD_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF"];
@@ -55,13 +57,10 @@ const HOUR = 3_600_000;
 // ── Enquiries ───────────────────────────────────────────────────────────────
 
 /** Keyed hash of the visitor's IP (HMAC-SHA-256 with SESSION_SECRET): limits repeat enquiries without storing the IP. */
-export const ipHash = (ip: string) => createHmac("sha256", process.env.SESSION_SECRET ?? "dev").update(`franchise-lead:${ip}`).digest("hex");
+export const ipHash = (ip: string) => createHmac("sha256", appSecret()).update(`franchise-lead:${ip}`).digest("hex");
 
-/** The visitor's IP as Cloudflare (or the nearest proxy) reports it; null when there's none that looks like an IP. */
-export function clientIp(h: { get(name: string): string | null }) {
-  const ip = [h.get("cf-connecting-ip"), h.get("x-forwarded-for")?.split(",")[0], h.get("x-real-ip")].map((s) => s?.trim()).find(Boolean);
-  return ip && /^[0-9a-f:.]{2,45}$/i.test(ip) ? ip : null;
-}
+/** The visitor's IP as Cloudflare (or our own proxy) reports it; null when there's none that looks like an IP. */
+export const clientIp = clientIpFrom;
 
 export type EnquiryInput = RawLead & { website?: string | null };
 export type EnquiryResult =

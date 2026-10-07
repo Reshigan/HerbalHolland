@@ -12,6 +12,7 @@ import { INTERESTS, type InterestKey } from "@/lib/rfm";
 import { Alert, CheckRow, Chip, Field, PosButton, Segmented, Sheet, Spinner, TextInput, TIER_CHIP, tierName } from "../ui";
 import { visitDate } from "./cart-panel";
 import type { CustomerDetail, CustomerHit } from "@/server/pos/types";
+import { isEmail } from "@/lib/email";
 
 export function CustomerSheet({
   open,
@@ -23,6 +24,7 @@ export function CustomerSheet({
   joinUrl,
   minAge,
   initialQuery,
+  training = false,
 }: {
   open: boolean;
   mode: "find" | "new";
@@ -33,9 +35,16 @@ export function CustomerSheet({
   joinUrl: string;
   minAge: number;
   initialQuery?: string;
+  /** Training mode: sign-ups are simulated on the till (nothing is written). */
+  training?: boolean;
 }) {
+  // "Sign up 082…" from a search with no match: the New member form starts with that number.
+  const [prefill, setPrefill] = useState("");
+  useEffect(() => {
+    if (!open) setPrefill("");
+  }, [open]);
   return (
-    <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name, member number — or scan their member QR" : "Takes about 20 seconds"} size="lg">
+    <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name or member number, or scan their member QR" : "Takes about 20 seconds"} size="lg">
       <Segmented
         label="Member"
         value={mode}
@@ -49,15 +58,15 @@ export function CustomerSheet({
       {!online ? (
         <OfflineMember onPick={onPick} />
       ) : mode === "find" ? (
-        <FindMember onPick={onPick} initialQuery={initialQuery} />
+        <FindMember onPick={onPick} initialQuery={initialQuery} onSignUp={(phone) => (setPrefill(phone), onMode("new"))} />
       ) : (
-        <NewMember onCreated={onPick} joinUrl={joinUrl} minAge={minAge} />
+        <NewMember key={prefill} onCreated={onPick} joinUrl={joinUrl} minAge={minAge} training={training} phone={prefill} />
       )}
     </Sheet>
   );
 }
 
-function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => void; initialQuery?: string }) {
+function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDetail) => void; initialQuery?: string; onSignUp: (phone: string) => void }) {
   const [q, setQ] = useState(initialQuery ?? "");
   const [hits, setHits] = useState<CustomerHit[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -79,8 +88,8 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
         if (n !== seq.current) return;
         setHits(r.customers);
         setError(null);
-        // A scanned member QR or exact member number opens straight away.
-        if (memberNoFrom(term) && r.customers.length === 1) void open(r.customers[0].id);
+        // A scanned member QR, an exact member number or a full mobile number with one match opens straight away.
+        if ((memberNoFrom(term) || normalisePhone(term)) && r.customers.length === 1) void open(r.customers[0].id);
       } catch (e) {
         if (n === seq.current) setError(errorText(e));
       } finally {
@@ -107,7 +116,22 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
     <div>
       <div className="relative">
         <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-ink-500" />
-        <TextInput autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="082 555 1234 · Thandi Mokoena · HH0100002" aria-label="Search members" className="h-14 pl-12 text-lg" />
+        <TextInput
+          autoFocus
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => {
+            // Enter takes the first member found.
+            if (e.key === "Enter" && hits?.length && !opening) {
+              e.preventDefault();
+              void open(hits[0].id);
+            }
+          }}
+          enterKeyHint="go"
+          placeholder="Phone, name or member number"
+          aria-label="Search members"
+          className="h-14 pl-12 text-lg"
+        />
         {loading && <Spinner className="absolute right-4 top-1/2 -translate-y-1/2" />}
       </div>
       {error && <Alert className="mt-3">{error}</Alert>}
@@ -144,13 +168,20 @@ function FindMember({ onPick, initialQuery }: { onPick: (c: CustomerDetail) => v
           </li>
         ))}
       </ul>
-      {hits && hits.length === 0 && !loading && <p className="mt-6 text-center text-sm text-ink-400">No members match “{q.trim()}”. Check the number, or sign them up.</p>}
+      {hits && hits.length === 0 && !loading && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-ink-400">No members match “{q.trim()}”. Check the number, or sign them up.</p>
+          <PosButton variant="primary" className="mt-3" onClick={() => onSignUp(normalisePhone(q) ? q.trim() : "")} data-testid="sign-up-from-search">
+            <UserPlus className="h-4 w-4" /> {normalisePhone(q) ? `Sign up ${q.trim()}` : "Sign up a new member"}
+          </PosButton>
+        </div>
+      )}
     </div>
   );
 }
 
-function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number }) {
-  const [f, setF] = useState({ phone: "", firstName: "", lastName: "", email: "", idNumber: "" });
+function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCreated: (c: CustomerDetail) => void; joinUrl: string; minAge: number; training?: boolean; phone?: string }) {
+  const [f, setF] = useState({ phone, firstName: "", lastName: "", email: "", idNumber: "" });
   const [passport, setPassport] = useState(false);
   const [deals, setDeals] = useState<boolean | null>(null);
   const [interests, setInterests] = useState<string[]>([]);
@@ -167,7 +198,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
     return r.valid ? { ok: true as const, dob: r.dob, age: ageOn(r.dob) } : { ok: false as const, reason: r.reason };
   }, [f.idNumber]);
   const phoneOk = !!normalisePhone(f.phone);
-  const emailOk = !f.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
+  const emailOk = !f.email || isEmail(f.email.trim());
   const underage = id?.ok && id.age < minAge;
   const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport && !!dob)) && deals !== null && terms;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));
@@ -178,13 +209,21 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
     if (!valid) return;
     setBusy(true);
     setError(null);
+    if (training) {
+      // Practice sign-up: a member that exists on this till only, for this practice sale.
+      const dobIso = id?.ok ? id.dob.toISOString() : dob ? new Date(`${dob}T00:00:00Z`).toISOString() : null;
+      const age = dobIso ? ageOn(new Date(dobIso)) : null;
+      onCreated({ ...offlineMember("HH9999999"), id: "", firstName: f.firstName.trim() || "Trainee", lastName: f.lastName.trim() || null, email: f.email.trim() || null, ageVerified: true, ageCheck: f.idNumber ? "ID_NUMBER" : "ID_SIGHTED", age, offline: false });
+      setBusy(false);
+      return;
+    }
     try {
       const r = await api<{ customer: CustomerDetail }>("/api/pos/customers", {
         body: { ...f, email: f.email.trim(), idNumber: f.idNumber.replace(/\s/g, "") || undefined, passportSighted: passport && !f.idNumber, dob: passport && !f.idNumber ? dob : undefined, deals, interests, acceptTerms: terms },
       });
       onCreated(r.customer);
     } catch (e) {
-      setError(e instanceof OfflineError ? "Offline — try again when the connection is back" : errorText(e));
+      setError(e instanceof OfflineError ? "Offline: try again when the connection is back" : errorText(e));
     } finally {
       setBusy(false);
     }
@@ -193,13 +232,14 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_15rem]">
       <form onSubmit={submit} className="space-y-4" noValidate>
+        {training && <Alert tone="warn">Training: this sign-up is practice only. No member is created and nothing is sent.</Alert>}
         {error && <Alert>{error}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Mobile number" htmlFor="nm-phone" error={touched && !phoneOk ? "Enter a South African mobile number" : undefined}>
-            <TextInput id="nm-phone" autoFocus inputMode="tel" autoComplete="off" value={f.phone} onChange={set("phone")} placeholder="082 555 1234" aria-invalid={touched && !phoneOk} />
+            <TextInput id="nm-phone" autoFocus={!phone} inputMode="tel" autoComplete="off" value={f.phone} onChange={set("phone")} placeholder="082 123 4567" aria-invalid={touched && !phoneOk} />
           </Field>
           <Field label="First name" htmlFor="nm-first" error={touched && !f.firstName.trim() ? "Enter their first name" : undefined}>
-            <TextInput id="nm-first" autoComplete="off" value={f.firstName} onChange={set("firstName")} aria-invalid={touched && !f.firstName.trim()} />
+            <TextInput id="nm-first" autoFocus={!!phone} autoComplete="off" value={f.firstName} onChange={set("firstName")} aria-invalid={touched && !f.firstName.trim()} />
           </Field>
           <Field label="Surname (optional)" htmlFor="nm-last">
             <TextInput id="nm-last" autoComplete="off" value={f.lastName} onChange={set("lastName")} />
@@ -211,8 +251,8 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
         <Field
           label="SA ID number"
           htmlFor="nm-id"
-          error={id && !id.ok ? id.reason : underage ? `Under ${minAge} — they can't join or buy age-restricted products` : touched && !f.idNumber && !passport ? "Enter an SA ID number, or tick passport sighted" : undefined}
-          hint={id?.ok ? undefined : "Checked here — only a secure hash and the last 4 digits are stored"}
+          error={id && !id.ok ? id.reason : underage ? `Under ${minAge}, so they can't join or buy age-restricted products` : touched && !f.idNumber && !passport ? "Enter an SA ID number, or tick passport sighted" : undefined}
+          hint={id?.ok ? undefined : "Checked here: only a secure hash and the last 4 digits are stored"}
         >
           <TextInput id="nm-id" inputMode="numeric" autoComplete="off" value={f.idNumber} onChange={set("idNumber")} placeholder="13 digits" disabled={passport} aria-invalid={!!id && (!id.ok || !!underage)} />
         </Field>
@@ -223,12 +263,12 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
         )}
         <CheckRow checked={passport} onChange={(v) => (setPassport(v), v && setF((s) => ({ ...s, idNumber: "" })))} label="Passport sighted (not an SA citizen)" description={`I've checked their passport and they are ${minAge} or older.`} />
         {passport && (
-          <Field label="Date of birth (from the passport)" htmlFor="nm-dob" error={touched && !dob ? "Enter their date of birth — it's also how they get birthday deals" : undefined}>
+          <Field label="Date of birth (from the passport)" htmlFor="nm-dob" error={touched && !dob ? "Enter their date of birth (it's also how they get birthday deals)" : undefined}>
             <TextInput id="nm-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} aria-invalid={touched && !dob} />
           </Field>
         )}
         <fieldset className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="deals-question">
-          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Member deals &amp; news — ask them</legend>
+          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Member deals &amp; news: ask them</legend>
           <p className="px-1 text-sm leading-relaxed text-ink-200">&ldquo;{DEALS_QUESTION}&rdquo;</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <PosButton type="button" variant={deals === true ? "primary" : "secondary"} aria-pressed={deals === true} onClick={() => setDeals(true)}>
@@ -238,7 +278,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
               No thanks
             </PosButton>
           </div>
-          {touched && deals === null && <p className="px-1 pt-1.5 text-xs font-medium text-[#f29b9b]">Ask them — their answer is recorded</p>}
+          {touched && deals === null && <p className="px-1 pt-1.5 text-xs font-medium text-[#f29b9b]">Ask them (their answer is recorded)</p>}
           <div className="mt-3 px-1 text-[0.8rem] font-semibold text-ink-300">What are they into? (optional)</div>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {(Object.keys(INTERESTS) as InterestKey[]).map((k) => {
@@ -258,7 +298,7 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
           </div>
         </fieldset>
         <div className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="key-terms">
-          <div className="px-1 text-[0.8rem] font-semibold text-ink-300">Key membership terms — turn the screen so they can read them</div>
+          <div className="px-1 text-[0.8rem] font-semibold text-ink-300">Key membership terms: turn the screen so they can read them</div>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-ink-300">
             {KEY_TERMS.map((t) => (
               <li key={t}>{t}</li>
@@ -289,10 +329,10 @@ function NewMember({ onCreated, joinUrl, minAge }: { onCreated: (c: CustomerDeta
   );
 }
 
-/** Offline: members can't be looked up, so take the number from their card; it's checked when the till reconnects. */
+/** Offline: members can't be looked up, so take the number from their card or their mobile; it's checked when the till reconnects. */
 function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
   const [no, setNo] = useState("");
-  const memberNo = memberNoFrom(no);
+  const memberNo = memberNoFrom(no) ?? normalisePhone(no);
   return (
     <form
       onSubmit={(e) => {
@@ -301,9 +341,9 @@ function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
       }}
       className="space-y-3"
     >
-      <Alert tone="warn">Offline — members can&apos;t be looked up or signed up. Scan their card QR or type the member number from their card: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
-      <Field label="Member number" htmlFor="off-member" error={no && !memberNo ? "Member numbers look like HH0123456" : undefined}>
-        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456" />
+      <Alert tone="warn">Offline: members can&apos;t be looked up or signed up. Scan their card QR, or type the member number from their card or their mobile number: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
+      <Field label="Member number or mobile" htmlFor="off-member" error={no.trim().length >= 9 && !memberNo ? "Member numbers look like HH0123456; mobile numbers have 10 digits, starting with 0" : undefined}>
+        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456 or 082 123 4567" />
       </Field>
       <PosButton type="submit" variant="primary" size="lg" className="w-full" disabled={!memberNo}>
         Add to sale

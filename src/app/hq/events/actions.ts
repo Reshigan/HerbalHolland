@@ -32,7 +32,7 @@ export async function saveEvent(eventId: string | null, _: ActionState, fd: Form
     const e = await db.storeEvent.create({ data: { ...r.data, storeId } });
     await audit(db, g.actor, "event.create", { storeId, entity: "StoreEvent", entityId: e.id, data: { title: e.title, startsAt: e.startsAt.toISOString(), capacity: e.capacity } });
     revalidatePath("/hq/events");
-    flashTo(`/hq/events/${e.id}`, `“${e.title}” at ${store.name} is on for ${fmtDateTime(e.startsAt)} — members can RSVP from its page.`);
+    flashTo(`/hq/events/${e.id}`, `“${e.title}” at ${store.name} is on for ${fmtDateTime(e.startsAt)}. Members can RSVP from its page.`);
   }
   const changed = (Object.keys(r.data) as (keyof EventData)[]).filter((k) => JSON.stringify(before[k]) !== JSON.stringify(r.data[k]));
   if (!changed.length) return done("No changes to save.");
@@ -48,7 +48,7 @@ export async function deleteEvent(eventId: string, _: ActionState): Promise<Acti
   if (!e) return fail("That event no longer exists.");
   const g = await editor(e.storeId);
   if (!g) return DENIED;
-  if (e._count.rsvps) return fail("Members hold tickets for this event — change the details instead of deleting it.");
+  if (e._count.rsvps) return fail("Members hold tickets for this event. Change the details instead of deleting it.");
   await db.storeEvent.delete({ where: { id: e.id } });
   await audit(db, g.actor, "event.delete", { storeId: e.storeId, entity: "StoreEvent", entityId: e.id, data: { title: e.title, startsAt: e.startsAt.toISOString() } });
   revalidatePath("/hq/events");

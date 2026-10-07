@@ -20,7 +20,7 @@ export function ReportError({ error, retry }: { error: Error & { digest?: string
         }
       >
         Something went wrong while running it. Try again, or pick a shorter date range or a single store.
-        {error.digest ? <span className="mt-2 block text-xs text-ink-400">Reference {error.digest}</span> : null}
+        {error.digest ? <span className="mt-2 block text-xs text-ink-500">Reference {error.digest}</span> : null}
       </EmptyState>
     </Card>
   );

@@ -1,7 +1,7 @@
-// PNG icons for the installable Rewards app (Android needs 192 and 512; "maskable"
-// keeps the Mark inside the safe zone when the launcher crops it to a circle).
-import { ImageResponse } from "next/og";
-import { markDataUri } from "@/components/shop/mark-svg";
+// PNG icons for the installable apps (Android needs 192 and 512; "maskable" keeps the Mark inside the safe zone when
+// the launcher crops it to a circle). /pwa-icon/192 is the Rewards app; /pwa-icon/till-512 and /pwa-icon/office-512
+// are the till and the back office (see @/components/brand/app-icon for the colour pairings).
+import { appIcon, APP_ICONS, type AppIcon } from "@/components/brand/app-icon";
 
 const SIZES: Record<string, { px: number; inset: number }> = {
   "192": { px: 192, inset: 0.12 },
@@ -10,16 +10,10 @@ const SIZES: Record<string, { px: number; inset: number }> = {
 };
 
 export async function GET(_: Request, { params }: { params: Promise<{ size: string }> }) {
-  const s = SIZES[(await params).size];
-  if (!s) return new Response("Not found", { status: 404 });
-  const mark = Math.round(s.px * (1 - s.inset * 2));
-  return new ImageResponse(
-    (
-      <div style={{ width: "100%", height: "100%", display: "flex", alignItems: "center", justifyContent: "center", background: "#0c0a09" }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={markDataUri({ bg: null, size: mark, inset: 0 })} width={mark} height={mark} alt="" />
-      </div>
-    ),
-    { width: s.px, height: s.px, headers: { "Cache-Control": "public, max-age=604800, immutable" } },
-  );
+  const m = /^(?:(till|office)-)?(192|512|maskable)$/.exec((await params).size);
+  const s = m && SIZES[m[2]];
+  if (!m || !s) return new Response("Not found", { status: 404 });
+  const app = (m[1] ?? "rewards") as AppIcon;
+  if (!(app in APP_ICONS)) return new Response("Not found", { status: 404 });
+  return appIcon(app, s.px, s.inset, { "Cache-Control": "public, max-age=604800, immutable" });
 }

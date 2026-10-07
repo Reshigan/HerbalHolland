@@ -4,10 +4,14 @@ import { redirect } from "next/navigation";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { hashSecret, type Staff } from "@/server/auth";
+import { resetPinFailures } from "@/server/lockout";
+import { temporaryPassword, tempPasswordUntil, TEMP_PASSWORD_HOURS } from "@/server/passwords";
+import { passwordProblem } from "@/lib/password";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, isPin, str, weakPin } from "@/server/store/rules";
 import { memberNoFrom } from "@/components/pos/lib/rules";
 import type { User } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const isOwnerLevel = (u: Pick<Staff, "role">) => u.role === "OWNER" || u.role === "HQ_ADMIN";
 
@@ -32,29 +36,34 @@ export async function addStaff(code: string, _: ActionState, fd: FormData): Prom
     if (role === "MANAGER" && !isOwnerLevel(user)) return fail("Only the owner can add another manager", "role");
     const pin = str(fd, "pin");
     if (!isPin(pin)) return fail("The PIN must be exactly 4 digits", "pin");
-    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess — no repeated or running digits", "pin");
+    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess, with no repeated or running digits", "pin");
     const email = str(fd, "email").toLowerCase().slice(0, 120);
     const password = String(fd.get("password") ?? "");
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address doesn't look right", "email");
-    if (email && password.length < 8) return fail("Back-office passwords need at least 8 characters", "password");
+    if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
+    const weak = email ? passwordProblem(password, { email, name }) : null;
+    if (weak) return fail(weak, "password");
     if (email && (await db.user.findUnique({ where: { email } }))) return fail("That email already has a login", "email");
     const canDispense = bool(fd, "canDispense") && isOwnerLevel(user);
+    // A password someone else chose is temporary: they replace it at first sign-in, before it lapses.
     const u = await db.user.create({
       data: {
         name,
         role,
         storeId: store.id,
         companyId: store.companyId,
-        pinHash: hashSecret(pin),
+        pinHash: await hashSecret(pin),
         email: email || null,
-        passwordHash: email ? hashSecret(password) : null,
+        passwordHash: email ? await hashSecret(password) : null,
         mustChangePassword: !!email,
+        tempPasswordUntil: email ? tempPasswordUntil() : null,
         canDispense,
       },
     });
     await audit(db, actor, "staff.create", { storeId: store.id, entity: "User", entityId: u.id, data: { name, role, canDispense, backOffice: !!email } });
     revalidatePath(`/store/${store.code}/team`);
-    return done(`${name} added. They can sign in at the till with their PIN${email ? ` and to the back office as ${email}` : ""}.`);
+    return done(
+      `${name} added. They can sign in at the till with their PIN${email ? ` and to the back office as ${email} with the password you set. They choose their own the first time, within ${TEMP_PASSWORD_HOURS} hours` : ""}.`,
+    );
   });
 }
 
@@ -65,10 +74,32 @@ export async function resetPin(code: string, id: string, _: ActionState, fd: For
     if (!mayManage(user, t)) return fail("Only the owner can change a manager's PIN");
     const pin = str(fd, "pin");
     if (!isPin(pin)) return fail("The PIN must be exactly 4 digits", "pin");
-    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess — no repeated or running digits", "pin");
-    await db.user.update({ where: { id: t.id }, data: { pinHash: hashSecret(pin) } });
+    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess, with no repeated or running digits", "pin");
+    await db.user.update({ where: { id: t.id }, data: { pinHash: await hashSecret(pin), pinFails: 0, pinLockedAt: null } });
+    await resetPinFailures(t.id); // a PIN switched off after ten wrong tries works again with the new one
+    await db.session.deleteMany({ where: { userId: t.id, deviceId: { not: null } } }); // signed out of every till
     await audit(db, actor, "staff.pin_reset", { storeId: store.id, entity: "User", entityId: t.id, data: { name: t.name } });
     return done(`New PIN set for ${t.name}. Share it in person, never by message.`);
+  });
+}
+
+/** A new temporary back-office password, shown once (for someone who forgot theirs, or whose temporary one lapsed). */
+export async function resetPassword(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
+  void fd;
+  return attempt(async () => {
+    const { store, user, actor } = await manage(code);
+    const t = await target(store.id, id);
+    if (!t.email) return fail(`${t.name} has no back-office login`);
+    if (t.id === user.id) return fail("To change your own password, use Change password beside your name");
+    if (!mayManage(user, t)) return fail("Only the owner can reset a manager's password");
+    const password = temporaryPassword();
+    await db.user.update({
+      where: { id: t.id },
+      data: { passwordHash: await hashSecret(password), mustChangePassword: true, tempPasswordUntil: tempPasswordUntil(), passwordFails: 0, passwordLockedAt: null },
+    });
+    await db.session.deleteMany({ where: { userId: t.id, deviceId: null } }); // signed out of the back office (tills keep their PIN sign-in)
+    await audit(db, actor, "staff.password_reset", { storeId: store.id, entity: "User", entityId: t.id, data: { name: t.name } });
+    return done(`New temporary password for ${t.name}:  ${password}  (share it privately, as it isn't shown again). They choose their own when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
   });
 }
 

@@ -23,7 +23,10 @@ export type CardResult =
 
 export type TapProvider = TapProviderKind;
 
-export const tapProvider = (): TapProvider => (process.env.NEXT_PUBLIC_TAP_PROVIDER as TapProvider) || "SIMULATED";
+/** Simulated payments (the demo, development and tests) never run on a production server outside DEMO_MODE. */
+export const simulationAllowed = () => process.env.DEMO_MODE === "true" || process.env.NODE_ENV !== "production";
+/** Unset in production (and not a demo): the till records card payments taken on a bank terminal, never a simulated tap. */
+export const tapProvider = (): TapProvider => (process.env.NEXT_PUBLIC_TAP_PROVIDER as TapProvider) || (simulationAllowed() ? "SIMULATED" : "EXTERNAL");
 
 /** Server side of a Halo app-link session. Requires HALO_API_URL + per-store merchant IDs. */
 export async function createHaloSession(opts: { merchantId: string; amountCents: number; reference: string }) {
@@ -61,7 +64,7 @@ export class PaymentError extends Error {
  * payments (SIM-…) have none.
  */
 export function paidOnlineWith(o: { payMethod: string; paymentStatus: string; paymentRef: string | null }): HostedGateway | null {
-  if (o.payMethod !== "ONLINE" || o.paymentStatus !== "PAID" || !o.paymentRef || o.paymentRef.startsWith("SIM-")) return null;
+  if (o.payMethod !== "ONLINE" || o.paymentStatus !== "PAID" || !o.paymentRef || o.paymentRef.startsWith("SIM-") || o.paymentRef.startsWith("VOUCHER:")) return null;
   return o.paymentRef.startsWith("pay_") ? "PEACH" : o.paymentRef.startsWith("ch_") ? "YOCO" : hostedGateway();
 }
 

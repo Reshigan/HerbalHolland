@@ -63,3 +63,24 @@ export function weekRows(hours: Hours, at = new Date()) {
     return { key: k, label: DAY_NAME[k], span: h ? `${h[0]}–${h[1]}` : "Closed", today: i === day };
   });
 }
+
+/**
+ * When a click & collect order placed now will be ready: within 2 hours while the store is open for at least that
+ * long, otherwise from the next opening ("Ready tomorrow from 09:00").
+ */
+export function collectReady(hours: Hours, at = new Date()): { soon: boolean; label: string } {
+  const { day, minute } = sastNow(at);
+  const today = hours[DAY_KEYS[day]] ?? null;
+  if (today) {
+    const [o, c] = today.map(toMin);
+    const close = c <= o ? 24 * 60 : c;
+    if (minute >= o && close - minute >= 120) return { soon: true, label: "Usually ready within 2 hours" };
+    if (minute < o) return { soon: false, label: `Ready today from ${today[0]}` };
+  }
+  for (let i = 1; i <= 7; i++) {
+    const k = DAY_KEYS[(day + i) % 7];
+    const h = hours[k];
+    if (h) return { soon: false, label: `Ready ${i === 1 ? "tomorrow" : DAY_NAME[k]} from ${h[0]}` };
+  }
+  return { soon: false, label: "Ready when the store reopens" };
+}

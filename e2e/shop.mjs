@@ -3,7 +3,8 @@
 // First visit (18+ gate) → browse (mood, category, search) → product → bag (quantity, remove) → header store picker
 // (list, search, choose) → an existing member signs in by phone → Rewards (card, orders → tracking, points, invoices →
 // tax invoice, settings: profile, marketing consent, personalised deals) → verified review → restock alert → drop
-// alert → event RSVP + cancel → sign out → a friend opens the member's share link and joins with the referral (with a
+// alert → ask for help (a support request, then a reply from Rewards → Help) → return an item from a delivered order →
+// event RSVP + cancel → sign out → a friend opens the member's share link and joins with the referral (with a
 // passport; a refused first try keeps everything filled in) → Learn quest (points once only) → unsubscribe link →
 // age verification with an SA ID number → staff sign-in (wrong and right password), forced password change on a
 // throwaway user → sign out (/logout).
@@ -356,7 +357,7 @@ try {
   assert((await body.inputValue()) === claim && (await page.getByLabel("Headline (optional)").inputValue()) === headline, "a medical claim is refused with the reason; the headline and text are kept to edit");
   assert(await stars.isChecked(), "the 4-star rating is still selected");
   await body.fill("Lovely quality, smooth and exactly as described. Would buy again.");
-  const thanks = page.getByText("You've reviewed this product — thank you.");
+  const thanks = page.getByText("You've reviewed this product. Thank you.");
   await timed("Review: post", () => page.getByRole("button", { name: "Post review" }).click(), () => thanks.waitFor());
   const review = await one(`select rating, verified, title from "Review" where "productId" = $1 and "customerId" = $2`, [member.productId, member.id]);
   assert(review?.rating === 4 && review.verified && review.title === headline, "review saved: 4 stars, verified purchase");
@@ -384,6 +385,117 @@ try {
   await page.reload();
   await page.getByText("We'll send you an SMS as soon as it's back in stock.").waitFor();
   ok("still shown as set after a reload");
+
+  // ── 4a. Wishlist, a reorder reminder, buy again ────────────────────────────────────────────────────
+  step("Wishlist: the heart on a product page, then Rewards → Wishlist");
+  undo.push(() => q(`delete from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]));
+  await page.goto(`${BASE}/p/${member.productSlug}`);
+  const buyBox = page.locator("#buy-box"); // (the related products' cards carry hearts of their own)
+  const heart = buyBox.getByRole("button", { name: "Save to your wishlist", exact: true });
+  await heart.waitFor();
+  await timed("Wishlist: save", () => heart.click(), () => buyBox.getByRole("button", { name: "Remove from your wishlist", exact: true }).waitFor());
+  assert(await one(`select 1 from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]), "saved to the wishlist");
+  await page.goto(`${BASE}/club/wishlist`);
+  await page.getByRole("heading", { name: "Your wishlist" }).waitFor();
+  await page.getByRole("link", { name: member.productName, exact: true }).first().waitFor();
+  await shot(page, "wishlist");
+  ok("listed under Rewards → Wishlist");
+  await timed("Wishlist: remove", () => page.getByRole("button", { name: `Remove ${member.productName} from your wishlist` }).first().click(), () => page.getByRole("heading", { name: "Nothing saved yet" }).waitFor());
+  assert(!(await one(`select 1 from "Wishlist" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0])), "removed again");
+
+  step("Reorder reminder on an everyday product (every 30 days by SMS), then stop it");
+  const everyday = await one(
+    `select p.slug, p.name from "Product" p
+     where p.status = 'ACTIVE' and p."regClass" = 'CBD_FOOD' and exists (select 1 from "Variant" v where v."productId" = p.id and v.active)
+       and not exists (select 1 from "ReorderReminder" r join "Variant" v on v.id = r."variantId" where v."productId" = p.id and r."customerId" = $1 and r.active)
+     order by p.name limit 1`,
+    [member.id],
+  );
+  if (everyday) {
+    undo.push(() => q(`delete from "ReorderReminder" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]));
+    await page.goto(`${BASE}/p/${everyday.slug}`);
+    await timed("Reminder: open", () => page.getByRole("button", { name: "Remind me to reorder" }).click(), () => page.getByRole("button", { name: "Set reminder" }).waitFor());
+    await timed("Reminder: set", () => page.getByRole("button", { name: "Set reminder" }).click(), () => page.getByText(/We'll remind you every 30 days by SMS/).waitFor());
+    const rem = await one(`select id, "everyDays", channel, active from "ReorderReminder" where "customerId" = $1 and "createdAt" >= $2 order by "createdAt" desc limit 1`, [member.id, t0]);
+    assert(rem?.everyDays === 30 && rem.channel === "SMS" && rem.active, `reminder saved for ${everyday.name}: every 30 days by SMS`);
+    await page.goto(`${BASE}/club/reminders`);
+    await page.getByRole("heading", { name: "Reorder reminders" }).waitFor();
+    await shot(page, "reminders");
+    await timed("Reminder: stop", () => page.getByRole("button", { name: `Stop the reminder for ${everyday.name}` }).first().click(), () => page.getByText(/Every 30 days by SMS/).waitFor({ state: "detached" }));
+    assert(!(await one(`select 1 from "ReorderReminder" where id = $1 and active`, [rem.id])), "reminder stopped");
+  } else ok("(no CBD food & drink product to remind about — skipped)");
+
+  step("Buy again from an order's tracking page");
+  await page.goto(`${BASE}/orders/${code}`);
+  const again = page.getByRole("button", { name: "Buy again" });
+  await again.waitFor();
+  const outcome = page.getByRole("status").filter({ hasText: /Added \d+ items? to your bag|Nothing could be added/ }).first();
+  await timed("Order: buy again", () => again.click(), () => outcome.waitFor());
+  const outcomeText = (await outcome.textContent()).trim().replace(/\s+/g, " ");
+  const bagCookie = (await ctx.cookies()).find((c) => c.name === "hh_cart");
+  assert(!/^Added/.test(outcomeText) || !!bagCookie, `buy again: ${outcomeText.slice(0, 140)}`);
+  await ctx.clearCookies({ name: "hh_cart" });
+
+  // ── 4b. Support: ask for help, then reply from Rewards → Help ───────────────────────────────────────
+  step("Support: a request from /support (details filled in for the signed-in member), then a reply on it");
+  undo.push(async () => {
+    await q(`delete from "MessageLog" where id like 'support-%' and "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]);
+    await q(`delete from "SupportTicket" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]); // messages go with it
+  });
+  await page.goto(`${BASE}/support`);
+  await page.getByRole("heading", { level: 1, name: "How can we help?" }).waitFor();
+  assert((await page.getByLabel("Your name").inputValue()).startsWith(member.firstName), "the member's name is filled in");
+  assert((await page.getByRole("dialog", { name: "Are you 18 or older?" }).count()) === 0, "no age gate on the help page");
+  const subject = `E2E points question ${rand()}`;
+  await page.getByLabel("What's it about?").selectOption("REWARDS");
+  await page.getByLabel("Subject").fill(subject);
+  await page.getByLabel("What happened?").fill("I bought a grinder on Saturday and the points never showed up on my card.");
+  await shot(page, "support-form");
+  await timed("Support: send → my request", () => page.getByRole("button", { name: "Send", exact: true }).click(), async () => {
+    await page.waitForURL(/\/club\/support\/[^/?]+\?sent=1/);
+    await page.getByRole("heading", { level: 1, name: subject }).waitFor();
+  });
+  const ticket = await one(`select id, number, status, "firstResponseDueAt", "resolveDueAt", "customerId", email, phone from "SupportTicket" where subject = $1`, [subject]);
+  assert(ticket?.customerId === member.id && ticket.status === "OPEN" && ticket.firstResponseDueAt > t0 && ticket.resolveDueAt > ticket.firstResponseDueAt, `ticket ${ticket?.number} opened: SLA deadlines set`);
+  const ack = await one(`select channel from "MessageLog" where "customerId" = $1 and body like $2 and "createdAt" >= $3`, [member.id, `%${ticket.number}%`, t0]);
+  assert(ack && (ticket.email ? ack.channel === "EMAIL" : ack.channel === "SMS"), `acknowledged by ${ack?.channel}`);
+  await shot(page, "support-ticket");
+  await page.getByLabel("Your reply").fill("Also, the till slip shows the card was scanned.");
+  await timed("Support: reply", () => page.getByRole("button", { name: "Send reply" }).click(), () => page.getByText("Sent. We'll reply within one business day.").waitFor());
+  const msgs = (await one(`select count(*)::int n from "SupportMessage" where "ticketId" = $1`, [ticket.id])).n;
+  assert(msgs === 2, "the reply is on the thread (2 messages)");
+  await page.goto(`${BASE}/club/support`);
+  await page.getByRole("heading", { level: 1, name: "Help & returns" }).waitFor();
+  await page.getByRole("link", { name: new RegExp(esc(subject)) }).waitFor();
+  ok("listed under Rewards → Help");
+
+  // ── 4c. Returns: report a problem with a delivered order ─────────────────────────────────────────
+  const returnable = await one(
+    `select o.code from "Order" o where o."customerId" = $1 and o.status = 'COMPLETED' and o."completedAt" > now() - interval '150 days'
+       and not exists (select 1 from "ReturnRequest" r where r."orderId" = o.id)
+       and exists (select 1 from "OrderLine" l join "Variant" v on v.id = l."variantId" join "Product" p on p.id = v."productId" where l."orderId" = o.id and p."regClass" <> 'THC')
+     order by o."completedAt" desc limit 1`,
+    [member.id],
+  );
+  if (returnable) {
+    step(`Returns: report a faulty item on delivered order ${returnable.code}`);
+    undo.push(async () => {
+      await q(`delete from "MessageLog" where id like 'return-%' and "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]);
+      await q(`delete from "ReturnRequest" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]);
+    });
+    await page.goto(`${BASE}/orders/${returnable.code}`);
+    await timed("Order → return form", () => page.getByRole("link", { name: "Return or report a problem" }).click(), () => page.getByRole("heading", { level: 1, name: "Return or report a problem" }).waitFor());
+    assert(await page.getByRole("radio", { name: /It's faulty/ }).isChecked(), "“It's faulty” is the default reason (6 months, CPA s56)");
+    const qtyBox = page.getByRole("combobox", { name: /^Quantity of / }).first();
+    await qtyBox.selectOption("1");
+    await page.getByLabel(/Anything we should know/).fill("The seal was broken when it arrived.");
+    await shot(page, "return-form");
+    await timed("Return: send request", () => page.getByRole("button", { name: "Send return request" }).click(), () => page.waitForURL(/\/return\?done=RT-\d+/));
+    const rt = await one(`select r.number, r.status, r.reason, r.items, r."storeId" = o."storeId" "sameStore" from "ReturnRequest" r join "Order" o on o.id = r."orderId" where o.code = $1 and r."customerId" = $2`, [returnable.code, member.id]);
+    assert(rt?.status === "REQUESTED" && rt.reason === "DEFECTIVE" && rt.items.length === 1 && rt.items[0].qty === 1 && rt.sameStore, `${rt?.number} requested: one unit, faulty, filed with the fulfilling store`);
+    await page.getByText(`Thanks. Your return request is ${rt.number}.`).waitFor();
+    await shot(page, "return-requested");
+  } else step("Returns: skipped — this member has no delivered order to return");
 
   // ── 5. Drops and events ─────────────────────────────────────────────────────────────────────────────
   step("Drops: “notify me” for an upcoming drop");
@@ -450,7 +562,7 @@ try {
   await timed("Share card → join page", () => friend.getByRole("link", { name: `Join with ${member.firstName}'s link` }).click(), () => friend.getByRole("heading", { level: 1, name: `${member.firstName} invited you` }).waitFor());
   const phone = `07${Math.floor(10_000_000 + Math.random() * 89_999_999)}`;
   await phoneCode(friend, phone, "Join");
-  await timed("Join: verify → details step", () => friend.getByRole("button", { name: "Verify" }).click(), () => friend.getByText("Welcome — one quick step").waitFor());
+  await timed("Join: verify → details step", () => friend.getByRole("button", { name: "Verify" }).click(), () => friend.getByText("Welcome: one quick step").waitFor());
   // First try with an email address another member already uses (with a passport, so the age check waits for later).
   const homes = await friend.getByLabel("Home store").locator("option:not([disabled])").evaluateAll((els) => els.map((o) => o.value));
   const home = homes[Math.floor(Math.random() * homes.length)];
@@ -509,7 +621,7 @@ try {
   // Two tabs: drive whichever is in front (Chromium throttles a background tab's rendering, which isn't the app's time).
   await friend.bringToFront();
   const last = await answer(friend, wrong);
-  await timed("Quest: submit (wrong)", () => last.click(), () => friend.getByRole("heading", { name: "Not quite — try again" }).waitFor());
+  await timed("Quest: submit (wrong)", () => last.click(), () => friend.getByRole("heading", { name: "Not quite, try again" }).waitFor());
   assert(!(await one(`select 1 from "QuestCompletion" where "customerId" = $1`, [pal.id])), "a wrong answer earns nothing");
   await friend.getByRole("button", { name: "Try again" }).click();
   const last2 = await answer(friend, right);
@@ -540,7 +652,7 @@ try {
   await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS}`);
   const heading = await friend.getByRole("heading", { level: 1 }).textContent();
   if (/expired/.test(heading)) fail("the unsubscribe token isn't accepted — is SESSION_SECRET the same for this script and the server?");
-  await timed("Unsubscribe: stop texts", () => friend.getByRole("button", { name: "Stop marketing texts" }).click(), () => friend.getByText(/Done — you won't get marketing texts/).waitFor());
+  await timed("Unsubscribe: stop texts", () => friend.getByRole("button", { name: "Stop marketing texts" }).click(), () => friend.getByText(/Done\. You won't get marketing texts/).waitFor());
   const smsNow = await one(`select c."consentSms", e.source from "Customer" c join "ConsentEvent" e on e."customerId" = c.id and e.channel = 'SMS' where c.id = $1 order by e."createdAt" desc limit 1`, [pal.id]);
   assert(smsNow.consentSms === false && smsNow.source === "UNSUBSCRIBE_LINK", "SMS marketing withdrawn, recorded as UNSUBSCRIBE_LINK");
   await shot(friend, "unsubscribed");
@@ -553,7 +665,7 @@ try {
   const goodId = saId();
   const typo = `${goodId.slice(0, 12)}${(Number(goodId[12]) + 1) % 10}`;
   await idBox.fill(typo);
-  await timed("Settings: verify age (typo)", () => friend.getByRole("button", { name: "Verify", exact: true }).click(), () => friend.getByText("Check digit does not match — please re-check the number").waitFor());
+  await timed("Settings: verify age (typo)", () => friend.getByRole("button", { name: "Verify", exact: true }).click(), () => friend.getByText("Check digit does not match. Please re-check the number.").waitFor());
   assert((await idBox.inputValue()) === typo, "a wrong check digit is refused; the number stays in the box to correct");
   await idBox.fill(goodId);
   await timed("Settings: verify age", () => friend.getByRole("button", { name: "Verify", exact: true }).click(), () => friend.getByText(`SA ID number checked (••••${goodId.slice(-4)})`).waitFor());

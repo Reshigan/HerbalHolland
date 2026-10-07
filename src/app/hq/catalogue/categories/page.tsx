@@ -11,7 +11,7 @@ import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { BackLink, EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { categoryIcon } from "@/components/product/category-icons";
@@ -47,12 +47,12 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
       <PageHeader
         overline="Product"
         title="Categories"
-        description="How the range is grouped in the shop, on the tills and on the menu boards — in this order. A category shows to members once it has an active product."
+        description="How the range is grouped in the shop, on the tills and on the menu boards, in this order. A category shows to members once it has an active product."
       />
       <Flash message={sp.m} />
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">
-          <Table>
+          <Table stickyFirst>
             <thead>
               <tr>
                 {network && (
@@ -73,7 +73,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
               {categories.length === 0 && (
                 <EmptyRow cols={network ? 4 : 2}>
                   <LayoutGrid className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-                  No categories yet — add the first one.
+                  No categories yet. Add the first one.
                 </EmptyRow>
               )}
               {categories.map((c, i) => {
@@ -117,7 +117,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
                           {num(all)}
                         </Link>
                       ) : (
-                        <span className="text-ink-400">0</span>
+                        <span className="text-ink-500">0</span>
                       )}
                       <span className="block text-xs text-ink-500">{num(active)} active</span>
                     </Td>
@@ -132,7 +132,7 @@ export default async function CategoriesPage({ searchParams }: { searchParams: P
                               <p>It holds no products. Links to /shop?category={c.slug} will show the whole range.</p>
                             </ConfirmAction>
                           ) : (
-                            <span className="inline-flex h-8 items-center px-3 text-xs text-ink-400" title="Move its products to another category first">
+                            <span className="inline-flex h-8 items-center px-3 text-xs text-ink-500" title="Move its products to another category first">
                               Not empty
                             </span>
                           )}

@@ -7,13 +7,23 @@ import { Mark } from "@/components/brand/logo";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
-import { api, ApiError, errorText, OfflineError, onPosEvent } from "./lib/api";
+import { api, ApiError, errorText, OfflineError, onPosEvent, setTrainingGuard } from "./lib/api";
 import {
   claimDevice, commitSeq as storeCommitSeq, enqueue, EMPTY_CART, loadAuth, loadBoot, loadCart, loadOutbox, loadSession, peekSeq,
   saveAuth, saveBoot, saveCart, saveSession, updateQueued, type AuthState, type Cart, type OutboxItem, type SalePayload,
+  loadAuditQueue, loadDisplay, loadIdleMs, loadPrinter, loadTraining, loadTrainingSales, saveAuditQueue, saveDisplay, saveIdleMs, savePrinter, saveTraining, saveTrainingSales,
+  type DisplaySettings, type QueuedAudit,
 } from "./lib/storage";
-import { rememberPin, verifyOffline, canUnlockOffline } from "./lib/pin";
-import { parseOrderQr, receiptNumber } from "./lib/rules";
+import { rememberPin, verifyOffline, canUnlockOffline, forgetPin } from "./lib/pin";
+import { parseOrderQr, receiptNumber, uuid } from "./lib/rules";
+import { voucherCodeFrom } from "@/lib/vouchers";
+import { DEFAULT_PRINTER, kickDrawer, printerPaired, sendBytes, type PrinterSettings } from "./lib/print";
+import { receiptBytes } from "./lib/receipt";
+import { zReportBytes } from "./lib/print-z";
+import { TRAINING_SHIFT, trainingNumber, type TrainingState } from "./lib/training";
+import { DISPLAY_CHANNEL, DISPLAY_HEARTBEAT_MS, idleMessages as buildIdleMessages, idleSnapshot, type DisplaySnapshot } from "./lib/display";
+import { idleDelay, saleIsOpen } from "./lib/idle";
+import { incentiveExcluded } from "@/lib/compliance";
 import { PosContext, type PosCtx, type PosTab, type PrintDoc } from "./context";
 import { LockScreen, initials } from "./lock-screen";
 import { SellScreen, type SellApi } from "./sell/sell-screen";
@@ -22,8 +32,10 @@ import { SalesHistory } from "./sales-history";
 import { StockLookup } from "./stock-lookup";
 import { ShiftPanel } from "./shift-panel";
 import { PrintArea } from "./print";
+import { TrainingBanner, TrainingOutline, TrainingTour } from "./training";
+import { QuietScreen } from "./quiet-screen";
 import { Chip, PosButton, Sheet, Alert } from "./ui";
-import type { BootData, BootShift, OrderCard, SessionInfo, StaffTile } from "@/server/pos/types";
+import type { BootData, BootShift, OrderCard, ReceiptDTO, SessionInfo, StaffTile } from "@/server/pos/types";
 
 const IDLE_LOCK_MS = 5 * 60_000;
 const SYNC_EVERY_MS = 15_000;
@@ -47,6 +59,9 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const [bootError, setBootError] = useState<string | null>(null);
   const [auth, setAuthState] = useState<AuthState>({ me: null, locked: true, at: 0 });
   const [switching, setSwitching] = useState<"dispenser" | "manager" | null>(null);
+  // Hand-off: who was at the till before a dispenser or manager stepped in, why, and whether to offer them the till back.
+  const [handoff, setHandoff] = useState<{ prev: StaffTile; ask: boolean; reason: "dispenser" | "manager" } | null>(null);
+  const [preselect, setPreselect] = useState<string | null>(null);
   const [expired, setExpired] = useState(false);
   const [online, setOnline] = useState(true);
   const [outbox, setOutbox] = useState<OutboxItem[]>([]);
@@ -59,9 +74,18 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [outboxOpen, setOutboxOpen] = useState(false);
   const [orderScan, setOrderScan] = useState<string | null>(null);
+  // Till hardware & modes (device-local): printer, training sandbox, customer display, quiet hours.
+  const [printer, setPrinterState] = useState<PrinterSettings>(DEFAULT_PRINTER);
+  const [training, setTrainingState] = useState<TrainingState | null>(null);
+  const [tour, setTour] = useState(false);
+  const [displaySettings, setDisplayState] = useState<DisplaySettings | null>(null);
+  const [quiet, setQuiet] = useState(false);
+  const [idleMs, setIdleMs] = useState(3 * 60_000);
 
   const authRef = useRef(auth);
   authRef.current = auth;
+  const switchingRef = useRef(switching);
+  switchingRef.current = switching;
   const bootRef = useRef(boot);
   bootRef.current = boot;
   const onlineRef = useRef(online);
@@ -69,7 +93,21 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const busyRef = useRef(false);
   const syncingRef = useRef(false);
   const afterUnlock = useRef<(() => void) | null>(null);
+  const handoffRef = useRef<{ prev: StaffTile | null; when: "now" | "later" }>({ prev: null, when: "later" });
   const sellApi = useRef<SellApi | null>(null);
+  const printerRef = useRef(printer);
+  printerRef.current = printer;
+  const trainingRef = useRef(training);
+  trainingRef.current = training;
+  const displayRef = useRef(displaySettings);
+  displayRef.current = displaySettings;
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
+  const tabRef = useRef(tab);
+  tabRef.current = tab;
+  const channelRef = useRef<BroadcastChannel | null>(null);
+  const lastSnapRef = useRef<DisplaySnapshot | null>(null);
+  const remotePost = useRef<{ timer: ReturnType<typeof setTimeout> | null; pending: DisplaySnapshot | null }>({ timer: null, pending: null });
 
   const setAuth = useCallback((a: AuthState) => {
     setAuthState(a);
@@ -85,6 +123,19 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       saveCart(next);
       return next;
     });
+  }, []);
+  const setPrinter = useCallback((p: PrinterSettings) => {
+    setPrinterState(p);
+    savePrinter(p);
+  }, []);
+  const setTraining = useCallback((t: TrainingState | null) => {
+    setTrainingState(t);
+    saveTraining(t);
+    setTrainingGuard(!!t);
+  }, []);
+  const setDisplaySettings = useCallback((d: DisplaySettings | null) => {
+    setDisplayState(d);
+    saveDisplay(d);
   }, []);
 
   const toast = useCallback((msg: string, tone: Toast["tone"] = "ok") => {
@@ -113,8 +164,21 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     }
   }, []);
 
+  /** Sensitive actions taken offline (drawer opened, training started/ended) reach the audit log on the next sync. */
+  const flushAudit = useCallback(async () => {
+    const q = loadAuditQueue().filter((e) => e.deviceId === deviceId);
+    if (!q.length) return;
+    try {
+      await api("/api/pos/audit", { body: { entries: q.map(({ deviceId: _d, ...e }) => e) }, quiet401: true, sync: true });
+      saveAuditQueue(loadAuditQueue().filter((e) => e.deviceId !== deviceId));
+    } catch {
+      /* still offline or locked: it stays queued */
+    }
+  }, [deviceId]);
+
   const syncNow = useCallback(async () => {
     if (syncingRef.current) return;
+    void flushAudit();
     const items = loadOutbox();
     setOutbox(items);
     if (!items.length) return;
@@ -124,7 +188,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     for (const item of items) {
       if (item.deviceId && item.deviceId !== deviceId) continue; // queued on this browser under a previous pairing
       try {
-        await api("/api/pos/sales", { body: item.payload, quiet401: true, timeoutMs: 30_000 });
+        await api("/api/pos/sales", { body: item.payload, quiet401: true, timeoutMs: 30_000, sync: true });
         updateQueued(item.payload.id, () => null);
         synced++;
       } catch (e) {
@@ -139,7 +203,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       toast(`${synced} offline sale${synced === 1 ? "" : "s"} synced`);
       void refreshBoot();
     }
-  }, [refreshBoot, toast, deviceId]);
+  }, [refreshBoot, toast, deviceId, flushAudit]);
 
   /** Checks the server session still matches who the till thinks is signed in. */
   const revalidate = useCallback(
@@ -175,6 +239,17 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     if (a) setAuthState(a);
     authRef.current = a ?? authRef.current;
     setOnline(navigator.onLine);
+    // Device-local settings and modes. The training guard is armed before the first request goes out.
+    const pr = loadPrinter();
+    if (pr) setPrinterState({ ...DEFAULT_PRINTER, ...pr });
+    const tr = loadTraining();
+    setTrainingState(tr);
+    trainingRef.current = tr;
+    setTrainingGuard(!!tr);
+    setDisplayState(loadDisplay());
+    const ms = idleDelay(window.location.search, loadIdleMs());
+    if (new URLSearchParams(window.location.search).has("idleMs")) saveIdleMs(ms);
+    setIdleMs(ms);
     setReady(true);
     void revalidate(true);
 
@@ -252,25 +327,38 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   // ── Locking ─────────────────────────────────────────────────────────────
   const lock = useCallback(() => {
     setSwitching(null);
+    setHandoff(null);
     setExpired(false);
     setAuth({ me: null, locked: true, at: Date.now() });
     if (onlineRef.current) void api("/api/pos/session", { method: "DELETE", quiet401: true }).catch(() => undefined);
   }, [setAuth]);
 
-  const switchUser = useCallback((reason: "dispenser" | "manager", then?: () => void) => {
+  /** `handBack`: when to offer the till back to who was signed in — "later" (after the sale or refund: handoffDone),
+   *  "now" (straight after a quick approval). Default: a dispenser finishes the sale; a manager approves and hands back. */
+  const switchUser = useCallback((reason: "dispenser" | "manager", then?: () => void, opts?: { handBack?: "now" | "later" }) => {
     afterUnlock.current = then ?? null;
+    handoffRef.current = { prev: authRef.current.me, when: opts?.handBack ?? (reason === "manager" ? "now" : "later") };
     setSwitching(reason);
   }, []);
+  /** The switched sale or refund is done: offer "Back to <name>" (their PIN) or lock. */
+  const handoffDone = useCallback(() => setHandoff((h) => (h ? { ...h, ask: true } : h)), []);
 
   const unlock = useCallback(
     async (staff: StaffTile, pin: string): Promise<string | null> => {
       const finish = (me: StaffTile, offline: boolean) => {
         setAuth({ me, locked: false, offline, at: Date.now() });
+        const h = handoffRef.current;
+        handoffRef.current = { prev: null, when: "later" };
+        // A different person stepped in: remember who to hand the till back to (and, for a dispenser, whose sale it is).
+        if (switchingRef.current && h.prev && h.prev.id !== me.id) setHandoff({ prev: h.prev, ask: false, reason: switchingRef.current });
+        else if (!switchingRef.current) setHandoff(null);
         setSwitching(null);
         setExpired(false);
+        setPreselect(null);
         const then = afterUnlock.current;
         afterUnlock.current = null;
         if (then) setTimeout(then, 50);
+        if (switchingRef.current && h.prev && h.prev.id !== me.id && h.when === "now") setTimeout(() => setHandoff((x) => (x ? { ...x, ask: true } : x)), 120);
       };
       try {
         const r = await api<{ me: StaffTile }>("/api/pos/session", { body: { userId: staff.id, pin }, quiet401: true });
@@ -281,13 +369,16 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         return null;
       } catch (e) {
         if (e instanceof OfflineError) {
-          if (!canUnlockOffline(staff.id)) return "Offline — this staff member hasn't signed in on this till today";
+          if (!canUnlockOffline(staff.id)) return "Offline: this staff member hasn't signed in on this till today";
           if (await verifyOffline(staff.id, pin)) {
             finish(staff, true);
             return null;
           }
           return "That PIN isn't right";
         }
+        // The server's own words for a refused PIN (wrong, locked for a while, or disabled by a manager); a person the
+        // server won't let use this till can't unlock it offline either.
+        if (e instanceof ApiError && e.status === 403) forgetPin(staff.id);
         return errorText(e);
       }
     },
@@ -327,23 +418,24 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       }
       const el = document.activeElement as HTMLElement | null;
       if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
-      if (dialog) return;
       // Event creation time, not handling time: a busy main thread mustn't break up a fast scan.
       const now = e.timeStamp;
       if (e.key === "Enter") {
-        if (buf.length >= 4 && now - last < 120) {
-          e.preventDefault();
-          const code = buf;
-          if (parseOrderQr(code)) {
-            // Customer's collection QR → straight to that order's handover.
-            setOrderScan(code);
-            setTab("orders");
-          } else {
-            setTab("sell");
-            setTimeout(() => sellApi.current?.scan(code), 0);
-          }
-        }
+        const code = buf;
         buf = "";
+        if (code.length < 4 || now - last >= 120) return;
+        // Sheets own the keyboard — except a gift voucher scanned while the Sell tab's payment sheet is open, which
+        // fills its tender (the handover sheet's voucher field takes a scan directly, as it has the focus).
+        if (dialog && (!voucherCodeFrom(code) || tabRef.current !== "sell")) return;
+        e.preventDefault();
+        if (parseOrderQr(code)) {
+          // Customer's collection QR → straight to that order's handover.
+          setOrderScan(code);
+          setTab("orders");
+        } else {
+          setTab("sell");
+          setTimeout(() => sellApi.current?.scan(code), 0);
+        }
       } else if (e.key.length === 1) {
         buf = now - last > 80 ? e.key : buf + e.key;
         last = now;
@@ -353,12 +445,179 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [unlocked, switching]);
 
-  // Printing: render the document into the print area, then open the print dialog.
+  // Printing: the paired ESC/POS printer (Bluetooth / USB) when there is one; otherwise the document is rendered into
+  // the print area and the browser's print dialog opens (receipt-styled print CSS in print.tsx).
   useEffect(() => {
     if (!printDoc) return;
     const t = setTimeout(() => window.print(), 60);
     return () => clearTimeout(t);
   }, [printDoc]);
+  const classOf = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const p of boot?.products ?? []) for (const v of p.variants) m.set(v.id, p.regClass);
+    return m;
+  }, [boot?.products]);
+  const classRef = useRef(classOf);
+  classRef.current = classOf;
+  const print = useCallback(
+    async (doc: PrintDoc) => {
+      const p = printerRef.current;
+      const b = bootRef.current;
+      if (printerPaired(p) && b) {
+        try {
+          const excluded = incentiveExcluded(b.settings.compliance);
+          const licensed = (id: string) => b.settings.compliance.licensedOnly.includes(classRef.current.get(id) as never);
+          const noIncentive = (id: string) => excluded.includes(classRef.current.get(id) as never);
+          const bytes =
+            doc.kind === "receipt"
+              ? receiptBytes(doc.receipt, { cols: p.cols, codePage: p.codePage, store: b.store, devicePrefix: b.device.prefix, licensed, noIncentive, training: !!trainingRef.current, drawer: doc.drawer && p.drawerOnCash ? p.drawerPin : null })
+              : zReportBytes(doc.report, { cols: p.cols, codePage: p.codePage });
+          await sendBytes(p, bytes);
+          toast(doc.kind === "receipt" ? "Receipt printed" : "Report printed");
+          return;
+        } catch (e) {
+          const why = errorText(e);
+          toast(`${/[.!?]$/.test(why) ? why : `${why}.`} Opening the print dialog instead.`, "warn");
+        }
+      }
+      setPrintDoc((prev) => ({ doc, n: (prev?.n ?? 0) + 1 }));
+    },
+    [toast],
+  );
+
+  // ── Cash drawer, audit trail, training mode ─────────────────────────────
+  const recordAudit = useCallback(
+    (action: QueuedAudit["action"], note?: string) => {
+      const me = authRef.current.me;
+      if (!me) return;
+      const entry: QueuedAudit = { id: uuid(), action, at: new Date().toISOString(), staffId: me.id, staffName: me.name, note, deviceId };
+      const queue = () => saveAuditQueue([...loadAuditQueue(), entry]);
+      if (!onlineRef.current) return queue();
+      api("/api/pos/audit", { body: { entries: [{ id: entry.id, action, at: entry.at, staffId: me.id, staffName: me.name, note }] }, quiet401: true }).catch(queue);
+    },
+    [deviceId],
+  );
+  const kick = useCallback(async () => {
+    const p = printerRef.current;
+    if (!printerPaired(p)) {
+      toast("No receipt printer is paired. The drawer opens through the printer (Shift → This till).", "warn");
+      return;
+    }
+    try {
+      await kickDrawer(p);
+    } catch (e) {
+      toast(errorText(e), "error");
+    }
+  }, [toast]);
+  const openDrawer = useCallback(
+    (reason: "cash" | "manual") => {
+      if (trainingRef.current) {
+        if (reason === "manual") toast("Training: the drawer stays shut", "warn");
+        return;
+      }
+      if (reason === "cash") {
+        // Tablets without a printer have no drawer to open: nothing to say.
+        if (printerRef.current.drawerOnCash && printerPaired(printerRef.current)) void kick();
+        return;
+      }
+      // Outside a sale: a manager's PIN, then the kick is logged under that manager.
+      switchUser("manager", () => {
+        void kick();
+        recordAudit("drawer.open", "Opened outside a sale");
+        toast("Drawer opened and logged");
+      });
+    },
+    [kick, recordAudit, toast, switchUser],
+  );
+
+  /** A queued sale the server refused stays in the outbox until a manager discards it (the sale is rung up again). */
+  const discardQueued = useCallback(
+    (id: string) => {
+      const item = loadOutbox().find((i) => i.payload.id === id);
+      if (!item) return;
+      switchUser("manager", () => {
+        updateQueued(id, () => null);
+        setOutbox(loadOutbox());
+        recordAudit("outbox.discard", `${item.payload.number} · ${zar(item.totalCents)} · ${item.error ?? "discarded"}`.slice(0, 200));
+        toast(`${item.payload.number} discarded and logged`);
+      });
+    },
+    [recordAudit, switchUser, toast],
+  );
+
+  const startTraining = useCallback(() => {
+    const go = () => {
+      const me = authRef.current.me!;
+      setTraining({ since: new Date().toISOString(), byId: me.id, byName: me.name, seq: 0, sales: 0, tourDone: false });
+      saveTrainingSales([]);
+      setCart(EMPTY_CART);
+      setTab("sell");
+      setTour(true);
+      recordAudit("training.start");
+      toast("Training mode on: nothing is real", "warn");
+    };
+    if (authRef.current.me?.role === "MANAGER") go();
+    else switchUser("manager", go);
+  }, [recordAudit, setCart, setTraining, switchUser, toast]);
+  const exitTraining = useCallback(() => {
+    switchUser("manager", () => {
+      recordAudit("training.end", `${trainingRef.current?.sales ?? 0} practice sales`);
+      setTraining(null);
+      saveTrainingSales([]);
+      setCart(EMPTY_CART);
+      setTour(false);
+      toast("Training mode off: the till is live again");
+    });
+  }, [recordAudit, setCart, setTraining, switchUser, toast]);
+  const trainingSale = useCallback(
+    (receipt: ReceiptDTO) => {
+      saveTrainingSales([...loadTrainingSales(), receipt]);
+      const t = trainingRef.current;
+      if (t) setTraining({ ...t, sales: t.sales + 1 });
+    },
+    [setTraining],
+  );
+
+  // ── Customer display ────────────────────────────────────────────────────
+  const idleMessages = useMemo(
+    () => (boot ? buildIdleMessages({ promotions: boot.promotions, products: boot.products, compliance: boot.settings.compliance, nextEvent: boot.nextEvent }) : []),
+    [boot],
+  );
+  const postRemote = useCallback((snap: DisplaySnapshot) => {
+    const d = displayRef.current;
+    if (!d?.remote || !onlineRef.current) return;
+    const r = remotePost.current;
+    r.pending = snap;
+    if (r.timer) return; // trailing edge: the latest snapshot goes when the timer fires
+    r.timer = setTimeout(() => {
+      r.timer = null;
+      const s = r.pending;
+      r.pending = null;
+      if (s) void api("/api/pos/display", { body: { key: d.key, snapshot: s }, quiet401: true }).catch(() => undefined);
+    }, 300);
+  }, []);
+  const display = useCallback(
+    (snap: DisplaySnapshot) => {
+      lastSnapRef.current = snap;
+      channelRef.current?.postMessage(snap);
+      postRemote(snap);
+    },
+    [postRemote],
+  );
+  useEffect(() => {
+    if (typeof BroadcastChannel === "undefined") return;
+    const ch = new BroadcastChannel(DISPLAY_CHANNEL);
+    ch.onmessage = (e) => {
+      if ((e.data as { type?: string })?.type === "hello" && lastSnapRef.current) ch.postMessage(lastSnapRef.current);
+    };
+    channelRef.current = ch;
+    const t = setInterval(() => lastSnapRef.current && postRemote(lastSnapRef.current), DISPLAY_HEARTBEAT_MS);
+    return () => {
+      clearInterval(t);
+      ch.close();
+      channelRef.current = null;
+    };
+  }, [postRemote]);
 
   const openOrderScan = useCallback((text: string) => {
     setOrderScan(text);
@@ -366,11 +625,44 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   }, []);
   const clearOrderScan = useCallback(() => setOrderScan(null), []);
 
+  // Locked: the customer display goes back to its idle loop.
+  useEffect(() => {
+    if (unlocked || !boot) return;
+    display(idleSnapshot({ name: boot.store.name, code: boot.store.code }, idleMessages, !!training));
+  }, [unlocked, boot, idleMessages, training, display]);
+
+  // Quiet hours: no sale open and nothing touched for a while → the calm dashboard over the Sell screen.
+  useEffect(() => {
+    if (!unlocked) return;
+    let t: ReturnType<typeof setTimeout>;
+    const arm = () => {
+      if (!busyRef.current && !saleIsOpen(cartRef.current) && tabRef.current === "sell" && !document.querySelector("[role=dialog]")) setQuiet(true);
+      else t = setTimeout(arm, idleMs);
+    };
+    const reset = () => {
+      clearTimeout(t);
+      setQuiet(false);
+      t = setTimeout(arm, idleMs);
+    };
+    t = setTimeout(arm, idleMs);
+    const evs = ["pointerdown", "keydown", "wheel", "touchstart"] as const;
+    evs.forEach((e) => window.addEventListener(e, reset, { passive: true }));
+    return () => {
+      clearTimeout(t);
+      evs.forEach((e) => window.removeEventListener(e, reset));
+    };
+  }, [unlocked, idleMs]);
+  const saleOpen = saleIsOpen(cart);
+  useEffect(() => {
+    if (saleOpen || tab !== "sell") setQuiet(false);
+  }, [saleOpen, tab]);
+
   // ── Context ─────────────────────────────────────────────────────────────
   const ctx: PosCtx | null = useMemo(() => {
     if (!boot || !auth.me) return null;
     return {
-      boot,
+      // Training: sell against the real shift's catalogue, or a sandbox shift when none is open.
+      boot: training && !boot.shift ? { ...boot, shift: { ...TRAINING_SHIFT, openedAt: training.since } } : boot,
       me: auth.me,
       online,
       outbox,
@@ -382,12 +674,13 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       refreshOrders,
       syncNow,
       queueSale: (payload: SalePayload, totalCents: number) => {
+        if (trainingRef.current) return; // practice sales are never queued
         enqueue({ payload, deviceId, totalCents, queuedAt: new Date().toISOString(), attempts: 0 });
         setOutbox(loadOutbox());
       },
       adjustStock: (moves) => {
         const b = bootRef.current;
-        if (!b) return;
+        if (!b || trainingRef.current) return; // training never touches stock
         const delta = new Map(moves.map((m) => [m.variantId, m.qty]));
         setBoot({
           ...b,
@@ -397,45 +690,68 @@ export function PosApp({ deviceId }: { deviceId: string }) {
           })),
         });
       },
-      commitSeq: (seq: number) => storeCommitSeq(seq),
+      // Training keeps its own sandbox sequence: the device's real receipt numbers are never used up.
+      commitSeq: (seq: number) => {
+        const t = trainingRef.current;
+        if (t) setTraining({ ...t, seq: Math.max(t.seq, seq) });
+        else storeCommitSeq(seq);
+      },
       nextNumber: () => {
+        const t = trainingRef.current;
+        if (t) return { seq: t.seq + 1, number: trainingNumber(t.seq + 1) };
         const b = bootRef.current!;
         const seq = peekSeq(b.device.seq) + 1;
         return { seq, number: receiptNumber(b.store.code, b.device.prefix, seq) };
       },
       lock,
       switchUser,
-      print: (doc: PrintDoc) => setPrintDoc((p) => ({ doc, n: (p?.n ?? 0) + 1 })),
+      handoffDone,
+      // A dispenser completing someone else's basket: the sale is credited to the person who built it.
+      soldBy: handoff?.reason === "dispenser" && handoff.prev.id !== auth.me.id ? handoff.prev : null,
+      print: (doc: PrintDoc) => void print(doc),
       setBusy: (b: boolean) => void (busyRef.current = b),
       goTo: setTab,
       toast,
       orderScan,
       openOrderScan,
       clearOrderScan,
+      printer,
+      setPrinter,
+      openDrawer,
+      discardQueued,
+      training,
+      startTraining,
+      exitTraining,
+      showTour: () => setTour(true),
+      trainingSale,
+      display,
+      displaySettings,
+      setDisplaySettings,
+      idleMessages,
     };
-  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, toast, deviceId, orderScan, openOrderScan, clearOrderScan]);
+  }, [boot, auth.me, online, outbox, syncing, orders, ordersAt, setBoot, refreshBoot, refreshOrders, syncNow, lock, switchUser, handoffDone, handoff, toast, deviceId, orderScan, openOrderScan, clearOrderScan, printer, setPrinter, openDrawer, discardQueued, training, startTraining, exitTraining, trainingSale, display, displaySettings, setDisplaySettings, idleMessages, print, setTraining]);
 
   // ── Render ──────────────────────────────────────────────────────────────
   if (!ready) return <Splash />;
 
   const lockScreen = session && (auth.locked || !auth.me || switching) && (
     <LockScreen
-      key={switching ?? "lock"}
+      key={`${switching ?? "lock"}-${preselect ?? ""}`}
       session={session}
       online={online}
       queued={outbox.length}
       reason={switching ?? (expired ? "expired" : null)}
-      preselect={null}
+      preselect={preselect}
       onUnlock={unlock}
-      onCancel={switching ? () => (setSwitching(null), (afterUnlock.current = null)) : undefined}
+      onCancel={switching ? () => (setSwitching(null), (afterUnlock.current = null), (handoffRef.current = { prev: null, when: "later" })) : undefined}
     />
   );
 
-  if (!session) return <Splash message={online ? "Connecting to the store…" : "Offline — this till hasn't been set up on this device yet. Connect once to download the store."} />;
+  if (!session) return <Splash message={online ? "Connecting to the store…" : "Offline: this till hasn't been set up on this device yet. Connect once to download the store."} />;
   if (!unlocked) return <>{lockScreen}</>;
   if (!boot || !ctx) return <Splash message={bootError ?? "Loading the catalogue…"} retry={bootError ? refreshBoot : undefined} />;
 
-  const newOrders = orders?.filter((o) => o.status === "PLACED").length ?? 0;
+  const newOrders = orders?.filter((o) => o.status === "PLACED" && !o.trade).length ?? 0; // trade orders are picked in the back office
   const failed = outbox.filter((o) => o.error).length;
 
   return (
@@ -502,9 +818,10 @@ export function PosApp({ deviceId }: { deviceId: string }) {
           </div>
         </header>
 
-        {!boot.shift && tab !== "shift" && (
+        <TrainingBanner />
+        {!boot.shift && !training && tab !== "shift" && (
           <div className="flex shrink-0 items-center justify-between gap-3 bg-amber-500/10 px-4 py-2 text-sm text-[#f3c65a]">
-            <span>No shift is open on this till — open one with a counted float to start selling.</span>
+            <span>No shift is open on this till. Open one with a counted float to start selling.</span>
             <button type="button" onClick={() => setTab("shift")} className="h-12 shrink-0 rounded-full bg-amber-500 px-5 text-sm font-bold text-ink-950">
               Open shift
             </button>
@@ -515,6 +832,14 @@ export function PosApp({ deviceId }: { deviceId: string }) {
           <div className={cn("h-full", tab !== "sell" && "hidden")}>
             <SellScreen cart={cart} setCart={setCart} apiRef={sellApi} />
           </div>
+          {quiet && tab === "sell" && (
+            <QuietScreen
+              onWake={(t) => {
+                setQuiet(false);
+                if (t) setTab(t);
+              }}
+            />
+          )}
           {tab === "orders" && <OrdersBoard />}
           {tab === "sales" && <SalesHistory />}
           {tab === "stock" && <StockLookup onAdd={(variantId) => (setTab("sell"), setTimeout(() => sellApi.current?.add(variantId), 0))} />}
@@ -540,6 +865,43 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       </div>
 
       <OutboxSheet open={outboxOpen} onClose={() => setOutboxOpen(false)} />
+      <Sheet
+        open={!!handoff?.ask && !switching}
+        onClose={() => setHandoff(null)}
+        title={handoff ? `Back to ${handoff.prev.name.split(" ")[0]}?` : ""}
+        subtitle={`${auth.me!.name.split(" ")[0]} is still signed in on this till`}
+        size="sm"
+      >
+        <div className="grid gap-2" data-testid="handoff">
+          <PosButton
+            variant="primary"
+            size="lg"
+            onClick={() => {
+              const prev = handoff!.prev;
+              setHandoff(null);
+              setPreselect(prev.id);
+              lock();
+            }}
+          >
+            Back to {handoff?.prev.name.split(" ")[0]} (PIN)
+          </PosButton>
+          <PosButton variant="outline" size="lg" onClick={() => (setHandoff(null), lock())}>
+            <Lock className="h-4 w-4" /> Lock the till
+          </PosButton>
+          <PosButton variant="ghost" onClick={() => setHandoff(null)}>
+            Stay signed in as {auth.me!.name.split(" ")[0]}
+          </PosButton>
+        </div>
+      </Sheet>
+      {training && <TrainingOutline />}
+      <TrainingTour
+        open={tour}
+        onClose={() => {
+          setTour(false);
+          const t = trainingRef.current;
+          if (t && !t.tourDone) setTraining({ ...t, tourDone: true });
+        }}
+      />
       {printDoc && <PrintArea key={printDoc.n} doc={printDoc.doc} boot={boot} />}
       <div className="pointer-events-none fixed inset-x-0 bottom-40 z-[60] flex flex-col items-center gap-2 px-4 lg:bottom-6 print:hidden" aria-live="polite">
         {toasts.map((t) => (
@@ -580,13 +942,13 @@ function Splash({ message, retry }: { message?: string; retry?: () => void }) {
 function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const pos = usePosSafe();
   if (!pos) return null;
-  const { outbox, online, syncing, syncNow, boot } = pos;
+  const { outbox, online, syncing, syncNow, boot, discardQueued } = pos;
   return (
     <Sheet
       open={open}
       onClose={onClose}
       title={online ? "Online" : "Offline"}
-      subtitle={online ? "Connected to Herbal Holland" : "Cash sales are saved on this till and sync automatically"}
+      subtitle={online ? "Connected to Herbal Holland" : "Cash and card-machine sales are saved on this till and sync automatically"}
       size="sm"
       footer={
         <div className="flex justify-between gap-2">
@@ -598,7 +960,7 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
       }
     >
       {!outbox.length ? (
-        <p className="text-sm text-ink-300">Nothing waiting — every sale on this till is synced.</p>
+        <p className="text-sm text-ink-300">Nothing waiting: every sale on this till is synced.</p>
       ) : (
         <ul className="space-y-2">
           {outbox.map((o) => (
@@ -618,9 +980,16 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
                 )}
               </div>
               {o.deviceId && o.deviceId !== boot.device.id ? (
-                <Alert className="mt-2">Rung up before this device was re-paired. Ask HQ support to post it for the original store — it won&apos;t sync here.</Alert>
+                <Alert className="mt-2">Rung up before this device was re-paired. Ask HQ support to post it for the original store (it won&apos;t sync here).</Alert>
               ) : (
-                o.error && <Alert className="mt-2">{o.error}</Alert>
+                o.error && (
+                  <Alert className="mt-2">
+                    <div data-testid="outbox-error">{o.error}</div>
+                    <PosButton variant="danger" size="sm" className="mt-2" onClick={() => discardQueued(o.payload.id)}>
+                      Discard this queued sale (manager PIN)
+                    </PosButton>
+                  </Alert>
+                )
               )}
             </li>
           ))}

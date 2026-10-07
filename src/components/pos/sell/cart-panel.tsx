@@ -3,15 +3,16 @@
 // steppers, price-rule labels, promotion and My Deals discounts, drop limits), "complete
 // the deal" suggestions, promo code, totals and the Pay button.
 import { useEffect, useRef, useState } from "react";
-import { Award, BadgeCheck, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
+import { Award, BadgeCheck, Building2, Gem, Gift, IdCard, Info, Pill, Plus, ScanLine, ShieldAlert, ShieldCheck, Sparkles, Stethoscope, Tag, Trash2, UserPlus, UserRound, X } from "lucide-react";
 import { ProductArt } from "@/components/product/art";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDay } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { Chip, PosButton, TIER_CHIP, tierName, Stepper, TextInput } from "../ui";
+import { tradeTermsLabel } from "../lib/rules";
 import { FactsChips, FactsSheet, hasFacts } from "./facts-sheet";
-import type { BootDrop, BootProduct, BootVariant, QuoteDTO, CustomerDetail } from "@/server/pos/types";
+import type { BootDrop, BootProduct, BootVariant, QuoteDTO, CustomerDetail, TradeAccountDTO } from "@/server/pos/types";
 import type { Cart } from "../lib/storage";
 
 export type VariantIndex = Map<string, { product: BootProduct; variant: BootVariant }>;
@@ -68,6 +69,7 @@ export function CustomerCard({
   onNew,
   onDetach,
   onScan,
+  onTrade,
 }: {
   customer: CustomerDetail | null;
   ageCheck: Cart["ageCheck"];
@@ -80,6 +82,8 @@ export function CustomerCard({
   onNew: () => void;
   onDetach: () => void;
   onScan?: () => void;
+  /** Trade-sale mode: a business buying on its trade account (needs the connection). */
+  onTrade?: () => void;
 }) {
   if (!customer)
     return (
@@ -90,14 +94,14 @@ export function CustomerCard({
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-white">No member yet</div>
-            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members only — add the member or sign them up (free, about 20 seconds)"}</div>
+            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members only: add the member or sign them up (free, about 20 seconds)"}</div>
           </div>
         </div>
         {joinSavingsCents > 0 && (
           <button type="button" onClick={onFind} className="mt-3 flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-brand-500/15 px-3 py-2 text-left ring-1 ring-brand-500/40 transition hover:bg-brand-500/20" data-testid="join-prompt">
             <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
             <span className="text-[0.85rem] leading-snug text-brand-100">
-              <b className="text-brand-300">Members save {zar(joinSavingsCents)}</b> on this basket — add or sign up (free)
+              <b className="text-brand-300">Members save {zar(joinSavingsCents)}</b> on this basket: add or sign up (free)
             </span>
           </button>
         )}
@@ -113,6 +117,18 @@ export function CustomerCard({
         {onScan && (
           <button type="button" onClick={onScan} className="mt-2 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.8rem] font-semibold text-ink-300 hover:bg-ink-850">
             <ScanLine className="h-4 w-4" /> Scan member card or event ticket
+          </button>
+        )}
+        {onTrade && (
+          <button
+            type="button"
+            onClick={onTrade}
+            disabled={!online}
+            title={online ? "A business buying on its trade account" : "Trade sales need a connection"}
+            className="mt-1 inline-flex h-12 w-full items-center justify-center gap-2 rounded-full text-[0.8rem] font-semibold text-[#8fbdf2] ring-1 ring-inset ring-sky-500/30 hover:bg-sky-500/10 disabled:opacity-50"
+            data-testid="trade-sale"
+          >
+            <Building2 className="h-4 w-4" /> Trade sale{online ? "" : " · needs a connection"}
           </button>
         )}
       </div>
@@ -138,7 +154,7 @@ export function CustomerCard({
             )}
           </div>
           <div className="mt-0.5 text-xs text-ink-400">
-            {customer.offline ? "Taken from their card offline — checked when the till reconnects" : `${customer.memberNo} · ${customer.phone}`}
+            {customer.offline ? "Taken from their card offline (checked when the till reconnects)" : `${customer.memberNo} · ${customer.phone}`}
           </div>
           {!customer.offline && customer.visitsHere != null && (
             <div className="text-xs text-ink-400" data-testid="visits-here">
@@ -200,10 +216,53 @@ export function CustomerCard({
               </li>
             ))}
           </ul>
-          {!online && <p className="mt-1 text-[0.7rem] leading-snug text-ink-400">My Deals need a connection — they aren&apos;t applied to offline sales.</p>}
+          {!online && <p className="mt-1 text-[0.7rem] leading-snug text-ink-400">My Deals need a connection, so they aren&apos;t applied to offline sales.</p>}
         </div>
       )}
       {welcome && onAddGift && <WelcomeGiftButton gift={welcome} onAdd={onAddGift} className="mt-2" />}
+    </div>
+  );
+}
+
+/**
+ * The basket in trade-sale mode: the trade account instead of a member — a banner that can't be mistaken for the
+ * member panel (no points, no deals, no tier) with its number, terms, status and what may go on account.
+ */
+export function TradeCard({ account, ageCheck, onLeave }: { account: TradeAccountDTO; ageCheck: Cart["ageCheck"]; onLeave: () => void }) {
+  const onHold = account.status === "ON_HOLD";
+  return (
+    <div className="rounded-2xl bg-sky-500/10 p-3 ring-2 ring-sky-500/50" data-testid="trade-banner">
+      <div className="flex items-start gap-3">
+        <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-sky-500 text-ink-950">
+          <Building2 className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="truncate font-display text-base font-semibold uppercase tracking-wide text-white">Trade sale · {account.name}</div>
+          <div className="mt-0.5 text-xs text-ink-300">
+            {account.number}
+            {account.legalName !== account.name ? ` · ${account.legalName}` : ""}
+            {account.vatNumber ? ` · VAT ${account.vatNumber}` : ""}
+          </div>
+        </div>
+        <button type="button" onClick={onLeave} aria-label="Leave trade mode" className="-mr-2 -mt-2 grid h-12 w-12 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+      <div className="mt-2.5 flex flex-wrap gap-1.5">
+        <Chip tone={onHold ? "amber" : "green"}>{onHold ? "On hold · money only" : "Approved"}</Chip>
+        <Chip tone="blue">{tradeTermsLabel(account)}</Chip>
+        {account.terms === "ACCOUNT" && !onHold && (
+          <Chip tone="neutral">
+            <span data-testid="trade-available">{zar(account.availableCents)} available on account</span>
+          </Chip>
+        )}
+        {ageCheck && (
+          <Chip tone="green" icon={<IdCard className="h-3 w-3" />}>
+            ID checked ({ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})
+          </Chip>
+        )}
+      </div>
+      <p className="mt-2 text-[0.72rem] leading-snug text-ink-400">Prices ex VAT with VAT per line · no member, points or deals · tax invoice to the account&apos;s billing email</p>
     </div>
   );
 }
@@ -226,11 +285,13 @@ export function CartPanel({
   payDisabledReason,
   checking,
   customerCard,
+  onDetachCustomer,
 }: {
   cart: Cart;
   index: VariantIndex;
   quote: QuoteDTO;
-  priced: "server" | "local";
+  /** Where the prices came from: the server, the till's offline price book, or — trade mode — not yet (the server prices every trade basket). */
+  priced: "server" | "local" | "pending";
   licensedClasses: string[];
   vatRegistered: boolean;
   drops: Map<string, BootDrop>;
@@ -244,6 +305,8 @@ export function CartPanel({
   payDisabledReason: string | null;
   checking: boolean;
   customerCard: React.ReactNode;
+  /** Removes the member (the × on the compact strip shown while their card is scrolled out of view). */
+  onDetachCustomer?: () => void;
 }) {
   const [codeOpen, setCodeOpen] = useState(!!cart.code);
   const [code, setCode] = useState(cart.code ?? "");
@@ -254,6 +317,7 @@ export function CartPanel({
   const hasLicensed = cart.lines.some((l) => licensedClasses.includes(index.get(l.variantId)?.product.regClass ?? ""));
   const offerCents = quote.offerCents ?? 0;
   const suggestions = quote.suggestions.filter((s) => !hideSuggestions.includes(s.promoId));
+  const trade = !!cart.trade;
 
   // A new line scrolls into view (the member card above can be tall) — again once its price lands and it grows.
   const scroller = useRef<HTMLDivElement>(null);
@@ -266,11 +330,54 @@ export function CartPanel({
     if (Date.now() - addedAt.current < 3000) scroller.current?.querySelector("[data-testid=cart-line]:last-child")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
   }, [count, quote]);
 
+  // The member card scrolled out of view: a compact strip keeps who's being served (and their 18+ status) on screen.
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [cardHidden, setCardHidden] = useState(false);
+  useEffect(() => {
+    const el = cardRef.current;
+    if (!el || !scroller.current || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setCardHidden(!e.isIntersecting), { root: scroller.current, threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  const member = cart.customer;
+
   return (
     <div className="flex h-full min-h-0 flex-col">
       {/* The member card scrolls with the lines, so a member's deals never squeeze the basket; totals stay put. */}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+      {member && cardHidden && !trade && (
+        <div className="absolute inset-x-3 top-0 z-10 flex items-center gap-2.5 rounded-b-2xl bg-ink-900/95 py-1.5 pl-2 pr-1 shadow-lg ring-1 ring-brand-500/30 backdrop-blur" data-testid="member-strip">
+          <button
+            type="button"
+            onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}
+            className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
+            aria-label={`${member.firstName} ${member.lastName ?? ""}: show the member card`}
+          >
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-xs font-bold text-ink-950">{(member.firstName[0] ?? "") + (member.lastName?.[0] ?? "")}</span>
+            <span className="min-w-0 truncate text-sm font-semibold text-white">
+              {member.firstName} {member.offline ? "" : member.lastName}
+            </span>
+            <Chip tone={TIER_CHIP[member.tier] ?? "neutral"}>{tierName(member.tier)}</Chip>
+            {member.ageVerified ? (
+              <Chip tone="green" icon={<BadgeCheck className="h-3 w-3" />}>
+                18+
+              </Chip>
+            ) : (
+              <Chip tone="amber" icon={<IdCard className="h-3 w-3" />}>
+                Age not verified
+              </Chip>
+            )}
+          </button>
+          {onDetachCustomer && (
+            <button type="button" onClick={onDetachCustomer} aria-label="Remove member from sale" className="grid h-11 w-11 shrink-0 place-items-center rounded-full text-ink-400 hover:bg-ink-800 hover:text-white">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
       <div ref={scroller} className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain px-3 pb-3">
-        <div className="shrink-0 pb-2 pt-3">{customerCard}</div>
+        <div ref={cardRef} className="shrink-0 pb-2 pt-3">{customerCard}</div>
         {cart.lines.length === 0 ? (
           <div className="flex min-h-40 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-ink-800 px-6 text-center text-ink-400">
             <ScanLine className="mb-2 h-7 w-7 text-ink-600" />
@@ -297,23 +404,35 @@ export function CartPanel({
                         <div className="min-w-0">
                           <div className="truncate text-[0.92rem] font-semibold text-white">{e.product.name}</div>
                           <div className="text-xs text-ink-400">
-                            {e.variant.name} · {zar(q?.unitPriceCents ?? e.variant.shelfCents ?? e.variant.rrpCents)} each
+                            {e.variant.name} ·{" "}
+                            {trade ? (q ? `${zar(q.unitPriceCents)} ex VAT each` : priced === "pending" ? "trade price…" : "needs a connection") : `${zar(q?.unitPriceCents ?? e.variant.shelfCents ?? e.variant.rrpCents)} each`}
                           </div>
                         </div>
                         <div className="text-right">
                           <div className="font-display text-base font-semibold text-white tnum">{zar(q?.totalCents ?? 0)}</div>
-                          {!!q?.discountCents && <div className="text-[0.7rem] text-ink-500 line-through tnum">{zar(q.grossCents)}</div>}
+                          {trade && q ? (
+                            <div className="text-[0.7rem] text-ink-400 tnum">
+                              {zar(q.exCents ?? q.totalCents - q.vatCents)} + VAT {zar(q.vatCents)}
+                            </div>
+                          ) : (
+                            !!q?.discountCents && <div className="text-[0.7rem] text-ink-500 line-through tnum">{zar(q.grossCents)}</div>
+                          )}
                         </div>
                       </div>
                       <div className="mt-1.5 flex min-w-0 flex-wrap gap-1">
-                        {q?.priceRule && <Chip tone={ruleTone(q.priceRule)}>{q.priceRule}</Chip>}
-                        {drop && <DropChip drop={drop} detail />}
+                        {q?.blocked && (
+                          <Chip tone="red" wrap icon={<ShieldAlert className="h-3 w-3 shrink-0" />}>
+                            <span data-testid="trade-blocked">{q.blocked}</span>
+                          </Chip>
+                        )}
+                        {q?.priceRule && !q.blocked && <Chip tone={trade ? "blue" : ruleTone(q.priceRule)}>{q.priceRule}</Chip>}
+                        {drop && !trade && <DropChip drop={drop} detail />}
                         {licensed && (
                           <Chip tone="orange" icon={<Pill className="h-3 w-3" />}>
                             Medicine · no incentives
                           </Chip>
                         )}
-                        {!licensed && q?.noEarn && <Chip tone="neutral">No deals or points · s18A</Chip>}
+                        {!licensed && !trade && q?.noEarn && <Chip tone="neutral">No deals or points · s18A</Chip>}
                         {offer > 0 && (
                           <Chip tone="orange" wrap icon={<Tag className="h-3 w-3 shrink-0" />}>
                             My Deals −{zar(offer)}
@@ -365,6 +484,7 @@ export function CartPanel({
           </div>
         )}
       </div>
+      </div>
 
       <div className="shrink-0 border-t border-ink-850 p-3">
         {codeOpen ? (
@@ -393,12 +513,31 @@ export function CartPanel({
         {cart.code && quote.codeError && <p className="-mt-1 mb-2 text-[0.8rem] font-medium text-rose-400">{quote.codeError}</p>}
 
         <dl className="space-y-1 text-sm">
-          <div className="flex justify-between text-ink-300">
-            <dt>
-              Subtotal · {units} item{units === 1 ? "" : "s"}
-            </dt>
-            <dd className="tnum">{zar(quote.subtotalCents)}</dd>
-          </div>
+          {trade ? (
+            <div className="flex justify-between text-ink-300">
+              <dt>
+                Subtotal ex VAT · {units} item{units === 1 ? "" : "s"}
+              </dt>
+              <dd className="tnum" data-testid="cart-ex-vat">
+                {zar(quote.exCents ?? quote.totalCents - quote.vatCents)}
+              </dd>
+            </div>
+          ) : (
+            <div className="flex justify-between text-ink-300">
+              <dt>
+                Subtotal · {units} item{units === 1 ? "" : "s"}
+              </dt>
+              <dd className="tnum">{zar(quote.subtotalCents)}</dd>
+            </div>
+          )}
+          {trade && (
+            <div className="flex justify-between text-ink-300">
+              <dt>VAT (15%)</dt>
+              <dd className="tnum" data-testid="cart-vat">
+                {zar(quote.vatCents)}
+              </dd>
+            </div>
+          )}
           {quote.memberSavingsCents > 0 && (
             <div className="flex justify-between text-brand-300" data-testid="rewards-savings">
               <dt>Rewards savings (in prices)</dt>
@@ -418,18 +557,18 @@ export function CartPanel({
             </div>
           )}
           <div className="flex items-end justify-between pt-1">
-            <dt className="font-display text-lg font-semibold text-white">Total</dt>
+            <dt className="font-display text-lg font-semibold text-white">{trade ? "Total incl VAT" : "Total"}</dt>
             <dd className="font-display text-3xl font-semibold tracking-tight text-white tnum" data-testid="cart-total">
               {zar(quote.totalCents)}
             </dd>
           </div>
-          {cart.lines.length > 0 && (
+          {cart.lines.length > 0 && !trade && (
             <div className="flex justify-between text-xs text-ink-400">
-              <dt>{vatRegistered ? "Includes VAT (15%)" : "No VAT charged — store not VAT-registered"}</dt>
+              <dt>{vatRegistered ? "Includes VAT (15%)" : "No VAT charged (store not VAT-registered)"}</dt>
               <dd className="tnum">{vatRegistered ? zar(quote.vatCents) : ""}</dd>
             </div>
           )}
-          {cart.customer && quote.pointsEstimate > 0 && (
+          {cart.customer && !trade && quote.pointsEstimate > 0 && (
             <div className="flex justify-between text-xs text-brand-300">
               <dt>Earns{quote.pointsMultiplier > 1 ? ` (${quote.pointsMultiplier}× points)` : ""}</dt>
               <dd className="tnum">{fmtPoints(quote.pointsEstimate)}</dd>
@@ -458,6 +597,7 @@ export function CartPanel({
           </PosButton>
         </div>
         {priced === "local" && cart.lines.length > 0 && <p className="mt-2 text-center text-[0.7rem] text-ink-500">Prices from this till&apos;s offline price book</p>}
+        {priced === "pending" && cart.lines.length > 0 && <p className="mt-2 text-center text-[0.7rem] text-ink-500">Waiting for trade prices from the server</p>}
       </div>
       <FactsSheet product={factsOf} onClose={() => setFactsOf(null)} />
     </div>

@@ -1,11 +1,14 @@
 "use client";
 // 80 mm thermal layouts for receipts / credit notes and Z-reports (print CSS only).
 import { zar } from "@/lib/money";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
-import { DENOMINATIONS, denomLabel, TENDER_LABEL } from "./lib/rules";
+import { maskMemberNo, tenderLine } from "./lib/rules";
+import { ADULTS_LINE, CBD_LINE, LICENSED_LINE, TRADE_LINE, TRAINING_LINE, servedBy, tradeLineRows, tradeTenderRows, tradeTotalRows } from "./lib/receipt";
+import { incentiveExcluded } from "@/lib/compliance";
+import { ZReportPrint } from "./z-report";
 import type { PrintDoc } from "./context";
-import type { BootData, ReceiptDTO, ZReport } from "@/server/pos/types";
+import type { BootData, ReceiptDTO } from "@/server/pos/types";
 
 const Row = ({ l, r, bold }: { l: React.ReactNode; r: React.ReactNode; bold?: boolean }) => (
   <div className={`flex justify-between gap-2 ${bold ? "font-bold" : ""}`}>
@@ -16,10 +19,19 @@ const Row = ({ l, r, bold }: { l: React.ReactNode; r: React.ReactNode; bold?: bo
 const Rule = () => <div className="my-1.5 border-t border-dashed border-black" />;
 
 export function PrintArea({ doc, boot }: { doc: PrintDoc; boot: BootData }) {
+  // The Z-report is a document of its own (z-report.tsx): a till slip on 80 mm paper, a designed sheet on A4.
+  if (doc.kind === "z")
+    return (
+      <div className="hidden bg-white print:block" data-testid="print-area">
+        <ZReportPrint z={doc.report} />
+      </div>
+    );
   return (
     <div className="hidden bg-white print:block" data-testid="print-area">
       <style>{`@media print { @page { size: 80mm auto; margin: 3mm; } html, body { background: #fff !important; } }`}</style>
-      <div className="mx-auto w-[74mm] font-mono text-[11px] leading-snug text-black">{doc.kind === "receipt" ? <ReceiptPrint r={doc.receipt} boot={boot} /> : <ZPrint z={doc.report} />}</div>
+      <div className="mx-auto w-[74mm] font-mono text-[11px] leading-snug text-black">
+        <ReceiptPrint r={doc.receipt} boot={boot} />
+      </div>
     </div>
   );
 }
@@ -45,49 +57,81 @@ function StoreHeader({ boot }: { boot: BootData }) {
 function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
   const change = r.payments.reduce((s, p) => s + (p.changeCents ?? 0), 0);
   const offer = Math.max(0, r.offerCents ?? 0);
+  const training = !!r.training;
+  const classOf = new Map(boot.products.flatMap((p) => p.variants.map((v) => [v.id, p.regClass] as const)));
+  const licensed = (id: string) => boot.settings.compliance.licensedOnly.includes(classOf.get(id) as never);
+  const excluded = incentiveExcluded(boot.settings.compliance);
+  const anyLicensed = r.lines.some((l) => licensed(l.variantId));
+  const anyCbd = r.lines.some((l) => !licensed(l.variantId) && excluded.includes(classOf.get(l.variantId) as never));
+  // A trade sale (WHOLESALE) is a full tax invoice: unit prices ex VAT, VAT per line, the account's buyer block and
+  // "On account · due …" — never points or deals (lib/receipt.ts has the same rows for the ESC/POS printer).
+  const isTrade = r.channel === "WHOLESALE";
+  const trade = isTrade ? (r.trade ?? null) : null;
+  const Watermark = () => <div className="my-1 text-center text-[13px] font-bold" data-testid="print-training">{TRAINING_LINE}</div>;
   return (
-    <div>
+    <div className="relative">
+      {training && <Watermark />}
+      {training && <div className="pointer-events-none absolute inset-0 grid place-items-center text-[40px] font-black uppercase tracking-[0.3em] text-black/10 [transform:rotate(-24deg)]" aria-hidden>Training</div>}
       <StoreHeader boot={boot} />
       <Rule />
-      <div className="text-center text-[13px] font-bold uppercase">{r.title}</div>
+      <div className="text-center text-[13px] font-bold uppercase">{training ? `Training ${r.title}` : r.title}</div>
       <Row l={`No. ${r.number}`} r={fmtDateTime(r.createdAt)} />
       {r.refundOf && <div>Refund of {r.refundOf.number}</div>}
       <div>
-        Served by {r.staff ?? "—"} · till {boot.device.prefix}
+        {servedBy(r)} · till {boot.device.prefix}
       </div>
-      {r.queued && <div className="font-bold">Offline sale — synced later</div>}
+      {r.queued && <div className="font-bold">Offline sale (synced later)</div>}
       <Rule />
       {r.lines.map((l) => (
         <div key={l.id} className="mb-1">
           <div>
             {l.name} · {l.variantName}
+            {licensed(l.variantId) ? " (Rx)" : ""}
           </div>
-          <Row l={`  ${Math.abs(l.qty)} × ${zar(l.unitPriceCents)}`} r={zar(l.totalCents)} />
-          {l.discountCents > 0 && <Row l={l.offerCents === l.discountCents ? "  My Deals" : "  Discount"} r={`−${zar(l.discountCents)}`} />}
+          {isTrade ? (
+            tradeLineRows(l).map(([left, right], i) => <Row key={i} l={left} r={right} />)
+          ) : (
+            <>
+              <Row l={`  ${Math.abs(l.qty)} × ${zar(l.unitPriceCents)}`} r={zar(l.totalCents)} />
+              {l.discountCents > 0 && <Row l={l.offerCents === l.discountCents ? "  My Deals" : "  Discount"} r={`−${zar(l.discountCents)}`} />}
+            </>
+          )}
         </div>
       ))}
       <Rule />
-      {r.discountCents - offer > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents - offer)}`} />}
-      {offer > 0 && <Row l={`My Deals${r.offers?.length ? ` (${r.offers.join(", ")})` : ""}`} r={`−${zar(offer)}`} />}
-      <Row l="TOTAL" r={zar(r.totalCents)} bold />
-      {r.memberSavingsCents > 0 && <Row l="Rewards savings in prices" r={zar(r.memberSavingsCents)} />}
-      <Row l={r.vatCents ? "VAT included (15%)" : "No VAT charged"} r={r.vatCents ? zar(r.vatCents) : ""} />
+      {isTrade ? (
+        <>
+          {tradeTotalRows(r).map(([left, right], i) => (
+            <Row key={i} l={left} r={right} />
+          ))}
+          <Row l="TOTAL INCL VAT" r={zar(r.totalCents)} bold />
+        </>
+      ) : (
+        <>
+          {r.discountCents - offer > 0 && <Row l="Deals & discounts" r={`−${zar(r.discountCents - offer)}`} />}
+          {offer > 0 && <Row l={`My Deals${r.offers?.length ? ` (${r.offers.join(", ")})` : ""}`} r={`−${zar(offer)}`} />}
+          <Row l="TOTAL" r={zar(r.totalCents)} bold />
+          {r.memberSavingsCents > 0 && <Row l="Rewards savings in prices" r={zar(r.memberSavingsCents)} />}
+          <Row l={r.vatCents ? "VAT included (15%)" : "No VAT charged"} r={r.vatCents ? zar(r.vatCents) : ""} />
+        </>
+      )}
       <Rule />
       {r.payments.map((p, i) => (
         <div key={i}>
-          <Row l={`${TENDER_LABEL[p.method] ?? p.method}${p.cardLast4 ? ` •••• ${p.cardLast4}` : ""}${p.reference ? ` (${p.reference})` : ""}`} r={zar(p.amountCents)} />
+          {isTrade ? tradeTenderRows(p, trade, "••••").map(([left, right], j) => <Row key={j} l={left.replace(/^  Due /, "  · due ")} r={right} />) : <Row l={tenderLine(p)} r={zar(p.amountCents)} />}
           {p.tenderedCents != null && p.tenderedCents !== p.amountCents && <Row l="  Tendered" r={zar(p.tenderedCents)} />}
+          {p.method === "VOUCHER" && p.balanceCents != null && <Row l="  Left on the voucher" r={zar(p.balanceCents)} />}
         </div>
       ))}
-      {r.pointsRedeemed > 0 && <Row l="Points redeemed" r={fmtPoints(r.pointsRedeemed)} />}
+      {!isTrade && r.pointsRedeemed > 0 && <Row l="Points redeemed" r={fmtPoints(r.pointsRedeemed)} />}
       {change > 0 && <Row l="CHANGE" r={zar(change)} bold />}
-      {r.customer && (
+      {r.customer && !isTrade && (
         <>
           <Rule />
-          <div>
-            Herbal Holland Rewards · {r.customer.name} ({r.customer.memberNo})
+          <div data-testid="print-member">
+            Herbal Holland Rewards · {r.customer.name} ({maskMemberNo(r.customer.memberNo)})
           </div>
-          {!r.queued && (
+          {!r.queued && !training && (
             <Row l={`Points earned ${fmtPoints(r.pointsEarned)}`} r={`Balance ${fmtPoints(r.customer.points)}`} />
           )}
         </>
@@ -100,70 +144,41 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
           {r.buyer.vatNumber && <div>Buyer VAT no. {r.buyer.vatNumber}</div>}
         </>
       )}
-      {r.note && <div>Reason: {r.note}</div>}
-      <Rule />
-      <div className="text-center">
-        {boot.store.licenceRef && <div>{boot.store.licenceRef}</div>}
-        <div>Adults 18+ only. Keep out of reach of children.</div>
-        {boot.store.receiptFooter && <div>{boot.store.receiptFooter}</div>}
-        {r.invoiceEmail && <div>Tax invoice emailed to {r.invoiceEmail}</div>}
-        <div className="mt-1">Thank you · herbalholland.co.za</div>
-      </div>
-    </div>
-  );
-}
-
-function ZPrint({ z }: { z: ZReport }) {
-  return (
-    <div>
-      <div className="text-center">
-        <div className="text-[15px] font-bold tracking-[0.2em]">HERBAL HOLLAND</div>
-        <div className="font-bold">
-          {z.store.name} · {z.store.code}
-        </div>
-        <div>{z.store.legalName}</div>
-        {z.store.vatNumber && <div>VAT no. {z.store.vatNumber}</div>}
-      </div>
-      <Rule />
-      <div className="text-center text-[13px] font-bold">{z.closed ? "Z-REPORT (SHIFT CLOSED)" : "X-REPORT (SHIFT OPEN)"}</div>
-      {z.device && <div>Till: {z.device.name} ({z.device.prefix})</div>}
-      <div>Opened {fmtDateTime(z.openedAt)} · {z.openedBy}</div>
-      {z.closedAt && <div>Closed {fmtDateTime(z.closedAt)} · {z.closedBy}</div>}
-      <Rule />
-      <Row l={`Sales (${z.sales.count})`} r={zar(z.sales.grossCents)} bold />
-      <Row l="  VAT included" r={zar(z.sales.vatCents)} />
-      <Row l="  Net of VAT" r={zar(z.sales.netCents)} />
-      <Row l="  Discounts given" r={zar(z.sales.discountCents)} />
-      <Row l="  Rewards savings given" r={zar(z.sales.memberSavingsCents)} />
-      <Row l="  Units sold" r={z.sales.units} />
-      {z.online.count > 0 && <Row l={`  Online handovers (${z.online.count})`} r={zar(z.online.grossCents)} />}
-      <Row l={`Refunds (${z.refunds.count})`} r={`−${zar(z.refunds.totalCents)}`} />
-      <Row l="Net takings" r={zar(z.takingsCents)} bold />
-      <Rule />
-      <div className="font-bold">By tender (net)</div>
-      {z.tenders.map((t) => (
-        <Row key={t.method} l={`  ${t.label} (${t.count})`} r={zar(t.amountCents)} />
-      ))}
-      <Row l="Points issued / redeemed" r={`${fmtPoints(z.points.issued)} / ${fmtPoints(z.points.redeemed)}`} />
-      <Rule />
-      <div className="font-bold">Cash drawer</div>
-      <Row l="  Opening float" r={zar(z.cash.floatCents)} />
-      <Row l="  Cash sales less refunds" r={zar(z.cash.cashNetCents)} />
-      <Row l="  Expected" r={zar(z.cash.expectedCents)} bold />
-      {z.cash.countedCents != null && <Row l="  Counted" r={zar(z.cash.countedCents)} />}
-      {z.cash.varianceCents != null && <Row l="  Variance" r={`${z.cash.varianceCents > 0 ? "+" : ""}${zar(z.cash.varianceCents)}`} bold />}
-      {z.cash.counts && (
-        <div className="mt-1">
-          {DENOMINATIONS.filter((d) => z.cash.counts![String(d)]).map((d) => (
-            <Row key={d} l={`  ${denomLabel(d)} × ${z.cash.counts![String(d)]}`} r={zar(d * z.cash.counts![String(d)])} />
-          ))}
+      {trade && (
+        <div data-testid="print-trade">
+          {!r.buyer && <Rule />}
+          <div>
+            Trade account {trade.number} · {trade.name}
+          </div>
+          {trade.orderNumber && <div>Trade order {trade.orderNumber}</div>}
+          {trade.dueAt && trade.onAccountCents > 0 && (
+            <div>
+              Payment terms: {trade.paymentDays} days · {zar(trade.onAccountCents)} on account, due {fmtDate(trade.dueAt)}
+            </div>
+          )}
         </div>
       )}
-      {z.notes && <div className="mt-1">Notes: {z.notes}</div>}
+      {r.note && <div>Reason: {r.note}</div>}
       <Rule />
-      <div className="mt-4">Cashier: ______________________</div>
-      <div className="mt-4">Manager: ______________________</div>
-      <div className="mt-2 text-center">Printed {fmtDateTime(new Date())}</div>
+      {r.invoiceUrl && !training && (
+        <div className="my-1 text-center" data-testid="print-qr">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={`/api/pos/qr?text=${encodeURIComponent(r.invoiceUrl)}`} alt="QR code linking to this invoice" className="mx-auto h-[22mm] w-[22mm]" />
+          <div>Scan for your invoice</div>
+          <div className="break-all text-[10px]">{r.invoiceUrl.replace(/^https?:\/\//, "").replace(/\?.*$/, "")}</div>
+        </div>
+      )}
+      <div className="text-center">
+        {boot.store.licenceRef && <div>{boot.store.licenceRef}</div>}
+        {anyLicensed && <div className="mt-1">{LICENSED_LINE}</div>}
+        {anyCbd && !isTrade && <div className="mt-1">{CBD_LINE}</div>}
+        {isTrade && <div className="mt-1">{TRADE_LINE}</div>}
+        <div className="mt-1">{ADULTS_LINE}</div>
+        {boot.store.receiptFooter && <div>{boot.store.receiptFooter}</div>}
+        {r.invoiceEmail && !training && <div>Tax invoice emailed to {r.invoiceEmail}</div>}
+        <div className="mt-1">Thank you · herbalholland.co.za</div>
+      </div>
+      {training && <Watermark />}
     </div>
   );
 }

@@ -79,7 +79,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
             )}
           </FilterForm>
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Event</Th>
@@ -91,7 +91,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           </thead>
           <tbody>
             {events.length === 0 && (
-              <EmptyRow cols={5}>{q || sp.store ? "No events match." : tab === "past" ? "No past events yet." : "Nothing planned — add an opening weekend or a members' evening."}</EmptyRow>
+              <EmptyRow cols={5}>{q || sp.store ? "No events match." : tab === "past" ? "No past events yet." : "Nothing planned. Add an opening weekend or a members' evening."}</EmptyRow>
             )}
             {events.map((e) => {
               const c = rsvps.get(e.id)!;
@@ -111,7 +111,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
                     <Capacity rsvps={c.rsvps} capacity={e.capacity} />
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">
-                    {phase === "upcoming" ? <span className="text-ink-300">—</span> : num(c.checkedIn)}
+                    {phase === "upcoming" ? <span className="text-ink-500">—</span> : num(c.checkedIn)}
                   </Td>
                   <Td>
                     <Badge tone={EVENT_PHASE[phase][1]} dot>

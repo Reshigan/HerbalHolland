@@ -4,6 +4,7 @@ import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { franchiseFees, salesByDay, salesByStore, salesSummary } from "@/server/finance";
 import { cashWaitingByStore } from "@/server/reports/finance";
+import { supplierInvoiceSummary } from "@/server/supplier-invoices";
 import { resolveRange } from "@/lib/ranges";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
 import { zar, zarCompact, pct, vatOnExcl } from "@/lib/money";
@@ -30,8 +31,9 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
   const r = resolveRange(sp, "mtd");
   const retail = await db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { id: true, code: true, name: true, region: { select: { name: true } }, company: { select: { vatNumber: true } } } });
   const rids = retail.map((s) => s.id);
-  const [sum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks] = await Promise.all([
+  const [sum, tradeSum, byStore, fees, days, campaigns, points, wholesale, liability, saved, unbanked, checks, invoices] = await Promise.all([
     salesSummary(rids, r),
+    salesSummary(rids, r, "WHOLESALE"),
     salesByStore(rids, r),
     franchiseFees(rids, r),
     salesByDay(rids, r),
@@ -45,6 +47,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
     // Cash banking, as of now: one aggregated row per store with unbanked cash, and deposit checks by status.
     cashWaitingByStore(rids),
     db.cashDeposit.groupBy({ by: ["status"], where: { storeId: { in: rids }, status: { in: ["RECORDED", "QUERIED"] } }, _count: true, _sum: { amountCents: true } }),
+    supplierInvoiceSummary(rids),
   ]);
 
   const regions = new Map<string, number>();
@@ -81,7 +84,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         actions={<RangeTabs path="/hq/finance" current={r.preset} />}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat label="Network net sales" value={zarCompact(sum.netCents)} sub={`${zarCompact(sum.grossCents)} incl. VAT`} />
+        <Stat label="Network net sales" value={zarCompact(sum.netCents)} sub={`${zarCompact(sum.grossCents)} incl. VAT${tradeSum.netCents ? ` · of which trade ${zarCompact(tradeSum.netCents)}` : ""}`} />
         <Stat label="Store gross profit" value={zarCompact(sum.grossProfitCents)} sub={`${pct(sum.marginPct)} margin`} />
         <Stat label="Franchise fee income" value={zarCompact(fees.total)} sub="ex VAT · royalty, levy, e-com" />
         <Stat label="Wholesale to stores" value={zarCompact(wholesaleIncl)} sub="received, incl. VAT" />
@@ -119,7 +122,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         </Card>
 
         <Card>
-          <CardHeader title="Marketing fund" description="Levy collected vs spend on campaigns and My Deals — kept in a separate, auditable account (CPA franchise regulations)" />
+          <CardHeader title="Marketing fund" description="Levy collected vs spend on campaigns and My Deals. The fund is kept in a separate, auditable account (CPA franchise regulations)." />
           <CardBody className="space-y-4">
             <dl className="divide-y divide-ink-100">
               <Detail label="Levy collected">{zar(fees.levy)}</Detail>
@@ -128,7 +131,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
                 label={
                   <>
                     My Deals given
-                    <span className="block text-xs text-ink-400">credited to stores on their statements</span>
+                    <span className="block text-xs text-ink-500">credited to stores on their statements</span>
                   </>
                 }
               >
@@ -169,7 +172,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         <Card className="lg:col-span-2 xl:col-span-3">
           <CardHeader title="VAT summary" description="Each franchisee is its own VAT vendor and files its own VAT201; HQ files on fees and wholesale" />
           <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <MiniStat label="Output VAT collected by stores" value={zarCompact(sum.vatCents)} sub={`on ${zarCompact(sum.grossCents)} of sales`} />
+            <MiniStat label="Output VAT collected by stores" value={zarCompact(sum.vatCents)} sub={`on ${zarCompact(sum.grossCents)} of sales, trade included`} />
             <MiniStat label="HQ output VAT · fees" value={zarCompact(feesVat)} sub="15% on royalty, levy, commission" />
             <MiniStat label="HQ output VAT · wholesale" value={zarCompact(wholesaleVat)} sub="DC stock invoiced to stores" />
             <MiniStat label="Non-VAT stores" value={num(nonVat.length)} sub={nonVat.length ? `${zarCompact(nonVatSales)} of sales, no VAT charged` : "All stores are VAT vendors"} />
@@ -189,12 +192,12 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         />
         <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MiniStat label="Cash waiting to be banked" value={zarCompact(unbankedCents)} sub={unbankedN ? `${num(unbankedN)} cash-ups at ${num(unbanked.length)} stores` : "Everything is banked"} />
-          <MiniStat label="Stores with overdue cash" value={<span className={late.length ? "text-rose-600" : undefined}>{num(late.length)}</span>} sub={late.length ? `${zarCompact(lateCents)} overdue` : "None — all banked on time"} />
+          <MiniStat label="Stores with overdue cash" value={<span className={late.length ? "text-rose-600" : undefined}>{num(late.length)}</span>} sub={late.length ? `${zarCompact(lateCents)} overdue` : "None, all banked on time"} />
           <MiniStat label="Deposits awaiting a check" value={num(check("RECORDED")?._count ?? 0)} sub={`${zarCompact(check("RECORDED")?._sum.amountCents ?? 0)} to match to bank statements`} />
           <MiniStat label="Queried deposits" value={num(check("QUERIED")?._count ?? 0)} sub={check("QUERIED") ? `${zarCompact(check("QUERIED")?._sum.amountCents ?? 0)} not matching the statement yet` : "None open"} />
         </CardBody>
         {late.length > 0 ? (
-          <Table className="border-t border-ink-100">
+          <Table stickyFirst className="border-t border-ink-100">
             <thead>
               <tr>
                 <Th>Most overdue</Th>
@@ -229,12 +232,30 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         ) : (
           <p className="border-t border-ink-100 px-5 py-4 text-sm text-ink-500">No store has overdue cash.</p>
         )}
-        {late.length > 6 && <p className="border-t border-ink-100 px-5 py-3 text-xs text-ink-500">{num(late.length - 6)} more stores have overdue cash — see the report.</p>}
+        {late.length > 6 && <p className="border-t border-ink-100 px-5 py-3 text-xs text-ink-500">{num(late.length - 6)} more stores have overdue cash. See the report.</p>}
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="Supplier invoices"
+          description="As of now · what stores owe outside suppliers, as captured in their back offices, and this month's stock orders from the distribution centres and each other, which settle on the franchise statements"
+          action={
+            <Link href="/hq/finance/supplier-invoices" className="text-xs font-semibold text-brand-700 hover:underline">
+              Per store →
+            </Link>
+          }
+        />
+        <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <MiniStat label="Due" value={zarCompact(invoices.dueCents)} sub={`${num(invoices.due)} invoices${invoices.onStatement ? ` · ${zarCompact(invoices.onStatementCents)} on statements` : ""}`} />
+          <MiniStat label="Overdue" value={<span className={invoices.overdue ? "text-rose-600" : undefined}>{zarCompact(invoices.overdueCents)}</span>} sub={invoices.overdue ? `${num(invoices.overdue)} invoices past due` : "Nothing overdue"} />
+          <MiniStat label="Due within 7 days" value={zarCompact(invoices.dueSoonCents)} sub={`${num(invoices.dueSoon)} invoices`} />
+          <MiniStat label="Queried" value={num(invoices.queried)} sub={invoices.queried ? `${zarCompact(invoices.queriedCents)} in dispute` : "None open"} />
+        </CardBody>
       </Card>
 
       <Card className="mt-6">
         <CardHeader title="Stores" description="Net sales and gross profit this period" />
-        <Table className="relative mt-4">
+        <Table stickyFirst className="relative mt-4">
           <thead>
             <tr>
               <Th>Store</Th>

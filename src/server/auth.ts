@@ -1,14 +1,15 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { db } from "./db";
 import type { Role } from "@/generated/prisma/client";
 
 export { hashSecret, verifySecret, sha256, newToken } from "./crypto";
-import { sha256, newToken } from "./crypto";
+import { hashSecret, needsRehash, sha256, newToken } from "./crypto";
+import { pruneThrottle } from "./throttle";
 
 // ── Cookies & sessions ───────────────────────────────────────────────────────
-export const COOKIE = { staff: "hh_staff", pos: "hh_pos", device: "hh_device", customer: "hh_customer" } as const;
+export const COOKIE = { staff: "hh_staff", pos: "hh_pos", device: "hh_device", customer: "hh_customer", trade: "hh_trade" } as const;
 
 const cookieOpts = (maxAgeSec: number) => ({
   httpOnly: true,
@@ -20,7 +21,7 @@ const cookieOpts = (maxAgeSec: number) => ({
 
 export async function startSession(
   name: keyof typeof COOKIE,
-  who: { userId?: string; customerId?: string; storeId?: string; deviceId?: string },
+  who: { userId?: string; customerId?: string; storeId?: string; deviceId?: string; tradeBuyerId?: string },
   hours: number,
 ) {
   const token = newToken();
@@ -36,31 +37,76 @@ export async function endSession(name: keyof typeof COOKIE) {
   jar.delete(COOKIE[name]);
 }
 
-async function readSession(name: keyof typeof COOKIE) {
-  const token = (await cookies()).get(COOKIE[name])?.value;
-  if (!token) return null;
-  const s = await db.session.findUnique({ where: { id: sha256(token) } });
-  if (!s || s.expiresAt < new Date()) return null;
+// Back-office and trade sessions also end after 12 hours without use (an unattended office PC). lastSeenAt is
+// refreshed at most every 5 minutes, so a busy session costs one UPDATE now and then, not one per request.
+const IDLE_MS = 12 * 3_600_000;
+const TOUCH_MS = 5 * 60_000;
+
+/** The session if it's still good: before its expiry and, when `idle` applies, used in the last 12 hours. */
+async function live<S extends { id: string; expiresAt: Date; lastSeenAt: Date }>(s: S | null, idle: boolean, now = Date.now()) {
+  if (!s || s.expiresAt.getTime() < now) return null;
+  if (!idle) return s;
+  const quiet = now - s.lastSeenAt.getTime();
+  if (quiet > IDLE_MS) return null;
+  if (quiet > TOUCH_MS) await db.session.updateMany({ where: { id: s.id }, data: { lastSeenAt: new Date(now) } });
   return s;
 }
 
+async function readSession(name: keyof typeof COOKIE) {
+  const token = (await cookies()).get(COOKIE[name])?.value;
+  if (!token) return null;
+  return live(await db.session.findUnique({ where: { id: sha256(token) } }), name === "staff" || name === "trade");
+}
+
+/**
+ * After a right password or PIN: replaces a hash stored at an older cost with one at today's. Compare-and-set on the
+ * old hash, so a change made in the meantime (a reset, a new PIN) is never overwritten.
+ */
+export async function upgradeHash(userId: string, field: "passwordHash" | "pinHash", stored: string | null, secret: string) {
+  if (!stored || !needsRehash(stored)) return;
+  await db.user.updateMany({ where: { id: userId, [field]: stored }, data: { [field]: await hashSecret(secret) } });
+}
+
+/**
+ * Daily housekeeping (jobs.ts): sessions past their expiry, sign-in codes over a day old, rate-limit rows past the
+ * longest window, and payment webhook ids over 90 days old (gateways redeliver within days).
+ */
+export async function purgeAuthRecords(now = new Date()) {
+  const ago = (days: number) => new Date(now.getTime() - days * 86_400_000);
+  return {
+    sessions: (await db.session.deleteMany({ where: { expiresAt: { lt: now } } })).count,
+    codes: (await db.otp.deleteMany({ where: { createdAt: { lt: ago(1) } } })).count,
+    throttle: (await pruneThrottle(now)).count,
+    paymentEvents: (await db.paymentEvent.deleteMany({ where: { createdAt: { lt: ago(90) } } })).count,
+  };
+}
+
 // ── Staff (back office, HQ) ──────────────────────────────────────────────────
-export const getStaff = cache(async () => {
+/** The signed-in staff member, even one who must still choose their own password (only the password page wants that). */
+export const getStaffChangingPassword = cache(async () => {
   const s = await readSession("staff");
-  if (!s?.userId) return null;
+  // A till's PIN session (it carries the device) only ever works at that till, never as a back-office sign-in.
+  if (!s?.userId || s.deviceId) return null;
   const user = await db.user.findUnique({
     where: { id: s.userId },
     include: { company: true, store: true, region: true },
   });
   return user?.active ? user : null;
 });
+/** The signed-in staff member; nobody until a temporary password has been replaced. */
+export const getStaff = cache(async () => {
+  const user = await getStaffChangingPassword();
+  return user && !user.mustChangePassword ? user : null;
+});
 export type Staff = NonNullable<Awaited<ReturnType<typeof getStaff>>>;
 
 export async function requireStaff(roles?: Role[]) {
-  const user = await getStaff();
+  const user = await getStaffChangingPassword();
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
-  if (roles && !roles.includes(user.role)) redirect("/login?denied=1");
+  // Signed in but outside their role: a not-found inside the shell ("sits outside what you look after"), not the
+  // sign-in page — that reads like being signed out. Anonymous visitors still go to /login above.
+  if (roles && !roles.includes(user.role)) notFound();
   return user;
 }
 
@@ -99,10 +145,30 @@ export const getCustomer = cache(async () => {
   return db.customer.findUnique({ where: { id: s.customerId } });
 });
 
+// ── Trade buyers (the trade portal, cookie hh_trade) ────────────────────────
+export const TRADE_SESSION_HOURS = 12;
+
+/**
+ * The buyer a trade session token belongs to, with their account — null when the session is missing, expired or
+ * unused for 12 hours, the buyer was removed, or the account is closed. Every trade page and action starts here;
+ * mutations re-check the account's status themselves (src/server/trade/*).
+ */
+export async function tradeBuyerForToken(token: string | null | undefined) {
+  if (!token) return null;
+  const s = await live(await db.session.findUnique({ where: { id: sha256(token) }, select: { id: true, tradeBuyerId: true, expiresAt: true, lastSeenAt: true } }), true);
+  if (!s?.tradeBuyerId) return null;
+  const buyer = await db.tradeBuyer.findUnique({ where: { id: s.tradeBuyerId }, include: { account: true } });
+  return buyer?.active && buyer.account.status !== "CLOSED" ? buyer : null;
+}
+export type TradeBuyerSession = NonNullable<Awaited<ReturnType<typeof tradeBuyerForToken>>>;
+
+export const getTradeBuyer = cache(async () => tradeBuyerForToken((await cookies()).get(COOKIE.trade)?.value));
+
 /** Where a staff member lands after signing in. */
 export async function homeFor(u: { role: Role; storeId: string | null; companyId: string | null }) {
   if (isHq(u)) return "/hq";
   if (u.role === "BUDTENDER") return "/pos";
+  if (u.role === "ACCOUNTANT") return u.companyId ? `/books/${u.companyId}` : "/login?nostore=1";
   if (u.storeId) {
     const store = await db.store.findUnique({ where: { id: u.storeId }, select: { code: true } });
     return store ? `/store/${store.code}` : "/login?nostore=1";

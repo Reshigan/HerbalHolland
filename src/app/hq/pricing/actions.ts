@@ -8,7 +8,7 @@ import { getSettings, saveSetting } from "@/server/settings";
 import { str, list, bool, parseNum, parseInt10, parseLocal, parseRand } from "@/server/hq/form";
 import type { Channel, PriceListKind, Tier } from "@/generated/prisma/client";
 
-const KINDS: PriceListKind[] = ["ZONE", "CHANNEL", "MEMBER"];
+const KINDS: PriceListKind[] = ["ZONE", "CHANNEL", "MEMBER", "TRADE"];
 const TIERS: Tier[] = ["SEED", "SPROUT", "BLOOM", "HARVEST"];
 
 export async function savePriceList(listId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -20,18 +20,19 @@ export async function savePriceList(listId: string | null, _: ActionState, fd: F
   const kind = str(fd, "kind") as PriceListKind;
   if (!KINDS.includes(kind)) fields.kind = "Choose a type";
   const ch = str(fd, "channel");
-  const channel: Channel | null = ch === "POS" || ch === "ONLINE" ? ch : null;
+  // A trade list prices the wholesale channel for every trade account: no store, region or consumer channel.
+  const channel: Channel | null = kind === "TRADE" ? "WHOLESALE" : ch === "POS" || ch === "ONLINE" ? ch : null;
   if (kind === "CHANNEL" && !channel) fields.channel = "A channel list needs a channel";
   const tiers = kind === "MEMBER" ? (list(fd, "tiers").filter((t) => TIERS.includes(t as Tier)) as Tier[]) : [];
-  const storeIds = list(fd, "storeIds");
-  const regionIds = list(fd, "regionIds");
+  const storeIds = kind === "TRADE" ? [] : list(fd, "storeIds");
+  const regionIds = kind === "TRADE" ? [] : list(fd, "regionIds");
   const adjRaw = str(fd, "adjustPct");
   const adjustPct = adjRaw ? parseNum(adjRaw) : null;
   if (adjRaw && (adjustPct == null || adjustPct < -90 || adjustPct > 100)) fields.adjustPct = "Between −90% and +100%";
   const startsAt = str(fd, "startsAt") ? parseLocal(str(fd, "startsAt")) : null;
   const endsAt = str(fd, "endsAt") ? parseLocal(str(fd, "endsAt")) : null;
-  if (str(fd, "startsAt") && !startsAt) fields.startsAt = "Invalid date";
-  if (str(fd, "endsAt") && !endsAt) fields.endsAt = "Invalid date";
+  if (str(fd, "startsAt") && !startsAt) fields.startsAt = "Enter a date and time, like 2026-10-31 09:00";
+  if (str(fd, "endsAt") && !endsAt) fields.endsAt = "Enter a date and time, like 2026-10-31 17:00";
   if (startsAt && endsAt && endsAt <= startsAt) fields.endsAt = "Must end after it starts";
   const priority = parseInt10(str(fd, "priority") || "0");
   if (priority == null || priority < -100 || priority > 100) fields.priority = "Whole number, −100 to 100";
@@ -69,7 +70,7 @@ export async function savePriceList(listId: string | null, _: ActionState, fd: F
   revalidatePath("/hq/pricing");
   if (!listId) redirect(`/hq/pricing/${saved.id}?saved=1`);
   revalidatePath(`/hq/pricing/${saved.id}`);
-  return done(`Saved. ${data.active ? "Tills and the web shop use it on the next quote." : "It's switched off."}`);
+  return done(`Saved. ${data.active ? (kind === "TRADE" ? "Trade quotes use it from now on (ex VAT)." : "Tills and the web shop use it on the next quote.") : "It's switched off."}`);
 }
 
 export async function deletePriceList(listId: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -81,7 +82,7 @@ export async function deletePriceList(listId: string, _: ActionState, fd: FormDa
   await db.priceList.delete({ where: { id: listId } });
   await audit(db, g.actor, "pricelist.delete", { entity: "PriceList", entityId: listId, data: { name: pl.name, kind: pl.kind, items: pl._count.items } });
   revalidatePath("/hq/pricing");
-  redirect(`/hq/pricing?m=${encodeURIComponent(`“${pl.name}” deleted — prices fall back to the next matching list or RRP.`)}`);
+  redirect(`/hq/pricing?m=${encodeURIComponent(`“${pl.name}” deleted. Prices fall back to the next matching list or RRP.`)}`);
 }
 
 /** Network pricing guardrails: near-expiry markdowns at the till and the store margin guide. */

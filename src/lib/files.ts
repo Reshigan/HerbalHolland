@@ -14,3 +14,8 @@ export function sniffType(b: Uint8Array): UploadType | null {
   if (at(4, "ftyp") && ["heic", "heix", "mif1", "msf1", "heif"].some((x) => at(8, x))) return "image/heic";
   return null;
 }
+
+// Members' photos (review photos, return photos, a picture with a support message): JPEG or PNG, at most 5 MB each.
+// Shared by the forms in the browser and the checks on the server (@/server/uploads).
+export const PHOTO_TYPES: UploadType[] = ["image/jpeg", "image/png"];
+export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;

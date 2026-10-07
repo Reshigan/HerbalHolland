@@ -30,7 +30,7 @@ export async function moveOrder(code: string, id: string, _: ActionState, fd: Fo
       if (!METHODS.includes(method)) return fail("Choose how the member paid", "method");
       if (method === "CASH") {
         const shift = await db.shift.findFirst({ where: { storeId: store.id, closedAt: null }, orderBy: { openedAt: "desc" } });
-        if (!shift) return fail("Cash must go through an open till shift — take card, PayShap or EFT here, or hand over at the POS.", "method");
+        if (!shift) return fail("Cash must go through an open till shift. Take card, PayShap or EFT here, or hand over at the POS.", "method");
         shiftId = shift.id;
       }
       payments = [{ method, amountCents: due, reference: str(fd, "reference").slice(0, 60) || undefined, provider: method === "CARD" ? "EXTERNAL" : undefined }];
@@ -50,10 +50,10 @@ export async function moveOrder(code: string, id: string, _: ActionState, fd: Fo
     revalidatePath(`/store/${store.code}/orders/${id}`);
     const msg: Partial<Record<OrderStatus, string>> = {
       PICKING: `Picking ${o.code}.`,
-      READY: o.fulfilment === "COLLECT" ? `${o.code} is ready — the member has been sent their collection message.` : `${o.code} is packed and ready to dispatch.`,
-      OUT_FOR_DELIVERY: `${o.code} dispatched — the member has been notified.`,
+      READY: o.fulfilment === "COLLECT" ? `${o.code} is ready. The member has been sent their collection message.` : `${o.code} is packed and ready to dispatch.`,
+      OUT_FOR_DELIVERY: `${o.code} dispatched. The member has been notified.`,
       COMPLETED: handover ? `${o.code} handed over${payments ? ` · ${zar(due)} taken by ${payments[0].method.toLowerCase()}` : ""}. The sale is posted and the invoice emailed.` : `${o.code} delivered.`,
-      CANCELLED: `${o.code} cancelled — stock released and the member notified.`,
+      CANCELLED: `${o.code} cancelled, stock released and the member notified.`,
     };
     return done(msg[to] ?? "Order updated.");
   });
@@ -70,6 +70,6 @@ export async function shipMerch(code: string, id: string, _: ActionState, fd: Fo
     await merchShipped(id, store.id, { courier, trackingNo }, actor);
     revalidatePath(`/store/${store.code}/orders`);
     revalidatePath(`/store/${store.code}/orders/${id}`);
-    return done("Merch marked as shipped — the member has been sent their tracking number.");
+    return done("Merch marked as shipped. The member has been sent their tracking number.");
   });
 }

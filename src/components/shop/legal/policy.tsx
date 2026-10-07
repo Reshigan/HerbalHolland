@@ -1,5 +1,5 @@
 // A policy from @/lib/policies on the dark legal page: headings, paragraphs, lists, Important boxes (CPA s49), and any
-// line counsel must confirm before launch, marked with the question.
+// line counsel must confirm, marked with the question until HQ records counsel's sign-off (settings.legal.reviewed).
 import Link from "next/link";
 import { Scale } from "lucide-react";
 import { H2, P } from "@/components/shop/learn/bodies";
@@ -21,8 +21,9 @@ function Rich({ text }: { text: string }) {
   );
 }
 
-function Line({ line }: { line: PolicyLine }) {
+function Line({ line, counsel }: { line: PolicyLine; counsel: boolean }) {
   if (typeof line === "string") return <Rich text={line} />;
+  if (!counsel) return <Rich text={line.text} />;
   return (
     <span className="block rounded-xl border border-amber-500/40 bg-amber-500/[0.08] p-3">
       <Tag tone="amber" icon={<Scale className="h-3 w-3" aria-hidden />}>For counsel</Tag>
@@ -34,7 +35,8 @@ function Line({ line }: { line: PolicyLine }) {
   );
 }
 
-export function PolicyBody({ blocks }: { blocks: PolicyBlock[] }) {
+/** `counsel`: show the lines counsel must confirm with their question (until the legal texts are signed off). */
+export function PolicyBody({ blocks, counsel }: { blocks: PolicyBlock[]; counsel: boolean }) {
   return (
     <>
       {blocks.map((b, i) =>
@@ -53,7 +55,7 @@ export function PolicyBody({ blocks }: { blocks: PolicyBlock[] }) {
             ))}
           </Important>
         ) : (
-          <List key={i} items={b.list.map((l, j) => <Line key={j} line={l} />)} />
+          <List key={i} items={b.list.map((l, j) => <Line key={j} line={l} counsel={counsel} />)} />
         ),
       )}
     </>

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Megaphone, Plus, ShieldBan } from "lucide-react";
+import { Megaphone, MessageSquare, Plus, ShieldBan } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
@@ -14,11 +14,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
-import { Field, Textarea } from "@/components/ui/form";
+import { Field, Textarea, Select } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { Select } from "@/components/hq/select";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
@@ -65,7 +64,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
                 <SearchField defaultValue={sp.q} placeholder="Find a number or email" />
               </FilterForm>
             </div>
-            <Table className="relative">
+            <Table stickyFirst className="relative">
               <thead>
                 <tr>
                   <Th>Value</Th>
@@ -172,7 +171,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
             <FilterSelect name="channel" label="Channel" defaultValue={sp.channel} options={Object.entries(CHANNEL_LABEL).map(([value, label]) => ({ value, label }))} />
           </FilterForm>
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Campaign</Th>
@@ -241,13 +240,18 @@ function Header({ canCreate }: { canCreate: boolean }) {
     <PageHeader
       overline="Members"
       title="Campaigns"
-      description="SMS, email and push to Rewards members — consent checked per channel, the do-not-contact list applied, CPA send windows enforced and every sale attributed."
+      description="SMS, email and push to Rewards members, with consent checked per channel, the do-not-contact list applied, CPA send windows enforced and every sale attributed."
       actions={
-        canCreate && (
-          <ButtonLink href="/hq/marketing/new">
-            <Plus className="h-4 w-4" /> New campaign
+        <>
+          <ButtonLink href="/hq/messages" variant="outline">
+            <MessageSquare className="h-4 w-4" /> Message log
           </ButtonLink>
-        )
+          {canCreate && (
+            <ButtonLink href="/hq/marketing/new">
+              <Plus className="h-4 w-4" /> New campaign
+            </ButtonLink>
+          )}
+        </>
       }
     />
   );

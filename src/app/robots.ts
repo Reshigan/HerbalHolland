@@ -12,7 +12,11 @@ export default function robots(): MetadataRoute.Robots {
         userAgent: "*",
         allow: ["/", "/club/join"],
         // Personal, operational and licence-gated areas stay out of search.
-        disallow: ["/hq", "/store/", "/pos", "/api/", "/login", "/cart", "/checkout", "/orders/", "/club", "/invoice/", "/menu/", "/batch/", "/dispensary", "/brand"],
+        disallow: [
+          "/hq", "/store/", "/books", "/account", "/pos", "/api/", "/login", "/cart", "/checkout", "/orders/", "/club", "/invoice/", "/menu/", "/batch/", "/dispensary", "/brand", "/r/", "/media/",
+          // The trade portal: only its landing, application and terms pages are public.
+          "/trade/login", "/trade/range", "/trade/cart", "/trade/checkout", "/trade/orders", "/trade/account", "/trade/statements",
+        ],
       },
     ],
     sitemap: `${base()}/sitemap.xml`,

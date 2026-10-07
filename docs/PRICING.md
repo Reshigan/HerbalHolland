@@ -29,8 +29,9 @@ Evaluated per line, in this order:
 Each line reports the rule that set its price (e.g. "Bloom Rewards −7%", "Rewards deal", "Volume pricing (10+)",
 "Near-expiry −20%"), shown on receipts and in carts.
 
-**Incentive exclusion:** when a line is excluded from incentives (licensed medicines in MEDICAL mode — Medicines Act
-s18A), steps 4–6 are skipped.
+**Incentive exclusion:** when a line is excluded from incentives (Medicines Act s18A: licensed medicines in MEDICAL
+mode, and the classes HQ lists in `noIncentives`, by default CBD supplements, which are Schedule 0 complementary
+medicines), steps 4–6 are skipped.
 
 ## 2. Promotions (`applyPromotions`)
 
@@ -38,8 +39,8 @@ s18A), steps 4–6 are skipped.
 |---|---|---|
 | `PERCENT` | 15% off apparel & accessories | `value` = %, `categoryIds` / `productIds` |
 | `FIXED` | R50 off orders over R500 (untargeted) · R20 off each tray (targeted) | `value` = cents, `minSpendCents` |
-| `MULTIPLIER` | Double Points Fridays | `value` = ×100, `days` |
-| `BUY_X_GET_Y` | Buy 2 get 1 free · tray + free papers · spend R600 get the grinder · papers 50% off with flower | `buyQty`, `getQty`, `rewardPercent`, `reward*Ids`, `minSpendCents` |
+| `MULTIPLIER` | Double points on Fridays | `value` = ×100, `days` |
+| `BUY_X_GET_Y` | Buy 2 get 1 free · tray + free papers · spend R600 get the tote · papers 50% off with a tray | `buyQty`, `getQty`, `rewardPercent`, `reward*Ids`, `minSpendCents` |
 | `MULTIBUY` | Any 2 CBD wellness for R800 | `buyQty`, `value` = bundle price |
 
 Common fields: `code` (promo code), `channels` (POS/ONLINE), `storeIds` (empty = network; store-owned promos set
@@ -55,11 +56,30 @@ Common fields: `code` (promo code), `channels` (POS/ONLINE), `storeIds` (empty =
 
 Lines excluded from incentives neither receive deals nor count towards thresholds.
 
-**Suggestions:** when a deal is close but not triggered ("add 1 more pre-roll", "spend R120 more to unlock the
-grinder", "papers are 50% off with your flower — add them"), the engine returns `suggestions` that the POS and web shop
-show as one-tap prompts.
+**Suggestions:** when a deal is close but not triggered ("add 1 more tea", "spend R120 more to unlock the tote",
+"papers are 50% off with your tray: add them"), the engine returns `suggestions` that the POS and web shop show as
+one-tap prompts. Medicines never trigger or receive a deal, so they never appear in a suggestion.
 
 ## 3. VAT
 
 Retail prices are VAT-inclusive; VAT per line = round(total × 15/115). Non-VAT-vendor franchisees (below the R2.3m
 threshold) charge no VAT: their sales post with zero VAT and their invoices are titled "Invoice", not "Tax Invoice".
+
+## 4. Trade prices (the WHOLESALE channel)
+
+`quote({ channel: "WHOLESALE", tradeAccountId })` uses the trade engine (`resolveTradePrice` in
+`src/lib/pricing-rules.ts`, `tradeQuote` in `src/server/pricing.ts`); the consumer steps above never run.
+
+1. **The account's own TRADE list** (`TradeAccount.priceListId`), when it prices the variant.
+2. **The live TRADE lists by priority** (newest first on a tie): the first list that prices the variant decides, taking
+   its best quantity break with `minQty ≤ qty`. `adjustPct` on a TRADE list adjusts the wholesale price. TRADE lists are
+   national (store and region scopes are ignored) and hold **ex-VAT** prices.
+3. **`Variant.wholesaleCents`** (ex VAT) when no list prices it. A variant with neither isn't in the trade range.
+
+VAT is 15% of each line's ex-VAT total, rounded half up to the cent (`vatHalfUp`), never backed out of an inclusive
+price; the quote's `exCents` is the lines ex VAT and `totalCents = exCents + vatCents`. Promotions apply only when the
+promotion's channels include WHOLESALE, to the same `incentiveExcluded` rule as everywhere else (no promotion on
+medicines), and are rounded to a whole cent per unit so a trade order line can carry the net unit price. Tiers,
+member deals, zone/channel lists, shelf prices, markdowns and My Deals never touch a trade quote. THC is never priced.
+Orders are placed in multiples of `Variant.caseQty` above `settings.trade.minOrderCents`; courier and click & collect
+handling fees come from `settings.trade` and carry their own VAT line.

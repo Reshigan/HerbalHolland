@@ -1,22 +1,23 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
-  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, Megaphone, Menu, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
-  Stethoscope, Store, Tag, Tags,
-  Truck, Tv, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
+  ArrowLeftRight, BadgePercent, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, CalendarCheck, CalendarDays, ChartColumn, Circle, ClipboardCheck, Crown, FileSpreadsheet, FileText, FlaskConical, History, Landmark,
+  HandCoins, Handshake, Layers, LayoutDashboard, LifeBuoy, ListTree, Megaphone, Menu, MessageSquare, Nfc, NotebookPen, Package, PackageCheck, Percent, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  Star, Stethoscope, Store, Tag, Tags,
+  Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse, X, type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { switchStorePath } from "@/lib/admin-ui";
 import type { NavGroup } from "./nav-config";
 
 // Explicit map (not `import *`) so the client bundle carries only the icons the nav uses.
 const ICONS: Record<string, LucideIcon> = {
-  ArrowLeftRight, BadgePercent, Banknote, Bell, Boxes, CalendarDays, ChartColumn, ClipboardCheck, Crown, FlaskConical, History, Landmark,
-  HandCoins, Handshake, LayoutDashboard, Megaphone, Nfc, Package, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
-  Stethoscope, Store, Tag, Tags,
-  Truck, Tv, Users, UsersRound, Wallet, Warehouse,
+  ArrowLeftRight, BadgePercent, Banknote, Bell, BookOpen, Boxes, Briefcase, Building2, CalendarCheck, CalendarDays, ChartColumn, ClipboardCheck, Crown, FileSpreadsheet, FileText, FlaskConical, History, Landmark,
+  HandCoins, Handshake, Layers, LayoutDashboard, LifeBuoy, ListTree, Megaphone, MessageSquare, Nfc, NotebookPen, Package, PackageCheck, Percent, PiggyBank, Receipt, Rocket, Scale, Settings, ShieldAlert, ShieldCheck, ShoppingBag, Sparkles,
+  Star, Stethoscope, Store, Tag, Tags,
+  Truck, Tv, Undo2, Users, UsersRound, Wallet, Warehouse,
 };
 
 function Icon({ name, className }: { name: string; className?: string }) {
@@ -26,18 +27,29 @@ function Icon({ name, className }: { name: string; className?: string }) {
 
 export function SideNav({ groups }: { groups: NavGroup[] }) {
   const path = usePathname();
+  const ref = useRef<HTMLElement>(null);
+  // The most specific match wins (Supplier invoices, not Finance, on /finance/supplier-invoices).
+  const activeHref = groups
+    .flatMap((g) => g.items)
+    .filter((i) => (i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`)))
+    .sort((a, b) => b.href.length - a.href.length)[0]?.href;
+  // Keep the current section in view in a long sidebar.
+  useEffect(() => {
+    ref.current?.querySelector<HTMLElement>("[aria-current=page]")?.scrollIntoView({ block: "nearest" });
+  }, [activeHref]);
   return (
-    <nav className="space-y-5">
+    <nav ref={ref} className="space-y-5" aria-label="Sections">
       {groups.map((g, gi) => (
         <div key={gi}>
-          {g.title && <div className="eyebrow mb-1.5 px-3 text-[0.62rem] text-ink-500">{g.title}</div>}
+          {g.title && <div className="eyebrow mb-1.5 px-3 text-[0.62rem] text-ink-450">{g.title}</div>}
           <ul className="space-y-0.5">
             {g.items.map((i) => {
-              const active = i.exact ? path === i.href : path === i.href || path.startsWith(`${i.href}/`);
+              const active = i.href === activeHref;
               return (
                 <li key={i.href}>
                   <Link
                     href={i.href}
+                    aria-current={active ? "page" : undefined}
                     {...(i.external && { target: "_blank", rel: "noopener" })}
                     className={cn(
                       "group flex items-center gap-3 rounded-xl px-3 py-2 text-[0.84rem] font-medium transition-colors",
@@ -66,7 +78,7 @@ export function StoreSwitcher({ current, stores }: { current: string; stores: { 
     <select
       aria-label="Switch store"
       value={current}
-      onChange={(e) => router.push(path.replace(`/store/${current}`, `/store/${e.target.value}`))}
+      onChange={(e) => router.push(switchStorePath(path, window.location.search, e.target.value))}
       className="h-9 w-full cursor-pointer rounded-xl border border-ink-700 bg-ink-900 px-3 text-sm font-medium text-ink-100 focus:border-brand-500 focus:outline-none"
     >
       {stores.map((s) => (

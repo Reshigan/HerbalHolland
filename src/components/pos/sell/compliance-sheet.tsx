@@ -4,7 +4,7 @@
 // quantity, dispenser required ("switch user"), licence — and limited-drop rules (members
 // only, not open yet, per-member limit; offline, drops can't be checked at all).
 import { useMemo, useState } from "react";
-import { BadgeCheck, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
+import { BadgeCheck, Building2, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";
 import { checkSaId, ageOn } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
@@ -21,13 +21,14 @@ const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
   CHANNEL: ShieldAlert,
   DAILY_LIMIT: Pill,
   DROP: Gem,
+  TRADE: Building2,
   OTHER: ShieldAlert,
 };
 
 const TITLE: Record<BlockKind, string> = {
   MEMBER: "Members only",
-  AGE: "Check ID — adults 18+ only",
-  UNDERAGE: "Under age — no sale",
+  AGE: "Check ID: adults 18+ only",
+  UNDERAGE: "Under age: no sale",
   PATIENT: "Patient authorisation needed",
   QUANTITY: "Over the authorised quantity",
   DISPENSER: "Authorised dispenser required",
@@ -35,8 +36,17 @@ const TITLE: Record<BlockKind, string> = {
   CHANNEL: "Can't be sold here",
   DAILY_LIMIT: "Over the daily limit",
   DROP: "Limited drop",
+  TRADE: "Not available to this trade account",
   OTHER: "Can't complete this sale yet",
 };
+
+/** The block's message without a lead-in that repeats its title ("Members only: add the member…" under "Members only"). */
+function blockText(kind: BlockKind, message: string) {
+  const title = TITLE[kind];
+  if (!message.toLowerCase().startsWith(title.toLowerCase())) return message;
+  const rest = message.slice(title.length).replace(/^[\s:—–-]+/, "");
+  return rest ? rest[0].toUpperCase() + rest.slice(1) : message;
+}
 
 export function ComplianceSheet({
   open,
@@ -52,6 +62,7 @@ export function ComplianceSheet({
   onRemoveLicensed,
   onRemoveRestricted,
   onRemoveDrops,
+  onRemoveTrade,
   onSwitchUser,
 }: {
   open: boolean;
@@ -67,6 +78,8 @@ export function ComplianceSheet({
   onRemoveLicensed: () => void;
   onRemoveRestricted: () => void;
   onRemoveDrops: () => void;
+  /** Trade-sale mode: takes the lines the trade basket rule refused (wrong range for the account, THC) out of the basket. */
+  onRemoveTrade?: () => void;
   onSwitchUser: () => void;
 }) {
   const [idNumber, setIdNumber] = useState("");
@@ -84,7 +97,7 @@ export function ComplianceSheet({
       <ul className="space-y-3" aria-label="Compliance checks">
         {blocks.map((b, i) => {
           const Icon = ICON[b.kind];
-          const hard = b.kind === "UNDERAGE" || b.kind === "LICENCE" || b.kind === "CHANNEL";
+          const hard = b.kind === "UNDERAGE" || b.kind === "LICENCE" || b.kind === "CHANNEL" || b.kind === "TRADE";
           return (
             <li key={i} className={`rounded-2xl p-4 ring-1 ${hard ? "bg-rose-500/10 ring-rose-500/40" : "bg-ink-850 ring-amber-500/40"}`} data-testid={`block-${b.kind}`}>
               <div className="flex items-start gap-3">
@@ -93,7 +106,7 @@ export function ComplianceSheet({
                 </span>
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-white">{TITLE[b.kind]}</div>
-                  <p className="mt-0.5 text-sm text-ink-300">{b.message}</p>
+                  <p className="mt-0.5 text-sm text-ink-300">{blockText(b.kind, b.message)}</p>
                 </div>
               </div>
 
@@ -101,13 +114,13 @@ export function ComplianceSheet({
                 <div className="mt-4 space-y-3">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <PosButton variant="primary" busy={busy} onClick={() => onAgeCheck("ID_SIGHTED")}>
-                      <IdCard className="h-4 w-4" /> ID sighted — {minAge}+
+                      <IdCard className="h-4 w-4" /> ID sighted ({minAge}+)
                     </PosButton>
                     <PosButton variant="secondary" busy={busy} onClick={() => onAgeCheck("ID_SIGHTED")}>
-                      Passport sighted — {minAge}+
+                      Passport sighted ({minAge}+)
                     </PosButton>
                   </div>
-                  <Field label="Or enter their SA ID number" htmlFor="cmp-id" error={id && !id.ok ? id.reason : id?.ok && id.age < minAge ? `Under ${minAge} — don't sell` : undefined}>
+                  <Field label="Or enter their SA ID number" htmlFor="cmp-id" error={id && !id.ok ? id.reason : id?.ok && id.age < minAge ? `Under ${minAge}: don't sell` : undefined}>
                     <div className="flex gap-2">
                       <TextInput id="cmp-id" inputMode="numeric" autoComplete="off" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="13 digits" />
                       <PosButton variant="secondary" disabled={!id?.ok || id.age < minAge || busy} onClick={() => onAgeCheck("ID_NUMBER", idNumber.replace(/\s/g, ""))}>
@@ -173,6 +186,14 @@ export function ComplianceSheet({
                   )}
                   <PosButton variant="secondary" onClick={onRemoveDrops}>
                     <Trash2 className="h-4 w-4" /> Remove drop items
+                  </PosButton>
+                </div>
+              )}
+
+              {b.kind === "TRADE" && onRemoveTrade && (
+                <div className="mt-4">
+                  <PosButton variant="secondary" onClick={onRemoveTrade} data-testid="remove-trade-blocked">
+                    <Trash2 className="h-4 w-4" /> Remove it from the basket
                   </PosButton>
                 </div>
               )}

@@ -6,6 +6,7 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { availability, availKey } from "@/server/inventory";
 import { receivedValue } from "@/server/stock-orders";
 import { stockOrderDetail } from "@/server/store/purchasing";
+import { invoicesForOrder } from "@/server/supplier-invoices";
 import { plural } from "@/server/store/rules";
 import { zar } from "@/lib/money";
 import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
@@ -17,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { BackLink, Line, ReadOnlyNote } from "@/components/store/ui";
-import { ActionButton, ConfirmAction } from "@/components/store/action-form";
+import { ActionButton, ConfirmAction } from "@/components/ui/action-form";
 import { cn } from "@/lib/cn";
 
 export const metadata = { title: "Stock order" };
@@ -38,6 +39,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
   const receivedEx = lines.reduce((s, l) => s + (l.receivedQty ?? 0) * l.unitCostCents, 0);
   const units = lines.reduce((s, l) => s + l.qty, 0);
   const shortReceived = lines.reduce((s, l) => s + (l.receivedQty != null && l.shippedQty != null ? Math.max(0, l.shippedQty - l.receivedQty) : 0), 0);
+  const invoices = isBuyer && ["SHIPPED", "RECEIVED"].includes(o.status) ? await invoicesForOrder(store.id, o.id) : [];
 
   return (
     <>
@@ -66,11 +68,11 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
         }
       />
 
-      {!canManage && (isBuyer ? o.status === "SHIPPED" : ["SUBMITTED", "APPROVED"].includes(o.status)) && <ReadOnlyNote className="mb-4">Read-only — a manager or owner handles this order.</ReadOnlyNote>}
+      {!canManage && (isBuyer ? o.status === "SHIPPED" : ["SUBMITTED", "APPROVED"].includes(o.status)) && <ReadOnlyNote className="mb-4">Read-only. A manager or owner handles this order.</ReadOnlyNote>}
 
       {isBuyer && o.status === "SHIPPED" && canManage && (
         <Card className="mb-6 border-brand-300 ring-4 ring-brand-500/10">
-          <CardHeader title="Receive this delivery" description="Count each line against the delivery note. Received quantities are prefilled with what was shipped — change any that are short." />
+          <CardHeader title="Receive this delivery" description="Count each line against the delivery note. Received quantities are prefilled with what was shipped. Change any that are short." />
           <div className="mt-3">
             <ReceiveForm
               action={receiveOrder.bind(null, store.code, id)}
@@ -124,21 +126,54 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
       {o.status === "RECEIVED" &&
         (isBuyer ? (
           <Notice tone="success" className="mb-6">
-            Received {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT.{" "}
+            Received {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} ({zar(received ?? 0)} incl. VAT).{" "}
             {d.invoiceSentAt ? `Tax invoice emailed ${fmtDateTime(d.invoiceSentAt)}.` : "Tax invoice is being emailed."} Settled on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
-            {shortReceived > 0 && <span className="mt-1 block font-semibold">{plural(shortReceived, "unit")} short against the delivery note — recorded on the order for {o.seller.name}. You&apos;re only invoiced for what you received.</span>}
+            {shortReceived > 0 && <span className="mt-1 block font-semibold">{plural(shortReceived, "unit")} short against the delivery note, recorded on the order for {o.seller.name}. You&apos;re only invoiced for what you received.</span>}
           </Notice>
         ) : (
           <Notice tone={shortReceived > 0 ? "warn" : "success"} className="mb-6">
-            {o.buyer.name} received this {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT, cleared by HQ on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
-            {shortReceived > 0 && <span className="mt-1 block font-semibold">They received {plural(shortReceived, "unit")} fewer than you shipped, so those units aren&apos;t paid for — check the dispatch and courier.</span>}
+            {o.buyer.name} received this {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} ({zar(received ?? 0)} incl. VAT), cleared by HQ on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
+            {shortReceived > 0 && <span className="mt-1 block font-semibold">They received {plural(shortReceived, "unit")} fewer than you shipped, so those units aren&apos;t paid for. Check the dispatch and courier.</span>}
           </Notice>
         ))}
+
+      {isBuyer && ["SHIPPED", "RECEIVED"].includes(o.status) && (
+        <Card className="mb-6" data-testid="supplier-invoice-card">
+          <CardHeader
+            title="Supplier invoice"
+            description={
+              o.status === "SHIPPED"
+                ? "Added to your supplier invoices when you receive this delivery, for what you count in. It settles on your franchise statement, so there's nothing to capture or pay."
+                : invoices.length
+                  ? "This order is the tax invoice. It's on your supplier invoices and settles on the franchise statement, so there's nothing to pay separately."
+                  : "It settles on the franchise statement, so there's nothing to capture or pay."
+            }
+            action={<Link href={`/store/${store.code}/finance/supplier-invoices`} className="text-xs font-semibold text-brand-700 hover:underline">All supplier invoices →</Link>}
+          />
+          {invoices.length > 0 && (
+            <CardBody className="pt-3">
+              <ul className="divide-y divide-ink-100 rounded-xl border border-ink-150">
+                {invoices.map((i) => (
+                  <li key={i.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                    <span>
+                      <span className="font-mono font-medium text-ink-900">{i.number}</span> · {i.supplierName} · {i.note}
+                    </span>
+                    <span className="flex items-center gap-3">
+                      <span className="tnum font-medium">{zar(i.totalCents)}</span>
+                      <Badge tone={i.status === "PAID" ? "green" : "neutral"} dot>{i.status === "PAID" ? "Settled" : "On statement"}</Badge>
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </CardBody>
+          )}
+        </Card>
+      )}
 
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="min-w-0 xl:col-span-2">
           <CardHeader title="Lines" description="Prices are ex VAT" />
-          <Table className="mt-3">
+          <Table stickyFirst className="mt-3">
             <thead>
               <tr>
                 <Th>Item</Th>
@@ -165,7 +200,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                           {l.variant.product.name} <span className="text-ink-500">· {l.variant.name}</span>
                         </span>
                       )}
-                      <div className="font-mono text-xs text-ink-400">{l.variant.sku}</div>
+                      <div className="font-mono text-xs text-ink-500">{l.variant.sku}</div>
                       <div className="text-xs text-ink-500 2xl:hidden">
                         {zar(l.unitCostCents)} each<span className="sm:hidden"> · {zar(l.qty * l.unitCostCents)}</span>
                       </div>
@@ -175,7 +210,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                     <Td align="right" className="hidden sm:table-cell">{zar(l.qty * l.unitCostCents)}</Td>
                     <Td>
                       {l.shippedQty == null ? (
-                        <span className="text-ink-300">—</span>
+                        <span className="text-ink-500">—</span>
                       ) : (
                         <div>
                           <span className={cn("tnum font-semibold", shortShip ? "text-amber-700" : "text-ink-900")}>{l.shippedQty}</span>
@@ -189,7 +224,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                       )}
                     </Td>
                     <Td align="right">
-                      {l.receivedQty == null ? <span className="text-ink-300">—</span> : <span className={cn("font-semibold", shortRecv ? "text-amber-700" : "text-leaf-700")}>{l.receivedQty}</span>}
+                      {l.receivedQty == null ? <span className="text-ink-500">—</span> : <span className={cn("font-semibold", shortRecv ? "text-amber-700" : "text-leaf-700")}>{l.receivedQty}</span>}
                     </Td>
                   </Tr>
                 );
@@ -198,7 +233,7 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
           </Table>
           {o.notes && (
             <div className="border-t border-ink-100 px-5 py-4 text-sm">
-              <div className="eyebrow mb-1 text-ink-400">Notes</div>
+              <div className="eyebrow mb-1 text-ink-500">Notes</div>
               <p className="whitespace-pre-line text-ink-700">{o.notes}</p>
             </div>
           )}
@@ -217,14 +252,14 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
                         "relative z-10 grid h-6 w-6 shrink-0 place-items-center rounded-full",
                         s.state === "done" && "bg-brand-500 text-ink-950",
                         s.state === "current" && "bg-brand-100 text-brand-700 ring-2 ring-brand-500",
-                        s.state === "todo" && "bg-ink-100 text-ink-400",
+                        s.state === "todo" && "bg-ink-100 text-ink-500",
                         s.state === "stopped" && "bg-rose-500 text-white",
                       )}
                     >
                       {s.state === "done" ? <Check className="h-3.5 w-3.5" aria-hidden /> : s.state === "stopped" ? <X className="h-3.5 w-3.5" aria-hidden /> : <CircleDot className="h-3.5 w-3.5" aria-hidden />}
                     </span>
                     <div className="min-w-0 pb-1 text-sm">
-                      <div className={cn("font-semibold", s.state === "todo" ? "text-ink-400" : s.state === "stopped" ? "text-rose-600" : "text-ink-900")}>
+                      <div className={cn("font-semibold", s.state === "todo" ? "text-ink-500" : s.state === "stopped" ? "text-rose-600" : "text-ink-900")}>
                         {s.label}
                         {s.state === "current" && <span className="ml-2 font-normal text-brand-700">· waiting</span>}
                       </div>

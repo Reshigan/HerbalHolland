@@ -69,7 +69,7 @@ export default async function StoreEventsPage({ params, searchParams }: { params
             ]}
           />
         </div>
-        <Table className="relative">
+        <Table stickyFirst className="relative">
           <thead>
             <tr>
               <Th>Event</Th>
@@ -81,7 +81,7 @@ export default async function StoreEventsPage({ params, searchParams }: { params
           </thead>
           <tbody>
             {events.length === 0 && (
-              <EmptyRow cols={5}>{tab === "past" ? "No past events yet." : canManage ? "Nothing planned — a members' evening is a great reason to come in." : "Nothing planned yet."}</EmptyRow>
+              <EmptyRow cols={5}>{tab === "past" ? "No past events yet." : canManage ? "Nothing planned. A members' evening is a great reason to come in." : "Nothing planned yet."}</EmptyRow>
             )}
             {events.map((e) => {
               const c = counts.get(e.id)!;
@@ -99,7 +99,7 @@ export default async function StoreEventsPage({ params, searchParams }: { params
                     <Capacity rsvps={c.rsvps} capacity={e.capacity} />
                   </Td>
                   <Td align="right" className="hidden sm:table-cell">
-                    {phase === "upcoming" ? <span className="text-ink-300">—</span> : num(c.checkedIn)}
+                    {phase === "upcoming" ? <span className="text-ink-500">—</span> : num(c.checkedIn)}
                   </Td>
                   <Td>
                     <Badge tone={EVENT_PHASE[phase][1]} dot>
