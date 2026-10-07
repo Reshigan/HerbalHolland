@@ -197,7 +197,7 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "sms-reveal", day: -35, time: "10:00", channel: "SMS",
-        text: "Hi {{firstName}}, {store} opens on {date} at {address}. See you there! Until then, we're online at herbalholland.co.za. Adults 18+.",
+        text: "Hi {{firstName}}, {store} opens on {date} at {address}. See you there! Adults 18+.",
       },
       {
         key: "promise", day: -34, time: "12:30", channel: "SOCIAL",
@@ -212,7 +212,8 @@ export const PLAYBOOKS: Playbook[] = [
       {
         key: "team", day: -27, time: "12:30", channel: "SOCIAL",
         text: "The people you'll meet at {store}: member advisors to welcome you, check your ID and answer your questions in plain English, a store manager you can phone directly, and a pharmacist on the team. We open on {date}. Adults 18+. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Meet the team", headline: "Warm welcomes. Straight answers.", sub: "The {town} team opens the doors on {date}." },
+        short: "The people you'll meet at {store}: member advisors, a store manager you can phone directly, and a pharmacist on the team. We open on {date}. Adults 18+. #HerbalHolland",
+        card:{ template: "headline", eyebrow: "Meet the team", headline: "Warm welcomes. Straight answers.", sub: "The {town} team opens the doors on {date}." },
       },
       {
         key: "invite", day: -20, time: "10:00", channel: "SOCIAL",
@@ -227,7 +228,7 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "sms-invite", day: -20, time: "12:00", channel: "SMS",
-        text: "{{firstName}}, you're invited! In its opening week, {store} hosts a Members' Evening (18:00 to 20:30) and an Open Day (09:00 to 14:00). Dates and RSVP in the Rewards app. Adults 18+, ID at the door.",
+        text: "{{firstName}}, you're invited: a Members' Evening (18:00 to 20:30) and an Open Day (09:00 to 14:00) in {store}'s opening week. Dates and RSVP in the Rewards app. Adults 18+.",
       },
       {
         key: "open-day", day: -15, time: "12:30", channel: "SOCIAL",
@@ -260,7 +261,7 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "sms-tomorrow", day: -1, time: "12:00", channel: "SMS",
-        text: "Hi {{firstName}}, {store} opens on {date} at 09:00, at {address}. Bring your ID and your Rewards number, and come and say hello! Adults 18+.",
+        text: "Hi {{firstName}}, {store} opens on {date} at 09:00, at {address}. Bring your ID and your Rewards number. Adults 18+.",
       },
       {
         key: "google-open", day: 0, time: "08:30", channel: "GOOGLE",
@@ -269,7 +270,8 @@ export const PLAYBOOKS: Playbook[] = [
       {
         key: "open", day: 0, time: "09:00", channel: "SOCIAL",
         text: "Sivulile. We're open! {store} is open from 09:00 today, at {address}, and online at herbalholland.co.za. Come and say sawubona. Adults 18+, bring your ID. #HerbalHolland",
-        card: { template: "headline", eyebrow: "{store}", headline: "Sivulile. We're open.", sub: "From 09:00 today. Adults 18+, bring your ID." },
+        short: "Sivulile. We're open! {store} is open from 09:00 today. Come and say sawubona. Adults 18+, bring your ID. #HerbalHolland",
+        card:{ template: "headline", eyebrow: "{store}", headline: "Sivulile. We're open.", sub: "From 09:00 today. Adults 18+, bring your ID." },
       },
       {
         key: "push-open", day: 0, time: "09:00", channel: "PUSH",
@@ -442,7 +444,8 @@ export const PLAYBOOKS: Playbook[] = [
       {
         key: "hiring", day: -16, time: "08:30", channel: "SOCIAL",
         text: "We're hiring member advisors and store managers. We're looking for warm people who like explaining things simply, and we'll train you from day one. Applications close on {date}. Apply at herbalholland.com/careers and tell us which store you'd like to work in. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Careers", headline: "We're hiring.", sub: "Member advisors and store managers. Applications close {date}." },
+        short: "We're hiring member advisors and store managers: warm people who like explaining things simply. Applications close on {date}. Apply at herbalholland.com/careers #HerbalHolland",
+        card:{ template: "headline", eyebrow: "Careers", headline: "We're hiring.", sub: "Member advisors and store managers. Applications close {date}." },
       },
       {
         key: "channel-hiring", day: -16, time: "09:30", channel: "WHATSAPP",
