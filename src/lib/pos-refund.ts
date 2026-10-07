@@ -20,7 +20,7 @@ export type MoneyPart = { method: RefundMethod; paidCents: number; refundedCents
 export type RefundPart = { method: RefundMethod; cents: number; cardLast4: string | null };
 
 /**
- * The sale's money tenders (card, cash, PayShap, EFT — never vouchers, points or the account), in tender order: what each
+ * The sale's money tenders (card, cash, PayShap or EFT, but never vouchers, points or the account), in tender order: what each
  * paid and what earlier refunds put back on it (refund rows are negative). A card's last 4 digits ride along when a
  * single card paid, so its refund names it.
  */
@@ -47,7 +47,7 @@ const left = (p: MoneyPart) => Math.max(0, p.paidCents - p.refundedCents);
  * "Back to how they paid": the money part of a refund (after vouchers and the account, which come first) spread over
  * the sale's money tenders in proportion to what each still has to give back (paid less earlier refunds), so no tender
  * ever gets back more than that. Whole cents: each part rounds down and the odd cents go on the largest tender (the
- * next largest once it's full). `overCents` is what no tender has left to take — rounding of whole points, or refunds
+ * next largest once it's full). `overCents` is what no tender has left to take: rounding of whole points, or refunds
  * from before this rule.
  */
 export function refundSplit(parts: MoneyPart[], toTenderCents: number): { parts: RefundPart[]; overCents: number } {
@@ -69,7 +69,7 @@ export function refundSplit(parts: MoneyPart[], toTenderCents: number): { parts:
 
 /**
  * The money "back to how they paid" as the server posts it: refundSplit's parts, plus any cents it couldn't place on the
- * tender that paid most. Null when no money tender paid on the sale — then a manager chooses one.
+ * tender that paid most. Null when no money tender paid on the sale: a manager then chooses one.
  */
 export function backHowTheyPaid(parts: MoneyPart[], toTenderCents: number): RefundPart[] | null {
   const s = refundSplit(parts, toTenderCents);
@@ -94,8 +94,8 @@ export const describeRefund = (parts: RefundPart[]) =>
     .join(" · ");
 
 /**
- * A sale line's share of a refund of `qty` units: its total × qty ÷ its quantity, rounded — and when these are the last
- * units back, exactly what's left of the line, so a line refunded in parts adds up to what was paid for it. The same for
+ * A sale line's share of a refund of `qty` units: its total × qty ÷ its quantity, rounded. When these are the last
+ * units back, it's exactly what's left of the line, so a line refunded in parts adds up to what was paid for it. The same for
  * its VAT, member savings and deals.
  */
 export const lineShare = (lineCents: number, lineQty: number, qty: number, refundedQty: number, refundedCents: number) =>
@@ -103,7 +103,7 @@ export const lineShare = (lineCents: number, lineQty: number, qty: number, refun
 
 /**
  * The points part of a refund, in cents of whole points: points paid on the sale come back in proportion to the value
- * refunded so far (this refund included), rounded down — so a sale refunded in parts returns every point paid by its
+ * refunded so far (this refund included), rounded down, so a sale refunded in parts returns every point paid by its
  * last refund, and never more.
  */
 export function pointsBack(a: { loyaltyPaidCents: number; loyaltyBackCents: number; totalCents: number; refundedCents: number; amountCents: number }) {

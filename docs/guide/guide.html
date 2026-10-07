@@ -2,7 +2,7 @@
 <html lang="en-ZA">
 <head>
 <meta charset="utf-8">
-<title>Herbal Holland platform — the complete guide</title>
+<title>Herbal Holland platform: the complete guide</title>
 <link rel="stylesheet" href="fonts.css">
 <link rel="stylesheet" href="guide.css">
 </head>
@@ -26,7 +26,7 @@
   <div class="adults"><span>18+</span> Adults only</div>
   <div class="eyebrow">Herbal Holland platform</div>
   <h1><span class="thin">The complete</span><br>system guide<br><span class="orange">for the whole team.</span></h1>
-  <div class="sub">Every surface and every function: the <b>online shop and Rewards app</b>, the <b>till</b>, the <b>store back office</b>, the <b>HQ console</b>, the <b>trade portal</b>, <b>the books</b>, the menu boards and invoices, and <b>herbalholland.com</b> — for franchisees, their accountants, store managers, HQ staff and dispensers.</div>
+  <div class="sub">Every surface and every function, for franchisees, their accountants, store managers, HQ staff and dispensers: the <b>online shop and Rewards app</b>, the <b>till</b>, the <b>store back office</b>, the <b>HQ console</b>, the <b>trade portal</b>, <b>the books</b>, the menu boards and invoices, and <b>herbalholland.com</b>.</div>
   <div class="version"><b>Version 1.4</b> · 7 October 2026</div>
   <div class="brandline">Dutch heritage.<br><b>African soil.</b></div>
 </section>
@@ -45,16 +45,16 @@
     <div class="num">1</div>
     <div class="eyebrow">Chapter 1</div>
     <h1>About this guide, and who does what</h1>
-    <div class="lede">How to use this manual, the <b>nine surfaces</b> of the platform, and the <b>roles</b> — from a dispenser at the till to the HQ administrator — with what each can see and do.</div>
+    <div class="lede">How to use this manual, the <b>nine surfaces</b> of the platform, and the <b>roles</b> (from a dispenser at the till to the HQ administrator), with what each can see and do.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
   </div>
   <div class="body">
     <h2>How to use this guide</h2>
-    <p class="lede">This is the reference manual for the Herbal Holland platform: one Next.js application that runs the shop, the Rewards app, every till, every store's back office and the HQ console, plus the separate corporate website at herbalholland.com. It describes what the software <em>does</em> — as built — not what was planned.</p>
+    <p class="lede">This is the reference manual for the Herbal Holland platform: one Next.js application that runs the shop, the Rewards app, every till, every store's back office and the HQ console, plus the separate corporate website at herbalholland.com. It describes what the software <em>does</em> as built, not what was planned.</p>
     <p>The guide was written from the code itself (every screen, action and rule), the project documentation, and screenshots taken from the automated test journeys against the seeded demo network. Where the documentation and the code differ, the code wins; a footnote says so where it matters to you.</p>
     <ul>
       <li><strong>Read chapter 2 first</strong> if you are new: it explains how everyone gets in, and how to install the three apps.</li>
-      <li><strong>Members and patients</strong> live in chapter 3. Store teams should read it too — it is what your members see.</li>
+      <li><strong>Members and patients</strong> live in chapter 3. Store teams should read it too: it is what your members see.</li>
       <li><strong>Dispensers and cashiers</strong> need chapter 4 (the till) and the compliance rules in chapter 10.</li>
       <li><strong>Store managers and franchisees</strong> need chapters 4, 5, 10 and 11.</li>
       <li><strong>Owners and their accountants</strong> keep the books in chapter 12.</li>
@@ -72,20 +72,20 @@
       <thead><tr><th>Surface</th><th>Address</th><th>Who uses it</th><th>Look and feel</th></tr></thead>
       <tbody>
         <tr><td class="k">Online shop and Herbal Holland Rewards</td><td class="route">/ · /shop · /p/… · /cart · /checkout · /gift · /orders/… · /stores · /learn · /drops · /events/… · /club/… · /dispensary · /batch/… · /s/…</td><td>Members, patients, the public (adults 18+)</td><td>Dark brand surfaces; installs as the Rewards app on a phone</td></tr>
-        <tr><td class="k">The till (POS)</td><td class="route">/pos · /pos/pair · /pos/display</td><td>Cashiers ("budtenders"), dispensers, managers</td><td>Dark, touch-first, offline-first; installs full-screen on Android</td></tr>
+        <tr><td class="k">The till (POS)</td><td class="route">/pos · /pos/pair · /pos/display</td><td>Member advisors (cashiers), dispensers, managers</td><td>Dark, touch-first, offline-first; installs full-screen on Android</td></tr>
         <tr><td class="k">Store back office</td><td class="route">/store/&lt;code&gt;/…</td><td>Store managers, franchise owners (area managers and HQ can open any store in their scope)</td><td>Light content, dark sidebar; installs as "HH Office"</td></tr>
         <tr><td class="k">HQ console</td><td class="route">/hq/…</td><td>HQ administrators, HQ team, area managers</td><td>Light content, dark sidebar</td></tr>
         <tr><td class="k">The books (accounting)</td><td class="route">/books · /books/&lt;company&gt;/…</td><td>Owners, their accountants, HQ administrators, area managers (read-only)</td><td>Light content, dark sidebar; print-ready reports</td></tr>
         <tr><td class="k">Trade portal (Herbal Holland Trade)</td><td class="route">/trade · /trade/apply · /trade/login · /trade/range · /trade/cart · /trade/checkout · /trade/orders · /trade/statements · /trade/account · /trade/terms</td><td>Trade buyers: pharmacies, independent retailers, cafés, wellness practices, online shops (adults 18+)</td><td>Dark brand surfaces like the shop, with a "Trade" badge; a code by email, no passwords (chapter 7)</td></tr>
         <tr><td class="k">Menu board</td><td class="route">/menu/&lt;store-slug&gt;</td><td>A TV in each store</td><td>Dark, 16:9, rotates on its own</td></tr>
         <tr><td class="k">Public documents</td><td class="route">/invoice/&lt;id&gt;?t=… · /batch/&lt;code&gt; · /unsubscribe · /legal/…</td><td>Anyone with the link</td><td>Print-friendly tax invoices; lab certificates; opt-out; policies</td></tr>
-        <tr><td class="k">herbalholland.com</td><td class="route">herbalholland.com/… (about, stores, franchise, press, careers, contact, privacy, terms, paia)</td><td>The public, journalists, prospective franchisees</td><td>Its own static site on Cloudflare — not part of the application (chapter 8)</td></tr>
+        <tr><td class="k">herbalholland.com</td><td class="route">herbalholland.com/… (about, stores, franchise, press, careers, contact, privacy, terms, paia)</td><td>The public, journalists, prospective franchisees</td><td>Its own static site on Cloudflare, not part of the application (chapter 8)</td></tr>
       </tbody>
     </table>
     <p class="small">There is also a brand book at <span class="route">/brand</span> (logo, colour, type, shapes, art, voice, misuse and the merch specifications) for marketing and partners, and a reports centre inside both the back office and HQ (<span class="route">/store/&lt;code&gt;/reports</span>, <span class="route">/hq/reports</span>).</p>
 
     <h2>Who does what: roles and scope</h2>
-    <p>Staff accounts carry one of six roles. The role decides the <strong>scope</strong> — which stores' data a person can see — and what they may change. Pages <em>and</em> the actions behind them re-check both on every request, so a crafted link can't reach another franchisee's data, and a franchisee never sees another franchisee's shelf prices.</p>
+    <p>Staff accounts carry one of six roles. The role decides the <strong>scope</strong> (which stores' data a person can see) and what they may change. Pages <em>and</em> the actions behind them re-check both on every request, so a crafted link can't reach another franchisee's data, and a franchisee never sees another franchisee's shelf prices.</p>
     <table class="wide">
       <colgroup><col style="width:30mm"><col style="width:26mm"><col style="width:40mm"><col></colgroup>
       <thead><tr><th>Role</th><th>Scope</th><th>Signs in at</th><th>Can do</th></tr></thead>
@@ -96,14 +96,14 @@
         <tr><td class="k">Owner (franchisee)</td><td>Every store their company owns</td><td><span class="route">/login</span> › "All my stores" when they own more than one</td><td>Runs each store's back office; the only role that can add managers, change a manager's PIN or card, authorise dispensers, switch commission on and approve it for payroll, and verify banking deposits. Consolidated dashboard, comparison and CSV across their stores.</td></tr>
         <tr><td class="k">Accountant</td><td>One company's books</td><td><span class="route">/login</span> › the company's books</td><td>Keeps the books (chapter 12): reports, banking, journals as drafts for the owner to approve. No store screens, no till.</td></tr>
         <tr><td class="k">Store manager</td><td>One store</td><td><span class="route">/login</span> › their store; also the till with a PIN</td><td>Everything in the store back office (orders, stock, buying, members, patients, money, team, settings) except what is reserved for the owner; pairs and unpairs tills; closes shifts.</td></tr>
-        <tr><td class="k">Budtender (cashier / dispenser)</td><td>One store</td><td>The till, with a PIN</td><td>Sells, refunds, hands over online orders, checks in event guests, counts the float. A budtender with <strong>Authorised dispenser</strong> ticked may complete sales of licensed medicines. No back-office login (the sign-in page sends them to the till).</td></tr>
+        <tr><td class="k">Member advisor (cashier / dispenser)</td><td>One store</td><td>The till, with a PIN</td><td>Sells, refunds, hands over online orders, checks in event guests, counts the float. A member advisor with <strong>Authorised dispenser</strong> ticked may complete sales of licensed medicines. No back-office login (the sign-in page sends them to the till).</td></tr>
       </tbody>
     </table>
     <p>Three more kinds of people use the platform without a staff account:</p>
     <dl class="grid">
       <dt>Member</dt><dd>Anyone 18 or older who has joined Herbal Holland Rewards with their mobile number. We sell to members only, online and at the till; joining is free and takes about a minute (chapter 3).</dd>
       <dt>Patient</dt><dd>A member with an active SAHPRA Section 21 authorisation on file, registered by a dispenser in a store. Only patients can see and buy licensed (THC) medicines, and only in store from an authorised dispenser.</dd>
-      <dt>Trade buyer</dt><dd>A person who orders for a business with a trade account — an owner (who also manages the account and its buyers) or a buyer. They sign in to the trade portal with a code sent to their email, buy at ex-VAT trade prices in whole cases, and never licensed medicines (chapter 7).</dd>
+      <dt>Trade buyer</dt><dd>A person who orders for a business with a trade account: an owner (who also manages the account and its buyers) or a buyer. They sign in to the trade portal with a code sent to their email, buy at ex-VAT trade prices in whole cases, and never licensed medicines (chapter 7).</dd>
     </dl>
 
     <h3>Which surface each role uses</h3>
@@ -111,7 +111,7 @@
       <thead><tr><th>Role</th><th>Shop &amp; Rewards</th><th>Till</th><th>Store back office</th><th>HQ console</th><th>Menu board</th><th>herbalholland.com</th></tr></thead>
       <tbody>
         <tr><td class="k">Member / patient</td><td class="tick">Yes</td><td>—</td><td>—</td><td>—</td><td>sees it</td><td class="tick">Yes</td></tr>
-        <tr><td class="k">Budtender / dispenser</td><td>as a member</td><td class="tick">Yes</td><td>—</td><td>—</td><td>runs it</td><td>—</td></tr>
+        <tr><td class="k">Member advisor / dispenser</td><td>as a member</td><td class="tick">Yes</td><td>—</td><td>—</td><td>runs it</td><td>—</td></tr>
         <tr><td class="k">Store manager</td><td>as a member</td><td class="tick">Yes</td><td class="tick">Yes</td><td>—</td><td>runs it</td><td>—</td></tr>
         <tr><td class="k">Owner</td><td>as a member</td><td>can pair tills</td><td class="tick">Yes, all their stores</td><td>—</td><td>—</td><td>franchise page</td></tr>
         <tr><td class="k">Area manager</td><td>—</td><td>can pair tills</td><td class="tick">Yes, their region</td><td class="tick">Yes, their region</td><td>—</td><td>—</td></tr>
@@ -119,7 +119,7 @@
       </tbody>
     </table>
 
-    <div class="callout"><div class="lab">Rule</div><p>Every sensitive action — a sale exception, a price change, a stock take, a recall, a consent change, a setting, a login — is written to the audit log with who, what, where and when. Entries can't be edited or deleted. HQ reads the whole log; area managers read their region's (chapter 6).</p></div>
+    <div class="callout"><div class="lab">Rule</div><p>Every sensitive action (a sale exception, a price change, a stock take, a recall, a consent change, a setting, a login) is written to the audit log with who, what, where and when. Entries can't be edited or deleted. HQ reads the whole log; area managers read their region's (chapter 6).</p></div>
   </div>
 </section>
 
@@ -135,7 +135,7 @@
   </div>
   <div class="body">
     <h2>Addresses</h2>
-    <p>The application lives at one public address (<code>APP_URL</code> — in production the shop's domain, for example <span class="route">https://shop.herbalholland.com</span> or <span class="route">https://herbalholland.co.za</span>; locally <span class="route">http://localhost:3000</span>). Everything below is a path on that address.</p>
+    <p>The application lives at one public address (<code>APP_URL</code>: in production the shop's domain, for example <span class="route">https://shop.herbalholland.com</span> or <span class="route">https://herbalholland.co.za</span>; locally <span class="route">http://localhost:3000</span>). Everything below is a path on that address.</p>
     <table class="compact">
       <thead><tr><th>You want to…</th><th>Go to</th></tr></thead>
       <tbody>
@@ -145,12 +145,12 @@
         <tr><td>Sign in to the back office or HQ</td><td class="route">/login</td></tr>
         <tr><td>Open the till</td><td class="route">/pos &nbsp;(first time on a device: /pos/pair)</td></tr>
         <tr><td>A customer-facing screen for a till</td><td class="route">/pos/display &nbsp;(opened from Shift › This till › Customer display)</td></tr>
-        <tr><td>Your store's back office</td><td class="route">/store/&lt;store code&gt; &nbsp;— e.g. /store/PTA01 &nbsp;(/store alone sends you to your own home)</td></tr>
+        <tr><td>Your store's back office</td><td class="route">/store/&lt;store code&gt; &nbsp;(e.g. /store/PTA01; /store alone sends you to your own home)</td></tr>
         <tr><td>HQ console</td><td class="route">/hq</td></tr>
         <tr><td>Apply for a trade account, or sign in to the trade portal</td><td class="route">/trade/apply &nbsp;·&nbsp; /trade/login &nbsp;(the landing page is /trade; the terms are at /trade/terms)</td></tr>
         <tr><td>The trade portal once signed in</td><td class="route">/trade/range &nbsp;·&nbsp; /trade/cart &nbsp;·&nbsp; /trade/checkout &nbsp;·&nbsp; /trade/orders &nbsp;·&nbsp; /trade/statements &nbsp;·&nbsp; /trade/account</td></tr>
         <tr><td>Trade in HQ, and a store's trade orders</td><td class="route">/hq/trade &nbsp;·&nbsp; /hq/trade/accounts &nbsp;·&nbsp; /hq/trade/orders &nbsp;·&nbsp; /store/&lt;code&gt;/trade</td></tr>
-        <tr><td>The menu board for a store TV</td><td class="route">/menu/&lt;store slug&gt; &nbsp;— e.g. /menu/hatfield</td></tr>
+        <tr><td>The menu board for a store TV</td><td class="route">/menu/&lt;store slug&gt; &nbsp;(e.g. /menu/hatfield)</td></tr>
         <tr><td>Change your password</td><td class="route">/account/password</td></tr>
         <tr><td>Sign out of the back office</td><td class="route">/logout &nbsp;(the sign-out button in the sidebar)</td></tr>
         <tr><td>The corporate website</td><td class="route">https://herbalholland.com</td></tr>
@@ -161,8 +161,8 @@
     <figure class="w80"><img src="images/login.jpg" alt="The staff sign-in page"><figcaption><b>The sign-in page.</b> Work email and password; a wrong pair shows "That email and password don't match". In demo mode the one-click role logins appear underneath.</figcaption></figure>
     <ol class="steps">
       <li>Open <span class="route">/login</span>, enter your <strong>work email</strong> and <strong>password</strong>, and press <strong>Sign in</strong>.</li>
-      <li>You land where your role lives: HQ roles on the HQ console, a store manager on their store, an owner on <em>All my stores</em> (or their single store), a budtender on the till.</li>
-      <li>If you were given a <strong>temporary password</strong> (every new HQ person and owner, and staff whose password a manager or owner set or reset), the platform sends you to <span class="route">/account/password</span> before anything else. Enter the current password, then a new one of <strong>at least 10 characters</strong> — not a common password, and without your name or email — twice. Changing it signs you out of every other device. A temporary password stops working after <strong>72 hours</strong>: ask HQ (or your store owner) for a new one.</li>
+      <li>You land where your role lives: HQ roles on the HQ console, a store manager on their store, an owner on <em>All my stores</em> (or their single store), a member advisor on the till.</li>
+      <li>If you were given a <strong>temporary password</strong> (every new HQ person and owner, and staff whose password a manager or owner set or reset), the platform sends you to <span class="route">/account/password</span> before anything else. Enter the current password, then type a new one twice: <strong>at least 10 characters</strong>, not a common password, and without your name or email. Changing it signs you out of every other device. A temporary password stops working after <strong>72 hours</strong>: ask HQ (or your store owner) for a new one.</li>
       <li>Eight wrong passwords in a row lock password sign-in for 15 minutes (a reset by HQ or your owner lifts it), and a back-office session ends after 12 hours without use.</li>
     </ol>
     <div class="callout warn"><div class="lab">Lock-outs and sessions</div>
@@ -170,7 +170,7 @@
         <li>Eight wrong attempts on one email lock that email for <strong>15 minutes</strong>.</li>
         <li>A back-office session lasts <strong>7 days</strong>; sign out on shared computers.</li>
         <li>A deactivated account can't sign in at all, and a person can never deactivate themselves; there must always be at least one active HQ administrator.</li>
-        <li>"Your account doesn't have access to that page" means the page is outside your scope — not a wrong password.</li>
+        <li>"Your account doesn't have access to that page" means the page is outside your scope, not that your password is wrong.</li>
       </ul>
     </div>
     <p>Passwords are never stored in clear; sessions are random tokens kept only as hashes in secure, HTTP-only cookies. Every login (and every demo login) is written to the audit log.</p>
@@ -183,56 +183,56 @@
       <li>On the device, open <span class="route">/pos/pair</span>. If you are on Android, accept <strong>Install the till app</strong> first (it is optional, but the installed app opens full-screen and keeps its shell offline).</li>
       <li>Sign in with a <strong>store manager, owner, area manager or HQ</strong> email and password (or, if that person is already signed in to the back office on this browser, they are recognised).</li>
       <li>Choose the <strong>store</strong> (only trading stores you may pair are listed) and give the till a <strong>name</strong> of up to 40 characters, such as "Counter 2" or "Pop-up tablet". The name appears on receipts and Z-reports.</li>
-      <li>Press <strong>Pair this till</strong>. The device gets a letter (A, B, C…) that prefixes its receipt numbers — <code>PTA01-B00042</code> means store PTA01, till B, sale 42 — and a pairing that lasts a year.</li>
+      <li>Press <strong>Pair this till</strong>. The device gets a letter (A, B, C…) that prefixes its receipt numbers, and a pairing that lasts a year. <code>PTA01-B00042</code> means store PTA01, till B, sale 42.</li>
     </ol>
     <h4>Unlocking with a PIN (every shift)</h4>
     <ol class="steps">
       <li>Tap your <strong>name</strong> on the lock screen, then enter your <strong>4-digit PIN</strong>.</li>
-      <li>The till stays unlocked for you for <strong>12 hours</strong>, but locks after <strong>5 minutes idle</strong>; tap <strong>Lock</strong> when you walk away. Tap your name and re-enter the PIN to carry on — your basket is kept.</li>
+      <li>The till stays unlocked for you for <strong>12 hours</strong>, but locks after <strong>5 minutes idle</strong>; tap <strong>Lock</strong> when you walk away. Tap your name and re-enter the PIN to carry on; your basket is kept.</li>
       <li>Offline, the till still unlocks for anyone who signed in on it during the last 12 hours (it keeps a scrambled check of the PIN, never the PIN itself).</li>
       <li>Five wrong PINs lock you out of every till for 5 minutes; ten in a day switch your PIN off ("Your PIN is locked. Ask a manager to reset it") until a manager sets a new one in Team.</li>
-      <li>When a sale needs a different person — an authorised dispenser for a licensed medicine, or a manager — the till asks that person to unlock instead; the basket is kept.</li>
+      <li>When a sale needs a different person (an authorised dispenser for a licensed medicine, or a manager), the till asks that person to unlock instead; the basket is kept.</li>
     </ol>
     <p>PINs are set by the store manager or owner in the back office (Team). They must be 4 digits with no repeated or running digits, and are handed over in person. Only a store manager can <strong>unpair</strong> a till (Shift › This till), and only with no shift open; unpairing wipes the till's cached data (sales waiting to sync are kept).</p>
 
     <h2>Members: a code by SMS, no passwords</h2>
-    <p>Members never have a password. Anywhere the shop needs to know who you are — the Rewards card, checkout, a drop, an event — it asks for your <strong>South African mobile number</strong> and sends a <strong>6-digit code</strong> by SMS.</p>
+    <p>Members never have a password. Anywhere the shop needs to know who you are (the Rewards card, checkout, a drop, an event), it asks for your <strong>South African mobile number</strong> and sends a <strong>6-digit code</strong> by SMS.</p>
     <ol class="steps">
       <li>Enter your mobile number (any format; it is stored as +27…). Press <strong>Send my code</strong>.</li>
       <li>Type the code from the SMS (phones can autofill it). It expires after <strong>10 minutes</strong>; you get <strong>5 tries</strong> per code and at most <strong>5 codes in 10 minutes</strong>.</li>
       <li>If the number is already a member, you are signed in for <strong>30 days</strong> on that device. If not, one short step completes your membership (chapter 3).</li>
     </ol>
-    <p>If the SMS can't be sent, the shop says so and asks you to try again in a minute — it never pretends a code went out. Sign out from Rewards › Settings.</p>
+    <p>If the SMS can't be sent, the shop says so and asks you to try again in a minute. It never pretends a code went out. Sign out from Rewards › Settings.</p>
 
     <h2>Demo mode</h2>
-    <p>With <code>DEMO_MODE=true</code> (local, staging and the demo — <strong>never production</strong>):</p>
+    <p>With <code>DEMO_MODE=true</code> (local, staging and the demo, but <strong>never production</strong>):</p>
     <ul>
       <li><span class="route">/login</span> shows one-click logins for four roles; the password for every seeded person is <code>holland</code>. Appendix A lists them.</li>
       <li><span class="route">/api/auth/demo?email=…&amp;next=/hq</span> signs in a seeded user directly (used by screenshots and smoke tests).</li>
       <li>The pair screen offers <strong>one-click pairing</strong> to any store, and the demo PINs are <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> and <code>4444</code>.</li>
       <li>Member sign-in shows the SMS code <strong>on screen</strong>.</li>
-      <li>Payments are simulated (chapter 9) and no messages leave the system — every SMS and email is only logged.</li>
+      <li>Payments are simulated (chapter 9) and no messages leave the system: every SMS and email is only logged.</li>
     </ul>
     <div class="callout warn"><div class="lab">Warning</div><p>Production must run with <code>DEMO_MODE=false</code>, a strong <code>SESSION_SECRET</code>, a <code>CRON_SECRET</code> of 32+ characters and an https <code>APP_URL</code>: without them the server won't serve (every request answers 500 and the log says why). The launch checklist in chapter 11 repeats this because it matters.</p></div>
 
     <h2>Installing the apps on Android, iPhone and desktop</h2>
-    <p>All three web apps install straight from the browser — no app store, nothing sent to the server about installs. Each has its own icon and opens in its own window.<sup>1</sup></p>
+    <p>All three web apps install straight from the browser, with no app store and nothing sent to the server about installs. Each has its own icon and opens in its own window.<sup>1</sup></p>
     <table>
       <thead><tr><th>App</th><th>Where the nudge shows</th><th>Opens at</th><th>Notes</th></tr></thead>
       <tbody>
-        <tr><td class="k">Herbal Holland Rewards (members)</td><td>The Rewards home (<span class="route">/club</span>) under the card — "Keep your card on your home screen" — and once on the shop home for signed-in members</td><td>The member's card</td><td>Portrait; shortcuts to the card, drops, shop, orders and stores; app notifications need it on the home screen on iPhone (iOS 16.4+)</td></tr>
-        <tr><td class="k">Herbal Holland Till</td><td>The pair screen (before pairing) — "Install the till app" — and Shift › This till</td><td><span class="route">/pos</span>, full-screen</td><td>Keeps its shell offline through a service worker; "Not now" hides the nudge for a day</td></tr>
+        <tr><td class="k">Herbal Holland Rewards (members)</td><td>The Rewards home (<span class="route">/club</span>), under the card ("Add Herbal Holland to your home screen"), and once on the shop home for signed-in members</td><td>The member's card</td><td>Portrait; shortcuts to the card, drops, shop, orders and stores; app notifications need it on the home screen on iPhone (iOS 16.4+)</td></tr>
+        <tr><td class="k">Herbal Holland Till</td><td>The pair screen before pairing ("Install the till app"), and Shift › This till</td><td><span class="route">/pos</span>, full-screen</td><td>Keeps its shell offline through a service worker; "Not now" hides the nudge for a day</td></tr>
         <tr><td class="k">Herbal Holland Back office (store + HQ)</td><td>The mobile header, and "Install app" in the side menu</td><td><span class="route">/store</span>, which sends each person to their own home by role</td><td>For managers, owners, area managers and HQ on a phone or a computer</td></tr>
       </tbody>
     </table>
     <dl class="grid">
       <dt>Android</dt><dd>In Chrome, Edge or Samsung Internet, tap <strong>Install</strong> on the nudge and the browser's own install sheet opens. It is also in the browser menu ("Install app" / "Add to Home screen").</dd>
-      <dt>iPhone and iPad</dt><dd>Safari only: the nudge shows the two steps — <strong>Share</strong>, then <strong>Add to Home Screen</strong>. Chrome, Firefox and in-app browsers (WhatsApp, Instagram, Facebook…) on iOS can't add web apps, so nothing is shown there: open the link in Safari.</dd>
+      <dt>iPhone and iPad</dt><dd>Safari only. The nudge shows the two steps: <strong>Share</strong>, then <strong>Add to Home Screen</strong>. Chrome, Firefox and in-app browsers (WhatsApp, Instagram, Facebook…) on iOS can't add web apps, so nothing is shown there: open the link in Safari.</dd>
       <dt>Desktop</dt><dd>Chrome and Edge show an install icon in the address bar and the nudge reads "Install … on this computer". Handy for the back office and HQ.</dd>
       <dt>Dismissing</dt><dd>The X on a nudge hides it on that device for 30 days ("Not now" on a till: one day). An installed app never shows the nudge.</dd>
     </dl>
     <div class="footnotes"><ol>
-      <li>The install prompts and the three manifests (<span class="route">/manifest.webmanifest</span>, <span class="route">/pos/manifest.webmanifest</span>, <span class="route">/staff/manifest.webmanifest</span>) are part of the platform; the rules live in <code>src/lib/install.ts</code> and the component in <code>src/components/ui/install-prompt.tsx</code>. If a nudge doesn't appear on a device, the platform, the browser or a recent dismissal is the reason — not a fault.</li>
+      <li>The install prompts and the three manifests (<span class="route">/manifest.webmanifest</span>, <span class="route">/pos/manifest.webmanifest</span>, <span class="route">/staff/manifest.webmanifest</span>) are part of the platform; the rules live in <code>src/lib/install.ts</code> and the component in <code>src/components/ui/install-prompt.tsx</code>. If a nudge doesn't appear on a device, the platform, the browser or a recent dismissal is the reason, not a fault.</li>
     </ol></div>
   </div>
 </section>
@@ -257,18 +257,18 @@
     </div>
     <ol class="steps">
       <li>Confirm your <strong>mobile number</strong> with the code sent by SMS (chapter 2). A number that is already a member is simply signed in.</li>
-      <li><strong>First name</strong> (required) and an <strong>email</strong> for tax invoices (optional — invoices and receipts are emailed after every purchase if you give one; marketing email only if you also tick it).</li>
-      <li>Confirm you are 18 or older with your <strong>SA ID number</strong> — checked instantly (format, checksum, date of birth, 18+) and stored only as a secure fingerprint plus the last four digits — <em>or</em> choose <strong>Passport</strong> and enter your date of birth; passport holders show their document at a store on their first visit, and until then can't order age-restricted items online.</li>
+      <li><strong>First name</strong> (required) and an <strong>email</strong> for tax invoices (optional: invoices and receipts are emailed after every purchase if you give one; marketing email only if you also tick it).</li>
+      <li>Confirm you are 18 or older with your <strong>SA ID number</strong>, which is checked instantly (format, checksum, date of birth, 18+) and stored only as a secure fingerprint plus the last four digits. <em>Or</em> choose <strong>Passport</strong> and enter your date of birth; passport holders show their document at a store on their first visit, and until then can't order age-restricted items online.</li>
       <li>Choose your <strong>home store</strong> (where you usually collect; a store that is opening soon can be chosen too).</li>
-      <li><strong>News, drops &amp; offers</strong>: tick the channels you're happy to hear on — WhatsApp, SMS, email, app notifications. Nothing is ticked for you. The exact wording you saw is stored with your answer.</li>
+      <li><strong>News, drops &amp; offers</strong>: tick the channels you're happy to hear on: WhatsApp, SMS, email, app notifications. Nothing is ticked for you. The exact wording you saw is stored with your answer.</li>
       <li>Optionally say what you're into (CBD &amp; wellness, accessories, merch &amp; apparel, grow your own, events &amp; drops) so deals are relevant. Licensed medicines are never an interest.</li>
       <li>Read the <strong>key membership terms</strong> and accept the membership terms and privacy notice. Joining is refused without acceptance; the version you accepted (Version 1 · 27 September 2026) and the time are recorded on your membership.</li>
     </ol>
-    <p>You then have a member number (<code>HH0100001</code> style), a referral code, <strong>25 welcome points</strong>, and Seed prices from your first basket. Members can also be signed up at the till in about 20 seconds (chapter 4) or in the back office (chapter 5) — the same rules apply, and staff must ask the scripted consent question.</p>
+    <p>You then have a member number (<code>HH0100001</code> style), a referral code, <strong>25 welcome points</strong>, and Seed prices from your first basket. Members can also be signed up at the till in about 20 seconds (chapter 4) or in the back office (chapter 5). The same rules apply, and staff must ask the scripted consent question.</p>
     <div class="callout"><div class="lab">The key terms every member accepts</div>
       <ul>
         <li>We sell to members only, and only to adults (18+). Show your ID whenever we ask.</li>
-        <li>What you buy is for your own use. Don't resell it, pass it on or buy for someone else — that can be a crime, and it ends your membership.</li>
+        <li>What you buy is for your own use. Don't resell it, pass it on or buy for someone else: that can be a crime, and it ends your membership.</li>
         <li>Licensed cannabis medicines need your doctor's SAHPRA authorisation, within its limits. Membership alone never entitles you to them.</li>
         <li>Never drive or operate machinery while impaired.</li>
         <li>Points and member savings have no cash value and never apply to licensed medicines.</li>

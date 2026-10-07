@@ -1,17 +1,17 @@
-# Herbal Holland — commerce platform
+# Herbal Holland commerce platform
 
 **Dutch heritage. African soil.** One platform for a multi-owner cannabis & wellness retail network in South Africa,
 built to run ~1,000 franchise stores: point of sale with tap-on-glass cards, deep inventory control, stores buying and
 selling stock, finance and franchise settlement, the books (accounting for HQ and every franchisee), a single national
 e-commerce brand (click & collect, same-day and nationwide delivery), wholesale to trade customers, the Herbal Holland
-Rewards loyalty app, marketing (segments, campaigns, consent), an HQ console and a full reports centre —
-compliance-first by design.
+Rewards loyalty app, marketing (segments, campaigns, consent), an HQ console and a full reports centre, with
+compliance built into every part.
 
 | Surface | Route | For |
 |---|---|---|
 | Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club`, `/drops`, `/events/[slug]`, `/s/[ref]` (share cards) | Customers & patients |
-| Dispensary (licensed medicines) | `/dispensary` — visible only to signed-in patients with an active authorisation | Patients |
-| POS — offline-first, tap on glass | `/pos` | Member advisors & dispensers |
+| Dispensary (licensed medicines) | `/dispensary` (visible only to signed-in patients with an active authorisation) | Patients |
+| POS (offline-first, tap on glass) | `/pos` | Member advisors & dispensers |
 | Store back office | `/store/[code]` | Store managers & franchise owners |
 | HQ console | `/hq` | Head office & area managers |
 | The books (accounting per company) | `/books`, `/books/[companyId]` | Owners, their accountants, HQ finance |
@@ -31,7 +31,7 @@ npm run db:seed                   # demo network (24 stores, ~18k members, 60 da
 npm run dev                       # http://localhost:3000
 ```
 
-Demo access (`DEMO_MODE=true`) — `/login` has one-click logins; password `holland`:
+With `DEMO_MODE=true`, `/login` has one-click logins (password `holland`):
 
 | Role | Email |
 |---|---|
@@ -40,29 +40,29 @@ Demo access (`DEMO_MODE=true`) — `/login` has one-click logins; password `holl
 | Franchise owner (Hatfield + Brooklyn) | `thabo@mokoenaretail.co.za` |
 | Accountant (Mokoena Retail's books) | `books@mokoenaretail.co.za` |
 | Store manager / dispenser (Hatfield) | `manager.pta01@herbalholland.co.za` |
-| Trade buyer (Greenleaf Pharmacy, on account) | `trade@greenleafpharmacy.co.za` — trade portal, `/trade/login` (no password: a sign-in code, shown on screen in demo mode) |
+| Trade buyer (Greenleaf Pharmacy, on account) | `trade@greenleafpharmacy.co.za` on the trade portal, `/trade/login` (no password: a sign-in code, shown on screen in demo mode) |
 
 POS: open `/pos`, pair a store, then PIN `1111` (manager, dispenser), `2222` (dispenser), `3333`, `4444`.
-Shop: `/` — the OTP code is shown on screen in demo mode.
-Trade (wholesale): `/trade` — businesses apply at `/trade/apply`; the demo buyer above has an approved account on 30-day terms with orders, invoices and a statement.
+Shop: `/`. The sign-in code is shown on screen in demo mode.
+Trade (wholesale): `/trade`. Businesses apply at `/trade/apply`; the demo buyer above has an approved account on 30-day terms with orders, invoices and a statement.
 
 Scale test: `SEED_STORES=1000 SEED_DAYS=30 npm run db:seed`.
 
 ## Install the apps
 
-All three web apps install straight from the browser — no app store. Each has its own manifest and icon, the prompts
+All three web apps install straight from the browser, not from an app store. Each has its own manifest and icon, the prompts
 live in the app itself, and a dismissal is remembered on the device only (30 days; "Not now" on a till is a day).
 Nothing about installs is sent to the server. Rules: `src/lib/install.ts`; UI: `src/components/ui/install-prompt.tsx`.
 
 | App | Manifest | Where the nudge shows | Opens at |
 |---|---|---|---|
-| Herbal Holland Rewards (members) | `/manifest.webmanifest` | Rewards home (`/club`), and once on the shop home for signed-in members | `/club` — the card |
+| Herbal Holland Rewards (members) | `/manifest.webmanifest` | Rewards home (`/club`), and once on the shop home for signed-in members | `/club` (the card) |
 | Till | `/pos/manifest.webmanifest` | The pair screen (before pairing) and Shift → This till | `/pos`, full-screen; `/sw.js` keeps the shell offline |
 | Back office (store + HQ) | `/staff/manifest.webmanifest` | The mobile header, and "Install app" in the side menu | `/store` → each person's home by role |
 
 - **Android** (Chrome, Edge, Samsung Internet): tap **Install** on the nudge and the browser's own install sheet opens.
   It is also in the browser menu ("Install app" / "Add to Home screen").
-- **iPhone and iPad** (Safari only): the nudge shows the two steps — **Share**, then **Add to Home Screen**. Chrome,
+- **iPhone and iPad** (Safari only): the nudge shows the two steps: **Share**, then **Add to Home Screen**. Chrome,
   Firefox and in-app browsers (WhatsApp, Instagram…) on iOS can't add web apps, so nothing is shown there.
 - **Desktop** (Chrome, Edge): **Install** on the nudge, or the install icon at the right of the address bar. Firefox
   and Safari on desktop don't install web apps.

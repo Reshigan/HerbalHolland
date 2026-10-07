@@ -1,6 +1,6 @@
 // The trade portal's cart, pure: what the hh_trade_cart cookie holds ("<variantId>_<units>.<variantId>_<units>"),
-// kept in whole cases — the portal's steppers count cases and `caseQty` rounds every quantity up to a case
-// multiple — capped per line and per cart, plus the minimum-order arithmetic the cart bar shows. Prices never
+// kept in whole cases (the portal's steppers count cases and `caseQty` rounds every quantity up to a case
+// multiple) and capped per line and per cart, plus the minimum-order arithmetic the cart bar shows. Prices never
 // live here: the cart is re-quoted on the server (quote, channel WHOLESALE) every time it is shown.
 import { caseMultiple } from "./trade";
 

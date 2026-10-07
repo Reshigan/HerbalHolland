@@ -45,7 +45,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
     <>
       <p className="mt-8 text-sm text-ink-400">
         {TERMS_LABEL}. Written in plain language, as the Consumer Protection Act requires. Terms that limit your rights or put an obligation on you are in an{" "}
-        <b className="text-amber-100">Important</b> box — please read them before you accept.
+        <b className="text-amber-100">Important</b> box. Please read them before you accept.
       </p>
 
       <H2>The key terms</H2>
@@ -59,7 +59,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
 
       <H2>1. About these terms</H2>
       <P>
-        These terms are the agreement between you and {entity} (&ldquo;Herbal Holland&rdquo;, &ldquo;we&rdquo;) when you become a member, including Herbal Holland Rewards. You accept them when you join — online, in the Rewards app or at a till — and we keep a record of the version you accepted and when. Our{" "}
+        These terms are the agreement between you and {entity} (&ldquo;Herbal Holland&rdquo;, &ldquo;we&rdquo;) when you become a member, including Herbal Holland Rewards. You accept them when you join (online, in the Rewards app or at a till), and we keep a record of the version you accepted and when. Our{" "}
         <Link href="/legal/privacy" className="text-brand-400 underline">privacy notice</Link> explains how we handle your personal information, and the checkout shows anything that applies to a particular order.
       </P>
       <P>
@@ -88,7 +88,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
           <b>Adults only.</b> You must be {compliance.minAge} or older to join and to buy. You join with your own South African mobile number and either your SA ID number or, if you&apos;re not a South African citizen, a passport we&apos;ve seen. One membership per person.
         </p>
         <p>
-          <b>True, current details.</b> Keep your details up to date in Rewards → Settings. We may ask to see your ID at any time — at the till, on collection or on delivery — and we won&apos;t sell or hand over age-restricted products if we can&apos;t confirm your age.
+          <b>True, current details.</b> Keep your details up to date in Rewards → Settings. We may ask to see your ID at any time (at the till, on collection or on delivery), and we won&apos;t sell or hand over age-restricted products if we can&apos;t confirm your age.
         </p>
         <p>
           <b>Your card is personal.</b> Your membership and the QR code in the Rewards app are for you only. Don&apos;t let anyone else use them, and tell us straight away if you think someone has.
@@ -101,15 +101,15 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <H2>4. Buying from us</H2>
       <Important>
         <p>
-          <b>For your own use.</b> Everything you buy from us is for your own personal use. You may not resell it, give or supply it to anyone else, or buy it on someone else&apos;s behalf — and never for anyone under 18. Supplying cannabis to others can be a criminal offence under the Drugs and Drug Trafficking Act 140 of 1992 (and, once it commences, the Cannabis for Private Purposes Act 7 of 2024). We end the membership of anyone who does it.
+          <b>For your own use.</b> Everything you buy from us is for your own personal use. You may not resell it, give or supply it to anyone else, or buy it on someone else&apos;s behalf, and never for anyone under 18. Supplying cannabis to others can be a criminal offence under the Drugs and Drug Trafficking Act 140 of 1992 (and, once it commences, the Cannabis for Private Purposes Act 7 of 2024). We end the membership of anyone who does it.
         </p>
       </Important>
       <P>
-        <b className="text-white">What we sell.</b> Schedule 0 CBD products within their legal limits (no more than 600 mg of CBD per pack and 20 mg a day, with low-risk claims only), hemp products, accessories, apparel and grow equipment. We don&apos;t make medical claims, and nothing we say — in store, online or in Learn — is medical advice.
+        <b className="text-white">What we sell.</b> Schedule 0 CBD products within their legal limits (no more than 600 mg of CBD per pack and 20 mg a day, with low-risk claims only), hemp products, accessories, apparel and grow equipment. We don&apos;t make medical claims, and nothing we say (in store, online or in Learn) is medical advice.
       </P>
       <Important>
         <p>
-          <b>Licensed cannabis medicines.</b> Products containing THC are medicines under the Medicines and Related Substances Act 101 of 1965. We supply them only to members who are registered patients — with a valid authorisation issued by SAHPRA under section 21 of that Act on file, within its monthly quantity — and they&apos;re handed over in store by an authorised dispenser. Membership alone never entitles you to them, and a dispenser may refuse to dispense. They carry no promotions, discounts, member prices or points (section 18A of that Act).
+          <b>Licensed cannabis medicines.</b> Products containing THC are medicines under the Medicines and Related Substances Act 101 of 1965. We supply them only to members who are registered patients (with a valid authorisation issued by SAHPRA under section 21 of that Act on file, within its monthly quantity), and they&apos;re handed over in store by an authorised dispenser. Membership alone never entitles you to them, and a dispenser may refuse to dispense. They carry no promotions, discounts, member prices or points (section 18A of that Act).
         </p>
       </Important>
       <P>
@@ -128,7 +128,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <H2>5. Cooling-off, returns and refunds</H2>
       <List
         items={[
-          "Online orders (ECTA s44): you may cancel within 7 days after you receive the goods, without a reason and without penalty. You pay only the direct cost of returning them, and we refund you within 30 days. This doesn't apply where ECTA s42 excludes it — for example goods that by their nature can't be returned or will deteriorate quickly, such as opened consumables.",
+          "Online orders (ECTA s44): you may cancel within 7 days after you receive the goods, without a reason and without penalty. You pay only the direct cost of returning them, and we refund you within 30 days. This doesn't apply where ECTA s42 excludes it, for example goods that by their nature can't be returned or will deteriorate quickly, such as opened consumables.",
           "After direct marketing (CPA s16): if you bought because we approached you directly, you may cancel in writing within 5 business days.",
           "Faulty goods (CPA s56): within 6 months after delivery you may return goods that are defective, unsafe or not fit for their purpose, and choose a repair, a replacement or a refund.",
           "Change of mind in store: unopened, non-consumable items within 7 days, with proof of purchase.",
@@ -141,12 +141,12 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <P>Rewards is our loyalty programme (CPA s35). It&apos;s free and comes with your membership.</P>
       <List
         items={[
-          `Instant member savings: your tier takes a percentage off eligible items at the till and online — ${TIERS.map((t) => `${t.name} ${l.tierSavingsPct[t.key]}%`).join(", ")}. Your tier follows what you've spent over the last 12 months.`,
+          `Instant member savings: your tier takes a percentage off eligible items at the till and online (${TIERS.map((t) => `${t.name} ${l.tierSavingsPct[t.key]}%`).join(", ")}). Your tier follows what you've spent over the last 12 months.`,
           `Points: ${l.earnPer100} points for every R100 you pay on eligible items. Each point is worth R1 when you use it, from ${l.minRedeem} points and for up to ${l.maxRedeemPct}% of an eligible basket.`,
           "Never on medicines: licensed medicines earn no points, get no member savings and can't be paid for with points (Medicines Act s18A).",
           `Bonuses: ${l.signupBonus} points when you join, ${l.birthdayBonus} in your birthday month, and ${l.referralBonus} each for you and a friend you refer, after their first purchase.`,
           "Points and savings have no cash value, can't be transferred or sold, and are taken back if a purchase is refunded.",
-          "My Deals: personal offers based on what you buy, only while you allow it — switch them off any time in Rewards → Settings.",
+          "My Deals: personal offers based on what you buy, only while you allow it. Switch them off any time in Rewards → Settings.",
           "Changes: we'll give you at least 20 business days' notice before any change that reduces the value of your points or savings. If we end Rewards, you'll have at least 3 months to use your points.",
         ]}
       />
@@ -164,12 +164,12 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <H2>8. Using products responsibly and within the law</H2>
       <Important>
         <p>Never drive or operate machinery while impaired. Driving under the influence of a drug with a narcotic effect is an offence under section 65 of the National Road Traffic Act 93 of 1996.</p>
-        <p>Read the label and follow your doctor&apos;s or pharmacist&apos;s advice. Keep products away from children and pets. Don&apos;t consume where it isn&apos;t allowed, and don&apos;t take products across borders — they may be illegal elsewhere.</p>
+        <p>Read the label and follow your doctor&apos;s or pharmacist&apos;s advice. Keep products away from children and pets. Don&apos;t consume where it isn&apos;t allowed, and don&apos;t take products across borders: they may be illegal elsewhere.</p>
       </Important>
 
       <H2>9. Recalls and safety messages</H2>
       <P>
-        Every batch is traceable to the members who bought it, so we&apos;ll contact you by SMS or email about a recall, a safety notice or your orders — even if you haven&apos;t opted in to marketing. These messages are never marketing.
+        Every batch is traceable to the members who bought it, so we&apos;ll contact you by SMS or email about a recall, a safety notice or your orders, even if you haven&apos;t opted in to marketing. These messages are never marketing.
       </P>
 
       <H2>10. Your personal information and our messages</H2>
@@ -192,7 +192,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
         </p>
         <p>Nothing in these terms limits your rights under the CPA, including the implied warranty of quality (s56) and liability for harm caused by unsafe or defective goods (s61).</p>
       </Important>
-      <P>If something beyond our reasonable control — power or network outages, strikes, disasters or a change in the law — stops us supplying an order, we&apos;ll tell you as soon as we can and you may cancel for a full refund.</P>
+      <P>If something beyond our reasonable control (power or network outages, strikes, disasters or a change in the law) stops us supplying an order, we&apos;ll tell you as soon as we can and you may cancel for a full refund.</P>
 
       <H2>13. Complaints</H2>
       <List

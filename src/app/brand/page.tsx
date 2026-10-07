@@ -1,4 +1,4 @@
-// Herbal Holland brand book — internal reference for the team, franchisees and agencies.
+// Herbal Holland brand book: internal reference for the team, franchisees and agencies.
 import type { Metadata } from "next";
 import { Check, X } from "lucide-react";
 import { Lockup, Logo, Mark, Wordmark } from "@/components/brand/logo";

@@ -57,7 +57,7 @@
 
 ## 1. Tap-on-glass / SoftPOS
 
-### Provider landscape
+### Providers
 
 | Provider | How a POS connects | Certification | Fees (excl. VAT) and payouts | Can a third-party POS trigger it and get the result? |
 |---|---|---|---|---|

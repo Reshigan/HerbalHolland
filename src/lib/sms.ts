@@ -50,7 +50,7 @@ export const gsmSafe = (s: string) =>
 /** A short link: the app's URL without the scheme (kept for http, which phones won't link without it). */
 export const shortLink = (appUrl: string, path: string) => `${appUrl.replace(/^https:\/\//, "").replace(/\/$/, "")}${path}`;
 
-/** "Herbal Holland: …" — the sender name convention on every transactional text. */
+/** The sender name convention on every transactional text: "Herbal Holland: …". */
 export const sms = (body: string) => gsmSafe(`${SMS_BRAND}: ${body}`);
 
 export type OrderSmsEvent = "placed" | "ready" | "dispatched" | "delivered" | "collected" | "cancelled";

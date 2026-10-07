@@ -27,7 +27,7 @@ export function segmentOf(c: RfmStats, now = new Date()): SegmentKey {
 }
 
 // ── Interests: asked when someone joins, so deals are relevant from the first message ─────────────────────────────
-// Never licensed medicines — those can't be marketed (Medicines Act s18A/s20).
+// Never licensed medicines: those can't be marketed (Medicines Act s18A/s20).
 export const INTERESTS = { CBD: "CBD & wellness", ACCESSORY: "Accessories", APPAREL: "Merch & apparel", GROW: "Grow your own", EVENTS: "Events & drops" } as const;
 export type InterestKey = keyof typeof INTERESTS;
 export const interestsFrom = (raw: unknown[]) => [...new Set(raw.map(String).filter((k): k is InterestKey => Object.hasOwn(INTERESTS, k)))];

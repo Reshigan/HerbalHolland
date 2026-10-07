@@ -1,4 +1,4 @@
-# Herbal Holland — production image (Next.js standalone output).
+# Herbal Holland: the production image (Next.js standalone output).
 FROM node:22-bookworm-slim AS base
 # OpenSSL: Prisma's migration engine needs libssl, and Apple Wallet passes are signed with the openssl command.
 RUN apt-get update && apt-get install -y --no-install-recommends openssl && rm -rf /var/lib/apt/lists/*

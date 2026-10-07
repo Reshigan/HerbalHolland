@@ -3,7 +3,7 @@
 // date it is as of `now`. Pure, so the Trade aged balances report and its test share one definition.
 //
 // Buckets, as the HQ trade screens show them: current (not yet due) · 30 days (1–30 past due) · 60 days (31–60) ·
-// 90+ days (more than 60 past due — on 30-day terms, an invoice at least 90 days old). Unapplied credit (an overpayment,
+// 90+ days (more than 60 past due: on 30-day terms, an invoice at least 90 days old). Unapplied credit (an overpayment,
 // or a credit note bigger than what is open) is a credit balance: it shows as negative `current`, so `total` always
 // equals the ledger balance (the sum of the entries).
 import { dayKey } from "./format";
