@@ -18,6 +18,12 @@ export const site = {
   year: 2026,
 };
 
+/** Speculation rules: a page on this site is prerendered as its link is hovered or pressed, so it opens at once (Chrome
+ *  and Edge; other browsers ignore them). Files (a path with a dot) are left alone. Allowed by its hash in the CSP. */
+export const SPECULATION = JSON.stringify({
+  prerender: [{ where: { and: [{ href_matches: "/*" }, { not: { href_matches: "/*.*" } }] }, eagerness: "moderate" }],
+});
+
 export type Crumb = { label: string; path: string };
 export type Meta = { path: string; title: string; description: string; absolute?: boolean; noindex?: boolean; crumbs?: readonly Crumb[] };
 
@@ -356,6 +362,7 @@ export function Page({ page, nav = page, meta, stage, jsonLd, free, children }: 
             script, the noscript link loads the stylesheet the plain way. */}
         <style dangerouslySetInnerHTML={{ __html: site.critical }} />
         <script data-boot="" data-css={site.assets.css} data-js={site.assets.js} dangerouslySetInnerHTML={{ __html: site.boot }} />
+        <script type="speculationrules" dangerouslySetInnerHTML={{ __html: SPECULATION }} />
         <noscript>
           <link rel="stylesheet" href={site.assets.css} />
         </noscript>
