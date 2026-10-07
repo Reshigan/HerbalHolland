@@ -47,7 +47,7 @@ describe("the till", () => {
     expect(voucherCodeFrom("HH-K7PM-3QXR-9ZAB")).toBe("HH-K7PM-3QXR-9ZAB");
     expect(voucherCodeFrom("hh k7pm 3qxr 9zab")).toBe("HH-K7PM-3QXR-9ZAB");
     expect(voucherCodeFrom(" HHK7PM3QXR9ZAB ")).toBe("HH-K7PM-3QXR-9ZAB");
-    expect(voucherCodeFrom("https://herbalholland.co.za/gift?check=HH-K7PM-3QXR-9ZAB")).toBe("HH-K7PM-3QXR-9ZAB"); // the balance-check link's QR
+    expect(voucherCodeFrom("https://shop.herbalholland.com/gift?check=HH-K7PM-3QXR-9ZAB")).toBe("HH-K7PM-3QXR-9ZAB"); // the balance-check link's QR
     expect(voucherCodeFrom("HH0000123")).toBeNull(); // a member number
     expect(voucherCodeFrom("6001234567890")).toBeNull(); // a barcode
     expect(voucherCodeFrom("HHORDER:ABC123:123456")).toBeNull(); // an order QR

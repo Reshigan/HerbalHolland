@@ -120,7 +120,7 @@ makes creating a payment idempotent.
      with Peach support's help.
 
 **Webhook URL to register:** `https://<APP_URL host>/api/payments/peach` (for example
-`https://herbalholland.co.za/api/payments/peach`). In the Peach Dashboard: **Peach Orchestration** → Webhooks → **+ Add
+`https://shop.herbalholland.com/api/payments/peach`). In the Peach Dashboard: **Peach Orchestration** → Webhooks → **+ Add
 webhook URL**. Or use the business profile API's `webhook_details`, with payment succeeded / failed and refund
 succeeded / failed switched on.
 
@@ -207,7 +207,7 @@ checkout id.
    (`payment.refund_failed` in the audit log). Partial refunds: in the Yoco portal. Test keys: Yoco can't refund test
    payments, so the refund call is skipped (noted on the order).
 
-**Webhook URL to register:** `https://<APP_URL host>/api/payments/yoco` (e.g. `https://herbalholland.co.za/api/payments/yoco`).
+**Webhook URL to register:** `https://<APP_URL host>/api/payments/yoco` (e.g. `https://shop.herbalholland.com/api/payments/yoco`).
 Register it once per mode with that mode's secret key: `POST https://payments.yoco.com/api/webhooks` with
 `{ "name": "herbal-holland", "url": "…/api/payments/yoco" }`. The response's `secret` (`whsec_…`) is shown **once**:
 it's `YOCO_WEBHOOK_SECRET`. Yoco allows 5 webhooks per account; `GET /api/webhooks` lists them.
@@ -363,21 +363,25 @@ with their mobile or email.
 
 **Setting up Postiz:**
 
-1. Run Postiz with its Docker Compose file on the server, behind HTTPS on its own subdomain (e.g.
-   `https://social.herbalholland.co.za`): it brings PostgreSQL, Redis and Temporal (with Temporal's own PostgreSQL and
-   Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory. Set `API_LIMIT=500` in its environment: the
-   default (30 public API calls an hour) is less than a launch day needs (an upload and a post per card, and the
-   read-back every 15 minutes).
+1. Run Postiz on the shop's server from `deploy/postiz` (Postiz's own Docker Compose file, listening on 127.0.0.1:5000
+   only, with `API_LIMIT=500`: the default 30 public API calls an hour is less than a launch day needs, an upload and
+   a post per card and the read-back every 15 minutes). It brings PostgreSQL, Redis and Temporal (with Temporal's own
+   PostgreSQL and Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory.
+   `cd deploy/postiz && cp .env.example .env`, fill in the three secrets (`openssl rand -hex 32` each), then
+   `docker compose up -d`, and route `social.herbalholland.com` → `http://localhost:5000` in the Cloudflare tunnel.
+   Create HQ's Postiz account, then set `DISABLE_REGISTRATION="true"` in `.env` and `docker compose up -d` again so
+   nobody else can sign up. The Studio holds every post, so Postiz needs no backup beyond its connected accounts.
 2. Connect the accounts, all set to adults 18+:
    - **Facebook, Instagram (a professional account) and Threads**: one Meta developer app owned by HQ, with the
      marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
-     Review is needed. Its keys go in Postiz's environment (Postiz docs → Providers).
-   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin.
+     Review is needed. Its keys go in `deploy/postiz/.env` (Postiz docs → Providers).
+   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin (its name and
+     token in `deploy/postiz/.env`).
    - **LinkedIn page**: the Community Management API needs LinkedIn's approval. Until then, mark each LinkedIn-only
      post **I'll post it by hand** (or it fails at its time) and post the LinkedIn-too ones on LinkedIn by hand as well.
    - **X** charges for API posts ($0.015 a post, $0.20 with a link), so it's left to by-hand posting.
    - TikTok, Pinterest and YouTube keep API posts private until an audit, and TikTok bans cannabis content: not used.
-3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.co.za/api/public/v1`;
+3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.com/api/public/v1`;
    Postiz cloud: `https://api.postiz.com/public/v1`) and `POSTIZ_API_KEY`.
 4. For the Social page's pictures only, `APP_URL` must be public HTTPS (Postiz fetches `${APP_URL}/social/<picture>.jpg`).
    Studio cards are uploaded with the post.

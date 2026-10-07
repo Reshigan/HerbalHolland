@@ -6,7 +6,7 @@ export const HQ_COMPANY = {
   regNumber: "2024/481516/07",
   vatNumber: "4870123456",
   contactName: "Naledi Khumalo",
-  email: "hello@herbalholland.co.za",
+  email: "hello@herbalholland.com",
   phone: "012 004 4200",
   address: "Herbal Holland House, 1 Windmill Lane, Irene, Centurion, 0157",
 };

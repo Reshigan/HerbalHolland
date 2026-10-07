@@ -111,12 +111,12 @@ describe("Yoco events → orders", () => {
   });
 
   it("asks Yoco for the amount due, in ZAR, and brings the member back to their order page", () => {
-    expect(yocoCheckoutRequest({ id: "ord_1", code: "K7P2QD", dueCents: 64_500 }, "https://herbalholland.co.za/")).toEqual({
+    expect(yocoCheckoutRequest({ id: "ord_1", code: "K7P2QD", dueCents: 64_500 }, "https://shop.herbalholland.com/")).toEqual({
       amount: 64_500,
       currency: "ZAR",
-      successUrl: "https://herbalholland.co.za/orders/K7P2QD?pay=success",
-      cancelUrl: "https://herbalholland.co.za/orders/K7P2QD?pay=cancelled",
-      failureUrl: "https://herbalholland.co.za/orders/K7P2QD?pay=failed",
+      successUrl: "https://shop.herbalholland.com/orders/K7P2QD?pay=success",
+      cancelUrl: "https://shop.herbalholland.com/orders/K7P2QD?pay=cancelled",
+      failureUrl: "https://shop.herbalholland.com/orders/K7P2QD?pay=failed",
       metadata: { orderId: "ord_1", orderCode: "K7P2QD" },
       externalId: "K7P2QD",
     });

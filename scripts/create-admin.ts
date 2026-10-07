@@ -2,7 +2,7 @@
 // first sign-in, as HQ → Team does. Creates the franchisor company when there is none yet (--company sets its legal
 // name; the rest is filled in on a store it owns, the distribution centre: HQ → Stores → the DC → Owner). Everyone
 // after that is added from HQ → Team.
-//   DATABASE_URL=postgresql://… npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"
+//   DATABASE_URL=postgresql://… npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"
 import "dotenv/config";
 import { parseArgs } from "node:util";
 import { db } from "@/server/db";
@@ -16,7 +16,7 @@ const email = values.email?.trim().toLowerCase() ?? "";
 const name = values.name?.trim().replace(/\s+/g, " ") ?? "";
 
 async function main() {
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length < 2) throw new Error('Usage: scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"');
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length < 2) throw new Error('Usage: scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"');
   if (await db.user.count({ where: { email } })) throw new Error(`${email} already has an account. Reset its password from HQ → Team instead.`);
   const legalName = values.company!.trim();
   const hq =

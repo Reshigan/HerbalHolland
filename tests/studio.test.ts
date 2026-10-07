@@ -141,7 +141,7 @@ describe("the playbooks", () => {
     while (out.length < 6) out.push(firstDayT(p, next(out.at(-1)!)));
     return out;
   };
-  const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://herbalholland.co.za/p/rest-body-balm?src=studio" };
+  const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://shop.herbalholland.com/p/rest-body-balm?src=studio" };
   const fieldsFor = (p: Playbook, anchor: string): Fields => ({ ...(p.store && { ...F, towns: "Hillcrest and Hilton" }), ...(p.product && PRODUCT), date: longDate(anchor) });
   const sast = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(d);
   const dow = (d: Date) => new Date(`${sast(d)}T12:00:00Z`).getUTCDay();

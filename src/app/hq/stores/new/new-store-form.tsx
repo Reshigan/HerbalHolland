@@ -101,7 +101,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
               <Input id="phone" name="phone" type="tel" />
             </Field>
             <Field label="Store email" htmlFor="email">
-              <Input id="email" name="email" type="email" placeholder="lynnwood@herbalholland.co.za" />
+              <Input id="email" name="email" type="email" placeholder="lynnwood@herbalholland.com" />
               <FieldError name="email" />
             </Field>
           </CardBody>

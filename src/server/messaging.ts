@@ -39,7 +39,7 @@ export const validOptOut = (customerId: string, channel: string, token: string) 
 
 const optOutQuery = (customerId: string, channel: MsgChannel) => `c=${customerId}&ch=${channel}&t=${optOutToken(customerId, channel)}`;
 
-/** A short, tappable link into the app for texts: herbalholland.co.za/orders/X7K2P9. */
+/** A short, tappable link into the app for texts: shop.herbalholland.com/orders/X7K2P9. */
 export const smsLink = (path: string) => shortLink(APP_URL(), path);
 
 // ── Providers ──────────────────────────────────────────────────────────────────

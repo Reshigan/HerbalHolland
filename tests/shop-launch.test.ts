@@ -76,11 +76,11 @@ describe("waitlist card", () => {
 describe("calendar file", () => {
   it("writes a valid, escaped, folded VEVENT", () => {
     const ics = icsEvent({
-      uid: "evt-1@herbalholland.co.za",
+      uid: "evt-1@herbalholland.com",
       title: "Members' evening: heritage landraces",
       description: "Tastings, talks; and the growers — adults 18+.\nBring your ID.",
       location: "Herbal Holland Hatfield, 1 Burnett St, Hatfield, Pretoria",
-      url: "https://herbalholland.co.za/events/hatfield-members-evening",
+      url: "https://shop.herbalholland.com/events/hatfield-members-evening",
       startsAt: new Date("2026-10-01T16:00:00Z"),
       endsAt: new Date("2026-10-01T18:30:00Z"),
       stamp: new Date("2026-09-27T10:00:00Z"),

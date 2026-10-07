@@ -135,7 +135,7 @@
   </div>
   <div class="body">
     <h2>Addresses</h2>
-    <p>The application lives at one public address (<code>APP_URL</code>: in production the shop's domain, for example <span class="route">https://shop.herbalholland.com</span> or <span class="route">https://herbalholland.co.za</span>; locally <span class="route">http://localhost:3000</span>). Everything below is a path on that address.</p>
+    <p>The application lives at one public address (<code>APP_URL</code>: in production <span class="route">https://shop.herbalholland.com</span>, which herbalholland.co.za redirects to; locally <span class="route">http://localhost:3000</span>). Everything below is a path on that address.</p>
     <table class="compact">
       <thead><tr><th>You want to…</th><th>Go to</th></tr></thead>
       <tbody>
@@ -378,7 +378,7 @@
       <thead><tr><th>Status</th><th>Meaning</th><th>Member hears</th></tr></thead>
       <tbody>
         <tr><td class="k">Awaiting payment</td><td>Placed with pay-online; stock reserved for the payment window</td><td>—</td></tr>
-        <tr><td class="k">Order placed</td><td>Paid (or pay-in-store); sent to the fulfilling store or DC</td><td>SMS "order received … Track: /orders/CODE"</td></tr>
+        <tr><td class="k">Order placed</td><td>Paid (or pay-in-store); sent to the fulfilling store or DC</td><td>SMS "order received … /orders/CODE"</td></tr>
         <tr><td class="k">Being packed</td><td>Picking from the batches shown, first expiry first out ("Being made" for merch)</td><td>—</td></tr>
         <tr><td class="k">Ready for collection / Packed and ready</td><td>On the counter or the packing bench</td><td>Collections: SMS with the collection code and "bring your ID"</td></tr>
         <tr><td class="k">Out for delivery</td><td>Dispatched with a courier or driver and a tracking number</td><td>SMS with the tracking number ("have your ID ready")</td></tr>
@@ -1847,7 +1847,7 @@
     <h2>HQ: statements and payments</h2>
     <p>The franchise statement settles through the books. On <strong>HQ › Statements</strong>, a store's statement shows <strong>Payments</strong> (<strong>Statement</strong>, <strong>Paid</strong> and <strong>Outstanding</strong>), and an HQ admin records each one as it arrives: <strong>Who paid</strong> (the store paid HQ, or HQ paid the store), <strong>Amount (R)</strong>, <strong>Paid on</strong>, <strong>Bank reference</strong>, a note; <strong>Record payment</strong>. It posts in both companies' books within 15 minutes. A payment recorded by mistake is deleted, and its postings are reversed. The owner sees the same payments, read-only, on the store's statement.</p>
     <figure><img src="images/hq-statement-payments.jpg" alt="Recording a statement payment"><figcaption>A store's statement in HQ with its <b>Payments</b>: what's outstanding, and <b>Record payment</b>.</figcaption></figure>
-    <div class="callout note"><div class="lab">In the demo</div><p>Every company's books are posted from the seeded history, as the nightly job would have: HQ opened with the points members held at the cut-over; each franchisee with R350,000 in the bank, and its FNB statement imported (deposits, takings and statement payments matched, card payouts allocated net of fees, the last two days and an insurance debit order still to do). August's statements are paid (Umhlanga paid part). Mokoena Retail has an accountant, Priya Naidoo (<code>books@mokoenaretail.co.za</code>), and HQ has one too (<code>accounts@herbalholland.co.za</code>).</p></div>
+    <div class="callout note"><div class="lab">In the demo</div><p>Every company's books are posted from the seeded history, as the nightly job would have: HQ opened with the points members held at the cut-over; each franchisee with R350,000 in the bank, and its FNB statement imported (deposits, takings and statement payments matched, card payouts allocated net of fees, the last two days and an insurance debit order still to do). August's statements are paid (Umhlanga paid part). Mokoena Retail has an accountant, Priya Naidoo (<code>books@mokoenaretail.co.za</code>), and HQ has one too (<code>accounts@herbalholland.com</code>).</p></div>
   </div>
 </section>
 
@@ -1866,16 +1866,16 @@
     <table class="compact">
       <thead><tr><th>Role</th><th>Email</th><th>Lands on</th></tr></thead>
       <tbody>
-        <tr><td class="k">HQ administrator</td><td>hq@herbalholland.co.za</td><td>HQ console (network, catalogue, marketing, compliance)</td></tr>
-        <tr><td class="k">Area manager</td><td>area.gpn@herbalholland.co.za</td><td>HQ console, Tshwane &amp; North region</td></tr>
+        <tr><td class="k">HQ administrator</td><td>hq@herbalholland.com</td><td>HQ console (network, catalogue, marketing, compliance)</td></tr>
+        <tr><td class="k">Area manager</td><td>area.gpn@herbalholland.com</td><td>HQ console, Tshwane &amp; North region</td></tr>
         <tr><td class="k">Franchise owner</td><td>thabo@mokoenaretail.co.za</td><td>All my stores: Mokoena Retail (Hatfield and Brooklyn)</td></tr>
         <tr><td class="k">Accountant (Mokoena Retail)</td><td>books@mokoenaretail.co.za</td><td>Mokoena Retail's books</td></tr>
-        <tr><td class="k">Accountant (HQ)</td><td>accounts@herbalholland.co.za</td><td>Herbal Holland's books</td></tr>
-        <tr><td class="k">Store manager (and responsible dispenser)</td><td>manager.pta01@herbalholland.co.za</td><td>Hatfield's back office</td></tr>
+        <tr><td class="k">Accountant (HQ)</td><td>accounts@herbalholland.com</td><td>Herbal Holland's books</td></tr>
+        <tr><td class="k">Store manager (and responsible dispenser)</td><td>manager.pta01@herbalholland.com</td><td>Hatfield's back office</td></tr>
         <tr><td class="k">Trade buyer (owner of Greenleaf Pharmacy, TA-000001, on account)</td><td>trade@greenleafpharmacy.co.za</td><td>The trade portal, with no password: the 6-digit code is shown on screen in demo mode (<span class="route">/trade/login</span>)</td></tr>
       </tbody>
     </table>
-    <p>Till: open <span class="route">/pos</span>, use one-click pairing to a store, then PIN <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> or <code>4444</code> (cashiers). Shop: <span class="route">/</span>, where the SMS code is shown on screen. Direct sign-in: <span class="route">/api/auth/demo?email=hq@herbalholland.co.za&amp;next=/hq</span>. Reseed the demo with <code>npm run db:seed</code> (it truncates every table; <code>SEED_STORES=1000 SEED_DAYS=30</code> makes a production-sized copy for load tests).</p>
+    <p>Till: open <span class="route">/pos</span>, use one-click pairing to a store, then PIN <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> or <code>4444</code> (cashiers). Shop: <span class="route">/</span>, where the SMS code is shown on screen. Direct sign-in: <span class="route">/api/auth/demo?email=hq@herbalholland.com&amp;next=/hq</span>. Reseed the demo with <code>npm run db:seed</code> (it truncates every table; <code>SEED_STORES=1000 SEED_DAYS=30</code> makes a production-sized copy for load tests).</p>
 
     <h2>The catalogue import columns</h2>
     <p>HQ › Catalogue › Import › <strong>Download the template</strong>. One row per variant; rows with the same product name are one product. Column names are matched loosely (aliases in brackets); values are checked against the class's rules before anything is written.</p>

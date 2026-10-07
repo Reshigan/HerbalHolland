@@ -25,8 +25,13 @@ reports) and Postgres can't live on Cloudflare.
    `DATABASE_URL=postgresql://…@127.0.0.1:5432/…` with a generated password. Never publish Postgres or the app on a
    public interface: Docker's port rules bypass the host firewall. `docker-compose.prod.yml` uses the server's own
    network, so the app listens on 127.0.0.1:3000 and reaches Postgres at 127.0.0.1; the plain `docker-compose.yml` is
-   a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: proxied DNS
-   record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
+   a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: the shop at
+   `shop.herbalholland.com` (`APP_URL=https://shop.herbalholland.com`), a proxied record for the tunnel, SSL "Full
+   (strict)", WAF managed rules on, a cache rule for `/_next/static/*`; Postiz at `social.herbalholland.com` through the
+   same tunnel (`deploy/postiz`, [INTEGRATIONS.md](INTEGRATIONS.md)). Both are only ever served over HTTPS:
+   herbalholland.com's HSTS covers its subdomains. herbalholland.co.za (and www) is a Cloudflare zone whose redirect
+   rule sends every request to `https://shop.herbalholland.com` with its path and query (301), so anything printed or
+   shared with .co.za still lands in the right place.
    herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
    (`sites/herbalholland.com`: static pages plus `/api/early-access`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
    up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
@@ -62,7 +67,7 @@ reports) and Postgres can't live on Cloudflare.
 4. Start the app: `docker compose -f docker-compose.prod.yml up -d app` (restarts with the server; behind the
    tunnel). `GET /api/health` is the liveness check (the container's own health check uses it); it should answer 200
    and the log shows no `[config]` warnings you didn't expect.
-5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"`
+5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"`
    (the franchisor company too, if there's none yet). It prints a temporary password once; they choose their own at
    first sign-in, and everyone after them is added from HQ → Team. `--company "…(Pty) Ltd"` sets the franchisor's
    legal name; its other details (registration and VAT numbers, address, phone, email, directors) are edited on a
@@ -114,7 +119,7 @@ the approval.
      Capitec Pay or ZeroPay. The app refunds a paid order before cancelling it, so an unrefundable order can't be
      cancelled in the app.
    - Webhook: Dashboard → Peach Orchestration → Webhooks → **+ Add webhook URL** →
-     `https://herbalholland.co.za/api/payments/peach` (payment succeeded / failed, refund succeeded / failed).
+     `https://shop.herbalholland.com/api/payments/peach` (payment succeeded / failed, refund succeeded / failed).
    - Cloudflare: a WAF custom rule that skips bot protection and challenges for `POST /api/payments/peach` (the route
      checks Peach's signature itself). A challenged webhook never lands.
    - Restart the app.
@@ -155,7 +160,7 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
      `ONLINE_GATEWAY=YOCO`. `APP_URL` must be the public HTTPS address (Yoco sends members back to it).
    - Register the webhook with the same test key and keep the `secret` it returns (shown once) as
      `YOCO_WEBHOOK_SECRET`, then restart the app:
-     `curl -X POST https://payments.yoco.com/api/webhooks -H "Authorization: Bearer $YOCO_SECRET_KEY" -H "Content-Type: application/json" -d '{"name":"herbal-holland","url":"https://herbalholland.co.za/api/payments/yoco"}'`
+     `curl -X POST https://payments.yoco.com/api/webhooks -H "Authorization: Bearer $YOCO_SECRET_KEY" -H "Content-Type: application/json" -d '{"name":"herbal-holland","url":"https://shop.herbalholland.com/api/payments/yoco"}'`
    - Cloudflare: a WAF custom rule that skips bot protection and challenges for `POST /api/payments/yoco` (the route
      checks Yoco's signature itself). A challenged webhook never lands.
    - Walk through it with Yoco's test card (same Yoco page): a courier order → Yoco's page → paid → the order page says
@@ -197,6 +202,11 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
   `e2e/crawl.mjs` and the e2e journeys against a production-sized copy before big releases.
 
 ## Launch day
+
+**The day the online shop opens** (Tuesday 27 October 2026), before its first posts at 07:00: set `shop.url` in
+`sites/herbalholland.com/facts.ts` to `"https://shop.herbalholland.com"` and merge it to main. The site deploys itself
+in about a minute, and its "Shop online", "Join Rewards" and store-finder doors lead to the shop instead of the
+first-access sign-up.
 
 1. HQ → Founding Members: confirm when the list closes (SAST). The shop trades normally while it's open. Stores
    that haven't opened are **opening soon** (HQ → Stores; members can pick them as home store) and switch to

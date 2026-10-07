@@ -170,14 +170,14 @@ export const LAUNCH: Playbook[] = [
       },
       {
         key: "first-access-sms", day: 0, time: "09:00", channel: "SMS", pinned: true, audience: "early-access",
-        text: "Hi {{firstName}}, Herbal Holland's online shop is open: herbalholland.co.za. Join free and claim your Founding place. We courier SA-wide, to you only (ID may be asked). This is the one message we promised; we're deleting your sign-up now. Adults 18+.",
+        text: "Hi {{firstName}}, Herbal Holland's online shop is open: shop.herbalholland.com. Join free and claim your Founding place. We courier SA-wide, to you only (ID may be asked). This is the one message we promised; we're deleting your sign-up now. Adults 18+.",
       },
       {
         key: "first-access-email", day: 0, time: "09:05", channel: "EMAIL", pinned: true, audience: "early-access",
         title: "You asked us to tell you: our online shop is open",
         text: paras(
           "Hi {{firstName}},",
-          "You asked herbalholland.com to tell you the day our online shop opened. It's open, at herbalholland.co.za, for adults 18+ anywhere in South Africa.",
+          "You asked herbalholland.com to tell you the day our online shop opened. It's open, at shop.herbalholland.com, for adults 18+ anywhere in South Africa.",
           "Herbal Holland is members only, and joining Herbal Holland Rewards is free. It takes about a minute: confirm your mobile number with a one-time code, then add your SA ID number or your passport date of birth, because we're for adults 18+.",
           "Joining gives you a place on the Founding Members list. The first 2,026 places get a numbered Founding Member card in the Rewards app and at least Sprout tier for 14 months, with Sprout-tier savings on eligible items and early access to selected drops. Every friend who joins with your link moves you up 250 places.",
           "Delivery, in one line: we courier to a street address anywhere in South Africa and hand the parcel only to the member named on the order, who may be asked for ID.",
@@ -190,7 +190,7 @@ export const LAUNCH: Playbook[] = [
         title: "Our online shop is open",
         text: paras(
           "Hi {{firstName}},",
-          "Our online shop opens today at herbalholland.co.za, for adults 18+ anywhere in South Africa.",
+          "Our online shop opens today at shop.herbalholland.com, for adults 18+ anywhere in South Africa.",
           "Your Herbal Holland Rewards membership comes with you: sign in with your mobile number, and your member savings and points work online as they do in store.",
           "We deliver to a street address anywhere in South Africa, with tracking by SMS, and hand every parcel only to the member named on the order, who may be asked for ID. Or collect it at your store.",
           "And because you joined us before today, you're already on the Founding Members list. The first 2,026 places get a numbered Founding Member card in the Rewards app and at least Sprout tier for 14 months, and every friend who joins with your link moves you up 250 places. Your place is in the Rewards app.",
@@ -207,7 +207,7 @@ export const LAUNCH: Playbook[] = [
         text: paras(
           "We're open online, from today, for adults 18+ anywhere in South Africa.",
           "Herbal Holland is members only, and joining Herbal Holland Rewards is free. Everyone who joins has a place on our Founding Members list: the first 2,026 places get a numbered Founding Member card.",
-          "Join at herbalholland.co.za. Adults 18+.",
+          "Join at shop.herbalholland.com. Adults 18+.",
         ),
       },
       {
@@ -263,7 +263,7 @@ export const LAUNCH: Playbook[] = [
           "Welkom to The Windmill, our newsletter for members of Herbal Holland Rewards. This is the first one.",
           "The story so far. Our online shop opened a week ago, for adults 18+ anywhere in South Africa, and everyone who has joined since has a place on the Founding Members list. Siyabonga for being here early.",
           "Your Founding place. The first 2,026 places get a numbered Founding Member card in the Rewards app and at least Sprout tier for 14 months: Sprout-tier savings on eligible items and early access to selected drops, and an invitation to a Founding Members' Evening every December. Your place is in the app. To move up, share your link: every friend who joins with it moves you up 250 places, and you both get 50 points on their first purchase.",
-          "Three Learn reads. How to read a lab result: potency, terpenes and the safety panels every batch should pass. What Schedule 0 means on a label. And how Rewards works, from Seed to Harvest. Each takes a few minutes, in plain English, at herbalholland.co.za/learn.",
+          "Three Learn reads. How to read a lab result: potency, terpenes and the safety panels every batch should pass. What Schedule 0 means on a label. And how Rewards works, from Seed to Harvest. Each takes a few minutes, in plain English, at shop.herbalholland.com/learn.",
           "Wear the windmill. The Windmill Tee, the Sunset Hoodie, the Heritage Crewneck, the Windmill Cap, the Sunset Bucket Hat, the Windmill Beanie and the Windmill Tote are all in stock: delivered anywhere in South Africa, or collected in store once our stores open.",
           "Two new stores in the hills. Hillcrest, in the Upper Highway, and Hilton, in the KZN Midlands, open their doors in December. Invitations to the opening week follow soon.",
           "See you soon,\nThe Herbal Holland team",
@@ -385,7 +385,7 @@ export const LAUNCH: Playbook[] = [
           "Your first visit. Bring your ID: we check it at the door and at the till, every time, because we're for adults 18+. A member advisor will welcome you, show you around and answer your questions in plain English. Give your mobile number at the till and your savings and points work in store just as they do online. Not a member yet? You can join free at the till.",
           "Opening week. The Members' Evening is that Thursday, 18:00–20:30: good coffee and rooibos and a first look around with the team, for members who RSVP in the Rewards app. Open Day is that Saturday, 09:00–14:00, for everyone 18+: a coffee cart, local makers' tables, Learn sessions with the team on the hour, a photo wall in our orange frame, and the merch.",
           "Founding Members. The list closes at midnight on the Sunday after opening week. Your place is in the Rewards app, and every friend who joins with your link moves you up 250 places.",
-          "Addresses and opening hours are at herbalholland.co.za/stores.",
+          "Addresses and opening hours are at shop.herbalholland.com/stores.",
           "See you there,\nThe Herbal Holland team",
         ),
       },
@@ -470,7 +470,7 @@ export const LAUNCH: Playbook[] = [
         text: paras(
           "Hi {{firstName}},",
           "Sivulile: we're open. Our doors in {towns} opened at 09:00 today.",
-          "Addresses and opening hours are at herbalholland.co.za/stores.",
+          "Addresses and opening hours are at shop.herbalholland.com/stores.",
           "Your first visit: bring your ID, because we check it at the door and at the till, every time. A member advisor will show you around, and your savings and points work in store just as they do online: give your mobile number at the till.",
           "This week: the Members' Evening on Thursday, 18:00–20:30, for members who have RSVP'd in the Rewards app, and Open Day on Saturday, 09:00–14:00, for everyone 18+, with a coffee cart, local makers' tables, Learn sessions on the hour and the merch.",
           "The Founding Members list closes on Sunday at midnight: your place is in the Rewards app.",
@@ -482,7 +482,7 @@ export const LAUNCH: Playbook[] = [
         text: paras(
           "Sivulile: we're open in {towns}, from 09:00 today.",
           "Bring your ID: we're for adults 18+, and we check it at the door and the till. Not a member of Herbal Holland Rewards yet? Join free at the till.",
-          "This week: the Members' Evening on Thursday, for members who have RSVP'd in the Rewards app, and Open Day on Saturday, 09:00–14:00, for everyone 18+. Addresses and hours: herbalholland.co.za/stores",
+          "This week: the Members' Evening on Thursday, for members who have RSVP'd in the Rewards app, and Open Day on Saturday, 09:00–14:00, for everyone 18+. Addresses and hours: shop.herbalholland.com/stores",
         ),
       },
       {
@@ -746,7 +746,7 @@ export const LAUNCH: Playbook[] = [
         text: paras(
           "Hi {{firstName}},",
           "Our new merch drop is open, online and in store, until Saturday night.",
-          "Members in our higher tiers got in early, and it's open to every member now. Everything in the drop is on the drops page at herbalholland.co.za.",
+          "Members in our higher tiers got in early, and it's open to every member now. Everything in the drop is on the drops page at shop.herbalholland.com.",
           "Every piece is held in stock: delivered anywhere in South Africa, or collected in store.",
           "Wear the windmill,\nThe Herbal Holland team",
         ),

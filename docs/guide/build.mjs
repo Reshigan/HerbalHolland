@@ -21,7 +21,7 @@ const root = resolve(here, "..", "..");
 const OUT = join(root, "docs", "Herbal-Holland-System-Guide.pdf");
 const WORK = process.env.GUIDE_WORK_DIR || join(tmpdir(), "hh-guide-build");
 mkdirSync(WORK, { recursive: true });
-const VERSION = "Version 1.5 · 7 October 2026";
+const VERSION = "Version 1.6 · 7 October 2026";
 
 // ── Fonts: Outfit (headings) and Inter (text) as data: URLs. The packages ship variable fonts, which Chromium can
 // only embed as Type3 outlines (embedded, but nameless); so static instances at the weights the guide uses are made

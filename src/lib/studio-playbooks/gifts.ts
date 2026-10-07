@@ -22,7 +22,7 @@ export const GIFTS: Playbook[] = [
           "For the evenings: the Sunset Hoodie, orange fleece with our lock-up embroidered on the chest and a sunset over the hills across the back; the Heritage Crewneck, black fleece with “Dutch heritage. African soil.” embroidered across the chest; and the Windmill Beanie, with the windmill on its cuff.",
           "And for everything else: the Windmill Tote, heavy black cotton canvas with our lock-up printed in Sunset orange.",
           "It's all in stock and delivered anywhere in South Africa, with tracking by SMS. We hand every parcel only to the member named on the order, who may be asked for ID, so have it delivered to you and do the wrapping yourself. Or collect it at your store, and from Tuesday 1 December at our new stores in Hillcrest and Hilton too.",
-          "It's all at herbalholland.co.za.",
+          "It's all at shop.herbalholland.com.",
           "Happy gifting,\nThe Herbal Holland team",
         ),
       },

@@ -29,9 +29,9 @@ const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
 
 const CODE = "PTA01";
-const MANAGER = "manager.pta01@herbalholland.co.za";
+const MANAGER = "manager.pta01@herbalholland.com";
 const OWNER = "thabo@mokoenaretail.co.za";
-const HQ = "hq@herbalholland.co.za";
+const HQ = "hq@herbalholland.com";
 const run = Date.now().toString(36).slice(-5).toUpperCase(); // suffix on everything this run creates
 
 const browser = await chromium.launch().catch(() => chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }));

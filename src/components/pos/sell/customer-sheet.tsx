@@ -304,7 +304,7 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
               <li key={t}>{t}</li>
             ))}
           </ul>
-          <p className="mt-2 px-1 text-[0.7rem] text-ink-500">Full terms: herbalholland.co.za/legal/terms · {TERMS_LABEL}</p>
+          <p className="mt-2 px-1 text-[0.7rem] text-ink-500">Full terms: shop.herbalholland.com/legal/terms · {TERMS_LABEL}</p>
           <CheckRow checked={terms} onChange={setTerms} label="They've read the key terms and accept the membership terms and privacy notice" />
           {touched && !terms && <p className="px-1 text-xs font-medium text-[#f29b9b]">They must accept the terms to become a member</p>}
         </div>

@@ -33,9 +33,9 @@ Herbal Holland Rewards - Thandi Mokoena
 (HH****002)
 Points earned 65 pts           Balance 1,230 pts
 ------------------------------------------------
-<ESC a 01><GS(k fn=65 32 00><GS(k fn=67 06><GS(k fn=69 31><GS(k fn=80 "https://herbalholland.co.za/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123"><GS(k fn=81 30>Scan for your invoice
-herbalholland.co.za/invoice/0f7e2c4a-1111-4222-8
-333-444455556666
+<ESC a 01><GS(k fn=65 32 00><GS(k fn=67 06><GS(k fn=69 31><GS(k fn=80 "https://shop.herbalholland.com/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123"><GS(k fn=81 30>Scan for your invoice
+shop.herbalholland.com/invoice/0f7e2c4a-1111-422
+2-8333-444455556666
 <ESC a 00><ESC a 01>SAHPRA licence 0000/2026
 Licensed medicine dispensed to the named patient
 under their SAHPRA authorisation by an
@@ -46,6 +46,7 @@ points (Medicines Act s18A).
 Adults 18+ only. Keep out of reach of children.
 Keep this slip for returns within 7 days.
 Tax invoice emailed to thandi@example.co.za
-Thank you - herbalholland.co.za
+Thank you
+shop.herbalholland.com
 <ESC a 00><ESC d 03><GS V 42 00>"
 `;

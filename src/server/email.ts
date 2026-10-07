@@ -54,7 +54,7 @@ export async function deliverEmail(e: Email) {
   const m = await finalizeEmail(e);
   const t = smtp();
   if (!t) return false;
-  const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.co.za>";
+  const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.com>";
   await t.sendMail({ from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers });
   return true;
 }

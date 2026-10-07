@@ -124,7 +124,7 @@ const T = {
   campaignName: `E2E campaign ${sfx}`,
   caption: `The Windmill Tee is back: the mark embroidered in Sunset thread on black cotton. (${sfx})`,
   staffName: `E2E Staffer ${sfx}`,
-  staffEmail: `e2e.staff.${sfx}@herbalholland.co.za`,
+  staffEmail: `e2e.staff.${sfx}@herbalholland.com`,
   ownerName: `E2E Owner ${sfx}`,
   ownerEmail: `e2e.owner.${sfx}@example.com`,
   annTitle: `E2E notice ${sfx}`,
@@ -160,12 +160,12 @@ let store, product, variant, batch, member, order, dc, area, tradeAccount, trade
 
 try {
   step("Sign in as the HQ administrator (demo link)");
-  await page.goto(`${BASE}/api/auth/demo?email=hq@herbalholland.co.za&next=/hq`);
+  await page.goto(`${BASE}/api/auth/demo?email=hq@herbalholland.com&next=/hq`);
   await page.waitForURL(`${BASE}/hq`);
-  const admin = await one(`select id, name from "User" where email = 'hq@herbalholland.co.za'`);
+  const admin = await one(`select id, name from "User" where email = 'hq@herbalholland.com'`);
   await page.getByRole("heading", { level: 1 }).first().waitFor();
   ok(`signed in as ${admin.name}`);
-  area = await one(`select u.id, r.id "regionId", r.code, r.name from "User" u join "Region" r on r.id = u."regionId" where u.email = 'area.gpn@herbalholland.co.za'`);
+  area = await one(`select u.id, r.id "regionId", r.code, r.name from "User" u join "Region" r on r.id = u."regionId" where u.email = 'area.gpn@herbalholland.com'`);
   dc = await one(`select id, code, name from "Store" where kind = 'WAREHOUSE' order by code limit 1`);
   const otherRegion = await one(`select id, code, name from "Region" where id <> $1 and exists (select 1 from "Store" s where s."regionId" = "Region".id and s.kind = 'RETAIL') order by code limit 1`, [area.regionId]);
 
@@ -1424,7 +1424,7 @@ try {
   ap.setDefaultTimeout(45_000);
   ap.setDefaultNavigationTimeout(120_000);
   watch(ap, "area");
-  await ap.goto(`${BASE}/api/auth/demo?email=area.gpn@herbalholland.co.za&next=/hq/stores`);
+  await ap.goto(`${BASE}/api/auth/demo?email=area.gpn@herbalholland.com&next=/hq/stores`);
   await ap.waitForURL(/\/hq\/stores$/);
   const listed = await ap.locator("table a[href^='/hq/stores/']").evaluateAll((els) => els.map((e) => e.getAttribute("href").split("/").pop()));
   const mine = (await q(`select code from "Store" where "regionId" = $1 and kind = 'RETAIL' order by code`, [area.regionId])).map((r) => r.code);

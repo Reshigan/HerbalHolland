@@ -676,7 +676,7 @@ try {
 
   // ── 9. Staff sign-in ────────────────────────────────────────────────────────────────────────────────
   step("Staff sign-in: wrong password, right password → home, sign out");
-  const demoHash = (await one(`select "passwordHash" from "User" where email = 'hq@herbalholland.co.za'`))?.passwordHash;
+  const demoHash = (await one(`select "passwordHash" from "User" where email = 'hq@herbalholland.com'`))?.passwordHash;
   const manager = await one(
     `select u.id, u.email, u.name, s.code from "User" u join "Store" s on s.id = u."storeId" where u.role = 'MANAGER' and u.active and not u."mustChangePassword" and u."passwordHash" = $1 and s.status = 'ACTIVE' order by random() limit 1`,
     [demoHash],

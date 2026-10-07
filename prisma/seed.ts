@@ -151,7 +151,7 @@ async function main() {
   const dcId: Record<string, string> = {};
   for (const d of DCS) {
     dcId[d.code] = uid();
-    storeRows.push({ id: dcId[d.code], code: d.code, slug: d.slug, name: d.name, kind: "WAREHOUSE", status: "ACTIVE", format: "STANDARD", companyId: hq.id, regionId: regionId[d.region], addressLine: d.addressLine, suburb: d.suburb, city: d.city, province: d.province, postalCode: d.postalCode, lat: d.lat, lng: d.lng, clickCollect: false, sameDay: false, licences: ["THC"], licenceRef: `SAHPRA 22C licence (DC, demo ref)`, email: `${d.slug}@herbalholland.co.za`, phone: "012 004 4200", openedAt: daysAgo(400) });
+    storeRows.push({ id: dcId[d.code], code: d.code, slug: d.slug, name: d.name, kind: "WAREHOUSE", status: "ACTIVE", format: "STANDARD", companyId: hq.id, regionId: regionId[d.region], addressLine: d.addressLine, suburb: d.suburb, city: d.city, province: d.province, postalCode: d.postalCode, lat: d.lat, lng: d.lng, clickCollect: false, sameDay: false, licences: ["THC"], licenceRef: `SAHPRA 22C licence (DC, demo ref)`, email: `${d.slug}@herbalholland.com`, phone: "012 004 4200", openedAt: daysAgo(400) });
     stores.push({ id: dcId[d.code], code: d.code, slug: d.slug, name: d.name, kind: "WAREHOUSE", status: "ACTIVE", format: "STANDARD", regionCode: d.region, city: d.city, province: d.province, sameDay: false, vendor: true, companyKey: "hq", staff: [], deviceId: "", seq: 0, members: 0, walkIns: 0 });
   }
   for (const s of [...STORES, ...synthetic]) {
@@ -162,7 +162,7 @@ async function main() {
     storeRows.push({
       id, code: s.code, slug: s.slug, name: s.name, kind: "RETAIL", status, format: s.format, companyId: companyId[s.owner], regionId: regionId[s.region], dcId: dcId[s.dc],
       addressLine: s.addressLine, suburb: s.suburb, city: s.city, province: s.province, postalCode: s.postalCode, lat: s.lat, lng: s.lng,
-      phone: `0${int(10, 87)} ${int(100, 999)} ${int(1000, 9999)}`, whatsapp: `+2771${int(1000000, 9999999)}`, email: `${s.slug}@herbalholland.co.za`, hours: HOURS,
+      phone: `0${int(10, 87)} ${int(100, 999)} ${int(1000, 9999)}`, whatsapp: `+2771${int(1000000, 9999999)}`, email: `${s.slug}@herbalholland.com`, hours: HOURS,
       clickCollect: status === "ACTIVE", sameDay: !!s.sameDay, licences: status === "ACTIVE" ? ["THC"] : [], licenceRef: status === "ACTIVE" ? `SAHPRA 22C/${s.code}/2026 (demo ref)` : null,
       royaltyBps: 600, levyBps: 200, ecomBps: 1000, receiptFooter: "Adults 18+ only. Keep out of reach of children. Thank you for choosing Herbal Holland.",
       openedAt: status === "ACTIVE" ? daysAgo(int(DAYS + 30, 700)) : null,
@@ -181,24 +181,24 @@ async function main() {
   const PASSWORD = await hashSecret(DEMO_PASSWORD);
   const PIN = { "1111": await hashSecret("1111"), "2222": await hashSecret("2222"), "3333": await hashSecret("3333"), "4444": await hashSecret("4444") };
   const users: Prisma.UserCreateManyInput[] = [
-    { id: uid(), name: "Naledi Khumalo", email: "hq@herbalholland.co.za", role: "HQ_ADMIN", passwordHash: PASSWORD, companyId: hq.id },
-    { id: uid(), name: "Pieter de Vries", email: "merch@herbalholland.co.za", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },
-    { id: uid(), name: "Ayesha Patel", email: "marketing@herbalholland.co.za", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },
-    { id: uid(), name: "Johan Botha", email: "finance@herbalholland.co.za", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },
+    { id: uid(), name: "Naledi Khumalo", email: "hq@herbalholland.com", role: "HQ_ADMIN", passwordHash: PASSWORD, companyId: hq.id },
+    { id: uid(), name: "Pieter de Vries", email: "merch@herbalholland.com", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },
+    { id: uid(), name: "Ayesha Patel", email: "marketing@herbalholland.com", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },
+    { id: uid(), name: "Johan Botha", email: "finance@herbalholland.com", role: "HQ_STAFF", passwordHash: PASSWORD, companyId: hq.id },
   ];
   const areaNames = ["Karabo Molefe", "Chantelle Hendricks", "Wian Steyn", "Zinhle Cele", "Deon Olivier"];
-  REGIONS.forEach((r, i) => users.push({ id: uid(), name: areaNames[i], email: `area.${r.code.toLowerCase()}@herbalholland.co.za`, role: "AREA_MANAGER", passwordHash: PASSWORD, regionId: regionId[r.code] }));
+  REGIONS.forEach((r, i) => users.push({ id: uid(), name: areaNames[i], email: `area.${r.code.toLowerCase()}@herbalholland.com`, role: "AREA_MANAGER", passwordHash: PASSWORD, regionId: regionId[r.code] }));
   for (const o of OWNERS) users.push({ id: uid(), name: o.contact, email: o.email, role: "OWNER", passwordHash: PASSWORD, companyId: companyId[o.key] });
   // Bookkeepers: their company's books only (/books), no store or HQ pages.
   users.push(
-    { id: uid(), name: "Lerato Dube", email: "accounts@herbalholland.co.za", role: "ACCOUNTANT", passwordHash: PASSWORD, companyId: hq.id },
+    { id: uid(), name: "Lerato Dube", email: "accounts@herbalholland.com", role: "ACCOUNTANT", passwordHash: PASSWORD, companyId: hq.id },
     { id: uid(), name: "Priya Naidoo", email: "books@mokoenaretail.co.za", role: "ACCOUNTANT", passwordHash: PASSWORD, companyId: companyId.mokoena },
   );
   const person = () => `${pick(FIRST_NAMES)} ${pick(LAST_NAMES)}`;
   for (const s of retail) {
     const code = s.code.toLowerCase();
     const team: [string, "MANAGER" | "BUDTENDER", keyof typeof PIN, boolean, string | null][] = [
-      [person(), "MANAGER", "1111", true, `manager.${code}@herbalholland.co.za`],
+      [person(), "MANAGER", "1111", true, `manager.${code}@herbalholland.com`],
       [person(), "BUDTENDER", "2222", true, null],
       [person(), "BUDTENDER", "3333", false, null],
       [person(), "BUDTENDER", "4444", false, null],
@@ -2099,7 +2099,7 @@ async function main() {
   const tradeSales = sales.filter((s) => s.channel === "WHOLESALE");
   console.log(`  trade                  ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · ${ledgerRows.length} ledger entries`);
   console.log(`\nDone. ${active.length} trading stores · ${customers.length.toLocaleString()} members · ${sales.length.toLocaleString()} sales · R${(gross / 100 / 1e6).toFixed(2)}m turnover · trade: ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · R${(tradeSales.reduce((a, s) => a + (s.totalCents as number), 0) / 100 / 1e3).toFixed(1)}k.`);
-  console.log("Demo logins (password: holland). HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Accountant: books@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444 · Trade buyer: trade@greenleafpharmacy.co.za at /trade/login (the code is shown in demo mode)");
+  console.log("Demo logins (password: holland). HQ: hq@herbalholland.com · Owner: thabo@mokoenaretail.co.za · Accountant: books@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.com · POS PINs: 1111 (manager), 2222, 3333, 4444 · Trade buyer: trade@greenleafpharmacy.co.za at /trade/login (the code is shown in demo mode)");
 }
 
 main()

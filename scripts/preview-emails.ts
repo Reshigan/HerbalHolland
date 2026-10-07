@@ -9,8 +9,8 @@ import { courierOrder, order, refund, sale, statement, statementCompany, stockOr
 
 const out = process.argv[2] ?? "test-results/emails";
 mkdirSync(out, { recursive: true });
-const base = process.env.APP_URL ?? "https://herbalholland.co.za";
-const legal = legalLine({ legalName: "Herbal Holland (Pty) Ltd", regNumber: "2024/481516/07", vatNumber: "4870123456", address: "Herbal Holland House, 1 Windmill Lane, Irene, Centurion, 0157", phone: "012 004 4200", email: "hello@herbalholland.co.za" });
+const base = process.env.APP_URL ?? "https://shop.herbalholland.com";
+const legal = legalLine({ legalName: "Herbal Holland (Pty) Ltd", regNumber: "2024/481516/07", vatNumber: "4870123456", address: "Herbal Holland House, 1 Windmill Lane, Irene, Centurion, 0157", phone: "012 004 4200", email: "hello@herbalholland.com" });
 
 const emails = {
   "tax-invoice": saleInvoiceEmail(sale, { url: `${base}/invoice/sale-1?t=preview`, batchCodes: { l1: ["HH-2609-0192"] }, orderCode: "X7K2P9" }),

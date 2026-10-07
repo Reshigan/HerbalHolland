@@ -188,7 +188,7 @@ HQ → Founding Members: list closes **Sun 6 Dec 2026, 23:59** · **2,026** plac
 - **What Founding Members get:** a numbered card (#0001–#2026) in the Rewards app; at least Sprout (5% instant savings on
   eligible items, never on medicines) until February 2028; first access to drops through their tier; an invitation
   to a Founding Members' Evening every December.
-- **How the list fills:** `/club/join` (tagged QR codes on window wraps, flyers and print once change B is in), the
+- **How the list fills:** `/club/join` (tagged QR codes on window wraps, flyers and print), the
   referral link (a friend who joins moves you up 250 places; you both get 50 points on their first purchase), and
   POS quick-join at the tills from 1 December, so opening-week visitors can still join and make the list.
 - **Why 2,026:** scarcity people can feel, a number that means something, and a bounded cost for the two
@@ -700,8 +700,8 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 ## 13. Measurement and governance
 
-- **Weekly launch dashboard** (Mondays 09:00, October 2026 to January 2027): members and the Founding Members list (by source
-  once change B is in), consent rates, RSVPs and check-ins, online orders, social (Postiz analytics), press, Google
+- **Weekly launch dashboard** (Mondays 09:00, October 2026 to January 2027): members and the Founding Members list (by source,
+  from the join links' tags), consent rates, RSVPs and check-ins, online orders, social (Postiz analytics), press, Google
   profile views, calls and direction requests, reviews. From 1 December: transactions, member attach at the till,
   average basket, repeat visits.
 - **Monthly marketing review** (first Monday): the KPIs against targets; next month's pack laid out and approved in the
@@ -749,7 +749,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
    - **C · Proclaimed public holidays** (4 November 2026 first) are in the send-window calendar. They're a list in the
      code (`src/lib/sa.ts`) rather than an HQ setting: they're rare and gazetted weeks ahead.
    - **D · Merch notice.** HQ → Online orders → Settings → _Merch notice_ shows next to made-to-order merch on product
-     pages, in the bag and at checkout. Set it in late November; clear it in January.
+     pages, in the bag and at checkout. The whole range is now held in stock, so it has nothing to show: leave it empty.
    - **E · Classes without incentives (s18A):** built. HQ → Compliance lists the classes kept out of deals, points and
      member prices; CBD supplements (Schedule 0 complementary medicines) are on the list by default until counsel
      clears them.

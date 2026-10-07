@@ -53,7 +53,7 @@ describe("Postiz adapter", () => {
   it("lists usable channels, uploads the picture by URL, then creates the post", async () => {
     vi.stubEnv("POSTIZ_URL", "https://social.example.com/api/public/v1/");
     vi.stubEnv("POSTIZ_API_KEY", "key-1");
-    vi.stubEnv("APP_URL", "https://herbalholland.co.za");
+    vi.stubEnv("APP_URL", "https://shop.herbalholland.com");
     const calls: { url: string; init?: RequestInit }[] = [];
     const reply: Record<string, unknown> = {
       "/integrations": [
@@ -73,7 +73,7 @@ describe("Postiz adapter", () => {
     expect(await publishSocial({ content: "Hello", picture: { image: "windmill-tee" }, channels, mode: "now", at: new Date() })).toEqual(["p1"]);
     expect(calls.map((c) => c.url.split("/v1")[1])).toEqual(["/integrations", "/upload-from-url", "/posts"]);
     expect((calls[1].init?.headers as Record<string, string>).Authorization).toBe("key-1");
-    expect(JSON.parse(String(calls[1].init?.body))).toEqual({ url: "https://herbalholland.co.za/social/windmill-tee.jpg" });
+    expect(JSON.parse(String(calls[1].init?.body))).toEqual({ url: "https://shop.herbalholland.com/social/windmill-tee.jpg" });
     expect(JSON.parse(String(calls[2].init?.body)).posts[0].value[0].image).toEqual([{ id: "up1", path: "https://uploads/up1.jpg" }]);
   });
   it("uploads a Studio card as a file, and reads back how posts went", async () => {

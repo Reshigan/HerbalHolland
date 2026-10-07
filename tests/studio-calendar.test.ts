@@ -8,7 +8,7 @@ import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
 import { dayKey } from "@/lib/format";
 
 const TOWNS = ["Hillcrest", "Hilton"];
-const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://herbalholland.co.za/p/rest-body-balm?src=studio" };
+const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://shop.herbalholland.com/p/rest-body-balm?src=studio" };
 const OPENING_WEEKS = ["week of 2026-10-26", "week of 2026-11-30"];
 
 type Plan = { key: string; anchor: string; town?: string; stagger?: number; skipShared?: boolean; until?: string };

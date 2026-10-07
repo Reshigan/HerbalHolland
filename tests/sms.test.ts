@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
 import { gsmSafe, isGsm7, orderSms, shortLink, sms, SMS_SINGLE_SEGMENT, smsLength, smsSegments, type OrderSmsEvent } from "@/lib/sms";
 
-const link = shortLink("https://herbalholland.co.za", "/orders/X7K2P9");
-const base = { code: "X7K2P9", storeName: "Hatfield", link, collectionCode: "4821" };
+const link = shortLink("https://shop.herbalholland.com", "/orders/X7K2P9");
+// The longest real values, so every text fits one segment anywhere in the network: the longest store name and the
+// longest courier on the orders board, with a tracking number.
+const base = { code: "X7K2P9", storeName: "Pietermaritzburg", link, collectionCode: "4821" };
 const collect = { ...base, fulfilment: "COLLECT" as const };
-const courier = { ...base, fulfilment: "COURIER" as const, courier: "Aramex", trackingNo: "HH2K7Q9D4F", ageRestricted: true };
+const courier = { ...base, fulfilment: "COURIER" as const, courier: "The Courier Guy", trackingNo: "HH2K7Q9D4F", ageRestricted: true };
 
 describe("SMS copy", () => {
   const cases: [OrderSmsEvent, Parameters<typeof orderSms>[1], string][] = [
-    ["placed", { ...collect, paid: true }, "order X7K2P9 received for collection at Hatfield"],
+    ["placed", { ...collect, paid: true }, "order X7K2P9 received for collection at Pietermaritzburg"],
     ["placed", { ...collect, paid: false }, "pay at the counter"],
     ["placed", { ...courier, paid: true }, "order X7K2P9 received for delivery"],
-    ["ready", { ...collect, paid: true }, "X7K2P9 is ready at Hatfield. Show code 4821 and your ID (18+)"],
-    ["dispatched", courier, "X7K2P9 is on its way (Aramex tracking HH2K7Q9D4F). Have your ID (18+) ready"],
+    ["ready", { ...collect, paid: true }, "X7K2P9 is ready at Pietermaritzburg. Show code 4821 and your ID (18+)"],
+    ["ready", { ...collect, paid: false }, "to collect; pay at the counter"],
+    ["dispatched", courier, "X7K2P9 is on its way (The Courier Guy tracking HH2K7Q9D4F). Have your ID (18+) ready"],
     ["delivered", courier, "X7K2P9 delivered"],
     ["collected", collect, "X7K2P9 complete"],
     ["cancelled", collect, "X7K2P9 was cancelled. Any payment or points used have been returned"],
@@ -21,7 +24,7 @@ describe("SMS copy", () => {
     const text = orderSms(kind, input);
     expect(text.startsWith("Herbal Holland: order X7K2P9")).toBe(true);
     expect(text).toContain(phrase);
-    expect(text).toContain("herbalholland.co.za/orders/X7K2P9");
+    expect(text).toContain("shop.herbalholland.com/orders/X7K2P9");
     expect(text).not.toContain("https://");
     expect(isGsm7(text)).toBe(true);
     expect(smsLength(text)).toBeLessThanOrEqual(SMS_SINGLE_SEGMENT);
@@ -48,8 +51,8 @@ describe("SMS copy", () => {
   });
 
   it("links: scheme dropped on https, kept on http (dev), never a trailing slash doubled", () => {
-    expect(shortLink("https://herbalholland.co.za", "/orders/X7K2P9")).toBe("herbalholland.co.za/orders/X7K2P9");
-    expect(shortLink("https://herbalholland.co.za/", "/orders/X7K2P9")).toBe("herbalholland.co.za/orders/X7K2P9");
+    expect(shortLink("https://shop.herbalholland.com", "/orders/X7K2P9")).toBe("shop.herbalholland.com/orders/X7K2P9");
+    expect(shortLink("https://shop.herbalholland.com/", "/orders/X7K2P9")).toBe("shop.herbalholland.com/orders/X7K2P9");
     expect(shortLink("http://localhost:3000", "/orders/X7K2P9")).toBe("http://localhost:3000/orders/X7K2P9");
   });
 });

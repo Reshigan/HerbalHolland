@@ -58,7 +58,7 @@ try {
   step("Pair PTA01 with the manager's email + password");
   await page.goto(`${BASE}/pos`);
   await page.waitForURL(/\/pos\/pair/);
-  await page.locator("#pair-email").fill("manager.pta01@herbalholland.co.za");
+  await page.locator("#pair-email").fill("manager.pta01@herbalholland.com");
   await page.locator("#pair-password").fill("holland");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.locator("#till-name").fill("E2E till");
@@ -565,7 +565,7 @@ try {
   assert(z.countedCashCents === 140000, `shift closed: expected ${z.expectedCashCents / 100}, counted ${z.countedCashCents / 100}`);
   await new Promise((r) => setTimeout(r, 1500));
   const mail = (await q(`select "to", left(body, 60) b from "MessageLog" where channel = 'EMAIL' and body like 'Z-report%' order by "createdAt" desc limit 1`))[0];
-  assert(mail?.to === "hatfield@herbalholland.co.za", `Z-report emailed to ${mail?.to}`);
+  assert(mail?.to === "hatfield@herbalholland.com", `Z-report emailed to ${mail?.to}`);
 
   step("Offline reload: the service worker serves the till shell and assets");
   await page.getByRole("button", { name: "Done" }).click();

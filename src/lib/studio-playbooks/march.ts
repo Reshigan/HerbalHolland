@@ -171,7 +171,7 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "sms-easter", day: 22, time: "10:00", channel: "SMS",
-        text: "Hi {{firstName}}, visiting us over the Easter long weekend? Please check your store's hours on its page first: herbalholland.co.za/stores. Adults 18+, bring your ID.",
+        text: "Hi {{firstName}}, visiting us over the Easter long weekend? Please check your store's hours on its page first: shop.herbalholland.com/stores. Adults 18+, bring your ID.",
       },
       {
         key: "li-tills", day: 23, time: "12:00", channel: "SOCIAL", linkedin: "only",

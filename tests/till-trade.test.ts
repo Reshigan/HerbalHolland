@@ -176,7 +176,7 @@ describe("trade tax invoice lines", () => {
     buyer: { name: "Green Leaf Pharmacy (Pty) Ltd (trading as Green Leaf Pharmacy)", address: "1 Burnett St, Hatfield, Pretoria, 0083", vatNumber: "4123456789" },
     note: null,
     refunds: [],
-    invoiceUrl: "https://herbalholland.co.za/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123",
+    invoiceUrl: "https://shop.herbalholland.com/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123",
     ...over,
   });
 

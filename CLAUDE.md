@@ -4,7 +4,7 @@
 
 Commerce platform for a multi-owner (franchise) cannabis retail network in South Africa, built to scale to ~1,000 stores:
 POS, inventory control, purchasing, finance, e-commerce (click & collect + delivery), Herbal Holland Rewards loyalty, marketing, HQ console, reports.
-Single Next.js 16 app (App Router) + Prisma 7 + PostgreSQL. Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
+Single Next.js 16 app (App Router) + Prisma 7 + PostgreSQL, served at shop.herbalholland.com (`APP_URL`; herbalholland.co.za redirects there). Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
 
 ## Run it
 
@@ -25,7 +25,7 @@ Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev --name
 folder in `prisma/migrations` (CI and deploys run `prisma migrate deploy`). Run `npx prisma generate` after pulls.
 
 Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), or GET
-`/api/auth/demo?email=hq@herbalholland.co.za&next=/hq`. POS PINs: 1111 (manager, dispenser), 2222 (dispenser), 3333, 4444.
+`/api/auth/demo?email=hq@herbalholland.com&next=/hq`. POS PINs: 1111 (manager, dispenser), 2222 (dispenser), 3333, 4444.
 
 ## Surfaces & routes
 

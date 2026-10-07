@@ -112,7 +112,7 @@ export function PairScreen({
               {!signedIn ? (
                 <form onSubmit={signIn} className="mt-5 space-y-4">
                   <Field label="Work email" htmlFor="pair-email">
-                    <TextInput id="pair-email" type="email" autoComplete="username" required value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} placeholder="you@herbalholland.co.za" />
+                    <TextInput id="pair-email" type="email" autoComplete="username" required value={creds.email} onChange={(e) => setCreds({ ...creds, email: e.target.value })} placeholder="you@herbalholland.com" />
                   </Field>
                   <Field label="Password" htmlFor="pair-password">
                     <TextInput id="pair-password" type="password" autoComplete="current-password" required value={creds.password} onChange={(e) => setCreds({ ...creds, password: e.target.value })} />
