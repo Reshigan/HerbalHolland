@@ -127,7 +127,7 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
         ? []
         : await takeStock(t, {
             storeId: a.storeId, variantId: l.variantId, qty: l.qty, type: a.channel === "ONLINE" ? "ONLINE" : "SALE",
-            saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true,
+            saleId: sale.id, orderId: a.orderId, userId: a.staffId, allowNegative: true, at: a.createdAt,
           }),
     );
   for (const [i, l] of a.quote.lines.entries()) {

@@ -67,7 +67,8 @@ async function lockLots(t: Tx, storeId: string, variantId: string) {
     FOR UPDATE OF s`; // lot order, as locks.lockStock takes them: a sale and a checkout never deadlock
 }
 
-type Refs = { saleId?: string; orderId?: string; stockOrderId?: string; stockTakeId?: string; userId?: string | null; note?: string };
+// `at`: when the movement happened, if not now (a till sale queued offline moves stock at the time it was made).
+type Refs = { saleId?: string; orderId?: string; stockOrderId?: string; stockTakeId?: string; userId?: string | null; note?: string; at?: Date };
 
 /**
  * Removes stock FEFO. The till is never blocked: with `allowNegative`, any shortfall
@@ -104,7 +105,7 @@ export async function takeStock(
     await t.stockMovement.create({
       data: {
         storeId: a.storeId, variantId: a.variantId, batchId: al.batchId, qty: -al.qty, type: a.type,
-        unitCostCents: al.unitCostCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId, userId: a.userId, note: a.note,
+        unitCostCents: al.unitCostCents, saleId: a.saleId, orderId: a.orderId, stockOrderId: a.stockOrderId, userId: a.userId, note: a.note, createdAt: a.at,
       },
     });
   }

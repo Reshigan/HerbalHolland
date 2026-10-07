@@ -353,16 +353,21 @@ describe("late changes", () => {
     const id = `${w.store.id}:${yesterday}`;
     const late = (paid: number) =>
       postPosSale({ id: randomUUID(), number: number(), offline: true, createdAt: `${yesterday}T10:00:00+02:00`, lines: [{ variantId: w.coffeeV.id, qty: 1, unitPriceCents: COFFEE }], payments: [{ method: "CASH", amountCents: paid }] }, till());
+    // Its stock moved on its own day too, so the cost of sales posts with the sale.
+    const cost = async () => -Number((await db.stockMovement.findMany({ where: { storeId: w.store.id, type: "SALE", createdAt: { gte: new Date(`${yesterday}T00:00:00+02:00`), lt: new Date(`${today}T00:00:00+02:00`) } } })).reduce((s, m) => s + m.qty * m.unitCostCents, 0));
     await late(COFFEE);
     expect(await db.ledgerQueue.count({ where: { source: "store-day", sourceId: id } })).toBe(1);
     await drain();
-    expect((await shown("store-day", id))[w.owner.id]).toEqual({ [`cash#${w.store.id}`]: COFFEE, [`vat.output#${w.store.id}`]: -vatOf(COFFEE), [`sales.pos#${w.store.id}`]: -(COFFEE - vatOf(COFFEE)) });
+    const first = await cost();
+    expect(first).toBeGreaterThan(0);
+    expect((await shown("store-day", id))[w.owner.id]).toEqual({ [`cash#${w.store.id}`]: COFFEE, [`vat.output#${w.store.id}`]: -vatOf(COFFEE), [`sales.pos#${w.store.id}`]: -(COFFEE - vatOf(COFFEE)), [`cogs#${w.store.id}`]: first, [`stock#${w.store.id}`]: -first });
     await late(COFFEE - 100); // paid R1 short at a till that was offline
     await drain();
+    const second = (await cost()) - first;
     const journals = await db.journal.findMany({ where: { source: "store-day", sourceId: id }, orderBy: { number: "asc" }, include: { lines: { include: { account: true } } } });
     expect(journals).toHaveLength(2);
     expect(journals[1].memo).toBe("Trading day at Test Store (TST01) — updated");
-    expect(Object.fromEntries(journals[1].lines.map((l) => [l.account.key, l.amountCents]))).toEqual({ cash: COFFEE - 100, "cash.diff": 100, "vat.output": -vatOf(COFFEE), "sales.pos": -(COFFEE - vatOf(COFFEE)) });
+    expect(Object.fromEntries(journals[1].lines.map((l) => [l.account.key, l.amountCents]))).toEqual({ cash: COFFEE - 100, "cash.diff": 100, "vat.output": -vatOf(COFFEE), "sales.pos": -(COFFEE - vatOf(COFFEE)), cogs: second, stock: -second });
     expect(journals.every((j) => j.date.toISOString().slice(0, 10) === yesterday)).toBe(true);
   });
 
