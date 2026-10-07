@@ -11,7 +11,7 @@ compliance-first by design.
 |---|---|---|
 | Storefront + Herbal Holland Rewards (PWA) | `/`, `/shop`, `/p/[slug]`, `/cart`, `/checkout`, `/orders/[code]`, `/stores`, `/learn`, `/club`, `/drops`, `/events/[slug]`, `/s/[ref]` (share cards) | Customers & patients |
 | Dispensary (licensed medicines) | `/dispensary` — visible only to signed-in patients with an active authorisation | Patients |
-| POS — offline-first, tap on glass | `/pos` | Budtenders & dispensers |
+| POS — offline-first, tap on glass | `/pos` | Member advisors & dispensers |
 | Store back office | `/store/[code]` | Store managers & franchise owners |
 | HQ console | `/hq` | Head office & area managers |
 | The books (accounting per company) | `/books`, `/books/[companyId]` | Owners, their accountants, HQ finance |

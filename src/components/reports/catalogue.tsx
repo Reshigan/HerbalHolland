@@ -18,7 +18,7 @@ const KEYWORDS: Record<string, string> = {
   "sales-by-product": "sku best sellers top items",
   "sales-by-store": "league ranking growth stores branches",
   "sales-by-hour": "busy peak roster staffing heatmap weekday",
-  "sales-by-staff": "budtender performance employees team leaderboard",
+  "sales-by-staff": "member advisor budtender performance employees team leaderboard",
   refunds: "returns credit notes",
   payments: "bank reconciliation recon card cash payshap eft tenders takings",
   "online-orders": "ecommerce click collect delivery courier sla fulfilment",

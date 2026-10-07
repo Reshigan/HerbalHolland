@@ -9,7 +9,7 @@ import { isTillManager } from "@/lib/pos-refund";
 import { Alert, Chip } from "./ui";
 import type { SessionInfo, StaffTile } from "@/server/pos/types";
 
-const ROLE: Record<string, string> = { MANAGER: "Store manager", OWNER: "Owner", BUDTENDER: "Budtender" };
+const ROLE: Record<string, string> = { MANAGER: "Store manager", OWNER: "Owner", BUDTENDER: "Member advisor" };
 
 export function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0]!.toUpperCase()).join("");

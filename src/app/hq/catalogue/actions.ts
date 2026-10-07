@@ -1,5 +1,6 @@
 "use server";
 import { revalidatePath } from "next/cache";
+import { zar } from "@/lib/money";
 import { redirect } from "next/navigation";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
@@ -182,7 +183,7 @@ export async function saveVariantPrice(variantId: string, _: ActionState, fd: Fo
   if (priceCents > 1_000_000_00) return fail("That's more than R1,000,000. Check the amount.", { price: "Too high" });
   const before = await db.variant.findUnique({ where: { id: variantId }, select: { id: true, sku: true, productId: true, priceCents: true, wholesaleCents: true, costCents: true } });
   if (!before) return fail("That variant no longer exists.");
-  if (before.priceCents === priceCents) return done(`${before.sku} is already R${(priceCents / 100).toFixed(2)}.`);
+  if (before.priceCents === priceCents) return done(`${before.sku} is already ${zar(priceCents)}.`);
   await db.variant.update({ where: { id: variantId }, data: { priceCents } });
   await audit(db, g.actor, "variant.price", {
     entity: "Variant", entityId: variantId,
@@ -190,7 +191,7 @@ export async function saveVariantPrice(variantId: string, _: ActionState, fd: Fo
   });
   revalidatePath("/hq/catalogue");
   revalidatePath(`/hq/catalogue/${before.productId}`);
-  return done(`${before.sku}: RRP R${(priceCents / 100).toFixed(2)} saved.`);
+  return done(`${before.sku}: RRP ${zar(priceCents)} saved.`);
 }
 
 /** Range or unrange a variant at every matching store (by format and/or region). */

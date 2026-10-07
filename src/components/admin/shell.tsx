@@ -17,7 +17,7 @@ const ROLE: Record<string, string> = {
   AREA_MANAGER: "Area manager",
   OWNER: "Owner",
   MANAGER: "Store manager",
-  BUDTENDER: "Budtender",
+  BUDTENDER: "Member advisor",
   ACCOUNTANT: "Accountant",
 };
 

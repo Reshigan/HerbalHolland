@@ -30,7 +30,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       <section className="flex items-center justify-center bg-ink-50 px-6 py-12">
         <div className="w-full max-w-sm">
           <h1 className="font-display text-3xl font-semibold text-ink-950">Sign in</h1>
-          <p className="mb-6 mt-1 text-sm text-ink-500">Back office and HQ console. Budtenders sign in at the till with their PIN.</p>
+          <p className="mb-6 mt-1 text-sm text-ink-500">Back office and HQ console. Member advisors sign in at the till with their PIN.</p>
           {sp.denied && <p className="mb-4 rounded-xl bg-amber-50 px-4 py-3 text-sm text-amber-700">Your account doesn&apos;t have access to that page.</p>}
           <LoginForm next={sp.next} />
           <div className="mt-6 flex justify-between text-sm">

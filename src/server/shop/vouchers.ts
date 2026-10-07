@@ -39,7 +39,7 @@ export async function ensureVoucherProduct() {
       existing ??
       (await t.product.create({
         data: {
-          slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Give the gift of choice", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
+          slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Spend it online or in any store", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
           description: "A Herbal Holland gift voucher: redeemable online or at the counter in any store, on anything in the range, for three years from the date of issue.",
           legalBasis: "Consumer Protection Act s63: a prepaid voucher, valid three years",
         },
