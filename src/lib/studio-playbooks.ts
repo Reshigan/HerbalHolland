@@ -1,6 +1,6 @@
 // Campaign Studio playbooks (HQ → Marketing → Studio): each campaign as items dated from day T, in the voice and lines of
 // docs/MARKETING-PLAN.md, in launch order (brand, then the online shop, then the stores), each saying only what's true by
-// then. Merch is its design and where to get it, never where or how it's made (§7's "made to order" lines are out of date).
+// then. Merch is its design and where to get it, never where or how it's made (the plan's §7 merch lines are out of date).
 // Every item passes screenDraft once laid out (tests/studio.test.ts); store fields only in store playbooks, {date} is day T.
 import type { Playbook } from "./studio";
 
