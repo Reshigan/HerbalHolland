@@ -407,7 +407,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
 | `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |
 | `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
-| `SUPPORT_EMAIL`, `FRANCHISE_EMAIL`, `TRADE_EMAIL` | Member support's address; where new franchise leads go (default `franchise@herbalholland.com`); where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |
+| `TRADE_EMAIL` | Where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |
 | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Uploaded files (banking slips, licence documents, photos, report exports) in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
 | `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image, so mount a volume there). Back it up |
 | `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |

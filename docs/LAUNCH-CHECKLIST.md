@@ -57,7 +57,7 @@ Tick every line before the first store trades on the platform, except the last s
 - [ ] Migrations applied; backups (WAL + nightly encrypted dump to R2 + the uploads volume) running and verified with a restore test
 - [ ] Scheduler running on the server (all four jobs, [RUNBOOK → First deploy](RUNBOOK.md#first-deploy) step 9), each run once by hand
 - [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (server errors and failed jobs), external uptime checks on `/api/health` and `/api/health/jobs`
-- [ ] R2: a lifecycle rule on `exports/` (scheduled report CSVs, 37 days) and the backups bucket (35 days)
+- [ ] R2: a lifecycle rule on the backups bucket (35 days). Scheduled report CSVs need none: the exports job deletes them.
 - [ ] First HQ admin created with `scripts/create-admin.ts` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), step 5)
 - [ ] Load test: peak-hour POS posting, month-end reports and the books (HQ's and a franchisee's reports and month-end
       checks) against a production-sized dataset (`SEED_STORES=1000`, which posts its last week to the books;

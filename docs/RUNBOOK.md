@@ -6,7 +6,7 @@
 |---|---|---|---|
 | Database | Postgres 16 (`docker compose up db` or local cluster) | Postgres on the staging server | Postgres 16 on our own server in South Africa, WAL archiving + nightly dumps |
 | Files (banking slips) | `.data/uploads` on disk | R2 bucket `…-staging` | Cloudflare R2 bucket (EU jurisdiction), or `UPLOAD_DIR` on the server |
-| Data | `npm run db:seed` demo network | Anonymised copy or seed | Real. Never seed it (the seed truncates every table, so it refuses a database with users it didn't create itself unless given `--wipe=<database name>`, and refuses `NODE_ENV=production`) |
+| Data | `npm run db:seed` demo network | Anonymised copy or seed | Real. Never seed it (the seed truncates every table, so it refuses a database with users it didn't create itself unless given `--wipe=<database name>`, and refuses `NODE_ENV=production` unless given `--force`) |
 | `DEMO_MODE` | true | true (clearly labelled) | **false**. With it off, a production server won't serve (every request answers 500 and the log says why) without an https `APP_URL` and a 32+ character `CRON_SECRET`, and warns about missing email, alerts, messaging and file storage; with it on, it refuses live payment keys the same way |
 | `SESSION_SECRET` | any | 32+ random characters | 32+ random characters (`openssl rand -base64 48`): a production server won't serve without one |
 

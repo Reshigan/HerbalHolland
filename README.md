@@ -1,7 +1,7 @@
 # Herbal Holland commerce platform
 
 **Dutch heritage. African soil.** One platform for a multi-owner cannabis & wellness retail network in South Africa,
-built to run ~1,000 franchise stores: point of sale with tap-on-glass cards, deep inventory control, stores buying and
+built to run ~1,000 franchise stores: point of sale (cards on a Yoco machine, or tap on glass), deep inventory control, stores buying and
 selling stock, finance and franchise settlement, the books (accounting for HQ and every franchisee), a single national
 e-commerce brand (click & collect, same-day and nationwide delivery), wholesale to trade customers, the Herbal Holland
 Rewards loyalty app, marketing (segments, campaigns, consent), an HQ console and a full reports centre, with
@@ -27,7 +27,7 @@ compliance built into every part.
 npm install
 cp .env.example .env              # set DATABASE_URL
 npm run db:migrate                # apply prisma/migrations
-npm run db:seed                   # demo network (24 stores, ~18k members, 60 days of trading) — truncates all tables
+npm run db:seed                   # demo network (24 stores, ~18k members, 60 days of trading); truncates all tables!
 npm run dev                       # http://localhost:3000
 ```
 
