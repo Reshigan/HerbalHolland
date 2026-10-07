@@ -901,7 +901,7 @@ try {
   assert(byHand.every((i) => i.status === "APPROVED"), `${byHand.length} social and WhatsApp posts wait, approved, to be posted by hand (no Postiz here)`);
   const handPost = page.locator(`#p-${byHand[0].key}`);
   await handPost.getByRole("button", { name: "Mark posted" }).waitFor();
-  await act("studio.postedStudioItem", () => handPost.getByRole("button", { name: "Mark posted" }).click(), () => notice("Marked as posted.", handPost).waitFor());
+  await act("studio.postedStudioItem", () => handPost.getByRole("button", { name: "Mark posted" }).click(), () => handPost.getByText("Out", { exact: true }).waitFor());
   assert((await one(`select status from "StudioItem" where "planId" = $1 and key = $2`, [studioPlan.id, byHand[0].key])).status === "POSTED", "a by-hand post is marked posted");
   await shot("studio");
   await open("/hq/marketing/studio/qr?kind=join&code=PTA01&tag=e2e-window", page.getByRole("img", { name: /QR code for/ }));
