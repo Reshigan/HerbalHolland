@@ -14,6 +14,7 @@ import { TradeAccountError } from "@/server/trade/accounts";
 import { TradeOrderError } from "@/server/trade/orders";
 import { TradeLedgerError } from "@/server/trade/ledger";
 import type { Actor } from "@/server/audit";
+import { readCapped } from "@/lib/body";
 import { sameOrigin } from "@/lib/same-origin";
 import { Prisma } from "@/generated/prisma/client";
 
@@ -98,9 +99,11 @@ export function open<C = unknown>(handler: (req: Request, ctx: C) => Promise<Res
 export async function readBody<T>(req: Request, schema: ZodType<T>): Promise<T> {
   // JSON only: a page on another site can't send that without the browser asking first (no cross-site form posts).
   if (!req.headers.get("content-type")?.toLowerCase().startsWith("application/json")) throw new PosError("Expected a JSON body", 415);
+  const buf = await readCapped(req, 256_000); // a full 200-line sale is ~25 KB
+  if (!buf) throw new PosError("That request is too large", 413);
   let raw: unknown;
   try {
-    raw = await req.json();
+    raw = JSON.parse(buf.toString("utf8"));
   } catch {
     throw new PosError("Expected a JSON body");
   }

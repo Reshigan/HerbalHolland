@@ -4,6 +4,7 @@
 // only then parsed. 401: not from Peach (as Peach's docs ask). 400: unreadable. 200: handled, already handled (a
 // redelivery of the same event_id does nothing again), or not ours (Peach stops retrying). 503: no key configured yet
 // (Peach retries for 24 hours, so nothing is lost while it's set up).
+import { readCapped } from "@/lib/body";
 import { parsePeachEvent, verifyPeachWebhook } from "@/lib/peach";
 import { applyPeachEvent, onceForEvent } from "@/server/orders";
 
@@ -13,7 +14,8 @@ export async function POST(req: Request) {
     console.error("[peach] webhook received, but PEACH_PAYMENT_RESPONSE_HASH_KEY isn't set");
     return Response.json({ ok: false, error: "Peach webhooks aren't set up" }, { status: 503 });
   }
-  const raw = Buffer.from(await req.arrayBuffer());
+  const raw = await readCapped(req, 256_000);
+  if (!raw) return Response.json({ ok: false, error: "Too large" }, { status: 413 });
   const signature = req.headers.get("x-webhook-signature-512");
   if (!verifyPeachWebhook(key, signature, raw)) {
     console.warn(`[peach] webhook refused: ${signature ? "the signature doesn't match" : "no x-webhook-signature-512 header"}`);

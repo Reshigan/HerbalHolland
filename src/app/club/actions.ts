@@ -1,6 +1,6 @@
 "use server";
 import { refresh } from "next/cache";
-import { z } from "zod";
+import { PushSub } from "@/lib/push-sub";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { audit } from "@/server/audit";
@@ -62,11 +62,6 @@ export async function setChannelConsent(channel: MsgChannel, granted: boolean): 
 }
 
 // ── App notifications (Web Push) ─────────────────────────────────────────────
-const PushSub = z.object({
-  endpoint: z.string().max(1000).refine((s) => s.startsWith("https://"), "Invalid endpoint"),
-  keys: z.object({ p256dh: z.string().min(16).max(200), auth: z.string().min(8).max(100) }),
-});
-
 /** Saves this device's subscription and records consent to app notifications (POPIA ledger). */
 export async function enablePush(sub: unknown): Promise<{ error?: string }> {
   const c = await getCustomer();

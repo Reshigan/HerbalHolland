@@ -12,6 +12,10 @@ export const alertKey = (route: string, message: string) => `${route} ${message.
 /** An email subject's worth of the error: its last line, where multi-line errors (Prisma's) put the cause. */
 export const alertSummary = (message: string) => (message.split("\n").map((l) => l.trim()).filter(Boolean).at(-1) ?? "Unknown error").slice(0, 120);
 
+/** Personal details out of an error before it's emailed (a provider's refusal can quote an address or a number). */
+export const scrubAlert = (s: string) =>
+  s.replace(/[^\s"'`<>()[\]{},;]+/g, (t) => (t.includes("@") && !t.includes("/") ? "[email]" : t)).replace(/\+?\d{9,}/g, "[number]");
+
 /** Next.js control flow (redirect, notFound, bailouts) arrives as thrown errors with these digests: not failures. */
 export const isControlFlow = (digest: string | null) => !!digest && /^(NEXT_REDIRECT|NEXT_NOT_FOUND|NEXT_HTTP_ERROR_FALLBACK|BAILOUT_TO_CLIENT_SIDE_RENDERING|DYNAMIC_SERVER_USAGE)/.test(digest);
 

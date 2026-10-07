@@ -5,7 +5,7 @@ import { audit } from "@/server/audit";
 import { attempt, done, fail, manage, type ActionState } from "@/server/store/context";
 import { WEEK, bool, hoursJson, readHours, str, type DayKey, type TradingHours } from "@/server/store/rules";
 import { normalisePhone } from "@/lib/sa";
-import { z } from "zod";
+import { PushSub } from "@/lib/push-sub";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { actorOf } from "@/server/store/context";
@@ -71,11 +71,6 @@ export async function revokeDevice(code: string, deviceId: string, _: ActionStat
 }
 
 // ── Notify me on this phone (staff Web Push) ─────────────────────────────────
-const PushSub = z.object({
-  endpoint: z.string().max(1000).refine((s) => s.startsWith("https://"), "Bad endpoint"),
-  keys: z.object({ p256dh: z.string().min(16).max(200), auth: z.string().min(8).max(100) }),
-});
-
 /** Saves this phone's subscription for the signed-in staff member (managers, owners, area managers and HQ). */
 export async function enableStaffPush(code: string, sub: unknown, userAgent: unknown): Promise<{ error?: string }> {
   const user = await requireStaff();

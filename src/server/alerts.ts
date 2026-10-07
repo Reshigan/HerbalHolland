@@ -1,7 +1,7 @@
 // Server errors (instrumentation onRequestError, cron jobs included): always to the log, and to ALERT_EMAIL by SMTP
 // when it's set, throttled by @/lib/alerts. Never through the message log, and never with headers or the query
 // string: those can carry session cookies and signed links.
-import { admitAlert, alertGate, alertKey, alertSummary, isControlFlow } from "@/lib/alerts";
+import { admitAlert, alertGate, alertKey, alertSummary, isControlFlow, scrubAlert } from "@/lib/alerts";
 import { deliverEmail, esc } from "./email";
 
 const gate = alertGate();
@@ -14,9 +14,9 @@ export async function reportError(err: unknown, where: { method: string; path: s
   console.error(`[error] ${where.method} ${path} (${where.kind} ${where.route})${digest ? ` digest ${digest}` : ""}`, e);
   const to = process.env.ALERT_EMAIL;
   if (!to || !admitAlert(gate, alertKey(where.route, e.message), Date.now())) return;
-  const text = [`${where.method} ${path}`, `Route: ${where.route} (${where.kind})`, ...(digest ? [`Digest: ${digest}`] : []), `At: ${new Date().toISOString()}`, `App: ${process.env.APP_URL ?? "(APP_URL not set)"}`, "", e.stack ?? e.message].join("\n");
+  const text = [`${where.method} ${path}`, `Route: ${where.route} (${where.kind})`, ...(digest ? [`Digest: ${digest}`] : []), `At: ${new Date().toISOString()}`, `App: ${process.env.APP_URL ?? "(APP_URL not set)"}`, "", scrubAlert(e.stack ?? e.message)].join("\n");
   try {
-    await deliverEmail({ to, subject: `Server error: ${alertSummary(e.message)}`, text, html: `<pre style="font:13px/1.45 ui-monospace,monospace;white-space:pre-wrap">${esc(text)}</pre>` });
+    await deliverEmail({ to, subject: `Server error: ${alertSummary(scrubAlert(e.message))}`, text, html: `<pre style="font:13px/1.45 ui-monospace,monospace;white-space:pre-wrap">${esc(text)}</pre>` });
   } catch (mailErr) {
     console.error("[error] couldn't email the alert", mailErr);
   }

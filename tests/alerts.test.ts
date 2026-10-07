@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { admitAlert, alertGate, alertKey, alertSummary, isControlFlow, HOUR, MAX_PER_HOUR } from "@/lib/alerts";
+import { admitAlert, alertGate, alertKey, alertSummary, isControlFlow, scrubAlert, HOUR, MAX_PER_HOUR } from "@/lib/alerts";
 
 describe("server-error alerts", () => {
   it("sends one alert per distinct error an hour, whatever ids its message carries", () => {
@@ -32,5 +32,15 @@ describe("server-error alerts", () => {
     expect(isControlFlow("NEXT_HTTP_ERROR_FALLBACK;404")).toBe(true);
     expect(isControlFlow("2841592318")).toBe(false);
     expect(isControlFlow(null)).toBe(false);
+  });
+
+  it("takes addresses and long numbers out of what's emailed, keeping file paths", () => {
+    const t = scrubAlert("550 <thandi.m@example.co.za> rejected; SMS to +27821234567 failed (ID 9001015009087)\n    at x (node_modules/@prisma/client/runtime/client.js:12:345)");
+    expect(t).not.toMatch(/thandi|821234567|9001015009087/);
+    expect(t).toContain("[email]");
+    expect(t).toContain("node_modules/@prisma/client/runtime/client.js:12:345");
+    const t0 = performance.now();
+    scrubAlert("a".repeat(500_000) + "@".repeat(1000) + "9".repeat(100_000));
+    expect(performance.now() - t0).toBeLessThan(500);
   });
 });
