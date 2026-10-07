@@ -75,7 +75,7 @@ Always:
 | 4 | Public holidays are computed from the Public Holidays Act; one-off proclaimed days (like an election day) aren't in the calendar. | A campaign could go out on a proclaimed holiday. | Platform change **C**: extra holidays in HQ settings. |
 | 5 | Welcome, second-visit, win-back and review journeys aren't automated; RFM segments and campaigns are. | Nothing sends itself. | Run them as weekly segment campaigns (§8.7). Automated journeys come later. |
 | 6 | There are no gift cards or vouchers. | Festive gifting is merch (and products in store). | Built since: gift vouchers, sold online and spent online or at the till. |
-| 7 | Merch is made to order (5–8 working days). Makers and couriers close over the festive season. | A Christmas promise we can't keep. | Confirm the partner's closing dates. Last merch order for Christmas: **Thu 10 Dec** (to confirm). Platform change **D**: a festive lead-time notice on merch pages. |
+| 7 | Couriers slow down and close over the festive season. | A Christmas promise we can't keep. | Merch is in stock: collect it in store any time. Confirm the courier's last dates; last merch order for Christmas delivery: **Thu 10 Dec** (to confirm). |
 | 8 | Online orders before 1 December ship from a distribution centre. | "Online now" only works if someone packs parcels. | Confirm the DC (or a store stockroom) and the courier allow-list before Thu 1 Oct. |
 | 9 | Each store needs its licences captured before it sells licensed products. | A late licence means no dispensary on 1 December. | Plan B: open with CBD, merch and Learn; "dispensary opening soon" at the counter. |
 | 10 | Postiz must be running with the brand accounts connected; new cannabis-adjacent accounts get extra scrutiny. | No social launch without accounts. | Create accounts and connect them by Wed 30 Sep; post brand-only from day one. |
@@ -299,7 +299,7 @@ draft.
 | Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers and member advisors. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
 | Fri 16 Oct | Brand | brand | Dutch heritage: the coffee-shop tradition of a warm welcome and knowing exactly what you're offering. African soil: South African growers, makers and landraces. That's the whole idea. |
 | Sat 17 Oct | Rewards | brand | {count} people have joined the Founding Members list. The first 2,026 get a numbered card on opening weekend. Free to join, adults 18+. |
-| Mon 19 Oct | Made here | sunset-hoodie | The Sunset Hoodie: our lock-up embroidered on the chest, a sunset over the hills across the back. Orange fleece, made to order. |
+| Mon 19 Oct | Made here | sunset-hoodie | The Sunset Hoodie: our lock-up embroidered on the chest, a sunset over the hills across the back. Orange fleece, in stock: delivered, or collect it in store. |
 | Wed 21 Oct | Made here | video | Every Windmill Cap is embroidered when you order it: thousands of stitches, one cap, no warehouse of stock waiting. Here's how it's made. |
 | Fri 23 Oct | Community | photo | Things we already love about the hills: the view over the Valley of a Thousand Hills, Midlands mist, and people who stop to say hello. See you in December. |
 | Sat 24 Oct | Learn | photo | Schedule 0, simply: it's the rule that lets low-dose CBD products be sold without a prescription, with limits on strength and on what a label may claim. Every product page shows you those limits. |
@@ -316,10 +316,10 @@ draft.
 | Sat 14 Nov | Learn | photo | Section 21, simply: if your doctor believes a registered medicine is right for you, they apply to SAHPRA on your behalf. Our pharmacists can walk you through the steps. We never give medical advice on social media. |
 | Mon 16 Nov | Events | photo | Open Day, Saturday 5 December, 09:00–14:00 at both stores: a coffee cart, local makers, ask-the-pharmacist sessions every hour and the embroidered collection. Adults 18+, ID at the door. |
 | Wed 18 Nov | Community | photo | Hillcrest, tell us about the neighbourhood: your favourite breakfast spot, walk or view. We'll visit every one before we open. |
-| Fri 20 Nov | Made here | sunset-bucket-hat | The Sunset Bucket Hat: the windmill embroidered in Sunset thread on black cotton twill. Summer in the hills, sorted. Made to order in South Africa. |
+| Fri 20 Nov | Made here | sunset-bucket-hat | The Sunset Bucket Hat: the windmill embroidered in Sunset thread on black cotton twill. Summer in the hills, sorted. In stock: delivered, or collect it in store. |
 | Sat 21 Nov | Rewards | brand | Ten days until our doors open, and {count} people are on the Founding Members list. Are you? |
 | Mon 23 Nov | Brand | photo | Behind the orange frame: our windows go up this week. Hillcrest and Hilton, eight days to go. |
-| Fri 27 Nov | Made here | windmill-tee | Black Friday: 20% off the whole embroidered collection online, today to Monday. Pieces made to order need ordering by 10 December for Christmas. |
+| Fri 27 Nov | Made here | windmill-tee | Black Friday: 20% off the whole embroidered collection online, today to Monday. Order by 10 December for Christmas delivery, or collect in store. |
 | Sun 29 Nov | Teaser | video | Tuesday, 09:00. Hillcrest and Hilton. The windmill is nearly turning. |
 | Mon 30 Nov | Teaser | brand | Tomorrow at 09:00 our doors open in Hillcrest and Hilton. Bring your ID and come say hello. Adults 18+. |
 | Tue 1 Dec | Opening | photo | Sivulile. We're open! Herbal Holland Hillcrest and Hilton are open from 09:00 today. Come and say sawubona. Adults 18+, bring your ID. #HollandMeetsTheHills |
@@ -328,7 +328,7 @@ draft.
 | Sat 5 Dec | Events | photo | Open Day is on until 14:00 at both stores: coffee, local makers, and our pharmacists answering questions on the hour. Adults 18+. |
 | Sun 6 Dec | Rewards | brand | Last call: the Founding Members list closes at midnight tonight. Join free in the Rewards app. Adults 18+. |
 | Mon 7 Dec | Rewards | brand | Founding Members, your numbers are in: open the Rewards app to see your card. Thank you for being first. |
-| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order, so order by 10 December for Christmas. |
+| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Collect it in store, or order by 10 December for Christmas delivery. |
 | Thu 10 Dec | Made here | windmill-tote | Last day to order merch for Christmas: tees, hoodies, crewnecks, caps, bucket hats, beanies and totes, embroidered and printed in South Africa. |
 | Fri 11 Dec | Holiday | brand | Heading down the N3 for the holidays? Hilton is just off the highway, and Hillcrest is on the M13 into Durban. Stretch your legs, say hello, and never drive impaired. Adults 18+. |
 | Sat 12 Dec | Community | photo | Thank you to the makers who joined us on Open Day: {makers}. Go and visit them. |
@@ -714,7 +714,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 | A neighbour objection or a negative story | Medium / medium | The Good Neighbour Promise, early meetings, the Q&A pack, the manager's direct line, same-day response. |
 | Election campaigning to 4 November | High / low | Neutral; no politicians at our events; no sends on 4 Nov (change C). |
 | The Tobacco Bill passes | Medium / medium | No campaign built on accessories; `tobaccoBillMode` is ready. |
-| The merch partner or couriers close for the holidays | High / medium | Last order dates in every message; the festive lead-time notice (change D). |
+| Couriers close for the holidays | High / medium | Last order dates in every message; collect in store as the fallback. |
 | Storms or load-shedding during an event | Medium / medium | Indoor plans; backup power; the tills work offline. |
 | Security at busy December events | Medium / medium | A guard on the door; card and PayShap preferred; ID at the door. |
 | Road closures for the Comrades and Amashova | Certain on the day / low | Plan hours and staff access; tell members in advance. |

@@ -442,7 +442,7 @@ export default function BrandBook() {
         id="merch"
         n="08"
         title="Merch"
-        intro="Made to order in South Africa, one at a time. No stock and no minimums. Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed (DTF). Each design is a single colour: Sunset on black garments, black on the Sunset hoodie. The files below are what our partner works from."
+        intro="Held in stock: delivered to the member's door, or collected in store. Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed (DTF). Each design is a single colour: Sunset on black garments, black on the Sunset hoodie. The files below are what the embroidery and print are made from."
         light
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">

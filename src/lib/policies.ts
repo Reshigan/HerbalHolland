@@ -57,9 +57,9 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
     {
       list: [
         {
-          text: "Merch made to order for you, and goods that by their nature can't be returned: for example food, drink, supplements or skin care once opened or unsealed.",
+          text: "Anything made to order for you (its product page says so), and goods that by their nature can't be returned: for example food, drink, supplements or skin care once opened or unsealed.",
           counsel:
-            "Counsel to confirm which ECTA s42(2) exclusions apply: whether made-to-order merch in our standard designs counts as made to the member's specifications (s42(2)(f)), and whether food, drink and supplements delivered to the home are excluded even when sealed, as goods for everyday consumption (s42(2)(c)).",
+            "Counsel to confirm which ECTA s42(2) exclusions apply: whether an item made to order in our standard designs counts as made to the member's specifications (s42(2)(f)), and whether food, drink and supplements delivered to the home are excluded even when sealed, as goods for everyday consumption (s42(2)(c)).",
         },
         "This only limits returns for a change of mind. If anything is faulty, the 6-month rights above always apply.",
       ],
@@ -102,7 +102,7 @@ export function deliveryPolicy(f: PolicyFacts): PolicyBlock[] {
       list: [
         `Courier delivery: ${zarWhole(e.courierFeeCents)} an order, free when your order comes to ${zarWhole(e.freeDeliveryOverCents)} or more.`,
         `Same-day delivery, where a store near you offers it: ${zarWhole(e.sameDayFeeCents)}, when you order by ${cutoff}.`,
-        `Made-to-order merch is made for you by our merch partner and couriered on its own in ${MADE_TO_ORDER_LEAD}, with a ${zarWhole(e.merchCourierCents)} courier fee on top. It doesn't count towards free delivery.`,
+        `Anything made to order for you (its product page says so) is couriered on its own in ${MADE_TO_ORDER_LEAD}, with a ${zarWhole(e.merchCourierCents)} courier fee on top, and doesn't count towards free delivery.`,
         "You see the delivery charge at checkout, before you pay.",
       ],
     },

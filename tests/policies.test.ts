@@ -45,7 +45,7 @@ describe("shop policies", () => {
   it("marks the ECTA s42 exclusions for counsel", () => {
     const marked = returnsPolicy(facts()).flatMap((b) => ("list" in b ? b.list.filter((l) => typeof l !== "string") : []));
     expect(marked).toHaveLength(1);
-    expect(marked[0]).toMatchObject({ text: expect.stringContaining("Merch made to order"), counsel: expect.stringContaining("s42(2)") });
+    expect(marked[0]).toMatchObject({ text: expect.stringContaining("Anything made to order for you"), counsel: expect.stringContaining("s42(2)") });
     expect((marked[0] as { text: string }).text).toMatch(/food, drink, supplements or skin care once opened/);
   });
 

@@ -259,51 +259,28 @@ The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so t
 - **SARS:** the VAT201 working per period is copied into eFiling; filing stays with the vendor. Invoices already carry
   structured data for SARS e-invoicing (VAT modernisation, phased from 2030).
 
-## Merch partner: made-to-order merch (`src/server/pod.ts`, `merch.ts`)
+## Merch (`src/lib/merch.ts`; made to order: `src/server/pod.ts`, `merch.ts`)
 
-Merch is made to order in South Africa and couriered, white-label, straight to the member: no stock, no minimums.
-Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed. The Windmill
-Tee is the exception: it's held in stock and sold like the rest of the range (no partner code on its variants, so
-it's received, counted and delivered from stock).
+The merch range (Windmill Tee, Sunset Hoodie, Heritage Crewneck, Windmill Cap, Sunset Bucket Hat, Windmill Beanie and
+Windmill Tote) is held in stock and sold like the rest of the range: received, counted and ranged to the stores, then
+delivered to the member's door or collected in store. Upmarket by design: every logo is embroidered, and only the big
+back graphics and the tote are printed (DTF). `scripts/merch-export.tsx` renders the embroidery and print files.
 
-**Partner: Lucani, Cape Town** (Digihuis (Pty) Ltd; trade account: lucani.co.za/trade-account-application). The only
-South African partner found that does all of it from one piece: embroidery on tees, hoodies and caps, DTF prints on
-the same garment, white-label trade fulfilment (advertised), a digital proof before every job, and terms that only
-refuse unlawful/obscene artwork (nothing on cannabis or CBD). Digitising is once-off per design (R200–R500 in their
-guides; our three stitched designs are digitised once each). Production 3–5 business days, then 1–3 days to metros
-(3–5 regional). Not VAT-registered: their invoices carry no VAT. Blanks are mid-weight (185 g tee, 240–280 g
-fleece), so ask for heavier.
+The platform can also sell a variant made to order: give it a merch partner code (HQ → Catalogue) and it carries no
+stock and ships by courier only, with the merch courier fee on top. Nothing in the range uses it today. Partners have
+no API, so the platform works by email:
 
-- **Runner-up: OneOff, Johannesburg.** Better 100% cotton blanks (260 g hoodie, 220 g tee), DTF++ with an orange ink
-  channel, embroidery up to 27 × 27 cm, flat R150 drop-ship; but its terms bar products that "encourage the use of
-  drugs" and it doesn't proof by default.
-- **Beanies and bucket hats:** Lucani embroiders trade blanks it buys per order (its quote form already lists both):
-  Captivity's Glacier Ribbed cuffed beanie and Phoenix 100% cotton-twill bucket hat (Cape Town wholesaler, no minimum,
-  ready in 24–48 h), or TwentyFour's Rib Knit Cuffed and Max Wash for a more premium feel. The beanie cuff takes the
-  40 mm cut of the Mark, stitched through the outer layer only. Fallback: GetCapped (Johannesburg; beanie R99.95,
-  Phoenix bucket hat R129.95, embroidery included, R180 digitising once, 5–7 days + 2–3 courier), only if it confirms
-  blind shipping in writing.
-- No global print-on-demand network embroiders in South Africa (Printful, Gelato, Printify, Teelaunch).
-
-No South African partner has an API, so the platform works by email:
-
-1. A paid order with merch → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
+1. A paid order with a made-to-order variant → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
    items (our product code, blank, size, quantity) and, per placement, embroidery or DTF, where it goes, its size and
    links to our files (the vector PDF for digitising and DTF, and a 300 dpi PNG). Also kept in HQ → Messages.
 2. The partner makes it, packs white-label and couriers to the customer, then emails back the courier and tracking.
-3. The distribution centre enters it on the order (**Merch shipped**): the customer is texted their tracking, and a
-   merch-only order goes out for delivery (the sale posts at the partner's price, booked to the DC).
+3. The distribution centre enters it on the order (**Merch shipped**): the customer is texted their tracking, and an
+   order of only made-to-order items goes out for delivery (the sale posts at the partner's price, booked to the DC).
 4. On delivery the DC marks the order delivered, as for any courier order.
 
-Before the first sale, get in writing: that they'll make merch for a CBD/hemp wellness brand (send the logo and a back
-print); that they'll add the beanie and bucket hat as trade products (blanks bought per order or a few kept in stock,
-and the extra lead time); embroidery at quantity 1 with no per-order setup or reseller minimum; digitising cost per design and who owns
-the stitch file; per-piece prices at 1, 5 and 10 units for the tee, hoodie, crewneck, cap and tote; their thread
-chart (a sew-out of the closest match to Sunset 500 #F5913C); which blanks (black and orange in stock, heavier
-options, a crewneck and a tote); white-label details (plain packaging, no partner invoice inside, our insert, return
-address); email ordering and tracking replies; courier rates; payment terms; misprint/reprint policy; and an opt-out
-from promotional photography. Then approve a paid sample set, set each variant's partner code and cost (HQ →
-Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
+Before selling anything made to order, get the partner's terms in writing (that it makes merch for a CBD and hemp
+wellness brand, per-piece prices, white-label packing, tracking by email), then set the variant's partner code and
+cost (HQ → Catalogue), `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
 ## Social posting with Postiz, and the Campaign Studio (`src/server/social.ts`, `src/server/studio.ts`)
 
@@ -427,7 +404,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `YOCO_SECRET_KEY` | Yoco Checkout API secret key: `sk_test_…` while testing, `sk_live_…` once a domain is verified. Server only |
 | `YOCO_WEBHOOK_SECRET` | The `whsec_…` secret Yoco returned when the webhook (`/api/payments/yoco`) was registered with that same mode's key. Unset: the webhook answers 503 |
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
-| `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
+| `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name, for a variant made to order (none in the range today); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
 | `WORKERS_AI_ACCOUNT_ID`, `WORKERS_AI_TOKEN`, `WORKERS_AI_MODEL` | Optional: Studio rewrites in the brand's voice through Cloudflare Workers AI (free allowance); unset = no AI |
 | `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |

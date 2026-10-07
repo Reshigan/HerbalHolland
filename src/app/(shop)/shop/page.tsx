@@ -36,7 +36,7 @@ const CLASS_STORY: Partial<Record<RegClass, string>> = {
   HEMP: "Hemp products for adults 18+, with the same batch traceability as everything else we sell.",
   SUPPLEMENT: "Supplements carry no cannabis: the serving is on the label, and they work alongside a varied diet.",
   ACCESSORY: "Tools and storage that last. Where the law asks, tobacco-related items are sold in store only.",
-  APPAREL: "Made to order by our merch partner in South Africa and couriered to your door.",
+  APPAREL: "In stock: delivered to your door, or collect it in store.",
   GROW: "Soil, pots and tools for growing at home, within the law.",
 };
 const CLASS_GUIDE: Partial<Record<RegClass, string>> = { CBD: "cbd-schedule-0", CBD_FOOD: "cbd-schedule-0", CBD_TOPICAL: "cbd-schedule-0", HEMP: "reading-lab-results", SUPPLEMENT: "reading-lab-results", GROW: "responsible-use" };

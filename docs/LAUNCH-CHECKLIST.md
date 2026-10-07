@@ -31,13 +31,11 @@ Tick every line before the first store trades on the platform, except the last s
 - [ ] Opening stock counted per store (full blind stock take) and approved
 - [ ] DC replenishment cadence and lead times set; par/reorder levels reviewed
 
-## Merch (made to order)
-- [ ] Merch partner agreed (Lucani trade account; OneOff as fallback): prices at 1/5/10 units, digitising, blanks, courier rates, white-label packing, payment terms
-- [ ] Partner confirms in writing that it makes merch for a CBD/wellness brand; stitch files and any partner-made artwork owned by (or released to) Herbal Holland
-- [ ] Each stitched design digitised once; thread sew-out approved against Sunset 500; sample of every piece approved (placements, wash test, hoodie blank colour)
-- [ ] Lucani adds the beanie and bucket hat (Captivity blanks, no minimum); cuff sample approved (40 mm, outer layer only); otherwise GetCapped, with blind shipping confirmed in writing
-- [ ] Variant costs and merch partner codes set in HQ → Catalogue; `POD_EMAIL` and the merch courier fee set
-- [ ] DC team trained on **Merch shipped** (tracking from the partner's email) and on chasing late orders
+## Merch (held in stock)
+- [ ] Thread approved against Sunset 500 for each stitched design; a sample of every piece approved (placements, wash test, hoodie colour, the beanie's 40 mm cuff mark)
+- [ ] Every piece and size received with its SKU, barcode and cost in HQ → Catalogue (no merch partner code, so it sells from stock)
+- [ ] Merch ranged to the stores for click & collect, and their opening stock counted in
+- [ ] Stitch files and artwork owned by Herbal Holland, whoever embroiders and prints them
 
 ## Devices & people
 - [ ] Android devices (11+, Google services, no developer options) paired per till; printers tested; barcode scanners tested

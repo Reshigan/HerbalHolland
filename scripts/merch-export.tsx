@@ -1,4 +1,4 @@
-// Renders the files the merch partner embroiders and prints from, from the artwork in src/components/merch/art.tsx:
+// Renders the files the merch is embroidered and printed from, from the artwork in src/components/merch/art.tsx:
 //   public/merch/print/<design>.pdf   vector master at actual size, font embedded, for digitising and DTF
 //   public/merch/print/<design>.svg   the same vector master as SVG
 //   public/merch/print/<design>.png   300 dpi, transparent, exact size
@@ -73,7 +73,7 @@ if (mockups) {
   for (const m of SOCIAL_IMAGES.slice(1).map((i) => merchFor(i.key)!)) {
     const fg = m.colour === "black" ? INKS.black : "#fbf7f3";
     const how = m.prints.some((p) => p.technique === "Embroidery") ? "Embroidered" : "Printed";
-    await shoot(m.slug, `${renderToStaticMarkup(<MerchArt slug={m.slug} className="" />).replace('viewBox="0 0 120 120"', 'viewBox="-14 -26 148 148" width="1080" height="1080"').replace('<rect width="120" height="120"', '<rect x="-14" y="-26" width="148" height="148"')}<div style="position:absolute;left:64px;top:56px;color:${fg}"><div style="font-weight:600;font-size:52px;letter-spacing:-0.01em">${m.name}</div><div style="font-size:26px;margin-top:4px;opacity:.85">${how}${m.stocked ? "" : " · made to order in South Africa"}</div></div>`);
+    await shoot(m.slug, `${renderToStaticMarkup(<MerchArt slug={m.slug} className="" />).replace('viewBox="0 0 120 120"', 'viewBox="-14 -26 148 148" width="1080" height="1080"').replace('<rect width="120" height="120"', '<rect x="-14" y="-26" width="148" height="148"')}<div style="position:absolute;left:64px;top:56px;color:${fg}"><div style="font-weight:600;font-size:52px;letter-spacing:-0.01em">${m.name}</div><div style="font-size:26px;margin-top:4px;opacity:.85">${how}</div></div>`);
   }
 } else if (preview) {
   // Contact sheet: each design at 1 mm = 1.6 px on its garment colour.
