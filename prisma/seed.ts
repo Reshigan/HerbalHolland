@@ -1635,7 +1635,7 @@ async function main() {
   const reviewRows: Prisma.ReviewCreateManyInput[] = [];
   const reviewed = new Set<string>();
   const REVIEW = {
-    5: [["Exactly as described", "Beautiful quality and the budtender knew their stuff."], ["My new favourite", "Consistent every time. Love that I can see the lab results."], ["Worth it", "Great value with my Rewards points. Collection was ready in 10 minutes."]],
+    5: [["Exactly as described", "Beautiful quality and the staff knew their stuff."], ["My new favourite", "Consistent every time. Love that I can see the lab results."], ["Worth it", "Great value with my Rewards points. Collection was ready in 10 minutes."]],
     4: [["Really good", "Lovely product, would buy again."], ["Solid", "Good quality, slightly pricey but you get what you pay for."]],
     3: [["Decent", "Okay, not my favourite from the range."]],
     2: [["Not for me", "Didn't suit me, but the staff were great about it."]],
@@ -2082,7 +2082,20 @@ async function main() {
   if (shortDeposit)
     await raiseAlerts([shortDepositAlert(shortDeposit as Parameters<typeof shortDepositAlert>[0], shortStore.code, shifts.filter((x) => x.depositId === shortDeposit!.id).length)]);
   const loss = await runLossRules(NOW);
+
+  // Campaign Studio: the opening campaign for a store that's opening soon, laid out and approved, and the brand launch
+  // as drafts (src/lib/studio-playbooks.ts).
+  const { createPlan, approveItems } = await import("../src/server/studio");
+  const studioActor = { type: "USER" as const, id: users[0].id as string, name: users[0].name as string };
+  const soon = stores.find((x) => x.status === "OPENING_SOON" && x.kind === "RETAIL");
+  let studioItems = 0;
+  if (soon) {
+    const plan = await createPlan({ playbook: "store-opening", anchor: dayKey(new Date(NOW.getTime() + 40 * DAY)), storeId: soon.id, by: studioActor.name, actor: studioActor }, NOW);
+    studioItems += (await approveItems(plan.id, "all", studioActor.name, studioActor)).approved;
+  }
+  await createPlan({ playbook: "brand-launch", anchor: dayKey(new Date(NOW.getTime() + 7 * DAY)), storeId: null, by: studioActor.name, actor: studioActor }, NOW);
   console.log(`  banking · alerts       ${depositRows.length} deposits · ${loss.raised} loss-prevention alerts`);
+  console.log(`  studio                 ${soon ? `store opening for ${soon.name} (${studioItems} posts approved) · ` : ""}brand launch drafts`);
   const gross = sales.reduce((a, s) => a + (s.totalCents as number), 0);
   const tradeSales = sales.filter((s) => s.channel === "WHOLESALE");
   console.log(`  trade                  ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · ${ledgerRows.length} ledger entries`);

@@ -7,6 +7,7 @@ import { db, tx } from "./db";
 import { SYSTEM } from "./audit";
 import { reportFailure } from "./alerts";
 import { advanceOrder } from "./orders";
+import { syncStudio } from "./studio";
 import { runDueCampaigns } from "./marketing";
 import { emailSaleInvoice } from "./invoices";
 import { addPoints } from "./loyalty";
@@ -99,6 +100,8 @@ export async function birthdayPoints(now = new Date()) {
 export const JOBS: Record<string, Steps> = {
   frequent: {
     campaigns: async () => (await runDueCampaigns()).length,
+    // The Studio: which of its campaigns and Postiz posts went out.
+    studio: () => syncStudio(),
     unpaidOrders: expireUnpaidOrders,
     invoices: retryInvoices,
     founding: assignFounding,

@@ -1,6 +1,6 @@
-// The made-to-order merch collection: which garment, colour and embroidery/print each product carries. Our merch
-// partner (Lucani, Cape Town) makes each piece when it's ordered and couriers it, white-label, to the customer:
-// no stock, no minimums. Upmarket by design: the logos are embroidered; the big back graphics and the tote are
+// The merch collection: which garment, colour and embroidery/print each product carries. The Windmill Tee is held in
+// stock and sold like the rest of the range (`stocked`); the other pieces are made by our merch partner when they're
+// ordered and couriered, white-label, to the member: no stock, no minimums. Upmarket by design: the logos are embroidered; the big back graphics and the tote are
 // printed (DTF: printed film, heat-pressed). Pieces the partner can't make yet are held back (`pending`).
 // Artwork lives in src/components/merch/art.tsx; the partner's files are rendered by scripts/merch-export.tsx.
 
@@ -18,13 +18,14 @@ export type MerchItem = {
   hero: Side; // the view the shop shows
   prints: Print[];
   pending?: string; // designed, but not on sale until the partner can make it
+  stocked?: true; // held in stock and delivered like the rest of the range, not made to order
 };
 
 const CHEST = { art: "mark-stitch", side: "front", technique: "Embroidery", where: "Left chest, 80 mm below the shoulder seam" } as const;
 
 export const MERCH: MerchItem[] = [
   {
-    slug: "windmill-tee", name: "Windmill Tee", blank: "Black combed-cotton tee (Lucani Urban Luxe; heavier blank on request)", garment: "tee", colour: "black", hero: "back",
+    slug: "windmill-tee", name: "Windmill Tee", blank: "Black combed-cotton tee", garment: "tee", colour: "black", hero: "back", stocked: true,
     prints: [CHEST, { art: "window-back", side: "back", technique: "DTF", where: "Centre back, 75 mm below the collar" }],
   },
   {

@@ -135,6 +135,7 @@ model Store {
   customers      Customer[]
   loyalty        LoyaltyEntry[]
   campaigns      Campaign[]
+  studioPlans    StudioPlan[]
   dailyStats     DailyStoreStat[]
   tradeOrders    TradeOrder[]       @relation("tradeStore")
   variantStats   DailyVariantStat[]
@@ -1123,6 +1124,7 @@ model Campaign {
   suppressedCount Int            @default(0)
   createdAt       DateTime       @default(now())
   messages        MessageLog[]
+  studioItems     StudioItem[]
 }
 
 model MessageLog {
@@ -1419,8 +1421,71 @@ model SocialPost {
   postizIds   String[]  @default([])
   createdBy   String?
   createdAt   DateTime  @default(now())
+  studioItems StudioItem[]
 
   @@index([createdAt])
+}
+
+// Campaign Studio (HQ → Marketing → Studio): a playbook (src/lib/studio-playbooks.ts) laid out from day T into dated
+// drafts. Approved social drafts go to Postiz, members' own channels become Campaigns, and WhatsApp Channel and Google
+// posts are made by hand from the draft's text and card.
+model StudioPlan {
+  id        String       @id @default(cuid())
+  playbook  String
+  name      String
+  anchor    String // day T, YYYY-MM-DD in South African time
+  store     Store?       @relation(fields: [storeId], references: [id])
+  storeId   String?
+  createdBy String?
+  createdAt DateTime     @default(now())
+  items     StudioItem[]
+
+  @@index([createdAt])
+}
+
+enum StudioChannel {
+  SOCIAL
+  WHATSAPP
+  GOOGLE
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum StudioStatus {
+  DRAFT
+  APPROVED
+  SCHEDULED // handed to Postiz, or waiting as a Campaign
+  POSTED
+  FAILED
+  SKIPPED
+}
+
+model StudioItem {
+  id           String        @id @default(cuid())
+  plan         StudioPlan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  planId       String
+  key          String // the playbook item it came from
+  channel      StudioChannel
+  at           DateTime
+  title        String? // email subject or push title
+  text         String
+  short        String? // social: the version for Threads, Bluesky and X
+  card         Json? // { template, eyebrow?, headline, sub?, lines?, image? } (src/lib/studio.ts Card)
+  status       StudioStatus  @default(DRAFT)
+  note         String? // why it moved, or what Postiz said when it failed
+  link         String? // the published post
+  approvedBy   String?
+  doneBy       String?
+  doneAt       DateTime?
+  socialPost   SocialPost?   @relation(fields: [socialPostId], references: [id], onDelete: SetNull)
+  socialPostId String?
+  campaign     Campaign?     @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  campaignId   String?
+  updatedAt    DateTime      @updatedAt
+
+  @@index([planId, at])
+  @@index([status, at])
 }
 
 // ── Cash banking ────────────────────────────────────────────────────────────

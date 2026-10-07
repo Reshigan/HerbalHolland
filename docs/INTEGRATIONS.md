@@ -261,8 +261,10 @@ The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so t
 
 ## Merch partner: made-to-order merch (`src/server/pod.ts`, `merch.ts`)
 
-Merch is made to order in South Africa and couriered, white-label, straight to the customer: no stock, no minimums.
-Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed.
+Merch is made to order in South Africa and couriered, white-label, straight to the member: no stock, no minimums.
+Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed. The Windmill
+Tee is the exception: it's held in stock and sold like the rest of the range (no partner code on its variants, so
+it's received, counted and delivered from stock).
 
 **Partner: Lucani, Cape Town** (Digihuis (Pty) Ltd; trade account: lucani.co.za/trade-account-application). The only
 South African partner found that does all of it from one piece: embroidery on tees, hoodies and caps, DTF prints on
@@ -303,32 +305,49 @@ address); email ordering and tracking replies; courier rates; payment terms; mis
 from promotional photography. Then approve a paid sample set, set each variant's partner code and cost (HQ →
 Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
-## Social posting with Postiz (`src/server/social.ts`)
+## Social posting with Postiz, and the Campaign Studio (`src/server/social.ts`, `src/server/studio.ts`)
 
-HQ → Campaigns → **Social** writes a post once and publishes or schedules it on the brand's Instagram, Facebook,
-LinkedIn, X and Threads through [Postiz](https://postiz.com): open source, free when self-hosted, no limit on
-channels or posts. Captions are screened as you type (`screenSocial`: every `screenCopy` rule, plus no THC and no
-selling cannabis or CBD) and the pictures on offer are brand artwork only (`public/social`, rendered by
-`npx tsx scripts/merch-export.tsx --social`). Without Postiz, posts are only recorded on the page.
+HQ → Marketing → **Studio** lays a whole campaign out from one day (a playbook in `src/lib/studio-playbooks.ts`: brand
+launch, online shop launch, store opening, Founding Members, hiring, merch drop): every post with its brand card,
+checked for the channel it goes on (`screenDraft`: the copy rules, the platforms' rules, lengths, public holidays). HQ
+approves, then **Schedule what's approved** sends social posts to [Postiz](https://postiz.com) with their card and
+turns email, SMS and push into Campaigns. HQ → Marketing → **Social** still posts one-off captions with the brand
+pictures in `public/social`. Postiz is open source and free when self-hosted, with no limit on channels or posts.
+Without it, social posts wait in the Studio to be posted by hand (copy the words, download the card).
 
-1. Run Postiz with its Docker Compose file (it brings its own PostgreSQL and Redis) on a small VPS behind HTTPS,
-   e.g. `https://social.herbalholland.co.za`. Postiz cloud (paid) has the same API.
-2. Connect the accounts in Postiz: Instagram (business account linked to the Facebook Page), Facebook Page, LinkedIn
-   Page, X and Threads. A self-hosted Postiz needs each network's developer-app keys in its environment (Postiz docs →
-   Providers).
+1. Run Postiz with its Docker Compose file on the server, behind HTTPS on its own subdomain (e.g.
+   `https://social.herbalholland.co.za`): it brings PostgreSQL, Redis and Temporal (with Temporal's own PostgreSQL and
+   Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory. Set `API_LIMIT=500` in its environment: the
+   default (30 public API calls an hour) is less than one Studio campaign needs (an upload and a post per card).
+2. Connect the accounts, all set to adults 18+:
+   - **Facebook, Instagram (a professional account) and Threads**: one Meta developer app owned by HQ, with the
+     marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
+     Review is needed. Its keys go in Postiz's environment (Postiz docs → Providers).
+   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin.
+   - **LinkedIn page**: the Community Management API needs LinkedIn's approval; post by hand from the Studio until then.
+   - **X** charges for API posts ($0.015 a post, $0.20 with a link), so it's left to by-hand posting.
+   - TikTok, Pinterest and YouTube keep API posts private until an audit, and TikTok bans cannabis content: not used.
 3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.co.za/api/public/v1`;
    Postiz cloud: `https://api.postiz.com/public/v1`) and `POSTIZ_API_KEY`.
-4. `APP_URL` must be public HTTPS: Postiz fetches the picture from `${APP_URL}/social/<picture>.jpg`.
+4. For the Social page's pictures only, `APP_URL` must be public HTTPS (Postiz fetches `${APP_URL}/social/<picture>.jpg`).
+   Studio cards are uploaded with the post.
 
-A post goes out **now**, **scheduled** (Postiz publishes it at that time, SAST in the composer) or as a **draft** in
-Postiz (to add a video or edit per network). Edit or delete scheduled posts in Postiz. Postiz accepts 90 posts an hour
-through its API; the composer holds captions to X's 280 and Threads' 500 characters when those are ticked, and
-Instagram needs a picture. TikTok and YouTube aren't offered (video only, and TikTok bans cannabis content). Meta
-rejects cannabis and CBD ads, so this is organic posting only, with no boosting.
+The `frequent` job (`syncStudio`) reads back how each Studio post went: published (with its link) or failed (with
+Postiz's reason), and marks members' messages out once their campaign has sent. Edit or delete a scheduled post in
+Postiz, or take it back in the Studio (which deletes it there). Meta rejects cannabis and CBD ads, so this is organic
+posting only, with no boosting.
 
-Free alternatives if Postiz doesn't suit: Buffer's free plan (3 channels, 10 queued posts each), Meta Business Suite
-(Facebook and Instagram only) or Mixpost Lite (self-hosted, fewer networks). None of them gives us a free API for all
-five networks, so they're used by hand, outside this platform.
+**WhatsApp and Google** are never posted through an API: WhatsApp's Business Messaging Policy (the app and the API
+alike) bans promoting or facilitating drugs and medical products whatever the licences, and Google's posts bar offers
+of regulated products. The Studio keeps them to store, brand and event news, posted by hand (the brand's WhatsApp
+Channel on a number that isn't a store's line; each store's Google Business Profile). Store service chats start from
+the QR maker's "WhatsApp the store" codes.
+
+**AI drafting (optional).** With `WORKERS_AI_ACCOUNT_ID` and `WORKERS_AI_TOKEN` (a Cloudflare API token with Workers AI
+read and edit), any Studio post can be rewritten in the brand's voice through Cloudflare Workers AI: a free daily
+allowance (10,000 neurons, about a thousand captions), and Cloudflare doesn't train on prompts. It only sees the draft
+and the brand rules, never a member's details; the suggestion is screened like any draft and a person decides.
+`WORKERS_AI_MODEL` picks another model (`@cf/meta/llama-3.3-70b-instruct-fp8-fast` by default).
 
 ## Wallet passes: Apple Wallet and Google Wallet (`src/lib/wallet.ts`, `src/server/shop/wallet.ts`)
 
@@ -405,6 +424,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
+| `WORKERS_AI_ACCOUNT_ID`, `WORKERS_AI_TOKEN`, `WORKERS_AI_MODEL` | Optional: Studio rewrites in the brand's voice through Cloudflare Workers AI (free allowance); unset = no AI |
 | `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |
 | `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
 | `TRADE_EMAIL` | Where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |

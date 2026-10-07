@@ -43,7 +43,7 @@ export async function postSocial(_: ActionState, fd: FormData): Promise<ActionSt
   let postizIds: string[] = [];
   if (postizConnected()) {
     try {
-      postizIds = await publishSocial({ content, image, channels, mode, at });
+      postizIds = await publishSocial({ content, picture: image ? { image } : null, channels, mode, at });
     } catch (e) {
       if (e instanceof SocialError) return fail(e.message);
       throw e;

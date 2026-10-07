@@ -53,7 +53,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Reuse the domain services instead of writing new business logic in pages:
   `sales` (postPosSale, refundSale), `orders` (placeOrder, advanceOrder), `inventory` (availability, adjustStock, stock takes),
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
-  `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`,
+  `compliance` (evaluateBasket), `finance`, `marketing`, `studio` (campaign playbooks: createPlan, scheduleApproved), `invoices`, `dashboard`, `settings`, `audit`,
   `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
   `queueStoreDay` inside its own transaction; postings are rebuilt from their source, never written by hand, and manual
   journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts`, so nobody sees an

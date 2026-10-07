@@ -171,6 +171,7 @@ const IMAGES = [
   ["hq-campaign", ci("hq", "campaign-reach")],
   ["hq-campaign-cancelled", ci("hq", "campaign-cancelled")],
   ["hq-social", ci("hq", "social")],
+  ["hq-studio", ci("hq", "studio")],
   ["hq-messages", `${ADMIN}/hq-messages-desktop.png`, { crop: { top: 0, height: 1000 } }],
   ["hq-message-drawer", `${MADMIN}/08-message-drawer.png`],
   ["hq-anonymised", ci("hq", "anonymised")],

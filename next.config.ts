@@ -18,6 +18,8 @@ const config: NextConfig = {
   output: "standalone",
   // Never in the server bundle, whatever a dynamic path makes the tracer think: uploads, docs, tests and the other site.
   outputFileTracingExcludes: { "/*": [".data/**", "docs/**", "e2e/**", "tests/**", "sites/**", "scripts/**", "test-results/**"] },
+  // The Campaign Studio's cards read the brand fonts from disk (src/server/studio-cards.tsx).
+  outputFileTracingIncludes: { "/hq/marketing/studio": ["./src/assets/fonts/*.ttf"], "/hq/marketing/studio/**": ["./src/assets/fonts/*.ttf"] },
   poweredByHeader: false,
   serverExternalPackages: ["pg", "nodemailer"],
   // Banking slips (photos or PDFs up to 10 MB) and members' photos (up to three of 5 MB with a review or a return) are

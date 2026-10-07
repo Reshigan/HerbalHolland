@@ -85,7 +85,7 @@ Always:
 | 14 | Local government elections: **Wed 4 Nov 2026** was declared a public holiday on 15 Sep 2026. It isn't in the platform's calendar, and campaigning runs through our pre-launch. | A send could go out on election day; councillors change after it. | Change **C** before 4 Nov. No posts or sends on 4 Nov; meet ward councillors after the election; stay politically neutral. |
 | 15 | Section 18A of the Medicines Act bars incentive schemes on _medicines_. Schedule 0 CBD is a scheduled substance. The engine excluded only licensed (THC) lines from deals, points and member prices; CBD supplements are now excluded too by default (HQ's `noIncentives` setting). | If s18A covers Schedule 0, CBD deals, points and tier savings are unlawful, and Rewards leans on merch and accessories. | **Counsel's opinion by Fri 16 Oct.** Until then, every offer in this plan is on merch and accessories. If yes: keep **E** as built (CBD supplements excluded from incentives); if no, HQ can switch CBD back on. |
 | 16 | The Tobacco Products and Electronic Delivery Systems Control Bill is in committee. As tabled it bans advertising and display, and it likely covers non-nicotine vapes. | Accessories could lose advertising, display and points. | Build no campaign on accessories; the `tobaccoBillMode` switch is ready. |
-| 17 | WhatsApp's Business Policy (updated September 2026) bars messaging about drugs, prescription or otherwise. | Order updates about CBD on WhatsApp risk the number. | Keep `TRANSACTIONAL_CHANNEL=SMS`; no WhatsApp marketing. |
+| 17 | WhatsApp's Business Policy (updated September 2026) bars messaging about drugs, prescription or otherwise, on the app and the API alike, whatever the licences. | Order updates about CBD on WhatsApp risk the number. | Keep `TRANSACTIONAL_CHANNEL=SMS`; no WhatsApp marketing sends. WhatsApp carries only store, brand and event news on the brand's Channel (posted by hand from the Studio, on a number that isn't a store's line) and the chats members start from a store's QR code. |
 | 18 | Hilton is a school town (Hilton College, St Anne's, Cowan House, Grace College, Laddsworth), and Kearsney College is on the Botha's Hill road. | The 500 m rule may rule out most poster and board sites in Hilton. | Map schools before booking any placement. |
 
 ## 3. Objectives and targets
@@ -276,7 +276,9 @@ healthcare professionals (factual material, modest refreshments, no inducements)
 
 ## 7. Launch content bank
 
-Ready to load into HQ → Campaigns (own channels) and HQ → Campaigns → Social (drafts in Postiz, four weeks ahead).
+Built into HQ → Marketing → Studio as playbooks (`src/lib/studio-playbooks.ts`): lay one out from its day, approve
+it, and the Studio schedules each post. The lines below are the source; the playbooks re-date them around each
+campaign's day.
 `{…}` fields are filled in on the day. Every line passes the platform's screening; keep it that way when editing.
 
 ### 7.1 Social (Instagram, Facebook, LinkedIn, X, Threads)
@@ -291,13 +293,13 @@ draft.
 | Sat 3 Oct | Brand | brand | Holland is famously flat. KwaZulu-Natal isn't. This December, the windmill comes to the hills. #HollandMeetsTheHills #KZN |
 | Mon 5 Oct | Learn | photo | New here? Start with three short reads: how our free Rewards club works, how to read a lab result, and what Schedule 0 on a label means. Plain English, no hype. Link in bio. |
 | Wed 7 Oct | Brand | brand | Why a windmill? It's two things at once: a Dutch windmill and a four-petal flower. The ring is open at the bottom, where the tower stands. We drew it from our first store-window poster. |
-| Fri 9 Oct | Made here | windmill-tee | The Windmill Tee: the mark embroidered in Sunset thread on the chest, the store-window poster printed on the back. Made for you in Cape Town, one at a time. #MadeInSA |
+| Fri 9 Oct | Made here | windmill-tee | The Windmill Tee: the mark embroidered in Sunset thread on the chest, the store-window poster printed on the back. In stock, online and in store. |
 | Sat 10 Oct | Teaser | video | Something's turning in the hills. |
 | Mon 12 Oct | Learn | photo | How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass (microbes, pesticides, heavy metals, solvents). Every one of our batches has a public lab page. Scan the QR on the pack. |
 | Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers and member advisors. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
 | Fri 16 Oct | Brand | brand | Dutch heritage: the coffee-shop tradition of a warm welcome and knowing exactly what you're offering. African soil: South African growers, makers and landraces. That's the whole idea. |
 | Sat 17 Oct | Rewards | brand | {count} people have joined the Founding Members list. The first 2,026 get a numbered card on opening weekend. Free to join, adults 18+. |
-| Mon 19 Oct | Made here | sunset-hoodie | The Sunset Hoodie: our lock-up embroidered on the chest, a sunset over the hills across the back. Orange fleece, made to order in Cape Town. |
+| Mon 19 Oct | Made here | sunset-hoodie | The Sunset Hoodie: our lock-up embroidered on the chest, a sunset over the hills across the back. Orange fleece, made to order. |
 | Wed 21 Oct | Made here | video | Every Windmill Cap is embroidered when you order it: thousands of stitches, one cap, no warehouse of stock waiting. Here's how it's made. |
 | Fri 23 Oct | Community | photo | Things we already love about the hills: the view over the Valley of a Thousand Hills, Midlands mist, and people who stop to say hello. See you in December. |
 | Sat 24 Oct | Learn | photo | Schedule 0, simply: it's the rule that lets low-dose CBD products be sold without a prescription, with limits on strength and on what a label may claim. Every product page shows you those limits. |
@@ -317,7 +319,7 @@ draft.
 | Fri 20 Nov | Made here | sunset-bucket-hat | The Sunset Bucket Hat: the windmill embroidered in Sunset thread on black cotton twill. Summer in the hills, sorted. Made to order in South Africa. |
 | Sat 21 Nov | Rewards | brand | Ten days until our doors open, and {count} people are on the Founding Members list. Are you? |
 | Mon 23 Nov | Brand | photo | Behind the orange frame: our windows go up this week. Hillcrest and Hilton, eight days to go. |
-| Fri 27 Nov | Made here | windmill-tee | Black Friday: 20% off the whole embroidered collection online, today to Monday. Made to order in Cape Town, so order by 10 December for Christmas. |
+| Fri 27 Nov | Made here | windmill-tee | Black Friday: 20% off the whole embroidered collection online, today to Monday. Pieces made to order need ordering by 10 December for Christmas. |
 | Sun 29 Nov | Teaser | video | Tuesday, 09:00. Hillcrest and Hilton. The windmill is nearly turning. |
 | Mon 30 Nov | Teaser | brand | Tomorrow at 09:00 our doors open in Hillcrest and Hilton. Bring your ID and come say hello. Adults 18+. |
 | Tue 1 Dec | Opening | photo | Sivulile. We're open! Herbal Holland Hillcrest and Hilton are open from 09:00 today. Come and say sawubona. Adults 18+, bring your ID. #HollandMeetsTheHills |
@@ -326,7 +328,7 @@ draft.
 | Sat 5 Dec | Events | photo | Open Day is on until 14:00 at both stores: coffee, local makers, and our pharmacists answering questions on the hour. Adults 18+. |
 | Sun 6 Dec | Rewards | brand | Last call: the Founding Members list closes at midnight tonight. Join free in the Rewards app. Adults 18+. |
 | Mon 7 Dec | Rewards | brand | Founding Members, your numbers are in: open the Rewards app to see your card. Thank you for being first. |
-| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order in Cape Town, so order by 10 December for Christmas. |
+| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order, so order by 10 December for Christmas. |
 | Thu 10 Dec | Made here | windmill-tote | Last day to order merch for Christmas: tees, hoodies, crewnecks, caps, bucket hats, beanies and totes, embroidered and printed in South Africa. |
 | Fri 11 Dec | Holiday | brand | Heading down the N3 for the holidays? Hilton is just off the highway, and Hillcrest is on the M13 into Durban. Stretch your legs, say hello, and never drive impaired. Adults 18+. |
 | Sat 12 Dec | Community | photo | Thank you to the makers who joined us on Open Day: {makers}. Go and visit them. |
@@ -389,7 +391,7 @@ Mix over a month: Learn 30%, community and people 25%, made here 20%, brand and 
 | Email: _The Windmill_ newsletter | First Tuesday of the month, 10:00 | Learn picks, what's on, drops, the members' story of the month |
 | SMS | At most two marketing messages per member per month (four in December 2026) | Events, drops, store news, member offers |
 | Push (Rewards app) | Drops and events; My Deals every Monday (automatic); at most three a week | Anything time-sensitive |
-| WhatsApp | Never for marketing | — |
+| WhatsApp | Never a marketing send. The brand's Channel: one post a week at most, store, brand and event news only, posted by hand from the Studio | Openings, events, store news |
 | Weekly segment campaigns (Tuesdays) | See §8.7 | Welcome, second visit, win-back, tier-up, review ask, referral |
 
 ### 8.3 Content production

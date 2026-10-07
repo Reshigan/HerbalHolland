@@ -17,6 +17,8 @@ export const SOCIAL_NETWORKS: Record<string, { label: string; limit: number; ima
   "linkedin-page": { label: "LinkedIn", limit: 3000 },
   x: { label: "X", limit: 280, settings: { who_can_reply_post: "everyone" } },
   threads: { label: "Threads", limit: 500 },
+  bluesky: { label: "Bluesky", limit: 300 },
+  telegram: { label: "Telegram", limit: 1024 }, // a photo's caption
 };
 
 /** Caption limit for the chosen networks (social copy stays short: 2,200 at most). */
@@ -25,6 +27,10 @@ export const needsImage = (identifiers: string[]) => identifiers.some((i) => SOC
 
 export const SOCIAL_IMAGES = [{ key: "brand", label: "Window poster" }, ...MERCH.filter((m) => !m.pending).map((m) => ({ key: m.slug, label: m.name }))];
 
+// The marketing plan's own rules (docs/MARKETING-PLAN.md §1): no cannabis or CBD hashtags, no 4/20, no leaf or smoke.
+const HASHTAG = /#(cbd|thc|cannabis|marijuana|weed|dagga|hemp|420|ganja|kush|stoner|highlife|high|edibles?|pre-?rolls?|bud|dispensary)\b/i;
+const STONER = /\b4\/20\b|#420\b|\b420 ?(friendly|day|vibes)\b/i;
+const EMOJI = /[\u{1F33F}\u{1F343}\u{1F4A8}\u{1F6AC}]/u; // 🌿 🍃 💨 🚬
 const PRODUCT = /\b(cbd|cannabis|marijuana|weed|dagga|strains?|pre-?rolls?|joints?|edibles?|gummies|tinctures?|vapes?|hash)\b/i;
 const SELLING = /\b(buy|order|shop|in stock|deliver(y|ed|s)?|prices?|specials?|deals?|discount|sale|promo|R ?\d+|\d+ ?% off)\b/i;
 
@@ -35,11 +41,21 @@ export function screenSocial(text: string) {
   if (thc) found.push({ term: thc[0], reason: "THC products are licensed medicines, never advertised to the public (Medicines Act General Regulations reg 42)" });
   const product = text.match(PRODUCT), selling = text.match(SELLING);
   if (product && selling) found.push({ term: `${product[0]} … ${selling[0]}`, reason: "Sells cannabis or CBD: Meta and TikTok remove these posts and can close the account. Talk about the brand, not products for sale" });
+  const tags = text.match(/(^|\s)#\w+/g) ?? [];
+  if (tags.length > 5) found.push({ term: `${tags.length} hashtags`, reason: "Instagram takes 5 hashtags at most" });
+  for (const [re, reason] of [
+    [HASHTAG, "No cannabis or CBD hashtags: they flag the account and bring the wrong audience"],
+    [STONER, "No 4/20: no stoner clichés"],
+    [EMOJI, "No leaf or smoke emoji: no consumption imagery"],
+  ] as const) {
+    const m = text.match(re);
+    if (m) found.push({ term: m[0], reason });
+  }
   return found;
 }
 
-/** The Postiz "create post" body (POST /posts): one entry per channel, same caption and picture. */
-export function postizPost(p: { mode: SocialMode; at: Date; content: string; image: { id: string; path: string } | null; channels: SocialChannel[] }) {
+/** The Postiz "create post" body (POST /posts): one entry per channel, the same picture, and the short version where the caption is too long for the network. */
+export function postizPost(p: { mode: SocialMode; at: Date; content: string; short?: string | null; image: { id: string; path: string } | null; channels: SocialChannel[] }) {
   return {
     type: p.mode,
     date: p.at.toISOString(),
@@ -47,7 +63,7 @@ export function postizPost(p: { mode: SocialMode; at: Date; content: string; ima
     tags: [],
     posts: p.channels.map((c) => ({
       integration: { id: c.id },
-      value: [{ content: p.content, image: p.image ? [p.image] : [] }],
+      value: [{ content: p.short && p.content.length > (SOCIAL_NETWORKS[c.identifier]?.limit ?? 2200) ? p.short : p.content, image: p.image ? [p.image] : [] }],
       settings: { __type: c.identifier, ...SOCIAL_NETWORKS[c.identifier]?.settings },
     })),
   };
