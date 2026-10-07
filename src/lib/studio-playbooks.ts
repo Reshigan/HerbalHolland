@@ -1,6 +1,7 @@
 // Campaign Studio playbooks (HQ → Marketing → Studio): each campaign as items dated from day T, in the voice and lines of
-// docs/MARKETING-PLAN.md (§5 the idea, §7 the content bank, §10 the new-store opening). Every item passes screenDraft once
-// laid out (tests/studio.test.ts). {store} {town} {address} {hours} only in store playbooks; {date} is day T everywhere.
+// docs/MARKETING-PLAN.md, in launch order (brand, then the online shop, then the stores), each saying only what's true by
+// then. Merch is its design and where to get it, never where or how it's made (§7's "made to order" lines are out of date).
+// Every item passes screenDraft once laid out (tests/studio.test.ts); store fields only in store playbooks, {date} is day T.
 import type { Playbook } from "./studio";
 
 /** An email body: short plain paragraphs with a blank line between them. */
@@ -10,13 +11,13 @@ export const PLAYBOOKS: Playbook[] = [
   {
     key: "brand-launch",
     name: "Brand launch: Holland, meet the Hills",
-    blurb: "Three weeks of brand posts from the day our accounts go live: the story, the windmill, the hills, Learn and the merch, with the WhatsApp Channel's welkom and the first Windmill newsletter.",
+    blurb: "Three weeks of brand posts from the day our accounts go live, before the shop opens: the story, the windmill, the hills, Learn and the merch, with the WhatsApp Channel's welkom and the first Windmill newsletter.",
     store: false,
     anchor: "Our accounts go live",
     items: [
       {
         key: "welkom", day: 0, time: "09:00", channel: "SOCIAL",
-        text: "Welkom. Sawubona. We're Herbal Holland: lab-tested, batch-traceable and pharmacist-led, members only, for adults 18+. Follow along for our story, from a Dutch windmill to the hills of KwaZulu-Natal. #HerbalHolland #HollandMeetsTheHills",
+        text: "Welkom. Sawubona. We're Herbal Holland: lab-tested, batch-traceable and pharmacist-led, members only, for adults 18+. Our online shop is opening soon, and two new stores are coming to the hills of KwaZulu-Natal. Follow along. #HerbalHolland #HollandMeetsTheHills",
         card: { template: "headline", eyebrow: "Welkom · Sawubona", headline: "Holland, meet the Hills.", sub: "Lab-tested, members only, for adults 18+." },
       },
       {
@@ -24,7 +25,7 @@ export const PLAYBOOKS: Playbook[] = [
         text: paras(
           "Welkom, and sawubona! This is the Herbal Holland Channel.",
           "Follow it for our news first: new stores and opening days, members' evenings and events, new merch, and Learn, our plain-English reads on lab results, labels and the law.",
-          "Herbal Holland is members only, for adults 18+, and joining Herbal Holland Rewards is free: herbalholland.com",
+          "Herbal Holland is members only, for adults 18+. Our online shop is opening soon: get first access at herbalholland.com",
           "Holland, meet the Hills.",
         ),
       },
@@ -35,20 +36,20 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "flat", day: 4, time: "08:30", channel: "SOCIAL",
-        text: "Holland is famously flat. KwaZulu-Natal isn't. Our next two stores are in hill towns: Hillcrest looks over the Valley of a Thousand Hills, and Hilton sits in the Midlands hills. The windmill is coming to the hills. #HollandMeetsTheHills #KZN",
+        text: "Holland is famously flat. KwaZulu-Natal isn't. Our two new stores are in hill towns: Hillcrest looks over the Valley of a Thousand Hills, and Hilton sits in the Midlands hills. The windmill is coming to the hills. #HollandMeetsTheHills #KZN",
         card: { template: "reveal", headline: "Holland is flat. KwaZulu-Natal isn't." },
       },
       {
         key: "learn-rewards", day: 5, time: "09:00", channel: "SOCIAL",
-        text: "Herbal Holland Rewards, simply: it's free for adults 18+, and it's how you shop with us. Members get instant savings on eligible items, earn points on every rand and climb from Seed to Harvest, in every store and online. The guide is in Learn: link in bio. #HerbalHolland",
+        text: "Herbal Holland Rewards, simply: everyone who shops with us is a member, and joining is free for adults 18+. Members get instant savings on eligible items, earn points on every rand, and climb from Seed to Harvest. #HerbalHolland",
         card: { template: "headline", eyebrow: "Learn", headline: "Rewards, simply.", sub: "Free for adults 18+: instant savings, points on every rand, Seed to Harvest." },
       },
       {
         key: "channel-week-one", day: 7, time: "09:30", channel: "WHATSAPP",
         text: paras(
           "One week of Holland, meet the Hills. Siyabonga for following along.",
-          "This week, The Windmill, our monthly newsletter, goes to Herbal Holland Rewards members for the first time: the story so far, how our merch is made, and three Learn reads to start with.",
-          "Not a member yet? Joining is free, for adults 18+: herbalholland.com",
+          "This week, The Windmill, our monthly newsletter, goes to Herbal Holland Rewards members for the first time: the story so far, our merch, and three Learn reads to start with.",
+          "Not a member yet? Our online shop is opening soon: get first access at herbalholland.com",
         ),
       },
       {
@@ -62,37 +63,37 @@ export const PLAYBOOKS: Playbook[] = [
         text: paras(
           "Hi {{firstName}},",
           "Welkom to the first edition of The Windmill, our newsletter for Herbal Holland Rewards members. Once a month, we'll share what's new, what's on and something worth reading.",
-          "Holland, meet the Hills. Holland is famously flat. KwaZulu-Natal isn't. Our next two stores are in hill towns, Hillcrest and Hilton, and the windmill is on its way.",
-          "Wear the windmill. Our merch, from the Windmill Tee to the Sunset Hoodie, is available online and in store.",
+          "Holland, meet the Hills. Holland is famously flat. KwaZulu-Natal isn't. Our two new stores are in hill towns, Hillcrest and Hilton: the windmill is coming to the hills. Our online shop is opening soon, too.",
+          "Wear the windmill. Our merch, from the Windmill Tee to the Sunset Hoodie, is coming soon, online and in store.",
           "Learn picks. Three short reads to start with: how Rewards works, how to read a lab result, and what Schedule 0 on a label means. Plain English, no hype.",
-          "Founding Members. The first 2,026 people on our list get a numbered card and Sprout-tier savings for 14 months. Every friend who joins with your link moves you up 250 places: your link is in the Rewards app.",
+          "Founding Members. When our online shop opens, so does the Founding Members list. The first 2,026 members get a numbered card and Sprout-tier savings for 14 months, and every friend who joins with your link moves you up 250 places.",
           "See you next month,\nThe Herbal Holland team",
         ),
       },
       {
         key: "tee", day: 9, time: "12:30", channel: "SOCIAL",
-        text: "The Windmill Tee: the windmill in Sunset orange on the chest and our store-window poster across the back, on black. Available online and in store. #HerbalHolland",
+        text: "The Windmill Tee: the windmill in Sunset orange on the chest and our store-window poster across the back, on black. Coming soon, online and in store. #HerbalHolland",
         card: { template: "merch", image: "windmill-tee", headline: "The Windmill Tee", sub: "The windmill on the chest, our window poster on the back." },
       },
       {
         key: "learn-lab", day: 11, time: "09:00", channel: "SOCIAL",
-        text: "How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass (microbes, pesticides, heavy metals, solvents). Every one of our batches has a public lab page: scan the QR on the pack. The full guide is in Learn. #HerbalHolland",
+        text: "How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass (microbes, pesticides, heavy metals, solvents). Every one of our batches has a public lab page: scan the QR on the pack. #HerbalHolland",
         card: { template: "headline", eyebrow: "Learn", headline: "Read a lab result in a minute.", sub: "Potency, terpenes, and the safety tests every batch should pass." },
       },
       {
         key: "founding", day: 12, time: "12:30", channel: "SOCIAL",
-        text: "Founding Members: the first 2,026 people on our list get a numbered card and Sprout-tier savings for 14 months. Joining Herbal Holland Rewards is free, and every friend who joins with your link moves you up 250 places. Adults 18+. Link in bio. #HerbalHolland",
-        card: { template: "headline", eyebrow: "Founding Members", headline: "Be one of the first 2,026.", sub: "A numbered card and Sprout-tier savings for 14 months. Free to join." },
+        text: "Founding Members: when our online shop opens, so does the list. The first 2,026 members get a numbered card and Sprout-tier savings for 14 months. Joining is free, and every friend who joins with your link moves you up 250 places. Adults 18+. #HerbalHolland",
+        card: { template: "headline", eyebrow: "Founding Members", headline: "Be one of the first 2,026.", sub: "A numbered card and Sprout-tier savings for 14 months. Opening soon." },
       },
       {
         key: "learn-schedule-0", day: 14, time: "09:00", channel: "SOCIAL",
-        text: "Schedule 0, simply: it's the rule that lets low-dose CBD products be sold without a prescription, with limits on strength and on what a label may claim. Every product page shows you those limits. More in Learn. #HerbalHolland",
+        text: "Schedule 0, simply: it's the rule that lets low-dose CBD products be sold without a prescription, with limits on strength and on what a label may claim. That's why our labels keep to a handful of modest claims. #HerbalHolland",
         card: { template: "headline", eyebrow: "Learn", headline: "Schedule 0, simply.", sub: "What the rule allows, the limits it sets, and what a label may claim." },
       },
       {
         key: "hoodie", day: 16, time: "12:30", channel: "SOCIAL",
-        text: "The Sunset Hoodie: Sunset orange, with our lock-up on the chest and a sunset over the hills across the back. Available online and in store. #HerbalHolland #HollandMeetsTheHills",
-        card: { template: "merch", image: "sunset-hoodie", headline: "The Sunset Hoodie", sub: "A sunset over the hills across the back. Online and in store." },
+        text: "The Sunset Hoodie: Sunset orange, with our lock-up on the chest and a sunset over the hills across the back. Coming soon, online and in store. #HerbalHolland #HollandMeetsTheHills",
+        card: { template: "merch", image: "sunset-hoodie", headline: "The Sunset Hoodie", sub: "A sunset over the hills across the back. Coming soon." },
       },
       {
         key: "hills-we-love", day: 18, time: "17:30", channel: "SOCIAL",
@@ -109,35 +110,35 @@ export const PLAYBOOKS: Playbook[] = [
   {
     key: "shop-launch",
     name: "Online shop launch",
-    blurb: "A week either side of the online shop opening: the teaser, opening day for adults 18+ anywhere in South Africa, how delivery and the ID check work, made-to-order merch and a thank-you. Social never sells: it's the shop, Learn, merch and Rewards.",
+    blurb: "A week either side of the online shop opening: the teaser, opening day for adults 18+ anywhere in South Africa, how delivery and the ID check work, the merch and a thank-you, with the stores still to come. Social talks about the shop, Learn, merch and Rewards, never products for sale.",
     store: false,
     anchor: "The shop opens",
     items: [
       {
         key: "teaser", day: -7, time: "12:30", channel: "SOCIAL",
-        text: "One week to go. On {date}, our online shop opens for adults 18+ anywhere in South Africa: Herbal Holland Rewards, Learn, and merch made to order in Cape Town, delivered nationwide. #HerbalHolland #HollandMeetsTheHills",
+        text: "One week to go. On {date}, our online shop opens for adults 18+ anywhere in South Africa: Herbal Holland Rewards, Learn, and our merch, delivered nationwide. #HerbalHolland #HollandMeetsTheHills",
         card: { template: "countdown", headline: "7 days", sub: "until our online shop opens, for adults 18+ anywhere in South Africa." },
       },
       {
         key: "members-only", day: -3, time: "12:30", channel: "SOCIAL",
-        text: "Why members only? Everyone who shops with us is a member of Herbal Holland Rewards. It's free, it's how we keep everything we do for adults 18+, and your Rewards work online and in every store. Join when the shop opens on {date}. #HerbalHolland",
+        text: "Why members only? Everyone who shops with us is a member of Herbal Holland Rewards. It's free, and it's how we keep everything we do for adults 18+. Join when our online shop opens on {date}. #HerbalHolland",
         card: { template: "headline", headline: "Members only. Free to join.", sub: "Herbal Holland Rewards keeps everything we do for adults 18+." },
       },
       {
         key: "tomorrow", day: -1, time: "17:00", channel: "SOCIAL",
-        text: "Tomorrow, we open online for adults 18+ anywhere in South Africa. Join Herbal Holland Rewards free, find your feet in Learn, and see our merch, made to order in Cape Town. Link in bio. #HerbalHolland",
+        text: "Tomorrow, we open online for adults 18+ anywhere in South Africa. Join Herbal Holland Rewards free, find your feet in Learn, and see our merch. Link in bio. #HerbalHolland",
         card: { template: "headline", eyebrow: "Herbal Holland online", headline: "Open tomorrow.", sub: "{date}, for adults 18+ anywhere in South Africa." },
       },
       {
         key: "open", day: 0, time: "09:00", channel: "SOCIAL",
-        text: "Welkom! Herbal Holland is open online, for adults 18+ anywhere in South Africa. Dutch heritage, African soil, delivered nationwide. Join Herbal Holland Rewards free: link in bio. #HerbalHolland #HollandMeetsTheHills",
-        card: { template: "headline", eyebrow: "Now open online", headline: "Welkom. We're open.", sub: "For adults 18+ anywhere in South Africa." },
+        text: "Welkom! Herbal Holland is open online, for adults 18+ anywhere in South Africa. Dutch heritage, African soil, delivered nationwide, and our stores in the hills are opening soon. Join Herbal Holland Rewards free: link in bio. #HerbalHolland #HollandMeetsTheHills",
+        card: { template: "headline", eyebrow: "Now open online", headline: "Welkom. We're open.", sub: "From {date}, for adults 18+ anywhere in South Africa." },
       },
       {
         key: "channel-open", day: 0, time: "09:30", channel: "WHATSAPP",
         text: paras(
-          "Welkom! Herbal Holland is open online, for adults 18+ anywhere in South Africa.",
-          "It's members only, and joining Herbal Holland Rewards is free. You'll also find Learn, our plain-English reads, and our merch, made for you in Cape Town.",
+          "Welkom! Herbal Holland is open online from {date}, for adults 18+ anywhere in South Africa.",
+          "It's members only, and joining Herbal Holland Rewards is free. You'll also find Learn, our plain-English reads, and our merch. Our stores in the hills are opening soon.",
           "herbalholland.com",
         ),
       },
@@ -146,10 +147,11 @@ export const PLAYBOOKS: Playbook[] = [
         title: "We're open online, for adults 18+ across South Africa",
         text: paras(
           "Hi {{firstName}},",
-          "Herbal Holland is open online from today, for members aged 18 and over anywhere in South Africa.",
-          "Your Rewards work online just as they do in store. We courier to a street address anywhere in the country, usually in 2–4 working days, and hand your parcel only to you: everything we sell is for adults 18+, so the courier may ask to see your ID.",
-          "Made here. Our merch is made to order in Cape Town, embroidered or printed when you order it, and couriered on its own in 5–8 working days.",
+          "Herbal Holland is open online from {date}, for members aged 18 and over anywhere in South Africa.",
+          "Sign in with your Herbal Holland Rewards details and your Rewards work online. We courier to a street address anywhere in the country and hand your parcel only to you: everything we sell is for adults 18+, so the courier may ask to see your ID.",
+          "Wear the windmill. The Windmill Tee, the Sunset Hoodie and the rest of our merch are online now, and in our stores when they open.",
           "New to Learn? Start with three short reads: how Rewards works, how to read a lab result, and what Schedule 0 on a label means.",
+          "Our stores in the hills are opening soon, and we'll tell you more before they do.",
           "Welkom, and thank you for being here from day one.\nThe Herbal Holland team",
         ),
       },
@@ -160,7 +162,7 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "delivery", day: 2, time: "12:30", channel: "SOCIAL",
-        text: "How delivery works: we courier to a street address anywhere in South Africa, usually in 2–4 working days. Everything we sell is for adults 18+, so we hand your parcel only to the member named on the order, and the courier may ask to see your ID. Please be there to receive it: it can't be left with a neighbour, at reception or at the door. We'll text you the tracking number when it's on its way. #HerbalHolland",
+        text: "How delivery works: we courier to a street address anywhere in South Africa. Everything we sell is for adults 18+, so we hand your parcel only to the member named on the order, and the courier may ask to see your ID. Please be there to receive it: it can't be left with a neighbour, at reception or at the door. We'll text you the tracking number when it's on its way. #HerbalHolland",
         short: "How delivery works: we courier anywhere in South Africa and hand your parcel only to the member named on the order. Everything we sell is for adults 18+, so the courier may ask to see your ID. Be there to receive it. #HerbalHolland",
         card: {
           template: "promise",
@@ -170,12 +172,12 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "merch", day: 4, time: "12:30", channel: "SOCIAL",
-        text: "Every Windmill Cap is embroidered when you order it: thousands of stitches, one cap, no warehouse of stock waiting. All our merch is made to order in Cape Town and couriered to you in 5–8 working days. #HerbalHolland #MadeInSA",
-        card: { template: "merch", image: "windmill-cap", headline: "Made when you order it.", sub: "The Windmill Cap, embroidered in Cape Town, one at a time." },
+        text: "Wear the windmill: the Windmill Tee, the Sunset Hoodie, the Heritage Crewneck, the Windmill Cap, the Sunset Bucket Hat, the Windmill Beanie and the Windmill Tote. Online now, and in our stores when they open. #HerbalHolland #HollandMeetsTheHills",
+        card: { template: "merch", image: "windmill-tee", headline: "Wear the windmill.", sub: "Tees, hoodies, crewnecks, caps and more, online now." },
       },
       {
         key: "thank-you", day: 7, time: "12:30", channel: "SOCIAL",
-        text: "One week online. Siyabonga, South Africa, to everyone who joined Herbal Holland Rewards and found us in our first week. We're just getting started. #HerbalHolland #HollandMeetsTheHills",
+        text: "One week online. Siyabonga, South Africa, to everyone who joined Herbal Holland Rewards and found us in our first week. Next: our stores in the hills, opening soon. #HerbalHolland #HollandMeetsTheHills",
         card: { template: "headline", headline: "Siyabonga, South Africa.", sub: "Thank you for our first week online." },
       },
     ],
@@ -189,12 +191,13 @@ export const PLAYBOOKS: Playbook[] = [
     items: [
       {
         key: "reveal", day: -36, time: "08:00", channel: "SOCIAL",
-        text: "{town}, we're your new neighbours. {store} opens on {date} at {address}: free Rewards, a pharmacist on the team, and every batch lab-tested. Adults 18+. #HerbalHolland",
+        text: "{town}, we're your new neighbours. {store} opens on {date} at {address}: free Rewards, a pharmacist on the team, and every batch lab-tested. Until then, we're online at herbalholland.co.za. Adults 18+. #HerbalHolland",
+        short: "{town}, we're your new neighbours: {store} opens on {date}. Free Rewards, a pharmacist on the team, every batch lab-tested. Adults 18+. #HerbalHolland",
         card: { template: "reveal", headline: "Something's turning in {town}." },
       },
       {
         key: "sms-reveal", day: -35, time: "10:00", channel: "SMS",
-        text: "Hi {{firstName}}, {store} opens on {date} at {address}. See you there! Adults 18+.",
+        text: "Hi {{firstName}}, {store} opens on {date} at {address}. See you there! Until then, we're online at herbalholland.co.za. Adults 18+.",
       },
       {
         key: "promise", day: -34, time: "12:30", channel: "SOCIAL",
@@ -228,7 +231,7 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "open-day", day: -15, time: "12:30", channel: "SOCIAL",
-        text: "Open Day at {store}, in our opening week, 09:00–14:00: a coffee cart, local makers' tables, ask-the-pharmacist sessions on the hour, a photo wall in our orange frame and the embroidered collection. Everyone 18+ is welcome, ID at the door. #HerbalHolland",
+        text: "Open Day at {store}, in our opening week, 09:00–14:00: a coffee cart, local makers' tables, ask-the-pharmacist sessions on the hour, a photo wall in our orange frame, and our merch. Everyone 18+ is welcome, ID at the door. #HerbalHolland",
         card: { template: "event", eyebrow: "Open Day", headline: "Opening week, 09:00–14:00", sub: "{store}. Coffee, local makers and the team. Adults 18+." },
       },
       {
@@ -265,7 +268,7 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "open", day: 0, time: "09:00", channel: "SOCIAL",
-        text: "Sivulile. We're open! {store} is open from 09:00 today, at {address}. Come and say sawubona. Adults 18+, bring your ID. #HerbalHolland",
+        text: "Sivulile. We're open! {store} is open from 09:00 today, at {address}, and online at herbalholland.co.za. Come and say sawubona. Adults 18+, bring your ID. #HerbalHolland",
         card: { template: "headline", eyebrow: "{store}", headline: "Sivulile. We're open.", sub: "From 09:00 today. Adults 18+, bring your ID." },
       },
       {
@@ -280,7 +283,7 @@ export const PLAYBOOKS: Playbook[] = [
           "Hi {{firstName}},",
           "Sivulile: {store} is open. Our doors opened at 09:00 today, at {address}.",
           "Opening hours: {hours}.",
-          "Your first visit: bring your ID, because we check it at the door and the till, every time. A member advisor will show you around and answer your questions in plain English, and there's a pharmacist on the team. Give your Rewards number at the till.",
+          "Your first visit: bring your ID, because we check it at the door and the till, every time. A member advisor will show you around and answer your questions in plain English, and there's a pharmacist on the team. Give your Rewards number at the till: it's the same membership you use online at herbalholland.co.za.",
           "In our opening week: the Members' Evening, 18:00–20:30, for members who have RSVP'd in the Rewards app, and Open Day, 09:00–14:00, for everyone 18+, with coffee, local makers and the team. You'll find the dates in the app.",
           "See you soon,\nThe {store} team",
         ),
@@ -485,13 +488,13 @@ export const PLAYBOOKS: Playbook[] = [
   {
     key: "merch-drop",
     name: "Merch drop",
-    blurb: "A teaser three days out, drop day with members first from 10:00, and the last day. Made to order in Cape Town; no prices on social. Choose the picture for the piece.",
+    blurb: "A teaser three days out, drop day with members first from 10:00, and the last day, online and in store. No prices on social; choose the picture for the piece.",
     store: false,
     anchor: "The drop opens, 10:00",
     items: [
       {
         key: "teaser", day: -3, time: "12:30", channel: "SOCIAL",
-        text: "Something new from the windmill. Our next merch drop opens on {date} at 10:00, for Herbal Holland Rewards members first. Made to order in Cape Town. Adults 18+. #HerbalHolland #MadeInSA",
+        text: "Something new from the windmill. Our next merch drop opens on {date} at 10:00, for Herbal Holland Rewards members first, online and in store. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "Merch drop", headline: "Something new from the windmill.", sub: "The drop opens {date}, 10:00. Members first." },
       },
       {
@@ -501,39 +504,33 @@ export const PLAYBOOKS: Playbook[] = [
       },
       {
         key: "open", day: 0, time: "10:00", channel: "SOCIAL",
-        text: "Drop day. From 10:00, Herbal Holland Rewards members get first access: made to order in Cape Town, embroidered or printed when you order it, and couriered to you in 5–8 working days. Adults 18+. Link in bio. #HerbalHolland #MadeInSA",
-        card: { template: "merch", image: "heritage-crewneck", headline: "Drop day.", sub: "Members first, from 10:00. Made to order in Cape Town." },
+        text: "Drop day. From 10:00, Herbal Holland Rewards members get first access, online and in store. The drops page counts down to when it opens for you. Adults 18+. Link in bio. #HerbalHolland",
+        card: { template: "merch", image: "heritage-crewneck", headline: "Drop day.", sub: "Members first, from 10:00. Online and in store." },
       },
       {
         key: "push-open", day: 0, time: "10:00", channel: "PUSH",
         title: "Drop day.",
-        text: "Members get first access from 10:00 today. See the drop in the app: made to order in Cape Town.",
+        text: "Members get first access from 10:00 today, online and in store. See the drop in the app.",
       },
       {
         key: "email-open", day: 0, time: "10:00", channel: "EMAIL",
         title: "Drop day: members first",
         text: paras(
           "Hi {{firstName}},",
-          "Our new drop opens to Herbal Holland Rewards members first, from 10:00 today. The drops page shows when it opens for you.",
-          "Every piece is made to order in Cape Town: embroidered or printed when you order it, and couriered to you on its own in 5–8 working days.",
+          "Our new drop opens to Herbal Holland Rewards members first, from 10:00 today, online and in store. The drops page shows when it opens for you.",
           "The drop runs for three days, so don't leave it too late.",
           "Wear the windmill,\nThe Herbal Holland team",
         ),
       },
       {
-        key: "made", day: 1, time: "12:30", channel: "SOCIAL",
-        text: "Behind the drop: nothing waits in a warehouse. Each piece is made when a member orders it, embroidered or printed in Cape Town, one at a time. #HerbalHolland #MadeInSA",
-        card: { template: "headline", headline: "Made when you order it.", sub: "Embroidered or printed in Cape Town, one piece at a time." },
-      },
-      {
         key: "last-day", day: 2, time: "09:00", channel: "SOCIAL",
-        text: "Last day of the drop: it closes tonight. Made to order in Cape Town, for Herbal Holland Rewards members. Adults 18+. Link in bio. #HerbalHolland #MadeInSA",
+        text: "Last day of the drop: it closes tonight. For Herbal Holland Rewards members, online and in store. Adults 18+. Link in bio. #HerbalHolland",
         card: { template: "headline", eyebrow: "Merch drop", headline: "Last day.", sub: "The drop closes tonight." },
       },
       {
         key: "push-last-day", day: 2, time: "10:00", channel: "PUSH",
         title: "Last day of the drop",
-        text: "The drop closes tonight. See it in the Rewards app: made to order in Cape Town, for members.",
+        text: "The drop closes tonight, online and in store. See it in the Rewards app.",
       },
     ],
   },
