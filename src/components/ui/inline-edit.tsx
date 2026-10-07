@@ -48,7 +48,7 @@ export function InlineEdit({ action, fields, display, editLabel, format = "text"
   disabled?: boolean;
   /** "value": looks like the cell's text with a pencil on hover; "button": a small outline button. */
   variant?: "value" | "button";
-  /** A secret (a PIN): never echo what was typed — the trigger keeps showing `display` while it saves. */
+  /** A secret (a PIN): never echo what was typed. The trigger keeps showing `display` while it saves. */
   secret?: boolean;
 }) {
   const [state, run, pending] = useActionState(action, {});

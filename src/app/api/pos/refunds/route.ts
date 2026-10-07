@@ -1,4 +1,4 @@
-// Refunds selected lines of a sale at this store (domain: sales.refundSale — restock toggle, reason, and where the
+// Refunds selected lines of a sale at this store (domain: sales.refundSale, with the restock toggle, reason, and where the
 // money goes: back to how they paid by default, or one tender). Idempotent on the client-generated refund id.
 import { z } from "zod";
 import { db } from "@/server/db";

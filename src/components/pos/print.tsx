@@ -64,7 +64,7 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
   const anyLicensed = r.lines.some((l) => licensed(l.variantId));
   const anyCbd = r.lines.some((l) => !licensed(l.variantId) && excluded.includes(classOf.get(l.variantId) as never));
   // A trade sale (WHOLESALE) is a full tax invoice: unit prices ex VAT, VAT per line, the account's buyer block and
-  // "On account · due …" — never points or deals (lib/receipt.ts has the same rows for the ESC/POS printer).
+  // "On account · due …". Never points or deals (lib/receipt.ts has the same rows for the ESC/POS printer).
   const isTrade = r.channel === "WHOLESALE";
   const trade = isTrade ? (r.trade ?? null) : null;
   const Watermark = () => <div className="my-1 text-center text-[13px] font-bold" data-testid="print-training">{TRAINING_LINE}</div>;

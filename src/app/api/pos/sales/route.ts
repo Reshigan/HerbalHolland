@@ -1,5 +1,5 @@
 // Till sales: history (GET) and posting (POST, idempotent on the client-generated Sale.id,
-// so queued offline sales can be retried safely). Domain: sales.postPosSale — which hands a
+// so queued offline sales can be retried safely). Domain: sales.postPosSale, which hands a
 // trade sale (`trade.tradeAccountId`) to postTradeSale: WHOLESALE, ex-VAT prices, the
 // account's buyer block, "On account" within its credit terms, never offline.
 import { db } from "@/server/db";
@@ -62,7 +62,7 @@ export const POST = withStaff(async (req, pos) => {
     memberNo = null;
   }
 
-  // A queued offline sale keeps the time it was rung up — from the last 7 days only (else it's dated when it arrives).
+  // A queued offline sale keeps the time it was rung up, from the last 7 days only (else it's dated when it arrives).
   const now = Date.now();
   const createdAt = b.createdAt && Date.parse(b.createdAt) < now && Date.parse(b.createdAt) > now - 7 * 86_400_000 ? b.createdAt : undefined;
   const input: PosSaleInput = {

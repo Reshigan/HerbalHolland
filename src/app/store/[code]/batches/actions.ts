@@ -9,7 +9,7 @@ import { zar } from "@/lib/money";
 
 const ALLOWED = ["RECALL", "DESTROYED", "EXPIRED"] as const;
 
-/** Writes off everything on hand in one lot — recall return, witnessed destruction or expiry. */
+/** Writes off everything on hand in one lot: recall return, witnessed destruction or expiry. */
 export async function writeOffLot(code: string, lotId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
     const { store, user, actor } = await manage(code);

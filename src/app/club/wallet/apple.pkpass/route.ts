@@ -1,5 +1,5 @@
 // The member's Rewards card as an Apple Wallet pass (.pkpass). Needs WALLET_APPLE_* (see docs/INTEGRATIONS.md);
-// until then it says so plainly. Signed on the fly with openssl (PKCS#7) — nothing is stored.
+// until then it says so plainly. Signed on the fly with openssl (PKCS#7). Nothing is stored.
 import { NextResponse } from "next/server";
 import { getCustomer } from "@/server/auth";
 import { buildApplePass, passMember, walletAvailable, WalletError } from "@/server/shop/wallet";

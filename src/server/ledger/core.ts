@@ -89,7 +89,7 @@ export type Posting = { companyId: string; date: string; memo: string; storeId?:
 export type SourceHandler = (sourceId: string, t: Tx) => Promise<Posting[]>;
 
 /**
- * Brings what a source shows in one company's books to `desired` (null = nothing), posting only the difference — the
+ * Brings what a source shows in one company's books to `desired` (null = nothing), posting only the difference: the
  * first posting, a correction after a late change, or the reversal of a source that's gone. Into a closed month it
  * goes to the first open one, marked late.
  */
@@ -113,7 +113,7 @@ export async function syncPosting(t: Tx, source: string, sourceId: string, compa
     : [null, null];
   const wanted = desired?.date ?? (last ? last.date.toISOString().slice(0, 10) : dayKey(new Date()));
   const { day, late } = postingDay(wanted, book.lockedThrough);
-  const memo = !first ? (desired?.memo ?? source) : `${desired?.memo ?? first.memo} — ${desired ? "updated" : "reversed"}`;
+  const memo = !first ? (desired?.memo ?? source) : `${desired?.memo ?? first.memo} · ${desired ? "updated" : "reversed"}`;
   return writeJournal(t, {
     companyId, date: day, late, memo, source, sourceId, storeId: desired?.storeId ?? null,
     lines: diff.map((l) => ({ accountId: l.accountId!, cents: l.cents, storeId: l.storeId, partyId: l.partyId, memo: l.memo })),
@@ -143,7 +143,7 @@ export async function postSourceTx(t: Tx, source: string, sourceId: string) {
 export const postSource = (source: string, sourceId: string) => tx((t) => postSourceTx(t, source, sourceId));
 
 /**
- * Queues a source to be posted — inside the business transaction, so the change and its posting can't drift apart.
+ * Queues a source to be posted inside the business transaction, so the change and its posting can't drift apart.
  * Re-queuing an already-queued source just refreshes it (and holds it until this transaction commits, so the posting
  * can never run on data from before the change).
  */

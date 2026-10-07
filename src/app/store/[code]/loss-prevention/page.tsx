@@ -205,7 +205,7 @@ export default async function LossPreventionPage({ params, searchParams }: { par
 
 type Profile = NonNullable<Awaited<ReturnType<typeof profile>>>;
 
-/** A person's alerts at this store. Only someone the viewer has a visible alert about — so never the viewer themselves. */
+/** A person's alerts at this store. Only someone the viewer has a visible alert about, so never the viewer themselves. */
 async function profile(all: Where, id: string, now: Date) {
   if (!(await db.alert.count({ where: all({ userId: id }) }))) return null;
   const [u, groups, openNow] = await Promise.all([

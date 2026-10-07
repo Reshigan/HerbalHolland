@@ -1,5 +1,5 @@
 // Pure ESC/POS encoder for 58 mm (32 columns) and 80 mm (42 / 48 columns) receipt printers.
-// Bytes only — no browser APIs — so the byte layout of a receipt is unit-tested (tests/escpos.test.ts).
+// Bytes only (no browser APIs), so the byte layout of a receipt is unit-tested (tests/escpos.test.ts).
 // The transports (Web Bluetooth / Web USB) live in print.ts.
 
 export const ESC = 0x1b;
@@ -14,7 +14,7 @@ export const COLUMN_OPTIONS: { cols: Columns; label: string }[] = [
   { cols: 48, label: "80 mm · 48 columns" },
 ];
 
-/** ESC t n — the printer's character code table. 16 = Windows-1252 on Epson and most compatibles; 0 = PC437 (US). */
+/** ESC t n: the printer's character code table. 16 = Windows-1252 on Epson and most compatibles; 0 = PC437 (US). */
 export const CODE_PAGE_CP1252 = 16;
 export const CODE_PAGE_PC437 = 0;
 
@@ -116,29 +116,29 @@ export class EscPos {
     this.out.push(...bytes);
     return this;
   }
-  /** ESC @ — reset fonts, alignment and modes to the printer's defaults. */
+  /** ESC @: reset fonts, alignment and modes to the printer's defaults. */
   init() {
     return this.raw(ESC, 0x40);
   }
-  /** ESC t n — select the character code table. */
+  /** ESC t n: select the character code table. */
   codePage(n = CODE_PAGE_CP1252) {
     return this.raw(ESC, 0x74, n & 0xff);
   }
-  /** ESC a n — justification. */
+  /** ESC a n: justification. */
   align(a: Align) {
     return this.raw(ESC, 0x61, a === "centre" ? 1 : a === "right" ? 2 : 0);
   }
-  /** ESC E n — emphasised (bold). */
+  /** ESC E n: emphasised (bold). */
   bold(on: boolean) {
     return this.raw(ESC, 0x45, on ? 1 : 0);
   }
-  /** GS ! n — character size: double width and/or double height (1 = normal). */
+  /** GS ! n: character size, double width and/or double height (1 = normal). */
   size(s: Size = {}) {
     const w = (s.width ?? 1) - 1;
     const h = (s.height ?? 1) - 1;
     return this.raw(GS, 0x21, ((w & 0x07) << 4) | (h & 0x07));
   }
-  /** ESC - n — underline (0 off, 1 thin, 2 thick). */
+  /** ESC - n: underline (0 off, 1 thin, 2 thick). */
   underline(n: 0 | 1 | 2) {
     return this.raw(ESC, 0x2d, n);
   }
@@ -162,15 +162,15 @@ export class EscPos {
   rule(ch = "-") {
     return this.line(rule(this.cols, ch));
   }
-  /** ESC d n — feed n lines. */
+  /** ESC d n: feed n lines. */
   feed(n = 1) {
     return this.raw(ESC, 0x64, Math.max(0, Math.min(255, n)));
   }
-  /** GS V 66 n — feed to the cut position and cut (partial cut, which every cutter supports). */
+  /** GS V 66 n: feed to the cut position and cut (partial cut, which every cutter supports). */
   cut() {
     return this.raw(GS, 0x56, 0x42, 0x00);
   }
-  /** ESC p m t1 t2 — pulse the cash-drawer solenoid (pin 2 or 5, 50 ms on / 500 ms off). */
+  /** ESC p m t1 t2: pulse the cash-drawer solenoid (pin 2 or 5, 50 ms on / 500 ms off). */
   drawer(pin: DrawerPin = 0) {
     return this.raw(ESC, 0x70, pin, 0x19, 0xfa);
   }

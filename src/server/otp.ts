@@ -46,7 +46,7 @@ async function smsCeiling() {
   const max = Number(process.env.OTP_SMS_HOURLY_MAX ?? 500);
   if (await hit("otp-sms:all", max, HOUR_MS)) return;
   if (await hit("otp-sms:alerted", 1, HOUR_MS)) {
-    console.error(`[otp] SMS ceiling reached: ${max} sign-in codes in the last hour — new SMS codes are refused until the hour passes (OTP_SMS_HOURLY_MAX)`);
+    console.error(`[otp] SMS ceiling reached: ${max} sign-in codes in the last hour. New SMS codes are refused until the hour passes (OTP_SMS_HOURLY_MAX)`);
     await audit(db, SYSTEM, "otp.ceiling", { data: { max } });
   }
   throw new OtpLimitError("We can't send codes right now. Please try again shortly");

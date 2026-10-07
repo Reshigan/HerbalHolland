@@ -14,8 +14,8 @@ import type { Staff } from "./auth";
 export async function kpis(storeIds: string[], r: DateRange) {
   const prev = previousRange(r);
   const [cur, before, days, channels] = await Promise.all([salesSummary(storeIds, r), salesSummary(storeIds, prev), salesByDay(storeIds, r), salesByChannel(storeIds, r)]);
-  // Every tender, so the shares add up to takings incl. VAT. On account is invoiced to a trade account on HQ's ledger —
-  // not money at the till — and what HQ collected (online, vouchers, trade collect orders) is settled on the statement.
+  // Every tender, so the shares add up to takings incl. VAT. On account is invoiced to a trade account on HQ's ledger
+  // (not money at the till), and what HQ collected (online, vouchers, trade collect orders) is settled on the statement.
   const payments = [
     { label: "Card (tap)", value: cur.cardCents },
     { label: "Cash", value: cur.cashCents },
@@ -41,7 +41,7 @@ export async function kpis(storeIds: string[], r: DateRange) {
       return { labels: complete.map((d) => fmtDay(`${d.date}T12:00:00Z`)), net: complete.map((d) => d.netCents) };
     })(),
     online: channels.find((c) => c.channel === "ONLINE")?.netCents ?? 0,
-    /** Net sales to business accounts (the WHOLESALE channel) in the range — "of which trade" on the sales tiles. */
+    /** Net sales to business accounts (the WHOLESALE channel) in the range: "of which trade" on the sales tiles. */
     trade: channels.find((c) => c.channel === "WHOLESALE")?.netCents ?? 0,
     payments,
   };

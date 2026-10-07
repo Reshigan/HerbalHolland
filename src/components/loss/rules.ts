@@ -1,4 +1,4 @@
-// What each loss-prevention rule watches, in plain words and with today's thresholds — so every alert can be
+// What each loss-prevention rule watches, in plain words and with today's thresholds, so every alert can be
 // explained to the franchisee and to the person it's about. Server-only (reads the rule list from @/server/loss).
 import { RULES, type Rule } from "@/server/loss";
 import { pct, zar } from "@/lib/money";

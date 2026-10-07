@@ -1,4 +1,4 @@
-// herbalholland.com/careers — why work with us, the roles we hire in stores (with the franchisee who owns the store)
+// herbalholland.com/careers: why work with us, the roles we hire in stores (with the franchisee who owns the store)
 // and at HQ, and how to apply by email. We never charge to apply; POPIA: what we do with an application, how long.
 import { CAREERS, EMAIL } from "../../content";
 import { Page } from "../layout";

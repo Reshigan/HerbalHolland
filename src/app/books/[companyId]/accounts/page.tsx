@@ -71,7 +71,7 @@ export default async function AccountsPage({ params, searchParams }: { params: P
                   <Select id="acc-type" name="type" defaultValue="EXPENSE">
                     {ACCOUNT_TYPES.map((t) => (
                       <option key={t.type} value={t.type}>
-                        {t.label.replace(/s$/, "")} — {t.hint.toLowerCase()}
+                        {t.label.replace(/s$/, "")}: {t.hint.toLowerCase()}
                       </option>
                     ))}
                   </Select>

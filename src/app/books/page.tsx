@@ -20,7 +20,7 @@ const PAGE_SIZE = 50;
 
 /**
  * The books someone can open: straight into them when there's only one company (an owner or accountant). For HQ and
- * area managers, each company's month end at a glance — closed through, drafts waiting, and the checks that can be read
+ * area managers, each company's month end at a glance: closed through, drafts waiting, and the checks that can be read
  * across companies at once (the full checks run on each company's month-end page).
  */
 export default async function BooksIndex({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {

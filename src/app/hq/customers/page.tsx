@@ -88,7 +88,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
     }),
   ]);
   const searching = !!sp.q?.trim();
-  // No name matched as typed (a typo — "Abrahms", "ndlovo"): the closest names instead, closest first unless sorted.
+  // No name matched as typed (a typo, e.g. "Abrahms", "ndlovo"): the closest names instead, closest first unless sorted.
   const closeIds = searching && exactTotal === 0 ? await closeMembers(s, sp) : [];
   const close = closeIds.length > 0;
   const total = close ? closeIds.length : exactTotal;
@@ -100,14 +100,14 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
   const href = (p: Record<string, string | number | undefined>) => `/hq/customers${qs({ ...sp, ...p })}`;
   const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
   const reach = (n: number) => (k.members ? pct(n / k.members, 0) : "—");
-  // Nothing found for a name: likely a typo in one word — offer a looser search.
+  // Nothing found for a name: likely a typo in one word, so offer a looser search.
   const looser = searching && total === 0 ? looserMemberQuery(parseMemberQuery(sp.q)) : null;
 
   const membersCard = (
     <Card className={searching ? undefined : "mt-6"}>
       <CardHeader
         title={searching ? `Members matching “${sp.q!.trim()}”` : "Members"}
-        description={close ? `Showing close matches for “${sp.q!.trim()}” — no name matched exactly (${num(total)})` : `${num(total)} matching`}
+        description={close ? `Showing close matches for “${sp.q!.trim()}” (${num(total)}). No name matched exactly.` : `${num(total)} matching`}
       />
       <div className="space-y-3 border-b border-ink-100 p-4">
         <FilterForm action="/hq/customers" keep={{ q: sp.q, sort: sp.sort, dir: sp.dir }}>

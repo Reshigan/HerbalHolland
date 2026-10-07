@@ -1,5 +1,5 @@
 "use client";
-// Shift: open with a counted float (default R1,000); close with a denomination count —
+// Shift: open with a counted float (default R1,000); close with a denomination count, then
 // expected vs counted (finance.shiftCash), variance and a Z-report that prints at the till
 // and is emailed to the store. Also this till's device details and the signed-in person's commission.
 import { useCallback, useEffect, useMemo, useState } from "react";

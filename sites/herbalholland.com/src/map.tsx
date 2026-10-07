@@ -1,5 +1,5 @@
-// The store map: a pin for every store in ../facts — a solid pin for a store that's open, a ring for one that's still
-// to open — with a key that names them by town (so neither shape nor colour is the only signal). Until stores are in
+// The store map: a pin for every store in ../facts (a solid pin for a store that's open, a ring for one that's still
+// to open), with a key that names them by town (so neither shape nor colour is the only signal). Until stores are in
 // three or more provinces, the map is only the provinces with a store (for now KwaZulu-Natal, with the neighbours it
 // borders); after that, all nine (real boundaries, from ./za). A store is one line in facts.ts, so a new store puts
 // itself on the map, and the map widens by itself. Stores a few kilometres apart are nudged apart just enough to tell

@@ -1,4 +1,4 @@
-// herbalholland.com/privacy, /terms and /paia — the Privacy Policy (POPIA), the Terms of Use and the PAIA manual: title,
+// The Privacy Policy (POPIA), the Terms of Use and the PAIA manual at herbalholland.com/privacy, /terms and /paia: title,
 // version and date, a short summary, contents with anchor links, then numbered sections (#who, #rights, …). The words
 // are in ../../content (LEGAL, PRIVACY, TERMS, PAIA); {legalName} and {officer} in them come from ../../facts, as do the
 // registered details wherever the law expects them (a neutral line stands in for any not filled in yet). The pages open

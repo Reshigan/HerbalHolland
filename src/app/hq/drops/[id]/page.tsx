@@ -41,7 +41,7 @@ export default async function DropPage({ params, searchParams }: { params: Promi
   const open = firstOpen(d);
   const early = earlyLabel(d.earlyTier, d.earlyMinutes);
 
-  // "Notify me" alerts: an early pass for the early-access tier, then everyone — only inside CPA contact windows.
+  // "Notify me" alerts: an early pass for the early-access tier, then everyone, only inside CPA contact windows.
   const passes = [
     ...(d.earlyTier && d.earlyMinutes ? [{ label: `${tierInfo(d.earlyTier as TierKey).name} and above`, due: open, sent: d.notifiedEarlyAt }] : []),
     { label: d.earlyTier ? "Everyone else" : "All watchers", due: d.startsAt, sent: d.notifiedAt },

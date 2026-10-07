@@ -180,7 +180,7 @@ export function pruneCss(css: string, present: Set<string>) {
     }
     return null;
   };
-  // A selector can match when every class it names is present — except inside :not(), which needs nothing, and inside
+  // A selector can match when every class it names is present, except inside :not(), which needs nothing, and inside
   // :is() / :where(), where one alternative is enough.
   const usable = (sel: string): boolean => {
     let s = sel.replace(/\[[^\]]*\]/g, "");

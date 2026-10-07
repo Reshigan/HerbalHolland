@@ -1,6 +1,6 @@
 // Trade checkout (server): the cart quoted at the DC, both sets of totals (courier with its fee or free threshold;
 // click & collect with handling), the credit decision for each, the account's addresses and the first page of
-// click & collect stores — handed to the client form.
+// click & collect stores, handed to the client form.
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";

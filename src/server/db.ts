@@ -3,7 +3,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 
 const g = globalThis as unknown as { db?: PrismaClient; dbClass?: typeof PrismaClient };
 
-// One client across dev hot reloads — unless `prisma generate` produced a new client class (schema change).
+// One client across dev hot reloads, unless `prisma generate` produced a new client class (schema change).
 if (g.db && g.dbClass !== PrismaClient) void g.db.$disconnect();
 export const db =
   g.db && g.dbClass === PrismaClient ? g.db : new PrismaClient({

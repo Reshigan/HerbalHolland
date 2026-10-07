@@ -1,4 +1,4 @@
-// Member figures for the store back office. Franchise privacy: a store sees only its own sales — spend, visits and
+// Member figures for the store back office. Franchise privacy: a store sees only its own sales, so spend, visits and
 // savings come from this store's sales (refunds are stored negative, so sums are net). Tier, points balance and RFM
 // segment stay network-wide: they belong to the Rewards programme, not to any one store.
 import { db, Prisma } from "@/server/db";

@@ -1,6 +1,6 @@
 // Social posts (HQ → Campaigns → Social), published through Postiz (src/server/social.ts). Instagram, Facebook and
-// TikTok remove posts that sell cannabis or CBD and can close the account, so social is for the brand — merch,
-// stores, events, Learn — never products for sale. Copy is screened with screenCopy plus the platform rules below,
+// TikTok remove posts that sell cannabis or CBD and can close the account, so social is for the brand (merch,
+// stores, events, Learn), never products for sale. Copy is screened with screenCopy plus the platform rules below,
 // and the only images on offer are brand artwork (public/social, rendered by scripts/merch-export.tsx --social).
 import { screenCopy } from "./compliance";
 import { MERCH } from "./merch";
@@ -28,7 +28,7 @@ export const SOCIAL_IMAGES = [{ key: "brand", label: "Window poster" }, ...MERCH
 const PRODUCT = /\b(cbd|cannabis|marijuana|weed|dagga|strains?|pre-?rolls?|joints?|edibles?|gummies|tinctures?|vapes?|hash)\b/i;
 const SELLING = /\b(buy|order|shop|in stock|deliver(y|ed|s)?|prices?|specials?|deals?|discount|sale|promo|R ?\d+|\d+ ?% off)\b/i;
 
-/** screenCopy plus the platform rules: no THC (a licensed medicine — Medicines Act s20) and no selling cannabis or CBD. */
+/** screenCopy plus the platform rules: no THC (a licensed medicine, Medicines Act s20) and no selling cannabis or CBD. */
 export function screenSocial(text: string) {
   const found = screenCopy(text);
   const thc = text.match(/\bthc\b/i);

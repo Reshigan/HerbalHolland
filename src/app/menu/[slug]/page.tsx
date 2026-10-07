@@ -1,4 +1,4 @@
-// In-store menu board for a TV (16:9 landscape or 9:16 portrait). Public catalogue only in MEDICAL mode —
+// In-store menu board for a TV (16:9 landscape or 9:16 portrait). Public catalogue only in MEDICAL mode:
 // licensed medicines are never displayed; a panel points patients to an authorised dispenser instead. Member prices appear
 // only on classes where incentives are allowed (incentiveExcluded); sold-out lines stay on the board, greyed.
 // Server-rendered; board-client.tsx rotates panels, polls live stock and keeps the screen awake.

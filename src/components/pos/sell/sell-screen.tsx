@@ -1,8 +1,8 @@
 "use client";
 // Sell: catalogue + basket, then compliance → payment → receipt. Prices come from the
 // server's quote when online (authoritative) and from the till's cached price book
-// offline; offline sales are cash only and queue in the outbox. Member-only extras —
-// My Deals, welcome gifts, limited drops, event check-in and gift vouchers — need the connection.
+// offline; offline sales are cash only and queue in the outbox. Member-only extras
+// (My Deals, welcome gifts, limited drops, event check-in and gift vouchers) need the connection.
 // Trade-sale mode (a business buying on its trade account): the server prices the basket ex VAT at
 // the account's trade prices, the trade basket rule replaces the member rules (the 18+ counter
 // check stays), "On account" may pay within the account's terms, and nothing is ever queued.
@@ -278,7 +278,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   // ── Compliance ──────────────────────────────────────────────────────────
   /**
    * Trade-sale mode: the server's trade basket rule (each blocked line's reason rides on the quote) instead of the
-   * member, patient and members-only rules — the buyer is a business — but the till's own 18+ counter check stays
+   * member, patient and members-only rules (the buyer is a business), but the till's own 18+ counter check stays
    * for age-restricted lines (the person at the counter must be an adult).
    */
   const tradeCompliance = useCallback(
@@ -415,7 +415,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         const r = await api<{ customer: CustomerDetail }>(`/api/pos/customers/${c.customer.id}/age-check`, { body: { method, idNumber } });
         await recheckWith({ ...c, customer: r.customer });
       } else if (c.customer && training) {
-        // Training: the member's record is never written — the check counts for this practice sale only.
+        // Training: the member's record is never written; the check counts for this practice sale only.
         await recheckWith({ ...c, customer: { ...c.customer, ageVerified: true, ageCheck: method }, ageCheck: method });
       } else await recheckWith({ ...c, ageCheck: method });
     } catch (e) {
@@ -543,7 +543,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       trade: c.trade ? { tradeAccountId: c.trade.id } : null,
     };
     if (training) {
-      // Sandbox: nothing is posted, queued, printed for real, taken from stock or awarded — the receipt says so.
+      // Sandbox: nothing is posted, queued, printed for real, taken from stock or awarded, and the receipt says so.
       pos.commitSeq(seq);
       const receipt: ReceiptDTO = { ...localReceipt(payload, q, c), offline: false, queued: false, training: true, title: boot.store.vatRegistered ? "Tax invoice" : "Invoice" };
       pos.trainingSale(receipt);

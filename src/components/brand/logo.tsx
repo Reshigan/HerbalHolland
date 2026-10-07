@@ -14,7 +14,7 @@ export function Mark({ className, spin = false, detail = true, title = "Herbal H
 }
 
 /**
- * The Mark's strokes in a 100-unit box, drawn in currentColor — for placing inside other artwork (print files, merch).
+ * The Mark's strokes in a 100-unit box, drawn in currentColor, for placing inside other artwork (print files, merch).
  * `heavy` is the small-size cut: heavier lines, a solid hub and no inner tower line, so it prints cleanly on a cap.
  */
 export function MarkGlyph({ detail = true, heavy = false, spin = false }: { detail?: boolean; heavy?: boolean; spin?: boolean | "fast" }) {

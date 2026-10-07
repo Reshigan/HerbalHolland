@@ -1,7 +1,7 @@
 // Wallet passes for the Rewards card (pure builders; the routes in src/app/club/wallet sign and serve them).
 // Apple Wallet: pass.json + manifest.json (SHA-1 of every file) + a PKCS#7 signature, zipped as a .pkpass.
 // Google Wallet: a generic pass object inside a "Save to Google Wallet" JWT (RS256, the issuer's service account).
-// The pass carries the member number (as the till's QR code), tier, points and first name — nothing else personal.
+// The pass carries the member number (as the till's QR code), tier, points and first name, and nothing else personal.
 import { createHash, createSign } from "node:crypto";
 
 export type PassMember = { memberNo: string; firstName: string; tierName: string; points: number; founding?: number | null };

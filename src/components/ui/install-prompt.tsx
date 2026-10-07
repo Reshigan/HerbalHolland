@@ -3,7 +3,7 @@
 // it keeps the browser's `beforeinstallprompt` event and shows a native install button where the browser offers one
 // (Chrome, Edge and Samsung Internet on Android and desktop), or the two-step route on iPhone/iPad Safari. It never
 // renders on the server, in an installed app, in a browser that can't install, or inside a remembered dismissal
-// (30 days; "Not now" on the till is a day). Everything it remembers stays in localStorage — nothing goes to the server.
+// (30 days; "Not now" on the till is a day). Everything it remembers stays in localStorage; nothing goes to the server.
 //
 // Variants: "card" (a rounded card: Rewards home, the pair screen), "bar" (a slim strip under a mobile header),
 // "menu" (a row in a side menu) and "button" (a pill among other till actions).

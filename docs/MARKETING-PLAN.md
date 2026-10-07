@@ -1,4 +1,4 @@
-# Herbal Holland — marketing plan, October 2026 to November 2028
+# Herbal Holland: marketing plan, October 2026 to November 2028
 
 > **Status: approved** (27 September 2026); the platform changes in §15 are built. The launch of our next two stores, **Hillcrest** (Upper
 > Highway, eThekwini) and **Hilton** (KZN Midlands), on **Tuesday 1 December 2026**, with the online shop selling
@@ -68,7 +68,7 @@ Always:
 
 | # | Finding | Why it matters | Fix |
 |---|---|---|---|
-| 1 | The storefront won't take orders before `launch.launchAt` — it runs as a waitlist until then. | "Online now" and "Founding Members close at opening" can't both be true today. | Platform change **A**: separate "orders open" from "Founding Members list closes". Launch blocker. |
+| 1 | The storefront won't take orders before `launch.launchAt`: it runs as a waitlist until then. | "Online now" and "Founding Members close at opening" can't both be true today. | Platform change **A**: separate "orders open" from "Founding Members list closes". Launch blocker. |
 | 1b | Joining Rewards requires a home store that is already trading (the join page lists "opening soon" stores, but the sign-up rejects them), and checkout requires joining. With only Hillcrest and Hilton, both opening soon, **nobody new can join or buy online before 1 December**. | Blocks both the online launch and the Founding Members list. | Part of change **A**: accept opening-soon stores as a home store. Launch blocker. |
 | 2 | The Founding Members' Sprout floor runs `foundingMonths` from numbering. At 12 months it lapses in the first-birthday week. | Founding Members lose their savings at the anniversary party. | Set 14 months: the floor ends Mon 7 Feb 2028, after the festive season and January payday. |
 | 3 | Sign-ups record the channel (web, POS) but not the campaign or placement. | We can't tell which flyer, board, event or partner filled the Founding Members list. | Platform change **B**: `?src=` tags on join links and QR codes, and sign-ups by source in Reports. |
@@ -112,11 +112,11 @@ eight weeks of real data. Sales targets come from finance's store P&Ls, not from
 
 | Audience | What they need from us | Where they are | What we lead with |
 |---|---|---|---|
-| **The curious** — adults 25–60 in the Upper Highway and Midlands who've never walked into a cannabis store | To feel safe, welcome and not judged | Community pages, local papers, word of mouth, Google | The Good Neighbour Promise, the pharmacist, Learn, calm stores |
-| **Wellness regulars** — already buy CBD at pharmacies or online | Quality they can check, fair prices | Google, email, pharmacies | Lab pages for every batch, instant member savings, My Deals |
-| **Patients and patients-to-be** — adults whose doctor may prescribe a registered cannabis medicine | A clear, legal route | Their doctor, our pharmacist | Section 21 explained plainly; the healthcare-professional programme (§6.8). Never advertised |
-| **Culture and merch fans** — adults 18–40 | Something to belong to and wear | Instagram, friends | Drops, embroidered merch, members' evenings |
-| **Holidaymakers on the N3** — December, Easter, July | A reason to stop | Road trip, Google Maps | Merch and gifts, Rewards that work nationwide. Never anything about using and driving |
+| **The curious:** adults 25–60 in the Upper Highway and Midlands who've never walked into a cannabis store | To feel safe, welcome and not judged | Community pages, local papers, word of mouth, Google | The Good Neighbour Promise, the pharmacist, Learn, calm stores |
+| **Wellness regulars:** adults who already buy CBD at pharmacies or online | Quality they can check, fair prices | Google, email, pharmacies | Lab pages for every batch, instant member savings, My Deals |
+| **Patients and patients-to-be:** adults whose doctor may prescribe a registered cannabis medicine | A clear, legal route | Their doctor, our pharmacist | Section 21 explained plainly; the healthcare-professional programme (§6.8). Never advertised |
+| **Culture and merch fans:** adults 18–40 | Something to belong to and wear | Instagram, friends | Drops, embroidered merch, members' evenings |
+| **Holidaymakers on the N3** (December, Easter, July) | A reason to stop | Road trip, Google Maps | Merch and gifts, Rewards that work nationwide. Never anything about using and driving |
 | **Online, the rest of South Africa** | Trust and delivery | Search, referrals, email | Learn, merch, the Founding Members story |
 | **Future franchisees and investors** | Proof the model works | LinkedIn, business press, franchise events | Results from the stores (§11) |
 
@@ -124,7 +124,7 @@ eight weeks of real data. Sales targets come from finance's store P&Ls, not from
 
 **Lines.** _Holland, meet the Hills._ · _Holland is flat. KwaZulu-Natal isn't._ · Hillcrest: _From the flatlands to
 the Valley of a Thousand Hills._ · Hilton: _From the polders to the Midlands._ · Teaser: _Something's turning in the
-hills._ (the windmill mark spins, as it already does on the site) · Opening: _Sivulile — we're open._ · Endline:
+hills._ (the windmill mark spins, as it already does on the site) · Opening: _Sivulile. We're open._ · Endline:
 _Dutch heritage · African soil._
 
 **Look.** The orange window frame on warm black; the windmill mark; KZN hill silhouettes in Sunset orange; the
@@ -136,8 +136,8 @@ product. It never means colonial history: no ships, flags, settlers or "discover
 on 16 December (in KwaZulu-Natal, of all places). _African soil_ is the bigger half: South African growers, makers and
 places. No borrowed Rastafari imagery either.
 
-**Voice.** Warm, plain, confident, local. Dutch warmth used lightly (_welkom_, _gezellig_ — the cosy, together
-feeling our members' evenings are named after). isiZulu where it matters: _Sawubona_, _Sivulile_, _Siyabonga_ —
+**Voice.** Warm, plain, confident, local. Dutch warmth used lightly: _welkom_, and _gezellig_ (the cosy, together
+feeling our members' evenings are named after). isiZulu where it matters (_Sawubona_, _Sivulile_, _Siyabonga_),
 written and checked by first-language speakers on the team, never machine-translated.
 
 **Hashtags.** #HerbalHolland #HollandMeetsTheHills, plus place tags (#Hillcrest #UpperHighway #Hilton #KZNMidlands
@@ -159,13 +159,13 @@ written and checked by first-language speakers on the team, never machine-transl
 | Fri 27 – Mon 30 Nov | **Black Friday** online: merch and accessories | Merch on social; accessories on our own channels only |
 | Mon 30 Nov 17:00 | Neighbours' preview at both stores | 30 guests each |
 | Tue 1 Dec 07:00 | HQ switches both stores to **trading** | HQ → Stores |
-| **Tue 1 Dec 09:00** | **Doors open** | _Sivulile — we're open_ |
+| **Tue 1 Dec 09:00** | **Doors open** | _Sivulile. We're open._ |
 | Thu 3 Dec 18:00–20:30 | Founding Members' Evening, Hillcrest | |
 | Fri 4 Dec 18:00–20:30 | Founding Members' Evening, Hilton | |
 | Sat 5 Dec 09:00–14:00 | **Open Day** at both stores | |
 | Sun 6 Dec 23:59 | Founding Members list closes | Numbering runs automatically overnight |
 | Mon 7 Dec | Founding Member numbers in the app | |
-| Tue 8 Dec 10:00 / 12:00 | **Founding Members' Drop**: Heritage Crewneck — Sprout and up at 10:00, all members at 12:00, until Thu 10 Dec | Founding Members hold Sprout, so they're in first |
+| Tue 8 Dec 10:00 / 12:00 | **Founding Members' Drop**: Heritage Crewneck; Sprout and up at 10:00, all members at 12:00, until Thu 10 Dec | Founding Members hold Sprout, so they're in first |
 | Thu 10 Dec | Last merch order date for Christmas | Confirm with the partner and courier |
 | Wed 16 Dec | Day of Reconciliation | No sends; no heritage-themed content |
 | 24 Dec – 1 Jan | Festive hours | No sends on 25 and 26 Dec, Sun 27 Dec or 1 Jan |
@@ -176,11 +176,11 @@ HQ → Founding Members: list closes **Sun 6 Dec 2026, 23:59** · **2,026** plac
 **14 months** · **250** places up per referral. After change A, the date closes the list without blocking orders.
 
 - **What Founding Members get:** a numbered card (#0001–#2026) in the Rewards app; at least Sprout (5% instant savings on
-  eligible items — never on medicines) until February 2028; first access to drops through their tier; an invitation
+  eligible items, never on medicines) until February 2028; first access to drops through their tier; an invitation
   to a Founding Members' Evening every December.
 - **How the list fills:** `/club/join` (tagged QR codes on window wraps, flyers and print once change B is in), the
   referral link (a friend who joins moves you up 250 places; you both get 50 points on their first purchase), and
-  POS quick-join at the tills from 1 December — opening-week visitors can still join and make the list.
+  POS quick-join at the tills from 1 December, so opening-week visitors can still join and make the list.
 - **Why 2,026:** scarcity people can feel, a number that means something, and a bounded cost for the two
   franchisees who carry the extra 2% instant savings.
 
@@ -217,7 +217,7 @@ evenings are staggered and Open Day runs on each store's own team.
   councillors. Business bodies: the Pietermaritzburg & Midlands Chamber of Business and the Hilton Ratepayers
   Association for Hilton; 1000 Hills Tourism for the Upper Highway.
 - **Family markets** (the Shongweni and Karkloof Saturday markets, the We ♥ Hilton Market at the Quarry Centre): no
-  stalls — children are there. Invite their makers to our Open Days instead.
+  stalls, because children are there. Invite their makers to our Open Days instead.
 - **Schools:** we don't market near them. Check every poster, flyer and board against the 500 m rule.
 
 ### 6.6 Press and PR
@@ -243,7 +243,7 @@ evenings are staggered and Open Day runs on each store's own team.
   boards carry no QR code (nobody should scan while driving): _Holland, meet the Hills. Hillcrest. Opening 1 December._
 - **Flyers:** A5, handed out with neighbours' letters and left at partner businesses with permission. Never on cars.
 - **Radio:** interviews, not ads, in 2026.
-- **Window wraps:** _Something's turning in Hillcrest_ / _Hilton_ from reveal day; _Sivulile — we're open_ from
+- **Window wraps:** _Something's turning in Hillcrest_ / _Hilton_ from reveal day; _Sivulile. We're open_ from
   1 December.
 
 ### 6.8 Healthcare professionals (the medical route)
@@ -251,7 +251,7 @@ evenings are staggered and Open Day runs on each store's own team.
 This is professional information, not advertising, and follows the Marketing Code Authority's code for dealing with
 healthcare professionals (factual material, modest refreshments, no inducements).
 
-- One evening per area before opening — Hillcrest Thu 12 Nov, Hilton Thu 19 Nov — and one per quarter after:
+- One evening per area before opening (Hillcrest Thu 12 Nov, Hilton Thu 19 Nov) and one per quarter after:
   _How Section 21 works in practice_, led by our pharmacist.
 - Aim: 20 practices per area engaged in year 1, and plain-language patient information on the process that doctors
   can hand out.
@@ -293,7 +293,7 @@ draft.
 | Wed 7 Oct | Brand | brand | Why a windmill? It's two things at once: a Dutch windmill and a four-petal flower. The ring is open at the bottom, where the tower stands. We drew it from our first store-window poster. |
 | Fri 9 Oct | Made here | windmill-tee | The Windmill Tee: the mark embroidered in Sunset thread on the chest, the store-window poster printed on the back. Made for you in Cape Town, one at a time. #MadeInSA |
 | Sat 10 Oct | Teaser | video | Something's turning in the hills. |
-| Mon 12 Oct | Learn | photo | How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass — microbes, pesticides, heavy metals, solvents. Every one of our batches has a public lab page. Scan the QR on the pack. |
+| Mon 12 Oct | Learn | photo | How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass (microbes, pesticides, heavy metals, solvents). Every one of our batches has a public lab page. Scan the QR on the pack. |
 | Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers and member advisors. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
 | Fri 16 Oct | Brand | brand | Dutch heritage: the coffee-shop tradition of a warm welcome and knowing exactly what you're offering. African soil: South African growers, makers and landraces. That's the whole idea. |
 | Sat 17 Oct | Rewards | brand | {count} people have joined the Founding Members list. The first 2,026 get a numbered card on opening weekend. Free to join, adults 18+. |
@@ -303,7 +303,7 @@ draft.
 | Sat 24 Oct | Learn | photo | Schedule 0, simply: it's the rule that lets low-dose CBD products be sold without a prescription, with limits on strength and on what a label may claim. Every product page shows you those limits. |
 | Mon 26 Oct | Reveal | photo | Hillcrest, we're your new neighbours. Herbal Holland opens at {address} on Tuesday 1 December: free Rewards, a pharmacist on the team, every batch lab-tested. Adults 18+. #Hillcrest #UpperHighway #HollandMeetsTheHills |
 | Wed 28 Oct | Community | photo | Our Good Neighbour Promise, Hillcrest: adults 18+ only, ID checked at the door and the till, nothing consumed on or outside our premises, a manager you can phone directly, and a tidy pavement. |
-| Fri 30 Oct | People | photo | Last day to apply for our Hillcrest and Hilton teams. Thank you to everyone who has applied so far — we're reading every application. |
+| Fri 30 Oct | People | photo | Last day to apply for our Hillcrest and Hilton teams. Thank you to everyone who has applied so far. We're reading every application. |
 | Mon 2 Nov | Reveal | photo | From the polders to the Midlands. Hilton, Herbal Holland opens at {address} on Tuesday 1 December. Adults 18+. #Hilton #KZNMidlands #HollandMeetsTheHills |
 | Thu 5 Nov | Community | photo | Our Good Neighbour Promise, Hilton: adults 18+ only, ID checked at the door and the till, nothing consumed on or outside our premises, a manager you can phone directly, and a tidy pavement. |
 | Fri 6 Nov | Rewards | brand | Move up the Founding Members list: every friend who joins with your link moves you up 250 places. The first 2,026 get a numbered card on opening weekend. Free, adults 18+. |
@@ -320,13 +320,13 @@ draft.
 | Fri 27 Nov | Made here | windmill-tee | Black Friday: 20% off the whole embroidered collection online, today to Monday. Made to order in Cape Town, so order by 10 December for Christmas. |
 | Sun 29 Nov | Teaser | video | Tuesday, 09:00. Hillcrest and Hilton. The windmill is nearly turning. |
 | Mon 30 Nov | Teaser | brand | Tomorrow at 09:00 our doors open in Hillcrest and Hilton. Bring your ID and come say hello. Adults 18+. |
-| Tue 1 Dec | Opening | photo | Sivulile — we're open! Herbal Holland Hillcrest and Hilton are open from 09:00 today. Come and say sawubona. Adults 18+, bring your ID. #HollandMeetsTheHills |
+| Tue 1 Dec | Opening | photo | Sivulile. We're open! Herbal Holland Hillcrest and Hilton are open from 09:00 today. Come and say sawubona. Adults 18+, bring your ID. #HollandMeetsTheHills |
 | Wed 2 Dec | Opening | photo | Day one, done. Siyabonga, Hillcrest and Hilton, for the warmest welcome to KwaZulu-Natal. |
 | Thu 3 Dec | Events | photo | Tonight: Founding Members' Evening in Hillcrest. Tomorrow: Hilton. Saturday: Open Day at both stores, 09:00–14:00. Adults 18+, ID at the door. |
 | Sat 5 Dec | Events | photo | Open Day is on until 14:00 at both stores: coffee, local makers, and our pharmacists answering questions on the hour. Adults 18+. |
 | Sun 6 Dec | Rewards | brand | Last call: the Founding Members list closes at midnight tonight. Join free in the Rewards app. Adults 18+. |
 | Mon 7 Dec | Rewards | brand | Founding Members, your numbers are in: open the Rewards app to see your card. Thank you for being first. |
-| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order in Cape Town — order by 10 December for Christmas. |
+| Tue 8 Dec | Drop | heritage-crewneck | Founding Members' Drop: the Heritage Crewneck, members-only until Thursday night. Sprout members and up got in two hours early. Made to order in Cape Town, so order by 10 December for Christmas. |
 | Thu 10 Dec | Made here | windmill-tote | Last day to order merch for Christmas: tees, hoodies, crewnecks, caps, bucket hats, beanies and totes, embroidered and printed in South Africa. |
 | Fri 11 Dec | Holiday | brand | Heading down the N3 for the holidays? Hilton is just off the highway, and Hillcrest is on the M13 into Durban. Stretch your legs, say hello, and never drive impaired. Adults 18+. |
 | Sat 12 Dec | Community | photo | Thank you to the makers who joined us on Open Day: {makers}. Go and visit them. |
@@ -341,24 +341,24 @@ windows. SMS stays short enough to fit two parts with the footer. Push titles fi
 
 | When (SAST) | Channel | Audience | Message |
 |---|---|---|---|
-| Thu 1 Oct 10:00 | Email | All members | **We're open online — and coming to the hills.** The shop is open nationwide; Founding Members explained (the first 2,026, a numbered card, Sprout savings for 14 months, how to move up); stores open 1 Dec in Hillcrest and Hilton; three Learn reads to start with. |
-| Thu 1 Oct 10:00 | Push | All members | **We're open online** — Our first stores open on 1 Dec in Hillcrest and Hilton. Explore the shop and Learn. |
+| Thu 1 Oct 10:00 | Email | All members | **We're open online, and coming to the hills.** The shop is open nationwide; Founding Members explained (the first 2,026, a numbered card, Sprout savings for 14 months, how to move up); stores open 1 Dec in Hillcrest and Hilton; three Learn reads to start with. |
+| Thu 1 Oct 10:00 | Push | All members | **We're open online.** Our next two stores open on 1 Dec in Hillcrest and Hilton. Explore the shop and Learn. |
 | Tuesdays 10:00 from 6 Oct | Email | New members (last 7 days) | **Welcome to Herbal Holland Rewards, {{firstName}}.** How instant savings and points work; your place on the Founding Members list and your referral link; three Learn reads; your home store's opening day. |
 | Tue 20 Oct 10:00 | Email | All members | **The Windmill, No. 1.** How our merch is made; Learn picks; we're hiring; the Founding Members count. |
 | Tue 27 Oct 10:00 | SMS | Home store Hillcrest | Hi {{firstName}}, Herbal Holland Hillcrest opens Tue 1 Dec at {address}. See you there! |
 | Tue 3 Nov 10:00 | SMS | Home store Hilton | Hi {{firstName}}, Herbal Holland Hilton opens Tue 1 Dec at {address}. See you there! |
-| Wed 11 Nov 10:00 | Push | All members | **You're invited** — Founding Members' Evenings on 3 and 4 Dec, Open Day on 5 Dec. RSVP in the app — spaces are limited. |
+| Wed 11 Nov 10:00 | Push | All members | **You're invited.** Founding Members' Evenings on 3 and 4 Dec, Open Day on 5 Dec. RSVP in the app: spaces are limited. |
 | Wed 11 Nov 12:00 | SMS | Home store Hillcrest or Hilton | {{firstName}}, you're invited: Founding Members' Evening, Hillcrest Thu 3 Dec or Hilton Fri 4 Dec, 18:00. RSVP in the Rewards app. |
 | Tue 17 Nov 10:00 | Email | All members | **The Windmill, No. 2: doors open 1 December.** What to expect on a first visit (ID, a pharmacist to talk to, Rewards at the till); the Open Day programme; merch dates for Christmas. |
 | Fri 27 Nov 08:30 | SMS | All members | Black Friday online until Monday: 20% off merch for members with code {{code}}. herbalholland.co.za |
 | Fri 27 Nov 08:30 | Email | All members | **Black Friday, members first.** The embroidered collection and accessories at members' prices; last order dates for Christmas. (Wellness-range offers only once counsel has answered the s18A question.) |
 | Mon 30 Nov 12:00 | SMS | Home store Hillcrest or Hilton | Tomorrow at 09:00 our doors open in Hillcrest and Hilton. Bring your ID and your Rewards number. See you there! |
-| Tue 1 Dec 09:00 | Push | All members | **Sivulile — we're open!** — Hillcrest and Hilton are open from 09:00 today. Bring your ID and say hello. |
-| Tue 1 Dec 09:05 | Email | All members | **Sivulile — we're open.** Addresses and hours; what to expect; this week's events; how Rewards works at the till. |
+| Tue 1 Dec 09:00 | Push | All members | **Sivulile. We're open!** Hillcrest and Hilton are open from 09:00 today. Bring your ID and say hello. |
+| Tue 1 Dec 09:05 | Email | All members | **Sivulile. We're open.** Addresses and hours; what to expect; this week's events; how Rewards works at the till. |
 | Sat 5 Dec 09:00 | SMS | Home store Hillcrest or Hilton | Open Day today until 14:00 at Hillcrest and Hilton: coffee, local makers, ask-the-pharmacist sessions. Adults 18+. |
-| Sat 5 Dec 11:00 | Push | All members | **Last call, Founding Members** — The Founding Members list closes on Sunday at midnight. Share your link to move up 250 places. |
+| Sat 5 Dec 11:00 | Push | All members | **Last call, Founding Members.** The Founding Members list closes on Sunday at midnight. Share your link to move up 250 places. |
 | Mon 7 Dec 10:00 | Email | Founding Members | **Your Founding Member card is here.** Your number; Sprout savings until February 2028; the Founding Members' Drop opens for you at 10:00 tomorrow; the Founding Members' Evening every December. |
-| Mon 7 Dec 10:00 | Push | Founding Members | **Your Founding card is ready** — Open the app to see your number. The Founding Members' Drop opens for you at 10:00 tomorrow. |
+| Mon 7 Dec 10:00 | Push | Founding Members | **Your Founding card is ready.** Open the app to see your number. The Founding Members' Drop opens for you at 10:00 tomorrow. |
 | Tue 15 Dec 10:00 | SMS | Home store Hillcrest or Hilton | Festive hours: Hillcrest {hours}, Hilton {hours}. Closed Christmas Day. Your Rewards savings work in store and online. |
 | Mon 21 Dec 10:00 | Email | All members | **Thank you for December.** Photos from opening week; the Founding Members count; what's on in January (members' evenings, Learn); festive hours. |
 
@@ -394,10 +394,10 @@ Mix over a month: Learn 30%, community and people 25%, made here 20%, brand and 
 
 ### 8.3 Content production
 
-- **Content day** once a month, alternating stores: photos and short video for the next month — team, events, merch
-  on people (adults over 25), store details, the views. Releases signed on the day.
+- **Content day** once a month, alternating stores: photos and short video for the next month of the team, events, merch
+  on people (adults over 25), store details and the views. Releases signed on the day.
 - **Brand shoot** each quarter for the drop and the season.
-- **Members' pictures:** reposted only with written permission, and only merch, places and people — never products.
+- **Members' pictures:** reposted only with written permission, and only merch, places and people, never products.
 - **Learn:** two articles a month (one evergreen, one seasonal or news). Each becomes a carousel, a newsletter item and
   an X/Threads post. One new Learn quest (10 points) every quarter.
 - **Menu boards:** a Learn slide and an events slide refreshed monthly.
@@ -444,11 +444,11 @@ Tuesday from HQ → Campaigns. Offers stay on merch and accessories until counse
 Every month also has: _The Windmill_ (first Tuesday), Gezellig evenings, My Deals on Mondays, the weekly journeys,
 two Learn articles and a content day. Below is what's specific to each month. Dates to confirm are marked (TBC).
 
-### Year 1 — settle in (December 2026 to November 2027)
+### Year 1: settle in (December 2026 to November 2027)
 
-**December 2026 — the launch.** See §6 and §7.
+**December 2026: the launch.** See §6 and §7.
 
-**January 2027 — Know your Holland.**
+**January 2027: Know your Holland.**
 - Dates: Fri 1 Jan public holiday · N3 return traffic around 2–10 Jan · schools reopen Wed 13 Jan · payday Mon 25 Jan.
 - Hero: _Read the label_, a four-Monday Learn series on social; member savings for the long month on our own channels.
 - Social ideas: a safe-trip-home post (Sat 2 Jan); _Read the label_ ×4; the makers behind our merch; Founding Members'
@@ -456,35 +456,35 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Learn: _Reading a label, line by line_ · _How instant savings and points work_.
 - Community: a one-month letter to the neighbours: how are we doing?
 
-**February 2027 — Gezellig.**
-- Dates: Midmar Mile 13–14 Feb (swimmers of all ages — not for us) · Sun 14 Feb.
-- Hero: _Bring a friend_ month — you both get 50 points (social and own channels).
+**February 2027: Gezellig.**
+- Dates: Midmar Mile 13–14 Feb (swimmers of all ages, so not for us) · Sun 14 Feb.
+- Hero: _Bring a friend_ month, when you both get 50 points (social and own channels).
 - Social ideas: what _gezellig_ means; a Gezellig evening; merch made for two (the tote and the cap); the referral
   explainer; the team's favourite walks and views.
 - Own channels: referral SMS (Tue 9 Feb); merch gifts email (Mon 8 Feb).
 - Learn: _Gezellig: the Dutch art of feeling at home_ · _CBD and Schedule 0: five facts_.
 - Franchise: attend the FASA Conference & Expo (February, TBC) to learn the market.
 
-**March 2027 — 100 days in the hills.**
+**March 2027: 100 days in the hills.**
 - Dates: day 100 is Wed 10 Mar · Human Rights Day observed Mon 22 Mar · Good Friday 26 Mar, Family Day Mon 29 Mar.
-- Hero: _100 days_ — a thank-you week (8–13 Mar) with double points on merch and accessories, members' evenings, and a
+- Hero: _100 days_, a thank-you week (8–13 Mar) with double points on merch and accessories, members' evenings, and a
   data story for the press: what the hills asked us, our most-read Learn article, the favourite merch.
 - Social ideas: 100 days in numbers; the team at day 100; Easter hours; the law in 2027.
 - Own channels: 100-days SMS (Mon 8 Mar); Easter hours SMS (Tue 23 Mar).
 - PR: the 100-days release (Wed 10 Mar) to _Highway Mail_, _Village Talk_, _The Witness_ and business media.
 - Learn: _100 days of your questions_ · _The law in 2027: where things stand_.
 
-**April 2027 — Slow autumn.**
-- Dates: schools reopen Tue 6 Apr · Freedom Day Tue 27 Apr (respect only; it's also the Dutch King's Day — we don't
-  mark that) · nothing on 20 April.
+**April 2027: Slow autumn.**
+- Dates: schools reopen Tue 6 Apr · Freedom Day Tue 27 Apr (respect only; it's also the Dutch King's Day, which we
+  don't mark) · nothing on 20 April.
 - Hero: the _Winter Drop_ announced; the notify-me list builds.
 - Social ideas: autumn in the Midlands; terpenes without the hype; Winter Drop teaser; makers' night.
 - Own channels: Winter Drop notify-me push (Wed 21 Apr).
 - Learn: _Terpenes, without the hype_ · _Adults only, and always on your terms_ (refreshed).
-- Franchise: the franchise interest list opens (LinkedIn, and an enquiry address until a page exists).
+- Franchise: the franchise interest list opens (LinkedIn, and the franchise page on herbalholland.com).
 
-**May 2027 — Winter in the hills.**
-- Dates: Workers' Day Sat 1 May (also the Global Cannabis March — an activist event, not ours) · Sun 9 May · The
+**May 2027: Winter in the hills.**
+- Dates: Workers' Day Sat 1 May (also the Global Cannabis March: an activist event, not ours) · Sun 9 May · The
   Cannabis Expo, Sandton, 28–30 May (visit for franchise learning; don't exhibit in 2027).
 - Hero: **Winter Drop** (Tue 4 May, 12:00): the Windmill Beanie and Sunset Hoodie, members only for 72 hours, Bloom and
   up two hours early.
@@ -492,53 +492,53 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Own channels: gifts email (Mon 3 May); drop alerts are automatic.
 - Learn: _How we make merch without a warehouse_ · _Keeping wellness products at their best in winter_.
 
-**June 2027 — Hills and heart.**
+**June 2027: Hills and heart.**
 - Dates: **Sun 13 Jun, the 100th Comrades Marathon**, a down run from Pietermaritzburg through Botha's Hill and
   Hillcrest on Old Main Road · World Franchise Day Fri 11 Jun · Youth Day Wed 16 Jun (no campaign) · Sun 20 Jun ·
   schools close Fri 25 Jun.
 - Comrades: no sponsorship, no marketing to runners, and no view on the race's governance dispute. If the Hillcrest
   store is on the route: plan for the road closures, open early for spectators, a "well run" message in the window,
   the team in Windmill Tees. That's all.
-- Hero: _Half-time_ — each member's savings and points so far (email, Tue 29 Jun).
+- Hero: _Half-time_, each member's savings and points so far (email, Tue 29 Jun).
 - Social ideas: the centenary, for the spectators; Father's Day gifts (the cap and the bucket hat); half-time in
   numbers; a team spotlight.
 - Own channels: gifts email (Mon 14 Jun).
 - Learn: _How to talk to your doctor about medical access_ · _Your Rewards at half-time_.
 - Franchise: a World Franchise Day post; the prospectus drafted from six months of trading.
 
-**July 2027 — 67 minutes.**
+**July 2027: 67 minutes.**
 - Dates: Durban July Sat 3 Jul (not for us) · Mandela Day Sun 18 Jul · schools reopen Tue 20 Jul · the Amashova cycle
   race uses Botha's Hill and Old Main Road (TBC).
-- Hero: **Mandela Day** — each store team gives 67 minutes (Fri 16 or Sat 17 Jul) to a local project, chosen with the
+- Hero: **Mandela Day**. Each store team gives 67 minutes (Fri 16 or Sat 17 Jul) to a local project, chosen with the
   community, not for the photographs.
 - Social ideas: Mandela Day with the partner's consent; a winter members' evening; what a lab page shows; staff
   stories.
 - Learn: _What microbial testing actually checks_ · _67 minutes: what our teams did_.
 - PR: the community story to the local papers.
 
-**August 2027 — Women of African soil.**
-- Dates: National Women's Day Mon 9 Aug · the Hilton Arts Festival (August, on the Hilton College campus — no stalls,
+**August 2027: Women of African soil.**
+- Dates: National Women's Day Mon 9 Aug · the Hilton Arts Festival (August, on the Hilton College campus; no stalls,
   sponsorship or sampling).
-- Hero: _Women of African soil_ — four Wednesdays: women growers, pharmacists and makers in our supply chain and teams,
+- Hero: _Women of African soil_, four Wednesdays of women growers, pharmacists and makers in our supply chain and teams,
   in their own words and with their consent.
 - Social ideas: the series; the Women's Month evening; what a pharmacist does.
 - Learn: _Women of African soil_ · _What a pharmacist does at Herbal Holland_.
 - Franchise: the prospectus and disclosure document to counsel.
 
-**September 2027 — Heritage Month: Dutch heritage · African soil.** Our signature month.
+**September 2027: Heritage Month (Dutch heritage · African soil).** Our signature month.
 - Dates: Spring Day Wed 1 Sep · nine years since the _Prince_ judgment Sat 18 Sep (Learn, not activism) · Heritage Day
   Fri 24 Sep.
-- Hero: **Heritage Drop** (Tue 7 Sep, 72 hours) — the Heritage Crewneck; Heritage evenings with the growers' story
+- Hero: the **Heritage Drop** (Tue 7 Sep, 72 hours) with the Heritage Crewneck; Heritage evenings with the growers' story
   (Hillcrest Wed 22 Sep, Hilton Thu 23 Sep; an alcohol-free braai).
 - Social ideas: the growers; our endline explained; the drop; the Heritage evenings; the law nine years after
   _Prince_.
 - Own channels: Heritage evening invitations (SMS, Tue 14 Sep).
 - Learn: _KwaZulu-Natal's most famous landrace_ (on the site; the social teaser doesn't name it) · _Nine years after
   Prince_.
-- PR: a heritage feature pitch (growers, fair trade).
-- Franchise: **the franchise launch** — the information pack and the first information evening (Durban, Thu 30 Sep).
+- PR: a heritage feature pitch (the growers' story).
+- Franchise: **the franchise launch**, with the information pack and the first information evening (Durban, Thu 30 Sep).
 
-**October 2027 — Summer and the franchise.**
+**October 2027: Summer and the franchise.**
 - Dates: schools reopen (TBC) · matric exams October–November (no "exam" angles, ever).
 - Hero: **Summer Drop** (Tue 12 Oct): the Sunset Bucket Hat and the Windmill Cap; franchise information evenings
   (Pietermaritzburg Thu 14 Oct, Johannesburg Thu 28 Oct).
@@ -546,7 +546,7 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Own channels: Founding Members email (Tue 19 Oct): the Sprout floor runs to 7 February 2028, and what their spend earns.
 - Learn: _What a CBD label may and may not say_ · _Franchising with Herbal Holland: the basics_.
 
-**November 2027 — Black Friday and the first birthday.**
+**November 2027: Black Friday and the first birthday.**
 - Dates: Revolution Day Sun 7 Nov (an activist day, not ours) · **Black Friday Fri 26 Nov** · Cyber Monday 29 Nov.
 - Hero: _Black Friday, members first_ (Fri 26 – Mon 29 Nov): merch and accessories; birthday invitations.
 - Social ideas: Black Friday merch; a one-year teaser; the gift guide; last merch order date for Christmas (TBC).
@@ -554,80 +554,80 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Learn: _A year of Learn: the ten most-read answers_ · _Gifting guide: made in South Africa_.
 - Franchise: an information evening (Durban, Thu 18 Nov).
 
-### Year 2 — grow out (December 2027 to November 2028)
+### Year 2: grow out (December 2027 to November 2028)
 
-**December 2027 — One year in the hills.**
+**December 2027: One year in the hills.**
 - Dates: **first birthday Wed 1 Dec** · schools close about Wed 8 Dec · the N3 peaks from about 10 Dec · Day of
   Reconciliation Thu 16 Dec (no sends, no heritage themes) · Christmas Sat 25 Dec · Day of Goodwill observed Mon 27 Dec.
 - Hero: **Birthday week**: Founding Members' Evenings (Hillcrest Thu 2 Dec, Hilton Fri 3 Dec), a birthday Open Day (Sat 4 Dec)
-  and the **Anniversary Drop** (Tue 7 Dec) — a new _Est. 2026_ design, briefed in September.
+  and the **Anniversary Drop** (Tue 7 Dec), a new _Est. 2026_ design briefed in September.
 - Social ideas: one year in numbers; birthday week; the drop; the N3 post (Fri 10 Dec); festive hours; plan your ride
   on New Year's Eve.
 - Own channels: birthday email (Wed 1 Dec); festive hours SMS (Tue 14 Dec); thank-you email (Mon 20 Dec).
 - PR: the year-one story.
 - Learn: _One year in the hills_ · _Travelling this summer? What to know about carrying CBD_.
 
-**January 2028 — Year two, same promise.**
+**January 2028: Year two, same promise.**
 - Dates: N3 return traffic around 2–9 Jan · payday Tue 25 Jan.
 - Hero: _Read the label_, refreshed; the Founding Members' floor reminder (email, Tue 18 Jan: it ends Mon 7 Feb).
 - Learn: _Label reading, refreshed for 2028_ · _Rewards in year two_.
 - Franchise: book a stand at the FASA Conference & Expo (February).
 
-**February 2028 — Thank you, Founding Members.**
+**February 2028: Thank you, Founding Members.**
 - Dates: the Founding Members' floor ends Mon 7 Feb · Mon 14 Feb · FASA Conference & Expo (TBC).
-- Hero: _Thank you, Founding Members_ — numbered cards and the December Founding Members' Evening are theirs for good; a
+- Hero: _Thank you, Founding Members_ (numbered cards and the December Founding Members' Evening are theirs for good); a
   Founding Members-only merch window (Tue 8 Feb); _Bring a friend_ month again.
 - Learn: _What the first 2,026 built_ · _A year of Gezellig evenings_.
 - Franchise: exhibit at FASA with a year of results.
 
-**March 2028 — The law in 2028.**
+**March 2028: The law in 2028.**
 - Dates: Human Rights Day Tue 21 Mar.
 - Hero: where the Cannabis Bill stands (Learn and PR, factual); the adult-use drawer plan reviewed with counsel.
 - Learn: _The law in 2028_ · _How our lab partners test a batch_.
 - Growth: new stores open with the playbook (§10).
 
-**April 2028 — Growers.**
+**April 2028: Growers.**
 - Dates: Good Friday 14 Apr to Family Day Mon 17 Apr · Freedom Day Thu 27 Apr (respect only) · nothing on 20 April.
-- Hero: _Visit the growers_ — a short video series from the co-operative, with the growers' consent and paid for their
+- Hero: _Visit the growers_, a short video series from our growers' farms, with the growers' consent and paid for their
   time.
-- Learn: _Heritage growers: a visit to the co-op_ · _Responsible use, revisited_.
+- Learn: _Heritage growers: a farm visit_ · _Responsible use, revisited_.
 
-**May 2028 — Winter Drop, year two.**
+**May 2028: Winter Drop, year two.**
 - Dates: Workers' Day Mon 1 May · Global Cannabis March Sat 6 May (not ours) · Sun 14 May · The Cannabis Expo,
-  Sandton (late May, TBC) — consider a franchise stand.
-- Hero: **Winter Drop** (Tue 2 May) — a new colourway or design (a brand decision in Q1).
+  Sandton (late May, TBC): consider a franchise stand.
+- Hero: **Winter Drop** (Tue 2 May), a new colourway or design (a brand decision in Q1).
 - Learn: _Behind the stitches_ · _Keeping wellness products at their best in winter_.
 
-**June 2028 — Hills and heart.**
+**June 2028: Hills and heart.**
 - Dates: Comrades, probably Sun 11 Jun (the 101st; date and direction TBC) · World Franchise Day Sun 11 Jun ·
   Youth Day Fri 16 Jun (no campaign) · Sun 18 Jun.
 - Hero: _Half-time 2028_ for members; Father's Day gifts.
 - Learn: _Section 21, two years on_ · _Your Rewards at half-time_.
 
-**July 2028 — 67 minutes.**
+**July 2028: 67 minutes.**
 - Dates: Durban July Sat 1 Jul (not for us) · Mandela Day Tue 18 Jul.
 - Hero: Mandela Day at every store, new ones included.
 - Learn: _Mandela Day 2028_ · _Order online, collect in store: how it works_.
 
-**August 2028 — Women of African soil, part two.**
+**August 2028: Women of African soil, part two.**
 - Dates: National Women's Day Wed 9 Aug · the Hilton Arts Festival (not ours).
 - Learn: _Women of African soil, part two_ · _Meet the makers behind our merch_.
 
-**September 2028 — Heritage Month: ten years since _Prince_.**
+**September 2028: Heritage Month, ten years since _Prince_.**
 - Dates: **Mon 18 Sep, ten years since the _Prince_ judgment** · Heritage Day Sun 24 Sep, observed Mon 25 Sep.
-- Hero: _Ten years on_ — the Learn and PR centrepiece: what changed, what didn't, what's next (factual, never
+- Hero: _Ten years on_, the Learn and PR centrepiece: what changed, what didn't, what's next (factual, never
   activist); the **Heritage Drop** (Tue 5 Sep); Heritage evenings.
 - Learn: _Ten years since Prince_ · _Dutch heritage, African soil: our story so far_.
 - Franchise: information evenings in the new regions.
 
-**October 2028 — Ready for what's next.**
+**October 2028: Ready for what's next.**
 - Dates: matric exams (no angles).
-- Hero: **Summer Drop** (Tue 10 Oct); the adult-use readiness review — the drawer plan goes live only when a law
-  commences and counsel signs off.
+- Hero: **Summer Drop** (Tue 10 Oct); the adult-use readiness review (the drawer plan goes live only when a law
+  commences and counsel signs off).
 - Learn: _Adult use: what might change, and what won't_ (if the Bill has passed; otherwise _The law in late 2028_) ·
   _How franchising works at Herbal Holland_.
 
-**November 2028 — Black Friday and birthday number two.**
+**November 2028: Black Friday and birthday number two.**
 - Dates: Revolution Day Tue 7 Nov (not ours) · **Black Friday Fri 24 Nov** · Cyber Monday 27 Nov · second birthday
   Fri 1 Dec.
 - Hero: _Black Friday, members first_; birthday invitations; the year-three plan written.
@@ -658,11 +658,12 @@ The consumer plan earns the proof; this track turns it into owners.
   franchise disclosure document reviewed by counsel (the CPA's franchise regulations: disclosure at least 14 days
   before signing). Launch in September 2027 with information evenings in Durban, Pietermaritzburg and Johannesburg.
 - **Year 2:** exhibit at FASA (February 2028); information evenings every quarter; case studies from the first
-  owners (with their consent, and only numbers that can be substantiated — no earnings projections without a basis);
+  owners (with their consent, and only numbers that can be substantiated: no earnings projections without a basis);
   consider a franchise stand at The Cannabis Expo (May 2028).
 - **Who we're looking for:** owner-operators with retail experience, capital, standing in their community and access
   to a pharmacist partner.
-- **Needs later (not in this plan):** a franchise enquiry page and a place to track leads.
+- **Built since the plan was approved:** a franchise enquiry page (herbalholland.com/franchise) and lead tracking in
+  HQ (HQ → Franchise leads).
 
 ## 12. Budget
 
@@ -725,13 +726,13 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 1. **This plan:** the launch (§6), the copy bank (§7), the always-on engine (§8), the 24-month calendar (§9), the
    opening playbook (§10), the franchise track (§11), the budget split (§12), measurement (§13) and risks (§14).
-2. **Platform changes — built 27 September 2026:**
+2. **Platform changes, built 27 September 2026:**
    - **A · Founding Members list mode (was the launch blocker).** The shop takes orders while the list runs to its
      closing date (HQ → Founding Members); members can choose an opening-soon store as their home store; the shop,
      the Rewards card and HQ speak of "the Founding Members list" and its closing date.
    - **B · Sign-up sources.** Every join link and QR code carries `?src=` (`/club/join?src=qr-window-hillcrest`); the tag
      is stored on the member and **Reports → Members → Where members joined** counts them. Tags: lowercase letters,
-     digits and dashes — `qr-window-hillcrest`, `qr-window-hilton`, `flyer-hillcrest`, `flyer-hilton`, `highway-mail`,
+     digits and dashes, such as `qr-window-hillcrest`, `qr-window-hilton`, `flyer-hillcrest`, `flyer-hilton`, `highway-mail`,
      `village-talk`, `witness`, `open-day-hillcrest`, `open-day-hilton`, `hcp-hillcrest`, `hcp-hilton`.
    - **C · Proclaimed public holidays** (4 November 2026 first) are in the send-window calendar. They're a list in the
      code (`src/lib/sa.ts`) rather than an HQ setting: they're rare and gazetted weeks ahead.

@@ -1,5 +1,5 @@
-// Trade (wholesale) channel: the labels and badges the HQ console and the store back office share — order and account
-// statuses, fulfilment, payment, terms, ledger kinds and the ageing chips. Server-safe (no hooks).
+// Trade (wholesale) channel: the labels and badges the HQ console and the store back office share (order and account
+// statuses, fulfilment, payment, terms, ledger kinds and the ageing chips). Server-safe (no hooks).
 import { Badge, type Tone } from "@/components/ui/badge";
 import { zar } from "@/lib/money";
 import { TRADE_KINDS, type Ageing } from "@/lib/trade";

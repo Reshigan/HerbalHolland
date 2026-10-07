@@ -247,7 +247,7 @@ export async function sendStatement(id: string, _: ActionState, fd: FormData): P
 
 export type RangeHit = { variantId: string; name: string; sku: string; regClass: string; caseQty: number; unitCents: number; breaks: { minQty: number; unitCents: number }[]; available: number; rrpCents: number };
 
-/** The trade range at the account's DC, searched — for the order builder (24 at a time, never the whole catalogue). */
+/** The trade range at the account's DC, searched, for the order builder (24 at a time, never the whole catalogue). */
 export async function searchRange(accountId: string, q: string): Promise<{ rows: RangeHit[]; total: number; dc: string; didYouMean: string | null } | { error: string }> {
   const g = await guard("network");
   if (!g) return { error: DENIED.error! };

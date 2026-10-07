@@ -32,7 +32,7 @@ export async function reportError(err: unknown, where: { method: string; path: s
 }
 
 /**
- * A failure that was caught, so nothing else reports it — `where` says what failed ("cron daily: lossPrevention",
+ * A failure that was caught, so nothing else reports it. `where` says what failed ("cron daily: lossPrevention",
  * "POS API"): no ids, so an outage repeating it stays one alert an hour. Logged, and emailed like a server error.
  * Never throws, so callers needn't wait for it.
  */

@@ -71,7 +71,7 @@ export function PriceListForm({
                         <optgroup key={g} label={g}>
                           {variants.filter((v) => v.group === g).map((v) => (
                             <option key={v.id} value={v.id}>
-                              {v.label} — {trade ? `wholesale ${zar(v.wholesaleCents)}` : `RRP ${zar(v.rrpCents)}`}
+                              {v.label} · {trade ? `wholesale ${zar(v.wholesaleCents)}` : `RRP ${zar(v.rrpCents)}`}
                             </option>
                           ))}
                         </optgroup>

@@ -40,7 +40,7 @@ export async function saveLoyalty(_: ActionState, fd: FormData): Promise<ActionS
   return done("Programme rules saved. They apply to the next sale, sign-up and redemption network-wide.");
 }
 
-/** Instant Rewards savings (% off the shelf price) per tier — the Xtra-Savings-style member price. */
+/** Instant Rewards savings (% off the shelf price) per tier: the Xtra-Savings-style member price. */
 export async function saveTierSavings(_: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("admin");
   if (!g) return DENIED;

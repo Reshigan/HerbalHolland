@@ -31,7 +31,7 @@ export const foundingLabel = (n: number) => `Founding #${String(n).padStart(4, "
 /** "12 Sep" for the last ten months or so, "12 Sep 2025" before that (never ambiguous). */
 export const visitDate = (iso: string) => (Date.now() - new Date(iso).getTime() < 300 * 86_400_000 ? fmtDay(iso) : fmtDate(iso));
 
-/** "Drop · limit 2" — plus when it opens, for a drop that hasn't started yet. */
+/** "Drop · limit 2", plus when it opens, for a drop that hasn't started yet. */
 export function DropChip({ drop, detail, className }: { drop: BootDrop; detail?: boolean; className?: string }) {
   const upcoming = new Date(drop.startsAt) > new Date();
   return (
@@ -225,7 +225,7 @@ export function CustomerCard({
 }
 
 /**
- * The basket in trade-sale mode: the trade account instead of a member — a banner that can't be mistaken for the
+ * The basket in trade-sale mode: the trade account instead of a member, in a banner that can't be mistaken for the
  * member panel (no points, no deals, no tier) with its number, terms, status and what may go on account.
  */
 export function TradeCard({ account, ageCheck, onLeave }: { account: TradeAccountDTO; ageCheck: Cart["ageCheck"]; onLeave: () => void }) {
@@ -290,7 +290,7 @@ export function CartPanel({
   cart: Cart;
   index: VariantIndex;
   quote: QuoteDTO;
-  /** Where the prices came from: the server, the till's offline price book, or — trade mode — not yet (the server prices every trade basket). */
+  /** Where the prices came from: the server, the till's offline price book, or, in trade mode, not yet (the server prices every trade basket). */
   priced: "server" | "local" | "pending";
   licensedClasses: string[];
   vatRegistered: boolean;
@@ -319,7 +319,7 @@ export function CartPanel({
   const suggestions = quote.suggestions.filter((s) => !hideSuggestions.includes(s.promoId));
   const trade = !!cart.trade;
 
-  // A new line scrolls into view (the member card above can be tall) — again once its price lands and it grows.
+  // A new line scrolls into view (the member card above can be tall), and again once its price lands and it grows.
   const scroller = useRef<HTMLDivElement>(null);
   const count = cart.lines.length;
   const seen = useRef(count);

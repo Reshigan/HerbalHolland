@@ -1,5 +1,5 @@
 // The product page's pictures: real photos when the catalogue has them (a swipeable strip with thumbnails, no
-// script — scroll-snap and anchors do the work), else the generated art. Sized boxes throughout, so nothing shifts
+// script; scroll-snap and anchors do the work), else the generated art. Sized boxes throughout, so nothing shifts
 // while a photo loads.
 import { productImageUrl, type ProductPhoto } from "@/server/shop/images";
 import { cn } from "@/lib/cn";

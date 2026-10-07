@@ -1,5 +1,5 @@
 // Home-screen install rules for the three installable apps (Rewards, the till, the back office): which platform a
-// browser is, whether the app is already installed, and whether an install nudge should show right now. Pure — the
+// browser is, whether the app is already installed, and whether an install nudge should show right now. Pure: the
 // component (`@/components/ui/install-prompt`) supplies the user agent, display mode and the remembered dismissal.
 
 export type InstallApp = "rewards" | "till" | "staff";
@@ -13,7 +13,7 @@ export type Dismissal = { at: number; kind: DismissKind };
 export type InstallState = {
   platform: InstallPlatform;
   installed: boolean;
-  /** Show the nudge — for mode "prompt" only once the browser has fired `beforeinstallprompt`. */
+  /** Show the nudge (for mode "prompt", only once the browser has fired `beforeinstallprompt`). */
   show: boolean;
   mode: InstallMode;
 };

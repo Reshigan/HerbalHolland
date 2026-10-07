@@ -1,4 +1,4 @@
-// herbalholland.com 404 — night over the hills, and the way back.
+// The herbalholland.com 404 page: night over the hills, and the way back.
 import { CHROME, NOT_FOUND } from "../../content";
 import { Page } from "../layout";
 import { Btn, Words } from "../ui";

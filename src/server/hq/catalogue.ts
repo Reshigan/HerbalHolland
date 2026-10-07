@@ -33,8 +33,9 @@ export function productOrderBy(sort: CatalogueSort | null, dir: "asc" | "desc"):
 }
 
 /**
- * Every search word must match (any order) a product's name, slug, a variant's SKU or barcode — or, through
- * `squashed` (ids per word from `squashedNameMatches`), its name with punctuation ignored ("preroll" finds "Pre-roll").
+ * Every search word must match (any order) a product's name, slug, a variant's SKU or barcode. Through `squashed`
+ * (ids per word from `squashedNameMatches`), it may also match the name with punctuation ignored ("preroll" finds
+ * "Pre-roll").
  */
 export function productWhere(f: CatalogueFilters, squashed?: string[][]): Prisma.ProductWhereInput {
   const terms = searchTerms(f.q);

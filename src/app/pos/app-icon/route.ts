@@ -1,4 +1,4 @@
-// Till app icon (SVG): the windmill-flower mark in warm black on Holland orange — the inverse of the Rewards app's
+// Till app icon (SVG): the windmill-flower mark in warm black on Holland orange, the inverse of the Rewards app's
 // icon, so a phone with both tells them apart (PNG sizes: /pwa-icon/till-192 and till-512).
 import { PETAL } from "@/components/brand/logo";
 

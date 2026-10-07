@@ -96,7 +96,7 @@ export default function BrandBook() {
           <div className="eyebrow text-brand-500">Brand book · v1.0 · 2026</div>
           <h1 className="mt-4 font-display text-6xl font-semibold leading-[0.95] tracking-tight text-white sm:text-7xl">Herbal Holland</h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-300">
-            Dutch heritage. African soil. How the windmill flower looks, sounds and behaves — on shopfronts, packs, screens and in every message we send.
+            Dutch heritage. African soil. How the windmill flower looks, sounds and behaves on shopfronts, packs, screens and in every message we send.
           </p>
           <nav className="mt-10 flex flex-wrap gap-2" aria-label="Sections">
             {NAV.map(([id, label], i) => (
@@ -112,14 +112,14 @@ export default function BrandBook() {
         </div>
       </header>
 
-      <Section id="logo" n="01" title="Logo" intro="A four-petal windmill flower on a tower, inside an open ring: Holland's windmill and the herb in one line drawing. It always draws in a single colour — Sunset orange on black, or black on Sunset orange.">
+      <Section id="logo" n="01" title="Logo" intro="A four-petal windmill flower on a tower, inside an open ring: Holland's windmill and the herb in one line drawing. It always draws in a single colour: Sunset orange on black, or black on Sunset orange.">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <figure className="rounded-3xl bg-ink-900 p-8">
             <div className="hh-frame flex aspect-[4/5] items-center justify-center p-6">
               <Lockup className="h-full w-full justify-center text-[1.6rem] [&>svg]:h-[54%]" />
             </div>
             <figcaption className="mt-4 text-sm text-ink-300">
-              <strong className="text-white">Poster lock-up.</strong> Shopfront windows, packaging, hero moments — always inside the window-poster frame.
+              <strong className="text-white">Poster lock-up.</strong> Shopfront windows, packaging, hero moments. Always inside the window-poster frame.
             </figcaption>
           </figure>
           <figure className="flex flex-col rounded-3xl bg-ink-900 p-8">
@@ -165,14 +165,14 @@ export default function BrandBook() {
               <span className="absolute right-[4%] top-1/2 -translate-y-1/2 font-mono text-xs text-brand-400">x</span>
             </div>
             <figcaption className="mt-6 text-sm text-ink-300">
-              <strong className="text-white">Clear space.</strong> Keep a margin of <em>x</em> — the length of one windmill petal — on every side. Nothing else enters that space.
+              <strong className="text-white">Clear space.</strong> Keep a margin of <em>x</em> (the length of one windmill petal) on every side. Nothing else enters that space.
             </figcaption>
           </figure>
           <div className="rounded-3xl bg-ink-900 p-8 text-sm leading-relaxed text-ink-300">
             <h3 className="font-display text-lg font-semibold text-white">Construction</h3>
             <ul className="mt-4 space-y-2.5">
               <li>• One stroke weight for the ring and tower; petals a touch finer; the hub is a ring with a dot.</li>
-              <li>• The ring opens at the bottom where the tower stands — never close it.</li>
+              <li>• The ring opens at the bottom where the tower stands. Never close it.</li>
               <li>• The petals may turn (slowly) in motion: 14 seconds a revolution, and never when a visitor has asked for reduced motion.</li>
               <li>• The wordmark is set in Outfit: HERBAL light with wide tracking over HOLLAND extra-bold.</li>
             </ul>
@@ -180,10 +180,10 @@ export default function BrandBook() {
         </div>
       </Section>
 
-      <Section id="colour" n="02" title="Colour" intro="Sunset orange on warm black — lifted straight from the store window. Everything else is there to support those two. Cream (Ink 50) is for light working surfaces such as the back office and invoices." light>
+      <Section id="colour" n="02" title="Colour" intro="Sunset orange on warm black, lifted straight from the store window. Everything else is there to support those two. Cream (Ink 50) is for light working surfaces such as the back office and invoices." light>
         <div className="space-y-10">
           <div>
-            <h3 className="font-display text-lg font-semibold text-ink-950">Sunset — primary</h3>
+            <h3 className="font-display text-lg font-semibold text-ink-950">Sunset: primary</h3>
             <ol className="mt-4 grid grid-cols-5 overflow-hidden rounded-2xl ring-1 ring-ink-150 sm:grid-cols-10">
               {SUNSET.map(([k, hex]) => (
                 <li key={k} className="flex h-28 flex-col justify-end p-2.5 text-[0.7rem] font-semibold" style={{ background: hex, color: onSwatch(hex) }}>
@@ -195,7 +195,7 @@ export default function BrandBook() {
             <p className="mt-2 text-sm text-ink-600">Sunset 500 is the brand colour. On light backgrounds, use 700 for large headings and icons and 800 for small text.</p>
           </div>
           <div>
-            <h3 className="font-display text-lg font-semibold text-ink-950">Ink — warm neutrals</h3>
+            <h3 className="font-display text-lg font-semibold text-ink-950">Ink: warm neutrals</h3>
             <ol className="mt-4 grid grid-cols-5 overflow-hidden rounded-2xl ring-1 ring-ink-150 sm:grid-cols-[repeat(13,minmax(0,1fr))]">
               {INK.map(([k, hex]) => (
                 <li key={k} className="flex h-28 flex-col justify-end p-2.5 text-[0.7rem] font-semibold" style={{ background: hex, color: onSwatch(hex) }}>
@@ -219,7 +219,7 @@ export default function BrandBook() {
                   </li>
                 ))}
               </ul>
-              <p className="mt-3 text-sm text-ink-600">Status colour is never the only signal — always pair it with a word or an icon.</p>
+              <p className="mt-3 text-sm text-ink-600">Status colour is never the only signal. Always pair it with a word or an icon.</p>
             </div>
             <div>
               <h3 className="font-display text-lg font-semibold text-ink-950">Contrast pairs we rely on</h3>
@@ -247,7 +247,7 @@ export default function BrandBook() {
         </div>
       </Section>
 
-      <Section id="type" n="03" title="Typography" intro="Outfit for display — geometric and warm, it echoes the wordmark. Inter for everything you read or tap, with tabular figures wherever numbers line up.">
+      <Section id="type" n="03" title="Typography" intro="Outfit for display: geometric and warm, it echoes the wordmark. Inter for everything you read or tap, with tabular figures wherever numbers line up.">
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <div className="rounded-3xl bg-ink-900 p-8">
             <div className="eyebrow text-brand-500">Outfit · display</div>
@@ -293,7 +293,7 @@ export default function BrandBook() {
         </div>
       </Section>
 
-      <Section id="shape" n="04" title="Shape & components" intro="Soft, confident geometry. Cards are generously rounded, buttons are pills, inputs sit in between. The window-poster frame is reserved for hero and brand moments — use it sparingly so it keeps its power." light>
+      <Section id="shape" n="04" title="Shape & components" intro="Soft, confident geometry. Cards are generously rounded, buttons are pills, inputs sit in between. The window-poster frame is reserved for hero and brand moments. Use it sparingly so it keeps its power." light>
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <div className="rounded-3xl bg-ink-950 p-8">
             <div className="flex flex-wrap gap-3">
@@ -315,7 +315,7 @@ export default function BrandBook() {
               <div className="mt-2 font-display text-lg font-semibold text-white">Calm CBD Oil 600mg</div>
               <div className="mt-3 h-11 rounded-xl border border-ink-700 bg-ink-900 px-3.5 text-sm leading-[2.75rem] text-ink-500">Input · 14 px radius</div>
             </div>
-            <p className="mt-6 text-sm text-ink-300">Surfaces step from Ink 950 to 900; borders in Ink 800. No drop shadows on dark — use borders and glow.</p>
+            <p className="mt-6 text-sm text-ink-300">Surfaces step from Ink 950 to 900; borders in Ink 800. No drop shadows on dark. Use borders and glow.</p>
           </div>
           <div className="rounded-3xl bg-ink-950 p-8">
             <div className="hh-frame flex aspect-[5/4] items-center justify-center">
@@ -349,12 +349,12 @@ export default function BrandBook() {
         </div>
       </Section>
 
-      <Section id="voice" n="06" title="Voice & tone" intro="Warm, plain English, confident. We sound like a knowledgeable friend behind the counter — never a salesperson, never a stoner cliché, never a doctor." light>
+      <Section id="voice" n="06" title="Voice & tone" intro="Warm, plain English, confident. We sound like a knowledgeable friend behind the counter. Never a salesperson, never a stoner cliché, never a doctor." light>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {[
             ["Warm", "Welcome people in. Thank them. Use their name when we know it."],
             ["Plain", "Short sentences, everyday words. Say what happens next."],
-            ["Confident", "Know the product and the rules — and say so without hype."],
+            ["Confident", "Know the product and the rules, and say so without hype."],
             ["Responsible", "Adults 18+, every time. Facts over claims. No glamorising."],
           ].map(([k, v]) => (
             <div key={k} className="rounded-3xl bg-white p-6 ring-1 ring-ink-150">
@@ -369,7 +369,7 @@ export default function BrandBook() {
             <ul className="mt-4 space-y-3 text-sm text-ink-700">
               <Rule ok>“Supports everyday calm.” (an approved Schedule 0 claim)</Rule>
               <Rule ok>“For adults 18 and older. Keep out of reach of children.”</Rule>
-              <Rule ok>“Your order is ready at Hatfield — bring your ID.”</Rule>
+              <Rule ok>“Your order is ready at Hatfield. Bring your ID.”</Rule>
               <Rule ok>“Herbal Holland Rewards” · “points” · “1,250 pts”</Rule>
               <Rule ok>“Lab-tested and traceable to the farm.”</Rule>
             </ul>
@@ -377,7 +377,7 @@ export default function BrandBook() {
           <div className="rounded-3xl bg-white p-6 ring-1 ring-ink-150">
             <h3 className="font-display text-lg font-semibold text-ink-950">Not this</h3>
             <ul className="mt-4 space-y-3 text-sm text-ink-700">
-              <Rule ok={false}>Any claim to treat, cure or prevent a condition — or naming one.</Rule>
+              <Rule ok={false}>Any claim to treat, cure or prevent a condition, or naming one.</Rule>
               <Rule ok={false}>Slang that glamorises getting high, or copy that could appeal to under-18s.</Rule>
               <Rule ok={false}>Promotions, member prices or points on medicines: licensed products, and CBD supplements (oils, softgels) until counsel clears them.</Rule>
               <Rule ok={false}>Food and supplement health claims: “boosts”, “detox”, “fat-burning”, “anti-ageing”, “immunity”, “weight loss”.</Rule>
@@ -387,7 +387,7 @@ export default function BrandBook() {
           </div>
         </div>
         <p className="mt-6 max-w-3xl text-sm leading-relaxed text-ink-600">
-          All marketing copy runs through the platform&apos;s copy screen before it can be sent, and CBD products may only use claims from their approved list. When in doubt, describe the product — origin, aroma, format, how it&apos;s made — rather than what it does to you.
+          All marketing copy runs through the platform&apos;s copy screen before it can be sent, and CBD products may only use claims from their approved list. When in doubt, describe the product (origin, aroma, format, how it&apos;s made) rather than what it does to you.
         </p>
       </Section>
 
@@ -442,7 +442,7 @@ export default function BrandBook() {
         id="merch"
         n="08"
         title="Merch"
-        intro="Made to order in South Africa, one at a time — no stock and no minimums. Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed (DTF). Each design is a single colour: Sunset on black garments, black on the Sunset hoodie. The files below are what our partner works from."
+        intro="Made to order in South Africa, one at a time. No stock and no minimums. Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed (DTF). Each design is a single colour: Sunset on black garments, black on the Sunset hoodie. The files below are what our partner works from."
         light
       >
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -513,7 +513,7 @@ export default function BrandBook() {
               <Rule ok>Prints (DTF) come from the vector PDF or the 300 dpi PNG at 100%; keep every placement within ±5 mm, centred on the garment.</Rule>
               <Rule ok>Approve a sample of each piece before it goes on sale, and again whenever the blank, thread or ink changes.</Rule>
               <Rule ok={false}>No other colours, gradients, distressing or effects on the Mark; no cannabis leaves, slogans or claims.</Rule>
-              <Rule ok={false}>Don&apos;t scale a design to fill a bigger area — the sizes are set to the garment.</Rule>
+              <Rule ok={false}>Don&apos;t scale a design to fill a bigger area: the sizes are set to the garment.</Rule>
             </ul>
           </div>
           <div className="rounded-3xl bg-white p-6 text-sm leading-relaxed text-ink-700 shadow-card">

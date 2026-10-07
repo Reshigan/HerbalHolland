@@ -37,7 +37,7 @@ export default async function TradeTermsPage() {
         Version <span className="tnum font-semibold text-white">{t.termsVersion}</span>. The agreement between a trade customer and {entity} for buying at trade prices.
       </p>
       {!settings.legal.reviewed && (
-        <Callout tone="warn" icon={<Scale className="h-5 w-5" aria-hidden />} className="mt-8" title="Draft — to be reviewed by counsel">
+        <Callout tone="warn" icon={<Scale className="h-5 w-5" aria-hidden />} className="mt-8" title="Draft: to be reviewed by counsel">
           This is placeholder wording for the trade channel. Counsel reviews it before the first trade account is approved; the version applicants accept is recorded on their account.
         </Callout>
       )}

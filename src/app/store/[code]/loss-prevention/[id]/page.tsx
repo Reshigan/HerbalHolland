@@ -29,7 +29,7 @@ export default async function AlertPage({ params, searchParams }: { params: Prom
   const [{ code, id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(ALERT_ROLES);
   const store = await storeForUser(user, code);
-  // Only an alert this person may see at this store — never one about themselves, whatever the URL says.
+  // Only an alert this person may see at this store, never one about themselves, whatever the URL says.
   const alert = await db.alert.findFirst({ where: { AND: [{ id }, visibleAlerts(user, [store.id])] } });
   if (!alert) notFound();
   const path = `/store/${store.code}/loss-prevention`;

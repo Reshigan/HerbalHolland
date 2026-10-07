@@ -1,6 +1,6 @@
 "use client";
 // Client shell for a report: filter changes run as a transition, and the report body
-// keeps its previous render (dimmed) until the new one arrives — no skeleton flash.
+// keeps its previous render (dimmed) until the new one arrives, with no skeleton flash.
 import { createContext, useContext, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Printer } from "lucide-react";

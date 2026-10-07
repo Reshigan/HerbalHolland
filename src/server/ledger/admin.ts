@@ -111,7 +111,7 @@ export type LineDraft = { account: string; cents: number; store?: string | null;
 
 /**
  * Resolves lines against the company's books: each account must be its own and switched on, each store one of its
- * stores; a party is required on (and only on) control accounts — a supplier by name, a trade account by number, a
+ * stores; a party is required on (and only on) control accounts: a supplier by name, a trade account by number, a
  * franchisee company by name. Problems are named by `where(i)` ("Line 3", "Row 12").
  */
 export async function resolveLines(companyId: string, lines: LineDraft[], where: (i: number) => string): Promise<JournalLineInput[]> {
@@ -351,8 +351,8 @@ export type Viewer = Pick<Staff, "role" | "companyId" | "regionId" | "storeId">;
 export type SourceLink = { label: string; href: string };
 
 /**
- * The page an automatic journal came from — a store's trading day, a cash-up, a deposit, an expense, a supplier
- * invoice, a stock order, a statement, an online order, a trade account, a bank line, a VAT period — when the viewer may open it
+ * The page an automatic journal came from (a store's trading day, a cash-up, a deposit, an expense, a supplier
+ * invoice, a stock order, a statement, an online order, a trade account, a bank line, a VAT period) when the viewer may open it
  * (an accountant sees only the books, so only bank lines link for them). Null for manual journals and unknown sources.
  */
 export async function sourceLink(j: { companyId: string; source: string; sourceId: string | null; storeId?: string | null }, viewer: Viewer): Promise<SourceLink | null> {

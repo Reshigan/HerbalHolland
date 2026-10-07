@@ -3,20 +3,20 @@
 Adapters are thin and swappable; the demo runs on simulators. Research, fees and acceptable-use quotes:
 [research/PAYMENTS-LOGISTICS-RESEARCH.md](research/PAYMENTS-LOGISTICS-RESEARCH.md).
 
-## Card present — the till's card tender (`src/server/payments.ts`, `NEXT_PUBLIC_TAP_PROVIDER`)
+## Card present: the till's card tender (`src/server/payments.ts`, `NEXT_PUBLIC_TAP_PROVIDER`)
 
 | Option | Status | Notes |
 |---|---|---|
-| **Yoco card machine, stand-alone** (chosen) | **Built** — `YOCO` | The store's own Yoco machine next to the till. The payment sheet's **Card · Yoco** tells the cashier to charge the amount on the machine, then takes the machine's reference (required) and the card's last 4 (optional), and records `Payment { method: CARD, provider: "YOCO", reference, cardLast4 }` (`cardMachineTender` in `src/components/pos/lib/rules.ts`). The machine has its own connection, so it works while the till is **offline**: the sale queues and syncs like a cash sale. Each store is merchant of record on its own Yoco account. |
+| **Yoco card machine, stand-alone** (chosen) | **Built** (`YOCO`) | The store's own Yoco machine next to the till. The payment sheet's **Card · Yoco** tells the cashier to charge the amount on the machine, then takes the machine's reference (required) and the card's last 4 (optional), and records `Payment { method: CARD, provider: "YOCO", reference, cardLast4 }` (`cardMachineTender` in `src/components/pos/lib/rules.ts`). The machine has its own connection, so it works while the till is **offline**: the sale queues and syncs like a cash sale. Each store is merchant of record on its own Yoco account. |
 | **Yoco Payment SDK till app** (next) | Planned | An Android till app that drives the Yoco machine itself (`YocoSDK.charge(amountInCents, …)` → `PaymentResult` with `transactionId` / `clientTransactionId`), so nobody keys references and the amount can't be mistyped. Yoco gives SDK integration keys to a limited number of partners: apply through Yoco's SDK integration form; needs a Yoco merchant account and a paired machine. |
 | Halo Dot Halo.Link | Adapter slot `HALO_APPLINK` (kept) | PCI MPoC-certified SoftPOS. Backend creates a session per transaction with **that store's merchant ID** (`/consumer/applink` or `/consumer/intentTransaction`), the POS hands off to Halo.Go and receives the result. Android 11+ with Google services; no developer options. Tap on glass needs a connection. |
-| External terminal | Built — `EXTERNAL` | Any bank/fintech device the owner already has; the POS records the approval code. |
-| Simulated | Default | `NEXT_PUBLIC_TAP_PROVIDER=SIMULATED` — full tap-on-glass UI flow for training and demos. |
+| External terminal | Built (`EXTERNAL`); the default in production | Any bank/fintech device the owner already has; the POS records the approval code. |
+| Simulated | The default in demos and development | `NEXT_PUBLIC_TAP_PROVIDER=SIMULATED`: the full tap-on-glass UI flow for training and demos. |
 
 Set `NEXT_PUBLIC_TAP_PROVIDER` in the app's runtime environment (the server reads it and sends it to the tills). Don't
 set it where the image is built: Next freezes `NEXT_PUBLIC_` values that exist at build time.
 
-**Acceptable use — clear it with the payment provider in writing before go-live.** In store the owner has chosen Yoco
+**Acceptable use: clear it with the payment provider in writing before go-live.** In store the owner has chosen Yoco
 card machines. Online the owner has chosen **Peach Payments**, because Yoco's policy bans CBD (see Online payments
 below). Our research ([research/PAYMENTS-LOGISTICS-RESEARCH.md](research/PAYMENTS-LOGISTICS-RESEARCH.md)) found that
 Yoco's published prohibited-business list names cannabis and CBD products, and card-not-present sales by drug stores
@@ -28,7 +28,7 @@ mis-code the MCC. For reference: PayFast allows CBD only via EFT; Paystack bans 
 
 Env: `NEXT_PUBLIC_TAP_PROVIDER`; for Halo also `HALO_API_URL`, `HALO_API_KEY` and `HALO_MERCHANT_ID` (or a store's own `HALO_MERCHANT_ID_<STORECODE>`, which wins).
 
-## Online payments — Peach Payments (chosen) and Yoco
+## Online payments: Peach Payments (chosen) and Yoco
 
 `ONLINE_GATEWAY` picks the gateway: `PEACH` (Peach Payments, the owner's choice), `YOCO` (built and kept working, but
 Yoco's policy bans CBD) or `SIMULATED` (the default: the demo pay page for demos and tests). Either way there's one
@@ -43,7 +43,7 @@ an order is marked paid only when the checkout and the amount match it; a repeat
 order is cancelled. A paid order is refunded where it was paid (Peach payment ids start `pay_`, Yoco checkouts `ch_`),
 so switching `ONLINE_GATEWAY` doesn't strand paid orders; switch when no member is part-way through paying.
 
-### Peach Payments — Peach Orchestration, Hosted Checkout (chosen; waiting for Peach's written approval)
+### Peach Payments: Peach Orchestration, Hosted Checkout (chosen; waiting for Peach's written approval)
 
 **Status:** built and tested against Peach's documented API with its calls mocked; no Peach keys yet. **Peach lists CBD
 as a restricted category that needs its prior written approval, which the owner is applying for. Don't take live
@@ -194,7 +194,7 @@ checkout id.
    marked paid: it's logged as `payment.review` for a person. `payment.failed`, `refund.succeeded`, `refund.failed` about
    our orders are logged; anything else, or another business's payment on the account, gets 200 and is ignored. Bad
    signature → 400; no `YOCO_WEBHOOK_SECRET` → 503 (Yoco retries each event for about a day, so nothing is lost while
-   it's set up). Audit entries carry ids, amounts, mode, card scheme + last 4 and reasons only — no keys, signatures or
+   it's set up). Audit entries carry ids, amounts, mode, card scheme + last 4 and reasons only: no keys, signatures or
    raw bodies.
 5. **Back on the order page:** "Payment received" once the webhook has landed; before that "Waiting for payment
    confirmation…", refreshing itself every 3 seconds (10 times, then it says we'll SMS); after cancel or failure
@@ -214,7 +214,7 @@ it's `YOCO_WEBHOOK_SECRET`. Yoco allows 5 webhooks per account; `GET /api/webhoo
 
 **Test vs live keys:** `sk_test_…` keys are available at once (Yoco app → Checkout API integration → How to connect →
 Test keys; test card details are on the same page). Test payments don't reach the sales history and can't be refunded.
-`sk_live_…` keys unlock once a domain is verified there (**Verified Domains**), and live payments must start on a
+`sk_live_…` keys become available once a domain is verified there (**Verified Domains**), and live payments must start on a
 verified domain. A test and a live webhook have different secrets: switch `YOCO_SECRET_KEY` and `YOCO_WEBHOOK_SECRET`
 together.
 
@@ -229,10 +229,10 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 
 | Channel | Use | Provider slot |
 |---|---|---|
-| SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER=smsportal` — **built** (REST v3 `BulkMessages`, Basic auth, ≤ 500 per call). Other gateways (Clickatell, BulkSMS) slot into `deliver()` in `messaging.ts` |
+| SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER=smsportal`, **built** (REST v3 `BulkMessages`, Basic auth, ≤ 500 per call). Other gateways (Clickatell, BulkSMS) slot into `deliver()` in `messaging.ts` |
 | Email | Tax invoices, statements, campaigns | `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
-| App push | Rewards PWA: drop alerts, campaigns (consented) | Web Push — **built** (`web-push`, VAPID: `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`; generate keys with `npx web-push generate-vapid-keys`). Without keys pushes are only logged. iPhones need the app on the Home Screen (iOS 16.4+). When a browser rotates a subscription, the Rewards service worker re-subscribes and saves it (`/api/push/renew`); dead subscriptions are pruned on send |
-| WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products — `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
+| App push | Rewards PWA: drop alerts, campaigns (consented) | Web Push, **built** (`web-push`, VAPID: `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`; generate keys with `npx web-push generate-vapid-keys`). Without keys pushes are only logged. iPhones need the app on the Home Screen (iOS 16.4+). When a browser rotates a subscription, the Rewards service worker re-subscribes and saves it (`/api/push/renew`); dead subscriptions are pruned on send |
+| WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products, so `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
 
 Without providers configured, messages and emails are written to `MessageLog` so every notification is visible in the
 demo. With a live provider every message is still logged with its status (`SENT` / `FAILED` + reason); sign-in codes are
@@ -259,10 +259,10 @@ The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so t
 - **SARS:** the VAT201 working per period is copied into eFiling; filing stays with the vendor. Invoices already carry
   structured data for SARS e-invoicing (VAT modernisation, phased from 2030).
 
-## Merch partner — made-to-order merch (`src/server/pod.ts`, `merch.ts`)
+## Merch partner: made-to-order merch (`src/server/pod.ts`, `merch.ts`)
 
 Merch is made to order in South Africa and couriered, white-label, straight to the customer: no stock, no minimums.
-Upmarket by design — every logo is embroidered; only the big back graphics and the tote are printed.
+Upmarket by design: every logo is embroidered, and only the big back graphics and the tote are printed.
 
 **Partner: Lucani, Cape Town** (Digihuis (Pty) Ltd; trade account: lucani.co.za/trade-account-application). The only
 South African partner found that does all of it from one piece: embroidery on tees, hoodies and caps, DTF prints on
@@ -270,16 +270,16 @@ the same garment, white-label trade fulfilment (advertised), a digital proof bef
 refuse unlawful/obscene artwork (nothing on cannabis or CBD). Digitising is once-off per design (R200–R500 in their
 guides; our three stitched designs are digitised once each). Production 3–5 business days, then 1–3 days to metros
 (3–5 regional). Not VAT-registered: their invoices carry no VAT. Blanks are mid-weight (185 g tee, 240–280 g
-fleece) — ask for heavier.
+fleece), so ask for heavier.
 
-- **Runner-up: OneOff, Johannesburg** — better 100% cotton blanks (260 g hoodie, 220 g tee), DTF++ with an orange ink
+- **Runner-up: OneOff, Johannesburg.** Better 100% cotton blanks (260 g hoodie, 220 g tee), DTF++ with an orange ink
   channel, embroidery up to 27 × 27 cm, flat R150 drop-ship; but its terms bar products that "encourage the use of
   drugs" and it doesn't proof by default.
 - **Beanies and bucket hats:** Lucani embroiders trade blanks it buys per order (its quote form already lists both):
   Captivity's Glacier Ribbed cuffed beanie and Phoenix 100% cotton-twill bucket hat (Cape Town wholesaler, no minimum,
   ready in 24–48 h), or TwentyFour's Rib Knit Cuffed and Max Wash for a more premium feel. The beanie cuff takes the
-  40 mm cut of the Mark, stitched through the outer layer only. Fallback: GetCapped (Johannesburg) — beanie R99.95,
-  Phoenix bucket hat R129.95, embroidery included, R180 digitising once, 5–7 days + 2–3 courier — only if it confirms
+  40 mm cut of the Mark, stitched through the outer layer only. Fallback: GetCapped (Johannesburg; beanie R99.95,
+  Phoenix bucket hat R129.95, embroidery included, R180 digitising once, 5–7 days + 2–3 courier), only if it confirms
   blind shipping in writing.
 - No global print-on-demand network embroiders in South Africa (Printful, Gelato, Printify, Teelaunch).
 
@@ -287,7 +287,7 @@ No South African partner has an API, so the platform works by email:
 
 1. A paid order with merch → the frequent job emails the partner a **production order** (`POD_EMAIL`): recipient,
    items (our product code, blank, size, quantity) and, per placement, embroidery or DTF, where it goes, its size and
-   links to our files — the vector PDF (for digitising and DTF) and a 300 dpi PNG. Also kept in HQ → Messages.
+   links to our files (the vector PDF for digitising and DTF, and a 300 dpi PNG). Also kept in HQ → Messages.
 2. The partner makes it, packs white-label and couriers to the customer, then emails back the courier and tracking.
 3. The distribution centre enters it on the order (**Merch shipped**): the customer is texted their tracking, and a
    merch-only order goes out for delivery (the sale posts at the partner's price, booked to the DC).
@@ -303,7 +303,7 @@ address); email ordering and tracking replies; courier rates; payment terms; mis
 from promotional photography. Then approve a paid sample set, set each variant's partner code and cost (HQ →
 Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (HQ → Online orders).
 
-## Social posting — Postiz (`src/server/social.ts`)
+## Social posting with Postiz (`src/server/social.ts`)
 
 HQ → Campaigns → **Social** writes a post once and publishes or schedules it on the brand's Instagram, Facebook,
 LinkedIn, X and Threads through [Postiz](https://postiz.com): open source, free when self-hosted, no limit on
@@ -324,27 +324,27 @@ A post goes out **now**, **scheduled** (Postiz publishes it at that time, SAST i
 Postiz (to add a video or edit per network). Edit or delete scheduled posts in Postiz. Postiz accepts 90 posts an hour
 through its API; the composer holds captions to X's 280 and Threads' 500 characters when those are ticked, and
 Instagram needs a picture. TikTok and YouTube aren't offered (video only, and TikTok bans cannabis content). Meta
-rejects cannabis and CBD ads, so this is organic posting only — no boosting.
+rejects cannabis and CBD ads, so this is organic posting only, with no boosting.
 
 Free alternatives if Postiz doesn't suit: Buffer's free plan (3 channels, 10 queued posts each), Meta Business Suite
 (Facebook and Instagram only) or Mixpost Lite (self-hosted, fewer networks). None of them gives us a free API for all
 five networks, so they're used by hand, outside this platform.
 
-## Wallet passes — Apple Wallet and Google Wallet (`src/lib/wallet.ts`, `src/server/shop/wallet.ts`)
+## Wallet passes: Apple Wallet and Google Wallet (`src/lib/wallet.ts`, `src/server/shop/wallet.ts`)
 
-The Rewards card as a wallet pass: member number as the till's QR code, tier, points and first name — nothing else
+The Rewards card as a wallet pass: member number as the till's QR code, tier, points and first name, and nothing else
 personal. The buttons appear under the card on `/club` only once a wallet is configured; until then the routes answer
 404 with a plain "isn't set up yet" message and the card page shows no buttons.
 
-- **Apple Wallet** — `GET /club/wallet/apple.pkpass` builds `pass.json` (a `storeCard`), the icons (drawn from the app
+- **Apple Wallet:** `GET /club/wallet/apple.pkpass` builds `pass.json` (a `storeCard`), the icons (drawn from the app
   icon), `manifest.json` (SHA-1 of every file) and a PKCS#7 detached signature, zipped (stored, no compression) as a
   `.pkpass`. Signing uses the **openssl CLI** (`openssl smime -sign … -outform DER`): Node's `crypto` has no CMS
   signer, so `openssl` must be on the server (it is in the Docker image's Debian base). Needs, from the Apple
   Developer account: a Pass Type ID (`pass.co.za.herbalholland.rewards`), the Team ID, the pass certificate and its
   private key (PEM), and Apple's WWDR G4 intermediate certificate (PEM). Passes are built on request and never stored;
-  there is no pass-update web service yet (the pass shows the balance as it was when added — members re-add it, or the
+  there is no pass-update web service yet (the pass shows the balance as it was when added; members re-add it, or the
   Rewards app has the live figure).
-- **Google Wallet** — `GET /club/wallet/google` redirects to `https://pay.google.com/gp/v/save/<jwt>`: a "Save to
+- **Google Wallet:** `GET /club/wallet/google` redirects to `https://pay.google.com/gp/v/save/<jwt>`: a "Save to
   Google Wallet" JWT (RS256, signed with the issuer's service-account key using `node:crypto`) carrying a generic
   class and the member's generic object, so nothing has to be created in the Google Pay & Wallet Console ahead of
   time beyond the issuer account. Needs the Issuer ID and a service account (JSON key) added to the issuer with
@@ -363,11 +363,11 @@ personal. The buttons appear under the card on `/club` only once a wallet is con
 Both builders are pure (`src/lib/wallet.ts`, tests in `tests/wallet.test.ts`): `applePassJson`, `appleManifest`,
 `zipStore`, `googleGenericObject`, `googleSaveJwtClaims`, `signJwtRS256`.
 
-## Product photos — the catalogue import (`image_urls`)
+## Product photos: the catalogue import (`image_urls`)
 
 Product photos come in through HQ → Catalogue → Import, in the `image_urls` column: `https://` addresses separated
 by `|`, up to six per product (the first is the main picture). After the import commits, each address is fetched
-(15 s timeout, 5 MB at most, JPG/PNG/WebP by its bytes — never by its name), kept through `@/server/storage` (R2/S3 or
+(15 s timeout, 5 MB at most, JPG/PNG/WebP by its bytes, never by its name), kept through `@/server/storage` (R2/S3 or
 `UPLOAD_DIR`, under `products/<productId>/`) and recorded as an `Upload` plus a `ProductImage` row. The same bytes
 already on the product are skipped, so re-importing a file never doubles a gallery; failures are listed in the
 import's result and audited as `catalogue.import_images` (`data.failed`). Only public hosts are fetched (no IP
@@ -386,8 +386,8 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `APP_URL` | The shop's public https address: every link in emails and texts, and the payment return URLs (a production server won't serve without it) |
 | `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything. The Worker has its own secrets too: `IP_SALT` (keys the IP hashes behind its rate limits) and `NOTIFY_TO` (`sites/herbalholland.com/wrangler.jsonc`) |
 | `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
-| `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.co.za`; the franchisor company's email is shown on `/support`) |
-| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
+| `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.com`; the franchisor company's email is shown on `/support`) |
+| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen. It **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
@@ -409,6 +409,6 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
 | `SUPPORT_EMAIL`, `FRANCHISE_EMAIL`, `TRADE_EMAIL` | Member support's address; where new franchise leads go (default `franchise@herbalholland.com`); where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |
 | `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Uploaded files (banking slips, licence documents, photos, report exports) in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
-| `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image — mount a volume there) — back it up |
+| `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image, so mount a volume there). Back it up |
 | `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |
 | `WALLET_GOOGLE_ISSUER_ID`, `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | Google Wallet pass for the Rewards card; both, or the button stays hidden |

@@ -24,7 +24,7 @@ export type OrderDue = { status: string; paymentStatus: string; paymentRef: stri
 /**
  * What a successful payment does to an order. "pay": mark it paid. "repeat": already recorded (redelivered).
  * "ignore": not one of our orders (the webhook sees every payment on the account). "review": money that doesn't fit
- * the order — another checkout, another amount, or paid after the order was cancelled — for a person to sort out,
+ * the order (another checkout, another amount, or paid after the order was cancelled), for a person to sort out,
  * refunding in `refundIn` (the gateway's portal) if need be.
  */
 export function decidePayment(f: Pick<PaymentFacts, "checkoutId" | "amountCents" | "currency">, o: OrderDue | null, refundIn: string): PaymentDecision {

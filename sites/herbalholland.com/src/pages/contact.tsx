@@ -1,4 +1,4 @@
-// herbalholland.com/contact — the right inbox for each question, and the company's details (ECT Act s43): only those
+// herbalholland.com/contact: the right inbox for each question, and the company's details (ECT Act s43). Only those
 // known in ./facts are shown; the registration, VAT number and address appear once they're filled in there.
 import { BRAND, CONTACT, EMAIL, LEGAL } from "../../content";
 import { FACTS, joinLink } from "../../facts";

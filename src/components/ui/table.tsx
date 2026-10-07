@@ -11,9 +11,9 @@ export type Density = "compact" | "comfortable";
 export type SortDir = "asc" | "desc";
 
 /**
- * `density` — compact (default: dense lists) or comfortable (rows that hold buttons or several lines).
- * `stickyFirst` — pin the first column while the table scrolls sideways (wide lists on small screens).
- * `minWidth` — e.g. "56rem": below this the table scrolls instead of squeezing its columns.
+ * `density`: compact (default: dense lists) or comfortable (rows that hold buttons or several lines).
+ * `stickyFirst`: pin the first column while the table scrolls sideways (wide lists on small screens).
+ * `minWidth`, e.g. "56rem": below this the table scrolls instead of squeezing its columns.
  */
 export function Table({ className, children, density = "compact", stickyFirst, minWidth }: { className?: string; children: React.ReactNode; density?: Density; stickyFirst?: boolean; minWidth?: string }) {
   return (

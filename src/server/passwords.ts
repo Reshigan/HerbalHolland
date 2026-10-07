@@ -1,5 +1,5 @@
 // Temporary passwords, for a person someone else sets up or resets (HQ for HQ staff and owners, an owner or manager
-// for store staff): random, readable, and short-lived — they must choose their own at first sign-in, and the
+// for store staff): random, readable, and short-lived: they must choose their own at first sign-in, and the
 // temporary one stops working after TEMP_PASSWORD_HOURS.
 import { randomInt } from "node:crypto";
 

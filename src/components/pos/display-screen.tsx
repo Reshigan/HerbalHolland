@@ -1,5 +1,5 @@
 "use client";
-// Customer-facing display (/pos/display): mirrors the till's sale for the person being served. Two feeds —
+// Customer-facing display (/pos/display): mirrors the till's sale for the person being served. Two feeds:
 // a BroadcastChannel from a till in the same browser profile (a second window on the same device), and a light
 // poll of /api/pos/display keyed by the paired device + pairing key for a screen on another device. It only ever
 // receives what lib/display.ts lets through: first name, points, lines (licensed medicine anonymised), totals.

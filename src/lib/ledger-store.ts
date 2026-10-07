@@ -51,8 +51,8 @@ export function hqTenderKey(t: Pick<DayTender, "method" | "collectedByHq">) {
 
 /**
  * A store's trading day. In its company's books: sales ex VAT by channel and the VAT on them; the tenders (cash, card,
- * PayShap and till EFT to the bank, and everything HQ collected or funds — online, vouchers, trade orders, trade on
- * account and points — to its Herbal Holland current account, exactly the rollup's online + account + points); a gap
+ * PayShap and till EFT to the bank, and everything HQ collected or funds (online, vouchers, trade orders, trade on
+ * account and points) to its Herbal Holland current account, exactly the rollup's online + account + points); a gap
  * between the tenders and the takings to cash over and short; the day's stock movements at cost. In HQ's books, what
  * it collected or funds by HQ account (from the day's payments, which must agree with the rollup to the cent),
  * against the franchisee's current account.
@@ -132,7 +132,7 @@ export const stockShipLines = (a: { storeId: string; costCents: number }): Line[
 
 /**
  * Received. The buyer takes the stock in at the agreed price and owes HQ what it's invoiced (VAT incl.), claiming
- * the VAT only when both sides are VAT vendors. The seller is owed the same through HQ and sells it — revenue and
+ * the VAT only when both sides are VAT vendors. The seller is owed the same through HQ and sells it: revenue and
  * VAT, the cost of what arrived, and what was shipped but never arrived as a loss in transit. HQ carries the trade
  * on its franchisee accounts (debit the buyer, credit the seller); a DC (or any store HQ owns) is its own side of it.
  * Between two stores of one company it's a transfer, not a sale: the VAT legs meet in transfers between own stores

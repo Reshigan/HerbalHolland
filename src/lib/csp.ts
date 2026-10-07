@@ -1,6 +1,6 @@
 // The Content-Security-Policy, built in one place. Signed-in and shop pages render per request, so src/proxy.ts gives
 // each response a fresh nonce: a script runs only when it carries that nonce (Next adds it to its own scripts) or is
-// the one inline snippet below (allowed by its hash), and 'strict-dynamic' trusts what those load — an injected
+// the one inline snippet below (allowed by its hash), and 'strict-dynamic' trusts what those load. An injected
 // <script> never runs. The few static pages (next.config.ts) keep the nonce-less policy. Styles stay 'unsafe-inline':
 // React's style attributes need it (a nonce in style-src would switch it off).
 

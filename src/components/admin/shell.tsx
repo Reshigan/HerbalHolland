@@ -107,7 +107,7 @@ export function AdminShell({
         </div>
         <InstallPrompt app="staff" variant="bar" />
       </header>
-      {/* --hh-sticky-top: where table headers stick — under the mobile header bar, at the top of the page on desktop. */}
+      {/* --hh-sticky-top: where table headers stick (under the mobile header bar, at the top of the page on desktop). */}
       <main id="main" className="min-w-0 [--hh-sticky-top:3.5rem] lg:[--hh-sticky-top:0px]" tabIndex={-1}>
         <div className="mx-auto max-w-[88rem] px-4 py-6 sm:px-6 lg:px-8 lg:py-8">{children}</div>
       </main>

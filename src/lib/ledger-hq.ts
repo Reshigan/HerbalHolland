@@ -117,7 +117,7 @@ export function pointsLines(p: { givenCents: number; expiredCents: number; ownSt
 /**
  * A trade-ledger entry, mirrored on the account's trade debtor by its own signed amount: a payment against the bank, a
  * credit note or adjustment HQ made against bad debts. Invoices (and credit notes refunding a sale) are tenders on the
- * sale, posted with the store's day — none here.
+ * sale, posted with the store's day, not here.
  */
 export function tradeEntryLines(e: { kind: string; cents: number; tradeAccountId: string }): Line[] {
   if (e.kind === "INVOICE") return [];

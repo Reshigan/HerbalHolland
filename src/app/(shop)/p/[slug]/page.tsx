@@ -76,7 +76,7 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
   };
 }
 
-/** What to do with it, from the class and the label — never a health claim. */
+/** What to do with it, from the class and the label. Never a health claim. */
 function howToUse(p: { regClass: RegClass; cbdMgPerDay: number | null; netContent: number | null; netUnit: string | null }, licensed: boolean): string[] {
   if (licensed) return ["Use only as directed by your prescriber, and keep it in its original pack.", "Handed over by an authorised dispenser after an ID check, within your authorised monthly quantity."];
   switch (p.regClass) {

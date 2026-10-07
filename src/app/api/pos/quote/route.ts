@@ -2,8 +2,8 @@
 // markdowns, promotions, the member's My Deals and welcome gift, and "complete the deal"
 // suggestions (domain: pricing.quote). An empty basket with a member still returns their
 // suggestions, so the till can offer a first-time member's welcome gift straight away.
-// Trade-sale mode (`tradeAccountId`): the WHOLESALE quote for the account instead — ex-VAT trade prices with VAT per
-// line, no member prices, points or My Deals — plus the trade basket rule's verdict on every line.
+// Trade-sale mode (`tradeAccountId`): the WHOLESALE quote for the account instead (ex-VAT trade prices with VAT per
+// line, no member prices, points or My Deals), plus the trade basket rule's verdict on every line.
 import { z } from "zod";
 import { quote } from "@/server/pricing";
 import { isOffer } from "@/server/offers";
@@ -70,7 +70,7 @@ export const POST = withStaff(async (req, pos) => {
 
 /**
  * The trade-sale quote: the WHOLESALE engine for the account (its own TRADE list first), the trade basket rule with
- * HQ's settings (classes the account may buy, the store's licences, THC never) — each blocked line carries its reason
+ * HQ's settings (classes the account may buy, the store's licences, THC never). Each blocked line carries its reason
  * so the basket can say why, and the sale would be refused the same way when it posts (sales.postTradeSale).
  */
 async function tradeQuote(pos: PosStaff, b: { items: { variantId: string; qty: number }[]; code: string | null; tradeAccountId: string }): Promise<QuoteDTO> {

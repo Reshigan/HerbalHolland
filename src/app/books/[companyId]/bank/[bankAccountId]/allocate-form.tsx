@@ -1,6 +1,6 @@
 "use client";
 // Allocate a statement line nothing in the books covers yet: to an account (with the supplier or other party a
-// control account needs, the VAT on money out, and the store), or — for money in — as a card payout that landed net
+// control account needs, the VAT on money out, and the store), or (for money in) as a card payout that landed net
 // of the acquirer's fee.
 import { useState } from "react";
 import { Field, Input, Select } from "@/components/ui/form";

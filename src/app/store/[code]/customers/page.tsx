@@ -55,7 +55,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
   const dir: "asc" | "desc" = SORTS[sort] ? (sp1(sp.dir) === "asc" || sp1(sp.dir) === "desc" ? (sp1(sp.dir) as "asc" | "desc") : DEFAULT_DIR[sort]) : "desc";
   const page = pageParam(sp.page);
 
-  // Nobody here matches as typed (a typo — "Abrahms", "ndlovo"): the closest names among the same members instead.
+  // Nobody here matches as typed (a typo, e.g. "Abrahms", "ndlovo"): the closest names among the same members instead.
   const closeIds = q && !(await db.customer.count({ where: { AND: [memberAtStore(store.id), customerSearch(q)] } })) ? await closeMembersAt(store.id, q) : [];
   const close = closeIds.length > 0;
   const ranked = close && !sp1(sp.sort); // closest first: no column is the sort

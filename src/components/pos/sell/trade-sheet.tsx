@@ -1,6 +1,6 @@
 "use client";
-// Trade-sale mode: find the trade account buying — by trading or legal name, number (TA-…, however typed) or VAT
-// number — and put the basket into trade mode: WHOLESALE prices ex VAT with VAT per line, the account's buyer block on
+// Trade-sale mode: find the trade account buying, by trading or legal name, number (TA-…, however typed) or VAT
+// number, and put the basket into trade mode: WHOLESALE prices ex VAT with VAT per line, the account's buyer block on
 // the tax invoice, "On account" within its credit terms. Needs the connection: accounts, prices and the credit
 // decision live on the server, and a trade sale is never queued.
 import { useEffect, useRef, useState } from "react";

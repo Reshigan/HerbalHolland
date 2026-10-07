@@ -3,7 +3,7 @@
 // the 15-minute ready SLA. Handover checks the collection code, 18+ ID, a dispenser for
 // licensed items and takes payment if unpaid; delivery orders are dispatched with tracking.
 // Trade click & collect orders (tagged "Trade · TO-…") sit alongside: packed in the back
-// office, then handed over here against the buyer's 6-digit code and an ID check — nothing
+// office, then handed over here against the buyer's 6-digit code and an ID check. Nothing
 // is paid at the till (HQ's EFT, or the account's terms).
 import { useEffect, useMemo, useState } from "react";
 import { Bike, Building2, Clock, IdCard, Package, PackageCheck, Pill, QrCode, RefreshCw, ShieldCheck, ShoppingBag, Truck, XCircle } from "lucide-react";

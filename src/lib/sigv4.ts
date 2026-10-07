@@ -1,5 +1,5 @@
 // AWS Signature V4 query signing (presigned URLs) for S3-compatible storage: Cloudflare R2, MinIO, AWS S3.
-// No SDK — the app only needs short-lived signed GET and PUT links for single objects.
+// No SDK: the app only needs short-lived signed GET and PUT links for single objects.
 import { createHash, createHmac } from "node:crypto";
 
 const hmac = (key: Buffer | string, data: string) => createHmac("sha256", key).update(data).digest();

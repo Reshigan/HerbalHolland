@@ -10,8 +10,8 @@ export { ProductCardView, StockLine } from "./product-card-view";
 
 /**
  * Server-rendered grid of product cards. The card markup is a client component (ProductCardView), which keeps it out of
- * the RSC payload; the picture stays a server component — a real photo when the catalogue has one, else the generated
- * art, so the merch mockups never reach the browser bundle. (One boundary per card was tried and dropped: the swaps
+ * the RSC payload; the picture stays a server component (a real photo when the catalogue has one, else the generated
+ * art), so the merch mockups never reach the browser bundle. (One boundary per card was tried and dropped: the swaps
  * cost more blocking time than they saved.) Members see a heart on each card for their wishlist.
  */
 export async function ProductGrid({ items, buyable, className }: { items: Card[]; buyable?: boolean; className?: string }) {

@@ -138,7 +138,7 @@ export function Composer({
                   <option value="ALL">All members</option>
                   <optgroup label="Segments">
                     {Object.entries(SEGMENTS).map(([k, s]) => (
-                      <option key={k} value={k}>{s.name} — {s.blurb}</option>
+                      <option key={k} value={k}>{s.name}: {s.blurb}</option>
                     ))}
                   </optgroup>
                   <optgroup label="Tiers">
@@ -365,7 +365,7 @@ export function Composer({
   );
 }
 
-/** Home store: filter by region, search by name, code or city — stores load on demand (never the whole network). */
+/** Home store: filter by region, search by name, code or city. Stores load on demand (never the whole network). */
 function StoreField({
   initial,
   regions,

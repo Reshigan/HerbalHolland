@@ -1,5 +1,5 @@
 // The landscape from herbalholland.com, drawn once and small: a sky (gold, dusk or night), a few stars, the rolling
-// hills of KwaZulu-Natal in silhouette and one windmill on the ridge — the hero background of the storefront's home
+// hills of KwaZulu-Natal in silhouette and one windmill on the ridge. It's the hero background of the storefront's home
 // and category pages. Pure SVG and CSS gradients: nothing to load, nothing to hydrate.
 import { Mark } from "@/components/brand/logo";
 import { cn } from "@/lib/cn";

@@ -39,7 +39,7 @@ export class OrderError extends Error {
 
 /**
  * Delivery for a bag: the usual rules for stocked items (free over the threshold), plus the merch partner's courier
- * for made-to-order merch — always charged on top, since merch ships on its own from the partner.
+ * for made-to-order merch, which is always charged on top since merch ships on its own from the partner.
  */
 export async function deliveryFee(fulfilment: Fulfil, lines: { variantId: string; totalCents: number }[], tier: string) {
   const s = (await getSettings()).ecommerce;
@@ -129,7 +129,7 @@ export async function placeOrder(input: CheckoutInput) {
   const points = Math.max(0, Math.min(Math.floor(input.points ?? 0), customer.points, maxPoints));
   // A gift voucher is money (allowed on everything, medicines included) and pays after points, with online payment.
   // A pay-in-store order doesn't carry one at checkout: the member pays with the voucher at the counter instead, where
-  // the till takes it as a tender (sales.postPosSale) — so the code stays theirs until they collect.
+  // the till takes it as a tender (sales.postPosSale), so the code stays theirs until they collect.
   const voucher = input.voucherCode?.trim() ? await voucherForCheckout(input.voucherCode) : null;
   if (voucher && !voucher.ok) throw new OrderError(voucher.error);
   if (voucher && input.payMethod !== "ONLINE") throw new OrderError("To use a gift voucher on this order, choose Pay online, or keep the code and pay with it at the counter when you collect");
@@ -220,7 +220,7 @@ async function notifyPlaced(orderId: string) {
 
 /**
  * Confirms an online payment (the simulated gateway, or a gateway's verified webhook): the order goes to the store. Safe
- * to repeat. `moved`: this call moved it — false when it had already been paid, or was cancelled (or expired) first.
+ * to repeat. `moved`: this call moved it; false when it had already been paid, or was cancelled (or expired) first.
  */
 export async function markOrderPaid(orderId: string, reference: string, note = "Payment received") {
   const o = await db.order.findUniqueOrThrow({ where: { id: orderId }, include: { lines: { select: { variant: { select: { sku: true } } } } } });
@@ -387,8 +387,8 @@ export const applyYocoEvent = (e: YocoEvent) => applyOnlineEvent("YOCO", { id: e
 export const applyPeachEvent = (e: PeachEvent) => applyOnlineEvent("PEACH", { id: e.event_id, type: e.event_type, kind: peachEventKind(e.event_type), facts: peachFacts(e, peachMode()) });
 
 /**
- * Handles a verified webhook event once: its id is recorded first (PaymentEvent), so a redelivery — or the same event
- * twice at the same moment — changes nothing again. If handling it fails, the record goes again so the gateway's retry
+ * Handles a verified webhook event once: its id is recorded first (PaymentEvent), so a redelivery (or the same event
+ * twice at the same moment) changes nothing again. If handling it fails, the record goes again so the gateway's retry
  * is handled. An event without an id is handled as it comes (the rules above are safe to repeat).
  */
 export async function onceForEvent<T>(gateway: HostedGateway, eventId: string | null, handle: () => Promise<T>): Promise<T | PaymentDecision> {
@@ -475,7 +475,7 @@ export async function advanceOrder(
 
   let postedSaleId: string | null = null;
   const updated = await tx(async (t) => {
-    // Claim the order as it was read, so two people (or a double tap) can't both move it — or both refund it.
+    // Claim the order as it was read, so two people (or a double tap) can't both move it, or both refund it.
     const claimed = await t.order.updateMany({ where: { id: o.id, status: o.status, paymentStatus: o.paymentStatus }, data: { status: to } });
     if (!claimed.count) throw new OrderError("This order changed while you were on it. Refresh and try again.");
     // The sale takes stock and then updates the member: lock the member first, as checkout does (@/server/locks).
@@ -562,8 +562,8 @@ export type OrderRefund = { channel: HostedGateway | "MANUAL" | "TEST"; refundId
 /** A return's refundRef while its money is on its way (refundOrderAmount claims it, so a second click can't send it again). */
 export const REFUND_CLAIM = "PENDING";
 /**
- * A claim this old was left by an attempt that died half-way (a crash, a timeout): the next attempt takes it over —
- * safe, as neither gateway refunds a return twice (Yoco's Idempotency-Key, Peach's running total).
+ * A claim this old was left by an attempt that died half-way (a crash, a timeout): the next attempt takes it over.
+ * That's safe, as neither gateway refunds a return twice (Yoco's Idempotency-Key, Peach's running total).
  */
 const STALE_CLAIM_MS = 10 * 60_000;
 
@@ -578,7 +578,7 @@ function refundBusy(r: { number: string; refundRef: string | null; updatedAt: Da
  * money: Yoco with the Idempotency-Key `<orderId>:return:<returnId>`; Peach with the running total of what the order's
  * returns have refunded (Peach refunds only what's left of that total, so a retry never refunds twice). Orders paid in
  * store, or in the simulated gateway, are refunded by hand and recorded with the reference given. The return is
- * claimed first (refundRef REFUND_CLAIM) and only while it's received, so two clicks — or two people — at once send the
+ * claimed first (refundRef REFUND_CLAIM) and only while it's received, so two clicks (or two people) at once send the
  * money once, and never for a return declined meanwhile; any failure lets go of it again. Sets the return's refundRef
  * and refundCents, adds the refund to the order's timeline, audits it (order.refund) and marks the order refunded once
  * every cent paid in money is back. Any gateway error stops here, and staff see why.

@@ -22,7 +22,7 @@ const r0 = (n: number) => Math.round(n);
  * The site's beadwork: one small African geometric tile, a chain of diamonds in cream, orange and charcoal (after the
  * panel beside the door in the store concept). It frames the 18+ gate, edges the frames and the scene dividers, and
  * bands the footer. The CSS gets it as a data: URL (build.ts puts it in place of __PATTERN__); the SVG sprite has it as
- * a pattern (#beads) for the drawn storefront. Its colours are the token values ink-900, ink-50 and brand-500 — the one
+ * a pattern (#beads) for the drawn storefront. Its colours are the token values ink-900, ink-50 and brand-500: the one
  * place colours are written into art rather than set by CSS.
  */
 export const TILE = [

@@ -1,4 +1,4 @@
-// Uploaded proof (banking slips): photos or PDFs, identified by their bytes — never by the name or the browser's claim.
+// Uploaded proof (banking slips): photos or PDFs, identified by their bytes, never by the name or the browser's claim.
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
 
 const EXT = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "image/heic": "heic", "application/pdf": "pdf" } as const;

@@ -1,10 +1,10 @@
 "use client";
-// Payment: amount due and split tenders — card (tap on glass, or the store's Yoco card machine),
+// Payment: amount due and split tenders. Card (tap on glass, or the store's Yoco card machine),
 // a separate bank terminal, cash (quick amounts, change due), PayShap (to the store's own ShapID, when it has one), points and
-// gift vouchers (the code typed or scanned, looked up on the server, redeemed when the sale posts — so
+// gift vouchers (the code typed or scanned, looked up on the server, redeemed when the sale posts, so
 // online only). Over R5,000 the buyer's details are captured for a full tax invoice. Reused for order handovers.
 // Trade-sale mode (`trade`): money as usual plus an EFT by bank reference and "On account" within the account's credit
-// terms — never points or a gift voucher (consumer money); the buyer block comes from the account.
+// terms, never points or a gift voucher (consumer money); the buyer block comes from the account.
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Banknote, Building2, CreditCard, Gift, Landmark, Nfc, ScanLine, Sparkles, Trash2, Zap } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -190,7 +190,7 @@ export function PaymentSheet({
   // The voucher pays up to its balance and up to what's due (or the smaller amount typed above): lowered, never raised.
   const voucherUse = voucher ? Math.min(charge, voucherLeft(voucher.code)) : 0;
   const voucherPending = !online && tenders.some((t) => t.method === "VOUCHER");
-  // Trade-sale mode: what may go on account — the credit decision less what this sale has already put on it.
+  // Trade-sale mode: what may go on account is the credit decision less what this sale has already put on it.
   const onAccountSoFar = tenders.filter((t) => t.method === "ACCOUNT").reduce((s, t) => s + t.amountCents, 0);
   const tradeRules = trade ? tradeTenders({ account: trade, online, amountCents: charge, onAccountSoFarCents: onAccountSoFar }) : null;
   const accountLeft = trade ? Math.max(0, trade.availableCents - onAccountSoFar) : 0;

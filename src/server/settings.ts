@@ -20,7 +20,7 @@ export const DEFAULT_SETTINGS = {
   pricing: {
     markdownDays: 21, // stock expiring within this many days is marked down at the till
     markdownPct: 20,
-    minMarginPct: 25, // franchisee price-setting guardrail (warning only — never enforced)
+    minMarginPct: 25, // franchisee price-setting guardrail (warning only, never enforced)
   },
   launch: {
     launchAt: null as string | null, // ISO date-time when the Founding Members list closes (null = no list)

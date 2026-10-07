@@ -1,6 +1,6 @@
 // Compliance engine. Rules are data (HQ settings) so the network can adapt as South
-// African regulation evolves — e.g. switching on licensed sales per store when a
-// Cannabis Bill commences, or the Tobacco Bill's online-sales ban — without code changes.
+// African regulation evolves (e.g. switching on licensed sales per store when a
+// Cannabis Bill commences, or the Tobacco Bill's online-sales ban) without code changes.
 export type RegClass = "THC" | "CBD" | "CBD_FOOD" | "CBD_TOPICAL" | "HEMP" | "SUPPLEMENT" | "ACCESSORY" | "APPAREL" | "GROW";
 export type SellChannel = "POS" | "COLLECT" | "SAME_DAY" | "COURIER";
 
@@ -10,14 +10,14 @@ export type ComplianceSettings = {
   minAge: number;
   ageRestricted: RegClass[];
   licensedOnly: RegClass[]; // sellable only where the store holds a licence for the class
-  // MEDICAL: SAHPRA pathway — valid patient authorisation, within its monthly quantity, dispensed by an authorised dispenser.
+  // MEDICAL: SAHPRA pathway (a valid patient authorisation, within its monthly quantity, dispensed by an authorised dispenser).
   // ADULT_USE: verified adults within a daily limit (for when an adult-use regime applies).
   thcMode: ThcMode;
   dailyLimitGrams: number; // ADULT_USE: per customer per day, licensed classes
   channels: Record<SellChannel, RegClass[]>;
   tobaccoBillMode: boolean; // B33-2022 in force: related products in-store only (no click & collect or delivery)
   membersOnly: boolean; // every sale needs a registered member (online and at the till)
-  // Classes that never get promotions, points or commission — Medicines Act s18A covers every medicine, including
+  // Classes that never get promotions, points or commission. Medicines Act s18A covers every medicine, including
   // Schedule 0 complementary medicines (CBD supplements) until counsel says otherwise. Licensed classes are always out.
   noIncentives: RegClass[];
 };
@@ -116,7 +116,7 @@ export function tradeAllowed(a: TradeAllowedInput) {
   return true;
 }
 
-/** Why `tradeAllowed` said no, in plain English — null when it's allowed. */
+/** Why `tradeAllowed` said no, in plain English, or null when it's allowed. */
 export function tradeProblem(a: TradeAllowedInput & { name: string }) {
   if (a.productClass === "THC") return `${a.name} is a licensed medicine and isn't available to trade customers`;
   if (a.productStatus !== "ACTIVE") return `${a.name} isn't available right now`;
@@ -128,8 +128,8 @@ export function tradeProblem(a: TradeAllowedInput & { name: string }) {
 /**
  * The trade rule (Medicines Act s22A: Schedule 0 CBD and excluded products may be sold to any business; THC never):
  * each line's class must be in the account's allow-list and, where the class needs a licence, held by the seller;
- * the product must be live. No member, age-gate or members-only rules — the buyer is a business whose buyers are
- * attested adults — and no quantity limits.
+ * the product must be live. No member, age-gate or members-only rules (the buyer is a business whose buyers are
+ * attested adults) and no quantity limits.
  */
 export function evaluateTradeBasket(input: { items: TradeComplianceItem[]; accountClasses: readonly string[]; sellerLicences: readonly string[]; settings?: ComplianceSettings }) {
   const s = input.settings ?? DEFAULT_COMPLIANCE;
@@ -144,8 +144,8 @@ export function evaluateTradeBasket(input: { items: TradeComplianceItem[]; accou
 /**
  * Classes excluded from incentives (promotions, member/volume prices, markdowns, points earn, commission).
  * Medicines Act s18A prohibits supplying medicine under a bonus, rebate or other incentive scheme: licensed products in
- * MEDICAL mode, and the classes HQ lists in `noIncentives` (CBD supplements — Schedule 0 complementary medicines — by
- * default, until counsel clears them).
+ * MEDICAL mode, and the classes HQ lists in `noIncentives` (by default CBD supplements, which are Schedule 0
+ * complementary medicines, until counsel clears them).
  */
 export const incentiveExcluded = (s: ComplianceSettings): RegClass[] => [...new Set([...(s.thcMode === "MEDICAL" ? s.licensedOnly : []), ...(s.noIncentives ?? [])])];
 
@@ -171,7 +171,7 @@ export const ALLERGEN_KEYS = Object.keys(ALLERGENS) as AllergenKey[];
 
 export type ProductFact = "netContent" | "ingredients" | "allergens";
 /**
- * The facts each class carries — all required before it can be listed, and shown to members on the product page and at
+ * The facts each class carries: all required before it can be listed, and shown to members on the product page and at
  * the till. Food and supplements declare allergens; skin care lists its ingredients; CBD supplements keep the pack
  * size in their variants.
  */
@@ -196,7 +196,7 @@ export const complianceChange = (changed: readonly string[], regClass: RegClass)
   changed.some((k) => k === "regClass" || COMPLIANCE_FIELDS.includes(k) || (k === "thcMax" && CBD_CLASSES.includes(regClass)));
 
 const mg = (n: number) => String(Math.round(n * 100) / 100);
-/** "250 g", "1 kg", "50 ml", "1.5 l" — null when no net content is recorded. */
+/** "250 g", "1 kg", "50 ml", "1.5 l", or null when no net content is recorded. */
 export function netContentLabel(netContent?: number | null, netUnit?: string | null) {
   if (netContent == null || netContent <= 0 || (netUnit !== "g" && netUnit !== "ml")) return null;
   if (netContent >= 1000) return `${mg(netContent / 1000)} ${netUnit === "g" ? "kg" : "l"}`;
@@ -229,10 +229,10 @@ const CANNABIS_WORDS = /\b(cbd|cannabidiol|cannabis|cannabinoids?|hemp|thc|dagga
 
 /**
  * Product master-data rules by regulatory class. Returns plain, fixable messages; empty means it may be listed.
- *   CBD — Schedule 0 complementary medicine (GN 586 of 2020): ≤ 600 mg a pack, ≤ 20 mg a day, ≤ 0.001% THC.
- *   CBD_FOOD — GN 586 of 2020: ≤ 0.0075% CBD, only what's naturally in the ingredients, ≤ 0.001% THC.
- *   CBD_TOPICAL — ≤ 0.001% THC, applied not taken (no daily dose).
- *   SUPPLEMENT — no cannabis or CBD at all.
+ *   CBD (Schedule 0 complementary medicine, GN 586 of 2020): ≤ 600 mg a pack, ≤ 20 mg a day, ≤ 0.001% THC.
+ *   CBD_FOOD (GN 586 of 2020): ≤ 0.0075% CBD, only what's naturally in the ingredients, ≤ 0.001% THC.
+ *   CBD_TOPICAL: ≤ 0.001% THC, applied not taken (no daily dose).
+ *   SUPPLEMENT: no cannabis or CBD at all.
  * Every class that carries product facts needs them (PRODUCT_FACTS), and every claim is screened. Other classes: no rules.
  */
 export function validateProduct(p: ProductMaster): string[] {
@@ -325,7 +325,7 @@ export const REG_CLASS_LABEL: Record<RegClass, string> = {
   GROW: "Grow",
 };
 
-/** Every class, in display order — the one list pickers, filters and settings forms use. */
+/** Every class, in display order: the one list pickers, filters and settings forms use. */
 export const REG_CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
 
 /** The legal-basis line a new product starts with (HQ can edit it; it's shown on the product page and in audits). */

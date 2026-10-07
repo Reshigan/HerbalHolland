@@ -1,7 +1,7 @@
 // Demo network generator. Simulates DAYS of trading across the store network with
 // the same rules the platform enforces (FEFO, licences, medical authorisations,
-// s18A incentive exclusions, loyalty, promotions) — and the trade (wholesale)
-// channel: accounts, portal orders, till trade sales and the trade ledger — and
+// s18A incentive exclusions, loyalty, promotions), plus the trade (wholesale)
+// channel: accounts, portal orders, till trade sales and the trade ledger. It
 // writes rollups from the same records, so every report reconciles.
 //
 //   npm run db:seed                      # 24 named stores, 60 days
@@ -112,7 +112,7 @@ async function assertDemoDatabase() {
 async function main() {
   if (process.env.NODE_ENV === "production" && !process.argv.includes("--force")) throw new Error("Refusing to seed in production (pass --force)");
   await assertDemoDatabase();
-  console.log(`Seeding Herbal Holland demo network — ${DAYS} days to ${TODAY}`);
+  console.log(`Seeding Herbal Holland demo network: ${DAYS} days to ${TODAY}`);
   const tables = await db.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%'`;
   await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
   await db.setting.create({ data: { key: SEED_MARK, value: { at: new Date().toISOString() } } });
@@ -151,7 +151,7 @@ async function main() {
   const dcId: Record<string, string> = {};
   for (const d of DCS) {
     dcId[d.code] = uid();
-    storeRows.push({ id: dcId[d.code], code: d.code, slug: d.slug, name: d.name, kind: "WAREHOUSE", status: "ACTIVE", format: "STANDARD", companyId: hq.id, regionId: regionId[d.region], addressLine: d.addressLine, suburb: d.suburb, city: d.city, province: d.province, postalCode: d.postalCode, lat: d.lat, lng: d.lng, clickCollect: false, sameDay: false, licences: ["THC"], licenceRef: `SAHPRA 22C licence (DC) — demo ref`, email: `${d.slug}@herbalholland.co.za`, phone: "012 004 4200", openedAt: daysAgo(400) });
+    storeRows.push({ id: dcId[d.code], code: d.code, slug: d.slug, name: d.name, kind: "WAREHOUSE", status: "ACTIVE", format: "STANDARD", companyId: hq.id, regionId: regionId[d.region], addressLine: d.addressLine, suburb: d.suburb, city: d.city, province: d.province, postalCode: d.postalCode, lat: d.lat, lng: d.lng, clickCollect: false, sameDay: false, licences: ["THC"], licenceRef: `SAHPRA 22C licence (DC, demo ref)`, email: `${d.slug}@herbalholland.co.za`, phone: "012 004 4200", openedAt: daysAgo(400) });
     stores.push({ id: dcId[d.code], code: d.code, slug: d.slug, name: d.name, kind: "WAREHOUSE", status: "ACTIVE", format: "STANDARD", regionCode: d.region, city: d.city, province: d.province, sameDay: false, vendor: true, companyKey: "hq", staff: [], deviceId: "", seq: 0, members: 0, walkIns: 0 });
   }
   for (const s of [...STORES, ...synthetic]) {
@@ -276,7 +276,7 @@ async function main() {
       const letter = "ABC"[i];
       const packedAt = daysAgo(ago + rand(0, 3));
       let expiresAt = v.shelfMonths ? new Date(packedAt.getTime() + v.shelfMonths * 30.4 * DAY) : null;
-      // Edibles' oldest batch is close to expiry — drives markdown/expiry reports.
+      // Edibles' oldest batch is close to expiry, to drive the markdown/expiry reports.
       if (v.cat === "edibles" && i === 0) expiresAt = daysAgo(-int(8, 16));
       if (v.cat === "wellness" && i === 0 && v.reg === "CBD") expiresAt = daysAgo(-int(12, 20));
       const code = `${v.sku.split("-").slice(1).join("-")}-${dayKey(packedAt).slice(2, 7).replace("-", "")}${letter}`;
@@ -357,7 +357,7 @@ async function main() {
     return allocations;
   }
 
-  // DC opening stock (from growers & suppliers) — every batch lands at every DC.
+  // DC opening stock (from growers & suppliers): every batch lands at every DC.
   const dcs = stores.filter((s) => s.kind === "WAREHOUSE");
   for (const dc of dcs)
     for (const b of batches) {
@@ -518,13 +518,13 @@ async function main() {
     { name: "Midlands Wellness Practice", legalName: "Midlands Wellness Practice Inc.", kind: "PRACTICE", reg: "2019/311907/21", email: "practice@midlandswellness.co.za", phone: "+27333301188", ref: "MIDLANDS WP", address: ["7 Main Road", null, "Howick", "KZN", "3290"], status: "APPROVED", terms: "ACCOUNT", limit: 2_500_000, applied: 135, approvedDays: 4, buyers: [["Anele Mkhize", "anele@midlandswellness.co.za", "+27837720315", "OWNER"]] },
     { name: "Bo-Kaap Apothecary", legalName: "Bo-Kaap Apothecary (Pty) Ltd", kind: "RETAILER", reg: "2017/458201/07", vat: "4650098122", email: "orders@bokaapapothecary.co.za", phone: "+27214240077", ref: "BOKAAP APOTH", address: ["88 Wale Street", "Bo-Kaap", "Cape Town", "WC", "8001"], status: "APPROVED", terms: "ACCOUNT", limit: 3_000_000, applied: 128, approvedDays: 2, reserve: 800_000, buyers: [["Yusuf Dollie", "yusuf@bokaapapothecary.co.za", "+27823301190", "OWNER"], ["Amina Dollie", "amina@bokaapapothecary.co.za", null, "BUYER"]] },
     { name: "Umhlanga Health Pharmacy", legalName: "Umhlanga Health Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2014/087310/07", vat: "4580012398", email: "accounts@umhlangahealth.co.za", phone: "+27315611204", ref: "UMHLANGA HP", address: ["Shop 5, Chartwell Centre, Chartwell Drive", "Umhlanga Rocks", "Durban", "KZN", "4320"], status: "APPROVED", terms: "PREPAID", applied: 121, approvedDays: 3, buyers: [["Kiara Naidoo", "kiara@umhlangahealth.co.za", "+27834412210", "OWNER"]] },
-    { name: "Linden Corner Store", legalName: "Lukas Botha", kind: "RETAILER", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Sole proprietor — not VAT registered." },
+    { name: "Linden Corner Store", legalName: "Lukas Botha", kind: "RETAILER", email: "lindencorner@example.co.za", phone: "+27118880421", ref: "LINDEN CORNER", address: ["Shop 2, 4th Avenue", "Linden", "Johannesburg", "GP", "2195"], status: "APPROVED", terms: "ACCOUNT", limit: 1_000_000, applied: 114, approvedDays: 5, buyers: [["Lukas Botha", "lukas.botha@example.co.za", "+27829012244", "OWNER"]], notes: "Sole proprietor, not VAT registered." },
     { name: "Roots & Rooibos Café", legalName: "Roots and Rooibos (Pty) Ltd", kind: "CAFE", reg: "2020/233514/07", vat: "4690071355", email: "cafe@rootsandrooibos.co.za", phone: "+27123461190", ref: "ROOTS ROOIBOS", address: ["12 Lynnwood Road", "Brooklyn", "Pretoria", "GP", "0181"], status: "APPROVED", terms: "PREPAID", applied: 107, approvedDays: 2, buyers: [["Mpho Sithole", "mpho@rootsandrooibos.co.za", "+27836601182", "OWNER"]] },
-    { name: "Hemp & Home Online", legalName: "Hemp and Home Online (Pty) Ltd", kind: "ONLINE_SHOP", reg: "2022/301877/07", vat: "4730116209", email: "finance@hempandhome.co.za", phone: "+27104470550", ref: "HEMP HOME", address: ["3 Kramer Road", "Kramerville", "Sandton", "GP", "2090"], delivery: ["Unit 7, Linbro Business Park, Galaxy Avenue", "Linbro Park", "Sandton", "GP", "2065"], status: "APPROVED", terms: "ACCOUNT", limit: 4_000_000, applied: 100, approvedDays: 2, ownList: true, reserve: 2_000_000, buyers: [["Dineo Maseko", "dineo@hempandhome.co.za", "+27827740930", "OWNER"], ["Tebogo Rakgole", "warehouse@hempandhome.co.za", "+27836112078", "BUYER"]], notes: "Online retailer — ships from the Linbro Park warehouse; deliver there, not to the office." },
+    { name: "Hemp & Home Online", legalName: "Hemp and Home Online (Pty) Ltd", kind: "ONLINE_SHOP", reg: "2022/301877/07", vat: "4730116209", email: "finance@hempandhome.co.za", phone: "+27104470550", ref: "HEMP HOME", address: ["3 Kramer Road", "Kramerville", "Sandton", "GP", "2090"], delivery: ["Unit 7, Linbro Business Park, Galaxy Avenue", "Linbro Park", "Sandton", "GP", "2065"], status: "APPROVED", terms: "ACCOUNT", limit: 4_000_000, applied: 100, approvedDays: 2, ownList: true, reserve: 2_000_000, buyers: [["Dineo Maseko", "dineo@hempandhome.co.za", "+27827740930", "OWNER"], ["Tebogo Rakgole", "warehouse@hempandhome.co.za", "+27836112078", "BUYER"]], notes: "Online retailer that ships from the Linbro Park warehouse. Deliver there, not to the office." },
     { name: "Stellenbosch Physio & Wellness", legalName: "Stellenbosch Physio and Wellness Inc.", kind: "PRACTICE", reg: "2018/142290/21", email: "admin@stellenboschphysio.co.za", phone: "+27218870341", ref: "STB PHYSIO", address: ["23 Andringa Street", null, "Stellenbosch", "WC", "7600"], status: "APPROVED", terms: "PREPAID", applied: 93, approvedDays: 3, buyers: [["Marli Louw", "marli@stellenboschphysio.co.za", "+27824409912", "OWNER"]] },
     { name: "Durban North Pharmacy", legalName: "Durban North Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2012/055641/07", vat: "4560087731", email: "accounts@durbannorthpharmacy.co.za", phone: "+27315631107", ref: "DBN NORTH PH", address: ["56 Kensington Drive", "Durban North", "Durban", "KZN", "4051"], status: "ON_HOLD", terms: "ACCOUNT", limit: 2_000_000, applied: 86, approvedDays: 2, holdReason: "overdue", heldAgo: 37, rate: 0, buyers: [["Pravesh Maharaj", "pravesh@durbannorthpharmacy.co.za", "+27833318840", "OWNER"], ["Nisha Maharaj", "nisha@durbannorthpharmacy.co.za", null, "BUYER"]] },
     { name: "Vilakazi Street Health Shop", legalName: "VS Health Shop (Pty) Ltd", kind: "RETAILER", reg: "2023/409118/07", email: "lerato@vshealthshop.co.za", phone: "+27119361020", ref: "VS HEALTH", address: ["8107 Vilakazi Street", "Orlando West", "Soweto", "GP", "1804"], status: "ON_HOLD", terms: "ACCOUNT", limit: 1_500_000, applied: 75, approvedDays: 4, holdReason: "Awaiting updated CIPC documents after the change of directors", heldAgo: 12, buyers: [["Lerato Mabaso", "orders@vshealthshop.co.za", "+27825501937", "OWNER"]] },
-    { name: "Pretoria East Pharmacy", legalName: "Pretoria East Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2011/197022/07", vat: "4540021198", email: "accounts@pretoriaeastpharmacy.co.za", phone: "+27123481166", ref: "PTA EAST PH", address: ["Shop 2, Glenfair Boulevard, Lynnwood Road", "Lynnwood", "Pretoria", "GP", "0081"], status: "CLOSED", terms: "ACCOUNT", limit: 2_000_000, applied: 68, approvedDays: 3, holdReason: "Business sold — the new owner will apply for their own account", closedAgo: 20, rate: 0, buyers: [["Carla Fourie", "carla@pretoriaeastpharmacy.co.za", "+27829947210", "OWNER"]] },
+    { name: "Pretoria East Pharmacy", legalName: "Pretoria East Pharmacy (Pty) Ltd", kind: "PHARMACY", reg: "2011/197022/07", vat: "4540021198", email: "accounts@pretoriaeastpharmacy.co.za", phone: "+27123481166", ref: "PTA EAST PH", address: ["Shop 2, Glenfair Boulevard, Lynnwood Road", "Lynnwood", "Pretoria", "GP", "0081"], status: "CLOSED", terms: "ACCOUNT", limit: 2_000_000, applied: 68, approvedDays: 3, holdReason: "Business sold: the new owner will apply for their own account", closedAgo: 20, rate: 0, buyers: [["Carla Fourie", "carla@pretoriaeastpharmacy.co.za", "+27829947210", "OWNER"]] },
     { name: "Ballito Beach Café", legalName: "Ballito Beach Café (Pty) Ltd", kind: "CAFE", reg: "2024/152087/07", vat: "4760130455", email: "sam@ballitobeachcafe.co.za", phone: "+27324461201", ref: "BALLITO CAFE", address: ["2 Compensation Beach Road", null, "Ballito", "KZN", "4420"], status: "PENDING", applied: 3, buyers: [["Sam Pretorius", "sam.pretorius@ballitobeachcafe.co.za", "+27836920033", "OWNER"]], notes: "We'd like the hemp coffee and the rooibos tea for the café, plus a few accessories for the shelf by the till." },
     { name: "Garden Route Health Shop", legalName: "Garden Route Health Shop (Pty) Ltd", kind: "RETAILER", reg: "2015/388190/07", email: "elize@gardenroutehealth.co.za", phone: "+27448740388", ref: "GARDEN ROUTE", address: ["112 York Street", null, "George", "WC", "6529"], status: "PENDING", applied: 1, buyers: [["Elize Barnard", "elize@gardenroutehealth.co.za", "+27824103399", "OWNER"]] },
   ];
@@ -762,7 +762,7 @@ async function main() {
       }
       if (c.visits === 0 && c.referredById) {
         const ref = customerById.get(c.referredById);
-        loyalty.push({ id: uid(), customerId: c.id, storeId: s.id, points: 50, kind: "REFERRAL", createdAt: ts, note: "Welcome — you were referred" });
+        loyalty.push({ id: uid(), customerId: c.id, storeId: s.id, points: 50, kind: "REFERRAL", createdAt: ts, note: "Welcome: you were referred" });
         c.points += 50;
         if (ref) {
           loyalty.push({ id: uid(), customerId: ref.id, storeId: s.id, points: 50, kind: "REFERRAL", createdAt: ts, note: `Referral: ${c.firstName}` });
@@ -816,7 +816,7 @@ async function main() {
     a.balance += row.cents;
     return entry;
   }
-  /** A payment the account will make later — applied when the clock reaches it, never if that is after now. */
+  /** A payment the account will make later: applied when the clock reaches it, never if that is after now. */
   function schedulePayment(a: SimAccount, cents: number, reference: string, when: Date, tradeOrderId: string | null): Scheduled {
     const s: Scheduled = { at: when, account: a, applied: false, row: { id: uid(), tradeAccountId: a.id, kind: "PAYMENT", cents: -cents, reference, tradeOrderId, note: null, createdById: johanId, createdAt: when } };
     scheduledLedger.push(s);
@@ -833,7 +833,7 @@ async function main() {
     if (r < 0.35) payAt = addDays(postedAt, int(3, 12));
     else if (r < 0.8) payAt = addDays(dueAt, -int(1, 9));
     else if (r < 0.93 || addDays(dueAt, TRADE.overdueGraceDays) <= NOW) payAt = addDays(dueAt, int(1, 6));
-    else return undefined; // not paid yet — and not past the grace period either, so the daily job leaves the account alone
+    else return undefined; // not paid yet, and not past the grace period either, so the daily job leaves the account alone
     if (payAt < addDays(postedAt, 2)) payAt = addDays(postedAt, 2);
     payAt = at(dayKey(payAt), 9 * 60 + 40 + int(0, 300));
     return schedulePayment(a, cents, reference, payAt, tradeOrderId);
@@ -1010,7 +1010,7 @@ async function main() {
   };
   /**
    * Whole cases of what the account may buy and the store has: two to five lines by courier, one to three to collect,
-   * at or over the minimum order and — on account — within what's left of the credit limit (`budgetCents`, incl. VAT).
+   * at or over the minimum order and, on account, within what's left of the credit limit (`budgetCents`, incl. VAT).
    */
   function tradeBasket(a: SimAccount, s: SimStore, ts: Date, fulfilment: "COURIER" | "COLLECT", opts: { budgetCents?: number; maxCases?: number } = {}): OrderLine[] {
     const pool = variants.filter((v) => v.reg !== "THC" && a.classes.includes(v.reg as RegClass) && (s.kind === "WAREHOUSE" || ranged.has(lk(s.id, v.id))));
@@ -1068,7 +1068,7 @@ async function main() {
     });
   }
 
-  /** Trade-sale mode at a till: an approved account, the shelf's stock at trade prices ex VAT, paid in cash or by card — or on account within its limit. */
+  /** Trade-sale mode at a till: an approved account, the shelf's stock at trade prices ex VAT, paid in cash or by card, or on account within its limit. */
   function tillTradeSale(s: SimStore, ts: Date, shiftId: string) {
     const pool = tradeAccounts.filter((a) => statusAt(a, ts) === "APPROVED");
     if (!pool.length) return null;
@@ -1110,10 +1110,10 @@ async function main() {
   }
 
   // History before the window. Durban North Pharmacy (now on hold) shipped two orders from the Durban DC: the first
-  // paid, the second unpaid 45 days past due — the daily job held the account a week after it fell due — and one by
+  // paid, the second unpaid 45 days past due (the daily job held the account a week after it fell due), and one by
   // EFT while on hold (money up front still works). Pretoria East Pharmacy bought once, paid, and was closed when the
   // business was sold.
-  // Greenleaf Pharmacy (the demo buyer) has an invoice a month old — credited in part below — and Hemp & Home's order
+  // Greenleaf Pharmacy (the demo buyer) has an invoice a month old, credited in part below, and Hemp & Home's order
   // from a fortnight ago shipped one line short.
   const explicitOrder = (a: SimAccount, daysBack: number, o: { payMethod?: "EFT" | "ACCOUNT"; pay?: "random" | "prompt" | "ontime" | "never"; short?: boolean } = {}) => {
     const placedAt = at(keyOf(daysBack), 9 * 60 + int(0, 60));
@@ -1316,7 +1316,7 @@ async function main() {
       const closed = !isToday;
       const expected = 100_000 + cashIn;
       const variance = closed ? weighted([[0, 0.8], [int(-5000, 2000), 0.15], [-int(10000, 30000), 0.05]] as const) : 0;
-      shifts.push({ id: shiftId, storeId: s.id, deviceId: s.deviceId, openedById: manager.id, openedAt: shiftStart, openingFloatCents: 100_000, closedById: closed ? manager.id : null, closedAt: closed ? at(k, open[1] + 10) : null, expectedCashCents: closed ? expected : null, countedCashCents: closed ? expected + variance : null, notes: variance < -5000 ? "Short — investigating" : null });
+      shifts.push({ id: shiftId, storeId: s.id, deviceId: s.deviceId, openedById: manager.id, openedAt: shiftStart, openingFloatCents: 100_000, closedById: closed ? manager.id : null, closedAt: closed ? at(k, open[1] + 10) : null, expectedCashCents: closed ? expected : null, countedCashCents: closed ? expected + variance : null, notes: variance < -5000 ? "Short, investigating" : null });
 
       // Weekly adjustments.
       if (chance(0.16)) {
@@ -1327,7 +1327,7 @@ async function main() {
     }
     // Apply adjustments for the day.
     for (const a of adjustments.splice(0)) {
-      const al = take(a.storeId, a.v.id, a.qty, "ADJUST", a.ts, { reason: a.reason, note: { DAMAGED: "Damaged on shelf", SAMPLE: "Demo unit", THEFT: "Shoplifting — incident logged", EXPIRED: "Expired" }[a.reason], userId: byStoreId.get(a.storeId)!.staff[0].id });
+      const al = take(a.storeId, a.v.id, a.qty, "ADJUST", a.ts, { reason: a.reason, note: { DAMAGED: "Damaged on shelf", SAMPLE: "Demo unit", THEFT: "Shoplifting, incident logged", EXPIRED: "Expired" }[a.reason], userId: byStoreId.get(a.storeId)!.staff[0].id });
       void al;
     }
     // Expired lots are written off at their expiry.
@@ -1336,7 +1336,7 @@ async function main() {
         for (const l of lots.get(lk(s.id, v.id)) ?? []) {
           const b = bById.get(l.batchId)!;
           if (l.onHand > 0 && b.expiresAt && dayKey(b.expiresAt) === k) {
-            movements.push({ id: uid(), storeId: s.id, variantId: v.id, batchId: l.batchId, qty: -l.onHand, type: "ADJUST", reason: "EXPIRED", unitCostCents: l.unitCost, createdAt: b.expiresAt, note: "Expired — destroyed", userId: s.staff[0].id });
+            movements.push({ id: uid(), storeId: s.id, variantId: v.id, batchId: l.batchId, qty: -l.onHand, type: "ADJUST", reason: "EXPIRED", unitCostCents: l.unitCost, createdAt: b.expiresAt, note: "Expired and destroyed", userId: s.staff[0].id });
             l.onHand = 0;
           }
         }
@@ -1401,7 +1401,7 @@ async function main() {
           ...(due > 0 ? [payOnline ? { method: "ONLINE" as const, amountCents: due, provider: "GATEWAY", reference: `PF${int(1000000, 9999999)}` } : { method: "CARD" as const, amountCents: due, provider: "HALO_DOT", reference: `HALO${int(10000000, 99999999)}`, cardBrand: "Visa", cardLast4: String(int(1000, 9999)) }] : []),
         ];
         const r = post({ store, c, ts: postedAt, lines, channel: "ONLINE", orderId, number: `${store.code}-W${code}`, staffId: store.staff[0]?.id ?? null, extraCents: fee, tenders });
-        // Promotions may have changed the price — keep the order in step with the posted sale.
+        // Promotions may have changed the price, so keep the order in step with the posted sale.
         const sale = sales[sales.length - 1];
         const due2 = sale.totalCents - pts * 100;
         const onlinePay = r.payRows.filter((p) => p.method !== "LOYALTY");
@@ -1429,14 +1429,14 @@ async function main() {
       }
     }
 
-    // Trade orders: each approved business about twice a month — courier from its DC, or click & collect at a store.
+    // Trade orders: each approved business about twice a month, by courier from its DC or click & collect at a store.
     for (const a of tradeAccounts) tradeOrdersOn(a, k);
 
     // Win-back audience is defined at send time.
     if (k === keyOf(20)) for (const c of customers) if (c.last && c.visits >= 3 && c.last < daysAgo(60) && c.last > daysAgo(120)) c.atRisk = true;
   }
 
-  // The demo's open trade orders — whatever time the seed runs: pro formas waiting for an EFT, on-account orders
+  // The demo's open trade orders, whatever time the seed runs: pro formas waiting for an EFT, on-account orders
   // waiting to be picked and in picking at the DC, and click & collect orders in Hatfield's queue and ready at
   // Hatfield (the demo buyer's, for the handover), Rosebank and Sea Point.
   const acc = (name: string) => tradeAccounts.find((a) => a.name === name)!;
@@ -1465,7 +1465,7 @@ async function main() {
   }
 
   // Tax invoices are numbered in the order they were raised (the sale's number, the order's invoice number, the
-  // ledger reference — and the bank reference the buyer put on the payment).
+  // ledger reference, and the bank reference the buyer put on the payment).
   invoiced.sort((x, y) => x.postedAt.getTime() - y.postedAt.getTime());
   let tradeInvoiceSeq = 0;
   for (const inv of invoiced) {
@@ -1489,7 +1489,7 @@ async function main() {
     const tc = tradeCreditNumber(++tradeCreditSeq);
     const when = new Date(credited.postedAt.getTime() + DAY + 5 * 3_600_000);
     const who = credited.account;
-    ledger(who, { kind: "CREDIT_NOTE", cents: -cents, reference: tc, saleId: credited.sale.id, tradeOrderId: credited.orderId, note: `Returned: ${units} × ${lineName(v)} from ${credited.sale.number} — seals broken in transit; credited, not restocked`, createdById: johanId, createdAt: when });
+    ledger(who, { kind: "CREDIT_NOTE", cents: -cents, reference: tc, saleId: credited.sale.id, tradeOrderId: credited.orderId, note: `Returned: ${units} × ${lineName(v)} from ${credited.sale.number}, seals broken in transit. Credited, not restocked`, createdById: johanId, createdAt: when });
     tradeAudit.push({ id: uid(), at: when, ...hqActor(hqJohan), action: "trade.credit_note", entity: "TradeAccount", entityId: who.id, data: { number: who.number, cents, reference: tc, note: `Returned ${units} × ${lineName(v)} from ${credited.sale.number}` } });
     if (credited.payment) {
       credited.payment.row.cents += cents;
@@ -1523,7 +1523,7 @@ async function main() {
       tradeBuyerRows.push({ id: b.id, tradeAccountId: a.id, name: b.name, email: b.email, phone: b.phone, role: b.role, active: true, lastSignInAt: last ?? (a.approvedAt ? new Date(a.approvedAt.getTime() + int(1, 48) * 3_600_000) : null), createdAt: b.role === "OWNER" ? a.applied : new Date(a.applied.getTime() + int(3, 20) * DAY) });
     }
 
-  // The demo store always has click & collect orders waiting — whatever time the seed runs — for the dashboard queue,
+  // The demo store always has click & collect orders waiting (whatever time the seed runs) for the dashboard queue,
   // the POS handover demo and the end-to-end tests.
   const demo = stores.find((x) => x.code === "PTA01");
   // Regulars with an email and no patient authorisation: PTA01's own first, then anyone (short seeds may have none).
@@ -1615,7 +1615,7 @@ async function main() {
   void hqUser;
   const campaigns: Prisma.CampaignCreateManyInput[] = [];
   const messageRows: Prisma.MessageLogCreateManyInput[] = [];
-  const footer = `\n— ${HQ_COMPANY.legalName}, ${HQ_COMPANY.address}, ${HQ_COMPANY.phone}, ${HQ_COMPANY.email}. Reply STOP to opt out.`;
+  const footer = `\n${HQ_COMPANY.legalName}, ${HQ_COMPANY.address}, ${HQ_COMPANY.phone}, ${HQ_COMPANY.email}. Reply STOP to opt out.`;
   function campaign(id: string, name: string, channel: "SMS" | "EMAIL" | "PUSH" | "WHATSAPP", segment: string, message: string, audience: SimCustomer[], sentAt: Date | null, status: "SENT" | "DRAFT" | "SCHEDULED", promotionId?: string, costCents = 0) {
     const consentKey = channel === "WHATSAPP" ? "WHATSAPP" : channel;
     const reachable = audience.filter((c) => c.consents[consentKey] && (channel !== "EMAIL" || c.email));
@@ -1625,11 +1625,11 @@ async function main() {
         messageRows.push({ id: uid(), campaignId: id, customerId: c.id, to: channel === "EMAIL" ? c.email! : c.phone, channel, kind: "MARKETING", status: "SENT", body: message.replaceAll("{{firstName}}", c.firstName).replaceAll("{{code}}", "WELCOMEBACK") + footer, createdAt: sentAt! });
   }
   if (sep1 > daysAgo(DAYS)) campaign(heritageCampaignId, "Heritage Month launch", "SMS", "ALL", "Hi {{firstName}}, happy Heritage Month from Herbal Holland! 15% off apparel & accessories all September, in store and online.", customers.filter((c) => c.createdAt < sep1), at(dayKey(sep1), 9 * 60 + 30), "SENT", heritagePromoId, 1_850_000);
-  campaign(winbackCampaignId, "We miss you — R75 off", "SMS", "AT_RISK", "Hi {{firstName}}, it's been a while! Here's R75 off when you spend R400 on coffee, skin care, accessories or apparel. Use code {{code}} by the end of the month.", customers.filter((c) => c.atRisk), winbackSend, "SENT", winbackPromoId, 240_000);
-  campaign(balmCampaignId, "New: Recover CBD Muscle Balm", "PUSH", "LOYAL", "New in skin care: Recover CBD Muscle Balm — arnica, wintergreen and 500 mg CBD for after the gym.", customers.filter((c) => c.visits >= 5 && c.last && c.last > daysAgo(60)), at(keyOf(8), 11 * 60), "SENT");
+  campaign(winbackCampaignId, "We miss you: R75 off", "SMS", "AT_RISK", "Hi {{firstName}}, it's been a while! Here's R75 off when you spend R400 on coffee, skin care, accessories or apparel. Use code {{code}} by the end of the month.", customers.filter((c) => c.atRisk), winbackSend, "SENT", winbackPromoId, 240_000);
+  campaign(balmCampaignId, "New: Recover CBD Muscle Balm", "PUSH", "LOYAL", "New in skin care: Recover CBD Muscle Balm, with arnica, wintergreen and 500 mg CBD for after the gym.", customers.filter((c) => c.visits >= 5 && c.last && c.last > daysAgo(60)), at(keyOf(8), 11 * 60), "SENT");
   const nextFriday = new Date(NOW.getTime() + ((5 - NOW.getUTCDay() + 7) % 7 || 7) * DAY);
-  campaign(uid(), "Double Points Friday", "SMS", "ALL", "Hi {{firstName}}, it's Double Points Friday at Herbal Holland — every rand counts twice today.", [], at(dayKey(nextFriday), 10 * 60), "SCHEDULED");
-  campaign(uid(), "Spring grow season", "EMAIL", "PROSPECT", "Hi {{firstName}}, spring is planting season. Everything for the home grow — living soil, nutrients and heritage seeds — is in store now.", [], null, "DRAFT");
+  campaign(uid(), "Double Points Friday", "SMS", "ALL", "Hi {{firstName}}, it's Double Points Friday at Herbal Holland: every rand counts twice today.", [], at(dayKey(nextFriday), 10 * 60), "SCHEDULED");
+  campaign(uid(), "Spring grow season", "EMAIL", "PROSPECT", "Hi {{firstName}}, spring is planting season. Everything for the home grow (living soil, nutrients and heritage seeds) is in store now.", [], null, "DRAFT");
 
   // Reviews, stock alerts, announcements, suppressions, audit trail.
   const reviewRows: Prisma.ReviewCreateManyInput[] = [];
@@ -1771,7 +1771,7 @@ async function main() {
         reference: `${st.code}-${due.replaceAll("-", "").slice(2)}`, slipId, createdById: st.staff[0].id, createdAt: bankedOn,
         status: short ? "QUERIED" : checked ? "VERIFIED" : "RECORDED",
         reviewedById: short || checked ? owner.id : null, reviewedAt: short || checked ? new Date(Math.min(bankedOn.getTime() + 2 * DAY, NOW.getTime())) : null,
-        reviewNote: short ? "R200 short against the cash-ups — the manager to explain and bank the difference" : null,
+        reviewNote: short ? "R200 short against the cash-ups. The manager is to explain and bank the difference." : null,
       };
       depositRows.push(d);
       if (short) shortDeposit = d;
@@ -1782,7 +1782,7 @@ async function main() {
   for (const l of licenceDocs) {
     const info = TRADE_LICENCES[l.kind];
     const body = samplePdf([
-      [9, false, "SAMPLE DOCUMENT FOR THE HERBAL HOLLAND DEMO — NOT A LICENCE", 0.45],
+      [9, false, "SAMPLE DOCUMENT FOR THE HERBAL HOLLAND DEMO, NOT A LICENCE", 0.45],
       [18, true, info.name, 0],
       [11, false, `Issued by ${info.issuer}`, 0.3],
       [11, false, info.law, 0.3],
@@ -1849,7 +1849,7 @@ async function main() {
   const launchAt = daysAgo(DAYS);
   await db.setting.create({ data: { key: "launch", value: { launchAt: launchAt.toISOString(), foundingCap: 10_000, foundingTier: "SPROUT", foundingMonths: 12, referralBoost: 250 } } });
   // Demo bank details so pro formas print in full; the real account goes in at HQ → Settings → Trade before go-live.
-  await db.setting.create({ data: { key: "trade", value: { bank: { bank: "Demo Bank", accountName: "Herbal Holland (Pty) Ltd — Trade", accountNumber: "0000000000", branchCode: "000000" } } } });
+  await db.setting.create({ data: { key: "trade", value: { bank: { bank: "Demo Bank", accountName: "Herbal Holland (Pty) Ltd (Trade)", accountNumber: "0000000000", branchCode: "000000" } } } });
   const founding = await (await import("../src/server/launch")).assignFounding(NOW);
   const nextAt = (dow: number, hh: number) => {
     for (let i = 1; i <= 7; i++) {
@@ -1858,20 +1858,20 @@ async function main() {
     }
     return NOW;
   };
-  // All variants of these products — made-to-order merch included (it isn't in the stock simulation's `variants`).
+  // All variants of these products, made-to-order merch included (it isn't in the stock simulation's `variants`).
   const vids = (...slugs: string[]) => variantRows.filter((v) => slugs.some((s) => productIdBySlug[s] === v.productId)).map((v) => v.id as string);
   const hoodie = uid();
   await db.drop.createMany({
     data: [
-      { id: uid(), slug: "heritage-cap-and-hat", name: "Heritage Month: cap + bucket hat", blurb: "The Mark, embroidered on our washed-cotton cap and our sun-ready bucket hat — made to order for Heritage Month.", variantIds: vids("windmill-cap", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
+      { id: uid(), slug: "heritage-cap-and-hat", name: "Heritage Month: cap + bucket hat", blurb: "The Mark, embroidered on our washed-cotton cap and our sun-ready bucket hat, made to order for Heritage Month.", variantIds: vids("windmill-cap", "sunset-bucket-hat"), startsAt: daysAgo(2), endsAt: daysAgo(-5), earlyTier: "BLOOM", earlyMinutes: 60, perMemberLimit: 2, notifiedEarlyAt: daysAgo(2), notifiedAt: daysAgo(2) },
       { id: hoodie, slug: "sunset-hoodie-no-1", name: "Sunset Hoodie No. 1", blurb: "A numbered first run of our brushed-fleece hoodie. One per member; Harvest members get in two hours early.", variantIds: vids("sunset-hoodie"), startsAt: nextAt(5, 9), earlyTier: "HARVEST", earlyMinutes: 120, perMemberLimit: 1 },
     ],
   });
   const fans = customers.filter((c) => c.email && chance(0.03)).slice(0, 400);
   await db.dropWatch.createMany({ data: fans.map((c) => ({ dropId: hoodie, customerId: c.id })) });
   const events = [
-    ...stores.filter((x) => x.status === "OPENING_SOON").map((x) => ({ id: uid(), slug: `opening-${x.slug}`, storeId: x.id, title: `Windmill Days: ${x.name} opening weekend`, blurb: `Our ${x.name} store opens its doors — meet the team, taste Rooibos & CBD tea, and pick up a welcome gift. Adults 18+, ID at the door.`, startsAt: nextAt(6, 10), endsAt: nextAt(6, 18), capacity: 250 })),
-    { id: uid(), slug: "hatfield-members-evening", storeId: stores.find((x) => x.code === "PTA01")!.id, title: "Members' evening: heritage landraces", blurb: "An evening with our growers from Lusikisiki — the story behind Mpondo Gold. Rewards members only, adults 18+.", startsAt: nextAt(4, 18), endsAt: new Date(nextAt(4, 18).getTime() + 150 * 60_000), capacity: 80 },
+    ...stores.filter((x) => x.status === "OPENING_SOON").map((x) => ({ id: uid(), slug: `opening-${x.slug}`, storeId: x.id, title: `Windmill Days: ${x.name} opening weekend`, blurb: `Our ${x.name} store opens its doors. Meet the team, taste Rooibos & CBD tea, and pick up a welcome gift. Adults 18+, ID at the door.`, startsAt: nextAt(6, 10), endsAt: nextAt(6, 18), capacity: 250 })),
+    { id: uid(), slug: "hatfield-members-evening", storeId: stores.find((x) => x.code === "PTA01")!.id, title: "Members' evening: heritage landraces", blurb: "An evening with our growers from Lusikisiki: the story behind Mpondo Gold. Rewards members only, adults 18+.", startsAt: nextAt(4, 18), endsAt: new Date(nextAt(4, 18).getTime() + 150 * 60_000), capacity: 80 },
   ];
   await db.storeEvent.createMany({ data: events });
   const guests = customers.filter((c) => chance(0.01)).slice(0, 300);
@@ -2087,7 +2087,7 @@ async function main() {
   const tradeSales = sales.filter((s) => s.channel === "WHOLESALE");
   console.log(`  trade                  ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · ${ledgerRows.length} ledger entries`);
   console.log(`\nDone. ${active.length} trading stores · ${customers.length.toLocaleString()} members · ${sales.length.toLocaleString()} sales · R${(gross / 100 / 1e6).toFixed(2)}m turnover · trade: ${tradeAccounts.length} accounts · ${tradeOrderRows.length} orders · ${tradeInvoiceSeq} invoices · ${tradeTillSales} till sales · R${(tradeSales.reduce((a, s) => a + (s.totalCents as number), 0) / 100 / 1e3).toFixed(1)}k.`);
-  console.log("Demo logins (password: holland) — HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Accountant: books@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444 · Trade buyer: trade@greenleafpharmacy.co.za at /trade/login (the code is shown in demo mode)");
+  console.log("Demo logins (password: holland). HQ: hq@herbalholland.co.za · Owner: thabo@mokoenaretail.co.za · Accountant: books@mokoenaretail.co.za · Manager: manager.pta01@herbalholland.co.za · POS PINs: 1111 (manager), 2222, 3333, 4444 · Trade buyer: trade@greenleafpharmacy.co.za at /trade/login (the code is shown in demo mode)");
 }
 
 main()

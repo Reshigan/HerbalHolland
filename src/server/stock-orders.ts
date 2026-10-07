@@ -140,7 +140,7 @@ export async function actOnStockOrder(
   return result;
 }
 
-/** Value actually received on a stock order (VAT incl.) — what the buyer is invoiced. */
+/** Value actually received on a stock order (VAT incl.): what the buyer is invoiced. */
 export function receivedValue(o: { lines: { receivedQty: number | null; unitCostCents: number }[] }) {
   const ex = o.lines.reduce((s, l) => s + (l.receivedQty ?? 0) * l.unitCostCents, 0);
   return ex + vatOnExcl(ex);

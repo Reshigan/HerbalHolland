@@ -1,5 +1,5 @@
 "use server";
-// Sign-in by email code: send (requestTradeCode — in DEMO_MODE the code comes back for the form to show), verify
+// Sign-in by email code: send (requestTradeCode; in DEMO_MODE the code comes back for the form to show), verify
 // (signInWithTradeCode starts the hh_trade session), restart. Problems land on the field they concern.
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";

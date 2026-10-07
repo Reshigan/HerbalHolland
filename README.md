@@ -72,40 +72,40 @@ black on cream). The browser only offers installs on HTTPS (or localhost) with `
 
 ## What's inside
 
-- **Inventory control** — batch-level stock with FEFO picking and FIFO cost, an immutable movement ledger, blind stock
+- **Inventory control:** batch-level stock with FEFO picking and FIFO cost, an immutable movement ledger, blind stock
   takes and cycle counts, reason-coded adjustments (incl. witnessed destruction), expiry and recall management,
   replenishment suggestions, DC distribution and store-to-store network trading.
-- **POS** — phone and tablet (portrait and landscape), tap on glass (Halo Dot SoftPOS adapter; simulated in demo), cash, PayShap, split tenders,
-  points, bonus-buy prompts, compliance checks (18+, patient authorisations, dispensers), offline cash selling with
-  idempotent sync, click & collect handover (order QR), member card QR, refunds, shifts and Z-reports.
-- **Omnichannel** — one national shop (Vantax (Pty) Ltd takes the online payments); orders routed to the right store or
+- **POS:** phone and tablet (portrait and landscape), Yoco card machines, tap on glass (Halo Dot SoftPOS adapter; simulated in demo), cash, PayShap, split tenders,
+  points, bonus-buy prompts, compliance checks (18+, patient authorisations, dispensers), offline selling (cash and card
+  machines) with idempotent sync, click & collect handover (order QR), member card QR, refunds, shifts and Z-reports.
+- **Omnichannel:** one national shop (Vantax (Pty) Ltd takes the online payments); orders routed to the right store or
   DC, where the sale posts; nationwide courier for non-medicinal items; click & collect, usually ready within 2 hours.
-- **Pricing & deals** — RRP, zones, scheduled changes, franchisee shelf prices, instant Rewards prices by tier and weekly
+- **Pricing & deals:** RRP, zones, scheduled changes, franchisee shelf prices, instant Rewards prices by tier and weekly
   member deals (Checkers Xtra Savings style), quantity breaks,
   near-expiry markdowns; % / R-off, bonus buys, BOGO, gifts with purchase, complementary deals, multi-buys, happy hours,
   points multipliers, usage caps.
-- **Herbal Holland Rewards** — free national membership, easy phone sign-up (SMS code), digital card, instant tier
+- **Herbal Holland Rewards:** free national membership, easy phone sign-up (SMS code), digital card, instant tier
   savings (Seed 3% → Harvest 10%), points (1 point = R1), birthday and referral rewards, consent centre, cross-store
   settlement between franchisees.
-- **Merch, made to order** — an embroidered collection (tee, hoodie, crewneck, cap, bucket hat, beanie; printed
+- **Merch, made to order:** an embroidered collection (tee, hoodie, crewneck, cap, bucket hat, beanie; printed
   tote) made one at a time in South Africa by our merch partner and couriered white-label to the customer (courier on
   top); no stock, no minimums. Files for the partner: `npx tsx scripts/merch-export.tsx` → `public/merch/print`
   (vector PDF, SVG, 300 dpi PNG); specs in the brand book (`/brand#merch`).
-- **Launch programme** — a Founding Members list with a referral ladder while the shop trades, numbered Founding
+- **Launch programme:** a Founding Members list with a referral ladder while the shop trades, numbered Founding
   Members (a Sprout floor for a set number of months), sign-ups tracked by source (`/club/join?src=…`),
   drops with tier early access and per-member limits, opening-weekend events with QR tickets, first-purchase welcome
   gifts, My Deals (weekly personal offers, HQ-funded), Learn quests, shareable savings cards, app push.
-- **Finance** — P&L, cash-ups, expenses, monthly franchise statements; every invoice emailed (SARS abridged/full tax
+- **Finance:** P&L, cash-ups, expenses, monthly franchise statements; every invoice emailed (SARS abridged/full tax
   invoices; non-VAT vendors supported).
-- **The books** — a general ledger per company (HQ and every franchisee, stores as a dimension) posted from the
+- **The books:** a general ledger per company (HQ and every franchisee, stores as a dimension) posted from the
   source events, never by hand: daily store journals, statements, stock, VAT201 working per SARS period (categories
   A, B, C, D and F), bank statement import with auto-matching, month-end checks and locks, an Accountant role.
-- **Trade (wholesale)** — business accounts with verified licences, ex-VAT trade prices and case packs, credit terms,
+- **Trade (wholesale):** business accounts with verified licences, ex-VAT trade prices and case packs, credit terms,
   pro formas and invoices, statements, and trade sales at the till.
-- **Marketing** — RFM segments, campaigns over SMS/email/push, POPIA consent ledger, CPA send windows, opt-out registry
+- **Marketing:** RFM segments, campaigns over SMS/email/push, POPIA consent ledger, CPA send windows, opt-out registry
   suppression, copy compliance lint, attribution and ROI. Social posts to Instagram, Facebook, LinkedIn, X and Threads
   through Postiz (free, self-hosted), screened so the brand never sells cannabis or CBD on social.
-- **Compliance** — members-only selling (every member accepts the versioned membership terms, recorded), SAHPRA
+- **Compliance:** members-only selling (every member accepts the versioned membership terms, recorded), SAHPRA
   medical mode (switchable to adult-use), licence gating per store, Schedule 0 CBD validation,
   Medicines Act s18A incentive exclusions, dispensing register, recalls, audit log.
 

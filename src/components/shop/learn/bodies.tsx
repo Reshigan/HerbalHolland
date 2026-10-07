@@ -1,4 +1,4 @@
-// Learn article bodies. Plain, factual editorial — general information, not medical
+// Learn article bodies. Plain, factual editorial: general information, not medical
 // or legal advice. Copy follows the brand rules: adults 18+, no medical claims.
 import Link from "next/link";
 import { AlertTriangle, Baby, Car, CheckCircle2, Clock, FileCheck2, FlaskConical, IdCard, Lock, Pill, ScanLine, Stethoscope, Wine } from "lucide-react";
@@ -17,7 +17,7 @@ function Pull({ children, by }: { children: React.ReactNode; by?: string }) {
   return (
     <figure className="my-12 border-l-4 border-brand-500 pl-6">
       <blockquote className="font-display text-2xl font-light leading-snug text-white sm:text-3xl">{children}</blockquote>
-      {by && <figcaption className="mt-3 text-sm text-ink-400">— {by}</figcaption>}
+      {by && <figcaption className="mt-3 text-sm text-ink-400">{by}</figcaption>}
     </figure>
   );
 }

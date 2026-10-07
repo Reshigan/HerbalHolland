@@ -1,4 +1,4 @@
-// Per-request Content-Security-Policy with a nonce (production only — development needs eval and the HMR socket).
+// Per-request Content-Security-Policy with a nonce (production only; development needs eval and the HMR socket).
 // See src/lib/csp.ts. Static files, API routes, prefetches and the build-time /brand page are left alone.
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";

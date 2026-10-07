@@ -333,8 +333,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     if (onlineRef.current) void api("/api/pos/session", { method: "DELETE", quiet401: true }).catch(() => undefined);
   }, [setAuth]);
 
-  /** `handBack`: when to offer the till back to who was signed in — "later" (after the sale or refund: handoffDone),
-   *  "now" (straight after a quick approval). Default: a dispenser finishes the sale; a manager approves and hands back. */
+  /** `handBack`: when to offer the till back to who was signed in, either "later" (after the sale or refund: handoffDone)
+   *  or "now" (straight after a quick approval). Default: a dispenser finishes the sale; a manager approves and hands back. */
   const switchUser = useCallback((reason: "dispenser" | "manager", then?: () => void, opts?: { handBack?: "now" | "later" }) => {
     afterUnlock.current = then ?? null;
     handoffRef.current = { prev: authRef.current.me, when: opts?.handBack ?? (reason === "manager" ? "now" : "later") };
@@ -424,7 +424,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         const code = buf;
         buf = "";
         if (code.length < 4 || now - last >= 120) return;
-        // Sheets own the keyboard — except a gift voucher scanned while the Sell tab's payment sheet is open, which
+        // Sheets own the keyboard, except a gift voucher scanned while the Sell tab's payment sheet is open, which
         // fills its tender (the handover sheet's voucher field takes a scan directly, as it has the focus).
         if (dialog && (!voucherCodeFrom(code) || tabRef.current !== "sell")) return;
         e.preventDefault();

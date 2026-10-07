@@ -1,4 +1,4 @@
-// Runs in <head> before the first paint (a tiny classic script — the strict CSP allows no other inline script). It marks
+// Runs in <head> before the first paint (a tiny classic script: the strict CSP allows no other inline script). It marks
 // that scripts run (html.js), decides whether the page moves (html.motion: not with reduced motion, Save-Data, 2 GB of
 // memory or less, or a device that couldn't keep up earlier in the visit; they get the still pictures instead. Not by
 // core count: Safari reports 4 for anything under 8, every iPhone), and settles the 18+ gate before anything is

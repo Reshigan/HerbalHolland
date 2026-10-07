@@ -132,7 +132,7 @@ export function NewStoreForm({ companies, regions, dcs, templates }: { companies
                   {companies.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
-                      {c.hint ? ` — ${c.hint}` : ""}
+                      {c.hint ? ` · ${c.hint}` : ""}
                     </option>
                   ))}
                 </Select>

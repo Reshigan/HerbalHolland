@@ -76,7 +76,7 @@ export async function saveCampaign(campaignId: string | null, _: ActionState, fd
   const promotionId = opt(fd, "promotionId");
   const promo = promotionId ? await db.promotion.findUnique({ where: { id: promotionId }, select: { id: true, code: true, ownerStoreId: true } }) : null;
   if (promotionId && !promo) fields.promotionId = "Promotion not found";
-  // An area manager may link an HQ promotion or one a store in their region runs — never another region's.
+  // An area manager may link an HQ promotion or one a store in their region runs, never another region's.
   else if (promo?.ownerStoreId && !network && !(await inScope(g.scope, promo.ownerStoreId))) fields.promotionId = "That promotion belongs to another region";
   if (message.includes("{{code}}") && !promo?.code) fields.message = "{{code}} needs a linked promotion with a promo code";
   const costCents = str(fd, "cost") ? parseRand(str(fd, "cost")) : 0;

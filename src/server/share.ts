@@ -7,7 +7,7 @@ import { safeEqual } from "./crypto";
 
 const sig = (payload: string) => createHmac("sha256", appSecret()).update(`share:${payload}`).digest("base64url").slice(0, 16);
 
-/** `/s/{referralCode}?n=…&s=…&t=…&k=…` — n: first name, s: cents saved, t: tier. The link also carries the referral. */
+/** `/s/{referralCode}?n=…&s=…&t=…&k=…` (n: first name, s: cents saved, t: tier). The link also carries the referral. */
 export function sharePath(m: { referralCode: string; firstName: string; savedCents: number; tier: TierKey }) {
   const q = new URLSearchParams({ n: m.firstName.slice(0, 24), s: String(Math.max(0, Math.round(m.savedCents))), t: m.tier });
   return `/s/${m.referralCode}?${q}&k=${sig(`${m.referralCode}?${q}`)}`;

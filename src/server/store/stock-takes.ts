@@ -1,5 +1,5 @@
 // Stock-take read models: list with progress/variance, the count sheet, and the
-// live variance review (counted vs on hand right now — what approval will post).
+// live variance review (counted vs on hand right now: what approval will post).
 import { db } from "@/server/db";
 
 export async function scopeLabels() {
@@ -89,7 +89,7 @@ export async function stockTakeSheet(storeId: string, id: string) {
   return { take, lines, createdBy: take.createdById ? u.get(take.createdById) ?? null : null, approvedBy: take.approvedById ? u.get(take.approvedById) ?? null : null };
 }
 
-/** On-hand now for each line's lot — approval posts counted − this. */
+/** On-hand now for each line's lot: approval posts counted − this. */
 export async function currentOnHand(storeId: string, lines: { variantId: string; batchId: string }[]) {
   const rows = await db.stockLevel.findMany({
     where: { storeId, variantId: { in: [...new Set(lines.map((l) => l.variantId))] } },

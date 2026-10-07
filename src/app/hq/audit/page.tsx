@@ -108,7 +108,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   // Online orders open by their code: look up the codes for this page's entries only.
   const orderIds = rows.filter((r) => r.entity === "Order" && r.entityId).map((r) => r.entityId!);
   const orderCode = new Map((orderIds.length ? await db.order.findMany({ where: { id: { in: orderIds } }, select: { id: true, code: true } }) : []).map((o) => [o.id, o.code]));
-  // Link only records that still exist (deleted ones — e2e clean-ups, erasures — would open a 404): one look-up per kind on this page.
+  // Link only records that still exist (deleted ones, such as e2e clean-ups and erasures, would open a 404): one look-up per kind on this page.
   const finders: Record<string, (ids: string[]) => Promise<{ id: string }[]>> = {
     TradeOrder: (i) => db.tradeOrder.findMany({ where: { id: { in: i } }, select: { id: true } }),
     TradeAccount: (i) => db.tradeAccount.findMany({ where: { id: { in: i } }, select: { id: true } }),

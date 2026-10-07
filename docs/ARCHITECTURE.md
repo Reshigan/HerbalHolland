@@ -2,8 +2,8 @@
 
 ## Shape: a modular monolith
 
-One Next.js 16 application, one PostgreSQL database, one codebase. Every surface — storefront, Herbal Holland Rewards, POS,
-store back office, HQ console, the books, the trade portal, reports, menu boards — shares the same domain layer, so a sale, a stock movement or a
+One Next.js 16 application, one PostgreSQL database, one codebase. Every surface (storefront, Herbal Holland Rewards, POS,
+store back office, HQ console, the books, the trade portal, reports, menu boards) shares the same domain layer, so a sale, a stock movement or a
 loyalty point means exactly the same thing everywhere.
 
 ```
@@ -32,8 +32,8 @@ Postgres handles comfortably. Services are separated by module, not by network h
 | HQ_ADMIN / HQ_STAFF | Network | Everything; HQ_ADMIN changes network settings |
 | AREA_MANAGER | Region | Their region's stores, customers, orders |
 | OWNER | Company | Every store their franchise company owns |
-| MANAGER / BUDTENDER | Store | Their store (budtenders read-only in the back office; sell at the POS) |
-| ACCOUNTANT | Company | Their company's books (`/books`) only — no store, POS or HQ pages (scope `NONE`) |
+| MANAGER / BUDTENDER | Store | Their store (member advisors read-only in the back office; sell at the POS) |
+| ACCOUNTANT | Company | Their company's books (`/books`) only; no store, POS or HQ pages (scope `NONE`) |
 
 `src/server/scope.ts` turns a user into a scope and every query into a scoped `where`. Pages *and* server actions re-check
 access (`storeForUser`), so a crafted request can't reach another franchisee's data. Other franchisees' retail prices
@@ -42,13 +42,13 @@ per-request `app.store_ids` setting can be layered under the same scopes.
 
 Analytics follow the same scopes (`tests/integration/scope.test.ts` pins them down):
 
-- **Store** — a manager's dashboard, reports and CSVs cover their store only; `?stores=company` is ignored for them.
-- **Owner** — lands on *All my stores* (`/store/{code}?stores=company`) when they own more than one: consolidated KPIs, a
+- **Store:** a manager's dashboard, reports and CSVs cover their store only; `?stores=company` is ignored for them.
+- **Owner:** lands on *All my stores* (`/store/{code}?stores=company`) when they own more than one: consolidated KPIs, a
   store comparison with drill-down into each store and CSV export. Every report takes the same toggle.
-- **HQ** — the network overview drills region → stores (`/hq/reports/sales-by-store?stores=region:XX`) → store
+- **HQ:** the network overview drills region → stores (`/hq/reports/sales-by-store?stores=region:XX`) → store
   (`/store/{code}`, the store's own dashboard) → day → hour; categories drill to their products. Area managers get the
   same console limited to their region, whatever the URL asks for. Every CSV export is audited (`report.export`).
-- **Trade** — the trade sales report (HQ and area managers) covers WHOLESALE sales at the stores in scope; a store's own
+- **Trade:** the trade sales report (HQ and area managers) covers WHOLESALE sales at the stores in scope; a store's own
   "Trade sales at this store" covers trade orders collected there and trade sales rung up at its tills. Trade aged
   balances read HQ's trade ledger: the whole network for HQ, and for a region the accounts that buy there or are served
   by a DC there.
@@ -62,7 +62,7 @@ FIFO cost from the lots), record tenders, redeem/earn points, update customer st
 rollups. The tax invoice is emailed after commit. Refunds are negative sales that return units to the same batches.
 
 **Offline POS:** the client caches a bootstrap (catalogue, prices, promotions, settings, staff) and prices with the same
-pure libraries. Offline sales (cash only) get device-local receipt numbers (`STORE-<device prefix><seq>`) and a client
+pure libraries. Offline sales (cash, or card on a Yoco machine or bank terminal) get device-local receipt numbers (`STORE-<device prefix><seq>`) and a client
 UUID, queue in an outbox, and sync to an idempotent endpoint (the UUID is the sale id). Compliance exceptions found on
 sync are written to the audit log rather than rejecting a sale that already happened.
 
@@ -84,7 +84,7 @@ any time. Stock takes snapshot lots, collect (blind) counts and post COUNT varia
 **Member support, returns, reviews and search** (`src/lib/support.ts`, `src/lib/returns.ts`, `src/lib/search.ts`;
 `src/server/support.ts`, `src/server/returns.ts`, `src/server/reviews.ts`, `src/server/shop/search.ts`, `src/server/uploads.ts`):
 
-- `SupportTicket` (number `ST-…`, who's asking — a member id or a guest's name/email/phone — subject, category, the order
+- `SupportTicket` (number `ST-…`, who's asking (a member id or a guest's name/email/phone), subject, category, the order
   code and its store, status OPEN → WAITING_MEMBER ⇄ OPEN → RESOLVED, priority, assignee, the SLA deadlines
   `firstResponseDueAt`/`resolveDueAt` set in SAST business days) and `SupportMessage` (MEMBER / STAFF / SYSTEM, an
   optional photo `Upload`). HQ sees the network, area managers their region's stores' tickets, store managers the
@@ -94,7 +94,7 @@ any time. Stock takes snapshot lots, collect (blind) counts and post COUNT varia
   photos, status REQUESTED → APPROVED → COLLECTION_BOOKED → RECEIVED → REFUNDED, or DECLINED, courier/waybill, the refund
   amount and reference). The refund runs `refundOrderAmount()` (`src/server/orders.ts`: Yoco/Peach refund by amount,
   idempotent per return; manual for in-store or simulated payments) and then `refundSale()` for the credit note at the
-  store — units back into the same lots where staff tick it, points reversed, rollups adjusted.
+  store: units back into the same lots where staff tick it, points reversed, rollups adjusted.
 - `Review` gains `photoUploadIds`, `hidden` (+ reason, moderator, time): hidden reviews never show or count.
 - `Upload` rows hold members' photos (JPEG/PNG by their bytes, ≤ 5 MB), stored through `src/server/storage.ts` and
   served by `/media/[id]` after an access check (public for a live review's photo; the member and the staff in scope
@@ -106,13 +106,13 @@ any time. Stock takes snapshot lots, collect (blind) counts and post COUNT varia
   shopper may see.
 
 **Trade (wholesale) channel** (`src/lib/trade.ts`, `src/server/trade/*`, `src/server/pricing.ts` `tradeQuote`/`tradeRange`,
-`src/server/sales.ts` `postTradeSale`): businesses — pharmacies, independent retailers, cafés, practices — buy at ex-VAT
+`src/server/sales.ts` `postTradeSale`): businesses (pharmacies, independent retailers, cafés, practices) buy at ex-VAT
 trade prices, never the franchise stores and never THC.
 
 - Models: `TradeAccount` (number `TA-…`, legal and trading name, VAT/registration numbers, billing and delivery
   addresses, status PENDING → APPROVED ⇄ ON_HOLD → CLOSED, terms PREPAID or ACCOUNT with `creditLimitCents` and
   `paymentDays`, the `classes` it may buy, an optional TRADE `priceListId` and `dcId`), `TradeBuyer` (the people who
-  order: OWNER or BUYER, sign in with a code emailed to them — `Otp.email`, `Session.tradeBuyerId`, cookie `hh_trade`),
+  order: OWNER or BUYER, signing in with a code emailed to them; `Otp.email`, `Session.tradeBuyerId`, cookie `hh_trade`),
   `TradeOrder` (number `TO-…`, the fulfilling `storeId`, `fulfilment` COURIER from the DC or COLLECT at a retail store,
   status PENDING_PAYMENT → PLACED → PICKING → SHIPPED | READY → COLLECTED, or CANCELLED; `payMethod` EFT or ACCOUNT;
   ex-VAT `subtotalCents`, `deliveryCents`, `handlingCents`, `vatCents`, inclusive `totalCents`; `collectionCode`;
@@ -122,7 +122,7 @@ trade prices, never the franchise stores and never THC.
   `channel: WHOLESALE` mark every trade sale; `PriceList.kind = TRADE` holds ex-VAT prices with quantity breaks;
   `Variant.caseQty` is the case pack; `DailyStoreStat.accountCents` rolls up on-account tenders.
 - Pricing: `quote({ channel: "WHOLESALE", tradeAccountId })` prices from the account's TRADE list, else the live TRADE
-  lists by priority, else `Variant.wholesaleCents` — ex VAT, VAT 15% per line rounded half up to the cent, totals = ex +
+  lists by priority, else `Variant.wholesaleCents`, all ex VAT; VAT is 15% per line, rounded half up to the cent, and totals = ex +
   VAT. Tiers, member and zone/channel lists, markdowns, My Deals and shelf prices never apply; promotions only when
   their channels include WHOLESALE (rounded to the cent per unit so an order line carries the net unit price).
   `tradeRange(storeId, account, { q, category, page })` is the paginated catalogue the portal shows.
@@ -134,7 +134,7 @@ trade prices, never the franchise stores and never THC.
   within the credit limit (balance + open on-account orders + this order ≤ limit) with the stock reserved at the store
   (`inventory.availability` subtracts PLACED/PICKING/READY trade lines like open online orders). `advanceTradeOrder`
   picks, makes ready (collection code by email and text), ships or hands over (ID checked): the WHOLESALE `Sale` posts
-  at the fulfilling store through `postSaleTx` — FEFO lots for what shipped (short lines keep `shippedQty`), one ACCOUNT
+  at the fulfilling store through `postSaleTx`, with FEFO lots for what shipped (short lines keep `shippedQty`), one ACCOUNT
   or EFT tender, the account's buyer block for the full tax invoice, the `TI-…` number as the sale number, courier or
   handling as the sale's extra, and the ledger INVOICE (due after `paymentDays` on account; due on the day for EFT so it
   nets against the payment). HQ collected the money for online trade orders, so their EFT/ACCOUNT tenders roll up in
@@ -180,7 +180,7 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
     checks 1.1 s; a franchisee's are under 30 ms (`scripts/bench.ts`).
 - **Store trading posts per day, not per sale.** The day's sales, VAT and tenders come from `DailyStoreStat`, the same
   rollup the franchise statement reads, so the two agree to the cent. Stock comes from that day's `StockMovement`
-  costs, plus `revalueCents` — what a lot's value moved by beyond qty × cost when receiving re-averaged its cost — so
+  costs, plus `revalueCents` (what a lot's value moved by beyond qty × cost when receiving re-averaged its cost), so
   the stock account equals the stock valuation to the cent.
 - **Between HQ and franchisees.**
   - Everything HQ collects or funds for a store moves a franchisee's "Herbal Holland current account" (`hq`) and
@@ -206,12 +206,12 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
 
 | Concern | Approach |
 |---|---|
-| Reporting load | Daily rollups (`DailyStoreStat`, `DailyVariantStat`) are incremented inside the posting transaction with `INSERT … ON CONFLICT DO UPDATE`, so network dashboards and most reports never scan raw sales. Raw queries are always bounded by store(s) and dates. A sale rolls up under its channel — `POS`, `ONLINE`, or `WHOLESALE` for trade sales (the trade portal's orders, fulfilled by a DC or collected at a store, and trade sales rung up at a till) — with each tender in its own column: `accountCents` holds trade sales on account (invoiced on HQ's trade ledger, not money), so finance derives money taken (`moneyCents`) and what HQ collected for a store (`hqCollectedCents` = online, vouchers, trade) from the same rows (`src/server/finance.ts`). The trade reports — sales by account, product and month, and the FIFO aged balances (`src/lib/trade-ageing.ts`) — read `Sale` and `TradeLedgerEntry` directly: trade volume is a fraction of retail and the queries stay bounded by stores and dates. `DailyVariantStat` has no channel column (product figures are per store and day across channels). |
+| Reporting load | Daily rollups (`DailyStoreStat`, `DailyVariantStat`) are incremented inside the posting transaction with `INSERT … ON CONFLICT DO UPDATE`, so network dashboards and most reports never scan raw sales. Raw queries are always bounded by store(s) and dates. A sale rolls up under its channel (`POS`, `ONLINE`, or `WHOLESALE` for trade sales: the trade portal's orders, fulfilled by a DC or collected at a store, and trade sales rung up at a till), with each tender in its own column. `accountCents` holds trade sales on account (invoiced on HQ's trade ledger, not money), so finance derives money taken (`moneyCents`) and what HQ collected for a store (`hqCollectedCents` = online, vouchers, trade) from the same rows (`src/server/finance.ts`). The trade reports (sales by account, product and month, and the FIFO aged balances in `src/lib/trade-ageing.ts`) read `Sale` and `TradeLedgerEntry` directly: trade volume is a fraction of retail and the queries stay bounded by stores and dates. `DailyVariantStat` has no channel column (product figures are per store and day across channels). |
 | Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; partition them by month (Postgres declarative partitioning) once they pass ~100M rows. |
 | Read traffic | Stateless app servers scale horizontally; send reports and the menu boards to a read replica. |
-| Hot rows | Stock rows are per store × SKU × batch; loyalty balances per customer; rollup rows per store × day — contention stays local to one store. Counters are only used for low-volume sequences (POs, members). |
-| Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily`, `/api/cron/staff-push`, `/api/cron/operations` — `src/server/jobs.ts`), statement emails, invoice emails, staff pushes and scheduled exports run outside the request path; at scale move them to a Postgres-backed queue (e.g. pg-boss/Graphile Worker) or SQS with a worker process built from the same codebase. |
-| Operations models | `StaffPushSubscription` (a staff phone's Web Push subscription) and `StaffPushEvent` (sent-event keys, so polls never notify twice); `SupplierInvoice` (a store's supplier invoice with its `Upload`, paid/queried; a stock order's — from a DC or another store — is put on when it's received, with no upload and `onStatement`, and settled by the daily job once its month's statement is drawn up); `StoreTask` (one line of a store's opening checklist); `ScheduledExport` (a report to email as a signed CSV link weekly or monthly). Plain id columns, no relations, so they append to the schema without touching the core models. |
+| Hot rows | Stock rows are per store × SKU × batch; loyalty balances per customer; rollup rows per store × day, so contention stays local to one store. Counters are only used for low-volume sequences (POs, members). |
+| Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily`, `/api/cron/staff-push` and `/api/cron/operations`, in `src/server/jobs.ts`), statement emails, invoice emails, staff pushes and scheduled exports run outside the request path; at scale move them to a Postgres-backed queue (e.g. pg-boss/Graphile Worker) or SQS with a worker process built from the same codebase. |
+| Operations models | `StaffPushSubscription` (a staff phone's Web Push subscription) and `StaffPushEvent` (sent-event keys, so polls never notify twice); `SupplierInvoice` (a store's supplier invoice with its `Upload`, paid/queried; a stock order's invoice, from a DC or another store, is put on when it's received, with no upload and `onStatement`, and settled by the daily job once its month's statement is drawn up); `StoreTask` (one line of a store's opening checklist); `ScheduledExport` (a report to email as a signed CSV link weekly or monthly). Plain id columns, no relations, so they append to the schema without touching the core models. |
 | Segments over millions of members | Denormalised customer stats (visits, lifetime, first/last purchase, points, tier) are updated on every purchase, so RFM segments are indexed range queries. |
 | Catalogue sync to devices | Bootstrap payload per store (a few hundred SKUs); move to delta sync (updatedAt watermark) if the range grows past a few thousand SKUs. |
 
@@ -224,7 +224,7 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   password, not the person's name or email). A password someone else sets is temporary: random (`temporaryPassword`),
   it must be replaced at first sign-in and stops working after 72 hours; until it's replaced it is no sign-in at all.
 - Lockouts and rate limits live in the database, so they hold across servers (`src/server/lockout.ts`,
-  `src/server/throttle.ts` — the `Throttle` table, counted under an advisory lock): 8 wrong passwords lock the account's
+  and `src/server/throttle.ts`, whose `Throttle` table is counted under an advisory lock): 8 wrong passwords lock the account's
   password sign-in for 15 minutes (sign-in, till pairing and the change-password form); 30 failures from one connection
   in 15 minutes pause sign-in from it; 5 wrong PINs lock every till for 5 minutes, and 10 in a day switch the PIN off
   until a manager sets a new one (`User.pinDisabledAt`). Each is audited (`auth.failed`, `auth.lockout`,
@@ -247,9 +247,9 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   server refuses to start without one of 32+ characters (`src/instrumentation.ts`), and warns when `DEMO_MODE` is on.
   Tokens are compared in constant time with a length check first (`safeEqual`).
 - Decisions two people (or a retry) could make at once are taken once: the record is claimed first (compare-and-set on
-  its status) or row-locked — order moves and cancellation refunds, sale refunds, return refunds through a gateway
+  its status) or row-locked. That covers order moves and cancellation refunds, sale refunds, return refunds through a gateway
   (claimed before the gateway is called), stock orders and takes, trade orders, credit and payments, deposits, points,
-  My Deals, merch production orders, campaign sends. Checkout and till sales lock the member, then the promotion,
+  My Deals, merch production orders and campaign sends. Checkout and till sales lock the member, then the promotion,
   then the stock (`src/server/locks.ts`, always that order) and re-check patient grams, drop limits, welcome gifts and
   promotion caps, and the last unit, under those locks. Gateway webhooks are de-duplicated by event id
   (`PaymentEvent`); a payment that arrives for a cancelled order goes to `payment.review`. Cron jobs run single-flight.

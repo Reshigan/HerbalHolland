@@ -1,5 +1,5 @@
 // Renders the files the merch partner embroiders and prints from, from the artwork in src/components/merch/art.tsx:
-//   public/merch/print/<design>.pdf   vector master at actual size, font embedded — for digitising and DTF
+//   public/merch/print/<design>.pdf   vector master at actual size, font embedded, for digitising and DTF
 //   public/merch/print/<design>.svg   the same vector master as SVG
 //   public/merch/print/<design>.png   300 dpi, transparent, exact size
 //   public/social/<key>.jpg           1080 px squares for social posts (--social)
@@ -29,7 +29,7 @@ const svgOf = (key: ArtKey, size: { width: string; height: string }, ink?: strin
   );
 };
 
-/** Stamps a PNG as 300 dpi (pHYs chunk after IHDR) — print partners check it. */
+/** Stamps a PNG as 300 dpi (pHYs chunk after IHDR). Print partners check it. */
 function withDpi(png: Buffer) {
   const data = Buffer.alloc(9);
   const ppm = Math.round(DPI / 0.0254);

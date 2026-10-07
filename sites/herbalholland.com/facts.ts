@@ -1,4 +1,4 @@
-// herbalholland.com — the real-world facts the pages use, and only these. The site builds without a database, so
+// The real-world facts the herbalholland.com pages use, and only these. The site builds without a database, so
 // nothing here comes from the platform's demo data or seed: no demo registration numbers, addresses or partners.
 // Change a fact here and rebuild (npx tsx sites/herbalholland.com/build.ts); the words around it live in ./content.
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
@@ -146,7 +146,7 @@ export const openingStores = () => FACTS.stores.filter((s) => s.status === "open
 export const nextOpening = () => openingStores()[0]?.opens ?? null;
 
 /**
- * The new stores: the ones opening on the next opening day (Hillcrest and Hilton, in the hills) — or, once every store
+ * The new stores: the ones opening on the next opening day (Hillcrest and Hilton, in the hills) or, once every store
  * is open, the ones that opened last. The home page's "Holland, meet the Hills." chapter and the km story are theirs.
  */
 export const newStores = () => {

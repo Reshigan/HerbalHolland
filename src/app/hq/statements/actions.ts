@@ -53,7 +53,7 @@ const paymentFailure = (e: unknown): ActionState => {
   throw e;
 };
 
-/** HQ admin: a payment against a store's statement — the store paying HQ, or HQ paying the store. Posts to both books. */
+/** HQ admin: a payment against a store's statement (the store paying HQ, or HQ paying the store). Posts to both books. */
 export async function recordPayment(storeId: string, month: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("admin");
   if (!g || !(await inScope(g.scope, storeId))) return DENIED;

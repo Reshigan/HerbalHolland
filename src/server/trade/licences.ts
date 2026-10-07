@@ -53,7 +53,7 @@ export async function standingOf(account: LicensedAccount, opts: { kind?: string
 
 /**
  * For showing an account's licences: the standing of the ones it needs, then the lines for any other licence it has
- * sent (ahead of a range it wants added, say) — on file, but not counted for or against it — and every record.
+ * sent (ahead of a range it wants added, say), on file but not counted for or against it, and every record.
  */
 export async function licenceOverview(account: LicensedAccount) {
   const records = await licenceRecords(account.id);
@@ -66,7 +66,7 @@ export async function licenceOverview(account: LicensedAccount) {
   };
 }
 
-/** Why the account can't be supplied right now because of its licences — or null when they're in order. */
+/** Why the account can't be supplied right now because of its licences, or null when they're in order. */
 export async function licenceProblem(account: LicensedAccount, t?: Tx | typeof db): Promise<string | null> {
   const s = await standingOf(account, { t });
   return s.ok ? null : s.problems.join("; ");

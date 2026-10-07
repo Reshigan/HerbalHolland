@@ -16,7 +16,7 @@ export async function composerOptions(storeIds: string[], storeId?: string | nul
   return {
     selectedStore: selected,
     regions,
-    promotions: promos.map((p) => ({ id: p.id, code: p.code, label: `${p.name} — ${describePromo(p as PromoInput)}${p.code ? ` · ${p.code}` : " · no code"}` })),
+    promotions: promos.map((p) => ({ id: p.id, code: p.code, label: `${p.name}: ${describePromo(p as PromoInput)}${p.code ? ` · ${p.code}` : " · no code"}` })),
     footers: { email, text, push },
   };
 }

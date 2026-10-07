@@ -1,6 +1,6 @@
 "use client";
 // A scanned batch code (the code on the pack, or its lab-certificate QR): status, dates, potency, lab, stock of that
-// lot here — and "Add to sale" for a released, in-date lot of a product this till sells.
+// lot here, and "Add to sale" for a released, in-date lot of a product this till sells.
 import { AlertOctagon, BadgeCheck, FlaskConical, PauseCircle, ScanLine } from "lucide-react";
 import { fmtDate } from "@/lib/format";
 import { Alert, Chip, PosButton, Sheet } from "../ui";

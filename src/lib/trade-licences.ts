@@ -1,6 +1,6 @@
 // The licences and registrations a trade account must hold before it may buy, and whether it holds them. Pure: the
 // application form (live, as the applicant picks the kind of business and the ranges), the portal, HQ, the till and
-// the daily job all read these same rules. The rule set is the business's compliance policy — reviewed by counsel
+// the daily job all read these same rules. The rule set is the business's compliance policy, reviewed by counsel
 // (docs/COMPLIANCE.md "Trade (wholesale)"); THC is never traded, so no cannabis licence appears here.
 import { dayKey, fmtDate } from "./format";
 
@@ -39,8 +39,8 @@ export const isTradeLicenceKind = (v: unknown): v is TradeLicenceKind => typeof 
 
 /**
  * When each licence is required: the account is one of `kinds` (any kind when absent), buys at least one of `classes`
- * (any range when absent) and, where `company` is set, is (true) or isn't (false) a registered company — a sole
- * proprietor gives no registration number. A licence named by several rules is required once.
+ * (any range when absent) and, where `company` is set, is (true) or isn't (false) a registered company (a sole
+ * proprietor gives no registration number). A licence named by several rules is required once.
  */
 export const TRADE_LICENCE_RULES: readonly { licence: TradeLicenceKind; kinds?: readonly string[]; classes?: readonly string[]; company?: boolean; why: string }[] = [
   { licence: "PHARMACY_LICENCE", kinds: ["PHARMACY"], why: "A pharmacy trades under its licence to own the pharmacy" },

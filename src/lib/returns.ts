@@ -29,7 +29,7 @@ export const RETURN_WINDOWS = { coolingOffDays: 7, defectMonths: 6 } as const;
 
 /** Never returned for a change of mind: licensed medicines (dispensed under a SAHPRA authorisation; faults go through the dispensary). */
 export const NO_COOLING_OFF_CLASSES: RegClass[] = ["THC"];
-/** Consumables and skin care: a change-of-mind return must be unopened and sealed (ECTA s42(2) — counsel to confirm). */
+/** Consumables and skin care: a change-of-mind return must be unopened and sealed (ECTA s42(2), for counsel to confirm). */
 export const SEALED_CLASSES: RegClass[] = ["CBD", "CBD_FOOD", "CBD_TOPICAL", "SUPPLEMENT"];
 
 const endOfDaySA = (d: Date) => new Date(`${dayKey(d)}T23:59:59.999+02:00`);
@@ -152,7 +152,7 @@ export type RefundBreakdown = { linesCents: number; deliveryCents: number; total
 /**
  * What a return refunds: each returned unit's share of its line (what was actually paid, after member savings and
  * deals), plus the delivery fee when the whole order has come back (this request together with any refunded before
- * it) — except for a change of mind, where the fee covers the courier that collects the parcel (the direct cost of
+ * it), except for a change of mind, where the fee covers the courier that collects the parcel (the direct cost of
  * returning, ECTA s44). Never more than was paid in money: points come back as points.
  */
 export function refundBreakdown(a: { lines: RefundLine[]; items: ReturnItem[]; deliveryCents: number; reason: ReturnReasonKey; paidCents?: number | null }): RefundBreakdown {

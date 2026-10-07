@@ -26,7 +26,7 @@ export async function addPoints(
 }
 
 /**
- * Spends points — only if the member has them, in one statement, so two redemptions at once can't spend the same
+ * Spends points only if the member has them, in one statement, so two redemptions at once can't spend the same
  * points. `overdraw`: a till sale queued offline records what the member was given (loss prevention flags it).
  */
 export async function redeemPoints(t: Tx, a: { customerId: string; points: number; storeId?: string | null; saleId?: string; orderId?: string; overdraw?: boolean }) {

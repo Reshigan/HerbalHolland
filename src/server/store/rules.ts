@@ -33,7 +33,7 @@ export function stockStatus(r: { onHand: number; available: number; reorderPoint
   return "HEALTHY";
 }
 
-/** Units above target — what could be listed for other stores to buy. */
+/** Units above target: what could be listed for other stores to buy. */
 export const overstockUnits = (available: number, parLevel: number, avgDaily: number) => Math.max(0, available - targetStock(parLevel, avgDaily));
 
 /** Days of cover as a short label: "12 d", "<1 d", "No sales". */

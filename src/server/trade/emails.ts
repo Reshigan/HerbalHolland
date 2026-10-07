@@ -272,7 +272,7 @@ export function tradeOrderEmail(kind: TradeOrderEvent, a: { order: TradeOrderEma
   };
 }
 
-/** The ready-to-collect text: order, store, code, ID — one GSM segment. */
+/** The ready-to-collect text (order, store, code, ID) in one GSM segment. */
 export const tradeReadySms = (o: { number: string; storeName: string; collectionCode: string }) =>
   `Trade order ${o.number} is ready at Herbal Holland ${o.storeName}. Collection code ${o.collectionCode}. Bring your ID (18+).`;
 

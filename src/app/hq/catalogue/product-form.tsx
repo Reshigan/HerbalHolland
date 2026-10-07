@@ -54,7 +54,7 @@ export function ProductForm({
   // A new product starts with no class: the class decides which rules apply, so nobody inherits CBD by accident.
   const [chosen, setChosen] = useState<RegClass | "">((p?.regClass as RegClass) ?? "");
   const regClass = (chosen || "SUPPLEMENT") as RegClass; // lookups only; nothing is checked until a class is chosen
-  // Rule issues show once someone has worked on the facts (or tried to save) — not as red errors on an empty form.
+  // Rule issues show once someone has worked on the facts (or tried to save), not as red errors on an empty form.
   const [touched, setTouched] = useState(!!p);
   const [perPack, setPerPack] = useState(p?.cbdMgPerPack?.toString() ?? "");
   const [perDay, setPerDay] = useState(p?.cbdMgPerDay?.toString() ?? "");
@@ -194,7 +194,7 @@ export function ProductForm({
                         <option value="ml">ml</option>
                       </Select>
                     </div>
-                    <p className="mt-1.5 text-xs text-ink-500">One pack, as on the label{regClass === "CBD_FOOD" ? " — the CBD limit is worked out from it" : ""}</p>
+                    <p className="mt-1.5 text-xs text-ink-500">One pack, as on the label{regClass === "CBD_FOOD" ? "; the CBD limit is worked out from it" : ""}</p>
                     <FieldError name="netContent" />
                   </div>
                 )}
@@ -407,7 +407,7 @@ export function ProductForm({
                         </div>
                         {flags.map((f) => (
                           <p key={f.term} className="mt-1 text-xs font-medium text-rose-600">
-                            “{f.term}” — {f.reason}
+                            “{f.term}”: {f.reason}
                           </p>
                         ))}
                       </div>

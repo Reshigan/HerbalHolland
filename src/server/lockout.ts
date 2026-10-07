@@ -57,7 +57,7 @@ const PIN_DAY_MAX = 10;
 export const PIN_DISABLED = "Your PIN is locked. Ask a manager to reset it";
 const pinKey = (userId: string) => `pin:${userId}`;
 
-/** Whether the PIN has been switched off (ten wrong in 24 hours) — it stays off until a manager sets a new one. */
+/** Whether the PIN has been switched off (ten wrong in 24 hours). It stays off until a manager sets a new one. */
 export const pinDisabled = (user: { pinDisabledAt: Date | null }) => !!user.pinDisabledAt;
 /** Counts a wrong PIN towards the daily ten; at ten the PIN is switched off (true). */
 export async function recordPinFailure(userId: string) {

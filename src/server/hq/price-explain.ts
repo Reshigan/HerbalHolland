@@ -47,7 +47,7 @@ export function explainPrice(v: ExplainInput, lists: PriceListRule[], ctx: Price
 
   const storeShelf = ctx.channel === "POS" && v.storeShelfCents != null;
   const zone = storeShelf ? undefined : live.filter((l) => l.kind !== "MEMBER").find((l) => priceAt(l, v.variantId, v.rrpCents, 1));
-  // The rule resolvePrice names (member or quantity-break list) — match it back to a list.
+  // The rule resolvePrice names (member or quantity-break list): match it back to a list.
   const incentive = result.rule ? live.find((l) => result.rule === l.name || result.rule?.startsWith(`${l.name} (`)) : undefined;
 
   const verdicts: ListVerdict[] = ordered.map((l) => {

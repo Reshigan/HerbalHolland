@@ -1,5 +1,5 @@
 // Scheduled report exports ("Email me this weekly/monthly"): the daily job re-runs each due report as the person who
-// scheduled it (their scope, their filters), stores the CSV and emails the staff recipients a signed download link —
+// scheduled it (their scope, their filters), stores the CSV and emails the staff recipients a signed download link,
 // never the file itself. Recipients are colleagues whose role may run that report and who may see what it covers: a
 // network-wide report goes to HQ admin and the HQ team only, a region's or a store's to people whose scope includes
 // every store in it (checked again at every run and at download); the link is HMAC-signed, expires after 30 days,
@@ -89,7 +89,7 @@ export async function mayReceive(u: Who, reach: Reach) {
 }
 
 /**
- * Recipients must be active staff whose role may run the report and who may see what it covers (`reach`) — never
+ * Recipients must be active staff whose role may run the report and who may see what it covers (`reach`): never
  * outside addresses, never people the report or its stores are closed to.
  */
 export async function validateRecipients(raw: string[], def: ReportDef, reach?: Reach) {

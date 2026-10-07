@@ -1,6 +1,6 @@
 // Every automatic ledger source, by name. Each rule set exports its handlers and the sources to queue nightly:
-// ./store — the store side (trading days, stock, cash, expenses, supplier invoices, stock orders);
-// ./hq — HQ and the network (online collections, vouchers, points, trade ledger, statements and their payments).
+// ./store: the store side (trading days, stock, cash, expenses, supplier invoices, stock orders);
+// ./hq: HQ and the network (online collections, vouchers, points, trade ledger, statements and their payments).
 import type { SourceHandler } from "../core";
 import { STORE_SOURCES, storeBackfill, storeNightly } from "./store";
 import { HQ_SOURCES, hqBackfill, hqNightly } from "./hq";

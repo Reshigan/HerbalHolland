@@ -21,7 +21,7 @@ export async function readEvent(fd: FormData, before: StoreEvent | null, now = n
   const blurb = str(fd, "blurb");
   if (blurb.length < 10 || blurb.length > 500) fields.blurb = "10–500 characters";
   const flag = screenCopy(`${title} ${blurb}`)[0];
-  if (flag) fields.blurb = `“${flag.term}” — ${flag.reason}`;
+  if (flag) fields.blurb = `“${flag.term}”: ${flag.reason}`;
   const startsAt = parseLocal(str(fd, "startsAt"));
   const endsAt = parseLocal(str(fd, "endsAt"));
   if (!startsAt) fields.startsAt = "Pick the start date and time";
@@ -33,7 +33,7 @@ export async function readEvent(fd: FormData, before: StoreEvent | null, now = n
   if (capacity == null || capacity < 1 || capacity > 5_000) fields.capacity = "1 to 5,000 people";
   else if (before) {
     const taken = await db.rsvp.count({ where: { eventId: before.id } });
-    if (capacity < taken) fields.capacity = `${taken.toLocaleString()} members already hold tickets — capacity can't go below that`;
+    if (capacity < taken) fields.capacity = `${taken.toLocaleString()} members already hold tickets, so capacity can't go below that`;
   }
   if (Object.keys(fields).length) return { fields };
   return { data: { title, slug, blurb, startsAt: startsAt!, endsAt: endsAt!, capacity: capacity! } };

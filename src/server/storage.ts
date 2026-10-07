@@ -1,5 +1,5 @@
-// File storage for uploads (banking slips). Cloudflare R2 — or any S3-compatible store, e.g. MinIO on your own
-// server — when S3_BUCKET is set; otherwise files on this server's disk under UPLOAD_DIR (include it in backups).
+// File storage for uploads (banking slips). Cloudflare R2 (or any S3-compatible store, e.g. MinIO on your own
+// server) when S3_BUCKET is set; otherwise files on this server's disk under UPLOAD_DIR (include it in backups).
 // Files are always served through the app (auth-checked, audited), never linked to the store directly.
 import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";

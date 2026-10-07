@@ -2,7 +2,7 @@
 // above the minimum, by courier from the DC or click & collect at a store. EFT orders wait (PENDING_PAYMENT, no
 // stock held) for HQ to confirm the payment; on-account orders are PLACED at once within the credit limit and
 // reserve stock at their store (inventory.availability). Shipping (courier) or handover (collect) posts the WHOLESALE
-// Sale at that store through postSaleTx — FEFO lots, the TI-… tax invoice, the ledger INVOICE — and emails the buyer.
+// Sale at that store through postSaleTx (FEFO lots, the TI-… tax invoice, the ledger INVOICE) and emails the buyer.
 import { randomUUID } from "node:crypto";
 import { db, tx, Prisma, type Tx } from "../db";
 import { audit, SYSTEM, type Actor } from "../audit";
@@ -90,7 +90,7 @@ export type CollectStore = {
 
 /**
  * Stores a trade basket can be collected from: active retail stores with click & collect whose licences cover the
- * lines' classes, the account's province first, then the rest by name — a page at a time (never the whole network),
+ * lines' classes, the account's province first, then the rest by name, a page at a time (never the whole network),
  * each with the basket's availability there (all in stock, or which lines are short and by how much).
  */
 export async function collectStoresFor(
@@ -155,7 +155,7 @@ export type PlaceTradeOrderInput = {
 export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   const account = await db.tradeAccount.findUnique({ where: { id: input.accountId } });
   if (!account) throw new TradeOrderError("Unknown trade account");
-  // A held account (overdue, or held by HQ) may still order prepaid — the hold stops credit, not trade — as its emails say.
+  // A held account (overdue, or held by HQ) may still order prepaid (the hold stops credit, not trade), as its emails say.
   const canOrder = account.status === "APPROVED" || (account.status === "ON_HOLD" && input.payMethod === "EFT");
   if (account.status === "ON_HOLD" && account.holdReason === "licence") throw new TradeOrderError((await licenceProblem(account)) ?? "This trade account's licences need attention. See Account › Licences.");
   if (!canOrder) throw new TradeOrderError(account.status === "ON_HOLD" ? `${ACCOUNT_STATUS_PROBLEM.ON_HOLD}, or pay this order by EFT` : ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
@@ -315,7 +315,7 @@ export type AdvanceOpts = {
   trackingNo?: string | null;
   /** Lines that ship or hand over short: the rest ship in full. */
   shortShip?: { lineId: string; shippedQty: number }[];
-  /** collect: the store checked the collector's ID (18+) and the collection code — required. */
+  /** collect (required): the store checked the collector's ID (18+) and the collection code. */
   idChecked?: boolean;
   staffId?: string | null;
   deviceId?: string | null;
@@ -325,10 +325,10 @@ export type AdvanceOpts = {
 
 /**
  * Moves an order on. pick → PICKING. ready (collect) → READY: the buyer gets the collection code by email and text.
- * ship (courier) and collect (collect, ID checked) post the WHOLESALE Sale at the fulfilling store through postSaleTx
- * — FEFO lots for what shipped (short lines keep `shippedQty`), one ACCOUNT or EFT tender, the account's buyer block,
+ * ship (courier) and collect (collect, ID checked) post the WHOLESALE Sale at the fulfilling store through postSaleTx:
+ * FEFO lots for what shipped (short lines keep `shippedQty`), one ACCOUNT or EFT tender, the account's buyer block,
  * the TI-… invoice as the sale number, the ledger INVOICE (due after the account's payment days on account; due on
- * the day for EFT, so it nets against the payment) — then email the news and the tax invoice. cancel releases the
+ * the day for EFT, so it nets against the payment). Then they email the news and the tax invoice. cancel releases the
  * reservation; a paid EFT order is noted "refund by hand" (no money moves by itself).
  */
 export async function advanceTradeOrder(orderId: string, action: TradeOrderAction, actor: Actor, opts: AdvanceOpts = {}) {

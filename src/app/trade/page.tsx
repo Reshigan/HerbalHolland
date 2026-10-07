@@ -1,5 +1,5 @@
 // The trade portal's landing page (indexable): who a trade account is for, what it comes with, the range by category
-// (counts only — prices show after sign-in), how it works, and the two doors: apply or sign in. Organization JSON-LD.
+// (counts only; prices show after sign-in), how it works, and the two doors: apply or sign in. Organization JSON-LD.
 import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight, BadgePercent, Coffee, FileText, FlaskConical, Landmark, Leaf, Package, Pill, Store, Stethoscope, Truck } from "lucide-react";

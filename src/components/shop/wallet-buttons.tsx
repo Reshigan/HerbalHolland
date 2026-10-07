@@ -1,4 +1,4 @@
-// "Add to Apple Wallet" / "Add to Google Wallet" under the Rewards card — only once the wallets are set up
+// "Add to Apple Wallet" / "Add to Google Wallet" under the Rewards card, only once the wallets are set up
 // (WALLET_* environment, see docs/INTEGRATIONS.md). Plain links: the routes build and sign the passes.
 import { Smartphone } from "lucide-react";
 import { walletAvailable } from "@/server/shop/wallet";

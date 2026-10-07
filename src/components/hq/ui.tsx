@@ -54,7 +54,7 @@ export function MiniStat({ label, value, sub, className, tone }: { label: React.
   );
 }
 
-/** A table row that spans every column — for empty states inside tables (see also TableEmpty in @/components/ui/table). */
+/** A table row that spans every column, for empty states inside tables (see also TableEmpty in @/components/ui/table). */
 export function EmptyRow({ cols, children }: { cols: number; children: React.ReactNode }) {
   return (
     <tr>

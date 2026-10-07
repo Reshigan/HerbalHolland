@@ -2,7 +2,7 @@
 
 /*
  * Herbal Holland design tokens.
- * Brand: Holland orange on warm black — lifted from the store-window lock-up.
+ * Brand: Holland orange on warm black, lifted from the store-window lock-up.
  * Outfit (geometric display, echoes the wordmark) + Inter (UI, tabular figures), loaded by next/font in
  * src/app/fonts.ts, which sets --font-outfit / --font-inter on <html>.
  */
@@ -155,7 +155,7 @@
 }
 
 /*
- * Storefront: the corporate site's language (sites/herbalholland.com) carried into the shop — the sky from a Dutch
+ * Storefront: the corporate site's language (sites/herbalholland.com) carried into the shop, with the sky from a Dutch
  * polder at golden hour to the KwaZulu-Natal hills at night, and the beadwork tile (a chain of diamonds in cream,
  * orange and charcoal) that edges frames and heroes. The tile's colours are ink-900, ink-50 and brand-500.
  */

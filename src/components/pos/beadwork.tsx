@@ -1,6 +1,6 @@
 // The beadwork band: the brand's small African geometric tile (a chain of diamonds in cream, orange and charcoal,
 // after the panel beside the door in the store concept) as a repeating SVG pattern, for the customer display and
-// other till-side brand moments. Colours are the token values ink-900, ink-50 and brand-500 — the one place they
+// other till-side brand moments. Colours are the token values ink-900, ink-50 and brand-500. It's the one place they
 // are written into art rather than set by CSS (the tile must look the same everywhere it prints or shows).
 import { cn } from "@/lib/cn";
 

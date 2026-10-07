@@ -1,4 +1,4 @@
-// herbalholland.com — the home page: one journey. It opens on a Dutch polder at golden hour with one windmill in the
+// The herbalholland.com home page: one journey. It opens on a Dutch polder at golden hour with one windmill in the
 // wind ("Holland, meet South Africa."), crosses the sea along the 9,475 km great circle, arrives in the KwaZulu-Natal
 // hills as the sun drops ("Holland, meet the Hills."), passes the stores, shows what's in store as dusk deepens, and
 // ends at night under the Southern Cross with Founding Members and the one early-access sign-up. The landscape is the
@@ -23,7 +23,7 @@ export const towns = (stores: readonly Store[]) =>
 type Line = { soon: string; both: string; open: string };
 /**
  * Where we are, from the stores list: "Open now in Pietermaritzburg and Umhlanga, and opening in Hillcrest and Hilton on
- * Tuesday 1 December 2026…" — or only what's opening (before any store is open), or only what's open (once all are).
+ * Tuesday 1 December 2026…", or only what's opening (before any store is open), or only what's open (once all are).
  */
 export function openingLine(t: Line, { weekday = true } = {}) {
   const open = openStores();

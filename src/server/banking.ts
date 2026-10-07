@@ -1,5 +1,5 @@
 // Cash banking: the cash from closed cash-ups goes to the bank, and every deposit carries a photo or PDF of the
-// stamped slip. The owner or HQ checks each deposit against the bank statement (verified — then locked) or queries it.
+// stamped slip. The owner or HQ checks each deposit against the bank statement (verified, then locked) or queries it.
 import { createHash, randomUUID } from "node:crypto";
 import { db, tx } from "./db";
 import { audit, type Actor } from "./audit";

@@ -37,7 +37,7 @@ export function countdown(to: Date, now = new Date()) {
 
 type GiftPromo = { firstPurchaseOnly: boolean; kind: string; buyQty: number | null; minSpendCents: number; getQty: number | null; rewardPercent: number | null };
 
-/** A welcome gift with no trigger would read "Spend R0, get 1 free" — say what it is instead (null for other deals). */
+/** A welcome gift with no trigger would read "Spend R0, get 1 free", so say what it is instead (null for other deals). */
 export function welcomeLine(p: GiftPromo) {
   if (!p.firstPurchaseOnly || p.kind !== "BUY_X_GET_Y" || p.buyQty || p.minSpendCents) return null;
   const off = p.rewardPercent == null || p.rewardPercent >= 100 ? "free" : `at ${p.rewardPercent}% off`;

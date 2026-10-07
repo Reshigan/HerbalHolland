@@ -1,5 +1,5 @@
 // Loss prevention: the rules in src/lib/loss.ts run over recent trading (nightly, plus at shift close and when a
-// deposit is recorded). Each finding becomes one alert with its evidence — the key stops a rule raising it twice.
+// deposit is recorded). Each finding becomes one alert with its evidence. The key stops a rule raising it twice.
 // High severity is emailed at once to the store's owner and area manager; the rest go in a daily digest.
 // Nobody sees, or is emailed, an alert about themselves.
 import { db } from "./db";
@@ -76,8 +76,8 @@ async function notifyHigh(keys: string[]) {
   if (!alerts.length) return;
   const people = await recipients(alerts.map((a) => a.store));
   for (const a of alerts) {
-    const subject = `Loss prevention: ${a.title} — ${a.store.name}`;
-    const html = emailLayout({ preheader: a.title, heading: `${a.title} — ${a.store.name}`, body: `<p>${esc(a.detail)}</p>`, cta: { label: "Review the alert", href: link(a.store.code, a.id) } });
+    const subject = `Loss prevention: ${a.title} at ${a.store.name}`;
+    const html = emailLayout({ preheader: a.title, heading: `${a.title} at ${a.store.name}`, body: `<p>${esc(a.detail)}</p>`, cta: { label: "Review the alert", href: link(a.store.code, a.id) } });
     for (const u of people.filter((p) => p.id !== a.userId && covers(p, a.store)))
       await sendEmail({ to: u.email!, subject, html, text: `${a.title} at ${a.store.name}.\n\n${a.detail}\n\nReview it: ${link(a.store.code, a.id)}` });
     await db.alert.update({ where: { id: a.id }, data: { notifiedAt: new Date() } });
@@ -100,7 +100,7 @@ export async function sendDigest(now = new Date()) {
     const items = mine.map((a) => `<li style="margin:0 0 8px"><a href="${esc(link(a.store.code, a.id))}">${esc(a.store.name)}: ${esc(a.title)}</a> <span style="color:#78716C">(${a.severity.toLowerCase()})</span></li>`);
     const html = emailLayout({ preheader: subject, heading: "New loss-prevention alerts", body: `<ul style="padding-left:18px">${items.join("")}</ul>` });
     try {
-      await sendEmail({ to: u.email!, subject, html, text: mine.map((a) => `• [${a.severity.toLowerCase()}] ${a.store.name}: ${a.title} — ${link(a.store.code, a.id)}`).join("\n") });
+      await sendEmail({ to: u.email!, subject, html, text: mine.map((a) => `• [${a.severity.toLowerCase()}] ${a.store.name}: ${a.title}\n  ${link(a.store.code, a.id)}`).join("\n") });
       emails++;
       for (const a of mine) sent.add(a.id);
     } catch (e) {
@@ -344,7 +344,7 @@ async function offlineVariances(since: Date) {
   });
 }
 
-/** The nightly run: every rule over recent trading, then the digest. Idempotent — re-running raises nothing new. */
+/** The nightly run: every rule over recent trading, then the digest. Idempotent: re-running raises nothing new. */
 export async function runLossRules(now = new Date()) {
   const { loss: s, banking } = await getSettings();
   const since = addDays(now, -2);

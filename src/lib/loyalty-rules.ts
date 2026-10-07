@@ -1,4 +1,4 @@
-// Herbal Holland Rewards — the loyalty programme. Currency: points (1 point = R1).
+// Herbal Holland Rewards, the loyalty programme. Currency: points (1 point = R1).
 // Earn on what the member actually pays (not on points redeemed).
 export type TierKey = "SEED" | "SPROUT" | "BLOOM" | "HARVEST";
 

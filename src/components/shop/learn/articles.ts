@@ -2,7 +2,7 @@
 // bodies are React components in ./bodies.tsx.
 //
 // Dates are set by hand (YYYY-MM-DD): `published` when the guide first went live, `updated` whenever its copy changes.
-// They are shown on the page and go into the Article schema, so keep them honest — the build refuses an `updated`
+// They are shown on the page and go into the Article schema, so keep them honest: the build refuses an `updated`
 // earlier than `published` or a date in the future (assertArticleDates below).
 import { assertArticleDates } from "@/lib/seo";
 

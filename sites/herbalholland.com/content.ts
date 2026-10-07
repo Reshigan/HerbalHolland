@@ -1,8 +1,8 @@
-// herbalholland.com — every word on the site, in one place. The static site (./build.ts) renders its pages from here,
+// Every word on herbalholland.com, in one place. The static site (./build.ts) renders its pages from here,
 // and tests/site-copy.test.ts runs every string through screenCopy() (no allow-list) and our voice rules, so edit copy
 // here and keep that test green. `{name}` placeholders are filled at build time from ./facts by `fill`.
 // What .com may say (docs/MARKETING-PLAN.md §1, docs/COMPLIANCE.md): brand, standards, the categories we sell (never
-// products), stores, franchise, press and careers, and the way into the online shop — no product names, prices, amounts,
+// products), stores, franchise, press and careers, and the way into the online shop. No product names, prices, amounts,
 // deals or health claims; licensed medicines only as a pharmacist service for registered patients; facts only from
 // ./facts (no invented numbers, founders, partners, awards or dates).
 // In running text, {email}, {privacy}, {terms}, {press} and {regulator} become links (see Rich in ./src/ui).
@@ -36,7 +36,7 @@ export const BRAND = {
   idea: "Holland, meet South Africa.",
   adults: "Adults 18+",
   // Share image (og.png).
-  og: { alt: "Herbal Holland — Dutch heritage. African soil.", sub: "Our story · Franchise · Press · Careers", age: "Adults 18+ only" },
+  og: { alt: "Herbal Holland: Dutch heritage. African soil.", sub: "Our story · Franchise · Press · Careers", age: "Adults 18+ only" },
 } as const;
 
 // ── The 18+ gate: the first scene ────────────────────────────────────────────
@@ -96,8 +96,8 @@ export const CHROME = {
 // leads to the online shop once FACTS.shop.url is set, and to the early-access sign-up (ACCESS, below) until then.
 export const HOME = {
   meta: {
-    title: "Herbal Holland — Dutch heritage. African soil.",
-    updated: "2026-09-28",
+    title: "Herbal Holland: Dutch heritage. African soil.",
+    updated: "2026-10-07",
     // The page description, in the same three states as the hero's line (below); {opening} is the day without its weekday.
     description: {
       soon: "Herbal Holland: members-only cannabis wellness stores for adults 18+. Opening {opening} in {next}, with more towns to come.",
@@ -125,7 +125,7 @@ export const HOME = {
     eyebrow: "Amsterdam to the hills",
     unit: "km",
     title: "from Amsterdam to the hills",
-    sr: "{km} km — from Amsterdam to {city}, one of our new stores in the hills",
+    sr: "{km} km from Amsterdam to {city}, one of our new stores in the hills",
     readout: { lat: "Latitude", lon: "Longitude", dist: "Distance" },
     caption: "A globe showing the great circle from Amsterdam ({from}) to {city} ({to}), one of our new stores: {km} km, with a pin for each Herbal Holland store.",
     chapters: [
@@ -231,7 +231,7 @@ export const ACCESS = {
     network: "We couldn't reach our server. Check your connection and try again.",
   },
   done: {
-    title: "You're on the list — we'll tell you first.",
+    title: "You're on the list. We'll tell you first.",
     body: "We'll let you know the day our online shop opens. Every message we send has a link to unsubscribe.",
   },
 } as const;
@@ -252,7 +252,7 @@ export const MAP = {
 export const STORES = {
   meta: {
     title: "Stores",
-    updated: "2026-09-28",
+    updated: "2026-10-07",
     // In the same three states as the home page's line; {opening} is the day without its weekday.
     description: {
       soon: "Every Herbal Holland store: opening in {next} on {opening}, with more towns to come. Members only, adults 18+.",

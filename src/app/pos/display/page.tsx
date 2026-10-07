@@ -1,5 +1,5 @@
 // Customer-facing display: a second screen (or a second window on the till) that mirrors the current sale.
-// Same device: fed by the till over a BroadcastChannel — no cookies, no server. Separate screen: opened from the
+// Same device: fed by the till over a BroadcastChannel: no cookies, no server. Separate screen: opened from the
 // link under Shift → This till → Customer display (?d=<device>&k=<pairing key>) and polls /api/pos/display.
 import type { Metadata } from "next";
 import { DisplayScreen } from "@/components/pos/display-screen";

@@ -36,7 +36,7 @@ export async function traceSales(b: Batch, storeIds: string[] | null, page: numb
     LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 }
 
-/** Distinct members (with a phone) who bought from the batch — the recall notification list. */
+/** Distinct members (with a phone) who bought from the batch: the recall notification list. */
 export async function affectedCustomers(b: Batch) {
   return db.$queryRaw<{ id: string; phone: string; firstName: string }[]>`
     SELECT DISTINCT c.id, c.phone, c."firstName"

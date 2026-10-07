@@ -21,7 +21,7 @@ function write(key: string, value: unknown) {
     if (value == null) localStorage.removeItem(NS + key);
     else localStorage.setItem(NS + key, JSON.stringify(value));
   } catch {
-    /* storage full or unavailable — the till keeps working from memory */
+    /* storage full or unavailable: the till keeps working from memory */
   }
 }
 
@@ -155,11 +155,11 @@ export type DisplaySettings = { key: string; remote: boolean };
 export const loadDisplay = () => read<DisplaySettings>("display");
 export const saveDisplay = (d: DisplaySettings | null) => write("display", d);
 
-/** Sensitive actions taken while offline (drawer opened, training started/ended, a refused queued sale discarded) — posted to the audit log on sync. */
+/** Sensitive actions taken while offline (drawer opened, training started/ended, a refused queued sale discarded), posted to the audit log on sync. */
 export type QueuedAudit = { id: string; action: "drawer.open" | "training.start" | "training.end" | "outbox.discard"; at: string; staffId: string; staffName: string; note?: string; deviceId: string };
 export const loadAuditQueue = () => read<QueuedAudit[]>("audit-queue") ?? [];
 export const saveAuditQueue = (q: QueuedAudit[]) => write("audit-queue", q.length ? q : null);
 
-/** Quiet-hours delay override (ms) — a test hook set from ?idleMs= on the till's URL. */
+/** Quiet-hours delay override (ms): a test hook set from ?idleMs= on the till's URL. */
 export const loadIdleMs = () => read<number>("idle-ms");
 export const saveIdleMs = (ms: number | null) => write("idle-ms", ms);

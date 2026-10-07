@@ -99,7 +99,7 @@ export function incomeStatementLayout(accounts: ReportAccount[], balances: Map<s
 /**
  * The balance sheet from cumulative balances as at each column's date. Retained earnings are computed, never posted:
  * `priorYears` (the profit of financial years ended before the column's year) is added to the retained earnings
- * account, and `thisYear` shows as "Profit for the year so far" — both credit-positive. `balancing` names the
+ * account, and `thisYear` shows as "Profit for the year so far". Both are credit-positive. `balancing` names the
  * difference for a slice of the books that needn't balance on its own (one store's entries): it's shown in equity.
  */
 export function balanceSheetLayout(
@@ -175,8 +175,8 @@ export function cashFlowClass(a: Pick<ReportAccount, "type" | "code">): CashFlow
 const FLOW_ORDER: Record<AccountType, number> = { INCOME: 0, EXPENSE: 1, ASSET: 2, LIABILITY: 3, EQUITY: 4 };
 
 /**
- * The cash flow statement, direct method. `flows` are the cash movements by counter-account — the other side of
- * every journal that moved cash, money in positive — one value per column. Anything left between the change in cash
+ * The cash flow statement, direct method. `flows` are the cash movements by counter-account (the other side of
+ * every journal that moved cash, money in positive), one value per column. Anything left between the change in cash
  * and the flows is cash moved against lines outside the view (one store's cash banked into a company account): shown
  * as `otherLabel` in operating activities, so the statement always ties to the cash accounts.
  */

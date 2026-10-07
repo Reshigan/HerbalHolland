@@ -7,7 +7,7 @@ import { MADE_TO_ORDER_LEAD } from "./merch";
 import { zarWhole } from "./money";
 
 export const LEGAL_DOCS = {
-  terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member — online, in the Rewards app or at the till." },
+  terms: { title: "Membership terms", dek: "The agreement you accept when you become a Herbal Holland member, whether online, in the Rewards app or at the till." },
   privacy: { title: "Privacy notice", dek: "How we collect, use and protect your personal information under POPIA." },
   returns: { title: "Returns & refunds", dek: "What you can send back, how to do it and how your refund works." },
   delivery: { title: "Delivery", dek: "Where we deliver, what it costs, when it arrives and who can receive it." },

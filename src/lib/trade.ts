@@ -19,7 +19,7 @@ export const tradeInvoiceNumber = (n: number) => `TI-${six(n)}`;
 /** A credit note HQ issues by hand on the ledger (a refund's credit note carries the refund's own number). */
 export const tradeCreditNumber = (n: number) => `TC-${six(n)}`;
 
-/** The EFT reference the buyer puts on their payment — printed on the pro forma: "HH-TO-000123". */
+/** The EFT reference the buyer puts on their payment, printed on the pro forma: "HH-TO-000123". */
 export const eftReference = (orderNumber: string) => `HH-${orderNumber}`;
 
 /** "TA-000123", "ta 123", "123" → "TA-000123"; null when it doesn't look like a trade number of that prefix. */
@@ -68,7 +68,7 @@ export function tradeTotals(lines: TradeLineTotals[], extras: number | { deliver
 
 // ── Cases and minimum order ──────────────────────────────────────────────────
 
-/** The next case multiple at or above `qty` — at least one case (a case of 1 is any quantity of at least one). */
+/** The next case multiple at or above `qty`, and at least one case (a case of 1 is any quantity of at least one). */
 export function caseMultiple(qty: number, caseQty: number) {
   const c = Math.max(1, Math.floor(caseQty || 1));
   const q = Math.max(0, Math.floor(qty || 0));
@@ -151,7 +151,7 @@ export type LedgerEntryLike = {
   reference?: string | null;
   note?: string | null;
   tradeOrderId?: string | null; // the order an entry is for: a payment names the order it settles
-  saleId?: string | null; // the sale an invoice is for — and the sale a credit note credits
+  saleId?: string | null; // the sale an invoice is for, or the sale a credit note credits
 };
 
 export type Ageing = { current: number; d30: number; d60: number; d90plus: number; overdue: number; total: number };
@@ -161,7 +161,7 @@ const DAY = 86_400_000;
 /**
  * Open invoices after credits are applied. Debits are invoices and positive adjustments. A credit that names an order
  * or a sale (an EFT for an order, a credit note for a sale, a payment HQ recorded against an invoice) settles that
- * debit first; whatever is left — and every credit without a reference — is applied oldest-due-first (FIFO).
+ * debit first; whatever is left, and every credit without a reference, is applied oldest-due-first (FIFO).
  */
 export function openInvoices(entries: LedgerEntryLike[]) {
   const debits = entries
@@ -191,7 +191,7 @@ export function openInvoices(entries: LedgerEntryLike[]) {
 }
 
 /**
- * Age analysis at `now`: what's open on each invoice (FIFO) by how far past its due date it is — current (not yet
+ * Age analysis at `now`: what's open on each invoice (FIFO) by how far past its due date it is, in current (not yet
  * due), 1–30 days, 31–60 days, and the 90+ column (more than 60 days past due). Unapplied credit (an overpayment or
  * credit note) shows as negative current, so `total` is always the balance.
  */
@@ -222,7 +222,7 @@ export type TradeStatement = { from: Date; to: Date; asAt: Date; opening: number
 
 /**
  * The account's statement for [from, to): the opening balance, every entry with a running balance, the closing balance
- * and its age analysis at the period's end — or now, for the month still running (nothing is past due early).
+ * and its age analysis at the period's end, or now for the month still running (nothing is past due early).
  */
 export function tradeStatement(entries: LedgerEntryLike[], period: { from: Date; to: Date }, now = new Date()): TradeStatement {
   const asAt = new Date(Math.min(period.to.getTime(), now.getTime()));
