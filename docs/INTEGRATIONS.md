@@ -318,6 +318,12 @@ channels or posts. Without it, social posts wait in the Studio to be posted by h
   (`productFacts`: the pack size, the CBD a pack and a day, its allergens), its category and its link fill the copy,
   and the email and push go to the members who chose its interest (`interestFor`). Licensed medicines are refused:
   they're never marketed.
+- **Products going live are announced on their own** (`announceProducts`): a new or draft product saved as Active, on
+  its page or by the catalogue import, with "Announce it" ticked (the default), is laid out as drafts on the first free
+  Tuesday in `NEW_ONLINE_DAYS` (the second and fourth Tuesdays the content plan keeps; the calendar test holds the
+  limits on each) a week or more away, one product a Tuesday, in name order. A product gets one launch
+  (`StudioPlan.productId`); skipping every post of a launch frees its Tuesday. When the plan has no Tuesday left, the
+  notice says to lay it out by hand. The next content plan adds its Tuesdays.
 
 **The launch** (`createLaunch`; HQ → Marketing → Studio → The launch): three days in order, the brand, the shop and
 the doors, and the stores that open. The brand launches at least 14 days before the shop, and the doors open at least

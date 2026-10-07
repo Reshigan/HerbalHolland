@@ -21,7 +21,7 @@ Africa's own landraces and growers.
 | Pillar | Promise | How the platform proves it |
 |---|---|---|
 | **Provenance** | Every batch is lab-tested and traceable to the farm | Batch-level stock, FEFO, a public COA page per batch (`/batch/[code]`, QR on every pack), recall trace to the customer |
-| **Care** | Pharmacist-led dispensary; honest education | SAHPRA patient register, authorised dispensers, quantity limits, Learn hub, no medical claims |
+| **Care** | Members only; authorised dispensers; honest education | SAHPRA patient register, authorised dispensers, quantity limits, Learn hub, no medical claims |
 | **Community** | One free club for the whole country | Herbal Holland Rewards: points earned and spent in every store, tiers, referrals, members' evenings |
 | **Convenience** | Order how you like, collect in 15 minutes, delivered nationwide | Omnichannel routing, click & collect SLA, same-day metro, courier for non-medicinal items |
 

@@ -4,13 +4,12 @@
 // brand's channels and for any one member (counted as the member who'd get the most: every interest, either store).
 import { describe, expect, it } from "vitest";
 import { layout, longDate, spreadFeed, type Draft, type Fields } from "@/lib/studio";
-import { PLAYBOOKS } from "@/lib/studio-playbooks";
+import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
 import { dayKey } from "@/lib/format";
 
 const TOWNS = ["Hillcrest", "Hilton"];
 const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://herbalholland.co.za/p/rest-body-balm?src=studio" };
 const OPENING_WEEKS = ["week of 2026-10-26", "week of 2026-11-30"];
-const NEW_ONLINE = ["2026-11-10", "2027-01-12", "2027-01-26", "2027-02-09", "2027-02-23", "2027-03-09", "2027-03-23"];
 
 type Plan = { key: string; anchor: string; town?: string; stagger?: number; skipShared?: boolean; until?: string };
 const CALENDAR: Plan[] = [
@@ -21,7 +20,7 @@ const CALENDAR: Plan[] = [
   { key: "founding-members", anchor: "2026-12-06" },
   { key: "merch-drop", anchor: "2026-12-10" },
   ...PLAYBOOKS.filter((p) => p.date).map((p) => ({ key: p.key, anchor: p.date! })),
-  ...NEW_ONLINE.map((anchor) => ({ key: "new-online", anchor })),
+  ...NEW_ONLINE_DAYS.map((anchor) => ({ key: "new-online", anchor })),
 ];
 
 type Out = Draft & { plan: string; to: string };
@@ -55,6 +54,12 @@ const over = (m: Map<string, string[]>, max: number, what: string) => [...m].fil
 
 describe("the six months on their real days", () => {
   const all = lay();
+
+  it("keeps product launches to the second and fourth Tuesdays, in order", () => {
+    const nth = (ymd: string) => Math.ceil(Number(ymd.slice(8)) / 7);
+    expect(NEW_ONLINE_DAYS.filter((d) => new Date(`${d}T12:00:00Z`).getUTCDay() !== 2 || ![2, 4].includes(nth(d)))).toEqual([]);
+    expect([...NEW_ONLINE_DAYS].sort()).toEqual(NEW_ONLINE_DAYS);
+  });
 
   it("lays every campaign out without a refused day or a clash it can't settle", () => {
     expect(all.filter((d) => d.blocked).map((d) => `${d.plan}: ${d.key}: ${d.blocked}`)).toEqual([]);

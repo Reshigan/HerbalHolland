@@ -163,7 +163,7 @@ Every post and message below goes on the day and at the time the Studio's playbo
 | Tue 3 Nov 16:00 | _The Windmill_, No. 1: the story so far | Email to all members; push at 18:30 |
 | Wed 4 Nov | Local government elections: public holiday | Nothing goes out |
 | Thu 5 Nov 07:00 | **Hilton revealed** | Window wrap: _Something's turning in Hilton_ |
-| Tue 10 Nov | A product goes online (New online) | To the members who chose its interest; a template until HQ names the product |
+| Tue 10 Nov | A product goes online (New online) | To the members who chose its interest; laid out when HQ puts a product live |
 | Wed 11 Nov | Invitations to opening week: push at 18:30, the feed at 19:00; SMS on Thu 12 Nov at 10:00 | The Members' Evening: RSVP in the Rewards app |
 | Tue 17 Nov | _The Windmill_, No. 2: our doors open on Tuesday 1 December; press release (embargoed) | Email at 16:00 to all members; media walk-throughs Thu 19 (Hillcrest) and Fri 20 Nov (Hilton) |
 | Mon 23 Nov | _Our windows go up this week_ | The countdown: _7 days_ (Tue 24 Nov), _Tuesday, 09:00_ (Sun 29 Nov) |
@@ -302,7 +302,7 @@ new words. HQ → Marketing → Studio lists the packs, each with its day T and 
 | Founding Members (`launch.ts`) | The list closes at midnight: a Sunday | The list's last four weeks: how it works, moving up with your link, what Founding Members get, bring a friend, the last call (by push on the Saturday, on the feed on the Sunday) and the numbers. No live counts: members see their own place in the Rewards app |
 | Hiring (`launch.ts`) | Applications close: a Friday | Member advisors and store managers: the call and the last day on the feed and LinkedIn, each role on LinkedIn, one Channel post. We never charge to apply |
 | Merch drop (`launch.ts`) | The drop opens at 10:00: a Thursday | A teaser on the Tuesday; drop day (the feed, an email to members who chose merch, a push); the last day, the Saturday. Higher tiers get in early |
-| New online (`new-online.ts`) | The product goes online: a Tuesday (the second and fourth of the month) | One product, for the members who chose its interest: an email at 16:00 built only from its facts, a push at 18:30, and next morning a Learn carousel on its category that names no product and sells nothing |
+| New online (`new-online.ts`) | The product goes online: a Tuesday (the second and fourth of the month) | One product, for the members who chose its interest: an email at 16:00 built only from its facts, a push at 18:30, and next morning a Learn carousel on its category that names no product and sells nothing. Laid out on its own when a product goes live (the catalogue's "Announce it"): the first free one of the plan's Tuesdays (`NEW_ONLINE_DAYS`) a week or more away, one product each |
 | Google profile (`google.ts`) | The first Monday | A month of Monday posts for one store's Google profile, made by hand: how to find us, joining at the till, reading a label with the team, the monthly Gezellig evening |
 | The gift email (`gifts.ts`) | Thu 26 Nov 2026 | One email in Black Friday week instead of a sale: the merch as gifts |
 | Festive season 2026 (`festive.ts`) | Mon 14 Dec 2026 | Three quiet weeks to 3 January: festive hours, a stop on the N3, gifting the windmill, a thank-you, happy holidays, plan your ride home and a safe trip home, two Learn carousels. Nothing on public holidays |
@@ -680,7 +680,8 @@ Franchise recruitment isn't part of this plan, and herbalholland.com no longer t
 
 You set the amount; this is how to split it. The launch (October 2026 to January 2027) is funded by HQ. From then
 on, the marketing fund (the 2% levy on net sales, held separately as the CPA requires) pays, with an HQ top-up in
-year 1 while there are only two stores.
+year 1 while there are only two stores. The Herbal Holland brand line is booked in Herbal Holland's own P&L: the stores
+never pay for it.
 
 | Launch (Oct 2026 – Jan 2027) | Share | Always-on (2027–2028) | Share |
 |---|---|---|---|
@@ -690,7 +691,7 @@ year 1 while there are only two stores.
 | Window wraps and in-store | 10% | Local media | 10% |
 | PR (freelance or agency) | 10% | PR | 10% |
 | Messaging (SMS, email) | 5% | Drops (design, samples) | 5% |
-| Merch for the team and seeding | 5% | Franchise marketing | 5% |
+| Merch for the team and seeding | 5% | Herbal Holland, the brand (its own P&L, not the stores') | 5% |
 | Contingency | 10% | Contingency | 5% |
 
 Known running costs: Postiz is free software on a small server; SMS is charged per message at the provider's bulk

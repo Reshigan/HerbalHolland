@@ -19,4 +19,6 @@ import { JANUARY } from "./january";
 import { FEBRUARY } from "./february";
 import { MARCH } from "./march";
 
+export { NEW_ONLINE_DAYS } from "./new-online";
+
 export const PLAYBOOKS: Playbook[] = [...LAUNCH, ...NEW_ONLINE, ...GOOGLE, ...GIFTS, ...FESTIVE, ...JANUARY, ...FEBRUARY, ...MARCH];

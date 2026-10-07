@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { db, tx } from "@/server/db";
 import { audit } from "@/server/audit";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
+import { announced, announceProducts } from "@/server/studio";
 import { str, opt, bool, list, parseNum, parseRand, parseInt10, splitList, slugify } from "@/server/hq/form";
 import { PRODUCT_STATUSES, REG_CLASSES } from "@/server/hq/catalogue";
 import { ALLERGENS, PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, complianceChange, screenCopy, validateProduct } from "@/lib/compliance";
@@ -102,11 +103,14 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
     naturalCbd: regClass === "CBD_FOOD" && naturalCbd,
   };
 
+  // Going live (new as Active, or out of draft) with "Announce it" ticked: its "New online" campaign, as drafts.
+  const launch = async (id: string) => (bool(fd, "announce") && status === "ACTIVE" ? announced(await announceProducts({ productIds: [id], by: g.user.name, actor: g.actor })) : "");
   if (!productId) {
     const p = await db.product.create({ data });
     await audit(db, g.actor, "product.create", { entity: "Product", entityId: p.id, data: { name, regClass, status } });
+    const m = await launch(p.id);
     revalidatePath("/hq/catalogue");
-    redirect(`/hq/catalogue/${p.id}?created=1`);
+    redirect(`/hq/catalogue/${p.id}?created=1${m ? `&m=${encodeURIComponent(m)}` : ""}`);
   }
   const before = await db.product.findUniqueOrThrow({ where: { id: productId } });
   await db.product.update({ where: { id: productId }, data: { ...data, terpenes: terpenes.length ? (terpenes as Prisma.InputJsonValue) : [] } });
@@ -115,9 +119,10 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   await audit(db, g.actor, compliance ? "compliance.product" : "product.update", {
     entity: "Product", entityId: productId, data: { changed },
   });
+  const m = before.status === "DRAFT" ? await launch(productId) : "";
   revalidatePath(`/hq/catalogue/${productId}`);
   revalidatePath("/hq/catalogue");
-  return done(changed.length ? "Product saved." : "No changes to save.");
+  return done(changed.length ? `Product saved.${m && ` ${m}`}` : "No changes to save.");
 }
 
 export async function saveVariant(productId: string, variantId: string | null, _: ActionState, fd: FormData): Promise<ActionState> {

@@ -53,7 +53,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Reuse the domain services instead of writing new business logic in pages:
   `sales` (postPosSale, refundSale), `orders` (placeOrder, advanceOrder), `inventory` (availability, adjustStock, stock takes),
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
-  `compliance` (evaluateBasket), `finance`, `marketing`, `studio` (campaign playbooks: createPlan, scheduleApproved; the playbooks
+  `compliance` (evaluateBasket), `finance`, `marketing`, `studio` (campaign playbooks: createPlan, scheduleApproved, announceProducts for products going live; the playbooks
   are in `src/lib/studio-playbooks/`, one file per pack, and `tests/studio-calendar.test.ts` holds the six months' limits), `invoices`, `dashboard`, `settings`, `audit`,
   `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
   `queueStoreDay` inside its own transaction; postings are rebuilt from their source, never written by hand, and manual

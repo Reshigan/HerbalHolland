@@ -346,6 +346,14 @@ try {
     "now CBD food & drink: 2 mg in 30 ml, natural CBD only, THC ≤ 0.001%, no daily dose",
   );
   assert(await one(`select 1 from "AuditLog" where action = 'compliance.product' and "entityId" = $1`, [product.id]), "reclassification audited as compliance.product");
+  // Going live with "Announce it" ticked: a draft "New online" campaign on the next free product-launch Tuesday.
+  assert(await pf.getByRole("checkbox", { name: "Announce it when it goes live" }).isChecked(), "a draft product offers its launch, ticked");
+  await pf.locator("#status").selectOption("ACTIVE");
+  await act("catalogue.saveProduct (goes live)", () => pf.getByRole("button", { name: "Save product" }).click(), () => page.getByRole("status").filter({ hasText: /New online|No product-launch Tuesday/ }).first().waitFor());
+  const launch = await one(`select p.anchor, count(i.id)::int drafts from "StudioPlan" p join "StudioItem" i on i."planId" = p.id and i.status = 'DRAFT' where p."productId" = $1 group by p.id`, [product.id]);
+  assert(launch ? (await notice(`“New online” laid out in the Studio for ${T.productName}`).count()) > 0 : (await notice("No product-launch Tuesday is free").count()) > 0, launch ? `live: “New online” laid out for ${launch.anchor}, ${launch.drafts} drafts` : "live: no launch Tuesday left in the plan, and the notice says so");
+  await q(`delete from "StudioPlan" where "productId" = $1`, [product.id]);
+  await q(`update "Product" set status = 'DRAFT' where id = $1`, [product.id]); // out of the shop for the rest of the journey
   const vnew = formWith("#sku-new");
   await vnew.locator("#sku-new").fill(T.sku.toLowerCase());
   await vnew.locator("#name-new").fill("30ml");

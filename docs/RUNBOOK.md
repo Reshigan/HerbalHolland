@@ -51,8 +51,8 @@ reports) and Postgres can't live on Cloudflare.
    opens: that closes the site's first-access sign-up, and every way to shop on the site leads to the shop instead. The
    site no longer takes franchise enquiries (`/franchise` redirects to `/about`): the enquiries already handed to HQ stay
    in HQ → Franchise leads, and the Worker's daily clean-up deletes the site's own copies (a year after they came in, or
-   30 days after HQ had them). The Worker no longer reads `NOTIFY_TO`, `APP_ENQUIRY_URL` or `APP_ENQUIRY_SECRET`: if they're
-   set, remove them with `npx wrangler@4 secret delete <name>`.
+   30 days after HQ had them). The Worker's only secret is `IP_SALT`: the enquiry-era `NOTIFY_TO`, `APP_ENQUIRY_URL`
+   and `APP_ENQUIRY_SECRET` were deleted on 7 October 2026.
 2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location, so record the cross-border
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.

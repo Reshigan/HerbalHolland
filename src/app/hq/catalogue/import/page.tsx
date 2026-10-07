@@ -19,9 +19,11 @@ import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ActionForm, SubmitButton } from "@/components/ui/action-form";
 import { FilterForm } from "@/components/hq/filter-form";
-import { Select } from "@/components/ui/form";
+import { Checkbox, Select } from "@/components/ui/form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
+import { freeLaunchDays } from "@/server/studio";
+import { interestFor } from "@/lib/studio";
 import { importCatalogue, uploadCatalogue } from "./actions";
 import { UploadForm } from "./upload-form";
 
@@ -121,6 +123,8 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
   const page = pageParam(sp.page);
   const href = (p: Record<string, string | number | undefined>) => `${PATH}${qs({ file: sp.file, at: at?.id, show: show === "all" ? undefined : show, ...p })}`;
   const writes = c.productsNew + c.productsUpdated + c.variantsNew + c.variantsUpdated + c.stockLines;
+  const live = plan.products.filter((p) => p.live && interestFor(p.data.regClass)).length; // going live: offered a "New online" campaign each
+  const free = live ? (await freeLaunchDays()).length : 0;
   const will = [
     c.productsNew && `creates ${plural(c.productsNew, "product")}`,
     c.variantsNew && `adds ${plural(c.variantsNew, "variant")}`,
@@ -199,6 +203,15 @@ export default async function ImportPage({ searchParams }: { searchParams: Promi
             <ActionForm action={importCatalogue.bind(null, file.upload.id)} className="shrink-0" notices="bottom">
               <input type="hidden" name="at" value={at?.id ?? ""} />
               <input type="hidden" name="digest" value={planDigest(c)} />
+              {live > 0 && (
+                <Checkbox
+                  name="announce"
+                  defaultChecked
+                  className="mb-3 max-w-xs"
+                  label={`Announce ${live === 1 ? "the product" : `the ${num(live)} products`} going live`}
+                  description={`Each gets a “New online” campaign in the Studio, in name order, on a free product-launch Tuesday (${free ? `${num(free)} left` : "none left"}). Nothing goes out until it's approved.`}
+                />
+              )}
               <SubmitButton size="lg" disabled={!writes || plan.fileErrors.length > 0} pendingLabel="Importing…">
                 <FileSpreadsheet className="h-4 w-4" /> Import
               </SubmitButton>
