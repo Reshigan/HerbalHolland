@@ -8,6 +8,7 @@ import { zar } from "./money";
 import { parseQuery } from "./search";
 import { addDays } from "./format";
 import { checkLicenceInput, licenceInSentence, requiredLicences, TRADE_LICENCES, TRADE_LICENCE_KINDS, type TradeLicenceKind } from "./trade-licences";
+import { isEmail } from "@/lib/email";
 
 // ── Numbers ──────────────────────────────────────────────────────────────────
 // Counter keys (src/server/counters.ts nextNumber): "trade-account", "trade-order", "trade-invoice", "trade-credit".
@@ -326,7 +327,6 @@ const text = (v: unknown) => (typeof v === "string" ? v : "");
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const line = (v: unknown) => text(v).replace(CONTROL, "").replace(/\s+/g, " ").trim();
 const ticked = (v: unknown) => v === true || (typeof v === "string" && ["on", "true", "yes", "1"].includes(v.trim().toLowerCase()));
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 /** A South African business number (landline or mobile) as +27XXXXXXXXX; null when it isn't one. */
 export function normaliseTradePhone(raw: string): string | null {
@@ -378,7 +378,7 @@ export function validateTradeApplication(raw: RawTradeApplication, now = new Dat
   else if (legalName.length > TRADE_LIMITS.name) f.legalName = `Keep the legal name under ${TRADE_LIMITS.name} characters`;
   if (name.length > TRADE_LIMITS.name) f.name = `Keep the trading name under ${TRADE_LIMITS.name} characters`;
   if (!isTradeKind(kindRaw)) f.kind = "Choose what kind of business this is";
-  if (!email || !EMAIL.test(email) || email.length > TRADE_LIMITS.email) f.email = "Enter the billing email address (pro formas, invoices and statements go here)";
+  if (!email || !isEmail(email) || email.length > TRADE_LIMITS.email) f.email = "Enter the billing email address (pro formas, invoices and statements go here)";
   if (!phone) f.phone = "Enter a South African phone number";
   if (!addressLine) f.addressLine = "Enter the street address";
   else if (addressLine.length > TRADE_LIMITS.address) f.addressLine = `Keep the address under ${TRADE_LIMITS.address} characters`;
@@ -394,7 +394,7 @@ export function validateTradeApplication(raw: RawTradeApplication, now = new Dat
   else if (classes.some((c) => !TRADE_CLASSES.includes(c as RegClass))) f.classes = "Choose ranges from the list";
   if (!buyerName) f.buyerName = "Enter the name of the person who'll place orders";
   else if (buyerName.length > TRADE_LIMITS.name) f.buyerName = `Keep the buyer's name under ${TRADE_LIMITS.name} characters`;
-  if (!EMAIL.test(buyerEmail) || buyerEmail.length > TRADE_LIMITS.email) f.buyerEmail = "Enter the buyer's email address — they sign in with a code sent here";
+  if (!isEmail(buyerEmail) || buyerEmail.length > TRADE_LIMITS.email) f.buyerEmail = "Enter the buyer's email address — they sign in with a code sent here";
   if (buyerPhoneRaw && !buyerPhone) f.buyerPhone = "Enter a South African phone number, or leave it blank";
   if (!ticked(raw.adult)) f.adult = "Confirm that everyone who orders for this business is 18 or older";
   if (!ticked(raw.terms)) f.terms = "Accept the trade terms to apply";

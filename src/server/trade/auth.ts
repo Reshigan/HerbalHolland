@@ -12,6 +12,7 @@ import { audit } from "../audit";
 import { normaliseEmail } from "@/lib/trade";
 import { tradeCodeEmail } from "./emails";
 import { tradeActor } from "./accounts";
+import { isEmail } from "@/lib/email";
 
 export class TradeAuthError extends Error {}
 
@@ -28,7 +29,7 @@ const CODE_MINUTES = OTP_MINUTES;
  */
 export async function requestTradeCode(raw: string, opts?: { ip: string | null }) {
   const email = normaliseEmail(raw);
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new TradeAuthError("Enter your email address");
+  if (!isEmail(email)) throw new TradeAuthError("Enter your email address");
   const code = await issueCode({ email }, opts).catch((e) => {
     throw e instanceof OtpLimitError ? new TradeAuthError(e.message) : e;
   });

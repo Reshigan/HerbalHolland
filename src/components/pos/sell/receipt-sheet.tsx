@@ -12,6 +12,7 @@ import { tenderLine } from "../lib/rules";
 import { servedBy, tradeTenderLabel } from "../lib/receipt";
 import { Alert, PosButton, Sheet, TextInput } from "../ui";
 import type { ReceiptDTO } from "@/server/pos/types";
+import { isEmail } from "@/lib/email";
 
 export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt: ReceiptDTO | null; invoiceTo: string | null; onPrint: () => void; onDone: () => void }) {
   const [email, setEmail] = useState("");
@@ -29,7 +30,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
   async function send(e: React.FormEvent) {
     e.preventDefault();
     const v = email.trim().toLowerCase();
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) return setError("That email doesn't look right");
+    if (!isEmail(v)) return setError("That email doesn't look right");
     setBusy(true);
     setError(null);
     try {

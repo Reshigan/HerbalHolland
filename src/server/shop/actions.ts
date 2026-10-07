@@ -19,6 +19,7 @@ import type { MsgChannel } from "@/generated/prisma/client";
 import type { PickerStore } from "@/components/shop/nav-client";
 import { safePath } from "@/lib/safe-path";
 import { clientIpFrom } from "@/lib/client-ip";
+import { isEmail } from "@/lib/email";
 
 /** Only same-site relative paths are accepted as post-sign-in destinations. */
 const safeNext = safePath;
@@ -101,7 +102,6 @@ export type AuthState = {
 };
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export async function authFlow(prev: AuthState, form: FormData): Promise<AuthState> {
   const intent = String(form.get("intent") ?? "");
@@ -157,7 +157,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
     v.interests = form.getAll("interest").map(String).join(" ");
     const fields: AuthState["fields"] = {};
     if (!v.firstName || v.firstName.length > 60) fields.firstName = "Tell us your first name";
-    if (v.email && !EMAIL.test(v.email)) fields.email = "That email address doesn't look right";
+    if (v.email && !isEmail(v.email)) fields.email = "That email address doesn't look right";
     let dob: Date | undefined;
     if (v.idType === "passport") {
       dob = /^\d{4}-\d{2}-\d{2}$/.test(v.dob) ? new Date(`${v.dob}T00:00:00Z`) : undefined;

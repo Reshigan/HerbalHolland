@@ -1,6 +1,6 @@
 // Till identity: which stores a signed-in manager may pair a device to, the staff tiles
 // on the lock screen, and PIN sign-in (rate limited, audited).
-import { db } from "@/server/db";
+import { db, tx } from "@/server/db";
 import { endSession, pairDevice, startSession, upgradeHash, verifySecret } from "@/server/auth";
 import { NO_HASH } from "@/server/crypto";
 import { audit, type Actor } from "@/server/audit";
@@ -34,6 +34,16 @@ export async function sessionInfo(device: PosDevice, me: { id: string; name: str
 }
 
 export async function pinSignIn(device: PosDevice, userId: string, pin: string) {
+  // One attempt at a time per person, held across check, verify and record: a burst of parallel guesses can't each read
+  // "not locked" before the first failure counts. A second attempt while one is being checked is turned away at once.
+  return tx(async (t) => {
+    const [{ ok }] = await t.$queryRaw<{ ok: boolean }[]>`SELECT pg_try_advisory_xact_lock(hashtext(${`pin:${userId}`})) AS ok`;
+    if (!ok) throw new PosError("One moment — that PIN is still being checked", 429);
+    return pinAttempt(device, userId, pin);
+  });
+}
+
+async function pinAttempt(device: PosDevice, userId: string, pin: string) {
   const user = await db.user.findFirst({ where: { id: userId, storeId: device.storeId, active: true } });
   if (!user?.pinHash) throw new PosError("That staff member can't use this till", 403);
   if (pinDisabled(user)) throw new PosError(PIN_DISABLED, 403, "PIN_DISABLED");

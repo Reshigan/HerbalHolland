@@ -308,3 +308,20 @@ describe("reconciliation", () => {
     expect(reconcile({ ledgerCents: 1, statementCents: null, openingCents: null, broughtForwardCents: 0, outstandingCents: 0, notInBooksCents: 0 })).toEqual({ differenceCents: null, openingDiffCents: null, expectedCents: null, unexplainedCents: null });
   });
 });
+
+describe("hostile files", () => {
+  it("are read or refused at once, however they're built", () => {
+    const attempt = (text: string, format?: Parameters<typeof parseStatement>[1]) => {
+      const t = performance.now();
+      try {
+        parseStatement(text, format);
+      } catch {
+        // refused is fine; slow is not
+      }
+      return performance.now() - t;
+    };
+    expect(attempt(`<OFX>${"<STMTTRN>".repeat(200_000)}`, "OFX")).toBeLessThan(500); // transactions that never close
+    expect(attempt(`${"(".repeat(500_000)},Description,Amount\n2026-10-01,Fee,1.00`)).toBeLessThan(500); // a heading of brackets
+    expect(attempt(`<OFX><STMTTRN><DTPOSTED>20261001<TRNAMT>1${" ".repeat(500_000)}x</STMTTRN>`, "OFX")).toBeLessThan(500); // an amount of spaces
+  });
+});

@@ -8,10 +8,10 @@ import { str, opt, bool, parsePctToBps, parseNum, parseDay, slugify } from "@/se
 import { normalisePhone, PROVINCES } from "@/lib/sa";
 import { rescheduleChecklist, seedChecklist } from "@/server/store-tasks";
 import type { Province, StoreFormat, StoreStatus } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const FORMATS: StoreFormat[] = ["FLAGSHIP", "STANDARD", "EXPRESS"];
 const STATUSES: StoreStatus[] = ["ACTIVE", "OPENING_SOON", "CLOSED"];
-const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 
 function readAddress(fd: FormData) {
   const fields: Record<string, string> = {};

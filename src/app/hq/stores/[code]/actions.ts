@@ -9,6 +9,7 @@ import { temporaryPassword, tempPasswordUntil, TEMP_PASSWORD_HOURS } from "@/ser
 import { guard, inScope, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str } from "@/server/hq/form";
 import { completeTask, reopenTask, seedChecklist, StoreTaskError } from "@/server/store-tasks";
+import { isEmail } from "@/lib/email";
 
 async function checklistStore(storeId: string) {
   const g = await guard("network");
@@ -78,7 +79,7 @@ export async function addOwner(storeId: string, _: ActionState, fd: FormData): P
   const name = str(fd, "name");
   const email = str(fd, "email").toLowerCase();
   if (name.length < 2) fields.name = "Their full name";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.email = "The email address they'll sign in with";
+  if (!isEmail(email)) fields.email = "The email address they'll sign in with";
   else if (await db.user.count({ where: { email } })) fields.email = "Someone already signs in with this email";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
   const password = temporaryPassword();

@@ -2,6 +2,7 @@
 // see. Pure: safe on the server, in the browser and in tests (tests/support.test.ts).
 import { addDays, dayKey, fmtDate, fmtDateTime, TZ } from "./format";
 import { normalisePhone, publicHolidays } from "./sa";
+import { isEmail } from "@/lib/email";
 
 // ── Categories, statuses, priorities ────────────────────────────────────────
 
@@ -157,7 +158,6 @@ const para = (v: unknown) =>
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 const ticked = (v: unknown) => v === true || (typeof v === "string" && ["on", "true", "yes", "1"].includes(v.trim().toLowerCase()));
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const count = (n: number) => n.toLocaleString("en-US");
 
 /** "ab12cd", " AB12CD " → "AB12CD"; null when it isn't an order code (6–12 letters and digits). */
@@ -178,7 +178,7 @@ export function validateTicket(input: RawTicket, member: TicketMember): TicketCh
   else if (!/\p{L}/u.test(name)) fields.name = "Enter your name in letters";
 
   const email = line(input.email).toLowerCase() || (member?.email ?? "").toLowerCase();
-  if (email && (email.length > L.email || !EMAIL.test(email))) fields.email = "That doesn't look like an email address — check it for typos";
+  if (email && (email.length > L.email || !isEmail(email))) fields.email = "That doesn't look like an email address — check it for typos";
   else if (!email && !member) fields.email = "Enter your email address — we reply by email";
 
   const rawPhone = line(input.phone);

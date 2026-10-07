@@ -8,8 +8,8 @@ import { COLLISION_REFUSED, collisionsUsedUp, noteCollision, setConsent } from "
 import { savePushSubscription, vapidPublicKey } from "@/server/push";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { HOME_STORE_STATUSES } from "@/server/shop/context";
+import { isEmail } from "@/lib/email";
 
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
 // `values` echoes what was submitted: React resets the form after the action, so the member's input survives an error.
@@ -24,7 +24,7 @@ export async function updateProfile(_: ProfileState, form: FormData): Promise<Pr
   const homeStoreId = String(form.get("homeStoreId") ?? "");
   const fields: ProfileState["fields"] = {};
   if (!firstName || firstName.length > 60) fields.firstName = "Tell us your first name";
-  if (email && !EMAIL.test(email)) fields.email = "That email address doesn't look right";
+  if (email && !isEmail(email)) fields.email = "That email address doesn't look right";
   const store = homeStoreId ? await db.store.findFirst({ where: { id: homeStoreId, kind: "RETAIL", status: { in: HOME_STORE_STATUSES } }, select: { id: true } }) : null;
   if (!store) fields.homeStoreId = "Choose your home store";
   const values = { firstName, lastName, email, homeStoreId };

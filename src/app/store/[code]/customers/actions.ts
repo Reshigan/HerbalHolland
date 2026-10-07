@@ -7,6 +7,7 @@ import { createCustomer, recordAgeCheck, setConsent, STORE_CONSENT_WORDING } fro
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { bool, str } from "@/server/store/rules";
 import type { AgeCheck, MsgChannel } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const CHANNELS: MsgChannel[] = ["WHATSAPP", "SMS", "EMAIL", "PUSH"];
 
@@ -26,7 +27,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const phone = str(fd, "phone");
     if (!phone) return fail("A South African mobile number is required", "phone");
     const email = str(fd, "email").slice(0, 120);
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address doesn't look right", "email");
+    if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
     const idNumber = str(fd, "idNumber").replace(/\s/g, "");
     const sighted = bool(fd, "idSighted");
     if (!idNumber && !sighted) return fail("Confirm the member is 18+: capture an SA ID number or tick that you've seen their ID", "idSighted");

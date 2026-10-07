@@ -11,6 +11,7 @@ import { attempt, done, fail, manage, UserError, type ActionState } from "@/serv
 import { bool, isPin, str, weakPin } from "@/server/store/rules";
 import { memberNoFrom } from "@/components/pos/lib/rules";
 import type { User } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const isOwnerLevel = (u: Pick<Staff, "role">) => u.role === "OWNER" || u.role === "HQ_ADMIN";
 
@@ -38,7 +39,7 @@ export async function addStaff(code: string, _: ActionState, fd: FormData): Prom
     if (weakPin(pin)) return fail("Choose a PIN that's harder to guess — no repeated or running digits", "pin");
     const email = str(fd, "email").toLowerCase().slice(0, 120);
     const password = String(fd.get("password") ?? "");
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address doesn't look right", "email");
+    if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
     const weak = email ? passwordProblem(password, { email, name }) : null;
     if (weak) return fail(weak, "password");
     if (email && (await db.user.findUnique({ where: { email } }))) return fail("That email already has a login", "email");

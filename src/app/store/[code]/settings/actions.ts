@@ -10,6 +10,7 @@ import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
 import { actorOf } from "@/server/store/context";
 import { removeStaffSubscription, saveStaffSubscription, STAFF_PUSH_ROLES, staffVapidKey } from "@/server/staff-push";
+import { isEmail } from "@/lib/email";
 
 export async function saveStoreDetails(code: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
@@ -17,7 +18,7 @@ export async function saveStoreDetails(code: string, _: ActionState, fd: FormDat
     const phone = str(fd, "phone").slice(0, 20);
     if (phone && !/^[+\d][\d\s()-]{8,}$/.test(phone)) return fail("Enter the store's phone number, e.g. 012 345 6789", "phone");
     const email = str(fd, "email").toLowerCase().slice(0, 120);
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail("That email address doesn't look right", "email");
+    if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
     const whatsappRaw = str(fd, "whatsapp");
     const whatsapp = whatsappRaw ? normalisePhone(whatsappRaw) : null;
     if (whatsappRaw && !whatsapp) return fail("WhatsApp needs a South African mobile number", "whatsapp");

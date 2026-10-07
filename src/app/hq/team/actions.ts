@@ -7,6 +7,7 @@ import { temporaryPassword, tempPasswordUntil, TEMP_PASSWORD_HOURS } from "@/ser
 import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str } from "@/server/hq/form";
 import type { Role } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 const ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"];
 
@@ -25,7 +26,7 @@ export async function addUser(_: ActionState, fd: FormData): Promise<ActionState
   const role = str(fd, "role") as Role;
   const regionId = str(fd, "regionId") || null;
   if (name.length < 2) fields.name = "Full name";
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) fields.email = "Work email";
+  if (!isEmail(email)) fields.email = "Work email";
   else if (await db.user.count({ where: { email } })) fields.email = "Someone already signs in with this email";
   if (!ROLES.includes(role)) fields.role = "Choose a role";
   if (role === "AREA_MANAGER" && (!regionId || !(await db.region.count({ where: { id: regionId } })))) fields.regionId = "Area managers need a region";

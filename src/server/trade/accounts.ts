@@ -17,6 +17,7 @@ import { UploadError } from "../uploads";
 import { checkLicenceDocument, licenceProblem, standingOf, storeLicenceDocument } from "./licences";
 import { isTradeLicenceKind, type TradeLicenceKind } from "@/lib/trade-licences";
 import type { Prisma, TradeAccount, TradeAccountStatus, TradeBuyer, TradeTerms } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 export class TradeAccountError extends Error {}
 
@@ -233,7 +234,7 @@ function cleanDetails(p: Partial<TradeAccountDetails>): Prisma.TradeAccountUpdat
   }
   if (p.email !== undefined) {
     const v = normaliseEmail(line(p.email));
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)) throw new TradeAccountError("Enter the billing email address");
+    if (!isEmail(v)) throw new TradeAccountError("Enter the billing email address");
     out.email = v;
   }
   if (p.phone !== undefined) {
@@ -320,7 +321,7 @@ export async function addTradeBuyer(accountId: string, a: { name: string; email:
   const name = a.name.replace(/\s+/g, " ").trim().slice(0, TRADE_LIMITS.name);
   const email = normaliseEmail(a.email);
   if (!name) throw new TradeAccountError("Enter the buyer's name");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new TradeAccountError("Enter the buyer's email address");
+  if (!isEmail(email)) throw new TradeAccountError("Enter the buyer's email address");
   const phone = a.phone?.trim() ? normaliseTradePhone(a.phone) : null;
   if (a.phone?.trim() && !phone) throw new TradeAccountError("Enter a South African phone number, or leave it blank");
   return tx(async (t) => {

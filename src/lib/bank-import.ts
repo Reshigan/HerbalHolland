@@ -95,6 +95,8 @@ const clean = (cell: string) =>
     .replace(/\s+/g, " ");
 
 /** RFC 4180 rows (comma, semicolon, tab or pipe separated; quoted cells; CRLF or LF; BOM; Excel's sep= line), trimmed. */
+const CELL_MAX = 1_000; // a cell is never more than a long description
+
 export function csvRows(text: string): string[][] {
   let src = text.replace(/^﻿/, "");
   let d: string;
@@ -110,14 +112,14 @@ export function csvRows(text: string): string[][] {
       else if (src[i + 1] === '"') (cell += '"'), i++;
       else quoted = false;
     } else if (ch === '"' && !cell.trim()) (quoted = true), (cell = "");
-    else if (ch === d) row.push(cell), (cell = "");
+    else if (ch === d) row.push(cell.slice(0, CELL_MAX)), (cell = "");
     else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && src[i + 1] === "\n") i++;
-      row.push(cell), rows.push(row), (row = []), (cell = "");
+      row.push(cell.slice(0, CELL_MAX)), rows.push(row), (row = []), (cell = "");
     } else cell += ch;
   }
   if (quoted) throw new StatementError(`A quoted cell is never closed — look for a stray " on or after row ${rows.length + 1}.`);
-  if (cell || row.length) row.push(cell), rows.push(row);
+  if (cell || row.length) row.push(cell.slice(0, CELL_MAX)), rows.push(row);
   return rows.map((r) => r.map(clean));
 }
 
@@ -133,12 +135,13 @@ const count = (s: string, ch: string) => s.split(ch).length - 1;
 export function readAmount(raw: string): number | null {
   let s = raw.replace(/[    ]/g, " ").trim();
   if (!s || /^[-—–]$/.test(s)) return null;
+  if (s.length > 40) throw new StatementError(`“${s.slice(0, 40)}…” isn't an amount`);
   const bad = (why = "isn't an amount"): never => {
     throw new StatementError(`“${raw.trim()}” ${why}`);
   };
   let neg = false;
   let dir: "CR" | "DR" | null = null;
-  const suffix = s.match(/\s*(CR|DR)\.?$/i);
+  const suffix = s.match(/(CR|DR)\.?$/i); // the space before it goes with the trim
   if (suffix) (dir = suffix[1].toUpperCase() as "CR" | "DR"), (s = s.slice(0, suffix.index).trim());
   const paren = s.match(/^\((.*)\)$/);
   if (paren) (neg = true), (s = paren[1].trim());
@@ -211,7 +214,7 @@ const digits = (s: string | undefined) => (s ?? "").replace(/\D/g, "");
 // ── Columns ────────────────────────────────────────────────────────────────────
 
 /** A heading compared loosely: "Money In (R)" → "money in". */
-const norm = (s: string) => s.toLowerCase().replace(/\(.*?\)/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+const norm = (s: string) => s.slice(0, 200).toLowerCase().replace(/\([^()]*\)/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
 
 // Each column's possible headings, the preferred first (Capitec's posting date is the one its balance follows).
 const NAMES = {
@@ -424,8 +427,17 @@ function readOfx(text: string): ReadStatement {
   const lines: StatementLine[] = [];
   const failed: ReadStatement["failed"] = [];
   let skipped = 0;
-  [...text.matchAll(/<STMTTRN>([\s\S]*?)<\/STMTTRN>/gi)].forEach((m, i) => {
-    const b = m[1];
+  // One pass over the transactions (a lazy regex rescans to the end from every opening tag that never closes).
+  const blocks: string[] = [];
+  const open = /<STMTTRN>/gi, close = /<\/STMTTRN>/gi;
+  while (open.exec(text)) {
+    close.lastIndex = open.lastIndex;
+    const end = close.exec(text);
+    if (!end) break;
+    blocks.push(text.slice(open.lastIndex, end.index));
+    open.lastIndex = close.lastIndex;
+  }
+  blocks.forEach((b, i) => {
     const date = readDay(tag(b, "DTPOSTED"));
     if (!date) return void failed.push({ row: i + 1, error: `transaction ${i + 1}: “${tag(b, "DTPOSTED")}” isn't a date` });
     let amount: number | null;

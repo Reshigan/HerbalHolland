@@ -2,6 +2,7 @@
 // CPA franchise-regulation signing rule and the POPIA retention date. Pure: safe on the server, in the browser and in tests.
 import { PROVINCES, normalisePhone, type ProvinceCode } from "./sa";
 import { addDays, dayKey, fmtDate, startOfDaySA } from "./format";
+import { isEmail } from "@/lib/email";
 
 // ── The enquiry form ────────────────────────────────────────────────────────
 
@@ -71,7 +72,6 @@ const yesNo = (v: unknown): boolean | null => {
   const s = text(v).trim().toLowerCase();
   return s === "yes" ? true : s === "no" ? false : null;
 };
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const count = (n: number) => n.toLocaleString("en-US");
 
 /** A campaign tag from ?src= (e.g. linkedin, fasa-2027): lowercase letters, digits and dashes, up to 40 — like join tags. */
@@ -92,7 +92,7 @@ export function validateLead(input: RawLead): LeadCheck {
 
   const email = line(input.email).toLowerCase();
   if (!email) fields.email = "Enter your email address — we reply by email";
-  else if (email.length > L.email || !EMAIL.test(email)) fields.email = "That doesn't look like an email address — check it for typos";
+  else if (email.length > L.email || !isEmail(email)) fields.email = "That doesn't look like an email address — check it for typos";
 
   const rawPhone = line(input.phone);
   const phone = rawPhone ? normalisePhone(rawPhone) : null;
@@ -157,7 +157,7 @@ export function validateEarlyAccess(input: Partial<Record<EarlyAccessField | "so
   else if (firstName && !/\p{L}/u.test(firstName)) fields.firstName = "Enter your name in letters";
 
   const email = line(input.email).toLowerCase();
-  if (email && (email.length > LEAD_LIMITS.email || !EMAIL.test(email))) fields.email = "That doesn't look like an email address — check it for typos";
+  if (email && (email.length > LEAD_LIMITS.email || !isEmail(email))) fields.email = "That doesn't look like an email address — check it for typos";
   const rawMobile = line(input.mobile);
   const mobile = rawMobile ? normalisePhone(rawMobile) : null;
   if (rawMobile && !mobile) fields.mobile = "Enter a South African mobile number, e.g. 082 123 4567";

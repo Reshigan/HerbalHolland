@@ -7,6 +7,7 @@ import { TradeLogin } from "@/components/trade/login-form";
 import { Container, Panel } from "@/components/shop/ui";
 import { LOGIN } from "@/components/trade/copy";
 import { safeTradeNext } from "../_lib/context";
+import { isEmail } from "@/lib/email";
 
 export const metadata: Metadata = { title: "Sign in", robots: { index: false, follow: false } };
 
@@ -14,7 +15,7 @@ export default async function TradeLoginPage({ searchParams }: { searchParams: P
   const [sp, buyer] = await Promise.all([searchParams, getTradeBuyer()]);
   const next = safeTradeNext(sp.next);
   if (buyer) redirect(next ?? "/trade/range");
-  const email = sp.email && /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(sp.email) ? sp.email.slice(0, 254) : null;
+  const email = sp.email && isEmail(sp.email) ? sp.email : null;
   return (
     <Container className="grid grid-cols-1 gap-10 pt-10 sm:pt-14 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:gap-16">
       <div>

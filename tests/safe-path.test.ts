@@ -10,4 +10,8 @@ describe("safePath", () => {
   it("refuses other hosts, schemes, backslashes and control characters", () => {
     for (const bad of ["https://example.com", "//example.com", "/\\example.com", "\\\\example.com", "javascript:alert(1)", "", null, undefined, "/ok\n/x", "hq"]) expect(safePath(bad)).toBeNull();
   });
+  it("refuses paths that only resolve to another host", () => {
+    for (const bad of ["/.//evil.example", "/%2e//evil.example", "/x/..//evil.example", "/././/evil.example?welcome=1"]) expect(safePath(bad)).toBeNull();
+    expect(safePath("/club/./orders/../card")).toBe("/club/card");
+  });
 });

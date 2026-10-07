@@ -12,6 +12,7 @@ import { INTERESTS, type InterestKey } from "@/lib/rfm";
 import { Alert, CheckRow, Chip, Field, PosButton, Segmented, Sheet, Spinner, TextInput, TIER_CHIP, tierName } from "../ui";
 import { visitDate } from "./cart-panel";
 import type { CustomerDetail, CustomerHit } from "@/server/pos/types";
+import { isEmail } from "@/lib/email";
 
 export function CustomerSheet({
   open,
@@ -197,7 +198,7 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
     return r.valid ? { ok: true as const, dob: r.dob, age: ageOn(r.dob) } : { ok: false as const, reason: r.reason };
   }, [f.idNumber]);
   const phoneOk = !!normalisePhone(f.phone);
-  const emailOk = !f.email || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email.trim());
+  const emailOk = !f.email || isEmail(f.email.trim());
   const underage = id?.ok && id.age < minAge;
   const valid = phoneOk && f.firstName.trim() && emailOk && ((id?.ok && !underage) || (!f.idNumber && passport && !!dob)) && deals !== null && terms;
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF((s) => ({ ...s, [k]: e.target.value }));

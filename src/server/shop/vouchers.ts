@@ -19,10 +19,10 @@ import {
   isVoucherSku, makeVoucherCode, maskVoucherCode, normaliseVoucherCode, voucherApply, voucherExpiry, voucherProblem, voucherSku, VOUCHER_AMOUNTS_CENTS, VOUCHER_MESSAGE_MAX, VOUCHER_PRODUCT_SLUG,
 } from "@/lib/vouchers";
 import type { GiftVoucher, OrderStatus } from "@/generated/prisma/client";
+import { isEmail } from "@/lib/email";
 
 export class VoucherError extends Error {}
 export const VOUCHER_CATEGORY_SLUG = "gift-vouchers";
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 type Event = { status: OrderStatus; at: string; note?: string };
 
 // ── The virtual product ───────────────────────────────────────────────────────
@@ -80,7 +80,7 @@ export async function startVoucherPurchase(a: VoucherPurchase) {
   const amount = VOUCHER_AMOUNTS_CENTS.find((c) => c === a.amountCents);
   if (!amount) throw new VoucherError("Choose an amount");
   const recipientEmail = a.recipientEmail?.trim().toLowerCase() || null;
-  if (recipientEmail && !EMAIL.test(recipientEmail)) throw new VoucherError("That email address doesn't look right");
+  if (recipientEmail && !isEmail(recipientEmail)) throw new VoucherError("That email address doesn't look right");
   const message = a.message?.replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, "").trim().slice(0, VOUCHER_MESSAGE_MAX) || null;
   const recipientName = a.recipientName?.trim().slice(0, 60) || null;
   const product = await ensureVoucherProduct();

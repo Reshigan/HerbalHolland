@@ -1,5 +1,6 @@
 // Pure FormData / input parsing for HQ server actions. Everything the browser sends is
 // untrusted text: these helpers normalise it and never throw.
+import { isEmail } from "@/lib/email";
 
 export const str = (fd: FormData, name: string) => String(fd.get(name) ?? "").trim();
 export const opt = (fd: FormData, name: string) => str(fd, name) || null;
@@ -96,7 +97,7 @@ export function parseSuppressionList(raw: string, normalisePhone: (s: string) =>
     if (/^(phone|msisdn|mobile|email|number|value)$/i.test(cell)) continue; // header row
     if (cell.includes("@")) {
       const e = cell.toLowerCase();
-      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) values.add(e);
+      if (isEmail(e)) values.add(e);
       else rejected.push(cell);
       continue;
     }

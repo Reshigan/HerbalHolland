@@ -15,6 +15,7 @@ import { accountCodeProblem, firstProblems, MAX_LINE_CENTS, readOpeningCsv } fro
 import { addMonths, supplierParty, type AccountType, type Party } from "@/lib/ledger";
 import { dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import { zar } from "@/lib/money";
+import { isEmail } from "@/lib/email";
 
 /** A problem with one field of a books form (the action shows it under that field). */
 export class BooksFieldError extends LedgerError {
@@ -25,7 +26,6 @@ export class BooksFieldError extends LedgerError {
 
 export type BooksUser = Pick<Staff, "id" | "name" | "role" | "companyId" | "regionId">;
 const TYPES: AccountType[] = ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"];
-const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const approver = (kind: string) => (kind === "FRANCHISOR" ? "an HQ administrator" : "the owner");
 
@@ -281,7 +281,7 @@ export async function addAccountant(user: BooksUser, companyId: string, a: { nam
   const name = cleanName(a.name);
   const email = a.email.trim().toLowerCase().slice(0, 120);
   if (name.length < 2) throw new BooksFieldError("Enter their full name", "name");
-  if (!EMAIL.test(email)) throw new BooksFieldError("Enter their email address", "email");
+  if (!isEmail(email)) throw new BooksFieldError("Enter their email address", "email");
   if (await db.user.count({ where: { email } })) throw new BooksFieldError("Someone already signs in with this email", "email");
   const { password, data } = await temporary();
   const accountant = await db.user.create({ data: { name, email, role: "ACCOUNTANT", companyId, ...data } });
