@@ -16,7 +16,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
 import { ButtonLink } from "@/components/ui/button";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
 import { cancelCampaign, estimateReach, findCampaignStores, saveCampaign, sendNow } from "../actions";
@@ -89,7 +89,7 @@ export default async function CampaignPage({ params, searchParams }: { params: P
     return (
       <>
         {header}
-        {c.status === "SCHEDULED" && <Notice tone="info" className="mb-6">Scheduled for {fmtDateTime(c.scheduledAt!)}. Saving changes returns it to draft — schedule or send it again afterwards.</Notice>}
+        {c.status === "SCHEDULED" && <Notice tone="info" className="mb-6">Scheduled for {fmtDateTime(c.scheduledAt!)}. Saving changes returns it to draft. Schedule or send it again afterwards.</Notice>}
         <Composer
           action={saveCampaign.bind(null, c.id)}
           estimate={estimateReach}

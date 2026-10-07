@@ -11,14 +11,13 @@ import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox, Field, Input } from "@/components/ui/form";
+import { Checkbox, Field, Input, Select } from "@/components/ui/form";
 import { RangeTabs } from "@/components/ui/range-tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { BarList } from "@/components/charts/bar-list";
 import { Chips, ReadOnlyNote } from "@/components/store/ui";
-import { Select } from "@/components/store/select";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import type { ExpenseCategory } from "@/generated/prisma/client";
 
 export const metadata = { title: "Expenses" };
@@ -53,13 +52,13 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
       <PageHeader
         overline={`Money · ${store.name}`}
         title="Expenses"
-        description="Capture the running costs of the store from each supplier invoice. They feed your P&L and, when VAT is claimable, your VAT201 input tax."
+        description="Capture the running costs of the store from each supplier invoice. They feed the store's P&L and, when VAT is claimable, the input tax on the company's VAT201 for the period."
         actions={<RangeTabs path={path} current={r.preset} params={{ cat: cat ?? undefined }} />}
       />
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Spent, incl. VAT" value={zarCompact(allIncl)} sub={`${r.from} to ${r.to}`} />
         <Stat label="Ex VAT (P&L)" value={zarCompact(allIncl - allVat)} sub="what the P&L shows" />
-        <Stat label="Input VAT claimable" value={zar(allVat)} sub={vendor ? "goes to your VAT201" : "not VAT-registered"} />
+        <Stat label="Input VAT claimable" value={zar(allVat)} sub={vendor ? "input tax on the company's VAT201" : "not VAT-registered"} />
         <Stat label="Invoices captured" value={byCat.reduce((s, c) => s + c._count, 0).toLocaleString()} sub="in this period" />
       </div>
 
@@ -164,7 +163,7 @@ export default async function ExpensesPage({ params, searchParams }: { params: P
                     </Field>
                   </div>
                   <Field label="Description" htmlFor="ex-desc">
-                    <Input id="ex-desc" name="description" maxLength={160} placeholder="Electricity — September" />
+                    <Input id="ex-desc" name="description" maxLength={160} placeholder="Electricity for September" />
                     <FieldError name="description" />
                   </Field>
                   <Field label="Supplier (optional)" htmlFor="ex-sup">

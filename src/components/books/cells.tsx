@@ -49,13 +49,3 @@ export function AmountCell({ cents, href, drcr, strong, className }: { cents: nu
     </Td>
   );
 }
-
-/** A signed amount as two cells, debit then credit (the other one blank). */
-export function DebitCreditCells({ cents, href }: { cents: number; href?: string }) {
-  return (
-    <>
-      <AmountCell cents={cents > 0 ? cents : 0} href={href} />
-      <AmountCell cents={cents < 0 ? -cents : 0} href={href} />
-    </>
-  );
-}

@@ -20,7 +20,7 @@ import { Badge, type Tone } from "@/components/ui/badge";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { FilterForm, FilterSelect } from "@/components/hq/filter-form";
 import { EmptyRow, ViewOnly } from "@/components/hq/ui";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Field, Input } from "@/components/ui/form";
 import { savePricingRules } from "./actions";
 import { Flash } from "@/components/hq/flash";
@@ -85,7 +85,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       const item = l.items.filter((i) => i.variantId === variant.id && i.minQty <= qty).sort((a, b) => b.minQty - a.minQty)[0];
       const priced = item ? item.priceCents : l.adjustPct != null ? Math.round((variant.wholesaleCents * (100 + l.adjustPct)) / 100) : null;
       const live = listLive(l, simAt);
-      const reason = !live ? (l.active ? (l.startsAt && l.startsAt > simAt ? "Not started yet" : "Ended") : "Switched off") : priced == null ? "No price for this item" : l.id === price?.listId ? (account?.priceListId === l.id ? "The account's own list — wins" : "First live list that prices it — wins") : account?.priceListId && account.priceListId !== l.id && live ? "The account's own list comes first" : "A higher-priority list priced it first";
+      const reason = !live ? (l.active ? (l.startsAt && l.startsAt > simAt ? "Not started yet" : "Ended") : "Switched off") : priced == null ? "No price for this item" : l.id === price?.listId ? (account?.priceListId === l.id ? "The account's own list, so it wins" : "First live list that prices it, so it wins") : account?.priceListId && account.priceListId !== l.id && live ? "The account's own list comes first" : "A higher-priority list priced it first";
       return { id: l.id, name: l.name, priceCents: priced, minQty: item?.minQty ?? 1, won: l.id === price?.listId, applies: live && priced != null, reason };
     });
     return { thc, price, breaks, exCents, vatCents: vatHalfUp(exCents), verdicts };
@@ -123,7 +123,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
             {lists.length === 0 && (
               <EmptyRow cols={7}>
                 <Tags className="mx-auto mb-2 h-6 w-6 text-ink-300" aria-hidden />
-                No price lists yet — every store sells at RRP or its own shelf price.
+                No price lists yet, so every store sells at RRP or its own shelf price.
               </EmptyRow>
             )}
             {lists.map((l) => {
@@ -197,7 +197,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                   {qty} × {variant.product.name} · {variant.name} · trade{account ? ` · ${account.name}` : ""}
                 </div>
                 {tradeSim.thc ? (
-                  <p className="mt-3 text-sm text-ink-200">Licensed medicines are never traded — there is no trade price for this item.</p>
+                  <p className="mt-3 text-sm text-ink-200">Licensed medicines are never traded, so there is no trade price for this item.</p>
                 ) : (
                   <>
                     <div className="mt-2 font-display text-4xl font-semibold">{zar(tradeSim.price!.unitCents)}</div>
@@ -205,7 +205,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                     <ol className="mt-5 space-y-3 border-t border-ink-800 pt-4">
                       <li className="flex gap-3 text-sm">
                         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-800 text-xs font-semibold text-brand-400">1</span>
-                        <span className="min-w-0 flex-1"><span className="flex justify-between gap-2 font-medium">Wholesale price <span className="tnum">{zar(variant.wholesaleCents)}</span></span><span className="text-xs text-ink-400">The catalogue's price to stores, ex VAT — the trade fallback</span></span>
+                        <span className="min-w-0 flex-1"><span className="flex justify-between gap-2 font-medium">Wholesale price <span className="tnum">{zar(variant.wholesaleCents)}</span></span><span className="text-xs text-ink-400">The catalogue's price to stores, ex VAT (the trade fallback)</span></span>
                       </li>
                       <li className="flex gap-3 text-sm">
                         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-ink-800 text-xs font-semibold text-brand-400">2</span>
@@ -220,7 +220,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
               <div className="lg:col-span-3">
                 <div className="mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-ink-500">Every trade list, for this scenario</div>
                 {tradeSim.verdicts.length === 0 ? (
-                  <p className="rounded-2xl border border-ink-150 px-4 py-6 text-sm text-ink-500">No trade price lists yet — every account pays the wholesale price. Create one with the type “Trade”.</p>
+                  <p className="rounded-2xl border border-ink-150 px-4 py-6 text-sm text-ink-500">No trade price lists yet, so every account pays the wholesale price. Create one with the type “Trade”.</p>
                 ) : (
                   <ul className="divide-y divide-ink-100 rounded-2xl border border-ink-150">
                     {tradeSim.verdicts.map((v) => (
@@ -295,7 +295,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
       <Card className="mt-6">
         <CardHeader title="Pricing rules" description="Network guardrails applied at every till" />
         <CardBody>
-          {!can(user, "admin") && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
+          {!can(user, "admin") && <ViewOnly className="mb-4">View only: set by the HQ administrator.</ViewOnly>}
           <ActionForm action={savePricingRules}>
             <fieldset disabled={!can(user, "admin")} className="min-w-0 grid gap-4 sm:grid-cols-3">
               <Field label="Near-expiry window (days)" htmlFor="markdownDays" hint="Stock expiring this soon is marked down at the till (FEFO)">
@@ -306,7 +306,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
                 <Input id="markdownPct" name="markdownPct" defaultValue={settings.pricing.markdownPct} inputMode="numeric" />
                 <FieldError name="markdownPct" />
               </Field>
-              <Field label="Store margin guide %" htmlFor="minMarginPct" hint="Warning only — franchisees set their own prices (Competition Act s5(2))">
+              <Field label="Store margin guide %" htmlFor="minMarginPct" hint="Warning only: franchisees set their own prices (Competition Act s5(2))">
                 <Input id="minMarginPct" name="minMarginPct" defaultValue={settings.pricing.minMarginPct} inputMode="numeric" />
                 <FieldError name="minMarginPct" />
               </Field>

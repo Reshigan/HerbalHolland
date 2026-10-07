@@ -58,7 +58,7 @@ export async function readyTradeOrder(code: string, id: string): Promise<ActionS
     if (!nextTradeActions(order).includes("ready")) return fail(`${order.number} can't be marked ready from where it is.`);
     await advanceTradeOrder(id, "ready", actor, { staffId: user.id });
     refresh(code, id);
-    return done(`${order.number} is ready — the buyer has been sent their collection code by email and text.`);
+    return done(`${order.number} is ready. The buyer has been sent their collection code by email and text.`);
   });
 }
 
@@ -67,10 +67,10 @@ export async function collectTradeOrder(code: string, id: string, _: ActionState
   return tradeAttempt(async () => {
     const { order, actor, user } = await load(code, id);
     if (!nextTradeActions(order).includes("collect")) return fail(`${order.number} isn't ready to hand over.`);
-    if (!bool(fd, "idChecked")) return fail("Check the collector's ID — everyone collecting for a trade account is 18 or older.", "idChecked");
+    if (!bool(fd, "idChecked")) return fail("Check the collector's ID. Everyone collecting for a trade account is 18 or older.", "idChecked");
     const typed = str(fd, "collectionCode").replace(/\s/g, "");
     if (!/^\d{6}$/.test(typed)) return fail("Type the six-digit collection code the buyer was sent.", "collectionCode");
-    if (typed !== order.collectionCode) return fail("That isn't this order's collection code — ask the collector to check their email or text.", "collectionCode");
+    if (typed !== order.collectionCode) return fail("That isn't this order's collection code. Ask the collector to check their email or text.", "collectionCode");
     const shortShip: { lineId: string; shippedQty: number }[] = [];
     for (const [k, v] of fd.entries()) {
       if (!k.startsWith("short:") || !String(v).trim()) continue;
@@ -90,9 +90,9 @@ export async function cancelTradeOrder(code: string, id: string, _: ActionState,
     if (!canManageStore(user)) return fail("Only a manager or owner can cancel a trade order.");
     if (!nextTradeActions(order).includes("cancel")) return fail(`${order.number} can't be cancelled from where it is.`);
     const reason = str(fd, "reason").slice(0, 300);
-    if (reason.length < 3) return fail("Say why — the account is told the order was cancelled.", "reason");
+    if (reason.length < 3) return fail("Say why. The account is told the order was cancelled.", "reason");
     await advanceTradeOrder(id, "cancel", actor, { note: `Cancelled by ${user.name}: ${reason}`, staffId: user.id });
     refresh(code, id);
-    return done(`${order.number} cancelled — reserved stock is back on sale and the account has been told.`);
+    return done(`${order.number} cancelled. Reserved stock is back on sale and the account has been told.`);
   });
 }

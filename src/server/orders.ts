@@ -107,7 +107,7 @@ export async function placeOrder(input: CheckoutInput) {
   if (requiredLicences.length && input.payMethod === "ONLINE") throw new OrderError("Licensed medicines are paid for in store, when you collect");
   // Made-to-order merch ships from the merch partner: courier only, and it needs no stock to route.
   const made = await madeToOrder(q.lines.map((l) => l.variantId));
-  if (made.size && input.fulfilment !== "COURIER") throw new OrderError("Made-to-order merch ships by courier — choose delivery");
+  if (made.size && input.fulfilment !== "COURIER") throw new OrderError("Made-to-order merch ships by courier: choose delivery");
   const stocked = q.lines.filter((l) => !made.has(l.variantId));
   const candidates = await routingCandidates(stocked.map((l) => l.variantId));
   const route = routeOrder(
@@ -132,7 +132,7 @@ export async function placeOrder(input: CheckoutInput) {
   // the till takes it as a tender (sales.postPosSale) — so the code stays theirs until they collect.
   const voucher = input.voucherCode?.trim() ? await voucherForCheckout(input.voucherCode) : null;
   if (voucher && !voucher.ok) throw new OrderError(voucher.error);
-  if (voucher && input.payMethod !== "ONLINE") throw new OrderError("To use a gift voucher on this order choose Pay online — or keep the code and pay with it at the counter when you collect");
+  if (voucher && input.payMethod !== "ONLINE") throw new OrderError("To use a gift voucher on this order, choose Pay online, or keep the code and pay with it at the counter when you collect");
   const voucherCents = voucher?.ok ? voucherApply(voucher.voucher.balanceCents, total - points * 100) : 0;
   const dueCents = total - points * 100 - voucherCents;
   const status: OrderStatus = input.payMethod === "ONLINE" && dueCents > 0 ? "PENDING_PAYMENT" : "PLACED";
@@ -154,7 +154,7 @@ export async function placeOrder(input: CheckoutInput) {
     const short = await shortLine(t, route.storeId, stocked);
     if (short)
       throw new OrderError(
-        `Someone just bought the last ${short.name} at ${candidates.find((c) => c.id === route.storeId)?.name ?? "that store"} — ${input.fulfilment === "COLLECT" ? "choose another store or fewer" : "place the order again and we'll look for it at another store, or choose fewer"}`,
+        `Someone just bought the last ${short.name} at ${candidates.find((c) => c.id === route.storeId)?.name ?? "that store"}. ${input.fulfilment === "COLLECT" ? "Choose another store or fewer." : "Place the order again and we'll look for it at another store, or choose fewer."}`,
       );
 
     const o = await t.order.create({
@@ -569,7 +569,7 @@ const STALE_CLAIM_MS = 10 * 60_000;
 
 /** Why a return's money can't be sent now: it's already on its way, or it went. */
 function refundBusy(r: { number: string; refundRef: string | null; updatedAt: Date }) {
-  if (r.refundRef === REFUND_CLAIM) return r.updatedAt.getTime() > Date.now() - STALE_CLAIM_MS ? `${r.number} is already being refunded — refresh in a minute to see how it went` : null;
+  if (r.refundRef === REFUND_CLAIM) return r.updatedAt.getTime() > Date.now() - STALE_CLAIM_MS ? `${r.number} is already being refunded. Refresh in a minute to see how it went` : null;
   return r.refundRef ? `${r.number} has already been refunded (${r.refundRef})` : null;
 }
 
@@ -609,7 +609,7 @@ export async function refundOrderAmount(orderId: string, cents: number, reason: 
     where: { id: ret.id, status: "RECEIVED", OR: [{ refundRef: null }, { refundRef: REFUND_CLAIM, updatedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } }] },
     data: { refundRef: REFUND_CLAIM, updatedAt: new Date() },
   });
-  if (claimed.count !== 1) throw new OrderError(refundBusy(await db.returnRequest.findUniqueOrThrow({ where: { id: ret.id } })) ?? `${ret.number} changed while you were on it — refresh to see where it is now`);
+  if (claimed.count !== 1) throw new OrderError(refundBusy(await db.returnRequest.findUniqueOrThrow({ where: { id: ret.id } })) ?? `${ret.number} changed while you were on it. Refresh to see where it is now`);
   try {
     const meta = { orderId: o.id, orderCode: o.code, returnId: ret.id, returnNumber: ret.number };
     let r: OrderRefund;

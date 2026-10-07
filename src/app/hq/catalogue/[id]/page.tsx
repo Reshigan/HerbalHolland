@@ -76,14 +76,14 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         }
       />
       {sp.created && <Notice tone="success" className="mb-6" title="Product created">Add its variants below, then range them at stores. It stays out of the shop while in draft.</Notice>}
-      {!edit && <ViewOnly className="mb-6">View only — the catalogue is managed by the HQ merchandising team.</ViewOnly>}
+      {!edit && <ViewOnly className="mb-6">View only: the catalogue is managed by the HQ merchandising team.</ViewOnly>}
 
       <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} readOnly={!edit} />
 
       <Card className="mt-6">
         <CardHeader
           title="Variants"
-          description={`Sizes and SKUs. RRP is a recommendation — franchisees set their own shelf prices. Store margin guide: ${settings.pricing.minMarginPct}%.`}
+          description={`Sizes and SKUs. RRP is a recommendation, and franchisees set their own shelf prices. Store margin guide: ${settings.pricing.minMarginPct}%.`}
         />
         <div className="mt-4 border-t border-ink-100">
           <VariantEditor

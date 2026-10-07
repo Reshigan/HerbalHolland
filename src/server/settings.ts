@@ -76,6 +76,11 @@ export const DEFAULT_SETTINGS = {
     termsVersion: "trade-1", // the trade terms applicants accept (stored on the account)
     bank: { bank: "", accountName: "", accountNumber: "", branchCode: "" }, // where EFT payments go (printed on pro formas)
   },
+  legal: {
+    // HQ → Compliance: ticked once counsel has signed off the legal texts. Until then the legal pages and the trade terms
+    // carry a review note, and each line counsel must confirm shows its question.
+    reviewed: false,
+  },
 };
 type Defaults = typeof DEFAULT_SETTINGS;
 /** The settings as read: `ecommerce.deliveryDays` is optional in a saved value (older rows, the HQ form) and falls back to the defaults. */

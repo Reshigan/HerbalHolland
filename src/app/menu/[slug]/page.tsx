@@ -1,5 +1,5 @@
 // In-store menu board for a TV (16:9 landscape or 9:16 portrait). Public catalogue only in MEDICAL mode —
-// licensed medicines are never displayed; a panel points patients to the pharmacist instead. Member prices appear
+// licensed medicines are never displayed; a panel points patients to an authorised dispenser instead. Member prices appear
 // only on classes where incentives are allowed (incentiveExcluded); sold-out lines stay on the board, greyed.
 // Server-rendered; board-client.tsx rotates panels, polls live stock and keeps the screen awake.
 import { notFound } from "next/navigation";
@@ -66,7 +66,8 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
     const pages = Math.ceil(c.items.length / PER_PANEL);
     for (let p = 0; p < pages; p++) panels.push({ kind: "items", title: c.name, blurb: c.blurb, items: c.items.slice(p * PER_PANEL, (p + 1) * PER_PANEL), page: p + 1, pages });
   }
-  if (!showLicensed) panels.splice(Math.min(2, panels.length), 0, { kind: "dispensary" });
+  // The dispensary panel only where this store is licensed to dispense (medical mode keeps medicines off the board).
+  if (!showLicensed && store.licences.some((c) => classes.licensed.includes(c))) panels.splice(Math.min(2, panels.length), 0, { kind: "dispensary" });
   // Launch programme: the live/next drop early in the loop, this store's events after the dispensary panel.
   if (drop && drop.products.length && !(drop.phase === "live" && drop.left <= 0)) panels.splice(Math.min(1, panels.length), 0, { kind: "drop", drop });
   panels.splice(Math.min(4, panels.length), 0, ...events.map((event) => ({ kind: "event" as const, event })));
@@ -147,9 +148,9 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
                     <Mark className="h-[24vmin] w-[24vmin] shrink-0 text-brand-500" />
                     <div>
                       <div className="eyebrow text-[1.8vmin] text-brand-500">Dispensary</div>
-                      <h1 className="mt-[1.5vmin] font-display text-[5.6vmin] font-semibold leading-[1.05] text-white">Registered patient? Ask our pharmacist.</h1>
+                      <h1 className="mt-[1.5vmin] font-display text-[5.6vmin] font-semibold leading-[1.05] text-white">Registered patient? Ask our dispenser.</h1>
                       <p className="mt-[2vmin] max-w-[60vmin] text-[2.3vmin] leading-relaxed text-ink-300">
-                        Licensed medicines are supplied only on a valid SAHPRA authorisation, by an authorised dispenser — so they&apos;re not shown on this screen. Speak to our team in private at the counter.
+                        Licensed medicines are supplied only on a valid SAHPRA authorisation, by an authorised dispenser, so they&apos;re not shown on this screen. Speak to our team in private at the counter.
                       </p>
                     </div>
                   </div>
@@ -207,7 +208,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
           <span className="truncate">
             Lab-tested &amp; batch-traceable · Prices include VAT
             {anyMemberPrices ? " · Member prices for Herbal Holland Rewards members" : ""}
-            {!showLicensed ? " · Medicines: ask the pharmacist" : ""}
+            {!showLicensed ? " · Medicines: ask an authorised dispenser" : ""}
           </span>
           <span className="flex shrink-0 items-center gap-[1.8vmin]">
             <BoardRuntime slug={store.slug} />
@@ -252,7 +253,7 @@ function DropSlide({ d, url }: { d: DropView; url: string }) {
             <div className="w-[16vmin] shrink-0 rounded-[1.6vmin] bg-white p-[1vmin]">
               <QrCode value={url} label={live ? "Shop the drop" : "Get notified when the drop opens"} margin={1} />
             </div>
-            <p className="font-display text-[2.6vmin] font-semibold leading-snug text-white">{live ? "Scan to shop the drop — or ask us at the counter." : "Scan and tap “Notify me” to hear the moment it opens."}</p>
+            <p className="font-display text-[2.6vmin] font-semibold leading-snug text-white">{live ? "Scan to shop the drop, or ask us at the counter." : "Scan and tap “Notify me” to hear the moment it opens."}</p>
           </div>
         </div>
       </div>
@@ -276,7 +277,7 @@ function EventSlide({ e, url }: { e: EventCard; url: string }) {
           <h1 className="mt-[1.4vmin] font-display text-[5.6vmin] font-semibold leading-[1.04] tracking-tight text-white">{e.title}</h1>
           <p className="mt-[1.6vmin] text-[2.6vmin] font-medium text-ink-100">{fmtSpan(e.startsAt, e.endsAt)}</p>
           <p className="mt-[1.4vmin] line-clamp-2 text-[2.2vmin] leading-relaxed text-ink-300">{e.blurb}</p>
-          <p className="mt-[2vmin] text-[2.2vmin] font-semibold text-brand-300">{e.left > 0 ? `${e.left} places left · RSVP free · adults 18+, bring your ID` : "Fully booked — thank you!"}</p>
+          <p className="mt-[2vmin] text-[2.2vmin] font-semibold text-brand-300">{e.left > 0 ? `${e.left} places left · RSVP free · adults 18+, bring your ID` : "Fully booked, thank you!"}</p>
         </div>
         {e.left > 0 && (
           <div className="flex w-[22vmin] shrink-0 flex-col items-center gap-[1.2vmin]">

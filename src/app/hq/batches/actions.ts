@@ -30,7 +30,7 @@ export async function saveLabResults(batchId: string, _: ActionState, fd: FormDa
   const failed = Object.entries(panel).filter(([, v]) => v === "FAIL").map(([k]) => k);
   await audit(db, g.actor, "batch.lab_results", { entity: "Batch", entityId: batchId, data: { code: batch.code, thc, cbd, coaRef: opt(fd, "coaRef"), failed } });
   revalidatePath(`/hq/batches/${batchId}`);
-  return done(failed.length && batch.status === "RELEASED" ? `Saved. ${failed.join(", ")} failed — quarantine the batch below.` : "Lab results saved.");
+  return done(failed.length && batch.status === "RELEASED" ? `Saved. ${failed.join(", ")} failed, so quarantine the batch below.` : "Lab results saved.");
 }
 
 export async function setBatchStatus(batchId: string, to: "QUARANTINE" | "RELEASED" | "RECALLED", _: ActionState, fd: FormData): Promise<ActionState> {
@@ -39,7 +39,7 @@ export async function setBatchStatus(batchId: string, to: "QUARANTINE" | "RELEAS
   const batch = await db.batch.findUnique({ where: { id: batchId }, include: { variant: { include: { product: { select: { name: true } } } } } });
   if (!batch) return fail("Batch not found.");
   const reason = str(fd, "reason");
-  if (to !== "RELEASED" && reason.length < 5) return fail("Give a reason — it's shown to stores and kept on the audit trail.", { reason: "Required" });
+  if (to !== "RELEASED" && reason.length < 5) return fail("Give a reason. It's shown to stores and kept on the audit trail.", { reason: "Required" });
   if (to === "RELEASED" && batch.status !== "QUARANTINE") return fail(batch.status === "RECALLED" ? "A recalled batch can't be released." : "Only quarantined batches can be released.");
   if (to === "QUARANTINE" && batch.status !== "RELEASED") return fail("Only released batches can be quarantined.");
   if (to === "RECALLED") {
@@ -74,5 +74,5 @@ export async function setBatchStatus(batchId: string, to: "QUARANTINE" | "RELEAS
   revalidatePath(`/hq/batches/${batchId}`);
   revalidatePath("/hq/batches");
   if (to === "RECALLED") flashTo(`/hq/batches/${batchId}`, `Batch recalled. ${notified} member${notified === 1 ? "" : "s"} notified by SMS and every store has a recall notice to acknowledge.`);
-  flashTo(`/hq/batches/${batchId}`, to === "QUARANTINE" ? "Batch quarantined — it can't be sold or shipped until released." : "Batch released for sale.");
+  flashTo(`/hq/batches/${batchId}`, to === "QUARANTINE" ? "Batch quarantined. It can't be sold or shipped until released." : "Batch released for sale.");
 }

@@ -84,7 +84,7 @@ describe("article dates and aliases", () => {
     expect(articleDateProblems([ok, { slug: "b", aliases: ["a"], published: "2026-09-01", updated: "2026-09-01" }], "2026-09-28").join()).toContain("already");
   });
   it("ships with valid dates and resolves aliases to one canonical article", () => {
-    expect(articleDateProblems(ARTICLES, "2026-09-28")).toEqual([]);
+    expect(articleDateProblems(ARTICLES, "2026-10-07")).toEqual([]);
     expect(resolveArticle("heritage-landraces")).toMatchObject({ alias: false, article: { slug: "heritage-landraces" } });
     expect(resolveArticle("heritage-landraces-story")).toMatchObject({ alias: true, article: { slug: "heritage-landraces" } });
     expect(resolveArticle("nope")).toBeNull();

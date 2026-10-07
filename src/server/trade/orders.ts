@@ -19,8 +19,8 @@ import { claimEvents, peopleFor, pushToStaff, subscribedStores } from "../staff-
 import { sms } from "@/lib/sms";
 import { zar } from "@/lib/money";
 import { addDays } from "@/lib/format";
-import { tradeAllowed, type RegClass } from "@/lib/compliance";
-import { ACCOUNT_STATUS_PROBLEM, addressLineOf, caseMultiple, tradeBuyerBlock, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeTotals, validateTradeBasket, vatHalfUp } from "@/lib/trade";
+import type { RegClass } from "@/lib/compliance";
+import { ACCOUNT_STATUS_PROBLEM, addressLineOf, tradeBuyerBlock, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeTotals, validateTradeBasket, vatHalfUp } from "@/lib/trade";
 import { lockedCreditCheck, postLedgerEntry } from "./ledger";
 import { queuePosting } from "../ledger/core";
 import { licenceProblem } from "./licences";
@@ -157,8 +157,8 @@ export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   if (!account) throw new TradeOrderError("Unknown trade account");
   // A held account (overdue, or held by HQ) may still order prepaid — the hold stops credit, not trade — as its emails say.
   const canOrder = account.status === "APPROVED" || (account.status === "ON_HOLD" && input.payMethod === "EFT");
-  if (account.status === "ON_HOLD" && account.holdReason === "licence") throw new TradeOrderError((await licenceProblem(account)) ?? "This trade account's licences need attention — see Account › Licences");
-  if (!canOrder) throw new TradeOrderError(account.status === "ON_HOLD" ? `${ACCOUNT_STATUS_PROBLEM.ON_HOLD} — or pay this order by EFT` : ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
+  if (account.status === "ON_HOLD" && account.holdReason === "licence") throw new TradeOrderError((await licenceProblem(account)) ?? "This trade account's licences need attention. See Account › Licences.");
+  if (!canOrder) throw new TradeOrderError(account.status === "ON_HOLD" ? `${ACCOUNT_STATUS_PROBLEM.ON_HOLD}, or pay this order by EFT` : ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
   // We only supply an account whose required licences are verified and in date (src/lib/trade-licences.ts).
   const lp = await licenceProblem(account);
   if (lp) throw new TradeOrderError(`${lp} (Account › Licences)`);
@@ -201,7 +201,7 @@ export async function placeTradeOrder(input: PlaceTradeOrderInput) {
   const handlingCents = fulfilment === "COLLECT" ? tradeHandling(s) : 0;
   const lineTotals = q.lines.map((l) => ({ unitCents: l.exCents / l.qty, qty: l.qty, ...tradeLine({ unitCents: l.exCents / l.qty, qty: l.qty }) }));
   const totals = tradeTotals(lineTotals, { deliveryCents, handlingCents });
-  if (totals.vatCents !== q.vatCents + vatHalfUp(deliveryCents) + vatHalfUp(handlingCents)) throw new TradeOrderError("Pricing changed while the order was being placed — please try again");
+  if (totals.vatCents !== q.vatCents + vatHalfUp(deliveryCents) + vatHalfUp(handlingCents)) throw new TradeOrderError("Pricing changed while the order was being placed. Please try again.");
 
   const useDelivery = fulfilment === "COURIER" && !!account.deliveryLine && input.deliver !== "BILLING";
   const address = fulfilment === "COLLECT"
@@ -355,7 +355,7 @@ export async function advanceTradeOrder(orderId: string, action: TradeOrderActio
     if (!Number.isInteger(qty) || qty < 0 || qty > l.qty) throw new TradeOrderError(`Supply between 0 and ${l.qty} of ${l.variant.product.name} · ${l.variant.name}`);
     shipQty.set(l.id, qty);
   }
-  if (posting && [...shipQty.values()].every((q) => q === 0)) throw new TradeOrderError("Nothing to supply — cancel the order instead");
+  if (posting && [...shipQty.values()].every((q) => q === 0)) throw new TradeOrderError("Nothing to supply. Cancel the order instead.");
 
   const refundByHand = action === "cancel" && o.payMethod === "EFT" && !!o.paidAt;
   const noteParts = [opts.note?.trim() || null];
@@ -370,7 +370,7 @@ export async function advanceTradeOrder(orderId: string, action: TradeOrderActio
     // One step at a time: the order moves only from the status it was read in, so a second ship or collect (or a
     // cancel racing one) finds it moved and stops before anything is posted twice.
     const claimed = await t.tradeOrder.updateMany({ where: { id: o.id, status: o.status }, data: { status: to } });
-    if (claimed.count !== 1) throw new TradeOrderError("This order changed while you were working on it — refresh and try again");
+    if (claimed.count !== 1) throw new TradeOrderError("This order changed while you were working on it. Refresh and try again.");
     const data: Prisma.TradeOrderUpdateInput = { status: to, events };
     if (action === "pick") data.reservedAt = o.reservedAt ?? now;
     if (action === "ready") data.readyAt = now;
@@ -463,9 +463,3 @@ export async function listTradeOrders(f: { accountId?: string | null; storeId?: 
   ]);
   return { rows, total, page, pageSize };
 }
-
-/** Whole cases for a basket line (the portal's quantity stepper): the next multiple up, at least one case. */
-export const tradeQty = (qty: number, caseQty: number) => caseMultiple(qty, caseQty);
-
-/** The seller's view of what the account may buy at this store, line by line (for the HQ "place for account" form). */
-export const lineAllowed = (a: { accountClasses: readonly string[]; sellerLicences: readonly string[]; productClass: RegClass; productStatus: string; licensedOnly?: readonly string[] }) => tradeAllowed(a);

@@ -74,7 +74,7 @@ export async function addOwner(storeId: string, _: ActionState, fd: FormData): P
   const c = await ownerStore(storeId);
   if (!c) return DENIED;
   // HQ's own stores (the DCs) have no owner: an owner of HQ would hold HQ's books and every DC.
-  if (c.store.company.kind !== "FRANCHISEE") return fail("Owners are for franchisee companies — HQ's own stores are run from HQ.");
+  if (c.store.company.kind !== "FRANCHISEE") return fail("Owners are for franchisee companies. HQ's own stores are run from HQ.");
   const fields: Record<string, string> = {};
   const name = str(fd, "name");
   const email = str(fd, "email").toLowerCase();
@@ -88,7 +88,7 @@ export async function addOwner(storeId: string, _: ActionState, fd: FormData): P
   });
   await audit(db, c.g.actor, "user.create", { storeId: c.store.id, entity: "User", entityId: u.id, data: { email, role: "OWNER", company: c.store.company.name } });
   revalidatePath(`/hq/stores/${c.store.code}`);
-  return done(`${name} can now sign in as ${email} with the temporary password  ${password}  — share it privately (it isn't shown again, and it works for ${TEMP_PASSWORD_HOURS} hours). They'll choose their own password when they first sign in.`);
+  return done(`${name} can now sign in as ${email} with the temporary password  ${password}  (share it privately: it isn't shown again, and it works for ${TEMP_PASSWORD_HOURS} hours). They'll choose their own password when they first sign in.`);
 }
 
 export async function resetOwnerPassword(storeId: string, userId: string, _: ActionState): Promise<ActionState> {
@@ -101,7 +101,7 @@ export async function resetOwnerPassword(storeId: string, userId: string, _: Act
   await db.session.deleteMany({ where: { userId: u.id } });
   await audit(db, c.g.actor, "user.password_reset", { storeId: c.store.id, entity: "User", entityId: u.id, data: { email: u.email, role: "OWNER" } });
   revalidatePath(`/hq/stores/${c.store.code}`);
-  return done(`New temporary password for ${u.name}:  ${password}  — share it privately (it works for ${TEMP_PASSWORD_HOURS} hours). They've been signed out everywhere and choose their own password when they sign in.`);
+  return done(`New temporary password for ${u.name}:  ${password}  (share it privately: it works for ${TEMP_PASSWORD_HOURS} hours). They've been signed out everywhere and choose their own password when they sign in.`);
 }
 
 /** Deactivating signs them out everywhere; a company with a trading store keeps at least one active owner. */
@@ -119,7 +119,7 @@ export async function setOwnerActive(storeId: string, userId: string, active: bo
         t.user.count({ where: { role: "OWNER", companyId, active: true, id: { not: u.id } } }),
         t.store.count({ where: { companyId, kind: "RETAIL", status: "ACTIVE" } }),
       ]);
-      if (!others && trading) return { error: `${c.store.company.name} has a trading store, so it keeps at least one active owner — add another owner first.` };
+      if (!others && trading) return { error: `${c.store.company.name} has a trading store, so it keeps at least one active owner. Add another owner first.` };
     }
     await t.user.update({ where: { id: u.id }, data: { active } });
     if (!active) await t.session.deleteMany({ where: { userId: u.id } });

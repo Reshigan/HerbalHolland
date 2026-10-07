@@ -62,7 +62,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
         <h2 id="quest-title" ref={heading} tabIndex={-1} className="mt-3 flex items-center gap-3 font-display text-3xl font-semibold text-white focus:outline-none">
           <CheckCircle2 className="h-8 w-8 shrink-0 text-leaf-500" /> {points ? `+${points} points` : "Quest complete"}
         </h2>
-        <p className="mt-2 text-ink-300">{points ? "All correct — nicely done. Your points are already on your Rewards card." : "All correct — you've already earned the points for this one."}</p>
+        <p className="mt-2 text-ink-300">{points ? "All correct, nicely done. Your points are already on your Rewards card." : "All correct, and you've already earned the points for this one."}</p>
         <Link href="/club/points" className={buttonClass("outline-dark", "lg", "mt-5")}>
           See your points
         </Link>
@@ -84,7 +84,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
           Quiz yourself on this guide
         </h2>
         <p className="mt-1.5 text-sm text-ink-300">
-          {total} quick questions. Herbal Holland Rewards members earn {quest.points} points (worth {zarWhole(quest.points * POINT_VALUE_CENTS)}) for getting them all right — once per guide.
+          {total} quick questions. Herbal Holland Rewards members earn {quest.points} points (worth {zarWhole(quest.points * POINT_VALUE_CENTS)}) for getting them all right (once per guide).
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href={joinHref} className={buttonClass("primary", "lg")}>
@@ -100,7 +100,7 @@ export function QuestQuiz({ quest, signedIn, done, joinHref, action }: { quest: 
     return frame(
       <div role="status">
         <h2 id="quest-title" ref={heading} tabIndex={-1} className="mt-3 font-display text-2xl font-semibold text-white focus:outline-none">
-          Not quite — try again
+          Not quite, try again
         </h2>
         <p className="mt-1.5 text-sm text-ink-300">At least one answer wasn&apos;t right. Have another look at the guide above, then give it another go.</p>
         <button type="button" onClick={restart} className={buttonClass("primary", "lg", "mt-5")}>

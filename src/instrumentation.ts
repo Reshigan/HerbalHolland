@@ -7,7 +7,7 @@ export async function register() {
   if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NODE_ENV !== "production" || process.env.NEXT_PHASE === "phase-production-build") return;
   const { secretProblem } = await import("./server/secret");
   const why = secretProblem();
-  if (why) throw new Error(`${why} — set it to 32 or more random characters (openssl rand -base64 48) and start again`);
+  if (why) throw new Error(`${why}: set it to 32 or more random characters (openssl rand -base64 48) and start again`);
   const { envProblems } = await import("./lib/env-check");
   const { fatal, warn } = envProblems(process.env);
   for (const w of warn) console.warn(`[config] ${w}`);

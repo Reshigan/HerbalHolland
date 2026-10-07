@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, useTransit
 import { useRouter } from "next/navigation";
 import { Check, CircleAlert, Loader2, Minus, Plus, ScanLine } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { num } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Notice } from "@/components/ui/page";
@@ -245,7 +246,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
           <div className="h-full rounded-full bg-brand-500 transition-[width] duration-300" style={{ width: `${lines.length ? (counted.length / lines.length) * 100 : 0}%` }} />
         </div>
         <div className="mt-1.5 text-xs text-ink-500">
-          <span className="tnum font-semibold text-ink-800">{counted.length}</span> of <span className="tnum">{lines.length}</span> lines counted · <span className="tnum">{units.toLocaleString()}</span> units
+          <span className="tnum font-semibold text-ink-800">{counted.length}</span> of <span className="tnum">{lines.length}</span> lines counted · <span className="tnum">{num(units)}</span> units
           {!blind && variances > 0 && <> · <span className="font-semibold text-amber-700">{variances} with a variance</span></>}
         </div>
       </div>
@@ -256,7 +257,7 @@ export function CountSheet({ lines, blind, canEdit, save, reviewHref }: {
         </Notice>
       )}
       {error && <Notice tone="danger" className="mt-4">{error}</Notice>}
-      {invalid > 0 && <Notice tone="warn" className="mt-4">{invalid} count{invalid > 1 ? "s aren't" : " isn't"} a whole number — fix {invalid > 1 ? "them" : "it"} before approving.</Notice>}
+      {invalid > 0 && <Notice tone="warn" className="mt-4">{invalid} count{invalid > 1 ? "s aren't" : " isn't"} a whole number. Fix {invalid > 1 ? "them" : "it"} before approving.</Notice>}
 
       <div className="mt-4 overflow-x-auto rounded-2xl border border-ink-150 bg-white shadow-card">
         <table className="w-full border-collapse text-sm">

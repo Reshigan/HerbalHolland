@@ -97,7 +97,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: stale || waitingLong ? "high" : "medium",
       count: tradeOpen,
       title: `${plural(tradeOpen, "trade order")} to fulfil`,
-      line: `${parts.join(" · ")}${trade.oldestOpenAt ? ` · oldest waiting ${ageLabel(trade.oldestOpenAt, now)}` : ""} — click & collect for a business account`,
+      line: `${parts.join(" · ")}${trade.oldestOpenAt ? ` · oldest waiting ${ageLabel(trade.oldestOpenAt, now)}` : ""} · click & collect for a business account`,
       href: `${base}/trade`,
     });
   }
@@ -108,7 +108,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: f.alerts.high > 0 ? "high" : "medium",
       count: f.alerts.open,
       title: `${plural(f.alerts.open, "loss-prevention alert")} open`,
-      line: f.alerts.high > 0 ? `${plural(f.alerts.high, "high-severity alert")} — investigate today` : "Review, then resolve or dismiss with a note",
+      line: f.alerts.high > 0 ? `${plural(f.alerts.high, "high-severity alert")}: investigate today` : "Review, then resolve or dismiss with a note",
       href: `${base}/loss-prevention`,
     });
 
@@ -118,7 +118,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: "high",
       count: f.cash.overdueCount,
       title: `${rands(f.cash.overdueCents)} of cash past its banking deadline`,
-      line: `${plural(f.cash.overdueCount, "cash-up")} overdue — bank it today and record the deposit with its slip`,
+      line: `${plural(f.cash.overdueCount, "cash-up")} overdue: bank it today and record the deposit with its slip`,
       href: `${base}/banking`,
     });
   else if (f.cash.waitingCount > 0) {
@@ -139,7 +139,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: f.announcements.urgent > 0 ? "high" : "medium",
       count: f.announcements.pending,
       title: `${plural(f.announcements.pending, "HQ update")} to acknowledge`,
-      line: f.announcements.urgent > 0 ? `Includes a recall — act on it now${f.announcements.latestTitle ? ` · ${f.announcements.latestTitle}` : ""}` : f.announcements.latestTitle ? `Latest: ${f.announcements.latestTitle}` : "Read it and brief the team",
+      line: f.announcements.urgent > 0 ? `Includes a recall: act on it now${f.announcements.latestTitle ? ` · ${f.announcements.latestTitle}` : ""}` : f.announcements.latestTitle ? `Latest: ${f.announcements.latestTitle}` : "Read it and brief the team",
       href: `${base}/updates?view=todo`,
     });
 
@@ -150,7 +150,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: days != null && days <= 7 ? "high" : "medium",
       count: f.batches.lots,
       title: `${plural(f.batches.lots, "lot")} expiring within ${f.batches.withinDays} days`,
-      line: `${plural(f.batches.units, "unit")} on hand${days != null ? ` · soonest ${days <= 0 ? "today" : `in ${plural(days, "day")}`}` : ""} — mark down or move them first`,
+      line: `${plural(f.batches.units, "unit")} on hand${days != null ? ` · soonest ${days <= 0 ? "today" : `in ${plural(days, "day")}`}` : ""}: mark down or move them first`,
       href: `${base}/batches?view=expiring`,
     });
   }
@@ -164,7 +164,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       count: toOrder,
       title: `${plural(toOrder, "SKU")} to reorder`,
       line:
-        (f.lowStock.out > 0 ? `${plural(f.lowStock.out, "item")} out of stock — order from your distribution centre` : "At or below reorder point — top up before they run out") +
+        (f.lowStock.out > 0 ? `${plural(f.lowStock.out, "item")} out of stock: order from your distribution centre` : "At or below reorder point: top up before they run out") +
         (covered ? ` · ${covered.toLocaleString("en-US")} more already on order` : ""),
       href: `${base}/purchasing/new`,
     });
@@ -174,7 +174,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: "low",
       count: covered,
       title: `${plural(covered, "low SKU")} already on order`,
-      line: "Nothing more to order — receive the delivery when it arrives",
+      line: "Nothing more to order: receive the delivery when it arrives",
       href: `${base}/purchasing`,
     });
 
@@ -210,7 +210,7 @@ export function buildToday(f: TodayFacts, base: string): TodayItem[] {
       severity: "high",
       count: f.supplierInvoices.overdue,
       title: `${plural(f.supplierInvoices.overdue, "supplier invoice")} overdue`,
-      line: `${rands(f.supplierInvoices.overdueCents)} past due — pay or query them`,
+      line: `${rands(f.supplierInvoices.overdueCents)} past due: pay or query them`,
       href: `${base}/finance/supplier-invoices?status=DUE`,
     });
   else if (f.supplierInvoices.dueSoon > 0)
@@ -236,9 +236,9 @@ export function buildCompanyToday(stores: StoreExceptionFacts[]): TodayItem[] {
     const base = `/store/${x.code}`;
     const add = (key: string, severity: TodaySeverity, count: number, what: string, line: string, href: string) =>
       items.push({ key: `${x.code}:${key}`, severity, count, title: `${x.name} · ${what}`, line, href });
-    if (x.overdueCash > 0) add("cash", "high", x.overdueCash, `${plural(x.overdueCash, "cash-up")} overdue`, "Past its banking deadline — bank it and record the deposit", `${base}/banking`);
+    if (x.overdueCash > 0) add("cash", "high", x.overdueCash, `${plural(x.overdueCash, "cash-up")} overdue`, "Past its banking deadline: bank it and record the deposit", `${base}/banking`);
     if (x.alerts > 0)
-      add("alerts", x.highAlerts > 0 ? "high" : "medium", x.alerts, `${plural(x.alerts, "loss-prevention alert")} open`, x.highAlerts > 0 ? `${plural(x.highAlerts, "high-severity alert")} — investigate today` : "Review, then resolve or dismiss with a note", `${base}/loss-prevention`);
+      add("alerts", x.highAlerts > 0 ? "high" : "medium", x.alerts, `${plural(x.alerts, "loss-prevention alert")} open`, x.highAlerts > 0 ? `${plural(x.highAlerts, "high-severity alert")}: investigate today` : "Review, then resolve or dismiss with a note", `${base}/loss-prevention`);
     if (x.quiet) add("quiet", "medium", 1, "no sales yet today", "Check the store is open and the tills are trading", base);
     if (x.negativeLots > 0) add("negative", "medium", x.negativeLots, `${plural(x.negativeLots, "negative stock lot")}`, "Count them to correct the stock", `${base}/reports/negative-stock`);
     if (x.lowStock > 0) add("low-stock", "low", x.lowStock, `${plural(x.lowStock, "SKU")} at or below reorder point`, "Check what is already on order, then top up", `${base}/purchasing/new`);

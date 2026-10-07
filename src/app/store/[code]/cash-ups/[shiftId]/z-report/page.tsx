@@ -32,7 +32,7 @@ export default async function ZReportPage({ params }: { params: Promise<{ code: 
         <PageHeader
           overline={`Money · ${store.name}`}
           title={z.closed ? "Z-report" : "X-report"}
-          description={`Shift opened ${fmtDateTime(shift.openedAt)}${shift.closedAt ? `, closed ${fmtDateTime(shift.closedAt)}` : " — still trading, so these are live figures"}. Prints on A4 or 80 mm receipt paper; “Save as PDF” in the print dialog keeps a copy.`}
+          description={`Shift opened ${fmtDateTime(shift.openedAt)}${shift.closedAt ? `, closed ${fmtDateTime(shift.closedAt)}` : " (still trading, so these are live figures)"}. Prints on A4 or 80 mm receipt paper; “Save as PDF” in the print dialog keeps a copy.`}
           actions={<PrintButton label="Print or save as PDF" />}
         />
       </div>

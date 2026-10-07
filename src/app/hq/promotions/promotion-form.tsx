@@ -4,8 +4,9 @@ import { BadgePercent, Coins, Gift, Layers, Percent, Sparkles, AlertTriangle } f
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input, Checkbox, Label } from "@/components/ui/form";
 import { MultiPick, type PickOption } from "@/components/hq/multi-pick";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { describePromo, type PromoKind } from "@/lib/promotions";
+import { parseRand } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/server/hq/guard";
 
@@ -26,10 +27,7 @@ const KINDS: { key: PromoKind; label: string; blurb: string; icon: React.ReactNo
 ];
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-const cents = (s: string) => {
-  const n = Number(s.replace(/[R\s,]/gi, ""));
-  return s.trim() && Number.isFinite(n) ? Math.round(n * 100) : 0;
-};
+const cents = (s: string) => parseRand(s) ?? 0;
 const int = (s: string) => (s.trim() && Number.isInteger(Number(s)) ? Number(s) : null);
 const names = (ids: string[], opts: PickOption[]) => {
   const n = ids.map((id) => opts.find((o) => o.value === id)?.label ?? "").filter(Boolean);
@@ -97,7 +95,7 @@ export function PromotionForm({
                   <Input id="name" name="name" {...input("name")} placeholder="e.g. Rolling essentials: tray + free papers" />
                   <FieldError name="name" />
                 </Field>
-                <Field label="Description" htmlFor="description" hint="Optional — terms for staff and the web shop">
+                <Field label="Description" htmlFor="description" hint="Optional: terms for staff and the web shop">
                   <Input id="description" name="description" {...input("description")} />
                 </Field>
               </div>
@@ -183,23 +181,23 @@ export function PromotionForm({
             <CardHeader title={v.kind === "BUY_X_GET_Y" ? "Qualifying and reward items" : "Qualifying items"} description="Pick categories and/or products. Nothing picked = everything in the basket." />
             <CardBody className="grid gap-5 sm:grid-cols-2">
               <div>
-                <Label>{v.kind === "BUY_X_GET_Y" ? "Buy — categories" : "Categories"}</Label>
+                <Label>{v.kind === "BUY_X_GET_Y" ? "Buy: categories" : "Categories"}</Label>
                 <MultiPick name="categoryIds" options={categories} defaultValue={v.categoryIds} onChange={(x) => set("categoryIds", x)} emptyLabel="Any category" height="max-h-44" />
                 <FieldError name="categoryIds" />
               </div>
               <div>
-                <Label>{v.kind === "BUY_X_GET_Y" ? "Buy — products" : "Products"}</Label>
+                <Label>{v.kind === "BUY_X_GET_Y" ? "Buy: products" : "Products"}</Label>
                 <MultiPick name="productIds" options={products} defaultValue={v.productIds} onChange={(x) => set("productIds", x)} emptyLabel="Any product" placeholder="Search products…" height="max-h-44" />
                 <FieldError name="productIds" />
               </div>
               {v.kind === "BUY_X_GET_Y" && (
                 <>
                   <div>
-                    <Label>Get — reward categories</Label>
+                    <Label>Get: reward categories</Label>
                     <MultiPick name="rewardCategoryIds" options={categories} defaultValue={v.rewardCategoryIds} onChange={(x) => set("rewardCategoryIds", x)} emptyLabel="Same as qualifying items" height="max-h-44" />
                   </div>
                   <div>
-                    <Label>Get — reward products</Label>
+                    <Label>Get: reward products</Label>
                     <MultiPick name="rewardProductIds" options={products} defaultValue={v.rewardProductIds} onChange={(x) => set("rewardProductIds", x)} emptyLabel="Same as qualifying items" placeholder="Search products…" height="max-h-44" />
                   </div>
                   <p className="text-xs text-ink-500 sm:col-span-2">Gift with purchase: leave “Buy” empty, set a minimum spend and pick the gift as the reward. Complementary deal: buy one product, get a different one discounted. The cheapest eligible item is always the reward.</p>
@@ -246,7 +244,7 @@ export function PromotionForm({
                 <Input id="endsAt" name="endsAt" type="datetime-local" {...input("endsAt")} />
                 <FieldError name="endsAt" />
               </Field>
-              <Field label="Happy hour from" htmlFor="startTime" hint="Optional — SAST">
+              <Field label="Happy hour from" htmlFor="startTime" hint="Optional (SAST)">
                 <Input id="startTime" name="startTime" type="time" {...input("startTime")} />
                 <FieldError name="startTime" />
               </Field>
@@ -295,7 +293,7 @@ export function PromotionForm({
                     <span className="font-mono">{v.code.toUpperCase()}</span>
                   </Row>
                 )}
-                {v.firstPurchaseOnly && <Row k="Who">A member&apos;s first purchase only — welcome gift</Row>}
+                {v.firstPurchaseOnly && <Row k="Who">A member&apos;s first purchase only (welcome gift)</Row>}
               </dl>
             </div>
             {(excluded.length > 0 || preview.longReduction) && (
@@ -328,7 +326,7 @@ export function PromotionForm({
                   checked={v.firstPurchaseOnly}
                   onChange={(e) => set("firstPurchaseOnly", e.target.checked)}
                   label="First purchase only (welcome gift)"
-                  description="Only for a member with no purchases yet, once identified at the till or signed in online. If the gift isn't in the basket, they see “Free with your basket — add it…”."
+                  description="Only for a member with no purchases yet, once identified at the till or signed in online. If the gift isn't in the basket, they see “Free with your basket. Add it…”."
                 />
                 <Checkbox name="active" checked={v.active} onChange={(e) => set("active", e.target.checked)} label="Active" description="Untick to pause without ending it" />
               </CardBody>

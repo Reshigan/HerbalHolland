@@ -29,7 +29,7 @@ export async function actOnDcOrder(orderId: string, action: DcAction, _: ActionS
     const lines = await db.stockOrderLine.findMany({ where: { stockOrderId: orderId }, select: { qty: true, shipped: true } });
     const shipped = lines.reduce((s, l) => s + ((l.shipped as { qty: number }[] | null) ?? []).reduce((a, b) => a + b.qty, 0), 0);
     const ordered = lines.reduce((s, l) => s + l.qty, 0);
-    flashTo(back, shipped < ordered ? `Shipped ${shipped} of ${ordered} units to ${order.buyer.name} — ${ordered - shipped} short (not enough released stock).` : `Shipped ${shipped} units to ${order.buyer.name}. The store books it in on arrival and is invoiced for what it receives.`);
+    flashTo(back, shipped < ordered ? `Shipped ${shipped} of ${ordered} units to ${order.buyer.name}, ${ordered - shipped} short (not enough released stock).` : `Shipped ${shipped} units to ${order.buyer.name}. The store books it in on arrival and is invoiced for what it receives.`);
   }
-  flashTo(back, { approve: `${order.number} approved — ready to pick for ${order.buyer.name}.`, reject: `${order.number} rejected; the store can see why.`, cancel: `${order.number} cancelled.` }[action]);
+  flashTo(back, { approve: `${order.number} approved and ready to pick for ${order.buyer.name}.`, reject: `${order.number} rejected; the store can see why.`, cancel: `${order.number} cancelled.` }[action]);
 }

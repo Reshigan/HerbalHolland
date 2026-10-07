@@ -1,5 +1,6 @@
-// The trade terms applicants accept (settings.trade.termsVersion is stored on the account). Plain-language placeholder
-// text marked for counsel's review; the figures (minimum order, fees, hold days) are read from the live settings.
+// The trade terms applicants accept (settings.trade.termsVersion is stored on the account). Plain-language text, marked
+// as under review until HQ records counsel's sign-off (HQ → Compliance, settings.legal.reviewed); the figures (minimum
+// order, fees, hold days) are read from the live settings.
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Scale } from "lucide-react";
@@ -11,6 +12,7 @@ import { Important, List } from "@/components/shop/legal/membership-terms";
 import { Callout, Container } from "@/components/shop/ui";
 import { LOCALE, SITE_NAME } from "@/lib/seo";
 import { zar } from "@/lib/money";
+import { legalNameOf } from "@/lib/contact";
 
 const DESCRIPTION = "The terms a business accepts when it applies for a Herbal Holland trade account: who may hold one, prices ex VAT, case packs and the minimum order, EFT and account terms, courier and collection, invoices and statements.";
 
@@ -25,7 +27,7 @@ export const metadata: Metadata = {
 export default async function TradeTermsPage() {
   const [settings, c] = await Promise.all([getSettings(), getFranchisor()]);
   const t = settings.trade;
-  const entity = c?.legalName ?? "Herbal Holland (Pty) Ltd";
+  const entity = legalNameOf(c);
   const email = tradeEmail();
   return (
     <Container className="max-w-3xl pt-10 sm:pt-14">
@@ -34,9 +36,11 @@ export default async function TradeTermsPage() {
       <p className="mt-3 text-lg text-ink-300">
         Version <span className="tnum font-semibold text-white">{t.termsVersion}</span>. The agreement between a trade customer and {entity} for buying at trade prices.
       </p>
-      <Callout tone="warn" icon={<Scale className="h-5 w-5" aria-hidden />} className="mt-8" title="Draft — to be reviewed by counsel">
-        This is placeholder wording for the trade channel. Counsel reviews it before the first trade account is approved; the version applicants accept is recorded on their account.
-      </Callout>
+      {!settings.legal.reviewed && (
+        <Callout tone="warn" icon={<Scale className="h-5 w-5" aria-hidden />} className="mt-8" title="Draft — to be reviewed by counsel">
+          This is placeholder wording for the trade channel. Counsel reviews it before the first trade account is approved; the version applicants accept is recorded on their account.
+        </Callout>
+      )}
 
       <div className="pb-8">
         <H2>1. About these terms</H2>

@@ -1,11 +1,10 @@
 // HQ admin: the loss-prevention thresholds, in plain words. Rand amounts are entered in rand, factors as plain numbers.
 import { Field, Input } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
+import { centsToInput } from "@/lib/money";
 import { cn } from "@/lib/cn";
 import { saveLossRules } from "./actions";
 import type { Settings } from "@/server/settings";
-
-const rand = (cents: number) => (cents / 100).toFixed(2).replace(/\.00$/, "");
 
 function Group({ title, rules, children }: { title: string; rules: string; children: React.ReactNode }) {
   return (
@@ -39,14 +38,14 @@ export function RulesForm({ loss, banking }: { loss: Settings["loss"]; banking: 
   return (
     <ActionForm action={saveLossRules} className="space-y-5">
       <Group title="Cash-ups" rules="Cash-up short · Repeated cash shortages">
-        <Num name="cashShort" label="Alert when a cash-up is short by (R)" prefix="R" value={rand(loss.cashShortCents)} hint="Counted cash under what the till expected — medium severity" />
-        <Num name="cashShortHigh" label="High severity from (R)" prefix="R" value={rand(loss.cashShortHighCents)} hint="Must be more than the amount above" />
+        <Num name="cashShort" label="Alert when a cash-up is short by (R)" prefix="R" value={centsToInput(loss.cashShortCents)} hint="Counted cash under what the till expected (medium severity)" />
+        <Num name="cashShortHigh" label="High severity from (R)" prefix="R" value={centsToInput(loss.cashShortHighCents)} hint="Must be more than the amount above" />
         <Num name="repeatShorts" label="Repeated: short this many times in 30 days" value={loss.repeatShorts} hint="The same person closing short this often is always high severity" />
       </Group>
 
       <Group title="Banking" rules="Cash not banked in time · Deposit short">
         <Num name="dueBusinessDays" label="Bank the cash within (business days)" value={banking.dueBusinessDays} hint="After the shift closes. Weekends and public holidays don't count" />
-        <Num name="shortTolerance" label="A deposit may be short by up to (R)" prefix="R" value={rand(banking.shortToleranceCents)} hint="Any more under its cash-ups raises a high-severity alert" />
+        <Num name="shortTolerance" label="A deposit may be short by up to (R)" prefix="R" value={centsToInput(banking.shortToleranceCents)} hint="Any more under its cash-ups raises a high-severity alert" />
       </Group>
 
       <Group title="Refunds" rules="Suspicious refund · High refund rate · Own sales refunded">
@@ -59,7 +58,7 @@ export function RulesForm({ loss, banking }: { loss: Settings["loss"]; banking: 
 
       <Group title="Stock" rules="Stock write-offs">
         <Num name="writeOffFactor" label="Write-offs this week: times the store's weekly norm" suffix="×" decimal value={loss.writeOffFactor} hint="Damaged, theft, lost, expired and stock-take losses at cost, against the last 12 weeks" />
-        <Num name="writeOffMin" label="…and at least this much at cost (R)" prefix="R" value={rand(loss.writeOffMinCents)} hint="High severity at twice the factor" />
+        <Num name="writeOffMin" label="…and at least this much at cost (R)" prefix="R" value={centsToInput(loss.writeOffMinCents)} hint="High severity at twice the factor" />
       </Group>
 
       <Group title="Tills & member cards" rules="One card, many sales · Unusual offline selling">

@@ -58,7 +58,7 @@ export default async function TradeOverviewPage() {
           </>
         }
       />
-      {!s.canEdit && <ViewOnly className="mb-6">Your region&apos;s trade orders and the accounts that buy from it — view only. The HQ team approves accounts and works the orders.</ViewOnly>}
+      {!s.canEdit && <ViewOnly className="mb-6">Your region&apos;s trade orders and the accounts that buy from it (view only). The HQ team approves accounts and works the orders.</ViewOnly>}
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Applications waiting" value={num(n("PENDING"))} sub={<Link href="/hq/trade/accounts?status=PENDING" className="font-semibold text-brand-700 hover:underline">review →</Link>} />
@@ -200,7 +200,7 @@ export default async function TradeOverviewPage() {
           </Link>
           <Link href="/hq/settings#trade" className="flex items-start gap-3 rounded-xl border border-ink-150 p-4 transition hover:border-brand-300 hover:bg-brand-50/40">
             <Settings className="mt-0.5 h-5 w-5 shrink-0 text-brand-700" aria-hidden />
-            <span><span className="block text-sm font-semibold text-ink-900">Trade settings</span><span className="block text-xs text-ink-500">Minimum order, courier and handling fees, EFT hold, overdue grace, statement day, bank details{t.bank.accountNumber ? "" : " — bank details not set yet"}</span></span>
+            <span><span className="block text-sm font-semibold text-ink-900">Trade settings</span><span className="block text-xs text-ink-500">Minimum order, courier and handling fees, EFT hold, overdue grace, statement day, bank details{t.bank.accountNumber ? "" : " (not set yet)"}</span></span>
           </Link>
         </CardBody>
       </Card>

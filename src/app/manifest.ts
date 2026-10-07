@@ -6,7 +6,7 @@ export default function manifest(): MetadataRoute.Manifest {
     id: "/club",
     name: "Herbal Holland",
     short_name: "Herbal Holland",
-    description: "Your Herbal Holland Rewards card, points, orders and invoices — plus the shop and store finder. Adults 18+.",
+    description: "Your Herbal Holland Rewards card, points, orders and invoices, plus the shop and store finder. Adults 18+.",
     start_url: "/club",
     scope: "/",
     display: "standalone",

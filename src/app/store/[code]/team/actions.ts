@@ -36,7 +36,7 @@ export async function addStaff(code: string, _: ActionState, fd: FormData): Prom
     if (role === "MANAGER" && !isOwnerLevel(user)) return fail("Only the owner can add another manager", "role");
     const pin = str(fd, "pin");
     if (!isPin(pin)) return fail("The PIN must be exactly 4 digits", "pin");
-    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess — no repeated or running digits", "pin");
+    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess, with no repeated or running digits", "pin");
     const email = str(fd, "email").toLowerCase().slice(0, 120);
     const password = String(fd.get("password") ?? "");
     if (email && !isEmail(email)) return fail("That email address doesn't look right", "email");
@@ -62,7 +62,7 @@ export async function addStaff(code: string, _: ActionState, fd: FormData): Prom
     await audit(db, actor, "staff.create", { storeId: store.id, entity: "User", entityId: u.id, data: { name, role, canDispense, backOffice: !!email } });
     revalidatePath(`/store/${store.code}/team`);
     return done(
-      `${name} added. They can sign in at the till with their PIN${email ? ` and to the back office as ${email} with the password you set — they choose their own the first time, within ${TEMP_PASSWORD_HOURS} hours` : ""}.`,
+      `${name} added. They can sign in at the till with their PIN${email ? ` and to the back office as ${email} with the password you set. They choose their own the first time, within ${TEMP_PASSWORD_HOURS} hours` : ""}.`,
     );
   });
 }
@@ -74,7 +74,7 @@ export async function resetPin(code: string, id: string, _: ActionState, fd: For
     if (!mayManage(user, t)) return fail("Only the owner can change a manager's PIN");
     const pin = str(fd, "pin");
     if (!isPin(pin)) return fail("The PIN must be exactly 4 digits", "pin");
-    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess — no repeated or running digits", "pin");
+    if (weakPin(pin)) return fail("Choose a PIN that's harder to guess, with no repeated or running digits", "pin");
     await db.user.update({ where: { id: t.id }, data: { pinHash: await hashSecret(pin), pinFails: 0, pinLockedAt: null } });
     await resetPinFailures(t.id); // a PIN switched off after ten wrong tries works again with the new one
     await db.session.deleteMany({ where: { userId: t.id, deviceId: { not: null } } }); // signed out of every till
@@ -99,7 +99,7 @@ export async function resetPassword(code: string, id: string, _: ActionState, fd
     });
     await db.session.deleteMany({ where: { userId: t.id, deviceId: null } }); // signed out of the back office (tills keep their PIN sign-in)
     await audit(db, actor, "staff.password_reset", { storeId: store.id, entity: "User", entityId: t.id, data: { name: t.name } });
-    return done(`New temporary password for ${t.name}:  ${password}  — share it privately (it isn't shown again). They choose their own when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
+    return done(`New temporary password for ${t.name}:  ${password}  (share it privately, as it isn't shown again). They choose their own when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
   });
 }
 

@@ -57,7 +57,7 @@ describe("Cases and the minimum order", () => {
     const bad = validateTradeBasket([{ name: "Calm Oil · 30ml", qty: 7, unitCents: 18_000, caseQty: 6 }], min);
     expect(bad[0]).toMatch(/cases of 6: order 6, 12, 18… \(the next case up from 7 is 12\)/);
     const short = validateTradeBasket([{ name: "Coffee", qty: 12, unitCents: 11_000, caseQty: 12 }], min);
-    expect(short).toEqual(["Minimum order is R2,000.00 ex VAT — this order is R1,320.00, R680.00 short"]);
+    expect(short).toEqual(["Minimum order is R2,000.00 ex VAT. This order is R1,320.00, R680.00 short"]);
     expect(validateTradeBasket([{ name: "Coffee", qty: 24, unitCents: 11_000 }], { ...min, caseQty: 12 })).toEqual([]);
     expect(validateTradeBasket([{ name: "Coffee", qty: 0, unitCents: 11_000 }], { ...min, caseQty: 12 })[0]).toMatch(/at least 12/);
   });
@@ -86,7 +86,7 @@ describe("Credit decision", () => {
     const over = creditDecision({ ...base, orderInclCents: 500_001 });
     expect(over.ok).toBe(false);
     expect(over.availableCents).toBe(500_000);
-    expect(over.reason).toMatch(/Over the credit limit: R5,000.00 available on a limit of R10,000.00 \(owing R3,000.00, R2,000.00 on open orders\) — this order is R5,000.01/);
+    expect(over.reason).toMatch(/Over the credit limit: R5,000.00 available on a limit of R10,000.00 \(owing R3,000.00, R2,000.00 on open orders\)\. This order is R5,000.01/);
   });
   it("never lets prepaid, pending, held or closed accounts buy on account", () => {
     expect(creditDecision({ ...base, terms: "PREPAID" })).toMatchObject({ ok: false, reason: expect.stringMatching(/prepaid/) });
@@ -361,8 +361,8 @@ describe("Trade emails", () => {
       },
       { url: "https://x/invoice/s1?t=abc", batchCodes: { l1: ["OIL-B"] }, orderNumber: "TO-000007", orderRef: "PO-55", dueAt: new Date("2026-11-02T10:00:00+02:00"), handlingCents: 7_500 },
     );
-    expect(r.subject).toBe("Herbal Holland Trade: tax invoice TI-000003 — Hatfield Pharmacy");
-    expect(r.text).toContain("Sold to Hatfield Pharmacy (Pty) Ltd (trading as Hatfield Pharmacy), 12 Burnett St, Hatfield, Pretoria, 0083 — VAT no. 4123456789 — account TA-000001");
+    expect(r.subject).toBe("Herbal Holland Trade: tax invoice TI-000003 for Hatfield Pharmacy");
+    expect(r.text).toContain("Sold to Hatfield Pharmacy (Pty) Ltd (trading as Hatfield Pharmacy), 12 Burnett St, Hatfield, Pretoria, 0083 · VAT no. 4123456789 · account TA-000001");
     expect(r.text).toContain("12 x Calm Oil · 30ml (batch OIL-B) @ R180.00  R2,160.00");
     expect(r.text).toContain("Handling (click & collect)  R75.00");
     expect(r.text).toContain("Total excl. VAT: R2,235.00");

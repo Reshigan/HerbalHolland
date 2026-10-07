@@ -24,7 +24,7 @@ export async function startTake(code: string, _: ActionState, fd: FormData): Pro
     if (scope !== "FULL" && !(await db.category.findUnique({ where: { slug: scope } }))) return fail("Unknown category", "category");
     const open = await db.stockTake.findMany({ where: { storeId: store.id, status: "COUNTING" }, select: { number: true, scope: true } });
     const clash = open.find((o) => scopesOverlap(o.scope, scope));
-    if (clash) return fail(`${clash.number} is still counting ${clash.scope === "FULL" ? "the whole store" : "that category"} — approve or cancel it first.`);
+    if (clash) return fail(`${clash.number} is still counting ${clash.scope === "FULL" ? "the whole store" : "that category"}. Approve or cancel it first.`);
     const n = await tx((t) => nextNumber(t, "ST"));
     const take = await startStockTake(store.id, scope, bool(fd, "blind"), user.id, `ST-${String(n).padStart(5, "0")}`);
     const lines = await db.stockTakeLine.count({ where: { stockTakeId: take.id } });

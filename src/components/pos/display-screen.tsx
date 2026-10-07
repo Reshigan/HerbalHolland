@@ -57,10 +57,10 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
           setRemoteError(null);
           take(((await res.json()) as { snapshot: unknown }).snapshot);
         } else if (res.status === 404) {
-          if (++misses >= 3 && !lastAt.current) setRemoteError("Waiting for the till — turn on “Send to a separate screen” under Shift → This till → Customer display.");
-        } else setRemoteError("This display link isn't valid — open the link the till shows.");
+          if (++misses >= 3 && !lastAt.current) setRemoteError("Waiting for the till. Turn on “Send to a separate screen” under Shift → This till → Customer display.");
+        } else setRemoteError("This display link isn't valid. Open the link the till shows.");
       } catch {
-        if (live && ++misses >= 3) setRemoteError("Display not connected — check the Wi-Fi.");
+        if (live && ++misses >= 3) setRemoteError("Display not connected. Check the Wi-Fi.");
       }
     };
     void tick();
@@ -104,7 +104,7 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
     <div className="fixed inset-0 flex flex-col overflow-hidden bg-ink-950 text-ink-100 select-none" onClick={fullscreen} data-testid="display" data-state={state}>
       {training && (
         <div className="shrink-0 bg-brand-500 px-6 py-2 text-center font-display text-lg font-bold uppercase tracking-[0.18em] text-ink-950" data-testid="display-training">
-          Training — nothing is real
+          Training: nothing is real
         </div>
       )}
       <Beadwork size={16} />
@@ -189,7 +189,7 @@ function SaleView({ s }: { s: DisplaySnapshot }) {
               <div className="shrink-0 font-display text-[clamp(1.4rem,2.6vw,2.2rem)] font-semibold text-white tnum">{zar(l.totalCents)}</div>
             </li>
           ))}
-          {s.lines.length === 0 && <li className="py-6 text-xl text-ink-400">Nothing yet — we&apos;re adding your items.</li>}
+          {s.lines.length === 0 && <li className="py-6 text-xl text-ink-400">Nothing yet. We&apos;re adding your items.</li>}
         </ul>
       </section>
       <aside className="flex flex-col justify-end">
@@ -269,12 +269,12 @@ function PayView({ s }: { s: DisplaySnapshot }) {
         {p.tapping
           ? "Hold your card, phone or watch on the reader."
           : tenderName(p.method)
-            ? `Paying by ${tenderName(p.method)!.toLowerCase()}${p.paidCents > 0 ? ` · ${zar(p.paidCents)} paid so far` : ""}.`
+            ? `${tenderName(p.method)}${p.paidCents > 0 ? ` · ${zar(p.paidCents)} paid so far` : ""}`
             : p.paidCents > 0
               ? `${zar(p.paidCents)} paid so far.`
-              : "Card, cash, PayShap, points or a gift voucher — your cashier will take it from here."}
+              : "Your cashier will take your payment from here."}
       </p>
-      {s.member && <p className="mt-4 text-lg text-brand-300">Thanks, {s.member.firstName} — your points are on their way.</p>}
+      {s.member && <p className="mt-4 text-lg text-brand-300">Thanks, {s.member.firstName}. Your points are on their way.</p>}
     </div>
   );
 }

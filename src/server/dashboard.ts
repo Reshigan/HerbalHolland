@@ -107,8 +107,6 @@ export async function pendingAnnouncements(storeId: string, format: string, regi
   return list;
 }
 
-export const lastNDays = (n: number) => ({ from: dateOnly(addDays(new Date(), -(n - 1))), key: dayKey(new Date()) });
-
 // ── Role dashboards ──────────────────────────────────────────────────────────
 // The numbers each role leads with. Everything here reads the rollups or indexed counts, bounded to the caller's
 // stores, so the owner, manager, HQ and area-manager overviews stay cheap across the network.

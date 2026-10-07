@@ -164,7 +164,7 @@ describe("screenCopy: food and supplement claims (R146)", () => {
       "Supports immunity", "For a strong immune system", "Weight loss shake", "Helps you lose weight", "Slimming tea", "Speeds up your metabolism", "Metabolic support",
     ]) {
       const flags = screenCopy(bad);
-      expect(flags.map((f) => f.reason).join(" | "), bad).toMatch(/Health claim — foods and supplements/);
+      expect(flags.map((f) => f.reason).join(" | "), bad).toMatch(/Health claim\. Foods and supplements/);
     }
   });
 

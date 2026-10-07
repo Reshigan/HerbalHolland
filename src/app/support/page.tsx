@@ -28,7 +28,7 @@ export default async function SupportPage({ searchParams }: { searchParams: Prom
           <div className="eyebrow text-brand-500">Support</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">How can we help?</h1>
           <p className="mt-3 max-w-xl text-lg text-ink-300">
-            {customer ? `Hi ${customer.firstName} — tell us what's up and we'll reply within one business day.` : "Tell us what's up and we'll reply by email within one business day. You don't need to be a member to ask."}
+            {customer ? `Hi ${customer.firstName}. Tell us what's up and we'll reply within one business day.` : "Tell us what's up and we'll reply by email within one business day. You don't need to be a member to ask."}
           </p>
           <Panel className="mt-8 p-5 sm:p-7">
             <TicketForm member={customer ? { firstName: customer.firstName, hasEmail: !!customer.email } : null} prefill={prefill} />

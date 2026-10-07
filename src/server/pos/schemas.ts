@@ -51,12 +51,12 @@ export const SaleBody = z
   // A gift voucher is redeemed on the server as the sale posts, so it needs the connection: a sale rung up offline and
   // queued can never carry one. The operator rings that sale up again with another tender and discards the queued one.
   .refine((b) => !b.offline || !b.payments.some((p) => p.method === "VOUCHER"), {
-    message: "Gift vouchers can't be taken on an offline sale — this queued sale needs another tender: ring it up again and discard this one",
+    message: "Gift vouchers can't be taken on an offline sale. This queued sale needs another tender: ring it up again and discard this one",
     path: ["payments"],
   })
   // A trade sale is priced, checked and invoiced on the server (the account's ledger): never queued offline.
   .refine((b) => !b.offline || !b.trade, {
-    message: "Trade sales need a connection — this queued trade sale can't be posted: ring it up again online and discard this one",
+    message: "Trade sales need a connection, so this queued trade sale can't be posted: ring it up again online and discard this one",
     path: ["trade"],
   })
   // On account is a trade account's terms: only a trade sale carries it, and never together with points, a member or a voucher.

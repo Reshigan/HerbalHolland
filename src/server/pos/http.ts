@@ -3,6 +3,7 @@
 import { NextResponse } from "next/server";
 import { ZodError, type ZodType } from "zod";
 import { getDevice, getPosStaff } from "@/server/auth";
+import { reportFailure } from "@/server/alerts";
 import { SaleError } from "@/server/sales";
 import { OrderError } from "@/server/orders";
 import { CustomerError } from "@/server/customers";
@@ -44,8 +45,8 @@ function handleError(e: unknown) {
     return fail(422, e.message);
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail(409, "That's already on record for another member or sale");
   if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") return fail(404, "Not found");
-  console.error("[pos]", e);
-  return fail(500, "Something went wrong on our side — please try again");
+  void reportFailure(e, "POS API"); // unexpected (a sale that won't sync, say): logged and emailed to ops, without holding up the answer
+  return fail(500, "Something went wrong on our side. Please try again");
 }
 
 // The device and PIN cookies go with any request the browser makes, so a change (anything but a read) must come from

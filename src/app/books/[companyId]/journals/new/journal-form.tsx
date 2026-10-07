@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Field, Input, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { parseRand } from "@/server/store/rules";
 import { zar } from "@/lib/money";
 import { cn } from "@/lib/cn";

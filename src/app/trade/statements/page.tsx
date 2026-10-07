@@ -43,7 +43,7 @@ export default async function TradeStatementsPage() {
         <div className="mt-8 rounded-2xl border border-dashed border-ink-800 px-6 py-16 text-center" data-testid="statements-empty">
           <FileText className="mx-auto h-9 w-9 text-brand-500" strokeWidth={1.5} aria-hidden />
           <p className="mt-4 font-display text-xl font-semibold text-white">No statements yet</p>
-          <p className="mx-auto mt-2 max-w-md text-sm text-ink-400">Your first statement follows your first invoice — an order that has shipped or been collected, or a till purchase on the account.</p>
+          <p className="mx-auto mt-2 max-w-md text-sm text-ink-400">Your first statement follows your first invoice: an order that has shipped or been collected, or a till purchase on the account.</p>
         </div>
       ) : (
         <ul className="mt-8 divide-y divide-ink-800 rounded-2xl border border-ink-800 bg-ink-900/40" data-testid="statements">

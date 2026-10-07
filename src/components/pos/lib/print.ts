@@ -191,7 +191,7 @@ export async function reconnect(s: PrinterSettings): Promise<boolean> {
         const ctrl = new AbortController();
         const seen = new Promise<void>((resolve) => d.addEventListener("advertisementreceived", () => (ctrl.abort(), resolve())));
         await d.watchAdvertisements({ signal: ctrl.signal });
-        await Promise.race([seen, new Promise((_, rej) => setTimeout(() => rej(new PrinterError("Printer not found — is it on?")), 6000))]);
+        await Promise.race([seen, new Promise((_, rej) => setTimeout(() => rej(new PrinterError("Printer not found. Is it on?")), 6000))]);
         ble = await connectBle(d);
       }
       return true;
@@ -207,7 +207,7 @@ export const isConnected = (s: PrinterSettings | null) => (s?.transport === "usb
 /** Sends raw ESC/POS bytes to the paired printer (reconnecting first if needed). */
 export async function sendBytes(s: PrinterSettings, bytes: Uint8Array): Promise<void> {
   if (!s.transport) throw new PrinterError("No printer is paired on this till");
-  if (!isConnected(s) && !(await reconnect(s))) throw new PrinterError(`${s.name ?? "The printer"} isn't connected — turn it on, then tap Reconnect in Shift → This till`);
+  if (!isConnected(s) && !(await reconnect(s))) throw new PrinterError(`${s.name ?? "The printer"} isn't connected: turn it on, then tap Reconnect in Shift → This till`);
   if (s.transport === "usb") {
     const link = usb!;
     for (const part of chunk(bytes, 4096)) {

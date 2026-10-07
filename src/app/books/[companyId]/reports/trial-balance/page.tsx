@@ -51,7 +51,7 @@ export default async function TrialBalancePage({ params, searchParams }: { param
 
       {!store && tb.rows.length > 0 && !balanced && (
         <Notice tone="danger" className="mb-4" title="These books don't balance">
-          Debits and credits differ by {zar(Math.abs(tb.totals.debit - tb.totals.credit))}. Every journal balances on its own, so this needs looking into — see Month end for the books checks.
+          Debits and credits differ by {zar(Math.abs(tb.totals.debit - tb.totals.credit))}. Every journal balances on its own, so this needs looking into. See Month end for the books checks.
         </Notice>
       )}
 

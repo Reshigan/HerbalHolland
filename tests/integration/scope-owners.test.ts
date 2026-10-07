@@ -32,7 +32,7 @@ async function session(userId: string) {
 const signIn = async (u: { id: string }) => void jar.set(COOKIE.staff, await session(u.id));
 const DENIED = { error: "You don't have permission to do that." };
 const flashed = (text: string) => ({ digest: expect.stringContaining(encodeURIComponent(text)) });
-const passwordIn = (msg: string | undefined) => /(?:temporary password|:)\s+(\S+)\s+—/.exec(msg ?? "")?.[1] ?? "";
+const passwordIn = (msg: string | undefined) => /(?:temporary password|:)\s+(\S+)\s+\(/.exec(msg ?? "")?.[1] ?? "";
 
 beforeAll(async () => {
   await resetDb();

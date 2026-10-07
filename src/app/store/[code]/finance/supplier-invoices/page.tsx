@@ -18,7 +18,7 @@ import { Field, Input, Textarea } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { BackLink, Chips, ReadOnlyNote, SearchForm } from "@/components/store/ui";
-import { ConfirmAction, FieldError } from "@/components/store/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { Drawer } from "@/components/store/drawer";
 import { SupplierInvoiceForm } from "@/components/store/supplier-invoice-form";
 import { cn } from "@/lib/cn";

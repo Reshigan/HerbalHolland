@@ -6,7 +6,7 @@
 import { useActionState, useEffect, useId, useRef, useState, useTransition } from "react";
 import { Check, Loader2, Pencil, X } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { zar } from "@/lib/money";
+import { parseRand, zar } from "@/lib/money";
 
 export type InlineState = { ok?: string; error?: string; fields?: Record<string, string>; at?: number };
 export type InlineAction = (state: InlineState, fd: FormData) => Promise<InlineState>;
@@ -29,8 +29,8 @@ export type InlineField = {
 export type InlineFormat = "zar" | "join" | "text";
 
 const rands = (s: string) => {
-  const n = Number(s.trim().replace(/^R\s*/i, "").replace(/\s/g, "").replace(/,(?=\d{1,2}$)/, ".").replace(/,/g, ""));
-  return Number.isFinite(n) ? zar(Math.round(n * 100)) : s;
+  const c = parseRand(s, { signed: true });
+  return c == null ? s : zar(c);
 };
 
 export function InlineEdit({ action, fields, display, editLabel, format = "text", emptyLabel = "—", hidden, align = "left", className, saveLabel = "Save", disabled, variant = "value", secret }: {

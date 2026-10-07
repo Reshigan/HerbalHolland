@@ -22,7 +22,7 @@ import { Stat } from "@/components/ui/stat";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Field, Input, Select } from "@/components/ui/form";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { FilterForm, FilterSelect } from "@/components/hq/filter-form";
 import { BackLink, EmptyRow } from "@/components/hq/ui";
 import { deletePayment, emailAllStatements, emailOneStatement, recordPayment } from "./actions";
@@ -147,7 +147,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
               remove={
                 admin
                   ? (p) => (
-                      <ConfirmAction action={deletePayment.bind(null, p.id)} label="Delete" title={`Delete the ${zar(Math.abs(p.amountCents))} payment (${p.reference})?`} confirmLabel="Delete payment" className="min-w-64 items-end text-left">
+                      <ConfirmAction action={deletePayment.bind(null, p.id)} label="Delete" title={`Delete the ${zar(Math.abs(p.amountCents))} payment (${p.reference})?`} confirmLabel="Delete payment" className="min-w-64 text-left">
                         <p>Only for a payment recorded by mistake: its postings in both companies&apos; books are reversed.</p>
                       </ConfirmAction>
                     )
@@ -184,11 +184,11 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
       <PageHeader
         overline="Money"
         title="Franchise statements"
-        description="One monthly statement per store: fees, wholesale stock on account, money HQ collected for the store (online, vouchers, trade), network trading and the Rewards pool — netted to a single amount."
+        description="One monthly statement per store: fees, wholesale stock on account, money HQ collected for the store (online, vouchers, trade), network trading and the Rewards pool, netted to a single amount."
         actions={
           net && (
             <ConfirmAction action={emailAllStatements.bind(null, month)} label="Email all statements" icon={<Send className="h-4 w-4" />} triggerVariant="dark" variant="dark" title={`Email ${stores.length} ${fmtMonth(`${month}-01`)} statements?`} confirmLabel="Send to all owners" size="md">
-              <p>Each owner company gets its store&apos;s statement at the email on file.{current ? " This month isn't finished — owners will see month-to-date figures." : ""}</p>
+              <p>Each owner company gets its store&apos;s statement at the email on file.{current ? " This month isn't finished, so owners will see month-to-date figures." : ""}</p>
             </ConfirmAction>
           )
         }
@@ -198,7 +198,7 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
           <FilterSelect name="month" label="Month" allLabel={null} defaultValue={month} options={options.map((m, i) => ({ value: m, label: `${fmtMonth(`${m}-01`)}${i === 0 ? " (to date)" : ""}` }))} />
         </FilterForm>
       </div>
-      {current && <Notice tone="warn" className="mb-4">This month is still trading — figures are month to date.</Notice>}
+      {current && <Notice tone="warn" className="mb-4">This month is still trading, so figures are month to date.</Notice>}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Fees incl. VAT" value={zarCompact(feesIncl)} sub={`${zarCompact(fees.total)} ex VAT`} />
         <Stat label="Wholesale on account" value={zarCompact(wholesaleIncl)} sub="received from DCs, incl. VAT" />

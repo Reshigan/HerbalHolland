@@ -14,11 +14,10 @@ import { ButtonLink } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
-import { Field, Textarea } from "@/components/ui/form";
+import { Field, Textarea, Select } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { Select } from "@/components/hq/select";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { EmptyRow, ViewOnly } from "@/components/hq/ui";
 import { CHANNEL_LABEL } from "@/components/hq/tones";
@@ -241,7 +240,7 @@ function Header({ canCreate }: { canCreate: boolean }) {
     <PageHeader
       overline="Members"
       title="Campaigns"
-      description="SMS, email and push to Rewards members — consent checked per channel, the do-not-contact list applied, CPA send windows enforced and every sale attributed."
+      description="SMS, email and push to Rewards members, with consent checked per channel, the do-not-contact list applied, CPA send windows enforced and every sale attributed."
       actions={
         <>
           <ButtonLink href="/hq/messages" variant="outline">

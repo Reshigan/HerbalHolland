@@ -71,7 +71,7 @@ export function TradeLogin({ next, email: initialEmail }: { next?: string | null
           {state.demoCode && (
             <div className="flex items-center justify-between gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-50">
               <span className="flex items-center gap-2">
-                <MessageSquareText className="h-4 w-4" aria-hidden /> Demo mode — your code is <strong className="tnum tracking-widest">{state.demoCode}</strong>
+                <MessageSquareText className="h-4 w-4" aria-hidden /> Demo mode: your code is <strong className="tnum tracking-widest">{state.demoCode}</strong>
               </span>
               <button type="button" onClick={() => setCode(state.demoCode!)} className="shrink-0 font-semibold underline">
                 Fill it in

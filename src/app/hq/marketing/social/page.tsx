@@ -40,7 +40,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
         <div className="space-y-4 xl:col-span-3">
           {!postizConnected() ? (
-            <Notice title="Postiz isn't connected">Posts are recorded here only. Connect Postiz (free, self-hosted) with POSTIZ_URL and POSTIZ_API_KEY — see docs/INTEGRATIONS.md.</Notice>
+            <Notice title="Postiz isn't connected">Posts are recorded here only. Connect Postiz (free, self-hosted) with POSTIZ_URL and POSTIZ_API_KEY. See docs/INTEGRATIONS.md.</Notice>
           ) : problem ? (
             <Notice tone="danger" title="Couldn't load your channels">{problem}</Notice>
           ) : (

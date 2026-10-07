@@ -82,7 +82,7 @@ export default async function OrdersPage({ params, searchParams }: { params: Pro
       {tradeOpen > 0 && (
         <Link href={`/store/${store.code}/trade`} className="mb-4 flex items-center gap-3 rounded-xl border border-brand-200 bg-brand-50/60 px-4 py-3 text-sm text-ink-800 transition hover:border-brand-300 hover:bg-brand-50">
           <Briefcase className="h-4 w-4 shrink-0 text-brand-700" aria-hidden />
-          <span className="flex-1"><b className="text-ink-900">{tradeOpen} trade order{tradeOpen === 1 ? "" : "s"}</b> to fulfil — click &amp; collect for business accounts, handled on the Trade orders page.</span>
+          <span className="flex-1"><b className="text-ink-900">{tradeOpen} trade order{tradeOpen === 1 ? "" : "s"}</b> to fulfil: click &amp; collect for business accounts, handled on the Trade orders page.</span>
           <span className="font-semibold text-brand-700">Trade orders →</span>
         </Link>
       )}

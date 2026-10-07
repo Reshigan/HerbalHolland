@@ -56,9 +56,10 @@ reports) and Postgres can't live on Cloudflare.
    and the log shows no `[config]` warnings you didn't expect.
 5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"`
    (the franchisor company too, if there's none yet). It prints a temporary password once; they choose their own at
-   first sign-in, and everyone after them is added from HQ → Team. Then HQ → Stores → the franchisor company: legal
-   name, registration and VAT numbers, address, phone, email and directors — they're printed on tax invoices, the
-   legal pages and emails.
+   first sign-in, and everyone after them is added from HQ → Team. `--company "…(Pty) Ltd"` sets the franchisor's
+   legal name; its other details (registration and VAT numbers, address, phone, email, directors) are edited on a
+   store it owns: create the distribution centre (step 7), then HQ → Stores → the DC → Owner. Tax invoices, the
+   legal pages and emails print them.
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
 7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences); Catalogue: products, variants, batches with COAs
    (HQ → Catalogue → Import loads the range from a spreadsheet, with the warehouse's opening stock, after a dry run).
@@ -74,7 +75,7 @@ reports) and Postgres can't live on Cloudflare.
    ```
    */15 * * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/frequent   >/dev/null
    */5  * * * *  root  curl -fsS -m 300  -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/staff-push >/dev/null
-   0    0 * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/daily      >/dev/null
+   0    0 * * *  root  curl -fsS -m 2700 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/daily      >/dev/null
    0    1 * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/operations >/dev/null
    ```
    Check it works: run each line once by hand (a JSON summary, HTTP 200), then point an uptime monitor at
@@ -254,7 +255,7 @@ browser. Note for HA deployments: the separate-screen feed is held in the app in
 per store front or use sticky sessions; the same-device window needs no server at all.
 
 **Training mode.** A manager starts it under **Shift → This till → Training mode** (a cashier's tap asks for a
-manager's PIN). The till shows an orange outline and the banner **TRAINING — nothing is real**; a five-step tour
+manager's PIN). The till shows an orange outline and the banner **TRAINING: nothing is real**; a five-step tour
 walks a new cashier through search/scan, the member, the basket, charging and the receipt. Everything runs on a
 sandbox: practice sales are numbered `TRAINING 0001…`, never posted or queued, never move stock or award points;
 member sign-ups and age checks are simulated on the till; receipts print (or open in the print dialog) with a
@@ -317,7 +318,7 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 | Daily (manager) | Work the **Today** list on the store overview: orders to pick or hand over, cycle counts due, cash to bank, open alerts, expiring lots, low stock, lapsing patient authorisations, HQ updates, supplier invoices due | Store → Overview |
 | As delivered | Capture an outside supplier's invoice (photo or PDF, ≤ 8 MB) under Finance → Supplier invoices; mark paid as settled, query one that doesn't match. A stock order (from the DC or another store) is put on automatically when received (for what was counted in) and settles on the franchise statement — nothing to capture or pay; orders received before this was automatic were put on by the `20261005130000_backfill_statement_invoices` migration | Store → Finance |
 | Daily (DC) | Print partner's shipping emails → enter courier + tracking on each merch order (**Merch shipped**); chase anything "sent" for more than 7 working days; mark delivered merch orders delivered | Store back office → DC → Online orders |
-| Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; loss-prevention rules + the digest email to owners and area managers; load weekly My Deals (Mondays); stock-order invoices from a month that's over marked settled on its statement | `/api/cron/daily` |
+| Daily 02:00 | Birthday points; cancel pay-in-store collections not collected within `collectHoldDays`; lapse expired tier floors; loss-prevention rules + the digest email to owners and area managers; load weekly My Deals (Mondays); reorder reminders; gift-voucher expiry; trade holds, licences and statements; POPIA purges (leads, resolved tickets, message texts after 12 months); stock-order invoices from a month that's over marked settled on its statement; the books' nightly posting and bank auto-match | `/api/cron/daily` |
 | Daily | Cash-ups closed at every store; negative-stock and compliance-event reports reviewed | Reports |
 | Daily (store) | Bank yesterday's cash by the next business day: Banking → tick the cash-ups → amount, reference and a photo of the stamped slip | Store → Banking |
 | Daily (owner / area manager) | Check new deposits against the bank statement (Verify, or Query with a note); work the loss-prevention alerts — investigate, then resolve or dismiss with a note | Store → Banking / Loss prevention |
@@ -332,7 +333,7 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 **Emails.** Every email the platform sends (tax invoices and credit notes, order updates, franchise statements,
 wholesale invoices, Z-reports, loss-prevention alerts, franchise-enquiry replies, campaigns) uses one layout in
 `src/server/email-templates.ts`: cream page, white card, the mark and wordmark, an orange pill button, tabular figures,
-and a footer whose legal line comes from the franchisor Company record (HQ → Settings → Company: legal name, registration
+and a footer whose legal line comes from the franchisor Company record (HQ → Stores → the distribution centre → Owner: legal name, registration
 and VAT numbers, address). Every email has a plain-text twin, and campaign emails alone carry the unsubscribe link and
 `List-Unsubscribe` headers. To preview them without a mail server: `npx tsx scripts/preview-emails.ts` writes each
 template with sample data to `test-results/emails/index.html`; `npx vitest run tests/email.test.ts` checks subjects,
@@ -379,13 +380,25 @@ active promotions; drops and events from the launch programme. Nothing on the bo
 
 ## Scheduled jobs (`/api/cron`)
 
-Every job is idempotent and bounded, so a missed or doubled run is harmless. `POST` with `Authorization: Bearer
-$CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live in `src/server/jobs.ts`.
+`POST` with `Authorization: Bearer $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live in
+`src/server/jobs.ts`. Each job runs single-flight (a 45-minute lock), and every step runs on its own: a step that
+fails is reported (`ALERT_EMAIL`), the rest still run, and the job then answers 500 naming the failed steps, so
+`curl --fail` notices. A doubled run does nothing twice. Every run is recorded (`JobRun`), and `GET /api/health/jobs`
+answers 503 when a job hasn't finished cleanly within its window (`frequent` 30 minutes, `staff-push` 15 minutes,
+`daily` and `operations` 26 hours): point an uptime monitor at it.
+
+A missed night is made up by the next one: the books post any store-day of the last 7 days that never posted (and
+the points of all 7 days again, which is harmless), last month's franchise statements still unposted during the first
+week of a month, and trade statements go out on the statement day or any of the six days after it to accounts that
+haven't had theirs. Birthday points and the Monday My Deals refresh are only for their own day. For a longer gap,
+re-post a period with `npx tsx scripts/ledger-backfill.ts 2026-10-01 2026-10-07` (in the `migrate` container on the
+server: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/ledger-backfill.ts …`); it prints
+what it queued and posted, and exits 1 if anything failed.
 
 | Endpoint | When | What it does |
 |---|---|---|
-| `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders; the books: queued postings (`processLedgerQueue`) |
-| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, My Deals, `settleStatementInvoices` (stock-order invoices — from the DC or another store — from a month that's over are marked settled on that month's franchise statement), sign-in housekeeping (`purgeAuthRecords`: expired sessions, sign-in codes after a day, rate-limit rows after two days, webhook receipts after 90); **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`); **the books** (`ledgerNightly`, last): yesterday's store-days and HQ-given points, and on the 1st last month's franchise statements, queued and posted |
+| `/api/cron/frequent` | every 15 min | Campaign send windows, unpaid orders, invoice retries, Founding numbers, drop alerts, merch orders, wishlist stock notes; the books: queued postings (`processLedgerQueue`) |
+| `/api/cron/daily` | 02:00 SAST | Birthday points, uncollected orders, tier floors, loss-prevention rules and digest, lead purge, resolved support tickets deleted a year after they close, My Deals, reorder reminders, gift vouchers expired after three years (CPA s63), `settleStatementInvoices` (stock-order invoices — from the DC or another store — from a month that's over are marked settled on that month's franchise statement), sign-in housekeeping (`purgeAuthRecords`: expired sessions, sign-in codes after a day, rate-limit rows after two days, webhook receipts after 90); **trade**: `tradeEftExpiry` (EFT orders unpaid after `trade.eftHoldDays` are cancelled and the buyer told), `tradeOverdueHolds` (accounts on credit terms with an invoice open more than `trade.overdueGraceDays` past due go ON_HOLD with the reason "overdue", emailed; the hold lifts itself when a payment or credit clears what's past due), `tradeLicenceExpiry` (a reminder once per licence, 30 days before a required one lapses, unless a newer one is in; an approved account whose required licence has lapsed goes ON_HOLD with the reason "licence", emailed — verifying the renewal lifts it), `tradeStatements` (on `trade.statementDay`, last month's statement to every approved or held account with ledger activity, once per account and month — the receipt is the message-log row `trade-statement-<account>-<month>`); **POPIA**: message texts older than 12 months are blanked (`purgeMessageBodies`; the row stays); **the books** (`ledgerNightly`, near the end): yesterday's store-days and HQ-given points, and on the 1st last month's franchise statements, plus what a missed night in the week before left, queued and posted; then **bank auto-match** (`autoMatchAll`: unmatched statement lines from the last 90 days, each bank account on its own) |
 | `/api/cron/staff-push` | every 5 min | Pushes to managers' and owners' phones (`src/server/staff-push.ts`): **new online orders** (polled, so an order shows up within 5 minutes — nothing hooks the checkout), **loss alerts** raised in the last day (never to the person they're about), **HQ updates that need acknowledging** (per store that hasn't). Each event is keyed in `StaffPushEvent`, so a poll never sends twice; dead subscriptions (404/410 from the push service) are pruned as they fail. |
 | `/api/cron/operations` | 03:00 SAST | **Expiring lots** (once per lot as it enters the 30-day window), **cash due at the bank** (once per store per day, today or overdue), the **low-stock digest** (one push per store from the replenishment plan), **scheduled report exports** (every `ScheduledExport` due today: the report is re-run as the person who scheduled it, stored as a CSV under `exports/` and emailed to the staff recipients as a link signed for 30 days — `/api/exports/{id}?e=…&t=…`), and pruning (push-event keys older than 60 days; export `Upload` rows older than 37 days — set an R2 lifecycle rule on `exports/` to drop the objects). |
 
@@ -591,8 +604,8 @@ whole network runs out of a wished-for variant and when stock returns, which sho
 `/club/wishlist` for two weeks. It sends nothing; "Notify me" (StockAlert) does that.
 
 **Saved addresses** (`Address`, up to five per member). Offered as chips at checkout; the address an order ships to is
-saved (or updated) automatically; managed at `/club/addresses`. Personal information under POPIA: deleted with the
-member's account.
+saved (or updated) automatically; managed at `/club/addresses`. Personal information under POPIA: deleted when HQ
+erases the member.
 
 **Delivery estimates** (`settings.ecommerce.deliveryDays`, `src/lib/delivery.ts`): courier working days by province
 (defaults GP 1–2, WC/KZN/FS/MP/NW 2–3, EC/LP 3–4, NC 3–5), counted from the next working day after the same-day
@@ -776,8 +789,8 @@ note didn't post (a crash half-way), pressing Refund again posts only the credit
 Every company keeps its books at `/books/<company>`: owners and their accountants for their company, HQ admins for
 HQ's books (and read-only for any franchisee's), area managers read-only in their region. Store staff have no books.
 
-**Set-up at go-live (per company).** Owners open the books from the store sidebar (Money → Accounts), HQ from
-HQ → Money → Accounts, accountants land on them when they sign in.
+**Set-up at go-live (per company).** Owners open the books from the store sidebar (Money → Books), HQ from
+HQ → Money → Books, accountants land on them when they sign in.
 - Settings → VAT and financial year: the VAT category SARS gave the company (A, B or C; none if it isn't a VAT vendor)
   and the month its financial year ends.
 - Settings → Accountants → Add an accountant (they get a temporary password and choose their own at first sign-in).
@@ -810,7 +823,9 @@ statement payments) posts within 15 minutes, from the queue (`/api/cron/frequent
    - no unmatched bank lines.
    A red check names the store or account and the difference.
 4. Approve or delete draft journals (accruals, depreciation, the payroll journal from the payroll provider).
-5. Close the month ("Close anyway" if a check still disagrees; correct it in an open month). Nothing can post into it
+5. Close the month ("Close anyway" if a check still disagrees; correct it in an open month). The first close posts
+   what's still queued for up to a minute; if postings are still waiting it leaves the month open and says how many,
+   and the 15-minute job finishes them: close it once they're through. Nothing can post into it
    any more: a late change lands in the first open month, flagged late. Reopen opens the last closed month again, one
    month at a time, for the owner (or an HQ admin for HQ's books); both are audited.
 

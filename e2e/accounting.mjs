@@ -112,11 +112,11 @@ try {
   sessions.push(owner);
   const op = owner.page;
   await signIn(op, OWNER, `/store/${store.code}`);
-  await hydrated(op.getByRole("link", { name: "Accounts", exact: true }));
-  await op.getByRole("link", { name: "Accounts", exact: true }).first().click();
+  await hydrated(op.getByRole("link", { name: "Books", exact: true }));
+  await op.getByRole("link", { name: "Books", exact: true }).first().click();
   await op.waitForURL(`**${books}`);
   await op.getByRole("heading", { name: company.name }).first().waitFor();
-  assert(true, `Accounts → ${books}: ${company.name}`);
+  assert(true, `Books → ${books}: ${company.name}`);
   const tb = await one(`select sum("debitCents") as d, sum("creditCents") as c from "LedgerBalance" where "companyId" = $1`, [company.id]);
   assert(Number(tb.d) > 0 && Number(tb.d) === Number(tb.c), `the books balance: debits = credits = R${rand(Number(tb.d))}`);
   await shot(op, "overview");

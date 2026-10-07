@@ -49,7 +49,7 @@ export default async function CashFlowPage({ params, searchParams }: { params: P
       </Card>
       <div className="mt-4 max-w-3xl space-y-2 text-sm text-ink-500">
         <p>
-          The direct method, from the general ledger: each entry that moved money is classified by its other side — buying fixed assets (1500s) is investing, loans (2600s) and
+          The direct method, from the general ledger: each entry that moved money is classified by its other side. Buying fixed assets (1500s) is investing, loans (2600s) and
           the owners&apos; capital or drawings are financing, and everything else, from sales and VAT to suppliers and wages, is operating. Money moved between the cash accounts
           themselves (banking the takings) isn&apos;t a flow.
         </p>

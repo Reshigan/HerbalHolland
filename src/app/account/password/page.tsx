@@ -4,7 +4,7 @@ import { Logo } from "@/components/brand/logo";
 import { getStaffChangingPassword, homeFor } from "@/server/auth";
 import { PasswordForm } from "./password-form";
 
-export const metadata = { title: "Your password" };
+export const metadata = { title: "Your password", robots: { index: false, follow: false } };
 
 export default async function PasswordPage() {
   const user = await getStaffChangingPassword();
@@ -17,7 +17,7 @@ export default async function PasswordPage() {
         <h1 className="font-display text-3xl font-semibold text-ink-950">{forced ? "Choose your own password" : "Change your password"}</h1>
         <p className="mb-6 mt-1 text-sm text-ink-500">
           {forced
-            ? `Welcome, ${user.name.split(" ")[0]}. You signed in with a temporary password — replace it before you continue.`
+            ? `Welcome, ${user.name.split(" ")[0]}. You signed in with a temporary password. Replace it before you continue.`
             : "You'll stay signed in here; other devices are signed out."}
         </p>
         <PasswordForm />

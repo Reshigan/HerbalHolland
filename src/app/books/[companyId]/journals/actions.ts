@@ -16,8 +16,8 @@ export async function createJournal(companyId: string, _: ActionState, fd: FormD
     } catch {
       raw = null;
     }
-    if (!Array.isArray(raw)) return failed("The lines didn't come through — reload the page and try again.");
-    if (raw.length > MAX_LINES) return failed(`A journal holds at most ${MAX_LINES} lines — split it into two journals.`);
+    if (!Array.isArray(raw)) return failed("The lines didn't come through. Reload the page and try again.");
+    if (raw.length > MAX_LINES) return failed(`A journal holds at most ${MAX_LINES} lines. Split it into two journals.`);
     const lines = [];
     for (const [i, l] of (raw as Record<string, unknown>[]).entries()) {
       const amount = (side: "debit" | "credit") => {
@@ -37,7 +37,7 @@ export async function createJournal(companyId: string, _: ActionState, fd: FormD
     const post = str(fd, "intent") === "post";
     const j = await saveJournal(user, companyId, { date: str(fd, "date"), memo: str(fd, "memo"), post, lines });
     revalidatePath(`/books/${companyId}`, "layout");
-    redirect(`/books/${companyId}/journals/${j.id}?m=${encodeURIComponent(post ? `Journal ${j.number} is posted.` : `Journal ${j.number} is saved as a draft — it posts once it's approved.`)}`);
+    redirect(`/books/${companyId}/journals/${j.id}?m=${encodeURIComponent(post ? `Journal ${j.number} is posted.` : `Journal ${j.number} is saved as a draft. It posts once it's approved.`)}`);
   });
 }
 

@@ -21,6 +21,7 @@ import { Callout, Container, Meter, Panel, Tag, type TagTone } from "@/component
 import { ButtonLink } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { fmtDate, num, timeAgo } from "@/lib/format";
+import { plural } from "@/lib/plural";
 import { fmtPoints, tierBenefits, tierInfo, TIERS, type TierKey } from "@/lib/loyalty-rules";
 import { zar, zarWhole } from "@/lib/money";
 import { cn } from "@/lib/cn";
@@ -64,7 +65,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
         <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${m.customer.firstName}!`} className="mb-8">
           {launch.preLaunch && launch.at
             ? `Your card is ready, and you're on the Founding Members list until ${fmtDate(launch.at)}. Share your link below to move up; ${fmtPoints(settings.loyalty.signupBonus)} are already on your card.`
-            : `Your card is ready — show the QR code at any till to earn points. We've added ${fmtPoints(settings.loyalty.signupBonus)} to get you started.`}
+            : `Your card is ready. Show the QR code at any till to earn points. We've added ${fmtPoints(settings.loyalty.signupBonus)} to get you started.`}
         </Callout>
       )}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
@@ -106,7 +107,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               cap={launch.foundingCap}
               referUrl={referUrl}
               firstName={m.customer.firstName}
-              shareText={`I'm on the Herbal Holland Founding Members list — the first ${num(launch.foundingCap)} members get a numbered card, and it closes ${fmtDate(launch.at)}. Join free with my link (adults 18+):`}
+              shareText={`I'm on the Herbal Holland Founding Members list. The first ${num(launch.foundingCap)} members get a numbered card, and it closes ${fmtDate(launch.at)}. Join free with my link (adults 18+):`}
             />
           )}
           {gifts.map((g) => (
@@ -151,7 +152,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-sm text-brand-200">You&apos;re at our top tier — thank you for being one of our best members.</p>
+              <p className="mt-5 text-sm text-brand-200">You&apos;re at our top tier. Thank you for being one of our best members.</p>
             )}
             <div className="mt-5 grid grid-cols-1 gap-3 border-t border-ink-800 pt-5 sm:grid-cols-2">
               <div>
@@ -162,6 +163,11 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
                       <Gift className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> {p}
                     </li>
                   ))}
+                  {idx > 0 && (
+                    <li className="flex gap-2">
+                      <Gift className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> Every {TIERS[idx - 1].name} perk, too
+                    </li>
+                  )}
                 </ul>
               </div>
               {m.goal?.mode === "reach" && (
@@ -212,7 +218,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-ink-400">No activity yet — your first purchase earns points.</p>
+            <p className="mt-3 text-sm text-ink-400">No activity yet. Your first purchase earns points.</p>
           )}
         </Panel>
 
@@ -268,7 +274,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
               {m.referrals > 0 && ` You've invited ${m.referrals} member${m.referrals === 1 ? "" : "s"} so far.`}
             </p>
             <div className="mt-4">
-              <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards — we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
+              <ShareLink url={referUrl} text={`Join me at Herbal Holland Rewards and we both get ${settings.loyalty.referralBonus} points after your first purchase. Adults 18+.`} />
             </div>
             <p className="mt-3 text-xs text-ink-450">Your code: <span className="tnum font-semibold text-ink-300">{m.customer.referralCode}</span></p>
           </Panel>
@@ -341,7 +347,7 @@ async function Landing() {
   return (
     <Container className="pt-10 sm:pt-16">
       {launch.preLaunch && launch.at && (
-        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`Founding Members close ${fmtDate(launch.at)} — join free`} className="mb-10">
+        <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`Founding Members close ${fmtDate(launch.at)}. Join free.`} className="mb-10">
           The first {num(launch.foundingCap)} members on the list get a numbered card and start at {tierInfo(launch.foundingTier).name} for {launch.foundingMonths} months. Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
         </Callout>
       )}
@@ -349,21 +355,19 @@ async function Landing() {
         <div>
           <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
           <h1 className="mt-3 font-display text-5xl font-semibold leading-[1] tracking-tight text-white sm:text-6xl">
-            Your card.
+            Join free.
             <br />
-            Your points.
-            <br />
-            <span className="text-brand-500">Every store.</span>
+            <span className="text-brand-500">Pay less, earn points.</span>
           </h1>
           <p className="mt-6 max-w-lg text-lg leading-relaxed text-ink-300">
-            Free to join. Members pay less instantly — in {trading.length} stores and online — and earn {settings.loyalty.earnPer100} points for every R100 to spend like cash. 1 point = R1.
+            Members pay less instantly, {trading.length ? `in ${plural(trading.length, "store")} and online` : "online"}, and earn {settings.loyalty.earnPer100} points for every R100 to spend like cash. 1 point = R1.
           </p>
           <ul className="mt-8 grid grid-cols-1 max-w-xl gap-3 sm:grid-cols-2">
             {[
               [<Gift key="g" className="h-5 w-5" />, `${fmtPoints(settings.loyalty.signupBonus)} when you join`],
               [<Cake key="c" className="h-5 w-5" />, `${fmtPoints(settings.loyalty.birthdayBonus)} on your birthday`],
               [<Users key="u" className="h-5 w-5" />, `${fmtPoints(settings.loyalty.referralBonus)} for each friend you invite`],
-              [<BadgePercent key="t" className="h-5 w-5" />, `${settings.loyalty.tierSavingsPct.SEED}% off instantly from day one — up to ${settings.loyalty.tierSavingsPct.HARVEST}% at Harvest`],
+              [<BadgePercent key="t" className="h-5 w-5" />, `${settings.loyalty.tierSavingsPct.SEED}% off instantly from day one, up to ${settings.loyalty.tierSavingsPct.HARVEST}% at Harvest`],
             ].map(([i, t]) => (
               <li key={String(t)} className="flex items-center gap-3 rounded-2xl border border-ink-800 bg-ink-900/60 p-4 text-sm text-ink-100">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{i}</span>

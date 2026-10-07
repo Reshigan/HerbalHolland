@@ -10,6 +10,7 @@ import { waitingCash } from "./banking";
 import { replenishmentPlan } from "./replenishment";
 import { addDays, dayKey, fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
+import { FALLBACK_EMAIL } from "@/lib/contact";
 import type { Role } from "@/generated/prisma/client";
 
 export const staffVapidKey = () => process.env.WEB_PUSH_PUBLIC_KEY ?? null;
@@ -49,7 +50,7 @@ export async function pushToStaff(userIds: string[], p: StaffPush) {
   const delivered = new Set<string>();
   if (live()) {
     if (!configured) {
-      webpush.setVapidDetails(process.env.WEB_PUSH_SUBJECT ?? "mailto:hello@herbalholland.co.za", process.env.WEB_PUSH_PUBLIC_KEY!, process.env.WEB_PUSH_PRIVATE_KEY!);
+      webpush.setVapidDetails(process.env.WEB_PUSH_SUBJECT ?? `mailto:${FALLBACK_EMAIL}`, process.env.WEB_PUSH_PUBLIC_KEY!, process.env.WEB_PUSH_PRIVATE_KEY!);
       configured = true;
     }
     await Promise.all(
@@ -200,7 +201,7 @@ export async function notifyExpiringBatches(now = new Date()) {
       const s = byStore.get(l.storeId)!;
       return pushToStaff(peopleFor(s, people), {
         title: `Lot expiring ${fmtDay(l.batch.expiresAt!)} · ${s.name}`,
-        body: `${l.batch.variant.product.name} · ${l.batch.variant.name} (${l.batch.code}): ${l.onHand} on hand — mark down or move them first`,
+        body: `${l.batch.variant.product.name} · ${l.batch.variant.name} (${l.batch.code}): ${l.onHand} on hand: mark down or move them first`,
         url: `/store/${s.code}/batches?view=expiring`,
       });
     });
@@ -245,7 +246,7 @@ export async function lowStockDigest(now = new Date()) {
     const top = low.slice(0, 3).map((r) => r.name).join(", ");
     const r = await pushToStaff(peopleFor(s, people), {
       title: `${low.length} SKU${low.length === 1 ? "" : "s"} low on stock · ${s.name}`,
-      body: `${out ? `${out} out of stock. ` : ""}${top}${low.length > 3 ? ` and ${low.length - 3} more` : ""} — suggested order ready.`,
+      body: `${out ? `${out} out of stock. ` : ""}${top}${low.length > 3 ? ` and ${low.length - 3} more` : ""}: suggested order ready.`,
       url: `/store/${s.code}/purchasing/new`,
     });
     pushed += r.users;
@@ -256,7 +257,3 @@ export async function lowStockDigest(now = new Date()) {
 /** Event keys older than 60 days are of no further use. */
 export const pruneStaffPushEvents = (now = new Date()) => db.staffPushEvent.deleteMany({ where: { sentAt: { lt: addDays(now, -60) } } });
 
-/** Every 5 minutes: the immediate events. */
-export async function runStaffPush(now = new Date()) {
-  return { orders: await notifyNewOrders(now), alerts: await notifyAlerts(now), announcements: await notifyAnnouncements(now) };
-}

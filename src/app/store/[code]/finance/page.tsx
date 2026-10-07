@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Banknote, ChartColumn, Landmark, Receipt, ReceiptText } from "lucide-react";
 import { requireStaff } from "@/server/auth";
 import { storeForUser } from "@/server/scope";
+import { booksRole } from "@/server/ledger/access";
 import { monthRange, profitAndLoss, salesSummary, vatReport } from "@/server/finance";
 import { supplierInvoiceSummary } from "@/server/supplier-invoices";
 import { resolveRange } from "@/lib/ranges";
@@ -33,12 +34,13 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
     const d = new Date(Date.UTC(y, m - 1 - (5 - i), 1));
     return d.toISOString().slice(0, 7);
   });
-  const [pl, vat, trade, trend, invoices] = await Promise.all([
+  const [pl, vat, trade, trend, invoices, books] = await Promise.all([
     profitAndLoss(ids, r),
     vatReport(ids, r),
     salesSummary(ids, r, "WHOLESALE"),
     Promise.all(months.map(async (m) => ({ month: m, pl: await profitAndLoss(ids, monthRange(m)) }))),
     supplierInvoiceSummary(ids),
+    booksRole(user, store.company),
   ]);
   const firstWithData = trend.findIndex((t) => t.pl.revenue !== 0);
   const shown = firstWithData < 0 ? trend.slice(-3) : trend.slice(firstWithData);
@@ -52,7 +54,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
       <PageHeader
         overline={`Money · ${store.name}`}
         title="Finance"
-        description={`Profit and loss and VAT working for ${store.company.legalName}${store.company.vatNumber ? ` (VAT ${store.company.vatNumber})` : ""}, from posted sales, received stock, expenses and franchise fees. ${r.from} to ${r.to}.`}
+        description={`This store's profit and loss and a VAT estimate, from posted sales, received stock, expenses and franchise fees. ${store.company.legalName}${store.company.vatNumber ? ` (VAT ${store.company.vatNumber})` : ""}, ${r.from} to ${r.to}.`}
         actions={<RangeTabs path={`${base}/finance`} current={r.preset} />}
       />
 
@@ -76,7 +78,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
               <Line
                 label={
                   <span className="pl-8">
-                    of which My Deals — <Link href={`${base}/statement`} className="font-medium text-brand-700 hover:underline">HQ credits these on your statement</Link>
+                    of which My Deals (<Link href={`${base}/statement`} className="font-medium text-brand-700 hover:underline">HQ credits these on your statement</Link>)
                   </span>
                 }
                 value={zar(pl.summary.offerCents)}
@@ -104,7 +106,7 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
         </Card>
 
         <Card className="h-fit xl:col-span-2">
-          <CardHeader title="VAT201 working" description={`${r.from} to ${r.to}`} />
+          <CardHeader title="VAT estimate for this store" description={`${r.from} to ${r.to}`} />
           <CardBody className="pt-3">
             {vendor ? (
               <>
@@ -115,7 +117,20 @@ export default async function FinancePage({ params, searchParams }: { params: Pr
                 <Line label={<span className="pl-4">Franchise fees</span>} value={`−${zar(vat.feeInput)}`} />
                 <div className="my-1 border-t border-ink-900" />
                 <Line label={vat.payable >= 0 ? "VAT payable to SARS" : "VAT refund due"} value={zar(Math.abs(vat.payable))} strong className="text-base" />
-                <p className="mt-2 text-xs text-ink-500">A working, not a return: confirm against your tax invoices before filing on eFiling. Standard rate 15%.</p>
+                <p className="mt-2 text-xs text-ink-500">
+                  An estimate for this store only, at the standard 15%. {store.company.legalName} files one VAT201 per SARS VAT period, covering all its stores
+                  {books.read ? (
+                    <>
+                      {". "}
+                      <Link href={`/books/${store.companyId}/vat`} className="font-medium text-brand-700 hover:underline">
+                        Open the company&apos;s VAT return
+                      </Link>
+                      .
+                    </>
+                  ) : (
+                    ", from the company's books."
+                  )}
+                </p>
               </>
             ) : (
               <Notice tone="info" title="Not VAT-registered">

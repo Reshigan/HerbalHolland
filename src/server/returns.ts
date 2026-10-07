@@ -103,7 +103,7 @@ export async function requestReturn(a: ReturnInput, customer: { id: string; firs
   const items = validateReturnItems(a.items, e);
   if (!items.ok) throw new ReturnError(items.error, "items");
   if (items.items.some((it) => e.lines.find((l) => l.variantId === it.variantId)?.sealed) && !a.sealedConfirmed)
-    throw new ReturnError("Confirm that the items are unopened and sealed — a change-of-mind return of food, supplements or skin care has to be", "sealed");
+    throw new ReturnError("Confirm that the items are unopened and sealed: food, supplements and skin care come back for a change of mind only if they are", "sealed");
   const note = a.note.replace(/\r\n?/g, "\n").trim().slice(0, RETURN_NOTE_MAX);
   if (reason === "OTHER" && note.length < 10) throw new ReturnError("Tell us what happened (a sentence or two)", "note");
   let photoUploadIds: string[] = [];
@@ -153,7 +153,7 @@ function move(r: ReturnRequest, to: ReturnStatusKey) {
  */
 async function moveTx(t: Tx, r: ReturnRequest, to: ReturnStatusKey, data: Prisma.ReturnRequestUpdateManyMutationInput = {}, where: Prisma.ReturnRequestWhereInput = {}) {
   const { count } = await t.returnRequest.updateMany({ where: { ...where, id: r.id, status: r.status }, data: { ...data, status: to } });
-  if (!count) throw new ReturnError(`${r.number} changed while you were on it — refresh to see where it is now`);
+  if (!count) throw new ReturnError(`${r.number} changed while you were on it. Refresh to see where it is now`);
   return t.returnRequest.findUniqueOrThrow({ where: { id: r.id } });
 }
 

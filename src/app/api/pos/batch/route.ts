@@ -5,6 +5,6 @@ import { batchLookup } from "@/server/pos/batch";
 export const GET = withStaff(async (req, pos) => {
   const code = new URL(req.url).searchParams.get("code") ?? "";
   const batch = await batchLookup(pos.device.storeId, code);
-  if (!batch) return fail(404, `No batch matches “${code.trim().toUpperCase()}” — check the code on the pack`);
+  if (!batch) return fail(404, `No batch matches “${code.trim().toUpperCase()}”. Check the code on the pack`);
   return json({ batch });
 });

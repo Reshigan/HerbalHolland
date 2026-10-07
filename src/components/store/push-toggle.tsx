@@ -52,7 +52,7 @@ export function StaffPushToggle({ vapidKey, devices, enable, disable }: { vapidK
         setMode("on");
         router.refresh();
       } catch {
-        setError("We couldn't switch notifications on here — check the browser's site settings and try again.");
+        setError("We couldn't switch notifications on here. Check the browser's site settings and try again.");
       }
     });
 
@@ -67,7 +67,7 @@ export function StaffPushToggle({ vapidKey, devices, enable, disable }: { vapidK
         setMode("off");
         router.refresh();
       } catch {
-        setError("We couldn't switch notifications off just now — please try again.");
+        setError("We couldn't switch notifications off just now. Please try again.");
       }
     });
 
@@ -76,7 +76,7 @@ export function StaffPushToggle({ vapidKey, devices, enable, disable }: { vapidK
   const others = Math.max(0, devices - (on ? 1 : 0));
   const note: Record<Mode, string> = {
     checking: "Checking this phone…",
-    soon: "Push notifications aren't set up on this server yet (WEB_PUSH keys) — ask HQ.",
+    soon: "Push notifications aren't set up on this server yet (WEB_PUSH keys). Ask HQ.",
     ios: "On iPhone, add the back office to your Home Screen first.",
     unsupported: "This browser can't show notifications. Use Chrome, Edge, Firefox or Safari on a recent phone.",
     denied: "Notifications are blocked for this site. Allow them in the browser's site settings, then come back here.",

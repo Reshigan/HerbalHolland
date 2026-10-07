@@ -1,22 +1,11 @@
 // Pure FormData / input parsing for HQ server actions. Everything the browser sends is
 // untrusted text: these helpers normalise it and never throw.
 import { isEmail } from "@/lib/email";
+import { str } from "@/server/store/rules";
 
-export const str = (fd: FormData, name: string) => String(fd.get(name) ?? "").trim();
+// The basics are defined once, with the store back office's rules, so both consoles read input the same way.
+export { str, bool, list, parseRand, parseLocal, toLocalInput, clock } from "@/server/store/rules";
 export const opt = (fd: FormData, name: string) => str(fd, name) || null;
-export const bool = (fd: FormData, name: string) => {
-  const v = fd.get(name);
-  return v === "on" || v === "true" || v === "1";
-};
-export const list = (fd: FormData, name: string) => [...new Set(fd.getAll(name).map((v) => String(v).trim()).filter(Boolean))];
-
-/** "R1,234.50" / "1234.5" / "1 234" → cents. null when empty or not a number. */
-export function parseRand(raw: string | null | undefined): number | null {
-  const s = String(raw ?? "").replace(/[R\s,]/gi, "");
-  if (!s) return null;
-  if (!/^-?\d+(\.\d{0,2})?$/.test(s)) return null;
-  return Math.round(Number(s) * 100);
-}
 
 /** "6" / "6.5%" → basis points (600 / 650). */
 export function parsePctToBps(raw: string | null | undefined): number | null {
@@ -43,35 +32,13 @@ export function parseDay(raw: string | null | undefined): Date | null {
   return /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(`${s}T00:00:00+02:00`) : null;
 }
 
-/** <input type="datetime-local"> (SAST wall clock) → UTC Date. */
-export function parseLocal(raw: string | null | undefined): Date | null {
-  const s = String(raw ?? "").trim();
-  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s)) return null;
-  const d = new Date(`${s}:00+02:00`);
-  return Number.isNaN(d.getTime()) ? null : d;
-}
-
-const localFmt = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Africa/Johannesburg", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", hour12: false,
-});
-
-/** Date → "YYYY-MM-DDTHH:mm" in SAST, for datetime-local defaults. */
-export function toLocalInput(d: Date | null | undefined) {
-  if (!d) return "";
-  const p = Object.fromEntries(localFmt.formatToParts(d).map((x) => [x.type, x.value]));
-  return `${p.year}-${p.month}-${p.day}T${p.hour === "24" ? "00" : p.hour}:${p.minute}`;
-}
-
-/** "16:30" → minutes after midnight. */
+/** "16:30" (or "9:30") → minutes after midnight. */
 export function parseClock(raw: string | null | undefined): number | null {
   const m = String(raw ?? "").trim().match(/^(\d{1,2}):(\d{2})$/);
   if (!m) return null;
   const h = Number(m[1]), min = Number(m[2]);
   return h < 24 && min < 60 ? h * 60 + min : null;
 }
-
-export const clock = (minutes: number | null | undefined) =>
-  minutes == null ? "" : `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
 
 /** Comma or newline separated text → trimmed unique values. */
 export const splitList = (raw: string) => [...new Set(raw.split(/[\n,]/).map((s) => s.trim()).filter(Boolean))];

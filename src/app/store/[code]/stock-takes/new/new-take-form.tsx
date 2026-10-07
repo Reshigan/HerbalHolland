@@ -2,8 +2,9 @@
 import { useState } from "react";
 import { ClipboardList, Layers } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { num } from "@/lib/format";
 import { Checkbox, Field, Input } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 type Cat = { slug: string; name: string; lines: number; lastCounted: string | null };
 
@@ -24,7 +25,7 @@ export function NewTakeForm({ action, cats, fullLines, busy }: { action: FormAct
               <span className="flex items-center gap-2 font-display font-semibold text-ink-900">
                 <Layers className="h-4 w-4 text-brand-600" aria-hidden /> Full count
               </span>
-              <span className="mt-1 block text-sm text-ink-500">Every ranged item and every batch on hand — {fullLines.toLocaleString()} lines. Best done before opening or after close.</span>
+              <span className="mt-1 block text-sm text-ink-500">Every ranged item and every batch on hand ({num(fullLines)} lines). Best done before opening or after close.</span>
               {blocked.size > 0 && <span className="mt-2 block text-xs font-medium text-amber-700">Finish the open count first.</span>}
             </span>
           </label>
@@ -68,7 +69,7 @@ export function NewTakeForm({ action, cats, fullLines, busy }: { action: FormAct
       />
 
       <Field label="Notes (optional)" htmlFor="notes" hint="E.g. who is counting, or why this count was called">
-        <Input id="notes" name="notes" maxLength={500} placeholder="Monthly flower count — Zanele & Anika" />
+        <Input id="notes" name="notes" maxLength={500} placeholder="e.g. Month-end count" />
       </Field>
 
       <SubmitButton size="lg" pendingLabel="Preparing count sheet…">

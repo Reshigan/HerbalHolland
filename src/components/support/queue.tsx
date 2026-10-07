@@ -75,7 +75,7 @@ export function TicketQueue({ base, rows, total, page, pageSize, counts, view, s
             {rows.length === 0 && (
               <EmptyRow cols={7}>
                 <LifeBuoy className="mx-auto mb-2 h-6 w-6 text-ink-300" strokeWidth={1.9} aria-hidden />
-                {sp.q ? "No requests match that search." : view === "open" ? "Nothing open — the inbox is clear." : "No requests in this view."}
+                {sp.q ? "No requests match that search." : view === "open" ? "Nothing open. The inbox is clear." : "No requests in this view."}
               </EmptyRow>
             )}
             {rows.map((t) => {

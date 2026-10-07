@@ -22,7 +22,7 @@ export async function importBankStatement(companyId: string, bankAccountId: stri
     if (!accountId) return fail("Choose the bank account the statement is for", "bankAccountId");
     const file = fd.get("file");
     if (!(file instanceof File) || !file.size) return fail("Choose the statement file", "file");
-    if (file.size > STATEMENT_MAX_BYTES) return fail("The file is over 5 MB — download a shorter period", "file");
+    if (file.size > STATEMENT_MAX_BYTES) return fail("The file is over 5 MB. Download a shorter period", "file");
     const format = (Object.keys(FORMATS) as StatementFormat[]).find((f) => f === str(fd, "format")) ?? "AUTO";
     const map = { date: str(fd, "mapDate"), description: str(fd, "mapDescription"), amount: str(fd, "mapAmount"), debit: str(fd, "mapDebit"), credit: str(fd, "mapCredit"), balance: str(fd, "mapBalance"), reference: str(fd, "mapReference") };
     const r = await importStatement(companyId, accountId, { file, format, map: format === "CSV" ? map : undefined });

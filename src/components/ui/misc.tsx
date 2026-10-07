@@ -13,10 +13,6 @@ export function Kbd({ children }: { children: React.ReactNode }) {
   return <kbd className="rounded-md border border-ink-200 bg-white px-1.5 py-0.5 font-sans text-[0.7rem] font-semibold text-ink-600 shadow-[0_1px_0_rgb(0_0_0/0.06)]">{children}</kbd>;
 }
 
-export function Divider({ className }: { className?: string }) {
-  return <hr className={cn("border-ink-150", className)} />;
-}
-
 /** Definition list row for detail panels. */
 export function Detail({ label, children, className }: { label: React.ReactNode; children: React.ReactNode; className?: string }) {
   return (

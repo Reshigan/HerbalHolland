@@ -32,7 +32,7 @@ export function BatchSheet({ batch, onTill, onAdd, onClose }: { batch: BatchLook
         {b.status === "RECALLED" && (
           <Alert className="mb-4">
             <div className="flex items-center gap-2 font-semibold">
-              <AlertOctagon className="h-5 w-5" /> Recalled — do not sell
+              <AlertOctagon className="h-5 w-5" /> Recalled: do not sell
             </div>
             <div className="mt-1">{b.statusReason ?? "This batch has been recalled."} Take it off the shelf and log it for return to the DC.</div>
           </Alert>
@@ -40,14 +40,14 @@ export function BatchSheet({ batch, onTill, onAdd, onClose }: { batch: BatchLook
         {b.status === "QUARANTINE" && (
           <Alert tone="warn" className="mb-4">
             <div className="flex items-center gap-2 font-semibold">
-              <PauseCircle className="h-5 w-5" /> On hold — do not sell
+              <PauseCircle className="h-5 w-5" /> On hold: do not sell
             </div>
             <div className="mt-1">{b.statusReason ?? "Quality checks are in progress on this batch."}</div>
           </Alert>
         )}
         {b.status === "RELEASED" && b.expired && (
           <Alert tone="warn" className="mb-4">
-            Past its best-before date ({fmtDate(b.expiresAt!)}) — don&apos;t sell it; write it off from Stock.
+            Past its best-before date ({fmtDate(b.expiresAt!)}). Don&apos;t sell it; write it off from Stock.
           </Alert>
         )}
         <div className="flex flex-wrap gap-1.5">

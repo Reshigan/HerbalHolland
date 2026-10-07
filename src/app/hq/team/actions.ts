@@ -38,7 +38,7 @@ export async function addUser(_: ActionState, fd: FormData): Promise<ActionState
   });
   await audit(db, g.actor, "user.create", { entity: "User", entityId: u.id, data: { email, role, regionId } });
   revalidatePath("/hq/team");
-  return done(`${name} can now sign in as ${email} with the temporary password  ${password}  — share it privately (it isn't shown again). They'll choose their own password when they first sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
+  return done(`${name} can now sign in as ${email} with the temporary password  ${password}  (share it privately, as it isn't shown again). They'll choose their own password when they first sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
 }
 
 export async function setUserActive(userId: string, active: boolean, _: ActionState): Promise<ActionState> {
@@ -65,5 +65,5 @@ export async function resetPassword(userId: string, _: ActionState): Promise<Act
   await db.session.deleteMany({ where: { userId } });
   await audit(db, g.actor, "user.password_reset", { entity: "User", entityId: userId, data: { email: u.email } });
   revalidatePath("/hq/team");
-  return done(`New temporary password for ${u.name}:  ${password}  — share it privately. They'll choose their own password when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
+  return done(`New temporary password for ${u.name}:  ${password}  (share it privately). They'll choose their own password when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
 }

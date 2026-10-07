@@ -35,7 +35,7 @@ export async function placeOrderAction(_: CheckoutState, form: FormData): Promis
 
 async function place(form: FormData): Promise<CheckoutState> {
   const customer = await getCustomer();
-  if (!customer) return { error: "Your session has ended — please sign in again." };
+  if (!customer) return { error: "Your session has ended. Please sign in again." };
   const items = await getCart();
   if (!items.length) return { error: "Your bag is empty." };
 

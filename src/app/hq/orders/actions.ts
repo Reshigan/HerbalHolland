@@ -14,7 +14,7 @@ export async function cancelOrder(orderId: string, _: ActionState, fd: FormData)
   const order = await db.order.findUnique({ where: { id: orderId }, select: { id: true, code: true, storeId: true, status: true, fulfilment: true } });
   if (!order || !(await inScope(g.scope, order.storeId))) return DENIED;
   const reason = str(fd, "reason");
-  if (reason.length < 3) return fail("Say why — the member is told their order was cancelled.", { reason: "Required" });
+  if (reason.length < 3) return fail("Say why. The member is told their order was cancelled.", { reason: "Required" });
   if (!nextStatuses(order).includes("CANCELLED")) return fail("This order can no longer be cancelled.");
   try {
     await advanceOrder(order.id, "CANCELLED", g.actor, { note: `Cancelled by HQ: ${reason}` });
@@ -57,5 +57,5 @@ export async function saveEcommerceSettings(_: ActionState, fd: FormData): Promi
   await saveSetting("ecommerce", next);
   await audit(db, g.actor, "settings.ecommerce", { entity: "Setting", entityId: "ecommerce", data: { before, after: next } });
   revalidatePath("/hq/orders");
-  return done("Delivery and collection settings saved — checkout uses them immediately.");
+  return done("Delivery and collection settings saved. Checkout uses them immediately.");
 }

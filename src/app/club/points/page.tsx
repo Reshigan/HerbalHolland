@@ -63,7 +63,7 @@ export default async function ClubPoints({ searchParams }: { searchParams: Promi
           <Panel className="p-5 text-sm leading-relaxed text-ink-400">
             <h2 className="font-semibold text-white">Good to know</h2>
             <ul className="mt-2 space-y-1.5">
-              <li>• Earn on what you pay — not on points you spend.</li>
+              <li>• Earn on what you pay, not on points you spend.</li>
               <li>• Spend from {settings.loyalty.minRedeem} points, up to {settings.loyalty.maxRedeemPct}% of an order.</li>
               <li>• Medicines don&apos;t earn points or carry discounts.</li>
             </ul>

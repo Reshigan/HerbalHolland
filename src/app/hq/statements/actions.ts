@@ -17,7 +17,7 @@ export async function emailOneStatement(storeId: string, month: string, _: Actio
   if (!g || !(await inScope(g.scope, storeId))) return DENIED;
   if (!validMonth(month)) return fail("Choose a month.");
   const store = await db.store.findUnique({ where: { id: storeId }, select: { name: true, company: { select: { email: true } } } });
-  if (!store?.company.email) return fail("The owner company has no email address — add one on the store page.");
+  if (!store?.company.email) return fail("The owner company has no email address. Add one on the store page.");
   await emailStatement(storeId, month);
   await audit(db, g.actor, "statement.email", { storeId, entity: "Store", entityId: storeId, data: { month } });
   return done(`${fmtMonth(`${month}-01`)} statement emailed to ${store.company.email}.`);
@@ -61,7 +61,7 @@ export async function recordPayment(storeId: string, month: string, _: ActionSta
   try {
     const p = await recordStatementPayment({ storeId, month, direction, amountCents: parseRand(str(fd, "amount")), paidOn: str(fd, "paidOn"), reference: str(fd, "reference"), note: opt(fd, "note") }, g.user);
     refresh((await db.store.findUnique({ where: { id: storeId }, select: { code: true } }))?.code);
-    return done(`${zar(Math.abs(p.amountCents))} ${p.amountCents > 0 ? "paid to HQ" : "paid to the store"} on ${fmtDate(`${p.paidOn.toISOString().slice(0, 10)}T12:00:00Z`)} recorded — it posts to both companies' books within 15 minutes.`);
+    return done(`${zar(Math.abs(p.amountCents))} ${p.amountCents > 0 ? "paid to HQ" : "paid to the store"} on ${fmtDate(`${p.paidOn.toISOString().slice(0, 10)}T12:00:00Z`)} recorded. It posts to both companies' books within 15 minutes.`);
   } catch (e) {
     return paymentFailure(e);
   }
@@ -77,7 +77,7 @@ export async function deletePayment(id: string, _: ActionState): Promise<ActionS
   try {
     const gone = await deleteStatementPayment(id, g.user);
     refresh((await db.store.findUnique({ where: { id: gone.storeId }, select: { code: true } }))?.code);
-    return done(`Payment ${gone.reference} deleted — its postings are reversed within 15 minutes.`);
+    return done(`Payment ${gone.reference} deleted. Its postings are reversed within 15 minutes.`);
   } catch (e) {
     return paymentFailure(e);
   }

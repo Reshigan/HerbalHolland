@@ -70,7 +70,7 @@ export default async function BalanceSheetPage({ params, searchParams }: { param
       )}
       {!store && nonZero(bs.difference) && (
         <Notice tone="danger" className="mb-4" title="Assets don't equal equity and liabilities">
-          Out by {zar(bs.difference[0])}. Every journal balances, so this needs looking into — the trial balance shows which accounts.
+          Out by {zar(bs.difference[0])}. Every journal balances, so this needs looking into. The trial balance shows which accounts.
         </Notice>
       )}
 
@@ -85,7 +85,7 @@ export default async function BalanceSheetPage({ params, searchParams }: { param
       </Card>
       <p className="mt-4 max-w-3xl text-sm text-ink-500">
         Fixed assets (1500s) and loans (2600s) are non-current; everything else is due or usable within the year. Retained earnings include the profit of every financial year
-        that ended before this one, and this year&apos;s profit so far shows on its own line — neither is posted, so nothing needs closing at year end.
+        that ended before this one, and this year&apos;s profit so far shows on its own line. Neither is posted, so nothing needs closing at year end.
         {store && " For one store, the line “Funded by the rest of the company” is the difference its own entries leave: what the company put into it (or took out)."}
       </p>
     </>

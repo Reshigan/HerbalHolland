@@ -265,7 +265,7 @@ describe("Orders from the DC", () => {
     expect(o.reservedAt).toBeNull();
     expect((await avail(w.dc.id, w.coffeeV.id)).reserved).toBe(before.reserved);
     const pro = await lastMailTo(BILLING);
-    expect(pro.body).toMatch(/pro forma TO-000003 — pay R3,208.50 with reference HH-TO-000003/);
+    expect(pro.body).toMatch(/pro forma TO-000003: pay R3,208.50 with reference HH-TO-000003/);
     expect(pro.body).toMatch(/62000000000/);
     await expect(advanceTradeOrder(o.id, "ship", hq)).rejects.toThrow(/pending payment/);
 

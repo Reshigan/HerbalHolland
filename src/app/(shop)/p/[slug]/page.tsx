@@ -46,7 +46,7 @@ import { Callout, Container, Panel, Price, Stars, Tag } from "@/components/shop/
 import { JsonLd } from "@/components/shop/json-ld";
 import { ButtonLink } from "@/components/ui/button";
 import { breadcrumbJsonLd, LOCALE, metaDescription, pageTitle, productJsonLd, SITE_NAME, siteUrl, type Availability } from "@/lib/seo";
-import { describePromo, type PromoInput } from "@/lib/promotions";
+import { describePromo } from "@/lib/promotions";
 import { PRODUCT_FACTS, REG_CLASS_LABEL, CBD_CLASSES, THC_CAP_PCT, allergenStatement, cbdFoodLimitMg, declaresAllergens, netContentLabel, type RegClass } from "@/lib/compliance";
 import { deliveryEstimate } from "@/lib/delivery";
 import { fmtDate, fmtDay } from "@/lib/format";
@@ -78,12 +78,12 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 
 /** What to do with it, from the class and the label — never a health claim. */
 function howToUse(p: { regClass: RegClass; cbdMgPerDay: number | null; netContent: number | null; netUnit: string | null }, licensed: boolean): string[] {
-  if (licensed) return ["Use only as directed by your prescriber, and keep it in its original pack.", "Handed over by our pharmacist after an ID check, within your authorised monthly quantity."];
+  if (licensed) return ["Use only as directed by your prescriber, and keep it in its original pack.", "Handed over by an authorised dispenser after an ID check, within your authorised monthly quantity."];
   switch (p.regClass) {
     case "CBD":
       return [p.cbdMgPerDay != null ? `Take as directed on the label: up to ${p.cbdMgPerDay} mg of CBD a day, the maximum daily serving.` : "Take as directed on the label, and don't exceed the daily serving.", "If you're pregnant, breastfeeding or take medication, speak to a pharmacist or doctor first.", "Store cool and dark, out of reach of children. Adults 18+."];
     case "CBD_FOOD":
-      return ["Enjoy it as part of a varied diet — it's a food, not a medicine.", "The CBD in it is only what's naturally in its hemp ingredients; nothing is added.", "Keep it sealed and out of reach of children. Adults 18+."];
+      return ["Enjoy it as part of a varied diet. It's a food, not a medicine.", "The CBD in it is only what's naturally in its hemp ingredients; nothing is added.", "Keep it sealed and out of reach of children. Adults 18+."];
     case "CBD_TOPICAL":
       return ["For the skin only: apply a small amount and patch-test first.", "Stop if irritation develops. Keep out of eyes and away from broken skin.", "Adults 18+."];
     case "SUPPLEMENT":
@@ -446,14 +446,14 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 </Callout>
               ) : drop && dropGated && buyable && !dropWaiting ? (
                 <ButtonLink href={`/club/join?next=${encodeURIComponent(`/p/${product.slug}?v=${variant.id}`)}`} size="xl" className="w-full">
-                  Join free to buy — members-only drop
+                  Join free to buy (members-only drop)
                 </ButtonLink>
               ) : drop && dropWaiting ? (
                 <WatchDrop action={watchDropAction.bind(null, drop.id)} signedIn={!!customer} next={`/p/${product.slug}?v=${variant.id}`} already={watching} reach={devices ? "push" : customer?.consentSms ? "sms" : "none"} />
               ) : buyable ? (
                 <>
                   <AddToBag variantId={variant.id} name={`${product.name} · ${variant.name}`} label={licensed ? "Add to dispensary order" : "Add to bag"} />
-                  {drop && drop.phase !== "ended" && <p className="mt-2 text-center text-xs text-ink-450">Limit {drop.perMemberLimit} per member from this drop — checked at checkout.</p>}
+                  {drop && drop.phase !== "ended" && <p className="mt-2 text-center text-xs text-ink-450">Limit {drop.perMemberLimit} per member from this drop, checked at checkout.</p>}
                 </>
               ) : (
                 <NotifyMe action={requestStockAlert.bind(null, variant.id)} signedIn={!!customer} next={`/p/${product.slug}?v=${variant.id}`} already={!!alert && !alert.notifiedAt} />
@@ -515,9 +515,9 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 <div className="flex items-start gap-3 p-4">
                   <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" />
                   <div className="text-sm">
-                    <div className="font-semibold text-white">Collect only · dispensed by our pharmacist</div>
+                    <div className="font-semibold text-white">Collect only · from an authorised dispenser</div>
                     <div className="text-ink-400">
-                      Handed over after an ID check, within your authorised monthly quantity{access?.allowed && access.mode === "MEDICAL" ? ` (${Math.round(access.remainingGrams * 10) / 10} g left this month)` : ""}. No promotions or points apply to medicines.
+                      Handed over after an ID check, within your authorised monthly quantity{access?.allowed && access.mode === "MEDICAL" ? ` (${Math.round(access.remainingGrams * 10) / 10} g left in the last 30 days)` : ""}. No promotions or points apply to medicines.
                     </div>
                   </div>
                 </div>
@@ -532,8 +532,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     <div className="text-sm">
                       <div className="font-semibold text-white">{d.name}</div>
                       <div className="text-ink-300">
-                        {describePromo(d as unknown as PromoInput)}
-                        {d.description && ` — ${d.description}`}
+                        {describePromo(d)}
+                        {d.description && ` · ${d.description}`}
                       </div>
                     </div>
                   </div>
@@ -594,7 +594,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                       {product.regClass === "CBD_FOOD" && product.naturalCbd && (
                         <div>
                           <dt className="text-ink-400">CBD source</dt>
-                          <dd className="text-ink-100">Only what&apos;s naturally in its hemp ingredients — none added</dd>
+                          <dd className="text-ink-100">Only what&apos;s naturally in its hemp ingredients, none added</dd>
                         </div>
                       )}
                     </dl>
@@ -684,7 +684,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 <section aria-labelledby="legal">
                   <div className="eyebrow text-brand-500">Legal basis</div>
                   <h2 id="legal" className="mt-2 font-display text-2xl font-semibold text-white">
-                    What this product is — and isn&apos;t
+                    What this product is, and isn&apos;t
                   </h2>
                   <Panel className="mt-5 p-5">
                     <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
@@ -814,7 +814,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   {customer && bought && !reviewed ? (
                     <ReviewForm action={submitReview.bind(null, product.id)} />
                   ) : customer && reviewed ? (
-                    <p className="text-sm text-ink-400">You&apos;ve reviewed this product — thank you.</p>
+                    <p className="text-sm text-ink-400">You&apos;ve reviewed this product. Thank you.</p>
                   ) : !customer ? (
                     <p className="text-sm text-ink-400">
                       Bought this?{" "}

@@ -31,7 +31,7 @@ export function ReturnForm({ orderCode, eligibility }: { orderCode: string; elig
     for (const f of Array.from(list)) {
       if (next.length >= RETURN_PHOTOS.max) (err = `Up to ${RETURN_PHOTOS.max} photos, please`), (list = null);
       else if (!["image/jpeg", "image/png"].includes(f.type)) err = `${f.name} isn't a JPG or PNG`;
-      else if (f.size > RETURN_PHOTOS.maxBytes) err = `${f.name} is over 5 MB — try a smaller one`;
+      else if (f.size > RETURN_PHOTOS.maxBytes) err = `${f.name} is over 5 MB. Try a smaller one.`;
       else next.push({ file: f, url: URL.createObjectURL(f) });
       if (!list) break;
     }

@@ -94,14 +94,14 @@ export function CustomerCard({
           </span>
           <div className="min-w-0 flex-1">
             <div className="font-semibold text-white">No member yet</div>
-            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members only — add the member or sign them up (free, about 20 seconds)"}</div>
+            <div className="text-xs text-ink-400">{ageCheck ? `Age checked at the counter (${ageCheck === "ID_NUMBER" ? "SA ID number" : "ID sighted"})` : "Members only: add the member or sign them up (free, about 20 seconds)"}</div>
           </div>
         </div>
         {joinSavingsCents > 0 && (
           <button type="button" onClick={onFind} className="mt-3 flex min-h-12 w-full items-center gap-2.5 rounded-xl bg-brand-500/15 px-3 py-2 text-left ring-1 ring-brand-500/40 transition hover:bg-brand-500/20" data-testid="join-prompt">
             <Sparkles className="h-5 w-5 shrink-0 text-brand-400" />
             <span className="text-[0.85rem] leading-snug text-brand-100">
-              <b className="text-brand-300">Members save {zar(joinSavingsCents)}</b> on this basket — add or sign up (free)
+              <b className="text-brand-300">Members save {zar(joinSavingsCents)}</b> on this basket: add or sign up (free)
             </span>
           </button>
         )}
@@ -154,7 +154,7 @@ export function CustomerCard({
             )}
           </div>
           <div className="mt-0.5 text-xs text-ink-400">
-            {customer.offline ? "Taken from their card offline — checked when the till reconnects" : `${customer.memberNo} · ${customer.phone}`}
+            {customer.offline ? "Taken from their card offline (checked when the till reconnects)" : `${customer.memberNo} · ${customer.phone}`}
           </div>
           {!customer.offline && customer.visitsHere != null && (
             <div className="text-xs text-ink-400" data-testid="visits-here">
@@ -216,7 +216,7 @@ export function CustomerCard({
               </li>
             ))}
           </ul>
-          {!online && <p className="mt-1 text-[0.7rem] leading-snug text-ink-400">My Deals need a connection — they aren&apos;t applied to offline sales.</p>}
+          {!online && <p className="mt-1 text-[0.7rem] leading-snug text-ink-400">My Deals need a connection, so they aren&apos;t applied to offline sales.</p>}
         </div>
       )}
       {welcome && onAddGift && <WelcomeGiftButton gift={welcome} onAdd={onAddGift} className="mt-2" />}
@@ -352,7 +352,7 @@ export function CartPanel({
             type="button"
             onClick={() => scroller.current?.scrollTo({ top: 0, behavior: "smooth" })}
             className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 text-left"
-            aria-label={`${member.firstName} ${member.lastName ?? ""} — show the member card`}
+            aria-label={`${member.firstName} ${member.lastName ?? ""}: show the member card`}
           >
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-500 font-display text-xs font-bold text-ink-950">{(member.firstName[0] ?? "") + (member.lastName?.[0] ?? "")}</span>
             <span className="min-w-0 truncate text-sm font-semibold text-white">
@@ -564,7 +564,7 @@ export function CartPanel({
           </div>
           {cart.lines.length > 0 && !trade && (
             <div className="flex justify-between text-xs text-ink-400">
-              <dt>{vatRegistered ? "Includes VAT (15%)" : "No VAT charged — store not VAT-registered"}</dt>
+              <dt>{vatRegistered ? "Includes VAT (15%)" : "No VAT charged (store not VAT-registered)"}</dt>
               <dd className="tnum">{vatRegistered ? zar(quote.vatCents) : ""}</dd>
             </div>
           )}
@@ -597,7 +597,7 @@ export function CartPanel({
           </PosButton>
         </div>
         {priced === "local" && cart.lines.length > 0 && <p className="mt-2 text-center text-[0.7rem] text-ink-500">Prices from this till&apos;s offline price book</p>}
-        {priced === "pending" && cart.lines.length > 0 && <p className="mt-2 text-center text-[0.7rem] text-ink-500">Trade prices come from the server — waiting for it</p>}
+        {priced === "pending" && cart.lines.length > 0 && <p className="mt-2 text-center text-[0.7rem] text-ink-500">Waiting for trade prices from the server</p>}
       </div>
       <FactsSheet product={factsOf} onClose={() => setFactsOf(null)} />
     </div>

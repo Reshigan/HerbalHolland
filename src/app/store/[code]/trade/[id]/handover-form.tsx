@@ -5,7 +5,7 @@ import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input, Textarea } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import type { ActionState } from "@/server/hq/guard";
 
 export function HandoverForm({ action, number, lines }: { action: (s: ActionState, fd: FormData) => Promise<ActionState>; number: string; lines: { id: string; name: string; qty: number; onHand: number }[] }) {
@@ -21,9 +21,9 @@ export function HandoverForm({ action, number, lines }: { action: (s: ActionStat
     <div className="rounded-2xl border border-ink-200 bg-ink-50 p-4" role="group" aria-label={`Hand over ${number}`}>
       <ActionForm action={action} className="space-y-4">
         <div className="font-display text-sm font-semibold text-ink-900">Hand over {number}</div>
-        <Checkbox name="idChecked" label="I've seen the collector's ID — they're 18 or older" description="Everyone collecting for a trade account is an adult; the sale records that ID was sighted." />
+        <Checkbox name="idChecked" label="I've seen the collector's ID and they're 18 or older" description="Everyone collecting for a trade account is an adult; the sale records that ID was sighted." />
         <FieldError name="idChecked" />
-        <Field label="Collection code (the six digits the buyer was sent)" htmlFor="collection-code" hint="Ask for it — never read it out to them">
+        <Field label="Collection code (the six digits the buyer was sent)" htmlFor="collection-code" hint="Ask for it. Never read it out to them.">
           <Input id="collection-code" name="collectionCode" inputMode="numeric" autoComplete="one-time-code" maxLength={7} className="tnum max-w-[12rem] text-lg tracking-[0.3em]" placeholder="000000" />
           <FieldError name="collectionCode" />
         </Field>

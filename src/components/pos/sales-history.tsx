@@ -399,11 +399,11 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
   const moneyText = describeRefund(money);
   const problem =
     toTender > 0 && method === "ORIGINAL" && !original
-      ? `Nothing on this sale was paid by card, cash, PayShap or EFT for ${zar(toTender)} to go back to — choose the tender to refund it to`
+      ? `Nothing on this sale was paid by card, cash, PayShap or EFT for ${zar(toTender)} to go back to. Choose the tender to refund it to`
       : toTender > 0 && method === "CASH" && toTender > cash
         ? cash > 0
-          ? `Only ${zar(cash)} of the cash paid on this sale is left to give back — refund it back how they paid`
-          : "No cash was paid on this sale — refund it back how they paid"
+          ? `Only ${zar(cash)} of the cash paid on this sale is left to give back. Refund it the way they paid`
+          : "No cash was paid on this sale. Refund it the way they paid"
         : null;
   const moneyLine = method === "ORIGINAL" ? `the rest back how they paid: ${moneyText}` : `${zar(toTender)} refunded by ${TENDER_LABEL[method]}`;
   const cashPaid = parts.some((p) => p.method === "CASH");
@@ -523,7 +523,7 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
           <Alert tone="info" className="mt-4">
             <span data-testid="refund-voucher">
               {split.parts.map((v) => `${zar(v.cents)} goes back onto gift voucher ${v.code}`).join("; ")}
-              {toTender > 0 ? `; ${moneyLine}.` : " — nothing to pay out in money."}
+              {toTender > 0 ? `; ${moneyLine}.` : ", so there's nothing to pay out in money."}
             </span>{" "}
             A voucher is never cashed out.
           </Alert>
@@ -532,7 +532,7 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
           <Alert tone="info" className="mt-4">
             <span data-testid="refund-account">
               {zar(toAccount)} goes back onto the account as a credit note ({trade.number})
-              {toTender > 0 ? `; ${moneyLine}.` : " — nothing to pay out in money."}
+              {toTender > 0 ? `; ${moneyLine}.` : ", so there's nothing to pay out in money."}
             </span>{" "}
             The on-account part is never cashed out.
           </Alert>
@@ -547,8 +547,7 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
             {units} item{units === 1 ? "" : "s"} from {sale.number} refunded
             {split.parts.length > 0 || toAccount > 0 ? (
               <>
-                {" "}
-                — {[...split.parts.map((v) => `${zar(v.cents)} back onto gift voucher ${v.code}`), ...(toAccount > 0 ? [`${zar(toAccount)} credited to the account as a credit note`] : [])].join(", ")}
+                : {[...split.parts.map((v) => `${zar(v.cents)} back onto gift voucher ${v.code}`), ...(toAccount > 0 ? [`${zar(toAccount)} credited to the account as a credit note`] : [])].join(", ")}
                 {toTender > 0 && (
                   <>
                     {" "}

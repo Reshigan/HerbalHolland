@@ -53,6 +53,6 @@ export async function saveShelfPrice(code: string, variantId: string, _: ActionS
     if (r.error) return fail(r.error, "price");
     revalidatePath(`/store/${store.code}/inventory`);
     revalidatePath(`/store/${store.code}/inventory/${variantId}`);
-    return done(priceCents == null ? "Back to the list price. Tills pick it up straight away." : `Shelf price ${zar(priceCents)} saved. Tills pick it up straight away.${r.ok?.includes("margin guide") ? " It's below the margin guide — your call." : ""}`);
+    return done(priceCents == null ? "Back to the list price. Tills pick it up straight away." : `Shelf price ${zar(priceCents)} saved. Tills pick it up straight away.${r.ok?.includes("margin guide") ? " It's below the margin guide, but it's your call." : ""}`);
   });
 }

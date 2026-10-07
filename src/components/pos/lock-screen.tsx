@@ -137,12 +137,12 @@ export function LockScreen({
               {reason === "dispenser"
                 ? "An authorised dispenser must complete this sale. Your basket is kept."
                 : reason === "expired"
-                  ? "Your session ended — sign in again with your PIN."
+                  ? "Your session ended. Sign in again with your PIN."
                   : "Tap your name, then enter your PIN."}
             </p>
             {!online && (
               <Alert tone="warn" className="mt-4">
-                Offline — only staff who signed in on this till in the last 12 hours can unlock it until the connection is back.
+                Offline: only staff who signed in on this till in the last 12 hours can unlock it until the connection is back.
               </Alert>
             )}
             <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">

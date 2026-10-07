@@ -8,12 +8,13 @@ import { StoreCard } from "@/components/shop/store-card";
 import { NearMeButton } from "@/components/shop/nav-client";
 import { Container, Pager, inputClass } from "@/components/shop/ui";
 import { pageParam } from "@/components/ui/pagination";
+import { plural } from "@/lib/plural";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 
 export const metadata: Metadata = {
   title: "Store finder",
-  description: "Find a Herbal Holland store near you — opening hours, click & collect, same-day delivery and directions for every store in South Africa.",
+  description: "Find a Herbal Holland store near you: opening hours, directions, and whether it offers click & collect, same-day delivery or a dispensary.",
   alternates: { canonical: "/stores" },
 };
 
@@ -23,12 +24,29 @@ const PAGE = 30;
 
 const COORD = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/;
 
+const AND = new Intl.ListFormat("en-GB", { type: "conjunction" });
+
 export default async function StoresPage({ searchParams }: { searchParams: Promise<{ province?: string; page?: string; q?: string; near?: string }> }) {
   const [stores, preferred, sp] = await Promise.all([getRetailStores(), getPreferredStore(), searchParams]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const soon = stores.filter((s) => s.status === "OPENING_SOON");
   const openNow = trading.filter((s) => openState(parseHours(s.hours)).open).length;
   const provinces = [...new Set(trading.map((s) => s.province))];
+  // What the stores offer, from each store's own settings: what every store offers, then what only some do.
+  const offers: [string, number][] = [
+    ["click & collect", trading.filter((s) => s.clickCollect).length],
+    ["an authorised dispenser for registered patients", trading.filter((s) => s.licences.length > 0).length],
+    ["same-day delivery", trading.filter((s) => s.sameDay).length],
+  ];
+  const one = trading.length === 1;
+  const everywhere = offers.filter(([, n]) => n > 0 && n === trading.length).map(([what]) => what);
+  const services = [
+    everywhere.length ? `${one ? "It offers" : "Every store offers"} ${AND.format(everywhere)}.` : "",
+    ...offers.filter(([, n]) => n > 0 && n < trading.length).map(([what, n]) => `${n} of ${plural(trading.length, "store")} ${n === 1 ? "offers" : "offer"} ${what}.`),
+    one ? "It's independently owned and run by a local franchisee." : "Each is independently owned and run by a local franchisee.",
+  ]
+    .filter(Boolean)
+    .join(" ");
   // "Near me" sends the shopper's position (rounded) in the URL; else distances are from their chosen store.
   const nearMatch = COORD.exec(sp.near ?? "");
   const here = nearMatch ? { lat: Number(nearMatch[1]), lng: Number(nearMatch[2]) } : null;
@@ -55,9 +73,9 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
         <div className="eyebrow text-brand-500">Store finder</div>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{trading.length} stores, one windmill</h1>
+        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{plural(trading.length, "store")}, one windmill</h1>
         <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">
-          {openNow} open right now. Every store offers click &amp; collect and an authorised dispenser for registered patients; many deliver same-day. Each is independently owned and run by a local franchisee.
+          {openNow} open right now. {services}
         </p>
       </div>
 
@@ -84,7 +102,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
               ))}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-ink-400">No stores match that — try a suburb or city nearby, or use Near me.</p>
+            <p className="mt-3 text-sm text-ink-400">No stores match that. Try a suburb or city nearby, or use Near me.</p>
           )}
           <Pager page={page} pageSize={PAGE} total={found.length} href={params} noun="stores" />
           <Link href="/stores" className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold text-brand-400 hover:underline">
@@ -160,7 +178,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
           <h2 id="h-soon" className="font-display text-2xl font-semibold text-white">
             Opening soon
           </h2>
-          <p className="mt-1 text-sm text-ink-400">Join Rewards and choose one of these as your home store — we&apos;ll let you know the day the doors open.</p>
+          <p className="mt-1 text-sm text-ink-400">Join Rewards and choose one of these as your home store. We&apos;ll let you know the day the doors open.</p>
           <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
             {soon.map((s) => (
               <StoreCard key={s.id} s={s} />
@@ -173,8 +191,8 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         Can&apos;t get to a store?{" "}
         <Link href="/shop" className="font-semibold text-brand-400 hover:underline">
           We deliver nationwide
-        </Link>{" "}
-        — ID (18+) checked on delivery.
+        </Link>
+        , with ID (18+) checked on delivery.
       </p>
     </Container>
   );

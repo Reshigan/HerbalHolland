@@ -21,11 +21,11 @@ export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
   const b = await readBody(req, Body);
   const order = await db.tradeOrder.findUnique({ where: { id }, select: { storeId: true, number: true, status: true, fulfilment: true, collectionCode: true } });
   if (!order || order.storeId !== pos.device.storeId) throw new PosError("Trade order not found at this store", 404);
-  if (order.fulfilment !== "COLLECT") throw new PosError(`${order.number} is a courier order — it ships from the DC, it isn't handed over here`, 422);
+  if (order.fulfilment !== "COLLECT") throw new PosError(`${order.number} is a courier order. It ships from the DC and isn't handed over here`, 422);
   if (order.status === "COLLECTED") throw new PosError(`${order.number} has already been collected`, 409);
-  if (order.status !== "READY") throw new PosError(`${order.number} isn't ready yet — it's packed and marked ready in the back office first`, 409);
-  if (!b.idChecked) throw new PosError("Tick the ID check — the person collecting must be 18 or older", 422);
-  if (!tradeCodeMatches(order.collectionCode, b.code)) throw new PosError(`That code doesn't match ${order.number} — ask for the 6-digit collection code from the buyer's email or text`, 422, "BAD_CODE");
+  if (order.status !== "READY") throw new PosError(`${order.number} isn't ready yet. It's packed and marked ready in the back office first`, 409);
+  if (!b.idChecked) throw new PosError("Tick the ID check: the person collecting must be 18 or older", 422);
+  if (!tradeCodeMatches(order.collectionCode, b.code)) throw new PosError(`That code doesn't match ${order.number}. Ask for the 6-digit collection code from the buyer's email or text`, 422, "BAD_CODE");
 
   const shift = await db.shift.findFirst({ where: { storeId: pos.device.storeId, deviceId: pos.device.id, closedAt: null }, select: { id: true } });
   const updated = await advanceTradeOrder(id, "collect", actorOf(pos), { idChecked: true, staffId: pos.user.id, deviceId: pos.device.id, shiftId: shift?.id ?? null });

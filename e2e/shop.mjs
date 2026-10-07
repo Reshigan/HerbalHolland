@@ -357,7 +357,7 @@ try {
   assert((await body.inputValue()) === claim && (await page.getByLabel("Headline (optional)").inputValue()) === headline, "a medical claim is refused with the reason; the headline and text are kept to edit");
   assert(await stars.isChecked(), "the 4-star rating is still selected");
   await body.fill("Lovely quality, smooth and exactly as described. Would buy again.");
-  const thanks = page.getByText("You've reviewed this product — thank you.");
+  const thanks = page.getByText("You've reviewed this product. Thank you.");
   await timed("Review: post", () => page.getByRole("button", { name: "Post review" }).click(), () => thanks.waitFor());
   const review = await one(`select rating, verified, title from "Review" where "productId" = $1 and "customerId" = $2`, [member.productId, member.id]);
   assert(review?.rating === 4 && review.verified && review.title === headline, "review saved: 4 stars, verified purchase");
@@ -461,7 +461,7 @@ try {
   assert(ack && (ticket.email ? ack.channel === "EMAIL" : ack.channel === "SMS"), `acknowledged by ${ack?.channel}`);
   await shot(page, "support-ticket");
   await page.getByLabel("Your reply").fill("Also, the till slip shows the card was scanned.");
-  await timed("Support: reply", () => page.getByRole("button", { name: "Send reply" }).click(), () => page.getByText("Sent — we'll reply within one business day.").waitFor());
+  await timed("Support: reply", () => page.getByRole("button", { name: "Send reply" }).click(), () => page.getByText("Sent. We'll reply within one business day.").waitFor());
   const msgs = (await one(`select count(*)::int n from "SupportMessage" where "ticketId" = $1`, [ticket.id])).n;
   assert(msgs === 2, "the reply is on the thread (2 messages)");
   await page.goto(`${BASE}/club/support`);
@@ -493,7 +493,7 @@ try {
     await timed("Return: send request", () => page.getByRole("button", { name: "Send return request" }).click(), () => page.waitForURL(/\/return\?done=RT-\d+/));
     const rt = await one(`select r.number, r.status, r.reason, r.items, r."storeId" = o."storeId" "sameStore" from "ReturnRequest" r join "Order" o on o.id = r."orderId" where o.code = $1 and r."customerId" = $2`, [returnable.code, member.id]);
     assert(rt?.status === "REQUESTED" && rt.reason === "DEFECTIVE" && rt.items.length === 1 && rt.items[0].qty === 1 && rt.sameStore, `${rt?.number} requested: one unit, faulty, filed with the fulfilling store`);
-    await page.getByText(`Thanks — your return request is ${rt.number}.`).waitFor();
+    await page.getByText(`Thanks. Your return request is ${rt.number}.`).waitFor();
     await shot(page, "return-requested");
   } else step("Returns: skipped — this member has no delivered order to return");
 
@@ -562,7 +562,7 @@ try {
   await timed("Share card → join page", () => friend.getByRole("link", { name: `Join with ${member.firstName}'s link` }).click(), () => friend.getByRole("heading", { level: 1, name: `${member.firstName} invited you` }).waitFor());
   const phone = `07${Math.floor(10_000_000 + Math.random() * 89_999_999)}`;
   await phoneCode(friend, phone, "Join");
-  await timed("Join: verify → details step", () => friend.getByRole("button", { name: "Verify" }).click(), () => friend.getByText("Welcome — one quick step").waitFor());
+  await timed("Join: verify → details step", () => friend.getByRole("button", { name: "Verify" }).click(), () => friend.getByText("Welcome: one quick step").waitFor());
   // First try with an email address another member already uses (with a passport, so the age check waits for later).
   const homes = await friend.getByLabel("Home store").locator("option:not([disabled])").evaluateAll((els) => els.map((o) => o.value));
   const home = homes[Math.floor(Math.random() * homes.length)];
@@ -621,7 +621,7 @@ try {
   // Two tabs: drive whichever is in front (Chromium throttles a background tab's rendering, which isn't the app's time).
   await friend.bringToFront();
   const last = await answer(friend, wrong);
-  await timed("Quest: submit (wrong)", () => last.click(), () => friend.getByRole("heading", { name: "Not quite — try again" }).waitFor());
+  await timed("Quest: submit (wrong)", () => last.click(), () => friend.getByRole("heading", { name: "Not quite, try again" }).waitFor());
   assert(!(await one(`select 1 from "QuestCompletion" where "customerId" = $1`, [pal.id])), "a wrong answer earns nothing");
   await friend.getByRole("button", { name: "Try again" }).click();
   const last2 = await answer(friend, right);
@@ -652,7 +652,7 @@ try {
   await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS}`);
   const heading = await friend.getByRole("heading", { level: 1 }).textContent();
   if (/expired/.test(heading)) fail("the unsubscribe token isn't accepted — is SESSION_SECRET the same for this script and the server?");
-  await timed("Unsubscribe: stop texts", () => friend.getByRole("button", { name: "Stop marketing texts" }).click(), () => friend.getByText(/Done — you won't get marketing texts/).waitFor());
+  await timed("Unsubscribe: stop texts", () => friend.getByRole("button", { name: "Stop marketing texts" }).click(), () => friend.getByText(/Done\. You won't get marketing texts/).waitFor());
   const smsNow = await one(`select c."consentSms", e.source from "Customer" c join "ConsentEvent" e on e."customerId" = c.id and e.channel = 'SMS' where c.id = $1 order by e."createdAt" desc limit 1`, [pal.id]);
   assert(smsNow.consentSms === false && smsNow.source === "UNSUBSCRIBE_LINK", "SMS marketing withdrawn, recorded as UNSUBSCRIBE_LINK");
   await shot(friend, "unsubscribed");
@@ -665,7 +665,7 @@ try {
   const goodId = saId();
   const typo = `${goodId.slice(0, 12)}${(Number(goodId[12]) + 1) % 10}`;
   await idBox.fill(typo);
-  await timed("Settings: verify age (typo)", () => friend.getByRole("button", { name: "Verify", exact: true }).click(), () => friend.getByText("Check digit does not match — please re-check the number").waitFor());
+  await timed("Settings: verify age (typo)", () => friend.getByRole("button", { name: "Verify", exact: true }).click(), () => friend.getByText("Check digit does not match. Please re-check the number.").waitFor());
   assert((await idBox.inputValue()) === typo, "a wrong check digit is refused; the number stays in the box to correct");
   await idBox.fill(goodId);
   await timed("Settings: verify age", () => friend.getByRole("button", { name: "Verify", exact: true }).click(), () => friend.getByText(`SA ID number checked (••••${goodId.slice(-4)})`).waitFor());

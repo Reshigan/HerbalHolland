@@ -6,6 +6,7 @@ import { db, type Tx } from "../../db";
 import type { Posting, SourceHandler } from "../core";
 import { shiftCash } from "../../finance";
 import { receivedValue } from "../../stock-orders";
+import { CATCH_UP_DAYS, missed } from "./catch-up";
 import {
   DAY_STOCK_TYPES, depositLines, expenseLines, shiftLines, stockReceiveLines, stockShipLines, storeDayLines, supplierInvoiceLines, supplierPaymentLines, type StoreRef,
 } from "@/lib/ledger-store";
@@ -178,10 +179,15 @@ async function storeDays(from: string, to: string): Promise<Source[]> {
   return rows.map((r) => ({ source: "store-day", sourceId: `${r.storeId}:${r.day}` }));
 }
 
-/** Nightly: the store-days of the day that ended (everything else is queued as it happens). */
+/**
+ * Nightly: the store-days of the day that ended (everything else is queued as it happens), and any from the week
+ * before that a missed night left unposted.
+ */
 export async function storeNightly(now: Date): Promise<Source[]> {
-  const day = dayKey(addDays(now, -1));
-  return storeDays(day, day);
+  const yesterday = dayKey(addDays(now, -1));
+  const days = await storeDays(dayKey(addDays(now, -CATCH_UP_DAYS)), yesterday);
+  const ended = (s: Source) => s.sourceId.endsWith(`:${yesterday}`);
+  return [...days.filter(ended), ...(await missed(days.filter((s) => !ended(s))))];
 }
 
 /**

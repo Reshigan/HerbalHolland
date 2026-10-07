@@ -145,7 +145,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
       <FilterBar path={path} query={query} controls={controls} />
       {clamped && (
         <Notice tone="warn" className="mb-6">
-          Reports cover at most a year — showing the last 366 days of the range you picked.
+          Reports cover at most a year, so this shows the last 366 days of the range you picked.
         </Notice>
       )}
 
@@ -180,7 +180,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
                   {note || (
                     <p className="flex items-start gap-2 text-sm leading-relaxed text-ink-500">
                       <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" strokeWidth={1.9} aria-hidden />
-                      <span>Live figures. The filters above apply to the tiles, the chart and the table alike — and to the CSV.</span>
+                      <span>Live figures. The filters above apply to the tiles, the chart and the table alike, and to the CSV.</span>
                     </p>
                   )}
                   <div className="rounded-xl bg-ink-50 p-3 text-sm text-ink-600 print:hidden">
@@ -188,7 +188,7 @@ export function ReportView({ def, result, controls, query, path, catalogueHref, 
                       <FileSpreadsheet className="h-4 w-4 text-brand-700" strokeWidth={1.9} aria-hidden />
                       {total.toLocaleString("en-US")} row{total === 1 ? "" : "s"}
                     </div>
-                    <p className="mt-1 text-xs text-ink-500">The CSV has every row, with money in rands and dates in SAST — ready for Excel or your accountant.</p>
+                    <p className="mt-1 text-xs text-ink-500">The CSV has every row, with money in rands and dates in SAST. It&apos;s ready for Excel or your accountant.</p>
                     <a href={csvHref} download className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-brand-700 hover:underline">
                       Download CSV <ChevronRight className="h-3 w-3" aria-hidden />
                     </a>

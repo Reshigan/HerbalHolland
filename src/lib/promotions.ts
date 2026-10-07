@@ -125,7 +125,7 @@ export function applyPromotions(lines: PricedLine[], promos: PromoInput[], code?
         entitled += get;
       }
       const rem = pool.length % size;
-      if (rem >= p.buyQty) suggest(p, `Add ${size - rem} more — ${pct === 100 ? "it's free" : `${pct}% off`} (${p.name})`, p);
+      if (rem >= p.buyQty) suggest(p, `Add ${size - rem} more and ${pct === 100 ? "it's free" : `get ${pct}% off`} (${p.name})`, p);
       else if (entitled === 0 && pool.length > 0) suggest(p, `Add ${p.buyQty - rem} more to unlock ${p.name}`, p);
       continue;
     }
@@ -142,7 +142,7 @@ export function applyPromotions(lines: PricedLine[], promos: PromoInput[], code?
       credit(p, u.discount);
     }
     if (entitled > rewards.length)
-      suggest(p, `${pct === 100 ? "Free" : `${pct}% off`} with your basket — add it: ${p.name}`);
+      suggest(p, `${pct === 100 ? "Free" : `${pct}% off`} with your basket. Add it: ${p.name}`);
   }
 
   // 2. Best line-level discount on unclaimed units.

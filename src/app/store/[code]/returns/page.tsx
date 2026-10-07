@@ -19,7 +19,7 @@ export default async function StoreReturnsPage({ params, searchParams }: { param
   const base = `/store/${store.code}`;
   return (
     <>
-      <PageHeader overline={`Members · ${store.name}`} title="Returns" description={`Members sending back items from orders ${store.name} fulfilled. Decide within one business day, book the courier by hand, mark the parcel received, then refund — the credit note posts here.`} />
+      <PageHeader overline={`Members · ${store.name}`} title="Returns" description={`Members sending back items from orders ${store.name} fulfilled. Decide within one business day, book the courier by hand, mark the parcel received, then refund. The credit note posts here.`} />
       <ReturnQueue base={`${base}/returns`} rows={rows} total={total} page={page} pageSize={PAGE_SIZE} counts={counts} view={returnView(sp.view)} sp={sp} orderHref={(o) => `${base}/orders/${o.id}`} now={new Date()} />
     </>
   );

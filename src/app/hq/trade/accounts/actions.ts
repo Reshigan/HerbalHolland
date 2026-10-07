@@ -5,6 +5,7 @@
 // inline messages.
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { reportFailure } from "@/server/alerts";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { addTradeBuyer, approveTradeAccount, closeTradeAccount, holdTradeAccount, releaseTradeHold, removeTradeBuyer, TradeAccountError, updateTradeAccount, type TradeAccountDetails, type TradeTermsInput } from "@/server/trade/accounts";
@@ -16,7 +17,7 @@ import { StockError } from "@/server/inventory";
 import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { str, opt, list, parseRand, parseInt10, parseDay } from "@/server/hq/form";
 import { TRADE_CLASSES, previousMonth } from "@/lib/trade";
-import { zarWhole } from "@/lib/money";
+import { zar, zarWhole } from "@/lib/money";
 import type { RegClass } from "@/lib/compliance";
 import type { TradeTerms } from "@/generated/prisma/client";
 
@@ -29,9 +30,9 @@ async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
   } catch (e) {
     unstable_rethrow(e);
     if (EXPECTED.some((E) => e instanceof E)) return fail((e as Error).message);
-    if ((e as { code?: string })?.code === "P2025") return fail("That no longer exists — reload the page.");
-    console.error("[hq trade action]", e);
-    return fail("Something went wrong — please try again.");
+    if ((e as { code?: string })?.code === "P2025") return fail("That no longer exists. Reload the page.");
+    void reportFailure(e, "HQ trade account action"); // unexpected: logged and emailed to ops
+    return fail("Something went wrong. Please try again.");
   }
 }
 
@@ -64,7 +65,7 @@ export async function approveAccount(id: string, _: ActionState, fd: FormData): 
   return attempt(async () => {
     const a = await approveTradeAccount(id, terms, g.actor);
     refresh(id);
-    flashTo(`/hq/trade/accounts/${id}`, `${a.number} approved on ${terms.terms === "ACCOUNT" ? `account terms (${terms.paymentDays} days, limit ${zarWhole(terms.creditLimitCents)})` : "prepaid terms"} — the account has been emailed.`);
+    flashTo(`/hq/trade/accounts/${id}`, `${a.number} approved on ${terms.terms === "ACCOUNT" ? `account terms (${terms.paymentDays} days, limit ${zarWhole(terms.creditLimitCents)})` : "prepaid terms"}, and the account has been emailed.`);
   });
 }
 
@@ -89,7 +90,7 @@ export async function verifyLicence(id: string, licenceId: string): Promise<Acti
     if (!l) return fail("That licence isn't on this account.");
     const { released } = await verifyTradeLicence(licenceId, g.actor);
     refresh(id);
-    flashTo(`/hq/trade/accounts/${id}`, released ? "Licence verified — the account's licences are in order again, so its pause is lifted and it has been told." : "Licence verified.");
+    flashTo(`/hq/trade/accounts/${id}`, released ? "Licence verified. The account's licences are in order again, so its pause is lifted and it has been told." : "Licence verified.");
   });
 }
 
@@ -98,13 +99,13 @@ export async function rejectLicence(id: string, licenceId: string, _: ActionStat
   const g = await guard("network");
   if (!g) return DENIED;
   const reason = str(fd, "reason");
-  if (reason.length < 3) return fail("Say what's wrong — it's in the email the account gets.", { reason: "Required" });
+  if (reason.length < 3) return fail("Say what's wrong: it's in the email the account gets.", { reason: "Required" });
   return attempt(async () => {
     const l = await db.tradeLicence.findFirst({ where: { id: licenceId, tradeAccountId: id }, select: { id: true } });
     if (!l) return fail("That licence isn't on this account.");
     await rejectTradeLicence(licenceId, reason, g.actor);
     refresh(id);
-    flashTo(`/hq/trade/accounts/${id}`, "Licence not accepted — the account has been emailed why, and can upload another in the portal.");
+    flashTo(`/hq/trade/accounts/${id}`, "Licence not accepted. The account has been emailed why, and can upload another in the portal.");
   });
 }
 
@@ -112,7 +113,7 @@ export async function holdAccount(id: string, _: ActionState, fd: FormData): Pro
   const g = await guard("network");
   if (!g) return DENIED;
   const reason = str(fd, "reason");
-  if (reason.length < 3) return fail("Say why the account is on hold — it's in the email they get.", { reason: "Required" });
+  if (reason.length < 3) return fail("Say why the account is on hold: it's in the email they get.", { reason: "Required" });
   return attempt(async () => {
     await holdTradeAccount(id, reason, g.actor);
     refresh(id);
@@ -126,7 +127,7 @@ export async function releaseAccount(id: string): Promise<ActionState> {
   return attempt(async () => {
     await releaseTradeHold(id, g.actor);
     refresh(id);
-    flashTo(`/hq/trade/accounts/${id}`, "Hold lifted — the account can order on its terms again, and has been told.");
+    flashTo(`/hq/trade/accounts/${id}`, "Hold lifted. The account can order on its terms again, and has been told.");
   });
 }
 
@@ -160,7 +161,7 @@ export async function addBuyer(id: string, _: ActionState, fd: FormData): Promis
   return attempt(async () => {
     const b = await addTradeBuyer(id, { name: str(fd, "name"), email: str(fd, "email"), phone: opt(fd, "phone"), role: str(fd, "role") === "OWNER" ? "OWNER" : "BUYER" }, g.actor);
     refresh(id);
-    return done(`${b.name} added — they sign in to the trade portal with a code emailed to ${b.email}.`);
+    return done(`${b.name} added. They sign in to the trade portal with a code emailed to ${b.email}.`);
   });
 }
 
@@ -192,7 +193,7 @@ export async function recordPayment(id: string, _: ActionState, fd: FormData): P
   return attempt(async () => {
     const r = await recordTradePayment(id, { cents: cents!, reference, receivedAt: receivedAt ?? undefined, note: opt(fd, "note"), tradeOrderId: opt(fd, "tradeOrderId") }, g.actor);
     refresh(id);
-    return done(`Payment of R${(cents! / 100).toFixed(2)} recorded (${reference}). Balance now R${(r.balanceCents / 100).toFixed(2)}.${r.released ? " The overdue hold has lifted." : ""}`);
+    return done(`Payment of ${zar(cents!)} recorded (${reference}). Balance now ${zar(r.balanceCents)}.${r.released ? " The overdue hold has lifted." : ""}`);
   });
 }
 
@@ -208,7 +209,7 @@ export async function creditNote(id: string, _: ActionState, fd: FormData): Prom
   return attempt(async () => {
     const e = await issueCreditNote(id, { cents: cents!, reference: opt(fd, "reference"), note }, g.actor);
     refresh(id);
-    return done(`Credit note ${e.reference} for R${(cents! / 100).toFixed(2)} issued.`);
+    return done(`Credit note ${e.reference} for ${zar(cents!)} issued.`);
   });
 }
 
@@ -224,7 +225,7 @@ export async function adjustLedger(id: string, _: ActionState, fd: FormData): Pr
   return attempt(async () => {
     await adjustTradeLedger(id, { cents: cents!, note, reference: opt(fd, "reference") }, g.actor);
     refresh(id);
-    return done(`Adjustment of ${cents! < 0 ? "−" : "+"}R${(Math.abs(cents!) / 100).toFixed(2)} posted.`);
+    return done(`Adjustment of ${cents! < 0 ? "−" : "+"}${zar(Math.abs(cents!))} posted.`);
   });
 }
 
@@ -300,6 +301,6 @@ export async function placeOrderForAccount(accountId: string, _: ActionState, fd
     });
     refresh(accountId);
     revalidatePath("/hq/trade/orders");
-    flashTo(`/hq/trade/orders/${o.id}`, payMethod === "EFT" ? `Order ${o.number} placed — the pro forma has been emailed; confirm the EFT here when it arrives.` : `Order ${o.number} placed on account — stock is reserved and the account has been emailed.`);
+    flashTo(`/hq/trade/orders/${o.id}`, payMethod === "EFT" ? `Order ${o.number} placed. The pro forma has been emailed; confirm the EFT here when it arrives.` : `Order ${o.number} placed on account. Stock is reserved and the account has been emailed.`);
   });
 }

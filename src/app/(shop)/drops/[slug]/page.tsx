@@ -88,11 +88,11 @@ export default async function DropPage({ params }: { params: Promise<{ slug: str
                 {d.left > 0 ? (
                   <>
                     <strong className="text-white">Live now</strong>
-                    {d.endsAt ? ` until ${fmtWhen(d.endsAt)}` : ""} — while stock lasts.
+                    {d.endsAt ? ` until ${fmtWhen(d.endsAt)}` : ""}, while stock lasts.
                   </>
                 ) : (
                   <>
-                    <strong className="text-white">Sold out</strong> — thank you. Turn on notifications to hear about the next one.
+                    <strong className="text-white">Sold out</strong>. Thank you. Turn on notifications to hear about the next one.
                   </>
                 )}
               </p>
@@ -139,7 +139,7 @@ export default async function DropPage({ params }: { params: Promise<{ slug: str
           </h2>
           {gated && open && (
             <Callout tone="brand" icon={<Lock className="h-5 w-5" />} className="mb-6" title="Sign in to add these to your bag">
-              Drops are for Herbal Holland Rewards members — it&apos;s free to join.
+              Drops are for Herbal Holland Rewards members, and it&apos;s free to join.
             </Callout>
           )}
           <ProductGrid items={cards} buyable={(open && !gated) || d.phase === "ended"} />

@@ -16,7 +16,7 @@ import { Stat } from "@/components/ui/stat";
 import { TabLinks } from "@/components/ui/tabs";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionButton } from "@/components/hq/action-form";
+import { ActionButton } from "@/components/ui/action-form";
 import { FilterForm, FilterSelect } from "@/components/hq/filter-form";
 import { EmptyRow } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";

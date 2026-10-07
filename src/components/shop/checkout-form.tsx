@@ -135,7 +135,7 @@ export function CheckoutForm(props: {
           </div>
           {fulfilment !== "COLLECT" && (
             <p className="mt-3 flex items-center gap-2 text-sm text-ink-300">
-              <IdCard className="h-4 w-4 shrink-0 text-brand-500" /> ID (18+) checked on delivery — {fulfilment === "SAME_DAY" ? props.sameDayNote : props.courierNote}
+              <IdCard className="h-4 w-4 shrink-0 text-brand-500" /> ID (18+) checked on delivery. {fulfilment === "SAME_DAY" ? props.sameDayNote : props.courierNote}
             </p>
           )}
         </section>
@@ -221,7 +221,7 @@ export function CheckoutForm(props: {
                     </button>
                   </li>
                 </ul>
-                <p className="mt-2 text-xs text-ink-450">{usingId ? "Using this address — edit anything below." : "Fill in the address below; we'll save it for next time."}</p>
+                <p className="mt-2 text-xs text-ink-450">{usingId ? "Using this address. Edit anything below." : "Fill in the address below; we'll save it for next time."}</p>
               </div>
             )}
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -271,7 +271,7 @@ export function CheckoutForm(props: {
             </div>
             <p className="mt-3 flex items-center gap-2 text-sm text-ink-300">
               <Clock className="h-4 w-4 shrink-0 text-brand-500" /> Arrives <strong className="text-white">{arrives}</strong>
-              {fulfilment === "COURIER" && !addr.province ? " — choose your province for a closer estimate" : ""}
+              {fulfilment === "COURIER" && !addr.province ? " (choose your province for a closer estimate)" : ""}
             </p>
           </section>
         )}

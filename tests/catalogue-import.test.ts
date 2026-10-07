@@ -162,7 +162,7 @@ describe("the dry run", () => {
 
   it("matches categories by name, never creating one", () => {
     const p = plan(csv(HEAD, "GRD-1,Brass Grinder,One size,accessories,ACCESSORY,299,140,80", "TENT-1,Grow Tent,One size,Grow tents,GROW,2999,1400,800"));
-    expect(row(p, 2).errors).toContain("description: at least a sentence (20 characters or more) — it appears on the product page");
+    expect(row(p, 2).errors).toContain("description: at least a sentence (20 characters or more) for the product page");
     expect(row(p, 3).errors).toContain("Unknown category “Grow tents”: add it in HQ → Catalogue → Categories first (the import never creates categories)");
     expect(p.products).toEqual([]);
   });
@@ -235,7 +235,7 @@ describe("opening stock", () => {
   const jar = (sku: string, stock: string, batch = "", expires = "", pod = "") => `${sku},Stash Jar,${sku},Accessories,ACCESSORY,189,85,45,An airtight glass jar with a bamboo lid.,${pod},${stock},${batch},${expires}`;
 
   it("needs a location, and goes in at HQ cost at a warehouse or at wholesale at a store", () => {
-    expect(plan(csv(STOCK, jar("JAR-1", "12")), { location: null }).fileErrors).toEqual(["Some rows have opening stock: choose where it is — a warehouse or a store — or clear the stock column."]);
+    expect(plan(csv(STOCK, jar("JAR-1", "12")), { location: null }).fileErrors).toEqual(["Some rows have opening stock: choose where it is (a warehouse or a store), or clear the stock column."]);
     const dc = plan(csv(STOCK, jar("JAR-1", "12", "LOT-7", "2027-06-30"), jar("JAR-2", "0")));
     expect(dc.stock).toEqual([{ line: 2, sku: "JAR-1", qty: 12, batchCode: "LOT-7", batchId: null, expires: "2027-06-30", unitCostCents: 4_500 }]);
     expect(row(dc, 2).notes).toContain("Opening stock: 12 at Midrand Distribution Centre · batch LOT-7, expires 2027-06-30");
@@ -249,8 +249,8 @@ describe("opening stock", () => {
       batches: [{ id: "b-old", code: "OLD-LOT", variantId: "v-rest" }],
     });
     expect(row(p, 2).errors).toEqual(["stock: made to order by the merch partner, so it carries no stock"]);
-    expect(row(p, 3).errors).toEqual(["expires: that date has passed — expired stock can't be loaded"]);
-    expect(row(p, 4).errors).toEqual(["batch: OLD-LOT belongs to another SKU — use a different code"]);
+    expect(row(p, 3).errors).toEqual(["expires: that date has passed, and expired stock can't be loaded"]);
+    expect(row(p, 4).errors).toEqual(["batch: OLD-LOT belongs to another SKU, so use a different code"]);
     expect(row(p, 6).errors).toEqual(["batch: LOT-1 is also used for JAR-3 in this file"]);
     const thc = plan(csv(`${HEAD},description,stock`, "HAZE-35,Test Haze,3.5g,Flower,THC,650,290,160,A bright sativa grown under the Highveld sun.,10"));
     expect(thc.rows[0].errors).toEqual(["stock: Licensed (THC) can only be held under a licence, and Midrand Distribution Centre doesn't hold one"]);

@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { SearchForm } from "@/components/store/ui";
 
-export const metadata = { title: "Books" };
+export const metadata = { title: "Books", robots: { index: false, follow: false } };
 const PAGE_SIZE = 50;
 
 /**

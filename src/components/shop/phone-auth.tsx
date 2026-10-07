@@ -27,7 +27,7 @@ export function PhoneAuth({
   src,
   consentWording,
   title = "Sign in or join",
-  intro = "Use your mobile number — no passwords. New here? It takes one short step.",
+  intro = "Use your mobile number (no passwords). New here? It takes one short step.",
 }: {
   next?: string;
   stores: StoreOpt[];
@@ -131,7 +131,7 @@ function CodeStep({ state, action, pending, hidden }: StepProps) {
       {state.demoCode && (
         <div className="flex items-center justify-between gap-3 rounded-xl border border-sky-500/30 bg-sky-500/10 px-4 py-3 text-sm text-sky-50">
           <span className="flex items-center gap-2">
-            <MessageSquareText className="h-4 w-4" /> Demo mode — your code is <strong className="tnum tracking-widest">{state.demoCode}</strong>
+            <MessageSquareText className="h-4 w-4" /> Demo mode: your code is <strong className="tnum tracking-widest">{state.demoCode}</strong>
           </span>
           <button type="button" onClick={() => setCode(state.demoCode!)} className="shrink-0 font-semibold underline">
             Fill it in
@@ -198,7 +198,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
       {referral && <input type="hidden" name="ref" value={referral.code} />}
       <input type="hidden" name="idType" value={idType} />
       <div>
-        <h2 className="font-display text-2xl font-semibold text-white">Welcome — one quick step</h2>
+        <h2 className="font-display text-2xl font-semibold text-white">Welcome: one quick step</h2>
         <p className="mt-1 text-sm text-ink-400">
           Number confirmed: <strong className="text-ink-100">{state.phone ? displayPhone(state.phone) : ""}</strong>. Tell us a little about you to finish joining Herbal Holland Rewards.
         </p>
@@ -238,18 +238,18 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
             label="SA ID number"
             htmlFor="reg-id"
             error={state.fields?.idNumber ?? (idCheck && !idCheck.valid ? idCheck.reason : undefined)}
-            hint={idCheck?.valid ? "Looks good — we check the number instantly and store only a secure fingerprint of it." : "13 digits. We verify your age from it and never share it."}
+            hint={idCheck?.valid ? "Looks good. We check the number instantly and store only a secure fingerprint of it." : "13 digits. We verify your age from it and never share it."}
           >
             <TextInput id="reg-id" name="idNumber" inputMode="numeric" autoComplete="off" maxLength={16} value={id} onChange={(e) => setId(e.target.value.replace(/[^\d\s]/g, ""))} aria-invalid={!!state.fields?.idNumber || (idCheck ? !idCheck.valid : false)} className="tnum tracking-wider" />
           </FieldRow>
         ) : (
-          <FieldRow key="passport" label="Date of birth" htmlFor="reg-dob" error={state.fields?.dob} hint="Using a passport? Show it at your first store visit or collection and our team will verify it — until then, online orders need a verified age.">
+          <FieldRow key="passport" label="Date of birth" htmlFor="reg-dob" error={state.fields?.dob} hint="Using a passport? Show it at your first store visit or collection and our team will verify it. Until then, online orders need a verified age.">
             <TextInput id="reg-dob" name="dob" type="date" max={maxDob} min="1900-01-01" defaultValue={v.dob} aria-invalid={!!state.fields?.dob} />
           </FieldRow>
         )}
       </fieldset>
 
-      <FieldRow label="Home store" htmlFor="reg-store" error={state.fields?.homeStoreId} hint="Where you'll usually collect — you can change it any time.">
+      <FieldRow label="Home store" htmlFor="reg-store" error={state.fields?.homeStoreId} hint="Where you'll usually collect. You can change it any time.">
         {/* Keyed: a select keeps its first default through React's post-action form reset, so it remounts with the store sent. */}
         <SelectInput key={v.homeStoreId} id="reg-store" name="homeStoreId" defaultValue={v.homeStoreId || defaultStoreId || ""} required aria-invalid={!!state.fields?.homeStoreId}>
           <option value="" disabled>
@@ -302,7 +302,7 @@ function RegisterStep({ state, action, pending, hidden, stores, defaultStoreId, 
         {state.fields?.accept && <p className="mt-1 text-xs font-medium text-rose-100" role="alert">{state.fields.accept}</p>}
       </div>
 
-      {referral && <p className="rounded-xl bg-brand-500/10 px-4 py-3 text-sm text-brand-200">Invited by {referral.name} — you&apos;ll both get bonus points after your first purchase.</p>}
+      {referral && <p className="rounded-xl bg-brand-500/10 px-4 py-3 text-sm text-brand-200">Invited by {referral.name}. You&apos;ll both get bonus points after your first purchase.</p>}
 
       <button disabled={pending} className={buttonClass("primary", "xl", "w-full")}>
         {pending ? "Creating your account…" : "Join and continue"} <ArrowRight className="h-5 w-5" />

@@ -11,7 +11,7 @@ export default async function NotFound() {
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center bg-ink-950 px-6 py-16 text-center text-ink-100">
       <ShopSurface />
-      <Link href="/" aria-label="Herbal Holland — home">
+      <Link href="/" aria-label="Herbal Holland home">
         <Mark spin className="h-24 w-24 text-brand-500" />
       </Link>
       <p className="eyebrow mt-10 text-brand-500">Error 404</p>

@@ -14,9 +14,9 @@ import type { AlertStatus } from "@/generated/prisma/client";
 
 const DONE: Record<AlertStatus, string> = {
   INVESTIGATING: "Marked as investigating.",
-  RESOLVED: "Resolved — the alert is closed and your note stays with it.",
-  DISMISSED: "Dismissed as a false alarm — your note stays with it.",
-  OPEN: "Reopened — it's back in the open queue.",
+  RESOLVED: "Resolved. The alert is closed and your note stays with it.",
+  DISMISSED: "Dismissed as a false alarm. Your note stays with it.",
+  OPEN: "Reopened. It's back in the open queue.",
 };
 
 /** Moves an alert on (investigating, resolved, dismissed, reopened). Re-checks the store scope, the role and the
@@ -28,7 +28,7 @@ export async function updateAlert(code: string, id: string, to: AlertStatus, _: 
     if (!canActOnAlerts(user)) return fail("Managers, owners, area managers and HQ work loss-prevention alerts.");
     const alert = await db.alert.findFirst({ where: { AND: [{ id }, visibleAlerts(user, [store.id])] }, select: { id: true, status: true } });
     if (!alert) return fail("That alert isn't available.");
-    if (!NEXT_STATUS[alert.status].includes(to)) return fail(`It's ${ALERT_STATUS[alert.status].label.toLowerCase()} now — refresh to see where it stands.`);
+    if (!NEXT_STATUS[alert.status].includes(to)) return fail(`It's ${ALERT_STATUS[alert.status].label.toLowerCase()} now. Refresh to see where it stands.`);
     const note = str(fd, "note").slice(0, 1000);
     const closing = to === "RESOLVED" || to === "DISMISSED";
     if (closing && note.length < 3) return fail(to === "RESOLVED" ? "Say how it was resolved" : "Say why it's a false alarm", "note");
@@ -38,7 +38,7 @@ export async function updateAlert(code: string, id: string, to: AlertStatus, _: 
       where: { id: alert.id, status: alert.status },
       data: { status: to, note: note || null, closedById: closing ? user.id : null, closedAt: closing ? new Date() : null },
     });
-    if (!count) return fail("Someone else updated this alert a moment ago — refresh to see where it stands.");
+    if (!count) return fail("Someone else updated this alert a moment ago. Refresh to see where it stands.");
     await audit(db, actorOf(user), "alert.update", { storeId: store.id, entity: "Alert", entityId: alert.id, data: { from: alert.status, to, note: note || null } });
 
     revalidatePath(`/store/${store.code}/loss-prevention`);

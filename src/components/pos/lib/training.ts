@@ -13,7 +13,7 @@ export type TrainingState = {
 };
 
 export class TrainingError extends Error {
-  constructor(message = "Training mode — nothing is real. Exit training (manager PIN) to do this for real.") {
+  constructor(message = "Training mode: nothing is real. Exit training (manager PIN) to do this for real.") {
     super(message);
   }
 }
@@ -44,31 +44,31 @@ export const isTrainingNumber = (n: string) => /^TRAINING \d+$/.test(n);
 /** The sandbox shift the till sells against when no real shift is open. */
 export const TRAINING_SHIFT = { id: "training", openingFloatCents: 100_000, openedBy: "Training mode" };
 
-export const TRAINING_BANNER = "TRAINING — nothing is real";
+export const TRAINING_BANNER = "TRAINING: nothing is real";
 
 /** The five-step tour for new cashiers, shown when training starts (and again from the banner). */
 export const TOUR: { title: string; body: string; tip?: string }[] = [
   {
     title: "Find what they're buying",
-    body: "Tap a product in the catalogue, or scan its barcode — with a scanner, or the camera button next to the search box. Categories are down the side; Deals shows what's on promotion today.",
+    body: "Tap a product in the catalogue, or scan its barcode with a scanner or the camera button next to the search box. Categories are down the side; Deals shows what's on promotion today.",
     tip: "Keyboard: F2 jumps to search.",
   },
   {
     title: "Add the member",
-    body: "Every sale is a member's sale. Scan the QR on their Rewards card, search by phone or name, or sign them up in about 20 seconds — read them the key terms and tick the box.",
+    body: "Every sale is a member's sale. Scan the QR on their Rewards card, search by phone or name, or sign them up in about 20 seconds: read them the key terms and tick the box.",
     tip: "Keyboard: F4 opens the member search.",
   },
   {
     title: "Check the basket",
-    body: "Prices are the member's tier prices; deals and My Deals apply on their own. Medicines never carry a deal or points — the till says so on the line. Use the steppers to change quantities.",
+    body: "Prices are the member's tier prices; deals and My Deals apply on their own. Medicines never carry a deal or points, and the till says so on the line. Use the steppers to change quantities.",
   },
   {
     title: "Charge and take payment",
-    body: "Tap Charge. The till checks age, patient authorisation and who may dispense before it takes money. Then choose the tender: card, cash (change is worked out), PayShap or points — or split it.",
+    body: "Tap Charge. The till checks age, patient authorisation and who may dispense before it takes money. Then choose the tender: card, cash (change is worked out), points, or PayShap where the store has a ShapID. You can split it too.",
     tip: "Keyboard: F9 charges the basket.",
   },
   {
     title: "Receipt and next sale",
-    body: "Change due shows big. Print or email the receipt, then tap New sale. In training, receipts print with a TRAINING watermark and nothing is recorded — practise as much as you like.",
+    body: "Change due shows big. Print or email the receipt, then tap New sale. In training, receipts print with a TRAINING watermark and nothing is recorded, so practise as much as you like.",
   },
 ];

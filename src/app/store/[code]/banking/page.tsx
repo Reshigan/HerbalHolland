@@ -20,7 +20,7 @@ import { Field, Input, Textarea } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, ReadOnlyNote } from "@/components/store/ui";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { CashUpPicker, SlipInput } from "@/components/store/deposit-form";
 import type { DepositStatus, Prisma } from "@/generated/prisma/client";
 
@@ -187,7 +187,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                 <tr>
                   <td colSpan={3} className="px-5 py-3 text-xs text-ink-500">
                     {plural(waiting.length, "cash-up")} waiting{overdue.length ? ` · ${overdue.length} overdue` : ""}
-                    {waiting.length >= 200 && " · the oldest 200 are listed — bank these first"}
+                    {waiting.length >= 200 && " · the oldest 200 are listed; bank these first"}
                   </td>
                   <td className="tnum whitespace-nowrap px-4 py-3 text-right text-sm font-semibold text-ink-950">{zar(waitingCents)}</td>
                   <td />
@@ -242,7 +242,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                 <Field
                   label={
                     <>
-                      Stamped deposit slip <span className="font-normal text-ink-500">— a phone photo is fine</span>
+                      Stamped deposit slip <span className="font-normal text-ink-500">(a phone photo is fine)</span>
                     </>
                   }
                   htmlFor="dep-slip"
@@ -266,7 +266,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
       <Card className="mt-6">
         <CardHeader
           title="Deposits"
-          description={`Newest first. ${checker ? "Check each one against the bank statement — a verified deposit is locked. You can't check a deposit you recorded." : "The owner, area manager or HQ checks each one against the bank statement; a verified deposit is locked."}`}
+          description={`Newest first. ${checker ? "Check each one against the bank statement; a verified deposit is locked. You can't check a deposit you recorded." : "The owner, area manager or HQ checks each one against the bank statement; a verified deposit is locked."}`}
         />
         <div className="mt-4 border-y border-ink-100 p-4 sm:px-5">
           <Chips
@@ -355,7 +355,7 @@ export default async function BankingPage({ params, searchParams }: { params: Pr
                     {withActions && (
                       <Td className="text-right">
                         {d.status === "VERIFIED" ? null : d.createdById === user.id ? (
-                          <span className="text-xs text-ink-500">You recorded it — someone else checks it</span>
+                          <span className="text-xs text-ink-500">You recorded it, so someone else checks it</span>
                         ) : (
                           <div className="flex flex-wrap justify-end gap-2">
                             <ConfirmAction

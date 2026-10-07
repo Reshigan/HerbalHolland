@@ -17,6 +17,7 @@ import { Container, Panel } from "@/components/shop/ui";
 import { buttonClass } from "@/components/ui/button";
 import { displayPhone } from "@/lib/sa";
 import { fmtDate } from "@/lib/format";
+import { contactEmailOf, legalNameOf } from "@/lib/contact";
 
 export const metadata = { title: "Settings" };
 
@@ -27,6 +28,7 @@ export default async function ClubSettings() {
   const customer = await getCustomer();
   if (!customer) redirect("/club/join?next=/club/settings");
   const [trail, stores, company, devices] = await Promise.all([consentTrail(customer.id), getRetailStores(), getFranchisor(), db.pushSubscription.count({ where: { customerId: customer.id } })]);
+  const privacyEmail = contactEmailOf(company);
   const note = (ch: string, on: boolean) => {
     const e = trail.get(ch);
     return e ? `${on ? "On" : "Off"} since ${fmtDate(e.createdAt)}, ${SOURCE[e.source] ?? e.source.toLowerCase()}` : on ? "On" : "Off";
@@ -69,7 +71,7 @@ export default async function ClubSettings() {
               <Bell className="h-5 w-5 text-brand-500" /> Notifications
             </h2>
             <p className="mb-3 mt-1 text-sm leading-relaxed text-ink-400">
-              A nudge on this phone when a drop you&apos;re watching opens for you, plus member news. Sent only in legal hours — switch off any time.
+              A nudge on this phone when a drop you&apos;re watching opens for you, plus member news. Sent only in legal hours. Switch off any time.
             </p>
             <PushToggle vapidKey={vapidPublicKey()} devices={devices} enable={enablePush} disable={disablePush} />
           </Panel>
@@ -83,7 +85,7 @@ export default async function ClubSettings() {
               label="Personalised deals"
               on={customer.personalisedOffers}
               action={setPersonalisedOffers}
-              note="We use your purchase history — what you buy, where and when — to pick your deals."
+              note="We use your purchase history (what you buy, where and when) to pick your deals."
             />
             <p className="mt-3 text-xs leading-relaxed text-ink-450">
               Turning this off stops new deals; any deal already on your card stays until it ends. It doesn&apos;t change your tier price or points. Medicines are never part of a deal.
@@ -114,8 +116,8 @@ export default async function ClubSettings() {
             <h2 className="font-display text-lg font-semibold text-white">Your data</h2>
             <p className="mt-2">
               You can ask for a copy of the personal information we hold about you, have it corrected, or close your account. Email our Information Officer at{" "}
-              <a href={`mailto:privacy@herbalholland.co.za?subject=${encodeURIComponent(`Data request — member ${customer.memberNo}`)}`} className="font-semibold text-brand-400 underline">
-                privacy@herbalholland.co.za
+              <a href={`mailto:${privacyEmail}?subject=${encodeURIComponent(`Data request: member ${customer.memberNo}`)}`} className="font-semibold text-brand-400 underline">
+                {privacyEmail}
               </a>
               .
             </p>
@@ -125,7 +127,7 @@ export default async function ClubSettings() {
               </Link>{" "}
               · <a href="https://herbalholland.com/paia" className="font-semibold text-brand-400 hover:underline">PAIA manual</a>
             </p>
-            <p className="mt-2 text-xs text-ink-450">{company?.legalName ?? "Herbal Holland (Pty) Ltd"} is the responsible party for Rewards.</p>
+            <p className="mt-2 text-xs text-ink-450">{legalNameOf(company)} is the responsible party for Rewards.</p>
           </Panel>
 
           <form action={signOut}>

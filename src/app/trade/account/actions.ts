@@ -14,7 +14,7 @@ const DETAIL_KEYS: (keyof TradeAccountDetails)[] = ["name", "legalName", "kind",
 export async function updateDetailsAction(_: DetailsState, form: FormData): Promise<DetailsState> {
   const values = Object.fromEntries(DETAIL_KEYS.map((k) => [k, String(form.get(k) ?? "").slice(0, 500)]));
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again", values };
+  if (!buyer) return { error: "Your session has ended. Sign in again.", values };
   try {
     await updateTradeAccount(buyer.tradeAccountId, values as Partial<TradeAccountDetails>, tradeActor(buyer), { byBuyerId: buyer.id });
   } catch (e) {
@@ -28,7 +28,7 @@ export async function updateDetailsAction(_: DetailsState, form: FormData): Prom
 export async function addBuyerAction(_: BuyerState, form: FormData): Promise<BuyerState> {
   const values = Object.fromEntries(["name", "email", "phone", "role"].map((k) => [k, String(form.get(k) ?? "").slice(0, 254)]));
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again", values };
+  if (!buyer) return { error: "Your session has ended. Sign in again.", values };
   try {
     await addTradeBuyer(buyer.tradeAccountId, { name: values.name, email: values.email, phone: values.phone || null, role: values.role === "OWNER" ? "OWNER" : "BUYER" }, tradeActor(buyer), { byBuyerId: buyer.id });
   } catch (e) {
@@ -41,7 +41,7 @@ export async function addBuyerAction(_: BuyerState, form: FormData): Promise<Buy
 
 export async function removeBuyerAction(_: BuyerState, form: FormData): Promise<BuyerState> {
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again" };
+  if (!buyer) return { error: "Your session has ended. Sign in again." };
   const id = String(form.get("buyerId") ?? "");
   try {
     await removeTradeBuyer(id, tradeActor(buyer), { byBuyerId: buyer.id });
@@ -61,7 +61,7 @@ export type LicenceState = { ok?: boolean; error?: string; field?: "kind" | "num
 export async function uploadLicenceAction(_: LicenceState, form: FormData): Promise<LicenceState> {
   const values = Object.fromEntries(["kind", "number", "expiresAt"].map((k) => [k, String(form.get(k) ?? "").slice(0, 60)]));
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again", values };
+  if (!buyer) return { error: "Your session has ended. Sign in again.", values };
   const file = form.get("file");
   try {
     await submitTradeLicence(buyer.tradeAccountId, { kind: values.kind, number: values.number || null, expiresAt: values.expiresAt || null }, file instanceof File ? file : null, tradeActor(buyer), { byBuyerId: buyer.id });

@@ -2,10 +2,9 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Lock, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Field, Input, Textarea, Checkbox, Label } from "@/components/ui/form";
+import { Field, Input, Textarea, Checkbox, Label, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/hq/select";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import {
   ALLERGENS, ALLERGEN_KEYS, DEFAULT_LEGAL_BASIS, PRODUCT_FACTS, REG_CLASS_HINT, REG_CLASS_LABEL, REG_CLASSES, CBD_CLASSES, carriesFact, cbdFoodLimitMg, netContentLabel, screenCopy, validateProduct,
   type RegClass,
@@ -140,7 +139,7 @@ export function ProductForm({
                 <FieldError name="slug" />
               </Field>
               <Field label="Tagline" htmlFor="tagline" className="sm:col-span-2">
-                <Input id="tagline" name="tagline" defaultValue={p?.tagline ?? ""} placeholder="One warm line — no medical claims" />
+                <Input id="tagline" name="tagline" defaultValue={p?.tagline ?? ""} placeholder="One warm line, with no medical claims" />
               </Field>
               <Field label="Description" htmlFor="description" className="sm:col-span-2">
                 <Textarea id="description" name="description" defaultValue={p?.description ?? ""} className="min-h-28" />
@@ -206,7 +205,7 @@ export function ProductForm({
                 {carriesFact(regClass, "allergens") && (
                   <fieldset className="sm:col-span-2">
                     <legend className="mb-1.5 block text-[0.78rem] font-semibold text-ink-700">Allergens (R146)</legend>
-                    <p className="mb-2 text-xs text-ink-500">Tick every major allergen it contains — or “No major allergens”, on its own.</p>
+                    <p className="mb-2 text-xs text-ink-500">Tick every major allergen it contains, or “No major allergens” on its own.</p>
                     <div className="grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-3">
                       {ALLERGEN_KEYS.map((k) => (
                         <Checkbox
@@ -228,7 +227,7 @@ export function ProductForm({
 
           {plant && (
             <Card>
-              <CardHeader title="Plant profile" description="Typical ranges — each batch's lab results are recorded on the batch" />
+              <CardHeader title="Plant profile" description="Typical ranges: each batch's lab results are recorded on the batch" />
               <CardBody className="grid gap-4 sm:grid-cols-2">
                 <Field label="Strain type" htmlFor="strain">
                   <Select id="strain" name="strain" defaultValue={p?.strain ?? ""}>
@@ -378,7 +377,7 @@ export function ProductForm({
                   description="No CBD is added (no isolate or distillate): GN 586 allows only what the hemp in the recipe brings."
                 />
               )}
-              {chosen === "SUPPLEMENT" && <p className="rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Cannabis-free: no CBD, THC or hemp in the ingredients. Not age-restricted by law — our stores sell to adults only anyway.</p>}
+              {chosen === "SUPPLEMENT" && <p className="rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Cannabis-free: no CBD, THC or hemp in the ingredients. Not age-restricted by law, though our stores sell to adults only anyway.</p>}
               <div>
                 <Label>Approved claims</Label>
                 <p className="mb-2 text-xs text-ink-500">Low-risk wellness claims only (general health, relief of minor symptoms). Each claim is screened as you type.</p>
@@ -424,7 +423,7 @@ export function ProductForm({
                 name="tobaccoRelated"
                 defaultChecked={p?.tobaccoRelated}
                 label="Tobacco Bill related product"
-                description="Pipes, water-pipes, papers, vapes. If B33-2022 mode is switched on: in-store only, no loyalty, no promotion."
+                description="Pipes, water-pipes, papers, vapes. If B33-2022 mode is switched on: in-store only (no click & collect or delivery)."
               />
               <div aria-live="polite">
                 {showIssues &&

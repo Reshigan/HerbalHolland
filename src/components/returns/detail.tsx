@@ -58,7 +58,7 @@ export function ReturnPanel({ d, canWork, actions, links }: {
         {next && (
           <Card className="border-brand-300 ring-4 ring-brand-500/10">
             <CardHeader title="Next step" description={RETURN_STATUS[r.status].hint} />
-            <CardBody>{canWork ? next : <ViewOnly>Read-only — managers and owners handle returns.</ViewOnly>}</CardBody>
+            <CardBody>{canWork ? next : <ViewOnly>Read-only. Managers and owners handle returns.</ViewOnly>}</CardBody>
           </Card>
         )}
         {r.status === "REFUNDED" && (

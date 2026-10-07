@@ -94,7 +94,7 @@ export function ReportCatalogue({ groups, featured }: { groups: CatalogueGroup[]
             type="search"
             value={q}
             onChange={(e) => setQ(e.target.value)}
-            placeholder={`Search ${total} reports — try “VAT”, “expiry” or “staff”`}
+            placeholder={`Search ${total} reports (try “VAT”, “expiry” or “staff”)`}
             className="h-11 w-full rounded-xl border border-ink-200 bg-white pl-10 pr-10 text-sm text-ink-900 shadow-card placeholder:text-ink-400 focus:border-brand-500 focus:outline-none focus:ring-4 focus:ring-brand-500/15"
           />
           {q ? (

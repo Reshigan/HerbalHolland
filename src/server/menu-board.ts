@@ -33,7 +33,7 @@ export type BoardLive = { at: string; items: { v: string; q: number; p: number; 
 export function boardStore(slug: string) {
   return db.store.findFirst({
     where: { slug, kind: "RETAIL", status: { in: ["ACTIVE", "OPENING_SOON"] } },
-    select: { id: true, code: true, name: true, slug: true, hours: true, addressLine: true, suburb: true, city: true },
+    select: { id: true, code: true, name: true, slug: true, hours: true, addressLine: true, suburb: true, city: true, licences: true },
   });
 }
 

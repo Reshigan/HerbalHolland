@@ -62,7 +62,7 @@ export function PrinterCard() {
           <h2 id="printer-card" className="font-display text-lg font-semibold text-white">
             Receipt printer &amp; drawer
           </h2>
-          <p className="text-sm text-ink-400">{paired ? `${printer.name} · ${printer.transport === "usb" ? "USB" : "Bluetooth"}` : "No printer paired — receipts open in the browser's print dialog"}</p>
+          <p className="text-sm text-ink-400">{paired ? `${printer.name} · ${printer.transport === "usb" ? "USB" : "Bluetooth"}` : "No printer paired, so receipts open in the browser's print dialog"}</p>
         </div>
         {paired && <Chip tone={connected ? "green" : "amber"}>{connected ? "Connected" : "Not connected"}</Chip>}
       </div>
@@ -104,7 +104,7 @@ export function PrinterCard() {
         <Segmented label="Paper width" value={String(printer.cols)} onChange={(v) => setPrinter({ ...printer, cols: Number(v) as PrinterSettings["cols"] })} options={COLUMN_OPTIONS.map((o) => ({ value: String(o.cols), label: o.label }))} fill />
       </div>
       <div className="mt-2">
-        <CheckRow checked={printer.autoPrint} onChange={(v) => setPrinter({ ...printer, autoPrint: v })} label="Print automatically after each sale" description="Only when a printer is paired — tablets without one keep the Print button." />
+        <CheckRow checked={printer.autoPrint} onChange={(v) => setPrinter({ ...printer, autoPrint: v })} label="Print automatically after each sale" description="Only when a printer is paired. Tablets without one keep the Print button." />
         <CheckRow checked={printer.drawerOnCash} onChange={(v) => setPrinter({ ...printer, drawerOnCash: v })} label="Open the drawer on cash" description="Pulses the drawer connected to the printer on cash sales and cash refunds." />
         <div className="flex items-center justify-between gap-3 px-1 py-2">
           <span className="text-sm text-ink-300">Drawer connector pin</span>
@@ -160,7 +160,7 @@ const TEST_RECEIPT = (vat: boolean) => ({
   promoCode: null,
   invoiceEmail: null,
   buyer: null,
-  note: "This is a printer test — not a sale.",
+  note: "This is a printer test, not a sale.",
   refunds: [],
   invoiceUrl: null,
 });

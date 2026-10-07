@@ -22,7 +22,7 @@ export function passwordProblem(pw: string, who: { email?: string | null; name?:
   if (pw.length < PASSWORD_MIN) return `Use at least ${PASSWORD_MIN} characters.`;
   if (pw.length > PASSWORD_MAX) return `Use ${PASSWORD_MAX} characters or fewer.`;
   const lower = pw.toLowerCase();
-  if (COMMON.has(lower)) return "That's one of the most common passwords — choose something harder to guess.";
+  if (COMMON.has(lower)) return "That's one of the most common passwords. Choose something harder to guess.";
   const local = who.email?.split("@")[0]?.toLowerCase() ?? "";
   if (local.length >= 4 && lower.includes(local)) return "Leave the email address out of the password.";
   const names = (who.name ?? "").toLowerCase().split(/[^a-z]+/).filter((w) => w.length >= 4);

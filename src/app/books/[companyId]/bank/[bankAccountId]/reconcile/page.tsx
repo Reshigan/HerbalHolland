@@ -136,7 +136,7 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
                   cents={r.openingDiffCents}
                 />
                 <Row label="Books balance, explained" cents={r.expectedCents} strong />
-                <Row label={`Books balance — ${acct.ledgerAccount?.code} ${acct.ledgerAccount?.name}`} cents={r.ledgerCents} strong />
+                <Row label={`Books balance (${acct.ledgerAccount?.code} ${acct.ledgerAccount?.name})`} cents={r.ledgerCents} strong />
                 <Row label="Unexplained difference" cents={r.unexplainedCents} strong tone={r.unexplainedCents == null ? undefined : reconciled ? "good" : "bad"} />
               </tbody>
             </table>
@@ -175,7 +175,7 @@ export default async function ReconcilePage({ params, searchParams }: { params: 
                         <td className="py-2 pr-3 text-ink-800">
                           {o.memo}
                           {o.reversed ? (
-                            <span className="block text-xs text-rose-600">reversed since its line was matched — unmatch the line</span>
+                            <span className="block text-xs text-rose-600">reversed since its line was matched, so unmatch the line</span>
                           ) : o.matchedCents ? (
                             <span className="block text-xs text-ink-500">{zar(o.matchedCents)} of {zar(o.cents)} through the bank so far</span>
                           ) : null}

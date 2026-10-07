@@ -369,7 +369,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         return null;
       } catch (e) {
         if (e instanceof OfflineError) {
-          if (!canUnlockOffline(staff.id)) return "Offline — this staff member hasn't signed in on this till today";
+          if (!canUnlockOffline(staff.id)) return "Offline: this staff member hasn't signed in on this till today";
           if (await verifyOffline(staff.id, pin)) {
             finish(staff, true);
             return null;
@@ -476,7 +476,8 @@ export function PosApp({ deviceId }: { deviceId: string }) {
           toast(doc.kind === "receipt" ? "Receipt printed" : "Report printed");
           return;
         } catch (e) {
-          toast(`${errorText(e)} — opening the print dialog instead`, "warn");
+          const why = errorText(e);
+          toast(`${/[.!?]$/.test(why) ? why : `${why}.`} Opening the print dialog instead.`, "warn");
         }
       }
       setPrintDoc((prev) => ({ doc, n: (prev?.n ?? 0) + 1 }));
@@ -499,7 +500,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const kick = useCallback(async () => {
     const p = printerRef.current;
     if (!printerPaired(p)) {
-      toast("No receipt printer is paired — the drawer opens through the printer (Shift → This till)", "warn");
+      toast("No receipt printer is paired. The drawer opens through the printer (Shift → This till).", "warn");
       return;
     }
     try {
@@ -511,7 +512,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   const openDrawer = useCallback(
     (reason: "cash" | "manual") => {
       if (trainingRef.current) {
-        if (reason === "manual") toast("Training — the drawer stays shut", "warn");
+        if (reason === "manual") toast("Training: the drawer stays shut", "warn");
         return;
       }
       if (reason === "cash") {
@@ -523,7 +524,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       switchUser("manager", () => {
         void kick();
         recordAudit("drawer.open", "Opened outside a sale");
-        toast("Drawer opened — logged");
+        toast("Drawer opened and logged");
       });
     },
     [kick, recordAudit, toast, switchUser],
@@ -538,7 +539,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         updateQueued(id, () => null);
         setOutbox(loadOutbox());
         recordAudit("outbox.discard", `${item.payload.number} · ${zar(item.totalCents)} · ${item.error ?? "discarded"}`.slice(0, 200));
-        toast(`${item.payload.number} discarded — logged`);
+        toast(`${item.payload.number} discarded and logged`);
       });
     },
     [recordAudit, switchUser, toast],
@@ -553,7 +554,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       setTab("sell");
       setTour(true);
       recordAudit("training.start");
-      toast("Training mode on — nothing is real", "warn");
+      toast("Training mode on: nothing is real", "warn");
     };
     if (authRef.current.me?.role === "MANAGER") go();
     else switchUser("manager", go);
@@ -565,7 +566,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
       saveTrainingSales([]);
       setCart(EMPTY_CART);
       setTour(false);
-      toast("Training mode off — the till is live again");
+      toast("Training mode off: the till is live again");
     });
   }, [recordAudit, setCart, setTraining, switchUser, toast]);
   const trainingSale = useCallback(
@@ -746,7 +747,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
     />
   );
 
-  if (!session) return <Splash message={online ? "Connecting to the store…" : "Offline — this till hasn't been set up on this device yet. Connect once to download the store."} />;
+  if (!session) return <Splash message={online ? "Connecting to the store…" : "Offline: this till hasn't been set up on this device yet. Connect once to download the store."} />;
   if (!unlocked) return <>{lockScreen}</>;
   if (!boot || !ctx) return <Splash message={bootError ?? "Loading the catalogue…"} retry={bootError ? refreshBoot : undefined} />;
 
@@ -820,7 +821,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
         <TrainingBanner />
         {!boot.shift && !training && tab !== "shift" && (
           <div className="flex shrink-0 items-center justify-between gap-3 bg-amber-500/10 px-4 py-2 text-sm text-[#f3c65a]">
-            <span>No shift is open on this till — open one with a counted float to start selling.</span>
+            <span>No shift is open on this till. Open one with a counted float to start selling.</span>
             <button type="button" onClick={() => setTab("shift")} className="h-12 shrink-0 rounded-full bg-amber-500 px-5 text-sm font-bold text-ink-950">
               Open shift
             </button>
@@ -959,7 +960,7 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
       }
     >
       {!outbox.length ? (
-        <p className="text-sm text-ink-300">Nothing waiting — every sale on this till is synced.</p>
+        <p className="text-sm text-ink-300">Nothing waiting: every sale on this till is synced.</p>
       ) : (
         <ul className="space-y-2">
           {outbox.map((o) => (
@@ -979,7 +980,7 @@ function OutboxSheet({ open, onClose }: { open: boolean; onClose: () => void }) 
                 )}
               </div>
               {o.deviceId && o.deviceId !== boot.device.id ? (
-                <Alert className="mt-2">Rung up before this device was re-paired. Ask HQ support to post it for the original store — it won&apos;t sync here.</Alert>
+                <Alert className="mt-2">Rung up before this device was re-paired. Ask HQ support to post it for the original store (it won&apos;t sync here).</Alert>
               ) : (
                 o.error && (
                   <Alert className="mt-2">

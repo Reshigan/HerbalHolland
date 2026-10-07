@@ -18,7 +18,7 @@ import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
-import { ConfirmAction } from "@/components/store/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { Drawer } from "@/components/store/drawer";
 import { AddAuthForm } from "./add-auth-form";
 
@@ -201,7 +201,7 @@ async function Register({ store, sp, path }: { store: StoreCtx; sp: SP; path: st
       </form>
       {unauthorised > 0 && (
         <Notice tone="warn" className="mx-5 mt-4">
-          {unauthorised} line{unauthorised > 1 ? "s" : ""} on this page have no matching authorisation or weren&apos;t dispensed by an authorised dispenser — review them with your responsible pharmacist.
+          {unauthorised} line{unauthorised > 1 ? "s" : ""} on this page have no matching authorisation or weren&apos;t dispensed by an authorised dispenser. Review them with your responsible pharmacist.
         </Notice>
       )}
       {rows.length === 0 ? (

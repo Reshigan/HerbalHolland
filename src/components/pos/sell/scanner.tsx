@@ -94,7 +94,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
         }, 200);
       } catch (e) {
         const name = (e as Error).name;
-        setError(name === "NotAllowedError" ? "Camera access was blocked — allow it for this site in the browser settings, then try again." : name === "NotFoundError" ? "No camera was found on this device." : "Couldn't start the camera on this device.");
+        setError(name === "NotAllowedError" ? "Camera access was blocked. Allow it for this site in the browser settings, then try again." : name === "NotFoundError" ? "No camera was found on this device." : "Couldn't start the camera on this device.");
       }
     })();
     return () => {
@@ -131,7 +131,7 @@ export function CameraScanner({ open, title, onResult, onClose }: { open: boolea
               <ScanLine className="h-4 w-4 text-brand-400" /> What works everywhere
             </div>
             <ul className="mt-2 list-disc space-y-1 pl-5">
-              <li>A USB or Bluetooth barcode scanner: scan anywhere on the till — no set-up, it types the code and the till acts on it.</li>
+              <li>A USB or Bluetooth barcode scanner: scan anywhere on the till. There&apos;s no set-up: it types the code and the till acts on it.</li>
               <li>Type the barcode, SKU, member number or batch code into the search box and press Enter.</li>
             </ul>
           </div>

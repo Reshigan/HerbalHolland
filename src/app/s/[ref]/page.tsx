@@ -67,7 +67,7 @@ export default async function SharePage({ params, searchParams }: Props) {
             <div className="eyebrow text-brand-500">{card ? `An invite from ${card.firstName}` : "Herbal Holland Rewards"}</div>
             <h1 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl">{card ? card.about : "Pay less. Earn more."}</h1>
             <p className="mt-4 text-lg leading-relaxed text-ink-300">
-              Members pay less instantly — {l.tierSavingsPct.SEED}% off from day one, up to {l.tierSavingsPct.HARVEST}% at Harvest — and earn {l.earnPer100} points for every R100, each worth R1. Free to join, adults 18+.
+              Members pay less instantly ({l.tierSavingsPct.SEED}% off from day one, up to {l.tierSavingsPct.HARVEST}% at Harvest) and earn {l.earnPer100} points for every R100, each worth R1. Free to join, adults 18+.
             </p>
             <ul className="mt-6 space-y-3 text-sm text-ink-200">
               {[
@@ -90,7 +90,7 @@ export default async function SharePage({ params, searchParams }: Props) {
                 Browse the shop
               </ButtonLink>
             </div>
-            {customer && <p className="mt-3 text-sm text-ink-400">You&apos;re already a member, {customer.firstName} — invite links are for new members.</p>}
+            {customer && <p className="mt-3 text-sm text-ink-400">You&apos;re already a member, {customer.firstName}. Invite links are for new members.</p>}
           </div>
         </div>
       </Container>

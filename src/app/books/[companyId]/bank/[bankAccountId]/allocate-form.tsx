@@ -4,7 +4,7 @@
 // of the acquirer's fee.
 import { useState } from "react";
 import { Field, Input, Select } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { zar } from "@/lib/money";
 import { parseRand } from "@/server/store/rules";
 

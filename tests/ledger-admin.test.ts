@@ -23,11 +23,11 @@ describe("opening balances CSV", () => {
     const bad = readOpeningCsv("account,debit,credit\n10,100,\n1000,-5,\n1100,5,5\n1200,abc,\n");
     expect(bad.errors).toEqual([
       "Row 2: “10” isn't a four-digit account code.",
-      "Row 3: debit: a negative amount — put it in the other column.",
-      "Row 4: both a debit and a credit — use one column per row.",
+      "Row 3: debit: a negative amount (put it in the other column).",
+      "Row 4: both a debit and a credit (use one column per row).",
       "Row 5: debit: not a number.",
     ]);
-    expect(readOpeningCsv("account,debit,credit\n1000,100,\n3000,,99.99\n").errors).toEqual(["The debits (R100.00) and credits (R99.99) don't balance — out by R0.01."]);
+    expect(readOpeningCsv("account,debit,credit\n1000,100,\n3000,,99.99\n").errors).toEqual(["The debits (R100.00) and credits (R99.99) don't balance: they're out by R0.01."]);
     expect(readOpeningCsv("").errors).toEqual(["The file is empty."]);
     expect(readOpeningCsv("account,name\n1000,Bank\n").errors[0]).toMatch(/no debit or credit columns/);
     expect(readOpeningCsv("account,debit,credit\n1000,,\n").errors).toEqual(["Every row's amount is empty or zero."]);

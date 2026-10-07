@@ -62,7 +62,7 @@ export function readRand(raw: string): number {
   const n = readNumber(raw.trim().replace(/^(zar|r)\s*/i, ""));
   const cents = Math.round(n * 100);
   if (Math.abs(n * 100 - cents) > 1e-6) bad("at most two decimals (cents)");
-  if (cents > 100_000_000) bad("more than R1,000,000 — check the amount");
+  if (cents > 100_000_000) bad("more than R1,000,000: check the amount");
   return cents;
 }
 
@@ -120,7 +120,7 @@ const COLUMNS: Column[] = [
   { key: "cost_excl_vat", level: "variant", field: "costCents", kind: "money", required: true, aliases: ["cost", "cost_ex_vat", "landed_cost"], about: "HQ landed cost in rand, VAT excluded" },
   // Product details: as the class requires. An empty cell keeps what the catalogue has.
   { key: "status", level: "product", field: "status", kind: "choice", choose: oneOf(STATUSES), about: "DRAFT, ACTIVE or ARCHIVED. New products start in draft" },
-  { key: "description", level: "product", field: "description", kind: "text", max: 5000, about: "Needed for a new product: at least a sentence — it appears on the product page" },
+  { key: "description", level: "product", field: "description", kind: "text", max: 5000, about: "Needed for a new product: at least a sentence, shown on the product page" },
   { key: "tagline", level: "product", field: "tagline", kind: "text", max: 140, about: "One warm line, no medical claims" },
   { key: "brand", level: "product", field: "brand", kind: "text", max: 60, about: "Herbal Holland unless it's a partner's brand" },
   { key: "line", level: "product", field: "line", kind: "choice", choose: oneOf(PRODUCT_LINES), about: PRODUCT_LINES.join(", ") },
@@ -145,7 +145,7 @@ const COLUMNS: Column[] = [
   { key: "heritage", level: "product", field: "heritage", kind: "bool", about: "yes for an African landrace story" },
   { key: "featured", level: "product", field: "featured", kind: "bool", about: "yes to feature it in the shop and the app" },
   { key: "tobacco_related", level: "product", field: "tobaccoRelated", kind: "bool", about: "yes for pipes, water-pipes, papers and vapes (Tobacco Bill)" },
-  { key: "image_urls", level: "product", field: "imageUrls", kind: "list", max: 500, aliases: ["images", "photos", "image_url"], about: "Product photos: https:// web addresses separated by |, up to 6 — fetched and kept at import (JPG, PNG or WebP, 5 MB each); the first is the main picture" },
+  { key: "image_urls", level: "product", field: "imageUrls", kind: "list", max: 500, aliases: ["images", "photos", "image_url"], about: "Product photos: up to 6 https:// web addresses separated by |, fetched and kept at import (JPG, PNG or WebP, 5 MB each). The first is the main picture" },
   // Variant details.
   { key: "barcode", level: "variant", field: "barcode", kind: "barcode", aliases: ["ean", "gtin"], about: "EAN or UPC, 8–14 digits (format the column as text)" },
   { key: "grams", level: "variant", field: "grams", kind: "num", max: 1000, about: "Dried-flower equivalent grams, for licensed products' limits" },
@@ -239,14 +239,14 @@ export function parseCsv(text: string): { rows: string[][]; delimiter: "," | ";"
     } else if (ch === '"' && !cell) quoted = true;
     else if (ch === delimiter) {
       row.push(cell), (cell = "");
-      if (row.length > IMPORT_MAX_COLUMNS) return { rows, delimiter, error: `Row ${rows.length + 1} has more than ${IMPORT_MAX_COLUMNS} cells — check the file is the catalogue template, saved as CSV.` };
+      if (row.length > IMPORT_MAX_COLUMNS) return { rows, delimiter, error: `Row ${rows.length + 1} has more than ${IMPORT_MAX_COLUMNS} cells. Check the file is the catalogue template, saved as CSV.` };
     }
     else if (ch === "\n" || ch === "\r") {
       if (ch === "\r" && src[i + 1] === "\n") i++;
       row.push(cell), rows.push(row), (row = []), (cell = "");
     } else cell += ch;
   }
-  if (quoted) return { rows, delimiter, error: `A quoted cell is never closed — look for a stray " on or after row ${rows.length + 1}.` };
+  if (quoted) return { rows, delimiter, error: `A quoted cell is never closed. Look for a stray " on or after row ${rows.length + 1}.` };
   if (cell || row.length) row.push(cell), rows.push(row);
   return { rows, delimiter };
 }
@@ -290,7 +290,7 @@ export function readImport(text: string): ImportRead {
   if (ignored.length) out.warnings.push(`Ignored column${ignored.length === 1 ? "" : "s"} not in the template: ${ignored.join(", ")}.`);
   const body = rows.slice(at + 1).map((cells, i) => ({ cells, line: at + i + 2 })).filter((r) => r.cells.some((c) => c.trim()));
   if (!body.length) out.fileErrors.push("There are no rows under the header.");
-  if (body.length > IMPORT_MAX_ROWS) out.fileErrors.push(`The file has ${num(body.length)} rows: import at most ${num(IMPORT_MAX_ROWS)} at a time — split it into smaller files.`);
+  if (body.length > IMPORT_MAX_ROWS) out.fileErrors.push(`The file has ${num(body.length)} rows, and an import takes at most ${num(IMPORT_MAX_ROWS)}: split it into smaller files.`);
   if (out.fileErrors.length) return out;
 
   for (const { cells, line } of body) {
@@ -396,7 +396,7 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
   const counts: ImportCounts = { rows: read.records.length, create: 0, update: 0, unchanged: 0, errors: 0, productsNew: 0, productsUpdated: 0, variantsNew: 0, variantsUpdated: 0, compliance: 0, prices: 0, stockLines: 0, stockUnits: 0, stockValueCents: 0 };
   const plan: ImportPlan = { fileErrors: [...read.fileErrors], warnings: [...read.warnings], rows: [], products: [], variants: [], stock: [], counts };
   const loc = snap.location;
-  if (!loc && read.records.some((r) => qtyOf(r) > 0)) plan.fileErrors.push("Some rows have opening stock: choose where it is — a warehouse or a store — or clear the stock column.");
+  if (!loc && read.records.some((r) => qtyOf(r) > 0)) plan.fileErrors.push("Some rows have opening stock: choose where it is (a warehouse or a store), or clear the stock column.");
   if (plan.fileErrors.length) return plan;
 
   const byKey = (s: string) => s.trim().toLowerCase().replace(/\s+/g, " ");
@@ -482,12 +482,12 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
       const final = gate(data, regClass);
       const changed = existing ? PRODUCT_FIELDS.filter((k) => !same(existing[k], final[k])) : [];
       if (!existing || changed.length) {
-        if (data.description.length < 20) problems.push(existing && given.description == null ? "description: write at least a sentence — it appears on the product page" : "description: at least a sentence (20 characters or more) — it appears on the product page");
+        if (data.description.length < 20) problems.push(existing && given.description == null ? "description: write at least a sentence for the product page" : "description: at least a sentence (20 characters or more) for the product page");
         if (data.thcMin != null && data.thcMax != null && data.thcMin > data.thcMax) problems.push("thc_max_pct: at least thc_min_pct");
         if (data.cbdMin != null && data.cbdMax != null && data.cbdMin > data.cbdMax) problems.push("cbd_max_pct: at least cbd_min_pct");
         problems.push(...validateProduct(data));
         const flag = screenCopy([data.name, data.tagline ?? "", data.description].join(" "))[0];
-        if (flag) problems.push(`“${flag.term}” in the name, tagline or description — ${flag.reason}`);
+        if (flag) problems.push(`“${flag.term}” in the name, tagline or description: ${flag.reason}`);
       }
       if (!problems.length) product = { key: slug, id: existing?.id ?? null, slug: existing?.slug ?? slug, data: final, changed, compliance: !!existing && complianceChange(changed, regClass), images };
     }
@@ -516,8 +516,8 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
         const code = batchOf(r), batch = batchByCode.get(code), expires = r.stock.expires as string | undefined;
         if (v.podSku) errors.push("stock: made to order by the merch partner, so it carries no stock");
         if (regClass && snap.licensedOnly.includes(regClass) && !loc.licences.includes(regClass)) errors.push(`stock: ${REG_CLASS_LABEL[regClass]} can only be held under a licence, and ${loc.name} doesn't hold one`);
-        if (batch && batch.variantId !== ev?.id) errors.push(`batch: ${code} belongs to another SKU — use a different code`);
-        if (expires && expires <= snap.today) errors.push("expires: that date has passed — expired stock can't be loaded");
+        if (batch && batch.variantId !== ev?.id) errors.push(`batch: ${code} belongs to another SKU, so use a different code`);
+        if (expires && expires <= snap.today) errors.push("expires: that date has passed, and expired stock can't be loaded");
         stock = { line: r.line, sku, qty, batchCode: code, batchId: batch?.id ?? null, expires: batch ? null : (expires ?? null), unitCostCents: loc.kind === "WAREHOUSE" ? v.costCents : v.wholesaleCents };
       }
 

@@ -91,8 +91,8 @@ export function validateLead(input: RawLead): LeadCheck {
   else if (!/\p{L}/u.test(name)) fields.name = "Enter your name in letters";
 
   const email = line(input.email).toLowerCase();
-  if (!email) fields.email = "Enter your email address — we reply by email";
-  else if (email.length > L.email || !isEmail(email)) fields.email = "That doesn't look like an email address — check it for typos";
+  if (!email) fields.email = "Enter your email address. We reply by email";
+  else if (email.length > L.email || !isEmail(email)) fields.email = "That doesn't look like an email address. Check it for typos";
 
   const rawPhone = line(input.phone);
   const phone = rawPhone ? normalisePhone(rawPhone) : null;
@@ -100,7 +100,7 @@ export function validateLead(input: RawLead): LeadCheck {
   else if (!phone) fields.phone = "Enter a South African mobile number, e.g. 082 123 4567";
 
   const area = line(input.area);
-  if (area.length < 2) fields.area = "Tell us where you'd like to open — a town or area";
+  if (area.length < 2) fields.area = "Tell us where you'd like to open: a town or area";
   else if (area.length > L.area) fields.area = `Keep it under ${L.area} characters`;
 
   const province = line(input.province).toUpperCase();
@@ -108,7 +108,7 @@ export function validateLead(input: RawLead): LeadCheck {
 
   const experience = para(input.experience);
   if (!experience) fields.experience = "Tell us about your retail or business experience";
-  else if (experience.length < L.experienceMin) fields.experience = `A little more, please — at least ${L.experienceMin} characters`;
+  else if (experience.length < L.experienceMin) fields.experience = `A little more, please: at least ${L.experienceMin} characters`;
   else if (experience.length > L.experience) fields.experience = `Keep it under ${count(L.experience)} characters`;
 
   const capital = line(input.capital);
@@ -157,7 +157,7 @@ export function validateEarlyAccess(input: Partial<Record<EarlyAccessField | "so
   else if (firstName && !/\p{L}/u.test(firstName)) fields.firstName = "Enter your name in letters";
 
   const email = line(input.email).toLowerCase();
-  if (email && (email.length > LEAD_LIMITS.email || !isEmail(email))) fields.email = "That doesn't look like an email address — check it for typos";
+  if (email && (email.length > LEAD_LIMITS.email || !isEmail(email))) fields.email = "That doesn't look like an email address. Check it for typos";
   const rawMobile = line(input.mobile);
   const mobile = rawMobile ? normalisePhone(rawMobile) : null;
   if (rawMobile && !mobile) fields.mobile = "Enter a South African mobile number, e.g. 082 123 4567";

@@ -2,7 +2,8 @@
 // claims (ARB Code, Medicines Act s20) — with no allow-list: rephrase whatever it flags. Plus the site's own voice rules.
 import { describe, expect, it } from "vitest";
 import * as content from "../sites/herbalholland.com/content";
-import { fill, plural, releasesOn } from "../sites/herbalholland.com/content";
+import { PRESS, fill, plural, releasesOn, shopOpenClaim } from "../sites/herbalholland.com/content";
+import { FACTS } from "../sites/herbalholland.com/facts";
 import { screenCopy } from "@/lib/compliance";
 
 /** Every string in the module, with where it lives ("PRESS.releases.items[0].title"). */
@@ -51,11 +52,24 @@ describe("site copy helpers", () => {
     expect([plural(1, ["{n} store", "{n} stores"]), plural(1200, ["{n} store", "{n} stores"])]).toEqual(["1 store", "1,200 stores"]);
   });
 
-  it("shows a press release from its date (SAST) on, newest first", () => {
-    expect(releasesOn("2026-09-30")).toEqual([]);
-    expect(releasesOn("2026-10-01").map((r) => r.date)).toEqual(["2026-10-01"]);
+  it("shows a press release from its date (SAST) on, newest first, and never a draft (no date)", () => {
     const all = releasesOn("2099-12-31");
     expect(all.map((r) => r.date)).toEqual([...all.map((r) => r.date)].sort().reverse());
-    for (const r of all) expect(r.date, r.title).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    for (const r of all) {
+      expect(r.date, r.title).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      const before = new Date(Date.parse(`${r.date}T00:00:00Z`) - 86_400_000).toISOString().slice(0, 10);
+      expect(releasesOn(r.date).map((x) => x.slug), r.slug).toContain(r.slug);
+      expect(releasesOn(before).map((x) => x.slug), r.slug).not.toContain(r.slug);
+    }
+    const drafts = PRESS.releases.items.filter((r) => r.date == null).map((r) => r.slug);
+    for (const slug of drafts) expect(all.some((r) => r.slug === slug), slug).toBe(false);
+  });
+
+  it("never publishes a release saying the online shop is open before it is (the build checks the same)", () => {
+    for (const said of ["Herbal Holland's online shop opens nationwide today.", "Shop online today.", "Delivering online orders nationwide."]) expect(shopOpenClaim(said), said).not.toBeNull();
+    for (const fine of ["The online shop opens soon.", "Two new stores open on Tuesday 1 December 2026.", "Joining Herbal Holland Rewards is free."]) expect(shopOpenClaim(fine), fine).toBeNull();
+    if (FACTS.shop.url) return;
+    const live = releasesOn("2099-12-31").flatMap((r) => [r.title, r.pageTitle, r.description, r.summary, ...r.body].map(shopOpenClaim).filter(Boolean).map((s) => `${r.slug}: ${s}`));
+    expect(live).toEqual([]);
   });
 });

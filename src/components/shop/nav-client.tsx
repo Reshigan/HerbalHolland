@@ -106,7 +106,7 @@ export function NearMeButton() {
       },
       () => {
         setLocating(false);
-        setError("We couldn't get your location — search by suburb or city instead");
+        setError("We couldn't get your location, so search by suburb or city instead");
       },
       { timeout: 8000, maximumAge: 600_000 },
     );
@@ -170,7 +170,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
     loading.current = true;
     pickerStores()
       .then(setStores)
-      .catch(() => setError("We couldn't load the stores — try again"))
+      .catch(() => setError("We couldn't load the stores. Try again."))
       .finally(() => (loading.current = false));
   };
 
@@ -199,7 +199,7 @@ export function StorePicker({ current, variant = "pill", className }: { current:
         setLocating(false);
       },
       () => {
-        setError("We couldn't get your location — search by suburb or city instead");
+        setError("We couldn't get your location, so search by suburb or city instead");
         setLocating(false);
       },
       { timeout: 8000, maximumAge: 600_000 },

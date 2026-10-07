@@ -80,7 +80,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
           </FilterForm>
           {list.close && (
             <p className="text-xs text-ink-500">
-              <b className="text-ink-700">Showing close matches for “{sp.q}”</b> — nothing matched exactly.
+              <b className="text-ink-700">Showing close matches for “{sp.q}”</b> because nothing matched exactly.
             </p>
           )}
           <SavedViews pageKey="hq-catalogue" userKey={user.id} />

@@ -137,7 +137,7 @@ try {
   let applyPosts = 0;
   page.on("request", (r) => r.method() === "POST" && new URL(r.url()).pathname === "/trade/apply" && applyPosts++);
   const summary = page.getByRole("alert").filter({ hasText: /Please check/ });
-  await page.getByText("the licences it needs appear here").waitFor();
+  await page.getByText("The licences it needs appear here").waitFor();
   await timed("Apply: empty form → errors", send, () => summary.waitFor());
   const errs = await summary.textContent();
   for (const want of ["registered (legal) name", "kind of business", "billing email", "phone number", "street address", "city or town", "Choose the province", "four-digit postal code", "Tick at least one range", "place orders", "18 or older", "Accept the trade terms"])
@@ -351,12 +351,12 @@ try {
   assert(await one(`select 1 from "AuditLog" where action = 'trade.order' and "entityId" = $1`, [order1.id]), "audited (trade.order)");
   assert(await one(`select 1 from "MessageLog" where "to" = $1 and body like $2 and "createdAt" >= $3`, [billingEmail, `%${order1.number} is confirmed%`, t0]), "confirmation emailed to the billing address");
   assert(((await one(`select items from "TradeCart" where "tradeAccountId" = $1`, [account.id]))?.items ?? []).length === 0, "cart cleared");
-  await page.getByText(`Thank you — order ${order1.number} is in.`).waitFor();
+  await page.getByText(`Thank you. Order ${order1.number} is in.`).waitFor();
   assert((await page.getByTestId("collection-code").textContent()).trim() === order1.collectionCode, `order page shows the collection code ${order1.collectionCode}`);
   await page.getByText("Bring your ID (18+) and this code.").waitFor();
   await page.getByText(store.addressLine).first().waitFor();
   assert((await page.getByTestId("order-total").textContent()) === zar(total1), "order total shown");
-  await page.getByTestId("timeline").getByText("Confirmed — stock reserved").waitFor();
+  await page.getByTestId("timeline").getByText("Confirmed, stock reserved").waitFor();
   await shot(page, "order-collect");
 
   // ── 8. Order again → courier, EFT ───────────────────────────────────────────────────────────────────
@@ -433,10 +433,10 @@ try {
   await upload.getByLabel("Licence", { exact: true }).selectOption("SAPC_RECORDING");
   await upload.getByLabel("SAPC recording number").fill(`p${run}`);
   await upload.getByLabel("The document").setInputFiles(pdf("sapc-2027.pdf"));
-  await timed("Account: upload a renewed licence", () => upload.getByRole("button", { name: "Upload for checking" }).click(), () => page.getByText("the trade team checks it with the issuer").waitFor());
+  await timed("Account: upload a renewed licence", () => upload.getByRole("button", { name: "Upload for checking" }).click(), () => page.getByText("The trade team checks it with the issuer").waitFor());
   await licenceList.getByTestId("licence-SAPC_RECORDING").getByText("is with the trade team for checking").waitFor();
   const renewal = await one(`select status from "TradeLicence" where "tradeAccountId" = $1 and kind = 'SAPC_RECORDING' order by "createdAt" desc limit 1`, [account.id]);
-  const teamNotice = await one(`select 1 from "MessageLog" where body like $1 and "createdAt" >= $2`, [`%licence to check — E2E Pharmacy ${run}%`, t0]);
+  const teamNotice = await one(`select 1 from "MessageLog" where body like $1 and "createdAt" >= $2`, [`%licence to check for E2E Pharmacy ${run}%`, t0]);
   assert(renewal?.status === "SUBMITTED" && teamNotice && (await licenceList.locator('li[data-state="ok"]').count()) === 2, "the renewal waits for HQ (the trade team is told); the current one still counts");
   await shot(page, "account-licences");
 

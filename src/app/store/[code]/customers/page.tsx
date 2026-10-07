@@ -141,7 +141,7 @@ export default async function MembersPage({ params, searchParams }: { params: Pr
           )}
           {q && (
             <p className="text-xs text-ink-500">
-              {close && <b className="text-ink-700">Showing close matches for “{q}” — no name matched exactly. </b>}
+              {close && <b className="text-ink-700">Showing close matches for “{q}”. No name matched exactly. </b>}
               Searching home members and members who have bought at {store.name}.
             </p>
           )}

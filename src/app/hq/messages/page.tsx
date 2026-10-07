@@ -97,7 +97,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       <PageHeader
         overline="Members"
         title="Messages"
-        description={`Every SMS, email, push and WhatsApp message the platform sent or logged${scope.kind === "HQ" ? "" : " to members homed in your region"} — order updates, sign-in codes, invoices, statements, campaigns and staff notifications. Recipients are masked; open a message to read what was sent.`}
+        description={`Every SMS, email, push and WhatsApp message the platform sent or logged${scope.kind === "HQ" ? "" : " to members homed in your region"}: order updates, sign-in codes, invoices, statements, campaigns and staff notifications. Recipients are masked; open a message to read what was sent.`}
       />
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Matching" value={num(total)} sub={`${dayKey(from)} to ${to ? dayKey(to) : "today"}`} />

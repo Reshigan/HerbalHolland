@@ -6,7 +6,7 @@ import { vatOnExcl, zar } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form";
 import { Badge } from "@/components/ui/badge";
-import { ActionForm, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 export type BuilderRow = {
   variantId: string;
@@ -156,7 +156,7 @@ export function OrderBuilder({ rows, action, dcName }: { rows: BuilderRow[]; act
               {shown.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-5 py-10 text-center text-sm text-ink-500">
-                    {view === "suggested" ? "Nothing needs reordering right now — switch to All ranged to top up anything." : "No items match."}
+                    {view === "suggested" ? "Nothing needs reordering right now. Switch to All ranged to top up anything." : "No items match."}
                   </td>
                 </tr>
               )}

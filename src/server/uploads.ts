@@ -26,7 +26,7 @@ export async function storePhotos(a: { files: File[]; max: number; folder: strin
   const checked: { bytes: Uint8Array<ArrayBuffer>; type: UploadType; name: string }[] = [];
   for (const f of files) {
     const label = f.name?.trim() || "A photo";
-    if (f.size > PHOTO_MAX_BYTES) throw new UploadError(`${label} is ${mb(f.size)} — photos have to be ${mb(PHOTO_MAX_BYTES)} or less`);
+    if (f.size > PHOTO_MAX_BYTES) throw new UploadError(`${label} is ${mb(f.size)}, but photos have to be ${mb(PHOTO_MAX_BYTES)} or less`);
     const bytes = new Uint8Array(await f.arrayBuffer());
     const type = sniffType(bytes);
     if (!type || !PHOTO_TYPES.includes(type)) throw new UploadError(`${label} isn't a JPG or PNG photo`);
@@ -52,15 +52,12 @@ export async function storePhotos(a: { files: File[]; max: number; folder: strin
   return ids;
 }
 
-/** Where the app serves a stored photo from. */
-export const mediaUrl = (uploadId: string) => `/media/${uploadId}`;
-
 type DocumentRule = { types: readonly UploadType[]; maxBytes: number; label: string };
 
 /** Reads a document and checks it (type by its bytes, size), throwing an UploadError the person can act on. */
 export async function readDocument(f: File, a: DocumentRule): Promise<{ bytes: Uint8Array<ArrayBuffer>; type: UploadType }> {
   if (!(f instanceof File) || f.size === 0) throw new UploadError(`Attach the ${a.label}`);
-  if (f.size > a.maxBytes) throw new UploadError(`The ${a.label} is ${mb(f.size)} — documents have to be ${mb(a.maxBytes)} or less`);
+  if (f.size > a.maxBytes) throw new UploadError(`The ${a.label} is ${mb(f.size)}, but documents have to be ${mb(a.maxBytes)} or less`);
   const bytes = new Uint8Array(await f.arrayBuffer());
   const type = sniffType(bytes);
   if (!type || !a.types.includes(type)) throw new UploadError(`The ${a.label} must be a PDF, or a JPG or PNG photo`);

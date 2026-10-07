@@ -142,6 +142,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       licenceRef: store.licenceRef,
       receiptFooter: store.receiptFooter,
       regionId: store.regionId,
+      payshapId: store.payshapId,
     },
     staff,
     categories,

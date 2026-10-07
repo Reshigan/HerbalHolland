@@ -214,7 +214,7 @@ describe("product photos", () => {
       expect(calls).toHaveLength(4); // the two refused addresses were never fetched
       // A public-looking name that resolves to a private address is never fetched; a redirect is never followed.
       const odd = await importProductImages(pid, ["https://internal.example.co.za/x.png", "https://cdn.example.co.za/moved.png"], { alt: "Test CBD Coffee" });
-      expect(odd.failed.map((f) => f.reason)).toEqual(["only public https:// addresses", "it redirects — use the photo's own address"]);
+      expect(odd.failed.map((f) => f.reason)).toEqual(["only public https:// addresses", "it redirects, so use the photo's own address"]);
       expect(calls).toHaveLength(5);
       const photos = await productImages(pid);
       expect(photos).toHaveLength(2);

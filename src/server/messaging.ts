@@ -15,6 +15,7 @@ import { gsmSafe, orderSms, shortLink } from "@/lib/sms";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
 import { safeEqual } from "./crypto";
+import { addDays } from "@/lib/format";
 
 export type OutboundMessage = {
   channel: MsgChannel;
@@ -187,4 +188,23 @@ export async function sendBulk(
   const reasons = await deliver(rows[0].channel, msgs);
   await db.messageLog.createMany({ data: msgs.map((m, i) => logRow(m, reasons[i])) });
   return reasons.filter((r) => !r).length;
+}
+
+// ── Retention (POPIA: kept no longer than needed) ─────────────────────────────
+
+/** How long a message's text is kept. No retention is set for the message log elsewhere, so 12 months. */
+export const MESSAGE_BODY_DAYS = 365;
+export const BODY_REMOVED = "[removed after 12 months]";
+
+/**
+ * Blanks the text of every message sent more than 12 months ago (daily job; safe to run again). The row stays, with
+ * the recipient, channel, kind, status and time, as the record that it went out: campaign figures and the trade
+ * statements' sent receipts read it.
+ */
+export async function purgeMessageBodies(now = new Date()) {
+  const { count } = await db.messageLog.updateMany({
+    where: { createdAt: { lt: addDays(now, -MESSAGE_BODY_DAYS) }, NOT: { body: BODY_REMOVED } },
+    data: { body: BODY_REMOVED },
+  });
+  return { blanked: count };
 }

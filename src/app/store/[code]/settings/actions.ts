@@ -28,10 +28,19 @@ export async function saveStoreDetails(code: string, _: ActionState, fd: FormDat
     if ("error" in hours) return fail(hours.error, "hours");
     const clickCollect = bool(fd, "clickCollect");
     const sameDay = bool(fd, "sameDay");
-    await db.store.update({ where: { id: store.id }, data: { phone: phone || null, email: email || null, whatsapp, hours: hours.json, clickCollect, sameDay } });
-    await audit(db, actor, "store.settings", { storeId: store.id, entity: "Store", entityId: store.id, data: { clickCollect, sameDay, hours: hours.json } });
+    // The ShapID the store's bank issued: checked loosely (banks format them differently); empty switches PayShap off.
+    const payshapId = str(fd, "payshapId") || null;
+    if (payshapId && payshapId.length > 60) return fail("A ShapID is 60 characters or fewer: check it against your bank's details", "payshapId");
+    const shapChanged = payshapId !== (store.payshapId ?? null);
+    await db.store.update({ where: { id: store.id }, data: { phone: phone || null, email: email || null, whatsapp, hours: hours.json, clickCollect, sameDay, payshapId } });
+    await audit(db, actor, "store.settings", {
+      storeId: store.id,
+      entity: "Store",
+      entityId: store.id,
+      data: { clickCollect, sameDay, hours: hours.json, payshap: payshapId, ...(shapChanged ? { payshapBefore: store.payshapId } : {}) },
+    });
     revalidatePath(`/store/${store.code}/settings`);
-    return done("Store details saved. The website and store finder update straight away.");
+    return done(`Store details saved. The website and store finder update straight away${shapChanged ? ", and the tills pick up the ShapID within a few minutes" : ""}.`);
   });
 }
 
@@ -78,7 +87,7 @@ export async function enableStaffPush(code: string, sub: unknown, userAgent: unk
   if (!STAFF_PUSH_ROLES.includes(user.role)) return { error: "Notifications are for managers, owners and area managers." };
   if (!staffVapidKey()) return { error: "Push notifications aren't set up on this server yet." };
   const p = PushSub.safeParse(sub);
-  if (!p.success) return { error: "Your browser didn't send a complete subscription — please try again." };
+  if (!p.success) return { error: "Your browser didn't send a complete subscription. Please try again." };
   await saveStaffSubscription(user.id, p.data, typeof userAgent === "string" ? userAgent : null);
   await audit(db, actorOf(user), "staff_push.enable", { entity: "User", entityId: user.id, data: { endpoint: p.data.endpoint.slice(0, 60) } });
   revalidatePath(`/store/${code}/settings`);

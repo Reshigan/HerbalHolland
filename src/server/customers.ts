@@ -19,7 +19,7 @@ import { appSecret } from "./secret";
 export class CustomerError extends Error {}
 
 /** Why a sign-in code didn't work (members and trade buyers alike). */
-export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That code has expired — request a new one", locked: "Too many wrong codes — try again in an hour" } as const;
+export const CODE_PROBLEM = { wrong: "That code isn't right", expired: "That code has expired. Request a new one", locked: "Too many wrong codes. Try again in an hour" } as const;
 
 const idHash = (id: string) => createHmac("sha256", appSecret()).update(id).digest("hex");
 
@@ -30,10 +30,10 @@ export async function requestOtp(raw: string, opts?: { ip: string | null }) {
   const code = await issueCode({ phone }, opts).catch((e) => {
     throw e instanceof OtpLimitError ? new CustomerError(e.message) : e;
   });
-  if (!code) throw new CustomerError("Too many codes requested — try again in 10 minutes");
+  if (!code) throw new CustomerError("Too many codes requested. Try again in 10 minutes");
   const text = (c: string) => `Your Herbal Holland code is ${c}. It expires in 10 minutes.`;
   const sms = await send({ channel: "SMS", to: phone, body: `${text(code)}\n\n@${new URL(APP_URL()).hostname} #${code}`, logBody: text("••••••"), kind: "TRANSACTIONAL" });
-  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now — please try again in a minute");
+  if (sms.status === "FAILED") throw new CustomerError("We couldn't send your code just now. Please try again in a minute");
   return { phone, demoCode: process.env.DEMO_MODE === "true" ? code : undefined };
 }
 
@@ -51,7 +51,7 @@ export async function verifyOtp(raw: string, code: string) {
 // (staff in a store can still help). Every collision is audited.
 const COLLISIONS_PER_DAY = 3;
 const DAY_MS = 86_400_000;
-export const COLLISION_REFUSED = "We can't check that right now — try again tomorrow, or visit a store with your ID";
+export const COLLISION_REFUSED = "We can't check that right now. Try again tomorrow, or visit a store with your ID";
 
 /** An ID number already linked to another member (a CustomerError, so staff screens show it as before). */
 export class CollisionError extends CustomerError {}

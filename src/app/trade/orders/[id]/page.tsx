@@ -25,7 +25,7 @@ import { requireBuyer } from "../../_lib/context";
 export const metadata: Metadata = { title: "Order", robots: { index: false, follow: false } };
 
 type Event = { status: string; at: string; note?: string };
-const EVENT_LABEL: Record<string, string> = { PENDING_PAYMENT: "Pro forma sent", PLACED: "Confirmed — stock reserved", PICKING: "Being picked", READY: "Ready to collect", SHIPPED: "Shipped", COLLECTED: "Collected", CANCELLED: "Cancelled" };
+const EVENT_LABEL: Record<string, string> = { PENDING_PAYMENT: "Pro forma sent", PLACED: "Confirmed, stock reserved", PICKING: "Being picked", READY: "Ready to collect", SHIPPED: "Shipped", COLLECTED: "Collected", CANCELLED: "Cancelled" };
 const OPEN = ["PENDING_PAYMENT", "PLACED", "PICKING", "READY"];
 
 export default async function TradeOrderPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ placed?: string }> }) {
@@ -49,14 +49,14 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
       : order.status === "PENDING_PAYMENT" ? `Pay ${zar(order.totalCents)} by EFT`
         : order.status === "READY" ? `Ready to collect at ${order.store.name}`
           : order.status === "SHIPPED" ? "On its way to you"
-            : order.status === "COLLECTED" ? "Collected — thank you"
+            : order.status === "COLLECTED" ? "Collected, thank you"
               : collect ? `Being prepared at ${order.store.name}` : `Being prepared at ${order.store.name}`;
 
   return (
     <Container className="pt-10 sm:pt-14">
       <LiveRefresh active={open} />
       {sp.placed && order.status !== "CANCELLED" && (
-        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" aria-hidden />} title={`Thank you — order ${order.number} is in.`} className="mb-8">
+        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" aria-hidden />} title={`Thank you. Order ${order.number} is in.`} className="mb-8">
           {order.status === "PENDING_PAYMENT" ? `A pro forma is on its way to ${order.account.email}. Pay it by EFT with the reference below and we pick the order as soon as the payment is confirmed.` : `A confirmation is on its way to ${order.account.email}. ${collect ? `${order.store.name} has your order and will let you know when it's packed.` : "Your stock is reserved and the order is in the picking queue."}`}
         </Callout>
       )}
@@ -112,7 +112,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
                   </div>
                 ))}
               </dl>
-              {!bank.length && <p className="mt-3 text-xs text-ink-400">The bank details are on the pro forma email — or ask the trade team.</p>}
+              {!bank.length && <p className="mt-3 text-xs text-ink-400">The bank details are on the pro forma email, or ask the trade team.</p>}
             </Panel>
           )}
 
@@ -234,7 +234,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
                     </div>
                     <div className="text-xs text-ink-400">
                       {l.variant.sku} · {fmtCases(l.qty, l.variant.caseQty)} · {zar(l.unitCents)} ex VAT each
-                      {isShort ? ` · ordered ${l.qty}, ${l.shippedQty} supplied — invoiced for ${l.shippedQty}` : ""}
+                      {isShort ? ` · ordered ${l.qty}, ${l.shippedQty} supplied (invoiced for ${l.shippedQty})` : ""}
                     </div>
                     <dl className="mt-2 grid grid-cols-3 gap-2 text-xs">
                       <div>
@@ -278,7 +278,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
                           </div>
                           <div className="text-xs text-ink-400">
                             {l.variant.sku}
-                            {isShort ? ` · ordered ${l.qty}, ${l.shippedQty} supplied — invoiced for ${l.shippedQty}` : ""}
+                            {isShort ? ` · ordered ${l.qty}, ${l.shippedQty} supplied (invoiced for ${l.shippedQty})` : ""}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-right text-ink-200">{fmtCases(l.qty, l.variant.caseQty)}</td>

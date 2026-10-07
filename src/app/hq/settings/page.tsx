@@ -3,10 +3,11 @@ import { ArrowRight } from "lucide-react";
 import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { can } from "@/server/hq/guard";
+import { centsToInput } from "@/lib/money";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { ViewOnly } from "@/components/hq/ui";
 import { saveTradeSettings } from "./actions";
 
@@ -26,32 +27,31 @@ export default async function SettingsPage() {
   const user = await requireStaff(HQ_ROLES);
   const t = (await getSettings()).trade;
   const admin = can(user, "admin");
-  const rand = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
 
   return (
     <>
       <PageHeader overline="Governance" title="Settings" description="Network-wide terms the HQ administrator sets. Everything here is audited; the rest of the programme's settings live with their own pages." />
       <div className="grid gap-6 xl:grid-cols-3">
         <Card className="xl:col-span-2" id="trade">
-          <CardHeader title="Trade (wholesale)" description="Businesses buying at ex-VAT trade prices online — courier from the DC or click & collect at a store — and at the till. Amounts are rand ex VAT; VAT is added per line." />
+          <CardHeader title="Trade (wholesale)" description="Businesses buying at ex-VAT trade prices online (courier from the DC, or click & collect at a store) and at the till. Amounts are rand ex VAT; VAT is added per line." />
           <CardBody>
-            {!admin && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
+            {!admin && <ViewOnly className="mb-4">View only: set by the HQ administrator.</ViewOnly>}
             <ActionForm action={saveTradeSettings}>
               <fieldset disabled={!admin} className="min-w-0 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <Field label="Minimum order (R ex VAT)" htmlFor="minOrder" hint="After any promotion">
-                  <Input id="minOrder" name="minOrder" defaultValue={rand(t.minOrderCents)} inputMode="decimal" />
+                  <Input id="minOrder" name="minOrder" defaultValue={centsToInput(t.minOrderCents)} inputMode="decimal" />
                   <FieldError name="minOrder" />
                 </Field>
                 <Field label="Courier fee (R ex VAT)" htmlFor="courierFee" hint="Flat, from the DC">
-                  <Input id="courierFee" name="courierFee" defaultValue={rand(t.deliveryCents)} inputMode="decimal" />
+                  <Input id="courierFee" name="courierFee" defaultValue={centsToInput(t.deliveryCents)} inputMode="decimal" />
                   <FieldError name="courierFee" />
                 </Field>
                 <Field label="Free courier over (R ex VAT)" htmlFor="freeCourierOver" hint="0 = never free">
-                  <Input id="freeCourierOver" name="freeCourierOver" defaultValue={rand(t.freeDeliveryOverCents)} inputMode="decimal" />
+                  <Input id="freeCourierOver" name="freeCourierOver" defaultValue={centsToInput(t.freeDeliveryOverCents)} inputMode="decimal" />
                   <FieldError name="freeCourierOver" />
                 </Field>
                 <Field label="Collect handling fee (R ex VAT)" htmlFor="collectHandling" hint="The store's fee on click & collect">
-                  <Input id="collectHandling" name="collectHandling" defaultValue={rand(t.collectHandlingCents)} inputMode="decimal" />
+                  <Input id="collectHandling" name="collectHandling" defaultValue={centsToInput(t.collectHandlingCents)} inputMode="decimal" />
                   <FieldError name="collectHandling" />
                 </Field>
                 <Field label="EFT hold (days)" htmlFor="eftHoldDays" hint="Unpaid pro formas lapse after this">
@@ -72,7 +72,7 @@ export default async function SettingsPage() {
                 </Field>
                 <div className="sm:col-span-2 lg:col-span-4">
                   <div className="font-display text-sm font-semibold text-ink-900">Bank details for EFTs</div>
-                  <p className="text-xs text-ink-500">Printed on every pro forma with the reference HH-TO-… — fill these in before the first trade order.</p>
+                  <p className="text-xs text-ink-500">Printed on every pro forma with the reference HH-TO-…: fill these in before the first trade order.</p>
                 </div>
                 <Field label="Bank" htmlFor="bank">
                   <Input id="bank" name="bank" defaultValue={t.bank.bank} maxLength={80} placeholder="e.g. FNB" />

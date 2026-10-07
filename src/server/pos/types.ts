@@ -107,6 +107,8 @@ export type BootStore = {
   licenceRef: string | null;
   receiptFooter: string | null;
   regionId: string;
+  /** The ShapID the store's bank issued (store settings): the till offers PayShap only when it's set. Tills cached before this field have none. */
+  payshapId?: string | null;
 };
 
 export type BootData = {

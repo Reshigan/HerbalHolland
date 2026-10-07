@@ -6,6 +6,7 @@ import { booksNav } from "@/components/admin/nav-config";
 export const metadata: Metadata = {
   manifest: "/staff/manifest.webmanifest",
   appleWebApp: { capable: true, title: "HH Office", statusBarStyle: "black" },
+  robots: { index: false, follow: false },
 };
 
 /** A company's books, in the back-office shell: anyone without access to them gets a not-found (ids can't be probed). */

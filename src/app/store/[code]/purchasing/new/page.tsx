@@ -30,7 +30,7 @@ export default async function NewOrderPage({ params }: { params: Promise<{ code:
         title="New order"
         description={`Suggested quantities come from a 14-day sales forecast: enough for the ${LEAD_DAYS}-day lead time plus ${COVER_DAYS} days of cover and safety stock (never below par), allowing for stock already on order. Wholesale prices are ex VAT; ${dcName} confirms and ships.`}
       />
-      {!store.dcId && <Notice tone="warn" className="mb-4">Your store isn&apos;t linked to a distribution centre yet — ask HQ to set one up before ordering.</Notice>}
+      {!store.dcId && <Notice tone="warn" className="mb-4">Your store isn&apos;t linked to a distribution centre yet. Ask HQ to set one up before ordering.</Notice>}
       {open.length > 0 && (
         <Notice tone="info" className="mb-4" title="Already on order">
           {open.map((o, i) => (
@@ -41,8 +41,8 @@ export default async function NewOrderPage({ params }: { params: Promise<{ code:
               </Link>{" "}
               ({o.status.toLowerCase()}, {fmtDate(o.createdAt)})
             </span>
-          ))}{" "}
-          — submitted quantities are already counted in the suggestions below{open.some((o) => o.status === "DRAFT") ? "; drafts aren't until you submit them" : ""}.
+          ))}
+          . Submitted quantities are already counted in the suggestions below{open.some((o) => o.status === "DRAFT") ? "; drafts aren't until you submit them" : ""}.
         </Notice>
       )}
       {canManage ? (

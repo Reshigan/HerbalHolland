@@ -65,7 +65,7 @@ export async function recordPurchase(
   });
   await addPoints(t, { customerId: a.customerId, points, kind: "EARN", storeId: a.storeId, saleId: a.saleId, orderId: a.orderId });
   if (before.visits === 0 && before.referredById && a.referralBonus > 0) {
-    await addPoints(t, { customerId: a.customerId, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: "Welcome — you were referred" });
+    await addPoints(t, { customerId: a.customerId, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: "Welcome: you were referred" });
     await addPoints(t, { customerId: before.referredById, points: a.referralBonus, kind: "REFERRAL", storeId: a.storeId, note: `Referral: ${before.firstName}` });
   }
   return { points, tier, tierChanged: tier !== before.tier };

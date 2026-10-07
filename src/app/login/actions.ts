@@ -36,7 +36,7 @@ export async function login(_: LoginState, form: FormData): Promise<LoginState> 
   if (user.passwordFails) await clearFailures(user.id, "password");
   if (user.mustChangePassword && user.tempPasswordUntil && user.tempPasswordUntil < new Date()) {
     await audit(db, { type: "USER", id: user.id, name: user.name }, "auth.failed", { storeId: user.storeId, entity: "User", entityId: user.id, data: { reason: "temporary password expired" } });
-    return { error: "Your temporary password has expired — ask HQ or your store owner for a new one.", ...again };
+    return { error: "Your temporary password has expired. Ask HQ or your store owner for a new one.", ...again };
   }
   await upgradeHash(user.id, "passwordHash", user.passwordHash, password);
   await startSession("staff", { userId: user.id }, 24 * 7);

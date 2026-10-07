@@ -34,7 +34,7 @@ export function tradeCodeEmail(a: { code: string; minutes: number }): Rendered {
   const body =
     para("Here's your one-time code to sign in to the Herbal Holland trade portal.") +
     callout(`<span style="font-family:'Outfit','Helvetica Neue',Arial,sans-serif;font-size:30px;font-weight:700;letter-spacing:0.18em">${esc(a.code)}</span><br/>It expires in ${a.minutes} minutes and works once.`) +
-    para("If you didn't ask for a code, you can ignore this email — nobody can sign in without it.", { muted: true, small: true });
+    para("If you didn't ask for a code, you can ignore this email: nobody can sign in without it.", { muted: true, small: true });
   return {
     subject: `${SUBJECT} sign-in code`,
     html: emailLayout({ preheader: `Your sign-in code is ${a.code}`, eyebrow: "Trade portal", heading: "Your sign-in code", body, footerHtml: "You received this because someone asked to sign in to the Herbal Holland trade portal with this address." }),
@@ -56,7 +56,7 @@ export function tradeApplicationReceivedEmail(a: { account: TradeAccountInfo; bu
     para("Licensed medicines aren't part of the trade range. Everything else is priced ex VAT, with VAT shown on every line.", { muted: true, small: true });
   return {
     subject: `${SUBJECT}: application ${a.account.number} received`,
-    html: emailLayout({ preheader: `Application ${a.account.number} received — we'll reply within a few working days`, eyebrow: "Trade account", heading: "We've got your application", body, footerHtml: FOOTER(a.account.legalName) }),
+    html: emailLayout({ preheader: `Application ${a.account.number} received. We'll reply within a few working days`, eyebrow: "Trade account", heading: "We've got your application", body, footerHtml: FOOTER(a.account.legalName) }),
     text: textDoc(`Hi ${a.buyerName}, thanks for applying for a Herbal Holland trade account for ${a.account.legalName}.`, "", `Application: ${a.account.number}`, `Business: ${a.account.name}`, `Ranges requested: ${classList(a.account.classes)}`, "", "Our trade team replies by email within a few working days."),
   };
 }
@@ -72,7 +72,7 @@ export function tradeApplicationNoticeEmail(a: { account: TradeAccountInfo & { c
   ];
   const body = para("A new trade account application came in on the trade portal.") + facts(rows) + para("The contact details and notes are in HQ; we keep them out of email (POPIA).", { muted: true, small: true });
   return {
-    subject: `${SUBJECT}: new application ${a.account.number} — ${a.account.legalName}`,
+    subject: `${SUBJECT}: new application ${a.account.number} from ${a.account.legalName}`,
     html: emailLayout({ preheader: `New trade application: ${a.account.legalName}`, eyebrow: "HQ · Trade", heading: "New trade application", body, cta: { label: "Open it in HQ", href: a.url }, footerHtml: "Sent to the trade team's address (TRADE_EMAIL / FRANCHISE_EMAIL)." }),
     text: textDoc("A new trade account application came in on the trade portal.", "", ...rows.map(([k, v]) => `${k}: ${v.replace(/<[^>]+>/g, "")}`), "", `Open it in HQ: ${a.url}`),
   };
@@ -95,7 +95,7 @@ export function tradeApprovedEmail(a: { account: TradeAccountInfo; terms: TradeT
     para("Prices are ex VAT with VAT shown per line. No points, member prices or consumer deals apply to trade purchases.", { muted: true, small: true });
   return {
     subject: `${SUBJECT}: account ${a.account.number} approved`,
-    html: emailLayout({ preheader: `Your trade account is approved — sign in to order`, eyebrow: "Trade account", heading: "You're approved", body, cta: { label: "Sign in to the trade portal", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
+    html: emailLayout({ preheader: `Your trade account is approved. Sign in to order`, eyebrow: "Trade account", heading: "You're approved", body, cta: { label: "Sign in to the trade portal", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
     text: textDoc(`The trade account for ${a.account.legalName} is approved.`, "", ...rows.map(([k, v]) => `${k}: ${v.replace(/<[^>]+>/g, "")}`), "", `Sign in: ${a.url}`),
   };
 }
@@ -111,14 +111,14 @@ export function tradeOnHoldEmail(a: { account: TradeAccountInfo; reason: string;
     para("Questions? Reply to this email and the trade team will help.", { muted: true, small: true });
   return {
     subject: `${SUBJECT}: account ${a.account.number} on hold`,
-    html: emailLayout({ preheader: overdue ? `${zar(a.overdueCents)} overdue — the hold lifts when it's settled` : "Your trade account is on hold", eyebrow: "Trade account", heading: "Account on hold", body, cta: { label: "See your statement", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
+    html: emailLayout({ preheader: overdue ? `${zar(a.overdueCents)} overdue. The hold lifts when it's settled` : "Your trade account is on hold", eyebrow: "Trade account", heading: "Account on hold", body, cta: { label: "See your statement", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
     text: textDoc(`The trade account ${a.account.legalName} (${a.account.number}) is on hold${overdue ? " because an invoice is past its due date" : ""}.`, overdue ? `${zar(a.overdueCents)} is overdue on a balance of ${zar(a.balanceCents)}. Settle it and the hold lifts automatically.` : `Reason: ${a.reason}`, "", "You can still pay for orders by EFT; nothing new goes on account.", "", `Statement: ${a.url}`),
   };
 }
 
 export function tradeHoldLiftedEmail(a: { account: TradeAccountInfo; url: string; licence?: boolean }): Rendered {
   const line = a.licence ? "is back in good standing: its licences are in order and orders can go through again" : "is back in good standing and orders can go on account again";
-  const body = para(`Thanks — the account <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) ${line}.`);
+  const body = para(`Thanks. The account <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) ${line}.`);
   return {
     subject: `${SUBJECT}: account ${a.account.number} hold lifted`,
     html: emailLayout({ preheader: "Your trade account is back in good standing", eyebrow: "Trade account", heading: "Hold lifted", body, cta: { label: "Place an order", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
@@ -201,7 +201,7 @@ export function tradeProFormaEmail(a: { order: TradeOrderEmailInfo; account: Tra
     summaryTable(rows, totals) +
     para("Unit prices exclude VAT. Stock is reserved when the payment is confirmed; a tax invoice follows when the order ships or is collected.", { muted: true, small: true });
   return {
-    subject: `${SUBJECT}: pro forma ${o.number} — pay ${zar(o.totalCents)} with reference ${ref}`,
+    subject: `${SUBJECT}: pro forma ${o.number}: pay ${zar(o.totalCents)} with reference ${ref}`,
     html: emailLayout({ preheader: `Pay ${zar(o.totalCents)} by EFT, reference ${ref}`, eyebrow: "Pro forma", heading: `Pro forma ${o.number}`, body, cta: { label: "See the order", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
     text: textDoc(`Pro forma ${o.number} for ${a.account.legalName}`, "", `Pay ${zar(o.totalCents)} by EFT with reference ${ref} within ${a.holdDays} days.`, ...bank.map(([k, v]) => `${k}: ${v}`), "", o.fulfilment === "COLLECT" ? `Collect from ${storeLine(o.store)}` : `Deliver to ${o.address ?? ""}`, o.reference ? `Your reference: ${o.reference}` : null, "", ...textLines(rows), "", ...textTotals(totals), "", `See the order: ${a.url}`),
   };
@@ -221,11 +221,11 @@ export function tradeOrderEmail(kind: TradeOrderEvent, a: { order: TradeOrderEma
   const headings: Record<TradeOrderEvent, { eyebrow: string; heading: string; preheader: string; lead: string }> = {
     confirmed: {
       eyebrow: "Order confirmed", heading: `Order ${o.number} is confirmed`, preheader: `${o.number} · ${zar(o.totalCents)} · stock reserved`,
-      lead: `Thanks, ${esc(a.account.name)}. Your stock is reserved${collect ? ` at Herbal Holland ${esc(o.store.name)} — we'll email you when it's packed and ready to collect` : " at the distribution centre and the order is in the picking queue"}. ${onAccount ? `It's on account: the tax invoice follows when it ${collect ? "is collected" : "ships"} and falls due ${a.account.paymentDays} days later.` : "It's paid by EFT; the tax invoice follows when it " + (collect ? "is collected." : "ships.")}`,
+      lead: `Thanks, ${esc(a.account.name)}. Your stock is reserved${collect ? ` at Herbal Holland ${esc(o.store.name)}, and we'll email you when it's packed and ready to collect` : " at the distribution centre and the order is in the picking queue"}. ${onAccount ? `It's on account: the tax invoice follows when it ${collect ? "is collected" : "ships"} and falls due ${a.account.paymentDays} days later.` : "It's paid by EFT; the tax invoice follows when it " + (collect ? "is collected." : "ships.")}`,
     },
     ready: {
       eyebrow: "Ready to collect", heading: `Order ${o.number} is ready`, preheader: `Ready at ${o.store.name} · collection code ${o.collectionCode ?? ""}`,
-      lead: `Your order is packed and waiting at <b>Herbal Holland ${esc(o.store.name)}</b>. Give the collection code at the counter and bring your ID — everyone collecting for a trade account is 18 or older.`,
+      lead: `Your order is packed and waiting at <b>Herbal Holland ${esc(o.store.name)}</b>. Give the collection code at the counter and bring your ID: everyone collecting for a trade account must be 18 or older.`,
     },
     shipped: {
       eyebrow: "Shipped", heading: `Order ${o.number} has shipped`, preheader: `${o.courier ?? "Courier"}${o.trackingNo ? ` · ${o.trackingNo}` : ""} · invoice ${o.invoiceNumber ?? ""}`,
@@ -237,7 +237,7 @@ export function tradeOrderEmail(kind: TradeOrderEvent, a: { order: TradeOrderEma
     },
     cancelled: {
       eyebrow: "Cancelled", heading: `Order ${o.number} was cancelled`, preheader: `${o.number} cancelled${a.note ? ` · ${a.note}` : ""}`,
-      lead: `Order ${esc(o.number)} has been cancelled${a.note ? `: ${esc(a.note)}` : "."}${a.refundByHand ? ` The EFT payment of ${zar(o.totalCents)} (reference ${esc(o.paymentRef ?? eftReference(o.number))}) will be refunded by hand — the trade team will be in touch for your bank details if we don't have them.` : ""} Any stock reserved for it is back on sale.`,
+      lead: `Order ${esc(o.number)} has been cancelled${a.note ? `: ${esc(a.note)}` : "."}${a.refundByHand ? ` The EFT payment of ${zar(o.totalCents)} (reference ${esc(o.paymentRef ?? eftReference(o.number))}) will be refunded by hand. The trade team will be in touch for your bank details if we don't have them.` : ""} Any stock reserved for it is back on sale.`,
     },
   };
   const h = headings[kind];
@@ -333,8 +333,8 @@ export function tradeInvoiceEmail(s: TradeInvoiceSale, opts: { url: string; batc
   const text = textDoc(
     `${title} ${s.number}${s.refundOf ? ` (for ${s.refundOf.number})` : ""} · ${fmtDateTime(s.createdAt)}`,
     opts.orderNumber ? `Trade order ${opts.orderNumber}${opts.orderRef ? ` (your ref ${opts.orderRef})` : ""}` : null,
-    `Sold by ${s.store.company.legalName} — Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` — VAT no. ${s.store.company.vatNumber}` : ""}`,
-    `Sold to ${buyer.name ?? s.tradeAccount?.legalName ?? ""}${buyer.address ? `, ${buyer.address}` : ""}${buyer.vatNumber ? ` — VAT no. ${buyer.vatNumber}` : ""}${s.tradeAccount ? ` — account ${s.tradeAccount.number}` : ""}`,
+    `Sold by ${s.store.company.legalName} · Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` · VAT no. ${s.store.company.vatNumber}` : ""}`,
+    `Sold to ${buyer.name ?? s.tradeAccount?.legalName ?? ""}${buyer.address ? `, ${buyer.address}` : ""}${buyer.vatNumber ? ` · VAT no. ${buyer.vatNumber}` : ""}${s.tradeAccount ? ` · account ${s.tradeAccount.number}` : ""}`,
     "",
     ...rows.map((r) => `${r.qty != null ? `${r.qty} x ` : ""}${r.title}${r.sub ? ` (${r.sub})` : ""}${r.unit != null ? ` @ ${zar(r.unit)}` : ""}  ${zar(r.amountCents)}`),
     "",
@@ -344,9 +344,9 @@ export function tradeInvoiceEmail(s: TradeInvoiceSale, opts: { url: string; batc
     `View or print: ${opts.url}`,
   );
   return {
-    subject: `${SUBJECT}: ${title.toLowerCase()} ${s.number}${s.tradeAccount ? ` — ${s.tradeAccount.name}` : ""}`,
+    subject: `${SUBJECT}: ${title.toLowerCase()} ${s.number}${s.tradeAccount ? ` for ${s.tradeAccount.name}` : ""}`,
     html: emailLayout({
-      preheader: `${title} ${s.number} — ${zar(abs(s.totalCents))}${account > 0 && opts.dueAt && !refund ? `, due ${fmtDate(opts.dueAt)}` : ""}`,
+      preheader: `${title} ${s.number} for ${zar(abs(s.totalCents))}${account > 0 && opts.dueAt && !refund ? `, due ${fmtDate(opts.dueAt)}` : ""}`,
       eyebrow: `${title} · Herbal Holland ${s.store.name}`,
       heading: `${title} ${s.number}`,
       body,
@@ -386,14 +386,14 @@ export function tradeStatementEmail(st: TradeStatementEmailInput): Rendered {
   ];
   const body =
     para(`Here is the ${monthLabel} statement for <b>${esc(st.account.legalName)}</b> (${esc(st.account.number)}).`) +
-    callout(`<span style="font-family:'Outfit','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">${esc(position)}</span>${st.ageing.overdue > 0 ? `<br/>${zar(st.ageing.overdue)} of it is past due — please settle it to keep the account open.` : st.account.terms === "ACCOUNT" ? `<br/>Invoices fall due ${st.account.paymentDays} days from their date.` : ""}`, st.ageing.overdue > 0 ? "rose" : st.closing > 0 ? "brand" : "leaf") +
+    callout(`<span style="font-family:'Outfit','Helvetica Neue',Arial,sans-serif;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums">${esc(position)}</span>${st.ageing.overdue > 0 ? `<br/>${zar(st.ageing.overdue)} of it is past due. Please settle it to keep the account open.` : st.account.terms === "ACCOUNT" ? `<br/>Invoices fall due ${st.account.paymentDays} days from their date.` : ""}`, st.ageing.overdue > 0 ? "rose" : st.closing > 0 ? "brand" : "leaf") +
     figures(rows) +
     para("Pay by EFT with the invoice number as your reference. Every tax invoice and credit note is in the trade portal.", { muted: true, small: true });
   return {
     subject: `${SUBJECT}: statement ${st.account.number}, ${monthLabel}`,
     html: emailLayout({ preheader: position, eyebrow: `Statement · ${monthLabel}`, heading: esc(st.account.name), body, cta: { label: "View or print the statement", href: st.url }, footerHtml: FOOTER(st.account.legalName) }),
     text: textDoc(
-      `Trade statement — ${st.account.legalName} (${st.account.number}), ${monthLabel}`,
+      `Trade statement for ${st.account.legalName} (${st.account.number}), ${monthLabel}`,
       "",
       position,
       "",
@@ -423,7 +423,7 @@ export function tradeLicenceNoticeEmail(a: { account: TradeAccountInfo; licence:
   ];
   const body = para("A trade account uploaded a licence for checking. Compare the document with the issuer's register before you verify it.") + facts(rows);
   return {
-    subject: `${SUBJECT}: licence to check — ${a.account.legalName}`,
+    subject: `${SUBJECT}: licence to check for ${a.account.legalName}`,
     html: emailLayout({ preheader: `${a.licence} to check for ${a.account.legalName}`, eyebrow: "HQ · Trade", heading: "A licence to check", body, cta: { label: "Open it in HQ", href: a.url }, footerHtml: "Sent to the trade team's address (TRADE_EMAIL / FRANCHISE_EMAIL)." }),
     text: textDoc("A trade account uploaded a licence for checking.", "", ...rows.map(([k, v]) => `${k}: ${v.replace(/<[^>]+>/g, "")}`), "", `Open it in HQ: ${a.url}`),
   };
@@ -436,7 +436,7 @@ export function tradeLicenceRejectedEmail(a: { account: TradeAccountInfo; licenc
     callout(`<b>Why:</b> ${esc(a.reason)}`, "soft") +
     para("Upload a clear copy of the current licence under Account › Licences in the trade portal and we'll check it again.");
   return {
-    subject: `${SUBJECT}: ${a.licence} not accepted — ${a.account.number}`,
+    subject: `${SUBJECT}: ${a.licence} not accepted (${a.account.number})`,
     html: emailLayout({ preheader: `We couldn't accept the ${a.licence}`, eyebrow: "Trade account", heading: "Licence not accepted", body, cta: { label: "Upload it again", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
     text: textDoc(`We couldn't accept the ${a.licence} uploaded for ${a.account.legalName} (${a.account.number}).`, `Why: ${a.reason}`, "", `Upload it again: ${a.url}`),
   };
@@ -459,9 +459,9 @@ export function tradeLicenceHoldEmail(a: { account: TradeAccountInfo; problems: 
   const body =
     para(`Ordering for <b>${esc(a.account.legalName)}</b> (${esc(a.account.number)}) is paused: we can't supply the account until its licences are in order.`) +
     callout(a.problems.map((p) => esc(p)).join("<br>"), "soft") +
-    para("Upload the renewed licence under Account › Licences. As soon as we've checked it the account is back in good standing — usually within a working day.");
+    para("Upload the renewed licence under Account › Licences. As soon as we've checked it the account is back in good standing, usually within a working day.");
   return {
-    subject: `${SUBJECT}: ordering paused for ${a.account.number} — licence`,
+    subject: `${SUBJECT}: ordering paused for ${a.account.number} (licence)`,
     html: emailLayout({ preheader: "A required licence has lapsed", eyebrow: "Trade account", heading: "Ordering paused", body, cta: { label: "Upload the renewal", href: a.url }, footerHtml: FOOTER(a.account.legalName) }),
     text: textDoc(`Ordering for ${a.account.legalName} (${a.account.number}) is paused until its licences are in order.`, ...a.problems, "", `Upload: ${a.url}`),
   };

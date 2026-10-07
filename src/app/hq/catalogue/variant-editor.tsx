@@ -4,8 +4,10 @@ import { Plus } from "lucide-react";
 import { Field, Input, Checkbox } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { marginPct } from "@/lib/pricing-rules";
+import { centsToInput, parseRand } from "@/lib/money";
+import { num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { saveVariant } from "./actions";
 
@@ -14,14 +16,8 @@ export type VariantRow = {
   priceCents: number; wholesaleCents: number; costCents: number; podSku: string | null; active: boolean; batches: number; onHand: number; caseQty: number;
 };
 
-const rand = (c: number) => (c / 100).toFixed(2);
-const cents = (s: string) => {
-  const n = Number(s.replace(/[R\s,]/gi, ""));
-  return Number.isFinite(n) && s.trim() ? Math.round(n * 100) : null;
-};
-
 function Margins({ price, wholesale, cost, minMarginPct }: { price: string; wholesale: string; cost: string; minMarginPct: number }) {
-  const p = cents(price), w = cents(wholesale), c = cents(cost);
+  const p = parseRand(price), w = parseRand(wholesale), c = parseRand(cost);
   const store = p && w != null ? marginPct(p, w) : null;
   const hq = w && c != null ? (w - c) / w : null;
   const low = store != null && store * 100 < minMarginPct;
@@ -40,9 +36,9 @@ function Margins({ price, wholesale, cost, minMarginPct }: { price: string; whol
 }
 
 function VariantFields({ v, minMarginPct, isNew }: { v?: VariantRow; minMarginPct: number; isNew?: boolean }) {
-  const [price, setPrice] = useState(v ? rand(v.priceCents) : "");
-  const [wholesale, setWholesale] = useState(v ? rand(v.wholesaleCents) : "");
-  const [cost, setCost] = useState(v ? rand(v.costCents) : "");
+  const [price, setPrice] = useState(centsToInput(v?.priceCents));
+  const [wholesale, setWholesale] = useState(centsToInput(v?.wholesaleCents));
+  const [cost, setCost] = useState(centsToInput(v?.costCents));
   const k = v?.id ?? "new";
   return (
     <>
@@ -112,7 +108,7 @@ export function VariantEditor({ productId, variants, minMarginPct, readOnly }: {
             <span className="font-display text-sm font-semibold text-ink-900">{v.name}</span>
             {!v.active && <Badge tone="neutral">Inactive</Badge>}
             <span className="text-xs text-ink-500">
-              {v.batches} batch{v.batches === 1 ? "" : "es"} · {v.onHand.toLocaleString()} units on hand network-wide
+              {v.batches} batch{v.batches === 1 ? "" : "es"} · {num(v.onHand)} units on hand network-wide
             </span>
           </div>
           <fieldset disabled={readOnly} className="min-w-0">

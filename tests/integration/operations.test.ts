@@ -25,7 +25,7 @@ import { claimEvents, lowStockDigest, notifyAlerts, notifyAnnouncements, notifyD
 import { replenishmentPlan } from "@/server/replenishment";
 import { getReport } from "@/server/reports";
 import { reportContext } from "@/server/reports/context";
-import { JOBS } from "@/server/jobs";
+import { runJob } from "@/server/jobs";
 import { OPENING_TEMPLATE } from "@/lib/opening";
 import { dayKey, addDays, dateOnly, weekdaySA } from "@/lib/format";
 import type { Staff } from "@/server/auth";
@@ -159,9 +159,9 @@ describe("Staff push", () => {
   });
 
   it("runs from the scheduler as its own jobs", async () => {
-    const r = (await JOBS["staff-push"]()) as { orders: { pushed: number }; alerts: { pushed: number }; announcements: { pushed: number } };
+    const r = (await runJob("staff-push")).result as { orders: { pushed: number }; alerts: { pushed: number }; announcements: { pushed: number } };
     expect(r).toEqual({ orders: { pushed: 0 }, alerts: { pushed: 0 }, announcements: { pushed: 0 } });
-    const ops = (await JOBS.operations()) as { batches: { pushed: number }; exports: { done: number; failed: number }; pruned: { pushEvents: number } };
+    const ops = (await runJob("operations")).result as { batches: { pushed: number }; exports: { done: number; failed: number }; pruned: { pushEvents: number } };
     expect(ops.batches).toEqual({ pushed: 0 });
     expect(ops.exports).toEqual({ done: 0, failed: 0 });
   });
@@ -228,7 +228,7 @@ describe("Supplier invoices", () => {
     expect(await tx((t) => recordStatementInvoice(t, net.id, a))).toMatchObject({ number: "PO-T9", totalCents: 64_400, vatCents: 8_400, onStatement: true, status: "DUE" });
 
     await expect(paySupplierInvoice(inv.id, w.store.id, {}, a)).rejects.toThrow("settles on the franchise statement");
-    await expect(querySupplierInvoice(inv.id, w.store.id, "One unit short", a)).rejects.toThrow("take any problem with it up with HQ");
+    await expect(querySupplierInvoice(inv.id, w.store.id, "One unit short", a)).rejects.toThrow("Take any problem with it up with HQ");
     // In what's due, but never overdue or due soon: not on HQ's outside-supplier totals or the Today list.
     expect(await supplierInvoiceSummary([w.store.id])).toMatchObject({
       ...before.summary, due: before.summary.due + 2, dueCents: before.summary.dueCents + 161_000, onStatement: 2, onStatementCents: 161_000,

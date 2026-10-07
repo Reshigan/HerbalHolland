@@ -223,7 +223,7 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       {!searching && (
         <div className="mt-6 grid grid-cols-1 gap-6 xl:grid-cols-3">
           <Card className="min-w-0 xl:col-span-2">
-            <CardHeader title="Segments" description="Recency × frequency. Each has a suggested play — send it to a campaign in one click." />
+            <CardHeader title="Segments" description="Recency × frequency. Each has a suggested play: send it to a campaign in one click." />
             <CardBody className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {segments.map((g) => (
                 <div key={g.key} className="flex flex-col rounded-2xl border border-ink-150 p-4">

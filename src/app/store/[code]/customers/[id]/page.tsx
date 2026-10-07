@@ -19,13 +19,12 @@ import { Stat, Meter } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge, TierBadge } from "@/components/ui/status";
 import { ButtonLink } from "@/components/ui/button";
-import { Field, Input } from "@/components/ui/form";
+import { Field, Input, Select } from "@/components/ui/form";
 import { Avatar } from "@/components/ui/misc";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { BackLink, Line, Qty, ReadOnlyNote } from "@/components/store/ui";
-import { Select } from "@/components/store/select";
-import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { plural } from "@/lib/plural";
 
@@ -252,7 +251,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
           <Card>
             <CardHeader
               title="Patient authorisations"
-              description="SAHPRA Section 21 — for licensed medicines"
+              description="SAHPRA Section 21, for licensed medicines"
               action={canManage && <ButtonLink href={`${base}/patients?member=${c.memberNo}`} variant="ghost" size="sm">Add</ButtonLink>}
             />
             <CardBody className="space-y-2 pt-3">

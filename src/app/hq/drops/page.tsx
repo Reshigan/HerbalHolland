@@ -22,7 +22,7 @@ export const metadata = { title: "Drops" };
 const PAGE_SIZE = 20;
 const TABS = [
   { key: "live", label: "Live now", empty: "Nothing is dropping right now." },
-  { key: "upcoming", label: "Upcoming", empty: "No drops scheduled — plan the next one." },
+  { key: "upcoming", label: "Upcoming", empty: "No drops scheduled. Plan the next one." },
   { key: "past", label: "Past", empty: "No drops have ended yet." },
 ] as const;
 type Tab = (typeof TABS)[number]["key"];

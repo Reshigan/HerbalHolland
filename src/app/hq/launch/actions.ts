@@ -16,7 +16,7 @@ export async function saveLaunch(_: ActionState, fd: FormData): Promise<ActionSt
   const g = await guard("admin");
   if (!g) return DENIED;
   if (await db.customer.count({ where: { foundingNo: { not: null } } }))
-    return fail("Founding numbers are already assigned, so the launch settings are locked — changing them now would rewrite who joined before launch.");
+    return fail("Founding numbers are already assigned, so the launch settings are locked. Changing them now would rewrite who joined before launch.");
   const fields: Record<string, string> = {};
   const raw = str(fd, "launchAt");
   const at = raw ? parseLocal(raw) : null;
@@ -48,7 +48,7 @@ export async function saveLaunch(_: ActionState, fd: FormData): Promise<ActionSt
   return done(
     at > new Date()
       ? `Saved. The Founding Members list closes ${fmtDateTime(at)}.`
-      : `Saved. The closing time has passed: the scheduler numbers the Founding Members within 15 minutes — or assign them now below.`,
+      : `Saved. The closing time has passed: the scheduler numbers the Founding Members within 15 minutes, or you can assign them now below.`,
   );
 }
 
@@ -63,5 +63,5 @@ export async function assignFoundingNow(_: ActionState): Promise<ActionState> {
   const { assigned } = await assignFounding();
   await audit(db, g.actor, "launch.assign_founding", { entity: "Setting", entityId: "launch", data: { assigned, cap: s.foundingCap, tier: s.foundingTier } });
   revalidatePath("/hq/launch");
-  return done(`${assigned.toLocaleString()} Founding Members numbered — their cards show the number and at least ${s.foundingTier.charAt(0)}${s.foundingTier.slice(1).toLowerCase()} from now.`);
+  return done(`${assigned.toLocaleString()} Founding Members numbered. Their cards show the number and at least ${s.foundingTier.charAt(0)}${s.foundingTier.slice(1).toLowerCase()} from now.`);
 }

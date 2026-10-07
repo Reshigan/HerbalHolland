@@ -53,10 +53,10 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
 
       <p className="mt-5 text-sm leading-relaxed text-ink-200">
         {v.founding
-          ? `You're inside the first ${num(cap)} — a numbered Founding Member card when the list closes. Places can shift as others bring friends, so keep sharing.`
+          ? `You're inside the first ${num(cap)}, so a numbered Founding Member card is yours when the list closes. Places can shift as others bring friends, so keep sharing.`
           : `Bring ${v.friendsNeeded} friend${v.friendsNeeded === 1 ? "" : "s"} to reach a Founding spot.`}{" "}
         <strong className="font-semibold text-white">Each friend who joins moves you up {num(w.boost)} places.</strong>
-        {w.referrals > 0 && ` You've brought ${w.referrals} so far — thank you, ${firstName}.`}
+        {w.referrals > 0 && ` You've brought ${w.referrals} so far. Thank you, ${firstName}.`}
       </p>
       <div className="mt-4">
         <ShareLink url={referUrl} text={shareText} shareLabel="Share your link" />
@@ -103,7 +103,7 @@ export function DealsPanel({ deals, personalised }: { deals: Deal[]; personalise
           Settings
         </Link>
       </div>
-      <p className="mt-1 text-sm text-ink-400">Personal deals on your card. They apply automatically at the till and online — no codes, one use each.</p>
+      <p className="mt-1 text-sm text-ink-400">Personal deals on your card. They apply automatically at the till and online, with no codes and one use each.</p>
       {deals.length ? (
         <ul className="mt-3 divide-y divide-ink-800">
           {deals.map((d) => {
@@ -184,7 +184,7 @@ export function TicketsPanel({ tickets, suggestions }: { tickets: TicketRow[]; s
       ) : (
         <>
           <p className="mt-1 flex items-center gap-2 text-sm text-ink-400">
-            <CalendarDays className="h-4 w-4 shrink-0" /> No tickets yet — here&apos;s what&apos;s coming up. RSVP is free.
+            <CalendarDays className="h-4 w-4 shrink-0" /> No tickets yet. Here&apos;s what&apos;s coming up. RSVP is free.
           </p>
           <div className="mt-3 grid gap-2">
             {suggestions.map((e) => (

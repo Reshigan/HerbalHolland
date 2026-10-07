@@ -134,7 +134,7 @@ export function AddBuyerForm() {
       )}
       {state.ok && (
         <p className="mt-3 flex items-center gap-1.5 text-sm text-leaf-100" role="status">
-          <Check className="h-4 w-4" aria-hidden /> Buyer added — they can sign in now.
+          <Check className="h-4 w-4" aria-hidden /> Buyer added. They can sign in now.
         </p>
       )}
       <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -149,8 +149,8 @@ export function AddBuyerForm() {
         </FieldRow>
         <FieldRow label="Role" htmlFor="b-role">
           <SelectInput key={`r-${state.at}`} id="b-role" name="role" defaultValue={state.ok ? "BUYER" : v.role || "BUYER"}>
-            <option value="BUYER">Buyer — places orders</option>
-            <option value="OWNER">Owner — also manages the account</option>
+            <option value="BUYER">Buyer (places orders)</option>
+            <option value="OWNER">Owner (also manages the account)</option>
           </SelectInput>
         </FieldRow>
       </div>

@@ -3,6 +3,7 @@
 // checks the state machine and audits; this re-checks the signed-in user and reads the form.
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
+import { reportFailure } from "@/server/alerts";
 import { db } from "@/server/db";
 import { advanceTradeOrder, confirmTradePayment, nextTradeActions, TradeOrderError } from "@/server/trade/orders";
 import { TradeAccountError } from "@/server/trade/accounts";
@@ -19,9 +20,9 @@ async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
   } catch (e) {
     unstable_rethrow(e);
     if (EXPECTED.some((E) => e instanceof E)) return fail((e as Error).message);
-    if ((e as { code?: string })?.code === "P2025") return fail("That order no longer exists — reload the page.");
-    console.error("[hq trade order action]", e);
-    return fail("Something went wrong — please try again.");
+    if ((e as { code?: string })?.code === "P2025") return fail("That order no longer exists. Reload the page.");
+    void reportFailure(e, "HQ trade order action"); // unexpected: logged and emailed to ops
+    return fail("Something went wrong. Please try again.");
   }
 }
 
@@ -85,11 +86,11 @@ export async function cancelOrder(id: string, _: ActionState, fd: FormData): Pro
   const g = await guard("network");
   if (!g) return DENIED;
   const reason = str(fd, "reason");
-  if (reason.length < 3) return fail("Say why — the account is told the order was cancelled.", { reason: "Required" });
+  if (reason.length < 3) return fail("Say why: the account is told the order was cancelled.", { reason: "Required" });
   return attempt(async () => {
     const o = await advanceTradeOrder(id, "cancel", g.actor, { note: reason, staffId: g.user.id });
     refresh(id, o.tradeAccountId);
-    flashTo(`/hq/trade/orders/${id}`, `${o.number} cancelled: any reserved stock is back on sale and the account has been told.${o.payMethod === "EFT" && o.paidAt ? " It was paid by EFT — refund it by hand." : ""}`);
+    flashTo(`/hq/trade/orders/${id}`, `${o.number} cancelled: any reserved stock is back on sale and the account has been told.${o.payMethod === "EFT" && o.paidAt ? " It was paid by EFT, so refund it by hand." : ""}`);
   });
 }
 

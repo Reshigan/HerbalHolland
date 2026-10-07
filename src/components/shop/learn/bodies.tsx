@@ -84,37 +84,27 @@ function Heritage() {
   return (
     <>
       <P>
-        Long before a Dutch coffee-shop menu listed them, Southern Africa&apos;s landraces were being shaped by the people who grew them — selected season after season on the hillsides of KwaZulu-Natal, the highlands of Eswatini, the lakeshore plains of Malawi and the steep valleys of the Wild Coast. A landrace is a local variety that has adapted to its place over generations: the soil, the sun, the rain and the hands that kept its seed.
+        Long before a Dutch coffee-shop menu listed them, Southern Africa&apos;s landraces were being shaped by the people who grew them, selected season after season on the hillsides of KwaZulu-Natal, the highlands of Eswatini, the lakeshore plains of Malawi and the steep valleys of the Wild Coast. A landrace is a local variety that has adapted to its place over generations: the soil, the sun, the rain and the hands that kept its seed.
       </P>
-      <P>Herbal Holland exists because of that story. Our name nods to Amsterdam, where many of these cultivars became famous; our roots — and our growers — are here.</P>
+      <P>Herbal Holland exists because of that story. Our name nods to Amsterdam, where many of these cultivars became famous; our roots are here.</P>
       <H2>Durban Poison: the one that travelled</H2>
       <P>
-        A pure sativa from the hills behind Durban, Durban Poison left South Africa in the 1970s, when seeds were carried to the United States and on to Amsterdam&apos;s seed banks. It became a global benchmark for its sweet, anise-like aroma and its tall, fast-finishing plants. At home, the KZN Heritage Growers Collective in Eshowe keeps a preserved line from locally held seed.
+        From the hills behind Durban, Durban Poison left South Africa in the 1970s, when seeds were carried to the United States and on to Amsterdam&apos;s seed banks. It went on to become a global benchmark.
       </P>
       <H2>Swazi Gold and Malawi Gold</H2>
       <P>
-        Swazi Gold comes from the Eswatini highlands, traditionally sun-cured to the golden colour that gives it its name, with a bright, citrus-forward character. Malawi Gold, from around Salima, is famously patient: it can take around 120 days to flower, and was historically cured in maize leaves into dense &ldquo;cobs&rdquo;.
+        Swazi Gold comes from the Eswatini highlands, where it was traditionally dried in the sun on the mountain slopes, which gives it the golden colour in its name. Malawi Gold, from around Salima, is famously patient: it can take around 120 days to flower, and was traditionally wrapped in maize leaves.
       </P>
       <Pull>A landrace is a library. Every seed carries a season&apos;s worth of decisions made by the people who grew it.</Pull>
       <H2>Mpondo Gold and the Wild Coast</H2>
       <P>
-        Pondoland, on the Eastern Cape&apos;s Wild Coast, has one of the country&apos;s oldest growing traditions — some growers believe Durban Poison itself partly descends from Mpondo lines. It has also been one of the hardest places to make a living from the plant. As informal buyers have pushed prices down, growers report earning a fraction of what a harvest fetched a decade ago, and some have been left with crops they couldn&apos;t sell.
+        Pondoland, on the Eastern Cape&apos;s Wild Coast, has one of the country&apos;s oldest growing traditions. Some growers believe Durban Poison itself partly descends from Mpondo lines.
       </P>
-      <Fact title="Our partnership with the Mpondo Growers Co-operative">
+      <Fact title="Where the law allows">
         <p>
-          <strong className="text-white">A fair price, agreed before planting.</strong> We agree a price per kilogram with the co-operative in Lusikisiki before the season starts, and pay on delivery — so growers know what a harvest is worth before they put seed in the ground.
-        </p>
-        <p>
-          <strong className="text-white">Formal, tested and traceable.</strong> Every lot is independently lab-tested, and its batch code traces it back to the farm. Scan any pack to see its certificate.
-        </p>
-        <p>
-          <strong className="text-white">Where the law allows.</strong> Licensed cannabis is supplied only through lawful channels — today, that means registered patients through our dispensary. Our heritage partnership is built for the long term, as South Africa&apos;s regulations develop.
+          Licensed cannabis is supplied only through lawful channels. Today that means registered patients with a SAHPRA authorisation, through an authorised dispenser in our <A href="/dispensary">dispensary</A>.
         </p>
       </Fact>
-      <H2>Taste the heritage today</H2>
-      <P>
-        Not every heritage product is a medicine. Our <A href="/p/swazi-gold-cbd-vape">Swazi Gold Terpene CBD Vape</A> recreates the landrace&apos;s aroma without THC, and <A href="/p/heritage-seed-pack">Durban Poison Heritage Seeds</A> come from the Collective&apos;s preserved line. Registered patients can find the flower itself in the <A href="/dispensary">dispensary</A>.
-      </P>
     </>
   );
 }
@@ -123,7 +113,7 @@ function LabResults() {
   return (
     <>
       <P>
-        Every Herbal Holland pack carries a batch code and a QR code. Scan it and you&apos;ll land on the certificate of analysis — the COA — for that exact batch: what the laboratory measured, what it screened for, who grew it and when it was packed. Here&apos;s how to read one.
+        Every Herbal Holland pack carries a batch code and a QR code. Scan it and you&apos;ll land on the certificate of analysis (the COA) for that exact batch: what the laboratory measured, what it screened for, who grew it and when it was packed. Here&apos;s how to read one.
       </P>
       <Steps
         items={[
@@ -140,19 +130,19 @@ function LabResults() {
           ["Pesticides", "Residues from crop protection products", "What's sprayed on a crop can stay on it."],
           ["Heavy metals", "Lead, cadmium, arsenic and mercury", "Plants take up metals from soil and water."],
           ["Mycotoxins", "Toxins from moulds, e.g. aflatoxins and ochratoxin A", "Produced when material is stored in damp conditions."],
-          ["Residual solvents", "Left-over extraction solvents", "Only relevant for extracts — flower shows Not applicable."],
+          ["Residual solvents", "Left-over extraction solvents", "Only relevant for extracts. Flower shows Not applicable."],
         ]}
       />
       <H2>Terpenes: the aroma profile</H2>
       <P>
-        Terpenes are the aromatic compounds that give each cultivar its smell — citrusy limonene, peppery caryophyllene, piney pinene, earthy myrcene. The COA shows the main terpenes measured in the batch as a percentage by weight. Two batches of the same product can differ a little; that&apos;s a natural product, measured honestly.
+        Terpenes are the aromatic compounds that give each cultivar its smell: citrusy limonene, peppery caryophyllene, piney pinene, earthy myrcene. The COA shows the main terpenes measured in the batch as a percentage by weight. Two batches of the same product can differ a little; that&apos;s a natural product, measured honestly.
       </P>
       <H2>Status: released, on hold, recalled</H2>
       <P>
-        Only batches marked <strong className="text-white">Released</strong> are sold. If a batch is placed <strong className="text-white">on hold</strong> — for example while a result is re-tested — or <strong className="text-white">recalled</strong>, the batch page says so at the top in plain language, and our tills block it automatically.
+        Only batches marked <strong className="text-white">Released</strong> are sold. If a batch is placed <strong className="text-white">on hold</strong> (for example while a result is re-tested) or <strong className="text-white">recalled</strong>, the batch page says so at the top in plain language, and our tills block it automatically.
       </P>
       <Fact title="Red flags anywhere you shop" tone="warn">
-        <p>No batch code, no lab name, results that are suspiciously round, or a certificate that can&apos;t be traced back to the product in your hand. If something doesn&apos;t add up, ask — a good retailer will show you.</p>
+        <p>No batch code, no lab name, results that are suspiciously round, or a certificate that can&apos;t be traced back to the product in your hand. If something doesn&apos;t add up, ask. A good retailer will show you.</p>
       </Fact>
     </>
   );
@@ -170,7 +160,7 @@ function Schedule0() {
         rows={[
           ["CBD per sales pack", "No more than 600 mg", "“CBD per pack” on every product page"],
           ["Daily serving", "No more than 20 mg of CBD a day", "“Maximum daily serving” on every product page"],
-          ["Claims", "Only general health enhancement, health maintenance or relief of minor symptoms", "“Approved claims” — and nothing else"],
+          ["Claims", "Only general health enhancement, health maintenance or relief of minor symptoms", "“Approved claims” and nothing else"],
           ["THC in consumables", "No more than 0.001%", "The THC line on the product and its lab certificate"],
         ]}
       />
@@ -179,14 +169,14 @@ function Schedule0() {
       </P>
       <H2>Why our claims are so modest</H2>
       <P>
-        Schedule 0 CBD can&apos;t claim to treat, cure or prevent any condition — and we don&apos;t. Each product carries only a short list of approved, low-risk claims such as &ldquo;Supports everyday calm&rdquo;, and our own copy is screened against the advertising code before it&apos;s published. If you see a CBD product anywhere promising to fix a medical condition, treat that as a warning sign.
+        Schedule 0 CBD can&apos;t claim to treat, cure or prevent any condition, and we don&apos;t. Each product carries only a short list of approved, low-risk claims such as &ldquo;Supports everyday calm&rdquo;, and our own copy is screened against the advertising code before it&apos;s published. If you see a CBD product anywhere promising to fix a medical condition, take that as a warning sign.
       </P>
       <Fact title="Good practice">
-        <p>Start with less than the maximum daily serving and don&apos;t exceed it. If you&apos;re pregnant, breastfeeding or take other medication, speak to a pharmacist or doctor before using CBD. We sell CBD to adults 18+ only — our policy, even though Schedule 0 sets no minimum age.</p>
+        <p>Start with less than the maximum daily serving and don&apos;t exceed it. If you&apos;re pregnant, breastfeeding or take other medication, speak to a pharmacist or doctor before using CBD. We sell CBD to adults 18+ only. That&apos;s our policy, even though Schedule 0 sets no minimum age.</p>
       </Fact>
       <H2>And hemp?</H2>
       <P>
-        Since the Plant Improvement Act 2018 came into force in December 2025, hemp is defined as plant material with no more than 2% THC. Our hemp range is cosmetic — cold-pressed seed oil and creams for skin — and every product lists its legal basis on the page.
+        Since the Plant Improvement Act 2018 came into force in December 2025, hemp is defined as plant material with no more than 2% THC. Our hemp range is cosmetic (cold-pressed seed oil and creams for skin), and every product lists its legal basis on the page.
       </P>
       <p className="mt-10 text-sm text-ink-450">This is general information, not legal or medical advice. Regulations change; we update our range and this guide when they do.</p>
     </>
@@ -197,7 +187,7 @@ function Section21() {
   return (
     <>
       <P>
-        Cannabis products containing THC are medicines in South Africa. They can be supplied to a patient on a <strong className="text-white">Section 21 authorisation</strong> from the South African Health Products Regulatory Authority (SAHPRA). This guide explains how that works at Herbal Holland. It&apos;s general information, not medical advice — the decision about treatment is always between you and your doctor.
+        Cannabis products containing THC are medicines in South Africa. They can be supplied to a patient on a <strong className="text-white">Section 21 authorisation</strong> from the South African Health Products Regulatory Authority (SAHPRA). This guide explains how that works at Herbal Holland. It&apos;s general information, not medical advice: medical decisions are always between you and your doctor.
       </P>
       <H2>What is a Section 21 authorisation?</H2>
       <P>
@@ -207,16 +197,16 @@ function Section21() {
         items={[
           { icon: <Stethoscope className="h-5 w-5" />, title: "You and your doctor decide", body: "Your doctor assesses whether a cannabis medicine is appropriate for you." },
           { icon: <FileCheck2 className="h-5 w-5" />, title: "Your doctor applies to SAHPRA", body: "The application is patient-specific. SAHPRA issues the authorisation with a scope, a quantity and a validity period." },
-          { icon: <IdCard className="h-5 w-5" />, title: "Register it with us, once", body: "Bring the authorisation and your ID to any Herbal Holland store. Our authorised dispenser verifies it and links it to your Rewards profile." },
+          { icon: <IdCard className="h-5 w-5" />, title: "Register it with us, once", body: "Bring the authorisation and your ID to a Herbal Holland store with a dispensary. An authorised dispenser verifies it and links it to your Rewards profile." },
           { icon: <Pill className="h-5 w-5" />, title: "Order and collect", body: "Sign in to see the dispensary, order within your authorised monthly quantity, and collect in store. Medicines are handed over by an authorised dispenser after an ID check." },
         ]}
       />
-      <H2>What we record — and what we don&apos;t</H2>
+      <H2>What we record, and what we don&apos;t</H2>
       <P>
-        We keep only what we need to dispense lawfully: the authorisation number, the prescriber and their HPCSA registration number, the authorised scope, the validity period and the monthly quantity. We deliberately <strong className="text-white">don&apos;t</strong> record your diagnosis or condition — health information is special personal information under POPIA, and we don&apos;t need it.
+        We keep only what we need to dispense lawfully: the authorisation number, the prescriber and their HPCSA registration number, the authorised scope, the validity period and the monthly quantity. We deliberately <strong className="text-white">don&apos;t</strong> record your diagnosis or condition: health information is special personal information under POPIA, and we don&apos;t need it.
       </P>
       <Fact title="How the dispensary is different">
-        <p>• Medicines are never listed publicly, never promoted, never discounted and never earn points — the Medicines Act prohibits incentives on medicines.</p>
+        <p>• Medicines are never listed publicly, never promoted, never discounted and never earn points, because the Medicines Act prohibits incentives on medicines.</p>
         <p>• They&apos;re collect-only: no courier or same-day delivery.</p>
         <p>• Your authorised monthly quantity is tracked across every store and online, on a rolling 30-day basis.</p>
       </Fact>
@@ -230,8 +220,8 @@ function Section21() {
 
 function Responsible() {
   const rules = [
-    { icon: <IdCard className="h-5 w-5" />, title: "Adults 18+ only", body: "We check ID at every collection and delivery, and we never sell to anyone under 18 — or on behalf of someone who is." },
-    { icon: <Baby className="h-5 w-5" />, title: "Lock it away from children and pets", body: "Keep products in their child-resistant packaging, out of sight and out of reach. Edibles can look like ordinary sweets — store them separately from food." },
+    { icon: <IdCard className="h-5 w-5" />, title: "Adults 18+ only", body: "We check ID at every collection and delivery, and we sell only to adults 18+, never on behalf of someone younger." },
+    { icon: <Baby className="h-5 w-5" />, title: "Lock it away from children and pets", body: "Keep products in their child-resistant packaging, out of sight and out of reach. Edibles can look like ordinary sweets, so store them separately from food." },
     { icon: <Car className="h-5 w-5" />, title: "Never drive or operate machinery", body: "Don't drive, cycle or operate machinery after using cannabis products that contain THC. Plan your journey home first." },
     { icon: <Clock className="h-5 w-5" />, title: "Start low, go slow", body: "Effects can take up to two hours with edibles. Start with a small amount and wait before taking more." },
     { icon: <Wine className="h-5 w-5" />, title: "Don't mix", body: "Combining cannabis with alcohol or other substances increases the risks. Keep it simple." },
@@ -239,7 +229,7 @@ function Responsible() {
   ];
   return (
     <>
-      <P>We&apos;d rather you enjoyed a small amount responsibly than too much carelessly. These are the basics we ask every member to live by.</P>
+      <P>These are the basics we ask every member to live by.</P>
       <ul className="my-10 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {rules.map((r) => (
           <li key={r.title} className="rounded-2xl border border-ink-800 bg-ink-900/60 p-5">
@@ -254,7 +244,7 @@ function Responsible() {
       <Fact title="If you need support" tone="warn">
         <p>
           If cannabis use is causing problems for you or someone close to you, help is available. The South African Depression and Anxiety Group (
-          <a href="https://www.sadag.org" rel="noopener noreferrer" className="font-semibold text-white underline">SADAG</a>) supports people with mental health and substance use concerns, and your doctor or clinic can refer you to local treatment services.
+          <a href="https://www.sadag.org" rel="noopener noreferrer" className="font-semibold text-white underline">SADAG</a>) supports people with mental health and substance use concerns, and your doctor or clinic can refer you to local support services.
         </p>
         <p className="flex items-center gap-2 text-sm text-amber-100">
           <AlertTriangle className="h-4 w-4 shrink-0" /> In an emergency, call 10177 or 112 from a mobile phone.
@@ -273,7 +263,7 @@ function Points({ settings }: { settings: Settings }) {
       </P>
       <H2>Earning</H2>
       <P>
-        Every member gets an instant price — a percentage off at the till and online, set by your tier. On top of that you earn {l.earnPer100} points for every R100 you pay, rounded down, on the amount you actually pay — not on points you spend. Some days, like Double Points Fridays, earn even more.
+        Every member gets an instant price: a percentage off at the till and online, set by your tier. On top of that you earn {l.earnPer100} points for every R100 you pay, rounded down. Points are earned on the amount you actually pay, not on points you spend. From time to time, a promotion multiplies the points you earn.
       </P>
       <Table
         head={["Tier", "Reach it by spending", "Instant saving", "Also"]}
@@ -284,10 +274,10 @@ function Points({ settings }: { settings: Settings }) {
           t.perks.join(" · "),
         ])}
       />
-      <P>Tiers follow your rolling 12-month spend and are reviewed with every purchase, so they go up the moment you qualify.</P>
+      <P>Each tier keeps the perks of the tiers below it. Tiers follow your rolling 12-month spend and are reviewed with every purchase, so they go up the moment you qualify.</P>
       <H2>Spending</H2>
       <P>
-        Use points from {fmtPoints(l.minRedeem)}, for up to {l.maxRedeemPct}% of an order — at the till, just say you&apos;d like to use them; online, tick &ldquo;Use my points&rdquo; at checkout.
+        Use points from {fmtPoints(l.minRedeem)}, for up to {l.maxRedeemPct}% of an order. At the till, just say you&apos;d like to use them; online, tick &ldquo;Use my points&rdquo; at checkout.
       </P>
       <H2>Bonuses</H2>
       <ul className="my-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -303,12 +293,12 @@ function Points({ settings }: { settings: Settings }) {
         ))}
       </ul>
       <Fact title="The small print, kept small">
-        <p>• Medicines supplied on a SAHPRA authorisation don&apos;t get member prices, earn points or carry discounts — the Medicines Act prohibits incentives on medicines.</p>
+        <p>• Medicines supplied on a SAHPRA authorisation don&apos;t get member prices, earn points or carry discounts, because the Medicines Act prohibits incentives on medicines.</p>
         <p>• Points are personal and can&apos;t be exchanged for cash.</p>
         <p>• Returns reverse the points earned on the returned items.</p>
       </Fact>
       <P>
-        Ready? <A href="/club/join">Join free</A> — it takes about a minute.
+        Ready? <A href="/club/join">Join free</A>. It takes about a minute.
       </P>
     </>
   );

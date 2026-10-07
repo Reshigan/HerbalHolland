@@ -84,9 +84,9 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
         ...(order.paymentStatus !== "PAID" && order.payMethod === "ONLINE" && order.status !== "CANCELLED" ? [{ key: "PENDING_PAYMENT" as const, label: "Awaiting payment", sub: "Complete payment to confirm your order" }] : []),
         { key: "PLACED", label: "Order placed", sub: collect ? `Sent to ${order.store.name}` : "We've received your order" },
         merchOnly ? { key: "PICKING", label: "Being made", sub: "Embroidered and printed for you" } : { key: "PICKING", label: "Being packed", sub: "Checked against the batch on the shelf" },
-        { key: "READY", label: collect ? "Ready for collection" : merchOnly ? "Made and packed" : "Packed and ready", sub: collect ? "We'll SMS you — bring your ID" : merchOnly ? "Handed to the courier" : "Waiting for the driver" },
+        { key: "READY", label: collect ? "Ready for collection" : merchOnly ? "Made and packed" : "Packed and ready", sub: collect ? "We'll SMS you. Bring your ID" : merchOnly ? "Handed to the courier" : "Waiting for the driver" },
         ...(collect ? [] : [{ key: "OUT_FOR_DELIVERY" as const, label: "Out for delivery", sub: order.courier ? `${order.courier}${order.trackingNo ? ` · ${order.trackingNo}` : ""}` : idAtDoor ? "ID (18+) checked at the door" : "On its way to you" }]),
-        { key: "COMPLETED", label: collect ? "Collected" : "Delivered", sub: medicine ? "Use only as directed by your prescriber" : "Enjoy — responsibly" },
+        { key: "COMPLETED", label: collect ? "Collected" : "Delivered", sub: medicine ? "Use only as directed by your prescriber" : "Thanks for shopping with us" },
       ];
   const order_ = steps.map((s) => s.key);
   const current = order.status === "CANCELLED" ? -1 : order_.indexOf(order.status);
@@ -114,13 +114,13 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
     <Container className="pt-10 sm:pt-14">
       <LiveRefresh active={open} />
       {mine && sp.placed && order.status !== "CANCELLED" && (
-        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thank you${customer ? `, ${customer.firstName}` : ""} — your order is in.`} className="mb-8">
-          We&apos;ve sent a confirmation by SMS{collect ? (store.open ? ` and ${order.store.name} is getting it ready` : ` — ${order.store.name} will get it ready when it opens (${store.label.replace(/^Opens/, "opens")})`) : ""}. {order.payMethod !== "ONLINE" ? `Pay ${zar(due)} when you collect.` : ""}
+        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thank you${customer ? `, ${customer.firstName}` : ""}. Your order is in.`} className="mb-8">
+          We&apos;ve sent a confirmation by SMS{collect ? (store.open ? ` and ${order.store.name} is getting it ready` : ` and ${order.store.name} will get it ready when it opens (${store.label.replace(/^Opens/, "opens")})`) : ""}. {order.payMethod !== "ONLINE" ? `Pay ${zar(due)} when you collect.` : ""}
         </Callout>
       )}
       {mine && (sp.paid || pay) && order.paymentStatus === "PAID" && order.status !== "CANCELLED" && (
-        <Callout tone="success" icon={<CreditCard className="h-5 w-5" />} title="Payment received — thank you." className="mb-8">
-          {gift ? `Your gift voucher is ready — the code is below, and it's on its way by ${customer?.email ? "email and SMS" : "SMS"}.` : `Your tax invoice will be emailed${collect ? " when you collect" : " when your order is dispatched"}.`}
+        <Callout tone="success" icon={<CreditCard className="h-5 w-5" />} title="Payment received. Thank you." className="mb-8">
+          {gift ? `Your gift voucher is ready. The code is below, and it's on its way by ${customer?.email ? "email and SMS" : "SMS"}.` : `Your tax invoice will be emailed${collect ? " when you collect" : " when your order is dispatched"}.`}
         </Callout>
       )}
       {waiting && (
@@ -151,7 +151,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             {gift
               ? order.status === "COMPLETED" ? "Your gift voucher is ready" : order.status === "CANCELLED" ? "Order cancelled" : "Gift voucher"
-              : order.status === "CANCELLED" ? "Order cancelled" : order.status === "COMPLETED" ? (collect ? "Collected — thank you" : "Delivered — thank you") : collect ? `Collect at ${order.store.name}` : "On its way to you"}
+              : order.status === "CANCELLED" ? "Order cancelled" : order.status === "COMPLETED" ? (collect ? "Collected. Thank you" : "Delivered. Thank you") : collect ? `Collect at ${order.store.name}` : "On its way to you"}
           </h1>
           <p className="mt-2 text-ink-400">
             Placed {fmtDateTime(order.createdAt)} · {gift ? "Gift voucher" : collect ? "Click & collect" : order.fulfilment === "SAME_DAY" ? "Same-day delivery" : "Courier delivery"}
@@ -224,11 +224,11 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                   <div className="eyebrow text-ink-400">Collection code</div>
                   <div className="tnum mt-1 font-display text-5xl font-semibold tracking-[0.15em] text-white sm:text-6xl">{mine ? order.collectionCode : "••••••"}</div>
                   <p className="mt-3 flex items-start gap-2 text-sm text-ink-300">
-                    <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> Show this code and your ID (18+) at the counter — your ID will be checked. Only you can collect this order.
+                    <IdCard className="mt-0.5 h-4 w-4 shrink-0 text-brand-500" /> Show this code and your ID (18+) at the counter, where your ID is checked. Only you can collect this order.
                   </p>
                   {order.status === "READY" && (
                     <p className="mt-2 text-sm text-leaf-100">
-                      Ready since {readyAt ? fmtDateTime(readyAt) : "today"} — we&apos;ll hold it for {settings.ecommerce.collectHoldDays} days{order.paymentStatus !== "PAID" ? `. Pay ${zar(due)} at the counter` : ""}.
+                      Ready since {readyAt ? fmtDateTime(readyAt) : "today"}. We&apos;ll hold it for {settings.ecommerce.collectHoldDays} days{order.paymentStatus !== "PAID" ? `. Pay ${zar(due)} at the counter` : ""}.
                     </p>
                   )}
                   {order.status !== "READY" && <p className="mt-2 text-sm text-ink-400">We&apos;ll SMS you as soon as it&apos;s ready. Collections are held for {settings.ecommerce.collectHoldDays} days.</p>}
@@ -439,7 +439,7 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
                       · tracking <span className="tnum font-semibold text-white">{order.podTracking}</span>
                     </>
                   ) : (
-                    " — we'll SMS its tracking number"
+                    ". We'll SMS its tracking number"
                   )}
                   .
                 </p>

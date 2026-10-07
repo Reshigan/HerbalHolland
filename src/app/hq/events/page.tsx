@@ -91,7 +91,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
           </thead>
           <tbody>
             {events.length === 0 && (
-              <EmptyRow cols={5}>{q || sp.store ? "No events match." : tab === "past" ? "No past events yet." : "Nothing planned — add an opening weekend or a members' evening."}</EmptyRow>
+              <EmptyRow cols={5}>{q || sp.store ? "No events match." : tab === "past" ? "No past events yet." : "Nothing planned. Add an opening weekend or a members' evening."}</EmptyRow>
             )}
             {events.map((e) => {
               const c = rsvps.get(e.id)!;

@@ -126,7 +126,7 @@ export function receiptBytes(r: ReceiptDTO, o: ReceiptOptions): Uint8Array {
   if (r.refundOf) p.line(`Refund of ${r.refundOf.number}`);
   if (r.soldBy && r.soldBy !== r.staff) p.para(servedBy(r, " - ", "-")).line(`Till ${o.devicePrefix}`);
   else p.line(`Served by ${r.staff ?? "-"} - till ${o.devicePrefix}`);
-  if (r.queued) p.bold(true).line("Offline sale - synced later").bold(false);
+  if (r.queued) p.bold(true).line("Offline sale (synced later)").bold(false);
   p.rule();
 
   // A trade sale (WHOLESALE) is a full tax invoice: unit prices ex VAT, VAT per line, the account's buyer block,

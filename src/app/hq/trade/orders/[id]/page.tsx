@@ -15,7 +15,7 @@ import { Detail } from "@/components/ui/misc";
 import { ButtonLink } from "@/components/ui/button";
 import { Field, Input, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { EVENT_LABEL, FULFIL_LABEL, PAY_LABEL, TradeOrderBadge, casesLabel, termsLabel } from "@/components/admin/trade-ui";
@@ -61,14 +61,14 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
         }
       />
       <Flash message={sp.m} />
-      {!s.canEdit && <ViewOnly className="mb-6">View only — the HQ team confirms payments and works the DC queue.</ViewOnly>}
+      {!s.canEdit && <ViewOnly className="mb-6">View only: the HQ team confirms payments and works the DC queue.</ViewOnly>}
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
           {canAct && (next.includes("pick") || next.includes("ship")) && (
             <Card className="border-brand-300 ring-4 ring-brand-500/10">
               <CardHeader title="At the distribution centre" description={o.status === "PLACED" ? "Start picking, or ship it straight away." : "Ship it with the courier and tracking number. A line that can't be filled ships short and is invoiced for what went."} />
-              <CardBody className="space-y-4">
+              <CardBody className="flex flex-col items-start gap-4">
                 {next.includes("pick") && <ActionButton action={pickOrder.bind(null, o.id)} variant="outline" pendingLabel="Starting…">Start picking</ActionButton>}
                 {next.includes("ship") && (
                   <ConfirmAction action={shipOrder.bind(null, o.id)} label="Ship order" title={`Ship ${o.number}?`} confirmLabel="Ship and invoice" variant="primary" triggerVariant="primary" size="md">
@@ -102,7 +102,7 @@ export default async function TradeOrderPage({ params, searchParams }: { params:
           )}
           {collect && ["PLACED", "PICKING", "READY"].includes(o.status) && (
             <Notice tone="info" title={`Click & collect at ${o.store.name}`}>
-              The store picks it, marks it ready (the buyer gets the collection code by email and text) and hands it over with an ID check — that posts the sale and the invoice.{" "}
+              The store picks it, marks it ready (the buyer gets the collection code by email and text) and hands it over with an ID check, which posts the sale and the invoice.{" "}
               {o.store.kind === "RETAIL" && <Link href={`/store/${o.store.code}/trade/${o.id}`} className="inline-block py-1 font-semibold underline hover:no-underline">Open the store&apos;s view →</Link>}
             </Notice>
           )}

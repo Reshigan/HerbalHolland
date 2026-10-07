@@ -2,6 +2,7 @@
 // Without keys, pushes are only logged (development). iPhones need the app added to the Home Screen (iOS 16.4+).
 import webpush from "web-push";
 import { db } from "./db";
+import { FALLBACK_EMAIL } from "@/lib/contact";
 
 export const vapidPublicKey = () => process.env.WEB_PUSH_PUBLIC_KEY ?? null;
 const live = () => !!(process.env.WEB_PUSH_PUBLIC_KEY && process.env.WEB_PUSH_PRIVATE_KEY);
@@ -15,7 +16,7 @@ export async function pushToCustomer(customerId: string, p: PushPayload) {
   if (!subs.length) throw new Error("No push subscription");
   if (!live()) return subs.length;
   if (!configured) {
-    webpush.setVapidDetails(process.env.WEB_PUSH_SUBJECT ?? "mailto:hello@herbalholland.co.za", process.env.WEB_PUSH_PUBLIC_KEY!, process.env.WEB_PUSH_PRIVATE_KEY!);
+    webpush.setVapidDetails(process.env.WEB_PUSH_SUBJECT ?? `mailto:${FALLBACK_EMAIL}`, process.env.WEB_PUSH_PUBLIC_KEY!, process.env.WEB_PUSH_PRIVATE_KEY!);
     configured = true;
   }
   let delivered = 0;

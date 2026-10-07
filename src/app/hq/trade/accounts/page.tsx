@@ -94,7 +94,7 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
   return (
     <>
       <PageHeader overline="Trade" title="Trade accounts" description="Businesses approved to buy at trade prices: their terms, credit limits and what they owe. Applications from the portal wait here as pending." />
-      {!s.canEdit && <ViewOnly className="mb-6">Accounts that buy from your region — view only.</ViewOnly>}
+      {!s.canEdit && <ViewOnly className="mb-6">Accounts that buy from your region (view only).</ViewOnly>}
       <Card>
         <TabLinks className="px-4" current={current} tabs={TABS.map((t) => ({ href: href({ status: t.key === "ALL" ? undefined : t.key, page: undefined }), label: t.label, count: n(t.key) }))} />
         <div className="space-y-3 border-b border-ink-100 p-4">

@@ -27,8 +27,8 @@ const ICON: Record<BlockKind, React.ComponentType<{ className?: string }>> = {
 
 const TITLE: Record<BlockKind, string> = {
   MEMBER: "Members only",
-  AGE: "Check ID — adults 18+ only",
-  UNDERAGE: "Under age — no sale",
+  AGE: "Check ID: adults 18+ only",
+  UNDERAGE: "Under age: no sale",
   PATIENT: "Patient authorisation needed",
   QUANTITY: "Over the authorised quantity",
   DISPENSER: "Authorised dispenser required",
@@ -114,13 +114,13 @@ export function ComplianceSheet({
                 <div className="mt-4 space-y-3">
                   <div className="grid gap-2 sm:grid-cols-2">
                     <PosButton variant="primary" busy={busy} onClick={() => onAgeCheck("ID_SIGHTED")}>
-                      <IdCard className="h-4 w-4" /> ID sighted — {minAge}+
+                      <IdCard className="h-4 w-4" /> ID sighted ({minAge}+)
                     </PosButton>
                     <PosButton variant="secondary" busy={busy} onClick={() => onAgeCheck("ID_SIGHTED")}>
-                      Passport sighted — {minAge}+
+                      Passport sighted ({minAge}+)
                     </PosButton>
                   </div>
-                  <Field label="Or enter their SA ID number" htmlFor="cmp-id" error={id && !id.ok ? id.reason : id?.ok && id.age < minAge ? `Under ${minAge} — don't sell` : undefined}>
+                  <Field label="Or enter their SA ID number" htmlFor="cmp-id" error={id && !id.ok ? id.reason : id?.ok && id.age < minAge ? `Under ${minAge}: don't sell` : undefined}>
                     <div className="flex gap-2">
                       <TextInput id="cmp-id" inputMode="numeric" autoComplete="off" value={idNumber} onChange={(e) => setIdNumber(e.target.value)} placeholder="13 digits" />
                       <PosButton variant="secondary" disabled={!id?.ok || id.age < minAge || busy} onClick={() => onAgeCheck("ID_NUMBER", idNumber.replace(/\s/g, ""))}>

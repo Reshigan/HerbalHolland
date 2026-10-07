@@ -19,7 +19,7 @@ export function TicketForm({ member, prefill }: { member: { firstName: string; h
   const f = state.fields ?? {};
   if (state.ok)
     return (
-      <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={state.number ? `Thanks — your request is ${state.number}.` : "Thanks — we have your message."}>
+      <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={state.number ? `Thanks. Your request is ${state.number}.` : "Thanks, we have your message."}>
         We&apos;ve emailed you a copy and we&apos;ll reply within one business day. {state.number ? `Quote ${state.number} if you write to us again.` : ""}{" "}
         <Link href="/club/join?next=/club/support" className="font-semibold text-white underline">
           Join Rewards
@@ -33,7 +33,7 @@ export function TicketForm({ member, prefill }: { member: { firstName: string; h
         <FieldRow label="Your name" htmlFor="t-name" error={f.name}>
           <TextInput id="t-name" name="name" defaultValue={v.name} autoComplete="name" required maxLength={TICKET_LIMITS.name} />
         </FieldRow>
-        <FieldRow label={member?.hasEmail ? "Email" : member ? "Email (optional — we'll text you otherwise)" : "Email"} htmlFor="t-email" error={f.email} hint={member ? undefined : "We reply by email."}>
+        <FieldRow label={member?.hasEmail ? "Email" : member ? "Email (optional, we'll text you otherwise)" : "Email"} htmlFor="t-email" error={f.email} hint={member ? undefined : "We reply by email."}>
           <TextInput id="t-email" name="email" type="email" defaultValue={v.email} autoComplete="email" required={!member} maxLength={TICKET_LIMITS.email} />
         </FieldRow>
         <FieldRow label="Mobile number (optional)" htmlFor="t-phone" error={f.phone}>

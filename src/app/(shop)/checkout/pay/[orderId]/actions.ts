@@ -30,8 +30,8 @@ async function unpaidOrder(orderId: string) {
  * markOrderPaid; this action only exists while ONLINE_GATEWAY is SIMULATED.
  */
 export async function simulatePayment(orderId: string, _: PayState, form: FormData): Promise<PayState> {
-  if (onlineGateway() !== "SIMULATED") return { error: "Payments are handled by our payment partner — please use their page." };
-  if (!simulationAllowed()) return { error: "Online payment isn't switched on yet — please choose click & collect and pay in store." };
+  if (onlineGateway() !== "SIMULATED") return { error: "Payments are handled by our payment partner. Please use their page." };
+  if (!simulationAllowed()) return { error: "Online payment isn't switched on yet. Please choose click & collect and pay in store." };
   const r = await unpaidOrder(orderId);
   if ("error" in r) return r;
   const { customer, order } = r;
@@ -70,7 +70,7 @@ export async function payOnline(orderId: string, _: PayState): Promise<PayState>
     if (/start at|Too many/.test(e.message)) return { error: `${e.message}, so this order can't be paid online. Please contact us and quote order ${order.code}.` };
     return { error: `We couldn't open ${possessive(name)} payment page just now. Please try again in a minute.` };
   }
-  if (c.step === "review") return { error: `A payment on this order needs a quick check by our team, so please don't pay again. We'll be in touch — quote order ${order.code}.` };
+  if (c.step === "review") return { error: `A payment on this order needs a quick check by our team, so please don't pay again. We'll be in touch. Quote order ${order.code}.` };
   // Paid already (applied just now) or still processing: the order page shows it, and waits for the gateway if need be.
   if (c.step !== "open") redirect(`/orders/${order.code}?pay=success`);
   if (c.created)

@@ -1,7 +1,7 @@
 // Marketing reports: what promotions cost and drove, and what campaigns returned.
 import { db, Prisma } from "../db";
 import { segmentLabel } from "../marketing";
-import { describePromo, type PromoInput } from "@/lib/promotions";
+import { describePromo } from "@/lib/promotions";
 import { fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
@@ -41,7 +41,7 @@ export const promotions: ReportDef = {
         const p = promos.get(id);
         const u = usedBy.get(id) ?? { n: 0, members: 0, revenue: 0, net: 0, discount: 0 };
         return {
-          name: p?.name ?? "Deleted promotion", deal: p ? describePromo(p as unknown as PromoInput) : "", code: p?.code ?? "",
+          name: p?.name ?? "Deleted promotion", deal: p ? describePromo(p) : "", code: p?.code ?? "",
           owner: p?.ownerStoreId ? (ctx.stores.get(p.ownerStoreId)?.name ?? "Store") : "HQ",
           runs: p ? `${fmtDay(p.startsAt)} – ${fmtDay(p.endsAt)}` : "", n: u.n, revenue: u.revenue, discount: u.discount,
           rate: ratio(u.discount, u.revenue + u.discount), atv: u.n ? Math.round(u.revenue / u.n) : null, members: ratio(u.members, u.n),

@@ -32,8 +32,8 @@ export async function postReview(a: { productId: string; customer: { id: string;
   const bought = await db.saleLine.findFirst({ where: { sale: { customerId: a.customer.id, kind: "SALE" }, variant: { productId: a.productId } }, select: { id: true } });
   if (!bought) throw new ReviewError("Reviews are from verified buyers only");
   const flags = screenCopy(`${title} ${body}`);
-  if (flags.length) throw new ReviewError(`We can't publish that as written (“${flags[0].term}”). Keep reviews to taste, aroma, quality and experience — no health or medical claims, please.`, "body");
-  if (await db.review.findUnique({ where: { productId_customerId: { productId: a.productId, customerId: a.customer.id } }, select: { id: true } })) throw new ReviewError("You've already reviewed this product — thank you!");
+  if (flags.length) throw new ReviewError(`We can't publish that as written (“${flags[0].term}”). Keep reviews to taste, aroma, quality and experience, with no health or medical claims, please.`, "body");
+  if (await db.review.findUnique({ where: { productId_customerId: { productId: a.productId, customerId: a.customer.id } }, select: { id: true } })) throw new ReviewError("You've already reviewed this product. Thank you!");
   let photoUploadIds: string[] = [];
   try {
     photoUploadIds = await storePhotos({ files: a.photos, max: REVIEW_PHOTOS.max, folder: "reviews", uploadedById: a.customer.id });
@@ -46,7 +46,7 @@ export async function postReview(a: { productId: string; customer: { id: string;
     await audit(db, { type: "CUSTOMER", id: a.customer.id, name: a.customer.firstName }, "review.post", { entity: "Review", entityId: review.id, data: { productId: a.productId, rating, photos: photoUploadIds.length } });
     return review;
   } catch (e) {
-    if ((e as { code?: string }).code === "P2002") throw new ReviewError("You've already reviewed this product — thank you!");
+    if ((e as { code?: string }).code === "P2002") throw new ReviewError("You've already reviewed this product. Thank you!");
     throw e;
   }
 }

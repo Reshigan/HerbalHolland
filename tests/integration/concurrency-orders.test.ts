@@ -203,7 +203,7 @@ describe("checkouts at the same moment", () => {
     const r = await settled(shoppers.map((c) => collect(c.id, v.id)));
     expect(r.ok).toHaveLength(1);
     expect(r.errors).toHaveLength(3);
-    for (const e of r.errors) expect(e).toMatch(/^Someone just bought the last Last Grinder · Black at Test Store — choose another store or fewer$|^Not everything is in stock at that store$/);
+    for (const e of r.errors) expect(e).toMatch(/^Someone just bought the last Last Grinder · Black at Test Store\. Choose another store or fewer\.$|^Not everything is in stock at that store$/);
     expect(await db.orderLine.count({ where: { variantId: v.id } })).toBe(1);
     expect((await availability([w.store.id], [v.id])).get(availKey(w.store.id, v.id))).toMatchObject({ onHand: 1, reserved: 1, available: 0 });
   });
@@ -245,7 +245,7 @@ describe("checkouts at the same moment", () => {
     const deal = await db.memberOffer.create({ data: { customerId: c.id, title: "20% off Test CBD Coffee", kind: "PERCENT", value: 20, productIds: [w.coffeeV.productId], startsAt: days(-1), endsAt: days(6) } });
     const r = await settled([collect(c.id, w.coffeeV.id), collect(c.id, w.coffeeV.id)]);
     expect(r.ok).toHaveLength(1);
-    expect(r.errors).toEqual(["A My Deals offer in this basket was just used on another purchase — refresh to see the price without it"]);
+    expect(r.errors).toEqual(["A My Deals offer in this basket was just used on another purchase, so refresh to see the price without it"]);
     expect(await db.memberOffer.findUniqueOrThrow({ where: { id: deal.id } })).toMatchObject({ orderId: r.ok[0].id, redeemedAt: expect.any(Date) });
     expect((await db.orderLine.findFirstOrThrow({ where: { orderId: r.ok[0].id } })).offerCents).toBeGreaterThan(0);
     expect(await db.order.count({ where: { customerId: c.id } })).toBe(1);
@@ -338,7 +338,7 @@ describe("a return refunded twice at once", () => {
     const r = await settled([refundReturn(ret.id, { restock: {} }, who, HQ), refundReturn(ret.id, { restock: {} }, who, HQ)]);
     expect(r.ok).toHaveLength(1);
     expect(r.errors).toHaveLength(1);
-    expect(r.errors[0]).toMatch(/^RT-\d{6} is already being refunded — refresh in a minute to see how it went$/);
+    expect(r.errors[0]).toMatch(/^RT-\d{6} is already being refunded\. Refresh in a minute to see how it went$/);
     expect(peach.posts()).toBe(1);
     expect(await db.returnRequest.findUniqueOrThrow({ where: { id: ret.id } })).toMatchObject({ status: "REFUNDED", refundRef: peach.refunds[0].refund_id });
     expect(await db.auditLog.count({ where: { action: "order.refund", entityId: order.id } })).toBe(1);
@@ -407,7 +407,7 @@ describe("status changes at the same moment: one wins", () => {
     const as = (u: { id: string; name: string }) => ({ type: "USER" as const, id: u.id, name: u.name });
     const r = await settled([reviewDeposit(dep.id, w.store.id, "VERIFIED", null, as(owner)), reviewDeposit(dep.id, w.store.id, "QUERIED", "The slip says R1,400", as(area))]);
     expect(r.ok).toHaveLength(1);
-    expect(r.errors).toEqual([`${dep.number} was just checked by a colleague — refresh to see what they decided`]);
+    expect(r.errors).toEqual([`${dep.number} was just checked by a colleague. Refresh to see what they decided`]);
     const after = await db.cashDeposit.findUniqueOrThrow({ where: { id: dep.id } });
     expect(await db.auditLog.count({ where: { entityId: dep.id, action: { in: ["deposit.verify", "deposit.query"] } } })).toBe(1);
     if (after.status === "QUERIED") await reviewDeposit(dep.id, w.store.id, "VERIFIED", null, as(owner));

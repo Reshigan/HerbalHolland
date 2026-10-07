@@ -1,17 +1,18 @@
 "use client";
 // Payment: amount due and split tenders — card (tap on glass, or the store's Yoco card machine),
-// a separate bank terminal, cash (quick amounts, change due), PayShap (payment-request QR), points and
+// a separate bank terminal, cash (quick amounts, change due), PayShap (to the store's own ShapID, when it has one), points and
 // gift vouchers (the code typed or scanned, looked up on the server, redeemed when the sale posts — so
 // online only). Over R5,000 the buyer's details are captured for a full tax invoice. Reused for order handovers.
 // Trade-sale mode (`trade`): money as usual plus an EFT by bank reference and "On account" within the account's credit
 // terms — never points or a gift voucher (consumer money); the buyer block comes from the account.
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Banknote, Building2, CreditCard, Gift, Landmark, Nfc, QrCode, ScanLine, Sparkles, Trash2 } from "lucide-react";
+import { Banknote, Building2, CreditCard, Gift, Landmark, Nfc, ScanLine, Sparkles, Trash2, Zap } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtDate } from "@/lib/format";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import { voucherCodeFrom } from "@/lib/vouchers";
+import { usePos } from "../context";
 import { api, errorText, TillError } from "../lib/api";
 import { cardMachineTender, maxRedeemable, parseRands, quickCash, tradeTenders } from "../lib/rules";
 import { Alert, Field, PosButton, Sheet, TextInput } from "../ui";
@@ -39,7 +40,6 @@ export function PaymentSheet({
   reference,
   online,
   tapProvider,
-  storeCode,
   points,
   needsBuyer,
   voucherScan,
@@ -57,7 +57,6 @@ export function PaymentSheet({
   reference: string;
   online: boolean;
   tapProvider: TapProviderKind;
-  storeCode: string;
   points?: { balance: number; eligibleCents: number; minRedeem: number } | null;
   needsBuyer?: boolean;
   voucherScan?: VoucherScan | null;
@@ -90,6 +89,8 @@ export function PaymentSheet({
   const [scanVoucher, setScanVoucher] = useState(false);
   const keySeq = useRef(0);
   const completing = useRef(false);
+  // The ShapID the store's bank issued (store settings): no ShapID, no PayShap tender.
+  const shapId = usePos().boot.store.payshapId?.trim() || null;
 
   const paid = tenders.reduce((s, t) => s + t.amountCents, 0) + pts * 100;
   const remaining = Math.max(0, dueCents - paid);
@@ -194,7 +195,6 @@ export function PaymentSheet({
   const tradeRules = trade ? tradeTenders({ account: trade, online, amountCents: charge, onAccountSoFarCents: onAccountSoFar }) : null;
   const accountLeft = trade ? Math.max(0, trade.availableCents - onAccountSoFar) : 0;
   const cashOptions = useMemo(() => quickCash(charge), [charge]);
-  const payshapText = `https://pay.herbalholland.co.za/payshap/${storeCode.toLowerCase()}?amount=${(charge / 100).toFixed(2)}&ref=${encodeURIComponent(reference)}`;
 
   const method = (key: Panel | "card", label: string, icon: React.ReactNode, disabled: boolean, sub?: string) => (
     <button
@@ -265,7 +265,7 @@ export function PaymentSheet({
                   <TenderRow
                     key={t.key}
                     icon={
-                      t.method === "CASH" ? <Banknote className="h-4 w-4" /> : t.method === "PAYSHAP" ? <QrCode className="h-4 w-4" /> : t.method === "VOUCHER" ? <Gift className="h-4 w-4" /> : t.method === "ACCOUNT" ? <Building2 className="h-4 w-4" /> : t.method === "EFT" ? <Landmark className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />
+                      t.method === "CASH" ? <Banknote className="h-4 w-4" /> : t.method === "PAYSHAP" ? <Zap className="h-4 w-4" /> : t.method === "VOUCHER" ? <Gift className="h-4 w-4" /> : t.method === "ACCOUNT" ? <Building2 className="h-4 w-4" /> : t.method === "EFT" ? <Landmark className="h-4 w-4" /> : <CreditCard className="h-4 w-4" />
                     }
                     label={
                       t.method === "CASH"
@@ -323,7 +323,7 @@ export function PaymentSheet({
             {busy && <p className="mt-4 text-center text-sm text-ink-300">Completing the sale…</p>}
             {dueCents === 0 && !busy && !error && (
               <PosButton variant="primary" size="lg" className="mt-4 w-full" disabled={!buyerOk} onClick={() => void complete()}>
-                Complete — nothing to pay
+                Complete (nothing to pay)
               </PosButton>
             )}
             {remaining === 0 && !busy && !error && !buyerOk && <Alert tone="warn" className="mt-4">Add the buyer&apos;s name and address to finish.</Alert>}
@@ -331,7 +331,7 @@ export function PaymentSheet({
 
           {/* Right: how they're paying */}
           <div>
-            <Field label="Amount for this payment" htmlFor="pay-amount" hint={amount < remaining && remaining ? `Split payment — ${zar(remaining - charge)} will still be due` : undefined}>
+            <Field label="Amount for this payment" htmlFor="pay-amount" hint={amount < remaining && remaining ? `Split payment: ${zar(remaining - charge)} will still be due` : undefined}>
               <div className="relative">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 font-display text-2xl text-ink-400">R</span>
                 <TextInput id="pay-amount" inputMode="decimal" value={amountText ?? (remaining ? (remaining / 100).toFixed(2) : "")} onChange={(e) => setAmountText(e.target.value)} onFocus={(e) => e.currentTarget.select()} className="h-16 pl-10 font-display text-3xl font-semibold tnum" disabled={remaining === 0} />
@@ -341,10 +341,10 @@ export function PaymentSheet({
             {!online && (
               <Alert tone="warn" className="mt-3">
                 {trade
-                  ? "Offline — a trade sale is priced and invoiced on the server, so it can't be completed until the till is back online."
+                  ? "Offline: a trade sale is priced and invoiced on the server, so it can't be completed until the till is back online."
                   : tapProvider === "YOCO"
-                    ? "Offline — cash, or card on the Yoco machine or a bank terminal. PayShap, points and gift vouchers need a connection."
-                    : "Offline — cash, or card on a bank terminal (key in its approval code). Tap on glass, PayShap, points and gift vouchers need a connection."}
+                    ? `Offline: cash, or card on the Yoco machine or a bank terminal. ${shapId ? "PayShap, points" : "Points"} and gift vouchers need a connection.`
+                    : `Offline: cash, or card on a bank terminal (key in its approval code). Tap on glass, ${shapId ? "PayShap, " : ""}points and gift vouchers need a connection.`}
               </Alert>
             )}
             {voucherPending && (
@@ -359,7 +359,7 @@ export function PaymentSheet({
                 : method("card", "Card · tap", <Nfc className="h-5 w-5" />, !online || tapProvider === "EXTERNAL", "Card, phone or watch")}
               {method("external", "Bank terminal", <Landmark className="h-5 w-5" />, false, "Enter the approval code")}
               {method("cash", "Cash", <Banknote className="h-5 w-5" />, false, "Change calculated")}
-              {method("payshap", "PayShap", <QrCode className="h-5 w-5" />, !online, "Instant EFT by QR")}
+              {shapId && method("payshap", "PayShap", <Zap className="h-5 w-5" />, !online, online ? "To the store's ShapID" : "Needs a connection")}
               {tradeRules && method("eft", "EFT", <Landmark className="h-5 w-5" />, !tradeRules.eft, "Paid by EFT · bank reference")}
               {tradeRules &&
                 trade &&
@@ -452,7 +452,7 @@ export function PaymentSheet({
                       {voucherUse <= 0
                         ? "Nothing left on it to use here."
                         : voucherUse < charge
-                          ? `It covers ${zar(voucherUse)} of the ${zar(charge)} — ${zar(charge - voucherUse)} will still be due. `
+                          ? `It covers ${zar(voucherUse)} of the ${zar(charge)}, so ${zar(charge - voucherUse)} will still be due. `
                           : `${zar(voucherLeft(voucher.code) - voucherUse)} stays on the voucher. `}
                       {voucherUse > 0 && "To use less of it, type a smaller amount above."}
                     </p>
@@ -541,38 +541,34 @@ export function PaymentSheet({
               </form>
             )}
 
-            {panel === "payshap" && (
-              <div className="mt-4 grid gap-4 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800 sm:grid-cols-[10rem_1fr]">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={`/api/pos/qr?text=${encodeURIComponent(payshapText)}`} alt="PayShap payment request QR code" className="aspect-square w-40 rounded-xl bg-white p-1.5" />
-                <div className="flex flex-col">
-                  <p className="text-sm text-ink-300">
-                    Scan with any banking app to pay <b className="text-white">{zar(charge)}</b>
-                  </p>
-                  <dl className="mt-2 space-y-1 text-sm">
-                    <div className="flex gap-2">
-                      <dt className="text-ink-400">ShapID</dt>
-                      <dd className="font-mono text-white">{storeCode.toLowerCase()}@herbalholland</dd>
-                    </div>
-                    <div className="flex gap-2">
-                      <dt className="text-ink-400">Reference</dt>
-                      <dd className="font-mono text-white">{reference}</dd>
-                    </div>
-                  </dl>
-                  <Field label="Bank reference (from the payment notification)" htmlFor="ps-ref" className="mt-3">
-                    <TextInput id="ps-ref" autoComplete="off" value={payshapRef} onChange={(e) => setPayshapRef(e.target.value)} placeholder={reference} className="font-mono" />
-                  </Field>
-                  <PosButton
-                    variant="primary"
-                    className="mt-3"
-                    onClick={() => {
-                      add({ method: "PAYSHAP", amountCents: charge, provider: "PAYSHAP", reference: payshapRef.trim() || reference });
-                      setPayshapRef("");
-                    }}
-                  >
-                    I&apos;ve received {zar(charge)}
-                  </PosButton>
-                </div>
+            {panel === "payshap" && shapId && (
+              <div className="mt-4 rounded-2xl bg-ink-850 p-4 ring-1 ring-ink-800" data-testid="payshap-panel">
+                <p className="text-sm text-ink-300">
+                  Ask the customer to pay <b className="text-white">{zar(charge)}</b> by PayShap from their banking app, to this ShapID and with this reference.
+                </p>
+                <dl className="mt-3 space-y-1.5">
+                  <div className="flex flex-wrap items-baseline gap-x-3">
+                    <dt className="text-sm text-ink-400">ShapID</dt>
+                    <dd className="break-all font-mono text-2xl font-semibold text-white">{shapId}</dd>
+                  </div>
+                  <div className="flex flex-wrap items-baseline gap-x-3">
+                    <dt className="text-sm text-ink-400">Reference</dt>
+                    <dd className="font-mono text-white">{reference}</dd>
+                  </div>
+                </dl>
+                <Field label="Bank reference (from the payment notification)" htmlFor="ps-ref" hint="Confirm it from the store's bank notification, not the customer's screen." className="mt-3">
+                  <TextInput id="ps-ref" autoComplete="off" value={payshapRef} onChange={(e) => setPayshapRef(e.target.value)} placeholder={reference} className="font-mono" />
+                </Field>
+                <PosButton
+                  variant="primary"
+                  className="mt-3 w-full"
+                  onClick={() => {
+                    add({ method: "PAYSHAP", amountCents: charge, provider: "PAYSHAP", reference: payshapRef.trim() || reference });
+                    setPayshapRef("");
+                  }}
+                >
+                  I&apos;ve received {zar(charge)}
+                </PosButton>
               </div>
             )}
 

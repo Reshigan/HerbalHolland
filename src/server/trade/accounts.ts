@@ -54,10 +54,10 @@ export async function applyForTradeAccount(
   const d = check.data;
   const settings = await getSettings();
   if (await db.tradeBuyer.findUnique({ where: { email: d.buyerEmail }, select: { id: true } }))
-    return { ok: false, fields: { buyerEmail: "That email address already signs in to a trade account — sign in, or use another address for this business" } };
+    return { ok: false, fields: { buyerEmail: "That email address already signs in to a trade account. Sign in, or use another address for this business" } };
   const hash = opts.ip ? ipHash(opts.ip) : null;
   if (hash && (await db.tradeAccount.count({ where: { ipHash: hash, createdAt: { gte: new Date(Date.now() - 3_600_000) } } })) >= APPLICATIONS_PER_IP_HOUR)
-    return { ok: false, fields: {}, error: "We've had several applications from this connection in the last hour — please try again later, or email the trade team." };
+    return { ok: false, fields: {}, error: "We've had several applications from this connection in the last hour. Please try again later, or email the trade team." };
   // The documents: every one checked by its bytes before any is stored, then stored before the account exists.
   const refused: TradeErrors = {};
   for (const l of d.licences)
@@ -128,7 +128,7 @@ const termsInfo = async () => {
 export async function approveTradeAccount(id: string, input: TradeTermsInput, actor: Actor) {
   const account = await tx(async (t) => {
     const before = await t.tradeAccount.findUniqueOrThrow({ where: { id } });
-    if (before.status === "CLOSED") throw new TradeAccountError("This account is closed — reopen it first");
+    if (before.status === "CLOSED") throw new TradeAccountError("This account is closed. Reopen it first");
     const data = await checkTerms(t, input);
     // Licences first: every one this kind of business needs for the approved ranges, verified and in date.
     const standing = await standingOf(before, { classes: data.classes, t });
@@ -284,7 +284,7 @@ export async function updateTradeAccount(id: string, patch: Partial<TradeAccount
       const b = await t.tradeBuyer.findUnique({ where: { id: opts.byBuyerId } });
       if (!b || b.tradeAccountId !== id || !b.active || b.role !== "OWNER") throw new TradeAccountError("Only the account's owner can change its details");
       if (before.status === "CLOSED") throw new TradeAccountError(ACCOUNT_STATUS_PROBLEM.CLOSED);
-      if (termKeys.length) throw new TradeAccountError("Terms and ranges are set by Herbal Holland Trade — email us to change them");
+      if (termKeys.length) throw new TradeAccountError("Terms and ranges are set by Herbal Holland Trade. Email us to change them");
     }
     const data: Prisma.TradeAccountUpdateInput = { ...cleanDetails(Object.fromEntries(detailKeys.map((k) => [k, patch[k]])) as Partial<TradeAccountDetails>) };
     if (termKeys.length) {
@@ -340,7 +340,7 @@ export async function removeTradeBuyer(buyerId: string, actor: Actor, opts: { by
     await mayManageBuyers(t, buyer.tradeAccountId, opts);
     if (!buyer.active) return buyer;
     if (buyer.role === "OWNER" && (await t.tradeBuyer.count({ where: { tradeAccountId: buyer.tradeAccountId, role: "OWNER", active: true } })) <= 1)
-      throw new TradeAccountError("An account keeps at least one owner — add another owner first");
+      throw new TradeAccountError("An account keeps at least one owner. Add another owner first");
     const updated = await t.tradeBuyer.update({ where: { id: buyerId }, data: { active: false } });
     await t.session.deleteMany({ where: { tradeBuyerId: buyerId } });
     await audit(t, actor, "trade.buyer.remove", { entity: "TradeAccount", entityId: buyer.tradeAccountId, data: { buyerId } });

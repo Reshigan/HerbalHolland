@@ -2,7 +2,6 @@
 // cookie. Only an active buyer on an account that isn't closed can sign in; every trade mutation re-checks the
 // account's status itself (accounts.ts requireTradeAccount, orders.ts).
 import { after } from "next/server";
-import { redirect } from "next/navigation";
 import { db } from "../db";
 import { COOKIE, endSession, getTradeBuyer, startSession, TRADE_SESSION_HOURS, tradeBuyerForToken, type TradeBuyerSession } from "../auth";
 import { checkCode, issueCode, OTP_MINUTES, OtpLimitError } from "../otp";
@@ -33,7 +32,7 @@ export async function requestTradeCode(raw: string, opts?: { ip: string | null }
   const code = await issueCode({ email }, opts).catch((e) => {
     throw e instanceof OtpLimitError ? new TradeAuthError(e.message) : e;
   });
-  if (!code) throw new TradeAuthError("Too many codes requested — try again in 10 minutes");
+  if (!code) throw new TradeAuthError("Too many codes requested. Try again in 10 minutes");
   const buyer = await db.tradeBuyer.findUnique({ where: { email }, include: { account: { select: { status: true } } } });
   const canSignIn = !!buyer?.active && buyer.account.status !== "CLOSED";
   if (canSignIn) await afterReply(() => emailCode(email, code));
@@ -74,7 +73,7 @@ export async function verifyTradeCode(raw: string, code: string) {
   // An address that isn't a buyer's was never sent its code: whatever is typed counts as a wrong code, just as it would for a buyer.
   const r = await checkCode({ email }, buyer ? code : "");
   if (r !== "ok") throw new TradeAuthError(CODE_PROBLEM[r]);
-  if (!buyer?.active) throw new TradeAuthError("This sign-in has been switched off — ask the account's owner to add you again");
+  if (!buyer?.active) throw new TradeAuthError("This sign-in has been switched off. Ask the account's owner to add you again.");
   if (buyer.account.status === "CLOSED") throw new TradeAuthError("This trade account is closed");
   return buyer;
 }
@@ -94,10 +93,3 @@ export async function signInWithTradeCode(email: string, code: string) {
 }
 
 export const signOutTrade = () => endSession("trade");
-
-/** The signed-in buyer (with their account), or a redirect to the portal's sign-in page. */
-export async function requireTradeBuyer() {
-  const buyer = await getTradeBuyer();
-  if (!buyer) redirect("/trade/login");
-  return buyer;
-}

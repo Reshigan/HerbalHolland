@@ -20,10 +20,9 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Stat } from "@/components/ui/stat";
 import { Avatar, Detail } from "@/components/ui/misc";
-import { Field, Input, Textarea, Checkbox } from "@/components/ui/form";
-import { Select } from "@/components/hq/select";
+import { Field, Input, Textarea, Checkbox, Select } from "@/components/ui/form";
 import { AreaChart } from "@/components/charts/area-chart";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { saveCompany, saveStoreFees, saveStoreProfile, saveStoreStatus } from "../actions";
@@ -210,7 +209,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
           <Card>
             <CardHeader
               title="Owner"
-              description="Franchisee company — merchant of record for this store"
+              description={store.company.kind === "FRANCHISOR" ? "The franchisor (HQ): its details print on tax invoices, the legal pages and emails" : "Franchisee company: merchant of record for this store"}
               action={store.company.vatNumber ? <Badge tone="green">VAT vendor</Badge> : <Badge tone="amber">Not VAT registered</Badge>}
             />
             <CardBody>
@@ -243,6 +242,9 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                   </div>
                   <Field label="Registered address" htmlFor="coAddress">
                     <Input id="coAddress" name="address" defaultValue={store.company.address ?? ""} />
+                  </Field>
+                  <Field label="Directors" htmlFor="coDirectors" hint={store.company.kind === "FRANCHISOR" ? "Full names, as the membership terms list them (ECTA s43)" : "Full names"}>
+                    <Input id="coDirectors" name="directors" defaultValue={store.company.directors ?? ""} autoComplete="off" />
                   </Field>
                   <input type="hidden" name="name" value={store.company.name} />
                 </fieldset>

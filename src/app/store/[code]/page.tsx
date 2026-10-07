@@ -174,7 +174,7 @@ export default async function StoreDashboard({ params, searchParams }: { params:
         <Link href={`/store/${code}/updates`} className="mb-6 flex items-center gap-3 rounded-2xl border border-brand-200 bg-brand-50 px-4 py-3 text-sm text-brand-800 hover:bg-brand-100">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           <span className="flex-1">
-            <b>{plural(notes.length, "HQ update")} {notes.length === 1 ? "needs" : "need"} your acknowledgement</b> — latest: {notes[0].title}
+            <b>{plural(notes.length, "HQ update")} {notes.length === 1 ? "needs" : "need"} your acknowledgement</b> (latest: {notes[0].title})
           </span>
           <ArrowRight className="h-4 w-4" />
         </Link>

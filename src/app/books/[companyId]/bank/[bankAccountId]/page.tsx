@@ -18,7 +18,7 @@ import { Field, Input } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { BackLink, Chips, ReadOnlyNote } from "@/components/store/ui";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Drawer } from "@/components/store/drawer";
 import { Flash } from "@/components/hq/flash";
 import { AccountForm } from "../account-form";
@@ -158,7 +158,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
                           <div>
                             <h3 className="font-display text-sm font-semibold text-ink-900">Match to a journal</h3>
                             <p className="mt-0.5 text-xs text-ink-500">
-                              When it&apos;s in the books already but not as one amount — say one of a day&apos;s PayShap payments, which post with the day&apos;s trading. The journal&apos;s number is on its page under Journals.
+                              When it&apos;s in the books already but not as one amount (say, one of a day&apos;s PayShap payments, which post with the day&apos;s trading). The journal&apos;s number is on its page under Journals.
                             </p>
                             <ActionForm action={matchTo.bind(null, company.id, acct.id, r.id, null, view)} className="mt-3" notices="bottom" aria-label="Match to a journal by number">
                               <div className="flex items-end gap-2">
@@ -173,7 +173,7 @@ export default async function BankAccountPage({ params, searchParams }: { params
                           <div>
                             <h3 className="font-display text-sm font-semibold text-ink-900">Allocate</h3>
                             <p className="mt-0.5 mb-3 text-xs text-ink-500">
-                              Posts a journal for it: {acct.name} against the account you choose — bank charges, interest, a SARS payment, a transfer to another of the company&apos;s accounts.
+                              Posts a journal for it: {acct.name} against the account you choose (bank charges, interest, a SARS payment or a transfer to another of the company&apos;s accounts).
                             </p>
                             <AllocateForm
                               action={allocate.bind(null, company.id, acct.id, r.id, view)}
@@ -310,7 +310,7 @@ function LineRow({ r, write, companyId, acctId, path, sp, view, journal, open, f
                     </ButtonLink>
                   )}
                   <ConfirmAction action={ignore.bind(null, companyId, acctId, r.id, view)} label="Ignore" triggerVariant="ghost" title="Ignore this line?" confirmLabel="Ignore it" variant="dark" className="min-w-64 text-left">
-                    <p>For a line that isn&apos;t a transaction of the books — a duplicate from another download, a payment and its reversal, something already in the opening balance.</p>
+                    <p>For a line that isn&apos;t a transaction of the books: a duplicate from another download, a payment and its reversal, or something already in the opening balance.</p>
                     <Field label="Why (optional)" htmlFor={`why-${r.id}`}>
                       <Input id={`why-${r.id}`} name="reason" maxLength={200} placeholder="e.g. Reversed the next day" />
                     </Field>

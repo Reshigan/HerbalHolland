@@ -7,10 +7,12 @@ import { KEY_TERMS, TERMS_LABEL } from "@/lib/terms";
 import { TIERS, tierInfo } from "@/lib/loyalty-rules";
 import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
 import { zar } from "@/lib/money";
-import { fmtDateTime } from "@/lib/format";
+import { fmtDateTime, num } from "@/lib/format";
+import { siteUrl } from "@/lib/seo";
+import { contactEmailOf, legalNameOf } from "@/lib/contact";
 import type { Settings } from "@/server/settings";
 
-type Company = { legalName: string; regNumber: string | null; vatNumber: string | null; address: string | null; phone: string | null; email: string | null } | null;
+type Company = { legalName: string; regNumber: string | null; vatNumber: string | null; address: string | null; phone: string | null; email: string | null; directors: string | null } | null;
 
 export function List({ items }: { items: React.ReactNode[] }) {
   return (
@@ -32,8 +34,12 @@ export function Important({ children }: { children: React.ReactNode }) {
 }
 
 export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
-  const entity = c?.legalName ?? "Herbal Holland (Pty) Ltd";
-  const email = c?.email ?? "hello@herbalholland.co.za";
+  const entity = legalNameOf(c);
+  const email = contactEmailOf(c);
+  // ECTA s43 details from the franchisor's company record: a line whose details aren't on record yet is left out.
+  const address = c?.address?.trim();
+  const phone = c?.phone?.trim();
+  const directors = c?.directors?.trim();
   const { loyalty: l, ecommerce: e, launch: f, compliance } = s;
   return (
     <>
@@ -64,9 +70,9 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <List
         items={[
           `${entity}, a private company registered in South Africa${c?.regNumber ? `, registration number ${c.regNumber}` : ""}${c?.vatNumber ? `, VAT number ${c.vatNumber}` : ""}.`,
-          `Physical address, which is also our address for legal notices: ${c?.address ?? "[physical address]"}.`,
-          `Telephone ${c?.phone ?? "[telephone]"} · email ${email} · website herbalholland.co.za.`,
-          "Directors: [names of the directors — to be completed before launch].",
+          ...(address ? [`Physical address, which is also our address for legal notices: ${address}.`] : []),
+          `${phone ? `Telephone ${phone} · email` : "Email"} ${email} · website ${new URL(siteUrl()).host}.`,
+          ...(directors ? [`Directors: ${directors}.`] : []),
         ]}
       />
       <P>
@@ -147,7 +153,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <P>
         <b className="text-white">Founding Members.</b>{" "}
         {f.launchAt
-          ? `Members who join before ${fmtDateTime(new Date(f.launchAt))} are on the Founding Members list. When it closes, the first ${f.foundingCap.toLocaleString("en-ZA")} places get a numbered Founding Member card and at least the ${tierInfo(f.foundingTier).name} tier for ${f.foundingMonths} months. Your place is your joining order, and each friend who joins with your link before the list closes moves you up ${f.referralBoost} places.`
+          ? `Members who join before ${fmtDateTime(new Date(f.launchAt))} are on the Founding Members list. When it closes, the first ${num(f.foundingCap)} places get a numbered Founding Member card and at least the ${tierInfo(f.foundingTier).name} tier for ${f.foundingMonths} months. Your place is your joining order, and each friend who joins with your link before the list closes moves you up ${f.referralBoost} places.`
           : "When we run a Founding Members list, its closing date, number of places and benefits are shown in the Rewards app."}{" "}
         No purchase is needed. Fake or duplicate accounts and referrals don&apos;t count, and we may remove them.
       </P>
@@ -207,7 +213,7 @@ export function MembershipTerms({ c, s }: { c: Company; s: Settings }) {
       <List
         items={[
           "South African law applies. You may take a dispute to any court with jurisdiction, including the magistrate's court where you live.",
-          "Messages we send by SMS, email or in the app count as written notice (ECTA). Send notices to us at the email or physical address in section 2.",
+          `Messages we send by SMS, email or in the app count as written notice (ECTA). Send notices to us at the ${address ? "email or physical address" : "email address"} in section 2.`,
           "Your orders, tax invoices and points history are in the Rewards app for as long as you're a member. Ask us for a copy at any time.",
           "If a court finds part of these terms invalid, the rest still applies. If we don't enforce a term straight away, we haven't given it up.",
         ]}

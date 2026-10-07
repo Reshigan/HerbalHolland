@@ -34,9 +34,9 @@ describe("Today list", () => {
     f.tradeOrders = { toPick: 2, ready: 1, oldestOpenAt: ago(30 * 60_000), oldestReadyAt: ago(DAY) };
     const [item] = buildToday(f, "/store/PTA01");
     expect(item).toMatchObject({ key: "trade-orders", severity: "medium", count: 3, title: "3 trade orders to fulfil", href: "/store/PTA01/trade" });
-    expect(item.line).toBe("2 to pick · 1 waiting for collection · oldest waiting 30 min — click & collect for a business account");
+    expect(item.line).toBe("2 to pick · 1 waiting for collection · oldest waiting 30 min · click & collect for a business account");
     f.tradeOrders = { toPick: 0, ready: 1, oldestOpenAt: null, oldestReadyAt: ago(4 * DAY) };
-    expect(buildToday(f, "/store/PTA01")[0]).toMatchObject({ severity: "high", count: 1, title: "1 trade order to fulfil", line: "1 waiting for collection — click & collect for a business account" });
+    expect(buildToday(f, "/store/PTA01")[0]).toMatchObject({ severity: "high", count: 1, title: "1 trade order to fulfil", line: "1 waiting for collection · click & collect for a business account" });
     f.tradeOrders = { toPick: 1, ready: 0, oldestOpenAt: ago(5 * 3_600_000), oldestReadyAt: null };
     expect(buildToday(f, "/store/PTA01")[0].severity).toBe("high");
     // Online orders come first at the same severity; without the trade facts (older callers) nothing is listed.
@@ -60,10 +60,10 @@ describe("Today list", () => {
     expect(items.every((i) => i.severity === "high")).toBe(true);
     expect(items.map((i) => i.key)).toEqual(["orders", "alerts", "cash", "announcements", "batches", "patients", "supplier-invoices"]);
     expect(items.find((i) => i.key === "cash")).toMatchObject({ count: 2, title: "R2,000.00 of cash past its banking deadline", href: "/s/banking" });
-    expect(items.find((i) => i.key === "batches")!.line).toBe("9 units on hand · soonest in 5 days — mark down or move them first");
+    expect(items.find((i) => i.key === "batches")!.line).toBe("9 units on hand · soonest in 5 days: mark down or move them first");
     expect(items.find((i) => i.key === "patients")!.line).toContain("Soonest in 2 days");
-    expect(items.find((i) => i.key === "supplier-invoices")).toMatchObject({ title: "1 supplier invoice overdue", line: "R4,500.00 past due — pay or query them" });
-    expect(items.find((i) => i.key === "announcements")!.line).toBe("Includes a recall — act on it now · Recall: batch TH-A");
+    expect(items.find((i) => i.key === "supplier-invoices")).toMatchObject({ title: "1 supplier invoice overdue", line: "R4,500.00 past due: pay or query them" });
+    expect(items.find((i) => i.key === "announcements")!.line).toBe("Includes a recall: act on it now · Recall: batch TH-A");
   });
 
   it("finds the cycle counts that are due from the cadence, per category", () => {

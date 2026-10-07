@@ -86,7 +86,7 @@ export async function sendDueReminders(now = new Date()) {
       const path = reorderPath(r.id);
       const item = `${v.product.name} (${v.name})`;
       const body = `Time to reorder ${item}? One tap adds it to your bag: ${smsLink(path)} - Manage reminders: ${smsLink("/club/reminders")}`;
-      if (r.channel === "PUSH") await pushToCustomer(c.id, { title: "Time to reorder?", body: `${item} — tap to add it to your bag.`, url: path });
+      if (r.channel === "PUSH") await pushToCustomer(c.id, { title: "Time to reorder?", body: `${item}: tap to add it to your bag.`, url: path });
       else if (r.channel === "EMAIL" && c.email)
         await send({ channel: "EMAIL", to: c.email, subject: `Time to reorder ${v.product.name}?`, body: `Hi ${c.firstName}, you asked us to remind you every ${r.everyDays} days. ${body}`, kind: "TRANSACTIONAL", customerId: c.id, url: smsLink(path) });
       else await send({ channel: "SMS", to: c.phone, body: sms(body), kind: "TRANSACTIONAL", customerId: c.id });

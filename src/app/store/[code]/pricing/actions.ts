@@ -28,7 +28,7 @@ export async function savePrices(code: string, changes: { variantId: string; pri
     const by = new Map(rows.map((r) => [r.variantId, r]));
     for (const c of changes) {
       const r = by.get(c.variantId);
-      if (!r) return fail("One of these items isn't ranged at your store any more — refresh the page");
+      if (!r) return fail("One of these items isn't ranged at your store any more. Refresh the page.");
       if (c.priceCents != null && (!Number.isInteger(c.priceCents) || c.priceCents < 100 || c.priceCents > r.variant.priceCents * 5))
         return fail(`${r.variant.sku}: enter a price between R1 and five times the RRP`);
     }
@@ -48,7 +48,7 @@ export async function savePrices(code: string, changes: { variantId: string; pri
     });
     const thin = changes.filter((c) => c.priceCents != null && marginPct(c.priceCents, by.get(c.variantId)!.variant.wholesaleCents) < min).length;
     revalidatePath(`/store/${store.code}/pricing`);
-    return done(`Saved ${changes.length} price${changes.length === 1 ? "" : "s"}.${thin ? ` ${thin} ${thin === 1 ? "is" : "are"} below the ${min * 100}% margin guide — your call.` : ""} New prices apply at your tills straight away.`);
+    return done(`Saved ${changes.length} price${changes.length === 1 ? "" : "s"}.${thin ? ` ${thin} ${thin === 1 ? "is" : "are"} below the ${min * 100}% margin guide, but it's your call.` : ""} New prices apply at your tills straight away.`);
   });
 }
 
@@ -69,6 +69,6 @@ export async function bulkPrices(code: string, _: ActionState, fd: FormData): Pr
     await db.$transaction(rows.map((r) => db.storeVariant.update({ where: { storeId_variantId: { storeId: store.id, variantId: r.variantId } }, data: { priceCents: next(r.variant.priceCents) } })));
     await audit(db, actor, "price.override", { storeId: store.id, data: { bulk: true, category: category || "ALL", mode, pct: mode === "pct" ? pct : null, count: rows.length } });
     revalidatePath(`/store/${store.code}/pricing`);
-    return done(mode === "reset" ? `Cleared your own prices on ${plural(rows.length, "item")} — they follow the recommended price again.` : `Set ${plural(rows.length, "item")} to ${pct >= 0 ? "+" : ""}${pct}% vs RRP, rounded to the rand.`);
+    return done(mode === "reset" ? `Cleared your own prices on ${plural(rows.length, "item")}. They follow the recommended price again.` : `Set ${plural(rows.length, "item")} to ${pct >= 0 ? "+" : ""}${pct}% vs RRP, rounded to the rand.`);
   });
 }

@@ -14,7 +14,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge, type Tone } from "@/components/ui/badge";
 import { Table, TableEmpty, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionButton, ConfirmAction } from "@/components/store/action-form";
+import { ActionButton, ConfirmAction } from "@/components/ui/action-form";
 import { ReadOnlyNote } from "@/components/store/ui";
 import { Flash } from "@/components/hq/flash";
 import { cn } from "@/lib/cn";
@@ -67,7 +67,7 @@ export default async function ClosePage({ params, searchParams }: { params: Prom
       <PageHeader
         overline={`Books · ${company.name}`}
         title="Month end"
-        description="Check each month against the registers, then close it: nothing posts into a closed month any more — a late change lands in the first open month, marked late."
+        description="Check each month against the registers, then close it: nothing posts into a closed month any more. A late change lands in the first open month, marked late."
       />
       <Flash message={sp1(sp.m) || undefined} />
 
@@ -77,7 +77,7 @@ export default async function ClosePage({ params, searchParams }: { params: Prom
             <CardHeader
               title={`Checks for ${name(month)}${month === current ? " so far" : ""}`}
               description={
-                failing.length ? `${plural(failing.length, "check")} to look at — follow the link to find the difference.` : month === current ? "Statement and points checks run once the month is over." : "Everything agrees."
+                failing.length ? `${plural(failing.length, "check")} to look at. Follow the link to find the difference.` : month === current ? "Statement and points checks run once the month is over." : "Everything agrees."
               }
               action={failing.length ? <Badge tone="red" dot>{failing.length} to look at</Badge> : <Badge tone="green" dot>All agree</Badge>}
             />
@@ -166,7 +166,7 @@ export default async function ClosePage({ params, searchParams }: { params: Prom
                     size="md"
                     className="max-w-md"
                   >
-                    <p>Nothing can post into it afterwards. {warnings.length ? "Some things above still need attention — you can close anyway and correct them in an open month." : "Every check agrees."}</p>
+                    <p>Nothing can post into it afterwards. {warnings.length ? "Some things above still need attention. You can close anyway and correct them in an open month." : "Every check agrees."}</p>
                   </ConfirmAction>
                 </>
               )}

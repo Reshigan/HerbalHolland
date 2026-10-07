@@ -14,7 +14,7 @@ import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { deleteDrop, saveDrop } from "../actions";
@@ -117,7 +117,7 @@ export default async function DropPage({ params, searchParams }: { params: Promi
           </Table>
         </Card>
         <Card>
-          <CardHeader title="“Notify me” alerts" description="App push where the member has the app, else SMS — inside legal send times" />
+          <CardHeader title="“Notify me” alerts" description="App push where the member has the app, else SMS (inside legal send times)" />
           <CardBody>
             <ul className="space-y-3 text-sm">
               {passes.map((p) => (
@@ -142,7 +142,7 @@ export default async function DropPage({ params, searchParams }: { params: Promi
         </Card>
       </div>
 
-      {!edit && <ViewOnly className="mb-6">View only — drops are managed by the HQ team.</ViewOnly>}
+      {!edit && <ViewOnly className="mb-6">View only: drops are managed by the HQ team.</ViewOnly>}
       <DropForm action={saveDrop.bind(null, d.id)} values={dropValues(d)} options={options} readOnly={!edit} />
 
       {edit && (

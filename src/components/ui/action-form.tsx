@@ -1,7 +1,7 @@
 "use client";
-// Server-action forms for the HQ console: inline success/error notices, field errors,
-// pending state and deliberate confirmation for destructive actions.
-// Submits via a transition (not the form `action` prop) so React doesn't reset the
+// Server-action forms for the store back office, the HQ console and the books: inline success/error notices, field
+// errors, pending state and a deliberate second step for destructive actions.
+// Submits through a transition (not the form `action` prop) so React doesn't wipe the
 // fields when validation fails.
 import { createContext, useActionState, useContext, useEffect, useRef, useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
@@ -11,10 +11,10 @@ import { Notice } from "@/components/ui/page";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/server/hq/guard";
 
-type Action = (state: ActionState, fd: FormData) => Promise<ActionState>;
+export type FormAction = (state: ActionState, fd: FormData) => Promise<ActionState>;
 
-const FormCtx = createContext<{ state: ActionState; pending: boolean }>({ state: {}, pending: false });
-export const useFormCtx = () => useContext(FormCtx);
+const Ctx = createContext<{ state: ActionState; pending: boolean }>({ state: {}, pending: false });
+const useFormState = () => useContext(Ctx);
 
 export function ActionForm({
   action,
@@ -22,18 +22,21 @@ export function ActionForm({
   className,
   resetOnSuccess,
   notices = "top",
+  noticeClassName,
   onDone,
   id,
-  noticeClassName,
+  "aria-label": ariaLabel,
 }: {
-  action: Action;
+  action: FormAction;
   children: React.ReactNode;
   className?: string;
   resetOnSuccess?: boolean;
   notices?: "top" | "bottom" | "none";
+  /** Replaces the notice's spacing (mb-4 above the fields, mt-3 below them), e.g. with a grid column span. */
+  noticeClassName?: string;
   onDone?: (s: ActionState) => void;
   id?: string;
-  noticeClassName?: string;
+  "aria-label"?: string;
 }) {
   const [state, run, pending] = useActionState(action, {});
   const [, start] = useTransition();
@@ -44,12 +47,12 @@ export function ActionForm({
     onDone?.(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.at]);
-  const note = <FormNotice className={noticeClassName} />;
   return (
-    <FormCtx.Provider value={{ state, pending }}>
+    <Ctx.Provider value={{ state, pending }}>
       <form
         ref={ref}
         id={id}
+        aria-label={ariaLabel}
         className={className}
         aria-busy={pending}
         onSubmit={(e) => {
@@ -58,23 +61,23 @@ export function ActionForm({
           start(() => run(fd));
         }}
       >
-        {notices === "top" && note}
+        {notices === "top" && <FormNotice className={noticeClassName ?? "mb-4"} />}
         {children}
-        {notices === "bottom" && note}
+        {notices === "bottom" && <FormNotice className={noticeClassName ?? "mt-3"} />}
       </form>
-    </FormCtx.Provider>
+    </Ctx.Provider>
   );
 }
 
-export function FormNotice({ className }: { className?: string }) {
-  const { state } = useFormCtx();
-  if (state.error) return <Notice tone="danger" className={className ?? "mb-4"}>{state.error}</Notice>;
-  if (state.ok) return <Notice tone="success" className={className ?? "mb-4"}>{state.ok}</Notice>;
+function FormNotice({ className }: { className?: string }) {
+  const { state } = useFormState();
+  if (state.error) return <Notice tone="danger" className={className}>{state.error}</Notice>;
+  if (state.ok) return <Notice tone="success" className={className}>{state.ok}</Notice>;
   return null;
 }
 
 export function FieldError({ name }: { name: string }) {
-  const msg = useFormCtx().state.fields?.[name];
+  const msg = useFormState().state.fields?.[name];
   return msg ? (
     <p className="mt-1.5 text-xs font-medium text-rose-600" role="alert">
       {msg}
@@ -82,28 +85,22 @@ export function FieldError({ name }: { name: string }) {
   ) : null;
 }
 
-export function SubmitButton({
-  children,
-  pendingLabel,
-  variant = "primary",
-  size = "md",
-  className,
-  name,
-  value,
-  disabled,
-}: {
+type BtnProps = React.ComponentProps<typeof Button>;
+
+export function SubmitButton({ children, pendingLabel, variant = "primary", size = "md", className, name, value, disabled, title }: {
   children: React.ReactNode;
   pendingLabel?: string;
-  variant?: React.ComponentProps<typeof Button>["variant"];
-  size?: React.ComponentProps<typeof Button>["size"];
+  variant?: BtnProps["variant"];
+  size?: BtnProps["size"];
   className?: string;
   name?: string;
   value?: string;
   disabled?: boolean;
+  title?: string;
 }) {
-  const { pending } = useFormCtx();
+  const { pending } = useFormState();
   return (
-    <Button type="submit" variant={variant} size={size} className={className} name={name} value={value} disabled={pending || disabled}>
+    <Button type="submit" variant={variant} size={size} className={className} name={name} value={value} disabled={pending || disabled} title={title}>
       {pending && <Loader2 className="h-4 w-4 animate-spin" aria-hidden />}
       {pending && pendingLabel ? pendingLabel : children}
     </Button>
@@ -111,9 +108,9 @@ export function SubmitButton({
 }
 
 /**
- * A destructive or irreversible action behind an explicit second step. With
- * `typeToConfirm`, the confirm button only enables once the phrase is typed
- * (the server action must check the `confirm` field too).
+ * A destructive or irreversible action behind an explicit second step. `children` render inside the confirm panel
+ * (extra fields, consequences); `fields` go along as hidden inputs. With `typeToConfirm`, the confirm button only
+ * enables once the phrase is typed (the server action must check the `confirm` field too).
  */
 export function ConfirmAction({
   action,
@@ -121,6 +118,7 @@ export function ConfirmAction({
   title,
   children,
   confirmLabel = "Confirm",
+  fields,
   typeToConfirm,
   variant = "danger",
   triggerVariant = "outline",
@@ -128,14 +126,15 @@ export function ConfirmAction({
   icon,
   className,
 }: {
-  action: Action;
+  action: FormAction;
   label: React.ReactNode;
   title: React.ReactNode;
   children?: React.ReactNode;
   confirmLabel?: string;
+  fields?: Record<string, string>;
   typeToConfirm?: string;
   variant?: "danger" | "primary" | "dark";
-  triggerVariant?: React.ComponentProps<typeof Button>["variant"];
+  triggerVariant?: BtnProps["variant"];
   size?: "sm" | "md";
   icon?: React.ReactNode;
   className?: string;
@@ -143,9 +142,11 @@ export function ConfirmAction({
   const [open, setOpen] = useState(false);
   const [typed, setTyped] = useState("");
   const [msg, setMsg] = useState<string | null>(null);
+  // `className` styles the open confirmation panel (e.g. its width); the closed trigger stays compact.
+  // Both are `relative` so sr-only text inside a scrolling table stays inside the scroller.
   if (!open)
     return (
-      <div className={cn("flex flex-col items-start gap-2", className)}>
+      <div className="relative inline-flex flex-col items-start gap-2">
         {msg && <Notice tone="success">{msg}</Notice>}
         <Button type="button" variant={triggerVariant} size={size} onClick={() => (setOpen(true), setMsg(null))}>
           {icon}
@@ -155,8 +156,15 @@ export function ConfirmAction({
     );
   const ready = !typeToConfirm || typed.trim().toUpperCase() === typeToConfirm.toUpperCase();
   return (
-    <div className={cn("w-full rounded-2xl border p-4", variant === "danger" ? "border-rose-500/30 bg-rose-50/60" : "border-ink-200 bg-ink-50")} role="group" aria-label={typeof title === "string" ? title : undefined}>
+    <div
+      className={cn("relative w-full rounded-2xl border p-4 text-left", variant === "danger" ? "border-rose-500/30 bg-rose-50/60" : "border-ink-200 bg-ink-50", className)}
+      role="group"
+      aria-label={typeof title === "string" ? title : undefined}
+    >
       <ActionForm action={action} onDone={(s) => s.ok && (setOpen(false), setTyped(""), setMsg(s.ok))}>
+        {Object.entries(fields ?? {}).map(([k, v]) => (
+          <input key={k} type="hidden" name={k} value={v} />
+        ))}
         <div className={cn("font-display text-sm font-semibold", variant === "danger" ? "text-rose-600" : "text-ink-900")}>{title}</div>
         {children && <div className="mt-2 space-y-3 text-sm text-ink-700">{children}</div>}
         {typeToConfirm && (
@@ -180,32 +188,33 @@ export function ConfirmAction({
   );
 }
 
-/** One-click action button (no confirmation), e.g. "Approve". */
-export function ActionButton({
-  action,
-  children,
-  variant = "outline",
-  size = "sm",
-  fields,
-  className,
-  pendingLabel,
-}: {
-  action: Action;
+/** One-click action (no confirmation), e.g. "Acknowledge". Errors show under the button. */
+export function ActionButton({ action, children, variant = "outline", size = "sm", fields, className, pendingLabel, title }: {
+  action: FormAction;
   children: React.ReactNode;
-  variant?: React.ComponentProps<typeof Button>["variant"];
-  size?: React.ComponentProps<typeof Button>["size"];
+  variant?: BtnProps["variant"];
+  size?: BtnProps["size"];
   fields?: Record<string, string>;
   className?: string;
   pendingLabel?: string;
+  title?: string;
 }) {
   return (
     <ActionForm action={action} className={cn("inline-flex flex-col items-start gap-2", className)} notices="bottom">
       {Object.entries(fields ?? {}).map(([k, v]) => (
         <input key={k} type="hidden" name={k} value={v} />
       ))}
-      <SubmitButton variant={variant} size={size} pendingLabel={pendingLabel}>
+      <SubmitButton variant={variant} size={size} pendingLabel={pendingLabel} title={title}>
         {children}
       </SubmitButton>
     </ActionForm>
+  );
+}
+
+export function PrintButton({ label = "Print", className }: { label?: string; className?: string }) {
+  return (
+    <Button type="button" variant="outline" size="sm" className={cn("no-print", className)} onClick={() => window.print()}>
+      {label}
+    </Button>
   );
 }

@@ -26,16 +26,16 @@ async function run(code: string, id: string, fn: (c: Ctx) => Promise<string>): P
 }
 
 export async function approveReturn(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  return run(code, id, async (c) => `${(await decideReturn(id, "APPROVED", str(fd, "note"), c.who, c.scope)).number} approved — the member has been told. Book the collection next.`);
+  return run(code, id, async (c) => `${(await decideReturn(id, "APPROVED", str(fd, "note"), c.who, c.scope)).number} approved, and the member has been told. Book the collection next.`);
 }
 export async function declineReturn(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  return run(code, id, async (c) => `${(await decideReturn(id, "DECLINED", str(fd, "note"), c.who, c.scope)).number} declined — the member has been sent the reason.`);
+  return run(code, id, async (c) => `${(await decideReturn(id, "DECLINED", str(fd, "note"), c.who, c.scope)).number} declined. The member has been sent the reason.`);
 }
 export async function bookReturnCollection(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  return run(code, id, async (c) => `Collection recorded for ${(await bookCollection(id, { courier: str(fd, "courier"), waybill: str(fd, "waybill") }, c.who, c.scope)).number} — the member has the courier and waybill.`);
+  return run(code, id, async (c) => `Collection recorded for ${(await bookCollection(id, { courier: str(fd, "courier"), waybill: str(fd, "waybill") }, c.who, c.scope)).number}. The member has the courier and waybill.`);
 }
 export async function receiveReturnAction(code: string, id: string, _: ActionState): Promise<ActionState> {
-  return run(code, id, async (c) => `${(await receiveReturn(id, c.who, c.scope)).number} received — check it, then refund.`);
+  return run(code, id, async (c) => `${(await receiveReturn(id, c.who, c.scope)).number} received. Check it, then refund.`);
 }
 export async function refundReturnAction(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return run(code, id, async (c) => {

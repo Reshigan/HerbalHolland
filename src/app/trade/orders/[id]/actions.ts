@@ -11,7 +11,7 @@ export type ReorderResult = { ok: boolean; count: number; summary: string };
 
 export async function reorderTradeAction(orderId: string): Promise<ReorderResult> {
   const buyer = await getTradeBuyer();
-  if (!buyer) return { ok: false, count: 0, summary: "Your session has ended — sign in again." };
+  if (!buyer) return { ok: false, count: 0, summary: "Your session has ended. Sign in again." };
   const order = await db.tradeOrder.findUnique({ where: { id: orderId }, include: { lines: { include: { variant: { select: { id: true, active: true, podSku: true, caseQty: true, product: { select: { name: true, status: true, regClass: true } } } } } } } });
   if (!order || order.tradeAccountId !== buyer.tradeAccountId) return { ok: false, count: 0, summary: "That order isn't on your account." };
   const added: string[] = [];

@@ -10,7 +10,7 @@ import { Stat } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { Field, Textarea } from "@/components/ui/form";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionButton, ConfirmAction, FieldError } from "@/components/hq/action-form";
+import { ActionButton, ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { Chips, SearchForm } from "@/components/store/ui";
 import { EmptyState } from "@/components/ui/page";
 import { ViewOnly } from "@/components/hq/ui";
@@ -35,14 +35,14 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <PageHeader overline="Members" title="Reviews" description="Every product review is from a verified purchase and screened for claims before it's posted. Hide anything that still shouldn't be public (abuse, personal details, a claim the screen missed) — hidden reviews don't show or count." />
+      <PageHeader overline="Members" title="Reviews" description="Every product review is from a verified purchase and screened for claims before it's posted. Hide anything that still shouldn't be public (abuse, personal details, a claim the screen missed). Hidden reviews don't show or count." />
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Reviews" value={num(counts.all)} sub="verified purchases only" />
         <Stat label="With photos" value={num(counts.photos)} sub="shown in the product's gallery" />
         <Stat label="1–2 stars" value={num(counts.low)} sub="worth a read" />
         <Stat label="Hidden" value={num(counts.hidden)} sub="not shown, not counted" />
       </div>
-      {!canModerate && <ViewOnly className="mb-4">View only — the HQ team hides and shows reviews.</ViewOnly>}
+      {!canModerate && <ViewOnly className="mb-4">View only: the HQ team hides and shows reviews.</ViewOnly>}
       <Card>
         <div className="space-y-3 border-b border-ink-100 p-4 sm:px-5">
           <SearchForm path="/hq/reviews" q={q} keep={{ view: sp.view }} placeholder="Product, headline or text" />
@@ -103,7 +103,7 @@ export default async function ReviewsPage({ searchParams }: { searchParams: Prom
                         <Eye className="h-4 w-4" aria-hidden /> Show again
                       </ActionButton>
                     ) : (
-                      <ConfirmAction action={hideReview.bind(null, r.id)} label="Hide" title="Hide this review?" confirmLabel="Hide review" icon={<EyeOff className="h-4 w-4" aria-hidden />} className="w-full">
+                      <ConfirmAction action={hideReview.bind(null, r.id)} label="Hide" title="Hide this review?" confirmLabel="Hide review" icon={<EyeOff className="h-4 w-4" aria-hidden />}>
                         <p>It stops showing on the product page and no longer counts in the rating. The member isn&apos;t told.</p>
                         <Field label="Why (the team sees this)" htmlFor={`hide-${r.id}`}>
                           <Textarea id={`hide-${r.id}`} name="reason" className="min-h-14" maxLength={300} placeholder="e.g. Names a medical condition" />

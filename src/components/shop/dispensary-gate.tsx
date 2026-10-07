@@ -9,7 +9,7 @@ import { Callout, Container, Panel } from "./ui";
 const STEPS = [
   { icon: <Stethoscope className="h-5 w-5" />, title: "Talk to your doctor", body: "A registered medical practitioner decides whether a cannabis medicine is appropriate for you." },
   { icon: <FileCheck2 className="h-5 w-5" />, title: "Your doctor applies to SAHPRA", body: "Under Section 21 of the Medicines Act, your doctor applies for an authorisation naming you, the product and the quantity." },
-  { icon: <IdCard className="h-5 w-5" />, title: "Register it with us, once", body: "Bring the authorisation and your ID to any store. Our authorised dispenser verifies it and links it to your Rewards profile." },
+  { icon: <IdCard className="h-5 w-5" />, title: "Register it with us, once", body: "Bring the authorisation and your ID to a store with a dispensary. An authorised dispenser verifies it and links it to your Rewards profile." },
   { icon: <Pill className="h-5 w-5" />, title: "Order and collect", body: "Sign in to see the dispensary, order within your monthly authorised quantity, and collect in store after an ID check." },
 ];
 
@@ -23,7 +23,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{medical ? "For registered patients" : "For verified adults"}</h1>
           <p className="mt-4 max-w-xl text-[1.02rem] leading-relaxed text-ink-300">
             {medical
-              ? "Licensed cannabis products are medicines in South Africa. We supply them only to patients with a valid SAHPRA authorisation, handed over in store by an authorised dispenser — so we don't list them publicly, and they never carry promotions or points."
+              ? "Licensed cannabis products are medicines in South Africa. We supply them only to patients with a valid SAHPRA authorisation, handed over in store by an authorised dispenser. That's why we don't list them publicly, and they never carry promotions or points."
               : "Licensed products are available to signed-in adults whose age we've verified. Sign in and add your SA ID number to continue."}
           </p>
           <div className="mt-8">
@@ -38,7 +38,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
             )}
             {access.reason === "NO_AUTHORISATION" && (
               <Callout tone="warn" icon={<ShieldCheck className="h-5 w-5" />} title="We don't have an active authorisation on file for you">
-                If your doctor has obtained a Section 21 authorisation for you, bring it and your ID to any store and our dispenser will register it. If it has expired, ask your doctor about renewing it.
+                If your doctor has obtained a Section 21 authorisation for you, bring it and your ID to a store with a dispensary and our dispenser will register it. If it has expired, ask your doctor about renewing it.
               </Callout>
             )}
             {access.reason === "VERIFY_AGE" && (
@@ -65,9 +65,9 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
         <aside className="space-y-4 lg:pt-10">
           <Panel className="p-6">
             <Store className="h-7 w-7 text-brand-500" strokeWidth={1.6} />
-            <h2 className="mt-4 font-display text-xl font-semibold text-white">Ask our pharmacist in store</h2>
+            <h2 className="mt-4 font-display text-xl font-semibold text-white">Ask an authorised dispenser in store</h2>
             <p className="mt-2 text-sm leading-relaxed text-ink-400">
-              Every store has an authorised dispenser on the team. They can explain the process, check your paperwork and answer questions in private.
+              Stores with a dispensary have an authorised dispenser on the team, who can explain the process, check your paperwork and answer questions in private. The store finder shows which stores have one.
             </p>
             <ButtonLink href="/stores" variant="outline-dark" className="mt-5">
               Find a store
@@ -76,7 +76,7 @@ export function DispensaryGate({ access, next = "/dispensary" }: { access: Extra
           <Panel className="p-6">
             <h2 className="font-display text-lg font-semibold text-white">Good to know</h2>
             <ul className="mt-3 space-y-2.5 text-sm leading-relaxed text-ink-400">
-              <li>• We never store your diagnosis — only the authorisation number, prescriber, scope, validity and monthly quantity.</li>
+              <li>• We never store your diagnosis, only the authorisation number, prescriber, scope, validity and monthly quantity.</li>
               <li>• Medicines are collect-only and handed over after an ID check.</li>
               <li>• Nothing here is medical advice. Please speak to your doctor.</li>
             </ul>

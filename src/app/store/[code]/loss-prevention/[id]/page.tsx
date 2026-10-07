@@ -14,7 +14,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Detail } from "@/components/ui/misc";
 import { Field, Textarea } from "@/components/ui/form";
 import { BackLink } from "@/components/store/ui";
-import { ConfirmAction, FieldError } from "@/components/store/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 import { AlertStatusBadge, SeverityBadge } from "@/components/loss/badges";
 import { ALERT_STATUS, ROLE_LABEL } from "@/components/loss/labels";
@@ -112,11 +112,11 @@ export default async function AlertPage({ params, searchParams }: { params: Prom
                 )}
                 {next.includes("RESOLVED") && (
                   <ConfirmAction action={act("RESOLVED")} label="Resolve" icon={<CircleCheck className="h-4 w-4" aria-hidden />} size="md" title="Resolve this alert" confirmLabel="Resolve" variant="primary">
-                    <NoteField id="note-resolve" label="How was it resolved?" required placeholder="e.g. Recounted with the manager — R200 was in the safe bag" />
+                    <NoteField id="note-resolve" label="How was it resolved?" required placeholder="e.g. Recounted with the manager: R200 was in the safe bag" />
                   </ConfirmAction>
                 )}
                 {next.includes("DISMISSED") && (
-                  <ConfirmAction action={act("DISMISSED")} label="Dismiss — false alarm" icon={<CircleSlash className="h-4 w-4" aria-hidden />} size="md" title="Dismiss as a false alarm" confirmLabel="Dismiss" variant="dark">
+                  <ConfirmAction action={act("DISMISSED")} label="Dismiss as a false alarm" icon={<CircleSlash className="h-4 w-4" aria-hidden />} size="md" title="Dismiss as a false alarm" confirmLabel="Dismiss" variant="dark">
                     <NoteField id="note-dismiss" label="Why is it a false alarm?" required placeholder="e.g. Trading hours were extended for the public holiday" />
                   </ConfirmAction>
                 )}

@@ -12,7 +12,7 @@ export async function rsvp(eventId: string, customerId: string, now = new Date()
     const mine = await t.rsvp.findUnique({ where: { eventId_customerId: { eventId, customerId } } });
     if (mine) return mine;
     if (e.endsAt < now) throw new EventError("This event has ended");
-    if ((await t.rsvp.count({ where: { eventId } })) >= e.capacity) throw new EventError("This event is full — come and see us in store");
+    if ((await t.rsvp.count({ where: { eventId } })) >= e.capacity) throw new EventError("This event is full, but come and see us in store");
     return t.rsvp.create({ data: { eventId, customerId, code: shortCode(8) } });
   });
 }

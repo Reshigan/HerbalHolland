@@ -6,7 +6,7 @@ import { vatOnExcl, zar } from "@/lib/money";
 import { Notice } from "@/components/ui/page";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/form";
-import { ActionForm, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { plural, receiptCheck } from "@/server/store/rules";
 
 export type ReceiveLine = { id: string; name: string; sku: string; ordered: number; shipped: number; lots: string; unitCostCents: number };
@@ -87,7 +87,7 @@ export function ReceiveForm({ lines, action }: { lines: ReceiveLine[]; action: F
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
             <span>
               {check.shortShipped > 0 && <>{plural(check.shortShipped, "unit was", "units were")} short-shipped by the supplier. </>}
-              {check.shortReceived > 0 && <>{plural(check.shortReceived, "unit", "units")} fewer than the delivery note — say what happened below; the discrepancy is flagged to the supplier.</>}
+              {check.shortReceived > 0 && <>{plural(check.shortReceived, "unit", "units")} fewer than the delivery note. Say what happened below; the discrepancy is flagged to the supplier.</>}
             </span>
           </p>
         )}
@@ -99,7 +99,7 @@ export function ReceiveForm({ lines, action }: { lines: ReceiveLine[]; action: F
           {confirming ? (
             <>
               <SubmitButton pendingLabel="Receiving…" disabled={invalid.length > 0}>
-                <PackageCheck className="h-4 w-4" aria-hidden /> Confirm — book {plural(check.units, "unit")} in
+                <PackageCheck className="h-4 w-4" aria-hidden /> Confirm and book {plural(check.units, "unit")} in
               </SubmitButton>
               <Button type="button" variant="ghost" onClick={() => setConfirming(false)}>
                 Back

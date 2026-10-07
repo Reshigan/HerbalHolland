@@ -21,7 +21,7 @@ export function DeliveryReturns({ f, className }: { f: DeliveryFacts; className?
   const sealed = SEALED_CLASSES.includes(f.regClass);
   const noCoolingOff = NO_COOLING_OFF_CLASSES.includes(f.regClass);
   const rows: { icon: React.ReactNode; title: string; sub: string }[] = [];
-  if (f.canCollect) rows.push({ icon: <Store className="h-4 w-4" />, title: "Click & collect · free", sub: f.licensed ? "Handed over by our pharmacist after an ID check" : "Usually ready within 2 hours, during store hours" });
+  if (f.canCollect) rows.push({ icon: <Store className="h-4 w-4" />, title: "Click & collect · free", sub: f.licensed ? "Handed over by an authorised dispenser after an ID check" : "Usually ready within 2 hours, during store hours" });
   if (f.sameDay && f.canShip) rows.push({ icon: <Zap className="h-4 w-4" />, title: `Same-day from ${f.sameDay.store} · ${zar(f.sameDay.feeCents)}`, sub: `Order by ${f.sameDay.cutoffHour}:00 · free for Bloom and Harvest members` });
   if (f.canShip)
     rows.push(
@@ -35,7 +35,7 @@ export function DeliveryReturns({ f, className }: { f: DeliveryFacts; className?
     title: noCoolingOff ? "Returns: faulty or not as described" : `Returns: ${RETURN_WINDOWS.coolingOffDays} days to change your mind`,
     sub: noCoolingOff
       ? `Medicines can't be returned once dispensed unless there's something wrong with them: ${RETURN_WINDOWS.defectMonths} months under the CPA.`
-      : `${sealed ? "Unopened and sealed, " : ""}from delivery or collection — and ${RETURN_WINDOWS.defectMonths} months if it's faulty or not as described.`,
+      : `${sealed ? "Unopened and sealed, " : ""}from delivery or collection, and ${RETURN_WINDOWS.defectMonths} months if it's faulty or not as described.`,
   });
   return (
     <div className={className}>

@@ -2,11 +2,16 @@
 // Earn on what the member actually pays (not on points redeemed).
 export type TierKey = "SEED" | "SPROUT" | "BLOOM" | "HARVEST";
 
+/**
+ * The tiers. `perks` are what a tier adds to the tiers below it (a tier keeps every perk under it), and only perks the
+ * platform delivers: the birthday bonus (jobs), members-only drops and members' evenings (any member), early access to
+ * a drop for the tier HQ opens it to and up (Drop.earlyTier), and free same-day delivery from Bloom (orders.ts).
+ */
 export const TIERS: { key: TierKey; name: string; minCents: number; multiplier: number; perks: string[] }[] = [
-  { key: "SEED", name: "Seed", minCents: 0, multiplier: 1, perks: ["Birthday bonus", "Member-only drops"] },
-  { key: "SPROUT", name: "Sprout", minCents: 250_000, multiplier: 1, perks: ["Early access to drops", "Free grinder on tier-up"] },
-  { key: "BLOOM", name: "Bloom", minCents: 750_000, multiplier: 1, perks: ["Free same-day delivery", "Members' evenings"] },
-  { key: "HARVEST", name: "Harvest", minCents: 1_500_000, multiplier: 1, perks: ["Personal budtender", "First access to Reserve batches"] },
+  { key: "SEED", name: "Seed", minCents: 0, multiplier: 1, perks: ["Birthday bonus", "Member-only drops", "Members' evenings"] },
+  { key: "SPROUT", name: "Sprout", minCents: 250_000, multiplier: 1, perks: ["Early access to selected drops"] },
+  { key: "BLOOM", name: "Bloom", minCents: 750_000, multiplier: 1, perks: ["Free same-day delivery, where available", "Early access to more drops"] },
+  { key: "HARVEST", name: "Harvest", minCents: 1_500_000, multiplier: 1, perks: ["Early access whenever a drop opens early"] },
 ];
 
 /** Instant savings % per tier (HQ can change them in settings). Applied at the till and online, never on medicines. */

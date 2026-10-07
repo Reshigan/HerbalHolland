@@ -17,7 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Detail } from "@/components/ui/misc";
 import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ActionButton, ConfirmAction, FieldError } from "@/components/hq/action-form";
+import { ActionButton, ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { actOnDcOrder } from "../actions";
@@ -82,14 +82,14 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <Card>
             <CardHeader title="Actions" />
-            <CardBody className="space-y-3">
+            <CardBody className="flex flex-col gap-3">
               {!act && <ViewOnly>Orders are approved and shipped by the HQ distribution team.</ViewOnly>}
               {act && order.status === "SUBMITTED" && (
                 <>
                   <ActionButton action={actOnDcOrder.bind(null, order.id, "approve")} variant="dark" size="md" pendingLabel="Approving…" className="w-full">
                     <Check className="h-4 w-4" /> Approve order
                   </ActionButton>
-                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "reject")} label="Reject" icon={<X className="h-4 w-4" />} title="Reject this order" confirmLabel="Reject order" className="w-full">
+                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "reject")} label="Reject" icon={<X className="h-4 w-4" />} title="Reject this order" confirmLabel="Reject order">
                     <Field label="Reason for the store" htmlFor="reject-reason">
                       <Textarea id="reject-reason" name="reason" className="min-h-16" placeholder="e.g. Duplicate of PO-000123" />
                       <FieldError name="reason" />
@@ -107,11 +107,10 @@ export default async function DcOrderPage({ params, searchParams }: { params: Pr
                     variant="primary"
                     title="Ship now?"
                     confirmLabel="Confirm shipment"
-                    className="w-full"
                   >
                     <p>Stock leaves {order.seller.name} from the batches on the pick list (first expiry first). {short > 0 ? `${num(short)} units will ship short.` : "Everything is available."}</p>
                   </ConfirmAction>
-                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "cancel")} label="Cancel order" title="Cancel this order" confirmLabel="Cancel order" className="w-full">
+                  <ConfirmAction action={actOnDcOrder.bind(null, order.id, "cancel")} label="Cancel order" title="Cancel this order" confirmLabel="Cancel order">
                     <Field label="Reason for the store" htmlFor="cancel-reason">
                       <Textarea id="cancel-reason" name="reason" className="min-h-16" />
                       <FieldError name="reason" />

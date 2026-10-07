@@ -31,7 +31,7 @@ export default async function ReturnPage({ params, searchParams }: { params: Pro
         <ChevronLeft className="h-4 w-4" aria-hidden /> Order {order.code}
       </Link>
       {sp.done && (
-        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thanks — your return request is ${sp.done}.`} className="mt-4">
+        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thanks. Your return request is ${sp.done}.`} className="mt-4">
           We&apos;ll look at it and reply within one business day, then book a courier to collect it. You&apos;ll hear from us at each step.
         </Callout>
       )}
@@ -115,7 +115,7 @@ export default async function ReturnPage({ params, searchParams }: { params: Pro
         <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
           <Undo2 className="h-5 w-5 text-brand-500" aria-hidden /> {existing.length ? "Another item to send back?" : "What would you like to return?"}
         </h2>
-        <p className="mb-5 mt-1 text-sm text-ink-400">Choose the reason first — it decides what can come back and for how long. We collect faulty, damaged or wrong items at our cost.</p>
+        <p className="mb-5 mt-1 text-sm text-ink-400">Choose the reason first: it decides what can come back and for how long. We collect faulty, damaged or wrong items at our cost.</p>
         {canRequest ? (
           <ReturnForm orderCode={order.code} eligibility={eligibility} />
         ) : (

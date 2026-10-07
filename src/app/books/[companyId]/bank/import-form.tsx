@@ -3,7 +3,7 @@
 // from the file by default — and, for any other CSV, which columns hold what.
 import { useState } from "react";
 import { Field, Input, Select } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 const COLUMNS = [
   ["mapDate", "Date", "e.g. Date", true],
@@ -39,7 +39,7 @@ export function ImportForm({ action, accounts, formats, maxBytes, idPrefix = "im
           <FieldError name="bankAccountId" />
         </Field>
       )}
-      <Field label="Statement file" htmlFor={id("file")} hint={`CSV or OFX, downloaded from your online banking — up to ${mb} MB. Lines already imported are skipped.`}>
+      <Field label="Statement file" htmlFor={id("file")} hint={`CSV or OFX, downloaded from your online banking (up to ${mb} MB). Lines already imported are skipped.`}>
         <input
           id={id("file")}
           name="file"
@@ -48,14 +48,14 @@ export function ImportForm({ action, accounts, formats, maxBytes, idPrefix = "im
           required
           onChange={(e) => {
             const big = (e.currentTarget.files?.[0]?.size ?? 0) > maxBytes;
-            e.currentTarget.setCustomValidity(big ? `The file is over ${mb} MB — download a shorter period.` : "");
+            e.currentTarget.setCustomValidity(big ? `The file is over ${mb} MB. Download a shorter period.` : "");
             setTooBig(big);
           }}
           className="block w-full rounded-xl text-sm text-ink-700 file:mr-3 file:h-10 file:cursor-pointer file:rounded-full file:border-0 file:bg-ink-900 file:px-4 file:text-sm file:font-semibold file:text-white hover:file:bg-ink-800 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brand-500/15"
         />
         {tooBig && (
           <p className="mt-1.5 text-xs font-medium text-rose-600" role="alert">
-            The file is over {mb} MB — download a shorter period.
+            The file is over {mb} MB. Download a shorter period.
           </p>
         )}
         <FieldError name="file" />

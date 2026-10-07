@@ -8,7 +8,7 @@ import { TIERS } from "@/lib/loyalty-rules";
 import { fmtDateTime } from "@/lib/format";
 import { PageHeader, Notice } from "@/components/ui/page";
 import { Badge } from "@/components/ui/badge";
-import { ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { listStatus } from "@/components/hq/tones";
 import { deletePriceList, savePriceList } from "../actions";
@@ -66,7 +66,7 @@ export default async function PriceListPage({ params, searchParams }: { params: 
         }
       />
       {sp.saved && <Notice tone="success" className="mb-6">Price list created.</Notice>}
-      {!edit && <ViewOnly className="mb-6">View only — network pricing is managed by the HQ team.</ViewOnly>}
+      {!edit && <ViewOnly className="mb-6">View only: network pricing is managed by the HQ team.</ViewOnly>}
       <PriceListForm
         action={savePriceList.bind(null, list?.id ?? null)}
         values={values}

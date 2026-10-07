@@ -105,7 +105,7 @@ export function RemindMe({ variantId, signedIn, next, existing, days, channels, 
             {channels.map((c) => (
               <option key={c.key} value={c.key} disabled={!!c.disabled}>
                 {c.label}
-                {c.disabled ? ` — ${c.disabled}` : ""}
+                {c.disabled ? ` (${c.disabled})` : ""}
               </option>
             ))}
           </select>

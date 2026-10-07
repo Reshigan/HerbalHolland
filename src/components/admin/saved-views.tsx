@@ -33,7 +33,7 @@ function Views({ pageKey, userKey, className }: { pageKey: string; userKey: stri
     try {
       localStorage.setItem(key, JSON.stringify(next));
     } catch {
-      setNote("Couldn't save on this device — the browser is blocking site storage.");
+      setNote("Couldn't save on this device. The browser is blocking site storage.");
     }
   };
   const save = () => {

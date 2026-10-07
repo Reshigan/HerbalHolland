@@ -77,7 +77,7 @@ async function queueLedger(t: Tx | typeof db, id: string) {
 /** Checks the file's bytes (never its name or the browser's type) and stores it; returns what the Upload row needs. */
 async function storeInvoiceFile(a: { storeCode: string; storeId: string; file: File; day: string }, actorId: string) {
   if (!a.file.size) throw new SupplierInvoiceError("Add a photo or PDF of the invoice", "file");
-  if (a.file.size > MAX_INVOICE_BYTES) throw new SupplierInvoiceError("The file is over 8 MB — take the photo again or use a smaller PDF", "file");
+  if (a.file.size > MAX_INVOICE_BYTES) throw new SupplierInvoiceError("The file is over 8 MB. Take the photo again or use a smaller PDF", "file");
   const bytes = new Uint8Array(await a.file.arrayBuffer());
   const type = sniffType(bytes);
   if (!type || !INVOICE_TYPES.includes(type)) throw new SupplierInvoiceError("The invoice must be a JPEG or PNG photo, or a PDF", "file");
@@ -95,7 +95,7 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (!/^\d{4}-\d{2}-\d{2}$/.test(a.dueDate)) throw new SupplierInvoiceError("Choose the due date", "dueDate");
   const today = dayKey(new Date());
   if (a.invoiceDate > today) throw new SupplierInvoiceError("The invoice date can't be in the future", "invoiceDate");
-  if (a.invoiceDate < dayKey(addDays(new Date(), -400))) throw new SupplierInvoiceError("That's more than a year ago — check the date", "invoiceDate");
+  if (a.invoiceDate < dayKey(addDays(new Date(), -400))) throw new SupplierInvoiceError("That's more than a year ago. Check the date", "invoiceDate");
   if (a.dueDate < a.invoiceDate) throw new SupplierInvoiceError("The due date can't be before the invoice date", "dueDate");
   if (!Number.isInteger(a.totalCents) || a.totalCents <= 0 || a.totalCents > 100_000_000) throw new SupplierInvoiceError("Enter the invoice total including VAT", "total");
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
@@ -123,7 +123,7 @@ export async function paySupplierInvoice(id: string, storeId: string, a: { paidO
   const inv = await db.supplierInvoice.findFirst({ where: { id, storeId } });
   if (!inv) throw new SupplierInvoiceError("Invoice not found");
   if (inv.status === "PAID") throw new SupplierInvoiceError(`${inv.number} is already marked paid`);
-  if (inv.onStatement) throw new SupplierInvoiceError(`${inv.number} settles on the franchise statement — there's nothing to pay separately`);
+  if (inv.onStatement) throw new SupplierInvoiceError(`${inv.number} settles on the franchise statement, so there's nothing to pay separately`);
   const paidAt = a.paidOn && /^\d{4}-\d{2}-\d{2}$/.test(a.paidOn) ? new Date(`${a.paidOn}T12:00:00+02:00`) : new Date();
   if (paidAt > addDays(new Date(), 1)) throw new SupplierInvoiceError("The payment date can't be in the future", "paidOn");
   const note = a.note?.trim().slice(0, 300) || null;
@@ -136,8 +136,8 @@ export async function paySupplierInvoice(id: string, storeId: string, a: { paidO
 export async function querySupplierInvoice(id: string, storeId: string, note: string, actor: Actor & { id: string }) {
   const inv = await db.supplierInvoice.findFirst({ where: { id, storeId } });
   if (!inv) throw new SupplierInvoiceError("Invoice not found");
-  if (inv.status === "PAID") throw new SupplierInvoiceError(`${inv.number} is paid — nothing to query`);
-  if (inv.onStatement) throw new SupplierInvoiceError(`${inv.number} is for what you counted in — take any problem with it up with HQ`);
+  if (inv.status === "PAID") throw new SupplierInvoiceError(`${inv.number} is paid, so there's nothing to query`);
+  if (inv.onStatement) throw new SupplierInvoiceError(`${inv.number} is for what you counted in. Take any problem with it up with HQ`);
   const text = note.trim().slice(0, 300);
   if (text.length < 3) throw new SupplierInvoiceError("Say what's wrong with the invoice", "note");
   await db.supplierInvoice.update({ where: { id }, data: { status: "QUERIED", note: text } });

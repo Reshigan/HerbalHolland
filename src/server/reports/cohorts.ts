@@ -76,7 +76,7 @@ export const cohorts: ReportDef = {
           }
         : null,
       emptyTitle: "No members joined in this period",
-      empty: "Pick a range that includes the months members joined — cohorts are built from join dates.",
+      empty: "Pick a range that includes the months members joined: cohorts are built from join dates.",
       note: `Members are counted at their home store${ctx.networkWide ? " across the network" : ""} by the month they joined (SAST); a member is "back" in a month when a sale at ${ctx.storeIds.length === 1 ? "the store" : "these stores"} carries their card. Month 0 is the join month itself. Rates are members-weighted in the totals row.`,
     };
   },
@@ -85,7 +85,7 @@ export const cohorts: ReportDef = {
 export const retention: ReportDef = {
   key: "retention",
   title: "Retention & order value",
-  description: "Are members buying again — and how is the average basket moving month by month?",
+  description: "Are members buying again, and how is the average basket moving month by month?",
   group: "Members",
   scopes: ["hq", "store"],
   filters: ["range", "channel"],
@@ -162,7 +162,7 @@ export const retention: ReportDef = {
       chart: { kind: "area", title: "Average order value by month", description: "Incl. VAT, from the daily rollups", format: "zar", labels: trend.labels, series: [{ name: "Average order value", values: trend.values }] },
       emptyTitle: "Nothing to show",
       empty: "No sales in this period.",
-      note: `Repeat rate: members with two or more sales in a month (or the period). 90-day retention: of members who joined at least 90 days ago, the share who bought again between the day after joining and day 90 — so the newest cohorts show as “—” until they're old enough. ${ctx.networkWide ? "Members are counted across the network." : "Members are counted at their home store; sales at the selected stores."}`,
+      note: `Repeat rate: members with two or more sales in a month (or the period). 90-day retention: of members who joined at least 90 days ago, the share who bought again between the day after joining and day 90, so the newest cohorts show as “—” until they're old enough. ${ctx.networkWide ? "Members are counted across the network." : "Members are counted at their home store; sales at the selected stores."}`,
     };
   },
 };

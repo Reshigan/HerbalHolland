@@ -29,7 +29,7 @@ export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
   if (!order || order.storeId !== pos.device.storeId) throw new PosError("Order not found at this store", 404);
 
   const handover = b.to === "COMPLETED" && order.fulfilment === "COLLECT";
-  if (handover && !codeMatches(order, b.code ?? "")) throw new PosError("That code doesn't match this order — ask for the 6-digit collection code", 422, "BAD_CODE");
+  if (handover && !codeMatches(order, b.code ?? "")) throw new PosError("That code doesn't match this order. Ask for the 6-digit collection code", 422, "BAD_CODE");
   if (b.to === "CANCELLED" && !b.note) throw new PosError("Give a reason for cancelling", 422);
 
   const shift = await db.shift.findFirst({ where: { storeId: pos.device.storeId, deviceId: pos.device.id, closedAt: null }, select: { id: true } });

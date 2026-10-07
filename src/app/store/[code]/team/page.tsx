@@ -10,13 +10,12 @@ import { PageHeader, EmptyState, Notice } from "@/components/ui/page";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar } from "@/components/ui/misc";
-import { Checkbox, Field, Input } from "@/components/ui/form";
+import { Checkbox, Field, Input, Select } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { InlineEdit } from "@/components/ui/inline-edit";
 import { ReadOnlyNote } from "@/components/store/ui";
-import { Select } from "@/components/store/select";
 import { Drawer } from "@/components/store/drawer";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 
 export const metadata = { title: "Team" };
@@ -190,7 +189,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                               className="min-w-72"
                             >
                               <p>Sales they ring onto their own card are flagged and don&apos;t earn commission.</p>
-                              <Field label="Member number" htmlFor={`card-${s.id}`} hint={s.memberId ? "Clear it to unlink the card" : "Optional — from their Rewards card or app"}>
+                              <Field label="Member number" htmlFor={`card-${s.id}`} hint={s.memberId ? "Clear it to unlink the card" : "Optional, from their Rewards card or app"}>
                                 <Input id={`card-${s.id}`} name="memberNo" defaultValue={(s.memberId && cardNo.get(s.memberId)) || ""} placeholder="HH0123456" autoComplete="off" maxLength={24} className="font-mono uppercase" />
                                 <FieldError name="memberNo" />
                               </Field>
@@ -221,7 +220,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
       </Card>
 
       <Card className="mt-6">
-        <CardHeader title="Owners" description={`${store.company.legalName} — owners see every store in the company`} />
+        <CardHeader title="Owners" description={`Owners of ${store.company.legalName} see every store in the company`} />
         <div className="flex flex-wrap gap-3 p-5">
           {owners.map((o) => (
             <div key={o.id} className="flex items-center gap-3 rounded-xl border border-ink-150 px-3 py-2">

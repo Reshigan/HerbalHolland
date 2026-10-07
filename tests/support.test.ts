@@ -117,7 +117,7 @@ describe("the support form", () => {
     expect(r).toMatchObject({ ok: true, data: { name: "Sipho Dlamini", email: "sipho@example.co.za", phone: "+27825550101", subject: "Points missing", category: "REWARDS", orderCode: null } });
     expect(validateTicket({ ...guest, consent: "" }, null)).toMatchObject({ ok: false, fields: { consent: expect.stringContaining("Tick the box") } });
     expect(validateTicket({ ...guest, email: "" }, null)).toMatchObject({ ok: false, fields: { email: expect.stringContaining("Enter your email") } });
-    expect(validateTicket({ ...guest, email: "not-an-email" }, null)).toMatchObject({ ok: false, fields: { email: expect.stringContaining("check it for typos") } });
+    expect(validateTicket({ ...guest, email: "not-an-email" }, null)).toMatchObject({ ok: false, fields: { email: expect.stringContaining("Check it for typos") } });
     expect(validateTicket({ ...guest, phone: "12345" }, null)).toMatchObject({ ok: false, fields: { phone: expect.stringContaining("South African mobile") } });
   });
 

@@ -24,7 +24,7 @@ export const MOVEMENT_LABEL: Record<string, string> = {
   COUNT: "Stock-take variance", TRANSFER_OUT: "Transfer out", TRANSFER_IN: "Transfer in",
 };
 export const REASON_LABEL: Record<string, string> = {
-  DAMAGED: "Damaged", EXPIRED: "Expired (written off)", THEFT: "Theft", LOST: "Count variance — missing", FOUND: "Count variance — found",
+  DAMAGED: "Damaged", EXPIRED: "Expired (written off)", THEFT: "Theft", LOST: "Count variance (missing)", FOUND: "Count variance (found)",
   SAMPLE: "Samples & demo units", QUALITY: "Quality", RECALL: "Recall returns", DESTROYED: "Destroyed", CORRECTION: "Correction",
 };
 
@@ -93,7 +93,7 @@ export const stockValuation: ReportDef = {
       chart: rows.length > 1 ? { kind: "bar", title: `Stock value by ${first.toLowerCase()}`, description: "At landed cost, ex VAT · top 12", format: "zar", rows: rows.slice(0, 12).map((r) => ({ label: String(r.name), value: r.value as number, sub: count(r.units as number, "unit") })) } : null,
       emptyTitle: "No stock on hand",
       empty: "There is no stock on hand for these filters.",
-      note: `Valued at each batch lot's landed cost (ex VAT) — the cost the stock was received at, so the value follows FIFO by lot.${negLots ? ` ${negLots} lot${negLots === 1 ? " has" : "s have"} negative stock and ${negLots === 1 ? "is" : "are"} left out — see the Negative stock report.` : ""}`,
+      note: `Valued at each batch lot's landed cost (ex VAT), the cost the stock was received at, so the value follows FIFO by lot.${negLots ? ` ${negLots} lot${negLots === 1 ? " has" : "s have"} negative stock and ${negLots === 1 ? "is" : "are"} left out: see the Negative stock report.` : ""}`,
     };
   },
 };
@@ -209,7 +209,7 @@ export const stockMovements: ReportDef = {
 export const shrinkage: ReportDef = {
   key: "shrinkage",
   title: "Shrinkage",
-  description: "What are we losing — damage, theft, expiry and count variances — and what does it cost?",
+  description: "What are we losing to damage, theft, expiry and count variances, and what does it cost?",
   group: "Inventory",
   scopes: ["store", "hq"],
   filters: ["range", "category"],
@@ -357,7 +357,7 @@ export const expiry: ReportDef = {
         : null,
       emptyTitle: "Nothing expiring",
       empty: `No stock on hand expires in the next ${days} days.`,
-      note: `Expired stock can't be sold (the till blocks it) — write it off as an EXPIRED adjustment. Stock within ${markdownDays} days of expiry is marked down ${markdownPct}% at the till.`,
+      note: `Expired stock can't be sold (the till blocks it): write it off as an EXPIRED adjustment. Stock within ${markdownDays} days of expiry is marked down ${markdownPct}% at the till.`,
     };
   },
 };
@@ -644,7 +644,7 @@ export const negativeStock: ReportDef = {
         { label: "Value at cost", value: agg[0]?.value ?? 0, format: "zar" },
       ],
       emptyTitle: "No negative stock",
-      empty: "Every lot balances — nothing has been sold beyond what was on hand.",
+      empty: "Every lot balances: nothing has been sold beyond what was on hand.",
       note: "The till never blocks a sale for stock, so a sale posted before a delivery was received (or a miscount) leaves a lot below zero. Receive outstanding deliveries, then run a cycle count on these items to correct them.",
     };
   },

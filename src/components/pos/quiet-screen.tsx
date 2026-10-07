@@ -45,7 +45,7 @@ export function QuietScreen({ onWake }: { onWake: (tab?: PosTab) => void }) {
       role="button"
       tabIndex={0}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onWake()}
-      aria-label="Quiet hours — tap anywhere to return to selling"
+      aria-label="Quiet hours: tap anywhere to return to selling"
       data-testid="quiet-screen"
     >
       <Beadwork size={12} />
@@ -72,13 +72,13 @@ export function QuietScreen({ onWake }: { onWake: (tab?: PosTab) => void }) {
                 </div>
               </>
             ) : (
-              <div className="text-sm text-ink-400">{pos.boot.shift ? (pos.online ? "Loading the shift…" : "Offline — the shift total loads when you're back online") : "No shift open on this till"}</div>
+              <div className="text-sm text-ink-400">{pos.boot.shift ? (pos.online ? "Loading the shift…" : "Offline: the shift total loads when you're back online") : "No shift open on this till"}</div>
             )}
           </Tile>
 
           <Tile icon={<PackageCheck className="h-5 w-5" />} title="Online orders to hand over" testId="quiet-orders" onOpen={() => onWake("orders")}>
             {d.handover.length === 0 ? (
-              <div className="text-sm text-ink-400">{d.toPick ? `${d.toPick} to pick — nothing ready yet` : "Nothing waiting for collection"}</div>
+              <div className="text-sm text-ink-400">{d.toPick ? `${d.toPick} to pick, nothing ready yet` : "Nothing waiting for collection"}</div>
             ) : (
               <ul className="space-y-1.5 text-sm">
                 {d.handover.slice(0, 4).map((o) => (

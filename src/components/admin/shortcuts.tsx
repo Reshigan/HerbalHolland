@@ -210,7 +210,7 @@ function Palette({ items, area, storeCode, onClose, onGo }: { items: PaletteItem
           aria-activedescendant={results[current] ? `${listId}-${current}` : undefined}
           aria-autocomplete="list"
           aria-label="Jump to a page"
-          placeholder="Where to? A section, report, store — or a name, SKU or order to find"
+          placeholder="Where to? A section, report or store, or a name, SKU or order to find"
           autoComplete="off"
           spellCheck={false}
           value={q}

@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { markDataUri } from "@/components/shop/mark-svg";
 
-export const alt = "Herbal Holland — Dutch heritage. African soil.";
+export const alt = "Herbal Holland · Dutch heritage. African soil.";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

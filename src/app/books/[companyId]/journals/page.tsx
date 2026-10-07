@@ -74,7 +74,7 @@ export default async function JournalsPage({ params, searchParams }: { params: P
       <PageHeader
         overline={`Books · ${company.name}`}
         title="Journals"
-        description="Every entry in the books: posted automatically from trading, stock, banking and statements, or by hand. A posted journal is never changed — an automatic one corrects itself through its source, a manual one by its reversal."
+        description="Every entry in the books: posted automatically from trading, stock, banking and statements, or by hand. A posted journal is never changed: an automatic one corrects itself through its source, a manual one by its reversal."
         actions={
           <>
             <ButtonLink href={`${base}/export/journals${month ? `?from=${month}&to=${month}` : ""}`} variant="outline" prefetch={false} title={month ? `Posted journals for ${fmtMonth(`${month}-15T12:00:00Z`)}` : "Posted journals for the financial year to date"}>
@@ -116,7 +116,7 @@ export default async function JournalsPage({ params, searchParams }: { params: P
             <SearchField defaultValue={q} placeholder="Number or description" label="Search journals" className="basis-48" />
           </FilterForm>
         </div>
-        {q && !month && <p className="border-b border-ink-100 px-5 py-2 text-xs text-ink-500">Searching the last {SEARCH_MONTHS} months — choose a month to search further back.</p>}
+        {q && !month && <p className="border-b border-ink-100 px-5 py-2 text-xs text-ink-500">Searching the last {SEARCH_MONTHS} months. Choose a month to search further back.</p>}
         <Table stickyFirst minWidth="44rem">
           <thead>
             <tr>
@@ -130,7 +130,7 @@ export default async function JournalsPage({ params, searchParams }: { params: P
           <tbody>
             {rows.length === 0 ? (
               <TableEmpty cols={5} icon={<NotebookPen className="h-5 w-5" />} title={filtered ? "No journals match" : "No journals yet"}>
-                {filtered ? "Try another month, source or search." : "Journals appear here as the stores trade and stock, banking and statements post — or add one by hand."}
+                {filtered ? "Try another month, source or search." : "Journals appear here as the stores trade and stock, banking and statements post, or you can add one by hand."}
               </TableEmpty>
             ) : (
               rows.map((j) => (

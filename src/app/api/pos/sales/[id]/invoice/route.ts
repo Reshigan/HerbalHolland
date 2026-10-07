@@ -17,7 +17,7 @@ export const POST = withStaff<Ctx>(async (req, pos, { params }) => {
     await emailSaleInvoice(id, email);
   } catch (e) {
     console.error("[pos] invoice email failed", id, e);
-    throw new PosError("We couldn't send the email just now — try again in a moment", 502);
+    throw new PosError("We couldn't send the email just now. Try again in a moment", 502);
   }
   return json({ ok: true, email });
 });

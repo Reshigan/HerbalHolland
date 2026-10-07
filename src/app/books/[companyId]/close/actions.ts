@@ -30,6 +30,6 @@ export async function retryPostingAction(companyId: string, source: string, sour
   return booksAction(companyId, "approve", async ({ user }) => {
     await retryPosting(user, companyId, source, sourceId);
     revalidatePath(`/books/${companyId}/close`);
-    redirect(`/books/${companyId}/close?m=${encodeURIComponent("Queued again — it posts within 15 minutes.")}`);
+    redirect(`/books/${companyId}/close?m=${encodeURIComponent("Queued again. It posts within 15 minutes.")}`);
   });
 }

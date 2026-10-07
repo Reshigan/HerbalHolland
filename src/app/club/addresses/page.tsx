@@ -69,7 +69,7 @@ export default async function ClubAddresses() {
               </Panel>
             ))
           ) : (
-            <Panel className="border-dashed p-8 text-center text-sm text-ink-400">No saved addresses yet — add one here, or place a delivery order and we&apos;ll keep the address.</Panel>
+            <Panel className="border-dashed p-8 text-center text-sm text-ink-400">No saved addresses yet. Add one here, or place a delivery order and we&apos;ll keep the address.</Panel>
           )}
         </div>
         {rows.length < ADDRESS_MAX && (

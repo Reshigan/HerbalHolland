@@ -91,7 +91,7 @@ export function validateTradeBasket(lines: TradeBasketLine[], opts: { minOrderCe
     else if (l.qty % c !== 0) problems.push(`${l.name} comes in cases of ${c}: order ${c}, ${2 * c}, ${3 * c}… (the next case up from ${l.qty} is ${caseMultiple(l.qty, c)})`);
   }
   const subtotal = lines.reduce((s, l) => s + Math.max(0, l.qty) * l.unitCents, 0);
-  if (subtotal < opts.minOrderCents) problems.push(`Minimum order is ${zar(opts.minOrderCents)} ex VAT — this order is ${zar(subtotal)}, ${zar(opts.minOrderCents - subtotal)} short`);
+  if (subtotal < opts.minOrderCents) problems.push(`Minimum order is ${zar(opts.minOrderCents)} ex VAT. This order is ${zar(subtotal)}, ${zar(opts.minOrderCents - subtotal)} short`);
   return problems;
 }
 
@@ -114,8 +114,8 @@ export type TradeTerms = "PREPAID" | "ACCOUNT";
 export type TradeAccountStatus = "PENDING" | "APPROVED" | "ON_HOLD" | "CLOSED";
 
 export const ACCOUNT_STATUS_PROBLEM: Record<Exclude<TradeAccountStatus, "APPROVED">, string> = {
-  PENDING: "This trade account hasn't been approved yet — we'll email you as soon as it is",
-  ON_HOLD: "This trade account is on hold — settle the account or speak to Herbal Holland Trade to lift it",
+  PENDING: "This trade account hasn't been approved yet. We'll email you as soon as it is",
+  ON_HOLD: "This trade account is on hold. Settle the account, or speak to Herbal Holland Trade to lift it",
   CLOSED: "This trade account is closed",
 };
 
@@ -135,7 +135,7 @@ export function creditDecision(a: { terms: TradeTerms; status: TradeAccountStatu
     return {
       ok: false,
       availableCents,
-      reason: `Over the credit limit: ${zar(Math.max(0, availableCents))} available on a limit of ${zar(a.creditLimitCents)} (owing ${zar(a.balanceCents)}${a.openOrdersCents ? `, ${zar(a.openOrdersCents)} on open orders` : ""}) — this order is ${zar(a.orderInclCents)}`,
+      reason: `Over the credit limit: ${zar(Math.max(0, availableCents))} available on a limit of ${zar(a.creditLimitCents)} (owing ${zar(a.balanceCents)}${a.openOrdersCents ? `, ${zar(a.openOrdersCents)} on open orders` : ""}). This order is ${zar(a.orderInclCents)}`,
     };
   return { ok: true, availableCents };
 }
@@ -386,15 +386,15 @@ export function validateTradeApplication(raw: RawTradeApplication, now = new Dat
   if (!(province in PROVINCES)) f.province = "Choose the province";
   if (!/^\d{4}$/.test(postalCode)) f.postalCode = "Enter the four-digit postal code";
   const regNumber = regRaw ? normaliseRegNumber(regRaw) : null;
-  if (regRaw && !regNumber) f.regNumber = "Company registration numbers look like 2015/123456/07 — leave it blank if the business isn't registered";
+  if (regRaw && !regNumber) f.regNumber = "Company registration numbers look like 2015/123456/07. Leave it blank if the business isn't registered";
   const vatNumber = vatRaw ? normaliseVatNumber(vatRaw) : null;
-  if (vatRaw && !vatNumber) f.vatNumber = "VAT numbers are ten digits starting with 4 — leave it blank if the business isn't a VAT vendor";
+  if (vatRaw && !vatNumber) f.vatNumber = "VAT numbers are ten digits starting with 4. Leave it blank if the business isn't a VAT vendor";
   if (!classes.length) f.classes = "Tick at least one range you'd like to buy";
   else if (classes.includes("THC")) f.classes = "Licensed medicines aren't available to trade customers";
   else if (classes.some((c) => !TRADE_CLASSES.includes(c as RegClass))) f.classes = "Choose ranges from the list";
   if (!buyerName) f.buyerName = "Enter the name of the person who'll place orders";
   else if (buyerName.length > TRADE_LIMITS.name) f.buyerName = `Keep the buyer's name under ${TRADE_LIMITS.name} characters`;
-  if (!isEmail(buyerEmail) || buyerEmail.length > TRADE_LIMITS.email) f.buyerEmail = "Enter the buyer's email address — they sign in with a code sent here";
+  if (!isEmail(buyerEmail) || buyerEmail.length > TRADE_LIMITS.email) f.buyerEmail = "Enter the buyer's email address: they sign in with a code sent here";
   if (buyerPhoneRaw && !buyerPhone) f.buyerPhone = "Enter a South African phone number, or leave it blank";
   if (!ticked(raw.adult)) f.adult = "Confirm that everyone who orders for this business is 18 or older";
   if (!ticked(raw.terms)) f.terms = "Accept the trade terms to apply";
@@ -407,7 +407,7 @@ export function validateTradeApplication(raw: RawTradeApplication, now = new Dat
     for (const { kind } of requiredLicences(kindRaw, classes, !!regRaw)) {
       const typed = raw.licences?.[kind] ?? {};
       if (kind === "CIPC_REGISTRATION") {
-        if (!regRaw) f.regNumber = "Enter the company registration number — this kind of business needs it";
+        if (!regRaw) f.regNumber = "Enter the company registration number: this kind of business needs it";
       }
       const check = checkLicenceInput(kind, kind === "CIPC_REGISTRATION" ? { number: regNumber ?? regRaw, expiresAt: null } : { number: typed.number, expiresAt: TRADE_LICENCES[kind].expires ? typed.expiresAt : null }, now);
       if (!check.ok) {

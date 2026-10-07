@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { ConfirmAction } from "@/components/hq/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { EventForm } from "@/components/hq/event-form";
@@ -66,7 +66,7 @@ export default async function EventPage({ params, searchParams }: { params: Prom
           <Card>
             <CardHeader title="Event details" description="Changes show on the event page straight away" />
             <CardBody>
-              {!edit && <ViewOnly className="mb-4">View only — events are managed by the HQ team and area managers.</ViewOnly>}
+              {!edit && <ViewOnly className="mb-4">View only: events are managed by the HQ team and area managers.</ViewOnly>}
               <EventForm action={saveEvent.bind(null, e.id)} values={eventValues(e)} readOnly={!edit} narrow />
             </CardBody>
           </Card>

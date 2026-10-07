@@ -34,12 +34,12 @@ export async function recordDeposit(
 ) {
   if (!a.shiftIds.length) throw new BankingError("Tick the cash-ups this deposit covers");
   if (!a.file.size) throw new BankingError("Add a photo or PDF of the stamped deposit slip");
-  if (a.file.size > MAX_UPLOAD_BYTES) throw new BankingError("The slip is over 10 MB — take the photo again or use a smaller PDF");
+  if (a.file.size > MAX_UPLOAD_BYTES) throw new BankingError("The slip is over 10 MB. Take the photo again or use a smaller PDF");
   const bytes = new Uint8Array(await a.file.arrayBuffer());
   const type = sniffType(bytes);
   if (!type) throw new BankingError("The slip must be a photo (JPEG, PNG, HEIC or WebP) or a PDF");
   const shifts = await db.shift.findMany({ where: { id: { in: a.shiftIds }, storeId: a.storeId, depositId: null, closedAt: { not: null }, countedCashCents: { not: null } } });
-  if (shifts.length !== new Set(a.shiftIds).size) throw new BankingError("Some of those cash-ups are already banked — refresh and try again");
+  if (shifts.length !== new Set(a.shiftIds).size) throw new BankingError("Some of those cash-ups are already banked. Refresh and try again");
   const expected = shifts.reduce((t, s) => t + cashToBank(s), 0);
 
   const key = `slips/${a.storeCode}/${dayKey(a.bankedOn).slice(0, 7)}/${randomUUID()}.${extFor(type)}`;
@@ -53,7 +53,7 @@ export async function recordDeposit(
       data: { number: `DEP-${String(n).padStart(6, "0")}`, storeId: a.storeId, bankedOn: a.bankedOn, amountCents: a.amountCents, expectedCents: expected, reference: a.reference, slipId: slip.id, note: a.note || null, createdById: actor.id },
     });
     const linked = await t.shift.updateMany({ where: { id: { in: shifts.map((s) => s.id) }, depositId: null }, data: { depositId: d.id } });
-    if (linked.count !== shifts.length) throw new BankingError("Some of those cash-ups were banked a moment ago — refresh and try again");
+    if (linked.count !== shifts.length) throw new BankingError("Some of those cash-ups were banked a moment ago. Refresh and try again");
     await queuePosting(t, "deposit", d.id);
     await audit(t, actor, "deposit.record", { storeId: a.storeId, entity: "CashDeposit", entityId: d.id, data: { number: d.number, amountCents: a.amountCents, expectedCents: expected, cashUps: shifts.length, reference: a.reference } });
     return d;
@@ -80,7 +80,7 @@ export async function reviewDeposit(id: string, storeId: string, status: "VERIFI
   await tx(async (t) => {
     // From the status it was read in: two checkers at once decide once, and a verified deposit is never overwritten.
     const { count } = await t.cashDeposit.updateMany({ where: { id, storeId, status: d.status }, data: { status, reviewedById: actor.id, reviewedAt: new Date(), reviewNote: note } });
-    if (!count) throw new BankingError(`${d.number} was just checked by a colleague — refresh to see what they decided`);
+    if (!count) throw new BankingError(`${d.number} was just checked by a colleague. Refresh to see what they decided`);
     await queuePosting(t, "deposit", id);
     await audit(t, actor, status === "VERIFIED" ? "deposit.verify" : "deposit.query", { storeId, entity: "CashDeposit", entityId: id, data: { number: d.number, note } });
   });

@@ -15,6 +15,7 @@ import { signOutAction } from "@/app/trade/actions";
 import { FOOTER } from "./copy";
 import { AccountStatusTag } from "./status";
 import { cn } from "@/lib/cn";
+import { legalNameOf } from "@/lib/contact";
 
 export const TRADE_NAV: NavItem[] = [
   { href: "/trade/range", label: "Range" },
@@ -35,7 +36,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
       <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
         <header className="sticky top-0 z-40 border-b border-ink-850 bg-ink-950/85 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-950/70">
           <Container className="flex h-16 items-center gap-3 lg:h-[4.5rem] lg:gap-5">
-            <Link href="/trade" className="flex shrink-0 items-center gap-2.5 rounded-lg" aria-label="Herbal Holland Trade — home">
+            <Link href="/trade" className="flex shrink-0 items-center gap-2.5 rounded-lg" aria-label="Herbal Holland Trade home">
               <Logo markClassName="h-9 w-9 lg:h-10 lg:w-10" />
               <span className="eyebrow rounded-full border border-brand-500/50 px-2 py-0.5 text-brand-500">Trade</span>
             </Link>
@@ -88,7 +89,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
         <footer className="no-print mt-20 border-t border-ink-850 bg-ink-950">
           <Container className="grid grid-cols-1 gap-10 py-12 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
             <div>
-              <Link href="/trade" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland Trade — home">
+              <Link href="/trade" className="inline-flex items-center gap-3 text-brand-500" aria-label="Herbal Holland Trade home">
                 <Mark className="h-12 w-12" />
                 <Wordmark className="text-lg" />
               </Link>
@@ -98,7 +99,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
             </div>
             <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
               <FooterCol title="Trade" links={[["Apply for an account", "/trade/apply"], ["Sign in", "/trade/login"], ["Trade terms", "/trade/terms"], ["Email the trade team", `mailto:${tradeEmail()}`]]} />
-              <FooterCol title="Legal" links={[["Privacy notice (POPIA)", "/legal/privacy"], ["Terms of use", "/legal/terms"], ["Delivery", "/legal/delivery"]]} />
+              <FooterCol title="Legal" links={[["Privacy notice (POPIA)", "/legal/privacy"], ["Membership terms", "/legal/terms"], ["Delivery", "/legal/delivery"]]} />
               <FooterCol title="Herbal Holland" links={[["The shop", "/"], ["Store finder", "/stores"], ["Learn", "/learn"]]} />
             </div>
           </Container>
@@ -109,7 +110,7 @@ export async function TradeChrome({ children }: { children: React.ReactNode }) {
                 <p className="max-w-2xl">{FOOTER.adults} Licensed medicines are never traded. Nothing on this site is medical advice.</p>
               </div>
               <p className="md:max-w-sm md:text-right">
-                © {new Date().getFullYear()} {company?.legalName ?? "Herbal Holland (Pty) Ltd"}
+                © {new Date().getFullYear()} {legalNameOf(company)}
                 {company?.regNumber && ` · Reg. ${company.regNumber}`}
                 {company?.vatNumber && ` · VAT ${company.vatNumber}`}.
               </p>

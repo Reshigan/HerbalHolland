@@ -16,7 +16,7 @@ export function HaveReady() {
           <h2 id="have-ready" className="font-display text-lg font-semibold text-white">
             Have these ready
           </h2>
-          <p className="mt-1 text-sm text-ink-300">Your business details, the company registration and VAT numbers if you have them, and a copy of each document for your kind of business — a PDF, JPG or PNG up to 5 MB each.</p>
+          <p className="mt-1 text-sm text-ink-300">Your business details, the company registration and VAT numbers if you have them, and a copy of each document for your kind of business (a PDF, JPG or PNG up to 5 MB each).</p>
         </div>
       </div>
       <dl className="mt-4 divide-y divide-ink-800 text-sm">

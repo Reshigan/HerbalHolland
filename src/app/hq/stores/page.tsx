@@ -94,7 +94,7 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
               <Th>Status</Th>
               <SortableTh label={`Net ${periodShort}`} sortKey="sales" sort={sort} dir={dir} href={sortHref} align="right" className="whitespace-nowrap" title={`Net sales, ${period}`} />
               <SortableTh label="Growth" sortKey="growth" sort={sort} dir={dir} href={sortHref} align="right" className="whitespace-nowrap" title="Against the previous period of the same length" />
-              <SortableTh label="ATV" sortKey="atv" sort={sort} dir={dir} href={sortHref} align="right" title="Average transaction value" />
+              <SortableTh label="Average basket" sortKey="atv" sort={sort} dir={dir} href={sortHref} align="right" />
               <Th align="right">Members</Th>
             </tr>
           </thead>

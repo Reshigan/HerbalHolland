@@ -29,7 +29,7 @@ const lock = (t: Tx, a: OtpAddress) => t.$executeRaw`SELECT pg_advisory_xact_loc
  * (clientIpFrom) from a request; it's only left out by scripts and tests. Throws OtpLimitError past the wider limits.
  */
 export async function issueCode(a: OtpAddress, opts?: { ip: string | null }): Promise<string | null> {
-  if (opts && !(await hit(`otp-ip:${ipKey(opts.ip)}`, CODES_PER_IP_HOUR, HOUR_MS))) throw new OtpLimitError("Too many codes requested — try again in an hour");
+  if (opts && !(await hit(`otp-ip:${ipKey(opts.ip)}`, CODES_PER_IP_HOUR, HOUR_MS))) throw new OtpLimitError("Too many codes requested. Try again in an hour");
   if ("phone" in a) await smsCeiling();
   return tx(async (t) => {
     await lock(t, a);
@@ -49,7 +49,7 @@ async function smsCeiling() {
     console.error(`[otp] SMS ceiling reached: ${max} sign-in codes in the last hour — new SMS codes are refused until the hour passes (OTP_SMS_HOURLY_MAX)`);
     await audit(db, SYSTEM, "otp.ceiling", { data: { max } });
   }
-  throw new OtpLimitError("We can't send codes right now — please try again shortly");
+  throw new OtpLimitError("We can't send codes right now. Please try again shortly");
 }
 
 export type CodeCheck = "ok" | "wrong" | "expired" | "locked";

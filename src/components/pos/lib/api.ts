@@ -15,7 +15,7 @@ export class TillError extends Error {
 }
 export class OfflineError extends Error {
   constructor(public timedOut = false) {
-    super(timedOut ? "The server is taking too long to answer — try again" : "No connection — check the Wi-Fi or mobile data");
+    super(timedOut ? "The server is taking too long to answer: try again" : "No connection: check the Wi-Fi or mobile data");
   }
 }
 

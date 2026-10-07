@@ -129,7 +129,7 @@ export async function orderFromScan(storeId: string, text: string): Promise<Orde
   if (!qr) throw new PosError("That isn't a Herbal Holland order QR code", 400);
   const [settings, o] = await Promise.all([getSettings(), db.order.findFirst({ where: { code: qr.orderCode }, include })]);
   if (!o || o.storeId !== storeId) throw new PosError(`Order ${qr.orderCode} isn't for this store`, 404);
-  if (!codeMatches(o, qr.collectionCode)) throw new PosError(`That QR's collection code doesn't match order ${o.code} — ask the member for the code in their SMS`, 422, "BAD_CODE");
+  if (!codeMatches(o, qr.collectionCode)) throw new PosError(`That QR's collection code doesn't match order ${o.code}, so ask the member for the code in their SMS`, 422, "BAD_CODE");
   return toCard(o, settings);
 }
 

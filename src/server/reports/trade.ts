@@ -133,14 +133,14 @@ async function tradeSales(ctx: ReportCtx): Promise<ReportResult> {
     ],
     emptyTitle: "No trade sales",
     empty: "No sales to business accounts in this period.",
-    note: `Trade sales are priced ex VAT with VAT added per line. They are the trade portal's orders — fulfilled by a distribution centre or collected at a store, with the store's handling fee — and trade sales rung up at a till to a business account. Refunds and credit notes are netted off. Royalty and levy apply at the standard rates; the e-commerce commission does not.${ctx.scope === "hq" ? " What the accounts still owe is in the Trade aged balances report." : ""}`,
+    note: `Trade sales are priced ex VAT with VAT added per line. They are the trade portal's orders (fulfilled by a distribution centre or collected at a store, with the store's handling fee) and trade sales rung up at a till to a business account. Refunds and credit notes are netted off. Royalty and levy apply at the standard rates; the e-commerce commission does not.${ctx.scope === "hq" ? " What the accounts still owe is in the Trade aged balances report." : ""}`,
   };
 }
 
 export const tradeSalesReport: ReportDef = {
   key: "trade-sales",
   title: "Trade sales",
-  description: "Which business accounts buy, what they take and what it's worth — by account, product and month.",
+  description: "Which business accounts buy, what they take and what it's worth, by account, product and month.",
   group: "Sales",
   scopes: ["hq"],
   filters: ["range"],
@@ -151,7 +151,7 @@ export const tradeSalesReport: ReportDef = {
 export const tradeSalesAtStore: ReportDef = {
   key: "trade-sales-store",
   title: "Trade sales at this store",
-  description: "Sales to business accounts rung up here or collected here — by account, product and month.",
+  description: "Sales to business accounts rung up here or collected here, by account, product and month.",
   group: "Sales",
   scopes: ["store"],
   filters: ["range"],
@@ -219,7 +219,7 @@ export const tradeAgedBalances: ReportDef = {
         { label: "Oldest overdue", value: t.daysOverdue ? `${n(t.daysOverdue)} days` : "—", sub: t.oldestDue ? `due ${fmtDate(`${t.oldestDue}T12:00:00Z`)}` : undefined },
       ],
       chart: t.total > 0 ? { kind: "column", title: "Outstanding by age", description: "As of today, FIFO", format: "zar", data: AGE_BUCKETS.map((b) => ({ label: b.label, value: Math.max(0, t[b.key]), tip: `${b.label} · ${b.detail}\n${zar(t[b.key])}` })) } : null,
-      note: `As of ${fmtDateTime(ctx.now)}. Payments and credit notes settle the oldest invoices first (FIFO by due date); what is still open is aged by days past its due date — 30 days = 1–30, 60 days = 31–60, 90+ = more than 60 days overdue. A negative current amount is a credit balance (an unapplied payment or credit note). Accounts with a zero balance are left out.${ctx.networkWide ? "" : ` Limited to accounts that bought at ${ctx.storeIds.length === 1 ? storeLabel(ctx, ctx.storeIds[0]) : "the selected stores"} or are served by a distribution centre there.`}`,
+      note: `As of ${fmtDateTime(ctx.now)}. Payments and credit notes settle the oldest invoices first (FIFO by due date); what is still open is aged by days past its due date: 30 days = 1–30, 60 days = 31–60, 90+ = more than 60 days overdue. A negative current amount is a credit balance (an unapplied payment or credit note). Accounts with a zero balance are left out.${ctx.networkWide ? "" : ` Limited to accounts that bought at ${ctx.storeIds.length === 1 ? storeLabel(ctx, ctx.storeIds[0]) : "the selected stores"} or are served by a distribution centre there.`}`,
     };
   },
 };

@@ -175,7 +175,7 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
     try {
       const r = await api<{ report: ZReport }>("/api/pos/shift", { body: { action: "close", shiftId: shift.id, counts, notes: notes.trim() || undefined } });
       onClosed(r.report);
-      pos.toast("Shift closed — Z-report ready");
+      pos.toast("Shift closed and Z-report ready");
     } catch (e) {
       if (e instanceof ApiError && e.code === "NOTE_REQUIRED") {
         setNoteNeeded(true);
@@ -221,8 +221,8 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
         label={needNote ? "Notes (needed)" : "Notes (optional)"}
         htmlFor="shift-notes"
         className="mt-4"
-        error={needNote && noteNeeded ? "The count doesn't match what the till expects — count again, or explain the difference here." : undefined}
-        hint={needNote ? "The count is out by more than the tolerance — explain it. It goes on the Z-report." : variance ? "Explain any variance — it goes on the Z-report." : undefined}
+        error={needNote && noteNeeded ? "The count doesn't match what the till expects. Count again, or explain the difference here." : undefined}
+        hint={needNote ? "The count is out by more than the tolerance, so explain it. It goes on the Z-report." : variance ? "Explain any variance. It goes on the Z-report." : undefined}
       >
         <TextArea id="shift-notes" value={notes} onChange={(e) => setNotes(e.target.value)} aria-invalid={needNote && noteNeeded ? true : undefined} placeholder="e.g. R50 paid out for milk, slip in drawer" />
       </Field>
@@ -246,8 +246,7 @@ function CloseShift({ shift, x, onClosed }: { shift: BootShift; x: ZReport | nul
             )}
             {variance ? (
               <>
-                {" "}
-                — a variance of <b>{zar(variance)}</b>
+                , a variance of <b>{zar(variance)}</b>
               </>
             ) : null}
             . Sales can&apos;t continue on this till until a new shift is opened.

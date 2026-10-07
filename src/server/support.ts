@@ -12,12 +12,10 @@ import { notifyCustomer } from "./messaging";
 import { storePhotos, UploadError } from "./uploads";
 import { gsmSafe } from "@/lib/sms";
 import {
-  CANNED_REPLIES,
   SUPPORT_STATUS,
   TICKET_LIMITS,
   canReopen,
   defaultPriority,
-  fillCanned,
   firstNameOf,
   isSupportPriority,
   slaDue,
@@ -38,6 +36,7 @@ import {
 } from "@/lib/support";
 import type { Customer, SupportTicket } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
+import { FALLBACK_EMAIL } from "@/lib/contact";
 
 /** An expected, user-facing failure (shown inline). */
 export class SupportError extends Error {
@@ -51,7 +50,7 @@ export class SupportError extends Error {
 
 const SUPPORT: Actor = { type: "SYSTEM", name: "Support" };
 const HOUR = 3_600_000;
-export const supportEmail = () => process.env.SUPPORT_EMAIL?.trim() || "hello@herbalholland.co.za";
+export const supportEmail = () => process.env.SUPPORT_EMAIL?.trim() || FALLBACK_EMAIL;
 
 /** Keyed hash of a guest's IP (HMAC-SHA-256 with SESSION_SECRET): limits repeat tickets without storing the IP. */
 export const supportIpHash = (ip: string) => createHmac("sha256", appSecret()).update(`support-ticket:${ip}`).digest("hex");
@@ -84,7 +83,7 @@ export async function createTicket(input: TicketInput, ctx: { customer: Customer
     c ? db.supportTicket.count({ where: { customerId: c.id, createdAt: { gte: new Date(now - 24 * HOUR) } } }) : 0,
   ]);
   if (fromMember >= TICKET_LIMITS.perMemberDay || fromEmail >= TICKET_LIMITS.perEmailDay)
-    return { ok: false, error: "You've sent us quite a few messages today, so we've paused new ones for a while. Reply on one of your open requests instead — we'll see it there." };
+    return { ok: false, error: "You've sent us quite a few messages today, so we've paused new ones for a while. Reply on one of your open requests instead. We'll see it there." };
   if (fromIp >= TICKET_LIMITS.perIpHour)
     return { ok: false, error: `We've had several requests from your connection in the last hour, so we've paused new ones for a while. Please try again later, or email ${supportEmail()}.` };
 
@@ -145,12 +144,6 @@ export async function replyToTicket(id: string, raw: unknown, staff: { id: strin
   return updated;
 }
 
-/** The canned reply's text for this ticket, ready to edit. */
-export function cannedFor(key: string, t: { name: string; orderCode: string | null }, staffName: string) {
-  const c = CANNED_REPLIES.find((x) => x.key === key);
-  return c ? fillCanned(c.body, { name: firstNameOf(t.name), orderCode: t.orderCode, agent: firstNameOf(staffName) }) : null;
-}
-
 /** Assigns a ticket to someone `assignableStaff(scope)` offers (or to nobody); anyone else is refused. */
 export async function assignTicket(id: string, userId: string | null, actor: Actor, scope: SupportScope) {
   const t = await load(id, scope);
@@ -188,7 +181,7 @@ export async function resolveTicket(id: string, staff: { id: string; name: strin
   await tell(
     updated,
     {
-      subject: `${t.subject} — resolved (${t.number})`,
+      subject: `${t.subject}: resolved (${t.number})`,
       text: `Hi ${first},\n\nWe've marked your request ${t.number} as resolved${text ? `: ${text}` : "."}\n\nIf it isn't sorted, just reply within 30 days and it opens again.\n\nHerbal Holland`,
       sms: `Herbal Holland: your request ${t.number} is marked resolved. Not sorted? Reply within 30 days to reopen it.`,
     },
@@ -214,7 +207,7 @@ export async function memberReply(id: string, customer: Customer, raw: unknown, 
       db.supportMessage.count({ where: { ticketId: t.id, authorType: "MEMBER", attachmentUploadId: { not: null } } }),
       db.supportMessage.count({ where: { authorType: "MEMBER", authorId: customer.id, attachmentUploadId: { not: null }, createdAt: { gte: since } } }),
     ]);
-    if (onTicket >= 10 || today >= 20) throw new SupportError("That's as many photos as we can take on this request — describe it in words, or the team will ask for more", "photo");
+    if (onTicket >= 10 || today >= 20) throw new SupportError("That's as many photos as we can take on this request. Describe it in words, or the team will ask for more", "photo");
     try {
       [attachmentUploadId = null] = await storePhotos({ files: [photo], max: 1, folder: "support", uploadedById: customer.id, storeId: t.storeId });
     } catch (e) {

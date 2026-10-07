@@ -206,7 +206,7 @@ export async function recordCounts(storeId: string, stockTakeId: string, counts:
 /** Cancels a count that's still open — once: an approval (or another cancel) that got there first wins. */
 export async function cancelStockTake(t: Tx, storeId: string, stockTakeId: string) {
   const { count } = await t.stockTake.updateMany({ where: { id: stockTakeId, storeId, status: "COUNTING" }, data: { status: "CANCELLED" } });
-  if (count !== 1) throw new StockError("This stock take was closed a moment ago — refresh to see it");
+  if (count !== 1) throw new StockError("This stock take was closed a moment ago, so refresh to see it");
 }
 
 export async function approveStockTake(t: Tx, stockTakeId: string, userId: string | null) {

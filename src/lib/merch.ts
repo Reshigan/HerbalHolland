@@ -48,7 +48,7 @@ export const MERCH: MerchItem[] = [
   },
   {
     slug: "windmill-beanie", name: "Windmill Beanie", blank: "Black ribbed cuffed beanie (Captivity Glacier Ribbed, sourced by the partner)", garment: "beanie", colour: "black", hero: "front",
-    prints: [{ art: "mark-stitch-cuff", side: "front", technique: "Embroidery", where: "Folded cuff, centred — through the outer layer only" }],
+    prints: [{ art: "mark-stitch-cuff", side: "front", technique: "Embroidery", where: "Folded cuff, centred (through the outer layer only)" }],
   },
   {
     slug: "windmill-tote", name: "Windmill Tote", blank: "Black heavy cotton-canvas tote (confirm the blank with the partner)", garment: "tote", colour: "black", hero: "front",

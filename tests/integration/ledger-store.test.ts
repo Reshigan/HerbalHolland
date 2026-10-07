@@ -378,7 +378,7 @@ describe("late changes", () => {
     await processLedgerQueue();
     const q = await db.ledgerQueue.findUniqueOrThrow({ where: { source_sourceId: { source: "store-day", sourceId: `${w.store.id}:${yesterday}` } } });
     expect(q).toMatchObject({ attempts: 1 });
-    expect(q.error).toBe(`TST01 ${yesterday}: the payments HQ collected or funds come to R0.00, the day's rollup to R1.00 — out by -R1.00`);
+    expect(q.error).toBe(`TST01 ${yesterday}: the payments HQ collected or funds come to R0.00 and the day's rollup to R1.00, so they're out by -R1.00`);
     await db.dailyStoreStat.update({ where: key, data: { onlineCents: { decrement: 100 }, cashCents: { increment: 100 } } });
     await queuePosting(db, "store-day", `${w.store.id}:${yesterday}`);
     await drain();
@@ -397,7 +397,19 @@ describe("the books", () => {
     expect(listed.filter((s) => s.source === "store-day").map((s) => s.sourceId).sort()).toEqual(
       [...[w.store.id, w.dc.id].map((s) => `${s}:${today}`), `${w.store.id}:${yesterday}`, ...(await db.store.findMany({ where: { code: { in: ["TST02", "TST03", "TST04"] } }, select: { id: true } })).map((s) => `${s.id}:${today}`)].sort(),
     );
-    expect((await storeNightly(addDays(now, 1))).map((s) => s.sourceId)).toEqual(listed.filter((s) => s.source === "store-day" && s.sourceId.endsWith(today)).map((s) => s.sourceId));
+    // Nightly: the day that ended, and a day from the week before that a missed night left unposted (yesterday's posted).
+    const nightly = async (n: number) => (await storeNightly(addDays(now, n))).map((s) => s.sourceId);
+    const todays = listed.filter((s) => s.source === "store-day" && s.sourceId.endsWith(today)).map((s) => s.sourceId);
+    expect(await nightly(1)).toEqual(todays);
+    const missedDay = dayKey(addDays(now, -3));
+    const stat = { storeId: w.dc.id, date: new Date(`${missedDay}T00:00:00Z`), channel: "POS" as const }; // trading a missed night never posted
+    await db.dailyStoreStat.create({ data: stat });
+    expect(await nightly(1)).toEqual([...todays, `${w.dc.id}:${missedDay}`]);
+    await queuePosting(db, "store-day", `${w.dc.id}:${missedDay}`);
+    expect(await nightly(1)).toEqual(todays); // waiting in the queue already
+    await db.ledgerQueue.deleteMany({ where: { sourceId: `${w.dc.id}:${missedDay}` } });
+    await db.dailyStoreStat.delete({ where: { storeId_date_channel: stat } });
+    expect(await nightly(8)).toEqual([]);
     await expect(storeBackfill(today, yesterday)).rejects.toThrow("range of days");
   });
 

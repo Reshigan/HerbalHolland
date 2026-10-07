@@ -80,7 +80,7 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
       <div>
         {servedBy(r)} · till {boot.device.prefix}
       </div>
-      {r.queued && <div className="font-bold">Offline sale — synced later</div>}
+      {r.queued && <div className="font-bold">Offline sale (synced later)</div>}
       <Rule />
       {r.lines.map((l) => (
         <div key={l.id} className="mb-1">

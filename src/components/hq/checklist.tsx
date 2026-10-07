@@ -1,13 +1,13 @@
 // The store-opening checklist card on the HQ store page: a progress bar, tasks grouped as in the template with
 // due dates (overdue in red, with the word), "mark done" with a note, and undo. Server component; the buttons are
-// the HQ action-form client pieces.
+// the action-form client pieces.
 import { CheckCircle2, Circle, ClipboardList } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Meter } from "@/components/ui/stat";
 import { Badge } from "@/components/ui/badge";
 import { Field, Input } from "@/components/ui/form";
 import { EmptyState } from "@/components/ui/page";
-import { ActionButton, ConfirmAction } from "@/components/hq/action-form";
+import { ActionButton, ConfirmAction } from "@/components/ui/action-form";
 import { isDueSoon, isOverdue } from "@/lib/opening";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/cn";
@@ -40,7 +40,7 @@ export function OpeningChecklist({ data, now, canEdit, storeName, onDone, onReop
     <Card data-testid="opening-checklist">
       <CardHeader
         title="Opening checklist"
-        description={p.complete ? "Everything is done — ready to open." : `${p.done} of ${p.total} done${p.overdue ? ` · ${p.overdue} overdue` : ""}${p.dueSoon ? ` · ${p.dueSoon} due this week` : ""}`}
+        description={p.complete ? "Everything is done. Ready to open." : `${p.done} of ${p.total} done${p.overdue ? ` · ${p.overdue} overdue` : ""}${p.dueSoon ? ` · ${p.dueSoon} due this week` : ""}`}
         action={<span className={cn("tnum font-display text-lg font-semibold", p.complete ? "text-leaf-700" : "text-ink-900")}>{Math.round(p.pct * 100)}%</span>}
       />
       <CardBody className="space-y-5 pt-3">
@@ -69,7 +69,7 @@ export function OpeningChecklist({ data, now, canEdit, storeName, onDone, onReop
                           <span>
                             Done {fmtDate(t.doneAt)}
                             {t.doneBy ? ` by ${t.doneBy}` : ""}
-                            {t.note ? ` — ${t.note}` : ""}
+                            {t.note ? ` · ${t.note}` : ""}
                           </span>
                         ) : (
                           <>
@@ -87,7 +87,7 @@ export function OpeningChecklist({ data, now, canEdit, storeName, onDone, onReop
                             Undo
                           </ActionButton>
                         ) : (
-                          <ConfirmAction action={onDone(t.id)} label="Mark done" title={t.title} confirmLabel="Mark done" variant="primary" className="w-full">
+                          <ConfirmAction action={onDone(t.id)} label="Mark done" title={t.title} confirmLabel="Mark done" variant="primary">
                             <Field label="Note (optional)" htmlFor={`note-${t.id}`}>
                               <Input id={`note-${t.id}`} name="note" maxLength={300} placeholder="Reference, who did it, where the paperwork is" />
                             </Field>

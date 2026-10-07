@@ -20,7 +20,7 @@ export async function addAccountantAction(companyId: string, _: ActionState, fd:
   return booksAction(companyId, "approve", async ({ user }) => {
     const { accountant, password } = await addAccountant(user, companyId, { name: str(fd, "name"), email: str(fd, "email") });
     revalidatePath(settingsPath(companyId));
-    return done(`${accountant.name} can now sign in as ${accountant.email} with the temporary password  ${password}  — share it privately (it isn't shown again). They choose their own password when they first sign in, within ${TEMP_PASSWORD_HOURS} hours, and see these books only.`);
+    return done(`${accountant.name} can now sign in as ${accountant.email} with the temporary password  ${password}  (share it privately, as it isn't shown again). They choose their own password when they first sign in, within ${TEMP_PASSWORD_HOURS} hours, and see these books only.`);
   });
 }
 
@@ -35,7 +35,7 @@ export async function setAccountantActiveAction(companyId: string, accountantId:
 export async function resetAccountantPasswordAction(companyId: string, accountantId: string, _: ActionState): Promise<ActionState> {
   return booksAction(companyId, "approve", async ({ user }) => {
     const { accountant, password } = await resetAccountantPassword(user, companyId, accountantId);
-    return done(`New temporary password for ${accountant.name}:  ${password}  — share it privately. They choose their own when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
+    return done(`New temporary password for ${accountant.name}:  ${password}  (share it privately). They choose their own when they sign in, within ${TEMP_PASSWORD_HOURS} hours.`);
   });
 }
 
@@ -44,7 +44,7 @@ export async function importOpeningAction(companyId: string, _: ActionState, fd:
   return booksAction(companyId, "write", async ({ user }) => {
     const file = fd.get("file");
     if (!(file instanceof File) || file.size === 0) return failed("Choose the CSV file with the opening balances", "file");
-    if (file.size > OPENING_MAX_BYTES) return failed("That file is over 1 MB — is it the trial balance, saved as CSV?", "file");
+    if (file.size > OPENING_MAX_BYTES) return failed("That file is over 1 MB. Is it the trial balance, saved as CSV?", "file");
     if (!/\.(csv|txt)$/i.test(file.name) && !/csv|text\/plain/.test(file.type)) return failed("Save the trial balance as CSV (comma separated) and choose that file", "file");
     const r = await importOpeningBalances(user, companyId, { text: await file.text(), date: str(fd, "date"), addToExisting: bool(fd, "add") });
     revalidatePath(`/books/${companyId}`, "layout");

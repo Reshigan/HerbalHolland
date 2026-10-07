@@ -22,7 +22,7 @@ export async function captureInvoice(code: string, _: ActionState, fd: FormData)
     if (total == null || total <= 0) return fail("Enter the invoice total including VAT", "total");
     const file = fd.get("file");
     if (!(file instanceof File) || !file.size) return fail("Add a photo or PDF of the invoice", "file");
-    if (file.size > MAX_INVOICE_BYTES) return fail("The file is over 8 MB — take the photo again or use a smaller PDF", "file");
+    if (file.size > MAX_INVOICE_BYTES) return fail("The file is over 8 MB. Take the photo again or use a smaller PDF.", "file");
     const accountId = str(fd, "accountId");
     if (!accountId) return fail("Choose what the invoice is charged to", "accountId");
     try {
@@ -60,7 +60,7 @@ export async function queryInvoice(code: string, id: string, _: ActionState, fd:
     try {
       const inv = await querySupplierInvoice(id, store.id, str(fd, "note"), { ...actor, id: user.id });
       refresh(store.code);
-      return done(`${inv.number} queried — it stays out of what's due until you reopen it.`);
+      return done(`${inv.number} queried. It stays out of what's due until you reopen it.`);
     } catch (e) {
       return asField(e) ?? Promise.reject(e);
     }

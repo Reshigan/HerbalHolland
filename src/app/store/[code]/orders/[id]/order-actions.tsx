@@ -5,7 +5,7 @@ import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { Button } from "@/components/ui/button";
 import { Checkbox, Field, Input } from "@/components/ui/form";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 type Status = "PENDING_PAYMENT" | "PLACED" | "PICKING" | "READY" | "OUT_FOR_DELIVERY" | "COMPLETED" | "CANCELLED";
 
@@ -26,7 +26,7 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
   const simple = next.filter((s) => s === "PICKING" || s === "READY");
   const label: Partial<Record<Status, string>> = {
     PICKING: "Start picking",
-    READY: fulfilment === "COLLECT" ? "Packed — ready for collection" : "Packed — ready to dispatch",
+    READY: fulfilment === "COLLECT" ? "Packed and ready for collection" : "Packed and ready to dispatch",
   };
   const blockedDispense = needsDispenser && !canDispense;
 
@@ -64,13 +64,13 @@ export function OrderActions({ next, fulfilment, paid, dueCents, ageRestricted, 
           <input type="hidden" name="to" value="COMPLETED" />
           <ol className="list-decimal space-y-1 pl-5 text-sm text-ink-700">
             <li>
-              Ask for the collection code — it must be <span className="font-mono font-bold tracking-widest text-ink-950">{collectionCode}</span>.
+              Ask for the collection code. It must be <span className="font-mono font-bold tracking-widest text-ink-950">{collectionCode}</span>.
             </li>
             <li>Check an ID document. Adults 18+ only.</li>
           </ol>
           {blockedDispense && (
             <p className="flex items-start gap-2 rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-600">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> This order contains licensed medicines — an authorised dispenser must hand it over (at the POS or signed in here).
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> This order contains licensed medicines. An authorised dispenser must hand it over (at the POS or signed in here).
             </p>
           )}
           <Checkbox name="idChecked" required={ageRestricted} label="I've seen the member's ID and they are 18 or older" description={ageRestricted ? "Required for this order" : "Recommended"} />

@@ -8,6 +8,7 @@ import { getSettings } from "../settings";
 import { deliverEmail, sendEmail } from "../email";
 import { queuePosting } from "../ledger/core";
 import { ageing, creditDecision, overdueBeyondGrace, statementMonth, tradeCreditNumber, tradeStatement, type CreditDecision } from "@/lib/trade";
+import { dayKey } from "@/lib/format";
 import { OPEN_TRADE_ORDER_STATUSES } from "../inventory";
 import { tradeHoldLiftedEmail, tradePortalUrl, tradeStatementEmail } from "./emails";
 import type { TradeAccount, TradeLedgerKind } from "@/generated/prisma/client";
@@ -96,7 +97,7 @@ export async function recordTradePayment(accountId: string, a: { cents: number; 
     const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
     await checkLinks(t, accountId, a);
     const same = await t.tradeLedgerEntry.findFirst({ where: { tradeAccountId: accountId, kind: "PAYMENT", reference, cents: -cents, createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } }, select: { createdAt: true } });
-    if (same) throw new TradeLedgerError(`A payment of that amount with reference ${reference} is already on the account (recorded ${same.createdAt.toISOString().slice(0, 10)})`);
+    if (same) throw new TradeLedgerError(`A payment of that amount with reference ${reference} is already on the account (recorded ${dayKey(same.createdAt)})`);
     const entry = await t.tradeLedgerEntry.create({
       data: { tradeAccountId: accountId, kind: "PAYMENT", cents: -cents, reference, note: a.note ?? null, tradeOrderId: a.tradeOrderId ?? null, createdById: actor.id ?? null, ...(a.receivedAt ? { createdAt: a.receivedAt } : {}) },
     });

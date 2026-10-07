@@ -16,7 +16,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Field, Textarea } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
-import { ActionButton, ConfirmAction, FieldError } from "@/components/hq/action-form";
+import { ActionButton, ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { BackLink, Line, ReadOnlyNote } from "@/components/store/ui";
 import { EVENT_LABEL, PAY_LABEL, TradeOrderBadge, casesLabel, termsLabel } from "@/components/admin/trade-ui";
 import { cancelTradeOrder, collectTradeOrder, pickTradeOrder, readyTradeOrder } from "../actions";
@@ -71,11 +71,11 @@ export default async function StoreTradeOrderPage({ params }: { params: Promise<
             <Card className="border-brand-300 ring-4 ring-brand-500/10">
               <CardHeader
                 title="Next step"
-                description={o.status === "READY" ? "Hand over when the collector arrives: check their ID (18+) and the collection code." : "Pick and pack, then mark it ready — the buyer gets the collection code by email and text."}
+                description={o.status === "READY" ? "Hand over when the collector arrives: check their ID (18+) and the collection code." : "Pick and pack, then mark it ready. The buyer gets the collection code by email and text."}
               />
               <CardBody className="space-y-3">
                 {next.includes("pick") && <ActionButton action={pickTradeOrder.bind(null, store.code, o.id)} variant="outline" pendingLabel="Starting…">Start picking</ActionButton>}
-                {next.includes("ready") && <ActionButton action={readyTradeOrder.bind(null, store.code, o.id)} variant={o.status === "PICKING" ? "primary" : "outline"} pendingLabel="Marking ready…">Packed — ready for collection</ActionButton>}
+                {next.includes("ready") && <ActionButton action={readyTradeOrder.bind(null, store.code, o.id)} variant={o.status === "PICKING" ? "primary" : "outline"} pendingLabel="Marking ready…">Packed and ready for collection</ActionButton>}
                 {next.includes("collect") && <HandoverForm action={collectTradeOrder.bind(null, store.code, o.id)} number={o.number} lines={lines.map((l) => ({ id: l.id, name: l.name, qty: l.qty, onHand: l.onHand }))} />}
                 {next.includes("cancel") &&
                   (canManageStore(user) ? (
@@ -92,7 +92,7 @@ export default async function StoreTradeOrderPage({ params }: { params: Promise<
             </Card>
           )}
           {o.status === "COLLECTED" && sale && (
-            <Notice tone="success" className="mb-0" title={`Handed over — sale ${sale.number} posted at ${store.name}`}>
+            <Notice tone="success" className="mb-0" title={`Handed over: sale ${sale.number} posted at ${store.name}`}>
               {zar(sale.totalCents)} incl. VAT in the trade (wholesale) channel, collected by HQ.{" "}
               <a href={invoiceUrl(sale.id)} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 font-semibold text-leaf-700 hover:underline">
                 Tax invoice {o.invoiceNumber} <ExternalLink className="h-3.5 w-3.5" aria-hidden />

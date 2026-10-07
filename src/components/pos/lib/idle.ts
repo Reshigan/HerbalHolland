@@ -41,17 +41,17 @@ export function quietDashboard(i: { boot: BootData; orders: OrderCard[] | null; 
     .slice(0, 6);
 
   const tasks: QuietTask[] = [];
-  if (!i.boot.shift) tasks.push({ key: "shift", text: "No shift is open — open one with a counted float before the first sale", tone: "warn", tab: "shift" });
+  if (!i.boot.shift) tasks.push({ key: "shift", text: "No shift is open. Open one with a counted float before the first sale.", tone: "warn", tab: "shift" });
   const queued = i.outbox.filter((o) => !o.deviceId || o.deviceId === i.boot.device.id).length;
-  if (queued) tasks.push({ key: "outbox", text: `${queued} offline sale${queued === 1 ? "" : "s"} waiting to sync — check the connection`, tone: "warn", tab: "sell" });
+  if (queued) tasks.push({ key: "outbox", text: `${queued} offline sale${queued === 1 ? "" : "s"} waiting to sync. Check the connection.`, tone: "warn", tab: "sell" });
   const late = orders.filter((o) => (o.status === "PLACED" || o.status === "PICKING") && now.getTime() - new Date(o.placedAt).getTime() > 15 * 60_000).length;
   if (late) tasks.push({ key: "late", text: `${late} online order${late === 1 ? "" : "s"} past the 15-minute ready time`, tone: "warn", tab: "orders" });
   else if (toPick) tasks.push({ key: "pick", text: `${toPick} online order${toPick === 1 ? "" : "s"} to pick`, tone: "ok", tab: "orders" });
   const out = i.boot.products.reduce((n, p) => n + p.variants.filter((v) => v.available <= 0).length, 0);
-  if (out) tasks.push({ key: "out", text: `${out} line${out === 1 ? "" : "s"} showing none on the shelf — check and count`, tone: "ok", tab: "stock" });
+  if (out) tasks.push({ key: "out", text: `${out} line${out === 1 ? "" : "s"} showing none on the shelf. Check and count.`, tone: "ok", tab: "stock" });
   const ageH = (now.getTime() - new Date(i.boot.fetchedAt).getTime()) / 3_600_000;
-  if (ageH > 6) tasks.push({ key: "stale", text: `Catalogue last refreshed ${Math.round(ageH)} hours ago${i.online ? " — refresh it from Shift → This till" : " (offline)"}`, tone: "ok", tab: "shift" });
-  if (!tasks.length) tasks.push({ key: "clear", text: "All clear — nothing waiting on this till", tone: "ok" });
+  if (ageH > 6) tasks.push({ key: "stale", text: `Catalogue last refreshed ${Math.round(ageH)} hours ago${i.online ? " (refresh it from Shift → This till)" : " (offline)"}`, tone: "ok", tab: "shift" });
+  if (!tasks.length) tasks.push({ key: "clear", text: "All clear: nothing waiting on this till", tone: "ok" });
 
   const takings = i.x && i.boot.shift ? { cents: i.x.takingsCents, sales: i.x.sales.count, refunds: i.x.refunds.count } : null;
   const nextEvent = i.boot.nextEvent && new Date(i.boot.nextEvent.endsAt) > now ? i.boot.nextEvent : null;

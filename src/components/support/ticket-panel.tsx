@@ -85,7 +85,7 @@ export function TicketPanel({ d, staff, canWork, actions, links, agentName, now 
 
         <Card>
           <CardHeader title={t.status === "RESOLVED" ? "Reply (reopens the request)" : "Reply"} description={t.status === "WAITING_MEMBER" ? "Our reply is out; you can add to it." : undefined} />
-          <CardBody>{canWork ? <ReplyForm action={actions.reply} canned={canned} memberName={firstNameOf(t.name)} channel={channel} /> : <ViewOnly>View only — managers and owners reply to members.</ViewOnly>}</CardBody>
+          <CardBody>{canWork ? <ReplyForm action={actions.reply} canned={canned} memberName={firstNameOf(t.name)} channel={channel} /> : <ViewOnly>View only. Managers and owners reply to members.</ViewOnly>}</CardBody>
         </Card>
       </div>
 
@@ -161,7 +161,7 @@ export function TicketPanel({ d, staff, canWork, actions, links, agentName, now 
               ) : (
                 <p className="text-ink-600">
                   Quoted order <span className="font-mono">{t.orderCode}</span>
-                  {t.customerId ? " isn't one of this member's orders" : " couldn't be tied to the person asking"} — check it before sharing anything about it.
+                  {t.customerId ? " isn't one of this member's orders" : " couldn't be tied to the person asking"}. Check it before sharing anything about it.
                 </p>
               )}
             </CardBody>

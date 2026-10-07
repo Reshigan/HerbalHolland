@@ -21,7 +21,7 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   if (!slug) fields.slug = "Slug is required";
   else if (await db.product.count({ where: { slug, ...(productId && { id: { not: productId } }) } })) fields.slug = "Another product already uses this URL";
   const description = str(fd, "description");
-  if (description.length < 20) fields.description = "Write at least a sentence — it appears on the product page";
+  if (description.length < 20) fields.description = "Write at least a sentence. It appears on the product page.";
   const categoryId = str(fd, "categoryId");
   if (!(await db.category.count({ where: { id: categoryId } }))) fields.categoryId = "Choose a category";
   const regClass = str(fd, "regClass") as RegClass;
@@ -52,7 +52,7 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   const claims = fd.getAll("claim").map((v) => String(v).trim()).filter(Boolean);
   for (const c of claims) {
     const flags = screenCopy(c);
-    if (flags.length) fields.claims = `"${c}" — ${flags[0].reason}`;
+    if (flags.length) fields.claims = `"${c}": ${flags[0].reason}`;
   }
 
   // Product facts (food, supplements, skin care, CBD supplements): stored only for the classes that carry them.
@@ -70,10 +70,10 @@ export async function saveProduct(productId: string | null, _: ActionState, fd: 
   if (issues.length) fields.compliance = issues.join(" · ");
   const copy = [name, str(fd, "tagline"), description].join(" ");
   const copyFlags = screenCopy(copy);
-  if (copyFlags.length) fields.description = `"${copyFlags[0].term}" — ${copyFlags[0].reason}`;
+  if (copyFlags.length) fields.description = `"${copyFlags[0].term}": ${copyFlags[0].reason}`;
   if (Object.keys(fields).length)
     return fail(
-      !fields.compliance ? "Check the highlighted fields." : regClass === "CBD" ? "This product doesn't meet Schedule 0 CBD rules — fix it before saving." : `This product doesn't meet the rules for ${REG_CLASS_LABEL[regClass]} — fix it before saving.`,
+      !fields.compliance ? "Check the highlighted fields." : regClass === "CBD" ? "This product doesn't meet Schedule 0 CBD rules. Fix it before saving." : `This product doesn't meet the rules for ${REG_CLASS_LABEL[regClass]}. Fix it before saving.`,
       fields,
     );
 
@@ -179,7 +179,7 @@ export async function saveVariantPrice(variantId: string, _: ActionState, fd: Fo
   if (!g) return DENIED;
   const priceCents = parseRand(str(fd, "price"));
   if (!priceCents || priceCents <= 0) return fail("Enter the RRP incl. VAT, like 249.00", { price: "RRP incl. VAT" });
-  if (priceCents > 1_000_000_00) return fail("That's more than R1,000,000 — check the amount", { price: "Too high" });
+  if (priceCents > 1_000_000_00) return fail("That's more than R1,000,000. Check the amount.", { price: "Too high" });
   const before = await db.variant.findUnique({ where: { id: variantId }, select: { id: true, sku: true, productId: true, priceCents: true, wholesaleCents: true, costCents: true } });
   if (!before) return fail("That variant no longer exists.");
   if (before.priceCents === priceCents) return done(`${before.sku} is already R${(priceCents / 100).toFixed(2)}.`);
@@ -221,5 +221,5 @@ export async function rangeVariant(productId: string, _: ActionState, fd: FormDa
   await audit(db, g.actor, `ranging.${mode}`, { entity: "Variant", entityId: variantId, data: { sku: variant.sku, format: format || "ALL", regionId: regionId || "ALL", stores: n } });
   revalidatePath(`/hq/catalogue/${productId}`);
   if (mode === "range") return done(n ? `${variant.sku} ranged at ${n} more store${n === 1 ? "" : "s"}.` : `${variant.sku} was already ranged at all ${storeIds.length} matching stores.`);
-  return done(`${variant.sku} unranged at ${n} store${n === 1 ? "" : "s"}.${holding ? ` ${holding} still hold stock — they can sell through or return it.` : ""}`);
+  return done(`${variant.sku} unranged at ${n} store${n === 1 ? "" : "s"}.${holding ? ` ${holding} still hold stock, which they can sell through or return.` : ""}`);
 }

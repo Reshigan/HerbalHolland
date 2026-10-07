@@ -80,7 +80,7 @@ export function storeDayLines(a: { store: StoreRef; hqCompanyId: string; label: 
     broken += t.cents;
   }
   if (broken !== viaHq)
-    throw new Error(`${a.label}: the payments HQ collected or funds come to ${zar(broken)}, the day's rollup to ${zar(viaHq)} — out by ${zar(broken - viaHq)}`);
+    throw new Error(`${a.label}: the payments HQ collected or funds come to ${zar(broken)} and the day's rollup to ${zar(viaHq)}, so they're out by ${zar(broken - viaHq)}`);
   if (hqOwned) own.push(...hq);
   else own.push(line("hq", viaHq)), hq.push(line("franchisees", -viaHq, companyId));
   for (const m of a.stock) {

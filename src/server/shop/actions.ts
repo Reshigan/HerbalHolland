@@ -59,7 +59,7 @@ export async function addToBag(_: BagState, form: FormData): Promise<BagState> {
   const classes = await getClasses();
   if (classes.licensed.includes(v.product.regClass)) {
     const access = await getDispensaryAccess();
-    if (!access.allowed) return { error: access.mode === "MEDICAL" ? "Dispensary items are for registered patients — sign in first" : "Sign in and verify your age to order this item" };
+    if (!access.allowed) return { error: access.mode === "MEDICAL" ? "Dispensary items are for registered patients. Sign in first" : "Sign in and verify your age to order this item" };
   }
   const items = withItem(await getCart(), v.id, qty);
   await saveCart(items);
@@ -148,7 +148,7 @@ export async function authFlow(prev: AuthState, form: FormData): Promise<AuthSta
 
   if (intent === "register") {
     const phone = readPhoneToken(jar.get(SHOP_COOKIE.phone)?.value);
-    if (!phone) return { step: "phone", error: "Your verification expired — please confirm your number again" };
+    if (!phone) return { step: "phone", error: "Your verification expired. Please confirm your number again" };
     // Three tries a day that hit someone else's ID number or email, then this number can't check any more online.
     const refused = (): AuthState => (jar.delete(SHOP_COOKIE.phone), { step: "phone", error: COLLISION_REFUSED });
     if (await collisionsUsedUp(`phone:${phone}`)) return refused();
@@ -241,7 +241,7 @@ export async function verifyAgeWithId(_: AgeCheckState, form: FormData): Promise
     if (e instanceof CustomerError) return { error: e.message };
     if ((e as { code?: string }).code === "P2002") {
       if (!(await noteCollision(`member:${c.id}`, me, "idNumber"))) return { error: COLLISION_REFUSED };
-      return { error: "That ID number is already linked to another member — please visit a store so we can help." };
+      return { error: "That ID number is already linked to another member. Please visit a store so we can help." };
     }
     throw e;
   }

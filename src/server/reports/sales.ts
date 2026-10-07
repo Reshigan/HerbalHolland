@@ -4,7 +4,7 @@ import { db, Prisma } from "../db";
 import { sast } from "../sql";
 import { delta, previousRange } from "@/lib/ranges";
 import { dayKey, fmtDate, fmtDay } from "@/lib/format";
-import { zar } from "@/lib/money";
+import { zar, zarCompact } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import {
@@ -17,7 +17,7 @@ const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ?
 export const salesOverview: ReportDef = {
   key: "sales-overview",
   title: "Sales overview",
-  description: "How did we trade each day — sales, VAT, discounts, baskets and margin?",
+  description: "How did we trade each day? Sales, VAT, discounts, baskets and margin.",
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -357,7 +357,7 @@ export const salesByHour: ReportDef = {
 export const salesByStaff: ReportDef = {
   key: "sales-by-staff",
   title: "Sales by staff",
-  description: "How is each budtender performing — sales, baskets, member sign-in and refunds?",
+  description: "How is each budtender performing? Sales, baskets, member sign-in and refunds.",
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],
@@ -548,13 +548,12 @@ export const payments: ReportDef = {
         { label: "Cash", value: t.cashCents as number, format: "zar", sub: pctOf(t.cashCents, t.total) },
         { label: "PayShap", value: t.payshapCents as number, format: "zar", sub: pctOf(t.payshapCents, t.total) },
       ],
-      chart: (t.total as number) > 0 ? { kind: "donut", title: "How sales were paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarShort(t.total as number) } : null,
-      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account. Collected by HQ is money HQ took on the store's behalf — online payments, gift vouchers (paid for online, HQ's liability) and trade orders collected at the store — and redeemed Rewards points are reimbursed; on account is trade sales invoiced to a business account on HQ's trade ledger, not money at the till. All of those are settled on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to; the voucher part of a refund goes back onto the voucher.",
+      chart: (t.total as number) > 0 ? { kind: "donut", title: "How sales were paid", description: "Share of takings incl VAT", format: "zar", data: TENDERS.map((x) => ({ label: x.label, value: Math.max(0, t[x.key] as number) })), center: zarCompact(t.total as number) } : null,
+      note: "Business days run midnight to midnight, South African time. Card, PayShap and EFT settle to the store's bank account. Collected by HQ is money HQ took on the store's behalf: online payments, gift vouchers (paid for online, HQ's liability) and trade orders collected at the store. Redeemed Rewards points are reimbursed. On account is trade sales invoiced to a business account on HQ's trade ledger, not money at the till. All of those are settled on the monthly franchise statement. Refunds show as negative amounts on the tender they went back to; the voucher part of a refund goes back onto the voucher.",
     };
   },
 };
 const pctOf = (a: unknown, b: unknown) => (Number(b) ? `${((Number(a) / Number(b)) * 100).toFixed(1)}% of takings` : undefined);
-const zarShort = (c: number) => (Math.abs(c) >= 1_000_000_00 ? `R${(c / 100_000_000).toFixed(2)}m` : Math.abs(c) >= 1_000_000 ? `R${Math.round(c / 100_000)}k` : zar(c));
 
 // ── Online orders ───────────────────────────────────────────────────────────
 export const onlineOrders: ReportDef = {

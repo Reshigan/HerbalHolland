@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { CalendarClock, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Label, Select } from "@/components/ui/form";
-import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionButton, ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import type { ActionState } from "@/server/hq/guard";
 
 type Action = (state: ActionState, fd: FormData) => Promise<ActionState>;
@@ -36,7 +36,7 @@ export function ScheduleExport({ me, schedules, schedule }: { me: string; schedu
           <div className="mb-3 flex items-start justify-between gap-3">
             <div>
               <div className="font-display text-sm font-semibold text-ink-950">Email me this report</div>
-              <p className="mt-0.5 text-xs text-ink-500">With the filters as set now. A signed CSV link goes out after the 03:00 run — never the file itself.</p>
+              <p className="mt-0.5 text-xs text-ink-500">With the filters as set now. A signed CSV link goes out after the 03:00 run, never the file itself.</p>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-ink-500 hover:bg-ink-100" aria-label="Close">
               <X className="h-4 w-4" aria-hidden />

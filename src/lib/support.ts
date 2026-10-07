@@ -178,8 +178,8 @@ export function validateTicket(input: RawTicket, member: TicketMember): TicketCh
   else if (!/\p{L}/u.test(name)) fields.name = "Enter your name in letters";
 
   const email = line(input.email).toLowerCase() || (member?.email ?? "").toLowerCase();
-  if (email && (email.length > L.email || !isEmail(email))) fields.email = "That doesn't look like an email address — check it for typos";
-  else if (!email && !member) fields.email = "Enter your email address — we reply by email";
+  if (email && (email.length > L.email || !isEmail(email))) fields.email = "That doesn't look like an email address. Check it for typos";
+  else if (!email && !member) fields.email = "Enter your email address. We reply by email";
 
   const rawPhone = line(input.phone);
   const phone = rawPhone ? normalisePhone(rawPhone) : (member?.phone ?? null);
@@ -194,12 +194,12 @@ export function validateTicket(input: RawTicket, member: TicketMember): TicketCh
 
   const rawCode = line(input.orderCode);
   const orderCode = rawCode ? orderCodeOf(rawCode) : null;
-  if (rawCode && !orderCode) fields.orderCode = "An order code is 6 letters and digits, like 7K2M9P — it's in your order confirmation";
-  else if (!orderCode && (category === "ORDER" || category === "DELIVERY")) fields.orderCode = "Add the order code so we can find it — it's in your confirmation and in Rewards → Orders";
+  if (rawCode && !orderCode) fields.orderCode = "An order code is 6 letters and digits, like 7K2M9P. It's in your order confirmation";
+  else if (!orderCode && (category === "ORDER" || category === "DELIVERY")) fields.orderCode = "Add the order code so we can find it. It's in your confirmation and in Rewards → Orders";
 
   const body = para(input.body);
   if (!body) fields.body = "Tell us what happened";
-  else if (body.length < L.bodyMin) fields.body = `A little more, please — at least ${L.bodyMin} characters`;
+  else if (body.length < L.bodyMin) fields.body = `A little more, please: at least ${L.bodyMin} characters`;
   else if (body.length > L.body) fields.body = `Keep it under ${count(L.body)} characters`;
 
   if (!member && !ticked(input.consent)) fields.consent = "Tick the box so we can use your details to reply";
@@ -245,7 +245,7 @@ export const CANNED_REPLIES = [
   {
     key: "delivery-delay",
     label: "Delivery: running late",
-    body: "Hi {name},\n\nI'm sorry order {orderCode} hasn't reached you yet. I've asked the courier for an update and will let you know as soon as I hear back. If it hasn't arrived within two working days, we'll send a replacement or refund you — your choice.\n\n{agent}\nHerbal Holland",
+    body: "Hi {name},\n\nI'm sorry order {orderCode} hasn't reached you yet. I've asked the courier for an update and will let you know as soon as I hear back. If it hasn't arrived within two working days, we'll send a replacement or refund you, whichever you prefer.\n\n{agent}\nHerbal Holland",
   },
   {
     key: "return-how",
@@ -255,7 +255,7 @@ export const CANNED_REPLIES = [
   {
     key: "points-missing",
     label: "Rewards: points missing",
-    body: "Hi {name},\n\nThanks for flagging this. Points from an online order are added when it's handed over or delivered, and points from a store visit when the sale is rung up on your card. I've checked your account and added what was missing — you'll see it under Rewards → Points.\n\n{agent}\nHerbal Holland",
+    body: "Hi {name},\n\nThanks for flagging this. Points from an online order are added when it's handed over or delivered, and points from a store visit when the sale is rung up on your card. I've checked your account and added what was missing. You'll see it under Rewards → Points.\n\n{agent}\nHerbal Holland",
   },
   {
     key: "account-details",
@@ -265,7 +265,7 @@ export const CANNED_REPLIES = [
   {
     key: "closing",
     label: "Closing: all sorted",
-    body: "Hi {name},\n\nGlad we could sort that out. I'm closing this request now — if anything else comes up, just reply and it reopens.\n\n{agent}\nHerbal Holland",
+    body: "Hi {name},\n\nGlad we could sort that out. I'm closing this request now. If anything else comes up, just reply and it reopens.\n\n{agent}\nHerbal Holland",
   },
 ] as const;
 export type CannedKey = (typeof CANNED_REPLIES)[number]["key"];

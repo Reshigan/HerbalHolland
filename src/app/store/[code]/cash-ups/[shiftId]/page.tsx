@@ -87,7 +87,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
 
       <div className="mt-6 space-y-6">
         <Card>
-          <CardHeader title="Takings by tender" description="Money taken in this shift, incl. VAT — sales less refunds" />
+          <CardHeader title="Takings by tender" description="Money taken in this shift, incl. VAT (sales less refunds)" />
           <CardBody className="grid gap-6 md:grid-cols-3">
             <div className="md:col-span-2">
               {money.length ? <Donut layout="row" data={money.map((t) => ({ label: METHOD[t.method] ?? t.method, value: Math.max(0, t._sum.amountCents ?? 0) }))} centerLabel={zar(moneyTotal)} /> : <p className="text-sm text-ink-500">No takings yet.</p>}
@@ -98,7 +98,7 @@ export default async function ShiftPage({ params, searchParams }: { params: Prom
               {onAccount && (
                 <>
                   <div className="flex justify-between border-t border-ink-100 pt-1"><span className="text-ink-500">On account (invoiced)</span><span className="tnum">{onAccount._count} · {zar(onAccount._sum.amountCents ?? 0)}</span></div>
-                  <p className="text-xs text-ink-500">Trade sales invoiced to a business account on HQ&apos;s ledger — not in the drawer and not a card settlement.</p>
+                  <p className="text-xs text-ink-500">Trade sales invoiced to a business account on HQ&apos;s ledger. They&apos;re not in the drawer and not a card settlement.</p>
                 </>
               )}
               {shift.notes && <p className="mt-3 rounded-xl bg-ink-50 p-3 text-sm text-ink-700">“{shift.notes}”</p>}

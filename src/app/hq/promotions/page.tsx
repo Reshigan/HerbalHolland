@@ -91,7 +91,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
       <PageHeader
         overline="Product"
         title="Promotions"
-        description="Network deals and store-run offers: % and rand off, bonus buys and gifts with purchase, multi-buys and points multipliers — with happy hours and promo codes."
+        description="Network deals and store-run offers: % and rand off, bonus buys and gifts with purchase, multi-buys and points multipliers, plus happy hours and promo codes."
         actions={
           can(user, "network") && (
             <ButtonLink href="/hq/promotions/new">

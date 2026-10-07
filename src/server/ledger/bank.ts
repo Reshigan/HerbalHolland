@@ -11,6 +11,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { db, tx, Prisma, type Tx } from "../db";
 import { audit, SYSTEM, type Actor } from "../audit";
+import { reportFailure } from "../alerts";
 import { putObject } from "../storage";
 import { booksAccess } from "./access";
 import { booksFor, syncPosting, type Posting } from "./core";
@@ -19,7 +20,7 @@ import {
   type Bank, type ColumnMap, type LedgerItem, type StatementFormat,
 } from "@/lib/bank-import";
 import { periodOf, supplierParty, type Line } from "@/lib/ledger";
-import { dayKey } from "@/lib/format";
+import { addDays, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { BankLineStatus } from "@/generated/prisma/client";
 
@@ -38,9 +39,9 @@ const SUGGEST_DAYS = 10;
  * register they mirror) — the payment is recorded where it belongs, and the line then matches its posting.
  */
 const KEPT: Record<string, string> = {
-  hq: "Payments to and from Herbal Holland are recorded as statement payments, so both sets of books get them — this line then matches by itself.",
-  franchisees: "Payments from and to franchisees are recorded as statement payments (Statements → the store), so both sets of books agree — this line then matches by itself.",
-  debtors: "Trade payments are captured on the trade account, so the trade ledger and the books agree — this line then matches by itself.",
+  hq: "Payments to and from Herbal Holland are recorded as statement payments, so both sets of books get them. This line then matches by itself.",
+  franchisees: "Payments from and to franchisees are recorded as statement payments (Statements → the store), so both sets of books agree. This line then matches by itself.",
+  debtors: "Trade payments are captured on the trade account, so the trade ledger and the books agree. This line then matches by itself.",
   vouchers: "Gift vouchers follow their register: they aren't posted from the bank.",
   points: "Rewards points follow the members' balances: they aren't posted from the bank.",
   prepaid: "Online orders paid follow the orders: they aren't posted from the bank.",
@@ -78,7 +79,7 @@ async function lockedLine(t: Tx, companyId: string, lineId: string) {
   return { line, acct };
 }
 
-const already = (s: BankLineStatus) => new BankError(s === "IGNORED" ? "This line is ignored — restore it first." : `This line is already ${s === "MATCHED" ? "matched" : "allocated"}.`);
+const already = (s: BankLineStatus) => new BankError(s === "IGNORED" ? "This line is ignored. Restore it first." : `This line is already ${s === "MATCHED" ? "matched" : "allocated"}.`);
 /** A long list in slices (a year's statement is more than one query's worth of values). */
 const slices = <T,>(list: T[], size: number) => Array.from({ length: Math.ceil(list.length / size) }, (_, i) => list.slice(i * size, (i + 1) * size));
 
@@ -167,9 +168,9 @@ export async function importStatement(companyId: string, bankAccountId: string, 
   const { actor, user } = await writer(companyId, by);
   const acct = await db.bankAccount.findFirst({ where: { id: bankAccountId, companyId } });
   if (!acct) throw new BankError("Choose one of these books' bank accounts", "bankAccountId");
-  if (!acct.active) throw new BankError(`${acct.name} is closed — reopen it to import a statement`, "bankAccountId");
+  if (!acct.active) throw new BankError(`${acct.name} is closed. Reopen it to import a statement`, "bankAccountId");
   if (!a.file.size) throw new BankError("Choose the statement file", "file");
-  if (a.file.size > STATEMENT_MAX_BYTES) throw new BankError("The file is over 5 MB — download a shorter period", "file");
+  if (a.file.size > STATEMENT_MAX_BYTES) throw new BankError("The file is over 5 MB. Download a shorter period", "file");
   const bytes = new Uint8Array(await a.file.arrayBuffer());
   const read = parseStatement(decodeStatement(bytes), a.format, a.map);
   if (read.account && read.account.length >= 4 && !read.account.endsWith(acct.number))
@@ -285,14 +286,15 @@ function byAmount(items: LedgerItem[]) {
 /**
  * Matches a bank account's open lines to postings already in the books: the same amount, within five days either
  * way, only postings nothing on this account is matched to yet, and only where a line has one candidate left that no
- * other line needs (nothing is guessed). System work (after an import, or nightly); returns how many.
+ * other line needs (nothing is guessed). System work (after an import, or nightly); returns how many. `since` (a day)
+ * leaves older lines out, and with them the postings around them.
  */
-export async function autoMatch(companyId: string, bankAccountId: string, actor: Actor = SYSTEM) {
+export async function autoMatch(companyId: string, bankAccountId: string, actor: Actor = SYSTEM, since?: string) {
   return tx(async (t) => {
     await lock(t, bankAccountId);
     const acct = await t.bankAccount.findFirst({ where: { id: bankAccountId, companyId }, select: { id: true, accountId: true } });
     if (!acct) throw new BankError("That bank account isn't in these books.");
-    const open = await t.bankLine.findMany({ where: { bankAccountId, status: "UNMATCHED" }, orderBy: [{ date: "asc" }, { createdAt: "asc" }], take: 5000 });
+    const open = await t.bankLine.findMany({ where: { bankAccountId, status: "UNMATCHED", ...(since ? { date: { gte: dateCol(since) } } : {}) }, orderBy: [{ date: "asc" }, { createdAt: "asc" }], take: 5000 });
     if (!open.length) return 0;
     const ps = await postings(t, companyId, acct, { from: shift(day(open[0].date), -AUTO_DAYS), to: shift(day(open[open.length - 1].date), AUTO_DAYS) });
     const byKey = new Map(ps.map((p) => [p.key, p]));
@@ -315,12 +317,26 @@ export async function matchAutomatically(companyId: string, bankAccountId: strin
   return autoMatch(companyId, bankAccountId, actor);
 }
 
-/** Every bank account with open lines tried again (for the nightly job: postings arrive after the statement). */
-export async function autoMatchAll() {
-  const open = await db.bankLine.groupBy({ by: ["companyId", "bankAccountId"], where: { status: "UNMATCHED" } });
-  let matched = 0;
-  for (const a of open) matched += await autoMatch(a.companyId, a.bankAccountId);
-  return { accounts: open.length, matched };
+/** How far back the nightly run looks: a line still open after that is matched or allocated by hand. */
+const AUTO_MATCH_DAYS = 90;
+
+/**
+ * Every bank account with lines open from the last 90 days tried again (for the nightly job: postings arrive after the
+ * statement). The window keeps each account's matching quick; an account that fails is reported and the rest go on.
+ */
+export async function autoMatchAll(now = new Date()) {
+  const since = dayKey(addDays(now, -AUTO_MATCH_DAYS));
+  const open = await db.bankLine.groupBy({ by: ["companyId", "bankAccountId"], where: { status: "UNMATCHED", date: { gte: dateCol(since) } } });
+  let matched = 0, failed = 0;
+  for (const a of open) {
+    try {
+      matched += await autoMatch(a.companyId, a.bankAccountId, SYSTEM, since);
+    } catch (e) {
+      failed++;
+      await reportFailure(e, "cron autoMatchAll");
+    }
+  }
+  return { accounts: open.length, matched, failed };
 }
 
 /** Postings that take many statement lines: a trading day's PayShap and EFT at the till post as one amount. */
@@ -452,7 +468,7 @@ export async function allocateLine(companyId: string, lineId: string, a: Allocat
     let storeId = await ownStore(t, companyId, a.storeId);
     let lines: Line[], to: string;
     if (a.kind === "payout") {
-      if (amount <= 0) throw new BankError("A card payout is money in — allocate money out to an account instead", "kind");
+      if (amount <= 0) throw new BankError("A card payout is money in: allocate money out to an account instead", "kind");
       const fee = a.feeCents, vat = a.feeVatCents ?? 0;
       if (!Number.isInteger(fee) || fee < 0 || fee > 100_000_000) throw new BankError("Enter the fee taken off the payout (0 if none)", "fee");
       if (vat && !book.vendor) throw new BankError("This company isn't registered for VAT, so there's no VAT to claim", "feeVat");
@@ -468,14 +484,14 @@ export async function allocateLine(companyId: string, lineId: string, a: Allocat
     } else {
       const target = await t.ledgerAccount.findFirst({ where: { id: a.accountId, companyId, active: true } });
       if (!target) throw new BankError("Choose one of these books' accounts", "accountId");
-      if (target.id === acct.accountId) throw new BankError("That's this bank account itself — choose where the money came from or went", "accountId");
+      if (target.id === acct.accountId) throw new BankError("That's this bank account itself. Choose where the money came from or went", "accountId");
       if (target.key && KEPT[target.key]) throw new BankError(KEPT[target.key], "accountId");
       const party = target.party ? await partyOf(t, companyId, target.party, a.party) : { partyId: null, storeId: null };
       storeId = party.storeId ?? storeId;
       const vat = a.vatCents ?? 0;
       if (vat) {
         if (!book.vendor) throw new BankError("This company isn't registered for VAT, so there's no VAT to claim", "vat");
-        if (amount > 0) throw new BankError("VAT is claimed on money out — leave it empty for money in", "vat");
+        if (amount > 0) throw new BankError("VAT is claimed on money out: leave it empty for money in", "vat");
         if (!Number.isInteger(vat) || vat < 0 || vat >= -amount) throw new BankError("The VAT must be less than the amount", "vat");
       }
       lines = [
@@ -488,7 +504,7 @@ export async function allocateLine(companyId: string, lineId: string, a: Allocat
     const memo = a.memo?.trim().replace(/\s+/g, " ") || line.description;
     const posting: Posting = { companyId, date: day(line.date), memo: `Bank: ${memo}`.slice(0, 300), storeId, lines };
     const j = (await syncPosting(t, "bank", line.id, companyId, posting)) ?? (await t.journal.findFirst({ where: { companyId, source: "bank", sourceId: line.id, status: "POSTED" }, orderBy: { number: "desc" } }));
-    if (!j) throw new BankError("Nothing was posted — try again.");
+    if (!j) throw new BankError("Nothing was posted. Try again.");
     await t.bankLine.update({ where: { id: line.id }, data: { status: "ALLOCATED", journalId: j.id, matchedById: actor.id, matchedAt: new Date() } });
     await audit(t, actor, "bank.line.allocate", {
       entity: "BankLine", entityId: line.id,
@@ -509,7 +525,7 @@ export async function unallocateLine(companyId: string, lineId: string) {
     const elsewhere = await t.bankLine.findFirst({ where: { companyId, id: { not: line.id }, status: "MATCHED", journalId: { in: journals.map((j) => j.id) } }, select: { bankAccountId: true } });
     if (elsewhere) {
       const other = await t.bankAccount.findUnique({ where: { id: elsewhere.bankAccountId }, select: { name: true } });
-      throw new BankError(`This allocation is matched on ${other?.name ?? "another account"}'s statement — unmatch it there first.`);
+      throw new BankError(`This allocation is matched on ${other?.name ?? "another account"}'s statement. Unmatch it there first.`);
     }
     const r = await syncPosting(t, "bank", line.id, companyId, null);
     await t.bankLine.update({ where: { id: line.id }, data: { status: "UNMATCHED", journalId: null, matchedById: null, matchedAt: null } });

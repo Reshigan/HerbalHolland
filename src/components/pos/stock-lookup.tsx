@@ -52,11 +52,11 @@ export function StockLookup({ onAdd }: { onAdd: (variantId: string) => void }) {
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6">
         <div className="mx-auto max-w-4xl">
-          {!pos.online && <Alert tone="warn">Offline — stock lookup needs a connection. The Sell screen still shows this store&apos;s last known stock.</Alert>}
+          {!pos.online && <Alert tone="warn">Offline: stock lookup needs a connection. The Sell screen still shows this store&apos;s last known stock.</Alert>}
           {error && <Alert>{error}</Alert>}
           {!hits && !loading && pos.online && (
             <EmptyPanel icon={<Boxes className="h-6 w-6" />} title="Search the network">
-              Type at least two letters — e.g. “grinder”, “Durban”, or scan a barcode into the box.
+              Type at least two letters (e.g. “grinder”, “Durban”), or scan a barcode into the box.
             </EmptyPanel>
           )}
           {hits?.length === 0 && <p className="py-10 text-center text-sm text-ink-400">Nothing matches “{q.trim()}”.</p>}

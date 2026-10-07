@@ -182,7 +182,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       <PageHeader
         overline="Governance"
         title="Audit log"
-        description={scope.kind === "HQ" ? "Every sensitive action across the network — who did what, where and when. Entries can't be edited or deleted." : "Sensitive actions at the stores in your region. Entries can't be edited or deleted."}
+        description={scope.kind === "HQ" ? "Every sensitive action across the network: who did what, where and when. Entries can't be edited or deleted." : "Sensitive actions at the stores in your region. Entries can't be edited or deleted."}
       />
       <Card>
         <div className="space-y-3 border-b border-ink-100 p-4">
@@ -215,7 +215,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           <tbody>
             {rows.length === 0 && (
               <TableEmpty cols={5} icon={<History className="h-5 w-5" aria-hidden />} title="No entries match these filters">
-                {q && !from ? "Search looks back 90 days — pick an earlier From date to go further. " : ""}Widen the date range or clear the activity filter.
+                {q && !from ? "Search looks back 90 days. Pick an earlier From date to go further. " : ""}Widen the date range or clear the activity filter.
               </TableEmpty>
             )}
             {rows.map((r) => {

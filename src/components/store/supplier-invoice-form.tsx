@@ -3,7 +3,7 @@
 // sent). Used from Purchasing → a received order (prefilled from the order) and from Finance → Supplier invoices.
 import { useState } from "react";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { MAX_INVOICE_BYTES } from "@/lib/supplier-invoice-rules";
 
 export type InvoiceDefaults = { supplierName?: string; number?: string; invoiceDate?: string; dueDate?: string; total?: string; vat?: boolean; accountId?: string; note?: string };
@@ -23,7 +23,7 @@ export function InvoiceFileInput({ id, name = "file" }: { id: string; name?: str
         required
         onChange={(e) => {
           const f = e.currentTarget.files?.[0];
-          const m = f && f.size > MAX_INVOICE_BYTES ? `That file is ${mb(f.size)} — the invoice has to be ${mb(MAX_INVOICE_BYTES)} or less. Take the photo again or use a smaller PDF.` : "";
+          const m = f && f.size > MAX_INVOICE_BYTES ? `That file is ${mb(f.size)}, but the invoice has to be ${mb(MAX_INVOICE_BYTES)} or less. Take the photo again or use a smaller PDF.` : "";
           e.currentTarget.setCustomValidity(m);
           setMsg(m || null);
         }}
@@ -69,7 +69,7 @@ export function SupplierInvoiceForm({
           <FieldError name="total" />
         </Field>
         <div className="flex items-end pb-2">
-          <Checkbox name="vat" defaultChecked={defaults.vat ?? vendor} label="Tax invoice — 15% VAT included" description={vendor ? "Counts towards your input tax" : "You're not VAT-registered: recorded for your books only"} />
+          <Checkbox name="vat" defaultChecked={defaults.vat ?? vendor} label="Tax invoice (15% VAT included)" description={vendor ? "Counts towards your input tax" : "You're not VAT-registered: recorded for your books only"} />
         </div>
       </div>
       <Field label="Charged to" htmlFor={id("account")} hint="Where the invoice shows in your books">

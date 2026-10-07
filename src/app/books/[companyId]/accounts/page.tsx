@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Field, Input, Select } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { InlineEdit } from "@/components/ui/inline-edit";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Drawer } from "@/components/store/drawer";
 import { ReadOnlyNote } from "@/components/store/ui";
 import { Flash } from "@/components/hq/flash";
@@ -86,7 +86,7 @@ export default async function AccountsPage({ params, searchParams }: { params: P
         }
       />
       <Flash message={sp.m} />
-      {!role.write && <ReadOnlyNote className="mb-6">Read-only — the owner and the company&apos;s accountant change the chart.</ReadOnlyNote>}
+      {!role.write && <ReadOnlyNote className="mb-6">Read-only: the owner and the company&apos;s accountant change the chart.</ReadOnlyNote>}
       <div className="space-y-6">
         {ACCOUNT_TYPES.map((t) => {
           const rows = accounts.filter((a) => a.type === t.type);

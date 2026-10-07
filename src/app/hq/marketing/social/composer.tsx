@@ -3,8 +3,9 @@ import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Send } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { limitFor, needsImage, screenSocial, SOCIAL_IMAGES, SOCIAL_NETWORKS, type SocialChannel, type SocialMode } from "@/lib/social";
+import { num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { ActionState } from "@/server/hq/guard";
 
@@ -55,20 +56,20 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
               value={text}
               onChange={(e) => setText(e.target.value)}
               aria-invalid={over || flags.length > 0 || undefined}
-              placeholder="e.g. The Windmill Tee is back — the mark embroidered in Sunset thread, made for you in Cape Town."
+              placeholder="e.g. The Windmill Tee is back: the mark embroidered in Sunset thread, made for you in Cape Town."
               className={cn(
                 "min-h-36 w-full rounded-xl border bg-white px-3.5 py-2.5 text-sm text-ink-900 transition placeholder:text-ink-400 focus:outline-none focus:ring-4",
                 over || flags.length ? "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15" : "border-ink-200 focus:border-brand-500 focus:ring-brand-500/15",
               )}
             />
             <p className={cn("mt-1.5 text-xs text-ink-500", over && "font-medium text-rose-600")}>
-              {text.length.toLocaleString()} / {limit.toLocaleString()} characters{limit < 2200 && ` (${ids.includes("x") ? "X" : "Threads"})`}
+              {num(text.length)} / {num(limit)} characters{limit < 2200 && ` (${ids.includes("x") ? "X" : "Threads"})`}
             </p>
             <FieldError name="content" />
             <div className="mt-2 space-y-1" aria-live="polite">
               {flags.map((f) => (
                 <p key={f.term} className="flex gap-1.5 text-xs font-medium text-rose-600">
-                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> “{f.term}” — {f.reason}
+                  <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> “{f.term}”: {f.reason}
                 </p>
               ))}
               {!flags.length && text.length > 10 && (
@@ -111,7 +112,7 @@ export function SocialComposer({ action, channels }: { action: (s: ActionState, 
               {when === "schedule" && <Input name="at" type="datetime-local" aria-label="Date and time (SAST)" className="w-auto" />}
             </div>
             <FieldError name="at" />
-            {when === "draft" && <p className="mt-1.5 text-xs text-ink-500">Lands in Postiz as a draft — add a video or tweak it per channel there, then schedule.</p>}
+            {when === "draft" && <p className="mt-1.5 text-xs text-ink-500">Lands in Postiz as a draft. Add a video or tweak it per channel there, then schedule.</p>}
           </fieldset>
 
           <SubmitButton size="lg" disabled={flags.length > 0 || over || imageMissing || text.trim().length < 10} pendingLabel="Sending…">

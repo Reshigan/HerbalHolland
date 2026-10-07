@@ -27,7 +27,7 @@ export function planReorder(lines: ReorderLine[], cart: CartItem[], limits = { m
       continue;
     }
     if (!l.allowed) {
-      skipped.push({ variantId: l.variantId, name: l.name, reason: "needs your patient authorisation — order it from the dispensary" });
+      skipped.push({ variantId: l.variantId, name: l.name, reason: "needs your patient authorisation, so order it from the dispensary" });
       continue;
     }
     const inBag = next.find((i) => i.variantId === l.variantId);

@@ -50,7 +50,7 @@ export function TradeSheet({ open, online, onClose, onPick }: { open: boolean; o
   }, [q, open, online]);
 
   return (
-    <Sheet open={open} onClose={onClose} title="Trade sale" subtitle="Find the business's trade account — name, number (TA-…) or VAT number" size="lg">
+    <Sheet open={open} onClose={onClose} title="Trade sale" subtitle="Find the business's trade account by name, number (TA-…) or VAT number" size="lg">
       {!online ? (
         <Alert tone="warn">Trade sales need a connection: the account, its trade prices and its credit terms live on the server. Try again when the till is back online.</Alert>
       ) : (
@@ -96,7 +96,7 @@ export function TradeSheet({ open, online, onClose, onPick }: { open: boolean; o
                         </span>
                       ) : (
                         <span className="block text-xs text-ink-400">
-                          {credit ? `${zar(a.availableCents)} available on account · owing ${zar(a.balanceCents)}` : onHold ? "On hold — cash, card or EFT only" : "Prepaid — cash, card or EFT"}
+                          {credit ? `${zar(a.availableCents)} available on account · owing ${zar(a.balanceCents)}` : onHold ? "On hold: cash, card or EFT only" : "Prepaid: cash, card or EFT"}
                         </span>
                       )}
                     </span>

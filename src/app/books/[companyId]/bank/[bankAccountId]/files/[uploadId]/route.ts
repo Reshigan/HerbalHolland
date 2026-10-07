@@ -5,6 +5,7 @@ import { statementFile } from "@/server/ledger/bank";
 import { getObject } from "@/server/storage";
 import { audit } from "@/server/audit";
 import { db } from "@/server/db";
+import { dayKey } from "@/lib/format";
 
 const notFound = () => new Response("Not found", { status: 404, headers: { "cache-control": "private, no-store" } });
 
@@ -23,8 +24,8 @@ export async function GET(_: Request, { params }: { params: Promise<{ companyId:
   }
   await audit(db, { type: "USER", id: access.user.id, name: access.user.name }, "bank.statement.file_view", { entity: "Upload", entityId: file.id, data: { companyId, bankAccountId } });
   const ofx = file.contentType === "application/x-ofx";
-  // The name is built from the import date, never from what was uploaded.
-  const name = `bank-statement-${file.createdAt.toISOString().slice(0, 10)}.${ofx ? "ofx" : "csv"}`;
+  // The name is built from the import date (SAST), never from what was uploaded.
+  const name = `bank-statement-${dayKey(file.createdAt)}.${ofx ? "ofx" : "csv"}`;
   return new Response(new Uint8Array(bytes), {
     headers: {
       "content-type": ofx ? "application/x-ofx" : "text/csv",

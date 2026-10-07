@@ -43,7 +43,7 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
         <div className="mx-auto max-w-lg rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
           <ShoppingBag className="mx-auto h-10 w-10 text-brand-500" strokeWidth={1.5} />
           <h1 className="mt-5 font-display text-3xl font-semibold text-white">Your bag is empty</h1>
-          <p className="mx-auto mt-3 max-w-sm text-ink-400">Find something you love — collect it in store or have it delivered anywhere in South Africa.</p>
+          <p className="mx-auto mt-3 max-w-sm text-ink-400">Find something you love, then collect it in store or have it delivered anywhere in South Africa.</p>
           <div className="mt-8 flex flex-wrap justify-center gap-3">
             <ButtonLink href="/shop" size="lg">
               Shop the range
@@ -147,7 +147,7 @@ export default async function CartPage({ searchParams }: { searchParams: Promise
                   with the number linked to your authorisation, or remove these items to continue.
                 </>
               ) : (
-                "We don't have an active SAHPRA authorisation on file for you — remove these items to continue, or ask our pharmacist in store."
+                "We don't have an active SAHPRA authorisation on file for you. Remove these items to continue, or ask an authorised dispenser in store."
               )}
             </Callout>
           )}

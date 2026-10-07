@@ -1141,6 +1141,7 @@ model MessageLog {
 
   @@index([campaignId])
   @@index([customerId])
+  @@index([to]) // POPIA erasure and export find a member's messages by their phone or email
   @@index([createdAt])
   @@index([channel, status, createdAt])
 }
@@ -1265,6 +1266,7 @@ model AuditLog {
 
   @@index([storeId, at])
   @@index([action])
+  @@index([actorType, actorId]) // POPIA erasure takes a member's name off what they did
 }
 
 model Setting {

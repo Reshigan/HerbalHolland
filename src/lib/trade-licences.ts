@@ -20,14 +20,14 @@ type LicenceInfo = {
 };
 
 export const TRADE_LICENCES: Record<TradeLicenceKind, LicenceInfo> = {
-  PHARMACY_LICENCE: { numberLabel: "Pharmacy licence number", docLabel: "Department of Health pharmacy licence", name: "Pharmacy licence", law: "Pharmacy Act 53 of 1974, section 22", issuer: "the Department of Health", expires: false, hint: "The licence number on the Department of Health's licence to own the pharmacy." },
+  PHARMACY_LICENCE: { numberLabel: "Pharmacy licence number", docLabel: "Department of Health pharmacy licence", name: "Pharmacy licence", law: "Pharmacy Act 53 of 1974, sections 22 and 22A", issuer: "the Department of Health", expires: false, hint: "The licence number on the Department of Health's licence to own the pharmacy." },
   SAPC_RECORDING: { numberLabel: "SAPC recording number", docLabel: "SAPC recording certificate", name: "SAPC pharmacy recording", law: "Pharmacy Act 53 of 1974", issuer: "the South African Pharmacy Council", expires: false, hint: "The pharmacy's recording number with the SAPC." },
   SAHPRA_LICENCE: { numberLabel: "SAHPRA licence number", docLabel: "SAHPRA section 22C licence", name: "SAHPRA licence to wholesale or distribute", law: "Medicines and Related Substances Act 101 of 1965, section 22C", issuer: "SAHPRA", expires: true, hint: "Needed to resell CBD supplements (complementary medicines) to other businesses." },
   FOOD_COA: { numberLabel: "Certificate number", docLabel: "Certificate of acceptability", name: "Certificate of acceptability (food premises)", law: "Regulation R638 of 2018", issuer: "the municipality's environmental health services", expires: false, hint: "For the premises where the food is kept and sold." },
   BUSINESS_LICENCE: { numberLabel: "Business licence number", docLabel: "Municipal business licence", name: "Business licence", law: "Businesses Act 71 of 1991", issuer: "the municipality", expires: false, hint: "The municipal licence to sell meals or perishable foodstuffs." },
   PRACTICE_NUMBER: { numberLabel: "Practice number", docLabel: "Practice number certificate (PCNS)", name: "Practice number", law: "BHF PCNS, with registration at the HPCSA or AHPCSA", issuer: "the Board of Healthcare Funders", expires: true, hint: "Seven digits. The expiry date is on this year's practice number certificate.", pattern: /^\d{7}$/, patternError: "A practice number is seven digits" },
   CIPC_REGISTRATION: { numberLabel: "Company registration number", docLabel: "CIPC registration certificate (CoR14.3)", name: "Company registration certificate", law: "Companies Act 71 of 2008", issuer: "CIPC", expires: false, hint: "The certificate for the registration number above (CoR14.3 or equivalent).", pattern: /^\d{4}\/\d{6}\/\d{2}$/, patternError: "Company registration numbers look like 2015/123456/07" },
-  SARS_REGISTRATION: { numberLabel: "Income tax reference number", docLabel: "SARS notice of registration", name: "SARS tax registration", law: "Tax Administration Act 28 of 2011, section 22", issuer: "SARS", expires: false, hint: "The owner's income tax reference number (ten digits) — the document is SARS's notice of registration.", pattern: /^\d{10}$/, patternError: "An income tax reference number is ten digits" },
+  SARS_REGISTRATION: { numberLabel: "Income tax reference number", docLabel: "SARS notice of registration", name: "SARS tax registration", law: "Tax Administration Act 28 of 2011, section 22", issuer: "SARS", expires: false, hint: "The owner's income tax reference number (ten digits). The document is SARS's notice of registration.", pattern: /^\d{10}$/, patternError: "An income tax reference number is ten digits" },
 };
 export const TRADE_LICENCE_KINDS = Object.keys(TRADE_LICENCES) as TradeLicenceKind[];
 /** A licence's name mid-sentence: "pharmacy licence", but "SAHPRA licence…" and "SAPC pharmacy recording" keep their capitals. */
@@ -121,11 +121,11 @@ export function licenceStanding(required: readonly RequiredLicence[], records: r
     let problem: string | null = null;
     if (current) state = current.expiresAt && current.expiresAt.getTime() <= soon ? "expiring" : "ok";
     else if (pending) (state = "pending"), (problem = `${name} is waiting to be checked`);
-    else if (latest?.status === "REJECTED") (state = "rejected"), (problem = `${name} wasn't accepted${latest.rejectReason ? ` (${latest.rejectReason})` : ""} — upload a new one`);
+    else if (latest?.status === "REJECTED") (state = "rejected"), (problem = `${name} wasn't accepted${latest.rejectReason ? ` (${latest.rejectReason})` : ""}. Upload a new one`);
     else {
       const lapsed = mine.find((r) => r.status === "VERIFIED");
-      if (lapsed?.expiresAt) (state = "expired"), (problem = `${name} expired on ${fmtDate(lapsed.expiresAt)} — upload the renewed one`);
-      else (state = "missing"), (problem = `${name} is needed — upload it`);
+      if (lapsed?.expiresAt) (state = "expired"), (problem = `${name} expired on ${fmtDate(lapsed.expiresAt)}. Upload the renewed one`);
+      else (state = "missing"), (problem = `${name} is needed. Upload it`);
     }
     return { kind, name, why, state, current, pending, latest, problem };
   });
@@ -162,7 +162,7 @@ export function checkLicenceInput(kind: TradeLicenceKind, input: { number?: stri
     if (!ok) fields.expiresAt = "Enter the expiry date";
     else {
       expiresAt = expiryOf(raw);
-      if (expiresAt.getTime() <= now.getTime()) fields.expiresAt = "This licence has expired — upload the renewed one";
+      if (expiresAt.getTime() <= now.getTime()) fields.expiresAt = "This licence has expired. Upload the renewed one";
       else if (expiresAt.getTime() > now.getTime() + LICENCE_MAX_YEARS * 366 * 86_400_000) fields.expiresAt = "Check the expiry date";
     }
   } else if (info.expires) fields.expiresAt = `Enter the date the ${licenceInSentence(kind)} expires`;

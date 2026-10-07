@@ -235,7 +235,7 @@ describe("Settling lines", () => {
     });
     expect(into).toMatchObject({ added: 1, matched: 1 });
     expect((await lineOf(fnb.id, "Transfer From")).status).toBe("MATCHED");
-    await expect(unallocateLine(w.owner.id, (await lineOf(capitec.id, "Transfer to FNB")).id)).rejects.toThrow("matched on FNB Cheque's statement — unmatch it there first");
+    await expect(unallocateLine(w.owner.id, (await lineOf(capitec.id, "Transfer to FNB")).id)).rejects.toThrow("matched on FNB Cheque's statement. Unmatch it there first");
   });
 
   it("matches by itself step by step: a line's only posting first, then what that leaves the next line", async () => {

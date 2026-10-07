@@ -13,7 +13,7 @@ export type ReturnReasonKey = (typeof RETURN_REASONS)[number];
 export const isReturnReason = (v: unknown): v is ReturnReasonKey => typeof v === "string" && (RETURN_REASONS as readonly string[]).includes(v);
 
 export const RETURN_REASON: Record<ReturnReasonKey, { label: string; hint: string; window: "defect" | "coolingOff"; ourCost: boolean }> = {
-  DEFECTIVE: { label: "It's faulty", hint: "Defective, unsafe or not doing what it should — within 6 months of delivery (CPA s56). The return is at our cost.", window: "defect", ourCost: true },
+  DEFECTIVE: { label: "It's faulty", hint: "Defective, unsafe or not doing what it should, within 6 months of delivery (CPA s56). The return is at our cost.", window: "defect", ourCost: true },
   DAMAGED: { label: "It arrived damaged", hint: "Damaged in the parcel. A photo of the box and the item helps us sort it out quickly.", window: "defect", ourCost: true },
   WRONG_ITEM: { label: "It's not what I ordered", hint: "The wrong item, size or quantity. We collect it at our cost.", window: "defect", ourCost: true },
   COOLING_OFF: {
@@ -54,9 +54,9 @@ export const isReturnStatus = (v: unknown): v is ReturnStatusKey => typeof v ===
 
 export const RETURN_STATUS: Record<ReturnStatusKey, { label: string; member: string; hint: string }> = {
   REQUESTED: { label: "Requested", member: "Request received", hint: "Waiting for a decision" },
-  APPROVED: { label: "Approved", member: "Approved — collection coming", hint: "Book the courier collection" },
+  APPROVED: { label: "Approved", member: "Approved: collection coming", hint: "Book the courier collection" },
   COLLECTION_BOOKED: { label: "Collection booked", member: "Courier booked", hint: "Waiting for the parcel to arrive" },
-  RECEIVED: { label: "Received", member: "We have it — refund on its way", hint: "Check it, then refund" },
+  RECEIVED: { label: "Received", member: "We have it: refund on its way", hint: "Check it, then refund" },
   REFUNDED: { label: "Refunded", member: "Refunded", hint: "Done" },
   DECLINED: { label: "Declined", member: "Declined", hint: "Closed with a reason" },
 };

@@ -77,7 +77,7 @@ export default async function PackPage({ params, searchParams }: { params: Promi
           )}
           <div>
             <dt className="inline font-semibold text-ink-800">Prepared: </dt>
-            <dd className="inline">{fmtDate(new Date())}, from the books — unaudited</dd>
+            <dd className="inline">{fmtDate(new Date())}, from the books (unaudited)</dd>
           </div>
         </dl>
         <div className="mt-8 grid grid-cols-2 gap-3 lg:grid-cols-4">

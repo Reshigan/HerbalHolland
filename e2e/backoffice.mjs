@@ -321,7 +321,7 @@ try {
   await page.locator("#ex-sup").fill("Waltons Hatfield");
   await page.locator("#ex-amt").fill("345.50");
   later("delete the test expense", () => q(`delete from "Expense" where "storeId" = $1 and description = $2`, [store.id, exDesc]));
-  await act(page, "addExpense", () => page.getByRole("button", { name: "Add expense" }).click(), () => status(page, `Added R345.50 — ${exDesc}`).waitFor());
+  await act(page, "addExpense", () => page.getByRole("button", { name: "Add expense" }).click(), () => status(page, `Added R345.50 for ${exDesc}`).waitFor());
   const expense = await one(`select id, "amountCents", "vatCents", category from "Expense" where "storeId" = $1 and description = $2`, [store.id, exDesc]);
   const vat = store.vatNumber ? Math.round((34550 * 15) / 115) : 0;
   assert(expense?.amountCents === 34550 && expense.vatCents === vat && expense.category === "SUPPLIES", `R345.50 expense saved (VAT R${(vat / 100).toFixed(2)})`);
@@ -559,8 +559,8 @@ try {
   await shot(page, "receive");
   t0 = new Date();
   // The page re-renders as Received (the receive form goes away) and says what was booked in and what was short.
-  const receivedNotice = (text) => status(page, new RegExp(`^Received \\d{1,2} \\w{3} \\d{4}.* incl\\. VAT\\..*${text}`));
-  await act(page, "receiveOrder · wholesale (1 short)", () => page.getByRole("button", { name: /^Confirm — book 1 unit in/ }).click(), () => receivedNotice(`1 unit short against the delivery note — recorded on the order for ${esc(store.dcName)}`).waitFor());
+  const receivedNotice = (text) => status(page, new RegExp(`^Received \\d{1,2} \\w{3} \\d{4}.* incl\\. VAT\\)\\..*${text}`));
+  await act(page, "receiveOrder · wholesale (1 short)", () => page.getByRole("button", { name: /^Confirm and book 1 unit in/ }).click(), () => receivedNotice(`1 unit short against the delivery note, recorded on the order for ${esc(store.dcName)}`).waitFor());
   po = await one(`select o.status, l."receivedQty", o.notes from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [wpo.id]);
   const inMv = await one(`select sum(qty)::int as qty from "StockMovement" where "stockOrderId" = $1 and type = 'TRANSFER_IN'`, [wpo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1 && inMv.qty === 1 && /Receiving: E2E/.test(po.notes), `${wpo.number} received: 1 in stock, 1 short flagged`);
@@ -653,7 +653,7 @@ try {
   seller = null;
   await visit(page, `/store/${CODE}/purchasing/${npo.id}`, page.getByRole("button", { name: "Receive 1 unit" }));
   await page.getByRole("button", { name: "Receive 1 unit" }).click();
-  await act(page, "receiveOrder · network", () => page.getByRole("button", { name: /^Confirm — book 1 unit in/ }).click(), () => receivedNotice("").waitFor());
+  await act(page, "receiveOrder · network", () => page.getByRole("button", { name: /^Confirm and book 1 unit in/ }).click(), () => receivedNotice("").waitFor());
   po = await one(`select o.status, l."receivedQty" from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [npo.id]);
   assert(po.status === "RECEIVED" && po.receivedQty === 1, `${npo.number} received — batch traceability travels with the unit`);
   const netInv = await one(`select "supplierName", "totalCents", "onStatement", status from "SupplierInvoice" where "stockOrderId" = $1`, [npo.id]);
@@ -726,7 +726,7 @@ try {
   await page.waitForURL(new RegExp(`/orders/${collect.id}$`));
   await hydrated(page.getByRole("button", { name: "Start picking" }));
   await move("moveOrder · PICKING", "Start picking", "Picking");
-  await move("moveOrder · READY", "Packed — ready for collection", "Ready");
+  await move("moveOrder · READY", "Packed and ready for collection", "Ready");
   const ready = await one(`select m.body from "MessageLog" m where m."customerId" = $1 and m.body like $2 order by m."createdAt" desc limit 1`, [member.id, `%${collect.code} is ready%`]);
   assert(ready, "the member was sent their collection message");
   await page.getByRole("button", { name: "Hand over to member" }).click();
@@ -745,12 +745,12 @@ try {
   if (merch) {
     await page.locator("#merch-courier").fill("Aramex");
     await page.locator("#merch-tracking").fill(`ARX${run}`);
-    await act(page, "shipMerch", () => page.getByRole("button", { name: "Merch shipped" }).click(), () => page.getByText(/^Shipped — the tracking number is in the timeline/).waitFor());
+    await act(page, "shipMerch", () => page.getByRole("button", { name: "Merch shipped" }).click(), () => page.getByText(/^Shipped\. The tracking number is in the timeline/).waitFor());
     o = await one(`select "podStatus", "podTracking" from "Order" where id = $1`, [courier.id]);
     assert(o.podStatus === "shipped" && o.podTracking === `Aramex · ARX${run}`, "merch tracking recorded and texted to the member");
   } else ok("no made-to-order merch in the catalogue — shipMerch skipped");
   await move("moveOrder · PICKING (courier)", "Start picking", "Picking");
-  await move("moveOrder · READY (courier)", "Packed — ready to dispatch", "Ready");
+  await move("moveOrder · READY (courier)", "Packed and ready to dispatch", "Ready");
   await page.getByRole("button", { name: "Dispatch", exact: true }).click();
   await page.getByLabel("Courier", { exact: true }).fill("The Courier Guy");
   await act(page, "moveOrder · OUT_FOR_DELIVERY", () => page.getByRole("button", { name: "Dispatch order" }).click(), () => heading("Out for delivery").waitFor());
@@ -829,7 +829,7 @@ try {
   const tHeading = (text) => page.getByRole("heading", { level: 1 }).filter({ hasText: text });
   await act(page, "pickTradeOrder", () => page.getByRole("button", { name: "Start picking" }).click(), () => tHeading("Picking").waitFor());
   assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "PICKING", "picking");
-  await act(page, "readyTradeOrder", () => page.getByRole("button", { name: "Packed — ready for collection" }).click(), () => tHeading("Ready to collect").waitFor());
+  await act(page, "readyTradeOrder", () => page.getByRole("button", { name: "Packed and ready for collection" }).click(), () => tHeading("Ready to collect").waitFor());
   const tReady = await one(`select status, "readyAt" from "TradeOrder" where id = $1`, [tOrder.id]);
   const readyText = await one(`select body from "MessageLog" where channel = 'SMS' and "to" = $1 and body like $2`, [tBuyer.phone, `%${tOrder.number} is ready%`]);
   assert(tReady.status === "READY" && tReady.readyAt && readyText?.body.includes(tOrder.collectionCode), "ready: the collection code texted to the buyer");
@@ -843,7 +843,7 @@ try {
   assert((await one(`select status from "TradeOrder" where id = $1`, [tOrder.id])).status === "READY", "nothing posted on a wrong code");
   await hg.locator("#collection-code").fill(tOrder.collectionCode);
   await shot(page, "trade-handover");
-  await act(page, "collectTradeOrder", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => status(page, "Handed over — sale").waitFor());
+  await act(page, "collectTradeOrder", () => hg.getByRole("button", { name: "Complete handover" }).click(), () => status(page, "Handed over: sale").waitFor());
   const tDone = await one(
     `select o.status, o."invoiceNumber", o."collectedAt", s.channel, s."storeId", s."totalCents", s."tradeAccountId", s."ageCheck",
        (select method from "Payment" p where p."saleId" = s.id limit 1) method,
@@ -1105,7 +1105,7 @@ try {
   await act(page, "addDeposit · not a slip", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => alert(depForm, "must be a photo").waitFor());
   await depForm.locator("#dep-slip").setInputFiles({ name: "slip.jpg", mimeType: "image/jpeg", buffer: slipBytes });
   t0 = new Date();
-  await act(page, "addDeposit", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => status(page, "it matches the cash counted").waitFor());
+  await act(page, "addDeposit", () => depForm.getByRole("button", { name: "Record deposit" }).click(), () => status(page, "It matches the cash counted").waitFor());
   const dep = await one(
     `select d.id, d.number, d."amountCents", d."expectedCents", d.status, d."slipId", u.sha256, u."contentType" from "CashDeposit" d join "Upload" u on u.id = d."slipId" where d.reference = $1`,
     [`E2E-${run}`],

@@ -8,7 +8,7 @@ import {
 import type { ReportGroup } from "@/server/reports/types";
 
 export const GROUP_META: Record<ReportGroup, { icon: LucideIcon; blurb: string }> = {
-  Sales: { icon: TrendingUp, blurb: "Trading by day, product, store, hour and staff — plus refunds, tenders and online orders." },
+  Sales: { icon: TrendingUp, blurb: "Trading by day, product, store, hour and staff, plus refunds, tenders and online orders." },
   Inventory: { icon: Boxes, blurb: "What the stock is worth, how it moves, what goes missing, expires or runs low." },
   Purchasing: { icon: Truck, blurb: "What you bought from the distribution centres and other stores, and how it arrived." },
   Finance: { icon: Wallet, blurb: "Profit, VAT, cash-ups, franchise statements and the Rewards points liability." },

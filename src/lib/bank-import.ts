@@ -17,7 +17,7 @@ export const FORMATS = {
   NEDBANK: "Nedbank (CSV)",
   CAPITEC: "Capitec (CSV)",
   OFX: "OFX / QFX",
-  CSV: "Other CSV — name the columns",
+  CSV: "Other CSV (name the columns)",
 } as const;
 export type StatementFormat = keyof typeof FORMATS;
 export type ReadFormat = Exclude<StatementFormat, "AUTO">;
@@ -34,7 +34,7 @@ export const STATEMENT_MAX_BYTES = 5 * 1024 * 1024;
 export const STATEMENT_MAX_LINES = 20_000;
 /** The most one statement line can hold (R21.47m): a bigger amount is refused, a bigger balance left off. */
 export const LINE_MAX_CENTS = 2_147_483_647;
-const TOO_BIG = "the amount is more than R21 million — split it, or capture it as a journal";
+const TOO_BIG = "the amount is more than R21 million: split it, or capture it as a journal";
 
 const NOT_RECOGNISED =
   "We don't recognise this file. Download the transactions from your online banking as CSV or OFX, or choose “Other CSV” and name the date, description and amount columns.";
@@ -118,7 +118,7 @@ export function csvRows(text: string): string[][] {
       row.push(cell.slice(0, CELL_MAX)), rows.push(row), (row = []), (cell = "");
     } else cell += ch;
   }
-  if (quoted) throw new StatementError(`A quoted cell is never closed — look for a stray " on or after row ${rows.length + 1}.`);
+  if (quoted) throw new StatementError(`A quoted cell is never closed. Look for a stray " on or after row ${rows.length + 1}.`);
   if (cell || row.length) row.push(cell.slice(0, CELL_MAX)), rows.push(row);
   return rows.map((r) => r.map(clean));
 }
@@ -372,7 +372,7 @@ function readTable(rows: string[][], head: Head, format: ReadFormat, headless = 
 
 /** Lines in date order (bank exports are often newest first; on one day the balances tell), size-checked. */
 function finish(format: ReadFormat, lines: StatementLine[], failed: ReadStatement["failed"], skipped: number, account?: string): ReadStatement {
-  if (lines.length > STATEMENT_MAX_LINES) throw new StatementError(`That's more than ${STATEMENT_MAX_LINES.toLocaleString("en-US")} lines — import a shorter period.`);
+  if (lines.length > STATEMENT_MAX_LINES) throw new StatementError(`That's more than ${STATEMENT_MAX_LINES.toLocaleString("en-US")} lines. Import a shorter period.`);
   let reverse = lines.length > 1 && lines[0].date > lines[lines.length - 1].date;
   if (lines.length > 1 && lines[0].date === lines[lines.length - 1].date) {
     let fwd = 0, back = 0;
@@ -423,7 +423,7 @@ const decodeEntities = (s: string) => s.replace(/&(amp|lt|gt|quot|apos|nbsp);/g,
 function readOfx(text: string): ReadStatement {
   const tag = (block: string, name: string) => decodeEntities(block.match(new RegExp(`<${name}>([^<\\r\\n]*)`, "i"))?.[1].trim() ?? "");
   const accounts = new Set([...text.matchAll(/<ACCTID>([^<\r\n]*)/gi)].map((m) => digits(m[1])).filter(Boolean));
-  if (accounts.size > 1) throw new StatementError("This file has more than one account's statement in it — download one account at a time.");
+  if (accounts.size > 1) throw new StatementError("This file has more than one account's statement in it. Download one account at a time.");
   const lines: StatementLine[] = [];
   const failed: ReadStatement["failed"] = [];
   let skipped = 0;
@@ -472,8 +472,8 @@ function readOfx(text: string): ReadStatement {
 function readMapped(rows: string[][], map: ColumnMap): ReadStatement {
   const given = Object.entries(map).filter(([, v]) => v?.trim()) as [keyof ColumnMap, string][];
   const has = (k: keyof ColumnMap) => given.some(([g]) => g === k);
-  if (!has("date") || !has("description")) throw new StatementError("Name the date and description columns — their headings, or their numbers (1 for the first column).");
-  if (!has("amount") && !has("debit") && !has("credit")) throw new StatementError("Name the amount column — or the money out (debit) and money in (credit) columns.");
+  if (!has("date") || !has("description")) throw new StatementError("Name the date and description columns by their headings, or by their numbers (1 for the first column).");
+  if (!has("amount") && !has("debit") && !has("credit")) throw new StatementError("Name the amount column, or the money out (debit) and money in (credit) columns.");
   const named = given.filter(([, v]) => !/^\d+$/.test(v.trim()));
   let at = -1, names: string[] = [];
   if (named.length) {
@@ -504,9 +504,9 @@ export function parseStatement(text: string, format: StatementFormat = "AUTO", m
   const body = text.replace(/^﻿/, "");
   if (!body.trim()) throw new StatementError("The file is empty.");
   const ofx = /<OFX>|^\s*OFXHEADER/i.test(body);
-  if (format === "OFX" && !ofx) throw new StatementError("This isn't an OFX file — choose the bank's CSV format, or “Work it out from the file”.");
+  if (format === "OFX" && !ofx) throw new StatementError("This isn't an OFX file. Choose the bank's CSV format, or “Work it out from the file”.");
   if (ofx) {
-    if (format !== "OFX" && format !== "AUTO") throw new StatementError("This is an OFX file — choose “OFX / QFX”, or “Work it out from the file”.");
+    if (format !== "OFX" && format !== "AUTO") throw new StatementError("This is an OFX file. Choose “OFX / QFX”, or “Work it out from the file”.");
     return readOfx(body);
   }
   const rows = csvRows(body);
@@ -524,7 +524,7 @@ export function parseStatement(text: string, format: StatementFormat = "AUTO", m
   const above = rows.slice(0, head.at);
   const seen = bankOf(head.names, above);
   if (bank && seen !== "CSV" && seen !== bank)
-    throw new StatementError(`This looks like ${BANKS[seen as BankFormat]}'s download, not ${BANKS[bank]}'s — choose ${BANKS[seen as BankFormat]}, or “Work it out from the file”.`);
+    throw new StatementError(`This looks like ${BANKS[seen as BankFormat]}'s download, not ${BANKS[bank]}'s. Choose ${BANKS[seen as BankFormat]}, or “Work it out from the file”.`);
   const out = readTable(rows, head, bank ?? seen);
   const account = accountAbove(above);
   return out.account || !account ? out : { ...out, account };

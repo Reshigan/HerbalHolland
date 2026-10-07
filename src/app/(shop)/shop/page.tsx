@@ -26,13 +26,13 @@ type SP = { category?: string; mood?: string; sort?: string; min?: string; max?:
 
 const num = (v?: string) => (v && /^\d{1,6}$/.test(v) ? Number(v) : undefined);
 const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
-const RANGE = "CBD wellness, accessories, grow and apparel — lab-tested, batch-traceable, delivered nationwide or ready to collect in store. Adults 18+.";
+const RANGE = "CBD wellness, accessories, grow and apparel: lab-tested, batch-traceable, delivered nationwide or ready to collect in store. Adults 18+.";
 
 // Why this category: one plain sentence per class in it (approved facts, never a health claim), and the guide to read.
 const CLASS_STORY: Partial<Record<RegClass, string>> = {
   CBD: "CBD supplements are Schedule 0: at most 20 mg of CBD a day and 600 mg in a pack, with the legal basis and the daily serving on every product page.",
   CBD_FOOD: "CBD food and drink carries only the CBD naturally in its hemp ingredients (under 0.0075%), with ingredients and allergens on every pack.",
-  CBD_TOPICAL: "Creams and balms are for the skin only — patch-test first.",
+  CBD_TOPICAL: "Creams and balms are for the skin only. Patch-test first.",
   HEMP: "Hemp products for adults 18+, with the same batch traceability as everything else we sell.",
   SUPPLEMENT: "Supplements carry no cannabis: the serving is on the label, and they work alongside a varied diet.",
   ACCESSORY: "Tools and storage that last. Where the law asks, tobacco-related items are sold in store only.",
@@ -48,7 +48,7 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const cat = sp.category ? await db.category.findUnique({ where: { slug: sp.category }, select: { name: true, blurb: true } }) : null;
   const mood = !cat && sp.mood && /^[a-z]{1,20}$/.test(sp.mood) ? sp.mood : null;
   const title = cat ? cat.name : mood ? `For ${mood}` : "Shop the range";
-  const description = cat ? metaDescription(cat.blurb, `${cat.name} from ${SITE_NAME}: ${RANGE}`) : mood ? metaDescription(`Everyday CBD and hemp rituals for ${mood}, grouped by the moment they're made for.`, RANGE) : RANGE;
+  const description = cat ? metaDescription(cat.blurb, `${cat.name} from ${SITE_NAME}: ${RANGE}`) : mood ? metaDescription(`Everyday CBD and hemp products for ${mood}, grouped by the moment they're made for.`, RANGE) : RANGE;
   const path = cat ? `/shop?category=${sp.category}` : mood ? `/shop?mood=${mood}` : "/shop";
   const filtered = !!(sp.q || sp.min || sp.max || sp.sort || (sp.category && !cat));
   return {
@@ -100,7 +100,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
   const consumable = catClasses.some((c) => CONSUMABLE.includes(c));
   const prices = res.items.map((i) => i.priceCents);
   const heroTitle = q ? `Results for “${q}”` : cat && !licensedCategory ? cat.name : query.mood ? `For ${query.mood}` : "The range";
-  const heroLine = cat && !licensedCategory ? cat.blurb : query.mood ? "Everyday CBD and hemp rituals for the moment they're made for." : "CBD wellness, accessories, grow and apparel. Every consumable lab-tested and traceable by batch.";
+  const heroLine = cat && !licensedCategory ? cat.blurb : query.mood ? "Everyday CBD and hemp products, grouped by the moment they're made for." : "CBD wellness, accessories, grow and apparel. Every consumable lab-tested and traceable by batch.";
 
   return (
     <>
@@ -285,7 +285,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
             <div className="rounded-3xl border border-dashed border-ink-800 px-6 py-20 text-center">
               <Search className="mx-auto h-8 w-8 text-ink-600" />
               <h2 className="mt-4 font-display text-xl font-semibold text-white">{q ? `Nothing matches “${q}”` : "Nothing matches those filters"}</h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">{q ? "Check the spelling, try fewer words, or search by what it is — oil, cream, coffee, grinder — and its size, like 600mg or 30ml." : "Try a different mood or price range — or ask the team at your store; they're happy to help."}</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">{q ? "Check the spelling, try fewer words, or search by what it is (oil, cream, coffee, grinder) and its size, like 600mg or 30ml." : "Try a different mood or price range, or ask the team at your store; they're happy to help."}</p>
               <Link href="/shop" className={buttonClass("outline-dark", "md", "mt-6")}>
                 Clear filters
               </Link>

@@ -30,16 +30,16 @@ async function run(id: string, fn: (c: NonNullable<Awaited<ReturnType<typeof ctx
 }
 
 export async function approveReturn(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  return run(id, async (c) => `${(await decideReturn(id, "APPROVED", str(fd, "note"), c.who, c.returnScope)).number} approved — the member has been told. Book the collection next.`);
+  return run(id, async (c) => `${(await decideReturn(id, "APPROVED", str(fd, "note"), c.who, c.returnScope)).number} approved and the member has been told. Book the collection next.`);
 }
 export async function declineReturn(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  return run(id, async (c) => `${(await decideReturn(id, "DECLINED", str(fd, "note"), c.who, c.returnScope)).number} declined — the member has been sent the reason.`);
+  return run(id, async (c) => `${(await decideReturn(id, "DECLINED", str(fd, "note"), c.who, c.returnScope)).number} declined. The member has been sent the reason.`);
 }
 export async function bookReturnCollection(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
-  return run(id, async (c) => `Collection recorded for ${(await bookCollection(id, { courier: str(fd, "courier"), waybill: str(fd, "waybill") }, c.who, c.returnScope)).number} — the member has the courier and waybill.`);
+  return run(id, async (c) => `Collection recorded for ${(await bookCollection(id, { courier: str(fd, "courier"), waybill: str(fd, "waybill") }, c.who, c.returnScope)).number}. The member has the courier and waybill.`);
 }
 export async function receiveReturnAction(id: string, _: ActionState): Promise<ActionState> {
-  return run(id, async (c) => `${(await receiveReturn(id, c.who, c.returnScope)).number} received — check it, then refund.`);
+  return run(id, async (c) => `${(await receiveReturn(id, c.who, c.returnScope)).number} received. Check it, then refund.`);
 }
 export async function refundReturnAction(id: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return run(id, async (c) => {

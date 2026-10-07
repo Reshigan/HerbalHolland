@@ -15,7 +15,7 @@ export async function closeVatPeriodAction(companyId: string, period: string, _:
   try {
     const r = await closeVatPeriod(companyId, period, actorOf(access.user));
     revalidatePath(`/books/${companyId}/vat`);
-    return done(r.journal ? `${rangeLabel(r.period)} is closed: journal ${r.journal.number} moved its VAT to “VAT due to / from SARS”.` : `${rangeLabel(r.period)} was already closed — nothing new to move.`);
+    return done(r.journal ? `${rangeLabel(r.period)} is closed: journal ${r.journal.number} moved its VAT to “VAT due to / from SARS”.` : `${rangeLabel(r.period)} was already closed and there's nothing new to move.`);
   } catch (e) {
     if (e instanceof LedgerError) return fail(e.message);
     throw e;

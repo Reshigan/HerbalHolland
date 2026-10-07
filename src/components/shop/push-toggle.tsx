@@ -50,7 +50,7 @@ export function PushToggle({ vapidKey, devices, enable, disable }: { vapidKey: s
         setMode("on");
         router.refresh();
       } catch {
-        setError("We couldn't turn on notifications on this device — please try again.");
+        setError("We couldn't turn on notifications on this device. Please try again.");
       }
     });
 
@@ -65,7 +65,7 @@ export function PushToggle({ vapidKey, devices, enable, disable }: { vapidKey: s
         setMode("off");
         router.refresh();
       } catch {
-        setError("We couldn't turn notifications off just now — please try again.");
+        setError("We couldn't turn notifications off just now. Please try again.");
       }
     });
 
@@ -74,7 +74,7 @@ export function PushToggle({ vapidKey, devices, enable, disable }: { vapidKey: s
   const others = Math.max(0, devices - (on ? 1 : 0));
   const note: Record<Mode, string> = {
     checking: "Checking this device…",
-    soon: "App notifications are almost ready — we'll switch them on here soon.",
+    soon: "App notifications are almost ready. We'll switch them on here soon.",
     ios: "On iPhone, add Herbal Holland to your Home Screen first.",
     unsupported: "This browser can't show notifications. Try Chrome, Edge, Firefox or Safari on a recent device.",
     denied: "Notifications are blocked for this site. Allow them in your browser's site settings, then come back here.",

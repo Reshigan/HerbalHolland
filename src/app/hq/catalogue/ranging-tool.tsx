@@ -1,7 +1,6 @@
 "use client";
-import { Field } from "@/components/ui/form";
-import { Select } from "@/components/hq/select";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { Field, Select } from "@/components/ui/form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { rangeVariant } from "./actions";
 
 export function RangingTool({ productId, variants, regions }: { productId: string; variants: { id: string; label: string }[]; regions: { id: string; name: string }[] }) {

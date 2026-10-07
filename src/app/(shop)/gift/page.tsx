@@ -37,9 +37,9 @@ export default async function GiftPage({ searchParams }: { searchParams: Promise
         <Container className="pb-16 pt-10 sm:pb-20 sm:pt-14">
           <div className="max-w-2xl">
             <div className="eyebrow text-brand-500">Gift vouchers</div>
-            <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">Give the gift of choice.</h1>
+            <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl lg:text-6xl">Send a gift voucher.</h1>
             <p className="mt-4 max-w-xl text-lg leading-relaxed text-ink-100">
-              {amounts} — emailed with your message, redeemable online or in any store on anything in the range. Valid for {VOUCHER_VALID_YEARS} years. Adults 18+.
+              {amounts}, emailed with your message and redeemable online or in any store on anything in the range. Valid for {VOUCHER_VALID_YEARS} years. Adults 18+.
             </p>
           </div>
         </Container>
@@ -66,9 +66,9 @@ export default async function GiftPage({ searchParams }: { searchParams: Promise
               <ul className="mt-3 space-y-3 text-sm text-ink-300">
                 {[
                   [<Gift key="g" className="h-4 w-4" />, `Choose ${amounts}, add a message and, if you like, their email.`],
-                  [<Mail key="m" className="h-4 w-4" />, "Pay online. The voucher is emailed to you — and to them — the moment the payment goes through."],
-                  [<Store key="s" className="h-4 w-4" />, "They redeem it at checkout (under Gift voucher) or at the counter in any store — on anything, as many times as it takes."],
-                  [<Calendar key="c" className="h-4 w-4" />, `Valid for ${VOUCHER_VALID_YEARS} years from the day it's issued (Consumer Protection Act s63). No fees, and it's not a promotion — nothing on top, nothing taken off.`],
+                  [<Mail key="m" className="h-4 w-4" />, "Pay online. The voucher is emailed to you (and to them) the moment the payment goes through."],
+                  [<Store key="s" className="h-4 w-4" />, "They redeem it at checkout (under Gift voucher) or at the counter in any store, on anything, as many times as it takes."],
+                  [<Calendar key="c" className="h-4 w-4" />, `Valid for ${VOUCHER_VALID_YEARS} years from the day it's issued (Consumer Protection Act s63). No fees, and it's not a promotion: nothing on top, nothing taken off.`],
                 ].map(([i, t]) => (
                   <li key={String(t)} className="flex gap-3">
                     <span className="mt-0.5 shrink-0 text-brand-500">{i}</span>
@@ -95,7 +95,7 @@ export default async function GiftPage({ searchParams }: { searchParams: Promise
                       <strong className="tnum text-white">{checked.code}</strong>: {zar(checked.balanceCents)} of {zar(checked.amountCents)} left{checked.status === "ACTIVE" ? ` · valid until ${fmtDate(checked.expiresAt)}` : checked.status === "EXPIRED" ? " · expired" : " · used up"}
                     </span>
                   ) : (
-                    <span className="text-rose-100">We don&apos;t recognise that code — check it against the email or card.</span>
+                    <span className="text-rose-100">We don&apos;t recognise that code. Check it against the email or card.</span>
                   )}
                 </p>
               )}

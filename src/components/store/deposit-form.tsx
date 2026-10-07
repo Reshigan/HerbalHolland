@@ -100,7 +100,7 @@ export function SlipInput({ id, name = "slip" }: { id: string; name?: string }) 
         accept="image/*,application/pdf"
         onChange={(e) => {
           const f = e.currentTarget.files?.[0];
-          const m = f && f.size > MAX_UPLOAD_BYTES ? `That file is ${mb(f.size)} — the slip has to be ${mb(MAX_UPLOAD_BYTES)} or less. Take the photo again or use a smaller PDF.` : "";
+          const m = f && f.size > MAX_UPLOAD_BYTES ? `That file is ${mb(f.size)}, but the slip has to be ${mb(MAX_UPLOAD_BYTES)} or less. Take the photo again or use a smaller PDF.` : "";
           e.currentTarget.setCustomValidity(m);
           setMsg(m || null);
         }}

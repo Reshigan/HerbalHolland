@@ -69,7 +69,7 @@ export function OrdersBoard() {
         else {
           setAction(null);
           toast(
-            order.status === "COMPLETED" ? `${order.code} has already been collected` : order.status === "OUT_FOR_DELIVERY" ? `${order.code} is out for delivery` : `${order.code} isn't ready yet — finish picking, then hand it over`,
+            order.status === "COMPLETED" ? `${order.code} has already been collected` : order.status === "OUT_FOR_DELIVERY" ? `${order.code} is out for delivery` : `${order.code} isn't ready yet. Finish picking, then hand it over.`,
             "warn",
           );
         }
@@ -98,7 +98,7 @@ export function OrdersBoard() {
     setBusyId(o.id);
     try {
       await api(`/api/pos/orders/${o.id}`, { body: { to } });
-      pos.toast(to === "PICKING" ? `Picking ${o.code}` : `${o.code} is ready — the member has been notified`);
+      pos.toast(to === "PICKING" ? `Picking ${o.code}` : `${o.code} is ready and the member has been notified`);
       await refreshOrders();
     } catch (e) {
       pos.toast(errorText(e), "error");
@@ -313,7 +313,7 @@ function OrderSheet({
 
   async function handover() {
     setError(null);
-    if (o.ageRestricted && !idOk) return setError("Tick the ID check — adults 18+ only");
+    if (o.ageRestricted && !idOk) return setError("Tick the ID check (adults 18+ only)");
     if (trade && !/^\d{6}$/.test(code.replace(/\D/g, ""))) return setError("Enter the 6-digit collection code from the buyer's email or text");
     setBusy(true);
     try {
@@ -382,7 +382,7 @@ function OrderSheet({
               Confirm delivery
             </PosButton>
           ) : action === "cancel" ? (
-            <PosButton variant="danger" size="lg" className="w-full" busy={busy} disabled={reason.trim().length < 3} onClick={() => void simple({ to: "CANCELLED", note: reason.trim() }, () => `${o.code} cancelled — the member has been told`)}>
+            <PosButton variant="danger" size="lg" className="w-full" busy={busy} disabled={reason.trim().length < 3} onClick={() => void simple({ to: "CANCELLED", note: reason.trim() }, () => `${o.code} cancelled and the member has been told`)}>
               <XCircle className="h-5 w-5" /> Cancel order
             </PosButton>
           ) : trade ? (
@@ -414,14 +414,14 @@ function OrderSheet({
             {trade && (
               <Alert tone="info">
                 <span data-testid="trade-handover">
-                  Trade order for <b>{trade.account.name}</b> ({trade.account.number}) · {trade.payMethod === "ACCOUNT" ? "on the account's terms" : "paid by EFT to HQ"} — nothing to take at the till. Handing it over posts the tax invoice with the handling fee.
+                  Trade order for <b>{trade.account.name}</b> ({trade.account.number}) · {trade.payMethod === "ACCOUNT" ? "on the account's terms" : "paid by EFT to HQ"}, so there&apos;s nothing to take at the till. Handing it over posts the tax invoice with the handling fee.
                 </span>
               </Alert>
             )}
             <Field
               label="Collection code"
               htmlFor="collect-code"
-              hint={trade ? "The 6-digit code from the buyer's email or text — it must match this order" : initialCode && code === initialCode ? "From the member's collection QR — checked when you hand over" : "The 6-digit code from the member's SMS, or scan their collection QR (the order code isn't accepted)"}
+              hint={trade ? "The 6-digit code from the buyer's email or text, which must match this order" : initialCode && code === initialCode ? "From the member's collection QR (checked when you hand over)" : "The 6-digit code from the member's SMS, or scan their collection QR (the order code isn't accepted)"}
             >
               <div className="flex gap-2">
                 <TextInput id="collect-code" autoFocus inputMode={trade ? "numeric" : "text"} autoComplete="off" value={code} onChange={(e) => takeCode(e.target.value)} className="h-14 font-mono text-2xl tracking-[0.3em]" placeholder="••••••" />
@@ -436,8 +436,8 @@ function OrderSheet({
               <CheckRow
                 checked={idOk}
                 onChange={setIdOk}
-                label={trade ? "I've checked the collector's ID — adults 18+ only" : "I've checked their ID — adults 18+ only"}
-                description={trade ? "A trade order is collected by an adult buying for the business — check an ID document." : o.customer.ageVerified ? "Their age is verified on their profile; check the ID matches the member." : "Their age isn't verified yet — check an ID document."}
+                label={trade ? "I've checked the collector's ID (adults 18+ only)" : "I've checked their ID (adults 18+ only)"}
+                description={trade ? "A trade order is collected by an adult buying for the business. Check an ID document." : o.customer.ageVerified ? "Their age is verified on their profile; check the ID matches the member." : "Their age isn't verified yet, so check an ID document."}
               />
             )}
             {needsDispenser && (
@@ -465,7 +465,7 @@ function OrderSheet({
           </div>
         )}
         {action === "delivered" && o.ageRestricted && (
-          <CheckRow className="mb-4" checked={idOk} onChange={setIdOk} label="The driver checked the recipient's ID — 18+" />
+          <CheckRow className="mb-4" checked={idOk} onChange={setIdOk} label="The driver checked the recipient's ID (18+)" />
         )}
         {action === "cancel" && (
           <Field label="Reason (sent to the member)" htmlFor="cancel-reason" className="mb-5">
@@ -531,7 +531,6 @@ function OrderSheet({
         reference={o.code}
         online={pos.online}
         tapProvider={pos.boot.tapProvider}
-        storeCode={pos.boot.store.code}
         onComplete={payAndHandover}
         onClose={() => (setPaying(false), pos.setBusy(false))}
       />

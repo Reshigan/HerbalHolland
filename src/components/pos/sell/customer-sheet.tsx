@@ -44,7 +44,7 @@ export function CustomerSheet({
     if (!open) setPrefill("");
   }, [open]);
   return (
-    <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name, member number — or scan their member QR" : "Takes about 20 seconds"} size="lg">
+    <Sheet open={open} onClose={onClose} title={mode === "find" ? "Find a member" : "New Rewards member"} subtitle={mode === "find" ? "Phone, name or member number, or scan their member QR" : "Takes about 20 seconds"} size="lg">
       <Segmented
         label="Member"
         value={mode}
@@ -128,7 +128,7 @@ function FindMember({ onPick, initialQuery, onSignUp }: { onPick: (c: CustomerDe
             }
           }}
           enterKeyHint="go"
-          placeholder="082 555 1234 · Thandi Mokoena · HH0100002"
+          placeholder="Phone, name or member number"
           aria-label="Search members"
           className="h-14 pl-12 text-lg"
         />
@@ -223,7 +223,7 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
       });
       onCreated(r.customer);
     } catch (e) {
-      setError(e instanceof OfflineError ? "Offline — try again when the connection is back" : errorText(e));
+      setError(e instanceof OfflineError ? "Offline: try again when the connection is back" : errorText(e));
     } finally {
       setBusy(false);
     }
@@ -232,11 +232,11 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_15rem]">
       <form onSubmit={submit} className="space-y-4" noValidate>
-        {training && <Alert tone="warn">Training — this sign-up is practice only: no member is created and nothing is sent.</Alert>}
+        {training && <Alert tone="warn">Training: this sign-up is practice only. No member is created and nothing is sent.</Alert>}
         {error && <Alert>{error}</Alert>}
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Mobile number" htmlFor="nm-phone" error={touched && !phoneOk ? "Enter a South African mobile number" : undefined}>
-            <TextInput id="nm-phone" autoFocus={!phone} inputMode="tel" autoComplete="off" value={f.phone} onChange={set("phone")} placeholder="082 555 1234" aria-invalid={touched && !phoneOk} />
+            <TextInput id="nm-phone" autoFocus={!phone} inputMode="tel" autoComplete="off" value={f.phone} onChange={set("phone")} placeholder="082 123 4567" aria-invalid={touched && !phoneOk} />
           </Field>
           <Field label="First name" htmlFor="nm-first" error={touched && !f.firstName.trim() ? "Enter their first name" : undefined}>
             <TextInput id="nm-first" autoFocus={!!phone} autoComplete="off" value={f.firstName} onChange={set("firstName")} aria-invalid={touched && !f.firstName.trim()} />
@@ -251,8 +251,8 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
         <Field
           label="SA ID number"
           htmlFor="nm-id"
-          error={id && !id.ok ? id.reason : underage ? `Under ${minAge} — they can't join or buy age-restricted products` : touched && !f.idNumber && !passport ? "Enter an SA ID number, or tick passport sighted" : undefined}
-          hint={id?.ok ? undefined : "Checked here — only a secure hash and the last 4 digits are stored"}
+          error={id && !id.ok ? id.reason : underage ? `Under ${minAge}, so they can't join or buy age-restricted products` : touched && !f.idNumber && !passport ? "Enter an SA ID number, or tick passport sighted" : undefined}
+          hint={id?.ok ? undefined : "Checked here: only a secure hash and the last 4 digits are stored"}
         >
           <TextInput id="nm-id" inputMode="numeric" autoComplete="off" value={f.idNumber} onChange={set("idNumber")} placeholder="13 digits" disabled={passport} aria-invalid={!!id && (!id.ok || !!underage)} />
         </Field>
@@ -263,12 +263,12 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
         )}
         <CheckRow checked={passport} onChange={(v) => (setPassport(v), v && setF((s) => ({ ...s, idNumber: "" })))} label="Passport sighted (not an SA citizen)" description={`I've checked their passport and they are ${minAge} or older.`} />
         {passport && (
-          <Field label="Date of birth (from the passport)" htmlFor="nm-dob" error={touched && !dob ? "Enter their date of birth — it's also how they get birthday deals" : undefined}>
+          <Field label="Date of birth (from the passport)" htmlFor="nm-dob" error={touched && !dob ? "Enter their date of birth (it's also how they get birthday deals)" : undefined}>
             <TextInput id="nm-dob" type="date" value={dob} onChange={(e) => setDob(e.target.value)} aria-invalid={touched && !dob} />
           </Field>
         )}
         <fieldset className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="deals-question">
-          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Member deals &amp; news — ask them</legend>
+          <legend className="px-1 text-[0.8rem] font-semibold text-ink-300">Member deals &amp; news: ask them</legend>
           <p className="px-1 text-sm leading-relaxed text-ink-200">&ldquo;{DEALS_QUESTION}&rdquo;</p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             <PosButton type="button" variant={deals === true ? "primary" : "secondary"} aria-pressed={deals === true} onClick={() => setDeals(true)}>
@@ -278,7 +278,7 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
               No thanks
             </PosButton>
           </div>
-          {touched && deals === null && <p className="px-1 pt-1.5 text-xs font-medium text-[#f29b9b]">Ask them — their answer is recorded</p>}
+          {touched && deals === null && <p className="px-1 pt-1.5 text-xs font-medium text-[#f29b9b]">Ask them (their answer is recorded)</p>}
           <div className="mt-3 px-1 text-[0.8rem] font-semibold text-ink-300">What are they into? (optional)</div>
           <div className="mt-1.5 flex flex-wrap gap-2">
             {(Object.keys(INTERESTS) as InterestKey[]).map((k) => {
@@ -298,7 +298,7 @@ function NewMember({ onCreated, joinUrl, minAge, training, phone = "" }: { onCre
           </div>
         </fieldset>
         <div className="rounded-2xl bg-ink-850 p-3 ring-1 ring-ink-800" data-testid="key-terms">
-          <div className="px-1 text-[0.8rem] font-semibold text-ink-300">Key membership terms — turn the screen so they can read them</div>
+          <div className="px-1 text-[0.8rem] font-semibold text-ink-300">Key membership terms: turn the screen so they can read them</div>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed text-ink-300">
             {KEY_TERMS.map((t) => (
               <li key={t}>{t}</li>
@@ -341,9 +341,9 @@ function OfflineMember({ onPick }: { onPick: (c: CustomerDetail) => void }) {
       }}
       className="space-y-3"
     >
-      <Alert tone="warn">Offline — members can&apos;t be looked up or signed up. Scan their card QR, or type the member number from their card or their mobile number: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
-      <Field label="Member number or mobile" htmlFor="off-member" error={no.trim().length >= 9 && !memberNo ? "Member numbers look like HH0123456; mobiles like 082 555 1234" : undefined}>
-        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456 or 082 555 1234" />
+      <Alert tone="warn">Offline: members can&apos;t be looked up or signed up. Scan their card QR, or type the member number from their card or their mobile number: it&apos;s checked when the till reconnects. New members sign up once you&apos;re back online.</Alert>
+      <Field label="Member number or mobile" htmlFor="off-member" error={no.trim().length >= 9 && !memberNo ? "Member numbers look like HH0123456; mobile numbers have 10 digits, starting with 0" : undefined}>
+        <TextInput id="off-member" autoFocus autoComplete="off" value={no} onChange={(e) => setNo(e.target.value)} placeholder="HH0123456 or 082 123 4567" />
       </Field>
       <PosButton type="submit" variant="primary" size="lg" className="w-full" disabled={!memberNo}>
         Add to sale

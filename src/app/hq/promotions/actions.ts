@@ -15,10 +15,10 @@ export async function savePromotion(promoId: string | null, _: ActionState, fd: 
   if (!g) return DENIED;
   const fields: Record<string, string> = {};
   const name = str(fd, "name");
-  if (!name) fields.name = "Name the deal — it shows on receipts and shelf talkers";
+  if (!name) fields.name = "Name the deal. It shows on receipts and shelf talkers.";
   const description = opt(fd, "description");
   const flags = screenCopy(`${name} ${description ?? ""}`);
-  if (flags.length) fields.name = `“${flags[0].term}” — ${flags[0].reason}`;
+  if (flags.length) fields.name = `“${flags[0].term}”: ${flags[0].reason}`;
   const kind = str(fd, "kind") as PromoKind;
   if (!KINDS.includes(kind)) fields.kind = "Choose a deal type";
 
@@ -102,7 +102,7 @@ export async function savePromotion(promoId: string | null, _: ActionState, fd: 
   await audit(db, g.actor, "promotion.update", { storeId: before.ownerStoreId, entity: "Promotion", entityId: promoId, data: { changed } });
   revalidatePath(`/hq/promotions/${promoId}`);
   revalidatePath("/hq/promotions");
-  return done(changed.length ? "Promotion saved — tills pick it up on the next basket." : "No changes to save.");
+  return done(changed.length ? "Promotion saved. Tills pick it up on the next basket." : "No changes to save.");
 }
 
 export async function setPromotionActive(promoId: string, active: boolean, _: ActionState): Promise<ActionState> {
@@ -112,5 +112,5 @@ export async function setPromotionActive(promoId: string, active: boolean, _: Ac
   await audit(db, g.actor, active ? "promotion.resume" : "promotion.pause", { storeId: p.ownerStoreId, entity: "Promotion", entityId: promoId, data: { name: p.name } });
   revalidatePath(`/hq/promotions/${promoId}`);
   revalidatePath("/hq/promotions");
-  flashTo(`/hq/promotions/${promoId}`, active ? "Promotion resumed." : "Promotion paused — it stops applying immediately.");
+  flashTo(`/hq/promotions/${promoId}`, active ? "Promotion resumed." : "Promotion paused. It stops applying immediately.");
 }

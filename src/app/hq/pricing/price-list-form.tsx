@@ -2,12 +2,11 @@
 import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
-import { Field, Input, Checkbox, Label } from "@/components/ui/form";
+import { Field, Input, Checkbox, Label, Select } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
-import { Select } from "@/components/hq/select";
 import { MultiPick } from "@/components/hq/multi-pick";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
-import { zar } from "@/lib/money";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
+import { parseRand, zar } from "@/lib/money";
 import type { ActionState } from "@/server/hq/guard";
 
 type Item = { variantId: string; price: string; minQty: string };
@@ -17,8 +16,8 @@ export type PriceListValues = {
 };
 
 const HELP: Record<string, string> = {
-  ZONE: "Regional or scheduled prices — e.g. a tourist-zone uplift, or next month's price update. Sets the shelf price.",
-  CHANNEL: "Prices for one channel only — e.g. online-only prices.",
+  ZONE: "Regional or scheduled prices, such as a tourist-zone uplift or next month's price update. Sets the shelf price.",
+  CHANNEL: "Prices for one channel only, such as online-only prices.",
   MEMBER: "Members-only prices on specific products (e.g. this week's Rewards deals), optionally for certain tiers. Applies when it beats the shelf price and the member's instant tier saving.",
   TRADE: "Trade (wholesale) prices for business accounts, ex VAT. The account's own list first, else the live trade lists by priority, else the wholesale price. Never scoped by store.",
 };
@@ -52,7 +51,7 @@ export function PriceListForm({
       <fieldset disabled={readOnly} className="min-w-0 contents">
         <div className="space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title={trade ? "Prices ex VAT" : "Prices"} description={trade ? "Trade prices are ex VAT — what the account pays per unit before VAT is added per line. Add a row with a minimum quantity above 1 for a quantity break." : "Item prices are VAT-inclusive. Add a row with a minimum quantity above 1 for a quantity break."} />
+            <CardHeader title={trade ? "Prices ex VAT" : "Prices"} description={trade ? "Trade prices are ex VAT: what the account pays per unit before VAT is added per line. Add a row with a minimum quantity above 1 for a quantity break." : "Item prices are VAT-inclusive. Add a row with a minimum quantity above 1 for a quantity break."} />
             <CardBody className="space-y-2">
               <div className="hidden grid-cols-[1fr_8rem_6rem_2.5rem] gap-2 px-1 text-[0.7rem] font-semibold uppercase tracking-[0.08em] text-ink-500 sm:grid">
                 <span>Item</span>
@@ -62,8 +61,8 @@ export function PriceListForm({
               </div>
               {items.map((it, i) => {
                 const base = rrp.get(it.variantId);
-                const p = Number(it.price.replace(/[R\s,]/gi, ""));
-                const diff = base && p ? (p * 100 - base) / base : null;
+                const p = parseRand(it.price);
+                const diff = base && p ? (p - base) / base : null;
                 return (
                   <div key={i} className="grid grid-cols-[1fr_auto] gap-2 rounded-xl border border-ink-100 p-2 sm:grid-cols-[1fr_8rem_6rem_2.5rem] sm:border-0 sm:p-0">
                     <Select name="itemVariant" aria-label={`Item ${i + 1}`} value={it.variantId} onChange={(e) => set(i, { variantId: e.target.value })} wrapperClassName="col-span-2 sm:col-span-1">
@@ -140,7 +139,7 @@ export function PriceListForm({
                 <FieldError name="kind" />
               </Field>
               {trade ? (
-                <p className="rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Channel: trade (wholesale) — the portal, HQ-placed orders and trade sales at the till.</p>
+                <p className="rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Channel: trade (wholesale), covering the portal, HQ-placed orders and trade sales at the till.</p>
               ) : (
               <Field label="Channel" htmlFor="channel">
                 <Select id="channel" name="channel" defaultValue={values.channel}>

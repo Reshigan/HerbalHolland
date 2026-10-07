@@ -36,8 +36,8 @@ describe("trade-sale tenders", () => {
   });
 
   it("never puts a held or prepaid account's sale on account, and nothing without a connection", () => {
-    expect(tradeTenders({ account: account({ status: "ON_HOLD", availableCents: 0 }), online: true, amountCents: 1000 })).toMatchObject({ account: false, accountReason: "On hold — money only", cash: true });
-    expect(tradeTenders({ account: account({ terms: "PREPAID", availableCents: 0 }), online: true, amountCents: 1000 })).toMatchObject({ account: false, accountReason: "Prepaid account — money only" });
+    expect(tradeTenders({ account: account({ status: "ON_HOLD", availableCents: 0 }), online: true, amountCents: 1000 })).toMatchObject({ account: false, accountReason: "On hold, so money only", cash: true });
+    expect(tradeTenders({ account: account({ terms: "PREPAID", availableCents: 0 }), online: true, amountCents: 1000 })).toMatchObject({ account: false, accountReason: "Prepaid account, so money only" });
     expect(tradeTenders({ account: account({ availableCents: 0 }), online: true, amountCents: 1000 }).accountReason).toBe("Nothing available on account");
     // A trade sale needs the connection anyway: offline, only cash is left on the sheet and nothing goes on account.
     const off = tradeTenders({ account: account(), online: false, amountCents: 1000 });

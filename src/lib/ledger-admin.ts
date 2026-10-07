@@ -73,11 +73,11 @@ const norm = (h: string) => h.trim().toLowerCase().replace(/[^a-z0-9]+/g, "_").r
 export function readCents(raw: string): number {
   const s = raw.trim().replace(/^(zar|r)\s*/i, "");
   if (!s) return 0;
-  if (/^[-−(]|\)$/.test(s)) throw new CellError("a negative amount — put it in the other column");
+  if (/^[-−(]|\)$/.test(s)) throw new CellError("a negative amount (put it in the other column)");
   const n = readNumber(s);
   const cents = Math.round(n * 100);
   if (Math.abs(n * 100 - cents) > 1e-6) throw new CellError("at most two decimals (cents)");
-  if (cents > MAX_LINE_CENTS) throw new CellError(`more than ${zar(MAX_LINE_CENTS)} — check the amount`);
+  if (cents > MAX_LINE_CENTS) throw new CellError(`more than ${zar(MAX_LINE_CENTS)} (check the amount)`);
   return cents;
 }
 
@@ -90,7 +90,7 @@ export function readOpeningCsv(text: string): OpeningRead {
   const out: OpeningRead = { rows: [], errors: [], debitCents: 0, creditCents: 0, skipped: 0 };
   const { rows, error } = parseCsv(text);
   if (error) {
-    out.errors.push(/more than \d+ cells/.test(error) ? "A row has far too many cells — save the trial balance as CSV with the columns account, debit, credit, party, store." : error);
+    out.errors.push(/more than \d+ cells/.test(error) ? "A row has far too many cells. Save the trial balance as CSV with the columns account, debit, credit, party, store." : error);
     return out;
   }
   const at = rows.findIndex((r) => r.some((c) => c.trim()));
@@ -101,8 +101,8 @@ export function readOpeningCsv(text: string): OpeningRead {
   if (header) {
     const seen = new Set<Col>();
     cols = named.map((c) => (c && !seen.has(c) ? (seen.add(c), c) : null));
-    if (!seen.has("code")) out.errors.push("There's no account column — name it “account”.");
-    if (!seen.has("debit") && !seen.has("credit")) out.errors.push("There are no debit or credit columns — name them “debit” and “credit”.");
+    if (!seen.has("code")) out.errors.push("There's no account column. Name it “account”.");
+    if (!seen.has("debit") && !seen.has("credit")) out.errors.push("There are no debit or credit columns. Name them “debit” and “credit”.");
   }
   const body = rows.slice(header ? at + 1 : at).map((cells, i) => ({ cells, line: (header ? at + 2 : at + 1) + i })).filter((r) => r.cells.some((c) => c.trim()));
   if (!body.length && !out.errors.length) out.errors.push("There are no rows with balances.");
@@ -128,7 +128,7 @@ export function readOpeningCsv(text: string): OpeningRead {
       }
     };
     const debit = amount("debit"), credit = amount("credit");
-    if (debit && credit) problems.push("both a debit and a credit — use one column per row");
+    if (debit && credit) problems.push("both a debit and a credit (use one column per row)");
     if (problems.length) {
       out.errors.push(`Row ${line}: ${problems.join("; ")}.`);
       continue;
@@ -143,7 +143,7 @@ export function readOpeningCsv(text: string): OpeningRead {
   }
   if (!out.errors.length && !out.rows.length) out.errors.push("Every row's amount is empty or zero.");
   if (!out.errors.length && out.debitCents !== out.creditCents)
-    out.errors.push(`The debits (${zar(out.debitCents)}) and credits (${zar(out.creditCents)}) don't balance — out by ${zar(Math.abs(out.debitCents - out.creditCents))}.`);
+    out.errors.push(`The debits (${zar(out.debitCents)}) and credits (${zar(out.creditCents)}) don't balance: they're out by ${zar(Math.abs(out.debitCents - out.creditCents))}.`);
   return out;
 }
 

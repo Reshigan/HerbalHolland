@@ -48,7 +48,7 @@ export const storeNav = (code: string, slug: string, companyId: string): NavGrou
       { label: "Banking", href: `/store/${code}/banking`, icon: "PiggyBank", keywords: "deposit slip cash bank" },
       { label: "Expenses", href: `/store/${code}/expenses`, icon: "Receipt", keywords: "costs petty cash" },
       { label: "Commission", href: `/store/${code}/commission`, icon: "HandCoins", keywords: "incentive staff pay" },
-      { label: "Accounts", href: `/books/${companyId}`, icon: "BookOpen", roles: ["OWNER", "HQ_ADMIN", "AREA_MANAGER"], keywords: "books ledger accounting trial balance balance sheet vat201 journals" },
+      { label: "Books", href: `/books/${companyId}`, icon: "BookOpen", roles: ["OWNER", "HQ_ADMIN", "AREA_MANAGER"], keywords: "accounts ledger accounting trial balance balance sheet vat201 journals" },
     ],
   },
   {
@@ -129,7 +129,7 @@ export const hqNav: NavGroup[] = [
     items: [
       { label: "Finance", href: "/hq/finance", icon: "Wallet", keywords: "z report vat profit royalty" },
       { label: "Statements", href: "/hq/statements", icon: "Landmark", keywords: "franchise fees royalty levy" },
-      { label: "Accounts", href: "/books", icon: "BookOpen", roles: ["HQ_ADMIN", "AREA_MANAGER"], keywords: "books ledger accounting trial balance balance sheet vat201 journals" },
+      { label: "Books", href: "/books", icon: "BookOpen", roles: ["HQ_ADMIN", "AREA_MANAGER"], keywords: "accounts ledger accounting trial balance balance sheet vat201 journals" },
       { label: "Commission", href: "/hq/commission", icon: "HandCoins", keywords: "incentive staff pay" },
     ],
   },

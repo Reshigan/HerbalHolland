@@ -19,7 +19,7 @@ export function LicenceUploadForm({ kinds, initial, regNumber }: { kinds: TradeL
     <form action={action} className="space-y-4" data-testid="licence-upload" key={state.ok ? `done-${state.at}` : "form"}>
       {state.ok && (
         <p className="rounded-xl border border-leaf-500/35 bg-leaf-500/10 px-4 py-3 text-sm text-leaf-100" role="status">
-          Thanks — the trade team checks it with the issuer, usually within a working day. We&apos;ll email you if anything is wrong.
+          Thanks. The trade team checks it with the issuer, usually within a working day. We&apos;ll email you if anything is wrong.
         </p>
       )}
       {state.error && !state.field && (
@@ -42,7 +42,7 @@ export function LicenceUploadForm({ kinds, initial, regNumber }: { kinds: TradeL
             The number is the account&apos;s company registration number, <span className="tnum">{regNumber}</span>.
           </p>
         ) : (
-          <FieldRow label={info.numberLabel} htmlFor="l-number" error={err("number")} hint={kind === "CIPC_REGISTRATION" ? "The company's registration number, like 2015/123456/07 — add it to the business details once we've checked the certificate." : info.hint}>
+          <FieldRow label={info.numberLabel} htmlFor="l-number" error={err("number")} hint={kind === "CIPC_REGISTRATION" ? "The company's registration number, like 2015/123456/07. Add it to the business details once we've checked the certificate." : info.hint}>
             <TextInput id="l-number" name="number" maxLength={40} required defaultValue={v.number} aria-invalid={!!err("number")} className="tnum" />
           </FieldRow>
         )}
@@ -52,7 +52,7 @@ export function LicenceUploadForm({ kinds, initial, regNumber }: { kinds: TradeL
           </FieldRow>
         )}
       </div>
-      <FieldRow label="The document" htmlFor="l-file" error={err("file")} hint={`Your ${info.docLabel} — a PDF, or a clear photo (JPG or PNG) of the whole document. Up to 5 MB.`}>
+      <FieldRow label="The document" htmlFor="l-file" error={err("file")} hint={`Your ${info.docLabel}: a PDF, or a clear photo (JPG or PNG) of the whole document. Up to 5 MB.`}>
         <input
           id="l-file"
           name="file"

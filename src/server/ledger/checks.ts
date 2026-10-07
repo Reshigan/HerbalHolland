@@ -339,7 +339,7 @@ async function stockChecks({ companyId, when, stores, accounts, ledger }: Ctx): 
     return check({ key: `stock:${s.id}`, label: `${s.name}: stock vs valuation`, expected: valued, actual: books, detail: `On hand at cost ${zar(valued)} on ${dayLabel(when.asAt)}; the books show ${zar(books)}.`, href: ledger("stock", { store: s.id }) });
   });
   const loose = kept.get("") ?? 0;
-  if (loose) rows.push(check({ key: "stock:none", label: "Stock on no store", expected: 0, actual: loose, detail: `${zar(loose)} of stock is on journal lines without a store — add the store to those lines (reverse and re-enter them).`, href: ledger("stock") }));
+  if (loose) rows.push(check({ key: "stock:none", label: "Stock on no store", expected: 0, actual: loose, detail: `${zar(loose)} of stock is on journal lines without a store. Add the store to those lines (reverse and re-enter them).`, href: ledger("stock") }));
   return rows;
 }
 
@@ -349,7 +349,7 @@ async function queueCheck({ companyId, base }: Ctx, kind: string): Promise<Books
   return check({
     key: "queue", label: "Postings waiting", unit: "count", expected: 0, actual: q.failed, ok: q.failed === 0,
     detail: q.waiting
-      ? `${plural(q.waiting, "posting")} waiting${q.failed ? `, ${q.failed} of them failed and ${q.failed === 1 ? "is" : "are"} being retried` : " — they post within 15 minutes"}.`
+      ? `${plural(q.waiting, "posting")} waiting${q.failed ? `, ${q.failed} of them failed and ${q.failed === 1 ? "is" : "are"} being retried` : " (they post within 15 minutes)"}.`
       : "Nothing is waiting to post.",
     href: kind === "FRANCHISOR" && q.failed ? `${base}/close#failed` : null,
   });

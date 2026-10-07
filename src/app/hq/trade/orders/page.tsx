@@ -78,7 +78,7 @@ export default async function TradeOrdersPage({ searchParams }: { searchParams: 
   return (
     <>
       <PageHeader overline="Trade" title="Trade orders" description="Orders from the trade portal and ones HQ placed for an account: EFT pro formas to confirm, courier orders the DC picks and ships, click & collect orders the stores hand over." />
-      {!s.canEdit && <ViewOnly className="mb-6">Orders fulfilled in your region — view only.</ViewOnly>}
+      {!s.canEdit && <ViewOnly className="mb-6">Orders fulfilled in your region (view only).</ViewOnly>}
       <Card>
         <TabLinks className="px-4" current={tabHref(view)} tabs={Object.entries(VIEWS).map(([k, v]) => ({ href: tabHref(k), label: v.label, count: count[k] }))} />
         <div className="space-y-3 border-b border-ink-100 p-4">

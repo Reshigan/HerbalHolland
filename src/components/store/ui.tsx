@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { ChevronLeft, Lock, Search } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { SortableTh } from "@/components/ui/table";
 import { Input } from "@/components/ui/form";
 import type { Tone } from "@/components/ui/badge";
 
@@ -38,9 +37,6 @@ export function Chips({ items, current, className, label = "Filter" }: {
   );
 }
 
-/** Sortable column header (the URL is the state). Kept for the store pages; new code uses SortableTh directly. */
-export const SortTh = SortableTh;
-
 /** GET search form that keeps the other filters. */
 export function SearchForm({ path, q, keep = {}, placeholder = "Search", className, children }: {
   path: string;
@@ -67,7 +63,7 @@ export function ReadOnlyNote({ children, className }: { children?: React.ReactNo
   return (
     <p className={cn("inline-flex items-center gap-2 rounded-xl bg-ink-100 px-3 py-2 text-xs font-medium text-ink-600", className)}>
       <Lock className="h-3.5 w-3.5" aria-hidden />
-      {children ?? "Read-only — managers and owners can make changes here."}
+      {children ?? "Read-only. Managers and owners can make changes here."}
     </p>
   );
 }

@@ -29,7 +29,7 @@ export async function saveTradeSettings(_: ActionState, fd: FormData): Promise<A
     return v;
   };
   const termsVersion = text("termsVersion", 40, /^[A-Za-z0-9][A-Za-z0-9._-]*$/, "Letters, digits, dots and dashes, e.g. trade-2");
-  if (!termsVersion) fields.termsVersion = "Required — applicants accept this version";
+  if (!termsVersion) fields.termsVersion = "Required: applicants accept this version";
   const next = {
     minOrderCents: money("minOrder", 100_000_00),
     deliveryCents: money("courierFee", 10_000_00),
@@ -55,5 +55,5 @@ export async function saveTradeSettings(_: ActionState, fd: FormData): Promise<A
   await audit(db, g.actor, "settings.trade", { entity: "Setting", entityId: "trade", data: { before, after: next } });
   revalidatePath("/hq/settings");
   revalidatePath("/hq/trade");
-  return done(`Trade settings saved — the portal, pro formas and the daily jobs use them from now on.${next.bank.accountNumber ? "" : " Fill in the bank details before the first EFT order."}`);
+  return done(`Trade settings saved. The portal, pro formas and the daily jobs use them from now on.${next.bank.accountNumber ? "" : " Fill in the bank details before the first EFT order."}`);
 }

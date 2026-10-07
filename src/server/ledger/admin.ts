@@ -5,17 +5,19 @@
 import { unstable_rethrow } from "next/navigation";
 import { db, tx } from "../db";
 import { audit, type Actor } from "../audit";
+import { reportFailure } from "../alerts";
 import { hashSecret } from "../crypto";
 import { scopeOf, storeWhere } from "../scope";
 import { temporaryPassword, tempPasswordUntil } from "../passwords";
 import type { Staff } from "../auth";
 import { booksAccess, booksRole, type BooksRole } from "./access";
-import { approveJournal, booksFor, createManualJournal, deleteDraft, LedgerError, queuePosting, reverseJournal, setBooksLock, type JournalLineInput } from "./core";
+import { approveJournal, booksFor, createManualJournal, deleteDraft, LedgerError, processLedgerQueue, queuePosting, reverseJournal, setBooksLock, type JournalLineInput } from "./core";
 import { accountCodeProblem, firstProblems, MAX_LINE_CENTS, readOpeningCsv } from "@/lib/ledger-admin";
-import { addMonths, supplierParty, type AccountType, type Party } from "@/lib/ledger";
+import { addMonths, supplierParty, VAT_CATEGORIES, type AccountType, type Party } from "@/lib/ledger";
 import { dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { isEmail } from "@/lib/email";
+import { plural } from "@/lib/plural";
 
 /** A problem with one field of a books form (the action shows it under that field). */
 export class BooksFieldError extends LedgerError {
@@ -60,7 +62,7 @@ export async function createAccount(user: BooksUser, companyId: string, a: { cod
   if (name.length < 2) throw new BooksFieldError("Name the account", "name");
   if (!TYPES.includes(a.type as AccountType)) throw new BooksFieldError("Choose what kind of account it is", "type");
   await tx((t) => booksFor(t, companyId)); // the template's codes are taken first
-  if (await db.ledgerAccount.count({ where: { companyId, code } })) throw new BooksFieldError(`${code} is already used — choose another code`, "code");
+  if (await db.ledgerAccount.count({ where: { companyId, code } })) throw new BooksFieldError(`${code} is already used. Choose another code`, "code");
   const acc = await db.ledgerAccount.create({ data: { companyId, code, name, type: a.type as AccountType } });
   await audit(db, actor, "ledger.account_create", { entity: "LedgerAccount", entityId: acc.id, data: { companyId, code, name, type: acc.type } });
   return acc;
@@ -75,7 +77,7 @@ export async function renameAccount(user: BooksUser, companyId: string, accountI
   const type = (a.type ?? acc.type) as AccountType;
   if (!TYPES.includes(type)) throw new BooksFieldError("Choose what kind of account it is", "type");
   if (type !== acc.type) {
-    if (acc.key) throw new BooksFieldError("A system account keeps its type — you can rename it", "type");
+    if (acc.key) throw new BooksFieldError("A system account keeps its type, but you can rename it", "type");
     if (await db.journalLine.count({ where: { accountId } })) throw new BooksFieldError("It has postings already: add a new account and move the balance with a journal", "type");
   }
   if (name === acc.name && type === acc.type) return acc;
@@ -90,12 +92,12 @@ export async function setAccountActive(user: BooksUser, companyId: string, accou
   const acc = await accountIn(companyId, accountId);
   if (acc.active === active) return acc;
   if (!active) {
-    if (acc.key) throw new LedgerError(`${acc.code} ${acc.name} is a system account — the posting rules use it, so it stays on`);
+    if (acc.key) throw new LedgerError(`${acc.code} ${acc.name} is a system account: the posting rules use it, so it stays on`);
     const b = await db.ledgerBalance.aggregate({ where: { companyId, accountId }, _sum: { debitCents: true, creditCents: true } });
     const cents = Number(b._sum.debitCents ?? 0) - Number(b._sum.creditCents ?? 0);
-    if (cents) throw new LedgerError(`${acc.code} ${acc.name} still has a balance of ${zar(cents)} — move it to another account with a journal first`);
-    if (await db.journalLine.count({ where: { accountId, journal: { status: "DRAFT" } } })) throw new LedgerError("A draft journal uses it — approve or delete the draft first");
-    if (await db.bankAccount.count({ where: { accountId, active: true } })) throw new LedgerError("A bank account in Banking uses it — close that bank account first");
+    if (cents) throw new LedgerError(`${acc.code} ${acc.name} still has a balance of ${zar(cents)}. Move it to another account with a journal first`);
+    if (await db.journalLine.count({ where: { accountId, journal: { status: "DRAFT" } } })) throw new LedgerError("A draft journal uses it. Approve or delete the draft first");
+    if (await db.bankAccount.count({ where: { accountId, active: true } })) throw new LedgerError("A bank account in Banking uses it. Close that bank account first");
   }
   const updated = await db.ledgerAccount.update({ where: { id: accountId }, data: { active } });
   await audit(db, actor, active ? "ledger.account_reactivate" : "ledger.account_deactivate", { entity: "LedgerAccount", entityId: accountId, data: { companyId, code: acc.code, name: acc.name } });
@@ -129,16 +131,16 @@ export async function resolveLines(companyId: string, lines: LineDraft[], where:
     const say = (m: string) => problems.push(`${where(i)}: ${m}.`);
     const acc = accountOf(l.account);
     if (!acc) return say(l.account ? `there's no account ${l.account} in these books` : "choose an account");
-    if (!acc.active) return say(`${acc.code} ${acc.name} is switched off — switch it on in the chart of accounts first`);
+    if (!acc.active) return say(`${acc.code} ${acc.name} is switched off. Switch it on in the chart of accounts first`);
     if (!Number.isInteger(l.cents) || l.cents === 0) return say("enter a debit or a credit");
-    if (Math.abs(l.cents) > MAX_LINE_CENTS) return say(`more than ${zar(MAX_LINE_CENTS)} — check the amount`);
+    if (Math.abs(l.cents) > MAX_LINE_CENTS) return say(`more than ${zar(MAX_LINE_CENTS)}: check the amount`);
     const ref = l.store?.trim();
     const store = ref ? stores.find((s) => s.id === ref || s.code === ref.toUpperCase()) : null;
     if (ref && !store) return say(`store ${ref} isn't one of this company's`);
     const p = l.party?.trim() ?? "";
     let partyId: string | null = null;
     if (!acc.party) {
-      if (p) return say(`${acc.code} ${acc.name} doesn't take a supplier, trade account or company — leave it empty`);
+      if (p) return say(`${acc.code} ${acc.name} doesn't take a supplier, trade account or company, so leave it empty`);
     } else if (!p) {
       return say(`${acc.code} ${acc.name} needs the ${acc.party === "SUPPLIER" ? "supplier's name" : acc.party === "TRADE_ACCOUNT" ? "trade account number" : "franchisee company"}`);
     } else if (acc.party === "SUPPLIER") partyId = supplierParty(p);
@@ -148,7 +150,7 @@ export async function resolveLines(companyId: string, lines: LineDraft[], where:
     } else {
       const lower = p.toLowerCase();
       const found = companies.filter((c) => c.id === p || c.name.toLowerCase() === lower || c.legalName.toLowerCase() === lower);
-      if (found.length !== 1) return say(found.length ? `more than one franchisee is called ${p} — use the registered name` : `there's no franchisee company ${p}`);
+      if (found.length !== 1) return say(found.length ? `more than one franchisee is called ${p}: use the registered name` : `there's no franchisee company ${p}`);
       partyId = found[0].id;
     }
     out.push({ accountId: acc.id, cents: l.cents, storeId: store?.id ?? null, partyId, memo: l.memo?.trim().slice(0, 200) || null });
@@ -165,7 +167,7 @@ export async function resolveLines(companyId: string, lines: LineDraft[], where:
  */
 export async function saveJournal(user: BooksUser, companyId: string, j: { date: string; memo: string; post: boolean; lines: { account: string; debitCents: number; creditCents: number; store?: string | null; party?: string | null; memo?: string | null }[] }) {
   const { company, role, actor } = await rights(user, companyId, "write");
-  if (j.post && !role.approve) throw new LedgerError(`Only ${approver(company.kind)} posts journals — save it as a draft and they'll approve it.`);
+  if (j.post && !role.approve) throw new LedgerError(`Only ${approver(company.kind)} posts journals. Save it as a draft and they'll approve it.`);
   if (!DAY.test(j.date)) throw new BooksFieldError("Choose the journal's date", "date");
   if (j.memo.trim().length < 3) throw new BooksFieldError("Say what the journal is for", "memo");
   const used = j.lines.filter((l) => l.account || l.debitCents || l.creditCents);
@@ -230,7 +232,24 @@ export async function closeMonth(user: BooksUser, companyId: string, month: stri
   const { company, actor } = await rights(user, companyId, "approve");
   if (!/^\d{4}-\d{2}$/.test(month)) throw new LedgerError("Choose a month");
   if (company.booksLockedThrough && month <= company.booksLockedThrough) throw new LedgerError(`${fmtMonth(`${month}-15T12:00:00Z`)} is already closed`);
+  if (!company.booksLockedThrough) await postQueueBeforeClose(month);
   await setBooksLock(companyId, month, actor, now);
+}
+
+/** How long a first close waits for the posting queue: behind Cloudflare a request is cut off at 100 seconds. */
+const FIRST_CLOSE_MS = 60_000;
+
+/**
+ * The books' first close posts what's waiting in the queue first, so nothing lands late by accident (setBooksLock then
+ * finds little or nothing left). For a minute at most: if postings are still waiting after that, the month stays open,
+ * since closing it would put them in a later month. They post in the background (the 15-minute job), and the month
+ * can be closed once they're through. Postings that failed stay queued with their reason and don't hold the close.
+ */
+export async function postQueueBeforeClose(month: string, ms = FIRST_CLOSE_MS) {
+  await processLedgerQueue({ limit: 20_000, deadline: Date.now() + ms });
+  const waiting = await db.ledgerQueue.count({ where: { attempts: 0 } });
+  if (waiting)
+    throw new LedgerError(`The books are still catching up (${plural(waiting, "posting")} to go). What's left posts in the background every 15 minutes: close ${fmtMonth(`${month}-15T12:00:00Z`)} once it's through, so nothing lands in a later month.`);
 }
 
 /** Reopens the last closed month (one at a time, deliberately). */
@@ -250,7 +269,7 @@ export async function reopenMonth(user: BooksUser, companyId: string, now = new 
 export async function saveBooksSettings(user: BooksUser, companyId: string, s: { vatCategory: string | null; yearEndMonth: number }) {
   const { company, actor } = await rights(user, companyId, "approve");
   const vatCategory = s.vatCategory || null;
-  if (company.vatNumber && !["A", "B", "C"].includes(vatCategory ?? "")) throw new BooksFieldError("Choose the VAT category SARS gave the company", "vatCategory");
+  if (company.vatNumber && !VAT_CATEGORIES.some((c) => c.key === vatCategory)) throw new BooksFieldError("Choose the VAT category SARS gave the company", "vatCategory");
   if (!company.vatNumber && vatCategory) throw new BooksFieldError(`${company.name} has no VAT number, so it has no VAT category`, "vatCategory");
   if (!Number.isInteger(s.yearEndMonth) || s.yearEndMonth < 1 || s.yearEndMonth > 12) throw new BooksFieldError("Choose the month the financial year ends", "yearEndMonth");
   if (vatCategory === company.vatCategory && s.yearEndMonth === company.yearEndMonth) return false;
@@ -303,7 +322,7 @@ export async function setAccountantActive(user: BooksUser, companyId: string, ac
 export async function resetAccountantPassword(user: BooksUser, companyId: string, accountantId: string) {
   const { actor } = await rights(user, companyId, "approve");
   const u = await accountantIn(companyId, accountantId);
-  if (!u.active) throw new LedgerError(`${u.name} is deactivated — reactivate them first`);
+  if (!u.active) throw new LedgerError(`${u.name} is deactivated. Reactivate them first`);
   const { password, data } = await temporary();
   await db.user.update({ where: { id: u.id }, data: { ...data, passwordFails: 0, passwordLockedAt: null } });
   await db.session.deleteMany({ where: { userId: u.id } });
@@ -321,7 +340,7 @@ export async function retryPosting(user: BooksUser, companyId: string, source: s
   const { company, actor } = await rights(user, companyId, "approve");
   if (company.kind !== "FRANCHISOR") throw new LedgerError("Postings are retried from Herbal Holland's books");
   const q = await db.ledgerQueue.findUnique({ where: { source_sourceId: { source, sourceId } } });
-  if (!q) throw new LedgerError("That posting isn't waiting any more — it has probably posted");
+  if (!q) throw new LedgerError("That posting isn't waiting any more: it has probably posted");
   await queuePosting(db, source, sourceId);
   await audit(db, actor, "ledger.retry", { entity: "LedgerQueue", entityId: `${source}:${sourceId}`, data: { source, sourceId, attempts: q.attempts, error: q.error } });
 }
@@ -447,8 +466,8 @@ export async function booksAction(companyId: string, need: keyof BooksRole, fn: 
   } catch (e) {
     unstable_rethrow(e);
     if (e instanceof LedgerError) return failed(e.message, e instanceof BooksFieldError ? e.field : undefined);
-    if ((e as { code?: string })?.code === "P2002") return failed("That already exists — check for a duplicate.");
-    console.error("[books action]", e);
-    return failed("Something went wrong — please try again.");
+    if ((e as { code?: string })?.code === "P2002") return failed("That already exists. Check for a duplicate.");
+    void reportFailure(e, "books action"); // unexpected: logged and emailed to ops
+    return failed("Something went wrong. Please try again.");
   }
 }

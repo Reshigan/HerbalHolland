@@ -67,7 +67,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
               defaultStoreId={store?.id}
               consentWording={CONSENT_WORDING}
               title="First, your mobile number"
-              intro="We sell to members only. Members check out in seconds; new here? Join free in one short step — you'll accept the membership terms and earn points on this order."
+              intro="We sell to members only. Members check out in seconds; new here? Join free in one short step: you'll accept the membership terms and earn points on this order."
             />
           </Panel>
           <Summary lines={q.lines} total={q.totalCents} joinSavings={q.joinSavingsCents} />
@@ -150,19 +150,19 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       </p>
       {welcome && (
         <Callout tone="success" icon={<Sparkles className="h-5 w-5" />} title={`Welcome to Herbal Holland Rewards, ${customer.firstName}!`} className="mb-8">
-          {q.memberSavingsCents > 0 ? `Your ${tierMeta(customer.tier).name} member prices are already applied below, and ` : "You're in — "}
+          {q.memberSavingsCents > 0 ? `Your ${tierMeta(customer.tier).name} member prices are already applied below, and ` : "You're in, and "}
           {fmtPoints(settings.loyalty.signupBonus)} are waiting in your account.
         </Callout>
       )}
       {needsAge && (
         <Callout tone="warn" icon={<IdCard className="h-5 w-5" />} title="Confirm your age to order online" className="mb-8">
-          <p>Your bag has age-restricted items. Add your SA ID number and we&apos;ll verify you instantly — or show your ID or passport at any store and our team will verify you there.</p>
+          <p>Your bag has age-restricted items. Add your SA ID number and we&apos;ll verify you instantly, or show your ID or passport at any store and our team will verify you there.</p>
           <VerifyAge className="mt-4 max-w-md" />
         </Callout>
       )}
       {shared && !needsAge && (
         <Callout tone="warn" icon={<ShieldCheck className="h-5 w-5" />} title="We can't take this order yet" className="mb-8">
-          {shared}. Update your bag, or speak to our pharmacist in store.
+          {shared}. Update your bag, or speak to an authorised dispenser in store.
         </Callout>
       )}
       {dropNotes.map((n) => (
@@ -204,13 +204,13 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
         voucherError={voucher && !voucher.ok ? voucher.error : null}
         voucherCode={voucherCode}
         provinces={Object.entries(PROVINCES)}
-        sameDayNote={`order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
+        sameDayNote={`Order by ${settings.ecommerce.sameDayCutoffHour}:00 in ${sameDayCities.join(", ")}. Free for Bloom and Harvest members.`}
         courierNote={
           made.size
             ? `Made-to-order merch is made for you and couriered in ${MADE_TO_ORDER_LEAD} (${zar(settings.ecommerce.merchCourierCents)} courier, on top of the price)${made.size < q.lines.length ? `; the rest ships in 2–4 working days, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}` : ""}. ${settings.ecommerce.merchNotice}`.trim()
             : `2–4 working days nationwide, free over ${zar(settings.ecommerce.freeDeliveryOverCents)}.`
         }
-        blocked={needsAge ? "Verify your age above to place this order." : (shared ?? (dropNotes[0] ? `${dropNotes[0].title} — update your bag to continue.` : null))}
+        blocked={needsAge ? "Verify your age above to place this order." : (shared ?? (dropNotes[0] ? `${dropNotes[0].title}. Update your bag to continue.` : null))}
       />
     </Container>
   );

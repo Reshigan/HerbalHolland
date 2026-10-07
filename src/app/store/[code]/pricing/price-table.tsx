@@ -2,15 +2,13 @@
 import { useState, useTransition } from "react";
 import { Check, Loader2, RotateCcw, TriangleAlert } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { pct, zar } from "@/lib/money";
+import { centsToInput, pct, zar } from "@/lib/money";
 import { marginPct } from "@/lib/pricing-rules";
 import { Button } from "@/components/ui/button";
 import { Notice } from "@/components/ui/page";
 import type { ActionState } from "@/server/store/context";
 import type { PriceRow } from "@/server/store/pricing";
 import { parseRand } from "@/server/store/rules";
-
-const rands = (c: number | null) => (c == null ? "" : (c / 100).toFixed(2));
 
 export function PriceTable({ rows, minMargin, canManage, save }: {
   rows: PriceRow[];
@@ -22,7 +20,7 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
   const [result, setResult] = useState<ActionState | null>(null);
   const [saving, start] = useTransition();
 
-  const value = (r: PriceRow) => (r.variantId in edit ? edit[r.variantId] : rands(r.shelfCents));
+  const value = (r: PriceRow) => (r.variantId in edit ? edit[r.variantId] : centsToInput(r.shelfCents));
   const parsed = (r: PriceRow): number | null | "bad" => {
     const v = value(r).trim();
     if (!v) return null;
@@ -81,7 +79,7 @@ export function PriceTable({ rows, minMargin, canManage, save }: {
                           value={value(r)}
                           disabled={!canManage}
                           inputMode="decimal"
-                          placeholder={rands(r.listCents)}
+                          placeholder={centsToInput(r.listCents)}
                           aria-label={`Shelf price for ${r.name}`}
                           aria-invalid={p === "bad" || undefined}
                           onChange={(e) => (setEdit((x) => ({ ...x, [r.variantId]: e.target.value })), setResult(null))}

@@ -52,7 +52,7 @@ async function fetchImage(url: string) {
   if (!addresses.length) throw new Error("that address doesn't resolve");
   if (addresses.some((a) => !isPublicIp(a.address))) throw new Error("only public https:// addresses");
   const res = await fetch(u, { signal: AbortSignal.timeout(15_000), redirect: "manual", headers: { accept: "image/*" } });
-  if (res.status >= 300 && res.status < 400) throw new Error("it redirects — use the photo's own address");
+  if (res.status >= 300 && res.status < 400) throw new Error("it redirects, so use the photo's own address");
   if (!res.ok) throw new Error(`the server answered ${res.status}`);
   if (Number(res.headers.get("content-length") ?? 0) > PRODUCT_IMAGE_MAX_BYTES) throw new Error("over 5 MB");
   // At most 5 MB is read, whatever length the server gives (or doesn't).

@@ -11,7 +11,7 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { EmptyState, Notice } from "@/components/ui/page";
 import { Stat } from "@/components/ui/stat";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
-import { ConfirmAction } from "@/components/store/action-form";
+import { ConfirmAction } from "@/components/ui/action-form";
 import { AmountCell } from "@/components/books/cells";
 import { ChoiceFilter, FilterRow } from "@/components/books/filters";
 import { ReportHeader } from "@/components/books/report-header";
@@ -66,7 +66,7 @@ export default async function VatPage({ params, searchParams }: { params: Promis
       <ReportHeader
         company={company}
         title="VAT"
-        description={`The VAT201 working for each SARS VAT period, from the books — category ${category}, ${category === "C" ? "monthly" : "every two months"}.`}
+        description={`The VAT201 working for each SARS VAT period, from the books (category ${category}, ${category === "C" ? "monthly" : "every two months"}).`}
         period={label}
       />
       <FilterRow>
@@ -126,8 +126,8 @@ export default async function VatPage({ params, searchParams }: { params: Promis
                 triggerVariant="dark"
               >
                 <p>
-                  A journal dated {monthEndLabel(v.period.to)} moves this period&apos;s {zar(v.output)} output tax and {zar(v.input)} input tax into “VAT due to / from SARS” —{" "}
-                  {zar(Math.abs(v.payable))} {refund ? "refundable" : "payable"}. Anything posted into the period later shows here, to close again.
+                  A journal dated {monthEndLabel(v.period.to)} moves this period&apos;s {zar(v.output)} output tax and {zar(v.input)} input tax into “VAT due to / from SARS” (
+                  {zar(Math.abs(v.payable))} {refund ? "refundable" : "payable"}). Anything posted into the period later shows here, to close again.
                 </p>
               </ConfirmAction>
             )}
@@ -139,7 +139,7 @@ export default async function VatPage({ params, searchParams }: { params: Promis
       {gapMatters && (
         <Notice tone="warn" className="mb-4" title="Check field 1">
           Output tax is {zar(Math.abs(v.outputGap))} {v.outputGap > 0 ? "more" : "less"} than 15% of the standard-rated income below. A few cents is rounding on single sales; more
-          usually means VAT charged on supplies that aren&apos;t posted as income (such as the marketing levy, held in the marketing fund) — add those to field 1 before filing.
+          usually means VAT charged on supplies that aren&apos;t posted as income (such as the marketing levy, held in the marketing fund). Add those to field 1 before filing.
         </Notice>
       )}
 

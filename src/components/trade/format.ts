@@ -20,7 +20,7 @@ export const CLASS_BLURB: Record<string, string> = {
   CBD_FOOD: "Coffee, tea and protein with the CBD naturally in their ingredients",
   CBD_TOPICAL: "Creams and balms",
   HEMP: "Hemp seed and fibre products",
-  SUPPLEMENT: "Collagen, protein and other supplements — no cannabis",
+  SUPPLEMENT: "Collagen, protein and other supplements (no cannabis)",
   ACCESSORY: "Grinders, glass, papers and gear",
   APPAREL: "Clothing and merch",
   GROW: "Soil, nutrients, lights and seeds",

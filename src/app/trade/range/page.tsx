@@ -10,8 +10,7 @@ import { standingOf } from "@/server/trade/licences";
 import { getSettings } from "@/server/settings";
 import { tradeRange } from "@/server/pricing";
 import { ProductArt } from "@/components/product/art";
-import { Callout, Chip, Container, Tag, inputClass } from "@/components/shop/ui";
-import { TradePager } from "@/components/trade/pager";
+import { Callout, Chip, Container, Pager, Tag, inputClass } from "@/components/shop/ui";
 import { buttonClass } from "@/components/ui/button";
 import { pageParam } from "@/components/ui/pagination";
 import { AddToTradeCart } from "@/components/trade/add-to-cart";
@@ -86,7 +85,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
 
         {pending && asks.length > 0 && (
           <Callout tone="warn" icon={<AlertTriangle className="h-5 w-5" aria-hidden />} title="We need something from you" className="mt-8">
-            {asks.join(". ")}. <Link href="/trade/account#licences" className="font-semibold underline">Upload it on your account</Link> — we check it within one business day.
+            {asks.join(". ")}. <Link href="/trade/account#licences" className="font-semibold underline">Upload it on your account</Link>. We check it within one business day.
           </Callout>
         )}
         {pending && asks.length === 0 && (
@@ -146,7 +145,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
           <div className="mt-6 rounded-2xl border border-dashed border-ink-800 px-6 py-16 text-center">
             <p className="font-display text-xl font-semibold text-white">Nothing here yet</p>
             <p className="mx-auto mt-2 max-w-md text-sm text-ink-400">
-              {q ? "Try another name, SKU or barcode." : classes.length ? "This category has no lines in the ranges your account may buy." : "Your account isn't approved for any range yet — the trade team sets this when it approves the account."}
+              {q ? "Try another name, SKU or barcode." : classes.length ? "This category has no lines in the ranges your account may buy." : "Your account isn't approved for any range yet. The trade team sets this when it approves the account."}
             </p>
           </div>
         ) : (
@@ -204,7 +203,7 @@ export default async function RangePage({ searchParams }: { searchParams: Promis
             })}
           </ul>
         )}
-        <TradePager page={res.page} pageSize={res.pageSize} total={res.total} href={(p) => href({ page: String(p) })} noun="lines" />
+        <Pager page={res.page} pageSize={res.pageSize} total={res.total} href={(p) => href({ page: String(p) })} noun="lines" />
         {!pending && !cart.items.length && (
           <p className="mt-6 text-sm text-ink-400">
             Your cart is empty.{" "}

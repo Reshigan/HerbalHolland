@@ -18,7 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { BackLink, Line, ReadOnlyNote } from "@/components/store/ui";
-import { ActionButton, ConfirmAction } from "@/components/store/action-form";
+import { ActionButton, ConfirmAction } from "@/components/ui/action-form";
 import { cn } from "@/lib/cn";
 
 export const metadata = { title: "Stock order" };
@@ -68,11 +68,11 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
         }
       />
 
-      {!canManage && (isBuyer ? o.status === "SHIPPED" : ["SUBMITTED", "APPROVED"].includes(o.status)) && <ReadOnlyNote className="mb-4">Read-only — a manager or owner handles this order.</ReadOnlyNote>}
+      {!canManage && (isBuyer ? o.status === "SHIPPED" : ["SUBMITTED", "APPROVED"].includes(o.status)) && <ReadOnlyNote className="mb-4">Read-only. A manager or owner handles this order.</ReadOnlyNote>}
 
       {isBuyer && o.status === "SHIPPED" && canManage && (
         <Card className="mb-6 border-brand-300 ring-4 ring-brand-500/10">
-          <CardHeader title="Receive this delivery" description="Count each line against the delivery note. Received quantities are prefilled with what was shipped — change any that are short." />
+          <CardHeader title="Receive this delivery" description="Count each line against the delivery note. Received quantities are prefilled with what was shipped. Change any that are short." />
           <div className="mt-3">
             <ReceiveForm
               action={receiveOrder.bind(null, store.code, id)}
@@ -126,14 +126,14 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
       {o.status === "RECEIVED" &&
         (isBuyer ? (
           <Notice tone="success" className="mb-6">
-            Received {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT.{" "}
+            Received {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} ({zar(received ?? 0)} incl. VAT).{" "}
             {d.invoiceSentAt ? `Tax invoice emailed ${fmtDateTime(d.invoiceSentAt)}.` : "Tax invoice is being emailed."} Settled on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
-            {shortReceived > 0 && <span className="mt-1 block font-semibold">{plural(shortReceived, "unit")} short against the delivery note — recorded on the order for {o.seller.name}. You&apos;re only invoiced for what you received.</span>}
+            {shortReceived > 0 && <span className="mt-1 block font-semibold">{plural(shortReceived, "unit")} short against the delivery note, recorded on the order for {o.seller.name}. You&apos;re only invoiced for what you received.</span>}
           </Notice>
         ) : (
           <Notice tone={shortReceived > 0 ? "warn" : "success"} className="mb-6">
-            {o.buyer.name} received this {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} — {zar(received ?? 0)} incl. VAT, cleared by HQ on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
-            {shortReceived > 0 && <span className="mt-1 block font-semibold">They received {plural(shortReceived, "unit")} fewer than you shipped, so those units aren&apos;t paid for — check the dispatch and courier.</span>}
+            {o.buyer.name} received this {o.receivedAt ? fmtDateTime(o.receivedAt) : ""} ({zar(received ?? 0)} incl. VAT), cleared by HQ on the {fmtMonth(o.receivedAt ?? o.createdAt)} franchise statement.
+            {shortReceived > 0 && <span className="mt-1 block font-semibold">They received {plural(shortReceived, "unit")} fewer than you shipped, so those units aren&apos;t paid for. Check the dispatch and courier.</span>}
           </Notice>
         ))}
 
@@ -143,10 +143,10 @@ export default async function StockOrderPage({ params }: { params: Promise<{ cod
             title="Supplier invoice"
             description={
               o.status === "SHIPPED"
-                ? "Added to your supplier invoices when you receive this delivery, for what you count in. It settles on your franchise statement — nothing to capture or pay."
+                ? "Added to your supplier invoices when you receive this delivery, for what you count in. It settles on your franchise statement, so there's nothing to capture or pay."
                 : invoices.length
-                  ? "This order is the tax invoice. It's on your supplier invoices and settles on the franchise statement — nothing to pay separately."
-                  : "It settles on the franchise statement — nothing to capture or pay."
+                  ? "This order is the tax invoice. It's on your supplier invoices and settles on the franchise statement, so there's nothing to pay separately."
+                  : "It settles on the franchise statement, so there's nothing to capture or pay."
             }
             action={<Link href={`/store/${store.code}/finance/supplier-invoices`} className="text-xs font-semibold text-brand-700 hover:underline">All supplier invoices →</Link>}
           />

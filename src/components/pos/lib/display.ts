@@ -38,7 +38,7 @@ export type DisplaySnapshot = {
 
 export const BRAND_MESSAGES = [
   "Welcome to Herbal Holland. Adults 18+.",
-  "Herbal Holland Rewards: members earn points and tier prices on every visit. Ask us to sign you up — it takes 20 seconds.",
+  "Herbal Holland Rewards: members earn points and tier prices on every visit. Ask us to sign you up. It takes 20 seconds.",
   "Every batch is lab-tested and traceable. Scan the code on your pack to see its certificate.",
   "Dutch heritage, African soil.",
   "Questions about a product? Our team is happy to help.",
@@ -69,12 +69,12 @@ export function idleMessages(
     // A deal shows only when everything it covers may carry an incentive: nothing about medicines, ever.
     if (!sitewide && (!targets.length || targets.some((p) => excluded.has(p.regClass)))) continue;
     if (sitewide && input.products.some((p) => excluded.has(p.regClass)) && promo.kind !== "PERCENT" && promo.kind !== "FIXED") continue;
-    out.push(`Today's deal: ${promo.name}${promo.description ? ` — ${promo.description}` : ""}`);
+    out.push(`Today's deal: ${promo.name}${promo.description ? ` · ${promo.description}` : ""}`);
   }
   if (input.nextEvent) {
     const d = new Date(input.nextEvent.startsAt);
     const when = new Intl.DateTimeFormat("en-ZA", { timeZone: "Africa/Johannesburg", weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit", hour12: false }).format(d);
-    out.push(`Next in store: ${input.nextEvent.title} — ${when}. Members RSVP in the Rewards app.`);
+    out.push(`Next in store: ${input.nextEvent.title} on ${when}. Members RSVP in the Rewards app.`);
   }
   return out;
 }

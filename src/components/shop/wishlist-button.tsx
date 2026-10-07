@@ -16,7 +16,7 @@ export function WishlistButton({ variantId, on: initial, signedIn, next, compact
     : "inline-flex h-11 items-center gap-2 rounded-full border border-ink-700 px-4 text-sm font-semibold text-ink-100 transition hover:border-brand-500 hover:text-white";
   if (!signedIn)
     return (
-      <Link href={`/club/join?next=${encodeURIComponent(next)}`} aria-label={`Save ${what}to your wishlist — sign in`} title="Save to your wishlist" className={cn("relative z-10", shape, className)}>
+      <Link href={`/club/join?next=${encodeURIComponent(next)}`} aria-label={`Sign in to save ${what}to your wishlist`} title="Save to your wishlist" className={cn("relative z-10", shape, className)}>
         <Heart className="h-5 w-5" strokeWidth={1.9} />
         {!compact && "Save"}
       </Link>

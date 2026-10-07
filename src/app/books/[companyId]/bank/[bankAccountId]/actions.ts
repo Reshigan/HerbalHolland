@@ -45,7 +45,7 @@ export async function matchNow(companyId: string, bankAccountId: string, view: s
   return act(async () => {
     const n = await matchAutomatically(companyId, bankAccountId);
     refresh(companyId, bankAccountId);
-    back(companyId, bankAccountId, view, n ? `${plural(n, "line")} matched.` : "Nothing more matches by itself — match or allocate the rest.");
+    back(companyId, bankAccountId, view, n ? `${plural(n, "line")} matched.` : "Nothing more matches by itself. Match or allocate the rest.");
   });
 }
 
@@ -65,7 +65,7 @@ export async function unmatch(companyId: string, bankAccountId: string, lineId: 
   return act(async () => {
     await unmatchLine(companyId, lineId);
     refresh(companyId, bankAccountId);
-    back(companyId, bankAccountId, view, "Unmatched — the line is back on the to-do list.");
+    back(companyId, bankAccountId, view, "Unmatched. The line is back on the to-do list.");
   });
 }
 
@@ -73,7 +73,7 @@ export async function ignore(companyId: string, bankAccountId: string, lineId: s
   return act(async () => {
     await ignoreLine(companyId, lineId, str(fd, "reason"));
     refresh(companyId, bankAccountId);
-    back(companyId, bankAccountId, view, "Line ignored — it's under Ignored if you need it back.");
+    back(companyId, bankAccountId, view, "Line ignored. It's under Ignored if you need it back.");
   });
 }
 
@@ -82,7 +82,7 @@ export async function restore(companyId: string, bankAccountId: string, lineId: 
   return act(async () => {
     await unignoreLine(companyId, lineId);
     refresh(companyId, bankAccountId);
-    back(companyId, bankAccountId, view, "Restored — the line is back on the to-do list.");
+    back(companyId, bankAccountId, view, "Restored. The line is back on the to-do list.");
   });
 }
 
@@ -112,7 +112,7 @@ export async function allocate(companyId: string, bankAccountId: string, lineId:
       r = await allocateLine(companyId, lineId, { kind: "account", accountId, storeId, party: str(fd, "party") || null, vatCents: vat ?? 0, memo });
     }
     refresh(companyId, bankAccountId);
-    back(companyId, bankAccountId, view, `Allocated to ${r.to} — journal ${r.number}.`);
+    back(companyId, bankAccountId, view, `Allocated to ${r.to} (journal ${r.number}).`);
   });
 }
 
@@ -121,6 +121,6 @@ export async function unallocate(companyId: string, bankAccountId: string, lineI
   return act(async () => {
     const r = await unallocateLine(companyId, lineId);
     refresh(companyId, bankAccountId);
-    back(companyId, bankAccountId, view, r.reversal ? `Allocation taken back — journal ${r.reversal} reverses it.` : "Allocation taken back.");
+    back(companyId, bankAccountId, view, r.reversal ? `Allocation taken back. Journal ${r.reversal} reverses it.` : "Allocation taken back.");
   });
 }

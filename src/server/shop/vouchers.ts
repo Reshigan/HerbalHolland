@@ -41,7 +41,7 @@ export async function ensureVoucherProduct() {
         data: {
           slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Give the gift of choice", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
           description: "A Herbal Holland gift voucher: redeemable online or at the counter in any store, on anything in the range, for three years from the date of issue.",
-          legalBasis: "Consumer Protection Act s63 — prepaid voucher, valid three years",
+          legalBasis: "Consumer Protection Act s63: a prepaid voucher, valid three years",
         },
         include: { variants: true },
       }));
@@ -109,7 +109,7 @@ export async function startVoucherPurchase(a: VoucherPurchase) {
 /** Called by markOrderPaid for a voucher order: completes it, issues the voucher (three years from today) and sends it. */
 export async function completeVoucherOrder(o: { id: string; code: string; customerId: string; events: unknown }, reference: string) {
   const now = new Date();
-  const events = [...((o.events as Event[]) ?? []), { status: "COMPLETED" as const, at: now.toISOString(), note: "Paid — gift voucher issued" }];
+  const events = [...((o.events as Event[]) ?? []), { status: "COMPLETED" as const, at: now.toISOString(), note: "Paid: gift voucher issued" }];
   const { count } = await db.order.updateMany({ where: { id: o.id, status: "PENDING_PAYMENT" }, data: { status: "COMPLETED", paymentStatus: "PAID", paymentRef: reference, completedAt: now, events } });
   if (!count) return;
   const v = await db.giftVoucher.findFirst({ where: { purchaseOrderId: o.id } });
@@ -131,11 +131,11 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
   const base = APP_URL();
   const from = [buyer.firstName, buyer.lastName].filter(Boolean).join(" ");
   const code = `<div style="margin:6px 0 18px;padding:18px 20px;border-radius:16px;background:#0c0a09;text-align:center"><div style="font-family:'Outfit',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#f5913c">Voucher code</div><div style="margin-top:6px;font-family:'Outfit',Helvetica,Arial,sans-serif;font-size:26px;font-weight:700;letter-spacing:0.08em;color:#fbf7f3">${esc(v.code)}</div><div style="margin-top:4px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:13px;color:#bdb3a9">${esc(zar(v.amountCents))} · valid until ${esc(fmtDate(v.expiresAt))}</div></div>`;
-  const how = para(`Use it online: enter the code at checkout under <strong>Gift voucher</strong>. In store: show this email at the counter. Whatever isn't spent stays on the voucher until it's used up. It can't be exchanged for cash, and it isn't a promotion — it pays for anything in the range.`);
+  const how = para(`Use it online: enter the code at checkout under <strong>Gift voucher</strong>. In store: show this email at the counter. Whatever isn't spent stays on the voucher until it's used up. It can't be exchanged for cash, and it isn't a promotion: it pays for anything in the range.`);
   const body =
     to === "recipient"
       ? `${para(`${esc(from || "A friend")} sent you a Herbal Holland gift voucher${v.recipientName ? `, ${esc(v.recipientName)}` : ""}.`)}${v.message ? callout(`“${esc(v.message)}”`, "soft") : ""}${code}${how}${para("Herbal Holland is for adults 18+: bring your ID when you collect or shop in store.", { muted: true, small: true })}`
-      : `${para(`Thank you, ${esc(buyer.firstName)} — your ${esc(zar(v.amountCents))} gift voucher is ready.${v.recipientEmail ? ` We've also emailed it to ${esc(v.recipientEmail)}.` : ""}`)}${code}${facts([["Amount", esc(zar(v.amountCents))], ["Valid until", esc(fmtDate(v.expiresAt))]])}${how}`;
+      : `${para(`Thank you, ${esc(buyer.firstName)}. Your ${esc(zar(v.amountCents))} gift voucher is ready.${v.recipientEmail ? ` We've also emailed it to ${esc(v.recipientEmail)}.` : ""}`)}${code}${facts([["Amount", esc(zar(v.amountCents))], ["Valid until", esc(fmtDate(v.expiresAt))]])}${how}`;
   const subject = to === "recipient" ? `${from || "Someone"} sent you a ${zarWhole(v.amountCents)} Herbal Holland gift voucher` : `Your ${zarWhole(v.amountCents)} Herbal Holland gift voucher`;
   const html = emailLayout({
     preheader: `${v.code} · ${zar(v.amountCents)} · valid until ${fmtDate(v.expiresAt)}`,
@@ -203,7 +203,7 @@ export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: n
     where: { id: a.voucher.id, status: "ACTIVE", balanceCents: { gte: a.cents } },
     data: { balanceCents: { decrement: a.cents }, ...(a.orderId && { redeemedOrderIds: { push: a.orderId } }) },
   });
-  if (!count) throw new VoucherError(`Gift voucher ${a.voucher.code} was just used somewhere else — check its balance and try again`);
+  if (!count) throw new VoucherError(`Gift voucher ${a.voucher.code} was just used somewhere else. Check its balance and try again`);
   await t.giftVoucher.updateMany({ where: { id: a.voucher.id, balanceCents: { lte: 0 } }, data: { status: "REDEEMED" } });
   await t.voucherRedemption.create({ data: { voucherId: a.voucher.id, orderId: a.orderId ?? null, saleId: a.saleId ?? null, cents: a.cents } });
   await audit(t, a.actor, "voucher.redeem", {
@@ -220,7 +220,7 @@ export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: n
 export async function restoreVoucherTx(t: Tx, a: { code: string; cents: number; actor: Actor; saleId: string; orderId?: string | null; storeId?: string | null }) {
   if (a.cents <= 0) return;
   const v = await t.giftVoucher.findUnique({ where: { code: a.code } });
-  if (!v) throw new VoucherError(`Gift voucher ${a.code} is no longer on record — refund that part another way`);
+  if (!v) throw new VoucherError(`Gift voucher ${a.code} is no longer on record. Refund that part another way`);
   const updated = await t.giftVoucher.update({ where: { id: v.id }, data: { balanceCents: { increment: a.cents } } });
   if (updated.status === "REDEEMED" && updated.expiresAt > new Date()) await t.giftVoucher.update({ where: { id: v.id }, data: { status: "ACTIVE" } });
   if (updated.expiresAt <= new Date()) await queuePosting(t, "voucher", `${v.id}:expiry`); // back onto an expired voucher: more breakage

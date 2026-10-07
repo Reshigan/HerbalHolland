@@ -8,7 +8,7 @@ export type EmailStatementState = { ok?: boolean; error?: string; to?: string };
 
 export async function emailStatementAction(_: EmailStatementState, form: FormData): Promise<EmailStatementState> {
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again" };
+  if (!buyer) return { error: "Your session has ended. Sign in again." };
   const month = String(form.get("month") ?? "");
   if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) return { error: "Unknown month" };
   const r = await emailTradeStatement(buyer.tradeAccountId, month, { force: true });

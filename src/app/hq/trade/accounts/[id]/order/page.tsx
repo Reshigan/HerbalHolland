@@ -41,7 +41,7 @@ export default async function PlaceTradeOrderPage({ params }: { params: Promise<
         description={`${termsLabel(a)} · minimum order ${zar(t.minOrderCents)} ex VAT · a phone or email order captured on the account's behalf; the account gets the same emails as a portal order.`}
       />
       {a.status !== "APPROVED" ? (
-        <Notice tone="warn" title="This account can't order right now">Only an approved account can place orders{a.status === "ON_HOLD" ? " — lift the hold first" : a.status === "PENDING" ? " — approve it first" : ""}.</Notice>
+        <Notice tone="warn" title="This account can't order right now">Only an approved account can place orders{a.status === "ON_HOLD" ? ", so lift the hold first" : a.status === "PENDING" ? ", so approve it first" : ""}.</Notice>
       ) : !dc ? (
         <Notice tone="danger" title="No distribution centre">Set up an active warehouse before placing trade orders.</Notice>
       ) : (

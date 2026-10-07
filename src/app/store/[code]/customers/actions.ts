@@ -35,7 +35,7 @@ export async function addMember(code: string, _: ActionState, fd: FormData): Pro
     const dob = /^\d{4}-\d{2}-\d{2}$/.test(dobRaw) ? new Date(`${dobRaw}T00:00:00Z`) : undefined;
     if (!idNumber && !dob) return fail("Without an SA ID number, enter their date of birth from the document you saw", "dob");
     const deals = str(fd, "deals");
-    if (deals !== "yes" && deals !== "no") return fail("Ask whether they want member deals and news — their answer is recorded", "deals");
+    if (deals !== "yes" && deals !== "no") return fail("Ask whether they want member deals and news. Their answer is recorded.", "deals");
     if (!bool(fd, "acceptTerms")) return fail("The member must read the key terms and accept the membership terms", "acceptTerms");
     const c = await createCustomer(
       {

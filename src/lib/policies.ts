@@ -1,8 +1,8 @@
 // The shop's legal documents (/legal/[slug]) and the returns and delivery policies members read before they buy.
-// Plain language (CPA s22); obligations on the member sit in Important boxes (CPA s49); a line counsel must confirm is
-// marked as such. Figures HQ can change (delivery fees, the free-delivery threshold, the cut-off, the payment window)
-// come from the live settings, never from the copy. Links are written [label](href). Every string passes screenCopy
-// and says "members" (tests/policies.test.ts).
+// Plain language (CPA s22); obligations on the member sit in Important boxes (CPA s49); a line counsel must confirm
+// carries the question (shown until HQ records counsel's sign-off, settings.legal.reviewed). Figures HQ can change
+// (delivery fees, the free-delivery threshold, the cut-off, the payment window) come from the live settings, never from
+// the copy. Links are written [label](href). Every string passes screenCopy and says "members" (tests/policies.test.ts).
 import { MADE_TO_ORDER_LEAD } from "./merch";
 import { zarWhole } from "./money";
 
@@ -14,7 +14,7 @@ export const LEGAL_DOCS = {
 } as const;
 export type LegalSlug = keyof typeof LEGAL_DOCS;
 
-/** A list line is plain text, or a line counsel must confirm before launch (shown marked, with the question). */
+/** A list line is plain text, or a line counsel must confirm (shown marked, with the question, until signed off). */
 export type PolicyLine = string | { text: string; counsel: string };
 export type PolicyBlock = { h: string } | { p: string } | { list: PolicyLine[] } | { important: string[] };
 
@@ -31,7 +31,7 @@ const mail = (email: string) => `[${email}](mailto:${email})`;
 export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
   return [
     {
-      p: `This policy covers orders from our online shop, run by ${f.entity} (“Herbal Holland”, “we”), and purchases in our stores once they open. It's part of our [membership terms](/legal/terms), and it doesn't take away any of your rights under the Consumer Protection Act 68 of 2008 (CPA) or the Electronic Communications and Transactions Act 25 of 2002 (ECTA).`,
+      p: `This policy covers orders from our online shop, run by ${f.entity} (“Herbal Holland”, “we”), and purchases in our stores. It's part of our [membership terms](/legal/terms), and it doesn't take away any of your rights under the Consumer Protection Act 68 of 2008 (CPA) or the Electronic Communications and Transactions Act 25 of 2002 (ECTA).`,
     },
     { h: "Faulty goods: 6 months (CPA s56)" },
     {
@@ -70,7 +70,7 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
     {
       list: [
         `Tell us first: email ${mail(f.email)}${f.phone ? ` or call ${f.phone}` : ""} with your order number (it's in your order confirmation and in Rewards → Orders), what you're returning and why. For something faulty, a photo helps.`,
-        "We arrange a courier to collect it from your address. Once our stores open, you can also drop it off at a Herbal Holland store: bring your order number and your ID.",
+        "We arrange a courier to collect it from your address, or you can drop it off at a Herbal Holland store: bring your order number and your ID.",
         "Pack it securely. We'll let you know by SMS or email when it reaches us and what happens next.",
       ],
     },
@@ -83,7 +83,7 @@ export function returnsPolicy(f: PolicyFacts): PolicyBlock[] {
       ],
     },
     { h: "In store" },
-    { p: "Once our stores open, you may return unopened, non-consumable items within 7 days, with proof of purchase, if you change your mind. Opened consumables, and medicines once dispensed, can't be returned unless they're faulty or recalled." },
+    { p: "You may return unopened, non-consumable items within 7 days, with proof of purchase, if you change your mind. Opened consumables, and medicines once dispensed, can't be returned unless they're faulty or recalled." },
     { p: "Not happy with how we've handled a return? See “Complaints” in our [membership terms](/legal/terms)." },
   ];
 }
@@ -95,7 +95,7 @@ export function deliveryPolicy(f: PolicyFacts): PolicyBlock[] {
   return [
     { h: "Where we deliver" },
     {
-      p: `${f.entity} (“Herbal Holland”, “we”) delivers online orders nationwide, by courier from our warehouse, to a street address in South Africa. As our stores open, some will add click & collect and same-day delivery nearby: the checkout shows what's available for your address. This policy is part of our [membership terms](/legal/terms).`,
+      p: `${f.entity} (“Herbal Holland”, “we”) delivers online orders nationwide, by courier from our warehouse, to a street address in South Africa. Some of our stores also offer click & collect, and same-day delivery nearby: the checkout shows what's available for your address. This policy is part of our [membership terms](/legal/terms).`,
     },
     { h: "What it costs" },
     {

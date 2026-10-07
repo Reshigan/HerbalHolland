@@ -52,7 +52,7 @@ export async function createListing(code: string, _: ActionState, fd: FormData):
     if (qty > avail) return fail(`You only have ${Math.max(0, avail)} available to sell`, "qty");
     const price = parseRand(str(fd, "price"));
     if (price == null || price <= 0) return fail("Enter an asking price per unit, ex VAT", "price");
-    if (price > variant.wholesaleCents * 2) return fail(`That's more than double wholesale (${zar(variant.wholesaleCents)}) — check the price`, "price");
+    if (price > variant.wholesaleCents * 2) return fail(`That's more than double wholesale (${zar(variant.wholesaleCents)}). Check the price.`, "price");
     const note = str(fd, "note").slice(0, 200) || null;
     const existing = await db.listing.findFirst({ where: { storeId: store.id, variantId, active: true } });
     const listing = existing

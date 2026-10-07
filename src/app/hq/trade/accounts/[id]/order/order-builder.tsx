@@ -7,7 +7,8 @@ import { useEffect, useState, useTransition } from "react";
 import { Loader2, Minus, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Field, Input, Select, Textarea } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
+import { num } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { tradeDelivery, tradeHandling, tradeLine, tradeTotals, validateTradeBasket } from "@/lib/trade";
 import { cn } from "@/lib/cn";
@@ -108,7 +109,7 @@ export function OrderBuilder({
           {hitError && <p role="alert" className="px-5 pb-3 text-sm font-medium text-rose-600">{hitError}</p>}
           {didYouMean && !hitError && (
             <p className="px-5 pb-3 text-sm text-ink-600" aria-live="polite">
-              Nothing matched exactly — showing similar names. Did you mean{" "}
+              Showing similar names because nothing matched exactly. Did you mean{" "}
               <button type="button" className="font-semibold text-brand-700 underline" onClick={() => (setQ(didYouMean), search(didYouMean))}>
                 {didYouMean}
               </button>
@@ -116,7 +117,7 @@ export function OrderBuilder({
             </p>
           )}
           <ul className="max-h-[26rem] divide-y divide-ink-100 overflow-y-auto border-t border-ink-100" aria-busy={searching}>
-            {hits.length === 0 && <li className="px-5 py-8 text-center text-sm text-ink-500">{searching ? "Searching…" : "Nothing in the range matches — the account may not be approved for that range, or the item has no trade price."}</li>}
+            {hits.length === 0 && <li className="px-5 py-8 text-center text-sm text-ink-500">{searching ? "Searching…" : "Nothing in the range matches. The account may not be approved for that range, or the item has no trade price."}</li>}
             {hits.map((h) => {
               const inBasket = lines.find((l) => l.variantId === h.variantId);
               return (
@@ -124,7 +125,7 @@ export function OrderBuilder({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-ink-900">{h.name}</span>
                     <span className="block text-xs text-ink-500">
-                      <span className="font-mono">{h.sku}</span> · {h.regClass} · case of {h.caseQty} · {h.available > 0 ? `${h.available.toLocaleString()} available` : <span className="text-rose-600">none available</span>}
+                      <span className="font-mono">{h.sku}</span> · {h.regClass} · case of {h.caseQty} · {h.available > 0 ? `${num(h.available)} available` : <span className="text-rose-600">none available</span>}
                       {h.breaks.length > 1 && ` · breaks: ${h.breaks.map((b) => `${b.minQty}+ ${zar(b.unitCents)}`).join(", ")}`}
                     </span>
                   </span>
@@ -177,7 +178,7 @@ export function OrderBuilder({
                           <button type="button" onClick={() => setCases(l.variantId, l.cases + 1)} className="grid h-8 w-8 place-items-center rounded-full border border-ink-200 text-ink-700 hover:bg-ink-50" aria-label={`One case more of ${l.name}`}><Plus className="h-3.5 w-3.5" aria-hidden /></button>
                         </span>
                       </td>
-                      <td className="tnum border-b border-ink-100 px-4 py-2 text-right text-ink-700">{qty.toLocaleString()}</td>
+                      <td className="tnum border-b border-ink-100 px-4 py-2 text-right text-ink-700">{num(qty)}</td>
                       <td className="tnum border-b border-ink-100 px-4 py-2 text-right text-ink-700">{zar(unit)}</td>
                       <td className="tnum border-b border-ink-100 px-5 py-2 text-right font-medium text-ink-900">
                         {zar(unit * qty)}
@@ -261,7 +262,7 @@ export function OrderBuilder({
               <span><span className="font-medium text-ink-900">On account</span><span className="block text-xs text-ink-500">{account.terms === "ACCOUNT" ? `Stock reserved now; invoiced when it ships or is collected · ${zar(account.availableCents)} available` : "This account buys prepaid"}</span></span>
             </label>
           </div>
-          <Field label="Buyer's reference (optional)" htmlFor="reference" hint="Their PO number — printed on the invoice" className="mt-4">
+          <Field label="Buyer's reference (optional)" htmlFor="reference" hint="Their PO number, printed on the invoice" className="mt-4">
             <Input id="reference" name="reference" maxLength={60} />
           </Field>
           <Field label="Notes (optional)" htmlFor="notes" className="mt-3">
@@ -278,7 +279,7 @@ export function OrderBuilder({
             <div className="flex justify-between"><dt className="text-ink-300">VAT @ 15%</dt><dd className="tnum">{zar(totals.vatCents)}</dd></div>
             <div className="flex justify-between border-t border-ink-800 pt-2 font-display text-lg font-semibold"><dt>Total incl. VAT</dt><dd className="tnum">{zar(totals.totalCents)}</dd></div>
           </dl>
-          {overCredit && <p className="mt-3 text-xs text-amber-400" role="status">Over the available credit of {zar(account.availableCents)} — the account can pay by EFT instead.</p>}
+          {overCredit && <p className="mt-3 text-xs text-amber-400" role="status">Over the available credit of {zar(account.availableCents)}. The account can pay by EFT instead.</p>}
           <p className="mt-3 text-xs text-ink-400">Prices from the range at the DC; the order is priced again when it&apos;s placed (promotions for the trade channel apply then).</p>
           <SubmitButton size="lg" className="mt-4 w-full" disabled={!live.length || problems.length > 0 || (fulfilment === "COLLECT" && !storeId)} pendingLabel="Placing…">
             {live.length ? `Place order for ${account.name}` : "Add items to place an order"}

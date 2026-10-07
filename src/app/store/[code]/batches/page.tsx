@@ -16,7 +16,7 @@ import { Field, Input } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { Chips, SearchForm } from "@/components/store/ui";
-import { ConfirmAction, FieldError } from "@/components/store/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 import type { Prisma } from "@/generated/prisma/client";
 import { plural } from "@/lib/plural";
 
@@ -81,12 +81,12 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
       <PageHeader
         overline={`Inventory · ${store.name}`}
         title="Batches & recalls"
-        description="Every lot on hand, traceable to its certificate of analysis. Recalled and quarantined batches are blocked at the till — send them back or destroy them here."
+        description="Every lot on hand, traceable to its certificate of analysis. Recalled and quarantined batches are blocked at the till. Send them back or destroy them here."
       />
 
       {blocked.units > 0 && (
         <Notice tone="danger" className="mb-6" title={`${plural(blocked.units, "unit")} in blocked batches`}>
-          They can&apos;t be sold. Return recalled stock to {store.dc?.name ?? "your distribution centre"} or destroy it with a witness — both are recorded on the ledger and in the destruction register.
+          They can&apos;t be sold. Return recalled stock to {store.dc?.name ?? "your distribution centre"} or destroy it with a witness. Both are recorded on the ledger and in the destruction register.
         </Notice>
       )}
 
@@ -94,7 +94,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
         <Stat label="Units on hand" value={onHand.units.toLocaleString()} sub={`${plural(onHand.lots, "lot")} · ${zarCompact(onHand.value)} at cost`} />
         <Stat label="Blocked units (recall / hold)" value={blocked.units.toLocaleString()} sub={blocked.units ? lotsLabel(blocked) : "nothing blocked"} />
         <Stat label="Units expiring within 30 days" value={expiring.units.toLocaleString()} sub={expiring.units ? `${lotsLabel(expiring)} · sold first` : "nothing close to expiry"} />
-        <Stat label="Expired units on hand" value={expired.units.toLocaleString()} sub={expired.units ? `${lotsLabel(expired)} — write off` : "none"} />
+        <Stat label="Expired units on hand" value={expired.units.toLocaleString()} sub={expired.units ? `${lotsLabel(expired)} · write off` : "none"} />
       </div>
 
       {recalls.length > 0 && (
@@ -116,7 +116,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                   <div className={`mt-2 flex items-center gap-1.5 text-xs font-semibold ${held ? "text-rose-600" : "text-leaf-700"}`}>
                     {held ? <ShieldAlert className="h-3.5 w-3.5" aria-hidden /> : <CircleCheck className="h-3.5 w-3.5" aria-hidden />}
                     {held ? (
-                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {plural(held, "unit")} — resolve →</Link>
+                      <Link href={hrefWith(path, {}, { view: "blocked", q: b.code })} className="hover:underline">You hold {plural(held, "unit")} · resolve →</Link>
                     ) : (
                       "None on hand here"
                     )}
@@ -208,7 +208,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
                                 )}
                                 {isExpired && (
                                   <label className="flex items-center gap-2">
-                                    <input type="radio" name="reason" value="EXPIRED" defaultChecked={!isBlocked} className="accent-brand-500" /> Expired — write off
+                                    <input type="radio" name="reason" value="EXPIRED" defaultChecked={!isBlocked} className="accent-brand-500" /> Expired (write off)
                                   </label>
                                 )}
                                 <label className="flex items-center gap-2">

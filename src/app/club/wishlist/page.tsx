@@ -88,7 +88,7 @@ export default async function ClubWishlist() {
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Heart className="mx-auto h-9 w-9 text-ink-600" />
           <h2 className="mt-4 font-display text-xl font-semibold text-white">Nothing saved yet</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Tap the heart on any product to keep it here — and we&apos;ll tell you when something you want comes back into stock.</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Tap the heart on any product to keep it here, and we&apos;ll tell you when something you want comes back into stock.</p>
           <ButtonLink href="/shop" className="mt-6">
             Shop the range
           </ButtonLink>

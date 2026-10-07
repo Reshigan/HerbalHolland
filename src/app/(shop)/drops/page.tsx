@@ -12,7 +12,7 @@ import { fmtPoints, type TierKey } from "@/lib/loyalty-rules";
 
 export const metadata: Metadata = {
   title: "Drops",
-  description: "Limited runs of Herbal Holland apparel, accessories and CBD wellness — Rewards members first, early access for top tiers, a fair limit per member. Adults 18+.",
+  description: "Limited runs of Herbal Holland apparel, accessories and CBD wellness: Rewards members first, early access for top tiers, a fair limit per member. Adults 18+.",
   alternates: { canonical: "/drops" },
 };
 
@@ -50,7 +50,7 @@ export default async function DropsPage({ searchParams }: { searchParams: Promis
 
       {!customer && !none && (
         <Callout tone="brand" className="mt-8" title="Drops are for Herbal Holland Rewards members">
-          Join free in a minute — you&apos;ll get {fmtPoints(settings.loyalty.signupBonus)} to start, member prices from day one and first go at every drop.{" "}
+          Join free in a minute and you&apos;ll get {fmtPoints(settings.loyalty.signupBonus)} to start, member prices from day one and first go at every drop.{" "}
           <Link href="/club/join?next=/drops" className="font-semibold text-white underline">
             Join free
           </Link>

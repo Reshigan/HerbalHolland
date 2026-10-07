@@ -1,6 +1,5 @@
 // Posting sales and refunds. One code path for POS and online orders so stock,
 // loyalty, rollups and finance always agree.
-import { randomUUID } from "node:crypto";
 import { db, tx, type Tx } from "./db";
 import { quote, type Quote } from "./pricing";
 import { takeStock, putStock, allocationCost } from "./inventory";
@@ -201,7 +200,7 @@ export async function checkVoucherTenders(payments: { method: string; amountCent
     const problem = voucherProblem(voucher, now, fmtDate);
     if (problem || !voucher) throw new SaleError(`Gift voucher ${code}: ${problem ?? "can't pay right now"}`);
     if (amount > voucher.balanceCents)
-      throw new SaleError(`Gift voucher ${code} has ${zar(voucher.balanceCents)} left, ${zar(amount - voucher.balanceCents)} short of the ${zar(amount)} tendered — lower the voucher amount or add another tender`);
+      throw new SaleError(`Gift voucher ${code} has ${zar(voucher.balanceCents)} left, ${zar(amount - voucher.balanceCents)} short of the ${zar(amount)} tendered. Lower the voucher amount or add another tender`);
     out.push({ code, cents: amount, voucher });
   }
   return out;
@@ -280,7 +279,7 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   // A gift voucher is redeemed on the server when the sale posts, so it needs the connection: a sale queued offline can
   // never carry one (the till refuses it too). The operator re-tenders that sale with another payment.
   if (offline && input.payments.some((p) => p.method === "VOUCHER"))
-    throw new SaleError("Gift vouchers can't be taken on an offline sale — this queued sale needs another tender: ring it up again and discard this one");
+    throw new SaleError("Gift vouchers can't be taken on an offline sale. This queued sale needs another tender: ring it up again and discard this one");
   const vouchers = await checkVoucherTenders(input.payments, createdAtOf(input));
   const tenders = normaliseVoucherTenders(input.payments);
 
@@ -376,10 +375,10 @@ async function offersUsedElsewhere(t: Tx, customerId: string, promoIds: string[]
  * and emails the tax invoice to the account's billing address.
  */
 async function postTradeSale(input: PosSaleInput, ctx: { storeId: string; deviceId: string; staffId: string; staffName: string }) {
-  if (input.offline) throw new SaleError("Trade sales need a connection — this queued trade sale can't be posted: ring it up again online and discard this one");
-  if (input.payments.some((p) => p.method === "VOUCHER")) throw new SaleError("Gift vouchers can't pay for a trade sale — vouchers are consumer money");
+  if (input.offline) throw new SaleError("Trade sales need a connection, so this queued trade sale can't be posted: ring it up again online and discard this one");
+  if (input.payments.some((p) => p.method === "VOUCHER")) throw new SaleError("Gift vouchers can't pay for a trade sale: vouchers are consumer money");
   if ((input.pointsRedeemed ?? 0) > 0) throw new SaleError("Points can't be redeemed on a trade sale");
-  if (input.customerId || input.memberNo) throw new SaleError("A trade sale is for the trade account, not a Rewards member — remove the member first");
+  if (input.customerId || input.memberNo) throw new SaleError("A trade sale is for the trade account, not a Rewards member. Remove the member first");
   const account = await db.tradeAccount.findUnique({ where: { id: input.trade!.tradeAccountId } });
   if (!account) throw new SaleError("Unknown trade account");
   if (account.status !== "APPROVED" && account.status !== "ON_HOLD") throw new SaleError(ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM]);
@@ -539,15 +538,15 @@ export async function refundSale(a: {
     let money: { method: PayMethod; cents: number; cardLast4: string | null }[];
     if (a.method === "ORIGINAL") {
       const how = backHowTheyPaid(parts, toTender);
-      if (!how) throw new SaleError(`Nothing on ${orig.number} was paid by card, cash, PayShap or EFT for ${zar(toTender)} to go back to — choose the tender to refund it to`);
+      if (!how) throw new SaleError(`Nothing on ${orig.number} was paid by card, cash, PayShap or EFT for ${zar(toTender)} to go back to. Choose the tender to refund it to`);
       money = how;
     } else {
       const cash = cashLeft(parts);
       if (a.capCash && a.method === "CASH" && toTender > cash)
         throw new SaleError(
           cash > 0
-            ? `Only ${zar(cash)} of the cash paid on ${orig.number} is left to give back — refund it back how they paid`
-            : `No cash was paid on ${orig.number} — refund it back how they paid, to the card or account it was paid with`,
+            ? `Only ${zar(cash)} of the cash paid on ${orig.number} is left to give back. Refund it the way they paid`
+            : `No cash was paid on ${orig.number}. Refund it the way they paid, to the card or account it was paid with`,
           "NO_CASH_PAID",
         );
       money = toTender ? [{ method: a.method, cents: toTender, cardLast4: parts.find((p) => p.method === a.method)?.cardLast4 ?? null }] : [];
@@ -642,5 +641,3 @@ export async function refundSale(a: {
 }
 
 const createdAtOf = (input: Pick<PosSaleInput, "offline" | "createdAt">) => (input.offline && input.createdAt ? new Date(input.createdAt) : new Date());
-
-export const newSaleId = () => randomUUID();

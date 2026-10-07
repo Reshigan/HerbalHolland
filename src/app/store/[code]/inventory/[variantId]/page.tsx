@@ -23,7 +23,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ColumnChart } from "@/components/charts/bar-chart";
 import { ProductArt } from "@/components/product/art";
 import { BackLink, Line, Qty, ReadOnlyNote } from "@/components/store/ui";
-import { ActionForm, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { plural } from "@/lib/plural";
 
 export const metadata = { title: "Stock item" };

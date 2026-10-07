@@ -21,7 +21,7 @@ import { TabLinks } from "@/components/ui/tabs";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ReadOnlyNote, SearchForm } from "@/components/store/ui";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 
 export const metadata = { title: "Network trading" };
 const PAGE_SIZE = 20;
@@ -206,7 +206,7 @@ async function MyListings({ store, canManage }: { store: StoreCtx; canManage: bo
       <div className="min-w-0 xl:col-span-2 xl:border-r xl:border-ink-100">
         {listings.length === 0 ? (
           <EmptyState icon={<ArrowLeftRight className="h-5 w-5" />} title="You haven't listed anything">
-            List overstock so other stores can buy it — it turns slow stock into cash and helps the network avoid out-of-stocks.
+            List overstock so other stores can buy it. It turns slow stock into cash and helps the network avoid out-of-stocks.
           </EmptyState>
         ) : (
           <Table stickyFirst>

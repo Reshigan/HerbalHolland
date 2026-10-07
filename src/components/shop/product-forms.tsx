@@ -59,7 +59,7 @@ export function ReviewForm({ action }: { action: (s: ReviewState, f: FormData) =
         break;
       }
       if (!["image/jpeg", "image/png"].includes(f.type)) err = `${f.name} isn't a JPG or PNG`;
-      else if (f.size > PHOTO_BYTES) err = `${f.name} is over 5 MB — try a smaller one`;
+      else if (f.size > PHOTO_BYTES) err = `${f.name} is over 5 MB. Try a smaller one.`;
       else next.push({ file: f, url: URL.createObjectURL(f) });
     }
     setPhotos(next);
@@ -68,7 +68,7 @@ export function ReviewForm({ action }: { action: (s: ReviewState, f: FormData) =
   if (state.ok)
     return (
       <p className="rounded-2xl border border-leaf-500/35 bg-leaf-500/10 px-4 py-4 text-sm text-leaf-100" role="status">
-        Thanks — your review is live. It helps other members choose well.
+        Thanks. Your review is live. It helps other members choose well.
       </p>
     );
   return (

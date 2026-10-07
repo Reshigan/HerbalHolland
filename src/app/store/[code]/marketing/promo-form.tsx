@@ -4,7 +4,7 @@ import { Search } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { describePromo, type PromoKind } from "@/lib/promotions";
 import { Checkbox, Field, Input, Label } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { parseRand, scheduleLabel } from "@/server/store/rules";
 
 type Option = { id: string; name: string; group?: string };
@@ -185,7 +185,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="mb-1 text-[0.78rem] font-semibold text-ink-700">Qualifying items {d.categoryIds.length + d.productIds.length === 0 && <span className="font-normal text-ink-500">— none picked means everything</span>}</legend>
+        <legend className="mb-1 text-[0.78rem] font-semibold text-ink-700">Qualifying items {d.categoryIds.length + d.productIds.length === 0 && <span className="font-normal text-ink-500">(none picked means everything)</span>}</legend>
         <Label className="mb-0 text-xs font-medium text-ink-500">Categories</Label>
         <Picker name="categoryIds" options={categories} value={d.categoryIds} onChange={(v) => set("categoryIds", v)} placeholder="Filter categories" />
         <Label className="mb-0 pt-1 text-xs font-medium text-ink-500">Products</Label>
@@ -194,7 +194,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
 
       {d.kind === "BUY_X_GET_Y" && (
         <fieldset className="space-y-2">
-          <legend className="mb-1 text-[0.78rem] font-semibold text-ink-700">Reward items <span className="font-normal text-ink-500">— none picked means the same as qualifying</span></legend>
+          <legend className="mb-1 text-[0.78rem] font-semibold text-ink-700">Reward items <span className="font-normal text-ink-500">(none picked means the same as qualifying)</span></legend>
           <Picker name="rewardCategoryIds" options={categories} value={d.rewardCategoryIds} onChange={(v) => set("rewardCategoryIds", v)} placeholder="Filter categories" />
           <Picker name="rewardProductIds" options={products} value={d.rewardProductIds} onChange={(v) => set("rewardProductIds", v)} placeholder="Filter products" />
         </fieldset>
@@ -212,7 +212,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
       </div>
 
       <fieldset>
-        <legend className="mb-1.5 text-[0.78rem] font-semibold text-ink-700">Days <span className="font-normal text-ink-500">— none picked means every day</span></legend>
+        <legend className="mb-1.5 text-[0.78rem] font-semibold text-ink-700">Days <span className="font-normal text-ink-500">(none picked means every day)</span></legend>
         <div className="flex flex-wrap gap-1.5">
           {WEEK.map((day) => {
             const on = d.days.includes(day);
@@ -250,7 +250,7 @@ export function PromoForm({ action, initial, categories, products, storeName, su
         checked={d.firstPurchaseOnly}
         onChange={(e) => set("firstPurchaseOnly", e.target.checked)}
         label="First purchase only (welcome gift)"
-        description="Only for a member with no purchases yet, once identified at the till. If the gift isn't in the basket, the till suggests “Free with your basket — add it…”."
+        description="Only for a member with no purchases yet, once identified at the till. If the gift isn't in the basket, the till suggests “Free with your basket. Add it…”."
       />
       <Field label="Internal note (optional)" htmlFor="pr-desc">
         <Input id="pr-desc" name="description" maxLength={200} {...text("description")} />

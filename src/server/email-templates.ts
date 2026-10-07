@@ -248,7 +248,7 @@ export function saleInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batc
     para(`Keep this ${title.toLowerCase()} for your records. It's also in Herbal Holland Rewards under Invoices.`, { muted: true, small: true });
   const text = textDoc(
     `${title} ${s.number}${s.refundOf ? ` (for ${s.refundOf.number})` : ""} · ${fmtDateTime(s.createdAt)}`,
-    `${s.store.company.legalName} — Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` — VAT no. ${s.store.company.vatNumber}` : ""}`,
+    `${s.store.company.legalName} · Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` · VAT no. ${s.store.company.vatNumber}` : ""}`,
     opts.orderCode ? `Online order ${opts.orderCode}` : null,
     "",
     ...rows.map((r) => `${r.qty != null ? `${r.qty} x ` : ""}${r.title}${r.sub ? ` (${r.sub})` : ""}  ${zar(r.amountCents)}`),
@@ -263,7 +263,7 @@ export function saleInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batc
   return {
     subject: `Your Herbal Holland ${title.toLowerCase()} ${s.number}`,
     html: emailLayout({
-      preheader: `${title} ${s.number} — ${zar(total)}`,
+      preheader: `${title} ${s.number} · ${zar(total)}`,
       eyebrow: `${title} · Herbal Holland ${s.store.name}`,
       heading: refund ? `Your ${title.toLowerCase()} ${s.number}` : `Thanks${s.customer ? `, ${s.customer.firstName}` : ""}`,
       body,
@@ -318,7 +318,7 @@ function tradeInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes
         ? `Refunded to ${pays.join(" · ")}`
         : null
     : onAccount
-      ? `On account${t.dueAt ? `, due ${fmtDate(t.dueAt)}` : " — due as per your account's payment terms"}`
+      ? `On account${t.dueAt ? `, due ${fmtDate(t.dueAt)}` : ", due as per your account's payment terms"}`
       : pays.length
         ? `Paid by ${pays.join(" · ")}`
         : null;
@@ -340,7 +340,7 @@ function tradeInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes
     para(`Prices are ex VAT; VAT is shown per line and in the total. Keep this ${title.toLowerCase()} for your records.`, { muted: true, small: true });
   const text = textDoc(
     `${title} ${s.number}${s.refundOf ? ` (for ${s.refundOf.number})` : ""} · ${fmtDateTime(s.createdAt)}`,
-    `${s.store.company.legalName} — Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` — VAT no. ${s.store.company.vatNumber}` : ""}`,
+    `${s.store.company.legalName} · Herbal Holland ${s.store.name}, ${s.store.addressLine}, ${s.store.suburb}, ${s.store.city}${vendor ? ` · VAT no. ${s.store.company.vatNumber}` : ""}`,
     t.orderNumber ? `Trade order ${t.orderNumber}${t.reference ? ` · your reference ${t.reference}` : ""}` : t.reference ? `Your reference ${t.reference}` : null,
     b.name ? `Bill to: ${[b.name, b.address, b.vatNumber ? `VAT no. ${b.vatNumber}` : null, t.accountNumber ? `trade account ${t.accountNumber}` : null].filter(Boolean).join(", ")}` : null,
     "",
@@ -354,7 +354,7 @@ function tradeInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes
   return {
     subject: `Herbal Holland ${title.toLowerCase()} ${s.number}${b.name ? ` — ${b.name}` : ""}`,
     html: emailLayout({
-      preheader: `${title} ${s.number} — ${zar(total)} incl. VAT${terms ? ` · ${terms}` : ""}`,
+      preheader: `${title} ${s.number} · ${zar(total)} incl. VAT${terms ? ` · ${terms}` : ""}`,
       eyebrow: `${title} · Herbal Holland ${s.store.name}`,
       heading: `${title} ${s.number}`,
       body,
@@ -392,7 +392,7 @@ export function stockOrderInvoiceEmail(o: StockOrderEmailInput, opts: { url: str
       ["To", `${esc(o.buyer.company.legalName)}<br/><span style="font-weight:400;color:${C.muted}">Herbal Holland ${esc(o.buyer.name)}${o.buyer.company.vatNumber ? ` · VAT no. ${esc(o.buyer.company.vatNumber)}` : ""}</span>`],
     ]) +
     summaryTable(rows, totals) +
-    para("Unit prices exclude VAT. Settled on your monthly franchise statement — nothing to pay now.", { muted: true, small: true });
+    para("Unit prices exclude VAT. This is settled on your monthly franchise statement, so there's nothing to pay now.", { muted: true, small: true });
   const text = textDoc(
     `Tax invoice ${o.number}`,
     `From ${o.seller.company.legalName} (${o.seller.name}) to ${o.buyer.company.legalName} (Herbal Holland ${o.buyer.name})`,
@@ -430,10 +430,10 @@ export function statementEmail(st: StatementEmailInput, company: { legalName: st
   const monthLabel = fmtMonth(`${st.month}-15T12:00:00Z`);
   const net = netPositionLabel(st.net);
   const rows: FigureRow[] = [
-    { label: "Credits — HQ owes you", value: "", heading: true },
+    { label: "Credits (HQ owes you)", value: "", heading: true },
     ...st.lines.filter((l) => l.kind === "credit").map((l) => ({ label: l.label, value: zar(l.cents) })),
     { label: "Total credits", value: zar(st.credits), strong: true },
-    { label: "Debits — you owe HQ", value: "", heading: true },
+    { label: "Debits (you owe HQ)", value: "", heading: true },
     ...st.lines.filter((l) => l.kind === "debit").map((l) => ({ label: l.label, value: `−${zar(l.cents)}` })),
     { label: "Total debits", value: `−${zar(st.debits)}`, strong: true },
   ];
@@ -442,20 +442,20 @@ export function statementEmail(st: StatementEmailInput, company: { legalName: st
     callout(`<span style="font-family:${DISPLAY};font-size:20px;font-weight:700;${TNUM}">${esc(net)}</span><br/>${st.net >= 0 ? "Settled to you by HQ after month end." : "Settled with HQ after month end."}`, st.net >= 0 ? "leaf" : "brand") +
     figures(rows) +
     para(
-      `Fees on net sales of ${zar(st.input.netSalesExVatCents)} ex VAT (online ${zar(st.input.onlineSalesExVatCents)}${st.input.tradeSalesExVatCents ? `, trade ${zar(st.input.tradeSalesExVatCents)}` : ""}): royalty ${st.input.royaltyBps / 100}%, marketing fund levy ${st.input.levyBps / 100}%, e-commerce commission ${st.input.ecomBps / 100}% of online sales.${st.input.tradeSalesExVatCents ? " Trade sales on account are on HQ's ledger — HQ carries the credit risk and credits them to you here." : ""} Instant Rewards savings given to members (${zar(st.memberSavingsCents)}) are already inside your net sales. Wholesale and network stock appear in the month received; each delivery has its own tax invoice.`,
+      `Fees on net sales of ${zar(st.input.netSalesExVatCents)} ex VAT (online ${zar(st.input.onlineSalesExVatCents)}${st.input.tradeSalesExVatCents ? `, trade ${zar(st.input.tradeSalesExVatCents)}` : ""}): royalty ${st.input.royaltyBps / 100}%, marketing fund levy ${st.input.levyBps / 100}%, e-commerce commission ${st.input.ecomBps / 100}% of online sales.${st.input.tradeSalesExVatCents ? " Trade sales on account are on HQ's ledger: HQ carries the credit risk and credits them to you here." : ""} Instant Rewards savings given to members (${zar(st.memberSavingsCents)}) are already inside your net sales. Wholesale and network stock appear in the month received; each delivery has its own tax invoice.`,
       { muted: true, small: true },
     );
   const text = textDoc(
-    `Franchise statement — Herbal Holland ${st.store.name} (${st.store.code}), ${monthLabel}`,
-    `${company.legalName}${company.vatNumber ? ` — VAT no. ${company.vatNumber}` : ""}`,
+    `Franchise statement · Herbal Holland ${st.store.name} (${st.store.code}), ${monthLabel}`,
+    `${company.legalName}${company.vatNumber ? ` · VAT no. ${company.vatNumber}` : ""}`,
     "",
     net,
     "",
-    "Credits — HQ owes you",
+    "Credits (HQ owes you)",
     textRows(st.lines.filter((l) => l.kind === "credit").map((l) => [l.label, zar(l.cents)])),
     `Total credits: ${zar(st.credits)}`,
     "",
-    "Debits — you owe HQ",
+    "Debits (you owe HQ)",
     textRows(st.lines.filter((l) => l.kind === "debit").map((l) => [l.label, `-${zar(l.cents)}`])),
     `Total debits: -${zar(st.debits)}`,
     "",
@@ -512,7 +512,7 @@ export function zReportEmail(r: ZReport, opts: { url?: string | null } = {}): Re
       ...(r.closedAt ? ([["Closed", `${esc(fmtDateTime(r.closedAt))} <span style="font-weight:400;color:${C.muted}">by ${esc(r.closedBy ?? "—")}</span>`]] as [string, string][]) : []),
     ]) +
     (r.cash.varianceCents != null && variance !== 0
-      ? callout(`<b>Drawer ${variance < 0 ? "short" : "over"} by ${zar(Math.abs(variance))}.</b> ${Math.abs(variance) > 5_000 ? "Over the R50 tolerance — a loss-prevention alert is raised for the owner." : "Within tolerance."}`, variance < 0 ? "rose" : "brand")
+      ? callout(`<b>Drawer ${variance < 0 ? "short" : "over"} by ${zar(Math.abs(variance))}.</b> ${Math.abs(variance) > 5_000 ? "That's over the R50 tolerance, so a loss-prevention alert is raised for the owner." : "Within tolerance."}`, variance < 0 ? "rose" : "brand")
       : "") +
     figures(rows) +
     (counts.length ? para(`<b>Counted:</b> ${esc(counts.join(", "))}`, { small: true, muted: true }) : "") +
@@ -566,11 +566,11 @@ export type OrderEmailInput = {
 };
 
 const ORDER_SUBJECT: Record<OrderEvent, (o: OrderEmailInput) => string> = {
-  placed: (o) => `Order ${o.code} — we've got it`,
+  placed: (o) => `We've got your order ${o.code}`,
   ready: (o) => `Order ${o.code} is ready to collect at ${o.store.name}`,
   dispatched: (o) => `Order ${o.code} is on its way`,
-  delivered: (o) => `Order ${o.code} delivered — thank you`,
-  collected: (o) => `Order ${o.code} collected — thank you`,
+  delivered: (o) => `Order ${o.code} delivered. Thank you`,
+  collected: (o) => `Order ${o.code} collected. Thank you`,
   cancelled: (o) => `Order ${o.code} has been cancelled`,
 };
 
@@ -598,10 +598,10 @@ export function orderEmail(kind: OrderEvent, o: OrderEmailInput): Rendered {
   let lead = "";
   let cta = { label: "Track your order", href: url };
   let intro: string[] = [];
-  const id = o.ageRestricted ? " Bring your ID — we check that every collection is 18+." : "";
+  const id = o.ageRestricted ? " Bring your ID: we check that everyone who collects is 18 or older." : "";
   switch (kind) {
     case "placed":
-      heading = `Thanks, ${o.customer.firstName} — we have your order`;
+      heading = `Thanks, ${o.customer.firstName}. We have your order`;
       lead = collect
         ? `Herbal Holland ${o.store.name} is getting order ${o.code} ready. We'll text and email you the moment it's ready to collect.${id}`
         : `We're packing order ${o.code} at Herbal Holland ${o.store.name} and will let you know when it's on its way.${o.ageRestricted ? " The driver will ask for ID (18+) at the door." : ""}`;
@@ -611,10 +611,10 @@ export function orderEmail(kind: OrderEvent, o: OrderEmailInput): Rendered {
           ["Order", `<span style="${TNUM}">${esc(o.code)}</span>`],
           [collect ? "Collect from" : "Deliver to", esc(where)],
           ...(collect && o.collectionCode ? ([["Collection code", `<span style="font-family:${DISPLAY};font-size:20px;letter-spacing:0.12em;${TNUM}">${esc(o.collectionCode)}</span>`]] as [string, string][]) : []),
-          ["Payment", o.paid ? "Paid online — nothing more to pay" : `Pay ${zar(due)} at the counter when you collect`],
+          ["Payment", o.paid ? "Paid online, so there's nothing more to pay" : `Pay ${zar(due)} at the counter when you collect`],
         ]) +
         summary;
-      intro = [lead, "", `Order ${o.code} · ${collect ? "Collect from" : "Deliver to"} ${where}`, collect && o.collectionCode ? `Collection code: ${o.collectionCode}` : null, o.paid ? "Paid online — nothing more to pay." : `Pay ${zar(due)} at the counter when you collect.`, "", textSummary].filter((x): x is string => x !== null);
+      intro = [lead, "", `Order ${o.code} · ${collect ? "Collect from" : "Deliver to"} ${where}`, collect && o.collectionCode ? `Collection code: ${o.collectionCode}` : null, o.paid ? "Paid online, so there's nothing more to pay." : `Pay ${zar(due)} at the counter when you collect.`, "", textSummary].filter((x): x is string => x !== null);
       break;
     case "ready":
       heading = `Ready to collect at ${o.store.name}`;
@@ -645,7 +645,7 @@ export function orderEmail(kind: OrderEvent, o: OrderEmailInput): Rendered {
       break;
     case "delivered":
     case "collected":
-      heading = kind === "delivered" ? "Delivered — thank you" : "Collected — thank you";
+      heading = kind === "delivered" ? "Delivered. Thank you" : "Collected. Thank you";
       lead = `Order ${o.code} is complete.${o.pointsEarned ? ` ${fmtPoints(o.pointsEarned)} have been added to your Herbal Holland Rewards balance.` : " Your points have been added to your Herbal Holland Rewards balance."} Your tax invoice follows in a separate email.`;
       body = para(esc(lead)) + summary + para("Something not right? Bring it back to any Herbal Holland store with this order number.", { muted: true, small: true });
       cta = { label: "See your Rewards", href: `${base}/club` };
@@ -654,7 +654,7 @@ export function orderEmail(kind: OrderEvent, o: OrderEmailInput): Rendered {
     case "cancelled":
       heading = `Order ${o.code} cancelled`;
       lead = o.refunded
-        ? `We've refunded ${zar(due)} to your original payment method — allow a few working days for your bank to show it.${o.pointsRedeemed ? ` The ${fmtPoints(o.pointsRedeemed)} you used are back in your account.` : ""}`
+        ? `We've refunded ${zar(due)} to your original payment method. Allow a few working days for your bank to show it.${o.pointsRedeemed ? ` The ${fmtPoints(o.pointsRedeemed)} you used are back in your account.` : ""}`
         : `Nothing has been charged.${o.pointsRedeemed ? ` The ${fmtPoints(o.pointsRedeemed)} you used are back in your account.` : ""}`;
       body = para(esc(lead)) + summary + para("If you didn't ask for this, or you'd like the items anyway, reply to this email or call the store and we'll sort it out.", { muted: true, small: true });
       cta = { label: "Shop again", href: `${base}/shop` };

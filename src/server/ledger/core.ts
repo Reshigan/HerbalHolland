@@ -221,7 +221,7 @@ export async function createManualJournal(a: {
   if (memo.length < 3) throw new LedgerError("Say what the journal is for");
   return tx(async (t) => {
     const book = await booksFor(t, a.companyId);
-    if (book.lockedThrough && periodOf(a.date) <= book.lockedThrough) throw new LedgerError(`${periodOf(a.date)} is closed — date the journal in an open month, or reopen it first`);
+    if (book.lockedThrough && periodOf(a.date) <= book.lockedThrough) throw new LedgerError(`${periodOf(a.date)} is closed. Date the journal in an open month, or reopen it first`);
     const ids = [...new Set(a.lines.map((l) => l.accountId))];
     const accounts = await t.ledgerAccount.findMany({ where: { id: { in: ids }, companyId: a.companyId, active: true }, select: { id: true, party: true } });
     if (accounts.length !== ids.length) throw new LedgerError("One of the accounts isn't in these books (or is inactive)");
@@ -244,9 +244,9 @@ export async function approveJournal(id: string, companyId: string, actor: Actor
     if (!j) throw new LedgerError("Journal not found");
     if (j.status !== "DRAFT") throw new LedgerError(`Journal ${j.number} is already posted`);
     const lockedThrough = (await t.company.findUniqueOrThrow({ where: { id: companyId }, select: { booksLockedThrough: true } })).booksLockedThrough;
-    if (lockedThrough && j.period <= lockedThrough) throw new LedgerError(`${j.period} is closed — change the date or reopen the month`);
+    if (lockedThrough && j.period <= lockedThrough) throw new LedgerError(`${j.period} is closed. Change the date or reopen the month`);
     const claimed = await t.journal.updateMany({ where: { id, status: "DRAFT" }, data: { status: "POSTED", approvedById: actor.id } });
-    if (claimed.count !== 1) throw new LedgerError("This journal changed while you were working on it — refresh and try again");
+    if (claimed.count !== 1) throw new LedgerError("This journal changed while you were working on it. Refresh and try again");
     await addBalances(t, companyId, j.period, j.lines.map((l) => ({ accountId: l.accountId, cents: l.amountCents, storeId: l.storeId })));
     await audit(t, actor, "ledger.journal_approve", { entity: "Journal", entityId: id, data: { companyId, number: j.number } });
     return j;
@@ -258,7 +258,7 @@ export async function deleteDraft(id: string, companyId: string, actor: Actor & 
   if (!j) throw new LedgerError("Only a draft journal can be deleted");
   // Only while it's still a draft: an approval that lands first wins.
   const { count } = await db.journal.deleteMany({ where: { id, companyId, status: "DRAFT" } });
-  if (count !== 1) throw new LedgerError(`Journal ${j.number} was approved just now, so it can't be deleted — reverse it instead`);
+  if (count !== 1) throw new LedgerError(`Journal ${j.number} was approved just now, so it can't be deleted. Reverse it instead`);
   await audit(db, actor, "ledger.journal_delete", { entity: "Journal", entityId: id, data: { companyId, number: j.number } });
 }
 
@@ -268,7 +268,7 @@ export async function reverseJournal(id: string, companyId: string, actor: Actor
     const j = await t.journal.findFirst({ where: { id, companyId }, include: { lines: true } });
     if (!j) throw new LedgerError("Journal not found");
     if (j.status !== "POSTED") throw new LedgerError("Only a posted journal can be reversed");
-    if (!(MANUAL_SOURCES as readonly string[]).includes(j.source)) throw new LedgerError("Automatic journals follow their source — correct the sale, invoice or deposit instead");
+    if (!(MANUAL_SOURCES as readonly string[]).includes(j.source)) throw new LedgerError("Automatic journals follow their source. Correct the sale, invoice or deposit instead");
     if (j.reversalOfId || (await t.journal.count({ where: { reversalOfId: id } }))) throw new LedgerError(`Journal ${j.number} is already reversed (or is itself a reversal)`);
     const book = await booksFor(t, companyId);
     const { day, late } = postingDay(date ?? dayKey(new Date()), book.lockedThrough);
@@ -287,8 +287,9 @@ export async function setBooksLock(companyId: string, through: string | null, ac
   if (through && through >= periodOf(dayKey(now))) throw new LedgerError("Only a month that's over can be closed");
   const before = (await db.company.findUniqueOrThrow({ where: { id: companyId }, select: { booksLockedThrough: true } })).booksLockedThrough;
   if (through && !before) {
-    // The first close: everything queued must be posted first, so nothing lands late by accident.
-    await processLedgerQueue({ limit: 20_000 });
+    // The first close: closeMonth (admin.ts) has already given the queue its minute; this only picks up a straggler,
+    // bounded the same way so a server action never runs into Cloudflare's 100-second cut-off.
+    await processLedgerQueue({ limit: 20_000, deadline: Date.now() + 30_000 });
   }
   await db.company.update({ where: { id: companyId }, data: { booksLockedThrough: through } });
   await audit(db, actor, through && (!before || through > before) ? "ledger.close" : "ledger.reopen", { entity: "Company", entityId: companyId, data: { from: before, to: through } });

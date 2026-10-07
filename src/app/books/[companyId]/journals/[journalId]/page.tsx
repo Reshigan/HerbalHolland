@@ -17,7 +17,7 @@ import { Field, Input } from "@/components/ui/form";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { BackLink, ReadOnlyNote } from "@/components/store/ui";
-import { ActionButton, ConfirmAction, FieldError } from "@/components/store/action-form";
+import { ActionButton, ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { Flash } from "@/components/hq/flash";
 import { approveJournalAction, deleteDraftAction, reverseJournalAction } from "../actions";
 
@@ -140,7 +140,7 @@ export default async function JournalPage({ params, searchParams }: { params: Pr
               )}
             </dl>
             {j.late && <p className="mt-3 rounded-xl bg-ink-50 px-3 py-2 text-xs text-ink-600">Posted late: its own month was already closed, so it went into the first open month.</p>}
-            {!manual && <p className="mt-3 text-xs text-ink-500">Posted automatically. If it&apos;s wrong, correct the {sourceLabel(j.source).toLowerCase()} itself — the books follow with a further journal for the difference.</p>}
+            {!manual && <p className="mt-3 text-xs text-ink-500">Posted automatically. If it&apos;s wrong, correct the {sourceLabel(j.source).toLowerCase()} itself. The books follow with a further journal for the difference.</p>}
           </CardBody>
         </Card>
 

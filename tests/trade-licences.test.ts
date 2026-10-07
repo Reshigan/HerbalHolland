@@ -56,11 +56,11 @@ describe("whether the account holds them", () => {
   it("names what's missing, waiting, not accepted or lapsed", () => {
     const s = licenceStanding(need, [rec({ status: "SUBMITTED" }), rec({ kind: "SAPC_RECORDING", status: "REJECTED", rejectReason: "Blurred photo" })], NOW);
     expect(s.ok).toBe(false);
-    expect(s.problems).toEqual(["Pharmacy licence is waiting to be checked", "SAPC pharmacy recording wasn't accepted (Blurred photo) — upload a new one"]);
+    expect(s.problems).toEqual(["Pharmacy licence is waiting to be checked", "SAPC pharmacy recording wasn't accepted (Blurred photo). Upload a new one"]);
     const lapsed = licenceStanding(requiredLicences("PRACTICE", [], false), [rec({ kind: "PRACTICE_NUMBER", number: "0123456", expiresAt: day(-1) })], NOW);
     expect(lapsed.lines[0].state).toBe("expired");
-    expect(lapsed.problems[0]).toMatch(/^Practice number expired on .+ — upload the renewed one$/);
-    expect(licenceStanding(need, [], NOW).problems).toEqual(["Pharmacy licence is needed — upload it", "SAPC pharmacy recording is needed — upload it"]);
+    expect(lapsed.problems[0]).toMatch(/^Practice number expired on .+\. Upload the renewed one$/);
+    expect(licenceStanding(need, [], NOW).problems).toEqual(["Pharmacy licence is needed. Upload it", "SAPC pharmacy recording is needed. Upload it"]);
   });
   it("keeps trading on a licence in date while its renewal waits, and warns when it lapses soon", () => {
     const need = requiredLicences("PRACTICE", [], false);
@@ -90,7 +90,7 @@ describe("checking a licence as typed", () => {
   });
   it("requires the expiry date of a licence that lapses, in the future, valid all of its last day", () => {
     expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123" }, NOW)).toEqual({ ok: false, fields: { expiresAt: "Enter the date the SAHPRA licence to wholesale or distribute expires" } });
-    expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123", expiresAt: "2026-10-03" }, NOW)).toEqual({ ok: false, fields: { expiresAt: "This licence has expired — upload the renewed one" } });
+    expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123", expiresAt: "2026-10-03" }, NOW)).toEqual({ ok: false, fields: { expiresAt: "This licence has expired. Upload the renewed one" } });
     expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123", expiresAt: "2026-02-30" }, NOW)).toEqual({ ok: false, fields: { expiresAt: "Enter the expiry date" } });
     expect(checkLicenceInput("SAHPRA_LICENCE", { number: "W123", expiresAt: "2026-10-04" }, NOW)).toEqual({ ok: true, number: "W123", expiresAt: expiryOf("2026-10-04") });
     expect(expiryOf("2026-10-04").toISOString()).toBe("2026-10-04T21:59:59.000Z");

@@ -68,7 +68,7 @@ export async function enablePush(sub: unknown): Promise<{ error?: string }> {
   if (!c) return { error: "Please sign in again" };
   if (!vapidPublicKey()) return { error: "App notifications aren't available yet" };
   const p = PushSub.safeParse(sub);
-  if (!p.success) return { error: "Your browser didn't send a complete subscription — please try again" };
+  if (!p.success) return { error: "Your browser didn't send a complete subscription. Please try again." };
   await savePushSubscription(c.id, p.data);
   await setConsent(c.id, "PUSH", true, "CLUB_APP");
   refresh();

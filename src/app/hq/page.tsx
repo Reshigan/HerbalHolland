@@ -165,7 +165,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
                   <Th>Store</Th>
                   <Th align="right">Net sales</Th>
                   <Th align="right">Growth</Th>
-                  <Th align="right">ATV</Th>
+                  <Th align="right">Average basket</Th>
                   <Th>Exceptions</Th>
                 </tr>
               </thead>
@@ -194,7 +194,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
             </Table>
           </Card>
           <Card className="min-w-0">
-            <CardHeader title="Exceptions" description="Most urgent first — cash past its banking deadline, alerts, negative stock, quiet stores" />
+            <CardHeader title="Exceptions" description="Most urgent first: cash past its banking deadline, alerts, negative stock, quiet stores" />
             <CardBody className="space-y-2">
               {worst.length === 0 && <p className="rounded-xl bg-leaf-50 px-3 py-2.5 text-sm text-leaf-700">Nothing out of the ordinary across your region today.</p>}
               {worst.map((x) => {
@@ -251,7 +251,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
                     </Link>
                   ),
                   value: x.net,
-                  sub: `ATV ${zar(x.atv)}`,
+                  sub: `Average basket ${zar(x.atv)}`,
                   tip: `${x.s.name} (${x.s.code})\n${zar(x.net)} net · ${x.s.region.name}`,
                 }))}
               />
@@ -311,7 +311,7 @@ export default async function HqOverview({ searchParams }: { searchParams: Promi
                     <Td align="right">{zarCompact(byStorePrev.get(x.s.id)?.netCents ?? 0)}</Td>
                     <Td align="right" className="text-rose-600">▼{pct(Math.abs(x.g))}</Td>
                     <Td>
-                      <ExceptionBadges x={exceptionBy.get(x.s.id)} clear="Nothing open — check footfall and stock" />
+                      <ExceptionBadges x={exceptionBy.get(x.s.id)} clear="Nothing open, so check footfall and stock" />
                     </Td>
                   </Tr>
                 ))}

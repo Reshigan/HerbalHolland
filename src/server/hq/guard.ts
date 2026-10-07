@@ -41,11 +41,6 @@ export async function inScope(scope: Scope, storeId: string) {
   return (await db.store.count({ where: { AND: [{ id: storeId }, storeWhere(scope)] } })) > 0;
 }
 
-/** Customer rows an HQ user may see: the network for HQ, members homed in the region for area managers. */
-export function customerScope(scope: Scope, ids: string[]) {
-  return scope.kind === "HQ" ? {} : { homeStoreId: { in: ids } };
-}
-
 /** Redirects back to a page with a one-time confirmation (shown by <Flash>). */
 export function flashTo(path: string, message: string): never {
   redirect(`${path}${path.includes("?") ? "&" : "?"}m=${encodeURIComponent(message)}`);

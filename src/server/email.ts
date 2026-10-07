@@ -7,7 +7,8 @@ import { esc, emailLayout, LEGAL_MARK, legalLine } from "./email-templates";
 
 let transport: Transporter | null | undefined;
 function smtp() {
-  if (transport === undefined) transport = process.env.SMTP_URL ? createTransport({ url: process.env.SMTP_URL, pool: true }) : null;
+  // Short timeouts: a mail host that hangs must fail one send in seconds, not hold up every send in a job for minutes.
+  if (transport === undefined) transport = process.env.SMTP_URL ? createTransport({ url: process.env.SMTP_URL, pool: true, connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000 }) : null;
   return transport;
 }
 
@@ -23,7 +24,7 @@ export type Email = {
 };
 
 // ── Sender identity ────────────────────────────────────────────────────────────
-// The footer's legal line comes from the franchisor Company record (HQ → Settings → Company), cached briefly so a
+// The footer's legal line comes from the franchisor Company record (HQ → Stores → the distribution centre → Owner), cached briefly so a
 // burst of invoices doesn't query it every time. A database hiccup never stops an email: the brand name stands in.
 type Sender = { legalName: string; regNumber: string | null; vatNumber: string | null; address: string | null; phone: string | null; email: string | null } | null;
 let sender: { at: number; value: Sender } | undefined;

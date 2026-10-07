@@ -129,7 +129,7 @@ async function pnlByStore(ctx: ReportCtx, ids: string[]) {
 export const vat: ReportDef = {
   key: "vat",
   title: "VAT (VAT201 working)",
-  description: "What VAT do we owe SARS for the period — output tax against input tax?",
+  description: "What VAT do we owe SARS for the period, output tax against input tax?",
   group: "Finance",
   scopes: ["store", "hq"],
   filters: ["range"],
@@ -175,7 +175,7 @@ export const vat: ReportDef = {
         { label: "Input tax", value: v.input, format: "zar", sub: "stock, expenses and fees" },
         { label: refund ? "Refundable by SARS" : "Payable to SARS", value: Math.abs(v.payable), format: "zar" },
       ],
-      note: `A working paper for the VAT201 return at 15% — check it against your tax invoices before filing. Returns are filed per VAT vendor (company), so choose the date range that matches your VAT period.${multi(ctx) || ids.length > 1 ? ` Combines ${ids.length} VAT-registered store${ids.length === 1 ? "" : "s"}.` : ""}${skipped ? ` ${skipped} store${skipped === 1 ? " isn't" : "s aren't"} registered for VAT and ${skipped === 1 ? "is" : "are"} left out.` : ""}`,
+      note: `A working paper for the VAT201 return at 15%. Check it against your tax invoices before filing. Returns are filed per VAT vendor (company), so choose the date range that matches your VAT period.${multi(ctx) || ids.length > 1 ? ` Combines ${ids.length} VAT-registered store${ids.length === 1 ? "" : "s"}.` : ""}${skipped ? ` ${skipped} store${skipped === 1 ? " isn't" : "s aren't"} registered for VAT and ${skipped === 1 ? "is" : "are"} left out.` : ""}`,
     };
   },
 };
@@ -416,7 +416,7 @@ function monthOptions({ now }: { now: Date }): Option[] {
 export const statements: ReportDef = {
   key: "statements",
   title: "Franchise statements",
-  description: "What does each franchisee owe HQ — or get paid — for the month?",
+  description: "What does each franchisee owe HQ, or get paid, for the month?",
   group: "Finance",
   scopes: ["hq"],
   roles: ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"],
@@ -479,7 +479,7 @@ export const statements: ReportDef = {
       ],
       emptyTitle: "No statements",
       empty: "No trading stores in this selection.",
-      note: `${current ? "This month is still open — figures will change until month end. " : ""}Credits: money collected by HQ (online sales, gift vouchers and trade sales on account or collected at the store), points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Royalty and levy run on all net sales, trade included; the e-commerce commission on online sales only. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
+      note: `${current ? "This month is still open, so figures will change until month end. " : ""}Credits: money collected by HQ (online sales, gift vouchers and trade sales on account or collected at the store), points redeemed in store and stock sold to other stores. Debits: royalty, marketing levy, e-commerce commission, VAT on those fees, points issued, wholesale stock and stock bought from other stores. Royalty and levy run on all net sales, trade included; the e-commerce commission on online sales only. Positive net = HQ pays the store. Rewards savings are shown for reference: instant tier prices at the till, already in net sales and not settled.`,
     };
   },
 };
@@ -565,7 +565,7 @@ export const loyaltyLiability: ReportDef = {
       extra: hqRows.length
         ? [{ title: "Issued by HQ (not charged to stores)", description: "Sign-up, birthday and other network bonuses", columns: [{ key: "kind", label: "Type" }, { key: "n", label: "Entries", format: "number" }, { key: "points", label: "Points", format: "points" }, { key: "value", label: "Value", format: "zar" }], rows: hqRows, totals: sumRows(hqRows, ["n", "points", "value"], { kind: "Total" }) }]
         : [],
-      note: `1 point = R1. The issuing store funds the points it awards; the store where they're redeemed is reimbursed — both settle on the monthly franchise statement. Instant savings are the tier-price reductions members got at the till: already in net sales, not a liability and not settled between stores. Outstanding liability is every member's current balance${ctx.networkWide ? " across the network" : " for members whose home store is in this selection"}, as of today.`,
+      note: `1 point = R1. The issuing store funds the points it awards; the store where they're redeemed is reimbursed, and both settle on the monthly franchise statement. Instant savings are the tier-price reductions members got at the till: already in net sales, not a liability and not settled between stores. Outstanding liability is every member's current balance${ctx.networkWide ? " across the network" : " for members whose home store is in this selection"}, as of today.`,
     };
   },
 };

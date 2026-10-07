@@ -23,7 +23,7 @@ export async function changePassword(_: PasswordState, form: FormData): Promise<
   }
   const problem = passwordProblem(next, { email: user.email, name: user.name });
   if (problem) return { error: problem, field: "next" };
-  if (next === current) return { error: "Choose a new password — not the one you were given.", field: "next" };
+  if (next === current) return { error: "Choose a new password, not the one you were given.", field: "next" };
   if (next !== confirm) return { error: "The two new passwords don't match.", field: "confirm" };
   const token = (await cookies()).get(COOKIE.staff)?.value ?? "";
   await db.$transaction([

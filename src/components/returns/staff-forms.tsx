@@ -2,7 +2,7 @@
 // The staff side of a return: approve or decline, book the collection (by hand, for now), mark it received, refund it.
 // Shared by HQ and the store back office; each passes its own server actions (the same ActionState shape).
 import { BadgeCheck, Banknote, PackageCheck, Truck, XCircle } from "lucide-react";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
 import type { ActionState } from "@/server/hq/guard";
 import { zar } from "@/lib/money";
@@ -11,14 +11,14 @@ export type StaffAction = (state: ActionState, fd: FormData) => Promise<ActionSt
 
 export function DecideForms({ approve, decline }: { approve: StaffAction; decline: StaffAction }) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <ConfirmAction action={approve} label="Approve" title="Approve this return?" confirmLabel="Approve" variant="primary" triggerVariant="primary" icon={<BadgeCheck className="h-4 w-4" aria-hidden />} className="w-full">
+    <div className="flex flex-col items-start gap-2">
+      <ConfirmAction action={approve} label="Approve" title="Approve this return?" confirmLabel="Approve" variant="primary" triggerVariant="primary" icon={<BadgeCheck className="h-4 w-4" aria-hidden />}>
         <p>The member is told it&apos;s approved and that a courier collection is coming. Book it in the next step.</p>
         <Field label="A note for the member (optional)" htmlFor="approve-note">
           <Textarea id="approve-note" name="note" className="min-h-14" maxLength={500} placeholder="e.g. Please keep the original box for the courier." />
         </Field>
       </ConfirmAction>
-      <ConfirmAction action={decline} label="Decline" title="Decline this return?" confirmLabel="Decline" icon={<XCircle className="h-4 w-4" aria-hidden />} className="w-full">
+      <ConfirmAction action={decline} label="Decline" title="Decline this return?" confirmLabel="Decline" icon={<XCircle className="h-4 w-4" aria-hidden />}>
         <p>The member reads the reason. Faulty goods within 6 months and change-of-mind returns within 7 days are rights under the CPA and ECTA: decline only when the request falls outside them.</p>
         <Field label="Reason (the member is told)" htmlFor="decline-note">
           <Textarea id="decline-note" name="note" className="min-h-16" maxLength={500} placeholder="e.g. The seal was broken, so it can't be returned for a change of mind." />
@@ -89,7 +89,7 @@ export function RefundForm({ action, items, plan, restockDefault }: {
         )}
       </dl>
       {plan.note && <p className="text-xs text-ink-500">{plan.note}</p>}
-      {voucher > 0 && <p className="text-xs text-ink-500">What the gift voucher paid goes back onto the voucher with the credit note — a voucher is never cashed out.</p>}
+      {voucher > 0 && <p className="text-xs text-ink-500">What the gift voucher paid goes back onto the voucher with the credit note. A voucher is never cashed out.</p>}
       <fieldset>
         <legend className="mb-1.5 text-[0.78rem] font-semibold text-ink-700">Back on the shelf?</legend>
         <div className="space-y-2">

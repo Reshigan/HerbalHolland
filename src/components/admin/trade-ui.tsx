@@ -25,8 +25,8 @@ export const PAY_LABEL: Record<string, string> = { EFT: "EFT (prepaid)", ACCOUNT
 export const LEDGER_LABEL: Record<string, string> = { INVOICE: "Invoice", PAYMENT: "Payment", CREDIT_NOTE: "Credit note", ADJUSTMENT: "Adjustment" };
 export const LEDGER_TONE: Record<string, Tone> = { INVOICE: "orange", PAYMENT: "green", CREDIT_NOTE: "blue", ADJUSTMENT: "neutral" };
 export const EVENT_LABEL: Record<string, string> = {
-  PENDING_PAYMENT: "Pro forma sent — awaiting EFT",
-  PLACED: "Confirmed — stock reserved",
+  PENDING_PAYMENT: "Pro forma sent, awaiting EFT",
+  PLACED: "Confirmed, stock reserved",
   PICKING: "Picking started",
   READY: "Packed and ready to collect",
   SHIPPED: "Shipped",

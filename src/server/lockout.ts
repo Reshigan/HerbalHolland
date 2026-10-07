@@ -54,7 +54,7 @@ export const recordIpFailure = (key: string) => record(key, IP_WINDOW_MS);
 // ── Per PIN: ten wrong in a day ────────────────────────────────────────────────
 const DAY_MS = 86_400_000;
 const PIN_DAY_MAX = 10;
-export const PIN_DISABLED = "Your PIN is locked — ask a manager to reset it";
+export const PIN_DISABLED = "Your PIN is locked. Ask a manager to reset it";
 const pinKey = (userId: string) => `pin:${userId}`;
 
 /** Whether the PIN has been switched off (ten wrong in 24 hours) — it stays off until a manager sets a new one. */

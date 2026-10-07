@@ -129,7 +129,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
         <tbody>
           <tr>
             <td colSpan={4} className="pt-4 pb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-leaf-700">
-              Credits — HQ owes you
+              Credits (HQ owes you)
             </td>
           </tr>
           {credits.map((l) => (
@@ -147,7 +147,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
           ))}
           <tr>
             <td colSpan={4} className="pt-5 pb-1 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-brand-700">
-              Debits — you owe HQ
+              Debits (you owe HQ)
             </td>
           </tr>
           {debits.map((l) => (
@@ -225,7 +225,7 @@ export function StatementDocument({ st, company, hq, current, issuedAt }: { st: 
           Wholesale and network stock appear in the month they were received; each delivery carries its own tax invoice, so this statement is a reconciliation and not a tax invoice for those lines. Fees are invoiced by {hq?.legalName ?? "the franchisor"} and include VAT as shown.
         </p>
         <p className="mt-1">
-          Trade sales are sales to business accounts rung up at your tills or collected at your store. HQ collected the money — online, by EFT, or on its trade ledger for sales on account, where HQ carries the credit risk — and credits it to you above, as it does online sales. Royalty and the marketing levy apply to trade sales at the standard rates; the e-commerce commission does not.
+          Trade sales are sales to business accounts rung up at your tills or collected at your store. HQ collected the money (online, by EFT, or on its trade ledger for sales on account, where HQ carries the credit risk) and credits it to you above, as it does online sales. Royalty and the marketing levy apply to trade sales at the standard rates; the e-commerce commission does not.
         </p>
         <p className="mt-1">
           Generated {fmtDateTime(issuedAt)}

@@ -53,7 +53,7 @@ export default async function LedgerPage({ params, searchParams }: { params: Pro
           <>
             <span className="tnum">{account.code}</span> {account.name}
             {partyName && <> · {partyName}</>}
-            {!account.active && " · inactive"} — every posted entry with its running balance.
+            {!account.active && " · inactive"}: every posted entry with its running balance.
           </>
         }
         period={rangeLabel(range)}
@@ -162,7 +162,7 @@ export default async function LedgerPage({ params, searchParams }: { params: Pro
       {(account.key === "retained" || ["INCOME", "EXPENSE"].includes(account.type)) && (
         <p className="mt-4 max-w-3xl text-sm text-ink-500">
           {account.key === "retained"
-            ? "The opening balance includes the profit of every financial year that ended before this period's — retained earnings are worked out from the books, not posted."
+            ? "The opening balance includes the profit of every financial year that ended before this period's. Retained earnings are worked out from the books, not posted."
             : "Income and expense accounts start each financial year at nil, so the opening balance is this financial year's total before the period."}
         </p>
       )}

@@ -1,6 +1,7 @@
 // The first HQ administrator on a new database (RUNBOOK → First deploy, step 5): a temporary password they replace at
-// first sign-in, as HQ → Team does. Creates the franchisor company when there is none yet (HQ → Settings → Company
-// fills in its details). Everyone after that is added from HQ → Team.
+// first sign-in, as HQ → Team does. Creates the franchisor company when there is none yet (--company sets its legal
+// name; the rest is filled in on a store it owns, the distribution centre: HQ → Stores → the DC → Owner). Everyone
+// after that is added from HQ → Team.
 //   DATABASE_URL=postgresql://… npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"
 import "dotenv/config";
 import { parseArgs } from "node:util";
@@ -8,8 +9,9 @@ import { db } from "@/server/db";
 import { audit, SYSTEM } from "@/server/audit";
 import { hashSecret } from "@/server/crypto";
 import { temporaryPassword, tempPasswordUntil, TEMP_PASSWORD_HOURS } from "@/server/passwords";
+import { FALLBACK_LEGAL_NAME } from "@/lib/contact";
 
-const { values } = parseArgs({ options: { email: { type: "string" }, name: { type: "string" }, company: { type: "string", default: "Herbal Holland (Pty) Ltd" } } });
+const { values } = parseArgs({ options: { email: { type: "string" }, name: { type: "string" }, company: { type: "string", default: FALLBACK_LEGAL_NAME } } });
 const email = values.email?.trim().toLowerCase() ?? "";
 const name = values.name?.trim().replace(/\s+/g, " ") ?? "";
 

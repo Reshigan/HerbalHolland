@@ -24,7 +24,7 @@ export function MemberReply({ ticketId, resolved }: { ticketId: string; resolved
           accept="image/jpeg,image/png"
           onChange={(e) => {
             const f = e.currentTarget.files?.[0];
-            const m = f && f.size > PHOTO_MAX_BYTES ? "That photo is over 5 MB — try a smaller one." : "";
+            const m = f && f.size > PHOTO_MAX_BYTES ? "That photo is over 5 MB. Try a smaller one." : "";
             e.currentTarget.setCustomValidity(m);
             setPhotoError(m || null);
           }}
@@ -42,7 +42,7 @@ export function MemberReply({ ticketId, resolved }: { ticketId: string; resolved
         </button>
         {state.ok && (
           <span className="text-sm font-medium text-leaf-100" role="status">
-            Sent — we&apos;ll reply within one business day.
+            Sent. We&apos;ll reply within one business day.
           </span>
         )}
         <span className="ml-auto hidden items-center gap-1 text-xs text-ink-450 sm:flex">

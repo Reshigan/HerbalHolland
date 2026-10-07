@@ -49,7 +49,7 @@ export default async function IncomeStatementPage({ params, searchParams }: { pa
       <ReportHeader
         company={company}
         title="Income statement"
-        description="Revenue, cost of sales and running costs from the books, ex VAT — the profit or loss for the period."
+        description="The profit or loss for the period: revenue, cost of sales and running costs from the books, ex VAT."
         period={rangeLabel(range)}
         store={store?.name}
       />
@@ -84,7 +84,7 @@ export default async function IncomeStatementPage({ params, searchParams }: { pa
           />
         ) : (
           <EmptyState icon={<ChartColumn className="h-5 w-5" />} title="No income or expenses in this period">
-            Pick another period — income and expenses appear here as trading days, statements and expenses post to the books.
+            Pick another period. Income and expenses appear here as trading days, statements and expenses post to the books.
           </EmptyState>
         )}
       </Card>

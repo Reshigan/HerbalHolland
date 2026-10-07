@@ -61,7 +61,7 @@ export async function licenceOverview(account: LicensedAccount) {
   const others = TRADE_LICENCE_KINDS.filter((k) => !required.some((r) => r.kind === k) && records.some((r) => r.kind === k));
   return {
     standing: licenceStanding(required, records),
-    others: licenceStanding(others.map((kind) => ({ kind, why: "On file — not needed for the ranges on the account yet" })), records).lines,
+    others: licenceStanding(others.map((kind) => ({ kind, why: "On file, not needed for the ranges on the account yet" })), records).lines,
     records,
   };
 }
@@ -122,7 +122,7 @@ export async function verifyTradeLicence(id: string, actor: Actor) {
   const { account, released } = await tx(async (t) => {
     const before = await t.tradeLicence.findUniqueOrThrow({ where: { id }, include: { account: true } });
     if (before.status !== "SUBMITTED") throw new TradeLicenceError(`This licence was already ${before.status === "VERIFIED" ? "verified" : "rejected"}`);
-    if (before.expiresAt && before.expiresAt.getTime() <= Date.now()) throw new TradeLicenceError("This licence has expired — ask for the renewed one");
+    if (before.expiresAt && before.expiresAt.getTime() <= Date.now()) throw new TradeLicenceError("This licence has expired. Ask for the renewed one");
     await t.tradeLicence.update({ where: { id }, data: { status: "VERIFIED", reviewedAt: new Date(), reviewedById: actor.id ?? null, rejectReason: null } });
     await audit(t, actor, "trade.licence.verify", { entity: "TradeLicence", entityId: id, data: { account: before.account.number, kind: before.kind, number: before.number, expiresAt: before.expiresAt } });
     const released = await releaseLicenceHoldIfClear(t, before.account.id, actor);

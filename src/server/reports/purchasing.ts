@@ -169,7 +169,7 @@ export const receiving: ReportDef = {
       ],
       emptyTitle: ctx.params.show === "all" ? "Nothing received" : "No discrepancies",
       empty: ctx.params.show === "all" ? "No stock orders were received in this period." : "Every line arrived as ordered and shipped in this period.",
-      note: `Short-shipped = ordered but not sent (the supplier didn't have it). Missing on arrival = shipped but not received — raise it with the supplier${multi(ctx) ? "s" : ""}; the buyer is only invoiced for what was received.`,
+      note: `Short-shipped = ordered but not sent (the supplier didn't have it). Missing on arrival = shipped but not received. Raise it with the supplier${multi(ctx) ? "s" : ""}; the buyer is only invoiced for what was received.`,
     };
   },
 };

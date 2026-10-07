@@ -18,7 +18,7 @@ import { Detail } from "@/components/ui/misc";
 import { ButtonLink } from "@/components/ui/button";
 import { Field, Textarea } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
-import { ConfirmAction, FieldError } from "@/components/hq/action-form";
+import { ConfirmAction, FieldError } from "@/components/ui/action-form";
 import { BackLink } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { cancelOrder } from "../actions";
@@ -217,12 +217,12 @@ export default async function OrderPage({ params, searchParams }: { params: Prom
             <Card>
               <CardHeader title="Member service" description="Cancelling releases the stock, returns points and refunds online payments" />
               <CardBody>
-                <ConfirmAction action={cancelOrder.bind(null, order.id)} label="Cancel order" title={`Cancel order ${order.code}?`} confirmLabel="Cancel order" className="w-full">
+                <ConfirmAction action={cancelOrder.bind(null, order.id)} label="Cancel order" title={`Cancel order ${order.code}?`} confirmLabel="Cancel order">
                   <Field label="Reason (the member is told their order was cancelled)" htmlFor="cancel-reason">
                     <Textarea id="cancel-reason" name="reason" className="min-h-16" placeholder="e.g. Member asked to cancel by phone" />
                     <FieldError name="reason" />
                   </Field>
-                  {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online — cancelling refunds it in full</Badge>}
+                  {order.paymentStatus === "PAID" && <Badge tone="amber">Paid online, so cancelling refunds it in full</Badge>}
                 </ConfirmAction>
               </CardBody>
             </Card>

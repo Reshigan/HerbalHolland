@@ -5,7 +5,7 @@ import { canManageStore, storeForUser } from "@/server/scope";
 import { searchStock, sortStock, stockRows, STOCK_SORTS, type StockSort } from "@/server/store/inventory";
 import { STOCK_STATUS, coverLabel, expiryState, hrefWith, sp1, type StockStatus } from "@/server/store/rules";
 import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
-import { zar, zarCompact } from "@/lib/money";
+import { centsToInput, zar, zarCompact } from "@/lib/money";
 import { saveLevels, saveShelfPrice } from "./actions";
 import { PageHeader, EmptyState } from "@/components/ui/page";
 import { Card } from "@/components/ui/card";
@@ -70,7 +70,6 @@ export default async function InventoryPage({ params, searchParams }: { params: 
   });
   const sortHref = (s: string, d: "asc" | "desc") => hrefWith(path, sp, { sort: s, dir: d, page: null });
   const exportHref = hrefWith(`${path}/export`, { q, cat, cls, status: status === "ALL" ? undefined : status, sort, dir });
-  const rand = (c: number) => (c / 100).toFixed(2);
 
   return (
     <>
@@ -134,7 +133,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
           </SearchForm>
           {found.close && (
             <p className="text-xs text-ink-500">
-              <b className="text-ink-700">Showing close matches for “{q}”</b> — nothing matched exactly.
+              <b className="text-ink-700">Showing close matches for “{q}”</b>. Nothing matched exactly.
             </p>
           )}
           <Chips
@@ -233,7 +232,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
                       {editable && !hq ? (
                         <InlineEdit
                           action={saveShelfPrice.bind(null, store.code, r.variantId)}
-                          fields={[{ name: "price", label: `Shelf price for ${r.name}`, value: r.shelfCents != null ? rand(r.shelfCents) : "", prefix: "R", placeholder: rand(r.rrpCents), inputMode: "decimal", width: "w-24" }]}
+                          fields={[{ name: "price", label: `Shelf price for ${r.name}`, value: centsToInput(r.shelfCents), prefix: "R", placeholder: centsToInput(r.rrpCents), inputMode: "decimal", width: "w-24" }]}
                           display={r.shelfCents != null ? <span className="font-medium text-ink-900">{zar(r.shelfCents)}</span> : <span className="text-ink-500" title="Follows the list price">{zar(r.rrpCents)}</span>}
                           editLabel={`Shelf price for ${r.name} (empty follows the list price)`}
                           format="zar"

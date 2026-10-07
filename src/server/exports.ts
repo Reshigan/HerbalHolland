@@ -139,7 +139,7 @@ export async function createSchedule(user: Staff, a: ScheduleInput, actor: Actor
   for (const [k, v] of Object.entries(a.params)) if (v && ["store", "stores", "range", "from", "to", "category", "channel", "month"].includes(k)) params[k] = String(v).slice(0, 40);
   for (const p of def.params ?? []) if (a.params[p.key]) params[p.key] = String(a.params[p.key]).slice(0, 40);
   const recipients = await validateRecipients(a.recipients, def, await scheduleReach(user, params));
-  if ((await db.scheduledExport.count({ where: { userId: user.id, active: true } })) >= 20) throw new ExportError("You already have 20 scheduled exports — stop one first");
+  if ((await db.scheduledExport.count({ where: { userId: user.id, active: true } })) >= 20) throw new ExportError("You already have 20 scheduled exports, so stop one first");
   const s = await db.scheduledExport.create({
     data: { userId: user.id, reportKey: def.key, params, cadence: a.cadence, dayOfWeek: a.cadence === "WEEKLY" ? a.dayOfWeek : null, dayOfMonth: a.cadence === "MONTHLY" ? a.dayOfMonth : null, recipients },
   });

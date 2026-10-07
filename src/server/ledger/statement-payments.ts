@@ -43,7 +43,7 @@ export async function recordStatementPayment(a: StatementPaymentInput, user: Rec
   if (a.direction !== "STORE_PAID" && a.direction !== "HQ_PAID") throw new StatementPaymentError("Say who paid whom", "direction");
   const cents = a.amountCents;
   if (cents == null || !Number.isInteger(cents) || cents <= 0) throw new StatementPaymentError("Enter the amount paid, like 1734.00", "amount");
-  if (cents > 1_000_000_000) throw new StatementPaymentError("That's more than a statement settles — check the amount", "amount");
+  if (cents > 1_000_000_000) throw new StatementPaymentError("That's more than a statement settles. Check the amount", "amount");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(a.paidOn) || Number.isNaN(Date.parse(`${a.paidOn}T00:00:00Z`))) throw new StatementPaymentError("Choose the day it was paid", "paidOn");
   if (a.paidOn > today) throw new StatementPaymentError("A payment can't be dated in the future", "paidOn");
   if (a.paidOn < `${month}-01`) throw new StatementPaymentError(`A payment for the ${fmtMonth(`${month}-15T12:00:00Z`)} statement can't be dated before that month`, "paidOn");

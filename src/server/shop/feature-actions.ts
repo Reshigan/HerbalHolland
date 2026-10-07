@@ -5,7 +5,7 @@ import { getCustomer } from "@/server/auth";
 import { getVoucherCode, saveVoucherCode } from "./context";
 import { toggleWishlist } from "./wishlist";
 import { cancelReminder, REMINDER_DAYS, ReminderError, setReminder } from "./reminders";
-import { reorderOrder, reorderVariant, type ReorderResult } from "./reorder";
+import { reorderOrder, type ReorderResult } from "./reorder";
 import { voucherForCheckout } from "./vouchers";
 import type { ReminderChannel } from "@/generated/prisma/client";
 
@@ -85,8 +85,4 @@ export async function reorderAction(orderId: string): Promise<ReorderResult> {
   const c = await getCustomer();
   if (!c) return { ok: false, summary: "Sign in to buy again.", count: 0, added: 0, skipped: [] };
   return reorderOrder(c.id, orderId);
-}
-
-export async function reorderVariantAction(variantId: string, qty = 1): Promise<ReorderResult> {
-  return reorderVariant(variantId, qty);
 }

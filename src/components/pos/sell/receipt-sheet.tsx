@@ -48,7 +48,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
     <Sheet
       open
       onClose={onDone}
-      title={training ? "Practice sale — nothing is real" : receipt.queued ? "Sale saved offline" : "Sale complete"}
+      title={training ? "Practice sale: nothing is real" : receipt.queued ? "Sale saved offline" : "Sale complete"}
       subtitle={`${receipt.number}${trade ? ` · ${trade.name}` : receipt.customer ? ` · ${receipt.customer.name}` : ""}`}
       size="md"
       footer={
@@ -160,7 +160,7 @@ export function ReceiptSheet({ receipt, invoiceTo, onPrint, onDone }: { receipt:
             <label htmlFor="inv-email" className="text-sm font-semibold text-white">
               Email the tax invoice?
             </label>
-            <p className="mb-3 mt-0.5 text-xs text-ink-400">Optional — a copy to another address.</p>
+            <p className="mb-3 mt-0.5 text-xs text-ink-400">Optional: a copy to another address.</p>
             <div className="flex gap-2">
               <TextInput id="inv-email" type="email" inputMode="email" autoComplete="off" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="name@example.co.za" />
               <PosButton type="submit" variant="secondary" busy={busy}>

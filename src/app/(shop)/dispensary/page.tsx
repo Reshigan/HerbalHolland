@@ -12,7 +12,7 @@ import { fmtDate } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Dispensary",
-  description: "Licensed cannabis medicines for registered patients with a SAHPRA Section 21 authorisation — collected in store from an authorised dispenser.",
+  description: "Licensed cannabis medicines for registered patients with a SAHPRA Section 21 authorisation, collected in store from an authorised dispenser.",
   robots: { index: false, follow: true },
 };
 
@@ -39,7 +39,7 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
           <div className="eyebrow text-brand-500">Dispensary</div>
           <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Your dispensary</h1>
           <p className="mt-3 max-w-2xl text-[1.02rem] leading-relaxed text-ink-300">
-            Medicines are collect-only and handed over by an authorised dispenser after an ID check. Prices are the same for every patient — no promotions, member prices or points apply.
+            Medicines are collect-only and handed over by an authorised dispenser after an ID check. Prices are the same for every patient: no promotions, member prices or points apply.
           </p>
         </div>
         {access.mode === "MEDICAL" && (
@@ -54,7 +54,7 @@ export default async function DispensaryPage({ searchParams }: { searchParams: P
               </div>
             </div>
             <div className="mt-4 flex items-baseline justify-between text-sm">
-              <span className="text-ink-300">Left this month (rolling 30 days)</span>
+              <span className="text-ink-300">Left in the last 30 days</span>
               <span className="tnum font-semibold text-white">
                 {Math.round(access.remainingGrams * 10) / 10} g <span className="font-normal text-ink-450">/ {access.auth.monthlyLimitGrams} g</span>
               </span>

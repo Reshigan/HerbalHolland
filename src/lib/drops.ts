@@ -20,7 +20,7 @@ export function opensFor(d: DropRule, tier: TierKey | null) {
 /** Why this shopper can't buy `qty` more now (null = they can). `bought` = units already bought or on open orders. */
 export function dropBlock(d: DropRule, who: { member: boolean; tier: TierKey | null; bought: number }, qty: number, at: Date) {
   if (d.endsAt && at > d.endsAt) return null; // after the drop, remaining stock sells normally
-  if (d.membersOnly && !who.member) return `${d.name} is for Herbal Holland Rewards members — join free to buy`;
+  if (d.membersOnly && !who.member) return `${d.name} is for Herbal Holland Rewards members: join free to buy`;
   if (at < opensFor(d, who.tier)) return `${d.name} isn't open yet`;
   if (who.bought + qty > d.perMemberLimit) return `${d.name}: limit ${d.perMemberLimit} per member`;
   return null;

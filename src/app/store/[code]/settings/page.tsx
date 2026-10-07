@@ -18,7 +18,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { ButtonLink } from "@/components/ui/button";
 import { Checkbox, Field, Input } from "@/components/ui/form";
 import { Line, ReadOnlyNote } from "@/components/store/ui";
-import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 
 export const metadata = { title: "Store settings" };
 
@@ -68,6 +68,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                   <Checkbox name="clickCollect" defaultChecked={store.clickCollect} label="Click & collect" description="Members can order online and collect here. Turn off during stock takes or renovations." />
                   <Checkbox name="sameDay" defaultChecked={store.sameDay} label="Same-day delivery" description="This store may be picked for same-day orders within 30 km." />
                 </fieldset>
+                <Field label="PayShap ShapID" htmlFor="s-shapid" hint="The ShapID your bank issued for this store's account. The tills offer PayShap only while one is set: leave it empty to switch PayShap off.">
+                  <Input id="s-shapid" name="payshapId" defaultValue={store.payshapId ?? ""} maxLength={60} autoComplete="off" spellCheck={false} className="max-w-sm font-mono" />
+                  <FieldError name="payshapId" />
+                </Field>
                 <SubmitButton pendingLabel="Saving…">Save details</SubmitButton>
               </ActionForm>
             ) : (
@@ -78,6 +82,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                   <Line label="Email" value={store.email ?? "—"} />
                   <Line label="Click & collect" value={store.clickCollect ? "On" : "Off"} />
                   <Line label="Same-day delivery" value={store.sameDay ? "On" : "Off"} />
+                  <Line label="PayShap ShapID" value={store.payshapId ? <span className="font-mono">{store.payshapId}</span> : "Not set: no PayShap at the till"} />
                 </div>
                 <div>
                   {WEEK.map(([k, name]) => (
@@ -103,7 +108,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
             </Card>
           )}
           <Card>
-            <CardHeader title="Licences & VAT" description="Held on record by HQ — contact HQ to change" />
+            <CardHeader title="Licences & VAT" description="Held on record by HQ. Contact HQ to change them." />
             <CardBody className="space-y-4 pt-3">
               <div>
                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-ink-900">
@@ -144,14 +149,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ code:
                 <DeviceRow key={d.id} d={d}>
                   {canManage ? (
                     <ConfirmAction action={revokeDevice.bind(null, store.code, d.id)} label="Revoke" title={`Revoke ${d.name}?`} confirmLabel="Revoke till" className="min-w-56">
-                      It stops trading immediately and signs out whoever is on it — sync any offline sales on it first.
+                      It stops trading immediately and signs out whoever is on it. Sync any offline sales on it first.
                     </ConfirmAction>
                   ) : (
                     <Badge tone="green" dot>Active</Badge>
                   )}
                 </DeviceRow>
               ))}
-              {live.length === 0 && revoked.length > 0 && <p className="text-sm text-ink-500">No active tills — pair one to start trading.</p>}
+              {live.length === 0 && revoked.length > 0 && <p className="text-sm text-ink-500">No active tills. Pair one to start trading.</p>}
               {revoked.length > 0 && (
                 <details className="group pt-1">
                   <summary className="cursor-pointer list-none text-xs font-semibold text-ink-500 hover:text-ink-800">

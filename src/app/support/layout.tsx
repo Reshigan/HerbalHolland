@@ -17,7 +17,7 @@ export default async function SupportLayout({ children }: { children: React.Reac
     <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
       <header className="border-b border-ink-850">
         <Container className="flex h-16 items-center justify-between gap-4">
-          <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland — home">
+          <Link href="/" className="shrink-0 rounded-lg" aria-label="Herbal Holland home">
             <Logo markClassName="h-9 w-9" />
           </Link>
           <nav className="flex items-center gap-1 text-sm font-medium" aria-label="Support">

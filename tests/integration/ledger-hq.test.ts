@@ -432,12 +432,20 @@ describe("posting again, and the whole books", () => {
     expect(new Set(listed.map(key)).size).toBe(listed.length);
     await expect(hqBackfill(today, yesterday)).rejects.toThrow(/range of days/);
 
-    expect(await hqNightly(new Date(`${today}T02:00:00+02:00`))).toEqual(today.endsWith("-01") ? expect.arrayContaining([{ source: "points", sourceId: yesterday }]) : [{ source: "points", sourceId: yesterday }]);
-    const first = `${addMonths(month, 1)}-01`;
-    expect(await hqNightly(new Date(`${first}T02:00:00+02:00`))).toEqual(
+    // Nightly: the week's points, last month's statements on the 1st, and to the 7th any statement a missed night left
+    // unposted (neither posted nor waiting in the queue).
+    const nightly = (day: string) => hqNightly(new Date(`${day}T02:00:00+02:00`));
+    const of = (list: { source: string; sourceId: string }[], source: string) => list.filter((s) => s.source === source).map((s) => s.sourceId);
+    expect(of(await nightly(today), "points")).toEqual(Array.from({ length: 7 }, (_, i) => dayKey(addDays(now, -1 - i))));
+    const after = addMonths(month, 1);
+    expect(await nightly(`${after}-01`)).toEqual(
       expect.arrayContaining([{ source: "points", sourceId: monthEnd(month) }, { source: "statement", sourceId: `${w.store.id}:${month}` }, { source: "statement", sourceId: expect.stringMatching(new RegExp(`:${month}$`)) }]),
     );
-    expect((await hqNightly(new Date(`${first}T02:00:00+02:00`))).filter((s) => s.source === "statement")).toHaveLength(2); // the two franchisee stores that traded, not the DC
+    const statements = of(await nightly(`${after}-01`), "statement");
+    expect(statements).toHaveLength(2); // the two franchisee stores that traded, not the DC
+    const posted = new Set([...(await db.journal.findMany({ where: { source: "statement" } })), ...(await db.ledgerQueue.findMany({ where: { source: "statement" } }))].map((s) => s.sourceId));
+    expect(of(await nightly(`${after}-07`), "statement")).toEqual(statements.filter((id) => !posted.has(id)));
+    expect(of(await nightly(`${after}-08`), "statement")).toEqual([]);
   });
 
   it("changes nothing when everything is posted again, or queued twice", async () => {

@@ -81,7 +81,7 @@ export default async function StoreEventsPage({ params, searchParams }: { params
           </thead>
           <tbody>
             {events.length === 0 && (
-              <EmptyRow cols={5}>{tab === "past" ? "No past events yet." : canManage ? "Nothing planned — a members' evening is a great reason to come in." : "Nothing planned yet."}</EmptyRow>
+              <EmptyRow cols={5}>{tab === "past" ? "No past events yet." : canManage ? "Nothing planned. A members' evening is a great reason to come in." : "Nothing planned yet."}</EmptyRow>
             )}
             {events.map((e) => {
               const c = counts.get(e.id)!;

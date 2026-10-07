@@ -1,8 +1,7 @@
 "use client";
 import { useState } from "react";
-import { Field } from "@/components/ui/form";
-import { Select } from "@/components/hq/select";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { Field, Select } from "@/components/ui/form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import type { ActionState } from "@/server/hq/guard";
 
 export type ImportLocationOption = { id: string; label: string; kind: "RETAIL" | "WAREHOUSE" };

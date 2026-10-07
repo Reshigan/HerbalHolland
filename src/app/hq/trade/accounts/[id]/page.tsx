@@ -23,7 +23,7 @@ import { Detail } from "@/components/ui/misc";
 import { Field, Input, Select, Textarea, Checkbox } from "@/components/ui/form";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
 import { Flash } from "@/components/hq/flash";
 import { AgeingChips, FULFIL_LABEL, LEDGER_LABEL, LEDGER_TONE, PAY_LABEL, TradeAccountBadge, TradeOrderBadge, kindLabel, termsLabel } from "@/components/admin/trade-ui";
@@ -81,10 +81,10 @@ export default async function TradeAccountPage({ params, searchParams }: { param
         }
       />
       <Flash message={sp.m} />
-      {!s.canEdit && <ViewOnly className="mb-6">View only — the HQ team approves accounts, sets terms and works the ledger.</ViewOnly>}
+      {!s.canEdit && <ViewOnly className="mb-6">View only: the HQ team approves accounts, sets terms and works the ledger.</ViewOnly>}
       {a.status === "ON_HOLD" && (
-        <Notice tone="warn" className="mb-6" title={a.holdReason === "overdue" ? "On hold: overdue invoices" : a.holdReason === "licence" ? "Paused: a required licence lapsed — it lifts when the renewal is verified" : `On hold: ${a.holdReason ?? "held by HQ"}`}>
-          Nothing new goes on account until the hold is lifted{a.holdReason === "overdue" ? " — it lifts itself once what's past due is settled" : ""}. EFT orders still work.
+        <Notice tone="warn" className="mb-6" title={a.holdReason === "overdue" ? "On hold: overdue invoices" : a.holdReason === "licence" ? "Paused: a required licence lapsed (it lifts when the renewal is verified)" : `On hold: ${a.holdReason ?? "held by HQ"}`}>
+          Nothing new goes on account until the hold is lifted{a.holdReason === "overdue" ? ", and it lifts itself once what's past due is settled" : ""}. EFT orders still work.
         </Notice>
       )}
       {a.status === "PENDING" && <Notice tone="info" className="mb-6" title="Application waiting for approval">Check each licence below with its issuer and verify it, check the business (the VAT number is format-checked, not verified), then approve it with its terms. The approval email carries the terms.</Notice>}
@@ -157,7 +157,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
                             </li>
                           ))}
                       </ul>
-                      {!licences.some((r) => r.kind === l.kind) && <p className="mt-2 text-sm text-rose-700">Not uploaded yet — the account uploads it under Account › Licences in the portal.</p>}
+                      {!licences.some((r) => r.kind === l.kind) && <p className="mt-2 text-sm text-rose-700">Not uploaded yet. The account uploads it under Account › Licences in the portal.</p>}
                     </li>
                   ))}
                 </ul>
@@ -215,7 +215,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
                       </Select>
                       <FieldError name="dcId" />
                     </Field>
-                    <Field label="Notes" htmlFor="notes" hint="For the trade team — the account never sees these" className="sm:col-span-3">
+                    <Field label="Notes" htmlFor="notes" hint="For the trade team (the account never sees these)" className="sm:col-span-3">
                       <Textarea id="notes" name="notes" defaultValue={a.notes ?? ""} className="min-h-20" maxLength={1000} />
                       <FieldError name="notes" />
                     </Field>
@@ -310,7 +310,7 @@ export default async function TradeAccountPage({ params, searchParams }: { param
             {s.canEdit && a.status !== "CLOSED" && (
               <Card>
                 <CardHeader title="Holds and closure" description="A hold stops new on-account orders (EFT still works); closing signs every buyer out for good." />
-                <CardBody className="space-y-3">
+                <CardBody className="flex flex-col items-start gap-3">
                   {a.status === "ON_HOLD" ? (
                     <ActionButton action={releaseAccount.bind(null, a.id)} variant="primary" pendingLabel="Lifting…">Lift the hold</ActionButton>
                   ) : a.status === "APPROVED" ? (
@@ -388,8 +388,8 @@ export default async function TradeAccountPage({ params, searchParams }: { param
                   <Field label="Phone (optional)" htmlFor="buyer-phone"><Input id="buyer-phone" name="phone" inputMode="tel" /></Field>
                   <Field label="Role" htmlFor="buyer-role">
                     <Select id="buyer-role" name="role" defaultValue="BUYER">
-                      <option value="BUYER">Buyer — places orders</option>
-                      <option value="OWNER">Owner — also manages the account</option>
+                      <option value="BUYER">Buyer (places orders)</option>
+                      <option value="OWNER">Owner (also manages the account)</option>
                     </Select>
                   </Field>
                   <div className="flex justify-end"><SubmitButton pendingLabel="Adding…">Add buyer</SubmitButton></div>

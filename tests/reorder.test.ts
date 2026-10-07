@@ -18,7 +18,7 @@ describe("planReorder", () => {
       [],
     );
     expect(p.cart).toEqual([]);
-    expect(p.skipped.map((s) => s.reason)).toEqual(["no longer available", "no longer available", "needs your patient authorisation — order it from the dispensary", "out of stock right now"]);
+    expect(p.skipped.map((s) => s.reason)).toEqual(["no longer available", "no longer available", "needs your patient authorisation, so order it from the dispensary", "out of stock right now"]);
     expect(reorderSummary(p)).toMatch(/^Nothing could be added to your bag\. Left out: Calm CBD Oil · 30 ml \(no longer available\);/);
   });
   it("caps at the stock on hand and the bag's limits, and made-to-order merch needs no stock", () => {

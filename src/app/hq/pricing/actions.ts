@@ -31,8 +31,8 @@ export async function savePriceList(listId: string | null, _: ActionState, fd: F
   if (adjRaw && (adjustPct == null || adjustPct < -90 || adjustPct > 100)) fields.adjustPct = "Between −90% and +100%";
   const startsAt = str(fd, "startsAt") ? parseLocal(str(fd, "startsAt")) : null;
   const endsAt = str(fd, "endsAt") ? parseLocal(str(fd, "endsAt")) : null;
-  if (str(fd, "startsAt") && !startsAt) fields.startsAt = "Invalid date";
-  if (str(fd, "endsAt") && !endsAt) fields.endsAt = "Invalid date";
+  if (str(fd, "startsAt") && !startsAt) fields.startsAt = "Enter a date and time, like 2026-10-31 09:00";
+  if (str(fd, "endsAt") && !endsAt) fields.endsAt = "Enter a date and time, like 2026-10-31 17:00";
   if (startsAt && endsAt && endsAt <= startsAt) fields.endsAt = "Must end after it starts";
   const priority = parseInt10(str(fd, "priority") || "0");
   if (priority == null || priority < -100 || priority > 100) fields.priority = "Whole number, −100 to 100";
@@ -82,7 +82,7 @@ export async function deletePriceList(listId: string, _: ActionState, fd: FormDa
   await db.priceList.delete({ where: { id: listId } });
   await audit(db, g.actor, "pricelist.delete", { entity: "PriceList", entityId: listId, data: { name: pl.name, kind: pl.kind, items: pl._count.items } });
   revalidatePath("/hq/pricing");
-  redirect(`/hq/pricing?m=${encodeURIComponent(`“${pl.name}” deleted — prices fall back to the next matching list or RRP.`)}`);
+  redirect(`/hq/pricing?m=${encodeURIComponent(`“${pl.name}” deleted. Prices fall back to the next matching list or RRP.`)}`);
 }
 
 /** Network pricing guardrails: near-expiry markdowns at the till and the store margin guide. */

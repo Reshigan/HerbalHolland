@@ -4,10 +4,9 @@ import { Clock, Loader2, ShieldCheck, TriangleAlert, Users } from "lucide-react"
 import { cn } from "@/lib/cn";
 import { screenCopy } from "@/lib/compliance";
 import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
-import { fmtDateTime } from "@/lib/format";
-import { Field, Input } from "@/components/ui/form";
-import { Select } from "@/components/store/select";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { fmtDateTime, num } from "@/lib/format";
+import { Field, Input, Select } from "@/components/ui/form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 
 type Reach = { total: number; reachable: number };
 
@@ -53,8 +52,8 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
 
   return (
     <ActionForm action={action} className="space-y-4">
-      <Field label="Campaign name" htmlFor="cp-name" hint="Internal name — also the email subject">
-        <Input id="cp-name" name="name" maxLength={80} placeholder="Hatfield: Heritage weekend" />
+      <Field label="Campaign name" htmlFor="cp-name" hint="Internal name (also the email subject)">
+        <Input id="cp-name" name="name" maxLength={80} placeholder="e.g. Members' evening invitation" />
         <FieldError name="name" />
       </Field>
       <div className="grid grid-cols-2 gap-3">
@@ -80,8 +79,8 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
           <span className="inline-flex items-center gap-2 text-ink-500"><Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden /> Counting…</span>
         ) : (
           <span className="text-ink-700">
-            <b className="text-ink-950">{size.reachable.toLocaleString()}</b> of {size.total.toLocaleString()} members can receive {channel === "SMS" ? "SMS" : "email"} marketing
-            <span className="text-ink-500"> — the rest haven&apos;t opted in.</span>
+            <b className="text-ink-950">{num(size.reachable)}</b> of {num(size.total)} members can receive {channel === "SMS" ? "SMS" : "email"} marketing.
+            <span className="text-ink-500"> The rest haven&apos;t opted in.</span>
           </span>
         )}
       </div>
@@ -125,7 +124,7 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
         <div id="cp-lint" className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-xs">
           {flags.length ? (
             <span className="inline-flex items-start gap-1.5 font-medium text-rose-600">
-              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> “{flags[0].term}” — {flags[0].reason}
+              <TriangleAlert className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden /> “{flags[0].term}”: {flags[0].reason}
             </span>
           ) : (
             <span className="inline-flex items-center gap-1.5 text-leaf-700">
@@ -148,12 +147,12 @@ export function CampaignForm({ action, reach, segments, promos, initialSegment }
         <Clock className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
         {win.allowed
           ? "Direct marketing is allowed right now (CPA Regulation 4: weekdays 08:00–20:00, Saturdays 09:00–13:00, never Sundays or public holidays)."
-          : `${win.reason} — sending now schedules it for ${fmtDateTime(nextMarketingSlot(now))}, the next legal slot (CPA Regulation 4).`}
+          : `${win.reason}. Sending now schedules it for ${fmtDateTime(nextMarketingSlot(now))}, the next legal slot (CPA Regulation 4).`}
       </p>
 
       <div className="flex flex-wrap gap-2">
         <SubmitButton name="intent" value="send" pendingLabel="Sending…" disabled={flags.length > 0 || !size?.reachable}>
-          {win.allowed ? `Send to ${size?.reachable.toLocaleString() ?? "…"}` : "Schedule send"}
+          {win.allowed ? `Send to ${size ? num(size.reachable) : "…"}` : "Schedule send"}
         </SubmitButton>
         <SubmitButton name="intent" value="draft" variant="outline" pendingLabel="Saving…">
           Save draft

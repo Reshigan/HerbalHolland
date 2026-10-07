@@ -59,7 +59,7 @@ export default async function TradeAccountPage() {
 
       {a.status === "PENDING" && asks.length > 0 && (
         <Callout tone="warn" icon={<AlertTriangle className="h-5 w-5" aria-hidden />} className="mt-8" title="We need something from you">
-          {asks.join(". ")}. <a href="#licences" className="font-semibold underline">Upload it under Licences</a> — we check it within one business day.
+          {asks.join(". ")}. <a href="#licences" className="font-semibold underline">Upload it under Licences</a>. We check it within one business day.
         </Callout>
       )}
       {a.status === "PENDING" && asks.length === 0 && (
@@ -72,7 +72,7 @@ export default async function TradeAccountPage() {
           {a.holdReason === "overdue"
             ? `An invoice is past its due date: ${zar(s.ageing.overdue)} is overdue on a balance of ${zar(s.balanceCents)}. Settle it and the hold lifts by itself. Nothing new goes on account meanwhile; you can still see prices and your statements.`
             : a.holdReason === "licence"
-              ? "A licence the business needs has lapsed. Upload the renewal under Licences below — ordering resumes as soon as we've checked it."
+              ? "A licence the business needs has lapsed. Upload the renewal under Licences below. Ordering resumes as soon as we've checked it."
               : `Reason given: ${a.holdReason ?? "ask the trade team"}. Nothing new goes on account meanwhile; you can still see prices and your statements.`}
         </Callout>
       )}
@@ -157,9 +157,9 @@ export default async function TradeAccountPage() {
             )) : <li className="text-sm text-ink-400">Set by the trade team when the account is approved.</li>}
           </ul>
           <p className="mt-3 text-xs text-ink-400">
-            Terms, credit limit, ranges and price lists are set by Herbal Holland Trade —{" "}
+            Terms, credit limit, ranges and price lists are set by Herbal Holland Trade.{" "}
             <a href={`mailto:${tradeEmail()}`} className="underline hover:text-ink-200">
-              email the trade team
+              Email the trade team
             </a>{" "}
             to change them.
           </p>

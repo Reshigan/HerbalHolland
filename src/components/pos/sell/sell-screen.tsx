@@ -144,7 +144,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const welcomeIds = useMemo(() => new Set(boot.promotions.filter((p) => p.firstPurchaseOnly).map((p) => p.id)), [boot.promotions]);
   const memberQuote = online && cart.customer && server?.customerId === cart.customer.id ? server.q : null;
   const welcome: WelcomeGift | null = useMemo(() => {
-    const s = memberQuote?.suggestions.find((x) => welcomeIds.has(x.promoId) && /add it/.test(x.message));
+    const s = memberQuote?.suggestions.find((x) => welcomeIds.has(x.promoId) && /add it/i.test(x.message));
     if (!s) return null;
     const giftable = boot.products.filter((p) => !incentiveExcluded(boot.settings.compliance).includes(p.regClass)); // never a medicine (s18A)
     const product = giftable.find((p) => s.productIds.includes(p.id)) ?? giftable.find((p) => s.categoryIds.includes(p.categoryId));
@@ -152,7 +152,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
     const variant = product.variants.find((v) => v.available > 0); // never offer what isn't on the shelf
     if (!variant) return null;
     const pct = boot.promotions.find((p) => p.id === s.promoId)?.rewardPercent ?? 100;
-    return { promoId: s.promoId, variantId: variant.id, label: `Welcome gift: ${product.name} ${pct >= 100 ? "free" : `${pct}% off`} — add it` };
+    return { promoId: s.promoId, variantId: variant.id, label: `Welcome gift: add ${product.name} ${pct >= 100 ? "free" : `at ${pct}% off`}` };
   }, [memberQuote, welcomeIds, boot.products, boot.promotions, boot.settings.compliance, cart.lines, index]);
 
   // ── Basket ──────────────────────────────────────────────────────────────
@@ -162,17 +162,17 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       if (!e) return;
       const drop = drops.get(variantId);
       if (drop && !onlineRef.current) {
-        pos.toast(`${drop.name} is a limited drop — member limits can't be checked offline. Sell it when the till is back online.`, "warn");
+        pos.toast(`${drop.name} is a limited drop: member limits can't be checked offline. Sell it when the till is back online.`, "warn");
         return;
       }
       setCart((c) => {
         const ex = c.lines.find((l) => l.variantId === variantId);
         return { ...c, lines: ex ? c.lines.map((l) => (l.variantId === variantId ? { ...l, qty: l.qty + 1 } : l)) : [...c.lines, { variantId, qty: 1 }] };
       });
-      if (e.variant.available <= 0) pos.toast(`${e.product.name} shows none on hand here — check the shelf`, "warn");
+      if (e.variant.available <= 0) pos.toast(`${e.product.name} shows none on hand here. Check the shelf.`, "warn");
       else if (!me.canDispense && licensedClasses.includes(e.product.regClass) && !licensedToldRef.current) {
         licensedToldRef.current = true; // once per sign-in: the compliance step says it again at Charge
-        pos.toast("Licensed — a dispenser must complete this sale", "warn");
+        pos.toast("Licensed: a dispenser must complete this sale", "warn");
       }
     },
     [index, drops, setCart, pos, me.canDispense, licensedClasses],
@@ -184,7 +184,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       if (!code) return;
       if (cartRef.current.trade && (memberNoFrom(code) || rsvpTicketFrom(code) || voucherCodeFrom(code))) {
         // A basket is retail or trade, never both: members, tickets and vouchers (consumer money) wait for retail mode.
-        pos.toast(voucherCodeFrom(code) ? "Gift vouchers can't pay for a trade sale — leave trade mode first" : "Leave trade mode to add a member — a sale is retail or trade, never both", "warn");
+        pos.toast(voucherCodeFrom(code) ? "Gift vouchers can't pay for a trade sale. Leave trade mode first." : "Leave trade mode to add a member. A sale is retail or trade, never both.", "warn");
         return;
       }
       if (parseOrderQr(code)) {
@@ -225,7 +225,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   /** Gift voucher code → the Gift voucher tender on the payment sheet, looked up (opening payment first when needed). */
   const voucherScanned = (code: string) => {
     if (!onlineRef.current) {
-      pos.toast(`Gift voucher ${code}: vouchers need a connection — take another tender, or wait until the till is back online`, "warn");
+      pos.toast(`Gift voucher ${code}: vouchers need a connection. Take another tender, or wait until the till is back online.`, "warn");
       return;
     }
     if (stageRef.current === "payment") {
@@ -237,7 +237,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       return;
     }
     setVoucherScan({ code, n: Date.now() });
-    pos.toast(`Gift voucher ${code} — taking payment`);
+    pos.toast(`Gift voucher ${code}: taking payment`);
     void checkoutRef.current();
   };
   const voucherScannedRef = useRef(voucherScanned);
@@ -313,9 +313,9 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
       });
       const blocks = r.blocks.map((message) => ({ kind: classifyBlock(message), message }));
       if (items.some((i) => licensedClasses.includes(i.regClass)))
-        blocks.push({ kind: "OTHER", message: "Licensed medicines need a connection to check the patient's authorisation — remove them or wait until you're back online" });
+        blocks.push({ kind: "OTHER", message: "Licensed medicines need a connection to check the patient's authorisation. Remove them or wait until you're back online." });
       for (const d of new Set(c.lines.map((l) => drops.get(l.variantId)).filter((d): d is BootDrop => !!d)))
-        blocks.push({ kind: "DROP", message: `${d.name} is a limited drop — member limits can't be checked offline. Remove it, or sell it when the till is back online.` });
+        blocks.push({ kind: "DROP", message: `${d.name} is a limited drop: member limits can't be checked offline. Remove it, or sell it when the till is back online.` });
       return { ok: blocks.length === 0, blocks, needsAgeCheck: r.needsAgeCheck, needsPrescription: r.needsPrescription, gramsInCart: r.gramsInCart, staffCanDispense: me.canDispense };
     },
     [index, drops, boot, me.canDispense, licensedClasses],
@@ -346,7 +346,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         return;
       }
       if (c.trade && !onlineRef.current) {
-        pos.toast("Trade sales need a connection — wait for the till to come back online, or leave trade mode", "warn");
+        pos.toast("Trade sales need a connection. Wait for the till to come back online, or leave trade mode.", "warn");
         return;
       }
       checkingRef.current = true;
@@ -561,7 +561,7 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
         const drop = e instanceof ApiError && e.status === 422 ? (boot.drops ?? []).find((d) => e.message.startsWith(d.name)) : undefined;
         if (drop)
           throw new TillError(
-            "Limited drop — this sale can't go through",
+            "Limited drop: this sale can't go through",
             `${errorText(e)}. Remove the payment below, then go back to the basket and take the drop items out or reduce them.`,
           );
         if (!(e instanceof OfflineError)) throw e; // shown on the payment sheet
@@ -619,11 +619,11 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   /** Member card QR / member number → attach the member (prices re-quote at their tier). */
   const attachMember = async (memberNo: string) => {
     if (cartRef.current.trade) {
-      pos.toast("Leave trade mode to add a member — a sale is retail or trade, never both", "warn");
+      pos.toast("Leave trade mode to add a member. A sale is retail or trade, never both.", "warn");
       return;
     }
     if (!onlineRef.current) {
-      pickCustomer(offlineMember(memberNo), `${memberNo} added — checked when the till reconnects`, "warn");
+      pickCustomer(offlineMember(memberNo), `${memberNo} added (checked when the till reconnects)`, "warn");
       return;
     }
     try {
@@ -663,24 +663,24 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
   const pickTrade = (a: TradeAccountDTO) => {
     setCart((x) => ({ ...x, trade: a, customer: null, ageCheck: null }));
     setTradeSheet(false);
-    pos.toast(a.status === "ON_HOLD" ? `Trade sale for ${a.name} — the account is on hold, so money only` : `Trade sale for ${a.name} — prices ex VAT`, a.status === "ON_HOLD" ? "warn" : "ok");
+    pos.toast(a.status === "ON_HOLD" ? `Trade sale for ${a.name}. The account is on hold, so money only.` : `Trade sale for ${a.name} (prices ex VAT)`, a.status === "ON_HOLD" ? "warn" : "ok");
   };
   /** Back to retail: the account goes and the basket re-quotes at shelf prices. */
   const leaveTrade = () => {
     setCart((x) => ({ ...x, trade: null, ageCheck: null }));
-    pos.toast("Left trade mode — retail prices again");
+    pos.toast("Left trade mode: back to retail prices");
   };
 
   /** Event ticket (HHRSVP:{code}) → door check-in at this store, today; the member joins the sale at their tier. */
   const checkIn = async (ticket: string) => {
     if (!onlineRef.current) {
-      pos.toast("Offline — event check-in needs a connection. Try again when the till is back online.", "warn");
+      pos.toast("Offline: event check-in needs a connection. Try again when the till is back online.", "warn");
       return;
     }
     try {
       const r = await api<CheckInDTO>("/api/pos/events/checkin", { body: { code: ticket } });
-      if (r.first) pickCustomer(r.customer, `Welcome to ${r.event.title} — ${r.customer.firstName} is checked in`);
-      else pickCustomer(r.customer, `Already checked in — ${r.customer.firstName}, ${r.event.title}`, "warn");
+      if (r.first) pickCustomer(r.customer, `Welcome to ${r.event.title}. ${r.customer.firstName} is checked in.`);
+      else pickCustomer(r.customer, `Already checked in: ${r.customer.firstName}, ${r.event.title}`, "warn");
     } catch (e) {
       pos.toast(errorText(e), "error");
     }
@@ -861,7 +861,6 @@ export function SellScreen({ cart, setCart, apiRef }: { cart: Cart; setCart: (c:
           reference={payRef}
           online={online}
           tapProvider={training ? "SIMULATED" : boot.tapProvider}
-          storeCode={boot.store.code}
           points={cart.customer && !cart.trade ? { balance: cart.customer.points, eligibleCents: redeemableCents(payQuote), minRedeem: boot.settings.loyalty.minRedeem } : null}
           needsBuyer={!cart.trade && payQuote.totalCents > FULL_INVOICE_OVER_CENTS}
           voucherScan={cart.trade ? null : voucherScan}

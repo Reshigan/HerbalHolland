@@ -27,7 +27,7 @@ export async function saveDrop(dropId: string | null, _: ActionState, fd: FormDa
   const blurb = str(fd, "blurb");
   if (blurb.length < 10 || blurb.length > 300) fields.blurb = "10–300 characters";
   const flags = screenCopy(`${name} ${blurb}`);
-  if (flags.length) fields.blurb = `“${flags[0].term}” — ${flags[0].reason}`;
+  if (flags.length) fields.blurb = `“${flags[0].term}”: ${flags[0].reason}`;
 
   // Never licensed medicines: no promotion, incentive or public listing (Medicines Act s18A / s20).
   const variantIds = list(fd, "variantIds");
@@ -39,8 +39,8 @@ export async function saveDrop(dropId: string | null, _: ActionState, fd: FormDa
       blockedClasses(),
     ]);
     const bad = found.find((v) => blocked.includes(v.product.regClass));
-    if (found.length !== variantIds.length) fields.variantIds = "Some products no longer exist — refresh and pick again";
-    else if (bad) fields.variantIds = `${bad.product.name} is in ${REG_CLASS_LABEL[bad.product.regClass]} — medicines can't be part of a drop (Medicines Act s18A)`;
+    if (found.length !== variantIds.length) fields.variantIds = "Some products no longer exist. Refresh and pick again.";
+    else if (bad) fields.variantIds = `${bad.product.name} is in ${REG_CLASS_LABEL[bad.product.regClass]}. Medicines can't be part of a drop (Medicines Act s18A).`;
   }
 
   const startsAt = parseLocal(str(fd, "startsAt"));
@@ -89,5 +89,5 @@ export async function deleteDrop(dropId: string, _: ActionState): Promise<Action
   await db.drop.delete({ where: { id: dropId } });
   await audit(db, g.actor, "drop.delete", { entity: "Drop", entityId: dropId, data: { name: d.name, slug: d.slug, watchers: d._count.watchers, startsAt: d.startsAt.toISOString() } });
   revalidatePath("/hq/drops");
-  flashTo("/hq/drops", `“${d.name}” deleted — its limits no longer apply and its watchers won't be alerted.`);
+  flashTo("/hq/drops", `“${d.name}” deleted. Its limits no longer apply and its watchers won't be alerted.`);
 }

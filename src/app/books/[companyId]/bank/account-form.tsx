@@ -1,7 +1,7 @@
 // Add or edit a bank account: the bank (when adding), its name, the account number's last digits and, optionally,
 // the store whose takings are banked there.
 import { Field, Input, Select } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/store/action-form";
+import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";
 import { BANKS } from "@/lib/bank-import";
 
 export function AccountForm({ action, stores, defaults, adding }: {

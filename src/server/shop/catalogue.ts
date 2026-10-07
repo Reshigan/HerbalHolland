@@ -9,7 +9,7 @@ import { getClasses } from "./access";
 import { STORE_SELECT } from "./context";
 import { resolvePrice, type Tier } from "@/lib/pricing-rules";
 import { tierInfo, type TierKey } from "@/lib/loyalty-rules";
-import { describePromo, type PromoInput } from "@/lib/promotions";
+import { describePromo } from "@/lib/promotions";
 import { didYouMean, parseQuery, rankSearch, type SearchDoc } from "@/lib/search";
 import { similarProducts } from "./search";
 import { distanceKm } from "@/lib/routing";
@@ -71,9 +71,9 @@ export const withDeal = (cents: number, d?: Promotion | null) => (!d ? cents : c
 
 /** Plain headline for a deal; bonus buys with a different reward item read better by name. */
 export const dealHeadline = (d: Promotion) =>
-  d.kind === "BUY_X_GET_Y" && (d.rewardProductIds.length || d.rewardCategoryIds.length) ? d.name : describePromo(d as unknown as PromoInput);
+  d.kind === "BUY_X_GET_Y" && (d.rewardProductIds.length || d.rewardCategoryIds.length) ? d.name : describePromo(d);
 
-export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d as unknown as PromoInput));
+export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d));
 
 // ── Stock ────────────────────────────────────────────────────────────────────
 export const getNetwork = cache(async () => {

@@ -83,7 +83,7 @@ export function TrainingShiftCard() {
         Practice shift
       </h1>
       <p className="mt-1 text-sm text-ink-400">
-        {shift?.id === "training" ? `Sandbox shift with a ${zar(shift.openingFloatCents)} float — no real shift is open on this till.` : `Selling against the real open shift's catalogue and prices, but nothing you ring up is recorded on it.`}
+        {shift?.id === "training" ? `Sandbox shift with a ${zar(shift.openingFloatCents)} float. No real shift is open on this till.` : `Selling against the real open shift's catalogue and prices, but nothing you ring up is recorded on it.`}
       </p>
       <Alert tone="warn" className="mt-4">
         Opening, closing and cashing up are not available in training. Exit training (manager PIN) to work the real shift.
@@ -125,7 +125,7 @@ export function TrainingSales() {
       training: true,
     };
     pos.trainingSale(credit);
-    pos.toast(`Practice refund ${number} — nothing is real`);
+    pos.toast(`Practice refund ${number}: nothing is real`);
   };
 
   return (
@@ -134,7 +134,7 @@ export function TrainingSales() {
       <h2 className="font-display text-lg font-semibold text-white">Practice sales on this till</h2>
       <p className="text-sm text-ink-400">Never posted. Re-print them (TRAINING watermark) or practise a refund.</p>
       {rows.length === 0 ? (
-        <p className="mt-3 text-sm text-ink-400">No practice sales yet — ring one up on the Sell tab.</p>
+        <p className="mt-3 text-sm text-ink-400">No practice sales yet. Ring one up on the Sell tab.</p>
       ) : (
         <ul className="mt-3 divide-y divide-ink-850">
           {rows.map((r) => (

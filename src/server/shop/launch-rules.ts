@@ -56,13 +56,13 @@ export function dropPhase(d: DropRule, tier: TierKey | null, at: Date): { phase:
  */
 export function readableDropBlock(msg: string, drop?: { name: string; perMemberLimit: number; opensLabel?: string } | null) {
   const members = msg.match(/^(.+) is for Herbal Holland Rewards members/);
-  if (members) return { kind: "members" as const, title: `${drop?.name ?? members[1]} is for members`, body: "Join Herbal Holland Rewards free — it takes a minute — then check out as usual." };
+  if (members) return { kind: "members" as const, title: `${drop?.name ?? members[1]} is for members`, body: "Join Herbal Holland Rewards free (it takes a minute), then check out as usual." };
   const early = msg.match(/^(.+) isn't open yet$/);
   if (early)
     return {
       kind: "early" as const,
       title: `${drop?.name ?? early[1]} isn't open yet`,
-      body: `${drop?.opensLabel ? `It opens for you ${drop.opensLabel}. ` : ""}Drop items can't be ordered before then — remove it for now and we'll keep the rest of your bag.`,
+      body: `${drop?.opensLabel ? `It opens for you ${drop.opensLabel}. ` : ""}Drop items can't be ordered before then. Remove it for now and we'll keep the rest of your bag.`,
     };
   const limit = msg.match(/^(.+): limit (\d+) per member$/);
   if (limit)

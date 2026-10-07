@@ -17,7 +17,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { ButtonLink } from "@/components/ui/button";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { BackLink, Chips, PrintStyles, Qty, ReadOnlyNote } from "@/components/store/ui";
-import { ConfirmAction, PrintButton } from "@/components/store/action-form";
+import { ConfirmAction, PrintButton } from "@/components/ui/action-form";
 
 export const metadata = { title: "Stock take" };
 
@@ -82,7 +82,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
     return (
       <>
         {header}
-        {!canManage && <ReadOnlyNote className="mb-4">Read-only — managers and owners enter counts and approve.</ReadOnlyNote>}
+        {!canManage && <ReadOnlyNote className="mb-4">Read-only. Managers and owners enter counts and approve.</ReadOnlyNote>}
         <CountSheet
           blind={take.blind}
           canEdit={canManage}
@@ -133,15 +133,15 @@ export default async function StockTakePage({ params, searchParams }: { params: 
       {review && (
         <Notice tone="info" className="mb-4" title="Review before approving">
           Variances compare each count with what the system held <b>when that line was counted</b>, so trading during the count
-          isn&apos;t a variance. Approving posts a stock-take movement for every difference — it can&apos;t be undone.
+          isn&apos;t a variance. Approving posts a stock-take movement for every difference. It can&apos;t be undone.
           {moved > 0 && (
             <span className="mt-1 flex items-start gap-1.5 font-medium text-amber-700">
-              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {moved} counted line{moved > 1 ? "s have" : " has"} had sales or deliveries since being counted — already allowed for.
+              <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> {moved} counted line{moved > 1 ? "s have" : " has"} had sales or deliveries since being counted (already allowed for).
             </span>
           )}
         </Notice>
       )}
-      {take.status === "CANCELLED" && <Notice tone="warn" className="mb-4">This count was cancelled — nothing was posted to stock.</Notice>}
+      {take.status === "CANCELLED" && <Notice tone="warn" className="mb-4">This count was cancelled. Nothing was posted to stock.</Notice>}
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat label="Lines counted" value={`${sum.counted} / ${sum.lines}`} sub={sum.uncounted ? `${sum.uncounted} left unchanged` : "every line counted"} />
@@ -159,7 +159,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
               ? "Sorted by value at cost"
               : take.status === "APPROVED"
                 ? `Posted ${take.approvedAt ? timeAgo(take.approvedAt) : ""} as stock-take movements`
-                : "Counts entered before the count was cancelled — nothing was posted"
+                : "Counts entered before the count was cancelled (nothing was posted)"
           }
         />
         <div className="no-print px-5 pt-3">
@@ -174,7 +174,7 @@ export default async function StockTakePage({ params, searchParams }: { params: 
           />
         </div>
         {listed.length === 0 ? (
-          <EmptyState title={show === "variance" ? "No variances — the count matched the system" : "Nothing to show"} />
+          <EmptyState title={show === "variance" ? "No variances: the count matched the system" : "Nothing to show"} />
         ) : (
           <Table stickyFirst className="mt-4">
             <thead>

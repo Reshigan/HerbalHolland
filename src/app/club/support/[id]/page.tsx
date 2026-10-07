@@ -28,7 +28,7 @@ export default async function ClubTicket({ params, searchParams }: { params: Pro
         <ChevronLeft className="h-4 w-4" aria-hidden /> Help &amp; returns
       </Link>
       {sp.sent && (
-        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thanks — your request is ${t.number}.`} className="mt-4">
+        <Callout tone="success" icon={<CheckCircle2 className="h-5 w-5" />} title={`Thanks. Your request is ${t.number}.`} className="mt-4">
           We&apos;ll reply within one business day, here and by {t.email ? "email" : "SMS"}.
         </Callout>
       )}

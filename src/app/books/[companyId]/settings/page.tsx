@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, Detail } from "@/components/ui/misc";
 import { Checkbox, Field, Input, Select } from "@/components/ui/form";
 import { Table, TableEmpty, Td, Th, Tr } from "@/components/ui/table";
-import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/store/action-form";
+import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { ReadOnlyNote } from "@/components/store/ui";
 import { Flash } from "@/components/hq/flash";
 import { addAccountantAction, importOpeningAction, resetAccountantPasswordAction, saveSettingsAction, setAccountantActiveAction } from "./actions";
@@ -53,7 +53,7 @@ export default async function BooksSettingsPage({ params, searchParams }: { para
                     <>
                       <input type="hidden" name="vatCategory" value="" />
                       <Select id="vatCategory" disabled defaultValue="">
-                        <option value="">None — not a VAT vendor</option>
+                        <option value="">None (not a VAT vendor)</option>
                       </Select>
                     </>
                   )}
@@ -74,7 +74,7 @@ export default async function BooksSettingsPage({ params, searchParams }: { para
             ) : (
               <>
                 <dl className="divide-y divide-ink-100">
-                  <Detail label="VAT category">{vendor ? (vatLabel ?? "Not set yet") : "None — not a VAT vendor"}</Detail>
+                  <Detail label="VAT category">{vendor ? (vatLabel ?? "Not set yet") : "None (not a VAT vendor)"}</Detail>
                   <Detail label="Financial year ends">{MONTH_NAMES[company.yearEndMonth - 1]}</Detail>
                 </dl>
                 <ReadOnlyNote className="mt-3">{company.kind === "FRANCHISOR" ? "An HQ administrator" : "The owner"} changes these.</ReadOnlyNote>
@@ -84,7 +84,7 @@ export default async function BooksSettingsPage({ params, searchParams }: { para
         </Card>
 
         <Card className="h-fit">
-          <CardHeader title="Accountants" description={`They see and work in these books only — no stores, tills or HQ pages. Their journals wait as drafts for ${approver}.`} />
+          <CardHeader title="Accountants" description={`They see and work in these books only: no stores, tills or HQ pages. Their journals wait as drafts for ${approver}.`} />
           <Table className="mt-3">
             <thead>
               <tr>

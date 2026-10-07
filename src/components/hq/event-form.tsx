@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { Field, Input, Label, Select, Textarea } from "@/components/ui/form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { slugify } from "@/server/hq/form";
 import { screenCopy } from "@/lib/compliance";
 import { cn } from "@/lib/cn";
@@ -77,12 +77,12 @@ export function EventForm({
             className={cn(flags.length > 0 && "border-rose-500 focus:border-rose-500 focus:ring-rose-500/15")}
             placeholder="Meet the team, taste Rooibos & CBD tea and pick up a welcome gift. Adults 18+, ID at the door."
           />
-          <p className="mt-1.5 text-xs text-ink-500">{v.blurb.length} / 500 · say who it&apos;s for — adults 18+, ID at the door</p>
+          <p className="mt-1.5 text-xs text-ink-500">{v.blurb.length} / 500 · say who it&apos;s for: adults 18+, ID at the door</p>
           <FieldError name="blurb" />
           <div className="mt-1.5 space-y-1" aria-live="polite">
             {flags.map((f) => (
               <p key={f.term} className="flex gap-1.5 text-xs font-medium text-rose-600">
-                <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> “{f.term}” — {f.reason}
+                <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden /> “{f.term}”: {f.reason}
               </p>
             ))}
             {!flags.length && ageNote && (

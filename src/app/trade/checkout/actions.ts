@@ -18,7 +18,7 @@ export type CheckoutState = { error?: string; fields?: { storeId?: string; payMe
 export async function placeOrderAction(_: CheckoutState, form: FormData): Promise<CheckoutState> {
   const values = Object.fromEntries(["fulfilment", "payMethod", "storeId", "deliver", "reference", "notes"].map((k) => [k, String(form.get(k) ?? "").slice(0, 1_000)]));
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again", values };
+  if (!buyer) return { error: "Your session has ended. Sign in again.", values };
   const items = await getTradeCart();
   if (!items.length) return { error: "Your cart is empty", values };
   const fulfilment = values.fulfilment === "COLLECT" ? "COLLECT" : values.fulfilment === "COURIER" ? "COURIER" : null;
@@ -56,7 +56,7 @@ export type StoreList = { rows: CollectStore[]; total: number; page: number; pag
 /** Click & collect stores for the cart as it stands: the account's province first, filtered by province or a search, a page at a time. */
 export async function collectStoresAction(input: StoreQuery): Promise<StoreList | { error: string }> {
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again" };
+  if (!buyer) return { error: "Your session has ended. Sign in again." };
   const items = await getTradeCart();
   const store = await rangeStoreFor(buyer.account.dcId);
   if (!items.length || !store) return { rows: [], total: 0, page: 1, pageSize: 8 };

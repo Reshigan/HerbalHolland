@@ -83,7 +83,7 @@ export function TradeCheckoutForm(props: {
           <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
             {(
               [
-                ["COURIER", "Courier from our DC", <Truck key="t" className="h-5 w-5" aria-hidden />, props.totals.COURIER.deliveryCents === 0 ? `Free courier — order over ${zar(props.fees.freeDeliveryOverCents)} ex VAT` : `${zar(props.fees.deliveryCents)} ex VAT${props.fees.freeDeliveryOverCents > 0 ? ` · free from ${zar(props.fees.freeDeliveryOverCents)}` : ""}`],
+                ["COURIER", "Courier from our DC", <Truck key="t" className="h-5 w-5" aria-hidden />, props.totals.COURIER.deliveryCents === 0 ? `Free courier (order over ${zar(props.fees.freeDeliveryOverCents)} ex VAT)` : `${zar(props.fees.deliveryCents)} ex VAT${props.fees.freeDeliveryOverCents > 0 ? ` · free from ${zar(props.fees.freeDeliveryOverCents)}` : ""}`],
                 ["COLLECT", "Click & collect at a store", <Store key="s" className="h-5 w-5" aria-hidden />, `${zar(props.fees.handlingCents)} ex VAT handling · your driver collects with a code`],
               ] as [Fulfil, string, React.ReactNode, string][]
             ).map(([key, label, icon, sub]) => (
@@ -176,7 +176,7 @@ export function TradeCheckoutForm(props: {
               </p>
             )}
             <ul className={cn("mt-3 divide-y divide-ink-800 rounded-2xl border border-ink-800 bg-ink-900/40", loading && "opacity-60")} aria-busy={loading} data-testid="collect-stores">
-              {list.rows.length === 0 && <li className="px-4 py-6 text-sm text-ink-400">No stores match{q ? ` “${q}”` : ""} — try another province or search.</li>}
+              {list.rows.length === 0 && <li className="px-4 py-6 text-sm text-ink-400">No stores match{q ? ` “${q}”` : ""}. Try another province or search.</li>}
               {list.rows.map((s) => (
                 <li key={s.id}>
                   <label className={cn("flex cursor-pointer items-start gap-3 p-4 transition", storeId === s.id ? "bg-brand-500/[0.06]" : "hover:bg-ink-900")}>
@@ -241,7 +241,7 @@ export function TradeCheckoutForm(props: {
                   {onAccountOk
                     ? `Invoiced when it ${fulfilment === "COLLECT" ? "is collected" : "ships"}, due ${props.account.paymentDays} days later. ${zar(credit.availableCents)} available of your ${zar(props.account.creditLimitCents)} limit.`
                     : props.account.terms !== "ACCOUNT"
-                      ? "Your account buys prepaid (EFT). Account terms follow once we know each other — ask the trade team."
+                      ? "Your account buys prepaid (EFT). Account terms follow once we know each other. Ask the trade team."
                       : credit.reason ?? "Not available for this order."}
                 </span>
               </span>

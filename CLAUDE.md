@@ -59,12 +59,17 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
   alert about themselves), `commission`, `storage` (putObject/getObject: R2/S3 or `UPLOAD_DIR`; serve files through the app).
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
-  `zarCompact` from `@/lib/money`. Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
+  `zarCompact` from `@/lib/money`; read typed amounts with `parseRand` and fill amount inputs with `centsToInput` (same file). Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
 - Consumer pages stay light at 1,000 stores: never render or serialise the whole store list on every page (the header
   store picker loads it when opened; counts come from `getStoreFootprint`), and paginate anything per store.
 - Reporting at network scale reads the rollups (`DailyStoreStat`, `DailyVariantStat`), not raw sales. Raw-sales queries must be
   bounded by store(s) and date range. Every list is paginated (`Pagination`, `pageParam`).
 - Every sensitive action writes `audit(...)`.
+- Who "we" are and where people write: `legalNameOf` / `contactEmailOf` from `@/lib/contact` (the franchisor record first).
+- POPIA: a new table that holds a member's details must be added to both `eraseMember` and `memberExport` in
+  `src/server/popia.ts` (`tests/integration/popia.test.ts` sweeps every table).
+- Scheduled work is a step in `JOBS` (`src/server/jobs.ts`): steps run on their own (a failure is reported, the rest still
+  run) and must be idempotent; a new job needs its window in `JOB_WINDOWS` (`src/lib/jobs.ts`).
 - Compliance is data-driven (`@/lib/compliance` + HQ settings): licence-gated THC (medical mode by default: SAHPRA patient
   authorisation + authorised dispenser), 18+ checks, Schedule 0 CBD limits, Medicines Act s18A (no incentives on medicines),
   POPIA consent + CPA send windows for marketing. Don't bypass it in UI code.
@@ -82,7 +87,8 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   is reserved for hero/brand moments.
 - Components: `@/components/ui/*` (Button/ButtonLink, Card, Badge, StatusBadge/TierBadge, Field/Input/Select/Checkbox,
   Table/Th/Td/Tr (+ SortableTh/sortParams for URL sorting, TableEmpty, TableSkeleton; `Table` takes `density`, `stickyFirst`,
-  `minWidth`, `Tr` takes `href` for row links), InlineEdit (a cell that posts to a server action with optimistic feedback),
+  `minWidth`, `Tr` takes `href` for row links), InlineEdit (a cell that posts to a server action with optimistic feedback), ActionForm/ConfirmAction/SubmitButton
+  (server-action forms with inline errors),
   PageHeader/EmptyState/Notice, Stat/Meter, TabLinks, RangeTabs, Pagination, Avatar/Detail),
   admin shell `@/components/admin/*` (AdminShell with keyboard shortcuts + command palette, NavProgress, SavedViews),
   brand `@/components/brand/logo` (Mark, Logo, Lockup, Wordmark), `@/components/product/art` (ProductArt — no stock photos),

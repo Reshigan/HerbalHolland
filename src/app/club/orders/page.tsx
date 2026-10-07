@@ -72,7 +72,7 @@ export default async function ClubOrders({ searchParams }: { searchParams: Promi
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Package className="mx-auto h-9 w-9 text-ink-600" />
           <h2 className="mt-4 font-display text-xl font-semibold text-white">No online orders yet</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Order online and collect in store, or have it delivered — your orders will show up here.</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">Order online and collect in store, or have it delivered. Your orders will show up here.</p>
           <ButtonLink href="/shop" className="mt-6">
             Shop the range
           </ButtonLink>

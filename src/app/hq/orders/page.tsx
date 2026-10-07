@@ -8,7 +8,7 @@ import { salesSummary } from "@/server/finance";
 import { can } from "@/server/hq/guard";
 import { qs, parseDay } from "@/server/hq/form";
 import { resolveRange } from "@/lib/ranges";
-import { zar, zarCompact } from "@/lib/money";
+import { centsToInput, zar, zarCompact } from "@/lib/money";
 import { addDays, fmtDateTime, num } from "@/lib/format";
 import { PageHeader } from "@/components/ui/page";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
@@ -20,7 +20,7 @@ import { Field, Input } from "@/components/ui/form";
 import { Table, Td, Tr, SortableTh, TableEmpty, sortParams } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
-import { ActionForm, FieldError, SubmitButton } from "@/components/hq/action-form";
+import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { ViewOnly } from "@/components/hq/ui";
 import { SavedViews } from "@/components/admin/saved-views";
 import { saveEcommerceSettings } from "./actions";
@@ -86,7 +86,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const href = (p: Record<string, string | number | undefined>) => `/hq/orders${qs({ ...sp, ...p })}`;
   const sortHref = (key: string, d: "asc" | "desc") => href({ sort: key, dir: d, page: undefined });
   const e = settings.ecommerce;
-  const rand = (c: number) => (c / 100).toFixed(2).replace(/\.00$/, "");
 
   return (
     <>
@@ -95,7 +94,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <Stat label="Open orders" value={num(OPEN.reduce((s, x) => s + qn(x), 0))} sub={`${num(qn("READY"))} ready · ${num(qn("OUT_FOR_DELIVERY"))} out for delivery`} />
         <Stat label="Awaiting payment" value={num(qn("PENDING_PAYMENT"))} sub={`auto-cancel after ${e.unpaidHoldMinutes} min`} />
         <Stat label="Online sales · 30 days" value={zarCompact(online.netCents)} sub="net of VAT, fulfilled" />
-        <Stat label="Online orders · 30 days" value={num(online.sales)} sub={online.atvCents ? `ATV ${zar(online.atvCents)}` : undefined} />
+        <Stat label="Online orders · 30 days" value={num(online.sales)} sub={online.atvCents ? `Average basket ${zar(online.atvCents)}` : undefined} />
       </div>
       <TabLinks
         className="mb-4"
@@ -109,23 +108,23 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <Card className="max-w-3xl">
           <CardHeader title="Delivery & collection" description="Fees are VAT-inclusive. Free delivery applies on baskets over the threshold; Bloom and Harvest members always get free same-day delivery." />
           <CardBody>
-            {!can(user, "admin") && <ViewOnly className="mb-4">View only — set by the HQ administrator.</ViewOnly>}
+            {!can(user, "admin") && <ViewOnly className="mb-4">View only: set by the HQ administrator.</ViewOnly>}
             <ActionForm action={saveEcommerceSettings}>
               <fieldset disabled={!can(user, "admin")} className="min-w-0 grid gap-4 sm:grid-cols-3">
                 <Field label="Same-day delivery fee (R)" htmlFor="sameDayFee">
-                  <Input id="sameDayFee" name="sameDayFee" defaultValue={rand(e.sameDayFeeCents)} inputMode="decimal" />
+                  <Input id="sameDayFee" name="sameDayFee" defaultValue={centsToInput(e.sameDayFeeCents)} inputMode="decimal" />
                   <FieldError name="sameDayFee" />
                 </Field>
                 <Field label="Courier fee (R)" htmlFor="courierFee">
-                  <Input id="courierFee" name="courierFee" defaultValue={rand(e.courierFeeCents)} inputMode="decimal" />
+                  <Input id="courierFee" name="courierFee" defaultValue={centsToInput(e.courierFeeCents)} inputMode="decimal" />
                   <FieldError name="courierFee" />
                 </Field>
                 <Field label="Free delivery over (R)" htmlFor="freeDeliveryOver">
-                  <Input id="freeDeliveryOver" name="freeDeliveryOver" defaultValue={rand(e.freeDeliveryOverCents)} inputMode="decimal" />
+                  <Input id="freeDeliveryOver" name="freeDeliveryOver" defaultValue={centsToInput(e.freeDeliveryOverCents)} inputMode="decimal" />
                   <FieldError name="freeDeliveryOver" />
                 </Field>
                 <Field label="Merch courier (R)" htmlFor="merchCourier" hint="Made-to-order merch: the merch partner's courier, always on top">
-                  <Input id="merchCourier" name="merchCourier" defaultValue={rand(e.merchCourierCents)} inputMode="decimal" />
+                  <Input id="merchCourier" name="merchCourier" defaultValue={centsToInput(e.merchCourierCents)} inputMode="decimal" />
                   <FieldError name="merchCourier" />
                 </Field>
                 <Field label="Merch notice" htmlFor="merchNotice" hint="Shown with made-to-order merch in the shop, e.g. the partner's festive closure. Leave empty when there's nothing to say." className="sm:col-span-3">

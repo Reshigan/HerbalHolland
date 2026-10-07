@@ -18,7 +18,7 @@ import { TRADE_CLASSES } from "@/lib/trade";
 import { zarWhole } from "@/lib/money";
 import { num } from "@/lib/format";
 
-const TITLE = "Herbal Holland Trade — wholesale, done properly";
+const TITLE = "Herbal Holland Trade: wholesale, done properly";
 const DESCRIPTION = "Trade prices ex VAT, case packs and lab-tested batches for pharmacies, independent retailers, cafés and wellness practices. Courier from our DC or click & collect. Adults 18+.";
 
 export const metadata: Metadata = {
@@ -158,7 +158,7 @@ export default async function TradeLanding() {
               <div>
                 <h3 className="font-display text-base font-semibold text-white">
                   {g.title}
-                  {g.key === "delivery" && t.freeDeliveryOverCents > 0 ? ` — free from ${zarWhole(t.freeDeliveryOverCents)}` : ""}
+                  {g.key === "delivery" && t.freeDeliveryOverCents > 0 ? ` (free from ${zarWhole(t.freeDeliveryOverCents)})` : ""}
                 </h3>
                 <p className="mt-1 text-sm leading-relaxed text-ink-300">
                   {g.text}

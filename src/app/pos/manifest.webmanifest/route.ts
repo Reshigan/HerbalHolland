@@ -4,7 +4,7 @@ export function GET() {
   const manifest = {
     name: "Herbal Holland Till",
     short_name: "HH Till",
-    description: "Herbal Holland point of sale — tap on glass, offline-first.",
+    description: "Herbal Holland point of sale: tap on glass, offline-first.",
     id: "/pos",
     start_url: "/pos",
     scope: "/pos",

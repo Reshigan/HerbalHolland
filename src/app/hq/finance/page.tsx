@@ -122,7 +122,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         </Card>
 
         <Card>
-          <CardHeader title="Marketing fund" description="Levy collected vs spend on campaigns and My Deals — kept in a separate, auditable account (CPA franchise regulations)" />
+          <CardHeader title="Marketing fund" description="Levy collected vs spend on campaigns and My Deals. The fund is kept in a separate, auditable account (CPA franchise regulations)." />
           <CardBody className="space-y-4">
             <dl className="divide-y divide-ink-100">
               <Detail label="Levy collected">{zar(fees.levy)}</Detail>
@@ -192,7 +192,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         />
         <CardBody className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <MiniStat label="Cash waiting to be banked" value={zarCompact(unbankedCents)} sub={unbankedN ? `${num(unbankedN)} cash-ups at ${num(unbanked.length)} stores` : "Everything is banked"} />
-          <MiniStat label="Stores with overdue cash" value={<span className={late.length ? "text-rose-600" : undefined}>{num(late.length)}</span>} sub={late.length ? `${zarCompact(lateCents)} overdue` : "None — all banked on time"} />
+          <MiniStat label="Stores with overdue cash" value={<span className={late.length ? "text-rose-600" : undefined}>{num(late.length)}</span>} sub={late.length ? `${zarCompact(lateCents)} overdue` : "None, all banked on time"} />
           <MiniStat label="Deposits awaiting a check" value={num(check("RECORDED")?._count ?? 0)} sub={`${zarCompact(check("RECORDED")?._sum.amountCents ?? 0)} to match to bank statements`} />
           <MiniStat label="Queried deposits" value={num(check("QUERIED")?._count ?? 0)} sub={check("QUERIED") ? `${zarCompact(check("QUERIED")?._sum.amountCents ?? 0)} not matching the statement yet` : "None open"} />
         </CardBody>
@@ -232,7 +232,7 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
         ) : (
           <p className="border-t border-ink-100 px-5 py-4 text-sm text-ink-500">No store has overdue cash.</p>
         )}
-        {late.length > 6 && <p className="border-t border-ink-100 px-5 py-3 text-xs text-ink-500">{num(late.length - 6)} more stores have overdue cash — see the report.</p>}
+        {late.length > 6 && <p className="border-t border-ink-100 px-5 py-3 text-xs text-ink-500">{num(late.length - 6)} more stores have overdue cash. See the report.</p>}
       </Card>
 
       <Card className="mt-6">

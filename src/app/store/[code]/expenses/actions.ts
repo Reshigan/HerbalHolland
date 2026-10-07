@@ -16,7 +16,7 @@ export async function addExpense(code: string, _: ActionState, fd: FormData): Pr
     const date = parseDay(str(fd, "date"));
     if (!date) return fail("Choose the invoice date", "date");
     if (date > new Date()) return fail("The date can't be in the future", "date");
-    if (date < new Date(Date.now() - 400 * 86_400_000)) return fail("That's more than a year ago — check the date", "date");
+    if (date < new Date(Date.now() - 400 * 86_400_000)) return fail("That's more than a year ago. Check the date.", "date");
     const category = str(fd, "category") as ExpenseCategory;
     if (!CATEGORIES.includes(category)) return fail("Choose a category", "category");
     const description = str(fd, "description").slice(0, 160);
@@ -40,7 +40,7 @@ export async function addExpense(code: string, _: ActionState, fd: FormData): Pr
     await audit(db, actor, "expense.create", { storeId: store.id, entity: "Expense", entityId: e.id, data: { category, amountCents: amount, vatCents: e.vatCents } });
     revalidatePath(`/store/${store.code}/expenses`);
     revalidatePath(`/store/${store.code}/finance`);
-    return done(`Added ${zar(amount)} — ${description}${claim ? ` (VAT ${zar(e.vatCents)} claimable)` : ""}.`);
+    return done(`Added ${zar(amount)} for ${description}${claim ? ` (VAT ${zar(e.vatCents)} claimable)` : ""}.`);
   });
 }
 

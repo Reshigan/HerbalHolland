@@ -34,7 +34,7 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
   // A count out by more than the cash-short tolerance needs a reason on record (without saying by how much: it's blind).
   const tolerance = (await getSettings()).loss.cashShortCents;
   if (Math.abs(counted - cash.expectedCents) > tolerance && !notes?.trim())
-    throw new PosError("The count doesn't match what the till expects — count the drawer again, or add a note explaining the difference", 422, "NOTE_REQUIRED");
+    throw new PosError("The count doesn't match what the till expects: count the drawer again, or add a note explaining the difference", 422, "NOTE_REQUIRED");
   const done = await db.shift.updateMany({
     where: { id: shift.id, closedAt: null },
     data: { closedAt: new Date(), closedById: pos.user.id, expectedCashCents: cash.expectedCents, countedCashCents: counted, notes: notes?.trim() || null },

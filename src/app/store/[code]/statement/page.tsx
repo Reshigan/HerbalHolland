@@ -9,7 +9,7 @@ import { dayKey, fmtMonth } from "@/lib/format";
 import { emailToOwner } from "./actions";
 import { PageHeader, Notice } from "@/components/ui/page";
 import { AutoSelect } from "@/components/store/auto-submit";
-import { ActionButton, PrintButton } from "@/components/store/action-form";
+import { ActionButton, PrintButton } from "@/components/ui/action-form";
 import { DocumentPrintStyles } from "@/components/finance/document";
 import { StatementDocument } from "@/components/finance/statement-document";
 import { StatementPayments } from "@/components/finance/statement-payments";
@@ -63,7 +63,7 @@ export default async function StatementPage({ params, searchParams }: { params: 
         }
       />
 
-      {month === current && <Notice tone="info" className="no-print mb-4">This month is still running — figures are to date and final once the month closes.</Notice>}
+      {month === current && <Notice tone="info" className="no-print mb-4">This month is still running. Figures are to date and final once the month closes.</Notice>}
 
       <StatementDocument st={st} company={store.company} hq={hq} current={month === current} issuedAt={new Date()} />
       {store.company.kind === "FRANCHISEE" && (

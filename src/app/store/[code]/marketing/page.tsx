@@ -22,7 +22,7 @@ import { Table, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ReadOnlyNote } from "@/components/store/ui";
 import { Drawer } from "@/components/store/drawer";
-import { ActionButton, ConfirmAction } from "@/components/store/action-form";
+import { ActionButton, ConfirmAction } from "@/components/ui/action-form";
 import type { Promotion } from "@/generated/prisma/client";
 import { plural } from "@/lib/plural";
 
@@ -198,7 +198,7 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
         </Table>
       )}
       <div className="border-t border-ink-100">
-        <CardHeader title="HQ deals running in your store" description="Network promotions from HQ — read-only" />
+        <CardHeader title="HQ deals running in your store" description="Network promotions from HQ (read-only)" />
         {network.length === 0 ? (
           <CardBody className="text-sm text-ink-500">No network deals are running at your tills right now.</CardBody>
         ) : (
@@ -240,7 +240,7 @@ async function Campaigns({ store, canManage, sp, path }: { store: StoreCtx; canM
       </div>
       {rows.length === 0 ? (
         <EmptyState icon={<Megaphone className="h-5 w-5" />} title="No campaigns yet">
-          Message a segment — say, members at risk of lapsing — with a reason to come back.
+          Message a segment (say, members at risk of lapsing) with a reason to come back.
         </EmptyState>
       ) : (
         <Table stickyFirst>

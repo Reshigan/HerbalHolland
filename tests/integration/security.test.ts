@@ -128,8 +128,8 @@ describe("One-time codes", () => {
     const ip = "198.51.100.20";
     await db.throttle.createMany({ data: Array.from({ length: 29 }, () => ({ key: `otp-ip:${ipKey(ip)}` })) });
     expect(await issueCode({ email: "thirtieth@ip.example" }, { ip })).toMatch(/^\d{6}$/);
-    await expect(issueCode({ email: "thirty-first@ip.example" }, { ip })).rejects.toThrow("Too many codes requested — try again in an hour");
-    await expect(requestOtp("082 555 0177", { ip })).rejects.toThrow("Too many codes requested — try again in an hour");
+    await expect(issueCode({ email: "thirty-first@ip.example" }, { ip })).rejects.toThrow("Too many codes requested. Try again in an hour");
+    await expect(requestOtp("082 555 0177", { ip })).rejects.toThrow("Too many codes requested. Try again in an hour");
     expect(await issueCode({ email: "other@ip.example" }, { ip: "198.51.100.21" })).toMatch(/^\d{6}$/);
   });
 
@@ -140,7 +140,7 @@ describe("One-time codes", () => {
     expect(await issueCode({ phone: "+27825550301" })).toMatch(/^\d{6}$/);
     expect(await issueCode({ phone: "+27825550302" })).toMatch(/^\d{6}$/);
     await expect(issueCode({ phone: "+27825550303" })).rejects.toBeInstanceOf(OtpLimitError);
-    await expect(requestOtp("082 555 0304")).rejects.toThrow("We can't send codes right now — please try again shortly");
+    await expect(requestOtp("082 555 0304")).rejects.toThrow("We can't send codes right now. Please try again shortly");
     expect(logged).toHaveBeenCalledTimes(1);
     expect(await audits("otp.ceiling")).toBe(1);
     expect(await issueCode({ email: "not-sms@ceiling.example" })).toMatch(/^\d{6}$/); // email codes aren't texts
@@ -315,7 +315,7 @@ describe("Password sign-in", () => {
     });
     expect((await run(login({}, form({ email: "tia@signin.example", password: "Kq7m-Xp3t-Rw9z" })))).to).toBe("/pos");
     await db.user.update({ where: { id: temp.id }, data: { tempPasswordUntil: new Date(Date.now() - 60_000) } });
-    expect((await run(login({}, form({ email: "tia@signin.example", password: "Kq7m-Xp3t-Rw9z" })))).state?.error).toBe("Your temporary password has expired — ask HQ or your store owner for a new one.");
+    expect((await run(login({}, form({ email: "tia@signin.example", password: "Kq7m-Xp3t-Rw9z" })))).state?.error).toBe("Your temporary password has expired. Ask HQ or your store owner for a new one.");
   });
 
   it("lets the demo buttons and /api/auth/demo in only where the password is the demo one", async () => {
@@ -336,7 +336,7 @@ describe("Till pairing and PINs", () => {
   it("won't pair with an account still on its temporary password", async () => {
     fromIp("203.0.113.20");
     await db.user.create({ data: { name: "Pat Pending", email: "pat@pair.example", role: "MANAGER", storeId: w.store.id, passwordHash: await hashSecret("Temp-Pass-4821"), mustChangePassword: true } });
-    await expect(verifyPairingUser("pat@pair.example", "Temp-Pass-4821")).rejects.toMatchObject({ status: 403, message: "Choose your own password first — sign in at /login" });
+    await expect(verifyPairingUser("pat@pair.example", "Temp-Pass-4821")).rejects.toMatchObject({ status: 403, message: "Choose your own password first: sign in at /login" });
     await expect(verifyPairingUser("pat@pair.example", "wrong")).rejects.toMatchObject({ status: 401 });
     expect(await audits("auth.failed")).toBeGreaterThan(0);
   });
@@ -409,7 +409,7 @@ describe("Trade sign-in codes", () => {
     await expect(verifyTradeCode(buyerEmail, "000000")).rejects.toThrow(/isn't right|expired/);
     expect((await db.otp.findFirstOrThrow({ where: { email: "stranger@codes.example" } })).attempts).toBe(1);
     for (let i = 0; i < 4; i++) await requestTradeCode("stranger@codes.example");
-    await expect(requestTradeCode("stranger@codes.example")).rejects.toThrow("Too many codes requested — try again in 10 minutes");
+    await expect(requestTradeCode("stranger@codes.example")).rejects.toThrow("Too many codes requested. Try again in 10 minutes");
   });
 });
 
@@ -455,7 +455,7 @@ describe("Choosing and setting passwords", () => {
     });
     await signInAs(u.id);
     const change = (current: string, next: string, confirm = next) => run(changePassword({}, form({ current, next, confirm })));
-    expect((await change(pw, "password123")).state).toEqual({ error: "That's one of the most common passwords — choose something harder to guess.", field: "next" });
+    expect((await change(pw, "password123")).state).toEqual({ error: "That's one of the most common passwords. Choose something harder to guess.", field: "next" });
     expect((await change(pw, "cara's new password")).state?.field).toBe("next"); // her name
     expect((await change("not it", "a fresh new password")).state?.field).toBe("current");
     expect((await change("not it either", "a fresh new password")).state?.field).toBe("current"); // the eighth: locked
@@ -471,14 +471,14 @@ describe("Choosing and setting passwords", () => {
     const admin = await db.user.create({ data: { name: "Hana Admin", email: "hana@hq.example", role: "HQ_ADMIN", companyId: w.hq.id, passwordHash: await hashSecret("hq admin passphrase") } });
     await signInAs(admin.id);
     const added = await addUser({}, form({ name: "Nico New", email: "nico@hq.example", role: "HQ_STAFF" }));
-    const temp = added.ok?.match(/temporary password\s+(\S+)\s+—/)?.[1];
+    const temp = added.ok?.match(/temporary password\s+(\S+)\s+\(/)?.[1];
     expect(temp).toMatch(/^[A-Za-z2-9]{4}-[A-Za-z2-9]{4}-[A-Za-z2-9]{4}$/);
     const nico = await db.user.findUniqueOrThrow({ where: { email: "nico@hq.example" } });
     expect(nico.mustChangePassword).toBe(true);
     expect(nico.tempPasswordUntil!.getTime()).toBeGreaterThan(Date.now() + 71 * 3_600_000);
     expect(await verifySecret(temp!, nico.passwordHash)).toBe(true);
     const reset = await hqResetPassword(nico.id, {});
-    expect(reset.ok?.match(/:\s+(\S+)\s+—/)?.[1]).not.toBe(temp);
+    expect(reset.ok?.match(/:\s+(\S+)\s+\(/)?.[1]).not.toBe(temp);
   });
 
   it("a store's owner or manager sets temporary passwords too, under the same policy", async () => {
@@ -493,7 +493,7 @@ describe("Choosing and setting passwords", () => {
     await db.session.create({ data: { id: "bo-office", userId: bo.id, expiresAt: new Date(Date.now() + 3_600_000) } });
     await db.session.create({ data: { id: "bo-till", userId: bo.id, deviceId: w.device.id, storeId: w.store.id, expiresAt: new Date(Date.now() + 3_600_000) } });
     const reset = await storeResetPassword(w.store.code, bo.id, {}, form({}));
-    const temp = reset.ok?.match(/:\s+(\S+)\s+—/)?.[1];
+    const temp = reset.ok?.match(/:\s+(\S+)\s+\(/)?.[1];
     expect(await verifySecret(temp!, (await db.user.findUniqueOrThrow({ where: { id: bo.id } })).passwordHash)).toBe(true);
     expect((await db.session.findMany({ where: { userId: bo.id }, select: { id: true } })).map((s) => s.id)).toEqual(["bo-till"]);
     expect((await storeResetPassword(w.store.code, w.manager.id, {}, form({}))).error).toMatch(/no back-office login/);

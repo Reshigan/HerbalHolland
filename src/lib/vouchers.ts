@@ -47,7 +47,7 @@ export type VoucherFacts = { status: "PENDING" | "ACTIVE" | "REDEEMED" | "EXPIRE
 
 /** Why a voucher can't pay for an order right now, in the member's words — or null when it can. */
 export function voucherProblem(v: VoucherFacts | null | undefined, now = new Date(), fmtDate: (d: Date) => string = (d) => d.toISOString().slice(0, 10)): string | null {
-  if (!v) return "We don't recognise that voucher code — check it against the email or card.";
+  if (!v) return "We don't recognise that voucher code. Check it against the email or card.";
   if (v.status === "PENDING") return "That voucher hasn't been paid for yet.";
   if (v.status === "CANCELLED") return "That voucher was cancelled.";
   if (v.status === "EXPIRED" || v.expiresAt.getTime() < now.getTime()) return `That voucher expired on ${fmtDate(v.expiresAt)}.`;

@@ -132,7 +132,7 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
             error={f.regNumber}
             hint={
               companyOnly
-                ? "Like 2015/123456/07. This kind of business needs it — attach the certificate under Licences."
+                ? "Like 2015/123456/07. This kind of business needs it, so attach the certificate under Licences."
                 : soleProprietorOk
                   ? "Like 2015/123456/07. A sole proprietor leaves it blank and attaches the SARS tax registration under Licences instead."
                   : "Like 2015/123456/07. Leave blank if the business isn't registered."
@@ -181,7 +181,7 @@ export function ApplyForm({ termsVersion }: { termsVersion: string }) {
         </fieldset>
       </Section>
 
-      <Section n="4" title="Licences" lead="Every trade account holds the licences its kind of business needs for the ranges it buys. Attach each one — we check it with the issuer before approving the account.">
+      <Section n="4" title="Licences" lead="Every trade account holds the licences its kind of business needs for the ranges it buys. Attach each one. We check it with the issuer before approving the account.">
         <Licences needed={needed} v={v} f={f} attachAgain={refusedByServer} />
       </Section>
 
@@ -303,12 +303,12 @@ function Address({ prefix, v, f }: { prefix: "" | "delivery"; v: Record<string, 
 
 function Licences({ needed, v, f, attachAgain }: { needed: { kind: TradeLicenceKind; why: string }[]; v: Record<string, string>; f: TradeErrors; attachAgain: boolean }) {
   if (!needed.length)
-    return <p className="text-sm text-ink-300">Choose the kind of business and tick the ranges above — the licences it needs appear here.</p>;
+    return <p className="text-sm text-ink-300">Choose the kind of business and tick the ranges above. The licences it needs appear here.</p>;
   return (
     <div className="space-y-4">
       {attachAgain && (
         <p className="rounded-xl border border-amber-400/40 bg-amber-400/10 px-4 py-3 text-sm text-amber-50" role="status">
-          Attach the documents again — for your security a browser doesn&apos;t keep files from a form that came back.
+          Attach the documents again. For your security, a browser doesn&apos;t keep files from a form that came back.
         </p>
       )}
       {needed.map(({ kind, why }) => {
@@ -339,7 +339,7 @@ function Licences({ needed, v, f, attachAgain }: { needed: { kind: TradeLicenceK
                   <TextInput id={fieldId(key("expiresAt"))} name={key("expiresAt")} type="date" required defaultValue={v[key("expiresAt")]} aria-invalid={!!f[key("expiresAt")]} />
                 </FieldRow>
               )}
-              <FieldRow label="The document" htmlFor={fieldId(key("file"))} error={f[key("file")]} hint={`Your ${info.docLabel} — a PDF, or a clear photo (JPG or PNG) of the whole document. Up to 5 MB.`} className="sm:col-span-2">
+              <FieldRow label="The document" htmlFor={fieldId(key("file"))} error={f[key("file")]} hint={`Your ${info.docLabel}: a PDF, or a clear photo (JPG or PNG) of the whole document. Up to 5 MB.`} className="sm:col-span-2">
                 <input
                   id={fieldId(key("file"))}
                   name={key("file")}

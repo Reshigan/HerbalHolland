@@ -9,6 +9,7 @@ import { storeNav } from "@/components/admin/nav-config";
 export const metadata: Metadata = {
   manifest: "/staff/manifest.webmanifest",
   appleWebApp: { capable: true, title: "HH Office", statusBarStyle: "black" },
+  robots: { index: false, follow: false },
 };
 
 export default async function StoreLayout({ children, params }: { children: React.ReactNode; params: Promise<{ code: string }> }) {

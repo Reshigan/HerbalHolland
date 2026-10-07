@@ -20,7 +20,7 @@ export default async function ClubReminders() {
     <Container className="pt-8">
       <h1 className="font-display text-3xl font-semibold tracking-tight text-white">Reorder reminders</h1>
       <p className="mt-1 max-w-2xl text-sm text-ink-400">
-        For the things you use every day — coffee, collagen, oils. On the day, we send one message with a one-tap link that puts the item in your bag. Nothing is charged, and you can stop a reminder any time.
+        For the things you use every day: coffee, collagen, oils. On the day, we send one message with a one-tap link that puts the item in your bag. Nothing is charged, and you can stop a reminder any time.
       </p>
       {rows.length ? (
         <ul className="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -59,7 +59,7 @@ export default async function ClubReminders() {
         </div>
       )}
       <Callout tone="info" className="mt-8 max-w-2xl">
-        Reminders are messages you asked for, not marketing: they go out on the channel you chose, whatever your marketing preferences. Your card is never charged — there&apos;s no card on file.
+        Reminders are messages you asked for, not marketing: they go out on the channel you chose, whatever your marketing preferences. Your card is never charged, because there&apos;s no card on file.
       </Callout>
     </Container>
   );

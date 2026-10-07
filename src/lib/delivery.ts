@@ -53,11 +53,11 @@ export function estimateLabel(earliest: Date, latest: Date, now: Date) {
  */
 export function deliveryEstimate(a: { fulfilment: Fulfil; province?: ProvinceCode | null; days?: Partial<DeliveryDays> | null; cutoffHour: number; now?: Date }): Estimate {
   const now = a.now ?? new Date();
-  if (a.fulfilment === "COLLECT") return { earliest: now, latest: now, label: "Usually within 2 hours", note: "We'll message you as soon as it's ready — during store hours." };
+  if (a.fulfilment === "COLLECT") return { earliest: now, latest: now, label: "Usually within 2 hours", note: "We'll message you as soon as it's ready, during store hours." };
   const late = !isWorkingDay(now) || hourSA(now) >= a.cutoffHour;
   if (a.fulfilment === "SAME_DAY") {
     const d = late ? addWorkingDays(now, 1) : now;
-    return { earliest: d, latest: d, label: relative(d, now), note: late ? `Order by ${a.cutoffHour}:00 on a working day for same-day delivery.` : `Ordered before ${a.cutoffHour}:00 — delivered today.` };
+    return { earliest: d, latest: d, label: relative(d, now), note: late ? `Order by ${a.cutoffHour}:00 on a working day for same-day delivery.` : `Ordered before ${a.cutoffHour}:00 is delivered today.` };
   }
   const [min, max] = (a.province && a.days?.[a.province]) ?? FALLBACK;
   const start = late ? addWorkingDays(now, 1) : now;

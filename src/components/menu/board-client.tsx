@@ -5,6 +5,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/cn";
+import { zar } from "@/lib/money";
 import type { BoardLive } from "@/server/menu-board";
 
 export const ROTATE_MS = 12_000;
@@ -65,8 +66,6 @@ export function Clock() {
     </span>
   );
 }
-
-const zar = (cents: number) => `R${(cents / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 /** Applies a live snapshot to the server-rendered items: sold-out state, "last few", prices and member prices. */
 export function applyLive(root: ParentNode, live: BoardLive) {

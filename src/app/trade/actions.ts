@@ -22,7 +22,7 @@ export type CartActionState = { ok?: boolean; error?: string; qty?: number; case
 /** A variant the signed-in account may put in its cart, with its case pack — or the plain reason it can't. */
 async function tradeVariant(variantId: string) {
   const buyer = await getTradeBuyer();
-  if (!buyer) return { error: "Your session has ended — sign in again" as const };
+  if (!buyer) return { error: "Your session has ended. Sign in again." as const };
   const v = await db.variant.findUnique({ where: { id: variantId }, select: { id: true, active: true, podSku: true, caseQty: true, product: { select: { status: true, regClass: true, name: true } } } });
   if (!v?.active || v.podSku || v.product.status !== "ACTIVE" || v.product.regClass === "THC" || !buyer.account.classes.includes(v.product.regClass)) return { error: "That item isn't in your trade range" as const };
   return { buyer, v, caseQty: Math.max(1, v.caseQty) };

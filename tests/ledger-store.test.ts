@@ -122,7 +122,7 @@ describe("store day", () => {
 
   it("refuses a day whose payments don't agree with the rollup, naming the store, day and difference", () => {
     expect(() => day(s1, { days: [channel({ channel: "ONLINE", grossCents: 10_000, vatCents: 1_304, onlineCents: 10_000 })], tenders: [{ method: "ONLINE", cents: 9_000 }] })).toThrow(
-      "PTA01 2026-10-04: the payments HQ collected or funds come to R90.00, the day's rollup to R100.00 — out by -R10.00",
+      "PTA01 2026-10-04: the payments HQ collected or funds come to R90.00 and the day's rollup to R100.00, so they're out by -R10.00",
     );
   });
 });

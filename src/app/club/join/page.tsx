@@ -17,7 +17,7 @@ import { safePath } from "@/lib/safe-path";
 
 export const metadata: Metadata = {
   title: { absolute: "Join Herbal Holland Rewards" },
-  description: "Join Herbal Holland Rewards with your mobile number — free, adults 18+. Earn points in every store and online.",
+  description: "Join Herbal Holland Rewards free with your mobile number (adults 18+). Earn points in every store and online.",
   robots: { index: true, follow: true },
 };
 
@@ -64,10 +64,10 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-300">
             {pre
               ? `The Founding Members list closes ${fmtDate(pre)}. The first ${num(launch.foundingCap)} members on it get a numbered card and start at ${tierInfo(launch.foundingTier).name} for ${launch.foundingMonths} months.${
-                  referrer ? ` Joining with ${referrer.firstName}'s link moves them up ${num(launch.referralBoost)} places — and you'll both get ${fmtPoints(settings.loyalty.referralBonus)} after your first purchase.` : ""
+                  referrer ? ` Joining with ${referrer.firstName}'s link moves them up ${num(launch.referralBoost)} places, and you'll both get ${fmtPoints(settings.loyalty.referralBonus)} after your first purchase.` : ""
                 }`
               : referrer
-                ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)} — on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
+                ? `Join Herbal Holland Rewards free. After your first purchase you'll both get ${fmtPoints(settings.loyalty.referralBonus)}, on top of your ${fmtPoints(settings.loyalty.signupBonus)} welcome bonus.`
                 : `Free, no passwords and no plastic. Your card lives on your phone and works in ${trading.length > 1 ? `all ${trading.length} stores` : "every store"} and online.`}
           </p>
           {qrStore && (
@@ -78,8 +78,8 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
           <ul className="mt-10 space-y-4 text-sm">
             {[
               [<Smartphone key="s" className="h-5 w-5" />, "Confirm your mobile number with a one-time code"],
-              [<ShieldCheck key="i" className="h-5 w-5" />, "Add your SA ID number (or passport date of birth) — we're adults-only by law"],
-              [<Gift key="g" className="h-5 w-5" />, `Start earning — ${fmtPoints(settings.loyalty.signupBonus)} are yours the moment you join`],
+              [<ShieldCheck key="i" className="h-5 w-5" />, "Add your SA ID number (or passport date of birth): we're adults-only by law"],
+              [<Gift key="g" className="h-5 w-5" />, `Start earning: ${fmtPoints(settings.loyalty.signupBonus)} are yours the moment you join`],
             ].map(([icon, t], i) => (
               <li key={i} className="flex items-center gap-4 text-ink-200">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{icon}</span>

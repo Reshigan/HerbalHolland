@@ -148,12 +148,9 @@ export function dropIndex<D extends { variantIds: string[]; endsAt: string | nul
   return out;
 }
 
-/** Parses "123.45" / "R 1 234,50" style amounts into cents; null when not a number. */
-export function parseRands(input: string): number | null {
-  const s = input.replace(/[R\s]/gi, "").replace(",", ".");
-  if (!/^\d+(\.\d{0,2})?$/.test(s)) return null;
-  return Math.round(Number(s) * 100);
-}
+// Typed amounts ("123.45", "R 1 234,50", "1,234.50") → cents, with the shared parser: null when not an amount, and
+// never negative at the till.
+export { parseRand as parseRands } from "@/lib/money";
 
 /** RFC 4122 v4 id (crypto.randomUUID needs a secure context; getRandomValues doesn't). */
 export function uuid() {
@@ -198,8 +195,8 @@ export type TradeTenderRules = {
 export function tradeTenders(a: { account: Pick<TradeAccountDTO, "terms" | "status" | "availableCents">; online: boolean; amountCents: number; onAccountSoFarCents?: number }): TradeTenderRules {
   const left = Math.max(0, a.account.availableCents - (a.onAccountSoFarCents ?? 0));
   let accountReason: string | null = null;
-  if (a.account.status !== "APPROVED") accountReason = "On hold — money only";
-  else if (a.account.terms !== "ACCOUNT") accountReason = "Prepaid account — money only";
+  if (a.account.status !== "APPROVED") accountReason = "On hold, so money only";
+  else if (a.account.terms !== "ACCOUNT") accountReason = "Prepaid account, so money only";
   else if (a.account.availableCents <= 0) accountReason = "Nothing available on account";
   else if (a.amountCents > left) accountReason = `Only ${zar(left)} available on account`;
   else if (a.amountCents <= 0) accountReason = "Nothing left to put on account";

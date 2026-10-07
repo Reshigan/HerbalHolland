@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Suspense } from "react";
-import { ArrowRight, BadgeCheck, Crown, FlaskConical, Gift, HandHeart, Leaf, Moon, QrCode, ShieldCheck, Sprout, Store, Sun, Truck, Dumbbell } from "lucide-react";
+import { ArrowRight, Crown, FlaskConical, Gift, Leaf, Moon, QrCode, ShieldCheck, Store, Sun, Truck, Dumbbell } from "lucide-react";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
@@ -24,32 +24,28 @@ import { Container, Panel, SectionHead } from "@/components/shop/ui";
 import { Countdown } from "@/components/shop/countdown";
 import { DropCardView, EventCardView, fmtWhen } from "@/components/shop/launch-cards";
 import { ARTICLES } from "@/components/shop/learn/articles";
+import { LANDRACES, MOODS as MOOD_COPY } from "@/components/shop/home-copy";
 import { TIERS, fmtPoints, tierInfo, type TierKey } from "@/lib/loyalty-rules";
 import { fmtDay, num, weekdaySA } from "@/lib/format";
+import { plural } from "@/lib/plural";
 import { zarWhole } from "@/lib/money";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { cn } from "@/lib/cn";
 
 export const metadata: Metadata = {
-  title: { absolute: "Herbal Holland — Dutch heritage. African soil." },
-  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel. Click & collect at stores across South Africa or nationwide delivery. Adults 18+.",
+  title: { absolute: "Herbal Holland · Dutch heritage. African soil." },
+  description: "Lab-tested, batch-traceable CBD wellness, accessories, grow and apparel. Click & collect in store, or delivery across South Africa. Adults 18+.",
   alternates: { canonical: "/" },
-  openGraph: { title: "Herbal Holland — Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+.", url: "/", type: "website", siteName: SITE_NAME, locale: LOCALE },
+  openGraph: { title: "Herbal Holland · Dutch heritage. African soil.", description: "Lab-tested, batch-traceable cannabis wellness and gear. Adults 18+.", url: "/", type: "website", siteName: SITE_NAME, locale: LOCALE },
 };
 
+// The words live in home-copy.ts (screened by tests/shop-copy.test.ts); the icon and colour are the page's.
 const MOODS: Record<string, { label: string; line: string; icon: React.ReactNode; hue: string }> = {
-  calm: { label: "Calm", line: "Unhurried evenings and steady days", icon: <Leaf className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#223019] to-ink-950" },
-  focus: { label: "Focus", line: "Clear-headed rituals for busy days", icon: <Sun className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#3a1d0b] to-ink-950" },
-  rest: { label: "Rest", line: "A restful wind-down at day's end", icon: <Moon className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#2b1848] to-ink-950" },
-  recover: { label: "Recover", line: "After the run, the ride or the gym", icon: <Dumbbell className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#0f302a] to-ink-950" },
+  calm: { ...MOOD_COPY.calm, icon: <Leaf className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#223019] to-ink-950" },
+  focus: { ...MOOD_COPY.focus, icon: <Sun className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#3a1d0b] to-ink-950" },
+  rest: { ...MOOD_COPY.rest, icon: <Moon className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#2b1848] to-ink-950" },
+  recover: { ...MOOD_COPY.recover, icon: <Dumbbell className="h-6 w-6" strokeWidth={1.7} />, hue: "from-[#0f302a] to-ink-950" },
 };
-
-const LANDRACES = [
-  { name: "Durban Poison", origin: "Hills behind Durban, KwaZulu-Natal", note: "The pure sativa that travelled to Amsterdam and California in the 1970s and became a global benchmark — anise, sweet spice, pine." },
-  { name: "Swazi Gold", origin: "Eswatini highlands", note: "Sun-cured to a golden hue on the high slopes; bright, citrus-forward and famously sociable." },
-  { name: "Malawi Gold", origin: "Salima, Malawi", note: "A slow, patient cultivar that can take around 120 days to flower. Honeyed, heady and worth the wait." },
-  { name: "Mpondo Gold", origin: "Pondoland, Wild Coast", note: "The Eastern Cape's own heritage line — some growers believe Durban Poison partly descends from it." },
-];
 
 const WEEKDAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -88,6 +84,8 @@ export default async function Home() {
   const pickIds = new Set(picks.map((p) => p.id));
   const newIn = [...featured].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).filter((p) => !pickIds.has(p.id)).slice(0, 4);
   const { trading, provinces } = footprint;
+  // Where the stores are, from the data: the province while there's one ("KwaZulu-Natal"), then "3 provinces".
+  const where = provinces.length === 1 ? PROVINCES[provinces[0].code as ProvinceCode] : plural(provinces.length, "province");
   const moods = facets.moods.filter((m) => MOODS[m.key]);
   const publicCats = categories.filter((c) => c._count.products > 0);
   const loyalty = settings.loyalty;
@@ -109,7 +107,7 @@ export default async function Home() {
                 </span>
               </h1>
               <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">
-                Join Herbal Holland Rewards free. The first {num(launch.foundingCap)} members on the list get a numbered Founding Member card and start at {tierInfo(launch.foundingTier).name} — {loyalty.tierSavingsPct[launch.foundingTier]}% off instantly — for {launch.foundingMonths} months. Every friend who joins with your link moves you up {num(launch.referralBoost)} places. Adults 18+.
+                Join Herbal Holland Rewards free. The first {num(launch.foundingCap)} members on the list get a numbered Founding Member card and start at {tierInfo(launch.foundingTier).name} ({loyalty.tierSavingsPct[launch.foundingTier]}% off instantly) for {launch.foundingMonths} months. Every friend who joins with your link moves you up {num(launch.referralBoost)} places. Adults 18+.
               </p>
               <Countdown to={pre} variant="blocks" label={`List closes ${fmtWhen(pre)}`} className="mt-8" />
               <div className="mt-8 flex flex-wrap gap-3">
@@ -130,7 +128,7 @@ export default async function Home() {
                 {[
                   [num(listSize), "members on the list"],
                   [num(launch.foundingCap), "Founding spots"],
-                  [String(footprint.total), trading < footprint.total ? "stores opening" : "stores"],
+                  [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"}${trading < footprint.total ? " opening" : ""}`],
                 ].map(([v, l]) => (
                   <div key={l}>
                     <dt className="sr-only">{l}</dt>
@@ -149,7 +147,7 @@ export default async function Home() {
               <span className="text-brand-500">African soil.</span>
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-ink-300">
-              Amsterdam coffee-shop craft meets Southern Africa&apos;s great landraces. Every batch lab-tested and traceable to the farm, grown with partners we pay fairly. For adults 18+.
+              CBD wellness, accessories, grow and apparel for adults 18+. Every batch is lab-tested, and the code on each pack opens its result.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
               <ButtonLink href="/shop" size="xl">
@@ -161,7 +159,7 @@ export default async function Home() {
             </div>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
               {[
-                [String(trading), "stores nationwide"],
+                [num(trading), `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
                 [batches.toLocaleString(), "lab-tested batches"],
                 [String(loyalty.signupBonus), "welcome points"],
               ].map(([v, l]) => (
@@ -197,7 +195,7 @@ export default async function Home() {
           {[
             [<FlaskConical key="a" className="h-5 w-5" />, "Lab-tested, every batch", "Independent COA for potency and safety"],
             [<QrCode key="b" className="h-5 w-5" />, "Batch-traceable", "Scan the pack to see its lab result"],
-            [<Store key="c" className="h-5 w-5" />, "Click & collect", `At ${trading} stores in ${provinces.length} provinces`],
+            [<Store key="c" className="h-5 w-5" />, "Click & collect", `At ${plural(trading, "store")}${provinces.length ? ` in ${where}` : ""}`],
             [<Truck key="d" className="h-5 w-5" />, "Nationwide delivery", `Free over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)} · ID checked`],
           ].map(([icon, title, sub]) => (
             <div key={String(title)} className="flex items-start gap-3">
@@ -218,7 +216,7 @@ export default async function Home() {
           <SectionHead
             eyebrow="Windmill Days"
             title="Opening weekends, members' evenings & drops"
-            description="Come and meet us in store — RSVP free, bring your ID (adults 18+). Limited drops go to Rewards members first."
+            description="Come and meet us in store: RSVP free and bring your ID (adults 18+). Limited drops go to Rewards members first."
             action={
               drop ? (
                 <ButtonLink href="/drops" variant="ghost-dark" size="sm">
@@ -255,7 +253,7 @@ export default async function Home() {
       {/* ── New in ───────────────────────────────────────────────── */}
       {newIn.length > 0 && (
         <Container className="pt-20">
-          <SectionHead eyebrow="New in" title="Just landed" description="The newest additions to the range — every consumable with its batch certificate from day one." action={<ButtonLink href="/shop?sort=new" variant="ghost-dark" size="sm">Newest first <ArrowRight className="h-4 w-4" /></ButtonLink>} />
+          <SectionHead eyebrow="New in" title="Just landed" description="The newest additions to the range, every consumable with its batch certificate from day one." action={<ButtonLink href="/shop?sort=new" variant="ghost-dark" size="sm">Newest first <ArrowRight className="h-4 w-4" /></ButtonLink>} />
           <ProductGrid items={newIn} />
         </Container>
       )}
@@ -287,8 +285,8 @@ export default async function Home() {
                 <div className="eyebrow flex items-center gap-2 text-brand-500">
                   <Gift className="h-4 w-4" /> Gift vouchers
                 </div>
-                <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-white">Give the gift of choice.</h2>
-                <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-300">R200, R500 or R1,000 — emailed with your message, redeemable on anything in store or online, valid for three years.</p>
+                <h2 className="mt-3 font-display text-3xl font-semibold tracking-tight text-white">Send a gift voucher.</h2>
+                <p className="mt-3 max-w-md text-sm leading-relaxed text-ink-300">R200, R500 or R1,000, emailed with your message, redeemable on anything in store or online and valid for three years.</p>
               </div>
               <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 group-hover:text-brand-300">
                 Buy a voucher <ArrowRight className="h-4 w-4" />
@@ -302,7 +300,7 @@ export default async function Home() {
       {moods.length > 0 && (
         <Suspense>
         <Container className="pt-20">
-          <SectionHead eyebrow="Shop by mood" title="How do you want to feel?" description="Everyday CBD and hemp rituals, grouped by the moment they're made for." />
+          <SectionHead eyebrow="Shop by mood" title="How do you want to feel?" description="Everyday CBD and hemp products, grouped by the moment they're made for." />
           <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
             {moods.slice(0, 4).map((m) => {
               const meta = MOODS[m.key];
@@ -339,7 +337,7 @@ export default async function Home() {
                 <Icon className="h-7 w-7 text-brand-500" strokeWidth={1.6} />
                 <h3 className="mt-6 font-display text-lg font-semibold text-white">{c.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-ink-400">{c.blurb}</p>
-                <span className="mt-4 text-xs font-semibold text-ink-300 group-hover:text-brand-300">{c._count.products} products →</span>
+                <span className="mt-4 text-xs font-semibold text-ink-300 group-hover:text-brand-300">{plural(c._count.products, "product")} →</span>
               </Link>
             );
           })}
@@ -356,7 +354,7 @@ export default async function Home() {
       {/* ── Featured ──────────────────────────────────────────────── */}
       {picks.length > 0 && (
         <Container className="pt-20">
-          <SectionHead eyebrow="Staff picks" title="Featured this week" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Shop all <ArrowRight className="h-4 w-4" /></ButtonLink>} />
+          <SectionHead eyebrow="Staff picks" title="Featured from the range" action={<ButtonLink href="/shop" variant="ghost-dark" size="sm">Shop all <ArrowRight className="h-4 w-4" /></ButtonLink>} />
           <ProductGrid items={picks} />
         </Container>
       )}
@@ -367,27 +365,17 @@ export default async function Home() {
         <Container className="grid grid-cols-1 gap-12 py-20 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:gap-20">
           <div>
             <div className="eyebrow text-brand-500">Our heritage</div>
-            <h2 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl">Four landraces. One fair promise.</h2>
+            <h2 className="mt-3 font-display text-4xl font-semibold leading-[1.05] tracking-tight text-white sm:text-5xl">Four landraces, and the growers who kept them.</h2>
             <div className="mt-6 space-y-4 text-[1.02rem] leading-relaxed text-ink-300">
               <p>
                 Long before Amsterdam&apos;s coffee shops made them famous, Southern Africa&apos;s landraces were shaped by generations of growers on the hillsides of KwaZulu-Natal, Eswatini, Malawi and the Wild Coast.
               </p>
-              <p>
-                Our partnership with the <strong className="text-white">Mpondo Growers Co-operative</strong> in Lusikisiki brings that heritage into the formal, tested supply chain. We agree a fair price per kilogram before planting and pay on delivery — at a time when informal buyers have cut what growers earn to a fraction of what it was.
-              </p>
+              <p>A landrace is a local variety that has adapted to its place over generations: the soil, the sun, the rain and the hands that kept its seed. That&apos;s what we mean by African soil.</p>
             </div>
-            <ul className="mt-8 space-y-3 text-sm text-ink-200">
-              {[
-                [<HandHeart key="a" className="h-4 w-4" />, "A guaranteed price, agreed before the season starts"],
-                [<BadgeCheck key="b" className="h-4 w-4" />, "Every lot lab-tested and traceable to the farm"],
-                [<Sprout key="c" className="h-4 w-4" />, "Seed lines kept by the KZN Heritage Growers Collective"],
-              ].map(([i, t]) => (
-                <li key={String(t)} className="flex items-center gap-3">
-                  <span className="grid h-8 w-8 place-items-center rounded-full bg-brand-500/10 text-brand-400">{i}</span>
-                  {t}
-                </li>
-              ))}
-            </ul>
+            <p className="mt-6 flex items-start gap-3 text-sm leading-relaxed text-ink-400">
+              <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-brand-400" aria-hidden />
+              Licensed cannabis is supplied only through lawful channels. Today that means registered patients, through an authorised dispenser.
+            </p>
             <ButtonLink href="/learn/heritage-landraces" variant="outline-dark" size="lg" className="mt-8">
               Read the full story <ArrowRight className="h-4 w-4" />
             </ButtonLink>
@@ -434,7 +422,7 @@ export default async function Home() {
               <div className="eyebrow text-brand-500">Herbal Holland Rewards</div>
               <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">Pay less. Earn more.</h2>
               <p className="mt-4 max-w-md text-[1.02rem] leading-relaxed text-ink-300">
-                Members get instant prices — {loyalty.tierSavingsPct.SEED}% off from day one, up to {loyalty.tierSavingsPct.HARVEST}% at Harvest — plus {loyalty.earnPer100} points for every R100, each worth R1. Free to join, with {fmtPoints(loyalty.signupBonus)} to welcome you.
+                Members get instant prices ({loyalty.tierSavingsPct.SEED}% off from day one, up to {loyalty.tierSavingsPct.HARVEST}% at Harvest), plus {loyalty.earnPer100} points for every R100, each worth R1. Free to join, with {fmtPoints(loyalty.signupBonus)} to welcome you.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <ButtonLink href={customer ? "/club" : "/club/join"} size="lg">
@@ -468,7 +456,7 @@ export default async function Home() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
           <div>
             <div className="eyebrow text-brand-500">Find us</div>
-            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{trading} stores. One windmill.</h2>
+            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{plural(trading, "store")}. One windmill.</h2>
             <p className="mt-4 max-w-md leading-relaxed text-ink-300">
               Walk in for advice from people who know the range, or order online and collect in store. Each store is independently owned and run by a local franchisee.
             </p>

@@ -30,7 +30,7 @@ export function ViewOnly({ children, className }: { children?: React.ReactNode; 
   return (
     <div className={cn("flex items-start gap-2.5 rounded-xl border border-ink-150 bg-white px-4 py-3 text-sm text-ink-600", className)} role="note">
       <Eye className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />
-      <span>{children ?? "View only — changes are made by the HQ team."}</span>
+      <span>{children ?? "View only: changes are made by the HQ team."}</span>
     </div>
   );
 }

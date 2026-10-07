@@ -13,6 +13,7 @@ import { db, type Tx } from "../../db";
 import { franchiseStatement, monthRange } from "../../finance";
 import { sast } from "../../sql";
 import type { Posting, SourceHandler } from "../core";
+import { CATCH_UP_DAYS, missed } from "./catch-up";
 import { addMonths, monthEnd, monthsBetween, periodOf } from "@/lib/ledger";
 import {
   HQ_POINT_KINDS, onlinePaymentLines, orderCancelledAt, orderPaidAt, pointsLines, POINTS_SOURCE_KINDS, statementLines, statementPaymentLines, tradeEftLines, tradeEntryLines, voucherLines,
@@ -197,12 +198,18 @@ async function statementsFor(month: string): Promise<Source[]> {
   return rows.map((x) => ({ source: "statement", sourceId: `${x.storeId}:${month}` }));
 }
 
-/** Nightly: yesterday's points; on the 1st (SAST) last month's statement for every franchisee store that traded. Voucher expiries queue themselves. */
+/**
+ * Nightly: the points of the week that ended with yesterday (cheap to post again, and a day's points can post while
+ * it's under way, as members' balances change, so only posting it again makes up a missed night), and last month's
+ * statement for every franchisee store that traded: on the 1st (SAST), then to the 7th any that a missed night left
+ * unposted. Voucher expiries queue themselves.
+ */
 export async function hqNightly(now: Date): Promise<Source[]> {
   const today = dayKey(now);
-  const out: Source[] = [{ source: "points", sourceId: dayKey(addDays(now, -1)) }];
-  if (today.endsWith("-01")) out.push(...(await statementsFor(addMonths(periodOf(today), -1))));
-  return out;
+  const points = Array.from({ length: CATCH_UP_DAYS }, (_, i): Source => ({ source: "points", sourceId: dayKey(addDays(now, -1 - i)) }));
+  if (Number(today.slice(8)) > CATCH_UP_DAYS) return points;
+  const statements = await statementsFor(addMonths(periodOf(today), -1));
+  return [...points, ...(today.endsWith("-01") ? statements : await missed(statements))];
 }
 
 /**

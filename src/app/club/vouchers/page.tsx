@@ -47,7 +47,7 @@ export default async function ClubVouchers({ searchParams }: { searchParams: Pro
                 <strong className="tnum text-white">{checked.code}</strong>: {zar(checked.balanceCents)} of {zar(checked.amountCents)} left · {checked.status === "ACTIVE" ? `valid until ${fmtDate(checked.expiresAt)}` : STATUS[checked.status][0].toLowerCase()}
               </span>
             ) : (
-              <span className="text-rose-100">We don&apos;t recognise that code — check it against the email or card.</span>
+              <span className="text-rose-100">We don&apos;t recognise that code. Check it against the email or card.</span>
             )}
           </p>
         )}
@@ -98,7 +98,7 @@ export default async function ClubVouchers({ searchParams }: { searchParams: Pro
         <div className="mt-6 rounded-3xl border border-dashed border-ink-800 px-6 py-16 text-center">
           <Gift className="mx-auto h-9 w-9 text-ink-600" />
           <h2 className="mt-4 font-display text-xl font-semibold text-white">No vouchers bought yet</h2>
-          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">A Herbal Holland gift voucher is emailed with your message and redeemable on anything in the range — a gift that&apos;s always the right size.</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">A Herbal Holland gift voucher is emailed with your message and redeemable on anything in the range, so it&apos;s a gift that&apos;s always the right size.</p>
           <ButtonLink href="/gift" className="mt-6">
             Buy a gift voucher
           </ButtonLink>

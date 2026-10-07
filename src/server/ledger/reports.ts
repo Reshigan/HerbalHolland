@@ -575,7 +575,7 @@ export async function closeVatPeriod(companyId: string, period: string, actor: A
     if (!company.vatNumber) throw new LedgerError(`${company.name} isn't a VAT vendor, so there's no VAT period to close`);
     if (!company.vatCategory) throw new LedgerError("Set the company's VAT category in the books settings first");
     const p = vatPeriodOf(period, company.vatCategory);
-    if (p.to >= thisMonth(now)) throw new LedgerError(`The VAT period ${rangeLabel(p)} isn't over yet — close it after ${monthEndLabel(p.to)}`);
+    if (p.to >= thisMonth(now)) throw new LedgerError(`The VAT period ${rangeLabel(p)} isn't over yet. Close it after ${monthEndLabel(p.to)}`);
     const sourceId = vatSourceId(companyId, p);
     await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger:vat-period:${sourceId}`}))`;
     const book = await booksFor(t, companyId);

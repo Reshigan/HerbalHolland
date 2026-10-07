@@ -163,7 +163,7 @@ try {
   const opensAt = new Date(seeded.startsAt).getTime() - 2 * 3_600_000;
   if (Date.now() < opensAt || Date.now() > new Date(seeded.endsAt).getTime()) {
     await search(`HHRSVP:${seeded.code}`);
-    await page.getByText(/check-in opens 2 hours before it starts|the event is over/).waitFor();
+    await page.getByText(/Check-in opens 2 hours before it starts|The event is over/).waitFor();
     ok(`the evening isn't today (${new Date(seeded.startsAt).toISOString().slice(0, 10)}): the till says so`);
     // A throwaway event at PTA01 happening now, with a ticket for the same member.
     tempEvent = (
@@ -550,7 +550,7 @@ try {
   const tile = page.getByTestId("my-commission"); // PTA01 pays commission in the demo
   await tile.waitFor();
   const mine = (await tile.textContent()).replace("Your commission this month", "");
-  assert(/^R[\d,]+\.\d\d$|^Held — see your manager$/.test(mine), `commission tile: ${mine}`);
+  assert(/^R[\d,]+\.\d\d$|^Held: see your manager$/.test(mine), `commission tile: ${mine}`);
   await page.getByTestId("denom-20000").fill("7");
   // A count out by more than the R50 tolerance needs a note before the shift can close.
   await page.locator("#shift-notes").fill("E2E run: test count");

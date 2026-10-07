@@ -227,7 +227,7 @@ try {
   await fees.locator("#royalty").fill("40");
   await act("stores.saveStoreFees · invalid", () => fees.getByRole("button", { name: "Update fees" }).click(), () => alertIn(fees, "Fees must be percentages of net sales.").waitFor());
   await fees.locator("#royalty").fill("5.5");
-  await act("stores.saveStoreFees", () => fees.getByRole("button", { name: "Update fees" }).click(), () => notice("Fees updated — they apply from the next statement.").waitFor());
+  await act("stores.saveStoreFees", () => fees.getByRole("button", { name: "Update fees" }).click(), () => notice("Fees updated. They apply from the next statement.").waitFor());
   s1 = await one(`select "royaltyBps", "levyBps", "ecomBps" from "Store" where id = $1`, [store.id]);
   assert(s1.royaltyBps === 550 && s1.levyBps === 200 && s1.ecomBps === 1000, "royalty 5.5% (550 bps), levy and e-com unchanged");
   const status = formWith("#status");
@@ -259,14 +259,14 @@ try {
   assert(!(await one(`select 1 from "User" where name = $1`, [T.ownerName])), "nothing was created");
   await of.locator("#ownerEmail").fill(T.ownerEmail);
   await act("stores.addOwner", () => of.getByRole("button", { name: "Add owner" }).click(), () => notice(/can now sign in as/).waitFor());
-  const opw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+—/)?.[1];
+  const opw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+\(/)?.[1];
   const storeOwner = await one(`select id, role, "companyId", "mustChangePassword", "tempPasswordUntil" from "User" where email = $1`, [T.ownerEmail]);
   assert(storeOwner?.role === "OWNER" && storeOwner.companyId === store.companyId && storeOwner.mustChangePassword && storeOwner.tempPasswordUntil && opw1, `${T.ownerEmail} added as an owner of ${store.coName}, with a one-time password`);
   const orow = page.getByRole("listitem").filter({ hasText: T.ownerEmail });
   await orow.getByRole("button", { name: "Reset password" }).click();
   const orp = orow.getByRole("group", { name: `Reset ${T.ownerName}'s password?` });
   await act("stores.resetOwnerPassword", () => orp.getByRole("button", { name: "Reset password" }).click(), () => orow.getByText(/New temporary password for/).waitFor());
-  const opw2 = (await orow.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+—/)?.[1];
+  const opw2 = (await orow.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+\(/)?.[1];
   assert(opw2 && opw2 !== opw1, "a new one-time password is shown once");
   await orow.getByRole("button", { name: "Deactivate" }).click();
   const odp = orow.getByRole("group", { name: `Deactivate ${T.ownerName}?` });
@@ -508,7 +508,7 @@ try {
   const qp = page.getByRole("group", { name: "Quarantine this batch" });
   await act("batches.setBatchStatus · no reason", () => qp.getByRole("button", { name: "Quarantine now" }).click(), () => alertIn(qp, "Give a reason").waitFor());
   await qp.locator("#q-reason").fill("E2E: awaiting a microbial re-test");
-  await act("batches.setBatchStatus (quarantine)", () => qp.getByRole("button", { name: "Quarantine now" }).click(), () => notice("Batch quarantined — it can't be sold or shipped until released.").waitFor());
+  await act("batches.setBatchStatus (quarantine)", () => qp.getByRole("button", { name: "Quarantine now" }).click(), () => notice("Batch quarantined. It can't be sold or shipped until released.").waitFor());
   assert((await one(`select status from "Batch" where id = $1`, [batch.id])).status === "QUARANTINE", "batch quarantined");
   await page.getByRole("button", { name: "Release batch" }).click();
   const rp = page.getByRole("group", { name: "Release for sale" });
@@ -532,7 +532,7 @@ try {
   };
   const poShip = await mkOrder(2), poReject = await mkOrder(1), poCancel = await mkOrder(1);
   await open(`/hq/distribution?dc=${dc.code}`, page.getByRole("row").filter({ hasText: poShip.number }).getByRole("button", { name: "Approve" }));
-  await act("distribution.actOnDcOrder (approve, from the list)", () => page.getByRole("row").filter({ hasText: poShip.number }).getByRole("button", { name: "Approve" }).click(), () => notice(`${poShip.number} approved — ready to pick for ${T.storeName}.`).waitFor());
+  await act("distribution.actOnDcOrder (approve, from the list)", () => page.getByRole("row").filter({ hasText: poShip.number }).getByRole("button", { name: "Approve" }).click(), () => notice(`${poShip.number} approved and ready to pick for ${T.storeName}.`).waitFor());
   assert(page.url().includes("/hq/distribution?") && (await one(`select status from "StockOrder" where id = $1`, [poShip.id])).status === "APPROVED", `${poShip.number} approved; back on the list with a confirmation`);
   await open(`/hq/distribution/${poShip.id}`, page.getByRole("button", { name: "Ship order" }));
   await page.getByRole("button", { name: "Ship order" }).click();
@@ -566,7 +566,7 @@ try {
   await act("batches.setBatchStatus (recall)", () => rc.getByRole("button", { name: "Recall and notify" }).click(), () => notice(/^Batch recalled\. 0 members notified by SMS/).waitFor());
   const recall = await one(`select a.id, a."requiresAck", b.status from "Announcement" a, "Batch" b where b.id = $1 and a.kind = 'RECALL' and a.title like $2`, [batch.id, `%batch ${T.batchCode}`]);
   assert(recall?.status === "RECALLED" && recall.requiresAck, "batch recalled; recall notice raised for every store to acknowledge");
-  await page.getByText("Recalled — blocked everywhere").waitFor();
+  await page.getByText("Recalled and blocked everywhere").waitFor();
   await shot("recalled");
   await q(`delete from "Announcement" where id = $1`, [recall.id]); // test data: don't leave a recall notice on every store's dashboard
   ok("test recall notice removed again");
@@ -582,7 +582,7 @@ try {
   await act("compliance.saveCompliance · adult use unconfirmed", () => rules.getByRole("button", { name: "Save compliance rules" }).click(), () => alertIn(rules, "Type ADULT USE to confirm the switch").waitFor());
   await rules.getByRole("radio", { name: /Medical/ }).click();
   await rules.locator("#minAge").fill("16");
-  await act("compliance.saveCompliance · under 18", () => rules.getByRole("button", { name: "Save compliance rules" }).click(), () => alertIn(rules, "Between 18 and 25 — never below 18").waitFor());
+  await act("compliance.saveCompliance · under 18", () => rules.getByRole("button", { name: "Save compliance rules" }).click(), () => alertIn(rules, "Between 18 and 25 (never below 18)").waitFor());
   assert(JSON.stringify(await setting("compliance")) === JSON.stringify(compBefore), "nothing saved (still medical mode, minimum age unchanged)");
   await rules.locator("#minAge").fill(orig.minAge);
   const daily = String(Number(orig.daily) + 1);
@@ -678,9 +678,9 @@ try {
   prf = formWith("#maxUses");
   await hydrated(prf);
   await prf.locator("#percent").fill("15");
-  await act("promotions.savePromotion (update)", () => prf.getByRole("button", { name: "Save promotion" }).click(), () => notice("Promotion saved — tills pick it up on the next basket.").waitFor());
+  await act("promotions.savePromotion (update)", () => prf.getByRole("button", { name: "Save promotion" }).click(), () => notice("Promotion saved. Tills pick it up on the next basket.").waitFor());
   assert((await one(`select value from "Promotion" where id = $1`, [promo.id])).value === 15, "now 15% off");
-  await act("promotions.setPromotionActive (pause)", () => headerOf().getByRole("button", { name: "Pause" }).click(), () => notice("Promotion paused — it stops applying immediately.").waitFor());
+  await act("promotions.setPromotionActive (pause)", () => headerOf().getByRole("button", { name: "Pause" }).click(), () => notice("Promotion paused. It stops applying immediately.").waitFor());
   assert((await one(`select active from "Promotion" where id = $1`, [promo.id])).active === false, "paused");
   await act("promotions.setPromotionActive (resume)", () => headerOf().getByRole("button", { name: "Resume" }).click(), () => notice("Promotion resumed.").waitFor());
   assert((await one(`select active from "Promotion" where id = $1`, [promo.id])).active === true, "resumed");
@@ -820,7 +820,7 @@ try {
   }
   await headerOf().getByRole("button", { name: "Cancel campaign" }).click();
   const cc = page.getByRole("group", { name: "Cancel this campaign?" });
-  await act("marketing.cancelCampaign", () => cc.getByRole("button", { name: "Cancel campaign" }).click(), () => notice("Campaign cancelled — nothing will be sent.").waitFor());
+  await act("marketing.cancelCampaign", () => cc.getByRole("button", { name: "Cancel campaign" }).click(), () => notice("Campaign cancelled. Nothing will be sent.").waitFor());
   assert((await one(`select status, "scheduledAt" from "Campaign" where id = $1`, [cancelId])).status === "CANCELLED", "campaign cancelled");
   await shot("campaign-cancelled");
 
@@ -859,7 +859,7 @@ try {
   await sc.locator("#content").fill(T.caption);
   await sc.getByText("Caption passes screening").waitFor();
   if (offline) {
-    await act("social.postSocial (not connected)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => notice("Recorded here only — connect Postiz to publish (docs/INTEGRATIONS.md).").waitFor());
+    await act("social.postSocial (not connected)", () => sc.getByRole("button", { name: /Post now/ }).click(), () => notice("Recorded here only. Connect Postiz to publish (docs/INTEGRATIONS.md).").waitFor());
     const post = await one(`select id, mode, "postizIds", image from "SocialPost" where content = $1`, [T.caption]);
     assert(post && post.postizIds.length === 0 && post.image === "brand", "post recorded (nothing sent to Postiz)");
     await page.getByRole("listitem").filter({ hasText: T.caption }).getByText("Recorded only").waitFor();
@@ -893,7 +893,7 @@ try {
   await act("orders.saveEcommerceSettings · invalid", () => es.getByRole("button", { name: "Save settings" }).click(), () => alertIn(es, "15 minutes to 24 hours").waitFor());
   await es.locator("#unpaidHoldMinutes").fill(origEco.unpaid);
   await es.locator("#collectHoldDays").fill(String(Number(origEco.hold) + 1));
-  await act("orders.saveEcommerceSettings", () => es.getByRole("button", { name: "Save settings" }).click(), () => notice("Delivery and collection settings saved — checkout uses them immediately.").waitFor());
+  await act("orders.saveEcommerceSettings", () => es.getByRole("button", { name: "Save settings" }).click(), () => notice("Delivery and collection settings saved. Checkout uses them immediately.").waitFor());
   assert((await setting("ecommerce"))?.collectHoldDays === Number(origEco.hold) + 1, `collection hold ${origEco.hold} → ${Number(origEco.hold) + 1} days`);
   await es.locator("#collectHoldDays").fill(origEco.hold);
   await act("orders.saveEcommerceSettings (restore)", () => es.getByRole("button", { name: "Save settings" }).click(), () => notice("Delivery and collection settings saved").waitFor());
@@ -949,7 +949,7 @@ try {
   await act("trade.rejectLicence", () => rg.getByRole("button", { name: "Send the reason" }).click(), () => notice("Licence not accepted").waitFor());
   const rejected = await one(`select status, "rejectReason", "reviewedById" from "TradeLicence" where id = $1`, [firstCert.id]);
   assert(rejected.status === "REJECTED" && rejected.rejectReason === "The certificate is for a different company" && rejected.reviewedById === admin.id, "not accepted, with the reason, by the admin");
-  assert(await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%not accepted — ${tradeAccount.number}%The certificate is for a different company%`])), "the account is emailed the reason");
+  assert(await until(() => one(`select 1 from "MessageLog" where "to" = $1 and body like $2`, [tradeAccount.email, `%not accepted (${tradeAccount.number})%The certificate is for a different company%`])), "the account is emailed the reason");
   assert(await one(`select 1 from "AuditLog" where action = 'trade.licence.reject' and "entityId" = $1 and "actorId" = $2`, [firstCert.id, admin.id]), "audited (trade.licence.reject)");
   await cert.getByText("Not accepted").first().waitFor();
   const secondCert = await sendCertificate();
@@ -1042,7 +1042,7 @@ try {
   await tpf.locator("#pay-amount").fill((tInvoiced / 100).toFixed(2));
   await tpf.locator("#pay-reference").fill(`E2E-EFT-${SFX}`);
   await tpf.locator("#pay-order").selectOption(tradeOrder.id);
-  await act("trade.recordPayment", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => notice(`Payment of R${(tInvoiced / 100).toFixed(2)} recorded`).waitFor());
+  await act("trade.recordPayment", () => tpf.getByRole("button", { name: "Record payment" }).click(), () => notice(`Payment of R${(tInvoiced / 100).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} recorded`).waitFor()); // zar(): R2,345.60
   const tBalance = (await one(`select coalesce(sum(cents), 0)::int n from "TradeLedgerEntry" where "tradeAccountId" = $1`, [tradeAccount.id])).n;
   assert(tBalance === 0 && (await one(`select 1 from "AuditLog" where action = 'trade.payment' and "entityId" = $1`, [tradeAccount.id])), "balance R0.00 after the payment (audited: trade.payment)");
   const tNow = sastParts(new Date());
@@ -1121,7 +1121,7 @@ try {
   const launchBefore = await setting("launch");
   if (founders) {
     assert(
-      (await page.getByText("Locked — founding numbers are assigned").isVisible()) && (await lf.locator("fieldset").evaluate((f) => f.disabled)) && !(await lf.getByRole("button", { name: "Save" }).count()),
+      (await page.getByText("Locked: founding numbers are assigned").isVisible()) && (await lf.locator("fieldset").evaluate((f) => f.disabled)) && !(await lf.getByRole("button", { name: "Save" }).count()),
       `${founders.toLocaleString()} founding numbers assigned: the form is read-only, no Save button`,
     );
     await act("launch.saveLaunch (forced submit while locked)", () => lf.evaluate((f) => ((f.querySelector("fieldset").disabled = false), f.requestSubmit())), () => alertIn(lf, "Founding numbers are already assigned").waitFor());
@@ -1228,14 +1228,14 @@ try {
   await act("team.addUser · no region", () => tf.getByRole("button", { name: "Add and create password" }).click(), () => alertIn(tf, "Area managers need a region").waitFor());
   await tf.locator("#role").selectOption("HQ_STAFF");
   await act("team.addUser", () => tf.getByRole("button", { name: "Add and create password" }).click(), () => notice(/can now sign in as/).waitFor());
-  const pw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+—/)?.[1];
+  const pw1 = (await notice(/can now sign in as/).innerText()).match(/temporary password\s+(\S+)\s+\(/)?.[1];
   const staff = await one(`select id, role, "mustChangePassword", active from "User" where email = $1`, [T.staffEmail]);
   assert(staff?.role === "HQ_STAFF" && staff.mustChangePassword && pw1, `${T.staffEmail} added as HQ team with a one-time password`);
   const row = page.getByRole("row").filter({ hasText: T.staffEmail });
   await row.getByRole("button", { name: "Reset password" }).click();
   const rpw = row.getByRole("group", { name: `Reset ${T.staffName}'s password?` });
   await act("team.resetPassword", () => rpw.getByRole("button", { name: "Reset password" }).click(), () => row.getByText(/New temporary password for/).waitFor());
-  const pw2 = (await row.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+—/)?.[1];
+  const pw2 = (await row.getByText(/New temporary password for/).innerText()).match(/:\s+(\S+)\s+\(/)?.[1];
   assert(pw2 && pw2 !== pw1, "a new one-time password is shown once");
   const c2 = await browser.newContext();
   const p2 = await c2.newPage();
@@ -1373,7 +1373,7 @@ try {
   await ap.getByText("This store sits outside what you look after").waitFor();
   assert(awayStore.status() === 404 && ap.url().endsWith(`/store/${foreign.code}`), `its back office → not found (404) inside their own back office`);
   await open(`/hq/stores/${oneStore.code}`, ap.locator("form").first(), ap);
-  assert(await ap.getByText("View only — changes are made by the HQ team.").first().isVisible(), `${oneStore.name}: profile is view-only`);
+  assert(await ap.getByText("View only: changes are made by the HQ team.").first().isVisible(), `${oneStore.name}: profile is view-only`);
   assert(!(await ap.getByText("Franchisee owners").count()), "owner sign-ins: not shown (HQ administrator only)");
   await ap.goto(`${BASE}/hq/stores/new`);
   await ap.waitForURL(/\/hq\/stores$/);

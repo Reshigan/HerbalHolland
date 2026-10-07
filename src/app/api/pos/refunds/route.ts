@@ -22,7 +22,7 @@ const Body = z.object({
 
 export const POST = withStaff(async (req, pos) => {
   // Money going back out is a manager's call: the till signs a manager in (PIN) before it posts the refund.
-  if (!isTillManager(pos.user.role)) throw new PosError("A manager must approve refunds — sign in with a manager's PIN", 403, "MANAGER_ONLY");
+  if (!isTillManager(pos.user.role)) throw new PosError("A manager must approve refunds. Sign in with a manager's PIN", 403, "MANAGER_ONLY");
   const b = await readBody(req, Body);
   const storeId = pos.device.storeId;
   const orig = await db.sale.findUnique({ where: { id: b.saleId }, select: { storeId: true, payments: true, refunds: { select: { payments: true } } } });

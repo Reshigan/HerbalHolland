@@ -48,13 +48,13 @@ export default async function StoreTradeOrdersPage({ params, searchParams }: { p
       <PageHeader
         overline={`Trade · ${store.name}`}
         title="Trade orders"
-        description="Click & collect orders from business accounts, placed on the trade portal at ex-VAT prices. Pick, mark ready (the buyer gets a collection code), then hand over with an ID check — that posts the sale here with the handling fee."
+        description="Click & collect orders from business accounts, placed on the trade portal at ex-VAT prices. Pick, mark ready (the buyer gets a collection code), then hand over with an ID check. That posts the sale here with the handling fee."
       />
       <Card>
         <TabLinks className="px-4" current={tabHref(tab)} tabs={Object.entries(TABS).map(([k, t]) => ({ href: tabHref(k), label: t.label, count: n(t.statuses) }))} />
         {rows.length === 0 ? (
           <EmptyState icon={<Briefcase className="h-5 w-5" aria-hidden />} title={tab === "todo" ? "No trade orders to fulfil" : "No trade orders here"}>
-            {tab === "todo" ? "Click & collect orders from trade accounts appear here as they come in — your phone gets the same push as an online order." : "Try another tab."}
+            {tab === "todo" ? "Click & collect orders from trade accounts appear here as they come in. Your phone gets the same push as an online order." : "Try another tab."}
           </EmptyState>
         ) : (
           <Table stickyFirst minWidth="52rem">

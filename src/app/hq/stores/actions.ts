@@ -91,7 +91,7 @@ export async function saveStoreFees(storeId: string, _: ActionState, fd: FormDat
   await db.store.update({ where: { id: storeId }, data: fees });
   await audit(db, g.actor, "store.fees", { storeId, entity: "Store", entityId: storeId, data: { before: { royaltyBps: before.royaltyBps, levyBps: before.levyBps, ecomBps: before.ecomBps }, after: fees } });
   revalidatePath(`/hq/stores/${before.code}`);
-  return done("Fees updated — they apply from the next statement.");
+  return done("Fees updated. They apply from the next statement.");
 }
 
 export async function saveStoreStatus(storeId: string, _: ActionState, fd: FormData): Promise<ActionState> {
@@ -120,12 +120,16 @@ export async function saveCompany(companyId: string, storeCode: string, _: Actio
   const email = str(fd, "email").toLowerCase();
   if (email && !isEmail(email)) fields.email = "Enter a valid email";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
+  const directors = opt(fd, "directors");
   const before = await db.company.findUniqueOrThrow({ where: { id: companyId } });
   await db.company.update({
     where: { id: companyId },
-    data: { legalName, name: str(fd, "name") || legalName.replace(/\s*\(Pty\) Ltd\.?$/i, ""), regNumber: opt(fd, "regNumber"), vatNumber: vat || null, contactName: opt(fd, "contactName"), email: email || null, phone: opt(fd, "phone"), address: opt(fd, "address") },
+    data: { legalName, name: str(fd, "name") || legalName.replace(/\s*\(Pty\) Ltd\.?$/i, ""), regNumber: opt(fd, "regNumber"), vatNumber: vat || null, contactName: opt(fd, "contactName"), email: email || null, phone: opt(fd, "phone"), address: opt(fd, "address"), directors },
   });
-  await audit(db, g.actor, "company.update", { entity: "Company", entityId: companyId, data: { vatBefore: before.vatNumber, vatAfter: vat || null } });
+  await audit(db, g.actor, "company.update", {
+    entity: "Company", entityId: companyId,
+    data: { vatBefore: before.vatNumber, vatAfter: vat || null, ...(before.directors !== directors && { directorsBefore: before.directors, directorsAfter: directors }) },
+  });
   revalidatePath(`/hq/stores/${storeCode}`);
   return done(before.vatNumber !== (vat || null) ? "Owner saved. VAT status changes apply to invoices from now on." : "Owner saved.");
 }

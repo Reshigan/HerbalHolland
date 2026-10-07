@@ -27,7 +27,7 @@ export async function redeemOffers(t: Tx, promoIds: string[], ref: { saleId?: st
   const ids = [...new Set(promoIds.filter(isOffer).map((p) => p.slice(OFFER.length)))];
   if (!ids.length) return;
   const { count } = await t.memberOffer.updateMany({ where: { id: { in: ids }, redeemedAt: null }, data: { redeemedAt: new Date(), ...ref } });
-  if (count !== ids.length) throw new OfferError("A My Deals offer in this basket was just used on another purchase — refresh to see the price without it");
+  if (count !== ids.length) throw new OfferError("A My Deals offer in this basket was just used on another purchase, so refresh to see the price without it");
 }
 
 /** Cancelled order: its offers go back on the member's card. */

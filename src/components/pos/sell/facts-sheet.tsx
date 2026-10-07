@@ -67,7 +67,7 @@ export function FactsSheet({ product, onClose }: { product: BootProduct | null; 
               <dt className="text-ink-400">Allergens</dt>
               <dd className={cn("mt-1 flex items-start gap-2 rounded-xl px-3 py-2.5 font-semibold ring-1", warn ? "bg-amber-500/15 text-[#f3c65a] ring-amber-500/35" : "bg-ink-850 text-ink-100 ring-ink-800")}>
                 {warn ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />}
-                {allergens ?? "Not declared — check the pack"}
+                {allergens ?? "Not declared (check the pack)"}
               </dd>
             </div>
           )}
