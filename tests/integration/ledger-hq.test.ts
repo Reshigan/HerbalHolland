@@ -1,6 +1,6 @@
 // HQ's side of the books, on the real services: a franchise statement in both books (a VAT vendor and a non-vendor
 // franchisee, nothing for a month still trading), statement payments either way and one deleted, online payments (a
-// cancellation, and a return refunded through Peach — a small in-memory fake, global fetch is mocked), a gift voucher
+// cancellation, and a return refunded through Peach, faked in memory with global fetch mocked), a gift voucher
 // sold, spent, expired and refunded onto, the points HQ gives and forfeits, the trade ledger (payments, a credit note,
 // an adjustment; invoices and refund credit notes left to the store's day) and EFTs paid ahead; then posting again,
 // the trial balance, the nightly list and the backfill listing.
@@ -151,7 +151,7 @@ describe("the franchise statement", () => {
     // A till sale of R1,000 ex VAT that synced after the month closed its rollup: fees on it, and nothing else.
     await stat(w.store.id, `${month}-28`, "POS", { grossCents: 115_000, vatCents: 15_000 });
     const [fr, hq] = await postSource("statement", `${w.store.id}:${month}`).then((js) => [js.find((j) => j.companyId === w.owner.id)!, js.find((j) => j.companyId === w.hq.id)!]);
-    expect(fr.memo).toMatch(/franchise statement · Test Store — updated$/);
+    expect(fr.memo).toMatch(/franchise statement · Test Store · updated$/);
     expect(await posted(w.owner.id, { source: "statement", sourceId: `${w.store.id}:${month}` })).toMatchObject({ "fees.royalty": 78_000, "fees.levy": 26_000, "vat.input": 18_600, hq: -182_600 });
     expect((await db.journalLine.findMany({ where: { journalId: hq.id } })).map((l) => l.amountCents).sort((a, b) => a - b)).toEqual([-6_000, -2_000, -1_200, 9_200]);
   });
@@ -268,7 +268,7 @@ describe("gift vouchers", () => {
     expect(await postSource("online-payment", bought.order.id)).toEqual([]);
   });
 
-  it("expire what's left of them into breakage — and what a refund puts back onto an expired voucher too", async () => {
+  it("expire what's left of them into breakage, and what a refund puts back onto an expired voucher too", async () => {
     // Spent at the till on a coffee (the store's day takes it off the liability), then three years pass.
     const c = await member();
     const lines = [{ variantId: w.coffeeV.id, qty: 1 }];

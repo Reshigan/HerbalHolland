@@ -1,4 +1,4 @@
-// Flat-lay mockups of the made-to-order merch — the garment in its colour with the real print at true scale —
+// Flat-lay mockups of the made-to-order merch (the garment in its colour with the real print at true scale),
 // used as the product art for merch (we don't use stock photography). Drawn in the same 120-unit box as ProductArt.
 import { Artwork, ART } from "@/components/merch/art";
 import { merchFor, type Garment, type MerchItem, type Side } from "@/lib/merch";

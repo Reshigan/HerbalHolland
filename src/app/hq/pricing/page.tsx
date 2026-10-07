@@ -58,7 +58,7 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
   const variant = variants.find((v) => v.id === sp.variant) ?? variants[0];
   const channel = sp.channel === "ONLINE" ? "ONLINE" : sp.channel === "WHOLESALE" ? "WHOLESALE" : "POS";
   const store = channel === "POS" ? (stores.find((s) => s.code === sp.store) ?? stores[0]) : undefined;
-  // Trade: the account's own list, then the live trade lists by priority, else the wholesale price — all ex VAT.
+  // Trade: the account's own list, then the live trade lists by priority, else the wholesale price. All ex VAT.
   const accounts = channel === "WHOLESALE" ? await db.tradeAccount.findMany({ where: { status: { in: ["APPROVED", "ON_HOLD"] } }, select: { id: true, number: true, name: true, priceListId: true }, orderBy: { name: "asc" }, take: 200 }) : [];
   const account = channel === "WHOLESALE" ? accounts.find((a) => a.id === sp.account) : undefined;
   const tier = TIERS.find((t) => t.key === sp.tier)?.key ?? null;

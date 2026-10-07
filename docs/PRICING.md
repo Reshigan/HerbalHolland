@@ -8,22 +8,22 @@ Two pure engines, used identically by the POS (online and offline), the web shop
 
 Evaluated per line, in this order:
 
-1. **RRP** — `Variant.priceCents`, the national recommended retail price (VAT incl.).
-2. **Zone / channel lists** — the highest-priority active `PriceList` of kind `ZONE` or `CHANNEL` that applies to the
+1. **RRP:** `Variant.priceCents`, the national recommended retail price (VAT incl.).
+2. **Zone / channel lists:** the highest-priority active `PriceList` of kind `ZONE` or `CHANNEL` that applies to the
    store (by store or region; empty scope = network) and channel, within its date window. Covers regional pricing,
    tourist zones, online-only prices and **scheduled price changes** (set `startsAt`).
-3. **Franchisee shelf price** — `StoreVariant.priceCents`. In store it always wins over steps 1–2: franchisees set their
+3. **Franchisee shelf price:** `StoreVariant.priceCents`. In store it always wins over steps 1–2: franchisees set their
    own prices (Competition Act). Online orders use the network online price.
-4. **Instant Rewards price** (Checkers Xtra Savings style) — an identified member pays the lower of:
+4. **Instant Rewards price** (Checkers Xtra Savings style): an identified member pays the lower of:
    - their **tier saving** off the shelf price (`settings.loyalty.tierSavingsPct`: Seed 3%, Sprout 5%, Bloom 7%,
      Harvest 10%), and
-   - a **Rewards deal** — a `PriceList` of kind `MEMBER` (all members or specific tiers, usually a weekly window).
+   - a **Rewards deal** (a `PriceList` of kind `MEMBER`, for all members or specific tiers, usually a weekly window).
 
    `quote()` reports each line's `memberSavingsCents` (vs the walk-in price) and, for walk-ins, `joinSavingsCents` (what
    joining at Seed would save on this basket now). Savings are stored on `SaleLine`/`Sale`/`OrderLine` and rolled up in
    `DailyStoreStat.memberSavingsCents`; refunds reverse them.
-5. **Quantity breaks** — list items with `minQty > 1` ("papers: R30 each for 10+") when they beat the above.
-6. **Near-expiry markdown** (POS) — when the next lot to sell (FEFO) expires within `settings.pricing.markdownDays`,
+5. **Quantity breaks:** list items with `minQty > 1` ("papers: R30 each for 10+") when they beat the above.
+6. **Near-expiry markdown** (POS): when the next lot to sell (FEFO) expires within `settings.pricing.markdownDays`,
    take `markdownPct` off.
 
 Each line reports the rule that set its price (e.g. "Bloom Rewards −7%", "Rewards deal", "Volume pricing (10+)",
@@ -48,11 +48,11 @@ Common fields: `code` (promo code), `channels` (POS/ONLINE), `storeIds` (empty =
 
 **Order of play** (predictable, no double-dipping):
 
-1. Unit deals — `MULTIBUY` bundles and `BUY_X_GET_Y` bonus buys claim the units they use (the cheapest qualifying
+1. Unit deals: `MULTIBUY` bundles and `BUY_X_GET_Y` bonus buys claim the units they use (the cheapest qualifying
    unit is the reward).
-2. Line deals — each remaining unit takes the single best `PERCENT` / targeted `FIXED` discount.
-3. Basket deal — the best untargeted `FIXED` amount, spread across lines so VAT per line stays exact.
-4. Points multiplier — the highest applicable.
+2. Line deals: each remaining unit takes the single best `PERCENT` / targeted `FIXED` discount.
+3. Basket deal: the best untargeted `FIXED` amount, spread across lines so VAT per line stays exact.
+4. Points multiplier: the highest applicable.
 
 Lines excluded from incentives neither receive deals nor count towards thresholds.
 

@@ -19,7 +19,7 @@ export async function signOutAction() {
 
 export type CartActionState = { ok?: boolean; error?: string; qty?: number; cases?: number; lines?: number; at?: number };
 
-/** A variant the signed-in account may put in its cart, with its case pack — or the plain reason it can't. */
+/** A variant the signed-in account may put in its cart, with its case pack, or the plain reason it can't. */
 async function tradeVariant(variantId: string) {
   const buyer = await getTradeBuyer();
   if (!buyer) return { error: "Your session has ended. Sign in again." as const };

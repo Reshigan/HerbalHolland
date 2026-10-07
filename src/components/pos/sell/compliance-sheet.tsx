@@ -1,7 +1,7 @@
 "use client";
 // Pre-payment checks: each block from the compliance engine with the action that resolves
-// it — age check (ID sighted / SA ID number / passport), patient authorisation, authorised
-// quantity, dispenser required ("switch user"), licence — and limited-drop rules (members
+// it, for the age check (ID sighted / SA ID number / passport), patient authorisation, authorised
+// quantity, dispenser required ("switch user") and licence, plus limited-drop rules (members
 // only, not open yet, per-member limit; offline, drops can't be checked at all).
 import { useMemo, useState } from "react";
 import { BadgeCheck, Building2, Gem, IdCard, Pill, ShieldAlert, ShieldCheck, Stethoscope, Trash2, UserRound } from "lucide-react";

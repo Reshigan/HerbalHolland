@@ -1,4 +1,4 @@
-// herbalholland.com/press — releases (each on its own page at /press/{slug}, NewsArticle structured data, shown from
+// herbalholland.com/press: releases (each on its own page at /press/{slug}, NewsArticle structured data, shown from
 // its date, SAST, at build time), the fact sheet from ./facts, the media contact, logo downloads and notes on how to
 // write about us.
 import { num } from "@/lib/format";

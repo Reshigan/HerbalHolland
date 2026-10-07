@@ -3,7 +3,7 @@
 // macOS; not Firefox, not iOS Safari yet): EAN-13 / EAN-8 / UPC / Code 128 / Code 39 product barcodes and QR codes
 // (member cards, event tickets, collection codes, batch certificates). A viewfinder, a torch toggle where the camera
 // has one, and a plain "not supported" state that points at the alternatives. Keyboard-wedge scanners (USB or
-// Bluetooth "keyboard" scanners) work everywhere without this — the till listens for them on every screen.
+// Bluetooth "keyboard" scanners) work everywhere without this: the till listens for them on every screen.
 import { useEffect, useRef, useState } from "react";
 import { Flashlight, FlashlightOff, ScanLine } from "lucide-react";
 import { cn } from "@/lib/cn";

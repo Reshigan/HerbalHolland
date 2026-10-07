@@ -6,7 +6,7 @@ const ROWS = 3;
 const COLS = 8;
 const STEP = 8; // bead pitch in pattern units
 const R = 3.1; // bead radius
-// Diagonal bands: orange, cream, leaf, dark, amber — repeated along the diagonal.
+// Diagonal bands: orange, cream, leaf, dark, amber, repeated along the diagonal.
 const BAND = ["var(--color-brand-500)", "var(--color-brand-500)", "var(--color-ink-50)", "var(--color-leaf-500)", "var(--color-ink-700)", "var(--color-ink-700)", "var(--color-amber-500)", "var(--color-ink-50)"];
 
 function Beads({ id }: { id: string }) {

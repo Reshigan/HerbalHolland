@@ -316,7 +316,7 @@ async function batchOptions({ storeIds }: ParamArgs): Promise<Option[]> {
     FROM "Batch" b JOIN "Variant" v ON v.id = b."variantId" JOIN "Product" p ON p.id = v."productId"
     WHERE EXISTS (SELECT 1 FROM "StockLevel" sl WHERE sl."batchId" = b.id AND sl."storeId" = ANY(${storeIds}::text[]))
     ORDER BY CASE b.status WHEN 'RECALLED' THEN 0 WHEN 'QUARANTINE' THEN 1 ELSE 2 END, p.name, v.name, b.code`;
-  return [{ value: "", label: "Choose a batch…" }, ...rows.map((r) => ({ value: r.id, label: `${r.code} — ${r.product} · ${r.variant}`, group: STATUS_LABEL[r.status] ?? r.status }))];
+  return [{ value: "", label: "Choose a batch…" }, ...rows.map((r) => ({ value: r.id, label: `${r.code}: ${r.product} · ${r.variant}`, group: STATUS_LABEL[r.status] ?? r.status }))];
 }
 
 export const batchTrace: ReportDef = {
@@ -380,7 +380,7 @@ export const batchTrace: ReportDef = {
       .sort((x, y) => y.onHand - x.onHand || y.received - x.received);
     const onHand = where.reduce((s, w) => s + Math.max(0, w.onHand), 0);
     return {
-      title: `${batch.code} — ${batch.variant.product.name} · ${batch.variant.name}`,
+      title: `${batch.code}: ${batch.variant.product.name} · ${batch.variant.name}`,
       columns,
       rows,
       totalRows: a.lines,

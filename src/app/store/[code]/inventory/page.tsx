@@ -44,7 +44,7 @@ export default async function InventoryPage({ params, searchParams }: { params: 
   const dir = sp1(sp.dir) === "desc" ? "desc" : "asc";
   const page = pageParam(sp.page);
 
-  // Nothing matches as typed (a typo — "durbn"): the closest product names instead, closest first unless sorted.
+  // Nothing matches as typed (a typo, e.g. "durbn"): the closest product names instead, closest first unless sorted.
   const found = await searchStock(all, q);
   const scoped = found.rows.filter((r) => (!cat || r.categorySlug === cat) && (!cls || r.regClass === cls));
   const byStatus = (s: string) => (s === "ALL" ? scoped : s === "BLOCKED" ? scoped.filter((r) => r.blocked > 0) : scoped.filter((r) => r.status === s));

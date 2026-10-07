@@ -98,8 +98,8 @@ export type TradePrice = { unitCents: number; rule: string | null; validUntil: D
 
 /**
  * Trade (wholesale) unit price, ex VAT: the account's own TRADE list first, else the live TRADE lists by priority
- * (newest first on a tie) — the first list that prices the variant decides, taking its best quantity break with
- * minQty ≤ qty (`adjustPct` on a TRADE list adjusts the wholesale price) — else `Variant.wholesaleCents`. Tiers,
+ * (newest first on a tie), where the first list that prices the variant decides, taking its best quantity break with
+ * minQty ≤ qty (`adjustPct` on a TRADE list adjusts the wholesale price); else `Variant.wholesaleCents`. Tiers,
  * member and zone/channel lists, markdowns and store shelf prices never apply; TRADE lists aren't scoped by store.
  */
 export function resolveTradePrice(v: { variantId: string; wholesaleCents: number; qty: number }, lists: PriceListRule[], ctx: { accountListId?: string | null; at: Date }): TradePrice {

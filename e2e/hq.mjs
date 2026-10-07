@@ -6,7 +6,7 @@
 // (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
 // connected) → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
 // Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → trade (an application
-// whose licence HQ first doesn't accept and then verifies — approval waits for it — approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
+// whose licence HQ first doesn't accept and then verifies (approval waits for it), approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
 // statement emailed, hold and release, the trade settings card) → an area manager's scope.
 // Everything it creates is named "E2E …" and removed at the end; every setting it changes is put back as found.
 // Prints how long each action took, from the click to its visible result.
@@ -98,7 +98,7 @@ const localInput = (d) => {
   const x = sastParts(d);
   return `${x.year}-${x.month}-${x.day}T${x.hour === "24" ? "00" : x.hour}:${x.minute}`;
 };
-/** A Tuesday–Thursday at least `days` days out, at `hh:00` SAST — inside the CPA contact window. */
+/** A Tuesday–Thursday at least `days` days out, at `hh:00` SAST, inside the CPA contact window. */
 function weekdayAt(days, hh) {
   const d = new Date(Date.now() + days * 86_400_000);
   while (!["Tue", "Wed", "Thu"].includes(sastParts(d).weekday)) d.setTime(d.getTime() + 86_400_000);
@@ -249,7 +249,7 @@ try {
   assert(co.vatNumber === vat && co.contactName === "E2E Owner", `owner now a VAT vendor (${vat})`);
   await shot("store-detail");
 
-  step("Stores: franchisee owners — add one (validation first), reset their password, deactivate them");
+  step("Stores: add a franchisee owner (validation first), reset their password, deactivate them");
   await open(`/hq/stores/${storeCode}`, formWith("#ownerEmail"));
   const of = formWith("#ownerEmail");
   await hydrated(of);
@@ -379,7 +379,7 @@ try {
   assert(!(await one(`select 1 from "StoreVariant" where "variantId" = $1`, [variant.id])), "unranged again");
   await shot("product");
 
-  step("Catalogue: a category — add it (slug from the name, copy screened), edit it, move it up, delete it once empty");
+  step("Catalogue: add a category (slug from the name, copy screened), edit it, move it up, delete it once empty");
   await open("/hq/catalogue/categories", formWith("#cat-name"));
   let catForm = formWith("#cat-name");
   await catForm.locator("#cat-name").fill(T.categoryName);
@@ -518,7 +518,7 @@ try {
   await shot("batch");
 
   // ── Distribution ──────────────────────────────────────────────────────────
-  step(`Distribution: three orders from ${dc.name} to the test store — approve + ship, reject, approve + cancel`);
+  step(`Distribution: three orders from ${dc.name} to the test store (approve + ship, reject, approve + cancel)`);
   const mkOrder = async (qty) => {
     const nn = (await one(`insert into "Counter" (key, value) values ('PO', 1) on conflict (key) do update set value = "Counter".value + 1 returning value`)).value;
     const sub = qty * 9500;
@@ -698,7 +698,7 @@ try {
   await df.locator("#startsAt").fill(weekdayAt(365, 10));
   await act("drops.saveDrop · no products", () => df.getByRole("button", { name: "Schedule drop" }).click(), () => alertIn(df, "Pick at least one product").waitFor());
   await df.getByPlaceholder("Search products or SKUs…").fill(T.productName);
-  await df.getByRole("checkbox", { name: new RegExp(`^${esc(T.productName)} — 30ml`) }).check();
+  await df.getByRole("checkbox", { name: new RegExp(`^${esc(T.productName)} · 30ml`) }).check();
   await act("drops.saveDrop (create)", () => df.getByRole("button", { name: "Schedule drop" }).click(), () => notice(`“${T.dropName}” is scheduled.`).waitFor());
   const drop = await one(`select id, slug, "variantIds", "perMemberLimit", "membersOnly" from "Drop" where name = $1`, [T.dropName]);
   assert(drop && page.url().includes(`/hq/drops/${drop.id}`) && drop.variantIds.join() === variant.id && drop.perMemberLimit === 1 && drop.membersOnly, `drop /drops/${drop?.slug} scheduled (1 per member, members only)`);
@@ -851,8 +851,8 @@ try {
   const offline = await notice("Postiz isn't connected").isVisible();
   const problem = alertIn(page, "Couldn't load your channels");
   const unreachable = !offline && (await problem.isVisible()) ? (await problem.textContent()).replace("Couldn't load your channels", "") : null;
-  if (!offline && !unreachable) fail("Postiz is connected on this server — the test won't publish to real social accounts");
-  ok(offline ? "“Postiz isn't connected — posts are recorded here only”" : `POSTIZ_* is set but Postiz is unreachable, and the page says so: “${unreachable}”`);
+  if (!offline && !unreachable) fail("Postiz is connected on this server. The test won't publish to real social accounts");
+  ok(offline ? "“Postiz isn't connected. Posts are recorded here only.”" : `POSTIZ_* is set but Postiz is unreachable, and the page says so: “${unreachable}”`);
   await sc.locator("#content").fill("Buy CBD oil at 20% off this weekend only");
   await sc.getByText(/Sells cannabis or CBD/).waitFor();
   assert(await sc.getByRole("button", { name: /Post now/ }).isDisabled(), "a caption selling CBD is flagged and can't be posted");
@@ -902,7 +902,7 @@ try {
 
 
   // ── Trade (wholesale) ─────────────────────────────────────────────────────
-  step("Trade: an application (SQL) with its company registration certificate — approval waits for the licence");
+  step("Trade: an application (SQL) with its company registration certificate; approval waits for the licence");
   const tVat = `4${String(Math.floor(Math.random() * 1e9)).padStart(9, "0")}`;
   const tReg = `2018/${String(Math.floor(Math.random() * 1e6)).padStart(6, "0")}/07`;
   let tNo;
@@ -1095,7 +1095,7 @@ try {
   const exported = JSON.parse(readFileSync(`${out}/member-export.json`, "utf8"));
   assert(
     download.suggestedFilename() === `herbal-holland-${member.memberNo}.json` && exported.member.memberNo === member.memberNo && exported.member.orders[0]?.code === order.code && exported.member.loyalty.length === 1 && !("idHash" in exported.member),
-    `export ${download.suggestedFilename()}: profile, orders, points ledger — no ID hash`,
+    `export ${download.suggestedFilename()}: profile, orders, points ledger (no ID hash)`,
   );
   assert(await one(`select 1 from "AuditLog" where action = 'customer.export' and "entityId" = $1`, [member.id]), "export audited");
   await page.getByRole("button", { name: "Anonymise member" }).click();
@@ -1114,7 +1114,7 @@ try {
   await shot("anonymised");
 
   // ── Founding Members ──────────────────────────────────────────────────────
-  step("Founding Members: settings lock once numbers are assigned — and the server enforces it");
+  step("Founding Members: settings lock once numbers are assigned, and the server enforces it");
   await open("/hq/launch", formWith("#launchAt"));
   const lf = formWith("#launchAt");
   const founders = (await one(`select count(*)::int n from "Customer" where "foundingNo" is not null`)).n;
@@ -1126,7 +1126,7 @@ try {
     );
     await act("launch.saveLaunch (forced submit while locked)", () => lf.evaluate((f) => ((f.querySelector("fieldset").disabled = false), f.requestSubmit())), () => alertIn(lf, "Founding numbers are already assigned").waitFor());
     assert(JSON.stringify(await setting("launch")) === JSON.stringify(launchBefore), "a forced submit is refused by the server; nothing changed");
-    assert(!(await page.getByRole("button", { name: /Assign founding numbers now/ }).count()), "assignFoundingNow isn't offered (numbers exist) — not run: it would renumber real members");
+    assert(!(await page.getByRole("button", { name: /Assign founding numbers now/ }).count()), "assignFoundingNow isn't offered (numbers exist) and isn't run: it would renumber real members");
   } else {
     const months = await lf.locator("#foundingMonths").inputValue();
     await lf.locator("#foundingMonths").fill(String(Number(months) === 36 ? 35 : Number(months) + 1));
@@ -1138,7 +1138,7 @@ try {
   await restoreSetting("launch");
 
   // ── Rewards ───────────────────────────────────────────────────────────────
-  step("Rewards: programme rules, tier savings and My Deals — validation, change, restore");
+  step("Rewards: programme rules, tier savings and My Deals (validation, change, restore)");
   await open("/hq/loyalty", formWith("#earnPer100"));
   const lr = formWith("#earnPer100");
   const ol = { earn: await lr.locator("#earnPer100").inputValue(), bday: await lr.locator("#birthdayBonus").inputValue() };
@@ -1203,7 +1203,7 @@ try {
   const m0 = (await one(`select now() t`)).t;
   await hydrated(page.getByRole("button", { name: /Email to owner/ }));
   await act("statements.emailOneStatement", () => page.getByRole("button", { name: /Email to owner/ }).click(), () => notice(new RegExp(`statement emailed to ${esc(stStore.email)}`)).waitFor());
-  const oneMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "to" = $1 and "createdAt" >= $2 and body like $3`, [stStore.email, m0, `Franchise statement — ${stStore.name}%`]);
+  const oneMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "to" = $1 and "createdAt" >= $2 and body like $3`, [stStore.email, m0, `Franchise statement: ${stStore.name}%`]);
   created.mails.push(...oneMail.map((r) => r.id));
   assert(oneMail.length === 1, `${monthName} statement for ${stStore.name} emailed to ${stStore.email} (message log)`);
   await page.getByRole("link", { name: /All statements/ }).click();
@@ -1214,7 +1214,7 @@ try {
   const m1 = (await one(`select now() t`)).t;
   await act("statements.emailAllStatements", () => ea.getByRole("button", { name: "Send to all owners" }).click(), () => notice(/statements? emailed to owners/).waitFor());
   const sent = Number((await notice(/statements? emailed to owners/).textContent()).match(/^(\d+)/)?.[1]);
-  const allMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "createdAt" >= $1 and body like 'Franchise statement — %'`, [m1]);
+  const allMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "createdAt" >= $1 and body like 'Franchise statement: %'`, [m1]);
   created.mails.push(...allMail.map((r) => r.id));
   assert(sent > 1 && allMail.length >= sent, `${sent} statements emailed to owners`);
 
@@ -1506,7 +1506,7 @@ function printTimings() {
   if (!timings.length) return;
   writeFileSync(`${out}/timings.json`, JSON.stringify(timings, null, 2));
   const w = Math.max(...timings.map((t) => t.label.length));
-  console.log(`\nAction timings — click → visible result (${BASE}):`);
+  console.log(`\nAction timings (click → visible result, ${BASE}):`);
   for (const t of timings) console.log(`  ${t.label.padEnd(w)}  ${String(t.ms).padStart(6)} ms${t.ms > 1500 ? "  ⚠ over 1.5 s" : ""}`);
   const slow = timings.filter((t) => t.ms > 1500);
   console.log(slow.length ? `\n${slow.length} action(s) over 1.5 s` : "\nEvery action under 1.5 s");

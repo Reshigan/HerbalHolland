@@ -39,8 +39,8 @@ export async function activePromotions(opts: { storeId?: string | null; channel:
 
 /**
  * Re-checks the promotion a quote applied, inside the order or sale transaction (after lockCustomer): a welcome gift
- * (first purchase only) needs a member with no purchase and no open online order yet, and a capped promotion — locked
- * here, then counted as sales plus open online orders — must still have a use left. Why it can't apply now, or null.
+ * (first purchase only) needs a member with no purchase and no open online order yet, and a capped promotion (locked
+ * here, then counted as sales plus open online orders) must still have a use left. Why it can't apply now, or null.
  */
 export async function promotionProblem(t: Tx, a: { promotionId: string | null | undefined; customerId: string | null | undefined }) {
   if (!a.promotionId) return null;
@@ -103,7 +103,7 @@ export type QuoteLine = {
   qty: number;
   rrpCents: number;
   shelfCents: number;
-  unitPriceCents: number; // VAT incl. — except on WHOLESALE quotes, where it is the ex-VAT trade price
+  unitPriceCents: number; // VAT incl., except on WHOLESALE quotes, where it is the ex-VAT trade price
   priceRule: string | null;
   priceValidUntil: Date | null; // end of the price list behind the unit price, when it has one (Offer.priceValidUntil)
   grossCents: number; // VAT incl.
@@ -151,7 +151,7 @@ export type QuoteInput = {
 
 /**
  * Prices a basket for a channel. POS and ONLINE: the consumer engine (shelf prices, zone/channel/member lists, tiers,
- * quantity breaks, markdowns, promotions, My Deals). WHOLESALE: the trade engine (tradeQuote) — same Quote shape, but
+ * quantity breaks, markdowns, promotions, My Deals). WHOLESALE: the trade engine (tradeQuote), with the same Quote shape, but
  * each line's `unitPriceCents` is the ex-VAT trade price, `vatCents` is 15% of the line's ex-VAT total rounded half up
  * per line (never backed out of an inclusive price) and `totalCents` = ex + VAT; the quote's `exCents` is the ex-VAT
  * total of the lines and `totalCents` = exCents + vatCents. Tiers, member/zone/channel lists, markdowns, My Deals and
@@ -206,7 +206,7 @@ export async function quote(opts: QuoteInput): Promise<Quote> {
 
   const r = applyPromotions(
     base.map(({ i, v, unit, noPromo }) => ({ key: i.variantId, productId: v.productId, categoryId: v.product.categoryId, qty: i.qty, unitPriceCents: unit, noPromo })),
-    // Welcome gifts are for a member's first purchase (none yet, and no online order still open — that one has it);
+    // Welcome gifts are for a member's first purchase (none yet, and no online order still open, since that one has it);
     // My Deals ride along as line deals.
     [...(promos as (PromoInput & { firstPurchaseOnly: boolean })[]).filter((p) => !p.firstPurchaseOnly || (memberDeals && customer?.visits === 0 && !customer._count.orders)), ...offers.map(offerPromo)],
     opts.code,
@@ -385,7 +385,7 @@ export type TradeRangeRow = {
  * The trade range at a store for an account: live products in the account's classes (never THC, and only classes the
  * store may sell), active variants that aren't made to order, with a trade price (a TRADE list or a wholesale price),
  * their case packs, prices and current availability at that store. Searchable (q: name, SKU or barcode; category: slug
- * or id) and paginated — never the whole catalogue in one go.
+ * or id) and paginated, never the whole catalogue in one go.
  */
 export async function tradeRange(
   storeId: string,
@@ -413,7 +413,7 @@ export async function tradeRange(
       ...(category ? { category: { OR: [{ slug: category }, { id: category }] } } : {}),
     },
   };
-  // Every word must match somewhere (name, SKU, barcode or product name) — or the whole query must (a SKU like "HH-CBD-001").
+  // Every word must match somewhere (name, SKU, barcode or product name), or the whole query must (a SKU like "HH-CBD-001").
   const matches = (spellings: string[]): Prisma.VariantWhereInput => ({
     OR: spellings.flatMap((t) => {
       const like = { contains: t, mode: "insensitive" as const };

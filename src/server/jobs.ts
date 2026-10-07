@@ -137,7 +137,7 @@ export const JOBS: Record<string, Steps> = {
     ledger: ledgerNightly,
     bank: autoMatchAll,
   },
-  // Staff phones: new online orders (polled — nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
+  // Staff phones: new online orders (polled, since nothing hooks the checkout), loss alerts, HQ updates to acknowledge.
   "staff-push": { orders: notifyNewOrders, alerts: notifyAlerts, announcements: notifyAnnouncements },
   // Daily operations (after `daily`): expiring lots, cash due at the bank, the low-stock digest, scheduled report
   // exports, and pruning of old push-event keys and export files.

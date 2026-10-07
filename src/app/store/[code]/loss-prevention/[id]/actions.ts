@@ -20,7 +20,7 @@ const DONE: Record<AlertStatus, string> = {
 };
 
 /** Moves an alert on (investigating, resolved, dismissed, reopened). Re-checks the store scope, the role and the
- *  alert's visibility — nobody can act on an alert about themselves, even with a hand-made request. */
+ *  alert's visibility: nobody can act on an alert about themselves, even with a hand-made request. */
 export async function updateAlert(code: string, id: string, to: AlertStatus, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {
     const user = await requireStaff(ALERT_ROLES);

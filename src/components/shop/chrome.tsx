@@ -146,7 +146,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <Link
                 href="/club"
                 className="flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3"
-                aria-label={customer ? `Rewards — ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
+                aria-label={customer ? `Rewards: ${customer.firstName}` : "Sign in to Herbal Holland Rewards"}
               >
                 <span className="relative">
                   <UserRound className="h-[22px] w-[22px]" strokeWidth={1.8} />
@@ -295,7 +295,7 @@ export function AgeGate() {
   );
 }
 
-/** Neutral page for visitors who said they're under 18 — no products, no promotion. */
+/** Neutral page for visitors who said they're under 18: no products, no promotion. */
 export function UnderAge() {
   return (
     <main className="flex min-h-dvh items-center justify-center bg-ink-950 p-6 text-center text-ink-100">

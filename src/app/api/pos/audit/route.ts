@@ -1,6 +1,6 @@
 // Audit trail for sensitive till actions that have no record of their own: the cash drawer opened outside a sale
 // (manager PIN), training mode started or ended, a queued offline sale discarded (manager PIN) after the server refused it. The till posts them at once when online and queues them in
-// localStorage when offline (storage.QueuedAudit), replaying the queue on sync — each entry carries its own id so a
+// localStorage when offline (storage.QueuedAudit), replaying the queue on sync. Each entry carries its own id so a
 // retry never writes twice.
 import { z } from "zod";
 import { db } from "@/server/db";

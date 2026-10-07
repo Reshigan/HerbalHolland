@@ -1,4 +1,4 @@
-// Trade-sale mode: the till's trade account lookup — approved accounts (and those on hold, who may still pay in
+// Trade-sale mode: the till's trade account lookup finds approved accounts (and those on hold, who may still pay in
 // money) by trading or legal name, number (TA-…, however typed) or VAT number, with their terms, balance and what
 // may still go on account right now (domain: trade/accounts.tradeAccountLookup). Read-only, so training mode may
 // call it; the account is checked again when the sale posts.

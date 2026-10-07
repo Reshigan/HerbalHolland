@@ -1,7 +1,7 @@
 "use client";
 // One row of filters above everything they scope: date range first (presets, then a
 // custom range), then stores, category, channel and the report's own options.
-// The URL is the state — shareable, bookmarkable and identical to the CSV export.
+// The URL is the state: shareable, bookmarkable and identical to the CSV export.
 import { useEffect, useRef, useState } from "react";
 import { CalendarRange, ChevronDown } from "lucide-react";
 import { RangeTabs } from "@/components/ui/range-tabs";

@@ -1,4 +1,4 @@
-// Email transport. SMTP (any ESP — Amazon SES af-south-1, Everlytic, Postmark…) via
+// Email transport. SMTP (any ESP, e.g. Amazon SES af-south-1, Everlytic, Postmark…) via
 // SMTP_URL; without it, emails are written to the message log for review (HQ → Messages).
 // The layout and templates live in email-templates.ts (pure, unit-tested); this file only delivers and logs.
 import { createTransport, type Transporter } from "nodemailer";
@@ -46,7 +46,7 @@ export async function senderIdentity(): Promise<Sender> {
 export async function finalizeEmail(e: Email): Promise<Email> {
   if (!e.html.includes(LEGAL_MARK)) return e;
   const line = legalLine(await senderIdentity());
-  return { ...e, html: e.html.replace(LEGAL_MARK, esc(line)), text: `${e.text.trimEnd()}\n\n— ${line}\nAdults 18+ only. Keep out of reach of children.` };
+  return { ...e, html: e.html.replace(LEGAL_MARK, esc(line)), text: `${e.text.trimEnd()}\n\n${line}\nAdults 18+ only. Keep out of reach of children.` };
 }
 
 /** Hands an email to SMTP; false when SMTP_URL isn't set (nothing sent). Throws on SMTP failure. */

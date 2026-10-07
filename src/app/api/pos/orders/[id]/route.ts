@@ -1,5 +1,5 @@
 // Moves an online order along (domain: orders.advanceOrder). Handover needs the customer's
-// collection code (or their collection QR — never the order code), an 18+ ID check, a dispenser for licensed items and
+// collection code (or their collection QR, never the order code), an 18+ ID check, a dispenser for licensed items and
 // payment if unpaid; delivery orders are dispatched with a courier/driver and tracking.
 import { z } from "zod";
 import { db } from "@/server/db";
@@ -19,7 +19,7 @@ const Body = z.object({
   courier: z.string().trim().max(60).optional(),
   trackingNo: z.string().trim().max(60).optional(),
   note: z.string().trim().max(200).optional(),
-  check: z.boolean().optional(), // verify the handover (code etc.) without changing the order — before taking payment
+  check: z.boolean().optional(), // verify the handover (code etc.) without changing the order, before taking payment
 });
 
 export const POST = withStaff<Ctx>(async (req, pos, { params }) => {

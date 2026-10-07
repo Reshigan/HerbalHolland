@@ -13,7 +13,7 @@ export type LoginState = { error?: string; email?: string };
 
 export async function login(_: LoginState, form: FormData): Promise<LoginState> {
   const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 254);
-  // The demo buttons sign in with the seeded accounts' password — which no account the app sets up can have.
+  // The demo buttons sign in with the seeded accounts' password, which no account the app sets up can have.
   const demo = process.env.DEMO_MODE === "true" && form.get("demo") === "1";
   const password = demo ? DEMO_PASSWORD : String(form.get("password") ?? "");
   const again = { email: String(form.get("email") ?? "").slice(0, 254) };

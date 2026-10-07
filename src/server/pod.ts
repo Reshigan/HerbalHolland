@@ -1,5 +1,5 @@
 // Merch partner for made-to-order merch (see merch.ts). South African embroidery/print-on-demand partners take
-// orders by email — none has an API — so each paid order goes to them as a production order with links to our files:
+// orders by email (none has an API), so each paid order goes to them as a production order with links to our files:
 //   POD_EMAIL=orders@partner.co.za   where production orders go (also kept in HQ → Messages)
 //   unset                            production orders are only recorded in HQ → Messages (development and demos)
 // The partner embroiders/prints, packs white-label and couriers to the customer, then emails back the tracking

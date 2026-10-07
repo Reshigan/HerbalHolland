@@ -40,21 +40,21 @@ async function main() {
   const [sales, members] = await Promise.all([db.sale.count(), db.customer.count()]);
   console.log(`${stores.length.toLocaleString("en-ZA")} trading stores · ${sales.toLocaleString("en-ZA")} sales · ${members.toLocaleString("en-ZA")} members\n`);
 
-  console.log("Network (HQ) — all stores, last 30 days");
+  console.log("Network (HQ): all stores, last 30 days");
   await time("KPIs", () => kpis(ids, r30));
   await time("Top products", () => topProducts(ids, r30));
   await time("Hourly heatmap", () => hourlyHeat(ids, r30));
   await time("Stock alerts", () => stockAlerts(ids));
   await time("Sales by store", () => salesByStore(ids, r30));
 
-  console.log(`\nMonth-end — ${month}`);
+  console.log(`\nMonth-end: ${month}`);
   const m = resolveRange({ range: "mtd" });
   await time("Profit & loss (network)", () => profitAndLoss(ids, m));
   await time("VAT report (network)", () => vatReport(ids, m));
   await time("Franchise fees (network)", () => franchiseFees(ids, m));
   await time(`Franchise statement (${one.code})`, () => franchiseStatement(one.id, month));
 
-  console.log(`\nStore — ${one.code}`);
+  console.log(`\nStore: ${one.code}`);
   await time("KPIs", () => kpis([one.id], r30));
   await time("Stock on hand", () => availability([one.id]));
   await time("Replenishment plan", () => replenishmentPlan(one.id));
@@ -66,7 +66,7 @@ async function main() {
   const hq = await db.company.findFirstOrThrow({ where: { kind: "FRANCHISOR" }, orderBy: { createdAt: "asc" }, select: { id: true } });
   const own = await db.store.findUniqueOrThrow({ where: { id: one.id }, select: { companyId: true } });
   for (const [label, companyId] of [["HQ", hq.id], [`the franchisee owning ${one.code}`, own.companyId]]) {
-    console.log(`\nBooks — ${label}, ${prev}`);
+    console.log(`\nBooks: ${label}, ${prev}`);
     await time("Trial balance", () => trialBalance(companyId, { from: prev, to: prev }));
     await time("Income statement, month by month (6 months)", () => incomeStatement(companyId, { from: addMonths(prev, -5), to: prev, by: "month" }));
     await time("Balance sheet", () => balanceSheet(companyId, monthEnd(prev)));
@@ -101,7 +101,7 @@ async function postingLoad(total: number, tills: number) {
   );
   const ready = lanes.filter((l) => l !== null);
   if (!ready.length) return console.log("\nNo tills with stock to post against.");
-  console.log(`\nPOS posting — ${total} card sales across ${ready.length} tills`);
+  console.log(`\nPOS posting: ${total} card sales across ${ready.length} tills`);
 
   const lat: number[] = [];
   let failed = 0;

@@ -7,7 +7,7 @@ describe("made-to-order merch", () => {
   it("prints in the other brand ink on each garment colour", () => {
     for (const m of MERCH) for (const p of m.prints) expect(ART[p.art].ink, `${m.slug} ${p.art}`).not.toBe(m.colour);
   });
-  it("keeps prints within A3 (297 × 420 mm) and embroidery within a 200 × 120 mm hoop — headwear within 60 mm", () => {
+  it("keeps prints within A3 (297 × 420 mm) and embroidery within a 200 × 120 mm hoop (headwear within 60 mm)", () => {
     for (const m of MERCH)
       for (const p of m.prints) {
         const a = ART[p.art];

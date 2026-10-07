@@ -178,7 +178,7 @@ export type InvoiceEmailInput = {
   refundOf: { number: string } | null;
   lines: { id: string; qty: number; unitPriceCents: number; discountCents: number; totalCents: number; vatCents?: number; variant: { name: string; product: { name: string } } }[];
   payments: { method: string; amountCents: number; reference?: string | null; cardLast4?: string | null }[];
-  /** WHOLESALE: a trade sale — rendered as a trade tax invoice (ex-VAT lines, the buyer block, account terms; never points). */
+  /** WHOLESALE: a trade sale, rendered as a trade tax invoice (ex-VAT lines, the buyer block, account terms; never points). */
   channel?: "POS" | "ONLINE" | "WHOLESALE";
   /** The buyer block of a full tax invoice (over R5,000, and every trade sale): `{ name, address, vatNumber }`, as the Sale row stores it (JSON). */
   buyer?: unknown;
@@ -276,8 +276,8 @@ export function saleInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batc
 
 /**
  * A trade sale's tax invoice: lines ex VAT with the VAT per line, the buyer block (the business, its VAT number, its
- * account), the trade order and the buyer's reference, and the terms — "On account, due …" for an ACCOUNT tender or how
- * it was paid otherwise. Never points or member savings: a business account is not a Rewards member.
+ * account), the trade order and the buyer's reference, and the terms ("On account, due …" for an ACCOUNT tender, or how
+ * it was paid otherwise). Never points or member savings: a business account is not a Rewards member.
  */
 function tradeInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes?: Record<string, string[]>; trade?: TradeInvoiceOpts }): Rendered {
   const title = invoiceTitleFor(s);
@@ -352,7 +352,7 @@ function tradeInvoiceEmail(s: InvoiceEmailInput, opts: { url: string; batchCodes
     `View or print: ${opts.url}`,
   );
   return {
-    subject: `Herbal Holland ${title.toLowerCase()} ${s.number}${b.name ? ` — ${b.name}` : ""}`,
+    subject: `Herbal Holland ${title.toLowerCase()} ${s.number}${b.name ? ` for ${b.name}` : ""}`,
     html: emailLayout({
       preheader: `${title} ${s.number} · ${zar(total)} incl. VAT${terms ? ` · ${terms}` : ""}`,
       eyebrow: `${title} · Herbal Holland ${s.store.name}`,
@@ -405,7 +405,7 @@ export function stockOrderInvoiceEmail(o: StockOrderEmailInput, opts: { url: str
     `Open in back office: ${opts.url}`,
   );
   return {
-    subject: `Tax invoice ${o.number} — ${o.seller.name}`,
+    subject: `Tax invoice ${o.number} from ${o.seller.name}`,
     html: emailLayout({ preheader: `Tax invoice ${o.number} · ${zar(opts.valueInclCents)} incl. VAT`, eyebrow: "Stock on account", heading: `Tax invoice ${o.number}`, body, cta: { label: "Open in back office", href: opts.url }, footerHtml: "Sent to the store's owner company because stock was received on account." }),
     text,
   };
@@ -464,7 +464,7 @@ export function statementEmail(st: StatementEmailInput, company: { legalName: st
     `View or print: ${opts.url}`,
   );
   return {
-    subject: `Franchise statement — ${st.store.name}, ${monthLabel}`,
+    subject: `Franchise statement: ${st.store.name}, ${monthLabel}`,
     html: emailLayout({ preheader: net, eyebrow: `Franchise statement · ${monthLabel}`, heading: `Herbal Holland ${st.store.name}`, body, cta: { label: "View or print the statement", href: opts.url }, footerHtml: "Sent to the store's owner company as the franchise agreement provides. Questions: reply to this email." }),
     text,
   };
@@ -527,7 +527,7 @@ export function zReportEmail(r: ZReport, opts: { url?: string | null } = {}): Re
     opts.url ? `\nOpen in back office: ${opts.url}` : null,
   );
   return {
-    subject: `Z-report — ${r.store.name} ${r.device ? `(${r.device.name}) ` : ""}${fmtDateTime(r.closedAt ?? r.openedAt)}`,
+    subject: `Z-report: ${r.store.name} ${r.device ? `(${r.device.name}) ` : ""}${fmtDateTime(r.closedAt ?? r.openedAt)}`,
     html: emailLayout({
       preheader: `Takings ${zar(r.takingsCents)} · variance ${signed(variance)}`,
       eyebrow: r.closed ? "Z-report · shift closed" : "X-report · shift open",

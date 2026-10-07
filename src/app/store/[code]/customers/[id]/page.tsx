@@ -52,7 +52,7 @@ export default async function MemberPage({ params, searchParams }: { params: Pro
       include: { lines: { select: { qty: true } }, payments: { select: { method: true } } },
     }),
     db.sale.count({ where: { customerId: c.id, storeId: store.id } }),
-    // Only this store's entries and network-wide ones (sign-up, birthday, quests…) — never another store's.
+    // Only this store's entries and network-wide ones (sign-up, birthday, quests…), never another store's.
     db.loyaltyEntry.findMany({ where: { customerId: c.id, OR: [{ storeId: store.id }, { storeId: null }] }, orderBy: { createdAt: "desc" }, take: 15 }),
     db.consentEvent.findMany({ where: { customerId: c.id }, orderBy: { createdAt: "desc" }, take: 12 }),
     db.patientAuth.findMany({ where: { customerId: c.id }, orderBy: { validTo: "desc" } }),

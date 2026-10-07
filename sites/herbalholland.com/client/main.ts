@@ -1,4 +1,4 @@
-// herbalholland.com — the page's one script: a small ES module, no libraries. What it does:
+// The one script on a herbalholland.com page: a small ES module, no libraries. What it does:
 //   the 18+ gate's focus (the head script shows it, takes its answers and keeps the page behind it inert), the menu
 //   dialog, the FAQ, the
 //   two forms; and the motion: one requestAnimationFrame loop drives scroll velocity (the wind that turns every
@@ -76,8 +76,8 @@ function wake() {
 }
 on(d, "visibilitychange", () => (d.hidden ? (cancelAnimationFrame(raf), (raf = 0)) : wake()));
 
-// Scroll: position, smoothed velocity (px/s), direction, and "wind" — rises with a fast scroll (or a quick cursor),
-// dies away slowly.
+// Scroll: position, smoothed velocity (px/s), direction, and "wind", which rises with a fast scroll (or a quick
+// cursor) and dies away slowly.
 let sy = scrollY;
 let prevY = sy;
 let vel = 0;

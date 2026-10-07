@@ -6,7 +6,7 @@ import { isEmail } from "@/lib/email";
 
 // ── The enquiry form ────────────────────────────────────────────────────────
 
-/** The field's label everywhere (form, HQ, export): what the enquirer could invest — never what a store costs. */
+/** The field's label everywhere (form, HQ, export): what the enquirer could invest, never what a store costs. */
 export const CAPITAL_LABEL = "Capital you could put in";
 
 /** Bands, not amounts: stored by key, shown by label. */
@@ -74,7 +74,7 @@ const yesNo = (v: unknown): boolean | null => {
 };
 const count = (n: number) => n.toLocaleString("en-US");
 
-/** A campaign tag from ?src= (e.g. linkedin, fasa-2027): lowercase letters, digits and dashes, up to 40 — like join tags. */
+/** A campaign tag from ?src= (e.g. linkedin, fasa-2027): lowercase letters, digits and dashes, up to 40 (like join tags). */
 export const leadSource = (raw?: string | null) => {
   const t = raw?.trim().toLowerCase() ?? "";
   return /^[a-z0-9][a-z0-9-]{0,39}$/.test(t) ? t : null;
@@ -203,8 +203,8 @@ export const OPEN_STATUSES: readonly LeadStatusKey[] = ["NEW", "CONTACTED", "INF
 
 /**
  * Where a lead can go next. Forward (skipping steps is fine, but only "Disclosure sent" leads to "Signed"), one step
- * back to correct a slip, "Not a fit" from anywhere — a signed franchisee can still cancel in the CPA's cooling-off
- * period — and a closed lead can be reopened.
+ * back to correct a slip, "Not a fit" from anywhere (a signed franchisee can still cancel in the CPA's cooling-off
+ * period), and a closed lead can be reopened.
  */
 export const LEAD_MOVES: Record<LeadStatusKey, readonly LeadStatusKey[]> = {
   NEW: ["CONTACTED", "INFO_EVENING", "DISCLOSURE_SENT", "NOT_A_FIT"],
@@ -222,7 +222,7 @@ export const DISCLOSURE_DAYS = 14;
 /** The first day a franchise agreement may be signed: 14 days after the disclosure document went out (SAST days). */
 export const earliestSigning = (disclosureSentAt: Date) => addDays(startOfDaySA(disclosureSentAt), DISCLOSURE_DAYS);
 
-/** Why the lead can't be marked signed yet — or null when it can. */
+/** Why the lead can't be marked signed yet, or null when it can. */
 export function signingBlock(disclosureSentAt: Date | null, now: Date): string | null {
   if (!disclosureSentAt) return "Record the day the disclosure document was sent first: signing can follow 14 days later (CPA franchise regulations).";
   const earliest = earliestSigning(disclosureSentAt);
@@ -231,7 +231,7 @@ export function signingBlock(disclosureSentAt: Date | null, now: Date): string |
   return null;
 }
 
-/** Why a lead can't move from one status to another — or null when it can. `disclosureSentAt` is the date it will have. */
+/** Why a lead can't move from one status to another, or null when it can. `disclosureSentAt` is the date it will have. */
 export function checkMove(from: LeadStatusKey, to: LeadStatusKey, ctx: { disclosureSentAt: Date | null; now: Date }): string | null {
   if (from === to) return `It's already at “${LEAD_STATUS[to].label}”.`;
   if (!LEAD_MOVES[from].includes(to)) return `A lead at “${LEAD_STATUS[from].label}” can't move to “${LEAD_STATUS[to].label}”.`;
@@ -240,7 +240,7 @@ export function checkMove(from: LeadStatusKey, to: LeadStatusKey, ctx: { disclos
   return null;
 }
 
-/** Why the disclosure date can't be set to `next` (null = cleared) on a lead at `status` — or null when it can. */
+/** Why the disclosure date can't be set to `next` (null = cleared) on a lead at `status`, or null when it can. */
 export function checkDisclosureDate(status: LeadStatusKey, next: Date | null, now: Date): string | null {
   if (status === "SIGNED") return "The agreement is signed: the disclosure date is part of the record and can't change.";
   if (!next) return status === "DISCLOSURE_SENT" ? "A lead at “Disclosure sent” needs the day the document went out." : null;
@@ -262,5 +262,5 @@ export const purgeCutoff = (now: Date) => addDays(now, -RETENTION_DAYS);
 /** When a not-a-fit lead will be deleted (if nobody reopens it). */
 export const purgeOn = (updatedAt: Date) => addDays(updatedAt, RETENTION_DAYS);
 
-/** "Thandiwe" from "Thandiwe van Wyk" — the greeting in the acknowledgement. */
+/** "Thandiwe" from "Thandiwe van Wyk": the greeting in the acknowledgement. */
 export const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;

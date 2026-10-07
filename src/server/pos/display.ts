@@ -1,6 +1,6 @@
 // Customer-facing display feed for a separate screen: the till posts its sale snapshot (device-authenticated) and
 // the display polls it back with the device id + the pairing key the till generated. Kept in memory with a short
-// TTL — nothing is stored, and there is no schema. One app instance serves a store's tills and displays; behind a
+// TTL: nothing is stored, and there is no schema. One app instance serves a store's tills and displays; behind a
 // load balancer without sticky sessions the poll may miss the instance holding the snapshot (documented in the
 // runbook: the same-device BroadcastChannel path needs no server at all).
 import { safeEqual } from "../crypto";

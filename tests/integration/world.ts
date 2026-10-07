@@ -1,6 +1,6 @@
-// Minimal but complete network for integration tests: a DC, a licensed store, staff,
-// three products with two lots each — licensed flower and a CBD oil (medicines: no incentives under s18A) and a CBD
-// coffee (CBD food & drink: promotions, member prices and points allowed) — and two customers.
+// Minimal but complete network for integration tests: a DC, a licensed store, staff, three products with two lots
+// each, and two customers. The products: licensed flower and a CBD oil (medicines: no incentives under s18A) and a CBD
+// coffee (CBD food & drink: promotions, member prices and points allowed).
 import { db } from "@/server/db";
 import { putStock } from "@/server/inventory";
 import { tx } from "@/server/db";

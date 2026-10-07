@@ -1,6 +1,6 @@
 // Merch artwork, drawn once at actual size (millimetres) and used three ways: the files the partner embroiders and
 // prints from (scripts/merch-export.tsx), the storefront mockups (MerchArt) and the brand book. Every design is one
-// colour — Sunset on black garments, black on the Sunset hoodie — so the Mark keeps its only two colourways.
+// colour (Sunset on black garments, black on the Sunset hoodie), so the Mark keeps its only two colourways.
 // Stitched designs use the heavy cut of the Mark and sturdier type: satin columns of 1 mm or more, lettering 7 mm+.
 import { MarkGlyph } from "@/components/brand/logo";
 import type { ArtKey } from "@/lib/merch";
@@ -51,9 +51,9 @@ type Art = { w: number; h: number; ink: InkName; body: React.ReactNode; note: st
 
 /** Artwork by key, at actual size. `note` describes the design; where it goes is per garment (lib/merch). */
 export const ART: Record<ArtKey, Art> = {
-  // The stitch cut of the Mark: tee chest, cap, bucket hat and beanie — one design, one digitised file.
+  // The stitch cut of the Mark: tee chest, cap, bucket hat and beanie. One design, one digitised file.
   "mark-stitch": { w: 50, h: 50, ink: "sunset", note: "Stitch cut of the Mark, 50 mm", body: <M x={0} y={0} size={50} heavy /> },
-  // Beanie cuff: the same cut at 40 mm — the most a folded rib-knit cuff takes (digitised for knit).
+  // Beanie cuff: the same cut at 40 mm, the most a folded rib-knit cuff takes (digitised for knit).
   "mark-stitch-cuff": { w: 40, h: 40, ink: "sunset", note: "Stitch cut of the Mark, 40 mm, digitised for rib knit", body: <M x={0} y={0} size={40} heavy /> },
 
   // Hoodie chest (black thread on Sunset): the horizontal lock-up, cut for stitching.
@@ -85,7 +85,7 @@ export const ART: Record<ArtKey, Art> = {
     ),
   },
 
-  // Tee back: the store window — the poster lock-up inside the window-poster frame, tagline beneath.
+  // Tee back: the store window (the poster lock-up inside the window-poster frame, tagline beneath).
   "window-back": {
     w: 250,
     h: 340,

@@ -1,6 +1,6 @@
 // Gift vouchers. Bought at /gift: the purchase is an ordinary online order for the virtual "Gift voucher" product
 // (a DRAFT product, so it is never listed, with one variant per amount and no stock), paid through the usual online
-// payment flow; when that order is paid it completes on the spot — nothing to pick — and the voucher is issued and
+// payment flow; when that order is paid it completes on the spot (nothing to pick), and the voucher is issued and
 // emailed. Redeemed at checkout (the balance pays what points left, before any online payment) or at the till, as a
 // tender like any other (sales.postPosSale; refunds go back onto the voucher first). A voucher is money, not an
 // incentive (no bonus value, allowed on everything); CPA s63(2) makes it valid for three years from issue.
@@ -39,7 +39,7 @@ export async function ensureVoucherProduct() {
       existing ??
       (await t.product.create({
         data: {
-          slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Give the gift of choice", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
+          slug: VOUCHER_PRODUCT_SLUG, name: "Gift voucher", tagline: "Spend it online or in any store", categoryId: category.id, regClass: "ACCESSORY", status: "DRAFT",
           description: "A Herbal Holland gift voucher: redeemable online or at the counter in any store, on anything in the range, for three years from the date of issue.",
           legalBasis: "Consumer Protection Act s63: a prepaid voucher, valid three years",
         },
@@ -194,7 +194,7 @@ export async function voucherForCheckout(raw: string, now = new Date()): Promise
 
 /**
  * Takes `cents` off the voucher for an order placed online (`orderId`), a till sale (`saleId`) or a counter voucher on a
- * pay-in-store order handed over at the till (both) — inside that transaction. Refuses if the balance moved meanwhile.
+ * pay-in-store order handed over at the till (both), inside that transaction. Refuses if the balance moved meanwhile.
  */
 export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: number; actor: Actor; orderId?: string | null; saleId?: string | null; storeId?: string | null }) {
   if (a.cents <= 0) return;
@@ -232,12 +232,12 @@ export async function restoreVoucherTx(t: Tx, a: { code: string; cents: number; 
   return updated;
 }
 
-// Order-level sums count the positive rows only — what the order took from vouchers. A refund's negative rows sit
+// Order-level sums count the positive rows only: what the order took from vouchers. A refund's negative rows sit
 // against the credit note (and carry the order id for tracing) but never change what the order paid, so what's due
 // in money on the order stays right after a return.
 const TAKEN = { reversed: false, cents: { gt: 0 } } as const;
 
-/** Money an order took from vouchers — what online payment, the till and refunds leave out. */
+/** Money an order took from vouchers: what online payment, the till and refunds leave out. */
 export async function voucherCentsOf(orderId: string, t: Tx | typeof db = db) {
   return (await t.voucherRedemption.aggregate({ where: { orderId, ...TAKEN }, _sum: { cents: true } }))._sum.cents ?? 0;
 }

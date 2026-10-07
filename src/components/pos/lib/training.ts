@@ -1,10 +1,10 @@
-// Training mode: the whole till runs against a clearly marked sandbox. Nothing here touches the server — these are
+// Training mode: the whole till runs against a clearly marked sandbox. Nothing here touches the server: these are
 // the pure rules (what the sandbox may call, how training receipts are numbered, the guided tour) so they can be
 // unit-tested (tests/till-hardware.test.ts). The till keeps the mode's state in localStorage (storage.ts) and
 // api.ts refuses every write while it is on.
 
 export type TrainingState = {
-  since: string; // ISO — when the manager switched it on
+  since: string; // when the manager switched it on (ISO)
   byId: string; // the manager who enabled it
   byName: string;
   seq: number; // sandbox receipt sequence (never the device's real one)
@@ -24,8 +24,8 @@ export class TrainingError extends Error {
  * the customer display feed (in-memory), a gift voucher lookup (it only reads the balance; a practice sale never
  * redeems it), a trade account lookup (a practice trade sale never posts or touches the account's ledger) and the
  * audit call itself (entering/leaving training is audited).
- * Every other write — sales, refunds, sign-ups, age checks, check-ins, orders (trade handovers included), shifts,
- * invoices, card sessions, pairing — is refused, so a practice sale can never post, print for real, move stock or
+ * Every other write is refused (sales, refunds, sign-ups, age checks, check-ins, orders including trade handovers, shifts,
+ * invoices, card sessions, pairing), so a practice sale can never post, print for real, move stock or
  * award points.
  */
 const WRITES_ALLOWED = ["/api/pos/quote", "/api/pos/compliance", "/api/pos/session", "/api/pos/display", "/api/pos/audit", "/api/pos/vouchers", "/api/pos/trade/accounts"];

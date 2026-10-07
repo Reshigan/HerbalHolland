@@ -1,5 +1,5 @@
-// Trade reports: sales to business accounts — the WHOLESALE channel: the trade portal's orders, fulfilled by a
-// distribution centre or collected at a store, and trade sales rung up at a till to an account — by account, product
+// Trade reports: sales to business accounts (the WHOLESALE channel: the trade portal's orders, fulfilled by a
+// distribution centre or collected at a store, and trade sales rung up at a till to an account) by account, product
 // and month, and the accounts' aged balances from HQ's trade ledger. Trade volume is a fraction of retail, so these
 // read Sale and TradeLedgerEntry directly, always bounded by the report's stores and dates.
 import type { Role } from "@/generated/prisma/client";

@@ -1,5 +1,5 @@
 // The made-to-order merch collection: which garment, colour and embroidery/print each product carries. Our merch
-// partner (Lucani, Cape Town) makes each piece when it's ordered and couriers it, white-label, to the customer —
+// partner (Lucani, Cape Town) makes each piece when it's ordered and couriers it, white-label, to the customer:
 // no stock, no minimums. Upmarket by design: the logos are embroidered; the big back graphics and the tote are
 // printed (DTF: printed film, heat-pressed). Pieces the partner can't make yet are held back (`pending`).
 // Artwork lives in src/components/merch/art.tsx; the partner's files are rendered by scripts/merch-export.tsx.

@@ -2,7 +2,7 @@ export const TZ = "Africa/Johannesburg";
 
 const dayFmt = new Intl.DateTimeFormat("en-CA", { timeZone: TZ, year: "numeric", month: "2-digit", day: "2-digit" });
 
-/** YYYY-MM-DD in South African time — the business day used for rollups and reports. */
+/** YYYY-MM-DD in South African time: the business day used for rollups and reports. */
 export const dayKey = (d: Date) => dayFmt.format(d);
 
 /** Midnight SAST of the business day containing `d`, as a UTC Date (SAST is UTC+2, no DST). */

@@ -1,6 +1,6 @@
 // Bank statements, read in pure code: the CSV exports of the big five South African banks (FNB, Absa, Standard Bank,
-// Nedbank, Capitec), OFX/QFX, and any other CSV by its columns. Each becomes statement lines — a day, signed cents
-// (money in positive), the description, the reference and the balance after it — in date order, with a stable hash so
+// Nedbank, Capitec), OFX/QFX, and any other CSV by its columns. Each becomes statement lines in date order (a day,
+// signed cents with money in positive, the description, the reference and the balance after it), with a stable hash so
 // importing the same statement again adds nothing. matchCandidates ranks the postings a line could be matched to, and
 // reconcile explains the books against the statement.
 import { createHash } from "node:crypto";

@@ -178,7 +178,7 @@ export async function notifyOrder(o: OrderForNotice, kind: OrderEvent, extra: { 
   await sendEmail({ ...r, to: o.customer.email, customerId: o.customer.id }).catch((e) => console.error("[messaging] order email failed", o.code, e));
 }
 
-/** A batch (≤ 500, one channel) — campaigns and alerts. Returns how many were delivered; failures are logged per message. */
+/** A batch (≤ 500, one channel) for campaigns and alerts. Returns how many were delivered; failures are logged per message. */
 export async function sendBulk(
   rows: { campaignId?: string; customerId: string; to: string; channel: MsgChannel; body: string; subject?: string; url?: string }[],
   kind: OutboundMessage["kind"] = "MARKETING",

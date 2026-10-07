@@ -14,7 +14,7 @@ const CHANNEL_LABEL: Record<Channel, string> = { SMS: "SMS", EMAIL: "email", PUS
 
 /**
  * "Remind me to reorder": every N days, one message with a one-tap link that adds the item to the bag. Nothing is
- * charged — there's no card on file. Shown for consumables (coffee, collagen, oils…), never for medicines.
+ * charged: there's no card on file. Shown for consumables (coffee, collagen, oils…), never for medicines.
  */
 export function RemindMe({ variantId, signedIn, next, existing, days, channels, className }: { variantId: string; signedIn: boolean; next: string; existing: ReminderFacts; days: readonly number[]; channels: { key: Channel; label: string; disabled?: string }[]; className?: string }) {
   const [open, setOpen] = useState(false);

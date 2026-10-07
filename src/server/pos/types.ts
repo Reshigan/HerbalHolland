@@ -310,7 +310,7 @@ export type ReceiptPayment = {
 export type ReceiptVoucher = { code: string; paidCents: number; refundedCents: number };
 
 /**
- * A WHOLESALE (trade) sale or its credit note: the account, what went on its ledger and when it's due — what the tax
+ * A WHOLESALE (trade) sale or its credit note: the account, what went on its ledger and when it's due, which is what the tax
  * invoice prints under "On account · due …" and the refund sheet needs for its split (the on-account part comes back
  * as a credit note before any money moves).
  */
@@ -335,10 +335,10 @@ export type ReceiptDTO = {
   createdAt: string;
   offline: boolean;
   queued?: boolean; // client-side: not yet synced
-  training?: boolean; // client-side: rung up in training mode — never posted, printed with a TRAINING watermark
+  training?: boolean; // client-side: rung up in training mode, never posted, printed with a TRAINING watermark
   refundOf: { id: string; number: string } | null;
   staff: string | null;
-  /** Who built the basket when a dispenser (`staff`) completed the sale — "Sold by X · dispensed by Y". Only when they differ. */
+  /** Who built the basket when a dispenser (`staff`) completed the sale: "Sold by X · dispensed by Y". Only when they differ. */
   soldBy?: string | null;
   customer: { id: string; name: string; memberNo: string; tier: TierKey; points: number } | null;
   lines: ReceiptLine[];
@@ -353,7 +353,7 @@ export type ReceiptDTO = {
   pointsRedeemed: number;
   payments: ReceiptPayment[];
   vouchers?: ReceiptVoucher[]; // gift vouchers that paid on this sale (sales only)
-  /** Sales: each money tender (card, cash, PayShap, EFT) — what it paid and what refunds already gave back on it (the refund sheet's split). */
+  /** Sales: each money tender (card, cash, PayShap, EFT), with what it paid and what refunds already gave back on it (the refund sheet's split). */
   money?: MoneyPart[];
   trade?: ReceiptTrade | null; // WHOLESALE: the trade account and the on-account part
   promoCode: string | null;
@@ -410,8 +410,8 @@ export type ZReport = {
     counts: Record<string, number> | null;
   };
   takingsCents: number;
-  /** A blind X-report (a shift still open, seen by someone other than a manager): what the drawer should hold — expected
-   *  cash, cash takings and the cash tender — is left out until the count is in. */
+  /** A blind X-report (a shift still open, seen by someone other than a manager): what the drawer should hold (expected
+   *  cash, cash takings and the cash tender) is left out until the count is in. */
   blind?: boolean;
   /** Licensed medicines dispensed in the shift (tills cached before this field carry none). */
   dispensing?: { count: number; units: number; grams: number; cents: number } | null;

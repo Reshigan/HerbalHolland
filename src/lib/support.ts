@@ -115,7 +115,7 @@ export function slaState(
   };
 }
 
-/** "due in 3 h", "overdue by 2 d", "due today 16:00" — the queue's SLA column. */
+/** The queue's SLA column: "due in 3 h", "overdue by 2 d", "due today 16:00". */
 export function slaLabel(dueAt: Date, now: Date) {
   const ms = dueAt.getTime() - now.getTime();
   const abs = Math.abs(ms);

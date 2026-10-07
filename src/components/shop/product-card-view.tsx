@@ -27,7 +27,7 @@ export function StockLine({ stock, className }: { stock: Card["stock"]; classNam
 
 /**
  * `art` is the server-rendered picture; `buyable={false}` drops the quick-add (e.g. a limited drop that isn't open to
- * this shopper yet); `wished` (a member's wishlist state for the first variant) shows the heart — null for guests.
+ * this shopper yet); `wished` (a member's wishlist state for the first variant) shows the heart (null for guests).
  */
 export function ProductCardView({ p, art, buyable = true, wished = null }: { p: Card; art: React.ReactNode; buyable?: boolean; wished?: boolean | null }) {
   const low = (p.stock.kind === "store" || p.stock.kind === "ships") && p.stock.low;

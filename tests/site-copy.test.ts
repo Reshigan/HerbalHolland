@@ -1,5 +1,5 @@
-// Every string on herbalholland.com passes the platform's copy screen — the same one that guards campaigns and product
-// claims (ARB Code, Medicines Act s20) — with no allow-list: rephrase whatever it flags. Plus the site's own voice rules.
+// Every string on herbalholland.com passes the platform's copy screen, the same one that guards campaigns and product
+// claims (ARB Code, Medicines Act s20), with no allow-list: rephrase whatever it flags. Plus the site's own voice rules.
 import { describe, expect, it } from "vitest";
 import * as content from "../sites/herbalholland.com/content";
 import { PRESS, fill, plural, releasesOn, shopOpenClaim } from "../sites/herbalholland.com/content";
@@ -27,7 +27,7 @@ describe("site copy", () => {
   });
 
   it("passes screenCopy: no medical claims, conditions, intoxication, minors or absolute claims", () => {
-    const flagged = ALL.flatMap(([path, text]) => screenCopy(text).map((f) => `${path}: "${f.term}" — ${f.reason}`));
+    const flagged = ALL.flatMap(([path, text]) => screenCopy(text).map((f) => `${path}: "${f.term}" (${f.reason})`));
     expect(flagged).toEqual([]);
   });
 
@@ -40,7 +40,7 @@ describe("site copy", () => {
       [/\bR ?\d|%|\b(deals?|specials?|promo(tion)?s?(?! of access to information)|coupons?|vouchers?|bargains?)\b/i, "no prices or deals on .com"],
       [/\b(proven|projected returns?|return on investment)\b/i, "no earnings or performance claims"],
     ];
-    const broken = ALL.flatMap(([path, text]) => RULES.filter(([re]) => re.test(text)).map(([re, why]) => `${path}: "${text.match(re)![0]}" — ${why}`));
+    const broken = ALL.flatMap(([path, text]) => RULES.filter(([re]) => re.test(text)).map(([re, why]) => `${path}: "${text.match(re)![0]}" (${why})`));
     expect(broken).toEqual([]);
   });
 });

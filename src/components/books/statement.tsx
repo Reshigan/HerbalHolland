@@ -1,5 +1,5 @@
 // A financial statement as a table: section headings, account lines that drill down to their ledger, computed lines,
-// subtotals and grand totals, one column per period, month or store — and, with `change`, the change between two of
+// subtotals and grand totals, one column per period, month or store. With `change`, also the change between two of
 // the columns. Server-safe; the layouts come from @/lib/ledger-reports.
 import Link from "next/link";
 import { cn } from "@/lib/cn";

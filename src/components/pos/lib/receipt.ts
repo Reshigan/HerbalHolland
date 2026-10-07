@@ -130,7 +130,7 @@ export function receiptBytes(r: ReceiptDTO, o: ReceiptOptions): Uint8Array {
   p.rule();
 
   // A trade sale (WHOLESALE) is a full tax invoice: unit prices ex VAT, VAT per line, the account's buyer block,
-  // "On account" with its due date — and never points, member prices or deals.
+  // "On account" with its due date, and never points, member prices or deals.
   const trade = r.channel === "WHOLESALE" ? (r.trade ?? null) : null;
   const isTrade = r.channel === "WHOLESALE";
   const anyLicensed = r.lines.some((l) => licensed(l.variantId));

@@ -1,7 +1,7 @@
 // Franchise enquiries: the form on herbalholland.com/franchise creates them, HQ (admin + HQ team) works them in
 // HQ → Franchise leads. Rules live in @/lib/leads.
 // POPIA: the personal information stays in the lead, which only HQ can open. The audit log keeps numbers, areas,
-// statuses and staff names — never the enquirer's details or notes; the team's notification email carries no contact
+// statuses and staff names, never the enquirer's details or notes; the team's notification email carries no contact
 // details; not-a-fit leads are deleted a year after their last change (purgeLeads, in the daily job) and deleteLead
 // serves a data subject's request. Both also erase the lead's two emails from the message log.
 import { createHmac } from "node:crypto";
@@ -37,7 +37,7 @@ import type { FranchiseLead, Prisma, Role } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
 import { clientIpFrom } from "@/lib/client-ip";
 
-/** Who may see and work franchise leads: HQ admin and the HQ team — not area managers. */
+/** Who may see and work franchise leads: HQ admin and the HQ team, not area managers. */
 export const LEAD_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF"];
 
 /** An expected, user-facing failure (shown inline in HQ). */
@@ -69,8 +69,8 @@ export type EnquiryResult =
 
 /**
  * A franchise enquiry from the site: honeypot, validation, limits (3 per connection an hour, 2 per email address a
- * day), then the lead (FL-000123), its audit entry, and two emails — the team's notification and the enquirer's
- * acknowledgement. An email that can't be sent never loses the enquiry.
+ * day), then the lead (FL-000123), its audit entry, and two emails (the team's notification and the enquirer's
+ * acknowledgement). An email that can't be sent never loses the enquiry.
  */
 export async function createLead(input: EnquiryInput, meta: { ip?: string | null } = {}): Promise<EnquiryResult> {
   // People never see the "website" field; form-filling bots do. They get the same thank-you, and nothing is kept.
@@ -155,7 +155,7 @@ async function notify(l: FranchiseLead) {
         footerHtml: "Sent to the franchise team because an enquiry arrived on herbalholland.com/franchise.",
       }),
     }),
-    // The enquirer: a one-off acknowledgement with their reference — no marketing.
+    // The enquirer: a one-off acknowledgement with their reference, and no marketing.
     sendLogged(logIds(l.id)[0], {
       to: l.email,
       subject: `Your franchise enquiry ${l.number}`,
@@ -215,7 +215,7 @@ const tidy = (s: string | null | undefined) =>
 const day = (d: Date | null) => (d ? dayKey(d) : null);
 
 /**
- * Moves a lead on, assigns it, edits its notes or records when the disclosure document went out — any mix, checked
+ * Moves a lead on, assigns it, edits its notes or records when the disclosure document went out (any mix), checked
  * against the pipeline rules (a signed agreement no sooner than 14 days after the disclosure document) and audited
  * as `lead.update` with each change's from/to. Throws LeadError with a message for the person.
  */
@@ -308,7 +308,7 @@ export function leadSearch(raw?: string | null): Prisma.FranchiseLeadWhereInput 
   return { OR: [...(number ? [{ number }] : []), { number: like }, { name: like }, { email: like }, { area: like }] };
 }
 
-/** Deletes a lead and blanks its emails in the message log — for a data subject's request (POPIA s24). HQ admin only. */
+/** Deletes a lead and blanks its emails in the message log, for a data subject's request (POPIA s24). HQ admin only. */
 export async function deleteLead(id: string, actor: Actor) {
   const lead = await db.franchiseLead.findUnique({ where: { id }, select: { id: true, number: true } });
   if (!lead) throw new LeadError("That enquiry has already been deleted.");

@@ -1,5 +1,5 @@
 "use client";
-// Product facts at the counter: net content, declared allergens and the ingredients — for members who ask what's in
+// Product facts at the counter: net content, declared allergens and the ingredients, for members who ask what's in
 // the coffee, the protein or the cream. Works offline (the facts come with the till's catalogue).
 import { AlertTriangle, Info } from "lucide-react";
 import { allergenStatement, carriesFact, declaresAllergens, netContentLabel, REG_CLASS_LABEL } from "@/lib/compliance";
@@ -10,7 +10,7 @@ import type { BootProduct } from "@/server/pos/types";
 /** True when there's something to show: net content, ingredients or an allergen declaration (older records may have none). */
 export const hasFacts = (p: BootProduct) => !!p.facts && (p.facts.netContent != null || !!p.facts.ingredients || p.facts.allergens.length > 0);
 
-/** "1 kg · Contains: milk, soybeans" — or null for products without facts. */
+/** "1 kg · Contains: milk, soybeans", or null for products without facts. */
 export function factsLine(p: BootProduct) {
   const f = p.facts;
   if (!f) return null;

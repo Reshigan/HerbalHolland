@@ -115,7 +115,7 @@ describe("the big five banks' downloads", () => {
     ]);
   });
 
-  it("Capitec: money in, money out and a fee column — the fee becomes a line of its own", () => {
+  it("Capitec: money in, money out and a fee column; the fee becomes a line of its own", () => {
     const cap = [
       "Nr,Account,Posting Date,Transaction Date,Description,Original Description,Parent Category,Category,Money In,Money Out,Fee,Balance",
       "1,1501234567,2026-10-01,2026-09-30,Herbal Holland,Received: Herbal Holland Stmt Sep,Income,Other Income,1500.00,,,3500.00",

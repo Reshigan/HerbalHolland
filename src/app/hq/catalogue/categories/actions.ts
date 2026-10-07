@@ -75,7 +75,7 @@ export async function moveCategory(categoryId: string, delta: -1 | 1) {
   refresh();
 }
 
-/** Delete a category — only once no product (active, draft or archived) is in it. */
+/** Delete a category, only once no product (active, draft or archived) is in it. */
 export async function deleteCategory(categoryId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   void fd;
   const g = await guard("network");

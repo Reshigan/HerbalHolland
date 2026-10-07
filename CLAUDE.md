@@ -1,6 +1,6 @@
 @AGENTS.md
 
-# Herbal Holland platform — conventions
+# Herbal Holland platform: conventions
 
 Commerce platform for a multi-owner (franchise) cannabis retail network in South Africa, built to scale to ~1,000 stores:
 POS, inventory control, purchasing, finance, e-commerce (click & collect + delivery), Herbal Holland Rewards loyalty, marketing, HQ console, reports.
@@ -39,7 +39,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 | Trade portal (wholesale buyers) | `/trade`, `/trade/*` | dark brand |
 | Menu board (in-store TV) | `/menu/[slug]` | dark, 16:9 |
 | Tax invoice (public, signed link) | `/invoice/[id]?t=` | print-friendly |
-| Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com` — static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
+| Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com`, with static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
 
 ## Engineering rules
 
@@ -47,7 +47,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   When unsure about an API, read `node_modules/next/dist/docs/`.
 - Mutations = server actions in an `actions.ts` next to the page (`"use server"`), re-checking auth + scope inside the action,
   then `revalidatePath` / `redirect`. Use `useActionState` for inline errors.
-- Auth & scope — never trust a client-supplied store id:
+- Auth & scope (never trust a client-supplied store id):
   - back office pages/actions: `const user = await requireStaff(); const store = await storeForUser(user, code);`
   - writes: `canManageStore(user)`; HQ pages: `requireStaff(HQ_ROLES)` + `scopedStoreIds(scopeOf(user))` (area managers see their region only).
 - Reuse the domain services instead of writing new business logic in pages:
@@ -55,8 +55,8 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   `stock-orders` (createStockOrder, actOnStockOrder), `replenishment`, `pricing` (quote), `loyalty`, `customers`,
   `compliance` (evaluateBasket), `finance`, `marketing`, `invoices`, `dashboard`, `settings`, `audit`,
   `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
-  `queueStoreDay` inside its own transaction — postings are rebuilt from their source, never written by hand; manual
-  journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts` — nobody sees an
+  `queueStoreDay` inside its own transaction; postings are rebuilt from their source, never written by hand, and manual
+  journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts`, so nobody sees an
   alert about themselves), `commission`, `storage` (putObject/getObject: R2/S3 or `UPLOAD_DIR`; serve files through the app).
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
   `zarCompact` from `@/lib/money`; read typed amounts with `parseRand` and fill amount inputs with `centsToInput` (same file). Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
@@ -73,7 +73,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 - Compliance is data-driven (`@/lib/compliance` + HQ settings): licence-gated THC (medical mode by default: SAHPRA patient
   authorisation + authorised dispenser), 18+ checks, Schedule 0 CBD limits, Medicines Act s18A (no incentives on medicines),
   POPIA consent + CPA send windows for marketing. Don't bypass it in UI code.
-  Classes: `THC`, `CBD` (supplements; no incentives by default via `noIncentives`), `CBD_FOOD` (≤ 0.0075%, naturally occurring), `CBD_TOPICAL`, `HEMP`, `SUPPLEMENT` (no cannabis), `ACCESSORY`, `APPAREL`, `GROW` — rules and product facts (net content, ingredients, R146 allergens) in `validateProduct()`.
+  Classes: `THC`, `CBD` (supplements; no incentives by default via `noIncentives`), `CBD_FOOD` (≤ 0.0075%, naturally occurring), `CBD_TOPICAL`, `HEMP`, `SUPPLEMENT` (no cannabis), `ACCESSORY`, `APPAREL`, `GROW`. Rules and product facts (net content, ingredients, R146 allergens) are in `validateProduct()`.
 - No new dependencies without a strong reason. Pure logic goes in `src/lib` with a vitest test in `tests/`.
 
 ## Design language
@@ -91,7 +91,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   (server-action forms with inline errors),
   PageHeader/EmptyState/Notice, Stat/Meter, TabLinks, RangeTabs, Pagination, Avatar/Detail),
   admin shell `@/components/admin/*` (AdminShell with keyboard shortcuts + command palette, NavProgress, SavedViews),
-  brand `@/components/brand/logo` (Mark, Logo, Lockup, Wordmark), `@/components/product/art` (ProductArt — no stock photos),
+  brand `@/components/brand/logo` (Mark, Logo, Lockup, Wordmark), `@/components/product/art` (ProductArt; no stock photos),
   charts `@/components/charts/*` (AreaChart, ColumnChart, Donut, BarList, Heatmap, Sparkline).
 - Charts follow the dataviz rules: series colours `var(--color-series-1..8)` in fixed order (validated palette), one axis,
   legend only for ≥2 series, text in ink colours (never series colours), hover tooltips on.

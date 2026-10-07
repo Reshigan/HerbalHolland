@@ -1,6 +1,6 @@
 // A company's bank accounts and their statements. The first bank account carries the books' "Bank" account (key
 // bank, which the automatic postings use); each further one gets a ledger account of its own. Statements are imported
-// (every line once, the file kept), matched to postings already in the books — automatically when exactly one fits —
+// (every line once, the file kept), matched to postings already in the books (automatically when exactly one fits),
 // and the rest allocated with a journal of their own (source "bank", the line's id): bank charges, card payouts net of
 // fees, interest, a SARS payment, a transfer between the company's own accounts. The reconciliation explains the
 // books' balance from the statement's at any date. Every write re-checks access to the books and is audited.
@@ -36,7 +36,7 @@ const SUGGEST_DAYS = 10;
 
 /**
  * Accounts kept by their own records: a bank line isn't allocated to them (that would put the books out with the
- * register they mirror) — the payment is recorded where it belongs, and the line then matches its posting.
+ * register they mirror). The payment is recorded where it belongs, and the line then matches its posting.
  */
 const KEPT: Record<string, string> = {
   hq: "Payments to and from Herbal Holland are recorded as statement payments, so both sets of books get them. This line then matches by itself.",
@@ -61,7 +61,7 @@ const dateCol = (s: string) => new Date(`${s}T00:00:00Z`);
 const shift = (s: string, n: number) => day(new Date(Date.parse(`${s}T00:00:00Z`) + n * 86_400_000));
 const lock = (t: Tx, bankAccountId: string) => t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank:${bankAccountId}`}))`;
 
-/** The signed-in person, allowed to change these books — or a refusal. `by`: server code acting for someone (the demo seed). */
+/** The signed-in person, allowed to change these books, or a refusal. `by`: server code acting for someone (the demo seed). */
 async function writer(companyId: string, by?: { id: string; name: string }) {
   if (by) return { actor: { type: "USER" as const, id: by.id, name: by.name }, user: by };
   const a = await booksAccess(companyId, "write");
@@ -344,8 +344,8 @@ const MANY_LINES = new Set(["store-day"]);
 const PART_DAYS = 3;
 
 /**
- * For each open line given: the postings it could be, best first (three at most), with what's left of each to match —
- * the same amount, or (when none has it) a trading day it could be part of.
+ * For each open line given: the postings it could be, best first (three at most), with what's left of each to match
+ * (the same amount or, when none has it, a trading day it could be part of).
  */
 export async function suggestionsFor(companyId: string, acct: { id: string; accountId: string }, lines: { id: string; status: BankLineStatus; date: Date; amountCents: number; description: string; reference: string | null }[]) {
   const open = lines.filter((l) => l.status === "UNMATCHED");
@@ -430,7 +430,7 @@ export async function unignoreLine(companyId: string, lineId: string) {
 
 /**
  * What a line is allocated to: another account (with the store, the supplier or other party the account needs, and
- * the VAT on money out for a VAT vendor), or a card payout that lands net — the fee (and its VAT) to card fees, the
+ * the VAT on money out for a VAT vendor), or a card payout that lands net: the fee (and its VAT) to card fees, the
  * gross clearing card payments (or, for HQ, online payments).
  */
 export type Allocation =

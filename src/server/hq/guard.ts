@@ -1,8 +1,8 @@
 // HQ console access control. Pages call requireStaff(HQ_ROLES) + scopeOf + scopedStoreIds;
 // server actions call guard(level) and re-check store scope before touching a row.
-//   view    — HQ admin, HQ team, area managers (area managers see their region only)
-//   network — network-wide merchandising, marketing and operations (HQ admin + HQ team)
-//   admin   — commercial terms, compliance, programme settings, POPIA tools, users (HQ admin)
+//   view:    HQ admin, HQ team, area managers (area managers see their region only)
+//   network: network-wide merchandising, marketing and operations (HQ admin + HQ team)
+//   admin:   commercial terms, compliance, programme settings, POPIA tools, users (HQ admin)
 import { redirect } from "next/navigation";
 import { getStaff, HQ_ROLES, type Staff } from "@/server/auth";
 import { scopeOf, scopedStoreIds, storeWhere, type Scope } from "@/server/scope";

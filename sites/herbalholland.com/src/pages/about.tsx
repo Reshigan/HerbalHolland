@@ -1,4 +1,4 @@
-// herbalholland.com/about — our story, why a windmill (the mark draws itself), our heritage, the standards we keep
+// herbalholland.com/about: our story, why a windmill (the mark draws itself), our heritage, the standards we keep
 // and the way in. No partners, strains or claims beyond ./facts and the approved copy.
 import { ABOUT, fill } from "../../content";
 import { openStores, shopLink } from "../../facts";

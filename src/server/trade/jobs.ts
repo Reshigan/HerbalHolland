@@ -30,7 +30,7 @@ export async function tradeEftExpiry(now = new Date()) {
 
 /**
  * Accounts on credit terms with an invoice still open more than `trade.overdueGraceDays` past its due date (after
- * payments are applied FIFO) go ON_HOLD with the reason "overdue" — emailed, and lifted by itself when settled.
+ * payments are applied FIFO) go ON_HOLD with the reason "overdue". The hold is emailed, and lifted by itself when settled.
  */
 export async function tradeOverdueHolds(now = new Date()) {
   const { trade } = await getSettings();
@@ -54,7 +54,7 @@ const STATEMENT_DAYS = 7;
 
 /**
  * From the statement day (SAST), last month's statement to every approved or held account that had a balance or any
- * movement in the month — once per account and month (message log `trade-statement-<account>-<month>`). Until the
+ * movement in the month, once per account and month (message log `trade-statement-<account>-<month>`). Until the
  * week is out, an account whose statement hasn't gone yet, or whose email failed, gets it on the next run; one that
  * went is never sent again.
  */

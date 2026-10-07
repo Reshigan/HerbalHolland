@@ -1,5 +1,5 @@
 // Bag cookie codec (pure). Compact and cookie-safe: "<variantId>_<qty>.<variantId>_<qty>".
-// Prices are never stored client-side — the bag is re-quoted on the server every time.
+// Prices are never stored client-side: the bag is re-quoted on the server every time.
 export type CartItem = { variantId: string; qty: number };
 
 export const CART_MAX_LINES = 30;

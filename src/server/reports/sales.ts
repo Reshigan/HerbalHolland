@@ -353,11 +353,11 @@ export const salesByHour: ReportDef = {
   },
 };
 
-// ── Budtender performance ───────────────────────────────────────────────────
+// ── Sales by staff ───────────────────────────────────────────────────────────────
 export const salesByStaff: ReportDef = {
   key: "sales-by-staff",
   title: "Sales by staff",
-  description: "How is each budtender performing? Sales, baskets, member sign-in and refunds.",
+  description: "How is each person at the till doing? Sales, baskets, member sign-in and refunds.",
   group: "Sales",
   scopes: ["store", "hq"],
   filters: ["range", "channel"],

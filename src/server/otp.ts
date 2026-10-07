@@ -1,7 +1,7 @@
 // One-time sign-in codes: members by SMS, trade buyers by email. Each step for an address runs under a Postgres
 // advisory lock, so the limits hold however many requests arrive at once: five codes per address per 10 minutes, five
 // tries per code, and ten wrong tries per address per hour across all its codes (then it waits out the hour).
-// Two wider limits stop anyone running up the SMS bill (src/server/throttle.ts): ten codes an hour from one connection,
+// Two wider limits stop anyone running up the SMS bill (src/server/throttle.ts): thirty codes an hour from one connection (CODES_PER_IP_HOUR),
 // and a network-wide ceiling on texts an hour (OTP_SMS_HOURLY_MAX, default 500) that pauses SMS codes when reached.
 import { randomInt } from "node:crypto";
 import { db, tx, type Tx } from "./db";
@@ -46,7 +46,7 @@ async function smsCeiling() {
   const max = Number(process.env.OTP_SMS_HOURLY_MAX ?? 500);
   if (await hit("otp-sms:all", max, HOUR_MS)) return;
   if (await hit("otp-sms:alerted", 1, HOUR_MS)) {
-    console.error(`[otp] SMS ceiling reached: ${max} sign-in codes in the last hour — new SMS codes are refused until the hour passes (OTP_SMS_HOURLY_MAX)`);
+    console.error(`[otp] SMS ceiling reached: ${max} sign-in codes in the last hour. New SMS codes are refused until the hour passes (OTP_SMS_HOURLY_MAX)`);
     await audit(db, SYSTEM, "otp.ceiling", { data: { max } });
   }
   throw new OtpLimitError("We can't send codes right now. Please try again shortly");

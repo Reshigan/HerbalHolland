@@ -153,7 +153,7 @@ export function matchesSearch(r: Pick<StockRow, "name" | "sku" | "barcode" | "ca
 }
 
 /**
- * The rows a search finds: those matching as typed — or, when none do (a typo: "durbn"), the rows whose product name or
+ * The rows a search finds: those matching as typed or, when none do (a typo: "durbn"), the rows whose product name or
  * variant name is close to it (closeProducts, bounded to these rows' products), closest first. `close` says which.
  */
 export async function searchStock<R extends Pick<StockRow, "productId" | "name" | "sku" | "barcode" | "category">>(rows: R[], q: string) {

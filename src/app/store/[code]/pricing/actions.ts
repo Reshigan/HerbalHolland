@@ -15,7 +15,7 @@ async function managePrices(code: string) {
   return manage(code);
 }
 
-/** Saves edited shelf prices (null = back to the recommended / list price). Warnings only — never blocks. */
+/** Saves edited shelf prices (null = back to the recommended / list price). Warnings only, never blocks. */
 export async function savePrices(code: string, changes: { variantId: string; priceCents: number | null }[]): Promise<ActionState> {
   return attempt(async () => {
     const { store, actor } = await managePrices(code);

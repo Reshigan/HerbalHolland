@@ -1,8 +1,8 @@
 // Receipt printer adapter for the till: pairs a Bluetooth LE or USB ESC/POS printer, remembers it on this device,
 // sends the bytes lib/escpos.ts builds, and kicks the cash drawer wired to the printer. When nothing is paired the
-// till falls back to the browser's print dialog (print.tsx) — every tablet keeps working without hardware.
+// till falls back to the browser's print dialog (print.tsx), so every tablet keeps working without hardware.
 //
-// Browser support: Web Bluetooth and Web USB — Chrome / Edge / Samsung Internet on Android, ChromeOS, Windows,
+// Browser support: Web Bluetooth and Web USB work in Chrome / Edge / Samsung Internet on Android, ChromeOS, Windows,
 // macOS and Linux. Not Safari / iPhone / iPad (browser print → AirPrint there). Web Bluetooth speaks BLE (GATT)
 // only: classic Bluetooth "SPP" printers must be paired at the OS level and driven some other way, or replaced
 // with a BLE model. Both APIs need a secure context (https, or localhost) and a tap to pair.
@@ -100,7 +100,7 @@ async function writableCharacteristic(server: BleServer): Promise<BleCharacteris
       const ch = chars.find((c) => c.properties.writeWithoutResponse) ?? chars.find((c) => c.properties.write);
       if (ch) return ch;
     } catch {
-      /* this printer doesn't have that service — try the next */
+      /* this printer doesn't have that service; try the next */
     }
   }
   throw new PrinterError("Connected, but this device doesn't look like a receipt printer (no serial service found)");

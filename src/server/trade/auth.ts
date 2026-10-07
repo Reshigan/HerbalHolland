@@ -65,7 +65,7 @@ async function emailCode(email: string, code: string) {
 
 /**
  * Checks a code (src/server/otp.ts: the latest unexpired one, five tries each, ten wrong an hour). Returns the buyer
- * with their account (active, account not closed) — the caller then starts the session (signInTradeBuyer).
+ * with their account (active, account not closed). The caller then starts the session (signInTradeBuyer).
  */
 export async function verifyTradeCode(raw: string, code: string) {
   const email = normaliseEmail(raw);

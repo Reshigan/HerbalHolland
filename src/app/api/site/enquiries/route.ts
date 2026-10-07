@@ -1,6 +1,6 @@
 // Franchise enquiries forwarded by the herbalholland.com Worker (sites/herbalholland.com/worker.ts) once the platform is
 // live: `Authorization: Bearer $SITE_ENQUIRY_SECRET`. createLead checks them again, numbers the lead (FL-…), emails the
-// team and acknowledges the enquirer — HQ works it at /hq/franchise.
+// team and acknowledges the enquirer. HQ works it at /hq/franchise.
 import { timingSafeEqual } from "node:crypto";
 import { sha256 } from "@/server/crypto";
 import { createLead, type EnquiryInput } from "@/server/leads";

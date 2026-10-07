@@ -19,7 +19,7 @@ import { ActionButton, ActionForm, ConfirmAction, FieldError, SubmitButton } fro
 import { Flash } from "@/components/hq/flash";
 
 export const metadata = { title: "Team" };
-const ROLE: Record<string, string> = { MANAGER: "Store manager", BUDTENDER: "Budtender", OWNER: "Owner" };
+const ROLE: Record<string, string> = { MANAGER: "Store manager", BUDTENDER: "Member advisor", OWNER: "Owner" };
 
 export default async function TeamPage({ params, searchParams }: { params: Promise<{ code: string }>; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [{ code }, sp] = await Promise.all([params, searchParams]);
@@ -63,7 +63,7 @@ export default async function TeamPage({ params, searchParams }: { params: Promi
                 </Field>
                 <Field label="Role" htmlFor="st-role" hint={ownerLevel ? undefined : "Only the owner can add managers"}>
                   <Select id="st-role" name="role" defaultValue="BUDTENDER">
-                    <option value="BUDTENDER">Budtender</option>
+                    <option value="BUDTENDER">Member advisor</option>
                     {ownerLevel && <option value="MANAGER">Store manager</option>}
                   </Select>
                   <FieldError name="role" />

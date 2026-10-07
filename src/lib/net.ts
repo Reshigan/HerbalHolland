@@ -1,5 +1,5 @@
 // Which IP addresses the server may fetch from when an address comes from a person (catalogue image URLs): public ones
-// only — never loopback, private, link-local, carrier-grade NAT, multicast, documentation or reserved ranges, in IPv4,
+// only, never loopback, private, link-local, carrier-grade NAT, multicast, documentation or reserved ranges, in IPv4,
 // IPv6, or IPv4 carried inside IPv6.
 
 function v4(ip: string): number[] | null {

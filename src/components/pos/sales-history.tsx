@@ -1,6 +1,6 @@
 "use client";
 // Sales at this store: search by receipt number, member (number, mobile, name) or trade account, view/print a receipt, email the invoice,
-// refund selected lines (restock toggle, reason, tender) via sales.refundSale — what a gift
+// refund selected lines (restock toggle, reason, tender) via sales.refundSale. What a gift
 // voucher paid goes back onto the voucher first, and on a trade sale what was on account comes
 // back as a credit note on the account's ledger; only the rest is paid out, back to how they paid
 // (split over the sale's card, cash, PayShap and EFT) unless the approving manager picks one tender.
@@ -387,13 +387,13 @@ function RefundSheet({ sale, onClose, onDone }: { sale: ReceiptDTO; onClose: () 
   });
   const split = allocateRefundAcross(amount - loyaltyBack, sale.vouchers ?? []);
   // Trade sales: what was on account comes back onto the account as a credit note (up to what's still open on it),
-  // before any money moves — the same rule as a voucher, applied after the vouchers.
+  // before any money moves: the same rule as a voucher, applied after the vouchers.
   const account = trade ? allocateRefund({ refundCents: split.toTender, voucherPaidCents: Math.max(0, trade.onAccountCents), voucherRefundedCents: trade.creditedCents }) : { toVoucher: 0, toTender: split.toTender };
   const toAccount = account.toVoucher;
   const toTender = account.toTender;
   const voucherOnly = (split.parts.length > 0 || toAccount > 0) && toTender === 0;
   // The money: back to how they paid (over the sale's tenders, never more on one than it has left), or the one tender
-  // the approving manager picks — but never more cash than the sale was paid in cash.
+  // the approving manager picks, but never more cash than the sale was paid in cash.
   const original = method === "ORIGINAL" ? backHowTheyPaid(parts, toTender) : null;
   const money: RefundPart[] = method === "ORIGINAL" ? (original ?? []) : toTender > 0 ? [{ method, cents: toTender, cardLast4: parts.find((p) => p.method === method)?.cardLast4 ?? null }] : [];
   const moneyText = describeRefund(money);

@@ -17,7 +17,7 @@ const name = values.name?.trim().replace(/\s+/g, " ") ?? "";
 
 async function main() {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length < 2) throw new Error('Usage: scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"');
-  if (await db.user.count({ where: { email } })) throw new Error(`${email} already has an account — reset its password from HQ → Team instead`);
+  if (await db.user.count({ where: { email } })) throw new Error(`${email} already has an account. Reset its password from HQ → Team instead.`);
   const legalName = values.company!.trim();
   const hq =
     (await db.company.findFirst({ where: { kind: "FRANCHISOR" } })) ??

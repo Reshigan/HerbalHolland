@@ -239,7 +239,7 @@ try {
   await phoneCode(page, localPhone(member.phone), "Member sign-in");
   await timed("Member sign-in: verify → card", () => page.getByRole("button", { name: "Verify" }).click(), () => page.getByRole("heading", { level: 1, name: `Hi ${member.firstName}` }).waitFor());
   const session = await one(`select id from "Session" where "customerId" = $1 and "createdAt" >= $2`, [member.id, t0]);
-  assert(session, "signed straight in (no registration step) — session created");
+  assert(session, "signed straight in (no registration step), session created");
   await page.getByText(member.memberNo).first().waitFor();
   await shot(page, "club");
   ok(`Rewards card shows member ${member.memberNo}`);
@@ -299,7 +299,7 @@ try {
   const bad = await page.goto(`${BASE}/invoice/${saleId}?t=${"x".repeat(22)}`);
   assert(bad.status() === 404, "a tampered invoice link is refused (404)");
 
-  step("Rewards: settings — details, marketing consent, personalised deals");
+  step("Rewards: settings (details, marketing consent, personalised deals)");
   await page.goto(`${BASE}/club/settings`);
   await page.getByRole("heading", { level: 1, name: "Settings" }).waitFor();
   undo.push(async () => {
@@ -423,7 +423,7 @@ try {
     await shot(page, "reminders");
     await timed("Reminder: stop", () => page.getByRole("button", { name: `Stop the reminder for ${everyday.name}` }).first().click(), () => page.getByText(/Every 30 days by SMS/).waitFor({ state: "detached" }));
     assert(!(await one(`select 1 from "ReorderReminder" where id = $1 and active`, [rem.id])), "reminder stopped");
-  } else ok("(no CBD food & drink product to remind about — skipped)");
+  } else ok("(skipped: no CBD food & drink product to remind about)");
 
   step("Buy again from an order's tracking page");
   await page.goto(`${BASE}/orders/${code}`);
@@ -495,7 +495,7 @@ try {
     assert(rt?.status === "REQUESTED" && rt.reason === "DEFECTIVE" && rt.items.length === 1 && rt.items[0].qty === 1 && rt.sameStore, `${rt?.number} requested: one unit, faulty, filed with the fulfilling store`);
     await page.getByText(`Thanks. Your return request is ${rt.number}.`).waitFor();
     await shot(page, "return-requested");
-  } else step("Returns: skipped — this member has no delivered order to return");
+  } else step("Returns: skipped (this member has no delivered order to return)");
 
   // ── 5. Drops and events ─────────────────────────────────────────────────────────────────────────────
   step("Drops: “notify me” for an upcoming drop");
@@ -651,7 +651,7 @@ try {
   ok("a tampered link is refused");
   await friend.goto(`${BASE}/unsubscribe?c=${pal.id}&ch=SMS&t=${tokens.SMS}`);
   const heading = await friend.getByRole("heading", { level: 1 }).textContent();
-  if (/expired/.test(heading)) fail("the unsubscribe token isn't accepted — is SESSION_SECRET the same for this script and the server?");
+  if (/expired/.test(heading)) fail("the unsubscribe token isn't accepted. Is SESSION_SECRET the same for this script and the server?");
   await timed("Unsubscribe: stop texts", () => friend.getByRole("button", { name: "Stop marketing texts" }).click(), () => friend.getByText(/Done\. You won't get marketing texts/).waitFor());
   const smsNow = await one(`select c."consentSms", e.source from "Customer" c join "ConsentEvent" e on e."customerId" = c.id and e.channel = 'SMS' where c.id = $1 order by e."createdAt" desc limit 1`, [pal.id]);
   assert(smsNow.consentSms === false && smsNow.source === "UNSUBSCRIBE_LINK", "SMS marketing withdrawn, recorded as UNSUBSCRIBE_LINK");
@@ -736,7 +736,7 @@ try {
   await staff.getByRole("button", { name: "Sign out" }).click();
   await staff.waitForURL(`${BASE}/login`);
 
-  if (problems.length) fail(`${problems.length} page error(s) — see below`);
+  if (problems.length) fail(`${problems.length} page error(s), listed below`);
   console.log("\nALL STEPS PASSED");
 } catch (e) {
   console.log("\n✗ FAILED:", e.message.split("\n")[0]);

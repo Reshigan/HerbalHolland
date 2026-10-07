@@ -1,4 +1,4 @@
-// The icons a category can wear — one set for the storefront's category tiles, the till's category rail and the HQ
+// The icons a category can wear: one set for the storefront's category tiles, the till's category rail and the HQ
 // Categories screen, so whatever HQ picks renders everywhere. Category.icon stores the key.
 import {
   Apple,

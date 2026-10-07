@@ -1,4 +1,4 @@
-// Social posting through Postiz — open source, free when self-hosted (docs/INTEGRATIONS.md). HQ writes the post in
+// Social posting through Postiz, which is open source and free when self-hosted (docs/INTEGRATIONS.md). HQ writes the post in
 // HQ → Campaigns → Social; Postiz publishes or schedules it on the connected Instagram, Facebook, LinkedIn, X and
 // Threads accounts.
 //   POSTIZ_URL=https://social.herbalholland.co.za/api/public/v1   your Postiz's public API (Postiz cloud: https://api.postiz.com/public/v1)

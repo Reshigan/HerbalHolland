@@ -1,4 +1,4 @@
-// Herbal Holland commerce platform — data model.
+// Herbal Holland commerce platform: the data model.
 // Money is stored in integer cents (ZAR). Retail prices are VAT-inclusive,
 // wholesale/cost prices are VAT-exclusive. Stock is tracked per batch so every
 // unit is traceable (FEFO picking, FIFO valuation, recalls).
@@ -154,7 +154,7 @@ enum Role {
   OWNER
   MANAGER
   BUDTENDER
-  ACCOUNTANT // a company's bookkeeper: its books (/books) only — no store, POS or HQ pages
+  ACCOUNTANT // a company's bookkeeper: its books (/books) only, with no store, POS or HQ pages
 }
 
 model User {
@@ -236,7 +236,7 @@ enum StrainType {
 
 enum RegClass {
   THC // licence-gated: unsellable until a store holds a licence under a future regime
-  CBD // CBD supplements — Schedule 0 complementary medicines (oils, softgels): ≤ 20 mg a day, ≤ 600 mg a pack
+  CBD // CBD supplements: Schedule 0 complementary medicines (oils, softgels): ≤ 20 mg a day, ≤ 600 mg a pack
   CBD_FOOD // CBD food & drink (coffee, tea, protein): ≤ 0.0075% CBD, naturally occurring only (GN 586 of 2020)
   CBD_TOPICAL // CBD skin care (creams, balms)
   HEMP
@@ -285,7 +285,7 @@ model Product {
   heritage       Boolean       @default(false)
   regClass       RegClass
   // Compliance master data
-  legalBasis     String? // e.g. "Schedule 0 CBD — GN 586 of 2020"
+  legalBasis     String? // e.g. "Schedule 0 CBD, GN 586 of 2020"
   cbdMgPerPack   Int? // Schedule 0: ≤ 600 mg per sales pack
   cbdMgPerDay    Float? // Schedule 0: ≤ 20 mg maximum daily dose
   claims         String[]      @default([]) // approved low-risk claims only
@@ -1017,7 +1017,7 @@ enum PriceListKind {
   ZONE // regional / scheduled price changes (stores or regions; empty = network)
   CHANNEL // e.g. online-only prices
   MEMBER // Rewards member prices, optionally tier-specific
-  TRADE // trade (wholesale) prices for the WHOLESALE channel — items hold ex-VAT prices; quantity breaks via minQty
+  TRADE // trade (wholesale) prices for the WHOLESALE channel: items hold ex-VAT prices; quantity breaks via minQty
 }
 
 model PriceList {
@@ -1489,7 +1489,7 @@ model Alert {
   severity    AlertSeverity
   store       Store         @relation(fields: [storeId], references: [id])
   storeId     String
-  userId      String? // the person it's about — never shown to them
+  userId      String? // the person it's about (never shown to them)
   title       String
   detail      String
   amountCents Int? // value at risk
@@ -1546,7 +1546,7 @@ model FranchiseLead {
   pharmacist       Boolean // access to a pharmacist partner
   message          String?
   source           String? // ?src= on the enquiry link
-  ipHash           String? // keyed hash of the IP, to limit repeat submissions — never the IP itself
+  ipHash           String? // keyed hash of the IP, to limit repeat submissions (never the IP itself)
   status           LeadStatus @default(NEW)
   ownerId          String? // the HQ person following it up
   notes            String?
@@ -1609,7 +1609,7 @@ model SupportTicket {
   firstRespondedAt   DateTime?
   resolveDueAt       DateTime
   resolvedAt         DateTime?
-  ipHash             String? // keyed hash of a guest's IP, to limit repeat submissions — never the IP itself
+  ipHash             String? // keyed hash of a guest's IP, to limit repeat submissions (never the IP itself)
   createdAt          DateTime        @default(now())
   updatedAt          DateTime        @updatedAt
 
@@ -1839,7 +1839,7 @@ enum VoucherStatus {
   CANCELLED
 }
 
-/// A gift voucher: money, not an incentive — it pays for anything, including medicines, and carries no bonus value.
+/// A gift voucher: money, not an incentive. It pays for anything, including medicines, and carries no bonus value.
 /// Bought online as an order for the virtual "Gift voucher" product (@/server/shop/vouchers) and issued when that
 /// order is paid; valid for three years from issue (CPA s63(2)); redeemed against orders at checkout.
 model GiftVoucher {
@@ -1890,7 +1890,7 @@ enum ReminderChannel {
 }
 
 /// "Remind me to reorder": a schedule the member set for one product (coffee, collagen, oils). The daily job sends a
-/// message with a one-tap reorder link on the channel chosen — nothing is charged (no card on file until Peach
+/// message with a one-tap reorder link on the channel chosen. Nothing is charged (no card on file until Peach
 /// tokenisation is approved).
 model ReorderReminder {
   id         String          @id @default(cuid())

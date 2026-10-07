@@ -1,10 +1,10 @@
 // Who may open which company's books, and what they may do there. Never trust a company id from the client: every
 // books page and action goes through requireBooks.
-//   Owner        — their company's books: read, post, approve, close months.
-//   Accountant   — their company's books: read and post; drafts wait for the owner (or HQ admin, for HQ's books).
-//   HQ admin     — HQ's own books in full; any franchisee's books to read.
-//   Area manager — read the books of franchisees with a store in their region.
-// Everyone else (store managers, budtenders, HQ team) has no books.
+//   Owner:        read, post, approve and close months in their company's books.
+//   Accountant:   read and post in their company's books; drafts wait for the owner (or HQ admin, for HQ's books).
+//   HQ admin:     HQ's own books in full; any franchisee's books to read.
+//   Area manager: read the books of franchisees with a store in their region.
+// Everyone else (store managers, member advisors, HQ team) has no books.
 import { notFound } from "next/navigation";
 import { db } from "../db";
 import { requireStaff, type Staff } from "../auth";

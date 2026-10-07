@@ -5,12 +5,12 @@ import { postizConnected, publishSocial, socialChannels } from "@/server/social"
 
 describe("social copy screening", () => {
   it("passes brand posts", () => {
-    expect(screenSocial("The Windmill Tee is back — the mark embroidered in Sunset thread, made to order in Cape Town. Shop the merch.")).toEqual([]);
+    expect(screenSocial("The Windmill Tee is back: the mark embroidered in Sunset thread, made to order in Cape Town. Shop the merch.")).toEqual([]);
     expect(screenSocial("New in Learn: what a CBD label tells you, line by line.")).toEqual([]);
   });
   it("stops THC, selling cannabis or CBD, and health claims", () => {
     expect(screenSocial("Fresh THC flower in store")[0].reason).toMatch(/Medicines Act/);
-    expect(screenSocial("Buy our CBD gummies — R350 delivered").map((f) => f.reason).join()).toMatch(/Meta and TikTok/);
+    expect(screenSocial("Buy our CBD gummies, R350 delivered").map((f) => f.reason).join()).toMatch(/Meta and TikTok/);
     expect(screenSocial("20% off pre-rolls this weekend")).toHaveLength(1);
     expect(screenSocial("CBD that cures anxiety")).toHaveLength(2);
   });

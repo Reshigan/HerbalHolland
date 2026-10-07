@@ -1,5 +1,5 @@
 "use server";
-// HQ → Settings: the trade (wholesale) channel's terms — minimum order, courier and handling fees, EFT hold, overdue
+// HQ → Settings for the trade (wholesale) channel's terms: minimum order, courier and handling fees, EFT hold, overdue
 // grace, statement day, the terms version applicants accept, and the bank details printed on every pro forma.
 import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";

@@ -232,7 +232,7 @@ export function rankSearch(q: ParsedQuery, docs: SearchDoc[]): Ranked[] {
       const c = CLASS_OF.get(t);
       return !!c && (CLASS_WORDS[c] ?? []).some((w) => keys.includes(squash(w)));
     };
-    // A product type the query names ("pre roll") must be what the product is — not a near-miss by name or typo.
+    // A product type the query names ("pre roll") must be what the product is, not a near-miss by name or typo.
     if (q.required?.some((r) => ![nameKeys, taglineKeys, variantKeys, categoryKeys, restKeys].some((keys) => keys.some((k) => k.startsWith(r))))) continue;
     let score = 0;
     let kind: MatchKind | null = null;

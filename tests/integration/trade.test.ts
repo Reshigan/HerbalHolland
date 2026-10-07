@@ -174,7 +174,7 @@ describe("Trade pricing", () => {
     await db.promotion.update({ where: { id: promo.id }, data: { active: false } });
   });
 
-  it("lists the trade range at the DC: the account's classes, case packs, breaks and availability — never THC", async () => {
+  it("lists the trade range at the DC: the account's classes, case packs, breaks and availability, never THC", async () => {
     const r = await tradeRange(w.dc.id, { classes: ["CBD", "CBD_FOOD"], priceListId: null });
     expect(r.total).toBe(2);
     const oil = r.rows.find((x) => x.variantId === w.oilV.id)!;
@@ -539,7 +539,7 @@ describe("Licences after approval", () => {
   // The ledger tests close the account; trade it again for these (its buyers and licences are as they were).
   beforeAll(() => db.tradeAccount.update({ where: { id: accountId }, data: { status: "APPROVED", holdReason: null } }));
 
-  it("won't add ranges or change the kind of business without the licences they need — which can be sent ahead", async () => {
+  it("won't add ranges or change the kind of business without the licences they need, which can be sent ahead", async () => {
     await expect(updateTradeAccount(accountId, { kind: "CAFE" }, hq)).rejects.toThrow(/Business licence is needed/);
     // Sent from the portal before asking for the change: on file, neither needed nor counted against the account.
     const bl = await submitTradeLicence(accountId, { kind: "BUSINESS_LICENCE", number: "BL/GP/00412" }, pdf("business-licence.pdf"), { type: "CUSTOMER", id: buyerId, name: "Thandi" }, { byBuyerId: buyerId });

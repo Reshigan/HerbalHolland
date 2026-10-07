@@ -1,5 +1,5 @@
 // Building blocks for the static pages: headings, buttons, doors that aren't open yet, count-up reels and icons.
-// Rendered once at build time with renderToStaticMarkup — no client React, no inline styles (the CSP forbids them).
+// Rendered once at build time with renderToStaticMarkup: no client React, no inline styles (the CSP forbids them).
 import {
   ArrowRight,
   ArrowUpRight,

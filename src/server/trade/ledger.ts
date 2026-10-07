@@ -41,7 +41,7 @@ export async function creditCheckFor(account: Pick<TradeAccount, "id" | "terms" 
 
 /**
  * The credit decision under a lock on the account's row, inside the caller's transaction: two orders or till sales on
- * account at once can't both spend the same headroom — the second waits for the first, then counts it.
+ * account at once can't both spend the same headroom. The second waits for the first, then counts it.
  */
 export async function lockedCreditCheck(t: Tx, accountId: string, orderInclCents: number): Promise<CreditDecision> {
   await t.$queryRaw`SELECT 1 FROM "TradeAccount" WHERE id = ${accountId} FOR UPDATE`;
@@ -159,7 +159,7 @@ export async function tradeStatementFor(accountId: string, month: string) {
 export const statementLogId = (accountId: string, month: string) => `trade-statement-${accountId}-${month}`;
 
 /**
- * Emails the month's statement to the account's billing address — once per account and month (the message log row
+ * Emails the month's statement to the account's billing address, once per account and month (the message log row
  * `trade-statement-<account>-<month>` is the receipt; `force` sends it again). Attaches nothing: the email links to
  * the portal's statement page. Returns what happened.
  */

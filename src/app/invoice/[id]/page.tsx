@@ -3,7 +3,7 @@
 // vendors issue a plain invoice; refunds are credit notes. A trade sale (WHOLESALE) is a
 // full tax invoice to the business account: lines ex VAT with VAT and incl. columns, the
 // buyer block, the trade order and reference, and the terms ("On account, due …" from the
-// trade ledger, or how it was paid) — never points or member savings. Prints on A4 (or
+// trade ledger, or how it was paid). Never points or member savings. Prints on A4 (or
 // saves as a PDF) and on 80 mm receipt paper (print-bar.tsx switches the paper).
 import { timingSafeEqual } from "node:crypto";
 import { notFound } from "next/navigation";

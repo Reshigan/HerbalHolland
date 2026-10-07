@@ -26,7 +26,7 @@ export async function requireBuyer(next?: string) {
   return buyer;
 }
 
-/** The warehouse an account's range is priced and couriered from: its own DC, else the network's default one — null when no DC is set up yet. */
+/** The warehouse an account's range is priced and couriered from: its own DC, else the network's default one, or null when no DC is set up yet. */
 export const rangeStoreFor = cache(async (dcId: string | null) => {
   if (dcId) {
     const own = await db.store.findUnique({ where: { id: dcId } });

@@ -1,10 +1,10 @@
 // Pure promotion engine.
 //
 // Order of play (predictable, no double-dipping):
-//   1. Unit deals — MULTIBUY bundles and BUY_X_GET_Y bonus buys — claim the units they use.
-//   2. Line deals — the single best PERCENT / targeted FIXED discount on each remaining unit.
-//   3. Basket deal — the best untargeted FIXED amount, spread across lines so VAT per line stays right.
-//   4. Points multiplier — the highest applicable.
+//   1. Unit deals (MULTIBUY bundles and BUY_X_GET_Y bonus buys) claim the units they use.
+//   2. Line deals: the single best PERCENT / targeted FIXED discount on each remaining unit.
+//   3. Basket deal: the best untargeted FIXED amount, spread across lines so VAT per line stays right.
+//   4. Points multiplier: the highest applicable.
 // Deals that are close but not yet triggered come back as `suggestions` ("add 1 more pre-roll…")
 // so tills and the web shop can prompt the complementary item.
 import { allocateProportionally } from "./money";

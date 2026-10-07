@@ -1,8 +1,8 @@
 // The till against the real services when things happen at once, and where refund money goes: two tills selling to one
 // patient (the second is refused under the member's lock), a capped promotion's last use and a My Deal each wanted by
-// several tills (an unpaid sale is refused; one already paid — offline or by card — posts, flagged), refunds back to how
-// they paid (split over cash and card, never more on a tender than it paid), the cash override capped at the cash paid,
-// and commission for the person who built the basket when a dispenser completes it.
+// several tills (an unpaid sale is refused; one already paid offline or by card still posts, flagged), refunds back to
+// how they paid (split over cash and card, never more on a tender than it paid), the cash override capped at the cash
+// paid, and commission for the person who built the basket when a dispenser completes it.
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db, tx, type Tx } from "@/server/db";
@@ -89,7 +89,7 @@ describe("member limits at the till, decided under the member's lock", () => {
     expect((await onHand(w.store.id, w.flowerOld.id)) + (await onHand(w.store.id, w.flowerNew.id))).toBe(stock - 5); // one sale's stock only
   });
 
-  it("a capped promotion's last use goes to one till; a sale already paid — offline, or by card — still posts, flagged for HQ", async () => {
+  it("a capped promotion's last use goes to one till; a sale already paid (offline, or by card) still posts, flagged for HQ", async () => {
     const promo = await db.promotion.create({ data: { name: "First shopper: 10% off coffee", kind: "PERCENT", value: 10, maxUses: 1, productIds: [w.coffeeV.productId], channels: ["POS"], startsAt: new Date(Date.now() - 86_400_000), endsAt: new Date(Date.now() + 86_400_000) } });
     const [a, b, c, d] = [w.walkIn, await member(), await member(), await member()];
     const lines = [{ variantId: w.coffeeV.id, qty: 1 }];
@@ -107,7 +107,7 @@ describe("member limits at the till, decided under the member's lock", () => {
       );
     };
     expect((await quote({ storeId: w.store.id, channel: "POS", items: lines, customerId: a.id })).promotionId).toBe(promo.id); // every till sees it free
-    // The promotion's row is held: four sales all priced with it queue in this order — two paying cash at the till, one
+    // The promotion's row is held. Four sales all priced with it queue in this order: two paying cash at the till, one
     // queued offline (paid already) and one whose card was charged before it posts.
     const blocker = hold((t) => lockPromotion(t, promo.id));
     await blocker.ready;
@@ -178,7 +178,7 @@ describe("refunds back to how they paid", () => {
   const refund = (saleId: string, lineId: string, qty: number, method: Parameters<typeof refundSale>[0]["method"]) =>
     refundSale({ id: randomUUID(), number: number(), saleId, lines: [{ saleLineId: lineId, qty, restock: true }], method, reason: "Changed their mind", staffId: w.manager.id, staffName: "Mia", deviceId: w.device.id, shiftId: SHIFT, capCash: true });
 
-  it("splits each refund over the cash and the card in proportion — exactly what each paid once it's all back", async () => {
+  it("splits each refund over the cash and the card in proportion, exactly what each paid once it's all back", async () => {
     const { sale, line, due } = await cashAndCard();
     const card = due - 10_000;
     const half = Math.round(line.totalCents / 2);

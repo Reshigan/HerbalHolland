@@ -1,4 +1,4 @@
-// Emails the tax invoice for a sale — e.g. a walk-in customer who asks for it at the counter.
+// Emails the tax invoice for a sale, e.g. to a walk-in customer who asks for it at the counter.
 import { z } from "zod";
 import { db } from "@/server/db";
 import { emailSaleInvoice } from "@/server/invoices";

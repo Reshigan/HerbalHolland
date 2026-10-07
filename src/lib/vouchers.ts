@@ -45,7 +45,7 @@ export function voucherExpiry(issuedAt: Date) {
 
 export type VoucherFacts = { status: "PENDING" | "ACTIVE" | "REDEEMED" | "EXPIRED" | "CANCELLED"; balanceCents: number; expiresAt: Date };
 
-/** Why a voucher can't pay for an order right now, in the member's words — or null when it can. */
+/** Why a voucher can't pay for an order right now, in the member's words, or null when it can. */
 export function voucherProblem(v: VoucherFacts | null | undefined, now = new Date(), fmtDate: (d: Date) => string = (d) => d.toISOString().slice(0, 10)): string | null {
   if (!v) return "We don't recognise that voucher code. Check it against the email or card.";
   if (v.status === "PENDING") return "That voucher hasn't been paid for yet.";
@@ -62,7 +62,7 @@ export const voucherApply = (balanceCents: number, dueCents: number) => Math.max
 const CODE_TEXT = /^HH[-\s]?([A-HJ-NP-Z2-9]{4})[-\s]?([A-HJ-NP-Z2-9]{4})[-\s]?([A-HJ-NP-Z2-9]{4})$/;
 
 /**
- * A scanned or typed value that is a voucher code — and nothing else — as the till sees it: the code from the email or
+ * A scanned or typed value that is a voucher code and nothing else, as the till sees it: the code from the email or
  * card, or the QR of its balance-check link. Never a barcode, a member number (HH + digits), an order QR or a batch
  * code. Returns the canonical HH-XXXX-XXXX-XXXX, or null.
  */
@@ -76,7 +76,7 @@ export function voucherCodeFrom(text: string): string | null {
 
 /**
  * How a refund is paid back when a voucher paid for (part of) the sale: onto the voucher first, up to what it paid on
- * that sale less what earlier refunds already put back — a voucher is never cashed out — and only the remainder to the
+ * that sale less what earlier refunds already put back (a voucher is never cashed out), and only the remainder to the
  * tender the operator chooses.
  */
 export function allocateRefund(a: { refundCents: number; voucherPaidCents: number; voucherRefundedCents: number }): { toVoucher: number; toTender: number } {

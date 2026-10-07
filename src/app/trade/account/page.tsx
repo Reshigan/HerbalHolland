@@ -38,7 +38,7 @@ export default async function TradeAccountPage() {
   const { standing: licences, others } = await licenceOverview(a);
   const asks = licences.lines.filter((l) => l.problem && l.state !== "pending").map((l) => l.problem!); // what only the applicant can fix
   const firstProblem = licences.lines.find((l) => l.problem)?.kind ?? licences.lines.find((l) => l.state === "expiring")?.kind ?? licences.lines[0]?.kind ?? TRADE_LICENCE_KINDS[0];
-  // Any licence can be sent — the ones the account needs first, then the rest (ahead of asking for a new range).
+  // Any licence can be sent: the ones the account needs first, then the rest (ahead of asking for a new range).
   const uploadKinds = [...licences.lines.map((l) => l.kind), ...TRADE_LICENCE_KINDS.filter((k) => !licences.lines.some((l) => l.kind === k))];
 
   return (

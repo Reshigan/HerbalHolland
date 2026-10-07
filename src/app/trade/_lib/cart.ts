@@ -1,5 +1,5 @@
 // The trade cart lives on the account (TradeCart), so every buyer of the business sees the same cart on any device.
-// The codec is pure (src/lib/trade-cart.ts); prices are never stored — the cart is quoted on the server every time
+// The codec is pure (src/lib/trade-cart.ts); prices are never stored: the cart is quoted on the server every time
 // it's shown. Changes run read-modify-write under the cart row's lock, so two buyers adding at once both land.
 // A cart from before it moved off the browser (the hh_trade_cart cookie) is shown until the next change takes it over.
 import { cache } from "react";

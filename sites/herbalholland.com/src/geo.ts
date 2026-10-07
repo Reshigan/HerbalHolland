@@ -140,7 +140,7 @@ export function route(P: Projection, a: LL, b: LL, n: number, lift: number) {
 
 export const routePath = (pts: { x: number; y: number }[]) => smooth(pts);
 
-// Simplified coastlines, [lat, lon] in degrees — drawn at globe scale, where a point every 100–300 km reads true.
+// Simplified coastlines, [lat, lon] in degrees, for drawing at globe scale, where a point every 100–300 km reads true.
 const AFRICA: LL[] = [
   [35.78, -5.81], [35.9, -5.3], [35.2, -2.9], [35.7, -0.6], [36.8, 3.1], [36.9, 6.9], [37.3, 9.9], [36.8, 10.2], [37.1, 11.0],
   [35.8, 10.6], [34.7, 10.8], [33.8, 10.9], [32.9, 13.2], [32.4, 15.1], [31.2, 16.6], [30.4, 19.1], [31.2, 20.0], [32.1, 20.1],

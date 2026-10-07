@@ -148,7 +148,7 @@ function move(r: ReturnRequest, to: ReturnStatusKey) {
 }
 
 /**
- * Moves a return on from the status it was read in — once: a second click, or a colleague at the same moment, finds it
+ * Moves a return on from the status it was read in, once: a second click, or a colleague at the same moment, finds it
  * already moved. `where`: anything else that must still hold (a decline needs no refund under way or made).
  */
 async function moveTx(t: Tx, r: ReturnRequest, to: ReturnStatusKey, data: Prisma.ReturnRequestUpdateManyMutationInput = {}, where: Prisma.ReturnRequestWhereInput = {}) {
@@ -237,7 +237,7 @@ export async function priorRefunds(orderId: string, exceptId: string) {
 
 /**
  * Refunds a received return: the money first (through the gateway, or by hand with a reference), then the credit note
- * at the store — units back on the shelf where staff say so, points reversed, rollups adjusted — then the status and the
+ * at the store (units back on the shelf where staff say so, points reversed, rollups adjusted), then the status and the
  * member's message. Safe to retry after a failure half-way: money already moved isn't moved twice, and a credit note
  * already posted isn't posted twice.
  */

@@ -14,14 +14,14 @@ export function zar(cents: number) {
   return `${sign}R${two.format(Math.abs(cents) / 100)}`;
 }
 
-/** R1,235 — for shelf prices and marketing. */
+/** R1,235: for shelf prices and marketing. */
 export function zarWhole(cents: number) {
   const sign = cents < 0 ? "-" : "";
   const v = Math.abs(cents) / 100;
   return `${sign}R${Number.isInteger(v) ? whole.format(v) : two.format(v)}`;
 }
 
-/** R12.4k / R3.1m — for dense dashboards. */
+/** R12.4k / R3.1m: for dense dashboards. */
 export function zarCompact(cents: number) {
   const v = cents / 100;
   const a = Math.abs(v);

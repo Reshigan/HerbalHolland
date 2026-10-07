@@ -91,7 +91,7 @@ describe("trade portal copy", () => {
   it("passes the marketing screen (no medical claims, conditions, intoxication, minors or absolute claims)", () => {
     const all = [...strings(copy, ""), ...strings({ CLASS_NAME, CLASS_BLURB }, "format")];
     expect(all.length).toBeGreaterThan(30);
-    const flagged = all.flatMap(([path, text]) => screenCopy(text).map((f) => `${path}: "${f.term}" — ${f.reason}`));
+    const flagged = all.flatMap(([path, text]) => screenCopy(text).map((f) => `${path}: "${f.term}" (${f.reason})`));
     expect(flagged).toEqual([]);
   });
   it("says who it is for and that buyers are adults", () => {

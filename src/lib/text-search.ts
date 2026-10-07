@@ -27,7 +27,7 @@ export const CLOSE_MATCHES = 50;
 
 /**
  * A search to loosen into a close-match search: the text to compare (lower case, single spaces, at most 60 characters)
- * and how alike a name must be (word similarity, 0–1) — short queries need more ("tea" sits close to too much). Null
+ * and how alike a name must be (word similarity, 0–1). Short queries need more ("tea" sits close to too much). Null
  * for fewer than three letters or digits.
  */
 export function closeNeedle(q: string | null | undefined): { needle: string; threshold: number } | null {

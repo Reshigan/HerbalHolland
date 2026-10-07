@@ -36,7 +36,7 @@ export default async function HqSupplierInvoices({ searchParams }: { searchParam
   const today = dayKey(now);
   const status = STATUSES.find((s) => s === sp.status) ?? null;
   const page = pageParam(sp.page);
-  // Narrow to one store by code (within scope) — the store picker itself stays a search at 1,000 stores.
+  // Narrow to one store by code (within scope); the store picker itself stays a search at 1,000 stores.
   const chosen = sp.store ? await db.store.findFirst({ where: { code: sp.store.toUpperCase(), id: { in: ids } }, select: { id: true, code: true, name: true } }) : null;
   const storeIds = chosen ? [chosen.id] : ids;
   const [{ operations }, summary, byStore, { total, rows }] = await Promise.all([

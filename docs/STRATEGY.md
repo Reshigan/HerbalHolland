@@ -1,4 +1,4 @@
-# Herbal Holland — go-to-market, marketing & growth strategy
+# Herbal Holland: go-to-market, marketing & growth strategy
 
 > Companion to the platform. Evidence and sources: [research/MARKET-STUDY.md](research/MARKET-STUDY.md),
 > [research/COMPLIANCE-RESEARCH.md](research/COMPLIANCE-RESEARCH.md), [research/PAYMENTS-LOGISTICS-RESEARCH.md](research/PAYMENTS-LOGISTICS-RESEARCH.md)
@@ -10,8 +10,8 @@ South Africa's cannabis economy is large (estimates range from ~R14bn to ~R28bn 
 (an estimated 8,500 stores and 2,500 clubs) and almost entirely **informal**: paid "memberships" tied to one venue,
 WhatsApp menus, cash or awkward card surcharges, no lab results, no omnichannel, no national brand you can trust.
 Courts have said club models are "dealing", raids continue, and a Cannabis Bill is only expected from mid-2027.
-The winner will be the brand that is **trusted, compliant, convenient and loved** — and that is ready to scale the day
-licensing widens. That is the job this platform does for Herbal Holland.
+The winner will be the brand that is **trusted, compliant, convenient and loved**, and ready to scale the day licensing
+widens. That is the job this platform does for Herbal Holland.
 
 ## 2. Positioning
 
@@ -22,14 +22,14 @@ Africa's own landraces and growers.
 |---|---|---|
 | **Provenance** | Every batch is lab-tested and traceable to the farm | Batch-level stock, FEFO, a public COA page per batch (`/batch/[code]`, QR on every pack), recall trace to the customer |
 | **Care** | Pharmacist-led dispensary; honest education | SAHPRA patient register, authorised dispensers, quantity limits, Learn hub, no medical claims |
-| **Community** | One free club for the whole country | Herbal Holland Rewards — points earned and spent in every store, tiers, referrals, members' evenings |
+| **Community** | One free club for the whole country | Herbal Holland Rewards: points earned and spent in every store, tiers, referrals, members' evenings |
 | **Convenience** | Order how you like, collect in 15 minutes, delivered nationwide | Omnichannel routing, click & collect SLA, same-day metro, courier for non-medicinal items |
 
 Brand codes to use everywhere: the orange windmill-flower mark, the thick orange **frame** on black (the store window),
 Outfit typography, the "HERBAL / HOLLAND" light/bold lock-up, Herbal Holland Rewards (points worth R1 each), and Dutch warmth
 ("proeverij" tastings, Delft blue) meeting Mzansi culture (Heritage Day, landraces, local makers).
 
-## 3. Regulatory reality — and why compliance is our moat
+## 3. Regulatory reality, and why compliance is our moat
 
 - **Today:** commercial THC trade is lawful only through SAHPRA licensing. Herbal Holland is SAHPRA-registered, so the
   network runs licensed products in **MEDICAL mode**: an active Section 21 patient authorisation, a monthly authorised
@@ -58,7 +58,7 @@ card acquiring, pharmacies, malls, landlords and investors.
 | 6 | Walk-in only; slow delivery | Click & collect in 15 min, same-day metro, nationwide courier (non-medicinal) with fair franchise routing | Order routing + POS orders queue |
 | 7 | Load-shedding stops trading | Offline-first POS: cash sales queue and sync | POS outbox + service worker |
 | 8 | No member data, no CRM | RFM segments, campaigns, attribution, consent ledger | HQ Campaigns, CRM |
-| 9 | Heritage used as a sticker | Grower partnerships (Mpondo co-op) with provenance on every pack and in content | Catalogue + Learn |
+| 9 | Heritage used as a sticker | Provenance on every pack (the batch QR names who grew or made it) and heritage told properly in Learn | Catalogue + Learn |
 | 10 | Edible scares (children, mislabelled potency) | 5 mg per piece, child-resistant packs, recall in minutes, customers traced | Batches & recalls |
 | 11 | Franchise channel conflict | Online orders fulfilled and credited to the local store; network stock trading; transparent statements | Routing, network trading, statements |
 | 12 | Stock chaos | FEFO, cycle counts, reorder suggestions, DC replenishment, shrinkage and expiry reports | Inventory + reports |
@@ -70,24 +70,24 @@ card acquiring, pharmacies, malls, landlords and investors.
 cannot be advertised to the public. The ARB Code forbids content that condones illegal activity and requires
 substantiated claims. POPIA s69 and the 2026 CPA regulations govern every electronic message.
 
-**The answer.** Market the **brand, the place, the people and the knowledge** — never the medicine. Sell the non-medicinal
+**The answer.** Market the **brand, the place, the people and the knowledge**, never the medicine. Sell the non-medicinal
 range openly. Let the dispensary grow through patients, pharmacists and word of mouth.
 
 ### 5.1 Brand-led reach (no product claims)
-- **Stores as media.** The orange-framed window (as on the Hatfield-style poster) is the most valuable ad we own.
+- **Stores as media.** The orange-framed window (as on our first store-window poster) is the most valuable ad we own.
   Standardise window kits, lit signage, and in-store TV menu boards (licensed products hidden in MEDICAL mode).
-- **Out-of-home near stores:** brand-only creative — the windmill mark, "Dutch heritage. African soil.", store
+- **Out-of-home near stores:** brand-only creative: the windmill mark, "Dutch heritage. African soil.", store
   address. No product, no claims, no youth-oriented placements (not near schools).
 - **Apparel & objects as media:** the Windmill Tee, Sunset hoodie and bucket hat are sold at margin and walk the brand
   around. Limited drops with local makers (Salt River apparel, Delft-blue glass).
 - **Sponsorships & culture (18+ only):** Heritage Day, jazz/amapiano/arts events with verified-adult audiences and
   grower field days. Avoid sport and anything with youth reach.
-- **PR:** the Mpondo Growers Co-operative fair-trade story; the lab-testing standard; the "safe edibles" pledge;
-  store openings. Earned media travels where paid media can't.
+- **PR:** the lab-testing standard (a public lab page for every batch) and store openings. Earned media travels
+  where paid media can't.
 
 ### 5.2 Search & content (the channel that still works)
-- **Learn hub** — plain-language, dated, sourced: the law explained, how to read a COA, Schedule 0 CBD, registered
-  patients & Section 21, heritage landraces, responsible use. Educational, never promotional for medicines.
+- **Learn hub:** plain-language guides, dated and sourced, on the law, how to read a COA, Schedule 0 CBD, registered
+  patients & Section 21, heritage landraces and responsible use. Educational, never promotional for medicines.
 - **Store pages** with structured data (address, hours, services) for "near me" search; a Google Business Profile per
   store where policy allows (non-medicinal positioning).
 - **Product pages** for the public range (CBD wellness, accessories, grow, apparel) optimised for search.
@@ -103,7 +103,7 @@ STOP opt-out; the platform holds sends outside CPA windows and suppresses NCC-re
 | Second visit | 7 days after first purchase, no second | Double Points on your next visit |
 | Replenish | ~21 days after a CBD oil purchase | Reminder + member price on the wellness range |
 | Tier-up | Crossing a tier | Celebrate, explain perks |
-| Win-back | At risk (60–120 days quiet) | "We miss you — R75 off R400" on the non-medicinal range |
+| Win-back | At risk (60–120 days quiet) | "We miss you: R75 off R400" on the non-medicinal range |
 | Birthday | Birthday month | 100-point bonus |
 | Drop alert | Customer tapped "Notify me" | Back in stock / new release |
 | Review ask | 5 days after purchase | Rate what you bought (verified reviews) |
@@ -113,13 +113,13 @@ Built into the platform: birthday points (the daily job), drop alerts ("Notify m
 first-purchase welcome gift. The other rows are campaigns HQ sends to the matching RFM segment (HQ → Campaigns);
 trigger-based journeys that send themselves aren't built.
 
-Segments come from RFM (`src/lib/rfm.ts`): Champions, Loyal, Promising, New, At risk, Lapsed, Prospects — each with a
+Segments come from RFM (`src/lib/rfm.ts`): Champions, Loyal, Promising, New, At risk, Lapsed and Prospects, each with a
 recommended play in the CRM.
 
 ### 5.4 Loyalty economics (Herbal Holland Rewards)
 - **Instant savings, Checkers Xtra Savings style:** identify at the till (phone number or digital card) or sign in
-  online and prices drop on the spot — Seed 3%, Sprout 5%, Bloom 7%, Harvest 10% off eligible items, or the week's
-  **Rewards deal** price (member-only price list) when that is lower. Walk-ins see "members save R… on this basket —
+  online and prices drop on the spot: Seed 3%, Sprout 5%, Bloom 7%, Harvest 10% off eligible items, or the week's
+  **Rewards deal** price (member-only price list) when that is lower. Walk-ins see "members save R… on this basket:
   join free", the cashier's sign-up hook. Percentages are HQ settings (`loyalty.tierSavingsPct`).
 - **Plus points:** 5 points per R100 paid in every tier; 1 point = R1; redeem up to 50% of a basket; promotions can
   multiply (Double Points Fridays). Tiers on rolling 12-month spend (R2,500 / R7,500 / R15,000). Setting the earn rate
@@ -127,7 +127,7 @@ recommended play in the CRM.
 - **Effective cost:** ~8–15% of eligible member sales (instant savings are carried by the selling store as a price
   reduction and reported as `memberSavingsCents`). Medicines get no savings, deals or points in MEDICAL mode (s18A).
 - **Fair across 1,000 owners:** the issuing store funds points, the redeeming store is reimbursed, both on the monthly
-  franchise statement — so cross-store redemption never punishes a franchisee.
+  franchise statement, so cross-store redemption never punishes a franchisee.
 - Liability is tracked live in HQ; expiry rules can be added before launch if finance requires them.
 
 ### 5.5 Local store marketing
@@ -141,11 +141,11 @@ Dutch/German menu translations.
 
 ### 5.7 Measurement
 Promo codes and tracked campaign links stamp `campaignId` on sales; the reports centre shows attributed revenue and ROI
-per campaign, redemption per promotion, member attach rate, repeat rate and segment movement.
+per campaign, redemption per promotion, member attach rate, repeat rate and members by segment.
 
 ## 6. Pricing & promotions strategy
 
-**Price architecture (flower, per gram):** Heritage R100–R125 (accessible, fair-trade story) · Classics R160–R170 ·
+**Price architecture (flower, per gram):** Heritage R100–R125 (accessible) · Classics R160–R170 ·
 House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; accessories R35–R2,450.
 
 - **RRP is a recommendation.** Franchisees set shelf prices (Competition Act s5(2)); the platform shows margin
@@ -164,7 +164,7 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 - **Economics (defaults, editable per store):** royalty 6% of net sales, marketing levy 2% (held in a separate,
   auditable fund as the CPA requires), e-commerce commission 10% of online sales fulfilled by the store.
 - **Settlement:** one monthly statement per store nets online takings collected by HQ, points issued/redeemed,
-  wholesale purchases on account, network trades and fees — emailed to each owner.
+  wholesale purchases on account, network trades and fees, and is emailed to each owner.
 - **Supply:** regional distribution centres (Gauteng, Western Cape, KZN to start) replenish stores weekly from
   suggested orders; stores trade surplus with each other through the network marketplace.
 - **Structure:** one area manager per ~40–60 stores; store formats Flagship / Standard / Express with ranging by format.
@@ -185,16 +185,16 @@ House R180–R200 · Reserve R250 (numbered, limited). CBD oils R395–R595; acc
 | 3. Network | Months 4–9 | Western Cape & KZN DCs; 24 → 100 stores; network trading; statements automated |
 | 4. Adult-use ready | On commencement | Flip licensed stores to ADULT_USE by region; update channel matrix and limits; launch brand campaign within the new rules |
 
-### 8.1 Launch programme: "Windmill Days — Founding Members"
+### 8.1 Launch programme: "Windmill Days" and the Founding Members
 
 The biggest consumer draw (legal adult-use THC) can't be sold or advertised at launch, so the launch wins on what we
-can own: **value people feel** (instant tier savings), **status and scarcity**, and **trust and culture** — and builds
-the largest consented member base in SA cannabis, ready for the day adult use becomes lawful.
+can own: **value people feel** (instant tier savings), **status and scarcity**, and **trust and culture**. Along the
+way it builds the largest consented member base in SA cannabis, ready for the day adult use becomes lawful.
 
 | Mechanic | How it works in the platform |
 |---|---|
 | Founding Members list with a referral ladder | Until `launch.launchAt` (when the list closes) members join the list while the shop trades; a member's place = join order, moved up `referralBoost` places per friend who joins with their link |
-| Founding Members | At launch the first 10,000 places get a numbered card (#0001…) and hold at least Sprout (5% instant savings) for 12 months (`Customer.tierFloor`) |
+| Founding Members | At launch the first `foundingCap` places (2,026 by default) get a numbered card (#0001…) and hold at least Sprout (5% instant savings) for `foundingMonths` (14 by default; `Customer.tierFloor`) |
 | Drops | Limited apparel/accessory/CBD runs: members-only, tier early access (e.g. Harvest 2 h early), per-member limits enforced online and at the till, "notify me" by app push or SMS inside legal send windows |
 | Opening weekends & members' evenings | Store events with capacity-limited RSVPs, QR tickets checked in at the till, welcome gift on the first purchase |
 | My Deals | Weekly personal offer on each member's favourite eligible product, applied automatically, HQ-funded from the marketing fund and credited to the store |

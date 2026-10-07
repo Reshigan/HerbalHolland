@@ -20,7 +20,7 @@ export async function currentShift(device: { id: string; storeId: string }): Pro
   return { id: s.id, openedAt: s.openedAt.toISOString(), openingFloatCents: s.openingFloatCents, openedBy: by?.name ?? "—" };
 }
 
-/** Near-expiry markdown % per variant, judged on the next lot to sell (FEFO) — mirrors quote(). */
+/** Near-expiry markdown % per variant, judged on the next lot to sell (FEFO). Mirrors quote(). */
 async function markdowns(storeId: string, at: Date, days: number, pct: number) {
   const out = new Map<string, number>();
   if (!pct) return out;

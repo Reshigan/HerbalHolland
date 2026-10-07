@@ -1,4 +1,4 @@
-// "Add to calendar": the event as a single-event .ics file (public details only — no ticket code).
+// "Add to calendar": the event as a single-event .ics file (public details only, no ticket code).
 import { db } from "@/server/db";
 import { APP_URL } from "@/server/invoices";
 import { icsEvent } from "@/server/shop/launch-rules";

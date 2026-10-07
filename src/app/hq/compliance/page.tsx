@@ -26,7 +26,7 @@ export const metadata = { title: "Compliance" };
 const CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
 const EVENT: Record<string, string> = { "compliance.block": "Sale blocked", "compliance.settings": "Rules changed", "compliance.licence": "Licence updated", "compliance.product": "Product compliance data changed", "compliance.legal_review": "Legal texts sign-off" };
 
-// Regulatory watch-list — from docs/research/COMPLIANCE-RESEARCH.md (researched 27 Sep 2026; not legal advice).
+// Regulatory watch-list, from docs/research/COMPLIANCE-RESEARCH.md (researched 27 Sep 2026; not legal advice).
 const WATCH: { item: string; status: string; tone: "amber" | "blue" | "neutral" | "red"; date: string; action: string }[] = [
   { item: "Cannabis for Private Purposes Act 7 of 2024", status: "Commencement pending", tone: "amber", date: "Draft s6 regulations published 2 Feb 2026; Parliament must approve them before the President proclaims commencement (reply NW4480, 18 Sep 2026)", action: "Commercial THC trade stays unlawful: keep THC licence-gated" },
   { item: "Cannabis Bill (commercial framework)", status: "Expected mid-2027", tone: "blue", date: "Portfolio Committee, 6 Mar 2026; repeated 25 Sep 2026", action: "Adult-use mode stays off until a licensing regime commences" },

@@ -1,10 +1,10 @@
 // Reconciliation checks for one company's books and one month: the invariants the postings keep, each set against the
 // register it mirrors.
-//   Every company — debits equal credits; the running balances match the journal lines; nothing failed in the posting
+//   Every company: debits equal credits; the running balances match the journal lines; nothing failed in the posting
 //   queue; no unmatched bank lines.
-//   A franchisee — each store's Herbal Holland account against its franchise statement and payments; each store's stock
+//   A franchisee: each store's Herbal Holland account against its franchise statement and payments; each store's stock
 //   against its valuation.
-//   HQ — its franchisee accounts against each franchisee's books; gift vouchers, Rewards points and trade debtors against
+//   HQ: its franchisee accounts against each franchisee's books; gift vouchers, Rewards points and trade debtors against
 //   their registers; the DCs' stock.
 // Balances are compared at the month's last day (yesterday, for the month under way), with the registers taken back to
 // then; movements within the month leave out opening balances. Bounded: one company, one month.
@@ -370,8 +370,8 @@ async function bankLineCheck({ companyId, period, base }: Ctx): Promise<BooksChe
 export type BooksHealth = { drafts: number; issues: string[] };
 
 /**
- * For a page of companies: drafts waiting, and the checks that can be read cheaply across companies — debits equal
- * credits, failed postings, unmatched bank lines, and (franchisees) last month's Herbal Holland account vs HQ's mirror.
+ * For a page of companies: drafts waiting, and the checks that can be read cheaply across companies (debits equal
+ * credits, failed postings, unmatched bank lines and, for franchisees, last month's Herbal Holland account vs HQ's mirror).
  */
 export async function booksHealth(companies: { id: string; kind: string }[], now = new Date()): Promise<Map<string, BooksHealth>> {
   const ids = companies.map((c) => c.id);

@@ -1,6 +1,6 @@
 // Catalogue import: keeps each uploaded CSV (every import traces back to exactly what was uploaded), looks up the slice
-// of the catalogue a file touches for the dry run, and applies it in one transaction — products, variants and prices,
-// then opening stock through the inventory service — with one audit entry carrying the counts. The rules themselves
+// of the catalogue a file touches for the dry run, and applies it in one transaction (products, variants and prices,
+// then opening stock through the inventory service) with one audit entry carrying the counts. The rules themselves
 // are pure: @/lib/catalogue-import.
 import { createHash, randomUUID } from "node:crypto";
 import { db, type Tx } from "@/server/db";
@@ -101,7 +101,7 @@ const chunks = <T>(xs: T[]) => Array.from({ length: Math.ceil(xs.length / CHUNK)
  * Imports an uploaded file: plans it again inside the transaction (refusing if it would now do something other than
  * the preview showed), writes the rows without errors, and records one catalogue.import audit entry. A file imports once.
  * Product photos (image_urls) are fetched after the transaction commits: a slow or missing picture never holds up or
- * undoes the import — what couldn't be fetched is reported (and audited) instead.
+ * undoes the import. What couldn't be fetched is reported (and audited) instead.
  */
 export async function runImport(a: { uploadId: string; fileName: string; sha256: string; text: string; locationId: string | null; digest: string | null; actor: Actor; userId: string }) {
   const read = readImport(a.text);
@@ -159,7 +159,7 @@ async function applyPlan(t: Tx, plan: ImportPlan, snap: ImportSnapshot, userId: 
     await t.variant.createMany({ data: part.map((v) => ({ ...v.data, productId: v.productId ?? productId.get(v.productKey)!, sortOrder: v.sortOrder })) });
   for (const v of plan.variants) if (v.id && v.changed.length) await t.variant.update({ where: { id: v.id }, data: pick(v.data, v.changed) });
 
-  // Opening stock: a new batch per new code (released, packed today), then each lot through the inventory service —
+  // Opening stock: a new batch per new code (released, packed today), then each lot through the inventory service,
   // received at the location's cost, with the correction reason and the file named in the note.
   if (!plan.stock.length || !snap.location) return productId;
   const ids = new Map((await t.variant.findMany({ where: { sku: { in: plan.stock.map((s) => s.sku) } }, select: { id: true, sku: true } })).map((v) => [v.sku, v.id]));

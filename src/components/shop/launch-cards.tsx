@@ -18,7 +18,7 @@ export const fmtWhen = (d: Date) => `${DAY[weekdaySA(d)]} ${fmtDay(d)}, ${fmtTim
 export const fmtSpan = (a: Date, b: Date) =>
   fmtDate(a) === fmtDate(b) ? `${DAY_LONG[weekdaySA(a)]} ${fmtDate(a)} · ${fmtTime(a)}–${fmtTime(b)}` : `${fmtWhen(a)} – ${fmtWhen(b)}`;
 
-/** "Hatfield, Pretoria" — or just "Polokwane" when the store is named after its city. */
+/** "Hatfield, Pretoria", or just "Polokwane" when the store is named after its city. */
 export const storePlace = (s: { name: string; city: string }) => (s.name === s.city ? s.name : `${s.name}, ${s.city}`);
 
 /** Calendar tile: month, day and weekday (SAST). */

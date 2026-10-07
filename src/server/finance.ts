@@ -43,7 +43,7 @@ export function derived(t: Totals) {
     memberRate: transactions ? t.members / transactions : 0,
     // Money at the time of sale: card, cash, PayShap, EFT, and what HQ collected (online, gift vouchers, trade collect
     // orders). Points redeemed are reimbursed on the statement and sales on account (`accountCents`) are invoiced on
-    // HQ's trade ledger — neither is money when the sale is rung up.
+    // HQ's trade ledger: neither is money when the sale is rung up.
     moneyCents: t.grossCents - t.accountCents - t.loyaltyCents,
     // Collected by HQ on the store's behalf and credited on the franchise statement: online and voucher payments, plus
     // trade sales on account (the trade ledger is HQ's and HQ carries the credit risk).

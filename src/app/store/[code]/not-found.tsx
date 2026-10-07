@@ -3,7 +3,7 @@ import { getStaff, isHq } from "@/server/auth";
 import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
-// Inside the back-office shell: a store outside what the person looks after (or no such store — the two look the same),
+// Inside the back-office shell: a store outside what the person looks after (or no such store; the two look the same),
 // a page their role doesn't open, or a record that's gone. Next prepares this with every store page, so it makes no
 // queries of its own: /store sends people home (homeFor).
 export default async function StoreNotFound() {

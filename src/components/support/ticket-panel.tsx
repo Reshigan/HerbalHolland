@@ -31,7 +31,7 @@ const ACTION_LABEL: Record<string, string> = {
 export function TicketPanel({ d, staff, canWork, actions, links, agentName, now }: {
   d: Thread;
   staff: { id: string; name: string }[];
-  /** Read-only viewers (budtenders) see the thread but can't reply. */
+  /** Read-only viewers (member advisors) see the thread but can't reply. */
   canWork: boolean;
   actions: { reply: StaffAction; assign: StaffAction; priority: StaffAction; resolve: StaffAction };
   links: { order: string | null; member: string | null };

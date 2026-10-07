@@ -1,4 +1,4 @@
-// Z-report for a shift on this till (defaults to the most recent) — for re-printing.
+// Z-report for a shift on this till (defaults to the most recent), for re-printing.
 import { db } from "@/server/db";
 import { json, withStaff, PosError } from "@/server/pos/http";
 import { blindReport, lastShiftId, zReport } from "@/server/pos/shift";

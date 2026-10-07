@@ -1,6 +1,6 @@
 // Payment rails.
 //
-// Card present — the till's card tender (NEXT_PUBLIC_TAP_PROVIDER):
+// Card present (the till's card tender, NEXT_PUBLIC_TAP_PROVIDER):
 //   HALO_APPLINK  Halo Dot Halo.Link tap on glass via Android app-to-app intent; each store is merchant of record with
 //                 its own credentials. Backend: POST /consumer/intentTransaction { merchantId, amount, reference }
 //                 → { transactionId, token }; POS launches intent `za.co.synthesis.halo.transaction`, reads
@@ -11,7 +11,7 @@
 //   EXTERNAL      any bank/fintech terminal the owner already has; the POS records the approval code.
 //   Offline: tap on glass is disabled (SoftPOS needs connectivity); cash is queued and synced idempotently.
 //
-// Online — the shop's checkout (ONLINE_GATEWAY): PEACH, Peach Payments' Hosted Checkout (Peach Orchestration), or
+// Online (the shop's checkout, ONLINE_GATEWAY): PEACH, Peach Payments' Hosted Checkout (Peach Orchestration), or
 // YOCO, the Yoco Checkout API. One account for the online shop: the merchant is the company that owns the online
 // business (Vantax (Pty) Ltd), not the fulfilling store.
 import type { TapProviderKind } from "./pos/types";
@@ -103,10 +103,10 @@ async function yocoPost<T>(path: string, body: unknown, idempotencyKey: string):
 
 export type YocoCheckout = { id: string; redirectUrl: string; status: string; processingMode?: "live" | "test" };
 
-/** POST /checkouts — the hosted payment page for one order. */
+/** POST /checkouts: the hosted payment page for one order. */
 export const createYocoCheckout = (body: object, idempotencyKey: string) => yocoPost<YocoCheckout>("/checkouts", body, idempotencyKey);
 
-/** POST /checkouts/{id}/refund — "succeeded", or "pending" (Yoco then reports the outcome by webhook). */
+/** POST /checkouts/{id}/refund: "succeeded", or "pending" (Yoco then reports the outcome by webhook). */
 export async function refundYocoCheckout(checkoutId: string, amountCents: number, idempotencyKey: string, metadata: Record<string, string>) {
   const r = await yocoPost<{ refundId?: string; status?: string; message?: string }>(`/checkouts/${encodeURIComponent(checkoutId)}/refund`, { amount: amountCents, metadata }, idempotencyKey);
   if ((r.status !== "succeeded" && r.status !== "pending") || !r.refundId) throw new PaymentError(r.message || `Yoco refund ${r.status ?? "failed"}`);
@@ -139,10 +139,10 @@ async function peach<T>(method: "GET" | "POST", path: string, body?: object): Pr
   return data;
 }
 
-/** POST /payments — a Hosted Checkout payment for one order; payment_link.link is Peach's page. */
+/** POST /payments: a Hosted Checkout payment for one order; payment_link.link is Peach's page. */
 export const createPeachPayment = (body: object) => peach<PeachPayment>("POST", "/payments", body);
 
-/** GET /payments/{id}?force_sync=true — the payment's status, checked with the processor (Peach allows 2 a minute per payment). Null: no such payment. */
+/** GET /payments/{id}?force_sync=true: the payment's status, checked with the processor (Peach allows 2 a minute per payment). Null: no such payment. */
 export async function peachPayment(id: string): Promise<PeachPayment | null> {
   return peach<PeachPayment>("GET", `/payments/${encodeURIComponent(id)}?force_sync=true`).catch((e) => {
     if (e instanceof PaymentError && e.status === 404) return null;

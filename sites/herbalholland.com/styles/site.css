@@ -1,5 +1,5 @@
 /*
- * herbalholland.com — "Holland, meet South Africa": one journey from a Dutch polder to the KwaZulu-Natal hills at night.
+ * herbalholland.com is "Holland, meet South Africa": one journey from a Dutch polder to the KwaZulu-Natal hills at night.
  * Holland orange on warm black, cream reading sheets, Outfit for display and Inter for text; tokens copied from the
  * platform's @theme (src/app/globals.css). Motion moves only transform and opacity.
  * The stage (.stage, src/art.tsx) is the landscape behind the page. Its state is --t1 … --t4: how far each later scene
@@ -334,7 +334,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 
 /* ── The 18+ gate: the opening scene's question ────────────────────────── */
 /* The gate is shown by the CSS alone (no top layer: nothing has to be restyled when the script arrives). The page
-   behind it is in the document as on any page — drawn from the first paint, nothing hidden by display or visibility,
+   behind it is in the document as on any page: drawn from the first paint, nothing hidden by display or visibility,
    so a crawler that never answers reads it whole. Until the answer it is inert (the head script), the scroll is
    locked, and the landscape stands above it as an opaque first scene: only the sky, the polder and the card show. The
    answer (html.ready) lets the landscape back down as the scene's entrance plays. */

@@ -1,4 +1,4 @@
-// herbalholland.com/franchise — who we're looking for, what owners get, how it works (the disclosure document at least
+// herbalholland.com/franchise: who we're looking for, what owners get, how it works (the disclosure document at least
 // 14 days before anything is signed: CPA franchise regulations), straight answers (no earnings, projections or
 // investment figures), and the enquiry form, which posts JSON to /api/enquiry (the Worker). Province codes, capital
 // bands and field limits come from the platform (src/lib/sa.ts, src/lib/leads.ts), so the Worker and the form agree.

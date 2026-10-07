@@ -36,7 +36,7 @@ export async function saveLevels(code: string, variantId: string, _: ActionState
 
 /**
  * Sets one SKU's shelf price from the stock list (empty = follow the list price). Same rules, audit entry
- * (`price.override`) and margin warning as the pricing workbench, which does the work — and, like it, never for HQ:
+ * (`price.override`) and margin warning as the pricing workbench, which does the work. Like it, never for HQ:
  * shelf prices are the franchisee's (Competition Act s5(2)).
  */
 export async function saveShelfPrice(code: string, variantId: string, _: ActionState, fd: FormData): Promise<ActionState> {

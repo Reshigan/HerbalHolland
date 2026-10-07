@@ -1,5 +1,5 @@
 // Typo-tolerant admin searches: when nothing matches as typed, members are found by close first or last names and
-// products by close product or variant names (pg_trgm), closest first — still bounded to what the person may see.
+// products by close product or variant names (pg_trgm), closest first, but still bounded to what the person may see.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { closeMembers, memberWhere } from "@/server/hq/crm";
@@ -71,7 +71,7 @@ describe("Close member matches", () => {
 });
 
 describe("Close product matches", () => {
-  it("find a misspelt product in the catalogue — drafts too — closest first", async () => {
+  it("find a misspelt product in the catalogue (drafts too), closest first", async () => {
     expect((await closeProducts("durbn"))[0]).toBe(durban);
     expect(await closeProducts("nothern lights")).toContain(northern);
     expect(await closeProducts("og")).toEqual([]);

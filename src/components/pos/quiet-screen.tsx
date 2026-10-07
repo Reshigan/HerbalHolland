@@ -1,6 +1,6 @@
 "use client";
-// Quiet hours: after a few idle minutes with no sale open, the Sell screen shows a calm dashboard — today's takings,
-// online orders to hand over, low stock, what's waiting and the next event — from data the till already holds.
+// Quiet hours: after a few idle minutes with no sale open, the Sell screen shows a calm dashboard (today's takings,
+// online orders to hand over, low stock, what's waiting and the next event) from data the till already holds.
 // Any tap or key returns to selling. Reduced motion: nothing moves.
 import { useEffect, useState } from "react";
 import { CalendarDays, ClipboardList, PackageCheck, Sparkles, TrendingUp, Boxes } from "lucide-react";

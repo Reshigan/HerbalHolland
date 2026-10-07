@@ -40,7 +40,7 @@ export async function choosePreferredStore(code: string) {
   return { ok: true as const };
 }
 
-/** The store picker's list, fetched when the picker opens — too big to put on every page at network scale. */
+/** The store picker's list, fetched when the picker opens: it's too big to put on every page at network scale. */
 export async function pickerStores(): Promise<PickerStore[]> {
   return (await getRetailStores()).map((s) => {
     const o = openState(parseHours(s.hours));

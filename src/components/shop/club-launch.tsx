@@ -65,7 +65,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
   );
 }
 
-/** "Your welcome gift: a free hemp wick with your first purchase — add it to your bag" (from the live promotion). */
+/** "Your welcome gift: a free hemp wick with your first purchase", with "Add it to your bag" (from the live promotion). */
 export function WelcomeGiftBanner({ gift, where = "card", className }: { gift: WelcomeGift; where?: "card" | "bag"; className?: string }) {
   const what = gift.name.replace(/^welcome gift:\s*/i, "");
   return (

@@ -1,6 +1,7 @@
 // Catalogue import: the CSV reader (comma or semicolon, quotes, spreadsheet number formats), the cell rules (rand to
-// cents, classes, dates, barcodes), and the dry run against a catalogue snapshot — create or update by SKU, the
-// product rules (validateProduct, screenCopy), categories matched by name and never created, and opening stock.
+// cents, classes, dates, barcodes), and the dry run against a catalogue snapshot. The dry run covers creating or
+// updating by SKU, the product rules (validateProduct, screenCopy), categories matched by name and never created, and
+// opening stock.
 import { describe, expect, it } from "vitest";
 import {
   IMPORT_COLUMNS, IMPORT_MAX_ROWS, importKeys, importTemplate, parseCsv, planDigest, planImport, readBool, readDate, readImport, readNumber, readRand,
@@ -17,7 +18,7 @@ const OIL_HEAD = `${HEAD},description,thc_max_pct,cbd_mg_per_pack,cbd_mg_per_day
 const existingOil: ExistingProduct = {
   id: "p-oil", slug: "rest-oil", variantCount: 1, name: "Rest Oil", categoryId: "c-well", regClass: "CBD", description: "Chamomile and CBD for the wind-down, in MCT oil.", status: "ACTIVE",
   tagline: null, brand: "Herbal Holland", line: "HOUSE", strain: null, thcMin: null, thcMax: 0.001, cbdMin: null, cbdMax: null, effects: ["rest"], flavours: [], lineage: null, origin: null,
-  heritage: false, featured: false, tobaccoRelated: false, legalBasis: "Schedule 0 CBD — GN 586 of 22 May 2020", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: [],
+  heritage: false, featured: false, tobaccoRelated: false, legalBasis: "Schedule 0 CBD: GN 586 of 22 May 2020", cbdMgPerPack: 300, cbdMgPerDay: 10, claims: [],
   netContent: null, netUnit: null, ingredients: "MCT oil, hemp extract", allergens: ["none"], naturalCbd: false,
 };
 const existingVariant: ExistingVariant = { id: "v-rest", productId: "p-oil", sku: "REST-30", name: "30 ml", barcode: "6001234000017", grams: null, priceCents: 29_900, wholesaleCents: 14_000, costCents: 8_000, podSku: null, active: true, caseQty: 1 };
@@ -133,7 +134,7 @@ describe("the dry run", () => {
   it("checks each class's rules with validateProduct and screens the copy", () => {
     const p = plan(csv(OIL_HEAD, oilRow(), oilRow("OIL-900-30").replace("Calm Oil 300mg", "Calm Oil 900mg").replace(",300,10,", ",900,10,"), oilRow("OIL-CURE").replace("Calm Oil 300mg", "Cure Oil").replace("for the evening", "that cures insomnia")));
     expect(row(p, 2).action).toBe("create");
-    expect(p.products[0].data).toMatchObject({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, allergens: ["none"], legalBasis: "Schedule 0 CBD — GN 586 of 22 May 2020" });
+    expect(p.products[0].data).toMatchObject({ regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, allergens: ["none"], legalBasis: "Schedule 0 CBD: GN 586 of 22 May 2020" });
     expect(row(p, 3).errors).toContain("Schedule 0 allows at most 600 mg CBD per sales pack");
     expect(row(p, 4).errors.some((e) => e.includes("Medicinal claim"))).toBe(true);
     expect(p.products).toHaveLength(1);

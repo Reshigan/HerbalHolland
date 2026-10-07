@@ -1,8 +1,8 @@
 // Store-side postings against the real services: a franchisee's trading day with every tender and a refund, a
 // non-vendor's, a DC's; cash-ups, deposits, expenses and outside suppliers' invoices; wholesale and network stock
-// orders (short deliveries, between companies and within one); late till sales; and the checks the books must pass —
-// every trial balance zero, stock equal to its valuation, HQ's franchisee accounts mirroring each store's current
-// account, and the franchise statement agreeing with what was posted.
+// orders (short deliveries, between companies and within one); late till sales; and the checks the books must pass
+// (every trial balance zero, stock equal to its valuation, HQ's franchisee accounts mirroring each store's current
+// account, and the franchise statement agreeing with what was posted).
 import { randomUUID } from "node:crypto";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -204,7 +204,7 @@ describe("cash, expenses and outside suppliers", () => {
     const shift = await db.shift.create({ data: { storeId: w.store.id, deviceId: w.device.id, openedById: w.manager.id, openingFloatCents: 50_000 } });
     const price = await memberPrice();
     await sellCoffee([{ method: "CASH", amountCents: price }], { shiftId: shift.id });
-    // The drawer holds the float, that sale and a sale rung up offline that hasn't synced — and is about R10 short.
+    // The drawer holds the float, that sale and a sale rung up offline that hasn't synced. It's about R10 short.
     const counts: Record<string, number> = {};
     let left = 50_000 + price + COFFEE - 1_000;
     for (const d of DENOMINATIONS) (counts[String(d)] = Math.floor(left / d)), (left %= d);
@@ -320,7 +320,7 @@ describe("stock orders", () => {
     });
   });
 
-  it("NETWORK within one company: a transfer — VAT legs between its own stores, the price difference, the short unit lost", async () => {
+  it("NETWORK within one company: a transfer (VAT legs between its own stores, the price difference, the short unit lost)", async () => {
     s1b = await db.store.create({ data: { ...base(), code: "TST04", slug: "tst04", name: "Second Test Store", companyId: w.owner.id, addressLine: "4 Park St" } });
     const thd = await lot("TH-D");
     await receive(s1b.id, w.flowerV.id, thd.id, 10, 25_000);
@@ -366,7 +366,7 @@ describe("late changes", () => {
     const second = (await cost()) - first;
     const journals = await db.journal.findMany({ where: { source: "store-day", sourceId: id }, orderBy: { number: "asc" }, include: { lines: { include: { account: true } } } });
     expect(journals).toHaveLength(2);
-    expect(journals[1].memo).toBe("Trading day at Test Store (TST01) — updated");
+    expect(journals[1].memo).toBe("Trading day at Test Store (TST01) · updated");
     expect(Object.fromEntries(journals[1].lines.map((l) => [l.account.key, l.amountCents]))).toEqual({ cash: COFFEE - 100, "cash.diff": 100, "vat.output": -vatOf(COFFEE), "sales.pos": -(COFFEE - vatOf(COFFEE)), cogs: second, stock: -second });
     expect(journals.every((j) => j.date.toISOString().slice(0, 10) === yesterday)).toBe(true);
   });
@@ -413,7 +413,7 @@ describe("the books", () => {
     await expect(storeBackfill(today, yesterday)).rejects.toThrow("range of days");
   });
 
-  it("balance: every trial balance is zero, stock is its valuation, HQ mirrors each store's current account — and posting again posts nothing", async () => {
+  it("balance: every trial balance is zero, stock is its valuation, HQ mirrors each store's current account, and posting again posts nothing", async () => {
     // Lots whose cost re-averages: one received again at a new cost, one sold below zero and then received.
     const again = await lot("REAVG");
     await receive(w.store.id, w.flowerV.id, again.id, 3, 10_001);

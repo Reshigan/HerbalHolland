@@ -46,7 +46,7 @@ describe("Automatic postings", () => {
     expect(first).toMatchObject({ source: "test-day", sourceId: "d1", period: "2026-09", status: "POSTED", late: false, memo: "Trading day" });
     expect(await tx((t) => syncPosting(t, "test-day", "d1", w.owner.id, post(10_000)))).toBeNull();
     const second = await tx((t) => syncPosting(t, "test-day", "d1", w.owner.id, post(12_500)));
-    expect(second?.memo).toBe("Trading day — updated");
+    expect(second?.memo).toBe("Trading day · updated");
     expect((await db.journalLine.findMany({ where: { journalId: second!.id } })).map((l) => l.amountCents).sort((a, b) => a - b)).toEqual([-2_500, 2_500]);
     expect(await balance(w.owner.id, "cash")).toBe(12_500);
     expect(await balance(w.owner.id, "sales.pos")).toBe(-12_500);
@@ -58,7 +58,7 @@ describe("Automatic postings", () => {
     expect(late).toMatchObject({ period: "2026-10", late: true });
     expect(late!.date.toISOString().slice(0, 10)).toBe("2026-10-01");
     const gone = await tx((t) => syncPosting(t, "test-day", "d1", w.owner.id, null));
-    expect(gone?.memo).toBe("Trading day — reversed");
+    expect(gone?.memo).toBe("Trading day · reversed");
     expect(await balance(w.owner.id, "cash")).toBe(0);
     expect(await balance(w.owner.id, "cash", "2026-09")).toBe(12_500); // the closed month is untouched
     await setBooksLock(w.owner.id, null, actor(), new Date("2026-10-05T10:00:00+02:00"));

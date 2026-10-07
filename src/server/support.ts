@@ -1,7 +1,7 @@
 // Member support: tickets from /support (members and guests) worked in HQ → Support, with store managers seeing the
 // tickets about their own orders. Rules (SLA, moves, form checks, wording) live in @/lib/support. Every reply is
 // audited; personal information stays in the ticket (the audit log keeps numbers and categories), the member is told
-// by email — or by SMS when they have no email address — and resolved tickets are deleted a year after they close.
+// by email (or by SMS when they have no email address), and resolved tickets are deleted a year after they close.
 import { createHmac } from "node:crypto";
 import { db, tx, type Prisma } from "./db";
 import { audit, SYSTEM, type Actor } from "./audit";

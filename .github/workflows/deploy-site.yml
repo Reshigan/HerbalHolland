@@ -1,0 +1,36 @@
+name: Deploy herbalholland.com
+
+# The corporate site (sites/herbalholland.com, its own Cloudflare Worker: see wrangler.jsonc) goes live on every push to
+# main, and again just after midnight SAST: the pages are static, so a press release appears on its date only once a build
+# runs that day. Needs the repository secret CLOUDFLARE_API_TOKEN (Workers Scripts and D1 edit on the account, Workers
+# Routes edit on the herbalholland.com zone).
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "17 22 * * *" # 00:17 SAST
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-site
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx tsx sites/herbalholland.com/build.ts
+      - name: Migrate the database, then deploy
+        working-directory: sites/herbalholland.com
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy

@@ -71,7 +71,7 @@ export default async function AccountsPage({ params, searchParams }: { params: P
                   <Select id="acc-type" name="type" defaultValue="EXPENSE">
                     {ACCOUNT_TYPES.map((t) => (
                       <option key={t.type} value={t.type}>
-                        {t.label.replace(/s$/, "")} — {t.hint.toLowerCase()}
+                        {t.label.replace(/ies$/, "y").replace(/s$/, "")}: {t.hint.toLowerCase()}
                       </option>
                     ))}
                   </Select>
@@ -146,7 +146,7 @@ export default async function AccountsPage({ params, searchParams }: { params: P
                                       <Select id={`type-${a.id}`} name="type" defaultValue={a.type}>
                                         {ACCOUNT_TYPES.map((x) => (
                                           <option key={x.type} value={x.type}>
-                                            {x.label.replace(/s$/, "")}
+                                            {x.label.replace(/ies$/, "y").replace(/s$/, "")}
                                           </option>
                                         ))}
                                       </Select>

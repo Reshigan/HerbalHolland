@@ -266,7 +266,7 @@ export async function recordStatementInvoice(t: Tx, stockOrderId: string, actor:
   return row;
 }
 
-/** Daily: stock-order invoices from months that are over are settled — their franchise statement has been drawn up. */
+/** Daily: stock-order invoices from months that are over are settled, since their franchise statement has been drawn up. */
 export async function settleStatementInvoices(now = new Date()) {
   const monthStart = dateCol(`${dayKey(now).slice(0, 7)}-01`);
   const open = await db.supplierInvoice.findMany({ where: { onStatement: true, status: "DUE", invoiceDate: { lt: monthStart } }, select: { id: true, invoiceDate: true } });

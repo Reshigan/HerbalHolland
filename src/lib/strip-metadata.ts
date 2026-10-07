@@ -1,5 +1,5 @@
 // Photos people send us keep only the picture: a JPEG loses its EXIF (GPS position, camera, time, thumbnail), XMP,
-// IPTC and comments — keeping just its orientation, so it still shows upright — and a PNG its text, EXIF and time
+// IPTC and comments (keeping just its orientation, so it still shows upright), and a PNG its text, EXIF and time
 // chunks. A file that isn't laid out as expected is returned as it came (its type was already checked by its bytes).
 
 const concat = (parts: Uint8Array[]): Uint8Array<ArrayBuffer> => {

@@ -70,7 +70,7 @@ beforeAll(async () => {
 afterAll(() => db.$disconnect());
 
 describe("Store pages outside the scope", () => {
-  it("are a not-found — like a store that doesn't exist — never a trip to the sign-in page", async () => {
+  it("are a not-found (like a store that doesn't exist), never a trip to the sign-in page", async () => {
     await expect(storeForUser(manager, "OTH01")).rejects.toMatchObject(notFoundError);
     await expect(storeForUser(manager, "NOPE1")).rejects.toMatchObject(notFoundError);
     await expect(storeForUser(owner, "OTH01")).rejects.toMatchObject(notFoundError);
@@ -91,7 +91,7 @@ describe("Store pages outside the scope", () => {
 describe("Shelf prices are the franchisee's to set", () => {
   const key = () => ({ storeId_variantId: { storeId: w.store.id, variantId: w.flowerV.id } });
 
-  it("refuses HQ — the administrator and area managers alike — on every price action", async () => {
+  it("refuses HQ (the administrator and area managers alike) on every price action", async () => {
     for (const who of [hqAdmin, area]) {
       await signIn(who);
       expect(await savePrices("TST01", [{ variantId: w.flowerV.id, priceCents: 60_000 }])).toMatchObject({ error: "Shelf prices are the franchisee's to set" });

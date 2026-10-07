@@ -113,7 +113,7 @@ for i, pg in enumerate(w.pages):
     parts = list(resolved) if isinstance(resolved, ArrayObject) else [raw]
     assert all(isinstance(x, IndirectObject) for x in parts), "content streams must be indirect"
     pg[NameObject("/Contents")] = ArrayObject([q_ref, *parts, Q_ref, stream(data)])
-w.add_metadata({"/Title": "Herbal Holland platform — the complete guide", "/Author": "Herbal Holland", "/Subject": "System guide, version 1.2"})
+w.add_metadata({"/Title": "Herbal Holland platform: the complete guide", "/Author": "Herbal Holland", "/Subject": "System guide, ${VERSION.replace(/^Version/, "version")}"})
 with open(out, "wb") as f: w.write(f)
 `;
 const PY_FONTS = `

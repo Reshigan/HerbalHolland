@@ -1,5 +1,5 @@
 // Drops admin read models: variant options (never licensed medicines), live/upcoming/past status and
-// performance — watchers, units sold since the drop opened (variant rollups) and stock left (availability).
+// performance: watchers, units sold since the drop opened (variant rollups) and stock left (availability).
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
 import { availability } from "@/server/inventory";
@@ -28,7 +28,7 @@ export async function variantOptions(keep: string[] = []) {
   });
   return rows.map((v) => ({
     value: v.id,
-    label: `${v.product.name} — ${v.name}`,
+    label: `${v.product.name} · ${v.name}`,
     hint: blocked.includes(v.product.regClass) ? "Not allowed" : v.product.status === "DRAFT" ? "Draft" : v.sku,
     group: v.product.category.name,
   }));

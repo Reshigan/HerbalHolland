@@ -1,5 +1,5 @@
 // The head of a books report: title and what it shows, the company and period it covers (and store, when filtered),
-// Print and Download CSV — and the print styles that leave the app's sidebar, filters and buttons off the page.
+// Print and Download CSV, and the print styles that leave the app's sidebar, filters and buttons off the page.
 import { CalendarDays, Download, Store } from "lucide-react";
 import { PageHeader } from "@/components/ui/page";
 import { buttonClass } from "@/components/ui/button";

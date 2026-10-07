@@ -60,7 +60,7 @@ export async function addDeposit(code: string, _: ActionState, fd: FormData): Pr
   });
 }
 
-/** Owners, area managers and HQ check deposits (never their own — the service enforces that). */
+/** Owners, area managers and HQ check deposits (never their own; the service enforces that). */
 async function checker(code: string) {
   const user = await requireStaff();
   const store = await storeForUser(user, code);

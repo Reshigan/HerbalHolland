@@ -136,7 +136,7 @@ export async function notifyNewOrders(now = new Date()) {
   return { pushed: await summarize(sent) };
 }
 
-/** Loss alerts raised in the last day — never to the person they're about. */
+/** Loss alerts raised in the last day, never sent to the person they're about. */
 export async function notifyAlerts(now = new Date()) {
   const { stores, people } = await subscribedStores();
   if (!stores.length) return { pushed: 0 };
@@ -183,7 +183,7 @@ export async function notifyAnnouncements(now = new Date()) {
 }
 
 // ── Daily digests ────────────────────────────────────────────────────────────
-/** Lots on hand that enter the expiry window — once per lot per store. */
+/** Lots on hand that enter the expiry window, once per lot per store. */
 export async function notifyExpiringBatches(now = new Date()) {
   const { stores, people } = await subscribedStores();
   if (!stores.length) return { pushed: 0 };
@@ -208,7 +208,7 @@ export async function notifyExpiringBatches(now = new Date()) {
   return { pushed: await summarize(sent) };
 }
 
-/** Cash due at the bank today or overdue — one reminder per store per day. */
+/** Cash due at the bank today or overdue: one reminder per store per day. */
 export async function notifyDepositsDue(now = new Date()) {
   const { stores, people } = await subscribedStores();
   if (!stores.length) return { pushed: 0 };
@@ -224,7 +224,7 @@ export async function notifyDepositsDue(now = new Date()) {
     .map((d) =>
       pushToStaff(peopleFor(d.s, people), {
         title: `${d.overdue ? "Cash overdue at the bank" : "Cash to bank today"} · ${d.s.name}`,
-        body: `${zar(d.cents)} from ${d.n} cash-up${d.n === 1 ? "" : "s"}${d.overdue ? ` — ${d.overdue} past the deadline` : ""}. Record the deposit with its slip.`,
+        body: `${zar(d.cents)} from ${d.n} cash-up${d.n === 1 ? "" : "s"}${d.overdue ? ` (${d.overdue} past the deadline)` : ""}. Record the deposit with its slip.`,
         url: `/store/${d.s.code}/banking`,
       }),
     );

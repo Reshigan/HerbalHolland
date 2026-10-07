@@ -78,10 +78,10 @@ export type NewCustomer = {
   consents: Partial<Record<MsgChannel, boolean>>;
   source: string;
   joinedVia?: string | null; // raw ?src= tag; normalised by joinTag
-  termsAccepted: boolean; // accepted the membership terms (TERMS_VERSION) — required to join
+  termsAccepted: boolean; // accepted the membership terms (TERMS_VERSION); required to join
   interests?: string[]; // what they told us they're into (INTERESTS keys), for relevant deals
   consentWording?: string; // what they were asked, for the consent ledger (default: the online wording)
-  ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a budtender checked a passport in store
+  ageCheck?: AgeCheck; // e.g. ID_SIGHTED when a member advisor checked a passport in store
 };
 
 /** A join-link tag (`/club/join?src=flyer-hillcrest`): lowercase letters, digits and dashes, up to 40 characters. */

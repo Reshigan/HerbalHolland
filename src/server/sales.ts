@@ -73,14 +73,14 @@ type PostArgs = {
   payments: PaymentRow[];
   pointsRedeemed: number;
   redeemNow: boolean; // online orders redeem at checkout
-  extraCents?: number; // delivery fee (VAT incl.) — or a trade order's courier / click & collect handling fee
+  extraCents?: number; // delivery fee (VAT incl.), or a trade order's courier / click & collect handling fee
   ageCheck: AgeCheck;
   offline: boolean;
   createdAt: Date;
   campaignId?: string | null;
   /**
    * The money for this sale was collected by HQ (an online trade order: EFT to HQ's account, or HQ's trade ledger on
-   * ACCOUNT) and is settled to the store on its statement — so its EFT and ACCOUNT tenders roll up under
+   * ACCOUNT) and is settled to the store on its statement, so its EFT and ACCOUNT tenders roll up under
    * `onlineCents`, the HQ-collected column, exactly as gift vouchers do. Till trade sales keep their real columns.
    */
   collectedByHq?: boolean;
@@ -116,8 +116,8 @@ export async function postSaleTx(t: Tx, a: PostArgs) {
   let cost = 0, units = 0;
   const vstats: { variantId: string; units: number; netCents: number; costCents: number }[] = [];
   const made = await madeToOrder(a.quote.lines.map((l) => l.variantId), t); // no stock: costed at the partner's price
-  // Stock is taken in variant order — the order every sale and order locks lots in (customer → promotion → stock,
-  // locks.ts) — so two postings can't each hold a lot the other waits for. The lines keep the basket's order.
+  // Stock is taken in variant order (the order every sale and order locks lots in: customer → promotion → stock,
+  // locks.ts), so two postings can't each hold a lot the other waits for. The lines keep the basket's order.
   const taken = new Map<number, Allocation[]>();
   for (const [i, l] of [...a.quote.lines.entries()].sort(([, x], [, y]) => (x.variantId < y.variantId ? -1 : x.variantId > y.variantId ? 1 : 0)))
     taken.set(
@@ -245,8 +245,8 @@ export type PosSaleInput = {
   buyer?: { name: string; address: string; vatNumber?: string } | null;
   invoiceEmail?: string | null; // another address for the tax invoice
   /**
-   * Trade-sale mode: the sale is for a trade account — WHOLESALE channel, ex-VAT trade prices with VAT per line, the
-   * account's buyer block on the full tax invoice, an ACCOUNT tender allowed within its credit terms. No member, no
+   * Trade-sale mode: the sale is for a trade account (WHOLESALE channel, ex-VAT trade prices with VAT per line, the
+   * account's buyer block on the full tax invoice, an ACCOUNT tender allowed within its credit terms). No member, no
    * points, no My Deals, no vouchers, never offline.
    */
   trade?: { tradeAccountId: string } | null;
@@ -313,11 +313,11 @@ export async function postPosSale(input: PosSaleInput, ctx: { storeId: string; d
   const createdAt = createdAtOf(input);
 
   const result = await tx(async (t) => {
-    // The member's limits — patient grams, drop limits, a welcome gift or capped promotion, My Deals — are decided under
+    // The member's limits (patient grams, drop limits, a welcome gift or capped promotion, My Deals) are decided under
     // the member's row lock, taken first (then the promotion's, then stock: the one order in locks.ts), and checked
     // again: another till or the shop may have sold to this member while this sale waited. The member's own history is
     // read first, under their lock alone (those checks read through a second connection), before any shared lock.
-    // An unpaid online sale stops here; one already paid — queued offline, or charged on a card or PayShap — posts as
+    // An unpaid online sale stops here; one already paid (queued offline, or charged on a card or PayShap) posts as
     // paid, and the exception is logged for HQ.
     let [limits, rules] = [dropped, comp];
     if (customer) {
@@ -368,7 +368,7 @@ async function offersUsedElsewhere(t: Tx, customerId: string, promoIds: string[]
 
 /**
  * A trade sale rung up at any till (a retail store or the DC): priced with the WHOLESALE quote for the account (ex VAT,
- * VAT per line; the till's store's licences apply), checked with the trade basket rule (classes allowed, THC never —
+ * VAT per line; the till's store's licences apply), checked with the trade basket rule (classes allowed, THC never;
  * no member or age-gate rules), paid in money as usual and/or on ACCOUNT when the credit decision allows (that part
  * is invoiced on the account's ledger, due after its payment days). Posts the Sale in channel WHOLESALE with the
  * account's buyer block, earns and redeems nothing, refuses gift vouchers (consumer money) and queued offline sales,
@@ -451,7 +451,7 @@ export async function refundSale(a: {
   number: string;
   saleId: string;
   lines: { saleLineId: string; qty: number; restock: boolean }[];
-  /** Where the money part goes. ORIGINAL (the till's default): back to how they paid — spread over the sale's card,
+  /** Where the money part goes. ORIGINAL (the till's default): back to how they paid, spread over the sale's card,
    *  cash, PayShap and EFT tenders in proportion to what each has left to give back (lib/pos-refund). One tender
    *  instead is a manager's call. ONLINE: back through the shop's payment gateway (a return). The voucher part never
    *  goes here: it returns to the gift voucher(s) that paid, first (lib/vouchers.allocateRefund). On a trade sale the
@@ -515,7 +515,7 @@ export async function refundSale(a: {
     const offer = picks.reduce((s, p) => s + p.offer, 0);
     const extra = Math.max(0, Math.min(a.extraCents ?? 0, Math.max(0, orig.totalCents - orig.subtotalCents + orig.discountCents)));
     const extraVat = orig.vatCents > 0 ? vatOf(extra) : 0; // non-VAT-vendor stores charged none
-    // Points paid come back in proportion to what's been refunded so far — whole points, all of them by the last refund.
+    // Points paid come back in proportion to what's been refunded so far: whole points, all of them by the last refund.
     const loyaltyBack = pointsBack({
       loyaltyPaidCents: orig.payments.filter((p) => p.method === "LOYALTY").reduce((s, p) => s + p.amountCents, 0),
       loyaltyBackCents: orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "LOYALTY").reduce((s, p) => s - p.amountCents, 0),
@@ -532,8 +532,8 @@ export async function refundSale(a: {
     const accountBack = orig.refunds.flatMap((r) => r.payments).filter((p) => p.method === "ACCOUNT").reduce((s, p) => s + Math.max(0, -p.amountCents), 0);
     const toAccount = Math.min(split.toTender, Math.max(0, accountPaid - accountBack));
     const toTender = split.toTender - toAccount;
-    // The money: back to how they paid — over the sale's money tenders, never more on one than it has left to give
-    // back — or to the one tender a manager chose. At the till, cash never goes back beyond the cash the sale took.
+    // The money: back to how they paid (over the sale's money tenders, never more on one than it has left to give
+    // back), or to the one tender a manager chose. At the till, cash never goes back beyond the cash the sale took.
     const parts = moneyPartsOf(orig);
     let money: { method: PayMethod; cents: number; cardLast4: string | null }[];
     if (a.method === "ORIGINAL") {

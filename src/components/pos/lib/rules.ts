@@ -49,7 +49,7 @@ export function orderSla(placedAt: Date | string, doneAt: Date | string | null, 
   return { minutes, state: minutes >= limitMin ? "late" : minutes >= Math.ceil((limitMin * 2) / 3) ? "warn" : "ok" };
 }
 
-/** "4h 30m", "25m", "2d 3h" — how long something took or has been waiting. */
+/** "4h 30m", "25m", "2d 3h": how long something took or has been waiting. */
 export function fmtWait(from: Date | string, to: Date | string): string {
   const m = Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 60_000));
   if (m < 60) return `${m}m`;
@@ -97,7 +97,7 @@ export function cardMachineTender(provider: "YOCO" | "EXTERNAL", amountCents: nu
   return { tender: { method: "CARD", amountCents, provider, reference: provider === "EXTERNAL" ? ref.toUpperCase() : ref, cardLast4: last4 || undefined } };
 }
 
-/** HH••••002 — a member number as printed on receipts (the card keeps the full number). */
+/** HH••••002: a member number as printed on receipts (the card keeps the full number). */
 export function maskMemberNo(memberNo: string) {
   const m = memberNo.match(/^([A-Z]*)(\d+)$/i);
   if (!m || m[2].length <= 3) return memberNo.replace(/\d(?=\d{3})/g, "•");
@@ -117,7 +117,7 @@ export function parseBatchScan(text: string): string | null {
   return /^[A-Z0-9]{2,12}(?:-[A-Z0-9]{1,12}){1,4}$/i.test(t) && /\d/.test(t) ? t.toUpperCase() : null;
 }
 
-/** 082 ••• 1234 — enough for the cashier to confirm who they're serving. */
+/** 082 ••• 1234: enough for the cashier to confirm who they're serving. */
 export function maskPhone(e164: string) {
   const local = e164.startsWith("+27") ? `0${e164.slice(3)}` : e164;
   return local.length >= 10 ? `${local.slice(0, 3)} ••• ${local.slice(-4)}` : local;
@@ -171,7 +171,7 @@ export const offlineMember = (memberNo: string): CustomerDetail => ({
 
 // ── Trade-sale mode ──────────────────────────────────────────────────────────
 
-/** "On account · 30 days" / "Prepaid (EFT)" — an account's terms as the till shows them. */
+/** "On account · 30 days" / "Prepaid (EFT)": an account's terms as the till shows them. */
 export const tradeTermsLabel = (a: Pick<TradeAccountDTO, "terms" | "paymentDays">) => (a.terms === "ACCOUNT" ? `On account · ${a.paymentDays} days` : "Prepaid (EFT)");
 
 export type TradeTenderRules = {
@@ -188,7 +188,7 @@ export type TradeTenderRules = {
 /**
  * Which tenders a trade sale may take. Money as usual (card, EFT and PayShap need the connection the sale needs
  * anyway), never points or a gift voucher (consumer money), and "On account" only for an APPROVED account on
- * ACCOUNT terms while the amount — this tender plus what's already on account in the sale — stays within what the
+ * ACCOUNT terms while the amount (this tender plus what's already on account in the sale) stays within what the
  * account may still put on account (`availableCents`, the server's credit decision less what's open). The server
  * re-runs the credit check when the sale posts.
  */
@@ -205,7 +205,7 @@ export function tradeTenders(a: { account: Pick<TradeAccountDTO, "terms" | "stat
 
 /**
  * The 6-digit collection code a trade buyer gets when their click & collect order is ready: it must match the
- * order's exactly (the TO-… number is not a fallback — the buyer may not be the person who collects).
+ * order's exactly (the TO-… number is not a fallback: the buyer may not be the person who collects).
  */
 export function tradeCodeMatches(collectionCode: string | null | undefined, entered: string) {
   const v = entered.replace(/\D/g, "");
@@ -215,7 +215,7 @@ export function tradeCodeMatches(collectionCode: string | null | undefined, ente
 /**
  * The Z-report's trade section from the shift's sales grouped by kind and channel: WHOLESALE sales (till trade
  * sales and trade orders handed over) ex VAT, VAT and incl, their refunds, and the part invoiced on account
- * (the ACCOUNT tender, net of credit notes) — which is not money and never changes the cash-up.
+ * (the ACCOUNT tender, net of credit notes), which is not money and never changes the cash-up.
  */
 export function tradeSummary(rows: { kind: string; channel: string; count: number; totalCents: number; vatCents: number }[], tenders: { method: string; amountCents: number }[]) {
   const sum = (xs: { totalCents: number; vatCents: number }[], f: (r: { totalCents: number; vatCents: number }) => number) => xs.reduce((a, r) => a + f(r), 0);

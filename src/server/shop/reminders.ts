@@ -1,4 +1,4 @@
-// "Remind me to reorder": a schedule the member sets on a product (coffee, collagen, oils…) — every N days we send
+// "Remind me to reorder": a schedule the member sets on a product (coffee, collagen, oils…). Every N days we send
 // one message with a one-tap link that puts the item in their bag. Nothing is charged: there's no card on file until
 // Peach tokenisation is approved. Transactional (the member asked for exactly this), on the channel they chose, and
 // cancelled from /club/reminders at any time.

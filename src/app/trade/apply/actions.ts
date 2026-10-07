@@ -1,7 +1,7 @@
 "use server";
 // The trade application: the form's fields and the licence documents go to applyForTradeAccount as typed; problems
 // come back by field, with everything typed so React's post-action form reset loses nothing but the files (a browser
-// can't refill a file input — the form says to attach them again). No sign-in needed; an hourly limit per connection.
+// can't refill a file input, so the form says to attach them again). No sign-in needed; an hourly limit per connection.
 import { headers } from "next/headers";
 import { applyForTradeAccount } from "@/server/trade/accounts";
 import { clientIp } from "@/server/leads";

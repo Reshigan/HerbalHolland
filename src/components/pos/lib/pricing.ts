@@ -1,7 +1,7 @@
 // Till-side pricing: the same pure rules the server's quote() uses (price lists, shelf
 // prices, near-expiry markdowns, promotions, s18A incentive exclusions), run against the
 // cached bootstrap. Used for instant feedback online and as the price of record offline.
-// Member-specific deals — My Deals and first-purchase welcome gifts — are online only.
+// Member-specific deals (My Deals and first-purchase welcome gifts) are online only.
 import { applyPromotions } from "@/lib/promotions";
 import { promoWindowOpen, resolvePrice, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { incentiveExcluded, type ComplianceSettings, type RegClass } from "@/lib/compliance";
@@ -40,8 +40,8 @@ const reviveList = (l: BootPriceList): PriceListRule => ({
 
 /**
  * Promotions the till can apply on its own at `at`: inside their date range and happy-hour /
- * weekday window. Welcome gifts (first purchase only) are left to the server — only it can
- * tell a member has never bought — so they never apply offline (offline sales are trust-mode).
+ * weekday window. Welcome gifts (first purchase only) are left to the server (only it can
+ * tell a member has never bought), so they never apply offline (offline sales are trust-mode).
  */
 export function livePromotions(promos: BootPromotion[], at: Date) {
   return promos.filter((p) => !p.firstPurchaseOnly && new Date(p.startsAt) <= at && new Date(p.endsAt) >= at && promoWindowOpen(p, at));
@@ -57,7 +57,7 @@ export function priceBasket(
   const excluded = incentiveExcluded(data.compliance);
   const member = !!opts.member && !!opts.tier;
   const ctx: PriceContext = { storeId: data.storeId, regionId: data.regionId, channel: "POS", member, tier: opts.tier ?? null, tierPct: member ? (data.tierSavingsPct[opts.tier!] ?? 0) : 0, at };
-  // Members are compared with the walk-in price; walk-ins with what joining (Seed) would save — as quote() does.
+  // Members are compared with the walk-in price; walk-ins with what joining (Seed) would save, as quote() does.
   const other: PriceContext = member ? { ...ctx, member: false, tier: null, tierPct: 0 } : { ...ctx, member: true, tier: "SEED", tierPct: data.tierSavingsPct.SEED ?? 0 };
 
   const base = items

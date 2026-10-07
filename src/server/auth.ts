@@ -105,7 +105,7 @@ export async function requireStaff(roles?: Role[]) {
   if (!user) redirect("/login");
   if (user.mustChangePassword) redirect("/account/password");
   // Signed in but outside their role: a not-found inside the shell ("sits outside what you look after"), not the
-  // sign-in page — that reads like being signed out. Anonymous visitors still go to /login above.
+  // sign-in page, which reads like being signed out. Anonymous visitors still go to /login above.
   if (roles && !roles.includes(user.role)) notFound();
   return user;
 }
@@ -149,7 +149,7 @@ export const getCustomer = cache(async () => {
 export const TRADE_SESSION_HOURS = 12;
 
 /**
- * The buyer a trade session token belongs to, with their account — null when the session is missing, expired or
+ * The buyer a trade session token belongs to, with their account, or null when the session is missing, expired or
  * unused for 12 hours, the buyer was removed, or the account is closed. Every trade page and action starts here;
  * mutations re-check the account's status themselves (src/server/trade/*).
  */

@@ -137,7 +137,7 @@ export function ComplianceForm({ action, value, legalReviewed, readOnly }: { act
                 <span key={cl} className="inline-flex items-center gap-2 text-sm text-ink-600" title="Licensed medicines never get incentives in medical mode">
                   {(value.noIncentives ?? []).includes(cl) && <input type="hidden" name="noIncentives" value={cl} />}
                   <Lock className="h-4 w-4 text-ink-400" aria-hidden />
-                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-500">— always, in medical mode</span>
+                  {REG_CLASS_LABEL[cl]} <span className="text-xs text-ink-500">(always, in medical mode)</span>
                 </span>
               ) : (
                 <Checkbox key={cl} name="noIncentives" value={cl} defaultChecked={(value.noIncentives ?? []).includes(cl)} label={REG_CLASS_LABEL[cl]} />

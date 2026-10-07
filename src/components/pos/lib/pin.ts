@@ -1,5 +1,5 @@
 // Offline unlock. When a staff member signs in online, the till keeps a salted PBKDF2
-// verifier of their PIN (never the PIN) for 12 hours — matching the server session — so
+// verifier of their PIN (never the PIN) for 12 hours (matching the server session), so
 // the till can be unlocked while the connection is down.
 import { loadPins, savePins } from "./storage";
 

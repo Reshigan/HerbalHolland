@@ -8,7 +8,7 @@ import { buttonClass } from "@/components/ui/button";
 import { FieldRow, SelectInput, TextInput } from "@/components/shop/ui";
 import { LICENCE_FILE_ACCEPT, TRADE_LICENCES, type TradeLicenceKind } from "@/lib/trade-licences";
 
-/** `regNumber`: the account's company registration number — a company certificate is for it (typed when there's none yet). */
+/** `regNumber`: the account's company registration number. A company certificate is for it (typed when there's none yet). */
 export function LicenceUploadForm({ kinds, initial, regNumber }: { kinds: TradeLicenceKind[]; initial: TradeLicenceKind; regNumber: string | null }) {
   const [state, action, pending] = useActionState<LicenceState, FormData>(uploadLicenceAction, {});
   const v = state.values ?? {};

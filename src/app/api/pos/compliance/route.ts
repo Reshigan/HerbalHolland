@@ -1,5 +1,5 @@
-// Pre-payment checks (domain: compliance.evaluateBasket) — basket, customer, the store's
-// licences and whether the signed-in staff member may dispense — plus limited-drop rules
+// Pre-payment checks (domain: compliance.evaluateBasket): basket, customer, the store's
+// licences and whether the signed-in staff member may dispense, plus limited-drop rules
 // (members only, opening time, per-member limit: drops.dropBlocks), so nobody is charged
 // for a basket the sale would then refuse.
 import { z } from "zod";

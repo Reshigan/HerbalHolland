@@ -1,6 +1,6 @@
 "use client";
-// Import a bank statement: the file (checked against the size limit before it's sent), how to read it — worked out
-// from the file by default — and, for any other CSV, which columns hold what.
+// Import a bank statement: the file (checked against the size limit before it's sent), how to read it (worked out
+// from the file by default) and, for any other CSV, which columns hold what.
 import { useState } from "react";
 import { Field, Input, Select } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton, type FormAction } from "@/components/ui/action-form";

@@ -26,14 +26,14 @@ const emails = {
   "order-delivered": orderEmail("delivered", courierOrder),
   "order-collected": orderEmail("collected", order),
   "order-cancelled-refunded": orderEmail("cancelled", { ...courierOrder, refunded: true }),
-  campaign: campaignEmail({ subject: "Windmill Days are back", body: "Hi Lindiwe,\n\nThe Windmill Tee drop lands Friday at 10:00. Members see it first.\n\n— Herbal Holland", unsubscribeUrl: `${base}/unsubscribe?c=1&ch=EMAIL&t=preview` }),
+  campaign: campaignEmail({ subject: "Windmill Days are back", body: "Hi Lindiwe,\n\nThe Windmill Tee drop lands Friday at 10:00. Members see it first.\n\nHerbal Holland", unsubscribeUrl: `${base}/unsubscribe?c=1&ch=EMAIL&t=preview` }),
 };
 
 const rows: string[] = [];
 for (const [name, r] of Object.entries(emails)) {
   writeFileSync(join(out, `${name}.html`), r.html.replace(LEGAL_MARK, esc(legal)));
-  writeFileSync(join(out, `${name}.txt`), `Subject: ${r.subject}\n\n${r.text}\n\n— ${legal}\n`);
-  rows.push(`<li><a href="${name}.html">${esc(name)}</a> — <span style="color:#6b5f57">${esc(r.subject)}</span> · <a href="${name}.txt">text</a> · ${(r.html.length / 1024).toFixed(1)} KB</li>`);
+  writeFileSync(join(out, `${name}.txt`), `Subject: ${r.subject}\n\n${r.text}\n\n${legal}\n`);
+  rows.push(`<li><a href="${name}.html">${esc(name)}</a>: <span style="color:#6b5f57">${esc(r.subject)}</span> · <a href="${name}.txt">text</a> · ${(r.html.length / 1024).toFixed(1)} KB</li>`);
 }
 writeFileSync(
   join(out, "index.html"),

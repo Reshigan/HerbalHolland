@@ -121,7 +121,7 @@ const UNDERWAY = ["processing", "requires_capture", "requires_merchant_action", 
 
 /**
  * What the pay page does with the order's current Peach payment (from a status query). "paid": it went through (the
- * webhook just hasn't landed). "wait": Peach is still processing it — don't open a second one. "reuse": nothing tried
+ * webhook just hasn't landed). "wait": Peach is still processing it, so don't open a second one. "reuse": nothing tried
  * yet and Peach's page stays open for at least another minute (the member left and came back). "new": none, or it
  * failed, was abandoned mid-authentication, cancelled or expired, or doesn't match the order.
  */
@@ -134,7 +134,7 @@ export function peachNextStep(p: PeachPayment | null, dueCents: number, now = Da
 }
 
 /**
- * Back from Peach's page (…/orders/<code>?pay=peach&status=…&payment_id=…): what to show the member — "success"
+ * Back from Peach's page (…/orders/<code>?pay=peach&status=…&payment_id=…): what to show the member, one of "success"
  * (waiting for confirmation), "failed" or "cancelled". Only a hint: the browser brought it, so the webhook (or a
  * status query) decides whether the order is paid.
  */

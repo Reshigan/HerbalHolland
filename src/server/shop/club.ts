@@ -1,6 +1,6 @@
 // Herbal Holland Rewards member views: card, tier progress, points ledger, orders, invoices,
 // marketing preferences and patient-authorisation status. Always scoped to the
-// signed-in member — callers pass the id from the session, never from the client.
+// signed-in member: callers pass the id from the session, never from the client.
 import { db } from "@/server/db";
 import { spend12m } from "@/server/loyalty";
 import { customerContext } from "@/server/compliance";
@@ -30,7 +30,7 @@ export async function memberOverview(customerId: string) {
     db.sale.aggregate({ where: { customerId }, _sum: { memberSavingsCents: true } }),
   ]);
   // Tiers are re-assessed on every purchase against rolling 12-month spend. If spend has
-  // slipped below the member's current tier, show what it takes to keep it rather than the next rung —
+  // slipped below the member's current tier, show what it takes to keep it rather than the next rung,
   // unless a tier floor (Founding Members) guarantees it, in which case the goal is the rung above.
   const held = tierIndex(customer.tier);
   const earned = tierIndex(tierFor(spend).key);
@@ -101,7 +101,7 @@ export async function memberInvoices(customerId: string, page: number, pageSize 
   return { rows: rows.map((r) => ({ ...r, url: invoiceUrl(r.id), title: r.kind === "REFUND" ? (r.store.company.vatNumber ? "Credit note" : "Refund") : r.store.company.vatNumber ? "Tax invoice" : "Invoice" })), total };
 }
 
-/** Latest consent event per channel — the evidence trail behind each toggle (POPIA s69). */
+/** Latest consent event per channel: the evidence trail behind each toggle (POPIA s69). */
 export async function consentTrail(customerId: string) {
   const rows = await db.consentEvent.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: 40 });
   const latest = new Map<string, (typeof rows)[number]>();

@@ -20,7 +20,7 @@ export type ChartAccount = ReportAccount & { active: boolean };
 const ACCOUNT = { id: true, code: true, name: true, type: true, key: true, party: true, active: true } as const;
 const COMPANY = { id: true, name: true, legalName: true, kind: true, vatNumber: true, vatCategory: true, yearEndMonth: true, booksLockedThrough: true } as const;
 
-/** The company's chart in code order — created from the template the first time anyone opens the books. */
+/** The company's chart in code order, created from the template the first time anyone opens the books. */
 export async function chartOf(companyId: string): Promise<ChartAccount[]> {
   const read = () => db.ledgerAccount.findMany({ where: { companyId }, select: ACCOUNT, orderBy: { code: "asc" } });
   const accounts = await read();
@@ -156,7 +156,7 @@ async function openingBalance(companyId: string, yearEndMonth: number, account: 
 const toLine = (x: RawLine, balance: number): LedgerLine => ({ ...x, cents: Number(x.cents), date: x.date.toISOString().slice(0, 10), balance });
 
 /**
- * One account's posted lines in a range, a page at a time, oldest first, each with the running balance — optionally
+ * One account's posted lines in a range, a page at a time, oldest first, each with the running balance, optionally
  * for one store or one party (`?party=` from the ageing). Null when the account isn't in these books.
  */
 export async function accountLedger(companyId: string, accountId: string, r: MonthRange & { storeId?: string | null; partyId?: string | null }, page = 1) {
@@ -204,7 +204,7 @@ export async function* accountLedgerRows(companyId: string, account: ChartAccoun
       const lines = rows.map((x) => toLine(x, (balance += Number(x.cents))));
       const [stores, parties] = await Promise.all([storeNames(lines.flatMap((l) => (l.storeId ? [l.storeId] : []))), partyNames(companyId, account.party, lines.flatMap((l) => (l.partyId ? [l.partyId] : [])))]);
       yield lines.map((l) => ({
-        date: l.date, number: l.number, source: sourceLabel(l.source), memo: l.lineMemo ? `${l.memo} — ${l.lineMemo}` : l.memo,
+        date: l.date, number: l.number, source: sourceLabel(l.source), memo: l.lineMemo ? `${l.memo} · ${l.lineMemo}` : l.memo,
         store: l.storeId ? (stores.get(l.storeId)?.code ?? l.storeId) : "", party: l.partyId ? (parties.get(l.partyId) ?? l.partyId) : "", ...debitCredit(l.cents), balance: l.balance,
       }));
       if (rows.length < batch) break;
@@ -366,7 +366,7 @@ export async function cashAccountsOf(companyId: string, accounts?: ChartAccount[
 
 /**
  * The cash flow statement (direct method) for one or more ranges: the cash accounts' opening and closing balances,
- * and every journal that moved cash classified by its other lines — operating, investing (fixed assets) or financing
+ * and every journal that moved cash classified by its other lines as operating, investing (fixed assets) or financing
  * (loans and equity).
  */
 export async function cashFlowColumns(companyId: string, ranges: MonthRange[], storeId?: string | null) {
@@ -426,7 +426,7 @@ export const ageingKinds = (kind: "FRANCHISOR" | "FRANCHISEE"): AgeingKind[] => 
 
 /**
  * Party balances as at `asOf` (a day), aged FIFO: trade debtors by trade account, creditors by supplier, and the
- * franchise current accounts — HQ's with each franchisee company, or a franchisee's one account with HQ. Amounts are
+ * franchise current accounts (HQ's with each franchisee company, or a franchisee's one account with HQ). Amounts are
  * in the account's normal direction: what's owed to the company on an asset, what it owes on a liability.
  */
 export async function ageing(companyId: string, kind: AgeingKind, asOf: string) {

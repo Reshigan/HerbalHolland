@@ -1,6 +1,6 @@
 "use client";
 // Handing a click & collect trade order over at the counter: the collector's ID checked (18+), the six-digit code
-// they were sent typed in, and anything short noted — then the sale posts at the store.
+// they were sent typed in, and anything short noted. Then the sale posts at the store.
 import { useState } from "react";
 import { ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";

@@ -1,6 +1,6 @@
 // Row-level access scoping. Every back-office and report query goes through here:
 // HQ sees the network, area managers their region, owners their company's stores,
-// managers and budtenders their own store.
+// managers and member advisors their own store.
 import { notFound } from "next/navigation";
 import { db } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
@@ -73,7 +73,7 @@ export async function storeForUser(u: Staff, code: string) {
 
 /**
  * The store whose shell /store/[code] shows: that store when the user may see it, else their own (the first they look
- * after), so a store outside their scope — or no such store — opens not-found.tsx inside their own back office while
+ * after), so a store outside their scope (or no such store) opens not-found.tsx inside their own back office while
  * the page's storeForUser answers 404. Authorises nothing: every page loads its store through storeForUser.
  */
 export async function shellStoreFor(u: Staff, code: string) {

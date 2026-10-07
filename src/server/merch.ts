@@ -1,5 +1,5 @@
 // Made-to-order merch: variants with a print-partner product code (Variant.podSku) are printed on demand and
-// couriered by the partner — no stock anywhere, so they skip stock routing and stock movements, cost what the
+// couriered by the partner. There's no stock anywhere, so they skip stock routing and stock movements, cost what the
 // partner charges, and always ship (the order books to HQ's distribution centre; courier is charged on top).
 //
 // Paid orders go to the partner as an emailed production order (pod.ts) from the frequent job. The partner emails
@@ -65,7 +65,7 @@ export async function submitMerchOrders() {
       done++;
     } catch (e) {
       failed++;
-      // Not sent: let go, so the next run tries again. (Sent: keep the claim — the partner never gets it twice.)
+      // Not sent: let go, so the next run tries again. (Sent: keep the claim, so the partner never gets it twice.)
       if (!sent) await db.order.updateMany({ where: { id: o.id, podRef: o.code, podStatus: "sending" }, data: { podRef: null, podStatus: null } }).catch(() => undefined);
       console.error("[merch] production order", o.code, e);
     }

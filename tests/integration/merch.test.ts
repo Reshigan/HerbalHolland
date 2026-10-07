@@ -75,7 +75,7 @@ describe("made-to-order merch", () => {
     expect((await db.order.findUniqueOrThrow({ where: { id: o.id } })).status).toBe("COMPLETED");
   });
 
-  it("ships a mixed order as two parcels: stocked items from the DC, merch from the partner — each courier charged", async () => {
+  it("ships a mixed order as two parcels: stocked items from the DC, merch from the partner, each courier charged", async () => {
     sent.length = 0;
     const o = await placeOrder({ customerId: w.walkIn.id, fulfilment: "COURIER", items: [{ variantId: w.oilV.id, qty: 1 }, { variantId: tee.id, qty: 1 }], payMethod: "ONLINE", address });
     expect(o.storeId).toBe(w.dc.id);

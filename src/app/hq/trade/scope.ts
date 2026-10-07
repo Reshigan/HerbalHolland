@@ -1,6 +1,6 @@
 // Who sees what in HQ → Trade. HQ admin and the HQ team see every account and order and may act on them; an area
 // manager sees (read-only) the orders their region's stores fulfil and the accounts that order from, or are served by
-// a DC in, their region — the same rule the trade reports and the overview's queue use.
+// a DC in, their region (the same rule the trade reports and the overview's queue use).
 import { HQ_ROLES, requireStaff } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { can } from "@/server/hq/guard";

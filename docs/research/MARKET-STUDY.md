@@ -7,7 +7,7 @@
 ## Contents
 
 1. [Legal context](#1-legal-context)
-2. [Competitor landscape](#2-competitor-landscape)
+2. [Competitors](#2-competitors)
 3. [Market size and consumer behaviour](#3-market-size-and-consumer-behaviour)
 4. [Heritage strains and craft growers](#4-heritage-strains-and-craft-growers)
 5. [Marketing when paid ads are restricted](#5-marketing-when-paid-ads-are-restricted)
@@ -33,7 +33,7 @@ The legal position shapes every feature decision.
 
 ---
 
-## 2. Competitor landscape
+## 2. Competitors
 
 Footprints are the operators' own claims on the dates shown.
 

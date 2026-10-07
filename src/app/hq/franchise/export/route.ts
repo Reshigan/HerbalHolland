@@ -1,5 +1,5 @@
 // Franchise leads as CSV (HQ admin and the HQ team): the list's current status filter and search. Personal information
-// leaving the platform, so every export is audited (lead.export: how many rows and which view — never the search text).
+// leaving the platform, so every export is audited (lead.export: how many rows and which view, never the search text).
 import { requireStaff } from "@/server/auth";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";

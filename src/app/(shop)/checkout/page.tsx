@@ -122,7 +122,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
       maxPoints: redeemablePoints({ balance: customer.points, eligibleCents: eligibleBase + fees[i], maxPct: settings.loyalty.maxRedeemPct, min: settings.loyalty.minRedeem }),
     };
   }).filter((o) => offered.options.includes(o.key));
-  // A licensed-product problem (e.g. quantity headroom) applies to every channel — show it once, clearly.
+  // A licensed-product problem (e.g. quantity headroom) applies to every channel, so show it once, clearly.
   const shared = options.every((o) => !o.ok) ? comps[0].blocks.find((b) => !AGE_BLOCK.test(b)) ?? null : null;
 
   const required = settings.compliance.licensedOnly.filter((c) => q.lines.some((l) => l.regClass === c));

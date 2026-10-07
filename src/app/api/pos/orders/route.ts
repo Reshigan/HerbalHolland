@@ -1,5 +1,5 @@
-// Online orders for this store's pick board (new, picking, ready, handed over today), or —
-// with ?scan= — the single order behind a customer's collection QR, verified against its code.
+// Online orders for this store's pick board (new, picking, ready, handed over today), or
+// (with ?scan=) the single order behind a customer's collection QR, verified against its code.
 import { json, withStaff } from "@/server/pos/http";
 import { orderBoard, orderFromScan } from "@/server/pos/orders";
 

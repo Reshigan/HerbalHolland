@@ -1,6 +1,6 @@
 // Gift voucher lookup for the till's "Gift voucher" tender: the code (typed or scanned) → what's on it, or why it can't
 // pay right now (lib/vouchers.voucherProblem, in plain English). Read-only: the voucher is redeemed when the sale posts
-// (sales.postPosSale), so this and the tender need the connection — a queued offline sale never carries one.
+// (sales.postPosSale), so this and the tender need the connection: a queued offline sale never carries one.
 import { z } from "zod";
 import { voucherForCheckout } from "@/server/shop/vouchers";
 import { json, readBody, withStaff, PosError } from "@/server/pos/http";

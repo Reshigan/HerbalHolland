@@ -1,5 +1,5 @@
 // The windmill Mark as an SVG string (same geometry as @/components/brand/logo) for
-// generated images — app icons, PWA icons and Open Graph cards — where React
+// generated images (app icons, PWA icons and Open Graph cards) where React
 // components can't be used directly.
 import { PETAL } from "@/components/brand/logo";
 

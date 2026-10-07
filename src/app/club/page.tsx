@@ -52,7 +52,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
   const base = APP_URL();
   const referUrl = `${base}/club/join?ref=${m.customer.referralCode}`;
   const name = [m.customer.firstName, m.customer.lastName].filter(Boolean).join(" ");
-  // Signed share cards: first name, savings and tier only — never what the member bought.
+  // Signed share cards: first name, savings and tier only, never what the member bought.
   const card = { referralCode: m.customer.referralCode, firstName: m.customer.firstName, tier: m.customer.tier as TierKey };
   const shareSavings = m.savedCents >= 100 ? `${base}${sharePath({ ...card, savedCents: m.savedCents })}` : null;
   const shareTier = `${base}${sharePath({ ...card, savedCents: 0 })}`;

@@ -15,7 +15,7 @@ import { isEmail } from "@/lib/email";
 
 const isOwnerLevel = (u: Pick<Staff, "role">) => u.role === "OWNER" || u.role === "HQ_ADMIN";
 
-/** Owners and HQ admins manage everyone at the store; managers manage budtenders and their own PIN. */
+/** Owners and HQ admins manage everyone at the store; managers manage member advisors and their own PIN. */
 function mayManage(actor: Staff, target: Pick<User, "id" | "role">) {
   if (isOwnerLevel(actor)) return true;
   return actor.role === "MANAGER" && (target.role === "BUDTENDER" || target.id === actor.id);
@@ -118,7 +118,7 @@ export async function setDispenser(code: string, id: string, on: boolean, _: Act
 
 /**
  * Links (or, when left empty, unlinks) a staff member's own Rewards membership. Sales they ring onto it are flagged
- * for loss prevention and earn no commission — so a manager can link their own card but only the owner can change or clear it.
+ * for loss prevention and earn no commission, so a manager can link their own card but only the owner can change or clear it.
  */
 export async function setMemberCard(code: string, id: string, _: ActionState, fd: FormData): Promise<ActionState> {
   return attempt(async () => {

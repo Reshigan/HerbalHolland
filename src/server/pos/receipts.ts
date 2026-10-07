@@ -27,7 +27,7 @@ const receiptInclude = {
 export async function receipt(saleId: string, storeId: string): Promise<ReceiptDTO> {
   const s = await db.sale.findUnique({ where: { id: saleId }, include: receiptInclude });
   if (!s || s.storeId !== storeId) throw new PosError("Sale not found at this store", 404);
-  // My Deals used on this sale (looked up through the member's offers — that's the indexed path).
+  // My Deals used on this sale (looked up through the member's offers, which is the indexed path).
   const offers =
     s.customerId && s.kind === "SALE" && s.lines.some((l) => l.offerCents > 0)
       ? await db.memberOffer.findMany({ where: { customerId: s.customerId, saleId: s.id }, select: { title: true }, orderBy: { title: "asc" } })

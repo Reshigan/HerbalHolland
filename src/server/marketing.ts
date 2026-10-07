@@ -17,7 +17,7 @@ export const CONSENT_FIELD = { WHATSAPP: "consentWhatsapp", SMS: "consentSms", E
 
 export class CampaignError extends Error {}
 
-/** SQL twin of lib/rfm segmentOf — kept in the same precedence order. */
+/** SQL twin of lib/rfm segmentOf, kept in the same precedence order. */
 export function segmentWhere(segment: string, now = new Date()): Prisma.CustomerWhereInput {
   const d = (n: number) => addDays(now, -n);
   const champion: Prisma.CustomerWhereInput = { lastPurchaseAt: { gte: d(30) }, visits: { gte: 10 } };
@@ -80,7 +80,7 @@ export async function senderFooter(channel?: MsgChannel) {
   if (channel === "PUSH") return "\nTurn off in Rewards settings.";
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" } });
   const who = [legalNameOf(hq), hq?.address, hq?.phone, contactEmailOf(hq)].map((x) => x?.trim()).filter(Boolean).join(", ");
-  return `\n— ${who}.${channel === "EMAIL" ? "" : " Reply STOP to opt out."}`;
+  return `\n${who}.${channel === "EMAIL" ? "" : " Reply STOP to opt out."}`;
 }
 
 function render(tpl: string, c: { firstName: string; points: number }, code?: string | null) {
@@ -94,7 +94,7 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
   const c = await db.campaign.findUniqueOrThrow({ where: { id } });
   if (c.status === "SENT" || c.status === "CANCELLED") throw new CampaignError("This campaign has already been sent");
   const flags = screenCopy(c.message);
-  if (flags.length) throw new CampaignError(`Copy needs changes: ${flags.map((f) => `"${f.term}" — ${f.reason}`).join("; ")}`);
+  if (flags.length) throw new CampaignError(`Copy needs changes: ${flags.map((f) => `"${f.term}": ${f.reason}`).join("; ")}`);
 
   const window = marketingWindow(now);
   if (!window.allowed) {

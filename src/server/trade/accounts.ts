@@ -271,7 +271,7 @@ function cleanDetails(p: Partial<TradeAccountDetails>): Prisma.TradeAccountUpdat
 
 /**
  * Updates an account's details and/or terms. HQ (a USER actor) may change anything; an OWNER buyer (`byBuyerId`) may
- * change the business details only — terms, limits, classes and price lists stay HQ's. Audited with the keys changed.
+ * change the business details only. Terms, limits, classes and price lists stay HQ's. Audited with the keys changed.
  */
 export async function updateTradeAccount(id: string, patch: Partial<TradeAccountDetails & TradeTermsInput>, actor: Actor, opts: { byBuyerId?: string | null } = {}) {
   const keys = Object.keys(patch) as (keyof typeof patch)[];
@@ -352,7 +352,7 @@ export async function removeTradeBuyer(buyerId: string, actor: Actor, opts: { by
 
 export const tradeAccountById = (id: string) => db.tradeAccount.findUnique({ where: { id }, include: { buyers: { orderBy: [{ role: "asc" }, { createdAt: "asc" }] }, priceList: { select: { id: true, name: true } } } });
 
-/** Balance (ledger), ageing, open orders and the last order — for HQ's account page and the portal's dashboard. */
+/** Balance (ledger), ageing, open orders and the last order, for HQ's account page and the portal's dashboard. */
 export async function tradeAccountSummary(id: string, now = new Date()) {
   const account = await tradeAccountById(id);
   if (!account) return null;

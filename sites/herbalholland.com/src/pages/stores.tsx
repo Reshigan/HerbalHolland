@@ -1,4 +1,4 @@
-// herbalholland.com/stores — the stores that are open now, then each opening day's, each in its frame (the drawn
+// herbalholland.com/stores: the stores that are open now, then each opening day's, each in its frame (the drawn
 // storefront until the owner's photograph replaces it); the store map (the provinces with a store, until there are three
 // or more); the door to opening one; the store concept renders; and the early-access sign-up. And /stores/{key}: each
 // store's own page (Store structured data), with only what ../../facts knows: the town, the province, its status and,
