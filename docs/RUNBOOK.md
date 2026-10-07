@@ -32,16 +32,17 @@ reports) and Postgres can't live on Cloudflare.
    up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
    TLS ≥ 1.2 (1.3 on), SSL Full (strict), HSTS (1 year, include subdomains, no preload; the site's `_headers` sends
    the same, so keep them in step), Email Routing forwarding hello@, franchise@, press@ and careers@ to the team. To
-   release a change: `npx tsx sites/herbalholland.com/build.ts`, then from `sites/herbalholland.com`
-   `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. For a change the owner
+   release a change: merge it to main (`.github/workflows/deploy-site.yml` builds, migrates and deploys; it needs the
+   repository secret `CLOUDFLARE_API_TOKEN`). By hand: `npx tsx sites/herbalholland.com/build.ts`, then from
+   `sites/herbalholland.com` `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. For a change the owner
    should see first: `npx wrangler@4 versions upload --preview-alias preview` (→ `https://preview-herbalholland-com.<account>.workers.dev`,
    same database and email as live, so don't send test enquiries), then `npx wrangler@4 versions deploy <version-id>`
    to make that exact version live. The early-access list (`early_access` in the same database; the Worker deletes
    sign-ups after 12 months): export it for the launch message with `npx wrangler@4 d1 execute herbalholland-com-eu
    --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`,
    send only through the platform's consent-checked messaging (every message with an opt-out), and delete anyone who
-   asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. Rebuild and deploy on or
-   after a press release's date (the site is static), and set `facts.ts` `shop.url` when the shop opens. Once the
+   asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. The workflow also runs just
+   after midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop opens. Once the
    platform is live, give the Worker `APP_ENQUIRY_URL` (`https://herbalholland.co.za/api/site/enquiries`) and
    `APP_ENQUIRY_SECRET` (= the app's `SITE_ENQUIRY_SECRET`) with `wrangler secret put`, so enquiries land in HQ →
    Franchise leads instead of email.

@@ -1,10 +1,11 @@
 // herbalholland.com: static pages from dist/ (npx tsx sites/herbalholland.com/build.ts) + worker.ts for /api/*.
-// Deploy from this folder with CLOUDFLARE_ACCOUNT_ID and credentials in the environment:
+// Pushes to main deploy it (.github/workflows/deploy-site.yml). By hand, from this folder with CLOUDFLARE_API_TOKEN set:
 //   npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy
 // Secrets (wrangler secret put): NOTIFY_TO (a verified Email Routing destination), IP_SALT; once the platform is live,
 // APP_ENQUIRY_URL (https://herbalholland.co.za/api/site/enquiries) and APP_ENQUIRY_SECRET (= the app's SITE_ENQUIRY_SECRET).
 {
   "name": "herbalholland-com",
+  "account_id": "08596e523c096f04b56d7ae43f7821f4",
   "main": "worker.ts",
   "compatibility_date": "2026-09-01",
   "tsconfig": "../../tsconfig.json",
