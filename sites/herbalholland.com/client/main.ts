@@ -4,10 +4,11 @@
 //   two forms; and the motion: one requestAnimationFrame loop drives scroll velocity (the wind that turns every
 //   windmill's sails and drifts the marquee), the pinned 9,475 km story, the stage (each scene's entry, --t1 … --t4,
 //   where CSS scroll-driven animations aren't supported; and the windmill's flight from scene to scene, always), and
-//   scroll-linked --p elsewhere, while IntersectionObserver starts one-shot reveals. Only transform and opacity move;
-//   nothing reads layout while it writes. The loop sleeps when nothing moves, drops to 30 fps when the page is idle
-//   and stops in a background tab. Without html.motion (reduced motion, Save-Data, four cores or fewer) the page is
-//   still, and the content is all there.
+//   scroll-linked --p elsewhere, while IntersectionObserver starts one-shot reveals; and the glide (the wheel, and links
+//   to a place on the page, ease the page along). Only transform and opacity move; nothing reads layout while it
+//   writes. The loop sleeps when nothing moves, drops to 30 fps when the page is idle and stops in a background tab.
+//   Without html.motion (reduced motion, Save-Data, 2 GB of memory or less, or frames that kept coming late) the page
+//   is still, and the content is all there.
 
 const d = document;
 const html = d.documentElement;
@@ -40,11 +41,26 @@ let raf = 0;
 let last = 0;
 let lastInput = 0;
 let tick = 0;
+// A device that can't keep up: when most frames of the first stretch of scrolling come late (under 40 fps), the rest
+// of the visit is still (the head script reads hh_lite on the next page).
+let counted = 0;
+let late = 0;
 function frame(now: number) {
   tick++;
   if (now - lastInput > 500 && tick % 2) {
     raf = requestAnimationFrame(frame);
     return;
+  }
+  if (MOTION && counted < 90 && now - lastInput < 100 && Math.abs(vel) > 60) {
+    counted++;
+    if (now - last > 25) late++;
+    if (counted === 90 && late > 45) {
+      try {
+        sessionStorage.setItem("hh_lite", "1");
+      } catch {
+        // Nothing to remember with: the next page decides afresh.
+      }
+    }
   }
   const dt = Math.min(0.05, Math.max(0.001, (now - last) / 1000));
   last = now;
@@ -140,6 +156,77 @@ function header() {
     return false;
   });
   on(h, "focusin", () => h.classList.remove("is-hidden"));
+}
+
+// ── Glide: the wheel and links to a place on the page ease the page along ─────────────────────────────────────
+// On a mouse or trackpad the wheel says where the page is heading and the loop eases it there, instead of the
+// browser's steps; a click on a link to a place on this page travels there the same way (keyboard activation keeps the
+// browser's own jump, and its focus). The job runs first, so every other job sees the new position. Everything else
+// stays the browser's own and wins: a key, a press or a touch lets go of the glide at once. It stands aside for zoom
+// (ctrl + wheel), sideways scrolling, and the gate or the menu. When the page moves under it otherwise (scroll
+// anchoring, as a section above is laid out for the first time), it carries on from there.
+function glide() {
+  if (!MOTION) return;
+  let goal = -1; // where the page is heading (-1: nowhere)
+  let at = 0; // where the glide last put it
+  let trip: { el: Element; from: number; t0: number; dur: number } | null = null;
+  let max = 0;
+  let pad = 0;
+  measurers.push(() => ((max = html.scrollHeight - vh), (pad = parseFloat(getComputedStyle(html).scrollPaddingTop) || 0)));
+  const end = () => max || html.scrollHeight - innerHeight;
+  // From where the page is now: when idle or mid-trip.
+  const begin = () => {
+    if (goal < 0 || trip) (goal = at = scrollY), (trip = null);
+  };
+  const stop = () => ((goal = -1), (trip = null));
+  ["keydown", "pointerdown", "touchstart"].forEach((ev) => on(window, ev, stop, { passive: true }));
+  if (FINE)
+    on(
+      window,
+      "wheel",
+      (e: WheelEvent) => {
+        if (e.ctrlKey || e.shiftKey || gated() || html.classList.contains("modal") || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return stop();
+        e.preventDefault();
+        begin();
+        goal = clamp(goal + e.deltaY * (e.deltaMode === 1 ? 40 : e.deltaMode === 2 ? vh : 1), 0, end());
+        wake();
+      },
+      { passive: false },
+    );
+  on(d, "click", (e: MouseEvent) => {
+    const a = (e.target as Element).closest<HTMLAnchorElement>("a[href*='#']");
+    if (!a || e.defaultPrevented || !e.detail || e.button || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || a.classList.contains("skip")) return;
+    const u = new URL(a.href);
+    const el = u.origin === location.origin && u.pathname === location.pathname && u.hash && d.getElementById(decodeURIComponent(u.hash.slice(1)));
+    if (!el) return;
+    e.preventDefault();
+    history.pushState(null, "", u.hash);
+    begin();
+    const dist = Math.abs(el.getBoundingClientRect().top - pad);
+    trip = { el, from: at, t0: performance.now(), dur: Math.min(1400, 600 + dist / 6) };
+    wake();
+  });
+  jobs.unshift((dt) => {
+    if (goal < 0) return false;
+    const moved = scrollY - at;
+    if (Math.abs(moved) > 2) {
+      at += moved;
+      goal += moved;
+      if (trip) trip.from += moved;
+    }
+    let y: number;
+    if (trip) {
+      // Aimed afresh each frame: a section on the way may only now have been laid out (content-visibility).
+      goal = clamp(trip.el.getBoundingClientRect().top + scrollY - pad, 0, end());
+      const u = clamp((performance.now() - trip.t0) / trip.dur);
+      y = trip.from + (goal - trip.from) * (u < 0.5 ? 4 * u * u * u : 1 - Math.pow(2 - 2 * u, 3) / 2);
+      if (u === 1) trip = null;
+    } else y = at + (goal - at) * (1 - Math.pow(0.0005, dt));
+    if (!trip && Math.abs(goal - y) < 0.5) (y = goal), (goal = -1);
+    at = y;
+    scrollTo(0, y);
+    return goal >= 0;
+  });
 }
 
 // ── Sails turn with the wind; the marquee drifts with the scroll ──────────────────────────────────────────────
@@ -818,6 +905,7 @@ function start() {
     faq();
     forms();
     header();
+    glide();
   });
   later(() => {
     // Without motion, scroll-linked pieces show their finished state (the hero stays as it is at the top).

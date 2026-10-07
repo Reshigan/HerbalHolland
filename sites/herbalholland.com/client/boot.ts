@@ -1,12 +1,14 @@
 // Runs in <head> before the first paint (a tiny classic script — the strict CSP allows no other inline script). It marks
-// that scripts run (html.js), decides whether the page moves (html.motion: not with reduced motion, Save-Data or a
-// device with four cores or fewer, which get the still pictures instead), and settles the 18+ gate before anything is
+// that scripts run (html.js), decides whether the page moves (html.motion: not with reduced motion, Save-Data, 2 GB of
+// memory or less, or a device that couldn't keep up earlier in the visit; they get the still pictures instead. Not by
+// core count: Safari reports 4 for anything under 8, every iPhone), and settles the 18+ gate before anything is
 // drawn, so a new visitor never glimpses the page behind it and a returning adult never sees it flash. The gate's
 // answers are handled here too, so the first screen works before the page's module arrives (or without it); the page
 // behind the gate stays in the document, only inert. Once the first screen has painted it adds the rest of the
 // stylesheet and the module, so nothing competes with the first paint.
 //   localStorage hh_age   = the time "I'm 18 or older" was chosen; valid for 365 days
 //   sessionStorage hh_age = "under" after "I'm younger than 18" (for this session), or "ok" where localStorage is blocked
+//   sessionStorage hh_lite = "1" once the page's frames kept coming late while scrolling: the rest of the visit is still
 (() => {
   const d = document.documentElement;
   const me = document.currentScript as HTMLScriptElement;
@@ -26,9 +28,15 @@
   // A returning adult sees the page's opening straight away (html.ready starts it); a new visitor sees it after the gate.
   // The legal pages (html[data-free]) open without the gate, and remember nothing.
   if (d.hasAttribute("data-free")) age = "ok";
-  const n = navigator as Navigator & { connection?: { saveData?: boolean } };
+  const n = navigator as Navigator & { connection?: { saveData?: boolean }; deviceMemory?: number };
   const rm = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const still = rm || !!n.connection?.saveData || (n.hardwareConcurrency || 8) <= 4;
+  let lite = false;
+  try {
+    lite = sessionStorage.getItem("hh_lite") === "1"; // set by the page's module when frames kept coming late
+  } catch {
+    // Nothing remembered.
+  }
+  const still = rm || lite || !!n.connection?.saveData || (n.deviceMemory ?? 8) <= 2;
   // A returning adult's opening (html.fast) keeps the headline in view from the first paint: the words lift softly
   // instead of rising from behind the dyke, which is the new visitor's entrance after the gate.
   // html.pre: until the first screen has painted, the scenes below it aren't rendered at all (content-visibility:

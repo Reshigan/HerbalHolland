@@ -26,7 +26,7 @@ import { dayKey } from "@/lib/format";
 import { ABOUT, CAREERS, CONTACT, FRANCHISE, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn, shopOpenClaim } from "./content";
 import { FACTS, greatCircleKm, newStores } from "./facts";
 import { patternUrl } from "./src/art";
-import { site } from "./src/layout";
+import { SPECULATION, site } from "./src/layout";
 import { AppIcon, OG_CSS, OgCard } from "./src/og";
 import { classesIn, literals, mangleClasses, precomputeColors, pruneCss, shortenTokens, tighten } from "./src/optimize";
 import { AboutPage } from "./src/pages/about";
@@ -233,7 +233,7 @@ async function main() {
     const h = `<!doctype html>${renderToStaticMarkup(render())}`;
     // The CSP forbids inline styles and scripts; never ship the platform's demo company details.
     if (/\sstyle="/.test(h)) problems.push(`${file}: an inline style attribute (blocked by the CSP)`);
-    if (/<script(?![^>]*\b(src=|data-boot|type="application\/(ld\+)?json"))/.test(h)) problems.push(`${file}: an inline script (blocked by the CSP)`);
+    if (/<script(?![^>]*\b(src=|data-boot|type="application\/(ld\+)?json"|type="speculationrules"))/.test(h)) problems.push(`${file}: an inline script (blocked by the CSP)`);
     if ((h.match(/<style>/g) ?? []).length !== 1) problems.push(`${file}: expected one inline <style> (the critical CSS)`);
     if (/481516|Windmill Lane/.test(h)) problems.push(`${file}: demo company details from the seed`);
     // Search: a title of 60 characters or fewer, a description of 120 to 160, both unique; every page has one h1.
@@ -287,9 +287,9 @@ async function main() {
     join(DIST, "sitemap.xml"),
     `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pages.map((p) => `  <url><loc>${FACTS.origin}${p.path}</loc><lastmod>${p.updated}</lastmod></url>`).join("\n")}\n</urlset>\n`,
   );
-  // The inline blocks are allowed by hash: every page's critical CSS (they differ a little, so all are listed) and the
-  // one head script. Nothing else inline runs.
-  const csp = `default-src 'self'; img-src 'self' data:; style-src 'self' ${[...styleHashes].join(" ")}; script-src 'self' ${cspHash(boot)}; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
+  // The inline blocks are allowed by hash: every page's critical CSS (they differ a little, so all are listed), the
+  // one head script and the speculation rules. Nothing else inline runs.
+  const csp = `default-src 'self'; img-src 'self' data:; style-src 'self' ${[...styleHashes].join(" ")}; script-src 'self' ${cspHash(boot)} ${cspHash(SPECULATION)}; font-src 'self'; connect-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'`;
   writeFileSync(
     join(DIST, "_headers"),
     [
