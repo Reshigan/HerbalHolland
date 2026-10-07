@@ -63,7 +63,7 @@ export async function markTaskOpen(storeId: string, taskId: string, _: ActionSta
 async function ownerStore(storeId: string) {
   const g = await guard("admin");
   if (!g) return null;
-  const store = await db.store.findUnique({ where: { id: storeId }, select: { id: true, code: true, companyId: true, company: { select: { name: true } } } });
+  const store = await db.store.findUnique({ where: { id: storeId }, select: { id: true, code: true, companyId: true, company: { select: { name: true, kind: true } } } });
   return store ? { g, store } : null;
 }
 
@@ -72,6 +72,8 @@ const ownerOf = (companyId: string, userId: string) => db.user.findFirst({ where
 export async function addOwner(storeId: string, _: ActionState, fd: FormData): Promise<ActionState> {
   const c = await ownerStore(storeId);
   if (!c) return DENIED;
+  // HQ's own stores (the DCs) have no owner: an owner of HQ would hold HQ's books and every DC.
+  if (c.store.company.kind !== "FRANCHISEE") return fail("Owners are for franchisee companies — HQ's own stores are run from HQ.");
   const fields: Record<string, string> = {};
   const name = str(fd, "name");
   const email = str(fd, "email").toLowerCase();

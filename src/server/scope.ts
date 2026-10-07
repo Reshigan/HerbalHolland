@@ -18,14 +18,14 @@ export function scopeOf(u: Pick<Staff, "role" | "regionId" | "companyId" | "stor
     case "HQ_ADMIN":
     case "HQ_STAFF":
       return { kind: "HQ" };
+    // Without its region or company a role sees nothing (an undefined id would filter nothing out).
     case "AREA_MANAGER":
-      return { kind: "REGION", regionId: u.regionId! };
+      return u.regionId ? { kind: "REGION", regionId: u.regionId } : { kind: "NONE" };
     case "OWNER":
-      return { kind: "COMPANY", companyId: u.companyId! };
+      return u.companyId ? { kind: "COMPANY", companyId: u.companyId } : { kind: "NONE" };
     case "ACCOUNTANT":
       return { kind: "NONE" };
     default:
-      // A store role without a store sees nothing (an undefined id would filter nothing out).
       return u.storeId ? { kind: "STORE", storeId: u.storeId } : { kind: "NONE" };
   }
 }

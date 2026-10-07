@@ -270,7 +270,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
             </CardBody>
           </Card>
 
-          {admin && (
+          {admin && store.company.kind === "FRANCHISEE" && (
             <Card>
               <CardHeader title="Franchisee owners" description={`Back-office sign-ins for ${store.company.name}, covering every store it owns`} />
               <CardBody className="space-y-4">

@@ -256,7 +256,9 @@ export async function approveJournal(id: string, companyId: string, actor: Actor
 export async function deleteDraft(id: string, companyId: string, actor: Actor & { id: string }) {
   const j = await db.journal.findFirst({ where: { id, companyId, status: "DRAFT" } });
   if (!j) throw new LedgerError("Only a draft journal can be deleted");
-  await db.journal.delete({ where: { id } });
+  // Only while it's still a draft: an approval that lands first wins.
+  const { count } = await db.journal.deleteMany({ where: { id, companyId, status: "DRAFT" } });
+  if (count !== 1) throw new LedgerError(`Journal ${j.number} was approved just now, so it can't be deleted — reverse it instead`);
   await audit(db, actor, "ledger.journal_delete", { entity: "Journal", entityId: id, data: { companyId, number: j.number } });
 }
 

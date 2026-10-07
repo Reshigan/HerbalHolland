@@ -127,6 +127,7 @@ describe("Queue and access", () => {
     const u = (role: string, companyId: string | null = null, regionId: string | null = null) => ({ role, companyId, regionId }) as Parameters<typeof booksRole>[0];
     expect(await booksRole(u("OWNER", w.owner.id), fr)).toEqual({ read: true, write: true, approve: true });
     expect(await booksRole(u("OWNER", w.owner.id), hq)).toEqual({ read: false, write: false, approve: false });
+    expect(await booksRole(u("OWNER", w.hq.id), hq)).toEqual({ read: false, write: false, approve: false }); // HQ's books are its admins'
     expect(await booksRole(u("ACCOUNTANT", w.owner.id), fr)).toEqual({ read: true, write: true, approve: false });
     expect(await booksRole(u("HQ_ADMIN", w.hq.id), fr)).toEqual({ read: true, write: false, approve: false });
     expect(await booksRole(u("HQ_ADMIN", w.hq.id), hq)).toEqual({ read: true, write: true, approve: true });

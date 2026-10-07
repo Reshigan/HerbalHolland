@@ -17,8 +17,8 @@ const NONE: BooksRole = { read: false, write: false, approve: false };
 export async function booksRole(u: Pick<Staff, "role" | "companyId" | "regionId">, company: { id: string; kind: string }): Promise<BooksRole> {
   const own = u.companyId === company.id;
   switch (u.role) {
-    case "OWNER":
-      return own ? { read: true, write: true, approve: true } : NONE;
+    case "OWNER": // a franchisee's owner; HQ's books are kept by its admins
+      return own && company.kind === "FRANCHISEE" ? { read: true, write: true, approve: true } : NONE;
     case "ACCOUNTANT":
       return own ? { read: true, write: true, approve: false } : NONE;
     case "HQ_ADMIN":

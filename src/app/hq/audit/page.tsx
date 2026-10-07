@@ -89,6 +89,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
   const where: Prisma.AuditLogWhereInput = {
     AND: [
       scope.kind === "HQ" ? {} : { storeId: { in: ids } },
+      // The books' activity (journals, bank lines, VAT) is for the books' own users: HQ admins here, not the HQ team.
+      ...(user.role === "HQ_ADMIN" ? [] : [{ NOT: { action: { startsWith: "ledger." } } }, { NOT: { action: { startsWith: "bank." } } }]),
       action ? { action: { startsWith: action } } : {},
       sp.store ? { storeId: (await db.store.findFirst({ where: { code: sp.store, id: { in: ids } }, select: { id: true } }))?.id ?? "__none__" } : {},
       sp.actor?.trim() ? { actorName: { contains: sp.actor.trim(), mode: "insensitive" } } : {},
@@ -187,7 +189,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
           <FilterForm action="/hq/audit" keep={{ sort: sp.sort, dir: sp.dir }}>
             <SearchField defaultValue={sp.q} placeholder="Find: order or member no., name, amount, id…" label="Search the log" />
             <SearchField name="actor" defaultValue={sp.actor} placeholder="Who (name)" label="Actor" className="basis-40" />
-            <FilterSelect name="action" label="Activity" defaultValue={action} allLabel="All" options={[...(action && !GROUPS.some((g) => g.prefix === action) ? [{ value: action, label: action }] : []), ...GROUPS.map((g) => ({ value: g.prefix, label: g.label }))]} />
+            <FilterSelect name="action" label="Activity" defaultValue={action} allLabel="All" options={[...(action && !GROUPS.some((g) => g.prefix === action) ? [{ value: action, label: action }] : []), ...GROUPS.filter((g) => user.role === "HQ_ADMIN" || !["ledger.", "bank."].includes(g.prefix)).map((g) => ({ value: g.prefix, label: g.label }))]} />
             {stores.length > 1 && <FilterSelect name="store" label="Store" defaultValue={sp.store} options={stores.map((s) => ({ value: s.code, label: s.name }))} />}
             <label className="block">
               <span className="sr-only">From date</span>
