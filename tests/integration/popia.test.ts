@@ -87,6 +87,7 @@ beforeAll(async () => {
   await db.consentEvent.create({ data: { customerId, channel: "SMS", granted: true, source: "SIGNUP_WEB", wording: "Deals by SMS" } });
   await db.session.create({ data: { id: sha256("tek-member-session"), customerId, expiresAt: days(30) } });
   await db.otp.create({ data: { phone: PHONE, codeHash: "x", expiresAt: days(1) } });
+  await db.earlyAccessContact.create({ data: { firstName: "Tekla", email: EMAIL, mobile: PHONE, province: "KZN", source: "home", signedUpAt: days(-30) } });
   await db.throttle.create({ data: { key: `collision:phone:${PHONE}` } });
   await db.patientAuth.create({ data: { customerId, authNumber: "S21/2026/00099", prescriber: "Dr Test", prescriberRegNo: "MP0000099", scope: "Dried flower", monthlyLimitGrams: 30, validFrom: days(-10), validTo: days(300), documentRef: "auth-docs/tek-0089.pdf" } });
   await db.address.create({ data: { customerId, line: "17 Jacaranda Lane", suburb: "Waterkloof", city: "Pretoria", province: "GP", postalCode: "0181", notes: "Gate code 4417, ask for Thandiwe", isDefault: true } });

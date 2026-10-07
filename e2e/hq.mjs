@@ -873,13 +873,31 @@ try {
 
   // ── Campaign Studio ───────────────────────────────────────────────────────
   step("Studio: lay out a merch drop, approve it, queue members' messages for release, pause and resume; social and WhatsApp wait to be posted by hand");
-  const dayT = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(new Date(Date.now() + 9 * 86_400_000));
+  // A merch drop opens on a Thursday, at least nine days out (its teasers come first). A day whose pinned posts would
+  // land on a public holiday is refused, so the next Thursday is tried.
+  const sastDay = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(d);
+  const thursdays = [9, 16, 23].map((from) => {
+    const d = new Date(Date.now() + from * 86_400_000);
+    while (new Date(`${sastDay(d)}T12:00:00Z`).getUTCDay() !== 4) d.setTime(d.getTime() + 86_400_000);
+    return sastDay(d);
+  });
   await open("/hq/marketing/studio", page.getByRole("heading", { name: "New campaign" }));
   const nf = formWith("#playbook");
   await hydrated(nf);
   await nf.locator("#playbook").selectOption("merch-drop");
-  await nf.locator("#anchor").fill(dayT);
-  await act("studio.createStudioPlan", () => nf.getByRole("button", { name: "Lay it out" }).click(), () => notice("Laid out.").waitFor());
+  // The database says which it was once the action has answered (a refused day's message may still be on screen).
+  const drops = async () => (await one(`select count(*)::int as n from "StudioPlan" where playbook = 'merch-drop'`)).n;
+  const before = await drops();
+  let dayT = null;
+  for (const day of thursdays) {
+    await nf.locator("#anchor").fill(day);
+    await act("studio.createStudioPlan", () => nf.getByRole("button", { name: "Lay it out" }).click(), async () => {
+      if ((await drops()) > before) await notice("Laid out.").waitFor(), (dayT = day);
+      else await alertIn(nf, "Day T doesn't work").waitFor();
+    });
+    if (dayT) break;
+  }
+  assert(dayT, `a merch drop laid out on Thursday ${dayT} (of ${thursdays.join(", ")})`);
   const studioPlan = await one(`select id from "StudioPlan" where playbook = 'merch-drop' order by "createdAt" desc limit 1`);
   created.studioPlans.push(studioPlan.id);
   const drafts = await q(`select id, key, channel, status from "StudioItem" where "planId" = $1`, [studioPlan.id]);

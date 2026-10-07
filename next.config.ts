@@ -17,7 +17,9 @@ const staticPages = [{ key: "Content-Security-Policy", value: staticCsp() }];
 const config: NextConfig = {
   output: "standalone",
   // Never in the server bundle, whatever a dynamic path makes the tracer think: uploads, docs, tests and the other site.
-  outputFileTracingExcludes: { "/*": [".data/**", "docs/**", "e2e/**", "tests/**", "sites/**", "scripts/**", "test-results/**"] },
+  // public/ too: every deploy copies it in whole (the Studio's cards read its photos from there), and a partial copy
+  // traced into the standalone folder would make `cp -r public .next/standalone/public` nest instead of land.
+  outputFileTracingExcludes: { "/*": [".data/**", "docs/**", "e2e/**", "tests/**", "sites/**", "scripts/**", "test-results/**", "public/**"] },
   // The Campaign Studio's cards read the brand fonts from disk (src/server/studio-cards.tsx).
   outputFileTracingIncludes: { "/hq/marketing/studio": ["./src/assets/fonts/*.ttf"], "/hq/marketing/studio/**": ["./src/assets/fonts/*.ttf"] },
   poweredByHeader: false,

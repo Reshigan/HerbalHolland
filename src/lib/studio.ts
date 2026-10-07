@@ -5,7 +5,7 @@
 //   WHATSAPP   the brand's WhatsApp Channel, posted by hand (WhatsApp's API can't carry a cannabis brand)
 //   GOOGLE     the store's Google Business Profile, posted by hand
 //   EMAIL, SMS, PUSH   members' own channels, sent as a campaign (consent, CPA windows and opt-out as always)
-import { screenCopy } from "./compliance";
+import { ALLERGENS, screenCopy, type RegClass } from "./compliance";
 import { screenSocial } from "./social";
 import { holidayName } from "./sa";
 
@@ -45,6 +45,16 @@ export type PlaybookItem = {
   /** Social only: 280 characters at most, for Threads, Bluesky and X when the caption is longer. */
   short?: string;
   card?: Card;
+  /** Its words name its day ("today", "tomorrow", "7 days", "last call"): never moved, and day T is refused if it can't go out then. */
+  pinned?: true;
+  /** When several stores open on one day: posted once, by the first store's campaign, naming every town ({towns}). */
+  shared?: true;
+  /** Members' channels: who gets it, as a campaign audience (src/lib/rfm.ts). Default: everyone (a store's members for a store). */
+  audience?: string;
+  /** Social: LinkedIn as well ("also") or only ("only"). Left out, LinkedIn doesn't get it. */
+  linkedin?: "also" | "only";
+  /** What to shoot for it: the photo or Reel that makes it. The card goes out until someone posts it by hand. */
+  brief?: string;
 };
 
 export type Playbook = {
@@ -55,15 +65,25 @@ export type Playbook = {
   store: boolean;
   /** What day T is, e.g. "Doors open". */
   anchor: string;
+  /** Day T must fall on this weekday (0 Sunday … 6 Saturday), and `why` says why. */
+  weekday?: number;
+  why?: string;
+  /** Written for one month: day T is this date (YYYY-MM-DD). */
+  date?: string;
+  /** Laid out for one product: {product}, {facts}, {category} and {link} come from it. */
+  product?: true;
   items: PlaybookItem[];
 };
 
-/** {store} {town} {address} {hours} come from the store; {date} is day T, e.g. "Tuesday 1 December". */
-export type Fields = Partial<Record<"store" | "town" | "address" | "hours", string>> & { date: string };
+/**
+ * {store} {town} {address} {hours} come from the store, {towns} names every store opening that day; {product} {facts}
+ * {category} {link} come from the product; {date} is day T, e.g. "Tuesday 1 December".
+ */
+export type Fields = Partial<Record<"store" | "town" | "towns" | "address" | "hours" | "product" | "facts" | "category" | "link", string>> & { date: string };
 
 export const LIMITS = { SOCIAL: 2200, SHORT: 280, WHATSAPP: 1000, GOOGLE: 1500, SMS: 480, PUSH: 140, PUSH_TITLE: 40, EMAIL_TITLE: 90 } as const;
 
-const TOKEN = /\{(store|town|address|hours|date)\}/g;
+const TOKEN = /\{(store|towns|town|address|hours|date|product|facts|category|link)\}/g;
 export const fill = (s: string, f: Fields) => s.replace(TOKEN, (m, k: keyof Fields) => f[k] ?? m);
 
 function fillCard(c: Card, f: Fields): Card {
@@ -73,30 +93,39 @@ function fillCard(c: Card, f: Fields): Card {
 const addDays = (ymd: string, n: number) => new Date(Date.parse(`${ymd}T00:00:00Z`) + n * 86_400_000).toISOString().slice(0, 10);
 /** A South African wall-clock time as an instant (SAST is UTC+2 all year). */
 export const sastAt = (ymd: string, hhmm: string) => new Date(`${ymd}T${hhmm}:00+02:00`);
-const weekdayOf = (ymd: string) => new Date(`${ymd}T12:00:00Z`).getUTCDay();
+export const weekdayOf = (ymd: string) => new Date(`${ymd}T12:00:00Z`).getUTCDay();
+export const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"] as const;
 
 /** Day T as the copy says it: "Tuesday 1 December". */
 export const longDate = (ymd: string) =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", weekday: "long", day: "numeric", month: "long" }).format(new Date(`${ymd}T12:00:00Z`)).replace(",", "");
 
-export type Draft = Omit<PlaybookItem, "day" | "time"> & { at: Date; moved?: string };
+export type Draft = Omit<PlaybookItem, "day" | "time"> & { at: Date; moved?: string; blocked?: string };
+
+/** Why a day doesn't suit a channel: a public holiday (no brand posts, no direct marketing), or a Sunday for members' channels (CPA Regulation 4). */
+function closed(ymd: string, channel: StudioChannel) {
+  const holiday = holidayName(sastAt(ymd, "12:00"));
+  if (holiday) return holiday;
+  return OWN_CHANNELS.includes(channel) && weekdayOf(ymd) === 0 ? "a Sunday (no direct marketing on Sundays)" : null;
+}
 
 /**
- * The playbook's items on the calendar, fields filled. Nothing lands on a public holiday (the brand doesn't post on
- * them, and direct marketing may not be sent), and members' own channels skip Sundays too (CPA Regulation 4): those
- * move to the next day that's allowed, with a note saying why.
+ * The playbook's items on the calendar, fields filled. An item that can't go out on its day moves to the next day that
+ * allows it, with a note saying why, unless it's pinned (its words name its day): then it's `blocked`, and the
+ * campaign needs another day T.
  */
-export function layout(pb: Playbook, anchor: string, f: Fields): Draft[] {
+export function layout(pb: Playbook, anchor: string, f: Fields, stagger = 0): Draft[] {
   return pb.items
     .map(({ day, time, ...it }) => {
-      let ymd = addDays(anchor, day);
-      let moved: string | undefined;
-      for (let i = 0; i < 7; i++) {
-        const holiday = holidayName(sastAt(ymd, "12:00"));
-        const sunday = OWN_CHANNELS.includes(it.channel) && weekdayOf(ymd) === 0;
-        if (!holiday && !sunday) break;
-        moved ??= holiday ? `Moved from ${holiday}` : "Moved from a Sunday (no direct marketing on Sundays)";
-        ymd = addDays(ymd, 1);
+      const later = it.channel === "SOCIAL" && !it.pinned ? stagger : 0;
+      let ymd = addDays(anchor, day + later);
+      let moved = later ? `${later} days after the first store's, so each town gets its moment` : undefined;
+      let blocked: string | undefined;
+      const why = closed(ymd, it.channel);
+      if (why && it.pinned) blocked = `${longDate(ymd)} is ${why}`;
+      else if (why) {
+        moved = `Moved from ${why}`;
+        for (let i = 0; i < 7 && closed(ymd, it.channel); i++) ymd = addDays(ymd, 1);
       }
       return {
         ...it,
@@ -106,9 +135,60 @@ export function layout(pb: Playbook, anchor: string, f: Fields): Draft[] {
         card: it.card && fillCard(it.card, f),
         at: sastAt(ymd, time),
         ...(moved && { moved }),
+        ...(blocked && { blocked }),
       };
     })
     .sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+/** The first day T on or after `from` (YYYY-MM-DD) the playbook can start on: its weekday, with no pinned post refused. */
+export function firstDayT(pb: Playbook, from: string) {
+  for (let d = from, i = 0; i < 366; d = addDays(d, 1), i++)
+    if ((pb.weekday === undefined || weekdayOf(d) === pb.weekday) && !layout(pb, d, { date: longDate(d) }).some((x) => x.blocked)) return d;
+  throw new Error(`${pb.key} has no day T in the coming year`);
+}
+
+/**
+ * One feed post a day across every campaign (LinkedIn-only posts aside): a post landing on a day that already has one (`busy`, YYYY-MM-DD
+ * in South African time) moves up to three days later, keeping its time. Pinned posts stay where they are (opening day
+ * has its morning and its evening), noting another campaign's post that day. Returns the drafts, their days added to `busy`.
+ */
+export function spreadFeed(drafts: Draft[], busy: Set<string>, ymdOf: (d: Date) => string): Draft[] {
+  const feed = (d: Draft) => d.channel === "SOCIAL" && d.linkedin !== "only";
+  const others = new Set(busy);
+  for (const d of drafts) if (feed(d) && d.pinned) busy.add(ymdOf(d.at)); // they can't move, so their days go first
+  return drafts.map((d) => {
+    if (!feed(d)) return d;
+    const day = ymdOf(d.at);
+    if (d.pinned) return others.has(day) ? { ...d, moved: d.moved ?? "Another campaign posts that day: move its post" } : d;
+    if (!busy.has(day)) return busy.add(day), d;
+    for (let n = 1; n <= 3; n++) {
+      const next = addDays(day, n);
+      if (busy.has(next) || holidayName(sastAt(next, "12:00"))) continue;
+      busy.add(next);
+      return { ...d, at: new Date(d.at.getTime() + n * 86_400_000), moved: d.moved ?? "Moved so the feed gets one post a day" };
+    }
+    return { ...d, moved: d.moved ?? "Shares its day with another post: move one" };
+  });
+}
+
+/** Who hears about a new product: the members who chose its interest. Licensed medicines are never marketed. */
+export function interestFor(c: RegClass): string | null {
+  if (c === "THC") return null;
+  return c === "ACCESSORY" ? "interest:ACCESSORY" : c === "APPAREL" ? "interest:APPAREL" : c === "GROW" ? "interest:GROW" : "interest:CBD";
+}
+
+const num = (n: number) => new Intl.NumberFormat("en-ZA", { maximumFractionDigits: 1 }).format(n);
+
+/** A product's facts as one plain line for a launch email: its pack, its CBD (Schedule 0 limits), its allergens. */
+export function productFacts(p: { netContent: number | null; netUnit: string | null; cbdMgPerPack: number | null; cbdMgPerDay: number | null; allergens: string[] }) {
+  const parts = [
+    p.netContent && p.netUnit ? `${num(p.netContent)} ${p.netUnit} a pack` : null,
+    p.cbdMgPerPack ? `${num(p.cbdMgPerPack)} mg CBD a pack` : null,
+    p.cbdMgPerDay ? `at most ${num(p.cbdMgPerDay)} mg CBD a day` : null,
+    p.allergens.length ? `contains ${p.allergens.map((a) => ALLERGENS[a as keyof typeof ALLERGENS]?.toLowerCase() ?? a).join(", ")}` : null,
+  ].filter(Boolean);
+  return parts.length ? `${parts.join(", ")}.` : "";
 }
 
 type Flag = { term: string; reason: string };

@@ -3,8 +3,9 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { opt, parseLocal, str } from "@/server/hq/form";
-import { approveItems, createLaunch, createPlan, itemFlags, markPosted, saveItem, scheduleApproved, setPaused, skipItem, StudioError, unschedule } from "@/server/studio";
+import { approveItems, createLaunch, createPlan, itemFlags, markPosted, saveItem, scheduleApproved, setHand, setPaused, skipItem, StudioError, unschedule } from "@/server/studio";
 import { aiReady, suggestRewrite } from "@/server/studio-ai";
+import { clearEarlyAccess, importEarlyAccess } from "@/server/early-access";
 import { CARD_TEMPLATES, screenDraft, type Card, type CardTemplate, type StudioChannel } from "@/lib/studio";
 import { SOCIAL_IMAGES } from "@/lib/social";
 import { plural } from "@/lib/plural";
@@ -20,7 +21,7 @@ export async function createStudioPlan(_: ActionState, fd: FormData): Promise<Ac
   if (!g) return DENIED;
   let id: string;
   try {
-    id = (await createPlan({ playbook: str(fd, "playbook"), anchor: str(fd, "anchor"), storeId: opt(fd, "storeId"), by: g.user.name, actor: g.actor })).id;
+    id = (await createPlan({ playbook: str(fd, "playbook"), anchor: str(fd, "anchor"), storeId: opt(fd, "storeId"), productId: opt(fd, "product"), by: g.user.name, actor: g.actor })).id;
   } catch (e) {
     return failed(e);
   }
@@ -39,6 +40,25 @@ export async function createLaunchPlans(_: ActionState, fd: FormData): Promise<A
   }
   revalidatePath("/hq/marketing/studio");
   return done(`Laid out: the brand launch, the online shop launch and ${plural(n - 2, "store opening")}. Open each to read, approve and schedule it.`);
+}
+
+export async function importFirstAccess(_: ActionState, fd: FormData): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  const raw = str(fd, "list");
+  if (!raw) return fail("Paste the export first.", { list: "The export" });
+  const r = await importEarlyAccess(raw, g.actor);
+  revalidatePath("/hq/marketing/studio");
+  if (!r.added && !r.duplicates) return fail(`Nothing to import: ${plural(r.skipped, "row")} without an email address or a South African mobile number.`);
+  return done(`${plural(r.added, "person", "people")} added${r.duplicates ? `, ${r.duplicates} already on the list` : ""}${r.skipped ? `, ${plural(r.skipped, "row")} left out (no email or mobile)` : ""}.`);
+}
+
+export async function clearFirstAccess(_: ActionState): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  const n = await clearEarlyAccess(g.actor);
+  revalidatePath("/hq/marketing/studio");
+  return done(`Deleted ${plural(n, "sign-up")}.`);
 }
 
 export async function approveStudio(planId: string, itemId: string | null, _: ActionState): Promise<ActionState> {
@@ -133,6 +153,20 @@ export async function skipStudioItem(itemId: string, skip: boolean, _: ActionSta
   }
   revalidatePath(path(it.planId));
   return done(skip ? "Left out of this campaign." : "Back in, as a draft.");
+}
+
+export async function handStudioItem(itemId: string, hand: boolean, _: ActionState): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  const it = await db.studioItem.findUnique({ where: { id: itemId }, select: { planId: true } });
+  if (!it) return fail("That post isn't there any more.");
+  try {
+    await setHand(itemId, hand, g.actor);
+  } catch (e) {
+    return failed(e);
+  }
+  revalidatePath(path(it.planId));
+  return done(hand ? "Yours to post by hand: copy the words, shoot it, then mark it posted." : "The card goes out through Postiz when you schedule it.");
 }
 
 export async function unscheduleStudioItem(itemId: string, _: ActionState): Promise<ActionState> {

@@ -6,16 +6,23 @@
 import { db } from "./db";
 import { audit, type Actor } from "./audit";
 import { sendCampaign } from "./marketing";
+import { sendEarlyAccess } from "./early-access";
 import { postizConnected, postizPosts, publishSocial, socialChannels } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
 import { PLAYBOOKS } from "@/lib/studio-playbooks";
-import { layout, longDate, OWN_CHANNELS, screenDraft, type Card, type Fields, type StudioChannel } from "@/lib/studio";
+import { interestFor, layout, longDate, OWN_CHANNELS, productFacts, screenDraft, spreadFeed, weekdayOf, WEEKDAYS, type Card, type Draft, type Fields, type StudioChannel } from "@/lib/studio";
 import { SOCIAL_NETWORKS, type SocialChannel } from "@/lib/social";
+import { isAudience } from "@/lib/rfm";
+import { siteUrl } from "@/lib/seo";
 import { dayKey } from "@/lib/format";
+import { marketingWindow } from "@/lib/sa";
 import type { Prisma, StudioItem } from "@/generated/prisma/client";
 
 export class StudioError extends Error {}
+
+/** The audience for the shop-day message to the people who asked herbalholland.com for first access (not members yet). */
+export const EARLY_ACCESS = "early-access";
 
 export const playbookOf = (key: string) => PLAYBOOKS.find((p) => p.key === key);
 
@@ -23,26 +30,62 @@ export const playbookOf = (key: string) => PLAYBOOKS.find((p) => p.key === key);
 export const itemFlags = (it: Pick<StudioItem, "channel" | "text" | "short" | "title" | "card" | "at">) =>
   screenDraft({ channel: it.channel as StudioChannel, text: it.text, short: it.short, title: it.title, card: it.card as Card | null, at: it.at });
 
-/** Lays a playbook out from day T. For a store, its name, address and hours fill the copy. Days already gone are skipped. */
-export async function createPlan(p: { playbook: string; anchor: string; storeId: string | null; by: string; actor: Actor }, now = new Date()) {
+type PlanOptions = {
+  /** Posts from this day (YYYY-MM-DD) on are left out: the next campaign has begun (the shop is open, say). */
+  until?: string;
+  /** Moves this store's own social posts this many days later, so towns opening together each get their moment. */
+  stagger?: number;
+  /** Leaves out the shared posts: another store's campaign makes them, naming every town. */
+  skipShared?: boolean;
+  /** Every town opening that day, for the shared posts ({towns}). */
+  towns?: string;
+};
+
+/**
+ * Lays a playbook out from day T, or the date it's written for. For a store, its name, address and hours fill the copy;
+ * for a product, its name, facts and page. Days already gone are skipped, a pinned post that can't go out on its day
+ * refuses day T, and the feed keeps to one post a day across every campaign.
+ */
+export async function createPlan(p: { playbook: string; anchor: string; storeId: string | null; productId?: string | null; by: string; actor: Actor } & PlanOptions, now = new Date()) {
   const pb = playbookOf(p.playbook);
   if (!pb) throw new StudioError("Choose a campaign");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(p.anchor) || Number.isNaN(Date.parse(p.anchor))) throw new StudioError("Pick day T");
-  if (p.anchor < dayKey(now)) throw new StudioError("Day T has passed: pick today or a later day");
+  const anchor = pb.date ?? p.anchor;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(anchor) || Number.isNaN(Date.parse(anchor))) throw new StudioError("Pick day T");
+  if (anchor < dayKey(now)) throw new StudioError(pb.date ? `${pb.name} was written for ${longDate(pb.date)}, which has passed` : "Day T has passed: pick today or a later day");
+  if (pb.weekday !== undefined && weekdayOf(anchor) !== pb.weekday)
+    throw new StudioError(`${pb.name} starts on a ${WEEKDAYS[pb.weekday]}${pb.why ? `, ${pb.why}` : ""}: pick a ${WEEKDAYS[pb.weekday]}`);
   const store = pb.store && p.storeId ? await db.store.findUnique({ where: { id: p.storeId }, select: { id: true, name: true, addressLine: true, suburb: true, hours: true } }) : null;
   if (pb.store && !store) throw new StudioError("Choose the store");
+  const ref = p.productId?.trim();
+  const product = pb.product && ref ? await db.product.findFirst({ where: { OR: [{ id: ref }, { slug: ref }, { variants: { some: { sku: ref } } }] }, include: { category: { select: { name: true } } } }) : null;
+  if (pb.product && !product) throw new StudioError("Choose the product: its page address (slug) or a SKU");
+  const interest = product ? interestFor(product.regClass) : null;
+  if (product && !interest) throw new StudioError("Licensed medicines aren't marketed: choose another product");
   const hours = store ? hoursLine(parseHours(store.hours)) : "";
   const fields: Fields = {
-    date: longDate(p.anchor),
-    ...(store && { store: store.name.startsWith("Herbal Holland") ? store.name : `Herbal Holland ${store.name}`, town: store.name, address: [store.addressLine, store.suburb].filter(Boolean).join(", ") }),
+    date: longDate(anchor),
+    ...(store && { store: store.name.startsWith("Herbal Holland") ? store.name : `Herbal Holland ${store.name}`, town: store.name, towns: p.towns ?? store.name, address: [store.addressLine, store.suburb].filter(Boolean).join(", ") }),
     ...(hours && { hours }),
+    ...(product && { product: product.name, facts: productFacts(product), category: product.category.name, link: `${siteUrl()}/p/${product.slug}?src=studio` }),
   };
-  const drafts = layout(pb, p.anchor, fields);
+  const laid = layout(pb, anchor, fields, p.stagger);
+  const blocked = laid.filter((d) => d.blocked);
+  if (blocked.length) throw new StudioError(`Day T doesn't work: ${blocked.map((d) => `"${d.key}" names its day, and ${d.blocked}`).join("; ")}. Pick another day T`);
+  const left = (d: Draft) => (p.until && dayKey(d.at) >= p.until ? "Left out: the next campaign has begun by then" : p.skipShared && d.shared ? "Left out: posted once for every store opening that day" : null);
+  const going = laid.filter((d) => !left(d));
+  const times = going.filter((d) => d.channel === "SOCIAL").map((d) => d.at.getTime());
+  const taken = times.length
+    ? await db.studioItem.findMany({ where: { channel: "SOCIAL", OR: [{ linkedin: null }, { linkedin: "also" }], status: { notIn: ["SKIPPED", "FAILED"] }, at: { gte: new Date(Math.min(...times) - 86_400_000), lte: new Date(Math.max(...times) + 4 * 86_400_000) } }, select: { at: true } })
+    : [];
+  const drafts = [...spreadFeed(going, new Set(taken.map((t) => dayKey(t.at))), dayKey), ...laid.filter(left).map((d) => ({ ...d, moved: left(d)! }))];
+  for (const d of drafts) {
+    if (d.audience === EARLY_ACCESS ? !["EMAIL", "SMS"].includes(d.channel) : d.audience && !isAudience(d.audience)) throw new StudioError(`"${d.audience}" can't be the audience of ${d.key}`);
+  }
   const plan = await db.studioPlan.create({
     data: {
       playbook: pb.key,
-      name: store ? `${pb.name}: ${store.name}` : pb.name,
-      anchor: p.anchor,
+      name: store ? `${pb.name}: ${store.name}` : product ? `${pb.name}: ${product.name}` : pb.name,
+      anchor,
       storeId: store?.id ?? null,
       createdBy: p.by,
       items: {
@@ -54,29 +97,43 @@ export async function createPlan(p: { playbook: string; anchor: string; storeId:
           text: d.text,
           short: d.short ?? null,
           card: (d.card ?? undefined) as Prisma.InputJsonValue | undefined,
-          ...(d.at <= now ? { status: "SKIPPED" as const, note: "Its day had passed when the campaign was laid out" } : d.moved ? { note: d.moved } : {}),
+          audience: d.audience ?? (OWN_CHANNELS.includes(d.channel) ? interest : null),
+          linkedin: d.linkedin ?? null,
+          brief: d.brief ?? null,
+          ...(left(d) ? { status: "SKIPPED" as const, note: left(d) } : d.at <= now ? { status: "SKIPPED" as const, note: "Its day had passed when the campaign was laid out" } : d.moved ? { note: d.moved } : {}),
         })),
       },
     },
   });
-  await audit(db, p.actor, "studio.create", { storeId: store?.id ?? null, entity: "StudioPlan", entityId: plan.id, data: { playbook: pb.key, anchor: p.anchor, items: drafts.length } });
+  await audit(db, p.actor, "studio.create", { storeId: store?.id ?? null, entity: "StudioPlan", entityId: plan.id, data: { playbook: pb.key, anchor, items: drafts.length, product: product?.slug } });
   return plan;
 }
 
+/** Shortest runs between the launch's days: two weeks of brand before the shop, and the shop open before any store is revealed. */
+export const LAUNCH_GAPS = { shop: 14, doors: 33 } as const;
+const daysBetween = (a: string, b: string) => Math.round((Date.parse(b) - Date.parse(a)) / 86_400_000);
+
 /**
- * The launch in its order: the brand first, then the online shop, then the stores' doors. Each day must come after
- * the one before; each store opening is laid out for its store. Returns the campaigns made.
+ * The launch in its order: the brand first, then the online shop, then the stores' doors, with room between them (the
+ * brand's posts stop when the shop opens; the stores are revealed once it's open). Stores opening on the same day share
+ * their big moments (one post naming every town) and take turns with their own, a week apart. Returns the campaigns.
  */
 export async function createLaunch(p: { brand: string; shop: string; doors: string; storeIds: string[]; by: string; actor: Actor }, now = new Date()) {
   const days = [p.brand, p.shop, p.doors];
   if (days.some((d) => !/^\d{4}-\d{2}-\d{2}$/.test(d))) throw new StudioError("Pick all three days");
   if (!(p.brand < p.shop && p.shop < p.doors)) throw new StudioError("The brand launches first, then the shop, then the stores: each day after the one before");
+  if (daysBetween(p.brand, p.shop) < LAUNCH_GAPS.shop) throw new StudioError(`Give the brand ${LAUNCH_GAPS.shop} days before the shop opens`);
+  if (daysBetween(p.shop, p.doors) < LAUNCH_GAPS.doors) throw new StudioError(`Open the doors at least ${LAUNCH_GAPS.doors} days after the shop, so the stores are revealed once it's open`);
   if (!p.storeIds.length) throw new StudioError("Choose the stores that open");
+  const stores = await db.store.findMany({ where: { id: { in: p.storeIds } }, select: { id: true, name: true }, orderBy: { name: "asc" } });
+  if (stores.length !== p.storeIds.length) throw new StudioError("Choose the stores that open");
+  const towns = stores.map((s) => s.name).join(", ").replace(/, ([^,]*)$/, " and $1");
+  const base = { by: p.by, actor: p.actor, storeId: null };
   const plans = [
-    await createPlan({ playbook: "brand-launch", anchor: p.brand, storeId: null, by: p.by, actor: p.actor }, now),
-    await createPlan({ playbook: "shop-launch", anchor: p.shop, storeId: null, by: p.by, actor: p.actor }, now),
+    await createPlan({ ...base, playbook: "brand-launch", anchor: p.brand, until: p.shop }, now),
+    await createPlan({ ...base, playbook: "shop-launch", anchor: p.shop }, now),
   ];
-  for (const storeId of p.storeIds) plans.push(await createPlan({ playbook: "store-opening", anchor: p.doors, storeId, by: p.by, actor: p.actor }, now));
+  for (const [i, s] of stores.entries()) plans.push(await createPlan({ ...base, playbook: "store-opening", anchor: p.doors, storeId: s.id, towns, stagger: i * 7, skipShared: i > 0 }, now));
   return plans;
 }
 
@@ -105,7 +162,7 @@ export async function saveItem(id: string, patch: { text: string; short: string 
 export async function scheduleApproved(planId: string, actor: Actor, now = new Date()) {
   const plan = await db.studioPlan.findUnique({ where: { id: planId }, select: { storeId: true } });
   if (!plan) throw new StudioError("That campaign isn't there any more");
-  const ready = { planId, status: "APPROVED" as const, channel: { in: [...OWN_CHANNELS, ...(postizConnected() ? ["SOCIAL" as const] : [])] } };
+  const ready = { planId, status: "APPROVED" as const, hand: false, channel: { in: [...OWN_CHANNELS, ...(postizConnected() ? ["SOCIAL" as const] : [])] } };
   const late = await db.studioItem.count({ where: { ...ready, at: { lt: new Date(now.getTime() + 5 * 60_000) } } });
   const queued = await db.studioItem.findMany({ where: { ...ready, at: { gte: new Date(now.getTime() + 5 * 60_000) } }, select: { id: true, channel: true } });
   // A post that failed at release and was fixed starts again: no release, Postiz post or campaign from the last try.
@@ -146,21 +203,27 @@ export async function releaseStudio(now = new Date()) {
       done.failed++;
       continue;
     }
+    if (it.audience === EARLY_ACCESS && !marketingWindow(now).allowed) continue; // waits for the legal hours
     // Claimed first, so two scheduler runs never release it twice.
     if (!(await db.studioItem.updateMany({ where: { id: it.id, releasedAt: null }, data: { releasedAt: now } })).count) continue;
     try {
-      if (OWN_CHANNELS.includes(it.channel as StudioChannel)) {
-        const c = await db.campaign.create({ data: { name: it.title ?? `${it.plan.name}: ${it.key}`, channel: it.channel as "EMAIL" | "SMS" | "PUSH", segment: "ALL", storeId: it.plan.storeId, message: it.text } });
+      if (it.audience === EARLY_ACCESS) {
+        const r = await sendEarlyAccess(it.channel === "EMAIL" ? "EMAIL" : "SMS", it.title, it.text);
+        await db.studioItem.update({ where: { id: it.id }, data: { status: "POSTED", doneBy: "First-access list", doneAt: now, note: `Sent to ${r.sent}${r.suppressed || r.members ? ` (${[r.suppressed && `${r.suppressed} on the do-not-contact list`, r.members && `${r.members} already members`].filter(Boolean).join(", ")})` : ""}; their sign-ups are deleted` } });
+      } else if (OWN_CHANNELS.includes(it.channel as StudioChannel)) {
+        const c = await db.campaign.create({ data: { name: it.title ?? `${it.plan.name}: ${it.key}`, channel: it.channel as "EMAIL" | "SMS" | "PUSH", segment: it.audience ?? "ALL", storeId: it.audience ? null : it.plan.storeId, message: it.text } });
         await db.studioItem.update({ where: { id: it.id }, data: { campaignId: c.id } });
         await sendCampaign(c.id, SCHEDULER, now);
       } else {
         if (!postizConnected()) throw new StudioError("Postiz isn't connected any more: post it by hand");
         channels ??= await socialChannels();
-        if (!channels.length) throw new StudioError("No social accounts are connected in Postiz");
+        const linkedin = (c: SocialChannel) => c.identifier.startsWith("linkedin");
+        const to = channels.filter((c) => (it.linkedin === "only" ? linkedin(c) : it.linkedin === "also" || !linkedin(c)));
+        if (!to.length) throw new StudioError(it.linkedin === "only" ? "No LinkedIn page is connected in Postiz" : "No social accounts are connected in Postiz");
         const data = await cardJpeg(it.card as Card, "portrait");
-        const postizIds = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels, mode: "now", at: now });
+        const postizIds = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels: to, mode: "now", at: now });
         const post = await db.socialPost.create({
-          data: { content: it.text, image: null, channels: channels.map((c) => `${SOCIAL_NETWORKS[c.identifier].label} · ${c.name}`), mode: "now", postizIds, createdBy: "Studio" },
+          data: { content: it.text, image: null, channels: to.map((c) => `${SOCIAL_NETWORKS[c.identifier].label} · ${c.name}`), mode: "now", postizIds, createdBy: "Studio" },
         });
         await db.studioItem.update({ where: { id: it.id }, data: { socialPostId: post.id } });
       }
@@ -182,6 +245,13 @@ export async function unschedule(id: string, actor: Actor) {
   if (it.campaignId) await db.campaign.update({ where: { id: it.campaignId }, data: { status: "CANCELLED", scheduledAt: null } });
   await db.studioItem.update({ where: { id }, data: { status: "DRAFT", approvedBy: null, campaignId: null, releasedAt: null } });
   await audit(db, actor, "studio.unschedule", { entity: "StudioItem", entityId: id, data: { key: it.key, channel: it.channel } });
+}
+
+/** A social post the team makes by hand, with its own photo or video (the brief), instead of the card through Postiz. */
+export async function setHand(id: string, hand: boolean, actor: Actor) {
+  const r = await db.studioItem.updateMany({ where: { id, channel: "SOCIAL", status: { in: ["DRAFT", "APPROVED", "FAILED"] } }, data: { hand } });
+  if (!r.count) throw new StudioError("Take it out of the schedule first");
+  await audit(db, actor, "studio.hand", { entity: "StudioItem", entityId: id, data: { hand } });
 }
 
 /** A post made by hand (WhatsApp Channel, Google, or social without Postiz), with its link when there is one. */

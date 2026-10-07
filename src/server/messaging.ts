@@ -180,7 +180,7 @@ export async function notifyOrder(o: OrderForNotice, kind: OrderEvent, extra: { 
 
 /** A batch (≤ 500, one channel) for campaigns and alerts. Returns how many were delivered; failures are logged per message. */
 export async function sendBulk(
-  rows: { campaignId?: string; customerId: string; to: string; channel: MsgChannel; body: string; subject?: string; url?: string }[],
+  rows: { campaignId?: string; customerId?: string; to: string; channel: MsgChannel; body: string; subject?: string; url?: string }[],
   kind: OutboundMessage["kind"] = "MARKETING",
 ) {
   if (!rows.length) return 0;

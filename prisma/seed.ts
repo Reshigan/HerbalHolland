@@ -2081,16 +2081,18 @@ async function main() {
   const loss = await runLossRules(NOW);
 
   // Campaign Studio: the opening campaign for a store that's opening soon, laid out and approved, and the brand launch
-  // as drafts (src/lib/studio-playbooks.ts).
-  const { createPlan, approveItems } = await import("../src/server/studio");
+  // as drafts, each on the first day it can start (src/lib/studio-playbooks/).
+  const { createPlan, approveItems, playbookOf } = await import("../src/server/studio");
+  const { firstDayT } = await import("../src/lib/studio");
+  const dayT = (key: string, days: number) => firstDayT(playbookOf(key)!, dayKey(new Date(NOW.getTime() + days * DAY)));
   const studioActor = { type: "USER" as const, id: users[0].id as string, name: users[0].name as string };
   const soon = stores.find((x) => x.status === "OPENING_SOON" && x.kind === "RETAIL");
   let studioItems = 0;
   if (soon) {
-    const plan = await createPlan({ playbook: "store-opening", anchor: dayKey(new Date(NOW.getTime() + 40 * DAY)), storeId: soon.id, by: studioActor.name, actor: studioActor }, NOW);
+    const plan = await createPlan({ playbook: "store-opening", anchor: dayT("store-opening", 40), storeId: soon.id, by: studioActor.name, actor: studioActor }, NOW);
     studioItems += (await approveItems(plan.id, "all", studioActor.name, studioActor)).approved;
   }
-  await createPlan({ playbook: "brand-launch", anchor: dayKey(new Date(NOW.getTime() + 7 * DAY)), storeId: null, by: studioActor.name, actor: studioActor }, NOW);
+  await createPlan({ playbook: "brand-launch", anchor: dayT("brand-launch", 7), storeId: null, by: studioActor.name, actor: studioActor }, NOW);
   console.log(`  banking · alerts       ${depositRows.length} deposits · ${loss.raised} loss-prevention alerts`);
   console.log(`  studio                 ${soon ? `store opening for ${soon.name} (${studioItems} posts approved) · ` : ""}brand launch drafts`);
   const gross = sales.reduce((a, s) => a + (s.totalCents as number), 0);

@@ -6,7 +6,8 @@ import { can } from "@/server/hq/guard";
 import { toLocalInput } from "@/server/hq/form";
 import { postizConnected } from "@/server/social";
 import { aiReady } from "@/server/studio-ai";
-import { itemFlags, playbookOf } from "@/server/studio";
+import { EARLY_ACCESS, itemFlags, playbookOf } from "@/server/studio";
+import { segmentLabel } from "@/server/marketing";
 import { SOCIAL_IMAGES } from "@/lib/social";
 import { dayKey, fmtDate, fmtTime } from "@/lib/format";
 import { longDate, STUDIO_CHANNELS, type Card, type StudioChannel } from "@/lib/studio";
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/form";
 import { ActionForm, SubmitButton } from "@/components/ui/action-form";
 import { CopyButton } from "@/components/trade/copy-button";
 import { MarketingTabs } from "../../tabs";
-import { approveStudio, pauseStudio, postedStudioItem, saveStudioItem, scheduleStudio, skipStudioItem, suggestStudioRewrite, unscheduleStudioItem } from "../actions";
+import { approveStudio, handStudioItem, pauseStudio, postedStudioItem, saveStudioItem, scheduleStudio, skipStudioItem, suggestStudioRewrite, unscheduleStudioItem } from "../actions";
 import { ItemEditor } from "./item-editor";
 
 export const metadata = { title: "Studio campaign" };
@@ -86,7 +87,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
       <Notice tone="info" className="mb-5">
         Approved posts wait here until their time: the scheduler releases each one then (it runs every 15 minutes), so you can pause the whole campaign or take a post back until the moment it goes.{" "}
         {social ? "Social posts go to Postiz with their card." : "Postiz isn't connected, so social posts are made by hand like WhatsApp and Google: copy the words, download the card, then mark it posted."} Email, SMS and push go
-        to {plan.store ? `${plan.store.name}'s` : "all"} members who said yes to that channel, inside the legal send times. WhatsApp Channel and Google posts are always made by hand: their rules don&apos;t allow a cannabis brand&apos;s posts through an API.
+        to {plan.store ? `${plan.store.name}'s` : "all"} members who said yes to that channel (or to the audience a post names), inside the legal send times. WhatsApp Channel and Google posts are always made by hand: their rules don&apos;t allow a cannabis brand&apos;s posts through an API.
       </Notice>
       <div className="space-y-8">
         {[...days].map(([day, items]) => (
@@ -99,7 +100,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                 const channel = it.channel as StudioChannel;
                 const card = it.card as Card | null;
                 const flags = it.status === "DRAFT" ? itemFlags(it) : [];
-                const hand = STUDIO_CHANNELS[channel].hand || (channel === "SOCIAL" && !social);
+                const hand = STUDIO_CHANNELS[channel].hand || (channel === "SOCIAL" && (!social || it.hand));
                 const [label, tone] = it.status === "SCHEDULED" && it.releasedAt ? (["Released", "violet"] as const) : STATUS[it.status];
                 const v = it.updatedAt.getTime();
                 return (
@@ -116,11 +117,18 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                         <Badge tone="orange">{STUDIO_CHANNELS[channel].label}</Badge>
                         <Badge tone={tone}>{label}</Badge>
                         {hand && it.status === "APPROVED" && <Badge tone="amber">Post by hand</Badge>}
+                        {it.audience && <Badge tone="blue">To: {it.audience === EARLY_ACCESS ? "First-access list" : segmentLabel(it.audience)}</Badge>}
+                        {it.linkedin && <Badge tone="neutral">{it.linkedin === "only" ? "LinkedIn only" : "LinkedIn too"}</Badge>}
                         {it.doneBy && <span>· {it.doneBy}</span>}
                       </p>
                       {it.title && <p className="mt-2 font-semibold text-ink-900">{it.title}</p>}
                       <p className="mt-1.5 whitespace-pre-wrap text-sm text-ink-800">{it.text}</p>
                       {it.short && <p className="mt-1.5 text-xs text-ink-500">Short version: {it.short}</p>}
+                      {it.brief && (
+                        <p className="mt-1.5 text-xs text-ink-600">
+                          <span className="font-semibold text-ink-800">Shoot:</span> {it.brief}
+                        </p>
+                      )}
                       {it.note && <p className="mt-1.5 text-xs text-ink-500">{it.note}</p>}
                       {flags.length > 0 && (
                         <ul className="mt-2 space-y-0.5 text-xs font-medium text-rose-600">
@@ -158,6 +166,13 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                                 <SubmitButton size="sm">Mark posted</SubmitButton>
                               </ActionForm>
                             </>
+                          )}
+                          {channel === "SOCIAL" && social && ["DRAFT", "APPROVED", "FAILED"].includes(it.status) && (
+                            <ActionForm action={handStudioItem.bind(null, it.id, !it.hand)} notices="bottom">
+                              <SubmitButton size="sm" variant="outline">
+                                {it.hand ? "Send the card through Postiz" : "I'll post it by hand"}
+                              </SubmitButton>
+                            </ActionForm>
                           )}
                           {it.status === "SCHEDULED" && (!it.releasedAt || channel !== "SOCIAL") && (
                             <ActionForm action={unscheduleStudioItem.bind(null, it.id)} notices="bottom">

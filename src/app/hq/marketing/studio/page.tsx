@@ -6,20 +6,22 @@ import { can } from "@/server/hq/guard";
 import { postizConnected } from "@/server/social";
 import { aiReady } from "@/server/studio-ai";
 import { PLAYBOOKS } from "@/lib/studio-playbooks";
-import { STUDIO_CHANNELS, type StudioChannel } from "@/lib/studio";
+import { longDate, STUDIO_CHANNELS, WEEKDAYS, type StudioChannel } from "@/lib/studio";
 import { dayKey, fmtDate } from "@/lib/format";
 import { plural } from "@/lib/plural";
 import { Notice, PageHeader } from "@/components/ui/page";
 import { Card, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ButtonLink } from "@/components/ui/button";
-import { Checkbox, Field, Input, Select } from "@/components/ui/form";
+import { Checkbox, Field, Input, Select, Textarea } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { Table, TableEmpty, Td, Th, Tr } from "@/components/ui/table";
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { ViewOnly } from "@/components/hq/ui";
 import { MarketingTabs } from "../tabs";
-import { createLaunchPlans, createStudioPlan } from "./actions";
+import { clearFirstAccess, createLaunchPlans, createStudioPlan, importFirstAccess } from "./actions";
+import { LAUNCH_GAPS } from "@/server/studio";
+import { earlyAccessCount } from "@/server/early-access";
 
 export const metadata = { title: "Studio" };
 
@@ -28,11 +30,12 @@ const PAGE = 15;
 export default async function StudioPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const user = await requireStaff(HQ_ROLES);
   const page = pageParam((await searchParams).page);
-  const [total, plans, stores] = await Promise.all([
+  const [total, plans, stores, firstAccess] = await Promise.all([
     db.studioPlan.count(),
     db.studioPlan.findMany({ orderBy: { createdAt: "desc" }, skip: (page - 1) * PAGE, take: PAGE, include: { store: { select: { name: true } } } }),
     // A store opening is laid out for a store that's opening soon (there are only ever a few).
     db.store.findMany({ where: { kind: "RETAIL", status: "OPENING_SOON" }, select: { id: true, name: true, city: true }, orderBy: { name: "asc" }, take: 50 }),
+    earlyAccessCount(),
   ]);
   const counts = await db.studioItem.groupBy({ by: ["planId", "status"], where: { planId: { in: plans.map((p) => p.id) } }, _count: true });
   const tally = (planId: string, ...status: string[]) => counts.filter((c) => c.planId === planId && status.includes(c.status)).reduce((n, c) => n + c._count, 0);
@@ -63,13 +66,13 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
               <p className="mt-1 text-sm text-ink-500">In its order: the brand first, then the online shop, then the stores&apos; doors. Each campaign is laid out from its own day, and each day comes after the one before.</p>
               <ActionForm action={createLaunchPlans} className="mt-4 space-y-4">
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <Field label="1 · Brand launch" htmlFor="brand">
+                  <Field label="1 · Brand launch" htmlFor="brand" hint="A Tuesday, two weeks or more before the shop.">
                     <Input id="brand" name="brand" type="date" required min={dayKey(new Date())} />
                   </Field>
-                  <Field label="2 · Shop opens" htmlFor="shop">
+                  <Field label="2 · Shop opens" htmlFor="shop" hint="A Tuesday.">
                     <Input id="shop" name="shop" type="date" required min={dayKey(new Date())} />
                   </Field>
-                  <Field label="3 · Doors open" htmlFor="doors">
+                  <Field label="3 · Doors open" htmlFor="doors" hint={`A Tuesday, ${LAUNCH_GAPS.doors} days or more after the shop.`}>
                     <Input id="doors" name="doors" type="date" required min={dayKey(new Date())} />
                   </Field>
                 </div>
@@ -101,9 +104,9 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                     <option value="" disabled>
                       Choose a playbook
                     </option>
-                    {PLAYBOOKS.map((p) => (
+                    {PLAYBOOKS.filter((p) => !p.date || p.date >= dayKey(new Date())).map((p) => (
                       <option key={p.key} value={p.key}>
-                        {p.name} (day T: {p.anchor.toLowerCase()})
+                        {p.date ? `${p.name} (from ${longDate(p.date)})` : `${p.name} (day T: ${p.anchor.toLowerCase()}${p.weekday !== undefined ? `, a ${WEEKDAYS[p.weekday]}` : ""})`}
                       </option>
                     ))}
                   </Select>
@@ -119,11 +122,33 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                     ))}
                   </Select>
                 </Field>
-                <Field label="Day T" htmlFor="anchor">
-                  <Input id="anchor" name="anchor" type="date" required min={dayKey(new Date())} />
+                <Field label="Product" htmlFor="product" hint="Product launches only: its page address (slug) or a SKU.">
+                  <Input id="product" name="product" autoComplete="off" />
+                </Field>
+                <Field label="Day T" htmlFor="anchor" hint="Month campaigns keep their own dates.">
+                  <Input id="anchor" name="anchor" type="date" min={dayKey(new Date())} />
                 </Field>
                 <SubmitButton pendingLabel="Laying it out…">Lay it out</SubmitButton>
               </ActionForm>
+            </Card>
+          ) : null}
+          {can(user, "network") ? (
+            <Card className="p-5">
+              <h2 className="font-display text-lg font-semibold text-ink-900">First-access list</h2>
+              <p className="mt-1 text-sm text-ink-500">
+                {firstAccess ? `${plural(firstAccess, "person", "people")} waiting to hear the shop is open.` : "Nobody on it."} Paste the export from herbalholland.com (docs/RUNBOOK.md): the online shop launch tells each person once, on opening day, and their sign-up is deleted as their message goes.
+              </p>
+              <ActionForm action={importFirstAccess} className="mt-4 space-y-3">
+                <Field label="The export (JSON or CSV)" htmlFor="firstAccessList">
+                  <Textarea id="firstAccessList" name="list" rows={4} required className="font-mono text-xs" />
+                </Field>
+                <SubmitButton size="sm" pendingLabel="Importing…">Import</SubmitButton>
+              </ActionForm>
+              {firstAccess > 0 && (
+                <ActionForm action={clearFirstAccess} className="mt-3">
+                  <SubmitButton size="sm" variant="ghost" pendingLabel="Deleting…">Delete the list</SubmitButton>
+                </ActionForm>
+              )}
             </Card>
           ) : (
             <ViewOnly>Campaigns are laid out and approved by HQ marketing.</ViewOnly>
