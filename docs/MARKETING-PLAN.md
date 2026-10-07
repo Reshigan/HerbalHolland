@@ -294,7 +294,7 @@ draft.
 | Fri 9 Oct | Made here | windmill-tee | The Windmill Tee: the mark embroidered in Sunset thread on the chest, the store-window poster printed on the back. Made for you in Cape Town, one at a time. #MadeInSA |
 | Sat 10 Oct | Teaser | video | Something's turning in the hills. |
 | Mon 12 Oct | Learn | photo | How to read a lab result in a minute: potency, the terpene list, and the safety tests every batch should pass — microbes, pesticides, heavy metals, solvents. Every one of our batches has a public lab page. Scan the QR on the pack. |
-| Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers, member advisors and a pharmacist for each store. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
+| Wed 14 Oct | People | photo | We're hiring in Hillcrest and Hilton: store managers and member advisors. Warm people who like explaining things simply. Applications close Friday 30 October. Link in bio. |
 | Fri 16 Oct | Brand | brand | Dutch heritage: the coffee-shop tradition of a warm welcome and knowing exactly what you're offering. African soil: South African growers, makers and landraces. That's the whole idea. |
 | Sat 17 Oct | Rewards | brand | {count} people have joined the Founding Members list. The first 2,026 get a numbered card on opening weekend. Free to join, adults 18+. |
 | Mon 19 Oct | Made here | sunset-hoodie | The Sunset Hoodie: our lock-up embroidered on the chest, a sunset over the hills across the back. Orange fleece, made to order in Cape Town. |
