@@ -38,11 +38,17 @@ reports) and Postgres can't live on Cloudflare.
    should see first: `npx wrangler@4 versions upload --preview-alias preview` (→ `https://preview-herbalholland-com.<account>.workers.dev`,
    same database as live, so don't send test sign-ups), then `npx wrangler@4 versions deploy <version-id>`
    to make that exact version live. The early-access list (`early_access` in the same database; the Worker deletes
-   sign-ups after 12 months): export it for the launch message with `npx wrangler@4 d1 execute herbalholland-com-eu
-   --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`,
-   send only through the platform's consent-checked messaging (every message with an opt-out), and delete anyone who
-   asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. The workflow also runs just
-   after midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop opens. The
+   sign-ups after 12 months) goes to the platform once, for the online shop launch. The day before the shop opens,
+   export it with `npx wrangler@4 d1 execute herbalholland-com-eu
+   --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`
+   and paste the output into HQ → Marketing → Studio → **First-access list** (it says how many people it added and
+   left out). The shop launch's opening-day SMS (09:00, to those who gave only a mobile) and email (09:05, to those who
+   gave an email) tell each person once, with an opt-out and the do-not-contact list applied, and the platform deletes
+   each sign-up as its message goes. Afterwards delete the site's copy: clear the table with
+   `npx wrangler@4 d1 execute herbalholland-com-eu --remote --command "DELETE FROM early_access"`; until then, delete
+   anyone who asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. The workflow also runs just after
+   midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop
+   opens: that closes the site's first-access sign-up, and every way to shop on the site leads to the shop instead. The
    site no longer takes franchise enquiries (`/franchise` redirects to `/about`): the enquiries already handed to HQ stay
    in HQ → Franchise leads, and the Worker's daily clean-up deletes the site's own copies (a year after they came in, or
    30 days after HQ had them). The Worker no longer reads `NOTIFY_TO`, `APP_ENQUIRY_URL` or `APP_ENQUIRY_SECRET`: if they're

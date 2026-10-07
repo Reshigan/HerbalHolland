@@ -19,10 +19,10 @@ export const FEBRUARY: Playbook[] = [
       // ── Week 1: what gezellig means, and Bring a friend month begins ─────────────────────────────────────────────
       {
         key: "learn-gezellig", day: 1, time: "07:00", channel: "SOCIAL",
-        text: "Gezellig: the Dutch art of feeling at home. Say it khuh-ZEL-ukh, with the throaty Dutch g.\n\nIt means warm, sociable and at home, all at once, and English has no single word for it. Gezelligheid is the feeling: a long table, good coffee, people you like, and nobody checking the time.\n\nIt's why each of our stores hosts a Gezellig evening every month: Hillcrest on the third Thursday, Hilton on the third Friday, 18:00–20:00, for members.\n\nRead it in Learn: link in bio. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
+        text: "Gezellig: the Dutch art of feeling at home. Say it khuh-ZEL-ukh, with the throaty Dutch g.\n\nIt means warm, sociable and at home, all at once, and English has no single word for it. Gezelligheid is the feeling: a long table, good coffee, people you like, and nobody checking the time.\n\nIt's why each of our stores hosts a Gezellig evening every month: Hillcrest on the third Thursday, Hilton the evening after, 18:00–20:00, for members.\n\nRead it in Learn: link in bio. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
         short: "Gezellig: the Dutch art of feeling at home. Warm, sociable and at home, all at once: a long table, good coffee, people you like, and nobody checking the time. Read it in Learn: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "Learn", headline: "Gezellig: the art of feeling at home.", sub: "The Dutch word for warm, sociable and at home, all at once." },
-        brief: "A 5-slide carousel in the brand type: 1 the word and how to say it (khuh-ZEL-ukh); 2 warm, sociable, at home; 3 gezelligheid, the feeling (a long table, good coffee, people you like); 4 why English has no single word for it; 5 our Gezellig evenings, Hillcrest on the third Thursday and Hilton on the third Friday.",
+        brief: "A 5-slide carousel in the brand type: 1 the word and how to say it (khuh-ZEL-ukh); 2 warm, sociable, at home; 3 gezelligheid, the feeling (a long table, good coffee, people you like); 4 why English has no single word for it; 5 our Gezellig evenings, Hillcrest on the third Thursday and Hilton the evening after.",
       },
       {
         key: "windmill-no-4", day: 1, time: "16:00", channel: "EMAIL",
@@ -43,7 +43,7 @@ export const FEBRUARY: Playbook[] = [
       },
       {
         key: "li-gezellig", day: 2, time: "12:00", channel: "SOCIAL", linkedin: "only",
-        text: "Gezellig is a Dutch word for warm, sociable and at home, all at once. At Herbal Holland, it's also a working standard.\n\nSince January, each of our stores hosts a Gezellig evening every month: Hillcrest on the third Thursday, Hilton on the third Friday. Members RSVP in our app, the store team hosts, and the evening is about conversation, not a pitch.\n\nWhat we're learning: in a new category, trust is built face to face, in a room where people can ask anything.\n\nAdults 18+.\n#HerbalHolland",
+        text: "Gezellig is a Dutch word for warm, sociable and at home, all at once. At Herbal Holland, it's also a working standard.\n\nSince January, each of our stores hosts a Gezellig evening every month: Hillcrest on the third Thursday, Hilton the evening after. Members RSVP in our app, the store team hosts, and the evening is about conversation, not a pitch.\n\nWhat we're learning: in a new category, trust is built face to face, in a room where people can ask anything.\n\nAdults 18+.\n#HerbalHolland",
         short: "Gezellig: Dutch for warm, sociable and at home. Since January, each of our stores hosts a Gezellig evening every month, for conversation, not a pitch. What we're learning: in a new category, trust is built face to face. #HerbalHolland",
         card: { template: "headline", eyebrow: "What we're learning", headline: "Gezellig, as a working standard.", sub: "A Gezellig evening every month at each store, hosted by the team." },
       },

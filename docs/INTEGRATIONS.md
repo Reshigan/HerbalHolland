@@ -284,17 +284,78 @@ cost (HQ → Catalogue), `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier 
 
 ## Social posting with Postiz, and the Campaign Studio (`src/server/social.ts`, `src/server/studio.ts`)
 
-HQ → Marketing → **Studio** lays a whole campaign out from one day (a playbook in `src/lib/studio-playbooks.ts`: brand
-launch, online shop launch, store opening, Founding Members, hiring, merch drop): every post with its brand card,
-checked for the channel it goes on (`screenDraft`: the copy rules, the platforms' rules, lengths, public holidays). HQ
-approves, then **Schedule what's approved** queues them in the platform, and the `frequent` job (every 15 minutes)
-releases each at its time: a social post goes to [Postiz](https://postiz.com) with its card, to publish straight away,
-and an email, SMS or push becomes a Campaign to the members who said yes (held for the next legal send window when
-needed). **Pause releases** holds a whole campaign until it's resumed; **Take back** returns a queued post to draft. A
-post more than six hours late (paused, or the scheduler stopped) isn't sent: it fails, to be given a new time. HQ →
-Marketing → **Social** still posts one-off captions with the brand pictures in `public/social`. Postiz is open source
-and free when self-hosted, with no limit on channels or posts. Without it, social posts wait in the Studio to be
-posted by hand (copy the words, download the card).
+HQ → Marketing → **Studio** lays a whole campaign out from one day, its day T. The playbooks are in
+`src/lib/studio-playbooks/`, one file per pack: the launch's six campaigns (`launch.ts`: brand launch, online shop
+launch, store opening, Founding Members, hiring, merch drop), a product launch (`new-online.ts`), a month of Google
+posts for one store (`google.ts`), the gift email (`gifts.ts`) and the month packs (`festive.ts`, `january.ts`,
+`february.ts`, `march.ts`). Every post comes with its brand card, checked for the channel it goes on (`screenDraft`:
+the copy rules, the platforms' rules, lengths, public holidays). HQ approves, then **Schedule what's approved** queues
+them in the platform, and the `frequent` job (every 15 minutes) releases each at its time: a social post goes to
+[Postiz](https://postiz.com) with its card, to publish straight away, and an email, SMS or push becomes a Campaign to
+the members who said yes (held for the next legal send window when needed). **Pause releases** holds a whole campaign
+until it's resumed; **Take back** returns a queued post to draft. A post more than six hours late (paused, or the
+scheduler stopped) isn't sent: it fails, to be given a new time. HQ → Marketing → **Social** still posts one-off
+captions with the brand pictures in `public/social`. Postiz is open source and free when self-hosted, with no limit on
+channels or posts. Without it, social posts wait in the Studio to be posted by hand (copy the words, download the card).
+
+**Laying a campaign out** (`layout`, `spreadFeed` and `firstDayT` in `src/lib/studio.ts`; `createPlan` in
+`src/server/studio.ts`):
+
+- **Day T falls on the pack's weekday.** Each playbook names its weekday and why: a Tuesday for the brand launch, the
+  shop launch, a store opening and a product launch; a Friday for hiring (applications close at the end of a working
+  week); a Sunday for the Founding Members list (it closes at midnight); a Thursday for a merch drop; a Monday for a
+  Google month. Any other day is refused, with the reason. The month packs and the gift email are written for their
+  own dates and can't be laid out once those have passed. A post whose day has already gone is left out.
+- **Pinned posts never move.** A post whose words name its day ("today", "tonight", "tomorrow", "7 days to go", "last
+  call") is pinned. If that day is a public holiday, or a Sunday for an email, SMS or push, the Studio refuses day T
+  and names the post; `firstDayT` finds the first day T a pack can start on. Any other post moves off a public holiday
+  to the next day that allows it, and members' messages move off Sundays (CPA Regulation 4), each with a note.
+- **One feed post a day, across every campaign.** A feed post that lands on a day another campaign already posts on
+  moves up to three days later, at the same time and never onto a public holiday; with no room, it keeps its day and
+  is marked "Shares its day with another post: move one". A pinned post stays where it is (opening day has its
+  morning and its evening) and notes any other campaign's post that day. LinkedIn-only posts don't count.
+- **Product launches** (New online): name the product by its page address (slug) or a SKU. Its name, its facts
+  (`productFacts`: the pack size, the CBD a pack and a day, its allergens), its category and its link fill the copy,
+  and the email and push go to the members who chose its interest (`interestFor`). Licensed medicines are refused:
+  they're never marketed.
+
+**The launch** (`createLaunch`; HQ → Marketing → Studio → The launch): three days in order, the brand, the shop and
+the doors, and the stores that open. The brand launches at least 14 days before the shop, and the doors open at least
+33 days after it (`LAUNCH_GAPS`), so every store is revealed once the shop is open; the brand's posts stop when the
+shop opens. Stores opening on the same day share their big moments: the shared posts (the invitations, _The Windmill_,
+No. 2, the windows, the countdown, and opening week on the feed, by email and on the WhatsApp Channel) go out once, from the
+first store's campaign, naming every town. The stores take turns with their own feed posts (the reveal, promise,
+neighbourhood, team and thank-you), a week apart: the second store's go 7 days after the first's, off public holidays,
+so each town gets its moment. Each store's members' messages and Google posts keep their days.
+
+**Audiences.** A store's email, SMS and push go to that store's members, and a network campaign's to every member,
+unless the post names an audience: then its Campaign goes to that segment, network-wide (`ALL`, a tier, an interest or
+an RFM segment). The shared opening-week email and _The Windmill_, No. 2 are `ALL`, so every member hears once however
+many stores open, and a merch drop's email goes to the members who chose merch. Each post shows who it goes to ("To:
+All members", "To: Into Merch & apparel", "To: First-access list").
+
+**LinkedIn.** A social post goes to LinkedIn only when its playbook says so, and the post shows it: **LinkedIn too**
+(`also`) goes to every connected account, LinkedIn included; **LinkedIn only** (`only`) goes to the LinkedIn page
+alone, and fails at its time if no LinkedIn page is connected in Postiz. Every other social post skips LinkedIn.
+
+**Briefs, and posting by hand.** Many social posts carry a brief, shown as **Shoot:**: the photo or Reel that makes
+the post, with adults over 25 who've signed a release. Until someone shoots it, the card goes out. **I'll post it by
+hand** keeps a post out of Postiz (copy the words, post it with the photo or video, then **Mark posted** with its
+link); **Send the card through Postiz** puts it back. A post can switch while it's a draft, approved or failed.
+
+**The first-access list** (`src/server/early-access.ts`, `src/lib/early-access.ts`): the people who asked
+herbalholland.com to hear the day the online shop opens. The day before, HQ pastes the site's D1 export into the
+Studio's **First-access list** card ([RUNBOOK.md](RUNBOOK.md) has the command): the `--json` output of
+`wrangler d1 execute`, a plain JSON array, or a CSV with a header row. Emails are kept lower-case and mobiles as +27; a
+row with neither is left out, and anyone already on the list is skipped. The online shop launch is its only use: on
+opening day an SMS at 09:00 goes to those who gave only a mobile, and an email at 09:05 to those who gave an email (the
+`early-access` audience, which only email and SMS can have), so each person hears once, inside the legal send times
+and with an opt-out. The do-not-contact list applies, and anyone who has joined Rewards by then hears with the members
+instead. Every sign-up is deleted as its message goes (POPIA: kept no longer than its purpose), and **Delete the
+list** clears it by hand. Until then, a member's POPIA export and erasure (`src/server/popia.ts`) include any sign-up
+with their mobile or email.
+
+**Setting up Postiz:**
 
 1. Run Postiz with its Docker Compose file on the server, behind HTTPS on its own subdomain (e.g.
    `https://social.herbalholland.co.za`): it brings PostgreSQL, Redis and Temporal (with Temporal's own PostgreSQL and
@@ -306,7 +367,8 @@ posted by hand (copy the words, download the card).
      marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
      Review is needed. Its keys go in Postiz's environment (Postiz docs → Providers).
    - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin.
-   - **LinkedIn page**: the Community Management API needs LinkedIn's approval; post by hand from the Studio until then.
+   - **LinkedIn page**: the Community Management API needs LinkedIn's approval. Until then, mark each LinkedIn-only
+     post **I'll post it by hand** (or it fails at its time) and post the LinkedIn-too ones on LinkedIn by hand as well.
    - **X** charges for API posts ($0.015 a post, $0.20 with a link), so it's left to by-hand posting.
    - TikTok, Pinterest and YouTube keep API posts private until an audit, and TikTok bans cannabis content: not used.
 3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.co.za/api/public/v1`;

@@ -173,7 +173,7 @@ export const HOME = {
   // Between dusk and night: what we stand for, in five words.
   marquee: {
     label: "What we stand for",
-    words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Pharmacist-led"],
+    words: ["Lab-tested", "Batch-traceable", "Members only", "Adults 18+", "Good neighbours"],
   },
   // Scene 5: night under the Southern Cross. Founding Members, and the one early-access sign-up.
   founding: {

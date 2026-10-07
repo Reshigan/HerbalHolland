@@ -30,7 +30,7 @@ export const JANUARY: Playbook[] = [
           "Welkom to 2027, and to The Windmill, our newsletter for Herbal Holland Rewards members. This month's theme is Know your Holland: our labels, our people and our evenings.",
           "December, in short. On Tuesday 1 December our doors opened in Hillcrest and Hilton. Opening week brought our Members' Evening and Open Day, with a coffee cart, local makers' tables and Learn sessions with the team on the hour. The Founding Members list closed on Sunday 6 December, and every Founding Member's numbered card is in the Rewards app. Siyabonga for such a warm welcome.",
           "Read the label. Every Tuesday this month, a four-part Learn series on reading a label, line by line: what it is, the numbers, what's in it, and the batch and its lab page. Each part is on our social pages, and the whole read is in Learn at herbalholland.co.za.",
-          "Gezellig evenings. Gezellig is Dutch for warm, sociable, at home, and from this month each store hosts a Gezellig evening every month: Hillcrest on the third Thursday and Hilton on the third Friday, 18:00–20:00. The first are on Thursday 21 January in Hillcrest and Friday 22 January in Hilton. They're for members: RSVP in the Rewards app, and bring your ID.",
+          "Gezellig evenings. Gezellig is Dutch for warm, sociable, at home, and from this month each store hosts a Gezellig evening every month: Hillcrest on the third Thursday and Hilton the evening after, 18:00–20:00. The first are on Thursday 21 January in Hillcrest and Friday 22 January in Hilton. They're for members: RSVP in the Rewards app, and bring your ID.",
           "Your Rewards in the long month. January is a long month, so here's how your membership works for you. Instant member savings come off eligible items automatically, in store and online. You earn points on every rand. And every Monday, My Deals brings you a personal offer, automatically, with nothing to clip or remember.",
           "See you this month,\nThe Herbal Holland team",
         ),
@@ -68,7 +68,7 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "gezellig", day: 3, time: "19:00", channel: "SOCIAL",
-        text: "Gezellig is Dutch for warm, sociable, at home, and from this month it's an evening at each of our stores, every month: Hillcrest on the third Thursday, Hilton on the third Friday, 18:00–20:00. The first: Thursday 21 January in Hillcrest and Friday 22 January in Hilton. For members: RSVP in the Rewards app. Adults 18+, ID at the door. #HerbalHolland #HollandMeetsTheHills",
+        text: "Gezellig is Dutch for warm, sociable, at home, and from this month it's an evening at each of our stores, every month: Hillcrest on the third Thursday, Hilton the evening after, 18:00–20:00. The first: Thursday 21 January in Hillcrest and Friday 22 January in Hilton. For members: RSVP in the Rewards app. Adults 18+, ID at the door. #HerbalHolland #HollandMeetsTheHills",
         short: "Gezellig: Dutch for warm, sociable, at home. From this month, an evening at each store, every month. The first: Hillcrest on Thursday 21 January, Hilton on Friday 22 January, 18:00–20:00. RSVP in the Rewards app. Adults 18+. #HerbalHolland",
         card: { template: "event", eyebrow: "Gezellig evenings", headline: "Thursday 21 and Friday 22 January", sub: "18:00–20:00. Hillcrest on the Thursday, Hilton on the Friday. RSVP in the app." },
         brief: "A 20–40 second Reel from opening week's Members' Evening: coffee and rooibos poured, the team showing members around, warm light and conversation (adults over 25, signed releases; no products in shot).",
@@ -189,7 +189,7 @@ export const JANUARY: Playbook[] = [
       },
       {
         key: "gezellig-thanks", day: 23, time: "19:00", channel: "SOCIAL",
-        text: "Siyabonga to everyone who came to our first Gezellig evenings in Hillcrest and Hilton. Gezellig means warm, sociable, at home, and you made it so. The next are in February, on the third Thursday in Hillcrest and the third Friday in Hilton, 18:00–20:00: RSVP in the Rewards app. Adults 18+. #HerbalHolland #HollandMeetsTheHills",
+        text: "Siyabonga to everyone who came to our first Gezellig evenings in Hillcrest and Hilton. Gezellig means warm, sociable, at home, and you made it so. The next are in February, on the third Thursday in Hillcrest and the evening after in Hilton, 18:00–20:00: RSVP in the Rewards app. Adults 18+. #HerbalHolland #HollandMeetsTheHills",
         short: "Siyabonga to everyone who came to our first Gezellig evenings in Hillcrest and Hilton: you made them warm. The next are in February: RSVP in the Rewards app. Adults 18+. #HerbalHolland",
         card: { template: "headline", eyebrow: "Gezellig evenings", headline: "Warm, sociable, at home.", sub: "Siyabonga to everyone who came. The next are in February." },
         brief: "A photo from the evening at each store: members and the team in conversation, warm light (adults over 25, signed releases; no products in shot).",
