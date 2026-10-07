@@ -1,6 +1,6 @@
 // Wishlists: a heart on cards and product pages saves a variant to the member's list (/club/wishlist). The frequent
 // job watches the network's stock for wished-for items and flags the ones that came back ("Back in stock"); members
-// who want a message use "Notify me" (StockAlert) — the wishlist itself sends nothing.
+// who want a message use "Notify me" (StockAlert). The wishlist itself sends nothing.
 import { cache } from "react";
 import { db } from "@/server/db";
 import { availability, availKey } from "@/server/inventory";

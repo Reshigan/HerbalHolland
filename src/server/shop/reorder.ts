@@ -1,5 +1,5 @@
 // "Buy again": one tap puts an order's lines (or one product from a reminder) back into the bag, within stock, the
-// bag's limits and today's rules — a medicine needs dispensary access, a product taken off sale stays out. The rules
+// bag's limits and today's rules (a medicine needs dispensary access, a product taken off sale stays out). The rules
 // are pure (@/lib/reorder); this file gathers the facts and saves the bag.
 import { db } from "@/server/db";
 import { availability, availKey } from "@/server/inventory";

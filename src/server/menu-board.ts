@@ -1,5 +1,5 @@
 // The in-store menu board's data: this store's ranged public catalogue with live availability, walk-in prices and
-// the member price where the law lets us offer one (never on licensed medicines or CBD supplements — incentiveExcluded).
+// the member price where the law lets us offer one (never on licensed medicines or CBD supplements; see incentiveExcluded).
 // Sold-out items stay on the board, greyed, so the screen doesn't jump; /menu/[slug]/live serves the 60 s refresh.
 import { db } from "./db";
 import { availability, availKey } from "./inventory";

@@ -28,7 +28,7 @@ export type Shopper = { tier: string | null; storeId?: string | null; storeName?
 /**
  * Price lists, live online deals and price contexts for a shopper (memoised per request).
  * Members get their instant tier price; guests also get the Seed price so we can show
- * "Rewards R…" — what joining would save them today.
+ * "Rewards R…": what joining would save them today.
  */
 export const getPricing = cache(async (tier: string | null) => {
   const t = (tier ?? null) as Tier | null;

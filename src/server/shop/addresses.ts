@@ -1,5 +1,5 @@
 // Members' saved delivery addresses (up to five; one default). The checkout offers them as chips and remembers the
-// address an order ships to. POPIA: an address is personal information — it belongs to the member's own account and
+// address an order ships to. POPIA: an address is personal information. It belongs to the member's own account and
 // is shown only to them (and to the fulfilling store on the order itself).
 import { cache } from "react";
 import { db } from "@/server/db";

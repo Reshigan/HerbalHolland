@@ -1,4 +1,4 @@
-// Store opening hours in South African time (pure — shared by the store finder,
+// Store opening hours in South African time (pure, shared by the store finder,
 // store pages and the in-store menu board). Hours are stored per weekday as
 // { mon: ["09:00", "20:00"], … }; a missing or null day means closed.
 import { TZ } from "@/lib/format";

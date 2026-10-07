@@ -636,8 +636,9 @@ to fix) aren't alerts. The app can't report its own absence: add an external upt
 `GET /api/health/jobs` (every 15 minutes), which fails when a scheduled job hasn't succeeded in time.
 
 **POS offline (power/network).** Tills keep selling (cash, or card on a Yoco machine or bank terminal) and queue sales
-locally; tap on glass, PayShap, points and gift vouchers are disabled until connectivity returns. Do not clear browser storage on a till with queued sales. Queued sales sync automatically
-(idempotent); check the queue badge before closing the shift.
+locally; tap on glass, PayShap, points and gift vouchers are disabled until connectivity returns. Do not clear browser
+storage on a till with queued sales. Queued sales sync automatically (idempotent); check the queue badge before closing
+the shift.
 
 **Card acquiring down.** Use the External terminal tender (owner's bank device) or cash/PayShap. Record references.
 
@@ -719,7 +720,7 @@ about. Thresholds: HQ → Loss prevention → Rules & thresholds.
 | Deposit short | A deposit is R50+ under its cash-ups | Query the deposit; the manager explains and banks the difference |
 | Suspicious refund | A card sale refunded in cash, or two of: someone else's sale, within 30 min, just before the shift closed | Check with the member and the terminal report; card sales go back to the card |
 | High refund rate | A person's refund rate is 3× the norm for their role across the network (5+ in 30 days) | Review their refunds |
-| Own sales refunded | 10%+ of a person's own sales refunded this month (5+) | Can inflate commission — their commission is held until the alert is closed |
+| Own sales refunded | 10%+ of a person's own sales refunded this month (5+) | Can inflate commission, so their commission is held until the alert is closed |
 | Stock write-offs | A week's damaged, theft, lost, expired and count losses are 2.5× the store's norm (R500+) | Check the adjustments and who made them; recount |
 | Sales on own member card | Staff rang up a sale on their own member card | Staff purchases are rung up by someone else |
 | One card, many sales | One member card on 4+ of one person's sales in a day | Check for points skimming |
@@ -744,14 +745,14 @@ Working the inbox, daily:
 
 1. **HQ → Support → Unassigned**: assign each new ticket (deliveries start at *High* priority). A reply assigns it to you
    if nobody has it yet.
-2. Reply from the ticket (canned replies are starting points, edit them). The member gets it by email — by SMS when
-   they have no email address — and the ticket moves to *Waiting for member*; their reply brings it back to *Open*.
+2. Reply from the ticket (canned replies are starting points, edit them). The member gets it by email (by SMS when
+   they have no email address), and the ticket moves to *Waiting for member*; their reply brings it back to *Open*.
 3. Resolve when it's sorted (a closing note goes to the member). A member can reopen a resolved ticket by replying
    within 30 days; after that they open a new one.
 4. Store managers and owners see the tickets about orders their store fulfilled (Store → Support) and work them the
    same way; everything else is HQ's. Area managers see their region's stores' tickets.
 5. Watch the *Overdue* chip on HQ → Support. Anything that can't be answered within the day gets a holding reply
-   ("We're looking into it") — that meets the first-reply SLA and tells the member when to expect an answer.
+   ("We're looking into it"). That meets the first-reply SLA and tells the member when to expect an answer.
 
 POPIA: the ticket holds the member's name, email and phone; the audit log keeps numbers and categories only; guests'
 IP addresses are kept as a keyed hash; resolved tickets and their messages are deleted a year after they close by the
@@ -772,15 +773,15 @@ never for made-to-order merch or licensed medicines, and sealed consumables only
 | **Approve** / **Decline** | Store manager or owner, or HQ | Decline needs a reason the member reads. Faulty goods within 6 months and change-of-mind within 7 days are the member's rights: decline only outside them (opened consumables, made-to-order merch, outside the window) |
 | **Book collection** | Store / HQ | **Manual for now:** book the collection with the courier (portal or phone), then record the courier and waybill; the member gets both. Faulty, damaged or wrong goods: at our cost. Change of mind: the member's delivery fee covers the collection (the direct cost of the return, ECTA s44(3)) |
 | **Received** | Store / HQ | When the parcel arrives (or the member drops it off) |
-| **Refund** | Store manager or owner, or HQ | The amount is worked out for you: each returned unit's share of its line (what was actually paid), plus the delivery fee when the whole order has come back for a reason that's ours (not for a change of mind); never more than was paid in money — points come back as points. Tick *back on the shelf* only for sealed, sellable units (never faulty or damaged goods) |
+| **Refund** | Store manager or owner, or HQ | The amount is worked out for you: each returned unit's share of its line (what was actually paid), plus the delivery fee when the whole order has come back for a reason that's ours (not for a change of mind); never more than was paid in money, and points come back as points. Tick *back on the shelf* only for sealed, sellable units (never faulty or damaged goods) |
 
 The refund goes back the way the order was paid: **Peach Payments or Yoco** refund by amount against the order's
 payment (Yoco with an idempotency key per return; Peach as a running total per order, so a retry never refunds twice).
 The return is claimed before the gateway is called, so two people pressing Refund at once refund it once ("RT-… is
 already being refunded"); a claim left by a crashed attempt can be taken over after 10 minutes;
 **pay-in-store or simulated payments** are refunded by hand (EFT, or at the till) and recorded with the reference. The
-credit note (`<store>-RT-000123`) posts at the fulfilling store as a refund sale — stock back on the shelf where ticked,
-points reversed, rollups adjusted — and the tax credit note is emailed. A gateway refund that later fails arrives as
+credit note (`<store>-RT-000123`) posts at the fulfilling store as a refund sale (stock back on the shelf where ticked,
+points reversed, rollups adjusted), and the tax credit note is emailed. A gateway refund that later fails arrives as
 `payment.refund_failed` in the audit log: refund the member by hand and note it. If the money moved but the credit
 note didn't post (a crash half-way), pressing Refund again posts only the credit note.
 
@@ -791,7 +792,7 @@ HQ's books (and read-only for any franchisee's), area managers read-only in thei
 
 **Set-up at go-live (per company).** Owners open the books from the store sidebar (Money → Books), HQ from
 HQ → Money → Books, accountants land on them when they sign in.
-- Settings → VAT and financial year: the VAT category SARS gave the company (A, B or C; none if it isn't a VAT vendor)
+- Settings → VAT and financial year: the VAT category SARS gave the company (A, B, C, D or F; none if it isn't a VAT vendor)
   and the month its financial year ends.
 - Settings → Accountants → Add an accountant (they get a temporary password and choose their own at first sign-in).
 - Settings → Opening balances: download the template, fill in the trial balance from the old system at the day before
@@ -829,7 +830,7 @@ statement payments) posts within 15 minutes, from the queue (`/api/cron/frequent
    any more: a late change lands in the first open month, flagged late. Reopen opens the last closed month again, one
    month at a time, for the owner (or an HQ admin for HQ's books); both are audited.
 
-**VAT period end (category A/B: every second month; C: monthly).** The books → VAT → the period:
+**VAT period end (category A/B: every second month; C: monthly; D: every six months; F: every four months).** The books → VAT → the period:
 - check the VAT201 working against the invoices;
 - "Close this VAT period" (it moves the period's output and input VAT into "VAT due to / from SARS");
 - file on eFiling;

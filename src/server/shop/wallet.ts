@@ -1,7 +1,7 @@
 // The Rewards card in Apple Wallet and Google Wallet. Pure builders live in @/lib/wallet; this file reads the
-// configuration, draws the icons, signs (Apple: PKCS#7 through the openssl CLI — node:crypto has no CMS; Google:
+// configuration, draws the icons, signs (Apple: PKCS#7 through the openssl CLI, as node:crypto has no CMS; Google:
 // RS256 with node:crypto) and says clearly when a wallet isn't set up yet. The pass holds the member number (QR),
-// tier, points and first name — no other personal data.
+// tier, points and first name, and no other personal data.
 import { execFile } from "node:child_process";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
