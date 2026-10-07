@@ -24,7 +24,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <Lockup spin className="h-full w-full text-[2.6rem] [&>svg]:h-[52%]" />
         </div>
         <p className="max-w-md font-display text-2xl font-light leading-snug text-ink-200">
-          One platform for every store, from Hatfield to Sea Point: <span className="font-semibold text-white">tills, stock, buying, money and members</span>.
+          One platform for every store: <span className="font-semibold text-white">tills, stock, buying, money and members</span>.
         </p>
       </section>
       <section className="flex items-center justify-center bg-ink-50 px-6 py-12">

@@ -45,7 +45,7 @@ export const SaleBody = z
     invoiceEmail: z.union([z.literal(""), z.string().trim().email("That email doesn't look right")]).nullish(),
     staffId: z.string().optional(), // who rang it up (offline sales sync later under whoever is signed in)
     soldById: z.string().min(1).max(60).nullish(), // who built the basket when a dispenser completed it (commission credit)
-    /** Trade-sale mode: the trade account buying (sales.postTradeSale — WHOLESALE, ex-VAT prices, ACCOUNT tender allowed). */
+    /** Trade-sale mode: the trade account buying (sales.postTradeSale: WHOLESALE, ex-VAT prices, ACCOUNT tender allowed). */
     trade: z.object({ tradeAccountId: z.string().min(1) }).nullish(),
   })
   // A gift voucher is redeemed on the server as the sale posts, so it needs the connection: a sale rung up offline and

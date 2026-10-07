@@ -55,7 +55,7 @@ const READS = new Set(["GET", "HEAD", "OPTIONS"]);
 const crossSite = (req: Request) => !READS.has(req.method) && !sameOrigin(req.headers, req.url);
 const CROSS_SITE = () => fail(403, "This request didn't come from the till", "CROSS_SITE");
 
-/** Device-authenticated handler (pairing is done; no staff PIN needed — the lock screen). */
+/** Device-authenticated handler (pairing is done; no staff PIN needed, e.g. the lock screen). */
 export function withDevice<C = unknown>(handler: (req: Request, device: PosDevice, ctx: C) => Promise<Response>) {
   return async (req: Request, ctx: C) => {
     if (crossSite(req)) return CROSS_SITE();

@@ -698,7 +698,7 @@ try {
   await df.locator("#startsAt").fill(weekdayAt(365, 10));
   await act("drops.saveDrop · no products", () => df.getByRole("button", { name: "Schedule drop" }).click(), () => alertIn(df, "Pick at least one product").waitFor());
   await df.getByPlaceholder("Search products or SKUs…").fill(T.productName);
-  await df.getByRole("checkbox", { name: new RegExp(`^${esc(T.productName)} — 30ml`) }).check();
+  await df.getByRole("checkbox", { name: new RegExp(`^${esc(T.productName)} · 30ml`) }).check();
   await act("drops.saveDrop (create)", () => df.getByRole("button", { name: "Schedule drop" }).click(), () => notice(`“${T.dropName}” is scheduled.`).waitFor());
   const drop = await one(`select id, slug, "variantIds", "perMemberLimit", "membersOnly" from "Drop" where name = $1`, [T.dropName]);
   assert(drop && page.url().includes(`/hq/drops/${drop.id}`) && drop.variantIds.join() === variant.id && drop.perMemberLimit === 1 && drop.membersOnly, `drop /drops/${drop?.slug} scheduled (1 per member, members only)`);

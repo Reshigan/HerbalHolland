@@ -42,7 +42,7 @@ export async function dropBlocks(customerId: string | null | undefined, lines: {
 export const watchDrop = (dropId: string, customerId: string) =>
   db.dropWatch.upsert({ where: { dropId_customerId: { dropId, customerId } }, create: { dropId, customerId }, update: {} });
 
-/** Scheduler: tells watchers when the drop opens for them — early-access tiers first, then everyone. */
+/** Scheduler: tells watchers when the drop opens for them: early-access tiers first, then everyone. */
 export async function notifyDrops(now = new Date()) {
   if (!marketingWindow(now).allowed) return { sent: 0 }; // CPA Reg 4: wait for the next allowed contact slot
   const drops = await db.drop.findMany({

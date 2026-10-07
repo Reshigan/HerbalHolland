@@ -33,7 +33,7 @@ export type InvoiceData = NonNullable<Awaited<ReturnType<typeof invoiceData>>>;
 
 /**
  * Consumer sales: abridged or full tax invoice by the seller's VAT status. A WHOLESALE (trade) sale is always a full
- * tax invoice — the buyer block (legal name, address, VAT number) is on the sale — titled "Tax Invoice" when the
+ * tax invoice (the buyer block with legal name, address and VAT number is on the sale), titled "Tax Invoice" when the
  * seller is a VAT vendor (SARS: only vendors issue tax invoices; a non-vendor franchisee's till issues an "Invoice").
  */
 export function invoiceTitle(s: Pick<InvoiceData, "kind" | "channel" | "store">) {

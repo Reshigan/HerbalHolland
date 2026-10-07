@@ -102,10 +102,10 @@ export const STAT_COLUMNS: readonly string[] = COLS;
 
 /**
  * The rollup column a tender lands in. A gift voucher (VOUCHER) counts with money collected by HQ (`onlineCents`): the
- * voucher was paid for online, its liability is HQ's, and HQ settles the store for it on the monthly statement — the
+ * voucher was paid for online, its liability is HQ's, and HQ settles the store for it on the monthly statement, the
  * same as an online payment. The Payment rows keep it a "Gift voucher" tender everywhere they are read. A trade
- * account's credit terms (ACCOUNT) are not money at the time of sale: they go to `accountCents` — invoiced on HQ's trade
- * ledger, settled later — and never into a cash, card or online figure.
+ * account's credit terms (ACCOUNT) are not money at the time of sale: they go to `accountCents` (invoiced on HQ's trade
+ * ledger, settled later) and never into a cash, card or online figure.
  */
 export function paymentColumn(method: string): keyof StoreStatDelta {
   return ({ CARD: "cardCents", CASH: "cashCents", PAYSHAP: "payshapCents", EFT: "eftCents", LOYALTY: "loyaltyCents", ONLINE: "onlineCents", VOUCHER: "onlineCents", ACCOUNT: "accountCents" } as const)[
