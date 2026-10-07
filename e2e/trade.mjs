@@ -478,7 +478,7 @@ try {
   await page.waitForURL(/\/trade\/login\?next=/);
   ok("the range asks for a sign-in again (and remembers where to go)");
 
-  if (problems.length) fail(`${problems.length} page error(s) — see below`);
+  if (problems.length) fail(`${problems.length} page error(s), listed below`);
   console.log("\nALL STEPS PASSED");
 } catch (e) {
   console.log("\n✗ FAILED:", e.message.split("\n")[0]);

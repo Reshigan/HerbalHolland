@@ -71,7 +71,7 @@ describe("Franchisee owner sign-ins", () => {
     expect(await addOwner(w.store.id, {}, form({ name: "Nandi Again", email: "nandi@owners.example" }))).toMatchObject({ fields: { email: "Someone already signs in with this email" } });
   });
 
-  it("resets a password: a new temporary one, signed out everywhere, audited — only for this company's owners", async () => {
+  it("resets a password: a new temporary one, signed out everywhere, audited, and only for this company's owners", async () => {
     await session(nandi);
     const r = await resetOwnerPassword(w.store.id, nandi, {});
     const next = passwordIn(r.ok);

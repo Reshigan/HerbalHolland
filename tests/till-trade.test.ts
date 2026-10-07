@@ -61,7 +61,7 @@ describe("trade-sale tenders", () => {
 });
 
 describe("trade collection code", () => {
-  it("matches the order's 6-digit code exactly — never the order number, never a partial code", () => {
+  it("matches the order's 6-digit code exactly: never the order number, never a partial code", () => {
     expect(tradeCodeMatches("483920", "483920")).toBe(true);
     expect(tradeCodeMatches("483920", " 483 920 ")).toBe(true);
     expect(tradeCodeMatches("483920", "48392")).toBe(false);
@@ -95,7 +95,7 @@ describe("Z-report trade section", () => {
     { method: "CARD", amountCents: 700_000 },
     { method: "ACCOUNT", amountCents: 36_000 - 11_500 }, // net of the credit note
   ];
-  it("counts WHOLESALE sales ex VAT, VAT and incl, their credit notes, and the on-account part — which is not money", () => {
+  it("counts WHOLESALE sales ex VAT, VAT and incl, their credit notes, and the on-account part (which is not money)", () => {
     const t = tradeSummary(rows, tenders);
     expect(t).toEqual({ count: 2, exCents: 40_000, vatCents: 6_000, inclCents: 46_000, refundCents: 11_500, onAccountCents: 24_500 });
     expect(t.exCents + t.vatCents).toBe(t.inclCents);
@@ -215,7 +215,7 @@ describe("trade tax invoice lines", () => {
     expect(tradeTenderLabel({ method: "CARD", amountCents: 10_000, reference: "A1B2", cardLast4: "1234" }, trade)).toBe("Card **** 1234 (A1B2)");
   });
 
-  it("prints a trade sale as a TAX INVOICE with the buyer block, ex-VAT lines and the on-account terms — no points, deals or member", () => {
+  it("prints a trade sale as a TAX INVOICE with the buyer block, ex-VAT lines and the on-account terms (no points, deals or member)", () => {
     const bytes = receiptBytes(receipt(), { cols: 48, store, devicePrefix: "B" });
     const text = new TextDecoder("latin1").decode(bytes);
     expect(text).toContain("TAX INVOICE");

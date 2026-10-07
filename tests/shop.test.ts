@@ -53,11 +53,11 @@ describe("store hours (SAST)", () => {
   it("knows when a store is open", () => {
     // Monday 28 Sep 2026, 10:30 SAST = 08:30 UTC
     expect(openState(hours, new Date("2026-09-28T08:30:00Z"))).toMatchObject({ open: true, label: "Open until 20:00" });
-    // Monday 07:00 SAST — opens later today
+    // Monday 07:00 SAST: opens later today
     expect(openState(hours, new Date("2026-09-28T05:00:00Z"))).toMatchObject({ open: false, label: "Opens today 09:00" });
-    // Monday 21:00 SAST — opens tomorrow
+    // Monday 21:00 SAST: opens tomorrow
     expect(openState(hours, new Date("2026-09-28T19:00:00Z")).label).toBe("Opens tomorrow 09:00");
-    // Saturday 14:00 SAST — closed Sunday, opens Monday
+    // Saturday 14:00 SAST: closed Sunday, opens Monday
     expect(openState(hours, new Date("2026-10-03T12:00:00Z")).label).toBe("Opens Monday 09:00");
   });
   it("renders a Monday-first week", () => {

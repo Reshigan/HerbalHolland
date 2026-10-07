@@ -1,5 +1,5 @@
 // Product reviews with photos: verified purchases only, up to three JPG/PNG photos stored through the app's storage,
-// the copy screen, and HQ moderation — a hidden review vanishes from the product page's reviews and rating.
+// the copy screen, and HQ moderation. A hidden review vanishes from the product page's reviews and rating.
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";

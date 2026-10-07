@@ -1,6 +1,7 @@
 // Catalogue import: the CSV reader (comma or semicolon, quotes, spreadsheet number formats), the cell rules (rand to
-// cents, classes, dates, barcodes), and the dry run against a catalogue snapshot — create or update by SKU, the
-// product rules (validateProduct, screenCopy), categories matched by name and never created, and opening stock.
+// cents, classes, dates, barcodes), and the dry run against a catalogue snapshot. The dry run covers creating or
+// updating by SKU, the product rules (validateProduct, screenCopy), categories matched by name and never created, and
+// opening stock.
 import { describe, expect, it } from "vitest";
 import {
   IMPORT_COLUMNS, IMPORT_MAX_ROWS, importKeys, importTemplate, parseCsv, planDigest, planImport, readBool, readDate, readImport, readNumber, readRand,

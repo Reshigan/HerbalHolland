@@ -1,7 +1,8 @@
 // Returns end to end: a Peach-paid courier order is delivered, the member asks to send part of it back with photos,
-// the store approves, books the collection, receives the parcel and refunds it — a partial refund through Peach (its
-// API is a small in-memory fake: global fetch is mocked), a credit note at the store with the units back on the shelf,
-// the member told at every step. Then a change-of-mind return of the rest, and the rules that refuse what can't come back.
+// the store approves, books the collection, receives the parcel and refunds it (a partial refund through Peach, whose
+// API is a small in-memory fake: global fetch is mocked) with a credit note at the store and the units back on the
+// shelf, and the member is told at every step. Then a change-of-mind return of the rest, and the rules that refuse what
+// can't come back.
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { db } from "@/server/db";
@@ -97,7 +98,7 @@ describe("a faulty item comes back and is refunded through Peach", () => {
     expect((await returnableOrder(order.code, c.id))?.eligibility.DEFECTIVE.lines.find((l) => l.variantId === w.oilV.id)?.qty).toBe(1);
   });
 
-  it("the store approves it, books the courier by hand and marks the parcel received — the member hears each time", async () => {
+  it("the store approves it, books the courier by hand and marks the parcel received, and the member hears each time", async () => {
     await expect(decideReturn(id, "DECLINED", "", who, HQ)).rejects.toThrow(/Say why/);
     await expect(decideReturn(id, "APPROVED", "", who, { kind: "STORES", storeIds: [order.storeId === w.store.id ? w.dc.id : w.store.id] })).rejects.toThrow(/not found/); // another store can't
     expect((await decideReturn(id, "APPROVED", "Keep the box for the courier.", who, { kind: "STORES", storeIds: [order.storeId] })).status).toBe("APPROVED");

@@ -226,7 +226,7 @@ describe("checkouts at the same moment", () => {
     const [a, b] = await Promise.all([member(), member()]);
     const r = await settled([collect(a.id, w.coffeeV.id), collect(b.id, w.coffeeV.id)]);
     expect(await db.order.count({ where: { promotionId: promo.id } })).toBe(1);
-    // The other was refused at the last moment — or, had it priced after the first order, placed at full price.
+    // The other was refused at the last moment or, had it priced after the first order, placed at full price.
     for (const e of r.errors) expect(e).toBe("First 1 shopper: 10% off coffee has been fully claimed");
     expect(r.ok.filter((o) => o.promotionId === promo.id)).toHaveLength(1);
   });

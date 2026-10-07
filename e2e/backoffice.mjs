@@ -77,7 +77,7 @@ const row = (scope, text) => scope.getByRole("row").filter({ hasText: text });
 const dayKey = (d = new Date()) => new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(d);
 const daysFromNow = (n) => dayKey(new Date(Date.now() + n * 86_400_000));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-/** Polls until fn returns something truthy (or gives up and returns null) — for emails sent after an action returns. */
+/** Polls until fn returns something truthy (or gives up and returns null), for emails sent after an action returns. */
 async function until(fn, ms = 20_000, every = 150) {
   const end = Date.now() + ms;
   for (;;) {
@@ -218,7 +218,7 @@ try {
   await addDlg.getByLabel(/^Date of birth/).fill("1991-04-12");
   await addDlg.getByLabel(/has read the key terms/).check();
   await act(page, "addMember · deals question unanswered", () => addDlg.getByRole("button", { name: "Enrol member" }).click(), () => alert(addDlg, "Ask whether they want member deals").waitFor());
-  ok("the deals question has to be asked — the answer is the consent record");
+  ok("the deals question has to be asked: the answer is the consent record");
   await addDlg.getByLabel("Yes, send deals").check();
   await addDlg.getByLabel("CBD & wellness").check();
   await addDlg.getByLabel("Events & drops").check();
@@ -446,7 +446,7 @@ try {
   // ───────────────────────────────────────────────────────────────────────────
   step("Stock takes: blind cycle count → save counts → approve; a second count cancelled");
   const open = await q(`select scope from "StockTake" where "storeId" = $1 and status = 'COUNTING'`, [store.id]);
-  if (open.some((o) => o.scope === "FULL")) fail("a full count is open at the store — can't start a cycle count");
+  if (open.some((o) => o.scope === "FULL")) fail("a full count is open at the store, so a cycle count can't start");
   const cats = await q(
     `select c.slug, c.name, count(sl.id)::int as lines from "Category" c join "Product" p on p."categoryId" = c.id join "Variant" v on v."productId" = p.id
      join "StockLevel" sl on sl."variantId" = v.id and sl."storeId" = $1 and (sl."onHand" <> 0 or exists (select 1 from "StoreVariant" sv where sv."storeId" = sl."storeId" and sv."variantId" = sl."variantId"))
@@ -638,7 +638,7 @@ try {
   await visit(page, `/store/${CODE}/network?q=${encodeURIComponent(traded.sku)}`, page.locator(`#buy-${listing.id}`));
   const npo2 = await buyOne("buyListing (the last unit)");
   left = await listingNow();
-  assert(npo2?.status === "SUBMITTED" && npo2.id !== npo.id && !left.active && left.qty === 0, `${npo2?.number} takes the last unit — the listing sold out`);
+  assert(npo2?.status === "SUBMITTED" && npo2.id !== npo.id && !left.active && left.qty === 0, `${npo2?.number} takes the last unit, so the listing is sold out`);
   await visit(seller.page, `/store/${sellerStore.code}/purchasing/${npo2.id}`, seller.page.getByRole("button", { name: "Decline" }));
   await seller.page.getByRole("button", { name: "Decline" }).click();
   await act(seller.page, `sellerAct · decline (${sellerStore.code})`, () => seller.page.getByRole("group", { name: `Decline ${npo2.number}?` }).getByRole("button", { name: "Decline order" }).click(), () => seller.page.getByRole("heading", { level: 1, name: /Rejected/ }).waitFor());
@@ -655,7 +655,7 @@ try {
   await page.getByRole("button", { name: "Receive 1 unit" }).click();
   await act(page, "receiveOrder · network", () => page.getByRole("button", { name: /^Confirm and book 1 unit in/ }).click(), () => receivedNotice("").waitFor());
   po = await one(`select o.status, l."receivedQty" from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [npo.id]);
-  assert(po.status === "RECEIVED" && po.receivedQty === 1, `${npo.number} received — batch traceability travels with the unit`);
+  assert(po.status === "RECEIVED" && po.receivedQty === 1, `${npo.number} received, and batch traceability travels with the unit`);
   const netInv = await one(`select "supplierName", "totalCents", "onStatement", status from "SupplierInvoice" where "stockOrderId" = $1`, [npo.id]);
   const netUnit = (await one(`select "unitCostCents" from "StockOrderLine" where "stockOrderId" = $1`, [npo.id])).unitCostCents;
   assert(
@@ -748,7 +748,7 @@ try {
     await act(page, "shipMerch", () => page.getByRole("button", { name: "Merch shipped" }).click(), () => page.getByText(/^Shipped\. The tracking number is in the timeline/).waitFor());
     o = await one(`select "podStatus", "podTracking" from "Order" where id = $1`, [courier.id]);
     assert(o.podStatus === "shipped" && o.podTracking === `Aramex · ARX${run}`, "merch tracking recorded and texted to the member");
-  } else ok("no made-to-order merch in the catalogue — shipMerch skipped");
+  } else ok("shipMerch skipped: no made-to-order merch in the catalogue");
   await move("moveOrder · PICKING (courier)", "Start picking", "Picking");
   await move("moveOrder · READY (courier)", "Packed and ready to dispatch", "Ready");
   await page.getByRole("button", { name: "Dispatch", exact: true }).click();
@@ -860,7 +860,7 @@ try {
   assert((await page.getByRole("button", { name: `Hand over ${tOrder.number}` }).count()) === 0, "nothing left to do on the order");
 
   // ───────────────────────────────────────────────────────────────────────────
-  step("Local marketing: a coded happy-hour promotion — create, edit, end");
+  step("Local marketing: a coded happy-hour promotion (create, edit, end)");
   const promoName = `E2E happy hour ${run}`;
   const promoCode = `E2E${run}`;
   await visit(page, `/store/${CODE}/marketing`, page.getByRole("button", { name: "New promotion" }));
@@ -891,7 +891,7 @@ try {
   await act(page, "endPromotion", () => page.getByRole("group", { name: `End “${promoName}” now?` }).getByRole("button", { name: "End promotion" }).click(), () => row(page, promoName).filter({ hasText: "Ended" }).waitFor());
   assert(!(await one(`select active from "Promotion" where id = $1`, [promo.id])).active, "promotion ended");
 
-  step("Local marketing: campaigns — Harvest tier (draft → send) and “Into CBD & wellness” (sent from the form), legal send window, cancel");
+  step("Local marketing: campaigns for the Harvest tier (draft → send) and “Into CBD & wellness” (sent from the form), legal send window, cancel");
   await page.getByRole("link", { name: "Campaigns", exact: true }).click();
   await page.waitForURL(/tab=campaigns/);
   const openCampaign = async (name) => {
@@ -948,7 +948,7 @@ try {
   assert(intoLabel === "Into CBD & wellness", `audience option “${intoLabel}”`);
   const into = await reachFor("campaignReach · Into CBD & wellness", cpDlg, "interest:CBD", `interests @> '{CBD}'`);
   const counted = await one(`select 1 as yes from "Customer" where id = $1 and "homeStoreId" = $2 and interests @> '{CBD}' and "consentSms"`, [member.id, store.id]);
-  assert(counted && into.reachable >= 1, `${into.reachable} of ${into.total} members into CBD & wellness can get SMS — ${member.memberNo} among them`);
+  assert(counted && into.reachable >= 1, `${into.reachable} of ${into.total} members into CBD & wellness can get SMS, ${member.memberNo} among them`);
   await cpDlg.locator("#cp-msg").fill(`Hi {{firstName}}, you told us you're into CBD & wellness: new balms and oils are on the shelves at ${store.name} this week. Adults 18+.`);
   await shot(page, "campaign-interest");
   await act(page, "createCampaign · send (Into CBD)", () => cpDlg.getByRole("button", { name: /^(Send to [\d,]+|Schedule send)$/ }).click(), () => status(cpDlg, new RegExp(`“${esc(cbdName)}” is scheduled for|^Sent to [\\d,]+ members`)).waitFor());
@@ -975,7 +975,7 @@ try {
   for (const name of cancelNames) {
     await row(page, name).getByRole("button", { name: "Cancel", exact: true }).click();
     await act(page, "cancelCampaign", () => page.getByRole("group", { name: `Cancel “${name}”?` }).getByRole("button", { name: "Cancel campaign" }).click(), () => row(page, name).filter({ hasText: "Cancelled" }).waitFor());
-    assert((await one(`select status from "Campaign" where name = $1 and "storeId" = $2`, [name, store.id])).status === "CANCELLED", `“${name}” cancelled — nothing more will be sent`);
+    assert((await one(`select status from "Campaign" where name = $1 and "storeId" = $2`, [name, store.id])).status === "CANCELLED", `“${name}” cancelled: nothing more will be sent`);
   }
 
   // ───────────────────────────────────────────────────────────────────────────

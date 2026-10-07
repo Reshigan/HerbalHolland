@@ -1,6 +1,6 @@
 // Operations: the manager's Today list, staff push events (logged without VAPID keys, never twice, never about
 // yourself), supplier invoices (file checks, pay/query, audit), the opening checklist, scheduled exports (signed
-// links) and the forecast-driven replenishment plan — against the real services and a disposable database.
+// links) and the forecast-driven replenishment plan, all against the real services and a disposable database.
 import { randomUUID } from "node:crypto";
 import { mkdtempSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -168,7 +168,7 @@ describe("Staff push", () => {
 });
 
 describe("Supplier invoices", () => {
-  it("captures an invoice with its file, refuses the wrong file, pays and queries it — all audited", async () => {
+  it("captures an invoice with its file, refuses the wrong file, pays and queries it, all audited", async () => {
     const a = actor(w.manager.id, "Mia");
     const base = { storeId: w.store.id, storeCode: w.store.code, supplierName: "Test DC", invoiceDate: dayKey(days(-2)), dueDate: dayKey(days(28)), totalCents: 230_000, vatCents: 30_000 };
     await expect(captureSupplierInvoice({ ...base, number: "INV-1", file: new File([new TextEncoder().encode("hello")], "x.png", { type: "image/png" }) }, a)).rejects.toThrow("JPEG or PNG photo, or a PDF");

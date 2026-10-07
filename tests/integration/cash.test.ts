@@ -141,7 +141,7 @@ describe("Commission", () => {
     let [line] = await monthCommission(w.store.id, month, cara.id);
     expect(line).toMatchObject({ salesCents: net, refundsCents: 0, commissionCents: Math.round(net * 0.02), held: false });
 
-    await refund(coffee, w.manager, "CARD"); // someone else processes it — still clawed back from Cara
+    await refund(coffee, w.manager, "CARD"); // someone else processes it, but it's still clawed back from Cara
     [line] = await monthCommission(w.store.id, month, cara.id);
     expect(line).toMatchObject({ refundsCents: -net, commissionCents: 0 });
 

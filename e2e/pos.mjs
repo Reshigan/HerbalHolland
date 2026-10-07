@@ -193,7 +193,7 @@ try {
   await page.getByText(/^Already checked in/).waitFor();
   ok("second scan: already checked in");
   // A welcome gift the till can offer: live, at the till, and with its product on PTA01's shelf (the till never offers
-  // what isn't there — the seed's stock depends on the date).
+  // what isn't there, and the seed's stock depends on the date).
   const gift = (
     await q(`select pr.name from "Promotion" pr
        where pr."firstPurchaseOnly" and pr.active and 'POS' = any(pr.channels) and pr."startsAt" <= now() and pr."endsAt" >= now()
@@ -373,7 +373,7 @@ try {
     `order ${ready.code} completed${needsId ? ", ID checked" : " (no 18+ items: no ID check)"}, posted as ${done?.number}`,
   );
 
-  step("Trade sale: an approved account on 30-day terms (R5,000 limit) buys an accessory and a CBD line — R100 cash, the rest on account");
+  step("Trade sale: an approved account on 30-day terms (R5,000 limit) buys an accessory and a CBD line, paying R100 cash and the rest on account");
   const store = (await q(`select id from "Store" where code = 'PTA01'`))[0];
   const taNo = `TA-${String(900000 + Math.floor(Math.random() * 99999))}`;
   tradeAccount = (
@@ -391,7 +391,7 @@ try {
     [tradeAccount.id, ["PHARMACY_LICENCE", "SAPC_RECORDING", "FOOD_COA"]],
   );
   // The lines: the pouch (an accessory on this till) and a CBD supplement with one variant on the till, at their trade
-  // price: the live TRADE list that prices them (best break for the quantity), else the wholesale price — as resolveTradePrice does.
+  // price: the live TRADE list that prices them (best break for the quantity), else the wholesale price, as resolveTradePrice does.
   const tradeUnit = async (variantId, qty, fallback) =>
     (
       await q(
@@ -539,7 +539,7 @@ try {
   await page.getByText(new RegExp(`^${toNo} handed over`)).waitFor();
   const tdone = (await q(`select o.status, o."collectedAt", o."invoiceNumber", s.number, s.channel, s."storeId", s."totalCents", s."shiftId", s."tradeAccountId" from "TradeOrder" o join "Sale" s on s.id = o."saleId" where o.id = $1`, [tradeOrder.id]))[0];
   assert(tdone?.status === "COLLECTED" && tdone.collectedAt && tdone.channel === "WHOLESALE" && tdone.storeId === store.id && tdone.tradeAccountId === tradeAccount.id, `${toNo} COLLECTED: sale ${tdone?.number} posted at PTA01 (WHOLESALE)`);
-  assert(tdone.totalCents === toTotal && tdone.shiftId === shift.id, `the sale totals ${zarText(tdone.totalCents)} incl VAT — lines plus the R75 handling fee — on this till's shift`);
+  assert(tdone.totalCents === toTotal && tdone.shiftId === shift.id, `the sale totals ${zarText(tdone.totalCents)} incl VAT (lines plus the R75 handling fee) on this till's shift`);
   const tdpay = await q(`select method, "amountCents" from "Payment" where "saleId" = (select "saleId" from "TradeOrder" where id = $1)`, [tradeOrder.id]);
   const tinv = (await q(`select cents, "tradeOrderId", "dueAt" from "TradeLedgerEntry" where "tradeAccountId" = $1 and kind = 'INVOICE' and reference = $2`, [tradeAccount.id, tdone.invoiceNumber]))[0];
   assert(tdpay.length === 1 && tdpay[0].method === "ACCOUNT" && tdpay[0].amountCents === toTotal && tinv?.cents === toTotal && tinv.tradeOrderId === tradeOrder.id && tinv.dueAt, `ACCOUNT tender and ledger INVOICE ${tdone.invoiceNumber} for the order`);

@@ -1,5 +1,5 @@
 // Product master data by regulatory class: CBD supplements (Schedule 0), CBD food & drink (0.0075%, naturally
-// occurring), CBD skin care, cannabis-free supplements — plus product facts (net content, ingredients, R146 allergens),
+// occurring), CBD skin care, cannabis-free supplements. Plus product facts (net content, ingredients, R146 allergens),
 // the food & supplement claims screen, and the demo catalogue the seed writes.
 import { describe, expect, it } from "vitest";
 import {

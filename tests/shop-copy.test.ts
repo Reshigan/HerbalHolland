@@ -55,7 +55,7 @@ describe("shop copy", () => {
   });
 
   it("passes screenCopy: no medical claims, conditions, intoxication, minors or absolute claims", () => {
-    const flagged = COPY.flatMap(([path, text]) => screenCopy(text).map((f) => `${path}: "${f.term}" — ${f.reason}`));
+    const flagged = COPY.flatMap(([path, text]) => screenCopy(text).map((f) => `${path}: "${f.term}" (${f.reason})`));
     expect(flagged).toEqual([]);
   });
 
@@ -66,7 +66,7 @@ describe("shop copy", () => {
       [/\b(weed|dagga|ganja|dank|stoner|munchies|4\/?20)\b/i, "no stoner clichés"],
       [/\b(proven|guarantee[sd]?)\b/i, "no performance claims"],
     ];
-    const broken = COPY.flatMap(([path, text]) => RULES.filter(([re]) => re.test(text)).map(([re, why]) => `${path}: "${text.match(re)![0]}" — ${why}`));
+    const broken = COPY.flatMap(([path, text]) => RULES.filter(([re]) => re.test(text)).map(([re, why]) => `${path}: "${text.match(re)![0]}" (${why})`));
     expect(broken).toEqual([]);
   });
 

@@ -99,7 +99,7 @@ describe("franchise enquiry form", () => {
     expect(!long.ok && long.fields.message).toBe("Keep your message under 2,000 characters");
   });
 
-  it("asks what capital they could put in — never what a store costs", () => {
+  it("asks what capital they could put in, never what a store costs", () => {
     expect(CAPITAL_LABEL).toBe("Capital you could put in");
     expect(CAPITAL_BANDS.map((b) => b.label)).toEqual(["Under R1.5 million", "R1.5–3 million", "R3–5 million", "Over R5 million", "I'd rather discuss it"]);
     expect(capitalLabel("1.5-3m")).toBe("R1.5–3 million");
@@ -147,7 +147,7 @@ describe("franchise lead pipeline", () => {
   });
 
   it("signs no sooner than 14 days after the disclosure document (SAST days)", () => {
-    // Sent late on 1 October (SAST) — still 1 October, though it's 21:30 UTC.
+    // Sent late on 1 October (SAST): still 1 October, though it's 21:30 UTC.
     const sent = sast("2026-10-01T23:30:00");
     expect(earliestSigning(sent).toISOString()).toBe("2026-10-14T22:00:00.000Z"); // 15 Oct 00:00 SAST
     expect(signingBlock(null, now)).toMatch(/Record the day the disclosure document was sent/);

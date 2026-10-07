@@ -67,7 +67,7 @@ describe("a gift voucher as a tender", () => {
     expect(stat?.cashCents).toBe(due - 50_000);
   });
 
-  it("refuses a voucher that is short, expired or used up — by name, with the shortfall — and posts nothing", async () => {
+  it("refuses a voucher that is short, expired or used up (by name, with the shortfall) and posts nothing", async () => {
     const short = await issue(20_000, { balanceCents: 5_000 });
     const before = await db.sale.count();
     await expect(postPosSale(sale({ shiftId: "shift-v", payments: [{ method: "VOUCHER", amountCents: 20_000, reference: short.code }, { method: "CASH", amountCents: COFFEE - 20_000 }] }), pos())).rejects.toThrow(
@@ -96,7 +96,7 @@ describe("a gift voucher as a tender", () => {
     expect(await db.sale.findUnique({ where: { id: body.id } })).toBeNull();
   });
 
-  it("refunds onto the voucher first — a used-up voucher is active again — and the sums stay right", async () => {
+  it("refunds onto the voucher first (a used-up voucher is active again) and the sums stay right", async () => {
     const v = await issue(50_000);
     const r = await postPosSale(sale({ shiftId: "shift-v", lines: [{ variantId: w.coffeeV.id, qty: 2 }], payments: [] }), pos()).catch((e: Error) => e);
     const total = Number(/total \(R([\d,]+\.\d\d)\)/.exec((r as Error).message)![1].replace(",", "")) * 100;
@@ -107,7 +107,7 @@ describe("a gift voucher as a tender", () => {
     const line = await db.saleLine.findFirstOrThrow({ where: { saleId: s.sale.id } });
     const each = Math.round(line.totalCents / 2);
     expect(each).toBeLessThan(PART);
-    // One of two coffees back: the whole refund fits on the voucher, so nothing goes to the card — and it's active again.
+    // One of two coffees back: the whole refund fits on the voucher, so nothing goes to the card. The voucher is active again.
     const first = await refundSale({ id: randomUUID(), number: number(), saleId: s.sale.id, lines: [{ saleLineId: line.id, qty: 1, restock: true }], method: "CARD", reason: "Changed mind", staffId: w.manager.id, staffName: "Mia", shiftId: "shift-v" });
     expect((await db.payment.findMany({ where: { saleId: first.id } })).map((p) => [p.method, p.amountCents, p.reference])).toEqual([["VOUCHER", -each, v.code]]);
     expect(await balance(v.id)).toEqual({ balanceCents: each, status: "ACTIVE" });

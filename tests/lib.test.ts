@@ -204,7 +204,7 @@ describe("promotions", () => {
     expect(r.discountCents).toBe(24000);
     expect(r.lines[1].promoId).toBe("b2g1");
   });
-  it("complementary deal: buy any flower, get papers 50% off — or prompts to add them", () => {
+  it("complementary deal: buy any flower, get papers 50% off, or prompts to add them", () => {
     const comp: PromoInput = {
       ...base, id: "comp", name: "Papers half price with flower", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 50,
       categoryIds: ["flower"], rewardProductIds: ["papers"],
@@ -381,7 +381,7 @@ describe("franchise statement", () => {
     const s = buildStatement(base);
     expect(s.royalty).toBe(60_000_00); // 6% of all net sales, trade included
     expect(s.levy).toBe(20_000_00);
-    expect(s.ecom).toBe(10_000_00); // 10% of online sales only — not of trade sales
+    expect(s.ecom).toBe(10_000_00); // 10% of online sales only, not of trade sales
     const collected = s.lines.find((l) => l.label === "Collected by HQ (online, vouchers, trade)");
     expect(collected).toMatchObject({ kind: "credit", cents: 402_500_00 });
     // The trade line is information, not a fee: the same figures without it settle the same.

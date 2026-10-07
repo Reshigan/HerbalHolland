@@ -13,7 +13,7 @@ const nv: StoreRef = { storeId: "s4", companyId: "c4", hqOwned: false, vendor: f
 const dc: StoreRef = { storeId: "dc", companyId: "hq", hqOwned: true, vendor: true };
 const hqShop: StoreRef = { storeId: "hs", companyId: "hq", hqOwned: true, vendor: true };
 
-/** Lines as { "account[@party]#store": cents } — easy to read in an assertion. */
+/** Lines as { "account[@party]#store": cents }, easy to read in an assertion. */
 const show = (lines: Line[]) => Object.fromEntries(lines.map((l) => [`${l.key ?? l.accountId}${l.partyId ? `@${l.partyId}` : ""}#${l.storeId ?? ""}`, l.cents]));
 const books = (out: CompanyLines[]) => Object.fromEntries(out.map((c) => [c.companyId, show(c.lines)]));
 const balanced = (out: CompanyLines[] | Line[]) => {
@@ -182,7 +182,7 @@ describe("stock orders", () => {
     balanced(out);
   });
 
-  it("between two stores of one company: a transfer — VAT legs between own stores, the transfer price difference, any short a loss", () => {
+  it("between two stores of one company: a transfer (VAT legs between own stores, the transfer price difference, any short a loss)", () => {
     const out = receive(s1, s3, { receivedCents: 40_000, valueCents: 46_000, shippedCostCents: 30_000, receivedCostCents: 24_000 });
     expect(books(out)).toEqual({
       c1: {

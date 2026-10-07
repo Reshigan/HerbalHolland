@@ -1,7 +1,7 @@
 "use client";
 // Sell: catalogue + basket, then compliance → payment → receipt. Prices come from the
 // server's quote when online (authoritative) and from the till's cached price book
-// offline; offline sales are cash only and queue in the outbox. Member-only extras
+// offline; offline sales take cash or card on a standalone card machine and queue in the outbox. Member-only extras
 // (My Deals, welcome gifts, limited drops, event check-in and gift vouchers) need the connection.
 // Trade-sale mode (a business buying on its trade account): the server prices the basket ex VAT at
 // the account's trade prices, the trade basket rule replaces the member rules (the 18+ counter

@@ -204,7 +204,7 @@ describe("Reconciliation checks", () => {
     await tx((t) => syncPosting(t, "test-payment", "p1", hq, { companyId: hq, date: today, memo: "Statement payment", lines: [{ key: "bank", cents: 100_000 }, { key: "franchisees", cents: -100_000, storeId: w.store.id, partyId: w.owner.id }] }));
     checks = await booksChecks(hq, P, later);
     for (const key of ["vouchers", "points", "franchisees", "debtors", "trial-balance", "running-balances"]) expect(pick(checks, key)).toMatchObject({ ok: true });
-    // Only the known timing items differ, so they agree — and say so.
+    // Only the known timing items differ, so they agree and say so.
     expect(pick(checks, "vouchers")).toMatchObject({ expected: 30_000, detail: expect.stringContaining("plus R50.00 taken at checkout for online orders not handed over yet") });
     expect(pick(checks, "points")).toMatchObject({ expected: 20_000, detail: expect.stringContaining("Members held 150 points") });
     expect(pick(checks, "debtors").detail).toContain("Entries for EFT orders are left out");

@@ -96,7 +96,7 @@ beforeAll(async () => {
     data: { storeId: s1, supplierName: "Acme Supplies (Pty) Ltd ", number: "A-1", invoiceDate: new Date("2026-06-01"), dueDate: new Date("2026-07-01"), totalCents: 115_000, vatCents: 15_000, createdById: owner.id },
   });
 
-  // Financial year to February 2026: opening balances, a trading day and rent — a profit of R1,000.
+  // Financial year to February 2026: opening balances, a trading day and rent, for a profit of R1,000.
   await manual("2025-03-01", "Opening balances", [["bank", 10_000_000], ["stock", 4_000_000, s1], ["capital", -14_000_000]], { source: "opening" });
   await post(fr, "2025-06-15", "store-day", "Trading day", [["cash", 1_150_000, s1], ["sales.pos", -1_000_000, s1], ["vat.output", -150_000, s1], ["cogs", 400_000, s1], ["stock", -400_000, s1]]);
   await post(fr, "2025-11-30", "expense", "Rent", [["exp.RENT", 500_000, s1], ["vat.input", 75_000, s1], ["bank", -575_000, s1]]);

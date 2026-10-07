@@ -268,7 +268,7 @@
     <div class="callout"><div class="lab">The key terms every member accepts</div>
       <ul>
         <li>We sell to members only, and only to adults (18+). Show your ID whenever we ask.</li>
-        <li>What you buy is for your own use. Don't resell it, pass it on or buy for someone else: that can be a crime, and it ends your membership.</li>
+        <li>What you buy is for your own use. Don't resell it, pass it on or buy for someone else. That can be a crime, and it ends your membership.</li>
         <li>Licensed cannabis medicines need your doctor's SAHPRA authorisation, within its limits. Membership alone never entitles you to them.</li>
         <li>Never drive or operate machinery while impaired.</li>
         <li>Points and member savings have no cash value and never apply to licensed medicines.</li>
@@ -607,7 +607,7 @@
       <tbody>
         <tr><td class="k">Card · tap</td><td>Tap on glass. Simulated in the demo (with "Simulate a decline" for training); Halo Dot Halo.Link when <code>HALO_APPLINK</code> is configured. Records the provider, reference, card brand and last four.</td><td>Yes</td></tr>
         <tr><td class="k">Card · Yoco</td><td>When the store's tap provider is <code>YOCO</code>: charge the amount on the store's Yoco machine, then key in the <strong>reference the machine shows</strong> (required) and the card's last 4 (optional). The machine has its own connection.</td><td>No (works offline)</td></tr>
-        <tr><td class="k">Bank terminal</td><td>Any bank or fintech device the owner already has: charge it there and enter the <strong>approval code</strong> from the slip.</td><td>Yes</td></tr>
+        <tr><td class="k">Bank terminal</td><td>Any bank or fintech device the owner already has: charge it there and enter the <strong>approval code</strong> from the slip. The device has its own connection.</td><td>No (works offline)</td></tr>
         <tr><td class="k">Cash</td><td>Quick amounts (exact, then the next round notes) or another amount; change is calculated and shown on the receipt.</td><td>No</td></tr>
         <tr><td class="k">PayShap</td><td>Only where the store has entered the ShapID its bank issued (Store › Settings). The till shows the ShapID and the reference; the member pays from their banking app, and the cashier confirms from the store's payment notification.</td><td>Yes</td></tr>
         <tr><td class="k">Points</td><td>From 20 points; 1 point = R1; capped as above.</td><td>Yes</td></tr>
@@ -619,7 +619,7 @@
       <figure><img src="images/pos-voucher-tender.jpg" alt="The Gift voucher tender on the payment sheet"><figcaption><b>Gift voucher tender.</b> Still to pay R156.65; the code typed or scanned, <strong>Look up</strong>, then "R50.00 on the voucher · valid until…" and <strong>Pay R50.00 from the voucher</strong>. The rest is still due and can be split with cash, card, PayShap or points.</figcaption></figure>
       <figure><img src="images/pos-voucher-refund.jpg" alt="A refund where a voucher was part of the payment"><figcaption><b>Refund with a voucher in the original payment.</b> "R50.00 goes back onto gift voucher HH-…; R106.65 refunded by Cash. A voucher is never cashed out." The refund-to choice only covers the part that was paid in money.</figcaption></figure>
     </div>
-    <p>Offline, the payment sheet says so and allows cash only (or cash and the Yoco machine when that is the store's provider); card (tap), PayShap, points and gift vouchers need the connection. The sale itself is posted on the server later (see <em>Offline mode</em>). A sale queued offline never carries a gift voucher: if the connection drops with a voucher on the sheet, the till says so and the cashier removes the voucher payment and takes another tender; a queued sale the server refuses stays in the outbox with the reason until a manager discards it (manager PIN, logged) after ringing it up again.</p>
+    <p>Offline, the payment sheet says so and allows cash, or card on a bank terminal (or on the Yoco machine when that is the store's provider); tap on glass, PayShap, points and gift vouchers need the connection. The sale itself is posted on the server later (see <em>Offline mode</em>). A sale queued offline never carries a gift voucher: if the connection drops with a voucher on the sheet, the till says so and the cashier removes the voucher payment and takes another tender; a queued sale the server refuses stays in the outbox with the reason until a manager discards it (manager PIN, logged) after ringing it up again.</p>
     <p>Receipts show each line's price and rule, deals and discounts, the Rewards savings in prices, VAT included (or "No VAT charged (store not VAT-registered)"), tenders and change, points earned and redeemed, the new balance, and the store's receipt footer. The member number is masked on receipts (HH••••002); the card keeps the full number.</p>
 
     <h2>Refunds</h2>
@@ -658,7 +658,7 @@
     <figure class="w80"><img src="images/pos-offline.jpg" alt="A sale saved offline"><figcaption><b>Sale saved offline.</b> "No connection right now. This sale is stored on the till as PTA01-B00004 and syncs automatically when you're back online."</figcaption></figure>
     <p>The till caches everything it needs (the catalogue with prices, stock and product facts, promotions, price lists, drops, the compliance settings, the staff list and the current shift) and refreshes it every three minutes while online (or by hand: Shift › <strong>Refresh catalogue</strong>). When the connection drops:</p>
     <ul>
-      <li>It <strong>keeps selling</strong> with cached prices: cash only, or cash and the Yoco machine. Card-tap, bank terminal, PayShap, points, opening or closing a shift, licensed medicines, drops, event check-in and member lookup all wait for the connection.</li>
+      <li>It <strong>keeps selling</strong> with cached prices: cash, or card on a bank terminal or the Yoco machine. Tap on glass, PayShap, points, opening or closing a shift, licensed medicines, drops, event check-in and member lookup all wait for the connection.</li>
       <li>A member is attached by typing the <strong>member number from their card</strong> ("Taken from their card offline (checked when the till reconnects)"). An unknown number is recorded as a compliance exception for HQ to review, not lost.</li>
       <li>Receipt numbers come from the till's own sequence, so they stay unique; each sale gets a unique id, so a sale is never posted twice however often the sync retries.</li>
       <li>Queued sales sync every 15 seconds once online (idempotently); the badge shows how many are waiting, and a toast confirms "2 offline sales synced". Anything the server couldn't check offline (an age rule, a limit) is written to the audit log rather than rejecting a sale that already happened.</li>
@@ -884,7 +884,7 @@
       <figure><img src="images/bo-inline-price.jpg" alt="A shelf price being edited in place"><figcaption><b>A shelf price edited in place</b> on Stock on hand: the cell becomes a small form with a tick to save and × to cancel.</figcaption></figure>
       <figure><img src="images/bo-saved-view.jpg" alt="A saved view chip above the stock list"><figcaption><b>A saved view.</b> "Healthy by value" (the Healthy filter sorted by value), kept as a chip above the list on this device.</figcaption></figure>
     </div>
-    <div class="callout note"><div class="lab">Accessibility</div><p>Every back-office and HQ screen (the overviews, catalogue, stores, reports, members, audit log, messages, online orders, stock on hand, banking, team and settings) scored 100 for accessibility and 100 for best practices in Lighthouse when they were last measured (re-run it after big changes): every control is reachable and usable from the keyboard, every input is labelled, dialogs and drawers keep focus and close on Escape, sort order and saving are announced to screen readers, and colour is never the only signal. Tender and compliance reviewers can re-run the audit on any page.</p></div>
+    <div class="callout note"><div class="lab">Accessibility</div><p>On every back-office and HQ screen, every control is reachable and usable from the keyboard, every input is labelled, dialogs and drawers keep focus and close on Escape, sort order and saving are announced to screen readers, and colour is never the only signal. Reviewers can audit any page with Lighthouse or axe.</p></div>
   </div>
 </section>
 
@@ -1279,7 +1279,7 @@
       <li><strong>Trade sales</strong>: <em>By trade account</em> (account, number, type, orders, units, ex VAT, VAT, incl VAT, average order ex VAT and share of trade; terms, city, credit notes and last order in the CSV), with the top ten accounts charted; <em>By product</em> (what trade accounts take: units, average unit price ex VAT, ex VAT, VAT, incl VAT, and how many accounts buy it); and <em>By month</em>. The headline figures compare with the previous period and show trade's share of all sales.</li>
       <li><strong>Trade aged balances</strong>: every account's balance split into current, 30, 60 and 90+ days past due as of today, after credits are applied FIFO, with the totals and how many accounts are past due.</li>
     </ul>
-    <p>Trade is also a channel on the sales reports and the finance pages wherever a channel can be chosen (in store · online · trade), and <strong>Sales by channel</strong> shows its share. Downloads and schedules ("Email me this") work as for every report (chapter 6).</p>
+    <p>Trade is also a channel on the sales reports and the finance pages wherever a channel can be chosen (in store · online · trade), and the Trade sales report shows its <strong>share of net sales</strong> across all channels. Downloads and schedules ("Email me this") work as for every report (chapter 6).</p>
     <figure><img src="images/hq-report-trade-sales.jpg" alt="The Trade sales report"><figcaption><b>Trade sales</b>, 30 days, all stores: by account with the top accounts charted, by product and by month.</figcaption></figure>
 
     <h2>Settings and jobs</h2>
@@ -1333,7 +1333,7 @@
     <div class="figs c3">
       <figure><img src="images/site-about.jpg" alt="The About page"><figcaption><b>About:</b> "Our story, and the standards we keep".</figcaption></figure>
       <figure><img src="images/site-franchise.jpg" alt="The Franchise page"><figcaption><b>Franchise:</b> "Own a Herbal Holland store", with Register your interest and How it works.</figcaption></figure>
-      <figure><img src="images/site-press-release.jpg" alt="A press release page"><figcaption><b>A press release</b> dated 1 October 2026: "Herbal Holland opens online for adults 18+ across South Africa".</figcaption></figure>
+      <figure><img src="images/site-press-release.jpg" alt="A press release page"><figcaption><b>A press release</b>, "Herbal Holland opens online for adults 18+ across South Africa": written, and held back (no date) until the online shop opens.</figcaption></figure>
     </div>
     <div class="figs c3">
       <figure><img src="images/site-stores-map.jpg" alt="Stores with the map"><figcaption><b>Stores:</b> open now, opening 1 December 2026, and the KwaZulu-Natal map with a pin per store.</figcaption></figure>
@@ -1420,7 +1420,7 @@
         <tr><td class="k"><code>EXTERNAL</code></td><td>Bank terminal: any device the owner already has; the till records the approval code</td><td>Built (also available alongside the others)</td></tr>
       </tbody>
     </table>
-    <p>PayShap (a payment-request QR and the bank reference), cash and points need no provider. A Yoco Payment SDK till app that drives the machine itself is planned but not built.</p>
+    <p>PayShap (to the store's own ShapID, with the bank reference), cash and points need no provider. A Yoco Payment SDK till app that drives the machine itself is planned but not built.</p>
 
     <h2>SMS, email, app notifications and WhatsApp</h2>
     <table class="compact">
@@ -1439,7 +1439,7 @@
     <dl class="grid">
       <dt>ID checks</dt><dd>Local checks are built in: the SA ID number's format, checksum and date of birth, 18+. A live check against Home Affairs (VerifyNow, with Smile ID as fallback) is recommended but not integrated; when it is, the result is recorded as <em>Verified</em> on the member. The till doesn't read the Smart ID card's barcode: staff type the ID number or tick <em>ID sighted</em>.</dd>
       <dt>Couriers</dt><dd>No courier API is integrated. Dispatch records the courier and tracking number by hand (the till suggests Herbal Holland driver, The Courier Guy, Pargo, Bob Go, other). Recommended: Bob Go as aggregator, The Courier Guy direct as backup, Pargo pickup points (ID and code on collection). Couriers ban medicines and several ban CBD, which is why licensed products stay on click &amp; collect and own-fleet same-day delivery.</dd>
-      <dt>Accounting</dt><dd>No accounting integration. Each owner's bookkeeper works from the reports and CSVs (payments &amp; tenders, P&amp;L, VAT201 working, statements); a daily summary journal per store to Sage or Xero is the recommended route.</dd>
+      <dt>Accounting</dt><dd>The books are kept in the platform itself (chapter 12). There is no link to outside accounting software such as Sage or Xero; an accountant who needs one works from the books' reports and CSV downloads.</dd>
       <dt>File storage</dt><dd>Banking slips (and, in future, authorisation scans) go to Cloudflare R2 or any S3-compatible bucket (<code>S3_ENDPOINT</code>, <code>S3_BUCKET</code>, <code>S3_ACCESS_KEY_ID</code>, <code>S3_SECRET_ACCESS_KEY</code>, <code>S3_REGION</code>), or to disk under <code>UPLOAD_DIR</code> when no bucket is set. Files are always served through the app, auth-checked and audited. R2 has no South African location, so the EU jurisdiction is used, and the cross-border transfer belongs in the POPIA register.</dd>
       <dt>Merch partner</dt><dd>Made-to-order merch (embroidered tee, hoodie, crewneck, cap, bucket hat, beanie; printed tote) is made one at a time by the partner (Lucani, Cape Town) and couriered white-label. No API: a paid order with merch is emailed to the partner as a production order (<code>POD_EMAIL</code>, <code>POD_PARTNER_NAME</code>) by the 15-minute job with links to the print files; the partner emails back the tracking, which the DC enters on the order (<em>Merch shipped</em>).</dd>
       <dt>Social</dt><dd>Postiz (open source, self-hosted or cloud) publishes to Instagram, Facebook, LinkedIn, X and Threads (<code>POSTIZ_URL</code>, <code>POSTIZ_API_KEY</code>); pictures are fetched from the app, so <code>APP_URL</code> must be public.</dd>
@@ -1511,15 +1511,15 @@
     <table class="compact">
       <thead><tr><th>Class</th><th>What belongs in it</th><th>Sold via</th><th>18+</th><th>Deals, member prices, points, commission</th><th>Master-data rules and facts</th></tr></thead>
       <tbody>
-        <tr><td class="k">THC — Licensed</td><td>Cannabis medicines containing THC</td><td>In store and click &amp; collect only; only at licensed stores; to patients, by a dispenser (medical mode)</td><td class="tick">Yes</td><td class="cross">never (medical mode)</td><td>Grams per unit for the limits; the legal basis is a SAHPRA licence on the medical pathway (Section 21 authorisation required)</td></tr>
-        <tr><td class="k">CBD — supplements (Schedule 0)</td><td>Oils, softgels (complementary medicines)</td><td>All channels</td><td class="tick">Yes</td><td class="cross">no, by default (until counsel clears it)</td><td>up to 600 mg CBD per pack, up to 20 mg daily dose, THC up to 0.001%; ingredients and allergens; approved low-risk claims only (GN 586 of 2020)</td></tr>
+        <tr><td class="k">Licensed (THC)</td><td>Cannabis medicines containing THC</td><td>In store and click &amp; collect only; only at licensed stores; to patients, by a dispenser (medical mode)</td><td class="tick">Yes</td><td class="cross">never (medical mode)</td><td>Grams per unit for the limits; legal basis "SAHPRA licence: medical pathway (Section 21 authorisation required)"</td></tr>
+        <tr><td class="k">CBD supplements (Schedule 0)</td><td>Oils, softgels (complementary medicines)</td><td>All channels</td><td class="tick">Yes</td><td class="cross">no, by default (until counsel clears it)</td><td>up to 600 mg CBD per pack, up to 20 mg daily dose, THC up to 0.001%; ingredients and allergens; approved low-risk claims only (GN 586 of 2020)</td></tr>
         <tr><td class="k">CBD food &amp; drink</td><td>Coffee, tea, protein</td><td>All channels</td><td class="tick">Yes</td><td class="tick">yes</td><td>Net content required; CBD up to 0.0075% of net content (0.075 mg per gram or ml, e.g. at most 18.75 mg in 250 g); only the CBD naturally in the ingredients (tick to confirm); THC up to 0.001%; ingredients and allergens</td></tr>
         <tr><td class="k">CBD skin care</td><td>Creams, balms</td><td>All channels</td><td class="tick">Yes</td><td class="tick">yes</td><td>THC up to 0.001%; no daily dose (applied, not taken); net content and ingredients; claims screened; legal basis defaults to cosmetics (Act 54 of 1972)</td></tr>
         <tr><td class="k">Hemp</td><td>Hemp seed and fibre products, no CBD claims</td><td>All channels</td><td class="tick">Yes</td><td class="tick">yes</td><td>Hemp products within the Schedule 6 exclusion (≤ 0.2% THC; 2% is the limit for growing hemp)</td></tr>
         <tr><td class="k">Supplements</td><td>Collagen, plain protein; no cannabis at all</td><td>All channels</td><td>—</td><td class="tick">yes</td><td>No CBD fields; ingredients naming CBD, cannabis or hemp are refused; net content, ingredients and allergens (foodstuff, R146 labelling)</td></tr>
         <tr><td class="k">Accessory</td><td>Grinders, glass, papers, gear</td><td>All channels</td><td class="tick">Yes</td><td class="tick">yes</td><td>"Tobacco-related" flag for pipes, papers and vapes</td></tr>
         <tr><td class="k">Apparel</td><td>Clothing and merch</td><td>All channels</td><td>—</td><td class="tick">yes</td><td>Merch designs carry the brand and heritage motifs only; sold on its own, never as a gift with medicines</td></tr>
-        <tr><td class="k">Grow</td><td>Soil, nutrients, lights, seeds</td><td>All channels</td><td class="tick">Yes</td><td class="tick">yes</td><td>Seeds: legal position unclear — review</td></tr>
+        <tr><td class="k">Grow</td><td>Soil, nutrients, lights, seeds</td><td>All channels</td><td class="tick">Yes</td><td class="tick">yes</td><td>Seeds: legal position unclear; to be reviewed</td></tr>
       </tbody>
     </table>
     <p>Every store is adults-only regardless (supplements and apparel aren't age-restricted by law, but the shop's gate and the membership terms apply to everything). The catalogue form, the save action and the CSV import all run the same checks; a change to compliance data is audited as <code>compliance.product</code>.</p>
@@ -1532,7 +1532,7 @@
     </dl>
 
     <h2>No incentives on medicines (Medicines Act s18A)</h2>
-    <p>The Medicines Act prohibits supplying a medicine under a bonus, rebate or other incentive scheme. The platform applies this to licensed products in medical mode and to the classes HQ lists under <em>No promotions, points or commission</em> (CBD supplements by default, until counsel clears them). For those lines, everywhere at once: no promotion applies and the line doesn't unlock one; no member or tier price; no volume price; no near-expiry markdown; no points earned, and no points may be redeemed against them; never in a drop, a My Deal or a welcome gift; no staff commission (locked at 0%); the till marks the line <em>Medicine · no incentives</em>. Merch is never given away with, or earned by, a medicine purchase.</p>
+    <p>The Medicines Act prohibits supplying a medicine under a bonus, rebate or other incentive scheme. The platform applies this to licensed products in medical mode and to the classes HQ lists under <em>No promotions, points or commission</em> (CBD supplements by default, until counsel clears them). For those lines, everywhere at once: no promotion applies and the line doesn't count towards one; no member or tier price; no volume price; no near-expiry markdown; no points earned, and no points may be redeemed against them; never in a drop, a My Deal or a welcome gift; no staff commission (locked at 0%); the till marks the line <em>Medicine · no incentives</em>. Merch is never given away with, or earned by, a medicine purchase.</p>
 
     <h2>Adults only: age gates and ID checks</h2>
     <ul>
@@ -1560,7 +1560,7 @@
     <p>CPA Regulation 4 permits direct marketing on weekdays 08:00–20:00 and Saturdays 09:00–13:00, never on Sundays or public holidays. The platform holds any campaign or drop alert scheduled outside those hours until the next allowed slot (the SA public-holiday calendar is built in). The 2026 CPA regulations' opt-out registry is imported monthly into the do-not-contact list, which every send is checked against.</p>
 
     <h2>Copy screening: advertising, claims and social</h2>
-    <p>Every piece of copy that could reach a member (campaign messages, product copy and claims, category names and blurbs, events, drops, reviews, the policies, and every string on herbalholland.com) is screened for: medicinal claims (cure, treat, heal, prevent, remedy; Schedule 0 CBD may only make low-risk wellness claims); named medical conditions; glamorised intoxication (ARB Code 3.3); references to minors; absolute or unsubstantiated claims ("100% safe", "clinically proven"; ARB Code 4.1–4.2); and food and supplement health claims (boost, detox, fat-burning, anti-ageing, immunity, weight loss, slimming, metabolism — R146). A campaign with a finding can't be sent. Social posts add: no THC, and no selling cannabis or CBD (no buying, price, delivery or discount wording), brand artwork only, and organic posts only, because Meta rejects cannabis and CBD ads; no TikTok.</p>
+    <p>Every piece of copy that could reach a member (campaign messages, product copy and claims, category names and blurbs, events, drops, reviews, the policies, and every string on herbalholland.com) is screened for: medicinal claims (cure, treat, heal, prevent, remedy; Schedule 0 CBD may only make low-risk wellness claims); named medical conditions; glamorised intoxication (ARB Code 3.3); references to minors; absolute or unsubstantiated claims ("100% safe", "clinically proven"; ARB Code 4.1–4.2); and food and supplement health claims (boost, detox, fat-burning, anti-ageing, immunity, weight loss, slimming, metabolism; R146). A campaign with a finding can't be sent. Social posts add: no THC, and no selling cannabis or CBD (no buying, price, delivery or discount wording), brand artwork only, and organic posts only, because Meta rejects cannabis and CBD ads; no TikTok.</p>
 
     <h2>Batches, recalls, destruction and invoices</h2>
     <ul>
@@ -1635,13 +1635,13 @@
 
     <h2>Releases</h2>
     <ul>
-      <li><strong>The app</strong>: a database dump first (migrations only go forward; to undo one, restore the dump). Migrations run before the new version starts and take table locks — apply them outside trading hours (after 22:00 SAST); tills keep selling offline and sync afterwards. Before big releases re-run the load test, the crawl and the end-to-end journeys against a production-sized copy. Measured capacity: about 45 sales a second on one instance; POS posting p95 about 440 ms.</li>
-      <li><strong>The site</strong>: build, apply D1 migrations, deploy — or upload a preview version first for the owner (chapter 8). Rebuild on or after a press release's date; set <code>shop.url</code> when the shop opens.</li>
+      <li><strong>The app</strong>: a database dump first (migrations only go forward; to undo one, restore the dump). Migrations run before the new version starts and take table locks, so apply them outside trading hours (after 22:00 SAST); tills keep selling offline and sync afterwards. Before big releases re-run the load test, the crawl and the end-to-end journeys against a production-sized copy. Measured capacity: about 45 sales a second on one instance; POS posting p95 about 440 ms.</li>
+      <li><strong>The site</strong>: build, apply D1 migrations and deploy, or upload a preview version first for the owner (chapter 8). Rebuild on or after a press release's date; set <code>shop.url</code> when the shop opens.</li>
     </ul>
 
     <h2>Launch day</h2>
     <ol class="steps">
-      <li><strong>HQ › Founding Members</strong>: confirm when the list closes (SAST) and the founding places, tier and months — the site says 2,026 places and 14 months. The shop trades normally while the list is open. Stores that haven't opened are <em>opening soon</em>; members can pick them as home store.</li>
+      <li><strong>HQ › Founding Members</strong>: confirm when the list closes (SAST) and the founding places, tier and months (the site says 2,026 places and 14 months). The shop trades normally while the list is open. Stores that haven't opened are <em>opening soon</em>; members can pick them as home store.</li>
       <li>When the list closes the scheduler numbers the Founding Members within 15 minutes (or press <strong>Assign founding numbers now</strong>); spot-check a card shows the number and Sprout.</li>
       <li><strong>HQ › Drops / Events</strong>: the first drop and opening weekends scheduled inside the send windows, stock allocated; the till checks guests in from the ticket QR; the door list is the paper fallback.</li>
       <li><strong>HQ › Rewards</strong>: My Deals on; the welcome-gift promotion live (first purchase only).</li>
@@ -1656,14 +1656,14 @@
       <tbody>
         <tr><td class="k">Every 15 minutes (job)</td><td>Release campaigns held for a legal send window; cancel unpaid online orders after the hold; retry failed invoice emails; number Founding Members once the list closes; send drop alerts to watchers; email paid merch orders to the partner; note when a wished-for item runs out across the network and when it is back; post what's waiting for the books</td><td><code>/api/cron/frequent</code></td></tr>
         <tr><td class="k">Daily 02:00 (job)</td><td>Birthday points; cancel pay-in-store collections not collected within the hold; lapse expired tier floors; loss-prevention rules and the digest email to owners and area managers; purge not-a-fit leads; load the week's My Deals (Mondays); settle the stock-order invoices of a month that's over (on its statement); send the day's reorder reminders; expire gift vouchers at three years and cancel voucher orders unpaid for two days; post the day's trading (and on the 1st, the month's franchise statements) to the books, then match open bank lines again</td><td><code>/api/cron/daily</code></td></tr>
-        <tr><td class="k">Every 5 minutes (job)</td><td>Staff phone notifications: new online orders (polled, so an order shows within five minutes), loss alerts raised in the last day (never to the person they're about), HQ updates that still need acknowledging — each event keyed, so a poll never sends twice</td><td><code>/api/cron/staff-push</code></td></tr>
+        <tr><td class="k">Every 5 minutes (job)</td><td>Staff phone notifications: new online orders (polled, so an order shows within five minutes), loss alerts raised in the last day (never to the person they're about), HQ updates that still need acknowledging; each event is keyed, so a poll never sends twice</td><td><code>/api/cron/staff-push</code></td></tr>
         <tr><td class="k">Daily 03:00 (job)</td><td>Lots entering the 30-day expiry window (once per lot), cash due at the bank today or overdue (once per store per day), the low-stock digest per store from the replenishment plan, every scheduled report export due today (emailed as a signed link), and pruning of old push-event keys and export files</td><td><code>/api/cron/operations</code></td></tr>
         <tr><td class="k">Daily (store)</td><td>Close every cash-up; bank yesterday's cash by the next business day (Banking: tick the cash-ups, amount, reference, photo of the stamped slip); review negative-stock and compliance-event reports</td><td>Till · Store › Banking, Reports</td></tr>
         <tr><td class="k">Daily (manager)</td><td>Work the Today list on the store overview: orders to pick or hand over, cycle counts due, cash to bank, open alerts, expiring lots, low stock, lapsing patient authorisations, HQ updates, supplier invoices due; capture supplier invoices as deliveries arrive</td><td>Store › Overview, Finance › Supplier invoices</td></tr>
         <tr><td class="k">Daily (DC)</td><td>Enter courier and tracking on merch orders from the partner's emails (<em>Merch shipped</em>); chase anything sent more than 7 working days ago; mark delivered</td><td>DC back office › Online orders</td></tr>
         <tr><td class="k">Daily (owner / area manager)</td><td>Check new deposits against the bank statement (Verify, or Query with a note); work the loss-prevention alerts</td><td>Store › Banking, Loss prevention</td></tr>
         <tr><td class="k">Daily (HQ finance)</td><td>Match the gateway's settlements to orders; match each store's Yoco settlement to its Z-reports</td><td>Peach Dashboard / Yoco portal, Reports › Payments</td></tr>
-        <tr><td class="k">Weekly</td><td>Replenishment orders submitted, approved and shipped; expiry report actioned; the week's social posts scheduled (merch, store news, events, Learn) and comments answered in Postiz — never orders in DMs</td><td>Purchasing / Distribution; HQ › Campaigns › Social</td></tr>
+        <tr><td class="k">Weekly</td><td>Replenishment orders submitted, approved and shipped; expiry report actioned; the week's social posts scheduled (merch, store news, events, Learn) and comments answered in Postiz (never orders in DMs)</td><td>Purchasing / Distribution; HQ › Campaigns › Social</td></tr>
         <tr><td class="k">Monthly</td><td>Cycle counts per category; franchise statements emailed; the NCC opt-out registry imported; VAT201 working per store; the owner approves last month's commission for payroll (people with open alerts are held) and downloads the CSV</td><td>Stock takes; HQ › Statements; HQ › Campaigns; Reports; Store › Commission</td></tr>
         <tr><td class="k">Quarterly</td><td>Access review (users, roles, devices); a restore test from backup</td><td>HQ › Team, Store › Team; database</td></tr>
         <tr><td class="k">Continuous</td><td>Health check, error rate, latency, database connections</td><td>Load balancer and monitoring</td></tr>
@@ -1675,9 +1675,9 @@
 
     <h2>Incidents</h2>
     <dl class="grid">
-      <dt>Till offline</dt><dd>Tills keep selling cash (and Yoco); tap, terminal, PayShap, points, licensed items, drops and shifts wait for the connection. Don't clear browser storage; check the queue badge before closing the shift.</dd>
+      <dt>Till offline</dt><dd>Tills keep selling for cash, or card on a bank terminal or the Yoco machine; tap on glass, PayShap, points, licensed items, drops and shifts wait for the connection. Don't clear browser storage; check the queue badge before closing the shift.</dd>
       <dt>Card acquiring down</dt><dd>Use the bank terminal tender, cash or PayShap; record references.</dd>
-      <dt>Online payments down</dt><dd>Members see "We couldn't open Peach Payments' payment page" and unpaid orders are released after the hold as usual. Peach retries webhooks we didn't answer for 24 hours (Yoco for about a day, then switches the webhook off after 5 days — register it again). A payment that lands after its order was released is logged as <code>payment.review</code>.</dd>
+      <dt>Online payments down</dt><dd>Members see "We couldn't open Peach Payments' payment page" and unpaid orders are released after the hold as usual. Peach retries webhooks we didn't answer for 24 hours (Yoco for about a day, then switches the webhook off after 5 days, so register it again). A payment that lands after its order was released is logged as <code>payment.review</code>.</dd>
       <dt>Product recall</dt><dd>HQ › Batches › Recall: unsellable everywhere immediately; stores acknowledge, quarantine and write off (recall return or witnessed destruction); affected members listed and notified; keep the recall report for SAHPRA.</dd>
       <dt>Wrong price or promotion live</dt><dd>HQ › Pricing / Promotions › end or pause it; tills pick it up on the next refresh; refund affected sales at the till.</dd>
       <dt>Suspected data breach</dt><dd>Contain: delete sessions (that signs people out; changing <code>SESSION_SECRET</code> doesn't) and rotate leaked provider keys. Rotate <code>SESSION_SECRET</code> only if it leaked: every signed link already sent stops working and stored ID-number hashes stop matching. Then assess scope from the audit log, notify the Information Regulator and affected people as soon as reasonably possible, document everything.</dd>
@@ -1687,12 +1687,12 @@
     <table class="compact">
       <thead><tr><th>Action</th><th>Meaning</th><th>What to do</th></tr></thead>
       <tbody>
-        <tr><td class="k"><code>compliance.offline_exception</code></td><td>An offline till sale broke a rule the till couldn't check — including a member number that matched no member</td><td>Review with the store manager; find the member if you can; retrain if needed</td></tr>
+        <tr><td class="k"><code>compliance.offline_exception</code></td><td>An offline till sale broke a rule the till couldn't check, including a member number that matched no member</td><td>Review with the store manager; find the member if you can; retrain if needed</td></tr>
         <tr><td class="k"><code>sale.tender_variance</code></td><td>Payments didn't match the total on a synced sale</td><td>Reconcile against the terminal report</td></tr>
         <tr><td class="k"><code>drop.limit_after_payment</code></td><td>A card was charged before a drop limit tripped (a race with an online order); the sale stands</td><td>Decide whether to contact the member; no refund unless they ask</td></tr>
-        <tr><td class="k"><code>payment.review</code></td><td>A gateway payment didn't fit its order — another amount, another checkout, or paid after cancellation. The order was <strong>not</strong> marked paid</td><td>Find the payment in the Peach Dashboard or Yoco portal; refund it there or sort it out with the member; note what you did</td></tr>
-        <tr><td class="k"><code>promotion.after_payment</code> · <code>offer.used_after_payment</code></td><td>A paid (or offline) till sale carried a promotion that had just run out, or a My Deal already used elsewhere; the sale stands</td><td>Usually nothing — a one-off; repeated cases at one store are worth a look</td></tr>
-        <tr><td class="k"><code>auth.lockout</code> · <code>pos.pin_disabled</code></td><td>Eight wrong passwords locked an account for 15 minutes · ten wrong PINs in a day switched a PIN off</td><td>If it wasn't them, reset the password (HQ Team, or the owner for store staff) or the PIN (Team) — that also lifts the lock</td></tr>
+        <tr><td class="k"><code>payment.review</code></td><td>A gateway payment didn't fit its order: another amount, another checkout, or paid after cancellation. The order was <strong>not</strong> marked paid</td><td>Find the payment in the Peach Dashboard or Yoco portal; refund it there or sort it out with the member; note what you did</td></tr>
+        <tr><td class="k"><code>promotion.after_payment</code> · <code>offer.used_after_payment</code></td><td>A paid (or offline) till sale carried a promotion that had just run out, or a My Deal already used elsewhere; the sale stands</td><td>Usually nothing: it's a one-off. Repeated cases at one store are worth a look</td></tr>
+        <tr><td class="k"><code>auth.lockout</code> · <code>pos.pin_disabled</code></td><td>Eight wrong passwords locked an account for 15 minutes · ten wrong PINs in a day switched a PIN off</td><td>If it wasn't them, reset the password (HQ Team, or the owner for store staff) or the PIN (Team), which also lifts the lock</td></tr>
         <tr><td class="k"><code>member.collision</code> · <code>otp.ceiling</code></td><td>Someone tried an ID number or email already linked to another member (three a day, then refused) · sign-in codes paused at the network's hourly SMS ceiling</td><td>A run of collisions from one person is probing; a ceiling hit during normal trade means raising <code>OTP_SMS_HOURLY_MAX</code></td></tr>
         <tr><td class="k"><code>payment.refund_failed</code></td><td>The gateway couldn't complete the refund of a cancelled order; the order shows paid again</td><td>Refund the member by hand (Dashboard, portal or EFT) and note it</td></tr>
       </tbody>
@@ -1707,9 +1707,9 @@
         <tr><td class="k">Repeated cash shortages</td><td>The same person closes 3 shifts short in 30 days</td><td>Go through the cash-ups with them; consider two-person closes</td></tr>
         <tr><td class="k">Cash not banked in time</td><td>Cash-ups past the next-business-day deadline (high after 3 days)</td><td>Bank today; check the safe count</td></tr>
         <tr><td class="k">Deposit short</td><td>A deposit is R50 or more under its cash-ups</td><td>Query the deposit; the manager explains and banks the difference</td></tr>
-        <tr><td class="k">Suspicious refund</td><td>A card sale refunded in cash, or two of: someone else's sale, within 30 minutes, just before the shift closed</td><td>Check with the member and the terminal report — card sales go back to the card</td></tr>
+        <tr><td class="k">Suspicious refund</td><td>A card sale refunded in cash, or two of: someone else's sale, within 30 minutes, just before the shift closed</td><td>Check with the member and the terminal report; card sales go back to the card</td></tr>
         <tr><td class="k">High refund rate</td><td>A person's refund rate is 3× the norm for their role across the network (5+ in 30 days)</td><td>Review their refunds</td></tr>
-        <tr><td class="k">Own sales refunded</td><td>10% or more of a person's own sales refunded this month (5+)</td><td>Can inflate commission — their commission is held until the alert is closed</td></tr>
+        <tr><td class="k">Own sales refunded</td><td>10% or more of a person's own sales refunded this month (5+)</td><td>Can inflate commission, so their commission is held until the alert is closed</td></tr>
         <tr><td class="k">Stock write-offs</td><td>A week's damaged, theft, lost, expired and count losses are 2.5× the store's norm (R500+)</td><td>Check the adjustments and who made them; recount</td></tr>
         <tr><td class="k">Sales on own member card</td><td>Staff rang up a sale on their own member card</td><td>Staff purchases are rung up by someone else</td></tr>
         <tr><td class="k">One card, many sales</td><td>One member card on 4 or more of one person's sales in a day</td><td>Check for points skimming</td></tr>
@@ -1748,7 +1748,7 @@
   </div>
   <div class="body">
     <h2>Whose books, and who keeps them</h2>
-    <p class="lede">Each legal entity keeps its own books: <strong>Herbal Holland (HQ)</strong>, and every franchisee company, however many stores it owns. Stores are a <strong>dimension</strong> on every line, so one company's books report per store or for the whole company. Between the two sides of the network, HQ's <em>Franchisees</em> account mirrors each franchisee's <em>Herbal Holland</em> account — what HQ collected for the store, what the store owes for stock and fees — to the cent.</p>
+    <p class="lede">Each legal entity keeps its own books: <strong>Herbal Holland (HQ)</strong>, and every franchisee company, however many stores it owns. Stores are a <strong>dimension</strong> on every line, so one company's books report per store or for the whole company. Between the two sides of the network, HQ's <em>Franchisees</em> account mirrors each franchisee's <em>Herbal Holland</em> account (what HQ collected for the store, what the store owes for stock and fees) to the cent.</p>
     <table class="compact">
       <thead><tr><th>Who</th><th>Which books</th><th>What they can do</th></tr></thead>
       <tbody>
@@ -1764,7 +1764,7 @@
     <figure><img src="images/books-index.jpg" alt="HQ's list of every company's books"><figcaption><b>HQ › Books.</b> Every company's books: closed through which month, drafts waiting, and whether the month-end checks agree.</figcaption></figure>
 
     <h2>What posts by itself</h2>
-    <p>Nobody types in a sale. Each money event is a <strong>source</strong> with its own posting, rebuilt from the records behind it: when the records change — a sale synced late, a deposit corrected, a refund — only the <em>difference</em> posts, as a new journal, and a source that disappears is reversed. Trading days post overnight (the nightly job at 02:00); everything else within 15 minutes; a correction to a past day re-posts that day.</p>
+    <p>Nobody types in a sale. Each money event is a <strong>source</strong> with its own posting, rebuilt from the records behind it: when the records change (a sale synced late, a deposit corrected, a refund), only the <em>difference</em> posts, as a new journal, and a source that disappears is reversed. Trading days post overnight (the nightly job at 02:00); everything else within 15 minutes; a correction to a past day re-posts that day.</p>
     <table class="compact">
       <thead><tr><th>Event</th><th>The franchisee's books</th><th>HQ's books</th></tr></thead>
       <tbody>
@@ -1777,26 +1777,26 @@
         <tr><td class="k">Online orders, gift vouchers, Rewards points, trade on account</td><td>—</td><td>Prepayments and the payment gateway; vouchers in issue (and expiry); the points liability (sign-up, referral, birthday and bonus points are HQ's cost); trade debtors and their EFTs</td></tr>
       </tbody>
     </table>
-    <div class="callout"><div class="lab">Rule</div><p>A month that's closed never changes. Anything that would post into it — a late sale, a corrected deposit — posts into the first open month instead, marked <em>late</em>, so the closed month's reports stay as they were filed.</p></div>
+    <div class="callout"><div class="lab">Rule</div><p>A month that's closed never changes. Anything that would post into it (a late sale, a corrected deposit) posts into the first open month instead, marked <em>late</em>, so the closed month's reports stay as they were filed.</p></div>
     <p>Postings that fail (a day whose payments don't agree with its rollup, say) stay in the queue with the reason, are retried, and are listed for HQ under <strong>Month end › Postings that failed</strong>, with <strong>Retry</strong> once the cause is fixed; an alert email goes to <code>ALERT_EMAIL</code>.</p>
 
     <h2>Journals</h2>
     <p><strong>Journals</strong> lists everything posted, newest first, filtered by month, source (trading day, deposit, statement, bank, manual…), status (drafts) and store, with a <strong>Download CSV</strong>. Each journal shows its lines, where it came from (a link to the trading day, the deposit, the bank line…), who entered and approved it, and any reversal.</p>
     <ol class="steps">
-      <li><strong>New journal</strong>: the <strong>Date</strong>, <strong>What it's for</strong> ("September depreciation", "Payroll from the payroll provider"), then a line per account — the <strong>Account</strong>, a <strong>Store</strong> if it belongs to one, the supplier, trade account or franchisee where the account needs one, a note, and a <strong>Debit</strong> or a <strong>Credit</strong>. The totals show as you type; <strong>✓ Balanced</strong> means you can save.</li>
-      <li>An owner taps <strong>Post journal</strong>. An accountant can only <strong>Save as draft</strong>: the owner sees "Drafts waiting for approval" on the overview, opens the draft and taps <strong>Approve and post</strong> — or <strong>Delete draft</strong>.</li>
-      <li>A posted manual journal is never edited: <strong>Reverse</strong> posts every line the other way round on the date you choose, then you enter the right one. Automatic journals can't be reversed by hand — they follow their source.</li>
+      <li><strong>New journal</strong>: the <strong>Date</strong>, <strong>What it's for</strong> ("September depreciation", "Payroll from the payroll provider"), then a line per account: the <strong>Account</strong>, a <strong>Store</strong> if it belongs to one, the supplier, trade account or franchisee where the account needs one, a note, and a <strong>Debit</strong> or a <strong>Credit</strong>. The totals show as you type; <strong>✓ Balanced</strong> means you can save.</li>
+      <li>An owner taps <strong>Post journal</strong>. An accountant can only <strong>Save as draft</strong>: the owner sees "Drafts waiting for approval" on the overview, opens the draft and taps <strong>Approve and post</strong> (or <strong>Delete draft</strong>).</li>
+      <li>A posted manual journal is never edited: <strong>Reverse</strong> posts every line the other way round on the date you choose, then you enter the right one. Automatic journals can't be reversed by hand; they follow their source.</li>
     </ol>
-    <figure><img src="images/books-journal-new.jpg" alt="Entering a manual journal"><figcaption><b>New journal</b>, by the company's accountant: rent for one store, balanced — saved as a draft for the owner.</figcaption></figure>
+    <figure><img src="images/books-journal-new.jpg" alt="Entering a manual journal"><figcaption><b>New journal</b>, by the company's accountant: rent for one store, balanced, and saved as a draft for the owner.</figcaption></figure>
     <figure><img src="images/books-journal-draft.jpg" alt="A draft journal waiting for the owner"><figcaption>The draft, as the owner sees it: <b>Approve and post</b> or <b>Delete draft</b>.</figcaption></figure>
 
     <h2>Banking</h2>
-    <p><strong>Banking</strong> holds the company's bank accounts — the first carries the books' <em>Bank</em> account (1000), which deposits, payments and payouts post to — with each one's balance in the books against the statement's, and the lines still to do.</p>
+    <p><strong>Banking</strong> holds the company's bank accounts, with each one's balance in the books against the statement's, and the lines still to do. The first carries the books' <em>Bank</em> account (1000), which deposits, payments and payouts post to.</p>
     <ol class="steps">
       <li><strong>Add bank account</strong>: the bank, a name and at least the last four digits of the account number (a store if the account is one store's).</li>
-      <li><strong>Import a bank statement</strong>: the account, the file, and the <strong>Format</strong> — <em>Work it out from the file</em> reads the CSV downloads of FNB, Absa, Standard Bank, Nedbank and Capitec and OFX/QFX files; any other CSV works by naming its columns. A line imported before is skipped, so overlapping downloads are safe; pending lines are left out; the file is kept.</li>
-      <li>Lines that fit exactly one posting in the books — a deposit, an expense paid, a statement payment, a day's PayShap — <strong>match themselves</strong>. For the rest the page suggests what each could be ("Could be: journal 1042 · Cash deposit…"); tap <strong>Match</strong>, or match by journal number.</li>
-      <li>What nothing in the books covers yet, <strong>Allocate…</strong>: to an account (bank charges, interest, insurance, a SARS payment, a transfer between the company's own accounts) with the VAT in it, or as <strong>A card payout (net of fees)</strong> — the gross clears the card takings, the fee and its VAT go to card fees. <strong>Ignore</strong> is for lines that aren't transactions of the books (a duplicate download, a payment and its reversal).</li>
+      <li><strong>Import a bank statement</strong>: the account, the file, and the <strong>Format</strong>. <em>Work it out from the file</em> reads the CSV downloads of FNB, Absa, Standard Bank, Nedbank and Capitec and OFX/QFX files; any other CSV works by naming its columns. A line imported before is skipped, so overlapping downloads are safe; pending lines are left out; the file is kept.</li>
+      <li>Lines that fit exactly one posting in the books (a deposit, an expense paid, a statement payment, a day's PayShap) <strong>match themselves</strong>. For the rest the page suggests what each could be ("Could be: journal 1042 · Cash deposit…"); tap <strong>Match</strong>, or match by journal number.</li>
+      <li>What nothing in the books covers yet, <strong>Allocate…</strong>: to an account (bank charges, interest, insurance, a SARS payment, a transfer between the company's own accounts) with the VAT in it, or as <strong>A card payout (net of fees)</strong>: the gross clears the card takings, and the fee and its VAT go to card fees. <strong>Ignore</strong> is for lines that aren't transactions of the books (a duplicate download, a payment and its reversal).</li>
       <li><strong>Reconcile</strong> sets the statement's balance against the books' <strong>At the end of</strong> any day (the imported balance, or type the <strong>Balance on the statement</strong>) and lists what explains the difference: postings not through the bank yet, and statement lines still to settle. Print it for the month's file.</li>
     </ol>
     <figure><img src="images/books-bank.jpg" alt="A bank account's statement lines"><figcaption>A bank account's lines: deposits and statement payments matched by themselves, card payouts allocated net of their fees, and what's left to do with its suggestions.</figcaption></figure>
@@ -1806,19 +1806,19 @@
     <h2>Reports</h2>
     <p>Every report takes a period (a month, the financial year to date, or any range), the whole company or <strong>one store</strong>, and offers <strong>Print</strong> (a clean page, sidebar and buttons left off) and <strong>Download CSV</strong>. Every amount opens the ledger behind it.</p>
     <ul>
-      <li><strong>Trial balance</strong> — every account's debits and credits for the period; it must balance, and says so in red if it doesn't.</li>
-      <li><strong>Income statement</strong> — sales by channel, cost of sales, gross profit, the running costs and franchise fees, net profit; <strong>Month by month</strong> or <strong>Store by store</strong>, and against the previous period or last year.</li>
-      <li><strong>Balance sheet</strong> — what the company owns and owes on a day, with retained earnings and the year's profit worked out.</li>
-      <li><strong>Cash flow</strong> — cash and bank at the start, what came in and went out by kind, and the end.</li>
-      <li><strong>General ledger</strong> — one account's lines with the running balance, filtered by store or party.</li>
-      <li><strong>Debtors &amp; creditors</strong> — who owes what and for how long (current, 30, 60, 90+ days): suppliers, trade accounts, and the franchisees on HQ's side.</li>
-      <li><strong>Management pack</strong> — the month on a few pages for the owner or the bank: key ratios, the income statement for the month and the year to date, the balance sheet against the last year end, and the cash flow — print it or save it as a PDF.</li>
+      <li><strong>Trial balance</strong>: every account's debits and credits for the period; it must balance, and says so in red if it doesn't.</li>
+      <li><strong>Income statement</strong>: sales by channel, cost of sales, gross profit, the running costs and franchise fees, net profit; <strong>Month by month</strong> or <strong>Store by store</strong>, and against the previous period or last year.</li>
+      <li><strong>Balance sheet</strong>: what the company owns and owes on a day, with retained earnings and the year's profit worked out.</li>
+      <li><strong>Cash flow</strong>: cash and bank at the start, what came in and went out by kind, and the end.</li>
+      <li><strong>General ledger</strong>: one account's lines with the running balance, filtered by store or party.</li>
+      <li><strong>Debtors &amp; creditors</strong>: who owes what and for how long (current, 30, 60, 90+ days), covering suppliers, trade accounts, and the franchisees on HQ's side.</li>
+      <li><strong>Management pack</strong>: the month on a few pages for the owner or the bank, with key ratios, the income statement for the month and the year to date, the balance sheet against the last year end, and the cash flow. Print it or save it as a PDF.</li>
     </ul>
     <figure><img src="images/books-trial-balance.jpg" alt="The trial balance"><figcaption><b>Trial balance</b> for the year to date, every account with its debits and credits.</figcaption></figure>
     <figure><img src="images/books-income.jpg" alt="The income statement"><figcaption><b>Income statement</b>: sales, gross profit and running costs, month by month.</figcaption></figure>
 
     <h2>VAT</h2>
-    <p><strong>VAT</strong> shows the <strong>VAT201 working</strong> for each SARS period of the company's category (A or B: every two months; C: monthly) — standard-rated supplies and output tax, capital and other goods and input tax, and the amount payable or refundable — every figure opening the ledger behind it. When the return is filed, the owner taps <strong>Close this VAT period</strong>: a journal dated the period's last day moves its output and input tax into <em>VAT due to / from SARS</em>, which the SARS payment then clears from the bank. Anything posted into a closed period later shows on the page, to close again. A company that isn't a VAT vendor charges no VAT and claims none; the page says so.</p>
+    <p><strong>VAT</strong> shows the <strong>VAT201 working</strong> for each SARS period of the company's category (A or B: every two months; C: monthly): standard-rated supplies and output tax, capital and other goods and input tax, and the amount payable or refundable, with every figure opening the ledger behind it. When the return is filed, the owner taps <strong>Close this VAT period</strong>: a journal dated the period's last day moves its output and input tax into <em>VAT due to / from SARS</em>, which the SARS payment then clears from the bank. Anything posted into a closed period later shows on the page, to close again. A company that isn't a VAT vendor charges no VAT and claims none; the page says so.</p>
     <figure><img src="images/books-vat.jpg" alt="The VAT201 working"><figcaption><b>VAT</b>: the period's VAT201 working, ready to transfer to SARS eFiling, and <b>Close this VAT period</b>.</figcaption></figure>
 
     <h2>Month end, year end and settings</h2>
@@ -1827,27 +1827,27 @@
       <li>debits equal credits; account balances match the journals;</li>
       <li>each store's Herbal Holland account against its franchise statement and the payments on it; HQ's franchisee accounts against each franchisee's books;</li>
       <li>gift vouchers in issue, Rewards points owed and trade debtors against their registers;</li>
-      <li>each store's stock against on hand at cost — to the cent;</li>
+      <li>each store's stock against on hand at cost, to the cent;</li>
       <li>nothing waiting or failed in the posting queue; every bank line matched, allocated or ignored.</li>
     </ul>
-    <p>Known timing items — points or voucher money taken at checkout for orders not handed over yet, points issued this month that the statement charges at month end — are allowed for and named. Then <strong>Close &lt;month&gt;</strong> closes every month up to it ("Close anyway" if a check still disagrees: correct it in an open month). <strong>Reopen</strong> opens the last closed month again, one month at a time; both are in the audit log. There's no separate year end: the income statement starts again with the new financial year and the balance sheet carries the year's profit into retained earnings.</p>
+    <p>Known timing items (points or voucher money taken at checkout for orders not handed over yet, and points issued this month that the statement charges at month end) are allowed for and named. Then <strong>Close &lt;month&gt;</strong> closes every month up to it ("Close anyway" if a check still disagrees: correct it in an open month). <strong>Reopen</strong> opens the last closed month again, one month at a time; both are in the audit log. There's no separate year end: the income statement starts again with the new financial year and the balance sheet carries the year's profit into retained earnings.</p>
     <figure><img src="images/books-close.jpg" alt="Month end"><figcaption><b>Month end</b>: the checks for the month, and closing it.</figcaption></figure>
-    <p><strong>Settings</strong>: the <strong>VAT category</strong> (A, B, C, D or F, as SARS registered the company) and the month the <strong>financial year ends</strong> (February by default); the company's <strong>accountants</strong> — <strong>Add an accountant</strong> with a name and email gives them a temporary password, which they change at first sign-in; deactivate or reset one any time; and <strong>Opening balances</strong>. <strong>Chart of accounts</strong> lists every account by type with this year's movement and its balance: add accounts (a four-digit code), rename any, switch off an added one with nothing on it. The system's own accounts can be renamed but never removed.</p>
+    <p><strong>Settings</strong>: the <strong>VAT category</strong> (A, B, C, D or F, as SARS registered the company) and the month the <strong>financial year ends</strong> (February by default); the company's <strong>accountants</strong> (<strong>Add an accountant</strong> with a name and email gives them a temporary password, which they change at first sign-in; deactivate or reset one any time); and <strong>Opening balances</strong>. <strong>Chart of accounts</strong> lists every account by type with this year's movement and its balance: add accounts (a four-digit code), rename any, switch off an added one with nothing on it. The system's own accounts can be renamed but never removed.</p>
     <figure><img src="images/books-settings.jpg" alt="The books' settings"><figcaption><b>Settings</b>: VAT and the financial year, the accountants, and the opening balances.</figcaption></figure>
 
     <h2>Starting the books: the cut-over</h2>
-    <p>The books start on the day the platform goes live for a company — the <strong>cut-over</strong>. History before it isn't re-posted; the company's position on that day goes in as <strong>opening balances</strong>, from its previous accountant's trial balance:</p>
+    <p>The books start on the day the platform goes live for a company: the <strong>cut-over</strong>. History before it isn't re-posted; the company's position on that day goes in as <strong>opening balances</strong>, from its previous accountant's trial balance:</p>
     <ol class="steps">
       <li><strong>Settings › Opening balances</strong> › download the <strong>template</strong>: the company's chart with a row per account.</li>
       <li>Fill in each balance as at the cut-over (debit or credit; the supplier, trade account or franchisee where an account needs one; a store code to split by store). It must balance.</li>
       <li><strong>Import opening balances</strong> with <strong>Balances at</strong> the day before the cut-over. It posts as one <em>opening</em> journal (a draft for the owner, if the accountant imports it). A second import is refused unless <strong>Add to the opening balances already in</strong> is ticked; a wrong one is reversed like any manual journal.</li>
     </ol>
-    <p>At HQ the opening balances include what members held in Rewards points and gift vouchers on the day — after that, the registers and the books move together.</p>
+    <p>At HQ the opening balances include what members held in Rewards points and gift vouchers on the day. After that, the registers and the books move together.</p>
 
     <h2>HQ: statements and payments</h2>
-    <p>The franchise statement settles through the books. On <strong>HQ › Statements</strong>, a store's statement shows <strong>Payments</strong> — <strong>Statement</strong>, <strong>Paid</strong> and <strong>Outstanding</strong> — and an HQ admin records each one as it arrives: <strong>Who paid</strong> (the store paid HQ, or HQ paid the store), <strong>Amount (R)</strong>, <strong>Paid on</strong>, <strong>Bank reference</strong>, a note; <strong>Record payment</strong>. It posts in both companies' books within 15 minutes. A payment recorded by mistake is deleted, and its postings are reversed. The owner sees the same payments, read-only, on the store's statement.</p>
+    <p>The franchise statement settles through the books. On <strong>HQ › Statements</strong>, a store's statement shows <strong>Payments</strong> (<strong>Statement</strong>, <strong>Paid</strong> and <strong>Outstanding</strong>), and an HQ admin records each one as it arrives: <strong>Who paid</strong> (the store paid HQ, or HQ paid the store), <strong>Amount (R)</strong>, <strong>Paid on</strong>, <strong>Bank reference</strong>, a note; <strong>Record payment</strong>. It posts in both companies' books within 15 minutes. A payment recorded by mistake is deleted, and its postings are reversed. The owner sees the same payments, read-only, on the store's statement.</p>
     <figure><img src="images/hq-statement-payments.jpg" alt="Recording a statement payment"><figcaption>A store's statement in HQ with its <b>Payments</b>: what's outstanding, and <b>Record payment</b>.</figcaption></figure>
-    <div class="callout note"><div class="lab">In the demo</div><p>Every company's books are posted from the seeded history, as the nightly job would have: HQ opened with the points members held at the cut-over; each franchisee with R350,000 in the bank, and its FNB statement imported — deposits, takings and statement payments matched, card payouts allocated net of fees, the last two days and an insurance debit order still to do. August's statements are paid (Umhlanga paid part). Mokoena Retail has an accountant, Priya Naidoo (<code>books@mokoenaretail.co.za</code>), and HQ has one too (<code>accounts@herbalholland.co.za</code>).</p></div>
+    <div class="callout note"><div class="lab">In the demo</div><p>Every company's books are posted from the seeded history, as the nightly job would have: HQ opened with the points members held at the cut-over; each franchisee with R350,000 in the bank, and its FNB statement imported (deposits, takings and statement payments matched, card payouts allocated net of fees, the last two days and an insurance debit order still to do). August's statements are paid (Umhlanga paid part). Mokoena Retail has an accountant, Priya Naidoo (<code>books@mokoenaretail.co.za</code>), and HQ has one too (<code>accounts@herbalholland.co.za</code>).</p></div>
   </div>
 </section>
 
@@ -1868,14 +1868,14 @@
       <tbody>
         <tr><td class="k">HQ administrator</td><td>hq@herbalholland.co.za</td><td>HQ console (network, catalogue, marketing, compliance)</td></tr>
         <tr><td class="k">Area manager</td><td>area.gpn@herbalholland.co.za</td><td>HQ console, Tshwane &amp; North region</td></tr>
-        <tr><td class="k">Franchise owner</td><td>thabo@mokoenaretail.co.za</td><td>All my stores: Mokoena Retail — Hatfield and Brooklyn</td></tr>
+        <tr><td class="k">Franchise owner</td><td>thabo@mokoenaretail.co.za</td><td>All my stores: Mokoena Retail (Hatfield and Brooklyn)</td></tr>
         <tr><td class="k">Accountant (Mokoena Retail)</td><td>books@mokoenaretail.co.za</td><td>Mokoena Retail's books</td></tr>
         <tr><td class="k">Accountant (HQ)</td><td>accounts@herbalholland.co.za</td><td>Herbal Holland's books</td></tr>
         <tr><td class="k">Store manager (and responsible dispenser)</td><td>manager.pta01@herbalholland.co.za</td><td>Hatfield's back office</td></tr>
-        <tr><td class="k">Trade buyer (owner of Greenleaf Pharmacy, TA-000001, on account)</td><td>trade@greenleafpharmacy.co.za</td><td>The trade portal — no password: the 6-digit code is shown on screen in demo mode (<span class="route">/trade/login</span>)</td></tr>
+        <tr><td class="k">Trade buyer (owner of Greenleaf Pharmacy, TA-000001, on account)</td><td>trade@greenleafpharmacy.co.za</td><td>The trade portal, with no password: the 6-digit code is shown on screen in demo mode (<span class="route">/trade/login</span>)</td></tr>
       </tbody>
     </table>
-    <p>Till: open <span class="route">/pos</span>, use one-click pairing to a store, then PIN <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> or <code>4444</code> (cashiers). Shop: <span class="route">/</span> — the SMS code is shown on screen. Direct sign-in: <span class="route">/api/auth/demo?email=hq@herbalholland.co.za&amp;next=/hq</span>. Reseed the demo with <code>npm run db:seed</code> (it truncates every table; <code>SEED_STORES=1000 SEED_DAYS=30</code> makes a production-sized copy for load tests).</p>
+    <p>Till: open <span class="route">/pos</span>, use one-click pairing to a store, then PIN <code>1111</code> (a manager who is also a dispenser), <code>2222</code> (a dispenser), <code>3333</code> or <code>4444</code> (cashiers). Shop: <span class="route">/</span>, where the SMS code is shown on screen. Direct sign-in: <span class="route">/api/auth/demo?email=hq@herbalholland.co.za&amp;next=/hq</span>. Reseed the demo with <code>npm run db:seed</code> (it truncates every table; <code>SEED_STORES=1000 SEED_DAYS=30</code> makes a production-sized copy for load tests).</p>
 
     <h2>The catalogue import columns</h2>
     <p>HQ › Catalogue › Import › <strong>Download the template</strong>. One row per variant; rows with the same product name are one product. Column names are matched loosely (aliases in brackets); values are checked against the class's rules before anything is written.</p>
@@ -1885,13 +1885,13 @@
         <tr><td class="k">sku</td><td>variant</td><td class="tick">Yes</td><td>Letters, digits and dashes (3–32). A SKU already in the catalogue is updated; a new one is created</td></tr>
         <tr><td class="k">product (product_name, name)</td><td>product</td><td class="tick">Yes</td><td>Product name; rows with the same name are one product, one row per size or option</td></tr>
         <tr><td class="k">variant (size, variant_name, option)</td><td>variant</td><td class="tick">Yes</td><td>Size or option, e.g. 30 ml or One size</td></tr>
-        <tr><td class="k">category</td><td>product</td><td class="tick">Yes</td><td>An existing category, by name — the import never creates one</td></tr>
+        <tr><td class="k">category</td><td>product</td><td class="tick">Yes</td><td>An existing category, by name; the import never creates one</td></tr>
         <tr><td class="k">class (reg_class)</td><td>product</td><td class="tick">Yes</td><td>THC, CBD, CBD_FOOD, CBD_TOPICAL, HEMP, SUPPLEMENT, ACCESSORY, APPAREL, GROW</td></tr>
         <tr><td class="k">rrp_incl_vat (rrp, price, retail_price)</td><td>variant</td><td class="tick">Yes</td><td>Recommended retail price in rand, VAT included, e.g. 349.00</td></tr>
         <tr><td class="k">wholesale_excl_vat (wholesale)</td><td>variant</td><td class="tick">Yes</td><td>Price to stores in rand, VAT excluded</td></tr>
         <tr><td class="k">cost_excl_vat (cost, landed_cost)</td><td>variant</td><td class="tick">Yes</td><td>HQ landed cost in rand, VAT excluded</td></tr>
         <tr><td class="k">status</td><td>product</td><td></td><td>DRAFT, ACTIVE or ARCHIVED; new products start in draft</td></tr>
-        <tr><td class="k">description</td><td>product</td><td></td><td>Needed for a new product: at least a sentence — it appears on the product page</td></tr>
+        <tr><td class="k">description</td><td>product</td><td></td><td>Needed for a new product: at least a sentence, because it appears on the product page</td></tr>
         <tr><td class="k">tagline</td><td>product</td><td></td><td>One warm line, no medical claims</td></tr>
         <tr><td class="k">brand</td><td>product</td><td></td><td>Herbal Holland unless it's a partner's brand</td></tr>
         <tr><td class="k">line</td><td>product</td><td></td><td>The product line (e.g. Heritage, House, Reserve)</td></tr>
@@ -1926,9 +1926,8 @@
       <dt>Adult-use mode</dt><dd>The HQ switch for a future commercial regime: licensed products to verified adults within a daily limit. Off by default (medical mode).</dd>
       <dt>Authorised dispenser</dt><dd>A staff member (usually the responsible pharmacist) who may complete sales of licensed medicines; ticked by the owner in Store › Team.</dd>
       <dt>Batch / lot</dt><dd>A production lot with its own code, expiry and certificate of analysis; stock is kept and sold per batch.</dd>
-      <dt>Budtender</dt><dd>The role name for a cashier or member advisor at the till.</dd>
       <dt>Case pack</dt><dd>The number of units a trade line is sold in (six oils, twelve coffees, twenty-four papers; one for grow equipment and apparel). Trade orders are placed in whole cases; the till sells any quantity.</dd>
-      <dt>Cash-up</dt><dd>A closed till shift: float, cash taken, counted, variance — the basis for banking.</dd>
+      <dt>Cash-up</dt><dd>A closed till shift (float, cash taken, counted, variance): the basis for banking.</dd>
       <dt>COA</dt><dd>Certificate of analysis: the laboratory's results for a batch, public at /batch/&lt;code&gt; and as a panel on the product page.</dd>
       <dt>Collection code</dt><dd>The 6-digit code (and QR) a member shows to collect an online order; verified at handover with an ID check.</dd>
       <dt>Credit note</dt><dd>A negative entry on a trade account's ledger: a return or price correction HQ agreed (numbered TC-000001…), or the on-account part of a refunded trade sale (numbered as the refund). It settles the invoice it names first.</dd>
@@ -1937,15 +1936,16 @@
       <dt>Drop</dt><dd>A limited, members-only release with tier early access and a per-member limit. Never medicines.</dd>
       <dt>FEFO / FIFO</dt><dd>First expiry, first out (how stock is picked); first in, first out (how cost is taken).</dd>
       <dt>Founding Member</dt><dd>One of the first members on the launch list, with a numbered card and a tier floor for a set period.</dd>
-      <dt>Gift voucher</dt><dd>Prepaid value (R200, R500 or R1,000) with a code, valid three years, redeemed online in the bag or at checkout; money, never a promotion.</dd>
+      <dt>Gift voucher</dt><dd>Prepaid value (R200, R500 or R1,000) with a code, valid three years, redeemed online in the bag or at checkout and at the till; money, never a promotion.</dd>
       <dt>Handling fee</dt><dd>What a trade account pays (R75 ex VAT by default) for a click &amp; collect order a store packs and hands over; it is part of the sale posted at that store.</dd>
       <dt>Incentive-excluded</dt><dd>Classes that get no promotion, member price, markdown, points, deal, gift, drop or commission (Medicines Act s18A): licensed products in medical mode and the "no incentives" classes.</dd>
       <dt>Instant saving / member price</dt><dd>The tier percentage (or a member price list) applied the moment a member is identified, at the till and online.</dd>
+      <dt>Member advisor</dt><dd>The role for staff at the till who serve members.</dd>
       <dt>Members only</dt><dd>The rule that every sale needs a registered member.</dd>
       <dt>My Deals</dt><dd>A weekly personal offer on a member's favourite eligible product, HQ-funded and credited to the store.</dd>
       <dt>Network trading</dt><dd>Stores buying and selling surplus stock with each other, cleared by HQ on the statement.</dd>
       <dt>On account</dt><dd>A trade account's credit terms: a sale or order is invoiced on HQ's trade ledger and falls due after the account's payment days, within its credit limit. Never money at the time of sale.</dd>
-      <dt>Opening checklist</dt><dd>The tasks HQ ticks off before a store opens — legal, set-up, people, launch — seeded when the store is onboarded, with due dates counted back from the opening day.</dd>
+      <dt>Opening checklist</dt><dd>The tasks HQ ticks off before a store opens (legal, set-up, people, launch), seeded when the store is onboarded, with due dates counted back from the opening day.</dd>
       <dt>Par / reorder point</dt><dd>Order up to par when stock is at or below the reorder point; both set per item per store.</dd>
       <dt>Patient authorisation</dt><dd>A SAHPRA Section 21 authorisation registered against a member, with a monthly quantity.</dd>
       <dt>Reorder reminder</dt><dd>A message a member asked for, every 14–90 days, with a one-tap link that puts a consumable in their bag; nothing is charged.</dd>
@@ -1953,8 +1953,8 @@
       <dt>RRP</dt><dd>Recommended retail price set by HQ, VAT included; franchisees set their own shelf price.</dd>
       <dt>Shelf price</dt><dd>A store's own price for its tills.</dd>
       <dt>Statement</dt><dd>The monthly franchise statement between HQ and a store, netted to one amount.</dd>
-      <dt>Tier</dt><dd>Seed, Sprout, Bloom, Harvest — by rolling 12-month spend, each with an instant saving.</dd>
-      <dt>Today list</dt><dd>The store's to-do list at the top of the overview — orders, alerts, cash, updates, expiring lots, low stock, counts, authorisations, invoices — most urgent first.</dd>
+      <dt>Tier</dt><dd>Seed, Sprout, Bloom or Harvest, set by rolling 12-month spend, each with an instant saving.</dd>
+      <dt>Today list</dt><dd>The store's to-do list at the top of the overview (orders, alerts, cash, updates, expiring lots, low stock, counts, authorisations, invoices), most urgent first.</dd>
       <dt>Trade account</dt><dd>A business approved to buy at trade prices (TA-000001…): its legal details for the tax invoice, the ranges it may buy, prepaid or on-account terms, a credit limit and payment days, its buyers and its ledger.</dd>
       <dt>Trade order</dt><dd>An order placed in the trade portal (TO-000001…): whole cases at ex-VAT prices, by courier from the DC or click &amp; collect at a store, paid by EFT against a pro forma or on account; invoiced TI-000001… when it ships or is collected.</dd>
       <dt>Training mode</dt><dd>The till on a sandbox: practice sales numbered TRAINING 0001…, nothing posted, printed for real, moved or awarded; started and ended with a manager's PIN.</dd>
@@ -1968,20 +1968,20 @@
       <tbody>
         <tr><td class="k">Peach Payments' written approval</td><td>Online payments stay simulated (or the demo pay page) until Peach approves Vantax (Pty) Ltd's product mix in writing; then the sandbox test, the live keys and the smoke test. Yoco's approval per store account for the card machines.</td></tr>
         <tr><td class="k">Hosting</td><td>The runbook assumes our own server in South Africa behind a Cloudflare Tunnel with R2 for files; the server, backups, monitoring and on-call rota still need to be provisioned and a restore test done.</td></tr>
-        <tr><td class="k">Store details</td><td>Addresses, phone numbers, hours and the SAHPRA licence references for each store — in HQ › Stores for the platform, and in <code>facts.ts</code> for herbalholland.com (Pietermaritzburg and Umhlanga have no address or hours on the site yet).</td></tr>
+        <tr><td class="k">Store details</td><td>Addresses, phone numbers, hours and the SAHPRA licence references for each store: in HQ › Stores for the platform, and in <code>facts.ts</code> for herbalholland.com (Pietermaritzburg and Umhlanga have no address or hours on the site yet).</td></tr>
         <tr><td class="k">Photos</td><td>Store photographs for the site (stores are drawn until then) and product photography for search rich results (product art is generated).</td></tr>
-        <tr><td class="k">Pharmacist reviewer</td><td>A registered person to review the Learn guides — set <code>CONTENT_REVIEWER</code> only when one has.</td></tr>
+        <tr><td class="k">Pharmacist reviewer</td><td>A registered person to review the Learn guides; set <code>CONTENT_REVIEWER</code> only when one has.</td></tr>
         <tr><td class="k">Counsel sign-off</td><td>Medical-mode flows, the class × channel matrix, the claims library, the membership terms (directors' names), the returns policy's ECTA s42 exclusions and failed-delivery terms, whether CBD supplements may carry incentives, the legal basis for CBD skin care, whether collagen and protein are foodstuffs, and the CBD food labels.</td></tr>
-        <tr><td class="k">Founding Members</td><td>The numbers are settled — the platform's defaults are the site's 2,026 places and 14 months; only the closing date is still to be set in HQ › Founding Members (the settings lock once numbers are assigned).</td></tr>
+        <tr><td class="k">Founding Members</td><td>The numbers are settled: the platform's defaults are the site's 2,026 places and 14 months. Only the closing date is still to be set in HQ › Founding Members (the settings lock once numbers are assigned).</td></tr>
         <tr><td class="k">Vouchers at the till</td><td>Done: the till takes gift vouchers as a tender (typed or scanned, online only, never on a queued sale) and refunds return the voucher part to the voucher; the gift page, the voucher email and the SMS say "online or in store". Nothing left to decide.</td></tr>
-        <tr><td class="k">Trade terms and bank details</td><td>The trade terms at <span class="route">/trade/terms</span> are placeholder wording marked for counsel (the version each applicant accepted, <code>trade-1</code>, is recorded on the account); the bank account EFT pro formas quote — HQ › Settings › Trade — before the first trade order (the demo prints "Demo Bank · 000 000 0000"); and whether CBD supplements may be traded to pharmacies on these terms.</td></tr>
-        <tr><td class="k">Trade licence rules</td><td>The licences each kind of trade customer must hold (<code>src/lib/trade-licences.ts</code>, chapter 7): counsel to confirm the matrix — notably that a SARS tax registration is enough for a sole-proprietor shop or online shop, that distributors and other businesses must be registered companies, that a reseller of CBD supplements other than a distributor needs no SAHPRA licence, and that a certificate of acceptability is the right test for CBD food and drink — and the trade team to agree how it checks each register (SAPC, BHF PCNS, CIPC, SARS, SAHPRA, the municipality).</td></tr>
+        <tr><td class="k">Trade terms and bank details</td><td>The trade terms at <span class="route">/trade/terms</span> are placeholder wording marked for counsel (the version each applicant accepted, <code>trade-1</code>, is recorded on the account); the bank account EFT pro formas quote (HQ › Settings › Trade), before the first trade order (the demo prints "Demo Bank · 000 000 0000"); and whether CBD supplements may be traded to pharmacies on these terms.</td></tr>
+        <tr><td class="k">Trade licence rules</td><td>The licences each kind of trade customer must hold (<code>src/lib/trade-licences.ts</code>, chapter 7): counsel to confirm the matrix (notably that a SARS tax registration is enough for a sole-proprietor shop or online shop, that distributors and other businesses must be registered companies, that a reseller of CBD supplements other than a distributor needs no SAHPRA licence, and that a certificate of acceptability is the right test for CBD food and drink), and the trade team to agree how it checks each register (SAPC, BHF PCNS, CIPC, SARS, SAHPRA, the municipality).</td></tr>
         <tr><td class="k">Company facts</td><td>Vantax (Pty) Ltd's registration and VAT numbers, address and phone for the site's company details and the ECTA s43 information; the Information Officer's registration number.</td></tr>
         <tr><td class="k">Providers</td><td>SMSPortal and SMTP accounts; VAPID keys; the Apple Wallet pass certificate and the Google Wallet issuer account; Postiz with the five social accounts; the merch partner's trade account, samples and prices; the courier account; NCC direct-marketing registration and the first registry import.</td></tr>
         <tr><td class="k">Social profiles</td><td>The brand's profile URLs for <code>ORG_SAME_AS</code> and <code>facts.ts</code>; Google Business Profiles per store.</td></tr>
       </tbody>
     </table>
-    <p class="small" style="margin-top:14pt">Herbal Holland platform — complete system guide, version 1.3, 5 October 2026. Written from the code at that date; the platform keeps changing, so check the screen in front of you when it differs from this page.</p>
+    <p class="small" style="margin-top:14pt">Herbal Holland platform: complete system guide, version 1.4, 7 October 2026. Written from the code at that date; the platform keeps changing, so check the screen in front of you when it differs from this page.</p>
   </div>
 </section>
 
