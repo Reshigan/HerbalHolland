@@ -13,7 +13,6 @@ export function ContactPage() {
   const c = FACTS.company;
   const cards = [
     { key: "general", ...who.general, email: EMAIL.hello, link: null },
-    { key: "franchise", ...who.franchise, email: EMAIL.franchise, link: { href: "/franchise#enquire", label: who.franchise.link } },
     { key: "press", ...who.press, email: EMAIL.press, link: { href: "/press", label: who.press.link } },
     { key: "careers", ...who.careers, email: EMAIL.careers, link: { href: "/careers", label: who.careers.link } },
     { key: "members", title: who.members.title, body: join ? who.members.body : who.members.soon, email: EMAIL.hello, link: join ? { href: join, label: who.members.link } : null },
@@ -61,7 +60,7 @@ export function ContactPage() {
             {cards.map((x) => (
               <li key={x.key} className={cx("inbox", `inbox--${x.key}`)} data-r="">
                 <span className="inbox__ico">
-                  <Icon name={x.key === "members" ? "join" : x.key === "franchise" ? "franchise" : x.key} />
+                  <Icon name={x.key === "members" ? "join" : x.key} />
                 </span>
                 <h3 className="h3">{x.title}</h3>
                 <p>{x.body}</p>

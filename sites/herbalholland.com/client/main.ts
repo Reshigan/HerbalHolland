@@ -496,7 +496,7 @@ function stage() {
 function reveals() {
   $$("[data-rs]").forEach((g) => $$("[data-r]", g).forEach((el, i) => setVar(el, "--i", i % 8)));
   $$(".reel__v").forEach((r) => $$(".reel__d", r).reverse().forEach((dd, i) => setVar(dd, "--i", i)));
-  const all = $$("[data-r], .reel__v, .step");
+  const all = $$("[data-r], .reel__v");
   if (RM || !("IntersectionObserver" in window)) return all.forEach((el) => el.classList.add("in"));
   const io = new IntersectionObserver(
     (es) => {
@@ -555,44 +555,9 @@ function menu() {
   on(window, "resize", () => m?.open && innerWidth >= 1100 && close());
 }
 
-// ── FAQ: native <details>, with the answers easing in and the questions below gliding (FLIP, transform only) ──────
-function faq() {
-  if (RM) return;
-  $$<HTMLDetailsElement>("[data-acc] details").forEach((det) => {
-    const sum = $("summary", det)!;
-    on(sum, "click", (e: Event) => {
-      e.preventDefault();
-      const items = $$(":scope > details", det.parentElement!);
-      const after = items.slice(items.indexOf(det) + 1);
-      const flip = (change: () => void) => {
-        const before = after.map((el) => el.getBoundingClientRect().top);
-        change();
-        after.forEach((el, i) => {
-          const dy = before[i] - el.getBoundingClientRect().top;
-          if (!dy) return;
-          el.style.transition = "none";
-          el.style.transform = `translate3d(0,${dy}px,0)`;
-        });
-        requestAnimationFrame(() =>
-          requestAnimationFrame(() =>
-            after.forEach((el) => {
-              el.style.transition = "transform .6s cubic-bezier(.19,1,.22,1)";
-              el.style.transform = "";
-            }),
-          ),
-        );
-        setTimeout(measure, 650);
-      };
-      if (!det.open) return flip(() => (det.open = true));
-      det.classList.add("closing");
-      setTimeout(() => flip(() => ((det.open = false), det.classList.remove("closing"))), 190);
-    });
-  });
-}
-
-// ── Forms: the franchise enquiry (JSON to /api/enquiry) and the early-access sign-up (JSON to /api/early-access) ──
-// One pattern for both: checks before sending, errors under each field and a summary above, a busy button, the server's
-// own field errors (422), "too many tries" (429) and anything else, then a thank-you that takes the focus.
+// ── Forms: the early-access sign-up (JSON to /api/early-access) ────────────────────────────────────────────────
+// Checks before sending, errors under each field and a summary above, a busy button, the server's own field errors
+// (422), "too many tries" (429) and anything else, then a thank-you that takes the focus.
 type FormCopy = { email: string; sending: string; errors: Record<string, string> };
 type Vals = Record<string, string | boolean>;
 type FormSpec = {
@@ -617,38 +582,6 @@ const saMobile = (raw: string) => {
 const str = (v: string | boolean | undefined) => (typeof v === "string" ? v.trim() : "");
 
 const FORMS: Record<string, FormSpec> = {
-  // The franchise enquiry (/franchise).
-  f: {
-    order: ["name", "email", "phone", "area", "province", "capital", "experience", "pharmacist", "message", "consent"],
-    values: (get, ticked) => ({
-      name: get("name"),
-      email: get("email"),
-      phone: get("phone"),
-      area: get("area"),
-      province: get("province"),
-      experience: get("experience"),
-      capital: get("capital"),
-      pharmacist: get("pharmacist"),
-      message: get("message"),
-      consent: ticked("consent") ? "on" : "",
-    }),
-    check: (v, E) => {
-      const e: Record<string, string> = {};
-      const min = Number($("#f-experience")?.dataset.min) || 0;
-      if (!str(v.name)) e.name = E.name;
-      if (!str(v.email)) e.email = E.email;
-      else if (!EMAIL_RE.test(str(v.email))) e.email = E.emailShape;
-      if (!str(v.phone)) e.phone = E.phone;
-      if (str(v.area).length < 2) e.area = E.area;
-      if (!v.province) e.province = E.province;
-      if (!v.capital) e.capital = E.capital;
-      if (!str(v.experience)) e.experience = E.experience;
-      else if (str(v.experience).length < min) e.experience = E.experienceShort.replace("{n}", String(min));
-      if (!v.pharmacist) e.pharmacist = E.pharmacist;
-      if (!v.consent) e.consent = E.consent;
-      return e;
-    },
-  },
   // The early-access sign-up (home, /stores): an email address or a mobile number (or both), 18+, and consent.
   ea: {
     order: ["email", "mobile", "contact", "firstName", "province", "adult", "consent"],
@@ -689,32 +622,22 @@ function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
   let busy = false;
   submit.disabled = false;
 
-  const get = (n: string) => {
-    const radio = $<HTMLInputElement>(`input[type=radio][name="${n}"]:checked`, f);
-    if (radio) return radio.value;
-    return ($<HTMLInputElement>(`#${p}-${n}`, f)?.value ?? "") as string;
-  };
+  const get = (n: string) => ($<HTMLInputElement>(`#${p}-${n}`, f)?.value ?? "") as string;
   const ticked = (n: string) => !!$<HTMLInputElement>(`#${p}-${n}`, f)?.checked;
-  // The controls behind an error: a field's own input (or its radios), or every control a group stands for.
+  // The controls behind an error: a field's own input, or every control a group stands for.
   const controls = (n: string): HTMLElement[] => {
     const g = spec.group?.[n];
     if (g) return g.flatMap(controls);
-    const radios = $$<HTMLInputElement>(`input[type=radio][name="${n}"]`, f);
-    return radios.length ? radios : ([$<HTMLElement>(`#${p}-${n}`, f)].filter(Boolean) as HTMLElement[]);
-  };
-  // What carries aria-describedby: a radio group's fieldset, otherwise the controls themselves.
-  const described = (n: string): HTMLElement[] => {
-    const box = $<HTMLElement>(`[data-field="${n}"]`, f);
-    return box?.tagName === "FIELDSET" ? [box] : controls(n);
+    return [$<HTMLElement>(`#${p}-${n}`, f)].filter(Boolean) as HTMLElement[];
   };
   // Each one's own descriptions (its hints), kept so an error can be put in front and taken away again.
   const base = new Map<HTMLElement, string>();
-  $$<HTMLElement>("input, select, textarea, fieldset", f).forEach((c) => base.set(c, c.getAttribute("aria-describedby") || ""));
+  $$<HTMLElement>("input, select, textarea", f).forEach((c) => base.set(c, c.getAttribute("aria-describedby") || ""));
   const errOf = (n: string) => $(`#${p}-${n}-err`, f);
   const boxes = (n: string) => [n, ...(spec.group?.[n] ?? [])].map((m) => $(`[data-field="${m}"]`, f)).filter(Boolean) as HTMLElement[];
   const showing = (n: string) => !!errOf(n) && !errOf(n)!.hidden;
   const redescribe = (c: HTMLElement) => {
-    const errs = spec.order.filter((n) => showing(n) && described(n).includes(c)).map((n) => `${p}-${n}-err`);
+    const errs = spec.order.filter((n) => showing(n) && controls(n).includes(c)).map((n) => `${p}-${n}-err`);
     const d = [...errs, base.get(c)].filter(Boolean).join(" ");
     d ? c.setAttribute("aria-describedby", d) : c.removeAttribute("aria-describedby");
     const invalid = spec.order.some((n) => showing(n) && controls(n).includes(c));
@@ -722,7 +645,7 @@ function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
   };
   const refresh = (n: string) => {
     boxes(n).forEach((b) => b.classList.toggle("has-err", spec.order.some((m) => showing(m) && boxes(m).includes(b))));
-    new Set([...controls(n), ...described(n)]).forEach(redescribe);
+    controls(n).forEach(redescribe);
   };
   const clearField = (n: string) => {
     const err = errOf(n);
@@ -770,19 +693,19 @@ function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
     f.setAttribute("aria-busy", "true");
     live.textContent = C.sending;
     try {
-      const body = { ...(spec.body ? spec.body(v) : v), ...(src || !spec.body ? { source: src } : {}), website: ($<HTMLInputElement>(`#${p}-website`, f)?.value ?? "") as string };
+      const body = { ...(spec.body ? spec.body(v) : v), ...(src ? { source: src } : {}), website: ($<HTMLInputElement>(`#${p}-website`, f)?.value ?? "") as string };
       const res = await fetch(f.dataset.endpoint || "/", {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify(body),
       });
-      let data: { ok?: boolean; reference?: string; error?: string; fields?: Record<string, string> } | null = null;
+      let data: { ok?: boolean; error?: string; fields?: Record<string, string> } | null = null;
       try {
         data = await res.json();
       } catch {
         data = null;
       }
-      if (res.ok && data?.ok) return success(data.reference || "");
+      if (res.ok && data?.ok) return success();
       if (res.status === 422 && data?.fields) showErrors(data.fields, data.error || C.errors.summary);
       else if (res.status === 429) showAlert(data?.error || fill(C.errors.busy));
       else showAlert(data?.error || fill(C.errors.server));
@@ -797,14 +720,9 @@ function wireForm(f: HTMLFormElement, p: string, spec: FormSpec) {
     }
   });
 
-  function success(ref: string) {
+  function success() {
     // The thank-you arrives from its template, in the form's place.
     const done = stamp(doneT, f.parentElement!, f)!;
-    const refEl = $("[data-ref]", done);
-    if (refEl) {
-      refEl.textContent = ref;
-      $("[data-ref-line]", done)!.hidden = !ref;
-    }
     f.hidden = true;
     const title = $("[data-done-title]", done)!;
     title.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" });
@@ -902,7 +820,6 @@ function start() {
   html.classList.add("m");
   later(() => {
     menu();
-    faq();
     forms();
     header();
     glide();

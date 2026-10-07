@@ -198,7 +198,6 @@ const IMAGES = [
   ["site-stores-map", `${COM}/stores-1440-list-map.png`],
   ["site-stores-concept", `${COM}/stores-1440-concept.png`],
   ["site-store-hillcrest", `${COM}/stores-hillcrest-1440-top.png`],
-  ["site-franchise", `${COM}/franchise-1440-top.png`],
   ["site-press", `${COM}/press-1440-top.png`],
   ["site-press-release", `${COM}/press-release-1440.png`],
   ["site-careers", `${COM}/careers-1440-top.png`],

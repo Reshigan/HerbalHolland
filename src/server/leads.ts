@@ -1,4 +1,4 @@
-// Franchise enquiries: the form on herbalholland.com/franchise creates them, HQ (admin + HQ team) works them in
+// Franchise enquiries (herbalholland.com's enquiry form sent them; it's closed now), worked by HQ (admin + HQ team) in
 // HQ → Franchise leads. Rules live in @/lib/leads.
 // POPIA: the personal information stays in the lead, which only HQ can open. The audit log keeps numbers, areas,
 // statuses and staff names, never the enquirer's details or notes; the team's notification email carries no contact
@@ -152,7 +152,7 @@ async function notify(l: FranchiseLead) {
           `<table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 0 16px;font-size:14px;line-height:21px">${facts.map(([k, v]) => `<tr><td style="padding:3px 16px 3px 0;color:#6B5F57">${esc(k)}</td><td style="padding:3px 0"><b>${esc(v)}</b></td></tr>`).join("")}</table>` +
           para("Their contact details and what they wrote are in HQ; we keep them out of email (POPIA)."),
         cta: { label: "Open it in HQ", href: link },
-        footerHtml: "Sent to the franchise team because an enquiry arrived on herbalholland.com/franchise.",
+        footerHtml: "Sent to the franchise team because a franchise enquiry arrived.",
       }),
     }),
     // The enquirer: a one-off acknowledgement with their reference, and no marketing.

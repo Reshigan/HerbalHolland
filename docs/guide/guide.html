@@ -79,7 +79,7 @@
         <tr><td class="k">Trade portal (Herbal Holland Trade)</td><td class="route">/trade · /trade/apply · /trade/login · /trade/range · /trade/cart · /trade/checkout · /trade/orders · /trade/statements · /trade/account · /trade/terms</td><td>Trade buyers: pharmacies, independent retailers, cafés, wellness practices, online shops (adults 18+)</td><td>Dark brand surfaces like the shop, with a "Trade" badge; a code by email, no passwords (chapter 7)</td></tr>
         <tr><td class="k">Menu board</td><td class="route">/menu/&lt;store-slug&gt;</td><td>A TV in each store</td><td>Dark, 16:9, rotates on its own</td></tr>
         <tr><td class="k">Public documents</td><td class="route">/invoice/&lt;id&gt;?t=… · /batch/&lt;code&gt; · /unsubscribe · /legal/…</td><td>Anyone with the link</td><td>Print-friendly tax invoices; lab certificates; opt-out; policies</td></tr>
-        <tr><td class="k">herbalholland.com</td><td class="route">herbalholland.com/… (about, stores, franchise, press, careers, contact, privacy, terms, paia)</td><td>The public, journalists, prospective franchisees</td><td>Its own static site on Cloudflare, not part of the application (chapter 8)</td></tr>
+        <tr><td class="k">herbalholland.com</td><td class="route">herbalholland.com/… (about, stores, press, careers, contact, privacy, terms, paia)</td><td>The public and journalists</td><td>Its own static site on Cloudflare, not part of the application (chapter 8)</td></tr>
       </tbody>
     </table>
     <p class="small">There is also a brand book at <span class="route">/brand</span> (logo, colour, type, shapes, art, voice, misuse and the merch specifications) for marketing and partners, and a reports centre inside both the back office and HQ (<span class="route">/store/&lt;code&gt;/reports</span>, <span class="route">/hq/reports</span>).</p>
@@ -113,7 +113,7 @@
         <tr><td class="k">Member / patient</td><td class="tick">Yes</td><td>—</td><td>—</td><td>—</td><td>sees it</td><td class="tick">Yes</td></tr>
         <tr><td class="k">Member advisor / dispenser</td><td>as a member</td><td class="tick">Yes</td><td>—</td><td>—</td><td>runs it</td><td>—</td></tr>
         <tr><td class="k">Store manager</td><td>as a member</td><td class="tick">Yes</td><td class="tick">Yes</td><td>—</td><td>runs it</td><td>—</td></tr>
-        <tr><td class="k">Owner</td><td>as a member</td><td>can pair tills</td><td class="tick">Yes, all their stores</td><td>—</td><td>—</td><td>franchise page</td></tr>
+        <tr><td class="k">Owner</td><td>as a member</td><td>can pair tills</td><td class="tick">Yes, all their stores</td><td>—</td><td>—</td><td>—</td></tr>
         <tr><td class="k">Area manager</td><td>—</td><td>can pair tills</td><td class="tick">Yes, their region</td><td class="tick">Yes, their region</td><td>—</td><td>—</td></tr>
         <tr><td class="k">HQ team / administrator</td><td>—</td><td>can pair tills</td><td class="tick">Yes, any store</td><td class="tick">Yes</td><td>—</td><td>edits copy and facts; works the leads</td></tr>
       </tbody>
@@ -929,7 +929,7 @@
     <p>Onboarding a store seeds its <strong>opening checklist</strong> from the platform's template: <em>Legal &amp; licences</em> (lease, CIPC registration and bank account, VAT registration, the SAHPRA or pharmacy licence where the store will sell licensed products, the POPIA register and information officer), <em>Set-up</em> (fit-out, internet, the Yoco account and machines, tills paired, printers and drawers tested, catalogue ranged, Google Business Profile, store photos, opening stock received and counted), <em>People</em> (staff hired, logins and PINs, the authorised dispenser, training) and <em>Launch</em> (opening date confirmed, press and listings, herbalholland.com facts, a soft opening). That is 21 tasks, or 22 with the licence line. Due dates count back from the opening day and move with it while the store is still <em>Opening soon</em>. The HQ team ticks tasks off with a note ("Signed, filed in Drive"); area managers see them; a store that predates the checklist gets one from <strong>Start the opening checklist</strong>. Every tick is audited. Chapter 11 has the same list as a procedure.</p>
 
     <h2>Franchise leads</h2>
-    <p>Enquiries from the form on herbalholland.com/franchise land here (once the site is connected; see chapter 8), numbered <code>FL-…</code>, and are visible to HQ administrators and the HQ team only. The list shows new leads waiting for a reply, open leads, disclosures sent and enquiries in the last 30 days; search by number, name, email or area; filter by status.</p>
+    <p>Franchise enquiries the website's former enquiry form sent land here (herbalholland.com no longer takes them), numbered <code>FL-…</code>, and are visible to HQ administrators and the HQ team only. The list shows new leads waiting for a reply, open leads, disclosures sent and enquiries in the last 30 days; search by number, name, email or area; filter by status.</p>
     <p>A lead's page shows the enquiry as sent (area, province, capital band, experience, pharmacist partner, message), <strong>Move it on</strong> through the statuses (New › Contacted › Information evening › Disclosure sent › Signed, or Not a fit) with notes for the team, who in HQ is following it up, the <strong>disclosure document</strong> date, and the history from the audit log.</p>
     <div class="callout"><div class="lab">Rule (CPA franchise regulations)</div><p>A lead can't be marked <strong>Signed</strong> sooner than <strong>14 days</strong> after the day the disclosure document was sent; record that day first. Leads that are not a fit are deleted a year after their last change by the nightly job; an HQ administrator can delete a lead on request (type DELETE to confirm). The franchise page and this pipeline never state earnings or investment figures.</p></div>
 
@@ -1299,12 +1299,12 @@
     <div class="num">8</div>
     <div class="eyebrow">Chapter 8</div>
     <h1>herbalholland.com: the corporate site</h1>
-    <div class="lede">A separate, static site on Cloudflare: the brand, the stores, franchising, press and careers. <b>No prices, no deals, no health claims</b>. Every "Shop online" leads to the early-access list until the shop opens, then to the shop.</div>
+    <div class="lede">A separate, static site on Cloudflare: the brand, the stores, press and careers. <b>No prices, no deals, no health claims</b>. Every "Shop online" leads to the early-access list until the shop opens, then to the shop.</div>
     <div class="inthis"><div class="eyebrow">In this chapter</div><ul></ul></div>
   </div>
   <div class="body">
     <h2>What it is, and isn't</h2>
-    <p class="lede">herbalholland.com is not part of the application. It is a set of static pages built from two files (the <strong>words</strong> in <code>sites/herbalholland.com/content.ts</code> and the <strong>facts</strong> in <code>facts.ts</code>), served by a Cloudflare Worker that also answers two small forms. It has no database of members, products or prices; it reads nothing from the platform.</p>
+    <p class="lede">herbalholland.com is not part of the application. It is a set of static pages built from two files (the <strong>words</strong> in <code>sites/herbalholland.com/content.ts</code> and the <strong>facts</strong> in <code>facts.ts</code>), served by a Cloudflare Worker that also answers one small form, the early-access sign-up. It has no database of members, products or prices; it reads nothing from the platform.</p>
     <div class="figs c2">
       <figure><img src="images/site-gate.jpg" alt="The site's 18+ gate"><figcaption><b>The 18+ gate</b> is the first scene on every visit; the answer is remembered on the device for a year. Under-18s reach a page with SADAG and Childline links.</figcaption></figure>
       <figure><img src="images/site-home-polder.jpg" alt="The home page's first scene"><figcaption><b>Home, scene one.</b> "Holland, meet South Africa." with the live line built from the stores list: open now in Pietermaritzburg and Umhlanga, opening in Hillcrest and Hilton on 1 December 2026.</figcaption></figure>
@@ -1313,7 +1313,7 @@
     <h2>The pages</h2>
     <div class="figs c3">
       <figure><img src="images/site-home-sea.jpg" alt="The globe scene"><figcaption><b>Amsterdam to the hills.</b> A globe flies the great circle from Amsterdam to KwaZulu-Natal, counting the kilometres, with a pin for every store.</figcaption></figure>
-      <figure><img src="images/site-home-stores.jpg" alt="The stores strip"><figcaption><b>Our stores.</b> Open now and opening, drawn until the owner supplies photographs; "Own the first one in yours".</figcaption></figure>
+      <figure><img src="images/site-home-stores.jpg" alt="The stores strip"><figcaption><b>Our stores.</b> Open now and opening, drawn until the owner supplies photographs.</figcaption></figure>
       <figure><img src="images/site-home-range.jpg" alt="The range scene"><figcaption><b>What's in store.</b> Categories only (CBD wellness, CBD coffee &amp; food, skin care, collagen &amp; protein, accessories, apparel, grow), each with a "Shop" door.</figcaption></figure>
     </div>
     <table>
@@ -1321,20 +1321,18 @@
       <tbody>
         <tr><td class="k">Home</td><td>One scrolling journey from a Dutch polder to the KwaZulu-Natal hills at night: the hero, the Amsterdam-to-the-hills globe, the new stores ("Holland, meet the Hills."), every store, the range as categories, five words ("Lab-tested · Batch-traceable · Members only · Adults 18+ · Pharmacist-led"), and Founding Members with the early-access sign-up. Counts, dates, towns and provinces are filled in from the stores list at build time.</td></tr>
         <tr><td class="k">About</td><td>Our story (the name, the windmill mark), our heritage (four landraces: Durban Poison, Swazi Gold, Malawi Gold, Mpondo Gold), and <strong>Standards you can check</strong>: every batch lab-tested with a public result; members only and ID every time; CBD within Schedule 0; licensed medicines through a pharmacist; good neighbours (nothing consumed on the premises, no poster sites within 500 m of a school, no sport sponsorship, never drive impaired).</td></tr>
-        <tr><td class="k">Stores</td><td>Open now and each opening day's stores, a map of the provinces with a store (solid pin open, ring opening), the store concept renders, and "Own the first one in your town". Each store has its own page (<span class="route">/stores/hillcrest</span>) with its town and status and, once the owner supplies them, the address, phone, hours and a photo; "Opening hours and directions" points to the shop's store finder.</td></tr>
-        <tr><td class="k">Franchise</td><td>Who we're looking for (owner-operators with retail experience, capital, standing in the community, a pharmacist partner), what owners get (the platform, the brand and the launch playbook, training), the seven steps from enquiry to opening ("At least 14 days before signing" for the disclosure document), straight answers ("We don't publish earnings projections"), and the enquiry form.</td></tr>
+        <tr><td class="k">Stores</td><td>Open now and each opening day's stores, a map of the provinces with a store (solid pin open, ring opening), and the store concept renders. Each store has its own page (<span class="route">/stores/hillcrest</span>) with its town and status and, once the owner supplies them, the address, phone, hours and a photo; "Opening hours and directions" points to the shop's store finder.</td></tr>
         <tr><td class="k">Press</td><td>Press releases (each on its own page, published on its date; the site is rebuilt on or after that day), the fact sheet (company, what we are, range, stores and provinces, model, membership, Founding Members, age, quality, medicines, online shop, head office, media contact), the media contact, brand assets (the logo in Sunset orange and warm black, SVG and PNG, with clear-space rules), and notes for journalists (members, adults 18+, CBD is not medicine, licensed medicines aren't for sale to the public, no consumption imagery, "Herbal Holland, two words").</td></tr>
         <tr><td class="k">Careers</td><td>Why work here, the roles (member advisors and store managers, with the franchisee that owns the store; HQ teams, with Herbal Holland), how to apply by email, "We never charge to apply", and the POPIA note (applications kept 12 months).</td></tr>
-        <tr><td class="k">Contact</td><td>The right inbox for each question (hello@, franchise@, press@, careers@herbalholland.com); members are pointed to the shop; company details.</td></tr>
-        <tr><td class="k">Privacy Policy (1.2)</td><td>How herbalholland.com handles personal information under POPIA, including what the two forms keep and for how long. Last updated 28 September 2026.</td></tr>
-        <tr><td class="k">Terms of Use (1.1)</td><td>The terms for using herbalholland.com, in plain English. Last updated 28 September 2026.</td></tr>
-        <tr><td class="k">PAIA manual (1.1)</td><td>How to request the records held by Vantax (Pty) Ltd (the company that owns the online business) under the Promotion of Access to Information Act, and how personal information is handled; the Information Officer is Reshigan Govender. Linked from the shop's footer and Rewards settings; reviewed at least yearly.</td></tr>
+        <tr><td class="k">Contact</td><td>The right inbox for each question (hello@, press@, careers@herbalholland.com); members are pointed to the shop; company details.</td></tr>
+        <tr><td class="k">Privacy Policy (1.3)</td><td>How herbalholland.com handles personal information under POPIA, including what the early-access form keeps, the franchise enquiries received before that form closed, and how long each is kept. Last updated 7 October 2026.</td></tr>
+        <tr><td class="k">Terms of Use (1.2)</td><td>The terms for using herbalholland.com, in plain English. Last updated 7 October 2026.</td></tr>
+        <tr><td class="k">PAIA manual (1.2)</td><td>How to request the records held by Vantax (Pty) Ltd (the company that owns the online business) under the Promotion of Access to Information Act, and how personal information is handled; the Information Officer is Reshigan Govender. Linked from the shop's footer and Rewards settings; reviewed at least yearly.</td></tr>
         <tr><td class="k">404 and the under-18 page</td><td>A friendly not-found page; the under-18 page after the gate.</td></tr>
       </tbody>
     </table>
-    <div class="figs c3">
+    <div class="figs c2">
       <figure><img src="images/site-about.jpg" alt="The About page"><figcaption><b>About:</b> "Our story, and the standards we keep".</figcaption></figure>
-      <figure><img src="images/site-franchise.jpg" alt="The Franchise page"><figcaption><b>Franchise:</b> "Own a Herbal Holland store", with Register your interest and How it works.</figcaption></figure>
       <figure><img src="images/site-press-release.jpg" alt="A press release page"><figcaption><b>A press release</b>, "Herbal Holland opens online for adults 18+ across South Africa": written, and held back (no date) until the online shop opens.</figcaption></figure>
     </div>
     <div class="figs c3">
@@ -1350,19 +1348,14 @@
     </div>
     <p>Until the shop opens, every "Shop online" and "Join Rewards" door leads to this form (on the home page's last scene and on Stores). It posts to the Worker, which keeps the sign-up in the site's own Cloudflare D1 database (<code>herbalholland-com-eu</code>, EU jurisdiction) with the version of the consent wording, refuses duplicates quietly, rate-limits repeat attempts, and <strong>deletes every sign-up 12 months after it joined the list</strong>. Nothing reaches the platform automatically: on launch day HQ exports the list (chapter 11) and sends the launch message only through the platform's consent-checked messaging, with an opt-out in every message.</p>
 
-    <h2>Franchise enquiries: where they land</h2>
-    <p>The enquiry form asks for name, email, mobile, where they'd like to open, province, a capital band ("your own funds you could invest; a rough band is fine"), retail or business experience, whether they have a pharmacist partner, an optional message, and consent to use the details to reply. The Worker checks it with the platform's own rules, stores it in D1, gives the enquirer a reference (shown on screen with what happens next), and passes it on:</p>
-    <ul>
-      <li><strong>Before the platform is live</strong>: by email to the team (a verified Cloudflare Email Routing address).</li>
-      <li><strong>Once the platform is live</strong> (the Worker has <code>APP_ENQUIRY_URL</code> and <code>APP_ENQUIRY_SECRET</code>, matching the app's <code>SITE_ENQUIRY_SECRET</code>): straight into <strong>HQ › Franchise leads</strong> as a numbered <code>FL-…</code> lead; the platform emails the team and acknowledges the enquirer.</li>
-    </ul>
-    <p>The Worker's daily job (02:15 SAST) deletes enquiries a year after they arrived, or 30 days after HQ has them; IP addresses are kept only as a keyed hash to limit repeats; only the HQ team reads them.</p>
+    <h2>Franchise enquiries</h2>
+    <p>The site no longer takes franchise enquiries: there is no franchise page or enquiry form, and <span class="route">herbalholland.com/franchise</span> redirects to the About page for good (a 301, so old links and search results still land somewhere useful). The enquiries already handed to HQ stay in <strong>HQ › Franchise leads</strong>. The Worker's daily job (02:15 SAST) still deletes the site's own copies a year after they arrived, or 30 days after HQ had them; only the HQ team reads them.</p>
 
     <h2>Changing copy and facts, and releasing the site</h2>
     <table>
       <thead><tr><th>To change…</th><th>Edit</th></tr></thead>
       <tbody>
-        <tr><td class="k">Any wording</td><td><code>sites/herbalholland.com/content.ts</code>: one object per page (GATE, CHROME, HOME, ACCESS, MAP, STORES, ABOUT, FRANCHISE, PRESS, CAREERS, CONTACT, LEGAL, PRIVACY, TERMS, PAIA, NOT_FOUND). Every string passes the platform's copy screening in a unit test; a legal document's <code>version</code> and <code>updated</code> date change with its text.</td></tr>
+        <tr><td class="k">Any wording</td><td><code>sites/herbalholland.com/content.ts</code>: one object per page (GATE, CHROME, HOME, ACCESS, MAP, STORES, ABOUT, PRESS, CAREERS, CONTACT, LEGAL, PRIVACY, TERMS, PAIA, NOT_FOUND). Every string passes the platform's copy screening in a unit test; a legal document's <code>version</code> and <code>updated</code> date change with its text.</td></tr>
         <tr><td class="k">A store, its opening day, address, hours or photo</td><td><code>facts.ts</code> › <code>stores</code>: one line per store; the globe, map, /stores, the new-stores chapter and every count and date follow from it. Photos go in <code>static/stores</code>.</td></tr>
         <tr><td class="k">Whether the shop is live</td><td><code>facts.ts</code> › <code>shop.url</code> (null until the shop opens, then the shop's address; joining links become <span class="route">&lt;shop&gt;/club/join?src=site</span>, tagged for the join-sources report).</td></tr>
         <tr><td class="k">Company details, emails, the Information Officer, social profiles, the Founding Members cap</td><td><code>facts.ts</code> › <code>company</code>, <code>email</code>, <code>officer</code>, <code>social</code>, <code>founding</code>.</td></tr>
@@ -1372,7 +1365,7 @@
     <ol class="steps">
       <li>Build: <code>npx tsx sites/herbalholland.com/build.ts</code> › <code>dist/</code> (the build checks the published distances against the coordinates and every date).</li>
       <li>Release, from <code>sites/herbalholland.com</code>: <code>npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote &amp;&amp; npx wrangler@4 deploy</code>.</li>
-      <li>For a change the owner should see first: <code>npx wrangler@4 versions upload --preview-alias preview</code> gives a preview address (same database and email as live, so don't send test enquiries), then <code>npx wrangler@4 versions deploy &lt;version-id&gt;</code> makes that exact version live.</li>
+      <li>For a change the owner should see first: <code>npx wrangler@4 versions upload --preview-alias preview</code> gives a preview address (same database as live, so don't send test sign-ups), then <code>npx wrangler@4 versions deploy &lt;version-id&gt;</code> makes that exact version live.</li>
     </ol>
     <p class="small">Already set up in Cloudflare: the Worker's custom domain, www › herbalholland.com, Always Use HTTPS, TLS 1.2+, HSTS, and Email Routing for hello@, franchise@, press@ and careers@.</p>
   </div>

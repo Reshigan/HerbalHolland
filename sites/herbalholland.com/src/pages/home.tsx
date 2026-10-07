@@ -202,12 +202,6 @@ function Hills() {
           ))}
         </ul>
         <div className="stores__foot" data-r="">
-          <p className="stores__more">
-            {s.more}{" "}
-            <a className="link" href="/franchise">
-              {s.own}
-            </a>
-          </p>
           <p className="stores__shop muted">
             {s.shop}{" "}
             <a className="link" href={shop ?? "#first-access"}>
@@ -341,7 +335,7 @@ export function HomePage() {
     slogan: BRAND.line,
     email: EMAIL.hello,
     ...(FACTS.social.length || shop ? { sameAs: [...FACTS.social, ...(shop ? [shop] : [])] } : {}),
-    contactPoint: (["hello", "franchise", "press", "careers"] as const).map((k) => ({
+    contactPoint: (["hello", "press", "careers"] as const).map((k) => ({
       "@type": "ContactPoint",
       contactType: HOME.org[k],
       email: EMAIL[k],

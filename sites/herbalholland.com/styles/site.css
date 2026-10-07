@@ -73,14 +73,14 @@ main > section ~ section, main > .marquee, .ftr { content-visibility: auto; cont
 .wrap { width: 100%; max-width: 92rem; margin-inline: auto; padding-inline: var(--g); }
 
 /* Shared shapes, used across the pages. */
-.soon, .soon__badge, .hero__kicker, .frame__go, .frame__s, .release__date, .inbox__link, .menu__age, .menu__close, .burger, .form__privacy, .chapter__n, .ftr__age, .rule__head, .role, .apply li, .done__steps li, .field__err, .form__alert, .empty, .range__note, .stores__head, .crumbs ol { display: flex; align-items: center; }
-.age, .inbox__ico, .empty__ico, .rule__ico, .feat__ico, .tile__ico, .step__node, .poster { display: grid; place-items: center; }
+.soon, .soon__badge, .hero__kicker, .frame__go, .frame__s, .release__date, .inbox__link, .menu__age, .menu__close, .burger, .form__privacy, .chapter__n, .ftr__age, .rule__head, .role, .apply li, .field__err, .form__alert, .empty, .range__note, .stores__head, .crumbs ol { display: flex; align-items: center; }
+.age, .inbox__ico, .empty__ico, .rule__ico, .feat__ico, .tile__ico { display: grid; place-items: center; }
 .inbox__ico, .empty__ico, .rule__ico, .feat__ico, .tile__ico { width: 2.8rem; height: 2.8rem; flex: none; border-radius: 50%; background: var(--brand-100); color: var(--brand-800); }
 .feat__ico { background: color-mix(in oklab, var(--brand-500) 15%, transparent); color: var(--brand-400); }
 .tile, .logo, .note, .inbox, .enq { background: #fff; border-radius: 1.5rem; box-shadow: var(--shadow); }
 .feat, .panel, .roles__group { background: var(--ink-900); border: 1px solid var(--line); border-radius: 1.5rem; }
 .tile, .feat, .inbox, .note, .panel { display: grid; gap: .8rem; align-content: start; padding: 1.6rem; }
-.eyebrow, .chapter__n, .readout dt, .frame__k, .fcard__label, .offer__h, .badge, .facts dt, .ftr__h, .role__aka, .soon__badge, .fcard__brand, .pin text, .crumbs, .landrace dt span { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
+.eyebrow, .chapter__n, .readout dt, .frame__k, .fcard__label, .offer__h, .facts dt, .ftr__h, .role__aka, .soon__badge, .fcard__brand, .pin text, .crumbs, .landrace dt span { font: 600 .72rem/1.3 var(--display); letter-spacing: .2em; text-transform: uppercase; }
 .grid4, .grid3, .inboxes, .logos, .roles { display: grid; gap: 1rem; }
 
 /* ── Type ──────────────────────────────────────────────────────────────── */
@@ -525,7 +525,6 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .stores__head { justify-content: space-between; gap: 1rem; margin-bottom: 1.25rem; padding-bottom: .75rem; border-bottom: 1px solid var(--line); }
 .stores__head .link { font-size: .92rem; }
 .stores__foot { display: grid; gap: .5rem; margin-top: 1.75rem; }
-.stores__more { font: 500 clamp(1.05rem, 1.4vw, 1.25rem) var(--display); color: var(--ink-100); }
 .stores__shop { font-size: .95rem; }
 
 /* Frames: a picture with a row of beadwork along its foot, and the words beneath. A store's frame holds the drawn
@@ -667,51 +666,15 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .panel__title { font-size: clamp(1.9rem, 3.4vw, 3rem); }
 .panel__body { max-width: 34rem; color: var(--ink-300); }
 .panel__doors { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; align-items: center; }
-.sheet .panel { background: var(--ink-950); }
-.sheet .panel :is(.h2, .h3) { color: var(--ink-50); }
-.sheet .panel .eyebrow { color: var(--brand-500); }
 
-/* ── Franchise ─────────────────────────────────────────────────────────── */
+/* ── Tiles and features ────────────────────────────────────────────────── */
 .tile p, .inbox p, .note p, .logo__meta p { font-size: .95rem; color: var(--ink-600); }
 .feat p, .role p { font-size: .95rem; color: var(--ink-300); }
 .tile__top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; color: var(--brand-800); }
-.offer__group + .offer__group { margin-top: clamp(3rem, 6vw, 5rem); }
 .offer__h { margin-top: clamp(2.5rem, 5vw, 4rem); font-size: .8rem; color: var(--ink-400); }
-.offer__h + .grid3 { margin-top: 1.25rem; }
 .feat__ico { margin-bottom: .5rem; }
 .feat__ico .age { width: 2.8rem; height: 2.8rem; border-width: 1.5px; }
 .feat__t { font: 600 1.2rem/1.2 var(--display); letter-spacing: -.015em; color: var(--ink-50); }
-.steps { position: relative; padding-left: 3.75rem; }
-.steps__line { position: absolute; left: 1.2rem; top: .5rem; bottom: 1rem; width: 2px; overflow: hidden; border-radius: 2px; background: var(--ink-150); }
-.steps__line i { position: absolute; inset: 0; background: linear-gradient(var(--brand-500), var(--brand-700)); transform-origin: top; }
-.js .steps__line i { transform: scaleY(var(--p)); }
-.step { position: relative; display: grid; gap: .5rem; justify-items: start; padding-bottom: clamp(2rem, 4vw, 3rem); }
-.step:last-child { padding-bottom: 0; }
-.step__node { position: absolute; left: -3.75rem; top: -.35rem; width: 2.6rem; height: 2.6rem; border-radius: 50%; background: var(--ink-50); border: 1.5px solid var(--ink-200); font: 600 .95rem var(--display); color: var(--ink-600); }
-.step.in .step__node { color: var(--ink-950); border-color: var(--brand-500); background: var(--brand-500); }
-.step__t { font: 600 clamp(1.35rem, 2vw, 1.75rem)/1.1 var(--display); letter-spacing: -.025em; color: var(--ink-950); }
-.step--key .step__t { color: var(--brand-800); }
-.step__b { max-width: 36em; }
-.badge { padding: .4rem .8rem; border-radius: 99px; background: var(--ink-950); color: var(--brand-400); font-size: .66rem; letter-spacing: .14em; line-height: 1; }
-.faq__ask { margin-top: .5rem; }
-.acc { border-top: 1px solid var(--line); }
-.acc__item { border-bottom: 1px solid var(--line); }
-.acc__q { display: flex; align-items: center; gap: 1.1rem; min-height: 4.75rem; padding-block: 1.1rem; cursor: pointer; list-style: none; font: 600 clamp(1.05rem, 1.5vw, 1.3rem)/1.3 var(--display); color: var(--ink-50); }
-.acc__q::-webkit-details-marker { display: none; }
-.acc__qt { flex: 1; }
-.acc__pm { position: relative; flex: none; width: 2.6rem; height: 2.6rem; border-radius: 50%; border: 1px solid var(--ink-700); color: var(--ink-100); transition: transform .6s var(--ease); }
-.acc__pm::before, .acc__pm::after { content: ""; position: absolute; left: 50%; top: 50%; width: 12px; height: 1.5px; margin: -.75px 0 0 -6px; background: currentColor; }
-.acc__pm::after { transform: rotate(90deg); }
-[open] > .acc__q .acc__pm { transform: rotate(45deg); border-color: var(--brand-500); color: var(--brand-500); }
-.acc__a { max-width: 46rem; padding: 0 3.8rem 1.75rem 2.2rem; color: var(--ink-300); }
-[open] > .acc__a { animation: drop .7s var(--ease) both; }
-.closing > .acc__a { opacity: 0; transform: translateY(-8px); transition: .2s; }
-@keyframes drop { from { opacity: 0; transform: translateY(-10px); } }
-.poster { display: none; }
-@media (min-width: 960px) {
-  .poster { display: grid; width: min(100%, 20rem); aspect-ratio: 4 / 5; margin-top: 2.5rem; border: 12px solid var(--brand-500); border-radius: 1.75rem; background: var(--ink-950); box-shadow: 0 40px 80px -40px #14111080; }
-  .poster__mark { width: 62%; height: auto; color: var(--brand-500); }
-}
 /* The forms */
 .enq { position: relative; padding: clamp(1.25rem, 4vw, 3rem); border-radius: 1.75rem; color: var(--ink-600); color-scheme: light; }
 .enq :focus-visible { outline-color: var(--brand-800); }
@@ -727,13 +690,10 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 .field__hint { margin-top: .45rem; font-size: .8rem; line-height: 1.5; color: var(--ink-500); }
 .field__err { align-items: flex-start; gap: .45rem; margin-top: .5rem; font-size: .84rem; font-weight: 600; line-height: 1.4; color: var(--rose-600); }
 .field__err::before, .form__alert::before { content: ""; width: 16px; height: 16px; flex: none; margin-top: .1rem; background: currentColor; -webkit-mask: var(--ico) center / contain no-repeat; mask: var(--ico) center / contain no-repeat; --ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='12' cy='12' r='10'/%3E%3Cpath d='M12 7v6M12 16.5v.5'/%3E%3C/svg%3E"); }
-.has-err :is(.input, .radio) { border-color: var(--rose-600); }
+.has-err .input { border-color: var(--rose-600); }
 .has-err .input { box-shadow: 0 0 0 3px color-mix(in oklab, var(--rose-500) 14%, transparent); }
-.radios { display: flex; gap: .75rem; }
-.radio, .check { display: flex; align-items: center; gap: .75rem; cursor: pointer; color: var(--ink-900); font-weight: 500; }
-.radio { flex: 1; max-width: 11rem; min-height: 3.25rem; padding-inline: 1rem 1.25rem; border: 1px solid var(--ink-200); border-radius: .9rem; background: var(--ink-50); }
-.radio:has(:checked) { border-color: var(--brand-700); background: var(--brand-50); }
-.radio input, .check input { width: 1.25rem; height: 1.25rem; margin: 0; flex: none; accent-color: var(--brand-700); cursor: pointer; }
+.check { display: flex; align-items: center; gap: .75rem; cursor: pointer; color: var(--ink-900); font-weight: 500; }
+.check input { width: 1.25rem; height: 1.25rem; margin: 0; flex: none; accent-color: var(--brand-700); cursor: pointer; }
 .check { align-items: flex-start; min-height: 44px; padding-block: .35rem; line-height: 1.45; }
 .check input { margin-top: .1rem; }
 .hp { position: absolute; left: -10000px; width: 1px; height: 1px; overflow: hidden; }
@@ -749,11 +709,7 @@ html:not(.motion) .marquee { background: var(--ink-950); }
 @keyframes gust { from { transform: rotate(-540deg); } }
 .done__title { font: 600 clamp(1.7rem, 3vw, 2.4rem)/1.05 var(--display); letter-spacing: -.03em; color: var(--ink-950); }
 .done__title:focus { outline: 0; }
-.done__ref { font-size: 1.05rem; color: var(--ink-700); }
-.done__ref strong { display: inline-block; padding: .15rem .6rem; border-radius: .5rem; background: var(--ink-950); color: var(--brand-400); font: 600 1rem var(--display); letter-spacing: .06em; }
-.done__steps { display: grid; gap: .9rem; }
-.done__steps li { align-items: flex-start; gap: .9rem; color: var(--ink-700); }
-.done__steps .idx, .apply .idx { margin-top: .35rem; }
+.apply .idx { margin-top: .35rem; }
 .done > * { transition: opacity .8s var(--ease) .2s, transform 1s var(--ease) .2s; }
 .done:not(.in) > * { opacity: 0; transform: translateY(1rem); }
 

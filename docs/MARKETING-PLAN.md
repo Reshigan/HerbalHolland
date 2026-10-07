@@ -17,8 +17,8 @@ endline stays: _Dutch heritage · African soil._
 | 0 · Online is open | Thu 1 Oct – Sat 31 Oct 2026 | Sell online nationwide; open the Founding Members list; start Learn and the merch engine |
 | 1 · Pre-opening | Sun 1 Nov – Mon 30 Nov 2026 | Reveal both stores; win the neighbours; fill the Founding Members list and the RSVPs |
 | 2 · Opening & festive | Tue 1 Dec – Thu 31 Dec 2026 | Open the doors; Founding Members' Evenings and Open Day; festive gifting; holiday traffic off the N3 |
-| Year 1 · Settle in | Jan – Nov 2027 | Turn two stores into habits: Learn, members' evenings, quarterly drops, Heritage Month, the franchise pack |
-| Year 2 · Grow out | Dec 2027 – Nov 2028 | First birthday; new stores with the opening playbook; franchise recruitment; adult-use plan in the drawer |
+| Year 1 · Settle in | Jan – Nov 2027 | Turn two stores into habits: Learn, members' evenings, quarterly drops, Heritage Month |
+| Year 2 · Grow out | Dec 2027 – Nov 2028 | First birthday; new stores with the opening playbook; adult-use plan in the drawer |
 
 **The rule that shapes everything: social is for the brand; offers live on our own channels.** Meta and TikTok
 remove posts that sell cannabis or CBD, Google won't take the ads, and licensed (THC) medicines can't be advertised
@@ -106,7 +106,6 @@ eight weeks of real data. Sales targets come from finance's store P&Ls, not from
 | Local and trade press pieces | 8 | 24 | 40 |
 | Learn visits from search, per month | 2,000 | 15,000 | 40,000 |
 | New members per member through referrals | 0.3 | 0.3 | 0.3 |
-| Qualified franchise enquiries | — | 60 | 200 |
 
 ## 4. Who we're talking to
 
@@ -118,7 +117,6 @@ eight weeks of real data. Sales targets come from finance's store P&Ls, not from
 | **Culture and merch fans:** adults 18–40 | Something to belong to and wear | Instagram, friends | Drops, embroidered merch, members' evenings |
 | **Holidaymakers on the N3** (December, Easter, July) | A reason to stop | Road trip, Google Maps | Merch and gifts, Rewards that work nationwide. Never anything about using and driving |
 | **Online, the rest of South Africa** | Trust and delivery | Search, referrals, email | Learn, merch, the Founding Members story |
-| **Future franchisees and investors** | Proof the model works | LinkedIn, business press, franchise events | Results from the stores (§11) |
 
 ## 5. The idea: _Holland, meet the Hills_
 
@@ -376,7 +374,7 @@ composer. Stories are done live in the apps.
 | Mon | **Learn** (carousel or photo) | — | Learn link |
 | Tue | — | Team, jobs or community | — |
 | Wed | **Community & people** | — | Community |
-| Thu | **Store life or events** (a Reel from the monthly content day) | Founder notes, franchise, what we're learning | Event reminder |
+| Thu | **Store life or events** (a Reel from the monthly content day) | Founder notes, what we're learning | Event reminder |
 | Fri | **Made here** (merch, makers) | — | — |
 | Sat | Stories: this weekend in store | — | — |
 
@@ -465,7 +463,6 @@ two Learn articles and a content day. Below is what's specific to each month. Da
   explainer; the team's favourite walks and views.
 - Own channels: referral SMS (Tue 9 Feb); merch gifts email (Mon 8 Feb).
 - Learn: _Gezellig: the Dutch art of feeling at home_ · _CBD and Schedule 0: five facts_.
-- Franchise: attend the FASA Conference & Expo (February, TBC) to learn the market.
 
 **March 2027: 100 days in the hills.**
 - Dates: day 100 is Wed 10 Mar · Human Rights Day observed Mon 22 Mar · Good Friday 26 Mar, Family Day Mon 29 Mar.
@@ -483,11 +480,9 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Social ideas: autumn in the Midlands; terpenes without the hype; Winter Drop teaser; makers' night.
 - Own channels: Winter Drop notify-me push (Wed 21 Apr).
 - Learn: _Terpenes, without the hype_ · _Adults only, and always on your terms_ (refreshed).
-- Franchise: the franchise interest list opens (LinkedIn, and the franchise page on herbalholland.com).
 
 **May 2027: Winter in the hills.**
-- Dates: Workers' Day Sat 1 May (also the Global Cannabis March: an activist event, not ours) · Sun 9 May · The
-  Cannabis Expo, Sandton, 28–30 May (visit for franchise learning; don't exhibit in 2027).
+- Dates: Workers' Day Sat 1 May (also the Global Cannabis March: an activist event, not ours) · Sun 9 May.
 - Hero: **Winter Drop** (Tue 4 May, 12:00): the Windmill Beanie and Sunset Hoodie, members only for 72 hours, Bloom and
   up two hours early.
 - Social ideas: the drop; Mother's Day gifts (merch); how we choose our blanks; Midlands mist.
@@ -496,8 +491,7 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 
 **June 2027: Hills and heart.**
 - Dates: **Sun 13 Jun, the 100th Comrades Marathon**, a down run from Pietermaritzburg through Botha's Hill and
-  Hillcrest on Old Main Road · World Franchise Day Fri 11 Jun · Youth Day Wed 16 Jun (no campaign) · Sun 20 Jun ·
-  schools close Fri 25 Jun.
+  Hillcrest on Old Main Road · Youth Day Wed 16 Jun (no campaign) · Sun 20 Jun · schools close Fri 25 Jun.
 - Comrades: no sponsorship, no marketing to runners, and no view on the race's governance dispute. If the Hillcrest
   store is on the route: plan for the road closures, open early for spectators, a "well run" message in the window,
   the team in Windmill Tees. That's all.
@@ -506,7 +500,6 @@ two Learn articles and a content day. Below is what's specific to each month. Da
   numbers; a team spotlight.
 - Own channels: gifts email (Mon 14 Jun).
 - Learn: _How to talk to your doctor about medical access_ · _Your Rewards at half-time_.
-- Franchise: a World Franchise Day post; the prospectus drafted from six months of trading.
 
 **July 2027: 67 minutes.**
 - Dates: Durban July Sat 3 Jul (not for us) · Mandela Day Sun 18 Jul · schools reopen Tue 20 Jul · the Amashova cycle
@@ -525,7 +518,6 @@ two Learn articles and a content day. Below is what's specific to each month. Da
   in their own words and with their consent.
 - Social ideas: the series; the Women's Month evening; what a pharmacist does.
 - Learn: _Women of African soil_ · _What a pharmacist does at Herbal Holland_.
-- Franchise: the prospectus and disclosure document to counsel.
 
 **September 2027: Heritage Month (Dutch heritage · African soil).** Our signature month.
 - Dates: Spring Day Wed 1 Sep · nine years since the _Prince_ judgment Sat 18 Sep (Learn, not activism) · Heritage Day
@@ -538,15 +530,13 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Learn: _KwaZulu-Natal's most famous landrace_ (on the site; the social teaser doesn't name it) · _Nine years after
   Prince_.
 - PR: a heritage feature pitch (the growers' story).
-- Franchise: **the franchise launch**, with the information pack and the first information evening (Durban, Thu 30 Sep).
 
-**October 2027: Summer and the franchise.**
+**October 2027: Summer.**
 - Dates: schools reopen (TBC) · matric exams October–November (no "exam" angles, ever).
-- Hero: **Summer Drop** (Tue 12 Oct): the Sunset Bucket Hat and the Windmill Cap; franchise information evenings
-  (Pietermaritzburg Thu 14 Oct, Johannesburg Thu 28 Oct).
+- Hero: **Summer Drop** (Tue 12 Oct): the Sunset Bucket Hat and the Windmill Cap.
 - Social ideas: the drop; spring in the Midlands; the team's first year; a what-the-label-may-say carousel.
 - Own channels: Founding Members email (Tue 19 Oct): the Sprout floor runs to 7 February 2028, and what their spend earns.
-- Learn: _What a CBD label may and may not say_ · _Franchising with Herbal Holland: the basics_.
+- Learn: _What a CBD label may and may not say_.
 
 **November 2027: Black Friday and the first birthday.**
 - Dates: Revolution Day Sun 7 Nov (an activist day, not ours) · **Black Friday Fri 26 Nov** · Cyber Monday 29 Nov.
@@ -554,7 +544,6 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Social ideas: Black Friday merch; a one-year teaser; the gift guide; last merch order date for Christmas (TBC).
 - Own channels: Black Friday SMS and email (Fri 26 Nov); Founding Members' Evening invitations (Tue 16 Nov).
 - Learn: _A year of Learn: the ten most-read answers_ · _Gifting guide: made in South Africa_.
-- Franchise: an information evening (Durban, Thu 18 Nov).
 
 ### Year 2: grow out (December 2027 to November 2028)
 
@@ -573,14 +562,12 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Dates: N3 return traffic around 2–9 Jan · payday Tue 25 Jan.
 - Hero: _Read the label_, refreshed; the Founding Members' floor reminder (email, Tue 18 Jan: it ends Mon 7 Feb).
 - Learn: _Label reading, refreshed for 2028_ · _Rewards in year two_.
-- Franchise: book a stand at the FASA Conference & Expo (February).
 
 **February 2028: Thank you, Founding Members.**
-- Dates: the Founding Members' floor ends Mon 7 Feb · Mon 14 Feb · FASA Conference & Expo (TBC).
+- Dates: the Founding Members' floor ends Mon 7 Feb · Mon 14 Feb.
 - Hero: _Thank you, Founding Members_ (numbered cards and the December Founding Members' Evening are theirs for good); a
   Founding Members-only merch window (Tue 8 Feb); _Bring a friend_ month again.
 - Learn: _What the first 2,026 built_ · _A year of Gezellig evenings_.
-- Franchise: exhibit at FASA with a year of results.
 
 **March 2028: The law in 2028.**
 - Dates: Human Rights Day Tue 21 Mar.
@@ -595,14 +582,13 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Learn: _Heritage growers: a farm visit_ · _Responsible use, revisited_.
 
 **May 2028: Winter Drop, year two.**
-- Dates: Workers' Day Mon 1 May · Global Cannabis March Sat 6 May (not ours) · Sun 14 May · The Cannabis Expo,
-  Sandton (late May, TBC): consider a franchise stand.
+- Dates: Workers' Day Mon 1 May · Global Cannabis March Sat 6 May (not ours) · Sun 14 May.
 - Hero: **Winter Drop** (Tue 2 May), a new colourway or design (a brand decision in Q1).
 - Learn: _Behind the stitches_ · _Keeping wellness products at their best in winter_.
 
 **June 2028: Hills and heart.**
-- Dates: Comrades, probably Sun 11 Jun (the 101st; date and direction TBC) · World Franchise Day Sun 11 Jun ·
-  Youth Day Fri 16 Jun (no campaign) · Sun 18 Jun.
+- Dates: Comrades, probably Sun 11 Jun (the 101st; date and direction TBC) · Youth Day Fri 16 Jun (no campaign) ·
+  Sun 18 Jun.
 - Hero: _Half-time 2028_ for members; Father's Day gifts.
 - Learn: _Section 21, two years on_ · _Your Rewards at half-time_.
 
@@ -620,14 +606,12 @@ two Learn articles and a content day. Below is what's specific to each month. Da
 - Hero: _Ten years on_, the Learn and PR centrepiece: what changed, what didn't, what's next (factual, never
   activist); the **Heritage Drop** (Tue 5 Sep); Heritage evenings.
 - Learn: _Ten years since Prince_ · _Dutch heritage, African soil: our story so far_.
-- Franchise: information evenings in the new regions.
 
 **October 2028: Ready for what's next.**
 - Dates: matric exams (no angles).
 - Hero: **Summer Drop** (Tue 10 Oct); the adult-use readiness review (the drawer plan goes live only when a law
   commences and counsel signs off).
-- Learn: _Adult use: what might change, and what won't_ (if the Bill has passed; otherwise _The law in late 2028_) ·
-  _How franchising works at Herbal Holland_.
+- Learn: _Adult use: what might change, and what won't_ (if the Bill has passed; otherwise _The law in late 2028_).
 
 **November 2028: Black Friday and birthday number two.**
 - Dates: Revolution Day Tue 7 Nov (not ours) · **Black Friday Fri 24 Nov** · Cyber Monday 27 Nov · second birthday
@@ -653,19 +637,7 @@ with events, the drop calendar and opening-week double points on merch and acces
 
 ## 11. Franchise recruitment
 
-The consumer plan earns the proof; this track turns it into owners.
-
-- **Year 1:** LinkedIn twice a week (founder notes, the team, what we're learning); attend the FASA Conference & Expo
-  (February 2027); World Franchise Day posts (11 June); the prospectus drafted from six months of trading; the
-  franchise disclosure document reviewed by counsel (the CPA's franchise regulations: disclosure at least 14 days
-  before signing). Launch in September 2027 with information evenings in Durban, Pietermaritzburg and Johannesburg.
-- **Year 2:** exhibit at FASA (February 2028); information evenings every quarter; case studies from the first
-  owners (with their consent, and only numbers that can be substantiated: no earnings projections without a basis);
-  consider a franchise stand at The Cannabis Expo (May 2028).
-- **Who we're looking for:** owner-operators with retail experience, capital, standing in their community and access
-  to a pharmacist partner.
-- **Built since the plan was approved:** a franchise enquiry page (herbalholland.com/franchise) and lead tracking in
-  HQ (HQ → Franchise leads).
+Franchise recruitment isn't part of this plan, and herbalholland.com no longer takes franchise enquiries.
 
 ## 12. Budget
 
@@ -727,7 +699,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 ### In scope
 
 1. **This plan:** the launch (§6), the copy bank (§7), the always-on engine (§8), the 24-month calendar (§9), the
-   opening playbook (§10), the franchise track (§11), the budget split (§12), measurement (§13) and risks (§14).
+   opening playbook (§10), the budget split (§12), measurement (§13) and risks (§14).
 2. **Platform changes, built 27 September 2026:**
    - **A · Founding Members list mode (was the launch blocker).** The shop takes orders while the list runs to its
      closing date (HQ → Founding Members); members can choose an opening-soon store as their home store; the shop,
@@ -755,7 +727,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 - 4/20, health awareness days, sponsorship of sport (Comrades, Amashova, Midmar Mile), anything at or with schools
   (including the Hilton Arts Festival), stalls at family markets, religious and political moments, activist events.
 - Advertising licensed (THC) medicines in any form; selling on social; consumption or alcohol at our events.
-- Automated journeys (a later build). Gift vouchers, the franchise enquiry form and lead tracking were built since.
+- Automated journeys (a later build). Gift vouchers and franchise lead tracking were built since.
 - Store P&L targets, media contracts, the creative production itself (this plan is the brief), new merch designs
   (the anniversary design is briefed in September 2027).
 - Running the adult-use campaign (it stays in the drawer).

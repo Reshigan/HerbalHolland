@@ -108,9 +108,6 @@ export function AboutPage() {
             <Btn href="/stores" kind="ghost">
               {visit.stores}
             </Btn>
-            <a className="link" href="/franchise">
-              {visit.own}
-            </a>
           </div>
         </div>
       </section>

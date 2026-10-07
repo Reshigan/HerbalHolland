@@ -88,7 +88,7 @@ export default async function FranchiseLeadPage({ params, searchParams }: { para
       <div className="grid gap-6 xl:grid-cols-3">
         <div className="min-w-0 space-y-6 xl:col-span-2">
           <Card>
-            <CardHeader title="The enquiry" description="As they sent it from herbalholland.com/franchise" />
+            <CardHeader title="The enquiry" description="As they sent it" />
             <CardBody className="pt-3">
               <div className="flex flex-wrap gap-2">
                 <a href={`mailto:${lead.email}?subject=${encodeURIComponent(`Your franchise enquiry ${lead.number}`)}`} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-ink-200 bg-white px-4 text-sm font-medium text-ink-850 hover:border-ink-300 hover:bg-ink-50">

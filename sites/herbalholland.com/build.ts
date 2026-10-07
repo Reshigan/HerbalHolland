@@ -6,7 +6,7 @@
 // Every page is rendered once with react-dom/server; the browser gets plain HTML, one CSS file, one small ES module and
 // a tiny head script (the gate's first-paint decision; the CSP allows no inline script). CSS, JS and fonts carry a
 // content hash in their names (cached for a year, immutable); HTML is served no-cache (see _headers).
-// No database: the facts are in ./facts.ts, the words in ./content.ts. The pages: the home page, the six inner pages,
+// No database: the facts are in ./facts.ts, the words in ./content.ts. The pages: the home page, the five inner pages,
 // the three legal documents, a page per store (/stores/{key}) and a page per published release (/press/{slug}).
 // The CSS: the first screen's rules (styles/site.css above its @@rest marker) are inlined in every page, allowed by their
 // sha256 hash in the CSP; the rest is a stylesheet per page, pruned to the rules that page can use, loaded without
@@ -23,7 +23,7 @@ import { gzipSync } from "node:zlib";
 import { createElement, type ReactElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { dayKey } from "@/lib/format";
-import { ABOUT, CAREERS, CONTACT, FRANCHISE, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn, shopOpenClaim } from "./content";
+import { ABOUT, CAREERS, CONTACT, HOME, PAIA, PRESS, PRIVACY, STORES, TERMS, releasesOn, shopOpenClaim } from "./content";
 import { FACTS, greatCircleKm, newStores } from "./facts";
 import { patternUrl } from "./src/art";
 import { SPECULATION, site } from "./src/layout";
@@ -32,7 +32,6 @@ import { classesIn, literals, mangleClasses, precomputeColors, pruneCss, shorten
 import { AboutPage } from "./src/pages/about";
 import { CareersPage } from "./src/pages/careers";
 import { ContactPage } from "./src/pages/contact";
-import { FranchisePage } from "./src/pages/franchise";
 import { HomePage } from "./src/pages/home";
 import { NotFoundPage } from "./src/pages/notfound";
 import { PressPage, ReleasePage } from "./src/pages/press";
@@ -213,7 +212,6 @@ async function main() {
     { path: "/about", file: "about.html", render: () => createElement(AboutPage), updated: ABOUT.meta.updated },
     { path: "/stores", file: "stores.html", render: () => createElement(StoresPage), updated: STORES.meta.updated },
     ...FACTS.stores.map((s) => ({ path: `/stores/${s.key}`, file: `stores/${s.key}.html`, render: () => createElement(StorePage, { store: s }), updated: STORES.meta.updated })),
-    { path: "/franchise", file: "franchise.html", render: () => createElement(FranchisePage), updated: FRANCHISE.meta.updated },
     { path: "/press", file: "press.html", render: () => createElement(PressPage), updated: PRESS.meta.updated },
     ...releasesOn(day).map((r) => ({ path: `/press/${r.slug}`, file: `press/${r.slug}.html`, render: () => createElement(ReleasePage, { release: r }), updated: r.date })),
     { path: "/careers", file: "careers.html", render: () => createElement(CareersPage), updated: CAREERS.meta.updated },

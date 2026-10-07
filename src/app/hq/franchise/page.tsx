@@ -60,7 +60,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
       <PageHeader
         overline="Network"
         title="Franchise leads"
-        description="Enquiries from herbalholland.com/franchise, from first reply to signing. Their details are for HQ only; enquiries that aren't a fit are deleted a year after their last change."
+        description="Franchise enquiries received before the website's enquiry form closed, from first reply to signing. Their details are for HQ only; enquiries that aren't a fit are deleted a year after their last change."
         actions={
           <a href={exportHref} download className={buttonClass("outline")}>
             <Download className="h-4 w-4" aria-hidden /> Export CSV
@@ -109,7 +109,7 @@ export default async function FranchiseLeadsPage({ searchParams }: { searchParam
                 {q
                   ? "No enquiries match that search."
                   : network.all === 0
-                    ? "No franchise enquiries yet. They arrive from the form on herbalholland.com/franchise."
+                    ? "No franchise enquiries. herbalholland.com no longer takes them."
                     : view === "open"
                       ? "Nothing open: every enquiry is signed or closed."
                       : "No enquiries with this status."}

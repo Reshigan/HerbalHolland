@@ -245,7 +245,7 @@ export function Sails({ className, js }: { className?: string; js?: "" | "wind" 
 /**
  * The windmill mark (100-unit box, currentColor). `sails`: "spin" turns them with CSS; "js" lets the page's script turn
  * them (a steady turn, faster with the scroll); "wind" turns them only while the page scrolls; "gust" spins with CSS
- * inside a second group that the gate and the enquiry form spin up for a moment.
+ * inside a second group that the gate and the early-access thank-you spin up for a moment.
  */
 export function Mark({ className, title, sails, ring = true, use }: { className?: string; title?: string; sails?: "spin" | "js" | "wind" | "gust"; ring?: boolean; use?: boolean }) {
   // A copy that never moves is one <use> of the symbol in the sprite.

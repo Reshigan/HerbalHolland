@@ -39,7 +39,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
 | Trade portal (wholesale buyers) | `/trade`, `/trade/*` | dark brand |
 | Menu board (in-store TV) | `/menu/[slug]` | dark, 16:9 |
 | Tax invoice (public, signed link) | `/invoice/[id]?t=` | print-friendly |
-| Corporate site herbalholland.com (about, franchise, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com`, with static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/enquiry` (D1, then HQ via `/api/site/enquiries`). Deploy notes in `wrangler.jsonc` | dark brand, motion |
+| Corporate site herbalholland.com (about, press, careers, contact, privacy, terms) | Not in this app: its own Cloudflare Worker, `sites/herbalholland.com`, with static pages (`npx tsx sites/herbalholland.com/build.ts` → `dist/`; words in `content.ts`, facts in `facts.ts`) and `worker.ts` for `/api/early-access` (the early-access list, in D1). No franchise page or enquiry form: `/franchise` redirects to `/about`. Deploy notes in `wrangler.jsonc` | dark brand, motion |
 
 ## Engineering rules
 

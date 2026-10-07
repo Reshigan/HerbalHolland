@@ -28,7 +28,7 @@ reports) and Postgres can't live on Cloudflare.
    a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: proxied DNS
    record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
    herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
-   (`sites/herbalholland.com`: static pages plus `/api/enquiry`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
+   (`sites/herbalholland.com`: static pages plus `/api/early-access`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
    up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
    TLS ≥ 1.2 (1.3 on), SSL Full (strict), HSTS (1 year, include subdomains, no preload; the site's `_headers` sends
    the same, so keep them in step), Email Routing forwarding hello@, franchise@, press@ and careers@ to the team. To
@@ -36,16 +36,17 @@ reports) and Postgres can't live on Cloudflare.
    repository secret `CLOUDFLARE_API_TOKEN`). By hand: `npx tsx sites/herbalholland.com/build.ts`, then from
    `sites/herbalholland.com` `npx wrangler@4 d1 migrations apply herbalholland-com-eu --remote && npx wrangler@4 deploy`. For a change the owner
    should see first: `npx wrangler@4 versions upload --preview-alias preview` (→ `https://preview-herbalholland-com.<account>.workers.dev`,
-   same database and email as live, so don't send test enquiries), then `npx wrangler@4 versions deploy <version-id>`
+   same database as live, so don't send test sign-ups), then `npx wrangler@4 versions deploy <version-id>`
    to make that exact version live. The early-access list (`early_access` in the same database; the Worker deletes
    sign-ups after 12 months): export it for the launch message with `npx wrangler@4 d1 execute herbalholland-com-eu
    --remote --json --command "SELECT first_name, email, mobile, province, source, created_at FROM early_access ORDER BY id"`,
    send only through the platform's consent-checked messaging (every message with an opt-out), and delete anyone who
    asks with `DELETE FROM early_access WHERE email = ? OR mobile = ?`. The workflow also runs just
-   after midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop opens. Once the
-   platform is live, give the Worker `APP_ENQUIRY_URL` (`https://herbalholland.co.za/api/site/enquiries`) and
-   `APP_ENQUIRY_SECRET` (= the app's `SITE_ENQUIRY_SECRET`) with `wrangler secret put`, so enquiries land in HQ →
-   Franchise leads instead of email.
+   after midnight SAST, so a press release appears on its date (the site is static). Set `facts.ts` `shop.url` when the shop opens. The
+   site no longer takes franchise enquiries (`/franchise` redirects to `/about`): the enquiries already handed to HQ stay
+   in HQ → Franchise leads, and the Worker's daily clean-up deletes the site's own copies (a year after they came in, or
+   30 days after HQ had them). The Worker no longer reads `NOTIFY_TO`, `APP_ENQUIRY_URL` or `APP_ENQUIRY_SECRET`: if they're
+   set, remove them with `npx wrangler@4 secret delete <name>`.
 2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location, so record the cross-border
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.

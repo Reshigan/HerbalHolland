@@ -569,6 +569,9 @@ try {
 
   step("Offline reload: the service worker serves the till shell and assets");
   await page.getByRole("button", { name: "Done" }).click();
+  // The till's service worker caches the shell once it controls the page (the app posts what it loaded): wait for
+  // that, so the reload tests the cache instead of racing it.
+  await page.waitForFunction(async () => !!navigator.serviceWorker.controller && !!(await caches.match("/pos")), null, { polling: 250, timeout: 30_000 });
   await ctx.setOffline(true);
   const fromSw = [];
   const onResp = (r) => fromSw.push({ url: r.url(), sw: r.fromServiceWorker(), status: r.status() });
