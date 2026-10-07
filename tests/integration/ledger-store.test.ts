@@ -366,7 +366,7 @@ describe("late changes", () => {
     const second = (await cost()) - first;
     const journals = await db.journal.findMany({ where: { source: "store-day", sourceId: id }, orderBy: { number: "asc" }, include: { lines: { include: { account: true } } } });
     expect(journals).toHaveLength(2);
-    expect(journals[1].memo).toBe("Trading day at Test Store (TST01) — updated");
+    expect(journals[1].memo).toBe("Trading day at Test Store (TST01) · updated");
     expect(Object.fromEntries(journals[1].lines.map((l) => [l.account.key, l.amountCents]))).toEqual({ cash: COFFEE - 100, "cash.diff": 100, "vat.output": -vatOf(COFFEE), "sales.pos": -(COFFEE - vatOf(COFFEE)), cogs: second, stock: -second });
     expect(journals.every((j) => j.date.toISOString().slice(0, 10) === yesterday)).toBe(true);
   });

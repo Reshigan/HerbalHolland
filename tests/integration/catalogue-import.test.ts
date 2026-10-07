@@ -53,7 +53,7 @@ describe("catalogue import", () => {
 
     // The new product and its variants: draft, the class's legal basis, prices in cents.
     const eve = await db.product.findUniqueOrThrow({ where: { slug: "evening-oil-300mg" }, include: { variants: { orderBy: { sortOrder: "asc" } }, category: true } });
-    expect(eve).toMatchObject({ name: "Evening Oil 300mg", status: "DRAFT", regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, thcMax: 0.001, allergens: ["none"], legalBasis: "Schedule 0 CBD — GN 586 of 22 May 2020" });
+    expect(eve).toMatchObject({ name: "Evening Oil 300mg", status: "DRAFT", regClass: "CBD", cbdMgPerPack: 300, cbdMgPerDay: 10, thcMax: 0.001, allergens: ["none"], legalBasis: "Schedule 0 CBD: GN 586 of 22 May 2020" });
     expect(eve.category.slug).toBe("wellness");
     expect(eve.variants.map((v) => [v.sku, v.name, v.priceCents, v.wholesaleCents, v.costCents, v.barcode, v.active])).toEqual([
       ["EVE-30", "30 ml", 39_900, 18_000, 9_950, "6009876543210", true],

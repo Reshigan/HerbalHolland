@@ -1,6 +1,6 @@
 // Row-level access scoping. Every back-office and report query goes through here:
 // HQ sees the network, area managers their region, owners their company's stores,
-// managers and budtenders their own store.
+// managers and member advisors their own store.
 import { notFound } from "next/navigation";
 import { db } from "./db";
 import type { Prisma } from "@/generated/prisma/client";

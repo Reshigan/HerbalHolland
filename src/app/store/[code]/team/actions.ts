@@ -15,7 +15,7 @@ import { isEmail } from "@/lib/email";
 
 const isOwnerLevel = (u: Pick<Staff, "role">) => u.role === "OWNER" || u.role === "HQ_ADMIN";
 
-/** Owners and HQ admins manage everyone at the store; managers manage budtenders and their own PIN. */
+/** Owners and HQ admins manage everyone at the store; managers manage member advisors and their own PIN. */
 function mayManage(actor: Staff, target: Pick<User, "id" | "role">) {
   if (isOwnerLevel(actor)) return true;
   return actor.role === "MANAGER" && (target.role === "BUDTENDER" || target.id === actor.id);

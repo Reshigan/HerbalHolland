@@ -330,12 +330,12 @@ export const REG_CLASSES = Object.keys(REG_CLASS_LABEL) as RegClass[];
 
 /** The legal-basis line a new product starts with (HQ can edit it; it's shown on the product page and in audits). */
 export const DEFAULT_LEGAL_BASIS: Partial<Record<RegClass, string>> = {
-  THC: "SAHPRA licence — medical pathway (Section 21 authorisation required)",
-  CBD: "Schedule 0 CBD — GN 586 of 22 May 2020",
-  CBD_FOOD: "CBD food — GN 586 of 22 May 2020 (≤ 0.0075% CBD, naturally occurring)",
-  CBD_TOPICAL: "Cosmetic — Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972",
-  HEMP: "Hemp — Schedule 6 exclusion, GN 586 of 22 May 2020 (≤ 0.2% THC, not for ingestion; hemp-seed food ≤ 0.001%)",
-  SUPPLEMENT: "Foodstuff — Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972 (labelling: R146)",
+  THC: "SAHPRA licence: medical pathway (Section 21 authorisation required)",
+  CBD: "Schedule 0 CBD: GN 586 of 22 May 2020",
+  CBD_FOOD: "CBD food: GN 586 of 22 May 2020 (≤ 0.0075% CBD, naturally occurring)",
+  CBD_TOPICAL: "Cosmetic: Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972",
+  HEMP: "Hemp: Schedule 6 exclusion, GN 586 of 22 May 2020 (≤ 0.2% THC, not for ingestion; hemp-seed food ≤ 0.001%)",
+  SUPPLEMENT: "Foodstuff: Foodstuffs, Cosmetics and Disinfectants Act 54 of 1972 (labelling: R146)",
 };
 
 /** One line per class for pickers: what belongs in it and the rule that decides it. */

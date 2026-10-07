@@ -1,6 +1,6 @@
 // Who works loss-prevention alerts at a store, and how an alert moves. Shared by the pages and their server actions.
 // Alerts name colleagues, so the pages are for the people who act on them: managers, owners, area managers and HQ,
-// not budtenders. Nobody sees an alert about themselves (visibleAlerts in @/server/loss).
+// not member advisors. Nobody sees an alert about themselves (visibleAlerts in @/server/loss).
 import { canManageStore } from "@/server/scope";
 import type { Staff } from "@/server/auth";
 import type { AlertStatus, Role } from "@/generated/prisma/client";

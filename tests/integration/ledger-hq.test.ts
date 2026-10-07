@@ -151,7 +151,7 @@ describe("the franchise statement", () => {
     // A till sale of R1,000 ex VAT that synced after the month closed its rollup: fees on it, and nothing else.
     await stat(w.store.id, `${month}-28`, "POS", { grossCents: 115_000, vatCents: 15_000 });
     const [fr, hq] = await postSource("statement", `${w.store.id}:${month}`).then((js) => [js.find((j) => j.companyId === w.owner.id)!, js.find((j) => j.companyId === w.hq.id)!]);
-    expect(fr.memo).toMatch(/franchise statement · Test Store — updated$/);
+    expect(fr.memo).toMatch(/franchise statement · Test Store · updated$/);
     expect(await posted(w.owner.id, { source: "statement", sourceId: `${w.store.id}:${month}` })).toMatchObject({ "fees.royalty": 78_000, "fees.levy": 26_000, "vat.input": 18_600, hq: -182_600 });
     expect((await db.journalLine.findMany({ where: { journalId: hq.id } })).map((l) => l.amountCents).sort((a, b) => a - b)).toEqual([-6_000, -2_000, -1_200, 9_200]);
   });

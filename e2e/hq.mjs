@@ -1203,7 +1203,7 @@ try {
   const m0 = (await one(`select now() t`)).t;
   await hydrated(page.getByRole("button", { name: /Email to owner/ }));
   await act("statements.emailOneStatement", () => page.getByRole("button", { name: /Email to owner/ }).click(), () => notice(new RegExp(`statement emailed to ${esc(stStore.email)}`)).waitFor());
-  const oneMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "to" = $1 and "createdAt" >= $2 and body like $3`, [stStore.email, m0, `Franchise statement — ${stStore.name}%`]);
+  const oneMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "to" = $1 and "createdAt" >= $2 and body like $3`, [stStore.email, m0, `Franchise statement: ${stStore.name}%`]);
   created.mails.push(...oneMail.map((r) => r.id));
   assert(oneMail.length === 1, `${monthName} statement for ${stStore.name} emailed to ${stStore.email} (message log)`);
   await page.getByRole("link", { name: /All statements/ }).click();
@@ -1214,7 +1214,7 @@ try {
   const m1 = (await one(`select now() t`)).t;
   await act("statements.emailAllStatements", () => ea.getByRole("button", { name: "Send to all owners" }).click(), () => notice(/statements? emailed to owners/).waitFor());
   const sent = Number((await notice(/statements? emailed to owners/).textContent()).match(/^(\d+)/)?.[1]);
-  const allMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "createdAt" >= $1 and body like 'Franchise statement — %'`, [m1]);
+  const allMail = await q(`select id from "MessageLog" where channel = 'EMAIL' and "createdAt" >= $1 and body like 'Franchise statement: %'`, [m1]);
   created.mails.push(...allMail.map((r) => r.id));
   assert(sent > 1 && allMail.length >= sent, `${sent} statements emailed to owners`);
 

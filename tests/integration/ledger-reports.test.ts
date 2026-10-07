@@ -359,7 +359,7 @@ describe("VAT", () => {
     await post(fr, "2026-08-25", "store-day", "Trading day (late sale)", [["cash", 11_500, s1], ["sales.pos", -10_000, s1], ["vat.output", -1_500, s1]]);
     expect(await vatReturn(fr, "2026-08", NOW)).toMatchObject({ status: "changed", output: 451_500, pendingPayable: 1_500 });
     const again = await closeVatPeriod(fr, "2026-08", actor(), NOW);
-    expect(again.journal?.memo).toBe("VAT period July – August 2026 closed — updated");
+    expect(again.journal?.memo).toBe("VAT period July – August 2026 closed · updated");
     expect(await vatReturn(fr, "2026-08", NOW)).toMatchObject({ status: "closed", payable: 394_500, pendingPayable: 0 });
     expect((await trialBalance(fr, YEAR)).rows.find((r) => r.account.key === "vat.control")).toMatchObject({ closing: -379_500 });
   });

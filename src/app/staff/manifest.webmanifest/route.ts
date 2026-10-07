@@ -1,6 +1,6 @@
 // Web app manifest for the back office (store back office + HQ console), so managers, owners and HQ can keep it on a
 // phone or desktop. start_url is /store, which sends each person to their own home by role (HQ → /hq, a store manager
-// → their store, a budtender → the till); signed out, it goes through /login first.
+// → their store, a member advisor → the till); signed out, it goes through /login first.
 export function GET() {
   const manifest = {
     name: "Herbal Holland Back office",

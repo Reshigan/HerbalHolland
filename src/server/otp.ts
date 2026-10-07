@@ -1,7 +1,7 @@
 // One-time sign-in codes: members by SMS, trade buyers by email. Each step for an address runs under a Postgres
 // advisory lock, so the limits hold however many requests arrive at once: five codes per address per 10 minutes, five
 // tries per code, and ten wrong tries per address per hour across all its codes (then it waits out the hour).
-// Two wider limits stop anyone running up the SMS bill (src/server/throttle.ts): ten codes an hour from one connection,
+// Two wider limits stop anyone running up the SMS bill (src/server/throttle.ts): thirty codes an hour from one connection (CODES_PER_IP_HOUR),
 // and a network-wide ceiling on texts an hour (OTP_SMS_HOURLY_MAX, default 500) that pauses SMS codes when reached.
 import { randomInt } from "node:crypto";
 import { db, tx, type Tx } from "./db";

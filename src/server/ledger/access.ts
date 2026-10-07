@@ -4,7 +4,7 @@
 //   Accountant:   read and post in their company's books; drafts wait for the owner (or HQ admin, for HQ's books).
 //   HQ admin:     HQ's own books in full; any franchisee's books to read.
 //   Area manager: read the books of franchisees with a store in their region.
-// Everyone else (store managers, budtenders, HQ team) has no books.
+// Everyone else (store managers, member advisors, HQ team) has no books.
 import { notFound } from "next/navigation";
 import { db } from "../db";
 import { requireStaff, type Staff } from "../auth";
