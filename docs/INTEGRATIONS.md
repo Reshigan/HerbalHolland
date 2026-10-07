@@ -310,15 +310,20 @@ Catalogue), and set `POD_EMAIL` / `POD_PARTNER_NAME` and the merch courier fee (
 HQ → Marketing → **Studio** lays a whole campaign out from one day (a playbook in `src/lib/studio-playbooks.ts`: brand
 launch, online shop launch, store opening, Founding Members, hiring, merch drop): every post with its brand card,
 checked for the channel it goes on (`screenDraft`: the copy rules, the platforms' rules, lengths, public holidays). HQ
-approves, then **Schedule what's approved** sends social posts to [Postiz](https://postiz.com) with their card and
-turns email, SMS and push into Campaigns. HQ → Marketing → **Social** still posts one-off captions with the brand
-pictures in `public/social`. Postiz is open source and free when self-hosted, with no limit on channels or posts.
-Without it, social posts wait in the Studio to be posted by hand (copy the words, download the card).
+approves, then **Schedule what's approved** queues them in the platform, and the `frequent` job (every 15 minutes)
+releases each at its time: a social post goes to [Postiz](https://postiz.com) with its card, to publish straight away,
+and an email, SMS or push becomes a Campaign to the members who said yes (held for the next legal send window when
+needed). **Pause releases** holds a whole campaign until it's resumed; **Take back** returns a queued post to draft. A
+post more than six hours late (paused, or the scheduler stopped) isn't sent: it fails, to be given a new time. HQ →
+Marketing → **Social** still posts one-off captions with the brand pictures in `public/social`. Postiz is open source
+and free when self-hosted, with no limit on channels or posts. Without it, social posts wait in the Studio to be
+posted by hand (copy the words, download the card).
 
 1. Run Postiz with its Docker Compose file on the server, behind HTTPS on its own subdomain (e.g.
    `https://social.herbalholland.co.za`): it brings PostgreSQL, Redis and Temporal (with Temporal's own PostgreSQL and
    Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory. Set `API_LIMIT=500` in its environment: the
-   default (30 public API calls an hour) is less than one Studio campaign needs (an upload and a post per card).
+   default (30 public API calls an hour) is less than a launch day needs (an upload and a post per card, and the
+   read-back every 15 minutes).
 2. Connect the accounts, all set to adults 18+:
    - **Facebook, Instagram (a professional account) and Threads**: one Meta developer app owned by HQ, with the
      marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
@@ -332,10 +337,10 @@ Without it, social posts wait in the Studio to be posted by hand (copy the words
 4. For the Social page's pictures only, `APP_URL` must be public HTTPS (Postiz fetches `${APP_URL}/social/<picture>.jpg`).
    Studio cards are uploaded with the post.
 
-The `frequent` job (`syncStudio`) reads back how each Studio post went: published (with its link) or failed (with
-Postiz's reason), and marks members' messages out once their campaign has sent. Edit or delete a scheduled post in
-Postiz, or take it back in the Studio (which deletes it there). Meta rejects cannabis and CBD ads, so this is organic
-posting only, with no boosting.
+The same job (`syncStudio`) reads back how each released post went: published (with its link) or failed (with Postiz's
+reason), and marks members' messages out once their campaign has sent. Postiz only gets a post at its time, so the
+Studio is where a post is changed, held or taken back; once released, delete it in Postiz if it must come down. Meta
+rejects cannabis and CBD ads, so this is organic posting only, with no boosting.
 
 **WhatsApp and Google** are never posted through an API: WhatsApp's Business Messaging Policy (the app and the API
 alike) bans promoting or facilitating drugs and medical products whatever the licences, and Google's posts bar offers

@@ -276,10 +276,10 @@ healthcare professionals (factual material, modest refreshments, no inducements)
 
 ## 7. Launch content bank
 
-Built into HQ → Marketing → Studio as playbooks (`src/lib/studio-playbooks.ts`): lay one out from its day, approve
-it, and the Studio schedules each post. The lines below are the source; the playbooks re-date them around each
-campaign's day.
-`{…}` fields are filled in on the day. Every line passes the platform's screening; keep it that way when editing.
+Built into HQ → Marketing → Studio as playbooks (`src/lib/studio-playbooks.ts`): lay one out from its day, approve it,
+and the Studio releases each post at its time (pause a campaign to hold it). The lines below are the source; the
+playbooks re-date them around each campaign's day. `{…}` fields are filled in on the day. Every line passes the
+platform's screening; keep it that way when editing.
 
 ### 7.1 Social (Instagram, Facebook, LinkedIn, X, Threads)
 

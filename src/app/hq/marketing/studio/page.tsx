@@ -158,7 +158,7 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
               <tr>
                 <Th>Campaign</Th>
                 <Th>Day T</Th>
-                <Th align="right">Out or scheduled</Th>
+                <Th align="right">Out or queued</Th>
                 <Th align="right">To do</Th>
               </tr>
             </thead>
@@ -173,6 +173,11 @@ export default async function StudioPage({ searchParams }: { searchParams: Promi
                       <Link href={`/hq/marketing/studio/${p.id}`} className="font-semibold text-ink-900 hover:underline">
                         {p.name}
                       </Link>
+                      {p.paused && (
+                        <Badge tone="amber" className="ml-2">
+                          Paused
+                        </Badge>
+                      )}
                       <p className="text-xs text-ink-500">{p.createdBy ? `By ${p.createdBy}` : ""}</p>
                     </Td>
                     <Td className="tnum whitespace-nowrap">{fmtDate(`${p.anchor}T10:00:00Z`)}</Td>

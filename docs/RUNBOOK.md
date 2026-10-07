@@ -325,7 +325,7 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 | Daily (owner / area manager) | Check new deposits against the bank statement (Verify, or Query with a note); work the loss-prevention alerts: investigate, then resolve or dismiss with a note | Store → Banking / Loss prevention |
 | Monthly (owner) | Approve last month's commission for payroll (people with open alerts are held until they're closed), download the CSV | Store → Commission |
 | Weekly | Replenishment orders submitted/approved/shipped; expiry report actioned | Purchasing / Distribution |
-| Weekly | Open the Studio: approve and schedule what's coming, post the WhatsApp Channel and Google posts that are due by hand, and look at any that failed; answer comments and DMs in Postiz or the apps, but never take orders there | HQ → Marketing → Studio |
+| Weekly | Open the Studio: approve and queue what's coming (pause a campaign that has to wait), post the WhatsApp Channel and Google posts that are due by hand, and look at any that failed; answer comments and DMs in Postiz or the apps, but never take orders there | HQ → Marketing → Studio |
 | Monthly | Cycle counts per category; franchise statements emailed; NCC opt-out registry import into Suppression; VAT201 working per store | Stock takes / HQ Statements / Marketing |
 | Quarterly | Access review (users, roles, devices); restore test from backup | HQ Team / DB |
 

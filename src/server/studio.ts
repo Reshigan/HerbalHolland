@@ -1,15 +1,17 @@
-// Campaign Studio, the server side: a playbook laid out into dated drafts, approved by HQ, then handed to its channel.
-// Social drafts go to Postiz with their card; email, SMS and push become Campaigns (consent, the do-not-contact list
-// and CPA windows as always); WhatsApp Channel and Google posts wait as "post by hand" with their text and card.
+// Campaign Studio, the server side: a playbook laid out into dated drafts, approved by HQ, queued, and released by the
+// platform at each post's time (the `frequent` job), so HQ holds the release: a campaign can be paused and resumed, and
+// a post taken back, until the moment it goes. Social posts go to Postiz then, with their card; email, SMS and push
+// become Campaigns (consent, the do-not-contact list and CPA windows as always). WhatsApp Channel and Google posts wait
+// as "post by hand" with their text and card.
 import { db } from "./db";
 import { audit, type Actor } from "./audit";
-import { deletePostiz, postizConnected, postizPosts, publishSocial, socialChannels } from "./social";
+import { sendCampaign } from "./marketing";
+import { postizConnected, postizPosts, publishSocial, socialChannels } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
 import { PLAYBOOKS } from "@/lib/studio-playbooks";
 import { layout, longDate, OWN_CHANNELS, screenDraft, type Card, type Fields, type StudioChannel } from "@/lib/studio";
-import { SOCIAL_NETWORKS } from "@/lib/social";
-import { marketingWindow, nextMarketingSlot } from "@/lib/sa";
+import { SOCIAL_NETWORKS, type SocialChannel } from "@/lib/social";
 import { dayKey } from "@/lib/format";
 import type { Prisma, StudioItem } from "@/generated/prisma/client";
 
@@ -96,61 +98,89 @@ export async function saveItem(id: string, patch: { text: string; short: string 
 }
 
 /**
- * Hands every approved item due later to its channel: social to Postiz (when it's connected) with its card as a JPEG,
- * email, SMS and push as scheduled Campaigns (moved into the next legal send window when needed). WhatsApp, Google, and
- * social without Postiz stay approved: they're posted by hand.
+ * Queues every approved post that's due later and goes out on its own: social (when Postiz is connected), email, SMS and
+ * push. Nothing leaves the platform yet: the scheduler releases each one at its time. WhatsApp, Google, and social
+ * without Postiz stay approved, to be posted by hand.
  */
-export async function scheduleApproved(planId: string, by: string, actor: Actor, now = new Date()) {
-  const plan = await db.studioPlan.findUnique({ where: { id: planId } });
+export async function scheduleApproved(planId: string, actor: Actor, now = new Date()) {
+  const plan = await db.studioPlan.findUnique({ where: { id: planId }, select: { storeId: true } });
   if (!plan) throw new StudioError("That campaign isn't there any more");
-  const items = await db.studioItem.findMany({ where: { planId, status: "APPROVED", channel: { in: [...OWN_CHANNELS, ...(postizConnected() ? ["SOCIAL" as const] : [])] } }, orderBy: { at: "asc" } });
-  const channels = items.some((i) => i.channel === "SOCIAL") ? await socialChannels() : [];
-  const done = { campaigns: 0, social: 0, late: 0, failed: 0 };
-  for (const it of items) {
-    if (it.at.getTime() < now.getTime() + 5 * 60_000) {
-      done.late++;
-      continue;
-    }
-    // Claimed first, so a second click schedules nothing twice.
-    if (!(await db.studioItem.updateMany({ where: { id: it.id, status: "APPROVED" }, data: { status: "SCHEDULED" } })).count) continue;
-    if (OWN_CHANNELS.includes(it.channel as StudioChannel)) {
-      const at = marketingWindow(it.at).allowed ? it.at : nextMarketingSlot(it.at);
-      const c = await db.campaign.create({
-        data: { name: it.title ?? `${plan.name}: ${it.key}`, channel: it.channel as "EMAIL" | "SMS" | "PUSH", segment: "ALL", storeId: plan.storeId, message: it.text, status: "SCHEDULED", scheduledAt: at },
-      });
-      await db.studioItem.update({ where: { id: it.id }, data: { campaignId: c.id } });
-      done.campaigns++;
-      continue;
-    }
-    if (!channels.length) {
-      await db.studioItem.update({ where: { id: it.id }, data: { status: "APPROVED" } });
-      continue;
-    }
-    try {
-      const data = await cardJpeg(it.card as Card, "portrait");
-      const postizIds = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels, mode: "schedule", at: it.at });
-      const post = await db.socialPost.create({
-        data: { content: it.text, image: null, channels: channels.map((c) => `${SOCIAL_NETWORKS[c.identifier].label} · ${c.name}`), mode: "schedule", scheduledAt: it.at, postizIds, createdBy: by },
-      });
-      await db.studioItem.update({ where: { id: it.id }, data: { socialPostId: post.id } });
-      done.social++;
-    } catch (e) {
-      await db.studioItem.update({ where: { id: it.id }, data: { status: "FAILED", note: e instanceof Error ? e.message.slice(0, 300) : String(e) } });
-      done.failed++;
-    }
-  }
-  if (done.campaigns || done.social || done.failed) await audit(db, actor, "studio.schedule", { storeId: plan.storeId, entity: "StudioPlan", entityId: planId, data: done });
+  const ready = { planId, status: "APPROVED" as const, channel: { in: [...OWN_CHANNELS, ...(postizConnected() ? ["SOCIAL" as const] : [])] } };
+  const late = await db.studioItem.count({ where: { ...ready, at: { lt: new Date(now.getTime() + 5 * 60_000) } } });
+  const queued = await db.studioItem.findMany({ where: { ...ready, at: { gte: new Date(now.getTime() + 5 * 60_000) } }, select: { id: true, channel: true } });
+  // A post that failed at release and was fixed starts again: no release, Postiz post or campaign from the last try.
+  if (queued.length) await db.studioItem.updateMany({ where: { id: { in: queued.map((i) => i.id) }, status: "APPROVED" }, data: { status: "SCHEDULED", releasedAt: null, socialPostId: null, campaignId: null } });
+  const done = { social: queued.filter((i) => i.channel === "SOCIAL").length, campaigns: queued.filter((i) => i.channel !== "SOCIAL").length, late };
+  if (queued.length) await audit(db, actor, "studio.schedule", { storeId: plan.storeId, entity: "StudioPlan", entityId: planId, data: done });
   return done;
 }
 
-/** Takes a scheduled item back: its Campaign is cancelled, its Postiz post deleted. It returns to draft. */
+/** Holds a campaign: nothing more of it is released until it's resumed (what has already gone out stays out). */
+export async function setPaused(planId: string, paused: boolean, actor: Actor) {
+  const plan = await db.studioPlan.update({ where: { id: planId }, data: { paused } });
+  await audit(db, actor, paused ? "studio.pause" : "studio.resume", { storeId: plan.storeId, entity: "StudioPlan", entityId: planId });
+}
+
+/** How late a queued post may still go out (its campaign was paused, or the scheduler stopped); later, it waits for a new time. */
+const LATE = 6 * 3_600_000;
+const SCHEDULER: Actor = { type: "SYSTEM", name: "Studio scheduler" };
+
+/**
+ * The scheduler's step: releases each queued post whose time has come, unless its campaign is paused. Social posts go to
+ * Postiz to publish now, with their card as a JPEG; members' messages become a Campaign and send (held for the next legal
+ * window when needed). A post more than six hours late isn't released: it fails, to be given a new time.
+ */
+export async function releaseStudio(now = new Date()) {
+  const due = await db.studioItem.findMany({
+    where: { status: "SCHEDULED", releasedAt: null, at: { lte: now }, plan: { paused: false } },
+    include: { plan: { select: { name: true, storeId: true } } },
+    orderBy: { at: "asc" },
+    take: 50,
+  });
+  let channels: SocialChannel[] | null = null;
+  const done = { released: 0, failed: 0 };
+  for (const it of due) {
+    const fail = (note: string) => db.studioItem.update({ where: { id: it.id }, data: { status: "FAILED", note: note.slice(0, 300) } });
+    if (now.getTime() - it.at.getTime() > LATE) {
+      await fail("Its time passed while nothing was released (the campaign was paused, or the scheduler stopped): give it a new time");
+      done.failed++;
+      continue;
+    }
+    // Claimed first, so two scheduler runs never release it twice.
+    if (!(await db.studioItem.updateMany({ where: { id: it.id, releasedAt: null }, data: { releasedAt: now } })).count) continue;
+    try {
+      if (OWN_CHANNELS.includes(it.channel as StudioChannel)) {
+        const c = await db.campaign.create({ data: { name: it.title ?? `${it.plan.name}: ${it.key}`, channel: it.channel as "EMAIL" | "SMS" | "PUSH", segment: "ALL", storeId: it.plan.storeId, message: it.text } });
+        await db.studioItem.update({ where: { id: it.id }, data: { campaignId: c.id } });
+        await sendCampaign(c.id, SCHEDULER, now);
+      } else {
+        if (!postizConnected()) throw new StudioError("Postiz isn't connected any more: post it by hand");
+        channels ??= await socialChannels();
+        if (!channels.length) throw new StudioError("No social accounts are connected in Postiz");
+        const data = await cardJpeg(it.card as Card, "portrait");
+        const postizIds = await publishSocial({ content: it.text, short: it.short, picture: { file: { data, name: `${it.key}.jpg`, type: "image/jpeg" } }, channels, mode: "now", at: now });
+        const post = await db.socialPost.create({
+          data: { content: it.text, image: null, channels: channels.map((c) => `${SOCIAL_NETWORKS[c.identifier].label} · ${c.name}`), mode: "now", postizIds, createdBy: "Studio" },
+        });
+        await db.studioItem.update({ where: { id: it.id }, data: { socialPostId: post.id } });
+      }
+      done.released++;
+    } catch (e) {
+      await fail(e instanceof Error ? e.message : String(e));
+      done.failed++;
+    }
+  }
+  if (done.released || done.failed) await audit(db, SCHEDULER, "studio.release", { data: done });
+  return done;
+}
+
+/** Takes a queued post back to draft: before its release, or a member message still held for its send window. */
 export async function unschedule(id: string, actor: Actor) {
-  const it = await db.studioItem.findUnique({ where: { id }, include: { campaign: { select: { status: true } }, socialPost: { select: { postizIds: true } } } });
+  const it = await db.studioItem.findUnique({ where: { id }, include: { campaign: { select: { status: true } } } });
   if (!it || it.status !== "SCHEDULED") throw new StudioError("Only a scheduled post can be taken back");
-  if (it.campaign?.status === "SENT") throw new StudioError("It has already gone out");
+  if (it.releasedAt && !(it.campaign && it.campaign.status === "SCHEDULED")) throw new StudioError(it.socialPostId ? "It has gone to Postiz: delete it there" : "It has already gone out");
   if (it.campaignId) await db.campaign.update({ where: { id: it.campaignId }, data: { status: "CANCELLED", scheduledAt: null } });
-  for (const pid of it.socialPost?.postizIds ?? []) await deletePostiz(pid);
-  await db.studioItem.update({ where: { id }, data: { status: "DRAFT", approvedBy: null, campaignId: null, socialPostId: null } });
+  await db.studioItem.update({ where: { id }, data: { status: "DRAFT", approvedBy: null, campaignId: null, releasedAt: null } });
   await audit(db, actor, "studio.unschedule", { entity: "StudioItem", entityId: id, data: { key: it.key, channel: it.channel } });
 }
 

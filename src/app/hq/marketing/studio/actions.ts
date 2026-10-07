@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/server/db";
 import { guard, DENIED, fail, done, flashTo, type ActionState } from "@/server/hq/guard";
 import { opt, parseLocal, str } from "@/server/hq/form";
-import { approveItems, createLaunch, createPlan, itemFlags, markPosted, saveItem, scheduleApproved, skipItem, StudioError, unschedule } from "@/server/studio";
+import { approveItems, createLaunch, createPlan, itemFlags, markPosted, saveItem, scheduleApproved, setPaused, skipItem, StudioError, unschedule } from "@/server/studio";
 import { aiReady, suggestRewrite } from "@/server/studio-ai";
 import { CARD_TEMPLATES, screenDraft, type Card, type CardTemplate, type StudioChannel } from "@/lib/studio";
 import { SOCIAL_IMAGES } from "@/lib/social";
@@ -55,16 +55,24 @@ export async function scheduleStudio(planId: string, _: ActionState): Promise<Ac
   if (!g) return DENIED;
   let r;
   try {
-    r = await scheduleApproved(planId, g.user.name, g.actor);
+    r = await scheduleApproved(planId, g.actor);
   } catch (e) {
     return failed(e);
   }
   revalidatePath(path(planId));
-  revalidatePath("/hq/marketing");
-  const parts = [r.social && `${plural(r.social, "social post")} scheduled in Postiz`, r.campaigns && `${plural(r.campaigns, "member message")} scheduled`].filter(Boolean);
-  const tail = [r.late && `${plural(r.late, "post")} too soon to schedule: move ${r.late === 1 ? "it" : "them"} later`, r.failed && `${plural(r.failed, "post")} failed (see why)`].filter(Boolean);
-  if (!parts.length && !tail.length) return done("Nothing new to schedule. Posts made by hand stay in the list until you mark them posted.");
-  return (r.failed ? fail : done)([parts.join(" and "), ...tail].filter(Boolean).join(". ") + ".");
+  const queued = r.social + r.campaigns;
+  const late = r.late ? ` ${plural(r.late, "post")} too soon to queue: give ${r.late === 1 ? "it" : "them"} a later time.` : "";
+  if (!queued) return (r.late ? fail : done)(`Nothing new to queue.${late} Posts made by hand stay in the list until you mark them posted.`);
+  return done(`${plural(queued, "post")} queued: each is released at its time (the scheduler runs every 15 minutes). Pause the campaign to hold them.${late}`);
+}
+
+export async function pauseStudio(planId: string, paused: boolean, _: ActionState): Promise<ActionState> {
+  const g = await guard("network");
+  if (!g) return DENIED;
+  await setPaused(planId, paused, g.actor);
+  revalidatePath(path(planId));
+  revalidatePath("/hq/marketing/studio");
+  return done(paused ? "Paused: nothing more goes out until you resume it." : "Resumed: queued posts go out at their times.");
 }
 
 export async function saveStudioItem(itemId: string, _: ActionState, fd: FormData): Promise<ActionState> {

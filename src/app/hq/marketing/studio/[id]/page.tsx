@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/form";
 import { ActionForm, SubmitButton } from "@/components/ui/action-form";
 import { CopyButton } from "@/components/trade/copy-button";
 import { MarketingTabs } from "../../tabs";
-import { approveStudio, postedStudioItem, saveStudioItem, scheduleStudio, skipStudioItem, suggestStudioRewrite, unscheduleStudioItem } from "../actions";
+import { approveStudio, pauseStudio, postedStudioItem, saveStudioItem, scheduleStudio, skipStudioItem, suggestStudioRewrite, unscheduleStudioItem } from "../actions";
 import { ItemEditor } from "./item-editor";
 
 export const metadata = { title: "Studio campaign" };
@@ -28,7 +28,7 @@ export const metadata = { title: "Studio campaign" };
 const STATUS: Record<string, [string, Tone]> = {
   DRAFT: ["Draft", "neutral"],
   APPROVED: ["Approved", "blue"],
-  SCHEDULED: ["Scheduled", "violet"],
+  SCHEDULED: ["Queued", "violet"],
   POSTED: ["Out", "green"],
   FAILED: ["Failed", "red"],
   SKIPPED: ["Left out", "neutral"],
@@ -52,7 +52,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
       <PageHeader
         overline="Studio"
         title={plan.name}
-        description={`Day T (${pb?.anchor.toLowerCase() ?? "the day"}): ${fmtDate(`${plan.anchor}T10:00:00Z`)}. ${plural(plan.items.length, "post")}: ${by("POSTED")} out, ${by("SCHEDULED")} scheduled, ${by("APPROVED")} approved, ${by("DRAFT")} drafts${by("FAILED") ? `, ${by("FAILED")} failed` : ""}.`}
+        description={`Day T (${pb?.anchor.toLowerCase() ?? "the day"}): ${fmtDate(`${plan.anchor}T10:00:00Z`)}. ${plural(plan.items.length, "post")}: ${by("POSTED")} out, ${by("SCHEDULED")} queued, ${by("APPROVED")} approved, ${by("DRAFT")} drafts${by("FAILED") ? `, ${by("FAILED")} failed` : ""}.`}
         actions={
           <ButtonLink href="/hq/marketing/studio" variant="outline" size="sm">
             All campaigns
@@ -69,11 +69,22 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
             </SubmitButton>
           </ActionForm>
           <ActionForm action={scheduleStudio.bind(null, plan.id)} notices="bottom">
-            <SubmitButton pendingLabel="Scheduling…">Schedule what&apos;s approved</SubmitButton>
+            <SubmitButton pendingLabel="Queuing…">Schedule what&apos;s approved</SubmitButton>
+          </ActionForm>
+          <ActionForm action={pauseStudio.bind(null, plan.id, !plan.paused)} notices="bottom">
+            <SubmitButton variant="outline" pendingLabel="Saving…">
+              {plan.paused ? "Resume releases" : "Pause releases"}
+            </SubmitButton>
           </ActionForm>
         </div>
       )}
+      {plan.paused && (
+        <Notice tone="warn" title="Paused" className="mb-5">
+          Nothing more in this campaign goes out until it&apos;s resumed. A queued post more than six hours past its time when you resume isn&apos;t sent: it waits for a new time.
+        </Notice>
+      )}
       <Notice tone="info" className="mb-5">
+        Approved posts wait here until their time: the scheduler releases each one then (it runs every 15 minutes), so you can pause the whole campaign or take a post back until the moment it goes.{" "}
         {social ? "Social posts go to Postiz with their card." : "Postiz isn't connected, so social posts are made by hand like WhatsApp and Google: copy the words, download the card, then mark it posted."} Email, SMS and push go
         to {plan.store ? `${plan.store.name}'s` : "all"} members who said yes to that channel, inside the legal send times. WhatsApp Channel and Google posts are always made by hand: their rules don&apos;t allow a cannabis brand&apos;s posts through an API.
       </Notice>
@@ -89,7 +100,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                 const card = it.card as Card | null;
                 const flags = it.status === "DRAFT" ? itemFlags(it) : [];
                 const hand = STUDIO_CHANNELS[channel].hand || (channel === "SOCIAL" && !social);
-                const [label, tone] = STATUS[it.status];
+                const [label, tone] = it.status === "SCHEDULED" && it.releasedAt ? (["Released", "violet"] as const) : STATUS[it.status];
                 const v = it.updatedAt.getTime();
                 return (
                   <Panel key={it.id} className="flex flex-col gap-4 p-4 sm:flex-row" id={`p-${it.key}`}>
@@ -148,7 +159,7 @@ export default async function StudioPlanPage({ params, searchParams }: { params:
                               </ActionForm>
                             </>
                           )}
-                          {it.status === "SCHEDULED" && (
+                          {it.status === "SCHEDULED" && (!it.releasedAt || channel !== "SOCIAL") && (
                             <ActionForm action={unscheduleStudioItem.bind(null, it.id)} notices="bottom">
                               <SubmitButton size="sm" variant="outline">
                                 Take back

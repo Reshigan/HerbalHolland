@@ -4,7 +4,7 @@
 // owner) → new product, variants, ranging → catalogue import (template → preview → import) → batch lab results, quarantine/release → DC orders (approve + ship,
 // reject, cancel) → recall → compliance rules and licences → pricing → promotions → drops → events → campaigns
 // (reach for an interest audience, draft, schedule, send, cancel, do-not-contact import) → social (Postiz not
-// connected) → the Studio (a merch drop laid out, approved and scheduled, a post marked posted by hand, the QR maker)
+// connected) → the Studio (a merch drop laid out, approved and queued, paused and resumed, a post marked posted by hand, the QR maker)
 // → online orders (cancel, delivery settings) → a member's POPIA export and erasure → launch lock →
 // Rewards settings and My Deals → statements → team → announcements → reports centre (+ CSV) → trade (an application
 // whose licence HQ first doesn't accept and then verifies (approval waits for it), approved on account terms, an order placed for the account, picked and shipped short, the EFT recorded, the
@@ -872,7 +872,7 @@ try {
   await shot("social");
 
   // ── Campaign Studio ───────────────────────────────────────────────────────
-  step("Studio: lay out a merch drop, approve it, schedule members' messages; social and WhatsApp wait to be posted by hand");
+  step("Studio: lay out a merch drop, approve it, queue members' messages for release, pause and resume; social and WhatsApp wait to be posted by hand");
   const dayT = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Johannesburg" }).format(new Date(Date.now() + 9 * 86_400_000));
   await open("/hq/marketing/studio", page.getByRole("heading", { name: "New campaign" }));
   const nf = formWith("#playbook");
@@ -884,14 +884,19 @@ try {
   created.studioPlans.push(studioPlan.id);
   const drafts = await q(`select id, key, channel, status from "StudioItem" where "planId" = $1`, [studioPlan.id]);
   assert(drafts.length > 0 && drafts.every((i) => i.status === "DRAFT"), `${drafts.length} drafts laid out around day T (${dayT})`);
-  const cardRes = await page.request.get(`${BASE}/hq/marketing/studio/card/${drafts.find((i) => i.channel === "SOCIAL").id}?size=portrait`);
-  assert(cardRes.ok() && cardRes.headers()["content-type"] === "image/png", "a post's card renders in the brand's fonts on the server");
+  // Fetched from the page: the session cookie is Secure in a production build, which page.request won't send over http.
+  const cardRes = await page.evaluate(async (u) => { const r = await fetch(u); return { ok: r.ok, type: r.headers.get("content-type") }; }, `${BASE}/hq/marketing/studio/card/${drafts.find((i) => i.channel === "SOCIAL").id}?size=portrait`);
+  assert(cardRes.ok && cardRes.type === "image/png", "a post's card renders in the brand's fonts on the server");
   await hydrated(page.getByRole("button", { name: "Approve every post that passes" }));
   await act("studio.approveStudio (all)", () => page.getByRole("button", { name: "Approve every post that passes" }).click(), () => notice(/posts? approved/).waitFor());
-  await act("studio.scheduleStudio", () => page.getByRole("button", { name: "Schedule what's approved" }).click(), () => notice(/scheduled/).waitFor());
-  const planned = await q(`select i.key, i.channel, i.status, c.status as campaign, c."scheduledAt" from "StudioItem" i left join "Campaign" c on c.id = i."campaignId" where i."planId" = $1`, [studioPlan.id]);
+  await act("studio.scheduleStudio", () => page.getByRole("button", { name: "Schedule what's approved" }).click(), () => notice(/queued/).waitFor());
+  const planned = await q(`select i.key, i.channel, i.status, i."releasedAt", i."campaignId" from "StudioItem" i where i."planId" = $1`, [studioPlan.id]);
   const ownSends = planned.filter((i) => ["EMAIL", "SMS", "PUSH"].includes(i.channel));
-  assert(ownSends.length > 0 && ownSends.every((i) => i.status === "SCHEDULED" && i.campaign === "SCHEDULED"), `${ownSends.length} member messages scheduled as campaigns (consent, do-not-contact and send windows apply)`);
+  assert(ownSends.length > 0 && ownSends.every((i) => i.status === "SCHEDULED" && !i.releasedAt && !i.campaignId), `${ownSends.length} member messages queued in the platform; the scheduler releases each at its time`);
+  await act("studio.pauseStudio", () => page.getByRole("button", { name: "Pause releases" }).click(), () => notice("Paused: nothing more goes out").waitFor());
+  assert((await one(`select paused from "StudioPlan" where id = $1`, [studioPlan.id])).paused === true, "the campaign is paused: nothing is released while it is");
+  await act("studio.pauseStudio (resume)", () => page.getByRole("button", { name: "Resume releases" }).click(), () => notice("Resumed").waitFor());
+  assert((await one(`select paused from "StudioPlan" where id = $1`, [studioPlan.id])).paused === false, "and resumed");
   const byHand = planned.filter((i) => !["EMAIL", "SMS", "PUSH"].includes(i.channel));
   assert(byHand.every((i) => i.status === "APPROVED"), `${byHand.length} social and WhatsApp posts wait, approved, to be posted by hand (no Postiz here)`);
   const handPost = page.locator(`#p-${byHand[0].key}`);
@@ -900,8 +905,8 @@ try {
   assert((await one(`select status from "StudioItem" where "planId" = $1 and key = $2`, [studioPlan.id, byHand[0].key])).status === "POSTED", "a by-hand post is marked posted");
   await shot("studio");
   await open("/hq/marketing/studio/qr?kind=join&code=PTA01&tag=e2e-window", page.getByRole("img", { name: /QR code for/ }));
-  const svgRes = await page.request.get(`${BASE}/hq/marketing/studio/qr/svg?kind=join&code=PTA01&tag=e2e-window`);
-  assert(svgRes.ok() && (await svgRes.text()).includes("<svg") && (await page.getByText("/club/join?src=e2e-window&store=PTA01").count()) > 0, "QR maker: a tagged join link for a store, and its SVG for print");
+  const svg = await page.evaluate(async (u) => { const r = await fetch(u); return r.ok ? r.text() : ""; }, `${BASE}/hq/marketing/studio/qr/svg?kind=join&code=PTA01&tag=e2e-window`);
+  assert(svg.includes("<svg") && (await page.getByText("/club/join?src=e2e-window&store=PTA01").count()) > 0, "QR maker: a tagged join link for a store, and its SVG for print");
 
   // ── Online orders ─────────────────────────────────────────────────────────
   step("Online orders: cancel the fixture order (reason required); the member is told");
