@@ -573,7 +573,7 @@ export async function closeVatPeriod(companyId: string, period: string, actor: A
   return tx(async (t) => {
     const company = await t.company.findUniqueOrThrow({ where: { id: companyId }, select: COMPANY });
     if (!company.vatNumber) throw new LedgerError(`${company.name} isn't a VAT vendor, so there's no VAT period to close`);
-    if (!company.vatCategory) throw new LedgerError("Set the company's VAT category (A, B or C) in the books settings first");
+    if (!company.vatCategory) throw new LedgerError("Set the company's VAT category in the books settings first");
     const p = vatPeriodOf(period, company.vatCategory);
     if (p.to >= thisMonth(now)) throw new LedgerError(`The VAT period ${rangeLabel(p)} isn't over yet — close it after ${monthEndLabel(p.to)}`);
     const sourceId = vatSourceId(companyId, p);

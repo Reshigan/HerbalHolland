@@ -3,7 +3,7 @@
 ## Shape: a modular monolith
 
 One Next.js 16 application, one PostgreSQL database, one codebase. Every surface — storefront, Herbal Holland Rewards, POS,
-store back office, HQ console, reports, menu boards — shares the same domain layer, so a sale, a stock movement or a
+store back office, HQ console, the books, the trade portal, reports, menu boards — shares the same domain layer, so a sale, a stock movement or a
 loyalty point means exactly the same thing everywhere.
 
 ```
@@ -14,9 +14,10 @@ src/
   server/       Domain services (server-only): db, auth, scope, settings, audit, inventory, pricing, sales,
                 orders, stock-orders, replenishment, finance, loyalty, customers, compliance, marketing,
                 messaging, email, invoices, payments, dashboard, support, returns, reviews, uploads, reports/*, today, staff-push, supplier-invoices,
-                store-tasks, exports (scheduled CSV exports)
+                store-tasks, exports (scheduled CSV exports), banking, loss, commission, storage, leads, alerts, jobs,
+                ledger/* (the books: posting core, sources, bank, checks, reports), trade/* (wholesale)
   components/   Design system: ui/*, charts/*, brand/*, product/*, admin/* (+ per-surface folders)
-  app/          Routes: (shop), club, pos, store/[code], hq, menu, invoice, batch, api/*
+  app/          Routes: (shop), club, pos, store/[code], hq, books, trade, menu, invoice, batch, api/*
 prisma/         schema.prisma, seed.ts (+ seed-data.ts)
 ```
 
@@ -68,8 +69,10 @@ sync are written to the audit log rather than rejecting a sale that already happ
 **Online order:** checkout prices with the national online price, checks compliance for the fulfilment channel, and
 routes (`src/lib/routing.ts`): click & collect → the chosen store if it has everything; same-day → nearest capable store
 within 30 km; courier → a DC, else ship-from-store. Open orders reserve stock (available = on hand − open orders).
-Handover (collect) or dispatch (delivery) posts the order as an ONLINE sale **at the fulfilling store**, which is the
-merchant of record; HQ's commission and the online takings it collected are settled on the franchise statement.
+Handover (collect) or dispatch (delivery) posts the order as an ONLINE sale **at the fulfilling store**, whose company
+issues the tax invoice. The payment is collected through HQ's gateway account (Vantax (Pty) Ltd is the merchant there:
+[INTEGRATIONS.md](INTEGRATIONS.md)); HQ's commission and the online takings it collected are settled on the franchise
+statement.
 
 **Purchasing:** stores order from their DC (wholesale) or from another store (network). Shipping moves batches out FEFO;
 receiving books the same batches in at the agreed cost; discrepancies are kept; the tax invoice is emailed.
@@ -204,7 +207,7 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
 | Concern | Approach |
 |---|---|
 | Reporting load | Daily rollups (`DailyStoreStat`, `DailyVariantStat`) are incremented inside the posting transaction with `INSERT … ON CONFLICT DO UPDATE`, so network dashboards and most reports never scan raw sales. Raw queries are always bounded by store(s) and dates. A sale rolls up under its channel — `POS`, `ONLINE`, or `WHOLESALE` for trade sales (the trade portal's orders, fulfilled by a DC or collected at a store, and trade sales rung up at a till) — with each tender in its own column: `accountCents` holds trade sales on account (invoiced on HQ's trade ledger, not money), so finance derives money taken (`moneyCents`) and what HQ collected for a store (`hqCollectedCents` = online, vouchers, trade) from the same rows (`src/server/finance.ts`). The trade reports — sales by account, product and month, and the FIFO aged balances (`src/lib/trade-ageing.ts`) — read `Sale` and `TradeLedgerEntry` directly: trade volume is a fraction of retail and the queries stay bounded by stores and dates. `DailyVariantStat` has no channel column (product figures are per store and day across channels). |
-| Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; partition them by month (Postgres declarative partitioning) once they pass ~100M rows. `MessageLog` is the exception today — it indexes only `campaignId` and `customerId` — so the message log screen (HQ → Messages, always date-bounded) needs `@@index([createdAt])` and `@@index([channel, status, createdAt])` added in a migration before the table passes a few million rows. |
+| Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; partition them by month (Postgres declarative partitioning) once they pass ~100M rows. |
 | Read traffic | Stateless app servers scale horizontally; send reports and the menu boards to a read replica. |
 | Hot rows | Stock rows are per store × SKU × batch; loyalty balances per customer; rollup rows per store × day — contention stays local to one store. Counters are only used for low-volume sequences (POs, members). |
 | Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily`, `/api/cron/staff-push`, `/api/cron/operations` — `src/server/jobs.ts`), statement emails, invoice emails, staff pushes and scheduled exports run outside the request path; at scale move them to a Postgres-backed queue (e.g. pg-boss/Graphile Worker) or SQS with a worker process built from the same codebase. |
@@ -250,8 +253,8 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   then the stock (`src/server/locks.ts`, always that order) and re-check patient grams, drop limits, welcome gifts and
   promotion caps, and the last unit, under those locks. Gateway webhooks are de-duplicated by event id
   (`PaymentEvent`); a payment that arrives for a cancelled order goes to `payment.review`. Cron jobs run single-flight.
-- Offline till sales are accepted only from the last 7 days; their prices, points overdraws and anything they couldn't
-  check are audited and fed to the `OFFLINE_VARIANCE` loss rule. A sale already paid when a limit trips posts and is
+- Offline till sales keep the time they were rung up when it's within the last 7 days (older ones are dated when they
+  arrive); their prices, points overdraws and anything they couldn't check are audited and fed to the `OFFLINE_VARIANCE` loss rule. A sale already paid when a limit trips posts and is
   flagged (`drop.limit_after_payment`, `promotion.after_payment`, `offer.used_after_payment`) rather than leaving the
   customer charged without a sale.
 - Scope: back-office pages outside the person's stores (or region) show a not-found inside their own shell; network
@@ -272,9 +275,11 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   days and webhook receipts after 90.
 - Dependencies: `npm audit` clean; patched transitive versions pinned in `package.json` `overrides`.
 
-## Hosting (recommended)
+## Hosting
 
-South African region for latency and POPIA s72 simplicity: AWS af-south-1 (Cape Town) or Azure South Africa North.
-Containers (the provided Dockerfile builds a standalone Next.js server) behind a load balancer; managed Postgres with
-PITR backups and a read replica; SMTP via an SA-region email service; object storage for patient authorisation scans and
-COA PDFs; a scheduler hitting the cron endpoints. See [RUNBOOK.md](RUNBOOK.md).
+Our own server in South Africa runs the app (the Dockerfile's standalone Next.js server, `docker-compose.prod.yml`)
+and Postgres 16 (WAL archiving and nightly encrypted dumps); Cloudflare sits in front through a tunnel (DNS, TLS, WAF,
+static caching), so the server has no open inbound ports; files and backups go to Cloudflare R2 in the EU
+jurisdiction (a cross-border transfer recorded in the POPIA register); a cron on the server calls the job endpoints.
+When one server isn't enough: more app containers behind the tunnel (the app is stateless), and a read replica for
+reports and menu boards. Step by step: [RUNBOOK.md](RUNBOOK.md#first-deploy).

@@ -1,16 +1,17 @@
 import type { Instrumentation } from "next";
 
-// Server start-up checks (Node runtime, production): the server refuses to start without a real signing key.
+// Server start-up checks (Node runtime, production; not while building): without a real signing key, or a real
+// deployment without the settings its links and jobs need (@/lib/env-check), the server answers every request with 500
+// and logs why.
 export async function register() {
-  if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NODE_ENV !== "production") return;
+  if (process.env.NEXT_RUNTIME !== "nodejs" || process.env.NODE_ENV !== "production" || process.env.NEXT_PHASE === "phase-production-build") return;
   const { secretProblem } = await import("./server/secret");
   const why = secretProblem();
   if (why) throw new Error(`${why} — set it to 32 or more random characters (openssl rand -base64 48) and start again`);
-  if (process.env.DEMO_MODE !== "true") return;
-  // Demo sign-ins next to live payment keys means real money behind a door anyone can open: refuse, don't warn.
-  if ((process.env.YOCO_SECRET_KEY ?? "").startsWith("sk_live_") || process.env.PEACH_ENV === "live")
-    throw new Error("DEMO_MODE is on with live payment keys — turn DEMO_MODE off (anyone could sign in as any staff member) and start again");
-  console.warn("[security] DEMO_MODE is on: anyone can sign in as any staff member and see sign-in codes. Turn it off before real trading.");
+  const { envProblems } = await import("./lib/env-check");
+  const { fatal, warn } = envProblems(process.env);
+  for (const w of warn) console.warn(`[config] ${w}`);
+  if (fatal.length) throw new Error(`Not starting: ${fatal.join(". ")}`);
 }
 
 // Every server error reaches the log, and the ops inbox when ALERT_EMAIL is set (throttled): @/server/alerts.

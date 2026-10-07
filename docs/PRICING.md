@@ -29,8 +29,9 @@ Evaluated per line, in this order:
 Each line reports the rule that set its price (e.g. "Bloom Rewards −7%", "Rewards deal", "Volume pricing (10+)",
 "Near-expiry −20%"), shown on receipts and in carts.
 
-**Incentive exclusion:** when a line is excluded from incentives (licensed medicines in MEDICAL mode — Medicines Act
-s18A), steps 4–6 are skipped.
+**Incentive exclusion:** when a line is excluded from incentives (Medicines Act s18A: licensed medicines in MEDICAL
+mode, and the classes HQ lists in `noIncentives`, by default CBD supplements, which are Schedule 0 complementary
+medicines), steps 4–6 are skipped.
 
 ## 2. Promotions (`applyPromotions`)
 
@@ -38,8 +39,8 @@ s18A), steps 4–6 are skipped.
 |---|---|---|
 | `PERCENT` | 15% off apparel & accessories | `value` = %, `categoryIds` / `productIds` |
 | `FIXED` | R50 off orders over R500 (untargeted) · R20 off each tray (targeted) | `value` = cents, `minSpendCents` |
-| `MULTIPLIER` | Double Points Fridays | `value` = ×100, `days` |
-| `BUY_X_GET_Y` | Buy 2 get 1 free · tray + free papers · spend R600 get the grinder · papers 50% off with flower | `buyQty`, `getQty`, `rewardPercent`, `reward*Ids`, `minSpendCents` |
+| `MULTIPLIER` | Double points on Fridays | `value` = ×100, `days` |
+| `BUY_X_GET_Y` | Buy 2 get 1 free · tray + free papers · spend R600 get the tote · papers 50% off with a tray | `buyQty`, `getQty`, `rewardPercent`, `reward*Ids`, `minSpendCents` |
 | `MULTIBUY` | Any 2 CBD wellness for R800 | `buyQty`, `value` = bundle price |
 
 Common fields: `code` (promo code), `channels` (POS/ONLINE), `storeIds` (empty = network; store-owned promos set
@@ -55,9 +56,9 @@ Common fields: `code` (promo code), `channels` (POS/ONLINE), `storeIds` (empty =
 
 Lines excluded from incentives neither receive deals nor count towards thresholds.
 
-**Suggestions:** when a deal is close but not triggered ("add 1 more pre-roll", "spend R120 more to unlock the
-grinder", "papers are 50% off with your flower — add them"), the engine returns `suggestions` that the POS and web shop
-show as one-tap prompts.
+**Suggestions:** when a deal is close but not triggered ("add 1 more tea", "spend R120 more to unlock the tote",
+"papers are 50% off with your tray: add them"), the engine returns `suggestions` that the POS and web shop show as
+one-tap prompts. Medicines never trigger or receive a deal, so they never appear in a suggestion.
 
 ## 3. VAT
 

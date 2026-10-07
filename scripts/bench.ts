@@ -77,7 +77,11 @@ async function main() {
   const franchisees = await db.ledgerAccount.findFirst({ where: { companyId: hq.id, key: "franchisees" }, select: { id: true } });
   if (franchisees) await time("General ledger: HQ's franchisee accounts, a page", () => accountLedger(hq.id, franchisees.id, { from: prev, to: prev }));
 
-  if (process.argv.includes("--write")) await postingLoad(arg("sales", 400), arg("tills", 20));
+  if (process.argv.includes("--write")) {
+    // Real sales: only on a database the demo seed made (prisma/seed.ts leaves this marker).
+    if (!(await db.setting.count({ where: { key: "demo.seeded" } }))) throw new Error("--write creates real sales: run it only against a seeded demo database");
+    await postingLoad(arg("sales", 400), arg("tills", 20));
+  }
 }
 
 /** Peak hour: many tills posting card sales concurrently (row locks, rollup upserts, loyalty all included). */

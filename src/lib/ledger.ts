@@ -176,23 +176,29 @@ export function fiscalYearEnd(period: string, yearEndMonth: number) {
 /** First month of the financial year ending `fyEnd`. */
 export const fiscalYearStart = (fyEnd: string) => addMonths(fyEnd, -11);
 
-/**
- * SARS VAT categories: A files two-monthly for periods ending in odd months (Jan, Mar, …), B two-monthly ending in
- * even months (Feb, Apr, …), C monthly. Returns the period containing `period` as its first and last month.
- */
+/** SARS VAT categories: how many months a period runs and a month one ends in. E (annual) doesn't apply to retailers. */
+const VAT_CYCLES: Record<string, { months: number; endsIn: number }> = {
+  A: { months: 2, endsIn: 1 }, // two-monthly, ending Jan, Mar, May, Jul, Sep, Nov
+  B: { months: 2, endsIn: 2 }, // two-monthly, ending Feb, Apr, Jun, Aug, Oct, Dec
+  C: { months: 1, endsIn: 1 }, // monthly
+  D: { months: 6, endsIn: 2 }, // six-monthly, ending Feb and Aug
+  F: { months: 4, endsIn: 2 }, // four-monthly, ending Feb, Jun, Oct
+};
+
+/** The SARS VAT period (first and last month) containing `period` for the category; unknown categories file monthly. */
 export function vatPeriodOf(period: string, category: string) {
-  if (category === "C") return { from: period, to: period };
+  const c = VAT_CYCLES[category] ?? VAT_CYCLES.C;
   const m = Number(period.slice(5, 7));
-  const endsOdd = category === "A";
-  const isEnd = endsOdd ? m % 2 === 1 : m % 2 === 0;
-  const to = isEnd ? period : addMonths(period, 1);
-  return { from: addMonths(to, -1), to };
+  const to = addMonths(period, (((c.endsIn - m) % c.months) + c.months) % c.months);
+  return { from: addMonths(to, 1 - c.months), to };
 }
 
 export const VAT_CATEGORIES = [
-  { key: "A", label: "Category A — every two months, ending Jan, Mar, May, Jul, Sep, Nov" },
-  { key: "B", label: "Category B — every two months, ending Feb, Apr, Jun, Aug, Oct, Dec" },
-  { key: "C", label: "Category C — monthly" },
+  { key: "A", label: "Category A: every two months, ending Jan, Mar, May, Jul, Sep, Nov" },
+  { key: "B", label: "Category B: every two months, ending Feb, Apr, Jun, Aug, Oct, Dec" },
+  { key: "C", label: "Category C: monthly" },
+  { key: "D", label: "Category D: every six months, ending Feb and Aug" },
+  { key: "F", label: "Category F: every four months, ending Feb, Jun, Oct" },
 ] as const;
 
 /** Supplier names as a party id: trimmed, single-spaced, lower case (so "ACME (Pty) Ltd " and "acme (pty) ltd" agree). */

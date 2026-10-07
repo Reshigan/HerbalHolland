@@ -6,9 +6,9 @@
 |---|---|---|---|
 | Database | Postgres 16 (`docker compose up db` or local cluster) | Postgres on the staging server | Postgres 16 on our own server in South Africa, WAL archiving + nightly dumps |
 | Files (banking slips) | `.data/uploads` on disk | R2 bucket `…-staging` | Cloudflare R2 bucket (EU jurisdiction), or `UPLOAD_DIR` on the server |
-| Data | `npm run db:seed` demo network | Anonymised copy or seed | Real — never seed (the seed truncates every table and refuses to run with `NODE_ENV=production` unless `--force`) |
-| `DEMO_MODE` | true | true (clearly labelled) | **false** (the server warns at start-up when it's on) |
-| `SESSION_SECRET` | any | 32+ random characters | 32+ random characters (`openssl rand -base64 48`): a production server won't start without one |
+| Data | `npm run db:seed` demo network | Anonymised copy or seed | Real — never seed (the seed truncates every table, so it refuses a database with users it didn't create itself unless given `--wipe=<database name>`, and refuses `NODE_ENV=production`) |
+| `DEMO_MODE` | true | true (clearly labelled) | **false**. With it off, a production server won't serve (every request answers 500 and the log says why) without an https `APP_URL` and a 32+ character `CRON_SECRET`, and warns about missing email, alerts, messaging and file storage; with it on, it refuses live payment keys the same way |
+| `SESSION_SECRET` | any | 32+ random characters | 32+ random characters (`openssl rand -base64 48`): a production server won't serve without one |
 
 ## First deploy
 
@@ -18,8 +18,14 @@ that way: the app trusts Cloudflare's `cf-connecting-ip` for its per-connection 
 but the tunnel can reach it. Files go to Cloudflare R2. The app itself doesn't run on Cloudflare Workers (it's a Node server with Postgres, SMTP and long
 reports) and Postgres can't live on Cloudflare.
 
-1. Server: Docker + Postgres 16 (or `docker compose up -d db`), a `cloudflared` tunnel to `http://localhost:3000`, and
-   the environment variables in [INTEGRATIONS.md](INTEGRATIONS.md#environment-variables). Cloudflare: proxied DNS
+1. Server: Docker, Postgres 16 on the server itself (listening on 127.0.0.1 only), a `cloudflared` tunnel to
+   `http://localhost:3000`, and `/srv/herbal-holland/.env` made from `.env.example` with every production value
+   ([INTEGRATIONS.md](INTEGRATIONS.md#environment-variables)): `DEMO_MODE=false` from the start, `APP_URL` the shop's
+   https address, `SESSION_SECRET` (`openssl rand -base64 48`), `CRON_SECRET` (`openssl rand -hex 32`),
+   `DATABASE_URL=postgresql://…@127.0.0.1:5432/…` with a generated password. Never publish Postgres or the app on a
+   public interface: Docker's port rules bypass the host firewall. `docker-compose.prod.yml` uses the server's own
+   network, so the app listens on 127.0.0.1:3000 and reaches Postgres at 127.0.0.1; the plain `docker-compose.yml` is
+   a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: proxied DNS
    record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
    herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
    (`sites/herbalholland.com`: static pages plus `/api/enquiry`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
@@ -43,11 +49,16 @@ reports) and Postgres can't live on Cloudflare.
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
    Without them slips are stored on the server under `UPLOAD_DIR` (the image's `/data/uploads` volume) — include it in backups.
-3. Build the image: `docker build -t herbal-holland .`; run migrations: `docker compose run --rm migrate`.
-4. Start the app (`node server.js`, port 3000, behind the tunnel); health check `GET /api/health`.
-5. Create the first HQ admin: `docker compose run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"`
+3. From a checkout of the release on the server: `docker compose -f docker-compose.prod.yml build`, then the
+   migrations: `docker compose -f docker-compose.prod.yml run --rm migrate`.
+4. Start the app: `docker compose -f docker-compose.prod.yml up -d app` (restarts with the server; behind the
+   tunnel). `GET /api/health` is the liveness check (the container's own health check uses it); it should answer 200
+   and the log shows no `[config]` warnings you didn't expect.
+5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"`
    (the franchisor company too, if there's none yet). It prints a temporary password once; they choose their own at
-   first sign-in, and everyone after them is added from HQ → Team. Set `DEMO_MODE=false`.
+   first sign-in, and everyone after them is added from HQ → Team. Then HQ → Stores → the franchisor company: legal
+   name, registration and VAT numbers, address, phone, email and directors — they're printed on tax invoices, the
+   legal pages and emails.
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
 7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences); Catalogue: products, variants, batches with COAs
    (HQ → Catalogue → Import loads the range from a spreadsheet, with the warehouse's opening stock, after a dry run).
@@ -56,9 +67,19 @@ reports) and Postgres can't live on Cloudflare.
 8. Pair POS devices per store (`/pos/pair`), create staff with PINs, designate dispensers.
 9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min,
    `POST /api/cron/daily` at 02:00 SAST, `POST /api/cron/staff-push` every 5 min and `POST /api/cron/operations` at
-   03:00 SAST (see [Scheduled jobs](#scheduled-jobs-apicron)). Run it on the server itself (cron or a systemd timer
-   calling `http://localhost:3000`), not through Cloudflare: Cloudflare cuts requests at 100 s, and the daily job at
-   1,000 stores takes about 30 s for the loss-prevention rules alone.
+   03:00 SAST (see [Scheduled jobs](#scheduled-jobs-apicron)). Run it on the server itself, calling
+   `http://localhost:3000`, not through Cloudflare: Cloudflare cuts requests at 100 s, and the nightly books run at
+   1,000 stores takes about 2½ minutes. SAST is UTC+2 with no daylight saving, so in a UTC crontab
+   (`/etc/cron.d/herbal-holland`, the secret in a root-only file):
+   ```
+   */15 * * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/frequent   >/dev/null
+   */5  * * * *  root  curl -fsS -m 300  -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/staff-push >/dev/null
+   0    0 * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/daily      >/dev/null
+   0    1 * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/operations >/dev/null
+   ```
+   Check it works: run each line once by hand (a JSON summary, HTTP 200), then point an uptime monitor at
+   `GET /api/health/jobs`, which answers 503 when a job hasn't succeeded in time (a dead scheduler, a wrong
+   `CRON_SECRET`, or a step that keeps failing).
 
 ## Peach Payments go-live (online payments)
 
@@ -150,9 +171,15 @@ Vantax (Pty) Ltd if online) — see the acceptable-use note in INTEGRATIONS.md. 
 
 ## Releases
 
+- Before every release: a fresh dump (`pg_dump -Fc`) or a server snapshot. Migrations only go forward (there are no
+  down migrations): to undo one, restore the dump. Then `docker compose -f docker-compose.prod.yml build`,
+  `… run --rm migrate`, `… up -d app`.
 - Migrations (`prisma migrate deploy`) run before the new app version starts. Schema changes take table locks: apply
   them outside trading hours (after 22:00 SAST) — tills keep selling offline and sync afterwards. A load test showed a
-  migration during peak posting stalls tills behind the lock.
+  migration during peak posting stalls tills behind the lock. Once the tables hold real data: start hand-edited
+  migrations with `SET lock_timeout = '5s';` (a migration that can't get its lock fails fast instead of queueing every
+  till behind it), put `CREATE INDEX CONCURRENTLY` in a migration file of its own (it can't run inside a transaction),
+  and add a column with a default in two steps on the big tables (`Sale`, `SaleLine`, `StockMovement`, `JournalLine`).
 - Capacity (1,000-store dataset — 998 stores, 175k members, 425k sales — one app instance, 10 DB connections):
   POS posting p50 ≈ 170 ms, p95 ≈ 440 ms, ≈ 45 sales/s. `e2e/crawl.mjs` (every page as every role, production build):
   storefront ≈ 50–130 ms (home ≈ 90 ms, store finder ≈ 140 ms), HQ console and store back office p50 ≈ 60 ms.
@@ -283,7 +310,7 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 
 | When | Task | Where |
 |---|---|---|
-| Continuous | Health check, error rate, p95 latency, DB connections | Load balancer + APM |
+| Continuous | Liveness (`/api/health`), scheduler heartbeat (`/api/health/jobs`), error alerts (`ALERT_EMAIL`), disk and DB connections | Uptime monitor + server monitoring |
 | Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the list closes; drop alerts to watchers; email paid merch orders to the print partner | `/api/cron/frequent` |
 | Every 5 min | Staff push notifications: new online orders (polled — nothing hooks the checkout), loss alerts about other people, HQ updates that need acknowledging | `/api/cron/staff-push` |
 | Daily 03:00 | Staff push digests (lots entering the expiry window, cash due at the bank, low stock per store); scheduled report exports emailed as signed CSV links; pruning of old push-event keys and export files | `/api/cron/operations` |
@@ -337,9 +364,8 @@ homed at their stores. Filter by channel, status (sent / failed / suppressed —
 outside the CPA send window), kind (transactional / marketing), campaign, date and recipient (search by the full mobile
 number, email address or member number — the list shows recipients masked). Open a row for the detail drawer with the
 body as sent (`?msg=<id>` in the URL, so a link to a message can be shared with the team). The campaigns page and each
-campaign's delivery log link straight to it. The list is always bounded by date (the last 30 days unless you widen it).
-At network scale `MessageLog` wants an index on `createdAt` (and `channel, status, createdAt`) — see the schema note in
-[ARCHITECTURE.md](ARCHITECTURE.md) before the table passes a few million rows.
+campaign's delivery log link straight to it. The list is always bounded by date (the last 30 days unless you widen it), and `MessageLog` is indexed on `createdAt`
+and `channel, status, createdAt` for it.
 
 **Menu board (in-store TV).** Open `https://<app>/menu/<store slug>` (e.g. `/menu/hatfield`) in a kiosk browser on the
 TV or its stick — Chrome/Chromium `--kiosk --noerrdialogs --disable-session-crashed-bubble`, Android TV with Fully
@@ -587,11 +613,14 @@ the feature gets a checklist from **Start the opening checklist** on its page. A
 
 ## Incidents
 
-**Alerts.** Every server error is logged with `[error]` (method, path without its query string, route, digest and
-stack). With `ALERT_EMAIL` set (and `SMTP_URL`), it's also emailed there: one email per distinct error an hour, and
-no more than 20 an hour in all, so an outage can't flood the inbox (`src/server/alerts.ts`). The app can't report
-its own absence: add an external uptime check on `GET /api/health` (every minute, alert after two failures), which
-also catches the tunnel or the database being down.
+**Alerts.** Server errors are logged with `[error]` (method, path without its query string, route, digest and
+stack): page and route errors, unexpected errors behind the till API and the back-office, books and trade actions,
+and every failed step of a scheduled job. With `ALERT_EMAIL` set (and `SMTP_URL`), they're also emailed there,
+without email addresses or long numbers: one email per distinct error an hour, and no more than 20 an hour in all,
+so an outage can't flood the inbox (`src/server/alerts.ts`). Errors a person sees as a message (a wrong PIN, a field
+to fix) aren't alerts. The app can't report its own absence: add an external uptime check on `GET /api/health`
+(every minute, alert after two failures), which also catches the tunnel or the database being down, and one on
+`GET /api/health/jobs` (every 15 minutes), which fails when a scheduled job hasn't succeeded in time.
 
 **POS offline (power/network).** Tills keep selling cash and queue sales locally; card and PayShap are disabled until
 connectivity returns. Do not clear browser storage on a till with queued sales. Queued sales sync automatically
@@ -614,9 +643,12 @@ switches the webhook off: register it again (Yoco go-live, step 1).
 announcement requiring acknowledgement, affected customers are listed and notified. Stores quarantine stock and write it
 off with reason RECALL/DESTROYED (witnessed). Keep the recall report for SAHPRA.
 
-**Suspected data breach (POPIA s22).** Contain (revoke sessions: delete from `Session`; rotate `SESSION_SECRET`,
-provider keys), assess scope from `AuditLog`, notify the Information Regulator and affected people as soon as
-reasonably possible, document everything.
+**Suspected data breach (POPIA s22).** Contain: sign everyone out by deleting their rows from `Session` (sessions are
+random tokens stored hashed; changing `SESSION_SECRET` signs nobody out), and rotate the provider keys that may have
+leaked. Rotate `SESSION_SECRET` only if the key itself leaked, and know what that breaks: every signed link already
+sent stops working (tax-invoice, unsubscribe, export, share and reminder links), and the stored ID-number hashes stop
+matching, so the duplicate-ID check won't recognise existing members. Then assess scope from `AuditLog`, notify the
+Information Regulator and affected people as soon as reasonably possible, and document everything.
 
 **Wrong price or promotion live.** HQ → Pricing/Promotions → end or edit; tills pick up changes on the next bootstrap
 refresh; refunds via POS → Sales history.
@@ -624,8 +656,22 @@ refresh; refunds via POS → Sales history.
 ## Backups & recovery
 
 Postgres WAL archiving (point-in-time recovery ≥ 7 days) plus a nightly encrypted `pg_dump` copied off the server to
-R2 and kept 35 days; slips on disk (`UPLOAD_DIR`) are copied with it. Quarterly restore drill into staging. Target
-RPO 5 minutes, RTO 1 hour. The stock ledger and loyalty ledger are append-only, so balances can be
+R2 and kept 35 days; files on disk (when `S3_BUCKET` isn't set) are copied with it. Quarterly restore drill into
+staging. Target RPO 5 minutes, RTO 1 hour. On the server:
+
+- WAL: in `postgresql.conf`, `archive_mode = on` and
+  `archive_command = 'test ! -f /var/backups/pg/wal/%f && cp %p /var/backups/pg/wal/%f'`, plus a weekly base backup
+  (`pg_basebackup -D /var/backups/pg/base/$(date +%F) -Ft -z -X stream`); delete base backups and WAL older than the
+  oldest base backup you keep.
+- Nightly dump (cron, after the 02:00 jobs): `pg_dump -Fc "$DATABASE_URL" | gpg --batch --symmetric --cipher-algo
+  AES256 --passphrase-file /etc/herbal-holland/backup-passphrase -o /var/backups/pg/hh-$(date +%F).dump.gpg`, then copy it
+  to a separate R2 bucket for backups (EU jurisdiction, a lifecycle rule deleting objects after 35 days) with `rclone`
+  or the AWS CLI pointed at the R2 endpoint. Keep the passphrase off the server too: without it the dumps are useless.
+- Files on disk: the app's `uploads` volume (`docker volume ls`), e.g. `docker run --rm -v <volume>:/data:ro -v
+  /var/backups:/backup busybox tar czf /backup/uploads-$(date +%F).tgz -C /data .`, copied with the dump.
+- Restore: `gpg -d hh-….dump.gpg > hh.dump && pg_restore --no-owner -d <empty database> hh.dump`, then point
+  `DATABASE_URL` at it. The backups hold every member's details and patient authorisations: record the R2 copy as a
+  cross-border transfer in the POPIA register, like the files. The stock ledger and loyalty ledger are append-only, so balances can be
 rebuilt from movements if ever required (see the reconciliation queries in `prisma/seed.ts` comments / reports).
 
 ## Exceptions to review (HQ → Audit log)

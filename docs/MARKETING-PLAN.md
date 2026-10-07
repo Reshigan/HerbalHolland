@@ -1,14 +1,14 @@
 # Herbal Holland — marketing plan, October 2026 to November 2028
 
-> **Status: approved** (27 September 2026); the platform changes in §15 are built. The launch of our first two stores, **Hillcrest** (Upper
+> **Status: approved** (27 September 2026); the platform changes in §15 are built. The launch of our next two stores, **Hillcrest** (Upper
 > Highway, eThekwini) and **Hilton** (KZN Midlands), on **Tuesday 1 December 2026**, with the online shop selling
-> nationwide from now; then two years of marketing across South Africa. Builds on [STRATEGY.md](STRATEGY.md)
+> nationwide once it opens (Pietermaritzburg and Umhlanga already trade); then two years of marketing across South Africa. Builds on [STRATEGY.md](STRATEGY.md)
 > (positioning, Rewards, pricing) and runs inside the platform's rules ([COMPLIANCE.md](COMPLIANCE.md)).
 > Not legal advice: counsel signs off the copy bank (§7) and the event formats (§6.3) before launch.
 
 ## 0. The plan on one page
 
-**The idea: _Holland, meet the Hills._** Holland is famously flat. Both our first towns are hill towns: Hillcrest
+**The idea: _Holland, meet the Hills._** Holland is famously flat. Both our new towns are hill towns: Hillcrest
 looks over the Valley of a Thousand Hills, Hilton sits in the Midlands hills. The windmill comes to the hills. The
 endline stays: _Dutch heritage · African soil._
 
@@ -118,7 +118,7 @@ eight weeks of real data. Sales targets come from finance's store P&Ls, not from
 | **Culture and merch fans** — adults 18–40 | Something to belong to and wear | Instagram, friends | Drops, embroidered merch, members' evenings |
 | **Holidaymakers on the N3** — December, Easter, July | A reason to stop | Road trip, Google Maps | Merch and gifts, Rewards that work nationwide. Never anything about using and driving |
 | **Online, the rest of South Africa** | Trust and delivery | Search, referrals, email | Learn, merch, the Founding Members story |
-| **Future franchisees and investors** | Proof the model works | LinkedIn, business press, franchise events | Results from the first two stores (§11) |
+| **Future franchisees and investors** | Proof the model works | LinkedIn, business press, franchise events | Results from the stores (§11) |
 
 ## 5. The idea: _Holland, meet the Hills_
 
@@ -286,7 +286,7 @@ draft.
 
 | Date | Pillar | Picture | Caption |
 |---|---|---|---|
-| Thu 1 Oct | Brand | brand | Herbal Holland is open online, for adults 18+ anywhere in South Africa. Dutch heritage, African soil. Our first two stores open on 1 December in Hillcrest and Hilton. #HerbalHolland #HollandMeetsTheHills |
+| Thu 1 Oct | Brand | brand | Herbal Holland is open online, for adults 18+ anywhere in South Africa. Dutch heritage, African soil. Our next two stores open on 1 December in Hillcrest and Hilton. #HerbalHolland #HollandMeetsTheHills |
 | Fri 2 Oct | Rewards | brand | Founding Members: the first 2,026 people on our list get a numbered card and Sprout-tier savings for 14 months. Joining Herbal Holland Rewards is free, and every friend who joins with your link moves you up 250 places. Adults 18+. Link in bio. |
 | Sat 3 Oct | Brand | brand | Holland is famously flat. KwaZulu-Natal isn't. This December, the windmill comes to the hills. #HollandMeetsTheHills #KZN |
 | Mon 5 Oct | Learn | photo | New here? Start with three short reads: how our free Rewards club works, how to read a lab result, and what Schedule 0 on a label means. Plain English, no hype. Link in bio. |
@@ -737,8 +737,9 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
      code (`src/lib/sa.ts`) rather than an HQ setting: they're rare and gazetted weeks ahead.
    - **D · Merch notice.** HQ → Online orders → Settings → _Merch notice_ shows next to made-to-order merch on product
      pages, in the bag and at checkout. Set it in late November; clear it in January.
-   - **E · Only if counsel says s18A covers Schedule 0:** exclude chosen product classes from deals, points and member
-     prices. Not built.
+   - **E · Classes without incentives (s18A):** built. HQ → Compliance lists the classes kept out of deals, points and
+     member prices; CBD supplements (Schedule 0 complementary medicines) are on the list by default until counsel
+     clears them.
    - **Members, always:** the platform's own wording now says _member_ wherever it said customer; walk-ins stay
      _walk-ins_.
 3. **Loading the launch into the platform** (waiting for your store details and production access): launch settings; both stores as opening soon;
@@ -751,7 +752,7 @@ cost in HQ → Campaigns**, so return on spend shows up in the reports.
 - 4/20, health awareness days, sponsorship of sport (Comrades, Amashova, Midmar Mile), anything at or with schools
   (including the Hilton Arts Festival), stalls at family markets, religious and political moments, activist events.
 - Advertising licensed (THC) medicines in any form; selling on social; consumption or alcohol at our events.
-- Gift cards, automated journeys, a franchise enquiry page and lead tracking (later builds).
+- Automated journeys (a later build). Gift vouchers, the franchise enquiry form and lead tracking were built since.
 - Store P&L targets, media contracts, the creative production itself (this plan is the brief), new merch designs
   (the anniversary design is briefed in September 2027).
 - Running the adult-use campaign (it stays in the drawer).

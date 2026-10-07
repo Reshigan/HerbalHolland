@@ -1,4 +1,5 @@
-# Local production-like stack: Postgres + one-off migrate/seed + app.
+# Local production-like demo: Postgres + one-off migrate and demo seed + the app in demo mode. Not for the server: use
+# docker-compose.prod.yml there.
 #   SESSION_SECRET=$(openssl rand -base64 48) docker compose up --build
 services:
   db:
@@ -7,7 +8,7 @@ services:
       POSTGRES_USER: hh
       POSTGRES_PASSWORD: hh
       POSTGRES_DB: herbalholland
-    ports: ["5432:5432"]
+    ports: ["127.0.0.1:5432:5432"] # this machine only (Docker's port rules bypass the firewall)
     volumes: [pgdata:/var/lib/postgresql/data]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U hh -d herbalholland"]
@@ -18,6 +19,7 @@ services:
     build: { context: ., target: build }
     environment:
       DATABASE_URL: postgresql://hh:hh@db:5432/herbalholland
+      SEED: ${SEED:-true} # SEED=false docker compose up: no demo data
     command: sh -c "npx prisma migrate deploy && (test \"$$SEED\" = \"true\" && npx tsx prisma/seed.ts || true)"
     volumes: [uploads:/data/uploads] # the seed's demo deposit slip
     depends_on:
@@ -29,8 +31,8 @@ services:
       DATABASE_URL: postgresql://hh:hh@db:5432/herbalholland
       SESSION_SECRET: ${SESSION_SECRET:?set SESSION_SECRET to 32+ random characters (openssl rand -base64 48)}
       APP_URL: http://localhost:3000
-      DEMO_MODE: ${DEMO_MODE:-false} # DEMO_MODE=true docker compose up for one-click demo logins
-    ports: ["3000:3000"]
+      DEMO_MODE: ${DEMO_MODE:-true} # one-click demo logins (a production server refuses localhost links without it)
+    ports: ["127.0.0.1:3000:3000"]
     volumes: [uploads:/data/uploads] # banking slips (unless S3_BUCKET is set)
     depends_on:
       migrate: { condition: service_completed_successfully }

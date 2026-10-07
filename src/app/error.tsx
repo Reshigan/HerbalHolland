@@ -23,7 +23,7 @@ export default function Error({ error, retry }: { error: Error & { digest?: stri
           Go home
         </Link>
       </div>
-      {error.digest && <p className="tnum mt-10 font-mono text-xs text-ink-500">Reference {error.digest}</p>}
+      {error.digest && <p className="tnum mt-10 font-mono text-xs text-ink-450">Reference {error.digest}</p>}
     </main>
   );
 }

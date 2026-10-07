@@ -68,6 +68,7 @@ model Company {
   email       String?
   phone       String?
   address     String?
+  directors   String? // names of the directors, as the website must disclose them (ECTA s43)
   // Books (the company's general ledger): months up to this one are closed; VAT category A/B (two-monthly) or C
   // (monthly), null when not a VAT vendor; the financial year ends with this month (February is the SA default).
   booksLockedThrough String? // YYYY-MM
@@ -105,6 +106,7 @@ model Store {
   email         String?
   hours         Json?
   clickCollect  Boolean     @default(true)
+  payshapId     String? // the ShapID the store's bank issued; the till offers PayShap only when it's set
   sameDay       Boolean     @default(false)
   licences      RegClass[]  @default([]) // classes this store is licensed/permitted to sell
   licenceRef    String? // e.g. SAHPRA licence / permit numbers, printed on receipts
@@ -1271,6 +1273,15 @@ model Setting {
   updatedAt DateTime @updatedAt
 }
 
+/** The scheduler's heartbeat: when each job last started, last finished cleanly and last failed (/api/health reads it). */
+model JobRun {
+  job       String    @id
+  startedAt DateTime?
+  okAt      DateTime?
+  failedAt  DateTime?
+  error     String?
+}
+
 model Counter {
   key   String @id
   value Int    @default(0)
@@ -2200,6 +2211,7 @@ model Journal {
 
   @@unique([companyId, number])
   @@index([companyId, source, sourceId])
+  @@index([source, sourceId]) // posting looks a source's journals up without the company
   @@index([companyId, period])
   @@index([companyId, status])
 }
@@ -2221,6 +2233,8 @@ model JournalLine {
   @@index([journalId])
   @@index([companyId, accountId, period])
   @@index([companyId, accountId, partyId])
+  @@index([companyId, period])
+  @@index([accountId])
 }
 
 /// Running totals per company × account × store × month, kept in the posting transaction: reports at 1,000 stores read

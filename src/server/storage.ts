@@ -15,8 +15,9 @@ function bucket() {
 }
 
 const onDisk = (key: string) => {
-  const root = resolve(process.env.UPLOAD_DIR ?? ".data/uploads");
-  const file = resolve(root, key);
+  // turbopackIgnore: a path only known at run time, so the build mustn't trace (and ship) the whole project for it.
+  const root = resolve(/* turbopackIgnore: true */ process.env.UPLOAD_DIR ?? ".data/uploads");
+  const file = resolve(/* turbopackIgnore: true */ root, key);
   if (!file.startsWith(root + "/")) throw new Error("Bad storage key");
   return file;
 };

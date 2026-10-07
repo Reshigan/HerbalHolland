@@ -26,7 +26,7 @@ doesn't permit cannabis products and dispensaries. Describe the business honestl
 before taking live payments: Peach for Vantax (Pty) Ltd online, and Yoco for every store's account in store. Never
 mis-code the MCC. For reference: PayFast allows CBD only via EFT; Paystack bans drugs and paraphernalia.
 
-Env: `NEXT_PUBLIC_TAP_PROVIDER`; for Halo also `HALO_API_URL`, `HALO_API_KEY` and per-store merchant IDs (roadmap field).
+Env: `NEXT_PUBLIC_TAP_PROVIDER`; for Halo also `HALO_API_URL`, `HALO_API_KEY` and `HALO_MERCHANT_ID` (or a store's own `HALO_MERCHANT_ID_<STORECODE>`, which wins).
 
 ## Online payments — Peach Payments (chosen) and Yoco
 
@@ -383,18 +383,18 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `DATABASE_URL` | PostgreSQL connection |
 | `DATABASE_POOL_MAX` | Connections per app instance (default 10); keep instances × pool under the database's limit (or use PgBouncer) |
 | `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers |
-| `APP_URL` | Public base URL (links in emails) |
-| `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything |
+| `APP_URL` | The shop's public https address: every link in emails and texts, and the payment return URLs (a production server won't serve without it) |
+| `SITE_ENQUIRY_SECRET` | Shared with the herbalholland.com Worker (its `APP_ENQUIRY_SECRET`): lets it hand franchise enquiries to `POST /api/site/enquiries`, which files them as HQ → Franchise leads. Unset, the endpoint refuses everything. The Worker has its own secrets too: `IP_SALT` (keys the IP hashes behind its rate limits) and `NOTIFY_TO` (`sites/herbalholland.com/wrangler.jsonc`) |
 | `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
 | `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.co.za`; the franchisor company's email is shown on `/support`) |
-| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production** |
+| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen — **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
 | `SMTP_URL`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
 | `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
-| `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (default) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL`. Runtime environment only (see Card present) |
-| `HALO_API_URL`, `HALO_API_KEY` | Halo Dot tap on glass (`HALO_APPLINK`) |
+| `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (the default in demos and development) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL` (the default in production). Runtime environment only (see Card present) |
+| `HALO_API_URL`, `HALO_API_KEY`, `HALO_MERCHANT_ID` | Halo Dot tap on glass (`HALO_APPLINK`); `HALO_MERCHANT_ID_<STORECODE>` gives one store its own merchant id |
 | `ONLINE_GATEWAY` | Online payments: `SIMULATED` (default: demo pay page) \| `PEACH` (Peach Payments, chosen) \| `YOCO` |
 | `PEACH_ENV` | Peach Payments environment: `test` (default: the sandbox, `https://app.sandbox-next.peachpayments.com/api`) \| `live` (`https://app.next.peachpayments.com/api`) |
 | `PEACH_API_KEY` | Peach Orchestration secret API key (`snd_…` sandbox, `prd_…` live; Dashboard → Peach Orchestration), sent in the `api-key` header. Server only |
@@ -405,9 +405,10 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT` | Rewards app push (VAPID) |
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name (made-to-order merch); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
-| `CRON_SECRET` | Protects `/api/cron/*` |
-| `ALERT_EMAIL` | Ops inbox for server errors (by SMTP, throttled: one per distinct error an hour, at most 20 an hour); unset = errors are only logged |
-| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Banking slips in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
+| `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |
+| `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
+| `SUPPORT_EMAIL`, `FRANCHISE_EMAIL`, `TRADE_EMAIL` | Member support's address; where new franchise leads go (default `franchise@herbalholland.com`); where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |
+| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Uploaded files (banking slips, licence documents, photos, report exports) in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
 | `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image — mount a volume there) — back it up |
 | `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |
 | `WALLET_GOOGLE_ISSUER_ID`, `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | Google Wallet pass for the Rewards card; both, or the button stays hidden |

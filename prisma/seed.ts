@@ -99,11 +99,23 @@ function samplePdf(lines: [size: number, bold: boolean, text: string, grey: numb
   return new Uint8Array(Buffer.from(pdf, "latin1"));
 }
 
+/** Marks a database the seed made, so it can be seeded again; any other database with users is refused. */
+const SEED_MARK = "demo.seeded";
+
+/** Seeding deletes every table: run only on an empty database, one this seed made, or with --wipe=<database name>. */
+async function assertDemoDatabase() {
+  const [{ name }] = await db.$queryRaw<{ name: string }[]>`SELECT current_database() AS name`;
+  if (process.argv.includes(`--wipe=${name}`) || (await db.user.count()) === 0 || (await db.setting.count({ where: { key: SEED_MARK } }))) return;
+  throw new Error(`Refusing to seed "${name}": it holds data the demo seed didn't make, and seeding deletes everything. To wipe it anyway, add --wipe=${name}`);
+}
+
 async function main() {
   if (process.env.NODE_ENV === "production" && !process.argv.includes("--force")) throw new Error("Refusing to seed in production (pass --force)");
+  await assertDemoDatabase();
   console.log(`Seeding Herbal Holland demo network — ${DAYS} days to ${TODAY}`);
   const tables = await db.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%'`;
   await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
+  await db.setting.create({ data: { key: SEED_MARK, value: { at: new Date().toISOString() } } });
 
   // ── Network ─────────────────────────────────────────────────────────────
   const hq = { id: uid(), kind: "FRANCHISOR" as const, ...HQ_COMPANY, vatCategory: "B" };

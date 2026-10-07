@@ -95,6 +95,12 @@ describe("months, years and VAT periods", () => {
     expect(vatPeriodOf("2026-10", "A")).toEqual({ from: "2026-10", to: "2026-11" });
     expect(vatPeriodOf("2027-01", "A")).toEqual({ from: "2026-12", to: "2027-01" });
     expect(vatPeriodOf("2026-10", "C")).toEqual({ from: "2026-10", to: "2026-10" });
+    expect(vatPeriodOf("2026-10", "F")).toEqual({ from: "2026-07", to: "2026-10" });
+    expect(vatPeriodOf("2026-11", "F")).toEqual({ from: "2026-11", to: "2027-02" });
+    expect(vatPeriodOf("2027-02", "F")).toEqual({ from: "2026-11", to: "2027-02" });
+    expect(vatPeriodOf("2026-03", "F")).toEqual({ from: "2026-03", to: "2026-06" });
+    expect(vatPeriodOf("2026-09", "D")).toEqual({ from: "2026-09", to: "2027-02" });
+    expect(vatPeriodOf("2026-08", "D")).toEqual({ from: "2026-03", to: "2026-08" });
   });
 
   it("matches supplier names however they were typed", () => {

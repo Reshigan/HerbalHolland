@@ -431,6 +431,10 @@ The Business Messaging Policy was last updated 23 Sep 2026.
 
 ## 7. Accounting and SARS e-invoicing
 
+> **Superseded:** the platform now keeps the books itself, one ledger per company (HQ and every franchisee), so nothing
+> is exported to Sage or Xero ([RUNBOOK → Accounting](../RUNBOOK.md#accounting-the-books)). The research below is kept
+> for the record; the SARS e-invoicing notes still apply.
+
 ### Accounting platforms
 
 - **Xero (ZA):** list prices are Starter R450, Standard R795 and Premium R1,095 per month, with a promotion of 80% off for the first 3 months. **Yoco has integrated with Xero since May 2025.**
