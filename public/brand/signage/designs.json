@@ -1,0 +1,47 @@
+[
+ {
+  "key": "fascia-4800",
+  "name": "Fascia, 4,800 × 900 mm (street front)",
+  "w": 4800,
+  "h": 900,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Black aluminium composite panel (3 mm ACM). The frame is 40 mm Sunset LED neon flex; the Mark and lettering are built-up channel letters, 50 mm deep, Sunset acrylic faces, face-lit (warm white LEDs behind Sunset acrylic). Lit dusk to 22:00 on a timer."
+ },
+ {
+  "key": "fascia-2400",
+  "name": "Fascia, 2,400 × 600 mm (mall bulkhead, narrow fronts)",
+  "w": 2400,
+  "h": 600,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Black ACM panel. Frame, Mark and lettering in 10 mm flat-cut Sunset acrylic, pinned 20 mm off the panel and halo-lit (white LEDs behind). Check the centre's signage criteria first."
+ },
+ {
+  "key": "blade-600",
+  "name": "Projecting blade sign, Ø600 mm (double-sided)",
+  "w": 600,
+  "h": 600,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Round double-sided lightbox, 120 mm deep, black powder-coated, on a wall bracket at least 2,400 mm above the pavement. Faces: black-printed opal acrylic with the artwork left clear so it glows Sunset (or Sunset vinyl on opal). Same artwork both sides."
+ },
+ {
+  "key": "window-poster",
+  "name": "Window poster, 1,000 × 1,250 mm",
+  "w": 1000,
+  "h": 1250,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on the back of clear window film (or on a black foamboard panel hung 50 mm behind the glass). The window-poster frame: our oldest brand code, the store window itself."
+ },
+ {
+  "key": "door-vinyl",
+  "name": "Door vinyl (sample hours)",
+  "w": 420,
+  "h": 404,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Cut Sunset vinyl, applied to the outside of the door glass at eye level (centre 1,500 mm from the floor). One colour, no background."
+ }
+]
