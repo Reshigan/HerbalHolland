@@ -110,10 +110,10 @@ export const LAUNCH: Playbook[] = [
         key: "tee", day: 9, time: "19:00", channel: "SOCIAL",
         text: paras(
           "The Windmill Tee.",
-          "Black combed cotton, our windmill embroidered in Sunset orange on the chest, and our store-window poster printed across the back. It's made and in stock: online from the day our shop opens (coming soon), and in our stores when they open their doors.",
+          "Heavyweight black cotton in a men's and a ladies' fit, our windmill embroidered in Sunset orange on the chest, and our store-window poster printed across the back. It's made and in stock: online from the day our shop opens (coming soon), and in our stores when they open their doors.",
           "Get first access: link in bio. Adults 18+. #HerbalHolland",
         ),
-        short: "The Windmill Tee: black combed cotton, the windmill embroidered in Sunset orange on the chest, our store-window poster printed on the back. In stock: online from the day our shop opens, and in our stores. Get first access: link in bio. Adults 18+. #HerbalHolland",
+        short: "The Windmill Tee: heavyweight black cotton, the windmill embroidered in Sunset orange on the chest, our store-window poster printed on the back. In stock: online from the day our shop opens, and in our stores. Get first access: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "merch", image: "windmill-tee", headline: "The Windmill Tee", sub: "Embroidered on the chest, our window poster on the back. In stock." },
         brief: "Photo or 20-second Reel: two or three adults over 25 (signed releases) wearing the Windmill Tee outdoors in the hills, front and back; natural light, no products in shot.",
       },

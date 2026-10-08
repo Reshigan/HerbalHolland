@@ -25,22 +25,22 @@ const CHEST = { art: "mark-stitch", side: "front", technique: "Embroidery", wher
 
 export const MERCH: MerchItem[] = [
   {
-    slug: "windmill-tee", name: "Windmill Tee", blank: "Black combed-cotton tee", garment: "tee", colour: "black", hero: "back",
+    slug: "windmill-tee", name: "Windmill Tee", blank: "Black 220 g/m² combed ring-spun cotton tee (ladies' 200 g/m², fitted)", garment: "tee", colour: "black", hero: "back",
     prints: [CHEST, { art: "window-back", side: "back", technique: "DTF", where: "Centre back, 75 mm below the collar" }],
   },
   {
-    slug: "sunset-hoodie", name: "Sunset Hoodie", blank: "Orange 240 g fleece hoodie, closest to Sunset 500", garment: "hoodie", colour: "sunset", hero: "back",
+    slug: "sunset-hoodie", name: "Sunset Hoodie", blank: "Sunset-orange 380 g/m² brushed-back fleece hoodie (80/20 cotton/polyester), dyed to Sunset 500", garment: "hoodie", colour: "sunset", hero: "back",
     prints: [
       { art: "lockup-stitch", side: "front", technique: "Embroidery", where: "Left chest, 90 mm below the shoulder seam" },
       { art: "sunset-back", side: "back", technique: "DTF", where: "Centre back, 70 mm below the hood seam" },
     ],
   },
   {
-    slug: "heritage-crewneck", name: "Heritage Crewneck", blank: "Black fleece crewneck", garment: "crew", colour: "black", hero: "front",
+    slug: "heritage-crewneck", name: "Heritage Crewneck", blank: "Black 380 g/m² brushed-back fleece crewneck", garment: "crew", colour: "black", hero: "front",
     prints: [{ art: "heritage-stitch", side: "front", technique: "Embroidery", where: "Centre chest, 90 mm below the collar" }],
   },
   {
-    slug: "windmill-cap", name: "Windmill Cap", blank: "Black unstructured washed-cotton cap", garment: "cap", colour: "black", hero: "front",
+    slug: "windmill-cap", name: "Windmill Cap", blank: "Black six-panel unstructured washed-cotton twill cap, brass buckle", garment: "cap", colour: "black", hero: "front",
     prints: [{ art: "mark-stitch", side: "front", technique: "Embroidery", where: "Front panels, centred over the seam" }],
   },
   {
