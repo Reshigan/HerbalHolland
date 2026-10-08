@@ -1,0 +1,74 @@
+[
+ {
+  "key": "grinder-lid",
+  "name": "Grinder lid, 63 mm",
+  "w": 63,
+  "h": 63,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Laser-engraved into the anodised lid (the metal shows through); or pad-printed in Sunset"
+ },
+ {
+  "key": "grinder-band",
+  "name": "Grinder side band, 63 mm grinder",
+  "w": 190,
+  "h": 8,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Laser-engraved around the top chamber"
+ },
+ {
+  "key": "tray-large",
+  "name": "Rolling tray, large 180 × 280 mm",
+  "w": 180,
+  "h": 280,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on the black metal tray floor; the middle stays clear to work on"
+ },
+ {
+  "key": "tray-small",
+  "name": "Rolling tray, small 140 × 220 mm",
+  "w": 140,
+  "h": 220,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on the black metal tray floor"
+ },
+ {
+  "key": "papers-cover",
+  "name": "Papers booklet, king size slim (front and back)",
+  "w": 110,
+  "h": 92,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on black board in Sunset; the fold is the dashed line"
+ },
+ {
+  "key": "tips-cover",
+  "name": "Tips booklet, 60 × 30 mm",
+  "w": 60,
+  "h": 30,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on black board in Sunset"
+ },
+ {
+  "key": "lighter-wrap",
+  "name": "Lighter wrap, 24 × 60 mm",
+  "w": 24,
+  "h": 60,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Printed in black on a Sunset lighter body"
+ },
+ {
+  "key": "ashtray-centre",
+  "name": "Ashtray centre, 50 mm",
+  "w": 50,
+  "h": 50,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Fired-on ceramic decal in the centre of a black glazed ashtray"
+ }
+]
