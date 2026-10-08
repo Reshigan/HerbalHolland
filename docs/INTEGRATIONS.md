@@ -230,7 +230,7 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 | Channel | Use | Provider slot |
 |---|---|---|
 | SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER=smsportal`, **built** (REST v3 `BulkMessages`, Basic auth, ≤ 500 per call). Other gateways (Clickatell, BulkSMS) slot into `deliver()` in `messaging.ts` |
-| Email | Tax invoices, statements, campaigns | `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
+| Email | Tax invoices, statements, campaigns | Microsoft 365 through Graph (`MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`: an Entra app with `Mail.Send` application permission and admin consent, limited to the sending mailbox by an Exchange `ApplicationAccessPolicy`; sends as the address in `EMAIL_FROM`, wins over SMTP) or `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
 | App push | Rewards PWA: drop alerts, campaigns (consented) | Web Push, **built** (`web-push`, VAPID: `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`; generate keys with `npx web-push generate-vapid-keys`). Without keys pushes are only logged. iPhones need the app on the Home Screen (iOS 16.4+). When a browser rotates a subscription, the Rewards service worker re-subscribes and saves it (`/api/push/renew`); dead subscriptions are pruned on send |
 | WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products, so `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
 
@@ -463,7 +463,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen. It **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
-| `SMTP_URL`, `EMAIL_FROM` | Email |
+| `SMTP_URL` or `MS_TENANT_ID` + `MS_CLIENT_ID` + `MS_CLIENT_SECRET`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
 | `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
 | `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (the default in demos and development) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL` (the default in production). Runtime environment only (see Card present) |

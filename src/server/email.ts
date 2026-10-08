@@ -1,8 +1,10 @@
-// Email transport. SMTP (any ESP, e.g. Amazon SES af-south-1, Everlytic, Postmark…) via
-// SMTP_URL; without it, emails are written to the message log for review (HQ → Messages).
+// Email transport: Microsoft 365 through Graph when MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET are set (graph-mail.ts),
+// else SMTP (any ESP, e.g. Amazon SES af-south-1, Everlytic, Postmark…) via SMTP_URL; with neither, emails are written to
+// the message log for review (HQ → Messages).
 // The layout and templates live in email-templates.ts (pure, unit-tested); this file only delivers and logs.
 import { createTransport, type Transporter } from "nodemailer";
 import { db } from "./db";
+import { graphConfigured, graphSend } from "./graph-mail";
 import { esc, emailLayout, LEGAL_MARK, legalLine } from "./email-templates";
 
 let transport: Transporter | null | undefined;
@@ -49,13 +51,18 @@ export async function finalizeEmail(e: Email): Promise<Email> {
   return { ...e, html: e.html.replace(LEGAL_MARK, esc(line)), text: `${e.text.trimEnd()}\n\n${line}\nAdults 18+ only. Keep out of reach of children.` };
 }
 
-/** Hands an email to SMTP; false when SMTP_URL isn't set (nothing sent). Throws on SMTP failure. */
+/** Hands an email to Microsoft 365 or SMTP; false when neither is set up (nothing sent). Throws on a send failure. */
 export async function deliverEmail(e: Email) {
   const m = await finalizeEmail(e);
+  const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.com>";
+  const mail = { from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers };
+  if (graphConfigured()) {
+    await graphSend(mail);
+    return true;
+  }
   const t = smtp();
   if (!t) return false;
-  const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.com>";
-  await t.sendMail({ from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers });
+  await t.sendMail(mail);
   return true;
 }
 

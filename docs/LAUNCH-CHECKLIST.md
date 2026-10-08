@@ -44,7 +44,7 @@ Tick every line before the first store trades on the platform, except the last s
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
 
 ## Customer channels
-- [ ] SMS and email providers live (`SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
+- [ ] SMS and email providers live (Microsoft 365 `MS_*` or `SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
 - [ ] Postiz running with Instagram, Facebook, LinkedIn, X and Threads connected; `POSTIZ_URL` / `POSTIZ_API_KEY` set; a test post scheduled and deleted
