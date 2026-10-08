@@ -24,6 +24,7 @@ export type Email = {
   customerId?: string | null;
   kind?: "TRANSACTIONAL" | "MARKETING";
   headers?: Record<string, string>;
+  attachments?: { filename: string; content: Buffer }[];
 };
 
 // ── Sender identity ────────────────────────────────────────────────────────────
@@ -57,7 +58,7 @@ export async function deliverEmail(e: Email) {
   const m = await finalizeEmail(e);
   const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.com>";
   const logo = m.html.includes(`cid:${EMAIL_LOGO_CID}`) ? [{ filename: "herbal-holland.png", content: Buffer.from(EMAIL_LOGO_PNG, "base64"), cid: EMAIL_LOGO_CID }] : [];
-  const mail = { from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers, attachments: logo };
+  const mail = { from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers, attachments: [...logo, ...(m.attachments ?? [])] };
   if (graphConfigured()) {
     await graphSend(mail);
     return true;

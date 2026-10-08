@@ -4,7 +4,8 @@
 // The emails themselves are rendered by email-templates.ts (pure, unit-tested).
 import { createHmac } from "node:crypto";
 import { db } from "./db";
-import { sendEmail } from "./email";
+import { finalizeEmail, sendEmail } from "./email";
+import { pdfAttachment } from "./pdf";
 import { APP_URL, saleInvoiceEmail, statementEmail, stockOrderInvoiceEmail } from "./email-templates";
 import { receivedValue } from "./stock-orders";
 import { franchiseStatement } from "./finance";
@@ -77,13 +78,13 @@ export async function emailSaleInvoice(saleId: string, to?: string) {
       db.tradeLedgerEntry.findFirst({ where: { saleId: s.id, kind: "INVOICE" }, select: { dueAt: true } }),
     ]);
     const r = tradeInvoiceEmail(s, { url: invoiceUrl(s.id), batchCodes, orderNumber: order?.number, orderRef: order?.reference, dueAt: entry?.dueAt, handlingCents: order?.handlingCents, deliveryCents: order?.deliveryCents });
-    await sendEmail({ ...r, to: email });
+    await sendEmail({ ...r, to: email, attachments: await pdfAttachment(`${invoiceTitle(s)} ${s.number}`, { url: invoiceUrl(s.id) }) });
     await db.sale.update({ where: { id: s.id }, data: { invoiceEmail: email, invoiceSentAt: new Date() } });
     return;
   }
   const [batchCodes, order] = await Promise.all([saleBatchCodes(s.lines), s.orderId ? db.order.findUnique({ where: { id: s.orderId }, select: { code: true } }) : null]);
   const r = saleInvoiceEmail(s, { url: invoiceUrl(s.id), batchCodes, orderCode: order?.code });
-  await sendEmail({ ...r, to: email, customerId: s.customerId });
+  await sendEmail({ ...r, to: email, customerId: s.customerId, attachments: await pdfAttachment(`${invoiceTitle(s)} ${s.number}`, { url: invoiceUrl(s.id) }) });
   await db.sale.update({ where: { id: s.id }, data: { invoiceEmail: email, invoiceSentAt: new Date() } });
 }
 
@@ -101,8 +102,8 @@ export async function emailStockOrderInvoice(stockOrderId: string) {
   });
   if (!o?.buyer.company.email) return;
   const value = o.status === "RECEIVED" ? receivedValue(o) : o.totalCents;
-  const r = stockOrderInvoiceEmail(o, { url: `${APP_URL()}/store/${o.buyer.code}/purchasing/${o.id}`, valueInclCents: value });
-  await sendEmail({ ...r, to: o.buyer.company.email });
+  const r = await finalizeEmail({ ...stockOrderInvoiceEmail(o, { url: `${APP_URL()}/store/${o.buyer.code}/purchasing/${o.id}`, valueInclCents: value }), to: o.buyer.company.email });
+  await sendEmail({ ...r, attachments: await pdfAttachment(r.subject, { html: r.html }) });
   await db.stockOrder.update({ where: { id: o.id }, data: { invoiceSentAt: new Date() } });
 }
 
@@ -110,6 +111,6 @@ export async function emailStatement(storeId: string, month: string) {
   const st = await franchiseStatement(storeId, month);
   const company = await db.company.findUniqueOrThrow({ where: { id: st.store.companyId } });
   if (!company.email) return;
-  const r = statementEmail(st, company, { url: `${APP_URL()}/store/${st.store.code}/finance/statement?month=${month}` });
-  await sendEmail({ ...r, to: company.email });
+  const r = await finalizeEmail({ ...statementEmail(st, company, { url: `${APP_URL()}/store/${st.store.code}/finance/statement?month=${month}` }), to: company.email });
+  await sendEmail({ ...r, attachments: await pdfAttachment(`Herbal Holland statement ${st.store.code} ${month}`, { html: r.html }) });
 }

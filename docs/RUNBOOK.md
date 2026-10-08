@@ -366,11 +366,15 @@ only logged). Copy rules in `src/lib/sms.ts`: "Herbal Holland:" first, the order
 possible, links as `APP_URL` paths without the scheme, and "Reply STOP" on marketing only (`senderFooter` in
 `marketing.ts` adds it; order texts never carry it). Set `SMS_SENDER_ID` to the alphanumeric sender the provider approved.
 
-**Tax invoices.** Every sale is emailed as a tax invoice (SARS: abridged up to R5,000, full above) with a signed link to
-the hosted copy (`/invoice/<sale id>?t=…`, also under Rewards → Invoices). The hosted invoice shows batch numbers per
+**Tax invoices.** Every sale is emailed as a tax invoice (SARS: abridged up to R5,000, full above) with the invoice
+attached as a PDF and a signed link to the hosted copy (`/invoice/<sale id>?t=…`, also under Rewards → Invoices). The hosted invoice shows batch numbers per
 line, VAT per rate, the payment and its reference, and a QR back to the order. Print it on A4, save it as a PDF (the
 print dialog's "Save as PDF") or print it on 80 mm till paper with the "Print receipt" button. A walk-in customer can
 have it emailed from the till (receipt → Email invoice). Failed sends are retried by `/api/cron/frequent` for three days.
+The PDF is printed from the hosted page by headless Chromium in the app image (`src/server/pdf.ts`), and statements
+(franchise and trade) and stock-order invoices carry a PDF of their branded email the same way. Printing only runs when
+email is set up; if Chromium is missing or a print fails, the email still goes with its link and the log says why
+(`[pdf] couldn't print`).
 
 **Statements and Z-reports.** Store → Money → Franchise statement (and HQ → Statements → a store) shows the month as a
 document: parties, credits and debits netted to one amount, how the fees were worked out. Print or save as PDF from the
