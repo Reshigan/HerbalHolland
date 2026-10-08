@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { EMAIL_LOGO_CID, EMAIL_LOGO_PNG } from "@/server/email-logo";
 import { graphSend } from "@/server/graph-mail";
 
 describe("Microsoft 365 email (Graph)", () => {
@@ -11,7 +12,7 @@ describe("Microsoft 365 email (Graph)", () => {
       calls.push({ url, init });
       return url.includes("/oauth2/") ? Response.json({ access_token: "tok", expires_in: 3600 }) : new Response(null, { status: 202 });
     });
-    const mail = { from: "Herbal Holland <admin@herbalholland.com>", to: "thabo@example.co.za", subject: "Your invoice", html: "<p>Hi</p>", text: "Hi", headers: { "List-Unsubscribe": "<https://shop.herbalholland.com/api/unsubscribe?t=x>" } };
+    const mail = { from: "Herbal Holland <admin@herbalholland.com>", to: "thabo@example.co.za", subject: "Your invoice", html: "<p>Hi</p>", text: "Hi", headers: { "List-Unsubscribe": "<https://shop.herbalholland.com/api/unsubscribe?t=x>" }, attachments: [{ filename: "herbal-holland.png", content: Buffer.from(EMAIL_LOGO_PNG, "base64"), cid: EMAIL_LOGO_CID }] };
     await graphSend(mail);
     await graphSend(mail);
 
@@ -25,6 +26,7 @@ describe("Microsoft 365 email (Graph)", () => {
     expect(raw).toContain("List-Unsubscribe: <https://shop.herbalholland.com/api/unsubscribe?t=x>");
     expect(raw).toContain("To: thabo@example.co.za");
     expect(raw).toContain("Subject: Your invoice");
+    expect(raw).toContain(`Content-ID: <${EMAIL_LOGO_CID}>`); // the logo travels inside the message
   });
 
   it("throws with Microsoft's reason when the send is refused", async () => {

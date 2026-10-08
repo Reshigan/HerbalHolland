@@ -396,7 +396,6 @@ export default async function InvoicePage({ params, searchParams }: Props) {
                     <li key={p.id} className="flex justify-between gap-4 text-ink-700">
                       <span>
                         {PAY[p.method] ?? p.method}
-                        {p.provider && p.method !== "CASH" && p.method !== "LOYALTY" && p.method !== "VOUCHER" && <span className="text-ink-500"> · {p.provider}</span>}
                         {p.cardBrand && ` · ${p.cardBrand}`}
                         {p.cardLast4 && <span className="tnum"> •••• {p.cardLast4}</span>}
                         {p.method === "LOYALTY" && ` (${fmtPoints(abs(p.amountCents) / 100)})`}

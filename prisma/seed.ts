@@ -164,7 +164,7 @@ async function main() {
       addressLine: s.addressLine, suburb: s.suburb, city: s.city, province: s.province, postalCode: s.postalCode, lat: s.lat, lng: s.lng,
       phone: `0${int(10, 87)} ${int(100, 999)} ${int(1000, 9999)}`, whatsapp: `+2771${int(1000000, 9999999)}`, email: `${s.slug}@herbalholland.com`, hours: HOURS,
       clickCollect: status === "ACTIVE", sameDay: !!s.sameDay, licences: status === "ACTIVE" ? ["THC"] : [], licenceRef: status === "ACTIVE" ? `SAHPRA 22C/${s.code}/2026 (demo ref)` : null,
-      royaltyBps: 600, levyBps: 200, ecomBps: 1000, receiptFooter: "Adults 18+ only. Keep out of reach of children. Thank you for choosing Herbal Holland.",
+      royaltyBps: 600, levyBps: 200, ecomBps: 1000, receiptFooter: "Thank you for choosing Herbal Holland.",
       openedAt: status === "ACTIVE" ? daysAgo(int(DAYS + 30, 700)) : null,
     });
     const members = { FLAGSHIP: 1100, STANDARD: 750, EXPRESS: 450 }[s.format];

@@ -4,6 +4,7 @@
 // The layout and templates live in email-templates.ts (pure, unit-tested); this file only delivers and logs.
 import { createTransport, type Transporter } from "nodemailer";
 import { db } from "./db";
+import { EMAIL_LOGO_CID, EMAIL_LOGO_PNG } from "./email-logo";
 import { graphConfigured, graphSend } from "./graph-mail";
 import { esc, emailLayout, LEGAL_MARK, legalLine } from "./email-templates";
 
@@ -55,7 +56,8 @@ export async function finalizeEmail(e: Email): Promise<Email> {
 export async function deliverEmail(e: Email) {
   const m = await finalizeEmail(e);
   const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.com>";
-  const mail = { from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers };
+  const logo = m.html.includes(`cid:${EMAIL_LOGO_CID}`) ? [{ filename: "herbal-holland.png", content: Buffer.from(EMAIL_LOGO_PNG, "base64"), cid: EMAIL_LOGO_CID }] : [];
+  const mail = { from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers, attachments: logo };
   if (graphConfigured()) {
     await graphSend(mail);
     return true;

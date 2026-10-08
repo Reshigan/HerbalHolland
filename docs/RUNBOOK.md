@@ -354,10 +354,12 @@ wholesale invoices, Z-reports, loss-prevention alerts, franchise-enquiry replies
 and a footer whose legal line comes from the franchisor Company record (HQ → Stores → the distribution centre → Owner: legal name, registration
 and VAT numbers, address). Every email has a plain-text twin, and campaign emails alone carry the unsubscribe link and
 `List-Unsubscribe` headers. To preview them without a mail server: `npx tsx scripts/preview-emails.ts` writes each
-template with sample data to `test-results/emails/index.html`; `npx vitest run tests/email.test.ts` checks subjects,
-buttons, escaping, text alternatives and the 102 KB Gmail limit. With `SMTP_URL` unset (demos, staging) nothing is
+template with sample data to `test-results/emails/index.html`, and on the server `npx tsx --env-file=.env scripts/preview-emails.ts --send you@example.com`
+sends all of them ("[Test] …") through the live transport to check them in Outlook and Gmail. The logo travels inside each
+email (an inline image), so it shows without "download pictures". `npx vitest run tests/email.test.ts` checks subjects,
+buttons, escaping, text alternatives and the 102 KB Gmail limit. With neither `SMTP_URL` nor the Microsoft 365 `MS_*` settings (demos, staging) nothing is
 sent: every email is written to the message log, so HQ → Messages (`/hq/messages`) is the place to read what a member would have got.
-`EMAIL_FROM` sets the sender; keep it on a domain with SPF/DKIM for the ESP.
+`EMAIL_FROM` sets the sender (with Microsoft 365, the mailbox it sends from); keep it on a domain with SPF/DKIM for the provider.
 
 **Texts.** Order updates, sign-in codes and recall notices go by SMS (`MESSAGING_PROVIDER=smsportal`; without it they're
 only logged). Copy rules in `src/lib/sms.ts`: "Herbal Holland:" first, the order code next, one GSM-7 segment where

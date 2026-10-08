@@ -21,7 +21,7 @@ async function accessToken() {
 
 const mime = createTransport({ streamTransport: true, buffer: true, newline: "windows" });
 
-export async function graphSend(m: { from: string; to: string; subject: string; html: string; text: string; headers?: Record<string, string> }) {
+export async function graphSend(m: Parameters<typeof mime.sendMail>[0] & { from: string }) {
   const mailbox = m.from.match(/<([^>]+)>/)?.[1] ?? m.from;
   const { message } = await mime.sendMail(m);
   const res = await fetch(`https://graph.microsoft.com/v1.0/users/${encodeURIComponent(mailbox)}/sendMail`, {
