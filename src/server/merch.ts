@@ -52,7 +52,7 @@ export async function submitMerchOrders() {
             return {
               code: l.variant.podSku!, name: l.variant.product.name, blank: m?.blank ?? "", size: l.variant.name, qty: l.qty,
               prints: (m?.prints ?? []).map((p) => ({
-                placement: p.where, technique: p.technique, size: `${ART[p.art].w} × ${ART[p.art].h} mm`, note: ART[p.art].note,
+                placement: p.where, technique: p.technique, size: `${Math.round(ART[p.art].w * (p.scale ?? 1))} × ${Math.round(ART[p.art].h * (p.scale ?? 1))} mm`, note: ART[p.art].note,
                 url: `${APP_URL()}/merch/print/${p.art}.png`, vector: `${APP_URL()}/merch/print/${p.art}.pdf`,
               })),
             };

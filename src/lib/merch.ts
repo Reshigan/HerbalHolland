@@ -5,10 +5,10 @@
 // are rendered by scripts/merch-export.tsx. (A variant with a partner code, Variant.podSku, is made to order instead:
 // src/server/merch.ts.)
 
-export type ArtKey = "mark-stitch" | "mark-stitch-cuff" | "lockup-stitch" | "heritage-stitch" | "window-back" | "sunset-back" | "tote-front";
-export type Garment = "tee" | "hoodie" | "crew" | "cap" | "bucket" | "beanie" | "tote";
+export type ArtKey = "mark-stitch" | "mark-stitch-cuff" | "lockup-stitch" | "heritage-stitch" | "heritage-stitch-black" | "window-back" | "sunset-back" | "tote-front";
+export type Garment = "tee" | "hoodie" | "crew" | "jacket" | "cap" | "bucket" | "beanie" | "tote";
 export type Side = "front" | "back";
-export type Print = { art: ArtKey; side: Side; technique: "Embroidery" | "DTF"; where: string };
+export type Print = { art: ArtKey; side: Side; technique: "Embroidery" | "DTF"; where: string; scale?: number /* of the artwork's drawn size */ };
 
 export type MerchItem = {
   slug: string; // Product.slug
@@ -29,15 +29,19 @@ export const MERCH: MerchItem[] = [
     prints: [CHEST, { art: "window-back", side: "back", technique: "DTF", where: "Centre back, 75 mm below the collar" }],
   },
   {
-    slug: "sunset-hoodie", name: "Sunset Hoodie", blank: "Sunset-orange 380 g/m² brushed-back fleece hoodie (80/20 cotton/polyester), dyed to Sunset 500", garment: "hoodie", colour: "sunset", hero: "back",
+    slug: "sunset-hoodie", name: "Sunset Hoodie", blank: "Unisex Sunset-orange 380 g/m² brushed-back fleece hoodie (80/20 cotton/polyester), dyed to Sunset 500", garment: "hoodie", colour: "sunset", hero: "back",
     prints: [
       { art: "lockup-stitch", side: "front", technique: "Embroidery", where: "Left chest, 90 mm below the shoulder seam" },
-      { art: "sunset-back", side: "back", technique: "DTF", where: "Centre back, 70 mm below the hood seam" },
+      { art: "heritage-stitch-black", side: "back", technique: "Embroidery", where: "Across the upper back, 80 mm below the hood seam" },
     ],
   },
   {
     slug: "heritage-crewneck", name: "Heritage Crewneck", blank: "Black 380 g/m² brushed-back fleece crewneck", garment: "crew", colour: "black", hero: "front",
     prints: [{ art: "heritage-stitch", side: "front", technique: "Embroidery", where: "Centre chest, 90 mm below the collar" }],
+  },
+  {
+    slug: "harrington-jacket", name: "Harrington Jacket", blank: "Black 260 g/m² cotton-twill Harrington, Sunset-check cotton lining, umbrella back yoke, two-button stand collar, brass zip, rib cuffs and hem", garment: "jacket", colour: "black", hero: "front",
+    prints: [{ ...CHEST, where: "Left chest, 90 mm below the shoulder seam" }],
   },
   {
     slug: "windmill-cap", name: "Windmill Cap", blank: "Black six-panel unstructured washed-cotton twill cap, brass buckle", garment: "cap", colour: "black", hero: "front",

@@ -49,6 +49,15 @@ function Words({ x, y, width, size, anchor = "middle", light = 300 }: { x: numbe
 
 type Art = { w: number; h: number; ink: InkName; body: React.ReactNode; note: string };
 
+/** The Mark over "Dutch heritage. African soil.": the crewneck's chest, and the Sunset hoodie's back in black. */
+const HERITAGE = (
+  <>
+    <M x={77} y={0} size={26} heavy />
+    <Line text="DUTCH HERITAGE." x={90} y={45.1} width={180} size={13} weight={500} />
+    <Line text="AFRICAN SOIL." x={90} y={69.9} width={180} size={24} weight={800} />
+  </>
+);
+
 /** Artwork by key, at actual size. `note` describes the design; where it goes is per garment (lib/merch). */
 export const ART: Record<ArtKey, Art> = {
   // The stitch cut of the Mark: tee chest, cap, bucket hat and beanie. One design, one digitised file.
@@ -71,19 +80,9 @@ export const ART: Record<ArtKey, Art> = {
   },
 
   // Crewneck chest: the line we sign off with, set like the wordmark and cut for stitching.
-  "heritage-stitch": {
-    w: 180,
-    h: 71,
-    ink: "sunset",
-    note: "Mark over “Dutch heritage. African soil.”, 180 mm wide",
-    body: (
-      <>
-        <M x={77} y={0} size={26} heavy />
-        <Line text="DUTCH HERITAGE." x={90} y={45.1} width={180} size={13} weight={500} />
-        <Line text="AFRICAN SOIL." x={90} y={69.9} width={180} size={24} weight={800} />
-      </>
-    ),
-  },
+  "heritage-stitch": { w: 180, h: 71, ink: "sunset", note: "Mark over “Dutch heritage. African soil.”, 180 mm wide", body: HERITAGE },
+  // The same design in black thread: the Sunset hoodie's back.
+  "heritage-stitch-black": { w: 180, h: 71, ink: "black", note: "Mark over “Dutch heritage. African soil.” in black thread, 180 mm wide", body: HERITAGE },
 
   // Tee back: the store window (the poster lock-up inside the window-poster frame, tagline beneath).
   "window-back": {
