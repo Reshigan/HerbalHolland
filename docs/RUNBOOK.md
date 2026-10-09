@@ -402,6 +402,13 @@ mode licensed medicines never appear (a dispensary panel points patients to the 
 only on classes where the law allows incentives (`incentiveExcluded` in `@/lib/compliance`). Deals come from the store's
 active promotions; drops and events from the launch programme. Nothing on the board needs a login.
 
+**Shelf labels.** Back office → Shelf labels (`/labels/<store code>`) prints the store's shelf signs from the same data
+as the menu board, so the same rules apply (no licensed medicines in MEDICAL mode, member prices only where allowed).
+Pick a category and a sign: shelf-edge labels on standard 63.5 × 38.1 mm A4 label sheets (21 a sheet: Avery L7160,
+Tower W221 or equivalent) or A6 shelf talkers, four to a plain A4 sheet, cut on the dashed lines. Print at 100%. Each
+label shows the price on the day it was printed, the member price where there is one, and a QR to the product page
+(lab results where the product has them); reprint after a price change.
+
 ## Scheduled jobs (`/api/cron`)
 
 `POST` with `Authorization: Bearer $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live in
