@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { categoryImage } from "@/lib/category-images";
 import Form from "next/form";
 import type { Metadata } from "next";
 import { ArrowRight, BookOpen, FlaskConical, Search, ShieldCheck, SlidersHorizontal, Store, X } from "lucide-react";
@@ -197,6 +198,10 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
         {/* Why this category */}
         {cat && !licensedCategory && cat.blurb && catClasses.length > 0 && (
           <section aria-labelledby="why" className="hh-beads-foot relative mt-8 overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/60">
+            {categoryImage(cat.slug) && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={categoryImage(cat.slug)!} alt={`${cat.name} from Herbal Holland`} width={1440} height={900} decoding="async" className="aspect-[16/7] w-full object-cover" />
+            )}
             <div className="grid grid-cols-1 gap-6 p-6 pb-8 sm:p-8 sm:pb-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
               <div>
                 <div className="eyebrow text-brand-500">Why {cat.name.toLowerCase()}</div>

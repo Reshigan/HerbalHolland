@@ -8,7 +8,7 @@
 //   SEED_DAYS=90 SEED_STORES=200 npm run db:seed   # scale test (synthetic stores)
 import "dotenv/config";
 import { createHash, randomUUID } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { hashSecret } from "../src/server/crypto";
@@ -1723,19 +1723,26 @@ async function main() {
   await insert("devices", db.device, deviceRows);
   await insert("categories", db.category, CATEGORIES.map((c, i) => ({ id: catId[c.slug], slug: c.slug, name: c.name, icon: c.icon, blurb: c.blurb, sortOrder: i })));
   await insert("products", db.product, productRows);
-  // Product photos: the accessory mock-ups, stored like an imported photo (Upload + ProductImage, served at /media/[id]).
+  // Product photos, stored like an imported photo (Upload + ProductImage, served at /media/[id]): the studio render
+  // (public/catalogue/products, scripts/render) first, then any artwork mock-ups (public/merch/print/accessories).
   {
     const { putObject } = await import("../src/server/storage");
     const uploads: Prisma.UploadCreateManyInput[] = [];
     const images: Prisma.ProductImageCreateManyInput[] = [];
-    for (const p of PRODUCTS)
-      for (const [i, key] of (p.images ?? []).entries()) {
-        const body = readFileSync(new URL(`../public/merch/print/accessories/${key}.mockup.png`, import.meta.url));
+    for (const p of PRODUCTS) {
+      const files: [string, string][] = [];
+      const render = new URL(`../public/catalogue/products/${p.slug}.jpg`, import.meta.url);
+      if (existsSync(render)) files.push([render.pathname, "image/jpeg"]);
+      for (const key of p.images ?? []) files.push([new URL(`../public/merch/print/accessories/${key}.mockup.png`, import.meta.url).pathname, "image/png"]);
+      for (const [i, [file, type]] of files.entries()) {
+        const body = readFileSync(file);
         const id = uid().replaceAll("-", ""); // /media/[id] takes letters and digits only
-        await putObject(`products/${id}.png`, new Uint8Array(body), "image/png");
-        uploads.push({ id, key: `products/${id}.png`, fileName: `${key}.png`, contentType: "image/png", sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex") });
+        const ext = type === "image/png" ? "png" : "jpg";
+        await putObject(`products/${id}.${ext}`, new Uint8Array(body), type);
+        uploads.push({ id, key: `products/${id}.${ext}`, fileName: `${p.slug}-${i + 1}.${ext}`, contentType: type, sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex") });
         images.push({ productId: productIdBySlug[p.slug], uploadId: id, alt: p.name, sortOrder: i });
       }
+    }
     await insert("product photo files", db.upload, uploads);
     await insert("product photos", db.productImage, images);
   }

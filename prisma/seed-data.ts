@@ -126,7 +126,7 @@ export type ProductSeed = {
   naturalCbd?: boolean; // CBD food & drink: only the CBD the hemp in the recipe brings
 
   tobacco?: boolean;
-  /** Product photos: mock-ups in public/merch/print/accessories (<key>.mockup.png), the first is the main picture. */
+  /** Artwork mock-ups (public/merch/print/accessories/<key>.mockup.png), shown after the studio render. */
   images?: string[];
   supplier: string;
   shelfMonths: number;

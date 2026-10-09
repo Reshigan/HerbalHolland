@@ -16,6 +16,7 @@ import { JsonLd } from "@/components/shop/json-ld";
 import { LOCALE, organizationJsonLd, parseSameAs, SITE_NAME, siteUrl, websiteJsonLd } from "@/lib/seo";
 import { ProductArt } from "@/components/product/art";
 import { categoryIcon } from "@/components/product/category-icons";
+import { categoryImage } from "@/lib/category-images";
 import { ButtonLink } from "@/components/ui/button";
 import { InstallPrompt } from "@/components/ui/install-prompt";
 import { ProductGrid } from "@/components/shop/product-card";
@@ -332,10 +333,16 @@ export default async function Home() {
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-5">
           {publicCats.map((c) => {
             const Icon = categoryIcon(c.icon, Leaf);
+            const img = categoryImage(c.slug);
             return (
               <Link key={c.id} href={`/shop?category=${c.slug}`} className="hh-beads-foot group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 p-5 pb-7 transition hover:border-brand-500/60 hover:bg-ink-900">
-                <Icon className="h-7 w-7 text-brand-500" strokeWidth={1.6} />
-                <h3 className="mt-6 font-display text-lg font-semibold text-white">{c.name}</h3>
+                {img ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={img} alt="" width={1440} height={900} loading="lazy" decoding="async" className="-mx-5 -mt-5 mb-1 aspect-[16/10] w-[calc(100%+2.5rem)] max-w-none object-cover transition duration-700 group-hover:scale-[1.03]" />
+                ) : (
+                  <Icon className="h-7 w-7 text-brand-500" strokeWidth={1.6} />
+                )}
+                <h3 className={`${img ? "mt-4" : "mt-6"} font-display text-lg font-semibold text-white`}>{c.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-ink-400">{c.blurb}</p>
                 <span className="mt-4 text-xs font-semibold text-ink-300 group-hover:text-brand-300">{plural(c._count.products, "product")} →</span>
               </Link>
