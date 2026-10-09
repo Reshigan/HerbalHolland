@@ -445,7 +445,7 @@ async function main() {
     { id: uid(), name: "Heritage Month: 15% off apparel & accessories", description: "Celebrating Heritage Month with 15% off the windmill range all September.", kind: "PERCENT", value: 15, categoryIds: [cat("apparel"), cat("accessories")], productIds: [], channels: ["POS", "ONLINE"], startsAt: sep1, endsAt: midnight(`${NOW.getUTCFullYear()}-10-01`) },
     // CBD skin care may be promoted; CBD supplements (oils, softgels) may not until counsel clears them (s18A).
     { id: uid(), name: "Any 2 CBD creams or balms for R650", description: "Mix and match the CBD body cream and the Recover muscle balm.", kind: "MULTIBUY", value: 65000, buyQty: 2, categoryIds: [], productIds: pids("cbd-body-cream", "recover-cbd-balm"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-45) },
-    { id: uid(), name: "Rolling essentials: tray + free papers", description: "Buy a Windmill rolling tray and get a booklet of papers free.", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 100, productIds: pids("windmill-rolling-tray"), categoryIds: [], rewardProductIds: pids("king-size-papers"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-60) },
+    { id: uid(), name: "Rolling essentials: tray + free papers", description: "Buy a rolling tray and get a booklet of Classic Papers free.", kind: "BUY_X_GET_Y", value: 0, buyQty: 1, getQty: 1, rewardPercent: 100, productIds: pids("windmill-rolling-tray"), categoryIds: [], rewardProductIds: pids("king-size-papers"), channels: ["POS", "ONLINE"], startsAt: daysAgo(DAYS), endsAt: daysAgo(-60) },
     { id: uid(), name: "Spend R600, get the Sunset grinder free", description: "Gift with purchase on non-medicinal items.", kind: "BUY_X_GET_Y", value: 0, minSpendCents: 60000, getQty: 1, rewardPercent: 100, productIds: [], categoryIds: [], rewardProductIds: pids("sunset-grinder"), channels: ["POS"], startsAt: daysAgo(21), endsAt: daysAgo(-21) },
     { id: uid(), name: "Happy hour: 10% off accessories", description: "Weekdays 16:00–18:00.", kind: "PERCENT", value: 10, categoryIds: [cat("accessories")], productIds: [], channels: ["POS"], days: [1, 2, 3, 4, 5], startMinute: 16 * 60, endMinute: 18 * 60, startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
     { id: uid(), name: "Double Points Fridays", description: "2× points every Friday.", kind: "MULTIPLIER", value: 200, categoryIds: [], productIds: [], channels: ["POS", "ONLINE"], days: [5], startsAt: daysAgo(DAYS), endsAt: daysAgo(-90) },
@@ -1723,6 +1723,22 @@ async function main() {
   await insert("devices", db.device, deviceRows);
   await insert("categories", db.category, CATEGORIES.map((c, i) => ({ id: catId[c.slug], slug: c.slug, name: c.name, icon: c.icon, blurb: c.blurb, sortOrder: i })));
   await insert("products", db.product, productRows);
+  // Product photos: the accessory mock-ups, stored like an imported photo (Upload + ProductImage, served at /media/[id]).
+  {
+    const { putObject } = await import("../src/server/storage");
+    const uploads: Prisma.UploadCreateManyInput[] = [];
+    const images: Prisma.ProductImageCreateManyInput[] = [];
+    for (const p of PRODUCTS)
+      for (const [i, key] of (p.images ?? []).entries()) {
+        const body = readFileSync(new URL(`../public/merch/print/accessories/${key}.mockup.png`, import.meta.url));
+        const id = uid().replaceAll("-", ""); // /media/[id] takes letters and digits only
+        await putObject(`products/${id}.png`, new Uint8Array(body), "image/png");
+        uploads.push({ id, key: `products/${id}.png`, fileName: `${key}.png`, contentType: "image/png", sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex") });
+        images.push({ productId: productIdBySlug[p.slug], uploadId: id, alt: p.name, sortOrder: i });
+      }
+    await insert("product photo files", db.upload, uploads);
+    await insert("product photos", db.productImage, images);
+  }
   await insert("variants", db.variant, variantRows);
   await insert("batches", db.batch, batchRows);
   await insert("store ranging", db.storeVariant, svRows);
