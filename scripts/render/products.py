@@ -97,6 +97,7 @@ def aim(o, target):
 
 def studio(objs, elev=22, azim=-28, margin=1.18, aspect=1.0):
     """Lights and a camera fitted to the objects' bounds, looking from the front-left and slightly above."""
+    bpy.context.view_layer.update()  # moved objects' world matrices
     pts = [o.matrix_world @ Vector(c) for o in objs if o.type == "MESH" for c in o.bound_box]
     lo = Vector((min(p.x for p in pts), min(p.y for p in pts), min(p.z for p in pts)))
     hi = Vector((max(p.x for p in pts), max(p.y for p in pts), max(p.z for p in pts)))
@@ -109,8 +110,12 @@ def studio(objs, elev=22, azim=-28, margin=1.18, aspect=1.0):
     bpy.context.scene.camera = co
     fov = 2 * math.atan(36 / 2 / cam.lens) if aspect >= 1 else 2 * math.atan(36 * aspect / 2 / cam.lens)
     dist = r * margin / math.sin(fov / 2) / (1 if aspect >= 1 else 1)
-    if aspect > 1:
-        dist = r * margin / math.sin(2 * math.atan(math.tan(fov / 2) / aspect))
+    if aspect > 1:  # wide group shots: fit the group's width and its apparent height, not a bounding sphere
+        ext = hi - lo
+        half_w = ext.x / 2 + ext.y * 0.25
+        half_h = (ext.z * math.cos(math.radians(elev)) + ext.y * math.sin(math.radians(elev))) / 2
+        tan_h = math.tan(fov / 2)
+        dist = max(half_w * margin / tan_h, half_h * 1.5 / (tan_h / aspect)) + ext.y / 2
     e, a = math.radians(elev), math.radians(azim)
     co.location = c + Vector((math.sin(a) * math.cos(e), -math.cos(a) * math.cos(e), math.sin(e))) * dist
     aim(co, c)
@@ -608,7 +613,8 @@ def product(s):
 CAT_PICK = {
     "accessories": ["sunset-papers", "sunset-grinder", "starter-kit", "sunset-lighter"],
     "apparel": ["windmill-cap", "windmill-tee", "sunset-hoodie"],
-    "grow": ["bloom-nutrient-kit", "heritage-seed-pack", "living-soil"],
+    "grow": ["bloom-nutrient-kit", "heritage-seed-pack"],
+    "wellness": ["cbd-softgels", "calm-cbd-oil-600", "rest-cbd-oil-300"],
     "flower": ["durban-poison", "swazi-gold", "reserve-gelato-cake"],
     "vapes": ["windmill-haze-cartridge", "durban-poison-disposable"],
 }
@@ -619,17 +625,19 @@ def category(cat, items):
     reset(1440, 900)
     by = {s["slug"]: s for s in items}
     pick = [by[k] for k in CAT_PICK.get(cat, []) if k in by] or items[:4]
-    xs = [(i - (len(pick) - 1) / 2) for i in range(len(pick))]
-    for i, s in enumerate(pick):
+    cursor = 0.0
+    for i, s in enumerate(pick):  # side by side, left to right, with a gap
         before = len(MADE)
         MODELS[s["model"]](s)
         made = MADE[before:]
         pts = [o.matrix_world @ Vector(c) for o in made for c in o.bound_box]
-        width = max(p.x for p in pts) - min(p.x for p in pts)
+        lo, hi = min(p.x for p in pts), max(p.x for p in pts)
+        gap = max(hi - lo, 0.04) * 0.18
         for o in made:
-            o.location.x += xs[i] * max(width, 0.06) * 1.25
-            o.location.y += 0.03 * (i % 2)
-    studio(list(MADE), elev=24, aspect=1.6)
+            o.location.x += cursor - lo
+            o.location.y += 0.02 * (i % 2)
+        cursor += hi - lo + gap
+    studio(list(MADE), elev=20, aspect=1.6, margin=0.95)
     finish(os.path.join(OUT, "category-" + cat + ".jpg"))
 
 

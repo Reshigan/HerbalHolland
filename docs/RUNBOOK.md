@@ -402,6 +402,13 @@ mode licensed medicines never appear (a dispensary panel points patients to the 
 only on classes where the law allows incentives (`incentiveExcluded` in `@/lib/compliance`). Deals come from the store's
 active promotions; drops and events from the launch programme. Nothing on the board needs a login.
 
+**Product and category pictures.** Each product's main photo is a studio render: `scripts/render/labels.tsx` draws its
+packaging label and `scripts/render/products.py` (Blender 4.2 with Cycles) models it and renders it on the stone
+backdrop, plus one group shot per category (`public/catalogue/products/<slug>.jpg`, `public/catalogue/categories/<slug>.jpg`).
+A new product gets its own by running both (about a minute a picture on 4 cores); imported real photos (`image_urls`)
+can replace them at any time. The home page tiles and the category header show the category picture
+(`@/lib/category-images`).
+
 **Shelf labels.** Back office → Shelf labels (`/labels/<store code>`) prints the store's shelf signs from the same data
 as the menu board, so the same rules apply (no licensed medicines in MEDICAL mode, member prices only where allowed).
 Pick a category and a sign: shelf-edge labels on standard 63.5 × 38.1 mm A4 label sheets (21 a sheet: Avery L7160,
