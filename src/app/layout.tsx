@@ -8,6 +8,9 @@ export const metadata: Metadata = {
   title: { default: "Herbal Holland", template: "%s · Herbal Holland" },
   description: "Dutch heritage, African soil. Lab-tested, batch-traceable CBD wellness, accessories and Herbal Holland Rewards across South Africa. Adults 18+.",
   applicationName: "Herbal Holland",
+  // iPhone: Safari → Share → Add to Home Screen opens the shop and Rewards card full-screen (the till and the office
+  // set their own names in their layouts).
+  appleWebApp: { capable: true, title: "Herbal Holland", statusBarStyle: "black-translucent" },
   formatDetection: { telephone: false },
 };
 

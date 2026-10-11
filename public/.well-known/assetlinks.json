@@ -1,0 +1,10 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.herbalholland.till",
+      "sha256_cert_fingerprints": ["88:2F:73:45:91:AD:9D:A7:16:BE:9F:23:C2:90:BB:C0:07:59:02:3F:4F:A0:D0:AB:42:E3:89:05:05:3C:A1:9F"]
+    }
+  }
+]
