@@ -4,6 +4,7 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { Boxes, CloudOff, History, Loader2, Lock, RefreshCw, ShieldCheck, ShoppingBag, Store, UploadCloud, Wallet, Wifi } from "lucide-react";
 import { Mark } from "@/components/brand/logo";
+import { AppUpdate } from "./app-update";
 import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import { fmtTime } from "@/lib/format";
@@ -757,6 +758,7 @@ export function PosApp({ deviceId }: { deviceId: string }) {
   return (
     <PosContext.Provider value={ctx}>
       <div className="fixed inset-0 flex flex-col bg-ink-950 text-ink-100 print:hidden">
+        <AppUpdate />
         {/* Top bar */}
         <header className="box-content flex h-16 shrink-0 items-center gap-2 border-b border-ink-850 bg-ink-950 px-3 pt-[env(safe-area-inset-top)] sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5 text-brand-500">
