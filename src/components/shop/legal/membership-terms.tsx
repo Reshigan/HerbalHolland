@@ -26,10 +26,10 @@ export function List({ items }: { items: React.ReactNode[] }) {
 
 export function Important({ children }: { children: React.ReactNode }) {
   return (
-    <aside aria-label="Important" className="mt-5 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-5 text-[1.02rem] leading-[1.75] text-amber-50">
+    <div role="note" aria-label="Important" className="mt-5 rounded-2xl border border-amber-500/40 bg-amber-500/[0.08] p-5 text-[1.02rem] leading-[1.75] text-amber-50">
       <div className="eyebrow text-amber-200">Important</div>
       <div className="mt-2 space-y-3">{children}</div>
-    </aside>
+    </div>
   );
 }
 
