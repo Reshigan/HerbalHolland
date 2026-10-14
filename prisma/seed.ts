@@ -1867,7 +1867,7 @@ async function main() {
   // ── Launch programme ─────────────────────────────────────────────────────
   // The network opened when trading began; everyone who signed up before was on the waitlist.
   const launchAt = daysAgo(DAYS);
-  await db.setting.create({ data: { key: "launch", value: { launchAt: launchAt.toISOString(), foundingCap: 10_000, foundingTier: "SPROUT", foundingMonths: 12, referralBoost: 250 } } });
+  await db.setting.create({ data: { key: "launch", value: { phase: "STORES", launchAt: launchAt.toISOString(), foundingCap: 10_000, foundingTier: "SPROUT", foundingMonths: 12, referralBoost: 250 } } });
   // Demo bank details so pro formas print in full; the real account goes in at HQ → Settings → Trade before go-live.
   await db.setting.create({ data: { key: "trade", value: { bank: { bank: "Demo Bank", accountName: "Herbal Holland (Pty) Ltd (Trade)", accountNumber: "0000000000", branchCode: "000000" } } } });
   const founding = await (await import("../src/server/launch")).assignFounding(NOW);

@@ -3,7 +3,7 @@
 Tick every line before the first store trades on the platform, except the last section (after the first month).
 
 ## Launch phase (HQ → Settings → Launch phase)
-The network opens in three steps; the shop, its header and checkout follow the setting at once (audited):
+A fresh database starts in step 1 (the demo seed starts at step 3); the shop, its header and checkout follow the setting at once (audited):
 - [ ] **1. Brand site**: herbalholland.com, social and Rewards sign-ups live; shop.herbalholland.com shows the range (no bag, no checkout; "Online shopping opens soon") and the stores as opening soon
 - [ ] **2. Online shopping**: courier delivery from the distribution centre only; click & collect and same-day stay off, whatever the stores' flags say (online payments live first, see Money)
 - [ ] **3. Stores open**: everything on; each store trades once its status is ACTIVE (Stores → status), which also puts it on the store finder and in click & collect

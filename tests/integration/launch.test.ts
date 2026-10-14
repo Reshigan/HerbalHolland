@@ -41,7 +41,7 @@ afterAll(async () => {
 describe("Founding Members list", () => {
   it("ranks the list with referral boosts, numbers Founding Members when it closes and holds their tier", async () => {
     const launchAt = new Date(Date.now() - 86_400_000);
-    await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, launchAt: launchAt.toISOString(), foundingCap: 3, referralBoost: 3 });
+    await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, phase: "STORES", launchAt: launchAt.toISOString(), foundingCap: 3, referralBoost: 3 });
     const t0 = Date.now() - 10 * 86_400_000;
     const a = await member(1, { createdAt: new Date(t0) });
     const b = await member(2, { createdAt: new Date(t0 + 1000) });
@@ -71,12 +71,12 @@ describe("Founding Members list", () => {
   });
 
   it("keeps the shop open while the Founding Members list runs", async () => {
-    await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, launchAt: new Date(Date.now() + 86_400_000).toISOString() });
+    await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, phase: "STORES", launchAt: new Date(Date.now() + 86_400_000).toISOString() });
     const m = await member(9);
     const o = await placeOrder({ customerId: m.id, fulfilment: "COLLECT", storeId: w.store.id, items: [{ variantId: w.oilV.id, qty: 1 }], payMethod: "IN_STORE" });
     expect(o.status).toBe("PLACED");
     expect((await waitlistPlace(m.id))?.place).toBeGreaterThan(0);
-    await saveSetting("launch", DEFAULT_SETTINGS.launch);
+    await saveSetting("launch", { ...DEFAULT_SETTINGS.launch, phase: "STORES" });
   });
 });
 
