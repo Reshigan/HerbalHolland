@@ -101,6 +101,7 @@ export async function createPlan(p: { playbook: string; anchor: string; storeId:
           audience: d.audience ?? (OWN_CHANNELS.includes(d.channel) ? interest : null),
           linkedin: d.linkedin ?? null,
           brief: d.brief ?? null,
+          hand: !!d.milestone, // a milestone post waits for the count, so it starts as "post by hand"
           ...(left(d) ? { status: "SKIPPED" as const, note: left(d) } : d.at <= now ? { status: "SKIPPED" as const, note: "Its day had passed when the campaign was laid out" } : d.moved ? { note: d.moved } : {}),
         })),
       },

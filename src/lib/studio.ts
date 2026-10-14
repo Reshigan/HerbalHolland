@@ -55,6 +55,8 @@ export type PlaybookItem = {
   linkedin?: "also" | "only";
   /** What to shoot for it: the photo or Reel that makes it. The card goes out until someone posts it by hand. */
   brief?: string;
+  /** A milestone post (so many members on the Founding list): its day is a placeholder, and HQ marks it "by hand" and posts it when the list gets there. */
+  milestone?: number;
 };
 
 export type Playbook = {
