@@ -5,7 +5,8 @@ import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { CONSENT_WORDING } from "@/server/customers";
-import { launchState } from "@/server/launch";
+import { foundingTaken, launchState } from "@/server/launch";
+import { foundingPlaces } from "@/server/shop/launch-rules";
 import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { PhoneAuth } from "@/components/shop/phone-auth";
 import { Container, Panel } from "@/components/shop/ui";
@@ -26,9 +27,10 @@ type SP = { ref?: string; store?: string; next?: string; src?: string };
 export default async function JoinPage({ searchParams }: { searchParams: Promise<SP> }) {
   const sp = await searchParams;
   const next = safePath(sp.next) ?? "/club";
-  const [customer, settings, stores, preferred, launch] = await Promise.all([getCustomer(), getSettings(), getRetailStores(), getPreferredStore(), launchState()]);
+  const [customer, settings, stores, preferred, launch, taken] = await Promise.all([getCustomer(), getSettings(), getRetailStores(), getPreferredStore(), launchState(), foundingTaken()]);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const pre = launch.preLaunch && launch.at ? launch.at : null;
+  const places = pre ? foundingPlaces({ cap: launch.foundingCap, taken, firstYearMonths: launch.firstYearMonths, tierName: tierInfo(launch.foundingTier).name, closes: fmtDate(pre) }) : null;
 
   if (customer)
     return (
@@ -59,11 +61,11 @@ export default async function JoinPage({ searchParams }: { searchParams: Promise
         <div className="lg:pt-6">
           <Mark className="h-14 w-14 text-brand-500" />
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1] tracking-tight text-white">
-            {referrer ? `${referrer.firstName} invited you` : pre ? "Become a Founding Member." : "Join in a minute."}
+            {referrer ? `${referrer.firstName} invited you` : places?.full ? "Become a First Year Member." : pre ? "Become a Founding Member." : "Join in a minute."}
           </h1>
           <p className="mt-5 max-w-lg text-lg leading-relaxed text-ink-300">
-            {pre
-              ? `The Founding Members list closes ${fmtDate(pre)}. The first ${num(launch.foundingCap)} members on it get a numbered card and start at ${tierInfo(launch.foundingTier).name} for ${launch.foundingMonths} months.${
+            {pre && places
+              ? `${places.lead} ${places.full ? "" : `Founding Members get a numbered card and start at ${tierInfo(launch.foundingTier).name} for ${launch.foundingMonths} months.`}${
                   referrer ? ` Joining with ${referrer.firstName}'s link moves them up ${num(launch.referralBoost)} places, and you'll both get ${fmtPoints(settings.loyalty.referralBonus)} after your first purchase.` : ""
                 }`
               : referrer

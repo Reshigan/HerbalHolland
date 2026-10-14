@@ -6,7 +6,8 @@ import { Search, ShoppingBag, UserRound } from "lucide-react";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { activePromotions } from "@/server/pricing";
-import { launchState } from "@/server/launch";
+import { foundingTaken, launchState } from "@/server/launch";
+import { foundingPlaces } from "@/server/shop/launch-rules";
 import { canBuyOnline } from "@/lib/launch-phase";
 import { confirmAge, declineAge } from "@/server/shop/actions";
 import { getAgeState, getCartCount, getFranchisor, getPreferredStore, getStoreFootprint } from "@/server/shop/context";
@@ -20,7 +21,8 @@ import { Container } from "./ui";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
 import { screenCopy } from "@/lib/compliance";
 import { zarWhole } from "@/lib/money";
-import { fmtDate, num } from "@/lib/format";
+import { fmtDate } from "@/lib/format";
+import { tierInfo } from "@/lib/loyalty-rules";
 import { plural } from "@/lib/plural";
 import { contactEmailOf, legalNameOf } from "@/lib/contact";
 import { cn } from "@/lib/cn";
@@ -53,7 +55,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
       </>
     );
 
-  const [customer, store, count, footprint, company, settings, promos, launch] = await Promise.all([
+  const [customer, store, count, footprint, company, settings, promos, launch, taken] = await Promise.all([
     getCustomer(),
     getPreferredStore(),
     getCartCount(),
@@ -62,6 +64,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
     getSettings(),
     activePromotions({ channel: "ONLINE" }),
     launchState(),
+    foundingTaken(),
   ]);
   const hours = store && openState(parseHours(store.hours));
   const current = store && hours ? { code: store.code, name: store.name, open: hours.open, openLabel: hours.label } : null;
@@ -72,7 +75,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   const messages = launch.preLaunch && launch.at
     ? [
         { text: `Founding Members close ${fmtDate(launch.at)}. Join free`, href: customer ? "/club" : "/club/join" },
-        { text: `The first ${num(launch.foundingCap)} members get a numbered card`, href: customer ? "/club" : "/club/join" },
+        { text: foundingPlaces({ cap: launch.foundingCap, taken, firstYearMonths: launch.firstYearMonths, tierName: tierInfo(launch.foundingTier).name, closes: fmtDate(launch.at) }).strip, href: customer ? "/club" : "/club/join" },
         { text: "Every friend you bring moves you up the list", href: customer ? "/club#founding" : "/club/join" },
       ]
     : phase === "BRAND"

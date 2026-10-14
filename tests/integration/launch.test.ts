@@ -52,8 +52,9 @@ describe("Founding Members list", () => {
     expect(pc!.place).toBeLessThan(pa!.place);
     expect(pc!.referrals).toBe(1);
 
-    expect((await assignFounding()).assigned).toBe(3);
+    expect(await assignFounding()).toMatchObject({ assigned: 3, firstYear: 1 }); // #4 joined before the close but beyond the cap: a First Year Member
     expect((await assignFounding()).assigned).toBe(0); // idempotent
+    expect((await db.customer.findMany({ where: { foundingNo: null, tierFloor: "SPROUT" } })).length).toBe(1);
     const founders = await db.customer.findMany({ where: { foundingNo: { not: null } }, orderBy: { foundingNo: "asc" } });
     expect(founders.map((f) => f.tier)).toEqual(["SPROUT", "SPROUT", "SPROUT"]);
     const founder = founders[0];

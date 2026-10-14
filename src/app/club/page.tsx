@@ -4,7 +4,8 @@ import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { CONSENT_WORDING } from "@/server/customers";
 import { APP_URL } from "@/server/invoices";
-import { launchState, waitlistPlace } from "@/server/launch";
+import { foundingTaken, launchState, waitlistPlace } from "@/server/launch";
+import { foundingPlaces } from "@/server/shop/launch-rules";
 import { sharePath } from "@/server/share";
 import { LEDGER_LABEL, ledgerTitle, memberOverview, tierIndex } from "@/server/shop/club";
 import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/shop/context";
@@ -72,7 +73,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
       )}
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,26rem)_minmax(0,1fr)] lg:gap-12">
         <div className="space-y-4">
-          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} floorUntil={floorUntil} />
+          <MemberCard name={name} memberNo={m.customer.memberNo} tierName={m.tier.name} tierIndex={idx} points={m.customer.points} founding={m.customer.foundingNo} firstYear={!m.customer.foundingNo && !!m.floor} floorUntil={floorUntil} />
           <p className="text-center text-xs text-ink-400">Scan at the till to earn and spend points · worth {zar(m.customer.points * 100)}</p>
           <WalletButtons />
           <InstallPrompt app="rewards" />
@@ -107,6 +108,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             <WaitlistCard
               w={waitlist}
               cap={launch.foundingCap}
+              firstYear={launch.firstYearMonths ? `${tierInfo(launch.foundingTier).name} for ${launch.firstYearMonths} months` : null}
               referUrl={referUrl}
               firstName={m.customer.firstName}
               shareText={`I'm on the Herbal Holland Founding Members list. The first ${num(launch.foundingCap)} members get a numbered card, and it closes ${fmtDate(launch.at)}. Join free with my link (adults 18+):`}
@@ -344,13 +346,14 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
 }
 
 async function Landing() {
-  const [settings, stores, store, launch] = await Promise.all([getSettings(), getRetailStores(), getPreferredStore(), launchState()]);
+  const [settings, stores, store, launch, taken] = await Promise.all([getSettings(), getRetailStores(), getPreferredStore(), launchState(), foundingTaken()]);
+  const places = launch.preLaunch && launch.at ? foundingPlaces({ cap: launch.foundingCap, taken, firstYearMonths: launch.firstYearMonths, tierName: tierInfo(launch.foundingTier).name, closes: fmtDate(launch.at) }) : null;
   const trading = stores.filter((s) => s.status === "ACTIVE");
   return (
     <Container className="pt-10 sm:pt-16">
       {launch.preLaunch && launch.at && (
         <Callout tone="brand" icon={<CalendarClock className="h-5 w-5" />} title={`Founding Members close ${fmtDate(launch.at)}. Join free.`} className="mb-10">
-          The first {num(launch.foundingCap)} members on the list get a numbered card and start at {tierInfo(launch.foundingTier).name} for {launch.foundingMonths} months. Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
+          {places?.lead} {places?.full ? "" : `Founding Members get a numbered card and start at ${tierInfo(launch.foundingTier).name} for ${launch.foundingMonths} months.`} Every friend who joins with your link moves you up {num(launch.referralBoost)} places.
         </Callout>
       )}
       <div className="grid grid-cols-1 gap-10 lg:grid-cols-[minmax(0,1fr)_28rem] lg:gap-16">

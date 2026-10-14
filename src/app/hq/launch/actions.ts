@@ -29,12 +29,13 @@ export async function saveLaunch(_: ActionState, fd: FormData): Promise<ActionSt
   const foundingCap = int("foundingCap", 1, 100_000, "1 to 100,000 places");
   const foundingMonths = int("foundingMonths", 1, 36, "1 to 36 months");
   const referralBoost = int("referralBoost", 0, 10_000, "0 to 10,000 places");
+  const firstYearMonths = int("firstYearMonths", 0, 36, "0 (off) to 36 months");
   const foundingTier = str(fd, "foundingTier") as TierKey;
   if (!FLOOR_TIERS.includes(foundingTier)) fields.foundingTier = "Choose Sprout, Bloom or Harvest";
   if (Object.keys(fields).length) return fail("Check the highlighted fields.", fields);
 
   const before = (await getSettings()).launch;
-  const next = { launchAt: at?.toISOString() ?? null, foundingCap, foundingTier, foundingMonths, referralBoost };
+  const next = { launchAt: at?.toISOString() ?? null, foundingCap, foundingTier, foundingMonths, referralBoost, firstYearMonths };
   const changed = (Object.keys(next) as (keyof typeof next)[]).filter((k) => before[k] !== next[k]);
   if (!changed.length) return done("No changes to save.");
   await saveSetting("launch", { ...before, ...next });
@@ -60,8 +61,8 @@ export async function assignFoundingNow(_: ActionState): Promise<ActionState> {
   if (!s.at) return fail("Set a launch date first.");
   if (s.preLaunch) return fail(`Founding numbers can only be assigned once the launch time has passed (${fmtDateTime(s.at)}).`);
   if (await db.customer.count({ where: { foundingNo: { not: null } } })) return fail("Founding numbers are already assigned.");
-  const { assigned } = await assignFounding();
-  await audit(db, g.actor, "launch.assign_founding", { entity: "Setting", entityId: "launch", data: { assigned, cap: s.foundingCap, tier: s.foundingTier } });
+  const { assigned, firstYear } = await assignFounding();
+  await audit(db, g.actor, "launch.assign_founding", { entity: "Setting", entityId: "launch", data: { assigned, firstYear, cap: s.foundingCap, tier: s.foundingTier } });
   revalidatePath("/hq/launch");
-  return done(`${assigned.toLocaleString()} Founding Members numbered. Their cards show the number and at least ${s.foundingTier.charAt(0)}${s.foundingTier.slice(1).toLowerCase()} from now.`);
+  return done(`${assigned.toLocaleString()} Founding Members numbered${firstYear ? ` and ${firstYear.toLocaleString()} First Year Members set` : ""}. Their cards show it and at least ${s.foundingTier.charAt(0)}${s.foundingTier.slice(1).toLowerCase()} from now.`);
 }

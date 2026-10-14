@@ -95,6 +95,37 @@ reports) and Postgres can't live on Cloudflare.
    `GET /api/health/jobs`, which answers 503 when a job hasn't succeeded in time (a dead scheduler, a wrong
    `CRON_SECRET`, or a step that keeps failing).
 
+## Free hosting: Oracle Cloud Always Free (Johannesburg)
+
+Until the stores trade, the whole platform (app, Postgres, Postiz) can run free on Oracle Cloud's Always Free tier in
+`af-johannesburg-1`: one Ampere A1 ARM VM with up to 4 cores, 24 GB RAM and 200 GB of boot volume, plus 20 GB of
+Object Storage for backups. It's the only free offer with a South African region and enough memory; Vercel's hobby
+plan forbids commercial use, the free Postgres services (Neon, Supabase) have no SA region and pause, and the AWS,
+Google and Azure free tiers are 12 months of 1 GB machines. No SLA: move to a paid SA server (xneelo, Vultr
+Johannesburg; see the hosting notes in [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md)) once the stores open.
+
+1. Sign up at cloud.oracle.com with the home region **South Africa Central (Johannesburg)**: the free VM can only live
+   in the home region, and it can't be changed later. A card is needed to verify the account. Upgrade the account to
+   Pay As You Go straight away: Always Free resources stay free, the account is no longer subject to the idle-reclaim
+   rule (free-only accounts lose a VM that sits under 20% CPU for seven days), and capacity requests are served ahead of
+   free-only accounts. Set a budget alert at R50 so a mistake can't cost anything quietly.
+2. Networking: a VCN with one public subnet. The security list stays **closed**: no inbound rules at all (not even
+   SSH; use the Bastion service or OCI Cloud Shell's console connection for the first login, then Cloudflare Tunnel
+   for everything). The app and Postgres are never published on the public interface.
+3. The VM: `deploy/oracle/create-vm.sh` launches `VM.Standard.A1.Flex` (4 OCPU, 24 GB, 200 GB) with an Ubuntu 24.04
+   **aarch64** image and retries every ten minutes while the region answers "Out of host capacity" (normal; it usually
+   lands within hours, occasionally a day or two). Leave it running in a Cloud Shell or on a laptop.
+4. On the VM, the normal [First deploy](#first-deploy) applies unchanged: Docker, Postgres 16 on 127.0.0.1, `cloudflared`,
+   `.env`, then `docker compose -f docker-compose.prod.yml build`. The image builds natively for arm64 (Node, Prisma
+   and Playwright's `chromium-headless-shell` all ship arm64 builds), so nothing in the Dockerfile changes; the build
+   takes about 10 minutes on 4 cores. Ubuntu's firewall (`ufw`) also stays closed: Oracle's Ubuntu images carry iptables
+   rules of their own, so don't flush them.
+5. Backups: the nightly `pg_dump -Fc` ([Backups & recovery](#backups--recovery)) goes to an Object Storage bucket with
+   `oci os object put` (20 GB free) and a 30-day lifecycle rule. Take a boot-volume backup before each release (the
+   free tier includes five).
+6. Postiz runs on the same VM ([deploy/postiz](../deploy/postiz)); it's comfortable within 24 GB alongside the app and
+   Postgres.
+
 ## Peach Payments go-live (online payments)
 
 How it works: [INTEGRATIONS.md → Online payments](INTEGRATIONS.md#online-payments-peach-payments-chosen-and-yoco).

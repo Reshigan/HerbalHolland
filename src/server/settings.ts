@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS = {
     foundingTier: "SPROUT" as TierKey, // …who hold at least this tier
     foundingMonths: 14, // …for this long after launch
     referralBoost: 250, // waitlist places gained per friend who joins before launch
+    firstYearMonths: 6, // First Year Members: everyone on the list beyond the founding places holds the founding tier this long (0 = off)
   },
   offers: {
     enabled: true, // My Deals: weekly personal offer on each opted-in member's favourite product (HQ-funded)

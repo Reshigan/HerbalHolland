@@ -12,7 +12,7 @@ import { fmtDate, fmtDay, fmtTime, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 /** While the Founding Members list is open: the member's place, the Founding zone and the referral link that moves them up. */
-export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { place: number; total: number; referrals: number; boost: number; launchAt: Date }; cap: number; referUrl: string; shareText: string; firstName: string }) {
+export function WaitlistCard({ w, cap, firstYear, referUrl, shareText, firstName }: { w: { place: number; total: number; referrals: number; boost: number; launchAt: Date }; cap: number; firstYear?: string | null; referUrl: string; shareText: string; firstName: string }) {
   const v = waitlistView(w, cap);
   const pos = Math.min(100, Math.max(0, v.marker * 100));
   return (
@@ -54,7 +54,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
       <p className="mt-5 text-sm leading-relaxed text-ink-200">
         {v.founding
           ? `You're inside the first ${num(cap)}, so a numbered Founding Member card is yours when the list closes. Places can shift as others bring friends, so keep sharing.`
-          : `Bring ${v.friendsNeeded} friend${v.friendsNeeded === 1 ? "" : "s"} to reach a Founding spot.`}{" "}
+          : `Bring ${v.friendsNeeded} friend${v.friendsNeeded === 1 ? "" : "s"} to reach a Founding spot.${firstYear ? ` Either way you're a First Year Member when the list closes: ${firstYear}.` : ""}`}{" "}
         <strong className="font-semibold text-white">Each friend who joins moves you up {num(w.boost)} places.</strong>
         {w.referrals > 0 && ` You've brought ${w.referrals} so far. Thank you, ${firstName}.`}
       </p>

@@ -1,10 +1,12 @@
 // The Founding Members list. Until settings.launch.launchAt (when the list closes) members join the list while the
 // shop trades as normal. A member's place is their join order, moved up `referralBoost` places for every friend who
 // joins before it closes. Then the first `foundingCap` places become numbered Founding Members who hold at least
-// `foundingTier` for `foundingMonths` (Customer.tierFloor).
+// `foundingTier` for `foundingMonths` (Customer.tierFloor); the rest of the list become First Year Members, holding the
+// same tier for `firstYearMonths`.
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 import { getSettings } from "./settings";
+import { cache } from "react";
 import { TIERS } from "@/lib/loyalty-rules";
 
 export async function launchState(now = new Date()) {
@@ -24,6 +26,13 @@ const ranked = (at: Date, boost: number) => Prisma.sql`
   ), ranked AS (
     SELECT id, refs, row_number() OVER (ORDER BY seq - ${boost} * refs, seq) AS place, count(*) OVER () AS total FROM w
   )`;
+
+/** How many Founding places the list has used (members who joined before it closes), cached per request. */
+export const foundingTaken = cache(async (now = new Date()) => {
+  const s = await launchState(now);
+  if (!s.at) return 0;
+  return db.customer.count({ where: { createdAt: { lt: s.at } } });
+});
 
 /** A member's waitlist place (1 = front of the line), or null when there's no launch date. */
 export async function waitlistPlace(customerId: string) {
@@ -47,7 +56,16 @@ export async function assignFounding(now = new Date()) {
     UPDATE "Customer" c SET "foundingNo" = ranked.place, "tierFloor" = ${s.foundingTier}::"Tier", "tierFloorUntil" = ${until},
       tier = GREATEST(c.tier, ${s.foundingTier}::"Tier")
     FROM ranked WHERE c.id = ranked.id AND ranked.place <= ${s.foundingCap}`;
-  return { assigned };
+  // First Year Members: everyone else who joined before the list closed holds the founding tier for a shorter while.
+  let firstYear = 0;
+  if (s.firstYearMonths > 0) {
+    const fyUntil = new Date(s.at);
+    fyUntil.setMonth(fyUntil.getMonth() + s.firstYearMonths);
+    firstYear = await db.$executeRaw`
+      UPDATE "Customer" c SET "tierFloor" = ${s.foundingTier}::"Tier", "tierFloorUntil" = ${fyUntil}, tier = GREATEST(c.tier, ${s.foundingTier}::"Tier")
+      WHERE c."createdAt" < ${s.at} AND c."foundingNo" IS NULL AND c."tierFloor" IS NULL`;
+  }
+  return { assigned, firstYear };
 }
 
 /** When a floor lapses, members drop back to the tier their 12-month spend earns. */

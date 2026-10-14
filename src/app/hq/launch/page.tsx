@@ -218,7 +218,7 @@ export default async function LaunchPage() {
                   {
                     icon: Crown,
                     title: "Founding Members when it closes",
-                    body: `When the list closes, the first ${num(l.foundingCap)} places are numbered ${four(1)}–${four(l.foundingCap)} and hold at least ${tier.name} (${saving}% off instantly) for ${l.foundingMonths} months. Then their tier follows 12-month spend like everyone else's.`,
+                    body: `When the list closes, the first ${num(l.foundingCap)} places are numbered ${four(1)}–${four(l.foundingCap)} and hold at least ${tier.name} (${saving}% off instantly) for ${l.foundingMonths} months. Then their tier follows 12-month spend like everyone else's.${l.firstYearMonths ? ` Everyone else on the list becomes a First Year Member: ${tier.name} for ${l.firstYearMonths} months, no number.` : ""}`,
                   },
                 ].map((s, i) => (
                   <li key={s.title}>
@@ -272,6 +272,10 @@ export default async function LaunchPage() {
                   <Field label="Friend boost" htmlFor="referralBoost" hint="Places per friend">
                     <Input id="referralBoost" name="referralBoost" defaultValue={l.referralBoost} inputMode="numeric" className="tnum" />
                     <FieldError name="referralBoost" />
+                  </Field>
+                  <Field label="First Year months" htmlFor="firstYearMonths" hint="Beyond the founding places; 0 = off">
+                    <Input id="firstYearMonths" name="firstYearMonths" defaultValue={l.firstYearMonths} inputMode="numeric" className="tnum" />
+                    <FieldError name="firstYearMonths" />
                   </Field>
                 </fieldset>
                 {!locked && (
