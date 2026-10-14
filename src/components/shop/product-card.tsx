@@ -19,7 +19,7 @@ export async function ProductGrid({ items, buyable, className }: { items: Card[]
   const [wished, photos] = await Promise.all([customer ? wishlistVariantIds(customer.id) : null, mainImages(items.map((p) => p.id))]);
   return (
     <div className={cn("grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4", className)}>
-      {items.map((p) => {
+      {items.map((p, i) => {
         const photo = photos.get(p.id);
         return (
           <ProductCardView
@@ -30,7 +30,7 @@ export async function ProductGrid({ items, buyable, className }: { items: Card[]
             art={
               photo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={productImageUrl(photo.id)} alt={photo.alt || p.name} width={600} height={600} loading="lazy" decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
+                <img src={productImageUrl(photo.id)} alt={photo.alt || p.name} width={600} height={600} loading={i < 4 ? "eager" : "lazy"} fetchPriority={i === 0 ? "high" : undefined} decoding="async" className="h-full w-full object-cover transition duration-700 group-hover:scale-[1.04]" />
               ) : (
                 <ProductArt slug={p.slug} strain={p.strain} regClass={p.regClass} label={p.name} className="h-full w-full transition duration-700 group-hover:scale-[1.04]" />
               )

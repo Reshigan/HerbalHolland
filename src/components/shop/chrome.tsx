@@ -87,7 +87,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
       <div className="flex min-h-dvh flex-col bg-ink-950 text-ink-100">
-        <div className="bg-brand-500 text-ink-950">
+        <nav aria-label="Offers" className="bg-brand-500 text-ink-950">
           <Container className="flex h-9 items-center justify-center gap-6 text-[0.78rem] font-semibold">
             {messages.map((m, i) => (
               <Link key={m.text} href={m.href} className={cn("truncate hover:underline", i > 0 && "hidden md:inline", i > 1 && "md:hidden lg:inline")}>
@@ -99,7 +99,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               Adults only
             </span>
           </Container>
-        </div>
+        </nav>
 
         <header className="sticky top-0 z-40 border-b border-ink-850 bg-ink-950/85 backdrop-blur-xl supports-[backdrop-filter]:bg-ink-950/70">
           <Container className="flex h-16 items-center gap-2 lg:h-[4.5rem] lg:gap-4">
@@ -246,7 +246,7 @@ const TIER_DOT: Record<string, string> = { SEED: "bg-ink-300", SPROUT: "bg-leaf-
 export function FooterCol({ title, links }: { title: string; links: [string, string][] }) {
   return (
     <div>
-      <h3 className="eyebrow mb-4 text-ink-300">{title}</h3>
+      <h2 className="eyebrow mb-4 text-ink-300">{title}</h2>
       <ul className="space-y-2.5 text-sm">
         {links.map(([label, href]) => (
           <li key={href}>

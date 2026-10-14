@@ -1731,13 +1731,13 @@ async function main() {
     const images: Prisma.ProductImageCreateManyInput[] = [];
     for (const p of PRODUCTS) {
       const files: [string, string][] = [];
-      const render = new URL(`../public/catalogue/products/${p.slug}.jpg`, import.meta.url);
-      if (existsSync(render)) files.push([render.pathname, "image/jpeg"]);
+      const render = new URL(`../public/catalogue/products/${p.slug}.webp`, import.meta.url);
+      if (existsSync(render)) files.push([render.pathname, "image/webp"]);
       for (const key of p.images ?? []) files.push([new URL(`../public/merch/print/accessories/${key}.mockup.png`, import.meta.url).pathname, "image/png"]);
       for (const [i, [file, type]] of files.entries()) {
         const body = readFileSync(file);
         const id = uid().replaceAll("-", ""); // /media/[id] takes letters and digits only
-        const ext = type === "image/png" ? "png" : "jpg";
+        const ext = type === "image/png" ? "png" : "webp";
         await putObject(`products/${id}.${ext}`, new Uint8Array(body), type);
         uploads.push({ id, key: `products/${id}.${ext}`, fileName: `${p.slug}-${i + 1}.${ext}`, contentType: type, sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex") });
         images.push({ productId: productIdBySlug[p.slug], uploadId: id, alt: p.name, sortOrder: i });

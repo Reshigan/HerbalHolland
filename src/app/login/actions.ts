@@ -21,7 +21,7 @@ export async function login(_: LoginState, form: FormData): Promise<LoginState> 
   const from = await signInKey();
   if (await ipLocked(from)) return { error: IP_LOCKED, ...again };
   const user = await db.user.findUnique({ where: { email } });
-  if (user && isLocked(user, "password")) return { error: "Too many attempts. Try again in 15 minutes.", ...again };
+  if (user && isLocked(user, "password")) return { error: "That email and password don't match.", ...again }; // a locked account answers like any wrong password
   // An unknown email is checked against a stand-in hash, so it takes as long as a wrong password.
   const right = await verifySecret(password, user?.passwordHash ?? NO_HASH);
   if (!user?.active || !right) {

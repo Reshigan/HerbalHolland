@@ -2,7 +2,7 @@
 // coloured by product family. Deterministic per product, no photography needed.
 // Merch shows its actual design instead (MerchArt).
 import { PETAL } from "@/components/brand/logo";
-import { MerchArt } from "@/components/merch/mockup";
+import { MerchArt, artA11y } from "@/components/merch/mockup";
 import { merchFor } from "@/lib/merch";
 import { cn } from "@/lib/cn";
 
@@ -44,7 +44,7 @@ export function ProductArt({ slug, strain, regClass, className, label }: { slug:
   const petals = 4 + ((h >> 15) % 3);
   const id = `g${h.toString(36)}`;
   return (
-    <svg viewBox="0 0 120 120" className={cn("block", className)} role="img" aria-label={label ?? slug} preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 120 120" className={cn("block", className)} {...artA11y(label ?? slug)} preserveAspectRatio="xMidYMid slice">
       <defs>
         <radialGradient id={id} cx="35%" cy="25%" r="90%">
           <stop offset="0%" stopColor={f.bg[0]} />

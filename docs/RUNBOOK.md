@@ -404,7 +404,7 @@ active promotions; drops and events from the launch programme. Nothing on the bo
 
 **Product and category pictures.** Each product's main photo is a studio render: `scripts/render/labels.tsx` draws its
 packaging label and `scripts/render/products.py` (Blender 4.2 with Cycles) models it and renders it on the stone
-backdrop, plus one group shot per category (`public/catalogue/products/<slug>.jpg`, `public/catalogue/categories/<slug>.jpg`).
+backdrop, plus one group shot per category (`public/catalogue/products/<slug>.webp`, `public/catalogue/categories/<slug>.webp`).
 A new product gets its own by running both (about a minute a picture on 4 cores); imported real photos (`image_urls`)
 can replace them at any time. The home page tiles and the category header show the category picture
 (`@/lib/category-images`).

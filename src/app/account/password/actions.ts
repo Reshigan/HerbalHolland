@@ -13,6 +13,7 @@ export type PasswordState = { error?: string; field?: "current" | "next" | "conf
 export async function changePassword(_: PasswordState, form: FormData): Promise<PasswordState> {
   const user = await getStaffChangingPassword();
   if (!user) redirect("/login");
+  if (user.mustChangePassword && user.tempPasswordUntil && user.tempPasswordUntil < new Date()) redirect("/login"); // expired: sign in again (refused there)
   const [current, next, confirm] = ["current", "next", "confirm"].map((k) => String(form.get(k) ?? ""));
   // Wrong current passwords count towards the same lockout as signing in.
   if (isLocked(user, "password")) return { error: "Too many wrong passwords. Try again in 15 minutes.", field: "current" };

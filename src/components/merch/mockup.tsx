@@ -188,6 +188,9 @@ export function GarmentView({ item, side, id }: { item: MerchItem; side: Side; i
 }
 
 /** Product art for a merch item (null when `slug` isn't merch). */
+/** Named art is an image; art beside its own caption (an empty label) is decorative, so readers skip it. */
+export const artA11y = (name: string) => (name ? { role: "img" as const, "aria-label": name } : { "aria-hidden": true as const });
+
 export function MerchArt({ slug, className, label, side }: { slug: string; className?: string; label?: string; side?: Side }) {
   const item = merchFor(slug);
   if (!item) return null;
@@ -195,7 +198,7 @@ export function MerchArt({ slug, className, label, side }: { slug: string; class
   const t = TONES[item.colour];
   const id = `m${hash(`${slug}-${view}`)}`;
   return (
-    <svg viewBox="0 0 120 120" className={cn("block", className)} role="img" aria-label={label ?? slug} preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 120 120" className={cn("block", className)} {...artA11y(label ?? slug)} preserveAspectRatio="xMidYMid slice">
       <defs>
         <radialGradient id={`${id}-bg`} cx="35%" cy="25%" r="95%">
           <stop offset="0%" stopColor={t.bg[0]} />

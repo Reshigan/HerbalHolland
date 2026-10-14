@@ -27,7 +27,7 @@ export function SetStoreButton({ code, name, active, className }: { code: string
           })
         }
         className={cn("inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-500 px-3.5 text-xs font-semibold text-ink-950 transition hover:bg-brand-400 disabled:opacity-60", className)}
-        aria-label={`Make ${name} my store`}
+        aria-label={`Make this my store: ${name}`}
       >
         <MapPin className="h-3.5 w-3.5" /> {pending ? "Saving…" : "Make this my store"}
       </button>

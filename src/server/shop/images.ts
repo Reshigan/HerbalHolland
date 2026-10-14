@@ -90,8 +90,11 @@ export async function importProductImages(productId: string, urls: string[], opt
         continue;
       }
       const key = `products/${productId}/${randomUUID()}.${extFor(type)}`;
+      let fileName = `photo.${extFor(type)}`;
+      try {
+        fileName = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "").slice(0, 120) || fileName;
+      } catch {}
       await putObject(key, bytes, type);
-      const fileName = decodeURIComponent(url.split("/").pop()?.split("?")[0] ?? "").slice(0, 120) || `photo.${extFor(type)}`;
       const upload = await db.upload.create({ data: { key, fileName, contentType: type, sizeBytes: bytes.length, sha256, uploadedById: opts.uploadedById ?? null } });
       await db.productImage.create({ data: { productId, uploadId: upload.id, alt: opts.alt.slice(0, 160), sortOrder: sortOrder++ } });
       known.add(sha256);
