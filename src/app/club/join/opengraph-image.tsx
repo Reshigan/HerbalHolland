@@ -8,6 +8,8 @@ import { tierInfo } from "@/lib/loyalty-rules";
 export const alt = "Join Herbal Holland Rewards";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+// Reads the live count, so it renders per request rather than at build time (where there is no database).
+export const dynamic = "force-dynamic";
 
 // The card a shared join link shows on WhatsApp, Facebook and Instagram: while the Founding Members list runs it
 // carries the live count of cards left (or the First Year line once they're gone); otherwise the plain invitation.
