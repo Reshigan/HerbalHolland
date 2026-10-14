@@ -161,3 +161,12 @@ Do this on brand day (Tue 13 Oct 2026 in the marketing plan), in this order, onc
 - [ ] Reply to the first comments the same day, from the accounts, by name. Product questions get "Everything's on the
       website once the shop opens: link in bio" and nothing more.
 - [ ] Write the three post links into the Studio (**Mark posted**) so the reports see them.
+
+## The store look (for photos, video and signage)
+
+Every store follows the Hilton Village concept (HQ's retail store concepts, rev 3 Oct 2026), adjusted for the size of the
+shop: matte black walls and ceiling, warm oak shelving bays (1,000 mm wide, 900 × 300 mm accessory shelving, a two-tier
+hang rail at 1,000 and 1,900 mm) with warm strip lighting under each shelf, glass-topped display counters on black
+steel, a 3,000 mm cash wrap, the windmill mark backlit in Sunset orange on the feature wall, cognac leather lounge
+chairs, and window graphics in the brand frame. Shoot and design to that: black ground, warm timber, one orange
+light source, product renders only as artwork on social (no shelf close-ups of licensed products).

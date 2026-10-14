@@ -3,7 +3,7 @@
 // string: those can carry session cookies and signed links. reportFailure is the same for an error that was caught,
 // so no request reports it: a scheduled job's step, one item of a batch, an action's catch-all.
 import { admitAlert, alertGate, alertKey, alertSummary, isControlFlow, scrubAlert } from "@/lib/alerts";
-import { deliverEmail, esc } from "./email";
+import { deliverEmail, emailLayout, esc } from "./email";
 
 const gate = alertGate();
 
@@ -16,7 +16,12 @@ async function emailAlert(key: string, e: Error, head: string[]) {
   if (!to || !admitAlert(gate, alertKey(key, e.message), Date.now())) return;
   const text = [...head, `At: ${new Date().toISOString()}`, `App: ${process.env.APP_URL ?? "(APP_URL not set)"}`, "", scrubAlert(e.stack ?? e.message)].join("\n");
   try {
-    await deliverEmail({ to, subject: `Server error: ${alertSummary(scrubAlert(e.message))}`, text, html: `<pre style="font:13px/1.45 ui-monospace,monospace;white-space:pre-wrap">${esc(text)}</pre>` });
+    await deliverEmail({
+      to,
+      subject: `Server error: ${alertSummary(scrubAlert(e.message))}`,
+      text,
+      html: emailLayout({ preheader: alertSummary(scrubAlert(e.message)), eyebrow: "Server alert", heading: "Something went wrong on the server", body: `<pre style="margin:0 0 16px;font:13px/1.45 ui-monospace,monospace;white-space:pre-wrap;word-break:break-word">${esc(text)}</pre>`, footerHtml: "You received this because your address is the server's ALERT_EMAIL." }),
+    });
   } catch (mailErr) {
     console.error("[error] couldn't email the alert", mailErr);
   }
