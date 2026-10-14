@@ -88,7 +88,7 @@ const receipt = (over: Partial<ReceiptDTO> = {}): ReceiptDTO => ({
   buyer: null,
   note: null,
   refunds: [],
-  invoiceUrl: "https://herbalholland.co.za/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123",
+  invoiceUrl: "https://shop.herbalholland.com/invoice/0f7e2c4a-1111-4222-8333-444455556666?t=abc123",
   ...over,
 });
 
@@ -162,7 +162,7 @@ describe("receipt layout", () => {
     expect(d).toContain(LICENSED_LINE.slice(0, 30));
     expect(d).toContain(CBD_LINE.slice(0, 20));
     expect(d).toContain(ADULTS_LINE);
-    expect(d).toContain('fn=80 "https://herbalholland.co.za/invoice/');
+    expect(d).toContain('fn=80 "https://shop.herbalholland.com/invoice/');
     expect(d).toContain("CHANGE");
     expect(d).toContain("R92.00");
     expect(d).toContain("<GS V 42 00>");

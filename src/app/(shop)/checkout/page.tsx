@@ -10,6 +10,7 @@ import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
 import { quote } from "@/server/pricing";
 import { evaluateBasket } from "@/server/compliance";
 import { deliveryFee, routingCandidates } from "@/server/orders";
+import { canBuyOnline, fulfilmentForPhase } from "@/lib/launch-phase";
 import { CONSENT_WORDING } from "@/server/customers";
 import { dropBlocks, dropsFor } from "@/server/drops";
 import { isOffer } from "@/server/offers";
@@ -41,6 +42,7 @@ const AGE_BLOCK = /^Age verification required/;
 export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ welcome?: string }> }) {
   const { welcome } = await searchParams;
   const [items, code, customer, settings, store, stores, voucherCode] = await Promise.all([getCart(), getPromoCode(), getCustomer(), getSettings(), getPreferredStore(), getRetailStores(), getVoucherCode()]);
+  if (!canBuyOnline(settings.launch.phase)) redirect("/shop");
   if (!items.length) redirect("/cart");
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
   if (!q.lines.length) redirect("/cart");
@@ -76,7 +78,7 @@ export default async function CheckoutPage({ searchParams }: { searchParams: Pro
     );
 
   const compItems = q.lines.map((l) => ({ name: l.name, regClass: l.regClass, grams: l.grams, qty: l.qty, tobaccoRelated: l.tobaccoRelated }));
-  const keys: SellChannel[] = ["COLLECT", "SAME_DAY", "COURIER"];
+  const keys: SellChannel[] = fulfilmentForPhase(settings.launch.phase);
   const [comps, fees, cands, lastAddress, drops, dropMsgs, made, addresses, voucher] = await Promise.all([
     Promise.all(keys.map((channel) => evaluateBasket({ items: compItems, channel, customerId: customer.id, storeLicences: settings.compliance.licensedOnly }))),
     Promise.all(keys.map((f) => deliveryFee(f as "COLLECT", q.lines, customer.tier))),

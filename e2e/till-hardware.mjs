@@ -45,7 +45,7 @@ try {
   step("Pair PTA01 and sign in as the manager (Shireen Singh, PIN 1111)");
   await page.goto(`${BASE}/pos`);
   await page.waitForURL(/\/pos\/pair/);
-  await page.locator("#pair-email").fill("manager.pta01@herbalholland.co.za");
+  await page.locator("#pair-email").fill("manager.pta01@herbalholland.com");
   await page.locator("#pair-password").fill("holland");
   await page.getByRole("button", { name: "Continue" }).click();
   await page.locator("#till-name").fill("E2E hardware till");

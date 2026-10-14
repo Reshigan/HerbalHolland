@@ -10,7 +10,7 @@ import { sendEarlyAccess } from "./early-access";
 import { postizConnected, postizPosts, publishSocial, socialChannels } from "./social";
 import { cardJpeg } from "./studio-cards";
 import { hoursLine, parseHours } from "./shop/hours";
-import { PLAYBOOKS } from "@/lib/studio-playbooks";
+import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
 import { interestFor, layout, longDate, OWN_CHANNELS, productFacts, screenDraft, spreadFeed, weekdayOf, WEEKDAYS, type Card, type Draft, type Fields, type StudioChannel } from "@/lib/studio";
 import { SOCIAL_NETWORKS, type SocialChannel } from "@/lib/social";
 import { isAudience } from "@/lib/rfm";
@@ -87,6 +87,7 @@ export async function createPlan(p: { playbook: string; anchor: string; storeId:
       name: store ? `${pb.name}: ${store.name}` : product ? `${pb.name}: ${product.name}` : pb.name,
       anchor,
       storeId: store?.id ?? null,
+      productId: product?.id ?? null,
       createdBy: p.by,
       items: {
         create: drafts.map((d) => ({
@@ -100,6 +101,7 @@ export async function createPlan(p: { playbook: string; anchor: string; storeId:
           audience: d.audience ?? (OWN_CHANNELS.includes(d.channel) ? interest : null),
           linkedin: d.linkedin ?? null,
           brief: d.brief ?? null,
+          hand: !!d.milestone, // a milestone post waits for the count, so it starts as "post by hand"
           ...(left(d) ? { status: "SKIPPED" as const, note: left(d) } : d.at <= now ? { status: "SKIPPED" as const, note: "Its day had passed when the campaign was laid out" } : d.moved ? { note: d.moved } : {}),
         })),
       },
@@ -107,6 +109,41 @@ export async function createPlan(p: { playbook: string; anchor: string; storeId:
   });
   await audit(db, p.actor, "studio.create", { storeId: store?.id ?? null, entity: "StudioPlan", entityId: plan.id, data: { playbook: pb.key, anchor, items: drafts.length, product: product?.slug } });
   return plan;
+}
+
+/** The product-launch Tuesdays (NEW_ONLINE_DAYS) a week or more away with no launch on them (one whose posts are all skipped frees its day). */
+export async function freeLaunchDays(now = new Date()) {
+  const from = dayKey(new Date(now.getTime() + 7 * 86_400_000));
+  const taken = await db.studioPlan.findMany({ where: { playbook: "new-online", anchor: { in: NEW_ONLINE_DAYS }, items: { some: { status: { not: "SKIPPED" } } } }, select: { anchor: true } });
+  return NEW_ONLINE_DAYS.filter((d) => d >= from && !taken.some((t) => t.anchor === d));
+}
+
+/**
+ * "New online" for products that have just gone live: each, in name order, takes the next free launch Tuesday, laid out
+ * as drafts for HQ to approve. Licensed medicines, and a product that already has its launch, are passed over. Returns
+ * each product's day, or null when the plan has none left.
+ */
+export async function announceProducts(p: { productIds: string[]; by: string; actor: Actor }, now = new Date()) {
+  const products = p.productIds.length ? await db.product.findMany({ where: { id: { in: p.productIds }, launches: { none: {} } }, select: { id: true, name: true, regClass: true }, orderBy: { name: "asc" } }) : [];
+  const free = await freeLaunchDays(now);
+  const out: { product: string; day: string | null }[] = [];
+  for (const pr of products.filter((x) => interestFor(x.regClass))) {
+    const day = free.shift() ?? null;
+    if (day) await createPlan({ playbook: "new-online", anchor: day, storeId: null, productId: pr.id, by: p.by, actor: p.actor }, now);
+    out.push({ product: pr.name, day });
+  }
+  return out;
+}
+
+/** What announceProducts did, in a sentence for the notice after a save or an import ("" when nothing). */
+export function announced(r: { product: string; day: string | null }[]) {
+  const laid = r.filter((x) => x.day);
+  const none = r.filter((x) => !x.day).map((x) => x.product);
+  const names = none.length > 3 ? `${none.slice(0, 2).join(", ")} and ${none.length - 2} more` : none.join(", ");
+  return [
+    laid.length && `“New online” laid out in the Studio for ${laid.map((x) => `${x.product} (${longDate(x.day!)})`).join(", ")}: approve ${laid.length === 1 ? "it" : "them"} there.`,
+    none.length && `No product-launch Tuesday is free in the content plan for ${names}: lay ${none.length === 1 ? "its launch" : "their launches"} out in the Studio.`,
+  ].filter(Boolean).join(" ");
 }
 
 /** Shortest runs between the launch's days: two weeks of brand before the shop, and the shop open before any store is revealed. */

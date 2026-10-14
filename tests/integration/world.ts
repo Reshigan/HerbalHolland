@@ -4,6 +4,7 @@
 import { db } from "@/server/db";
 import { putStock } from "@/server/inventory";
 import { tx } from "@/server/db";
+import { DEFAULT_SETTINGS } from "@/server/settings";
 
 export async function resetDb() {
   const tables = await db.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%'`;
@@ -13,6 +14,8 @@ export async function resetDb() {
 const days = (n: number) => new Date(Date.now() + n * 86_400_000);
 
 export async function buildWorld() {
+  // The test network is open for business (a fresh database starts as the brand site, with no online buying).
+  await db.setting.create({ data: { key: "launch", value: { ...DEFAULT_SETTINGS.launch, phase: "STORES" } } });
   const region = await db.region.create({ data: { code: "GPN", name: "Tshwane & North" } });
   const hq = await db.company.create({ data: { kind: "FRANCHISOR", name: "Herbal Holland", legalName: "Herbal Holland (Pty) Ltd", vatNumber: "4870123456", email: "hq@example.co.za" } });
   const owner = await db.company.create({ data: { kind: "FRANCHISEE", name: "Test Retail", legalName: "Test Retail (Pty) Ltd", vatNumber: "4410000000", email: "owner@example.co.za" } });

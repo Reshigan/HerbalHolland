@@ -1,9 +1,9 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { db } from "@/server/db";
-import { approveItems, createLaunch, createPlan, EARLY_ACCESS, LAUNCH_GAPS, markPosted, releaseStudio, saveItem, scheduleApproved, setHand, setPaused, StudioError, syncStudio, unschedule } from "@/server/studio";
+import { announced, announceProducts, approveItems, createLaunch, createPlan, EARLY_ACCESS, LAUNCH_GAPS, markPosted, releaseStudio, saveItem, scheduleApproved, setHand, setPaused, StudioError, syncStudio, unschedule } from "@/server/studio";
 import { earlyAccessCount, importEarlyAccess } from "@/server/early-access";
-import { firstDayT, type Card } from "@/lib/studio";
-import { PLAYBOOKS } from "@/lib/studio-playbooks";
+import { firstDayT, longDate, type Card } from "@/lib/studio";
+import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
 import { dayKey } from "@/lib/format";
 import { marketingWindow } from "@/lib/sa";
 import { buildWorld, resetDb, type World } from "./world";
@@ -105,6 +105,30 @@ describe("Campaign Studio", () => {
     expect(items.some((i) => i.text.includes("Calm Oil"))).toBe(true);
     expect(items.filter((i) => ["EMAIL", "PUSH"].includes(i.channel)).every((i) => i.audience === "interest:CBD")).toBe(true);
     await db.studioPlan.delete({ where: { id: plan.id } });
+  });
+
+  it("announces products as they go live: each on the first free product-launch Tuesday a week or more away, as drafts; never a licensed medicine, never twice", async () => {
+    const [first, second] = NEW_ONLINE_DAYS;
+    const now = new Date(Date.parse(`${first}T08:00:00Z`) - 8 * 86_400_000);
+    const ids = [w.oilV.productId, w.coffeeV.productId, w.flowerV.productId];
+    const r = await announceProducts({ productIds: ids, by: "Hanna HQ", actor }, now);
+    expect(r).toEqual([{ product: "Calm Oil", day: first }, { product: "Test CBD Coffee", day: second }]); // by name, one a Tuesday; Test Haze passed over
+    const plans = await db.studioPlan.findMany({ where: { productId: { in: ids } }, include: { items: true } });
+    expect(plans.map((p) => `${p.productId}@${p.anchor}`).sort()).toEqual([`${w.oilV.productId}@${first}`, `${w.coffeeV.productId}@${second}`].sort());
+    expect(plans.every((p) => p.playbook === "new-online" && p.items.length && p.items.every((i) => i.status === "DRAFT"))).toBe(true);
+    expect(announced(r)).toBe(`“New online” laid out in the Studio for Calm Oil (${longDate(first)}), Test CBD Coffee (${longDate(second)}): approve them there.`);
+    expect(await announceProducts({ productIds: ids, by: "Hanna HQ", actor }, now)).toEqual([]);
+    // A launch with every post skipped frees its Tuesday.
+    await db.studioItem.updateMany({ where: { plan: { productId: w.oilV.productId } }, data: { status: "SKIPPED" } });
+    await db.studioPlan.deleteMany({ where: { productId: w.coffeeV.productId } });
+    expect(await announceProducts({ productIds: [w.coffeeV.productId], by: "Hanna HQ", actor }, now)).toEqual([{ product: "Test CBD Coffee", day: first }]);
+    // Under a week before the plan's last Tuesday, none is left: the notice says so.
+    await db.studioPlan.deleteMany({ where: { productId: w.coffeeV.productId } });
+    const late = await announceProducts({ productIds: [w.coffeeV.productId], by: "Hanna HQ", actor }, new Date(Date.parse(`${NEW_ONLINE_DAYS.at(-1)}T08:00:00Z`) - 6 * 86_400_000));
+    expect(late).toEqual([{ product: "Test CBD Coffee", day: null }]);
+    expect(announced(late)).toBe("No product-launch Tuesday is free in the content plan for Test CBD Coffee: lay its launch out in the Studio.");
+    expect(announced(["A", "B", "C", "D"].map((product) => ({ product, day: null })))).toMatch(/for A, B and 2 more: lay their launches out/);
+    await db.studioPlan.deleteMany({ where: { productId: { in: ids } } });
   });
 
   it("approves what passes and queues what goes out on its own; by-hand posts wait for a person", async () => {

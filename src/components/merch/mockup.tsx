@@ -69,6 +69,26 @@ const SHAPES: Record<Garment, Record<Side, Shape>> = {
       place: {},
     },
   },
+  jacket: {
+    front: {
+      body: "M45 19 C50 27 70 27 75 19 L90 23 C98 27 103 46 106 73 L107.5 87 L98.5 88 L96.5 75 C95 62 93 52 91 47 L91 96 L92 104 L28 104 L29 96 L29 47 C27 52 25 62 23.5 75 L21.5 88 L12.5 87 L14 73 C17 46 22 27 30 23 Z",
+      trims: [
+        "M29 96 L91 96 L92 104 L28 104 Z",
+        "M98.5 88 L107.5 87 L106.4 78.5 L97.3 79.8 Z",
+        "M21.5 88 L12.5 87 L13.6 78.5 L22.7 79.8 Z",
+        "M41 12.5 L52 17 L60 27 L68 17 L79 12.5 L78.5 21.5 C73 25 65 27 60 29 C55 27 47 25 41.5 21.5 Z",
+        "M58.8 27 L61.2 27 L61.2 96 L58.8 96 Z",
+      ],
+      seams: ["M55 20.5 a1 1 0 1 0 0.01 0", "M65 20.5 a1 1 0 1 0 0.01 0", "M45 23 C40 33 34 40 29 47", "M75 23 C80 33 86 40 91 47", "M33 72 L45 69", "M87 72 L75 69", "M91 47 L90 23", "M29 47 L30 23"],
+      place: { front: { cx: 72, top: 34, unitsPerMm: 62 / 600 } },
+    },
+    back: {
+      body: "M45 19 C51 22 69 22 75 19 L90 23 C98 27 103 46 106 73 L107.5 87 L98.5 88 L96.5 75 C95 62 93 52 91 47 L91 96 L92 104 L28 104 L29 96 L29 47 C27 52 25 62 23.5 75 L21.5 88 L12.5 87 L14 73 C17 46 22 27 30 23 Z",
+      trims: ["M29 96 L91 96 L92 104 L28 104 Z", "M43 15.5 C49 19 71 19 77 15.5 L76 21 C70 24 50 24 44 21 Z"],
+      seams: ["M30 31 C42 41 78 41 90 31"],
+      place: {},
+    },
+  },
   cap: {
     front: {
       body: "M22 72 C21 44 38 27 60 27 C82 27 99 44 98 72 Z",
@@ -146,7 +166,8 @@ export function GarmentView({ item, side, id }: { item: MerchItem; side: Side; i
         .filter((p) => p.side === side && shape.place[side])
         .map((p) => {
           const a = ART[p.art], pl = shape.place[side]!;
-          const box = { x: pl.cx - (a.w * pl.unitsPerMm) / 2, y: pl.top, width: a.w * pl.unitsPerMm, height: a.h * pl.unitsPerMm };
+          const k = pl.unitsPerMm * (p.scale ?? 1);
+          const box = { x: pl.cx - (a.w * k) / 2, y: pl.top, width: a.w * k, height: a.h * k };
           if (p.technique !== "Embroidery") return <Artwork key={p.art} art={p.art} {...box} />;
           // Embroidery: raised thread with a satin sheen across the stitches.
           const mask = `${id}-${p.art}-thread`;
@@ -167,6 +188,9 @@ export function GarmentView({ item, side, id }: { item: MerchItem; side: Side; i
 }
 
 /** Product art for a merch item (null when `slug` isn't merch). */
+/** Named art is an image; art beside its own caption (an empty label) is decorative, so readers skip it. */
+export const artA11y = (name: string) => (name ? { role: "img" as const, "aria-label": name } : { "aria-hidden": true as const });
+
 export function MerchArt({ slug, className, label, side }: { slug: string; className?: string; label?: string; side?: Side }) {
   const item = merchFor(slug);
   if (!item) return null;
@@ -174,7 +198,7 @@ export function MerchArt({ slug, className, label, side }: { slug: string; class
   const t = TONES[item.colour];
   const id = `m${hash(`${slug}-${view}`)}`;
   return (
-    <svg viewBox="0 0 120 120" className={cn("block", className)} role="img" aria-label={label ?? slug} preserveAspectRatio="xMidYMid slice">
+    <svg viewBox="0 0 120 120" className={cn("block", className)} {...artA11y(label ?? slug)} preserveAspectRatio="xMidYMid slice">
       <defs>
         <radialGradient id={`${id}-bg`} cx="35%" cy="25%" r="95%">
           <stop offset="0%" stopColor={t.bg[0]} />

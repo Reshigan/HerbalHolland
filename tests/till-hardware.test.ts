@@ -200,7 +200,7 @@ describe("batch code scans", () => {
   it("recognises pack codes and lab-certificate links, never barcodes, members or tickets", () => {
     expect(parseBatchScan("DUPO0-35G-2605A")).toBe("DUPO0-35G-2605A");
     expect(parseBatchScan("dupo0-35g-2605a")).toBe("DUPO0-35G-2605A");
-    expect(parseBatchScan("https://herbalholland.co.za/batch/DUPO0-35G-2605A?utm=pack")).toBe("DUPO0-35G-2605A");
+    expect(parseBatchScan("https://shop.herbalholland.com/batch/DUPO0-35G-2605A?utm=pack")).toBe("DUPO0-35G-2605A");
     expect(parseBatchScan("6001234000013")).toBeNull();
     expect(parseBatchScan("HH0100002")).toBeNull();
     expect(parseBatchScan("HHORDER:ABCD12:123456")).toBeNull();

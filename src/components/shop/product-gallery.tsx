@@ -15,7 +15,7 @@ export function ProductGallery({ photos, art, name, badges, className }: { photo
   return (
     <div className={className}>
       <div className="hh-beads-foot relative overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900">
-        <ul className="scrollbar-none flex snap-x snap-mandatory overflow-x-auto [scroll-behavior:smooth]" aria-label={`${name}: photos`}>
+        <ul className="scrollbar-none flex snap-x snap-mandatory overflow-x-auto [scroll-behavior:smooth]" aria-label={`${name}: photos`} tabIndex={0}>
           {photos.map((p, i) => (
             <li key={p.id} id={`photo-${i + 1}`} className="relative aspect-square w-full shrink-0 snap-center scroll-mt-28">
               {/* eslint-disable-next-line @next/next/no-img-element */}

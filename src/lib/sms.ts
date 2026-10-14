@@ -5,7 +5,7 @@
 //     ID; the prefix says who's writing either way), then the order code, then the news, then a short link.
 //   - One segment where possible: ≤ 160 characters in the GSM 03.38 alphabet. A curly quote or an em dash silently
 //     switches the whole message to UCS-2 (70 characters a segment), so gsmSafe() tidies copy before it's sent.
-//   - Links are APP_URL paths without the scheme (herbalholland.co.za/orders/X7K2P9): short, and phones make them tappable.
+//   - Links are APP_URL paths without the scheme (shop.herbalholland.com/orders/X7K2P9): short, and phones make them tappable.
 //   - "Reply STOP to opt out" belongs on marketing only (marketing.ts adds it); order updates and sign-in codes never carry it.
 
 export const SMS_BRAND = "Herbal Holland";
@@ -78,14 +78,14 @@ export function orderSms(kind: OrderSmsEvent, o: OrderSmsInput) {
     case "placed":
       return sms(
         collect
-          ? `order ${o.code} received for collection at ${o.storeName}. We'll text you when it's ready${o.paid === false ? " - pay at the counter" : ""}. Track: ${o.link}`
+          ? `order ${o.code} received for collection at ${o.storeName}. We'll text when it's ready${o.paid === false ? " - pay at the counter" : ""}. ${o.link}`
           : `order ${o.code} received for delivery. We'll text you when it's on its way. Track: ${o.link}`,
       );
     case "ready":
       return sms(`order ${o.code} is ready at ${o.storeName}. Show code ${o.collectionCode ?? ""} and your ID (18+) to collect${o.paid === false ? "; pay at the counter" : ""}. ${o.link}`);
     case "dispatched":
       return sms(
-        `order ${o.code} is on its way${o.trackingNo ? ` (${o.courier ?? "courier"} tracking ${o.trackingNo})` : ""}.${o.ageRestricted ? " Have your ID (18+) ready for the driver." : ""} Track: ${o.link}`,
+        `order ${o.code} is on its way${o.trackingNo ? ` (${o.courier ?? "courier"} tracking ${o.trackingNo})` : ""}.${o.ageRestricted ? " Have your ID (18+) ready." : ""} Track: ${o.link}`,
       );
     case "delivered":
       return sms(`order ${o.code} delivered. Thanks - your points have been added. ${o.link}`);

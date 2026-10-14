@@ -1,7 +1,7 @@
 // Social posting through Postiz, which is open source and free when self-hosted (docs/INTEGRATIONS.md). HQ writes the post in
 // HQ → Marketing → Social or lays out a campaign in the Studio; Postiz publishes or schedules it on the connected
 // Instagram, Facebook, Threads, Bluesky, Telegram, LinkedIn and X accounts.
-//   POSTIZ_URL=https://social.herbalholland.co.za/api/public/v1   your Postiz's public API (Postiz cloud: https://api.postiz.com/public/v1)
+//   POSTIZ_URL=https://social.herbalholland.com/api/public/v1   your Postiz's public API (Postiz cloud: https://api.postiz.com/public/v1)
 //   POSTIZ_API_KEY=…                                               Postiz → Settings → Public API
 //   unset                                                          posts are only recorded here (development and demos)
 import { APP_URL } from "./invoices";

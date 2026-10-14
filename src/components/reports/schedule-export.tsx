@@ -88,7 +88,7 @@ export function ScheduleExport({ me, schedules, schedule }: { me: string; schedu
               </div>
             </div>
             <Field label="Send to (staff emails, comma-separated)" htmlFor={`${id}-to`}>
-              <Input id={`${id}-to`} name="recipients" defaultValue={me} placeholder="you@herbalholland.co.za, colleague@…" />
+              <Input id={`${id}-to`} name="recipients" defaultValue={me} placeholder="you@herbalholland.com, colleague@…" />
               <FieldError name="recipients" />
             </Field>
             <SubmitButton size="sm" pendingLabel="Scheduling…">

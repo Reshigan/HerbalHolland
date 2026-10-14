@@ -5,7 +5,8 @@ import { db, tx, type Tx } from "../db";
 import { audit, type Actor } from "../audit";
 import { nextNumber } from "../counters";
 import { getSettings } from "../settings";
-import { deliverEmail, sendEmail } from "../email";
+import { deliverEmail, finalizeEmail, sendEmail } from "../email";
+import { pdfAttachment } from "../pdf";
 import { queuePosting } from "../ledger/core";
 import { ageing, creditDecision, overdueBeyondGrace, statementMonth, tradeCreditNumber, tradeStatement, type CreditDecision } from "@/lib/trade";
 import { dayKey } from "@/lib/format";
@@ -160,19 +161,19 @@ export const statementLogId = (accountId: string, month: string) => `trade-state
 
 /**
  * Emails the month's statement to the account's billing address, once per account and month (the message log row
- * `trade-statement-<account>-<month>` is the receipt; `force` sends it again). Attaches nothing: the email links to
- * the portal's statement page. Returns what happened.
+ * `trade-statement-<account>-<month>` is the receipt; `force` sends it again). Attaches the statement as a PDF and
+ * links to the portal's statement page. Returns what happened.
  */
 export async function emailTradeStatement(accountId: string, month: string, opts: { force?: boolean } = {}) {
   const id = statementLogId(accountId, month);
   if (!opts.force && (await db.messageLog.findUnique({ where: { id }, select: { id: true } }))) return { sent: false, reason: "already sent" };
   const st = await tradeStatementFor(accountId, month);
   if (st.account.status === "PENDING") return { sent: false, reason: "not approved" };
-  const r = tradeStatementEmail({ account: st.account, month, opening: st.opening, lines: st.lines, closing: st.closing, ageing: st.ageing, url: tradePortalUrl(`/statements/${month}`) });
+  const r = await finalizeEmail({ to: st.account.email, ...tradeStatementEmail({ account: st.account, month, opening: st.opening, lines: st.lines, closing: st.closing, ageing: st.ageing, url: tradePortalUrl(`/statements/${month}`) }) });
   let reason: string | null = null;
   let delivered = false;
   try {
-    delivered = await deliverEmail({ to: st.account.email, subject: r.subject, html: r.html, text: r.text, kind: "TRANSACTIONAL" });
+    delivered = await deliverEmail({ ...r, kind: "TRANSACTIONAL", attachments: await pdfAttachment(`Herbal Holland statement ${st.account.number} ${month}`, { html: r.html }) });
   } catch (err) {
     reason = String((err as Error)?.message ?? err).slice(0, 300);
     console.error("[trade] statement email failed", id, reason);

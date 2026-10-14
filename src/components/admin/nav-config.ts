@@ -72,6 +72,7 @@ export const storeNav = (code: string, slug: string, companyId: string): NavGrou
     items: [
       { label: "Events", href: `/store/${code}/events`, icon: "CalendarDays", keywords: "rsvp check in" },
       { label: "Menu board", href: `/menu/${slug}`, icon: "Tv", external: true, keywords: "tv screen" },
+      { label: "Shelf labels", href: `/labels/${code}`, icon: "Tags", external: true, keywords: "shelf edge talker price tickets print" },
       { label: "Franchise statement", href: `/store/${code}/statement`, icon: "Landmark", keywords: "royalty levy fees" },
       { label: "Settings", href: `/store/${code}/settings`, icon: "Settings", keywords: "hours devices tills" },
     ],

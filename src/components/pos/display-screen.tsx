@@ -136,7 +136,7 @@ export function DisplayScreen({ deviceId, feedKey }: { deviceId: string | null; 
       <footer className="shrink-0">
         <div className="flex items-center justify-between px-8 pb-3 text-xs text-ink-450 sm:px-12">
           <span>{s?.trade && state !== "idle" ? "Herbal Holland Trade · prices ex VAT, VAT shown separately" : "Herbal Holland Rewards · members earn points on every visit"}</span>
-          <span>herbalholland.co.za</span>
+          <span>shop.herbalholland.com</span>
         </div>
         <Beadwork size={16} />
       </footer>

@@ -72,8 +72,8 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "crewneck", day: 5, time: "09:00", channel: "SOCIAL",
-        text: "Made for the first cool evenings of autumn: the Heritage Crewneck. Black fleece, with the windmill and our line, Dutch heritage · African soil, embroidered on the chest.\n\nIn stock, delivered anywhere in South Africa or collected in store: link in bio. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
-        short: "The Heritage Crewneck: black fleece, with the windmill and Dutch heritage · African soil embroidered on the chest. In stock, delivered anywhere in South Africa or collected in store: link in bio. Adults 18+. #HerbalHolland",
+        text: "Made for the first cool evenings of autumn: the Heritage Crewneck. Heavyweight black fleece, with the windmill and our line, Dutch heritage · African soil, embroidered on the chest.\n\nIn stock, delivered anywhere in South Africa or collected in store: link in bio. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
+        short: "The Heritage Crewneck: heavyweight black fleece, with the windmill and Dutch heritage · African soil embroidered on the chest. In stock, delivered anywhere in South Africa or collected in store: link in bio. Adults 18+. #HerbalHolland",
         card: { template: "merch", image: "heritage-crewneck", headline: "The Heritage Crewneck", sub: "Black fleece, the windmill and Dutch heritage · African soil, embroidered." },
         brief: "A photo of the crewneck on a team member (adult over 25, signed release) on a Midlands stoep at dusk.",
       },
@@ -112,7 +112,7 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "tee", day: 12, time: "09:00", channel: "SOCIAL",
-        text: "The Windmill Tee: the windmill embroidered on the chest, and the poster from our store windows printed across the back, on black combed cotton.\n\nIn stock, delivered anywhere in South Africa or collected in store: link in bio. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
+        text: "The Windmill Tee: the windmill embroidered on the chest, and the poster from our store windows printed across the back, on heavyweight black cotton.\n\nIn stock, delivered anywhere in South Africa or collected in store: link in bio. Adults 18+.\n#HerbalHolland #HollandMeetsTheHills",
         card: { template: "merch", image: "windmill-tee", headline: "The Windmill Tee", sub: "The windmill on the chest, our window poster across the back." },
         brief: "A photo of the tee's back on a team member (adult over 25, signed release) beside the store window, the poster in the window next to them.",
       },
@@ -171,7 +171,7 @@ export const MARCH: Playbook[] = [
       },
       {
         key: "sms-easter", day: 22, time: "10:00", channel: "SMS",
-        text: "Hi {{firstName}}, visiting us over the Easter long weekend? Please check your store's hours on its page first: herbalholland.co.za/stores. Adults 18+, bring your ID.",
+        text: "Hi {{firstName}}, visiting us over the Easter long weekend? Please check your store's hours on its page first: shop.herbalholland.com/stores. Adults 18+, bring your ID.",
       },
       {
         key: "li-tills", day: 23, time: "12:00", channel: "SOCIAL", linkedin: "only",

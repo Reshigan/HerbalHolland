@@ -1,0 +1,137 @@
+[
+ {
+  "key": "grinder-lid",
+  "name": "Grinder lid, 63 mm",
+  "w": 63,
+  "h": 63,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Laser-engraved into the anodised lid (the metal shows through); or pad-printed in Sunset"
+ },
+ {
+  "key": "grinder-band",
+  "name": "Grinder side band, 63 mm grinder",
+  "w": 190,
+  "h": 8,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Laser-engraved around the top chamber"
+ },
+ {
+  "key": "tray-large",
+  "name": "Rolling tray, large 180 × 280 mm",
+  "w": 180,
+  "h": 280,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on the black metal tray floor; the middle stays clear to work on"
+ },
+ {
+  "key": "tray-small",
+  "name": "Rolling tray, small 140 × 220 mm",
+  "w": 140,
+  "h": 220,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on the black metal tray floor"
+ },
+ {
+  "key": "papers-cover",
+  "name": "Papers booklet, king size slim (front and back)",
+  "w": 110,
+  "h": 92,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on black board in Sunset; the fold is the dashed line"
+ },
+ {
+  "key": "tips-cover",
+  "name": "Tips booklet, 60 × 30 mm",
+  "w": 60,
+  "h": 30,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed on black board in Sunset"
+ },
+ {
+  "key": "lighter-wrap",
+  "name": "Lighter wrap, 24 × 60 mm",
+  "w": 24,
+  "h": 60,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Printed in black on a Sunset lighter body"
+ },
+ {
+  "key": "ashtray-centre",
+  "name": "Ashtray centre, 50 mm",
+  "w": 50,
+  "h": 50,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Fired-on ceramic decal in the centre of a black glazed ashtray"
+ },
+ {
+  "key": "grinder-lid-sunset",
+  "name": "Grinder lid, 63 mm (Sunset anodised)",
+  "w": 63,
+  "h": 63,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Pad-printed in black on the Sunset-anodised lid (engraving would show bright metal, not black)"
+ },
+ {
+  "key": "papers-sunset",
+  "name": "Sunset Papers booklet, king size slim (front and back)",
+  "w": 110,
+  "h": 92,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Printed in black on Sunset board; the leaves inside are the orange papers. The fold is the dashed line"
+ },
+ {
+  "key": "tips-sunset",
+  "name": "Sunset tips booklet, 60 × 30 mm",
+  "w": 60,
+  "h": 30,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Printed in black on Sunset card; the tips are perforated Sunset card"
+ },
+ {
+  "key": "cones-tube",
+  "name": "Sunset Cones tube label, 110 × 62 mm (wraps a Ø20 mm tube of 6)",
+  "w": 110,
+  "h": 62,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Printed label wrapped round a black tube with a pop lid; six pre-rolled king size cones in Sunset paper"
+ },
+ {
+  "key": "jar-lid",
+  "name": "Stash jar label, Ø58 mm",
+  "w": 58,
+  "h": 58,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Round black label printed in Sunset, on the front of the violet glass jar (also fits the lid)"
+ },
+ {
+  "key": "pouch-front",
+  "name": "Smell-proof pouch, 150 × 200 mm (front)",
+  "w": 150,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Screen-printed in Sunset on the black pouch; Sunset zip pull with the Mark"
+ },
+ {
+  "key": "kit-lid",
+  "name": "Starter kit gift box lid, 240 × 170 mm",
+  "w": 240,
+  "h": 170,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Rigid black box, lid printed in Sunset (or foil); inside: grinder, small tray, Sunset Papers, tips, lighter"
+ }
+]

@@ -1,0 +1,58 @@
+name: Till APK
+
+# Builds and signs the Android till app (android/till) whenever it changes on main, or on demand, and publishes it on
+# the shop: public/apps/hh-till.apk plus public/apps/hh-till.json (the version the tills compare against), committed
+# back to main so the next deploy serves them. Tills running an older APK then show an "Update" bar
+# (src/components/pos/app-update.tsx). Needs the repository secrets TILL_KEYSTORE_B64 (the signing key, base64) and
+# TILL_KEYSTORE_PASSWORD; without them the job stops before building.
+on:
+  push:
+    branches: [main]
+    paths: ["android/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: android-till
+  cancel-in-progress: false
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Signing key
+        env:
+          KEY_B64: ${{ secrets.TILL_KEYSTORE_B64 }}
+        run: |
+          test -n "$KEY_B64" || { echo "::error::TILL_KEYSTORE_B64 is not set"; exit 1; }
+          echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/till.jks"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+      - name: Build and sign
+        working-directory: android/till
+        env:
+          TILL_KEYSTORE: ${{ runner.temp }}/till.jks
+          TILL_KEYSTORE_PASSWORD: ${{ secrets.TILL_KEYSTORE_PASSWORD }}
+        run: |
+          CODE=$(( ${{ github.run_number }} + 1 ))   # 1 is the first APK, built by hand
+          NAME="1.0.$CODE"
+          gradle --no-daemon assembleRelease -PversionCode=$CODE -PversionName=$NAME
+          "$ANDROID_HOME"/build-tools/*/apksigner verify app/build/outputs/apk/release/app-release.apk
+          cp app/build/outputs/apk/release/app-release.apk ../../public/apps/hh-till.apk
+          printf '{ "versionCode": %s, "versionName": "%s", "url": "/apps/hh-till.apk" }\n' "$CODE" "$NAME" > ../../public/apps/hh-till.json
+          echo "NAME=$NAME" >> "$GITHUB_ENV"
+      - name: Publish
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/apps/hh-till.apk public/apps/hh-till.json
+          git commit -m "Till APK $NAME"
+          git push

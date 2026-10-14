@@ -15,7 +15,7 @@ export function envProblems(env: Env): { fatal: string[]; warn: string[] } {
   if (!url || url.protocol !== "https:" || ["localhost", "127.0.0.1", "0.0.0.0", "[::1]"].includes(url.hostname))
     fatal.push("APP_URL must be the shop's public https address: every emailed, texted and payment-return link is built from it");
   if ((env.CRON_SECRET ?? "").length < 32) fatal.push("CRON_SECRET must be 32 or more random characters (openssl rand -hex 32): the scheduled jobs sign in with it");
-  if (!env.SMTP_URL) warn.push("SMTP_URL isn't set, so tax invoices and other emails are only logged");
+  if (!env.SMTP_URL && !env.MS_CLIENT_SECRET) warn.push("Neither SMTP_URL nor MS_CLIENT_SECRET (Microsoft 365) is set, so tax invoices and other emails are only logged");
   if (!env.ALERT_EMAIL) warn.push("ALERT_EMAIL isn't set, so server errors reach the log only");
   if ((env.MESSAGING_PROVIDER ?? "log") === "log") warn.push("MESSAGING_PROVIDER is log, so members get no sign-in codes or messages");
   if (!env.S3_BUCKET) warn.push(`S3_BUCKET isn't set, so files are kept on this server (${env.UPLOAD_DIR || ".data/uploads"}): back them up`);

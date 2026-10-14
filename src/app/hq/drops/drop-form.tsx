@@ -80,7 +80,7 @@ export function DropForm({
                   />
                   <FieldError name="name" />
                 </Field>
-                <Field label="Web address" htmlFor="slug" hint={`herbalholland.co.za/drops/${v.slug || "…"}`}>
+                <Field label="Web address" htmlFor="slug" hint={`shop.herbalholland.com/drops/${v.slug || "…"}`}>
                   <Input id="slug" name="slug" maxLength={80} value={v.slug} onChange={(e) => (setSlugEdited(true), set("slug", e.target.value.toLowerCase()))} className="font-mono" />
                   <FieldError name="slug" />
                 </Field>

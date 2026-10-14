@@ -106,7 +106,7 @@ export function TradeSheet({ open, online, onClose, onPick }: { open: boolean; o
               );
             })}
           </ul>
-          {hits && hits.length === 0 && !loading && <p className="mt-6 text-center text-sm text-ink-400">No approved trade account matches “{q.trim()}”. New accounts apply at herbalholland.co.za/trade and are approved by HQ.</p>}
+          {hits && hits.length === 0 && !loading && <p className="mt-6 text-center text-sm text-ink-400">No approved trade account matches “{q.trim()}”. New accounts apply at shop.herbalholland.com/trade and are approved by HQ.</p>}
           <p className="mt-6 text-xs leading-relaxed text-ink-400">
             A trade sale is for the business: no member, points, member prices or deals. Prices are the account&apos;s trade prices ex VAT with VAT per line, and the tax invoice goes to its billing email. Age-restricted items still need the usual ID check at the counter.
           </p>

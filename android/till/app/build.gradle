@@ -1,0 +1,46 @@
+// The Herbal Holland till as an Android app: a Trusted Web Activity (Chrome, full screen, no address bar) opening the
+// /pos web app. Everything the till does stays in the web app; this only installs it like an app and keeps it
+// full-screen. The address bar stays hidden once https://<host>/.well-known/assetlinks.json lists this app's key.
+plugins { id "com.android.application" }
+
+def host = project.findProperty("host") ?: "shop.herbalholland.com"
+// CI sets these for each release (.github/workflows/android-till.yml); a local build is 1 / 1.0.0.
+def code = (project.findProperty("versionCode") ?: "1") as int
+def name = project.findProperty("versionName") ?: "1.0.0"
+
+android {
+    namespace "com.herbalholland.till"
+    compileSdk 35
+    defaultConfig {
+        applicationId "com.herbalholland.till"
+        minSdk 24
+        targetSdk 35
+        versionCode code
+        versionName name
+        // ?apk= tells the till which app version it runs in, so it can offer a newer one (src/components/pos/app-update.tsx).
+        manifestPlaceholders = [host: host, launchUrl: "https://" + host + "/pos?apk=" + code]
+        resValue "string", "app_name", "HH Till"
+        resValue "string", "asset_statements", "[{ \\\"relation\\\": [\\\"delegate_permission/common.handle_all_urls\\\"], \\\"target\\\": { \\\"namespace\\\": \\\"web\\\", \\\"site\\\": \\\"https://" + host + "\\\" } }]"
+    }
+    signingConfigs {
+        release {
+            // The upload/signing key is never in the repository: pass it in the environment (see android/README.md).
+            storeFile System.getenv("TILL_KEYSTORE") ? file(System.getenv("TILL_KEYSTORE")) : null
+            storePassword System.getenv("TILL_KEYSTORE_PASSWORD")
+            keyAlias "till"
+            keyPassword System.getenv("TILL_KEYSTORE_PASSWORD")
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig System.getenv("TILL_KEYSTORE") ? signingConfigs.release : null
+        }
+    }
+    lint { checkReleaseBuilds false } // the web app is the code; nothing here for lint to check
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies {
+    implementation "com.google.androidbrowserhelper:androidbrowserhelper:2.5.0"
+}

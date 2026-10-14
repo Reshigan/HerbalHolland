@@ -37,7 +37,7 @@ export type Store = {
 /**
  * The online shop and Herbal Holland Rewards. While `url` is null neither is live: every "Shop online" leads to the
  * early-access sign-up, and "Join Rewards" and the store finder show an "opening soon" state. Set it (e.g.
- * "https://herbalholland.co.za") and those doors link there; joining goes to `${url}/club/join?src=site`.
+ * "https://shop.herbalholland.com") and those doors link there; joining goes to `${url}/club/join?src=site`.
  */
 export type Shop = { url: string | null; opensLabel: string };
 

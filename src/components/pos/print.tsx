@@ -176,7 +176,7 @@ function ReceiptPrint({ r, boot }: { r: ReceiptDTO; boot: BootData }) {
         <div className="mt-1">{ADULTS_LINE}</div>
         {boot.store.receiptFooter && <div>{boot.store.receiptFooter}</div>}
         {r.invoiceEmail && !training && <div>Tax invoice emailed to {r.invoiceEmail}</div>}
-        <div className="mt-1">Thank you · herbalholland.co.za</div>
+        <div className="mt-1">Thank you · shop.herbalholland.com</div>
       </div>
       {training && <Watermark />}
     </div>

@@ -15,17 +15,17 @@ export const FESTIVE: Playbook[] = [
     items: [
       {
         key: "hours", day: 1, time: "07:00", channel: "SOCIAL",
-        text: "Our festive hours are set. Each store's hours over the holidays are on its page at herbalholland.co.za: have a look before you visit. Your Rewards work in every store and online. Adults 18+, bring your ID. #HerbalHolland #KZN",
-        card: { template: "headline", eyebrow: "Festive hours", headline: "Visiting over the holidays?", sub: "Each store's festive hours are on its page at herbalholland.co.za." },
+        text: "Our festive hours are set. Each store's hours over the holidays are on its page at shop.herbalholland.com: have a look before you visit. Your Rewards work in every store and online. Adults 18+, bring your ID. #HerbalHolland #KZN",
+        card: { template: "headline", eyebrow: "Festive hours", headline: "Visiting over the holidays?", sub: "Each store's festive hours are on its page at shop.herbalholland.com." },
       },
       {
         key: "sms-hours", day: 1, time: "10:00", channel: "SMS",
-        text: "Hi {{firstName}}, festive hours for every Herbal Holland store are on its page at herbalholland.co.za. Your Rewards work in every store and online. Adults 18+.",
+        text: "Hi {{firstName}}, festive hours for every Herbal Holland store are on its page at shop.herbalholland.com. Your Rewards work in every store and online. Adults 18+.",
       },
       {
         key: "channel-festive", day: 3, time: "12:30", channel: "WHATSAPP",
         text: paras(
-          "Festive hours: each Herbal Holland store's hours over the holidays are on its page at herbalholland.co.za.",
+          "Festive hours: each Herbal Holland store's hours over the holidays are on its page at shop.herbalholland.com.",
           "Heading down the N3 to the coast? Our Hilton store is just off the highway, and Hillcrest is on the way down. Stop, stretch your legs and come and say sawubona. And never drive impaired.",
           "Adults 18+, bring your ID.",
         ),
@@ -56,7 +56,7 @@ export const FESTIVE: Playbook[] = [
           "Opening week, in pictures. Our photos from the Members' Evening and Open Day are on our Instagram and Facebook pages: the coffee cart, the local makers' tables, the Learn sessions with the team, and a good few of you in our orange frame. Thank you to everyone who said yes to a photo.",
           "Founding Members. The list closed on Sunday 6 December, and every Founding Member's numbered card is in the Rewards app. If you're one of them, you hold at least Sprout tier for 14 months, and you're invited to a Founding Members' Evening every December.",
           "What's on in January. The Windmill, No. 3 lands on Tuesday 5 January. Every Tuesday, Read the label, a four-part Learn series on reading a label, line by line. And our first Gezellig evenings (gezellig is Dutch for warm, sociable, at home): Hillcrest on Thursday 21 January and Hilton on Friday 22 January, 18:00–20:00, for members who RSVP in the Rewards app.",
-          "Over the holidays, each store's festive hours are on its page at herbalholland.co.za.",
+          "Over the holidays, each store's festive hours are on its page at shop.herbalholland.com.",
           "Happy holidays, and see you in the new year,\nThe Herbal Holland team",
         ),
       },
@@ -90,7 +90,7 @@ export const FESTIVE: Playbook[] = [
         text: paras(
           "Happy holidays from all of us at Herbal Holland.",
           "Thank you for such a warm welcome to the hills this December: to everyone who came to say hello in Hillcrest and Hilton, joined Herbal Holland Rewards, or spent an evening or a morning with us in opening week.",
-          "Each store's festive hours are on its page at herbalholland.co.za. Rest well, travel safely, and see you in the new year.",
+          "Each store's festive hours are on its page at shop.herbalholland.com. Rest well, travel safely, and see you in the new year.",
           "Adults 18+.",
         ),
       },

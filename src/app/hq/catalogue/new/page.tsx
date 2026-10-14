@@ -26,7 +26,7 @@ export default async function NewProductPage() {
     <>
       <BackLink href="/hq/catalogue">Catalogue</BackLink>
       <PageHeader overline="Product" title="New product" description="Start in draft: add the story, compliance data and variants, then publish and range it." />
-      <ProductForm action={saveProduct.bind(null, null)} product={null} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} />
+      <ProductForm action={saveProduct.bind(null, null)} product={null} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} announce />
     </>
   );
 }

@@ -12,7 +12,7 @@ export function LoginForm({ next }: { next?: string }) {
       <input type="hidden" name="next" value={next ?? ""} />
       {state.error && <Notice tone="danger">{state.error}</Notice>}
       <Field label="Work email" htmlFor="email">
-        <Input id="email" name="email" type="email" autoComplete="username" required placeholder="you@herbalholland.co.za" defaultValue={state.email} />
+        <Input id="email" name="email" type="email" autoComplete="username" required placeholder="you@herbalholland.com" defaultValue={state.email} />
       </Field>
       <Field label="Password" htmlFor="password">
         <Input id="password" name="password" type="password" autoComplete="current-password" required />

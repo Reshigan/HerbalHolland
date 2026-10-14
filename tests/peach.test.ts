@@ -103,7 +103,7 @@ describe("Peach events → orders", () => {
 
 describe("the payment we ask Peach for", () => {
   it("is Hosted Checkout for the amount due, in ZAR, with our order code and id, back to the member's order page", () => {
-    expect(peachPaymentRequest({ id: "ord_1", code: "K7P2QD", dueCents: 64_500 }, "https://herbalholland.co.za/", { paymentId: "pay_x", sessionExpiry: 3_300, profileId: "pro_1" })).toEqual({
+    expect(peachPaymentRequest({ id: "ord_1", code: "K7P2QD", dueCents: 64_500 }, "https://shop.herbalholland.com/", { paymentId: "pay_x", sessionExpiry: 3_300, profileId: "pro_1" })).toEqual({
       payment_id: "pay_x",
       amount: 64_500,
       currency: "ZAR",
@@ -111,7 +111,7 @@ describe("the payment we ask Peach for", () => {
       capture_method: "automatic",
       payment_link: true,
       session_expiry: 3_300,
-      return_url: "https://herbalholland.co.za/orders/K7P2QD?pay=peach",
+      return_url: "https://shop.herbalholland.com/orders/K7P2QD?pay=peach",
       merchant_order_reference_id: "K7P2QD",
       description: "Herbal Holland order K7P2QD",
       metadata: { orderId: "ord_1", orderCode: "K7P2QD" },

@@ -11,6 +11,7 @@
 // Every item passes screenDraft once laid out, and tests/studio.test.ts holds the rhythm.
 import type { Playbook } from "../studio";
 import { LAUNCH } from "./launch";
+import { LAUNCH_SOCIAL } from "./launch-social";
 import { NEW_ONLINE } from "./new-online";
 import { GOOGLE } from "./google";
 import { GIFTS } from "./gifts";
@@ -19,4 +20,7 @@ import { JANUARY } from "./january";
 import { FEBRUARY } from "./february";
 import { MARCH } from "./march";
 
-export const PLAYBOOKS: Playbook[] = [...LAUNCH, ...NEW_ONLINE, ...GOOGLE, ...GIFTS, ...FESTIVE, ...JANUARY, ...FEBRUARY, ...MARCH];
+export { NEW_ONLINE_DAYS } from "./new-online";
+export { LAUNCH_SOCIAL_HASHTAGS, LAUNCH_SOCIAL_STORIES, LAUNCH_SOCIAL_TIMES } from "./launch-social";
+
+export const PLAYBOOKS: Playbook[] = [...LAUNCH, ...LAUNCH_SOCIAL, ...NEW_ONLINE, ...GOOGLE, ...GIFTS, ...FESTIVE, ...JANUARY, ...FEBRUARY, ...MARCH];

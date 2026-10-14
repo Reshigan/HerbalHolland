@@ -74,6 +74,25 @@ export function readableDropBlock(msg: string, drop?: { name: string; perMemberL
   return { kind: "other" as const, title: msg, body: "" };
 }
 
+/** The Founding places still open while the list runs, and the headline the shop leads with. */
+export function foundingPlaces(p: { cap: number; taken: number; firstYearMonths: number; tierName: string; closes: string }) {
+  const left = Math.max(0, p.cap - p.taken);
+  const full = left === 0;
+  const nearly = !full && left <= Math.max(50, Math.round(p.cap * 0.1));
+  const firstYear = p.firstYearMonths > 0 ? `Join before ${p.closes} as a First Year Member: ${p.tierName} for ${p.firstYearMonths} months.` : "";
+  return {
+    left,
+    full,
+    nearly,
+    /** The short line for the header strip. */
+    strip: full ? `All ${p.cap.toLocaleString("en-US")} Founding cards are spoken for${firstYear ? ". First Year Members still open" : ""}` : `${left.toLocaleString("en-US")} of ${p.cap.toLocaleString("en-US")} Founding cards left`,
+    /** The sentence under the join headline. */
+    lead: full
+      ? `All ${p.cap.toLocaleString("en-US")} Founding Member cards are spoken for. ${firstYear}`.trim()
+      : `${left.toLocaleString("en-US")} of the ${p.cap.toLocaleString("en-US")} numbered Founding Member cards are still open${nearly ? ", and they're going fast" : ""}. The list closes ${p.closes}.`,
+  };
+}
+
 /** A member's place on the pre-launch waitlist, shaped for the progress card. */
 export function waitlistView(w: { place: number; total: number; boost: number }, cap: number) {
   const total = Math.max(w.total, w.place, 1);

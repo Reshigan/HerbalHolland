@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Heart, Trash2 } from "lucide-react";
 import { getCustomer } from "@/server/auth";
-import { getPreferredStore } from "@/server/shop/context";
+import { getPreferredStore, shopPhase } from "@/server/shop/context";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { listWishlist } from "@/server/shop/wishlist";
 import { mainImages, productImageUrl } from "@/server/shop/images";
 import { removeFromWishlist } from "@/server/shop/feature-actions";
@@ -18,7 +19,7 @@ export const metadata = { title: "Wishlist" };
 export default async function ClubWishlist() {
   const customer = await getCustomer();
   if (!customer) redirect("/club/join?next=/club/wishlist");
-  const store = await getPreferredStore();
+  const [store, open] = await Promise.all([getPreferredStore(), shopPhase().then(canBuyOnline)]);
   const items = await listWishlist(customer.id, { tier: customer.tier, storeId: store?.id, storeName: store?.name });
   const photos = await mainImages(items.flatMap((i) => (i.card ? [i.card.id] : [])));
   const back = items.filter((i) => i.restocked).length;
@@ -70,7 +71,7 @@ export default async function ClubWishlist() {
                   <div className="mt-auto flex items-center justify-between gap-3 pt-3">
                     {c ? <Price cents={c.priceCents} was={c.wasCents} from={i.variantCount > 1} /> : <span />}
                     <div className="flex items-center gap-2">
-                      {c && i.buyable && <AddToBag plain variantId={i.variantId} name={`${c.name} · ${i.variantName}`} label="Add to bag" />}
+                      {c && i.buyable && open && <AddToBag plain variantId={i.variantId} name={`${c.name} · ${i.variantName}`} label="Add to bag" />}
                       <form action={removeFromWishlist}>
                         <input type="hidden" name="variantId" value={i.variantId} />
                         <button className="grid h-11 w-11 place-items-center rounded-full text-ink-400 hover:bg-ink-850 hover:text-white" aria-label={`Remove ${c?.name ?? "item"} from your wishlist`}>

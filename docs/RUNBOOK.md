@@ -25,8 +25,13 @@ reports) and Postgres can't live on Cloudflare.
    `DATABASE_URL=postgresql://…@127.0.0.1:5432/…` with a generated password. Never publish Postgres or the app on a
    public interface: Docker's port rules bypass the host firewall. `docker-compose.prod.yml` uses the server's own
    network, so the app listens on 127.0.0.1:3000 and reaches Postgres at 127.0.0.1; the plain `docker-compose.yml` is
-   a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: proxied DNS
-   record for the tunnel, SSL "Full (strict)", WAF managed rules on, a cache rule for `/_next/static/*`.
+   a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: the shop at
+   `shop.herbalholland.com` (`APP_URL=https://shop.herbalholland.com`), a proxied record for the tunnel, SSL "Full
+   (strict)", WAF managed rules on, a cache rule for `/_next/static/*`; Postiz at `social.herbalholland.com` through the
+   same tunnel (`deploy/postiz`, [INTEGRATIONS.md](INTEGRATIONS.md)). Both are only ever served over HTTPS:
+   herbalholland.com's HSTS covers its subdomains. herbalholland.co.za (and www) is a Cloudflare zone whose redirect
+   rule sends every request to `https://shop.herbalholland.com` with its path and query (301), so anything printed or
+   shared with .co.za still lands in the right place.
    herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
    (`sites/herbalholland.com`: static pages plus `/api/early-access`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
    up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
@@ -51,8 +56,8 @@ reports) and Postgres can't live on Cloudflare.
    opens: that closes the site's first-access sign-up, and every way to shop on the site leads to the shop instead. The
    site no longer takes franchise enquiries (`/franchise` redirects to `/about`): the enquiries already handed to HQ stay
    in HQ → Franchise leads, and the Worker's daily clean-up deletes the site's own copies (a year after they came in, or
-   30 days after HQ had them). The Worker no longer reads `NOTIFY_TO`, `APP_ENQUIRY_URL` or `APP_ENQUIRY_SECRET`: if they're
-   set, remove them with `npx wrangler@4 secret delete <name>`.
+   30 days after HQ had them). The Worker's only secret is `IP_SALT`: the enquiry-era `NOTIFY_TO`, `APP_ENQUIRY_URL`
+   and `APP_ENQUIRY_SECRET` were deleted on 7 October 2026.
 2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location, so record the cross-border
    transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
    (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
@@ -62,7 +67,7 @@ reports) and Postgres can't live on Cloudflare.
 4. Start the app: `docker compose -f docker-compose.prod.yml up -d app` (restarts with the server; behind the
    tunnel). `GET /api/health` is the liveness check (the container's own health check uses it); it should answer 200
    and the log shows no `[config]` warnings you didn't expect.
-5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.co.za --name "Your Name"`
+5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"`
    (the franchisor company too, if there's none yet). It prints a temporary password once; they choose their own at
    first sign-in, and everyone after them is added from HQ → Team. `--company "…(Pty) Ltd"` sets the franchisor's
    legal name; its other details (registration and VAT numbers, address, phone, email, directors) are edited on a
@@ -90,6 +95,37 @@ reports) and Postgres can't live on Cloudflare.
    `GET /api/health/jobs`, which answers 503 when a job hasn't succeeded in time (a dead scheduler, a wrong
    `CRON_SECRET`, or a step that keeps failing).
 
+## Free hosting: Oracle Cloud Always Free (Johannesburg)
+
+Until the stores trade, the whole platform (app, Postgres, Postiz) can run free on Oracle Cloud's Always Free tier in
+`af-johannesburg-1`: one Ampere A1 ARM VM with up to 4 cores, 24 GB RAM and 200 GB of boot volume, plus 20 GB of
+Object Storage for backups. It's the only free offer with a South African region and enough memory; Vercel's hobby
+plan forbids commercial use, the free Postgres services (Neon, Supabase) have no SA region and pause, and the AWS,
+Google and Azure free tiers are 12 months of 1 GB machines. No SLA: move to a paid SA server (xneelo, Vultr
+Johannesburg; see the hosting notes in [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md)) once the stores open.
+
+1. Sign up at cloud.oracle.com with the home region **South Africa Central (Johannesburg)**: the free VM can only live
+   in the home region, and it can't be changed later. A card is needed to verify the account. Upgrade the account to
+   Pay As You Go straight away: Always Free resources stay free, the account is no longer subject to the idle-reclaim
+   rule (free-only accounts lose a VM that sits under 20% CPU for seven days), and capacity requests are served ahead of
+   free-only accounts. Set a budget alert at R50 so a mistake can't cost anything quietly.
+2. Networking: a VCN with one public subnet. The security list stays **closed**: no inbound rules at all (not even
+   SSH; use the Bastion service or OCI Cloud Shell's console connection for the first login, then Cloudflare Tunnel
+   for everything). The app and Postgres are never published on the public interface.
+3. The VM: `deploy/oracle/create-vm.sh` launches `VM.Standard.A1.Flex` (4 OCPU, 24 GB, 200 GB) with an Ubuntu 24.04
+   **aarch64** image and retries every ten minutes while the region answers "Out of host capacity" (normal; it usually
+   lands within hours, occasionally a day or two). Leave it running in a Cloud Shell or on a laptop.
+4. On the VM, the normal [First deploy](#first-deploy) applies unchanged: Docker, Postgres 16 on 127.0.0.1, `cloudflared`,
+   `.env`, then `docker compose -f docker-compose.prod.yml build`. The image builds natively for arm64 (Node, Prisma
+   and Playwright's `chromium-headless-shell` all ship arm64 builds), so nothing in the Dockerfile changes; the build
+   takes about 10 minutes on 4 cores. Ubuntu's firewall (`ufw`) also stays closed: Oracle's Ubuntu images carry iptables
+   rules of their own, so don't flush them.
+5. Backups: the nightly `pg_dump -Fc` ([Backups & recovery](#backups--recovery)) goes to an Object Storage bucket with
+   `oci os object put` (20 GB free) and a 30-day lifecycle rule. Take a boot-volume backup before each release (the
+   free tier includes five).
+6. Postiz runs on the same VM ([deploy/postiz](../deploy/postiz)); it's comfortable within 24 GB alongside the app and
+   Postgres.
+
 ## Peach Payments go-live (online payments)
 
 How it works: [INTEGRATIONS.md → Online payments](INTEGRATIONS.md#online-payments-peach-payments-chosen-and-yoco).
@@ -114,7 +150,7 @@ the approval.
      Capitec Pay or ZeroPay. The app refunds a paid order before cancelling it, so an unrefundable order can't be
      cancelled in the app.
    - Webhook: Dashboard → Peach Orchestration → Webhooks → **+ Add webhook URL** →
-     `https://herbalholland.co.za/api/payments/peach` (payment succeeded / failed, refund succeeded / failed).
+     `https://shop.herbalholland.com/api/payments/peach` (payment succeeded / failed, refund succeeded / failed).
    - Cloudflare: a WAF custom rule that skips bot protection and challenges for `POST /api/payments/peach` (the route
      checks Peach's signature itself). A challenged webhook never lands.
    - Restart the app.
@@ -155,7 +191,7 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
      `ONLINE_GATEWAY=YOCO`. `APP_URL` must be the public HTTPS address (Yoco sends members back to it).
    - Register the webhook with the same test key and keep the `secret` it returns (shown once) as
      `YOCO_WEBHOOK_SECRET`, then restart the app:
-     `curl -X POST https://payments.yoco.com/api/webhooks -H "Authorization: Bearer $YOCO_SECRET_KEY" -H "Content-Type: application/json" -d '{"name":"herbal-holland","url":"https://herbalholland.co.za/api/payments/yoco"}'`
+     `curl -X POST https://payments.yoco.com/api/webhooks -H "Authorization: Bearer $YOCO_SECRET_KEY" -H "Content-Type: application/json" -d '{"name":"herbal-holland","url":"https://shop.herbalholland.com/api/payments/yoco"}'`
    - Cloudflare: a WAF custom rule that skips bot protection and challenges for `POST /api/payments/yoco` (the route
      checks Yoco's signature itself). A challenged webhook never lands.
    - Walk through it with Yoco's test card (same Yoco page): a courier order → Yoco's page → paid → the order page says
@@ -197,6 +233,11 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
   `e2e/crawl.mjs` and the e2e journeys against a production-sized copy before big releases.
 
 ## Launch day
+
+**The day the online shop opens** (Tuesday 27 October 2026), before its first posts at 07:00: set `shop.url` in
+`sites/herbalholland.com/facts.ts` to `"https://shop.herbalholland.com"` and merge it to main. The site deploys itself
+in about a minute, and its "Shop online", "Join Rewards" and store-finder doors lead to the shop instead of the
+first-access sign-up.
 
 1. HQ → Founding Members: confirm when the list closes (SAST). The shop trades normally while it's open. Stores
    that haven't opened are **opening soon** (HQ → Stores; members can pick them as home store) and switch to
@@ -344,21 +385,27 @@ wholesale invoices, Z-reports, loss-prevention alerts, franchise-enquiry replies
 and a footer whose legal line comes from the franchisor Company record (HQ → Stores → the distribution centre → Owner: legal name, registration
 and VAT numbers, address). Every email has a plain-text twin, and campaign emails alone carry the unsubscribe link and
 `List-Unsubscribe` headers. To preview them without a mail server: `npx tsx scripts/preview-emails.ts` writes each
-template with sample data to `test-results/emails/index.html`; `npx vitest run tests/email.test.ts` checks subjects,
-buttons, escaping, text alternatives and the 102 KB Gmail limit. With `SMTP_URL` unset (demos, staging) nothing is
+template with sample data to `test-results/emails/index.html`, and on the server `npx tsx --env-file=.env scripts/preview-emails.ts --send you@example.com`
+sends all of them ("[Test] …") through the live transport to check them in Outlook and Gmail. The logo travels inside each
+email (an inline image), so it shows without "download pictures". `npx vitest run tests/email.test.ts` checks subjects,
+buttons, escaping, text alternatives and the 102 KB Gmail limit. With neither `SMTP_URL` nor the Microsoft 365 `MS_*` settings (demos, staging) nothing is
 sent: every email is written to the message log, so HQ → Messages (`/hq/messages`) is the place to read what a member would have got.
-`EMAIL_FROM` sets the sender; keep it on a domain with SPF/DKIM for the ESP.
+`EMAIL_FROM` sets the sender (with Microsoft 365, the mailbox it sends from); keep it on a domain with SPF/DKIM for the provider.
 
 **Texts.** Order updates, sign-in codes and recall notices go by SMS (`MESSAGING_PROVIDER=smsportal`; without it they're
 only logged). Copy rules in `src/lib/sms.ts`: "Herbal Holland:" first, the order code next, one GSM-7 segment where
 possible, links as `APP_URL` paths without the scheme, and "Reply STOP" on marketing only (`senderFooter` in
 `marketing.ts` adds it; order texts never carry it). Set `SMS_SENDER_ID` to the alphanumeric sender the provider approved.
 
-**Tax invoices.** Every sale is emailed as a tax invoice (SARS: abridged up to R5,000, full above) with a signed link to
-the hosted copy (`/invoice/<sale id>?t=…`, also under Rewards → Invoices). The hosted invoice shows batch numbers per
+**Tax invoices.** Every sale is emailed as a tax invoice (SARS: abridged up to R5,000, full above) with the invoice
+attached as a PDF and a signed link to the hosted copy (`/invoice/<sale id>?t=…`, also under Rewards → Invoices). The hosted invoice shows batch numbers per
 line, VAT per rate, the payment and its reference, and a QR back to the order. Print it on A4, save it as a PDF (the
 print dialog's "Save as PDF") or print it on 80 mm till paper with the "Print receipt" button. A walk-in customer can
 have it emailed from the till (receipt → Email invoice). Failed sends are retried by `/api/cron/frequent` for three days.
+The PDF is printed from the hosted page by headless Chromium in the app image (`src/server/pdf.ts`), and statements
+(franchise and trade) and stock-order invoices carry a PDF of their branded email the same way. Printing only runs when
+email is set up; if Chromium is missing or a print fails, the email still goes with its link and the log says why
+(`[pdf] couldn't print`).
 
 **Statements and Z-reports.** Store → Money → Franchise statement (and HQ → Statements → a store) shows the month as a
 document: parties, credits and debits netted to one amount, how the fees were worked out. Print or save as PDF from the
@@ -385,6 +432,20 @@ lock (HTTPS only; otherwise turn off the device's screen timeout). It shows the 
 mode licensed medicines never appear (a dispensary panel points patients to the pharmacist), and member prices are shown
 only on classes where the law allows incentives (`incentiveExcluded` in `@/lib/compliance`). Deals come from the store's
 active promotions; drops and events from the launch programme. Nothing on the board needs a login.
+
+**Product and category pictures.** Each product's main photo is a studio render: `scripts/render/labels.tsx` draws its
+packaging label and `scripts/render/products.py` (Blender 4.2 with Cycles) models it and renders it on the stone
+backdrop, plus one group shot per category (`public/catalogue/products/<slug>.webp`, `public/catalogue/categories/<slug>.webp`).
+A new product gets its own by running both (about a minute a picture on 4 cores); imported real photos (`image_urls`)
+can replace them at any time. The home page tiles and the category header show the category picture
+(`@/lib/category-images`).
+
+**Shelf labels.** Back office → Shelf labels (`/labels/<store code>`) prints the store's shelf signs from the same data
+as the menu board, so the same rules apply (no licensed medicines in MEDICAL mode, member prices only where allowed).
+Pick a category and a sign: shelf-edge labels on standard 63.5 × 38.1 mm A4 label sheets (21 a sheet: Avery L7160,
+Tower W221 or equivalent) or A6 shelf talkers, four to a plain A4 sheet, cut on the dashed lines. Print at 100%. Each
+label shows the price on the day it was printed, the member price where there is one, and a QR to the product page
+(lab results where the product has them); reprint after a price change.
 
 ## Scheduled jobs (`/api/cron`)
 

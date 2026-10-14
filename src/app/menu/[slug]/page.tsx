@@ -94,7 +94,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
           </div>
         </header>
 
-        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_28vmin] gap-[2.4vmin] px-[2.4vmin] py-[2.4vmin] portrait:grid-cols-1 portrait:grid-rows-[minmax(0,1fr)_auto]">
+        <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_34vmin] gap-[2.4vmin] px-[2.4vmin] py-[2.4vmin] portrait:grid-cols-1 portrait:grid-rows-[minmax(0,1fr)_auto]">
           <MenuRotator count={panels.length}>
             {panels.map((p, n) =>
               p.kind === "items" ? (
@@ -181,12 +181,13 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
               <div className="eyebrow text-[1.6vmin] text-brand-400">Today&apos;s deals</div>
               {deals.length ? (
                 <ul className="mt-[1.8vmin] space-y-[1.8vmin] portrait:grid portrait:grid-cols-2 portrait:gap-[1.6vmin] portrait:space-y-0">
-                  {deals.slice(0, 4).map((d) => (
+                  {deals.slice(0, 3).map((d) => (
                     <li key={d.id}>
-                      <div className="font-display text-[2.4vmin] font-semibold leading-tight text-white">{d.name}</div>
+                      <div className="line-clamp-2 font-display text-[2.4vmin] font-semibold leading-tight text-white">{d.name}</div>
                       <div className="mt-[0.4vmin] line-clamp-2 text-[1.7vmin] leading-snug text-ink-300">{d.description ?? dealHeadline(d)}</div>
                     </li>
                   ))}
+                  {deals.length > 3 && <li className="text-[1.7vmin] font-semibold text-brand-300">+{deals.length - 3} more deals: ask at the counter</li>}
                 </ul>
               ) : (
                 <p className="mt-[2vmin] text-[2vmin] text-ink-400">Ask about this week&apos;s member prices.</p>
@@ -197,7 +198,7 @@ export default async function MenuBoard({ params }: { params: Promise<{ slug: st
                 <QrCode value={`${base}/shop`} label="Shop online" margin={1} />
               </div>
               <div className="min-w-0">
-                <div className="font-display text-[2.3vmin] font-semibold text-white">Shop online</div>
+                <div className="whitespace-nowrap font-display text-[2.3vmin] font-semibold text-white">Shop online</div>
                 <div className="text-[1.6vmin] leading-snug text-ink-400">Order now, collect here or get it delivered.</div>
               </div>
             </div>

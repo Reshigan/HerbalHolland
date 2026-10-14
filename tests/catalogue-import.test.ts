@@ -168,6 +168,15 @@ describe("the dry run", () => {
     expect(p.products).toEqual([]);
   });
 
+  it("marks what goes live for its “New online” campaign: new as Active, or out of draft (not back from the archive)", () => {
+    expect(plan(csv(`${HEAD},description,status,tobacco_related`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189.00,85.00,45.00,An airtight glass jar with a bamboo lid.,ACTIVE,no")).products[0]).toMatchObject({ id: null, live: true });
+    expect(plan(csv(`${HEAD},description,status,tobacco_related`, "JAR-250,Stash Jar,250 ml,Accessories,ACCESSORY,189.00,85.00,45.00,An airtight glass jar with a bamboo lid.,,no")).products[0].live).toBe(false);
+    const from = (status: "DRAFT" | "ARCHIVED" | "ACTIVE") => plan(csv(`${HEAD},status`, "REST-30,Rest Oil,30 ml,CBD Wellness,CBD,299,140,80,ACTIVE"), { products: [{ ...existingOil, status }] }).products;
+    expect(from("DRAFT")).toMatchObject([{ id: "p-oil", changed: ["status"], live: true }]);
+    expect(from("ARCHIVED")).toMatchObject([{ id: "p-oil", changed: ["status"], live: false }]);
+    expect(from("ACTIVE")).toEqual([]);
+  });
+
   it("updates by SKU: prices and product details, with what changes spelled out; unchanged rows stay unchanged", () => {
     const text = csv(`${HEAD},description,status`, "REST-30,Rest Oil,30 ml,CBD Wellness,CBD,319.00,140.00,80.00,,,");
     const p = plan(text);

@@ -84,10 +84,10 @@ const SHOP = /^\/(?!(hq|store|account|menu|brand)(\/|$))/;
 const ROLES = [
   { name: "shopper", scope: SHOP, start: ["/", "/shop", "/stores", "/learn", "/drops", "/dispensary", "/club/join", "/cart", "/checkout", "/login", "/legal/terms", "/trade", "/trade/apply", "/trade/login", "/trade/terms"] },
   { name: "member", login: member, scope: SHOP, start: ["/club", "/club/orders", "/club/points", "/club/invoices", "/club/settings"] },
-  { name: "manager", login: staff("manager.pta01@herbalholland.co.za"), scope: /^\/(store|account|menu|invoice)(\/|$)/, start: ["/store/PTA01"] },
+  { name: "manager", login: staff("manager.pta01@herbalholland.com"), scope: /^\/(store|account|menu|invoice|labels)(\/|$)/, start: ["/store/PTA01", "/labels/PTA01", "/labels/PTA01?size=talker"] },
   { name: "owner", login: staff("thabo@mokoenaretail.co.za"), scope: /^\/(store|account|books)(\/|$)/, start: ["/store"] },
-  { name: "area", login: staff("area.gpn@herbalholland.co.za"), scope: /^\/(hq|store|books)(\/|$)/, start: ["/hq"] },
-  { name: "hq", login: staff("hq@herbalholland.co.za"), scope: /^\/(hq|store|menu|invoice|brand|books)(\/|$)/, start: ["/hq"] },
+  { name: "area", login: staff("area.gpn@herbalholland.com"), scope: /^\/(hq|store|books)(\/|$)/, start: ["/hq"] },
+  { name: "hq", login: staff("hq@herbalholland.com"), scope: /^\/(hq|store|menu|invoice|brand|books)(\/|$)/, start: ["/hq"] },
   { name: "trade", login: trade, cleanup: tradeCleanup, scope: /^\/(trade|invoice)(\/|$)/, start: ["/trade/range", "/trade/cart", "/trade/checkout", "/trade/orders", "/trade/account", "/trade/statements"] },
   { name: "accountant", login: staff("books@mokoenaretail.co.za"), scope: /^\/(books|account)(\/|$)/, start: ["/books"] },
 ];

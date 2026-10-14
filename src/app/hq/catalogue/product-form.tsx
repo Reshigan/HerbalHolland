@@ -39,6 +39,7 @@ export function ProductForm({
   claimLibrary,
   noIncentiveClasses,
   readOnly,
+  announce,
 }: {
   action: (s: ActionState, fd: FormData) => Promise<ActionState>;
   product: ProductInput | null;
@@ -46,6 +47,7 @@ export function ProductForm({
   claimLibrary: string[];
   noIncentiveClasses: RegClass[]; // incentiveExcluded(settings): no promotions, points or commission (s18A)
   readOnly?: boolean;
+  announce?: boolean; // a new or draft product without its launch: offer "New online" for when it goes live
 }) {
   const p = product;
   const [name, setName] = useState(p?.name ?? "");
@@ -177,6 +179,14 @@ export function ProductForm({
                 <Checkbox name="heritage" defaultChecked={p?.heritage} label="Heritage" description="African landrace story" />
                 <Checkbox name="featured" defaultChecked={p?.featured} label="Featured" description="Shop & app highlights" />
               </div>
+              {announce && chosen !== "THC" && (
+                <Checkbox
+                  name="announce"
+                  defaultChecked
+                  label="Announce it when it goes live"
+                  description="Saved as Active, it gets a “New online” campaign in the Studio on the next free product-launch Tuesday, a week or more away. Nothing goes out until it's approved."
+                />
+              )}
             </CardBody>
           </Card>
 

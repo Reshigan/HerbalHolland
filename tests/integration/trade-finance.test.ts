@@ -213,7 +213,7 @@ describe("invoice", () => {
   it("renders a trade sale as a tax invoice to the business on account terms, never with points", async () => {
     const s = (await invoiceData(dcSale.id))!;
     expect(s.channel).toBe("WHOLESALE");
-    const r = saleInvoiceEmail(s, { url: "https://herbalholland.co.za/invoice/x?t=y", trade: { accountNumber: account.number, dueAt, orderNumber: "TO-000002" } });
+    const r = saleInvoiceEmail(s, { url: "https://shop.herbalholland.com/invoice/x?t=y", trade: { accountNumber: account.number, dueAt, orderNumber: "TO-000002" } });
     expect(r.subject).toBe("Herbal Holland tax invoice DC-T-T00001 for Hatfield Pharmacy (Pty) Ltd");
     for (const x of ["Bill to", "Hatfield Pharmacy (Pty) Ltd", "VAT no. 4550001234", "Trade account TA-000001", "24 × R280.00", "Total excl. VAT", "Total incl. VAT", `On account, due`, "TO-000002"]) expect(r.html, x).toContain(x);
     for (const x of ["You earned", "You saved", "Rewards under Invoices"]) expect(r.html, x).not.toContain(x);

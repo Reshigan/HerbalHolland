@@ -4,6 +4,7 @@ import { heldTier, maxTier } from "@/lib/loyalty-rules";
 import { QUESTS, publicQuest, questPassed } from "@/lib/quests";
 import { applyPromotions, type PromoInput } from "@/lib/promotions";
 import { buildStatement } from "@/lib/statement";
+import { foundingPlaces } from "@/server/shop/launch-rules";
 
 describe("tier floors (Founding Members)", () => {
   const at = new Date("2026-10-01T10:00:00Z");
@@ -67,5 +68,23 @@ describe("promotion attribution (HQ-funded My Deals)", () => {
   it("credits My Deals to the store on the franchise statement", () => {
     const zero = { netSalesExVatCents: 0, onlineSalesExVatCents: 0, onlineCollectedCents: 0, pointsIssuedCents: 0, pointsRedeemedCents: 0, wholesaleCents: 0, networkSoldCents: 0, networkBoughtCents: 0, royaltyBps: 0, levyBps: 0, ecomBps: 0 };
     expect(buildStatement({ ...zero, offersFundedCents: 12_345 }).net).toBe(12_345);
+  });
+});
+
+describe("Founding places counter", () => {
+  const base = { cap: 2026, firstYearMonths: 6, tierName: "Sprout", closes: "6 Dec 2026" };
+  it("counts down and warns when places are going fast", () => {
+    const p = foundingPlaces({ ...base, taken: 1000 });
+    expect(p).toMatchObject({ left: 1026, full: false, nearly: false });
+    expect(p.strip).toBe("1,026 of 2,026 Founding cards left");
+    expect(foundingPlaces({ ...base, taken: 1900 })).toMatchObject({ nearly: true });
+    expect(foundingPlaces({ ...base, taken: 1900 }).lead).toContain("going fast");
+  });
+  it("flips to First Year Members once every card is spoken for", () => {
+    const p = foundingPlaces({ ...base, taken: 2500 });
+    expect(p).toMatchObject({ left: 0, full: true });
+    expect(p.strip).toContain("First Year Members still open");
+    expect(p.lead).toContain("Sprout for 6 months");
+    expect(foundingPlaces({ ...base, taken: 2500, firstYearMonths: 0 }).lead).toBe("All 2,026 Founding Member cards are spoken for.");
   });
 });

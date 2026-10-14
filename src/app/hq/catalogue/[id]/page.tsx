@@ -16,6 +16,7 @@ import { StatusBadge } from "@/components/ui/status";
 import { Table, Th, Td, Tr } from "@/components/ui/table";
 import { ProductArt } from "@/components/product/art";
 import { BackLink, ViewOnly } from "@/components/hq/ui";
+import { Flash } from "@/components/hq/flash";
 import { CLASS_TONE } from "@/components/hq/tones";
 import { incentiveExcluded } from "@/lib/compliance";
 import { saveProduct } from "../actions";
@@ -27,14 +28,14 @@ export const metadata = { title: "Product" };
 
 const FORMATS = ["FLAGSHIP", "STANDARD", "EXPRESS"] as const;
 
-export default async function ProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string }> }) {
+export default async function ProductPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ created?: string; m?: string }> }) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   const user = await requireStaff(HQ_ROLES);
   const scope = scopeOf(user);
   const ids = await scopedStoreIds(scope, { kind: "RETAIL" });
   const product = await db.product.findUnique({
     where: { id },
-    include: { category: true, variants: { orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] } },
+    include: { category: true, variants: { orderBy: [{ sortOrder: "asc" }, { priceCents: "asc" }] }, _count: { select: { launches: true } } },
   });
   if (!product) notFound();
   const variantIds = product.variants.map((v) => v.id);
@@ -76,9 +77,10 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
         }
       />
       {sp.created && <Notice tone="success" className="mb-6" title="Product created">Add its variants below, then range them at stores. It stays out of the shop while in draft.</Notice>}
+      <Flash message={sp.m} />
       {!edit && <ViewOnly className="mb-6">View only: the catalogue is managed by the HQ merchandising team.</ViewOnly>}
 
-      <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} readOnly={!edit} />
+      <ProductForm action={saveProduct.bind(null, product.id)} product={input} categories={categories} claimLibrary={claimRows.map((c) => c.claim)} noIncentiveClasses={incentiveExcluded(settings.compliance)} readOnly={!edit} announce={product.status === "DRAFT" && !product._count.launches} />
 
       <Card className="mt-6">
         <CardHeader

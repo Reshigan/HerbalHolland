@@ -2,6 +2,7 @@
 // example "signin-ip:<hash>", "otp-sms:all", "pin:<userId>"), counted in a sliding window. Checking and counting run
 // under a Postgres advisory lock on the key, so requests arriving together can't all slip under the limit. The daily
 // job prunes rows older than the longest window.
+import { ipBucket } from "@/lib/client-ip";
 import { createHmac } from "node:crypto";
 import { db, tx, type Tx } from "./db";
 import { appSecret } from "./secret";
@@ -38,4 +39,4 @@ export const clear = (key: string) => db.throttle.deleteMany({ where: { key } })
 export const pruneThrottle = (now = new Date()) => db.throttle.deleteMany({ where: { createdAt: { lt: new Date(now.getTime() - 2 * 86_400_000) } } });
 
 /** A keyed hash of an IP for throttle keys and records (never the IP itself). */
-export const ipKey = (ip: string | null) => (ip ? createHmac("sha256", appSecret()).update(`ip:${ip}`).digest("hex").slice(0, 32) : "unknown");
+export const ipKey = (ip: string | null) => (ip ? createHmac("sha256", appSecret()).update(`ip:${ipBucket(ip)}`).digest("hex").slice(0, 32) : "unknown");

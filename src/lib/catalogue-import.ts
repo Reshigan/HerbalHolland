@@ -349,7 +349,7 @@ export type ImportSnapshot = {
 
 export type RowAction = "create" | "update" | "unchanged" | "error";
 export type PlanRow = { line: number; sku: string; product: string; variant: string; action: RowAction; notes: string[]; errors: string[]; stock: number };
-export type ProductWrite = { key: string; id: string | null; slug: string; data: ProductData; changed: string[]; compliance: boolean; images: string[] };
+export type ProductWrite = { key: string; id: string | null; slug: string; data: ProductData; changed: string[]; compliance: boolean; images: string[]; live: boolean /* goes live: new as Active, or out of draft */ };
 export type VariantWrite = { line: number; productKey: string; productId: string | null; id: string | null; data: VariantData; changed: string[]; before: [number, number, number] | null; sortOrder: number };
 export type StockWrite = { line: number; sku: string; qty: number; batchCode: string; batchId: string | null; expires: string | null; unitCostCents: number };
 export type ImportCounts = {
@@ -489,7 +489,7 @@ export function planImport(read: ImportRead, snap: ImportSnapshot): ImportPlan {
         const flag = screenCopy([data.name, data.tagline ?? "", data.description].join(" "))[0];
         if (flag) problems.push(`“${flag.term}” in the name, tagline or description: ${flag.reason}`);
       }
-      if (!problems.length) product = { key: slug, id: existing?.id ?? null, slug: existing?.slug ?? slug, data: final, changed, compliance: !!existing && complianceChange(changed, regClass), images };
+      if (!problems.length) product = { key: slug, id: existing?.id ?? null, slug: existing?.slug ?? slug, data: final, changed, compliance: !!existing && complianceChange(changed, regClass), images, live: final.status === "ACTIVE" && (!existing || existing.status === "DRAFT") };
     }
 
     let first = true, newVariants = 0;

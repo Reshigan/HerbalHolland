@@ -10,6 +10,7 @@ import { fmtPoints } from "@/lib/loyalty-rules";
 import { DENOMINATIONS, denomLabel } from "@/components/pos/lib/rules";
 import type { ZReport } from "./pos/types";
 import type { StatementLine } from "@/lib/statement";
+import { EMAIL_LOGO_CID } from "./email-logo";
 
 export const APP_URL = () => process.env.APP_URL ?? "http://localhost:3000";
 
@@ -132,7 +133,7 @@ export function emailLayout(o: LayoutOpts) {
 <table role="presentation" width="600" cellspacing="0" cellpadding="0" class="hh-card" style="max-width:600px;width:100%;background:${C.card};border-radius:20px;overflow:hidden;font-family:${TEXT};color:${C.text}">
 <tr><td class="hh-pad" style="background:${C.ink};padding:22px 32px;border-bottom:5px solid ${C.brand}">
 <table role="presentation" cellspacing="0" cellpadding="0"><tr>
-<td style="padding-right:14px"><img src="${esc(`${base}/pwa-icon/192`)}" width="44" height="44" alt="" style="width:44px;height:44px;border-radius:12px"/></td>
+<td style="padding-right:14px"><img src="cid:${EMAIL_LOGO_CID}" width="44" height="44" alt="" style="width:44px;height:44px;border-radius:12px"/></td>
 <td style="font-family:${DISPLAY};color:${C.brand};font-size:17px;line-height:18px;text-transform:uppercase;vertical-align:middle"><span style="font-weight:300;letter-spacing:0.16em">Herbal</span><br/><span style="font-weight:800;letter-spacing:0.07em">Holland</span></td>
 </tr></table>
 </td></tr>

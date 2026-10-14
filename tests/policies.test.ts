@@ -7,7 +7,7 @@ import { screenCopy } from "@/lib/compliance";
 // As the defaults in HQ → Online orders (settings.ecommerce).
 const ECOMMERCE = { sameDayFeeCents: 6_500, courierFeeCents: 9_900, freeDeliveryOverCents: 90_000, merchCourierCents: 10_000, merchNotice: "", sameDayCutoffHour: 15, unpaidHoldMinutes: 60 };
 const facts = (over: Partial<PolicyFacts["ecommerce"]> = {}): PolicyFacts => ({
-  entity: "Herbal Holland (Pty) Ltd", email: "hello@herbalholland.co.za", phone: "012 004 4200", minAge: 18, ecommerce: { ...ECOMMERCE, ...over },
+  entity: "Herbal Holland (Pty) Ltd", email: "hello@herbalholland.com", phone: "012 004 4200", minAge: 18, ecommerce: { ...ECOMMERCE, ...over },
 });
 const lines = (blocks: PolicyBlock[]) =>
   blocks.flatMap((b) => ("h" in b ? [b.h] : "p" in b ? [b.p] : "important" in b ? b.important : b.list.flatMap((l) => (typeof l === "string" ? [l] : [l.text, l.counsel]))));
@@ -39,7 +39,7 @@ describe("shop policies", () => {
     expect(r).toContain("courier to collect it");
     expect(r).toContain("drop it off at a Herbal Holland store");
     expect(r).toContain("Refunds go back to the payment method you used");
-    expect(r).toContain("[hello@herbalholland.co.za](mailto:hello@herbalholland.co.za) or call 012 004 4200");
+    expect(r).toContain("[hello@herbalholland.com](mailto:hello@herbalholland.com) or call 012 004 4200");
   });
 
   it("marks the ECTA s42 exclusions for counsel", () => {

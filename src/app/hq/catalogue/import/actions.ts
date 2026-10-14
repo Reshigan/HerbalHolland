@@ -2,7 +2,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { guard, DENIED, fail, flashTo, inScope, type ActionState } from "@/server/hq/guard";
-import { str, qs } from "@/server/hq/form";
+import { bool, str, qs } from "@/server/hq/form";
+import { announced, announceProducts } from "@/server/studio";
 import { ImportError, loadImportFile, runImport, saveImportFile } from "@/server/hq/catalogue-import";
 import { IMPORT_MAX_BYTES, importSummary } from "@/lib/catalogue-import";
 
@@ -46,7 +47,9 @@ export async function importCatalogue(uploadId: string, _: ActionState, fd: Form
     if ((e as { code?: string }).code === "P2002") return fail("Something in the file was added to the catalogue while it imported, so nothing was imported: check the preview again.");
     throw e;
   }
+  // Products that went live, with "Announce" ticked: their "New online" campaigns, as drafts.
+  const launches = bool(fd, "announce") ? announced(await announceProducts({ productIds: result.live, by: g.user.name, actor: g.actor })) : "";
   revalidatePath("/hq/catalogue");
   revalidatePath(PATH);
-  flashTo(`${PATH}${qs({ file: uploadId, at })}`, importSummary(result.counts, result.location?.name ?? null));
+  flashTo(`${PATH}${qs({ file: uploadId, at })}`, [importSummary(result.counts, result.location?.name ?? null), launches].filter(Boolean).join(" "));
 }

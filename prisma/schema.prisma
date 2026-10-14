@@ -304,6 +304,7 @@ model Product {
 
   variants Variant[]
   reviews  Review[]
+  launches StudioPlan[] // its "New online" campaign
 
   // Shop search: typo-tolerant matching on the name and tagline (pg_trgm similarity).
   @@index([name(ops: raw("gin_trgm_ops"))], type: Gin)
@@ -1438,6 +1439,8 @@ model StudioPlan {
   anchor    String // day T, YYYY-MM-DD in South African time
   store     Store?       @relation(fields: [storeId], references: [id])
   storeId   String?
+  product   Product?     @relation(fields: [productId], references: [id])
+  productId String? // a product launch's product
   paused    Boolean      @default(false) // nothing more is released until HQ resumes it
   createdBy String?
   createdAt DateTime     @default(now())

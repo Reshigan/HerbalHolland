@@ -125,7 +125,7 @@ export default async function TeamPage({ searchParams }: { searchParams: Promise
                     <FieldError name="name" />
                   </Field>
                   <Field label="Work email" htmlFor="email">
-                    <Input id="email" name="email" type="email" autoComplete="off" placeholder="name@herbalholland.co.za" />
+                    <Input id="email" name="email" type="email" autoComplete="off" placeholder="name@herbalholland.com" />
                     <FieldError name="email" />
                   </Field>
                   <Field label="Role" htmlFor="role">

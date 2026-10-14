@@ -4,13 +4,12 @@
 // brand's channels and for any one member (counted as the member who'd get the most: every interest, either store).
 import { describe, expect, it } from "vitest";
 import { layout, longDate, spreadFeed, type Draft, type Fields } from "@/lib/studio";
-import { PLAYBOOKS } from "@/lib/studio-playbooks";
+import { NEW_ONLINE_DAYS, PLAYBOOKS } from "@/lib/studio-playbooks";
 import { dayKey } from "@/lib/format";
 
 const TOWNS = ["Hillcrest", "Hilton"];
-const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://herbalholland.co.za/p/rest-body-balm?src=studio" };
+const PRODUCT = { product: "Rest Body Balm", facts: "50 ml a pack, 300 mg CBD a pack.", category: "Skin care", link: "https://shop.herbalholland.com/p/rest-body-balm?src=studio" };
 const OPENING_WEEKS = ["week of 2026-10-26", "week of 2026-11-30"];
-const NEW_ONLINE = ["2026-11-10", "2027-01-12", "2027-01-26", "2027-02-09", "2027-02-23", "2027-03-09", "2027-03-23"];
 
 type Plan = { key: string; anchor: string; town?: string; stagger?: number; skipShared?: boolean; until?: string };
 const CALENDAR: Plan[] = [
@@ -21,13 +20,13 @@ const CALENDAR: Plan[] = [
   { key: "founding-members", anchor: "2026-12-06" },
   { key: "merch-drop", anchor: "2026-12-10" },
   ...PLAYBOOKS.filter((p) => p.date).map((p) => ({ key: p.key, anchor: p.date! })),
-  ...NEW_ONLINE.map((anchor) => ({ key: "new-online", anchor })),
+  ...NEW_ONLINE_DAYS.map((anchor) => ({ key: "new-online", anchor })),
 ];
 
 type Out = Draft & { plan: string; to: string };
-function lay(): Out[] {
+function lay(calendar = CALENDAR): Out[] {
   const busy = new Set<string>();
-  return CALENDAR.flatMap((c) => {
+  return calendar.flatMap((c) => {
     const pb = PLAYBOOKS.find((p) => p.key === c.key)!;
     const f: Fields = {
       date: longDate(c.anchor),
@@ -55,6 +54,12 @@ const over = (m: Map<string, string[]>, max: number, what: string) => [...m].fil
 
 describe("the six months on their real days", () => {
   const all = lay();
+
+  it("keeps product launches to the second and fourth Tuesdays, in order", () => {
+    const nth = (ymd: string) => Math.ceil(Number(ymd.slice(8)) / 7);
+    expect(NEW_ONLINE_DAYS.filter((d) => new Date(`${d}T12:00:00Z`).getUTCDay() !== 2 || ![2, 4].includes(nth(d)))).toEqual([]);
+    expect([...NEW_ONLINE_DAYS].sort()).toEqual(NEW_ONLINE_DAYS);
+  });
 
   it("lays every campaign out without a refused day or a clash it can't settle", () => {
     expect(all.filter((d) => d.blocked).map((d) => `${d.plan}: ${d.key}: ${d.blocked}`)).toEqual([]);
@@ -84,5 +89,41 @@ describe("the six months on their real days", () => {
       ];
     });
     expect(problems).toEqual([]);
+  });
+});
+
+// The Founding Members social drive (launch-social.ts) is a second track for the same six weeks, built to fill the
+// list: laid out for both towns on its own feed (HQ runs it in place of, or with, the launch packs' feed posts, and
+// the Studio moves what clashes), it keeps to one post a day and five a week, with three Reels a week and the
+// milestones placed by hand.
+describe("the Founding Members social drive, both towns, the list's six weeks", () => {
+  const all = lay(TOWNS.map((town, i) => ({ key: "founding-social", anchor: "2026-12-06", town, stagger: i * 7, skipShared: i > 0 })));
+  const feed = all.filter((d) => d.channel === "SOCIAL");
+  const reel = (d: Out) => d.title?.startsWith("[Reel/TikTok]") ?? false;
+
+  it("lays out without a refused day or a clash, from the day the list opens to the night it closes", () => {
+    expect(all.filter((d) => d.blocked || /Shares its day|Another campaign/.test(d.moved ?? "")).map((d) => `${d.plan}: ${d.key}: ${d.blocked ?? d.moved}`)).toEqual([]);
+    const days = feed.map((d) => dayKey(d.at)).sort();
+    expect([days[0], days.at(-1)]).toEqual(["2026-10-27", "2026-12-06"]);
+    expect(all.every((d) => d.channel === "SOCIAL")).toBe(true);
+  });
+
+  it("keeps to one post a day and five a week, three of them Reels, with the four milestones marked for posting by hand", () => {
+    expect(over(tally(feed, (d) => dayKey(d.at)), 1, "feed, day")).toEqual([]);
+    const weeks = tally(feed, (d) => week(dayKey(d.at)));
+    expect(over(weeks, 5, "feed, week of")).toEqual([]);
+    expect([...weeks].map(([w, v]) => [w, v.length]), "five a week, every week").toEqual(expect.arrayContaining([["2026-10-26", 5], ["2026-11-30", 5]]));
+    expect(over(tally(feed.filter(reel), (d) => week(dayKey(d.at))), 3, "Reels, week of")).toEqual([]);
+    expect([...tally(feed.filter(reel), (d) => week(dayKey(d.at)))].every(([, v]) => v.length === 3)).toBe(true);
+    expect(feed.filter((d) => d.milestone).map((d) => d.milestone)).toEqual([500, 1000, 1500, 2026]);
+    expect(feed.length).toBe(30);
+  });
+
+  it("gives each town its own Fridays, Hilton's a week after Hillcrest's", () => {
+    const own = feed.filter((d) => !d.shared);
+    expect(own.map((d) => `${d.plan.split(" ")[1]} ${d.key} ${dayKey(d.at)}`)).toEqual([
+      "(Hillcrest) town-hello 2026-10-30", "(Hillcrest) town-advisors 2026-11-13", "(Hillcrest) town-windows 2026-11-27",
+      "(Hilton) town-hello 2026-11-06", "(Hilton) town-advisors 2026-11-20", "(Hilton) town-windows 2026-12-04",
+    ]);
   });
 });

@@ -23,8 +23,8 @@ const one = async (sql, params = []) => (await q(sql, params))[0];
 
 const OWNER = "thabo@mokoenaretail.co.za";
 const ACCOUNTANT = "books@mokoenaretail.co.za";
-const HQ = "hq@herbalholland.co.za";
-const AREA = "area.gpn@herbalholland.co.za";
+const HQ = "hq@herbalholland.com";
+const AREA = "area.gpn@herbalholland.com";
 const run = Date.now().toString(36).slice(-5).toUpperCase();
 
 const browser = await chromium.launch().catch(() => chromium.launch({ executablePath: "/opt/pw-browsers/chromium" }));

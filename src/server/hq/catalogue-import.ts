@@ -132,7 +132,8 @@ export async function runImport(a: { uploadId: string; fileName: string; sha256:
         },
       });
       const photos = plan.products.filter((p) => p.images.length).map((p) => ({ productId: p.id ?? ids.get(p.slug)!, name: p.data.name, urls: p.images }));
-      return { counts: c, location: c.stockLines ? snap.location : null, photos };
+      const live = plan.products.filter((p) => p.live).map((p) => p.id ?? ids.get(p.slug)!);
+      return { counts: c, location: c.stockLines ? snap.location : null, photos, live };
     },
     { timeout: TIMEOUT_MS, maxWait: 10_000 },
   );
@@ -145,7 +146,7 @@ export async function runImport(a: { uploadId: string; fileName: string; sha256:
   }
   if (done.photos.length)
     await audit(db, a.actor, "catalogue.import_images", { entity: "Upload", entityId: a.uploadId, data: { products: done.photos.length, fetched: images.fetched, skipped: images.skipped, failed: images.failed.slice(0, 50) } });
-  return { counts: done.counts, location: done.location, images };
+  return { counts: done.counts, location: done.location, images, live: done.live };
 }
 
 /** Writes the plan; returns each new product's id by its key (slug), for the photos fetched afterwards. */

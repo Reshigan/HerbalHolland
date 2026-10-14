@@ -1,6 +1,7 @@
 "use server";
 // Storefront server actions shared across pages: age gate, preferred store, the bag,
 // promo codes and the phone-OTP sign-in / one-step registration flow.
+import { canBuyOnline, PHASE_CLOSED } from "@/lib/launch-phase";
 import { cookies, headers } from "next/headers";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
@@ -10,7 +11,7 @@ import { audit } from "@/server/audit";
 import { quote } from "@/server/pricing";
 import { COLLISION_REFUSED, CollisionError, collisionsUsedUp, createCustomer, CustomerError, noteCollision, recordAgeCheck, requestOtp, verifyOtp } from "@/server/customers";
 import { getDispensaryAccess, getClasses } from "./access";
-import { getCart, getRetailStores, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE } from "./context";
+import { getCart, getRetailStores, HOME_STORE_STATUSES, saveAge, saveCart, savePreferredStore, savePromoCode, SHOP_COOKIE, shopPhase } from "./context";
 import { openState, parseHours } from "./hours";
 import { cartCount, withItem, withQty } from "./cart-codec";
 import { readPhoneToken, signPhone } from "./phone-token";
@@ -52,6 +53,7 @@ export async function pickerStores(): Promise<PickerStore[]> {
 export type BagState = { ok?: boolean; error?: string; message?: string; count?: number; at?: number };
 
 export async function addToBag(_: BagState, form: FormData): Promise<BagState> {
+  if (!canBuyOnline(await shopPhase())) return { error: PHASE_CLOSED };
   const variantId = String(form.get("variantId") ?? "");
   const qty = Math.max(1, Math.min(20, Math.floor(Number(form.get("qty") ?? 1)) || 1));
   const v = await db.variant.findUnique({ where: { id: variantId }, include: { product: { select: { name: true, status: true, regClass: true } } } });

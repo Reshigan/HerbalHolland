@@ -13,8 +13,8 @@ export const TIER_STYLE: Record<number, { card: string; chip: string; ring: stri
   3: { card: "from-brand-600 via-ink-900 to-ink-950", chip: "bg-brand-500 text-ink-950", ring: "ring-brand-500/70" },
 };
 
-/** `founding` = Founding Member number; `floorUntil` = the date an active tier floor holds the member's tier until. */
-export function MemberCard({ name, memberNo, tierName, tierIndex, points, founding, floorUntil, className }: { name: string; memberNo: string; tierName: string; tierIndex: number; points: number; founding?: number | null; floorUntil?: Date | null; className?: string }) {
+/** `founding` = Founding Member number; `firstYear` = on the list beyond the founding places; `floorUntil` = the date an active tier floor holds the member's tier until. */
+export function MemberCard({ name, memberNo, tierName, tierIndex, points, founding, firstYear = false, floorUntil, className }: { name: string; memberNo: string; tierName: string; tierIndex: number; points: number; founding?: number | null; firstYear?: boolean; floorUntil?: Date | null; className?: string }) {
   const s = TIER_STYLE[tierIndex] ?? TIER_STYLE[0];
   return (
     <div
@@ -41,6 +41,8 @@ export function MemberCard({ name, memberNo, tierName, tierIndex, points, foundi
               <span className="text-brand-200">
                 Founding Member <span className="tnum tracking-[0.12em]">{foundingLabel(founding)}</span>
               </span>
+            ) : firstYear ? (
+              <span className="text-brand-200">First Year Member</span>
             ) : (
               "Rewards member"
             )}

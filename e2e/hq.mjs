@@ -124,7 +124,7 @@ const T = {
   campaignName: `E2E campaign ${sfx}`,
   caption: `The Windmill Tee is back: the mark embroidered in Sunset thread on black cotton. (${sfx})`,
   staffName: `E2E Staffer ${sfx}`,
-  staffEmail: `e2e.staff.${sfx}@herbalholland.co.za`,
+  staffEmail: `e2e.staff.${sfx}@herbalholland.com`,
   ownerName: `E2E Owner ${sfx}`,
   ownerEmail: `e2e.owner.${sfx}@example.com`,
   annTitle: `E2E notice ${sfx}`,
@@ -160,12 +160,12 @@ let store, product, variant, batch, member, order, dc, area, tradeAccount, trade
 
 try {
   step("Sign in as the HQ administrator (demo link)");
-  await page.goto(`${BASE}/api/auth/demo?email=hq@herbalholland.co.za&next=/hq`);
+  await page.goto(`${BASE}/api/auth/demo?email=hq@herbalholland.com&next=/hq`);
   await page.waitForURL(`${BASE}/hq`);
-  const admin = await one(`select id, name from "User" where email = 'hq@herbalholland.co.za'`);
+  const admin = await one(`select id, name from "User" where email = 'hq@herbalholland.com'`);
   await page.getByRole("heading", { level: 1 }).first().waitFor();
   ok(`signed in as ${admin.name}`);
-  area = await one(`select u.id, r.id "regionId", r.code, r.name from "User" u join "Region" r on r.id = u."regionId" where u.email = 'area.gpn@herbalholland.co.za'`);
+  area = await one(`select u.id, r.id "regionId", r.code, r.name from "User" u join "Region" r on r.id = u."regionId" where u.email = 'area.gpn@herbalholland.com'`);
   dc = await one(`select id, code, name from "Store" where kind = 'WAREHOUSE' order by code limit 1`);
   const otherRegion = await one(`select id, code, name from "Region" where id <> $1 and exists (select 1 from "Store" s where s."regionId" = "Region".id and s.kind = 'RETAIL') order by code limit 1`, [area.regionId]);
 
@@ -346,6 +346,14 @@ try {
     "now CBD food & drink: 2 mg in 30 ml, natural CBD only, THC ≤ 0.001%, no daily dose",
   );
   assert(await one(`select 1 from "AuditLog" where action = 'compliance.product' and "entityId" = $1`, [product.id]), "reclassification audited as compliance.product");
+  // Going live with "Announce it" ticked: a draft "New online" campaign on the next free product-launch Tuesday.
+  assert(await pf.getByRole("checkbox", { name: "Announce it when it goes live" }).isChecked(), "a draft product offers its launch, ticked");
+  await pf.locator("#status").selectOption("ACTIVE");
+  await act("catalogue.saveProduct (goes live)", () => pf.getByRole("button", { name: "Save product" }).click(), () => page.getByRole("status").filter({ hasText: /New online|No product-launch Tuesday/ }).first().waitFor());
+  const launch = await one(`select p.anchor, count(i.id)::int drafts from "StudioPlan" p join "StudioItem" i on i."planId" = p.id and i.status = 'DRAFT' where p."productId" = $1 group by p.id`, [product.id]);
+  assert(launch ? (await notice(`“New online” laid out in the Studio for ${T.productName}`).count()) > 0 : (await notice("No product-launch Tuesday is free").count()) > 0, launch ? `live: “New online” laid out for ${launch.anchor}, ${launch.drafts} drafts` : "live: no launch Tuesday left in the plan, and the notice says so");
+  await q(`delete from "StudioPlan" where "productId" = $1`, [product.id]);
+  await q(`update "Product" set status = 'DRAFT' where id = $1`, [product.id]); // out of the shop for the rest of the journey
   const vnew = formWith("#sku-new");
   await vnew.locator("#sku-new").fill(T.sku.toLowerCase());
   await vnew.locator("#name-new").fill("30ml");
@@ -1416,7 +1424,7 @@ try {
   ap.setDefaultTimeout(45_000);
   ap.setDefaultNavigationTimeout(120_000);
   watch(ap, "area");
-  await ap.goto(`${BASE}/api/auth/demo?email=area.gpn@herbalholland.co.za&next=/hq/stores`);
+  await ap.goto(`${BASE}/api/auth/demo?email=area.gpn@herbalholland.com&next=/hq/stores`);
   await ap.waitForURL(/\/hq\/stores$/);
   const listed = await ap.locator("table a[href^='/hq/stores/']").evaluateAll((els) => els.map((e) => e.getAttribute("href").split("/").pop()));
   const mine = (await q(`select code from "Store" where "regionId" = $1 and kind = 'RETAIL' order by code`, [area.regionId])).map((r) => r.code);

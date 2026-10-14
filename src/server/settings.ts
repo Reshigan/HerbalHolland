@@ -1,3 +1,4 @@
+import type { LaunchPhase } from "@/lib/launch-phase";
 import { cache } from "react";
 import { db } from "./db";
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "@/lib/compliance";
@@ -23,11 +24,13 @@ export const DEFAULT_SETTINGS = {
     minMarginPct: 25, // franchisee price-setting guardrail (warning only, never enforced)
   },
   launch: {
+    phase: "BRAND" as LaunchPhase, // a fresh network starts as the brand site; HQ moves it to ONLINE (courier shopping) then STORES (everything); see @/lib/launch-phase
     launchAt: null as string | null, // ISO date-time when the Founding Members list closes (null = no list)
     foundingCap: 2_026, // the first N waitlist places become numbered Founding Members
     foundingTier: "SPROUT" as TierKey, // …who hold at least this tier
     foundingMonths: 14, // …for this long after launch
     referralBoost: 250, // waitlist places gained per friend who joins before launch
+    firstYearMonths: 6, // First Year Members: everyone on the list beyond the founding places holds the founding tier this long (0 = off)
   },
   offers: {
     enabled: true, // My Deals: weekly personal offer on each opted-in member's favourite product (HQ-funded)

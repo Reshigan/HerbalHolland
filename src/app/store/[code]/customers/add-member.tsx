@@ -67,7 +67,7 @@ export function AddMember({ action, storeName }: { action: FormAction; storeName
               <li key={t}>{t}</li>
             ))}
           </ul>
-          <p className="mt-2 text-xs text-ink-500">Full terms at herbalholland.co.za/legal/terms · {TERMS_LABEL}</p>
+          <p className="mt-2 text-xs text-ink-500">Full terms at shop.herbalholland.com/legal/terms · {TERMS_LABEL}</p>
           <div className="mt-3">
             <Checkbox name="acceptTerms" label="The member has read the key terms and accepts the membership terms and privacy notice" />
             <FieldError name="acceptTerms" />

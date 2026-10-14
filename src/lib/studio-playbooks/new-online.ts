@@ -5,6 +5,14 @@
 import type { Playbook } from "../studio";
 import { paras } from "./shared";
 
+/**
+ * The Tuesdays the content plan keeps for product launches (docs/MARKETING-PLAN.md §9): the second and fourth of the
+ * month, except where the launch, the openings and the festive weeks already fill members' inboxes. A product that goes
+ * live takes the first free one a week or more away (announceProducts), one product a Tuesday;
+ * tests/studio-calendar.test.ts holds the limits on every one. The next content plan adds its own.
+ */
+export const NEW_ONLINE_DAYS = ["2026-11-10", "2027-01-12", "2027-01-26", "2027-02-09", "2027-02-23", "2027-03-09", "2027-03-23"];
+
 export const NEW_ONLINE: Playbook[] = [
   {
     key: "new-online",

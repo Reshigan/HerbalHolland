@@ -204,7 +204,7 @@ export function receiptBytes(r: ReceiptDTO, o: ReceiptOptions): Uint8Array {
   p.para(ADULTS_LINE);
   if (o.store.receiptFooter) p.para(o.store.receiptFooter);
   if (r.invoiceEmail && !training) p.para(`Tax invoice emailed to ${r.invoiceEmail}`);
-  p.line("Thank you - herbalholland.co.za");
+  p.line("Thank you").line("shop.herbalholland.com"); // the address alone fits 58 mm paper (32 columns)
   if (training) watermark();
   p.align("left");
 
@@ -226,7 +226,7 @@ export function testPageBytes(o: Pick<ReceiptOptions, "cols" | "store" | "device
   p.line("0123456789".repeat(Math.ceil(o.cols / 10)).slice(0, o.cols));
   p.line("Accents: cafe crème naïve Müller");
   p.bold(true).line("Bold").bold(false).size({ height: 2 }).line("Double height").size({ width: 2 }).line("Wide").size();
-  p.align("centre").qr("https://herbalholland.co.za", { size: 4 }).line("QR (invoice links)").align("left");
+  p.align("centre").qr("https://shop.herbalholland.com", { size: 4 }).line("QR (invoice links)").align("left");
   p.rule();
   p.para(o.drawer != null ? "The drawer should open now." : "Drawer kick is off for this test.");
   p.para(ADULTS_LINE);

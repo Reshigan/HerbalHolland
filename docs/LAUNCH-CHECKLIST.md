@@ -2,6 +2,12 @@
 
 Tick every line before the first store trades on the platform, except the last section (after the first month).
 
+## Launch phase (HQ → Settings → Launch phase)
+A fresh database starts in step 1 (the demo seed starts at step 3); the shop, its header and checkout follow the setting at once (audited):
+- [ ] **1. Brand site**: herbalholland.com, social and Rewards sign-ups live; shop.herbalholland.com shows the range (no bag, no checkout; "Online shopping opens soon") and the stores as opening soon
+- [ ] **2. Online shopping**: courier delivery from the distribution centre only; click & collect and same-day stay off, whatever the stores' flags say (online payments live first, see Money)
+- [ ] **3. Stores open**: everything on; each store trades once its status is ACTIVE (Stores → status), which also puts it on the store finder and in click & collect
+
 ## Legal & compliance
 - [ ] Counsel sign-off: MEDICAL-mode flows, class × channel matrix, storefront visibility of licensed products, claims library
 - [ ] SAHPRA licence details captured per store (`licences`, `licenceRef`); dispensers designated and trained
@@ -44,7 +50,7 @@ Tick every line before the first store trades on the platform, except the last s
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
 
 ## Customer channels
-- [ ] SMS and email providers live (`SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
+- [ ] SMS and email providers live (Microsoft 365 `MS_*` or `SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
 - [ ] Postiz running with Instagram, Facebook, LinkedIn, X and Threads connected; `POSTIZ_URL` / `POSTIZ_API_KEY` set; a test post scheduled and deleted
@@ -52,6 +58,12 @@ Tick every line before the first store trades on the platform, except the last s
 
 ## Platform
 - [ ] Deployed with `docker-compose.prod.yml` and `.env` from `.env.example` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy)): `DEMO_MODE=false` from the start, strong `SESSION_SECRET`, `CRON_SECRET` 32+ characters, `APP_URL` the https shop address; the start-up log has no `[config]` warnings you didn't expect; Postgres and the app listen on 127.0.0.1 only
+- [ ] The origin is reachable only through the Cloudflare tunnel (no public port on the app or Postgres): the per-IP
+      limits on sign-in and SMS codes trust `cf-connecting-ip`, which anyone could forge if the server were reached
+      directly. Per-IP limits bucket IPv6 by /64. Still on the list: a bot check (Cloudflare Turnstile) on the SMS
+      code step for members and trade, so the hourly network-wide SMS ceiling can't be spent by a script
+- [ ] Dependencies current: `npm audit --omit=dev` clean on the deployed commit (Next 16.3.8 fixed six advisories, among
+      them cache poisoning and SSRF in image optimisation; keep it patched)
 - [ ] Migrations applied; backups (WAL + nightly encrypted dump to R2 + the uploads volume) running and verified with a restore test
 - [ ] Scheduler running on the server (all four jobs, [RUNBOOK → First deploy](RUNBOOK.md#first-deploy) step 9), each run once by hand
 - [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (server errors and failed jobs), external uptime checks on `/api/health` and `/api/health/jobs`

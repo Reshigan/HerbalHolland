@@ -12,7 +12,7 @@ import { fmtDate, fmtDay, fmtTime, num } from "@/lib/format";
 import { cn } from "@/lib/cn";
 
 /** While the Founding Members list is open: the member's place, the Founding zone and the referral link that moves them up. */
-export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { place: number; total: number; referrals: number; boost: number; launchAt: Date }; cap: number; referUrl: string; shareText: string; firstName: string }) {
+export function WaitlistCard({ w, cap, firstYear, referUrl, shareText, firstName }: { w: { place: number; total: number; referrals: number; boost: number; launchAt: Date }; cap: number; firstYear?: string | null; referUrl: string; shareText: string; firstName: string }) {
   const v = waitlistView(w, cap);
   const pos = Math.min(100, Math.max(0, v.marker * 100));
   return (
@@ -54,7 +54,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
       <p className="mt-5 text-sm leading-relaxed text-ink-200">
         {v.founding
           ? `You're inside the first ${num(cap)}, so a numbered Founding Member card is yours when the list closes. Places can shift as others bring friends, so keep sharing.`
-          : `Bring ${v.friendsNeeded} friend${v.friendsNeeded === 1 ? "" : "s"} to reach a Founding spot.`}{" "}
+          : `Bring ${v.friendsNeeded} friend${v.friendsNeeded === 1 ? "" : "s"} to reach a Founding spot.${firstYear ? ` Either way you're a First Year Member when the list closes: ${firstYear}.` : ""}`}{" "}
         <strong className="font-semibold text-white">Each friend who joins moves you up {num(w.boost)} places.</strong>
         {w.referrals > 0 && ` You've brought ${w.referrals} so far. Thank you, ${firstName}.`}
       </p>
@@ -66,7 +66,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
 }
 
 /** "Your welcome gift: a free hemp wick with your first purchase", with "Add it to your bag" (from the live promotion). */
-export function WelcomeGiftBanner({ gift, where = "card", className }: { gift: WelcomeGift; where?: "card" | "bag"; className?: string }) {
+export function WelcomeGiftBanner({ gift, where = "card", canBuy = true, className }: { gift: WelcomeGift; where?: "card" | "bag"; canBuy?: boolean; className?: string }) {
   const what = gift.name.replace(/^welcome gift:\s*/i, "");
   return (
     <div className={cn("flex flex-col gap-4 rounded-2xl border border-brand-500/40 bg-gradient-to-r from-brand-500/[0.14] to-brand-500/[0.03] p-4 sm:flex-row sm:items-center", className)}>
@@ -85,7 +85,7 @@ export function WelcomeGiftBanner({ gift, where = "card", className }: { gift: W
           <div className="mt-0.5 text-ink-300">{where === "bag" ? "Add it to your bag and it comes off at checkout." : `${gift.description ? `${gift.description} ` : ""}Online or at any till.`}</div>
         </div>
       </div>
-      {gift.product && <AddToBag plain variantId={gift.product.variantId} name={gift.product.name} label="Add it to your bag" className="shrink-0" />}
+      {gift.product && canBuy && <AddToBag plain variantId={gift.product.variantId} name={gift.product.name} label="Add it to your bag" className="shrink-0" />}
     </div>
   );
 }

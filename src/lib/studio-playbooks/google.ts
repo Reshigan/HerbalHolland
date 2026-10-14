@@ -15,11 +15,11 @@ export const GOOGLE: Playbook[] = [
     items: [
       {
         key: "find-us", day: 0, time: "09:00", channel: "GOOGLE",
-        text: "Visiting {store}? Find us at {address}. Opening hours: {hours}. Public holiday hours are on our page at herbalholland.co.za. Herbal Holland is members only, for adults 18+: bring your ID, because we check it at the door and the till, every time.",
+        text: "Visiting {store}? Find us at {address}. Opening hours: {hours}. Public holiday hours are on our page at shop.herbalholland.com. Herbal Holland is members only, for adults 18+: bring your ID, because we check it at the door and the till, every time.",
       },
       {
         key: "join", day: 7, time: "09:00", channel: "GOOGLE",
-        text: "Join Herbal Holland Rewards free at the till at {store}. Everyone who shops with us is a member, and membership is for adults 18+: bring your ID and the team will set you up. Your Rewards card lives in the Rewards app, and your membership works in every Herbal Holland store and online at herbalholland.co.za. Adults 18+.",
+        text: "Join Herbal Holland Rewards free at the till at {store}. Everyone who shops with us is a member, and membership is for adults 18+: bring your ID and the team will set you up. Your Rewards card lives in the Rewards app, and your membership works in every Herbal Holland store and online at shop.herbalholland.com. Adults 18+.",
       },
       {
         key: "labels", day: 14, time: "09:00", channel: "GOOGLE",

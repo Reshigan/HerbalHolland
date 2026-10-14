@@ -35,11 +35,11 @@ With `DEMO_MODE=true`, `/login` has one-click logins (password `holland`):
 
 | Role | Email |
 |---|---|
-| HQ administrator | `hq@herbalholland.co.za` |
-| Area manager (Tshwane & North) | `area.gpn@herbalholland.co.za` |
+| HQ administrator | `hq@herbalholland.com` |
+| Area manager (Tshwane & North) | `area.gpn@herbalholland.com` |
 | Franchise owner (Hatfield + Brooklyn) | `thabo@mokoenaretail.co.za` |
 | Accountant (Mokoena Retail's books) | `books@mokoenaretail.co.za` |
-| Store manager / dispenser (Hatfield) | `manager.pta01@herbalholland.co.za` |
+| Store manager / dispenser (Hatfield) | `manager.pta01@herbalholland.com` |
 | Trade buyer (Greenleaf Pharmacy, on account) | `trade@greenleafpharmacy.co.za` on the trade portal, `/trade/login` (no password: a sign-in code, shown on screen in demo mode) |
 
 POS: open `/pos`, pair a store, then PIN `1111` (manager, dispenser), `2222` (dispenser), `3333`, `4444`.

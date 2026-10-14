@@ -4,6 +4,19 @@
 // Null when nothing looks like an IP. Never store it raw: hash it with a keyed hash first.
 export type HeaderBag = { get(name: string): string | null };
 
+/**
+ * The IP as a rate-limit bucket: IPv4 as is, IPv6 by its /64 (one home or server connection gets a whole /64, so the
+ * full address would hand it endless fresh identities). Keyed hashes of this go into throttle keys.
+ */
+export function ipBucket(ip: string): string {
+  if (!ip.includes(":")) return ip;
+  const [head, tail = ""] = ip.split("::");
+  const h = head ? head.split(":") : [];
+  const t = tail ? tail.split(":") : [];
+  const groups = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
+  return groups.slice(0, 4).map((g) => g.padStart(4, "0")).join(":") + "::/64";
+}
+
 export function clientIpFrom(h: HeaderBag): string | null {
   const forwarded = h.get("x-forwarded-for")?.split(",").map((s) => s.trim()).filter(Boolean);
   const ip = [h.get("cf-connecting-ip"), h.get("x-real-ip"), forwarded?.[forwarded.length - 1]].map((s) => s?.trim()).find(Boolean);

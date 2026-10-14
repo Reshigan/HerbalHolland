@@ -120,7 +120,7 @@ makes creating a payment idempotent.
      with Peach support's help.
 
 **Webhook URL to register:** `https://<APP_URL host>/api/payments/peach` (for example
-`https://herbalholland.co.za/api/payments/peach`). In the Peach Dashboard: **Peach Orchestration** → Webhooks → **+ Add
+`https://shop.herbalholland.com/api/payments/peach`). In the Peach Dashboard: **Peach Orchestration** → Webhooks → **+ Add
 webhook URL**. Or use the business profile API's `webhook_details`, with payment succeeded / failed and refund
 succeeded / failed switched on.
 
@@ -207,7 +207,7 @@ checkout id.
    (`payment.refund_failed` in the audit log). Partial refunds: in the Yoco portal. Test keys: Yoco can't refund test
    payments, so the refund call is skipped (noted on the order).
 
-**Webhook URL to register:** `https://<APP_URL host>/api/payments/yoco` (e.g. `https://herbalholland.co.za/api/payments/yoco`).
+**Webhook URL to register:** `https://<APP_URL host>/api/payments/yoco` (e.g. `https://shop.herbalholland.com/api/payments/yoco`).
 Register it once per mode with that mode's secret key: `POST https://payments.yoco.com/api/webhooks` with
 `{ "name": "herbal-holland", "url": "…/api/payments/yoco" }`. The response's `secret` (`whsec_…`) is shown **once**:
 it's `YOCO_WEBHOOK_SECRET`. Yoco allows 5 webhooks per account; `GET /api/webhooks` lists them.
@@ -230,7 +230,7 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 | Channel | Use | Provider slot |
 |---|---|---|
 | SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER=smsportal`, **built** (REST v3 `BulkMessages`, Basic auth, ≤ 500 per call). Other gateways (Clickatell, BulkSMS) slot into `deliver()` in `messaging.ts` |
-| Email | Tax invoices, statements, campaigns | `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
+| Email | Tax invoices, statements, campaigns | Microsoft 365 through Graph (`MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`: an Entra app with `Mail.Send` application permission and admin consent, limited to the sending mailbox by an Exchange `ApplicationAccessPolicy`; sends as the address in `EMAIL_FROM`, wins over SMTP) or `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
 | App push | Rewards PWA: drop alerts, campaigns (consented) | Web Push, **built** (`web-push`, VAPID: `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`; generate keys with `npx web-push generate-vapid-keys`). Without keys pushes are only logged. iPhones need the app on the Home Screen (iOS 16.4+). When a browser rotates a subscription, the Rewards service worker re-subscribes and saves it (`/api/push/renew`); dead subscriptions are pruned on send |
 | WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products, so `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
 
@@ -318,6 +318,12 @@ channels or posts. Without it, social posts wait in the Studio to be posted by h
   (`productFacts`: the pack size, the CBD a pack and a day, its allergens), its category and its link fill the copy,
   and the email and push go to the members who chose its interest (`interestFor`). Licensed medicines are refused:
   they're never marketed.
+- **Products going live are announced on their own** (`announceProducts`): a new or draft product saved as Active, on
+  its page or by the catalogue import, with "Announce it" ticked (the default), is laid out as drafts on the first free
+  Tuesday in `NEW_ONLINE_DAYS` (the second and fourth Tuesdays the content plan keeps; the calendar test holds the
+  limits on each) a week or more away, one product a Tuesday, in name order. A product gets one launch
+  (`StudioPlan.productId`); skipping every post of a launch frees its Tuesday. When the plan has no Tuesday left, the
+  notice says to lay it out by hand. The next content plan adds its Tuesdays.
 
 **The launch** (`createLaunch`; HQ → Marketing → Studio → The launch): three days in order, the brand, the shop and
 the doors, and the stores that open. The brand launches at least 14 days before the shop, and the doors open at least
@@ -357,21 +363,25 @@ with their mobile or email.
 
 **Setting up Postiz:**
 
-1. Run Postiz with its Docker Compose file on the server, behind HTTPS on its own subdomain (e.g.
-   `https://social.herbalholland.co.za`): it brings PostgreSQL, Redis and Temporal (with Temporal's own PostgreSQL and
-   Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory. Set `API_LIMIT=500` in its environment: the
-   default (30 public API calls an hour) is less than a launch day needs (an upload and a post per card, and the
-   read-back every 15 minutes).
+1. Run Postiz on the shop's server from `deploy/postiz` (Postiz's own Docker Compose file, listening on 127.0.0.1:5000
+   only, with `API_LIMIT=500`: the default 30 public API calls an hour is less than a launch day needs, an upload and
+   a post per card and the read-back every 15 minutes). It brings PostgreSQL, Redis and Temporal (with Temporal's own
+   PostgreSQL and Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory.
+   `cd deploy/postiz && cp .env.example .env`, fill in the three secrets (`openssl rand -hex 32` each), then
+   `docker compose up -d`, and route `social.herbalholland.com` → `http://localhost:5000` in the Cloudflare tunnel.
+   Create HQ's Postiz account, then set `DISABLE_REGISTRATION="true"` in `.env` and `docker compose up -d` again so
+   nobody else can sign up. The Studio holds every post, so Postiz needs no backup beyond its connected accounts.
 2. Connect the accounts, all set to adults 18+:
    - **Facebook, Instagram (a professional account) and Threads**: one Meta developer app owned by HQ, with the
      marketing team added to the app's roles. That gives standard access to HQ's own Page and accounts, so no App
-     Review is needed. Its keys go in Postiz's environment (Postiz docs → Providers).
-   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin.
+     Review is needed. Its keys go in `deploy/postiz/.env` (Postiz docs → Providers).
+   - **Bluesky**: an app password. **Telegram**: a channel, and a bot from @BotFather made its admin (its name and
+     token in `deploy/postiz/.env`).
    - **LinkedIn page**: the Community Management API needs LinkedIn's approval. Until then, mark each LinkedIn-only
      post **I'll post it by hand** (or it fails at its time) and post the LinkedIn-too ones on LinkedIn by hand as well.
    - **X** charges for API posts ($0.015 a post, $0.20 with a link), so it's left to by-hand posting.
    - TikTok, Pinterest and YouTube keep API posts private until an audit, and TikTok bans cannabis content: not used.
-3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.co.za/api/public/v1`;
+3. Postiz → Settings → Public API: copy the key. Set `POSTIZ_URL` (`https://social.herbalholland.com/api/public/v1`;
    Postiz cloud: `https://api.postiz.com/public/v1`) and `POSTIZ_API_KEY`.
 4. For the Social page's pictures only, `APP_URL` must be public HTTPS (Postiz fetches `${APP_URL}/social/<picture>.jpg`).
    Studio cards are uploaded with the post.
@@ -453,7 +463,7 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `DEMO_MODE` | `true` enables demo logins and OTP codes on screen. It **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
-| `SMTP_URL`, `EMAIL_FROM` | Email |
+| `SMTP_URL` or `MS_TENANT_ID` + `MS_CLIENT_ID` + `MS_CLIENT_SECRET`, `EMAIL_FROM` | Email |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
 | `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
 | `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (the default in demos and development) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL` (the default in production). Runtime environment only (see Card present) |
