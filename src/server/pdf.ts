@@ -2,7 +2,7 @@
 // invoice is printed from its hosted page, so the PDF is the same document the link opens; statements and stock-order
 // invoices are printed from their branded email. Never in the way of the email: no browser, or a failed print, gives
 // null and the email goes without the attachment (its link still works).
-import { chromium, type Browser } from "playwright-core";
+import type { Browser } from "playwright-core";
 import { EMAIL_LOGO_CID, EMAIL_LOGO_PNG } from "./email-logo";
 import { graphConfigured } from "./graph-mail";
 
@@ -12,8 +12,10 @@ const EMAIL_PRINT_CSS = `@page{size:A4;margin:12mm 10mm}body,body>table{backgrou
 tr,td{break-inside:avoid}.hh-card>tbody>tr,.hh-card>tbody>tr>td{break-inside:auto!important}`;
 
 let browser: Promise<Browser> | undefined;
+// Loaded only when a PDF is printed: the pages that send these emails must serve on a server without the browser
+// (a standalone build traces playwright-core's files only where the Dockerfile copies them in).
 const open = () =>
-  (browser ??= chromium.launch().then((b) => {
+  (browser ??= import("playwright-core").then(({ chromium }) => chromium.launch()).then((b) => {
     b.on("disconnected", () => (browser = undefined));
     return b;
   }, (e) => {
