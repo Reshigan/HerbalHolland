@@ -1,3 +1,4 @@
+import type { LaunchPhase } from "@/lib/launch-phase";
 import { cache } from "react";
 import { db } from "./db";
 import { DEFAULT_COMPLIANCE, type ComplianceSettings } from "@/lib/compliance";
@@ -23,6 +24,7 @@ export const DEFAULT_SETTINGS = {
     minMarginPct: 25, // franchisee price-setting guardrail (warning only, never enforced)
   },
   launch: {
+    phase: "STORES" as LaunchPhase, // BRAND (site + social only) → ONLINE (courier shopping) → STORES (everything); see @/lib/launch-phase
     launchAt: null as string | null, // ISO date-time when the Founding Members list closes (null = no list)
     foundingCap: 2_026, // the first N waitlist places become numbered Founding Members
     foundingTier: "SPROUT" as TierKey, // …who hold at least this tier

@@ -8,6 +8,7 @@ import { launchState, waitlistPlace } from "@/server/launch";
 import { sharePath } from "@/server/share";
 import { LEDGER_LABEL, ledgerTitle, memberOverview, tierIndex } from "@/server/shop/club";
 import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/shop/context";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { memberDeals, memberTickets, upcomingEvents, welcomeGifts } from "@/server/shop/launch";
 import { MemberCard } from "@/components/shop/member-card";
 import { WalletButtons } from "@/components/shop/wallet-buttons";
@@ -47,6 +48,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
     welcomeGifts(customer, store?.id),
   ]);
   const [waitlist, coming] = await Promise.all([launch.preLaunch ? waitlistPlace(customer.id) : null, tickets.length ? [] : upcomingEvents({ take: 2, homeStoreId: customer.homeStoreId })]);
+  const canBuy = canBuyOnline(settings.launch.phase);
   const savings = settings.loyalty.tierSavingsPct as Record<TierKey, number>;
   const idx = tierIndex(m.customer.tier);
   const base = APP_URL();
@@ -111,7 +113,7 @@ export default async function ClubPage({ searchParams }: { searchParams: Promise
             />
           )}
           {gifts.map((g) => (
-            <WelcomeGiftBanner key={g.id} gift={g} />
+            <WelcomeGiftBanner key={g.id} gift={g} canBuy={canBuy} />
           ))}
 
           <Panel className="p-5">

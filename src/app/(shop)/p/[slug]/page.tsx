@@ -11,6 +11,7 @@ import { AlertTriangle, ArrowRight, BadgeCheck, ChevronRight, Info, Leaf, MapPin
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
+import { canBuyOnline, PHASE_CLOSED } from "@/lib/launch-phase";
 import { quote } from "@/server/pricing";
 import { availability, availKey } from "@/server/inventory";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
@@ -161,7 +162,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const here = store ? stores.find((x) => x.store.id === store.id) : undefined;
   const hereQty = here?.qty[variant.id] ?? 0;
   const withStock = stores.filter((x) => (x.qty[variant.id] ?? 0) > 0);
-  const buyable = !inStoreOnly && (licensed ? withStock.length > 0 : networkQty > 0);
+  const open = canBuyOnline(settings.launch.phase);
+  const buyable = open && !inStoreOnly && (licensed ? withStock.length > 0 : networkQty > 0);
   const sameDayHere = !!store?.sameDay && hereQty > 0 && channels.SAME_DAY.includes(product.regClass);
   const eco = settings.ecommerce;
   const estimate = deliveryEstimate({ fulfilment: "COURIER", province: (store?.province as ProvinceCode | undefined) ?? null, days: eco.deliveryDays, cutoffHour: eco.sameDayCutoffHour });
@@ -440,7 +442,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
             )}
 
             <div className="mt-6">
-              {inStoreOnly ? (
+              {!open ? (
+                <Callout tone="info" icon={<Sparkles className="h-5 w-5" />} title="Online shopping opens soon">
+                  {PHASE_CLOSED} <Link href={customer ? "/club" : "/club/join"} className="font-semibold text-brand-300 underline-offset-2 hover:underline">{customer ? "Your Rewards" : "Join free"}</Link>
+                </Callout>
+              ) : inStoreOnly ? (
                 <Callout tone="warn" icon={<Store className="h-5 w-5" />} title="In-store only">
                   Under current tobacco-products rules this item can only be bought in store.
                 </Callout>

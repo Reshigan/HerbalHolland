@@ -267,7 +267,7 @@ export default async function ShopPage({ searchParams }: { searchParams: Promise
           ) : res.items.length ? (
             <>
               <h2 className="sr-only">Products</h2>
-              <ProductGrid items={res.items} />
+              <ProductGrid items={res.items} eager />
               <Pager page={query.page} pageSize={PAGE_SIZE} total={res.total} href={(p) => href({ page: String(p) })} noun="products" />
             </>
           ) : (

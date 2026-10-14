@@ -1,6 +1,7 @@
 // Online orders: checkout → routing → pick/pack → handover or dispatch.
 // Stock is reserved while an order is open and posted as a Sale (at the fulfilling
 // store, which is merchant of record) on handover/dispatch.
+import { canBuyOnline, fulfilmentForPhase, PHASE_CLOSED } from "@/lib/launch-phase";
 import { randomUUID } from "node:crypto";
 import { madeToOrder } from "./merch";
 import { db, tx, type Tx } from "./db";
@@ -83,6 +84,7 @@ type Event = { status: OrderStatus; at: string; note?: string };
 
 export async function placeOrder(input: CheckoutInput) {
   const settings = await getSettings();
+  if (!fulfilmentForPhase(settings.launch.phase).includes(input.fulfilment)) throw new OrderError(canBuyOnline(settings.launch.phase) ? "That way of getting your order isn't open yet: choose courier delivery" : PHASE_CLOSED);
   const q = await quote({ channel: "ONLINE", items: input.items, code: input.code, customerId: input.customerId });
   if (!q.lines.length) throw new OrderError("Your bag is empty");
   if (q.codeError) throw new OrderError(q.codeError);

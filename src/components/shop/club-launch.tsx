@@ -66,7 +66,7 @@ export function WaitlistCard({ w, cap, referUrl, shareText, firstName }: { w: { 
 }
 
 /** "Your welcome gift: a free hemp wick with your first purchase", with "Add it to your bag" (from the live promotion). */
-export function WelcomeGiftBanner({ gift, where = "card", className }: { gift: WelcomeGift; where?: "card" | "bag"; className?: string }) {
+export function WelcomeGiftBanner({ gift, where = "card", canBuy = true, className }: { gift: WelcomeGift; where?: "card" | "bag"; canBuy?: boolean; className?: string }) {
   const what = gift.name.replace(/^welcome gift:\s*/i, "");
   return (
     <div className={cn("flex flex-col gap-4 rounded-2xl border border-brand-500/40 bg-gradient-to-r from-brand-500/[0.14] to-brand-500/[0.03] p-4 sm:flex-row sm:items-center", className)}>
@@ -85,7 +85,7 @@ export function WelcomeGiftBanner({ gift, where = "card", className }: { gift: W
           <div className="mt-0.5 text-ink-300">{where === "bag" ? "Add it to your bag and it comes off at checkout." : `${gift.description ? `${gift.description} ` : ""}Online or at any till.`}</div>
         </div>
       </div>
-      {gift.product && <AddToBag plain variantId={gift.product.variantId} name={gift.product.name} label="Add it to your bag" className="shrink-0" />}
+      {gift.product && canBuy && <AddToBag plain variantId={gift.product.variantId} name={gift.product.name} label="Add it to your bag" className="shrink-0" />}
     </div>
   );
 }

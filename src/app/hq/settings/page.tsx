@@ -9,7 +9,8 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/form";
 import { ActionForm, FieldError, SubmitButton } from "@/components/ui/action-form";
 import { ViewOnly } from "@/components/hq/ui";
-import { saveTradeSettings } from "./actions";
+import { saveLaunchPhase, saveTradeSettings } from "./actions";
+import { LAUNCH_PHASES, PHASE_LABEL } from "@/lib/launch-phase";
 
 export const metadata = { title: "Settings" };
 
@@ -25,13 +26,41 @@ const ELSEWHERE = [
 
 export default async function SettingsPage() {
   const user = await requireStaff(HQ_ROLES);
-  const t = (await getSettings()).trade;
+  const { trade: t, launch } = await getSettings();
   const admin = can(user, "admin");
 
   return (
     <>
       <PageHeader overline="Governance" title="Settings" description="Network-wide terms the HQ administrator sets. Everything here is audited; the rest of the programme's settings live with their own pages." />
       <div className="grid gap-6 xl:grid-cols-3">
+        <Card className="xl:col-span-3" id="launch-phase">
+          <CardHeader title="Launch phase" description="Open the network in steps: the brand site and social first, then online shopping by courier, then the stores. Changes apply to the shop at once and are audited. Which stores trade is set per store (Stores → status)." />
+          <CardBody>
+            {!admin && <ViewOnly className="mb-4">View only: set by the HQ administrator.</ViewOnly>}
+            <ActionForm action={saveLaunchPhase}>
+              <fieldset disabled={!admin} className="grid gap-3 sm:grid-cols-3">
+                <legend className="sr-only">Launch phase</legend>
+                {LAUNCH_PHASES.map((p, i) => (
+                  <label key={p} className="flex cursor-pointer gap-3 rounded-2xl border border-ink-200 p-4 has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50">
+                    <input type="radio" name="phase" value={p} defaultChecked={launch.phase === p} className="mt-1 h-4 w-4 accent-brand-500" />
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-ink-900">
+                        {i + 1}. {PHASE_LABEL[p].title}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-ink-500">{PHASE_LABEL[p].text}</span>
+                    </span>
+                  </label>
+                ))}
+              </fieldset>
+              <FieldError name="phase" />
+              {admin && (
+                <div className="mt-4">
+                  <SubmitButton>Save phase</SubmitButton>
+                </div>
+              )}
+            </ActionForm>
+          </CardBody>
+        </Card>
         <Card className="xl:col-span-2" id="trade">
           <CardHeader title="Trade (wholesale)" description="Businesses buying at ex-VAT trade prices online (courier from the DC, or click & collect at a store) and at the till. Amounts are rand ex VAT; VAT is added per line." />
           <CardBody>

@@ -4,6 +4,8 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
+import { getSettings } from "@/server/settings";
+import { isLaunchPhase, type LaunchPhase } from "@/lib/launch-phase";
 import { cartCount, parseCart, serializeCart, type CartItem } from "./cart-codec";
 import type { Prisma, StoreStatus } from "@/generated/prisma/client";
 
@@ -80,6 +82,12 @@ export async function savePreferredStore(code: string) {
 }
 
 /** A member's home store can be trading or opening soon: members join before their store opens. */
+/** The launch phase the shop is in (HQ → Settings); unknown values fall back to the safest, BRAND. */
+export const shopPhase = cache(async (): Promise<LaunchPhase> => {
+  const p = (await getSettings()).launch.phase;
+  return isLaunchPhase(p) ? p : "BRAND";
+});
+
 export const HOME_STORE_STATUSES: StoreStatus[] = ["ACTIVE", "OPENING_SOON"];
 export const homeStoreOptions = (stores: { id: string; name: string; city: string; status: StoreStatus }[]) =>
   stores.map((s) => ({ id: s.id, name: s.status === "OPENING_SOON" ? `${s.name} (opening soon)` : s.name, city: s.city }));

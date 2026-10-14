@@ -7,6 +7,7 @@ import { audit } from "@/server/audit";
 import { getSettings, saveSetting } from "@/server/settings";
 import { guard, DENIED, fail, done, type ActionState } from "@/server/hq/guard";
 import { str, parseRand, parseInt10 } from "@/server/hq/form";
+import { isLaunchPhase, PHASE_LABEL } from "@/lib/launch-phase";
 
 export async function saveTradeSettings(_: ActionState, fd: FormData): Promise<ActionState> {
   const g = await guard("admin");
@@ -56,4 +57,18 @@ export async function saveTradeSettings(_: ActionState, fd: FormData): Promise<A
   revalidatePath("/hq/settings");
   revalidatePath("/hq/trade");
   return done(`Trade settings saved. The portal, pro formas and the daily jobs use them from now on.${next.bank.accountNumber ? "" : " Fill in the bank details before the first EFT order."}`);
+}
+
+/** The network's launch phase (settings.launch.phase): brand site → online shopping → stores. */
+export async function saveLaunchPhase(_: ActionState, fd: FormData): Promise<ActionState> {
+  const g = await guard("admin");
+  if (!g) return DENIED;
+  const phase = str(fd, "phase");
+  if (!isLaunchPhase(phase)) return fail("Pick a phase.", { phase: "Pick a phase" });
+  const before = (await getSettings()).launch;
+  if (before.phase === phase) return done("No change: that's the current phase.");
+  await saveSetting("launch", { ...before, phase });
+  await audit(db, g.actor, "settings.launch_phase", { entity: "Setting", entityId: "launch", data: { before: before.phase, after: phase } });
+  revalidatePath("/", "layout");
+  return done(`Now in the ${PHASE_LABEL[phase].title.toLowerCase()} phase. ${PHASE_LABEL[phase].text}`);
 }

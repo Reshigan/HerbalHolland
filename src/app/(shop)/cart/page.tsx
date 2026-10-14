@@ -13,6 +13,8 @@ import { isOffer } from "@/server/offers";
 import { getClasses, getDispensaryAccess } from "@/server/shop/access";
 import { cardsWhere, getNetwork } from "@/server/shop/catalogue";
 import { getCart, getPreferredStore, getPromoCode, getVoucherCode } from "@/server/shop/context";
+import { redirect } from "next/navigation";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { voucherForCheckout } from "@/server/shop/vouchers";
 import { setBagQty } from "@/server/shop/actions";
 import { tierMeta } from "@/server/shop/club";
@@ -35,6 +37,7 @@ export const metadata: Metadata = { title: "Your bag", robots: { index: false } 
 
 export default async function CartPage({ searchParams }: { searchParams: Promise<{ reorder?: string }> }) {
   const [{ reorder }, items, code, customer, settings, classes, store, voucherCode] = await Promise.all([searchParams, getCart(), getPromoCode(), getCustomer(), getSettings(), getClasses(), getPreferredStore(), getVoucherCode()]);
+  if (!canBuyOnline(settings.launch.phase)) redirect("/shop");
   const q = await quote({ channel: "ONLINE", items, code, customerId: customer?.id });
 
   if (!q.lines.length)

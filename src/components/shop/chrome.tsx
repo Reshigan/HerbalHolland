@@ -7,6 +7,7 @@ import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
 import { activePromotions } from "@/server/pricing";
 import { launchState } from "@/server/launch";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { confirmAge, declineAge } from "@/server/shop/actions";
 import { getAgeState, getCartCount, getFranchisor, getPreferredStore, getStoreFootprint } from "@/server/shop/context";
 import { openState, parseHours } from "@/server/shop/hours";
@@ -66,6 +67,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
   const current = store && hours ? { code: store.code, name: store.name, open: hours.open, openLabel: hours.label } : null;
   // Headline the newest public deal (code-only offers stay private; copy is screened defensively).
   const headline = promos.find((p) => !p.code && !screenCopy(p.name).length);
+  const phase = settings.launch.phase;
   // While the Founding Members list is open, lead with its closing date.
   const messages = launch.preLaunch && launch.at
     ? [
@@ -73,11 +75,17 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
         { text: `The first ${num(launch.foundingCap)} members get a numbered card`, href: customer ? "/club" : "/club/join" },
         { text: "Every friend you bring moves you up the list", href: customer ? "/club#founding" : "/club/join" },
       ]
-    : [
-        ...(headline ? [{ text: headline.name, href: "/shop" }] : []),
-        { text: `Free delivery on orders over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)}`, href: "/shop" },
-        { text: "Click & collect at your nearest store", href: "/stores" },
-      ];
+    : phase === "BRAND"
+      ? [
+          { text: "Online shopping opens soon. Join Rewards to hear first", href: customer ? "/club" : "/club/join" },
+          { text: "Browse the range and the batch certificates behind it", href: "/shop" },
+          { text: "Stores opening soon", href: "/stores" },
+        ]
+      : [
+          ...(headline ? [{ text: headline.name, href: "/shop" }] : []),
+          { text: `Free delivery on orders over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)}`, href: "/shop" },
+          ...(phase === "STORES" ? [{ text: "Click & collect at your nearest store", href: "/stores" }] : [{ text: "Stores opening soon", href: "/stores" }]),
+        ];
   const tier = customer ? tierMeta(customer.tier) : null;
 
   return (
@@ -154,6 +162,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 </span>
                 <span className="hidden sm:inline">{customer ? customer.firstName : "Sign in"}</span>
               </Link>
+              {canBuyOnline(phase) && (
               <Link href="/cart" className="relative flex h-11 items-center gap-2 rounded-full px-2.5 text-sm font-medium text-ink-200 transition hover:bg-ink-850 hover:text-white sm:px-3" aria-label={`Bag, ${count} item${count === 1 ? "" : "s"}`}>
                 <ShoppingBag className="h-[22px] w-[22px]" strokeWidth={1.8} />
                 <span className="hidden sm:inline">Bag</span>
@@ -161,6 +170,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                   <span className="tnum absolute right-0 top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-brand-500 px-1 text-[0.68rem] font-bold text-ink-950 sm:static sm:h-6 sm:min-w-6">{count}</span>
                 )}
               </Link>
+              )}
             </div>
           </Container>
           <div className="border-t border-ink-850 md:hidden">
