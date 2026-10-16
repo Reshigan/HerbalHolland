@@ -31,6 +31,7 @@ const MODEL: Record<string, string> = {
   "black-grinder": "grinder", "sunset-grinder": "grinder", "ceramic-ashtray": "ashtray", "king-size-papers": "booklet", "sunset-papers": "booklet",
   "delft-water-pipe": "waterpipe", "hemp-wick": "spool", "kite-vaporiser": "vaporiser", "windmill-rolling-tray": "tray", "smell-proof-pouch": "softpouch",
   "uv-stash-jar": "uvjar", "sunset-cones": "conetube", "sunset-lighter": "lighter", "sunset-tips": "tips", "starter-kit": "giftbox",
+  "mylar-bag-small": "mylar", "mylar-bag-large": "mylar", "black-vape-pen": "pen",
   "heritage-seed-pack": "seedpack", "led-grow-light": "ledpanel", "grow-tent": "tent", "living-soil": "soilbag", "bloom-nutrient-kit": "nutrients",
   "harrington-jacket": "folded", "heritage-crewneck": "folded", "sunset-hoodie": "folded", "windmill-tee": "folded",
   "windmill-cap": "cap", "sunset-bucket-hat": "buckethat", "windmill-beanie": "beanie", "windmill-tote": "tote",
