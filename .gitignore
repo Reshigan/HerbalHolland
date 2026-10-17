@@ -20,3 +20,5 @@ sites/*/dist/
 e2e/.tmp-*
 sites/.tmp-*/
 sites/tmp-*/
+public/brand/shelf/
+__pycache__/

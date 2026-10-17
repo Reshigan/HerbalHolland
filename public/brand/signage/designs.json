@@ -43,5 +43,203 @@
   "ink": "#f5913c",
   "ground": null,
   "how": "Cut Sunset vinyl, applied to the outside of the door glass at eye level (centre 1,500 mm from the floor). One colour, no background."
+ },
+ {
+  "key": "window-manifestation",
+  "name": "Glass manifestation band, 1,000 × 80 mm (tiles every 250 mm)",
+  "w": 1000,
+  "h": 80,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset (or etch-effect frost) on every glass door and full-height pane, two bands centred 1,000 mm and 1,500 mm from the floor, so nobody walks into the glass (SANS 10400-N). The pattern repeats every 250 mm: run it the full width of the glass."
+ },
+ {
+  "key": "window-mark",
+  "name": "Window Mark, Ø600 mm",
+  "w": 600,
+  "h": 600,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, on the main window, centre 1,700 mm from the floor. Reverse-cut and applied from inside for a clean face that can't be scratched off."
+ },
+ {
+  "key": "window-members",
+  "name": "Members-only notice, 420 × 150 mm",
+  "w": 420,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, on the door glass beside the hours, centre 1,500 mm. Required wording: we sell to members only, adults 18+."
+ },
+ {
+  "key": "window-town-hillcrest",
+  "name": "Store name, Hillcrest, 900 × 200 mm",
+  "w": 900,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, along the top of the main window (top of the letters 100 mm below the frame), or on the fanlight above the door."
+ },
+ {
+  "key": "window-town-hilton",
+  "name": "Store name, Hilton, 900 × 200 mm",
+  "w": 900,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Cut vinyl, one colour, no background: weeded and applied with transfer tape. Sunset, along the top of the main window (top of the letters 100 mm below the frame), or on the fanlight above the door."
+ },
+ {
+  "key": "feature-mark",
+  "name": "Feature-wall Mark, Ø1,200 mm (illuminated)",
+  "w": 1200,
+  "h": 1200,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "The Mark on the black feature wall behind the counter, centre 1,900 mm from the floor: built-up channel letters 60 mm deep, Sunset acrylic faces, face-lit with warm white LEDs (or 30 mm Sunset neon flex on a black backing routed to this shape). This file is the face, cut as drawn."
+ },
+ {
+  "key": "counter-pay",
+  "name": "Counter sign: Pay here, 900 × 260 mm (hanging, double-sided)",
+  "w": 900,
+  "h": 260,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "6 mm black acrylic, letters in Sunset vinyl (or UV-printed) on both faces, hung on two steel cables over the cash wrap, bottom edge 2,300 mm from the floor."
+ },
+ {
+  "key": "counter-collect",
+  "name": "Counter sign: Click & collect, 900 × 260 mm (hanging, double-sided)",
+  "w": 900,
+  "h": 260,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "6 mm black acrylic, letters in Sunset vinyl (or UV-printed) on both faces, hung on two steel cables over the cash wrap, bottom edge 2,300 mm from the floor."
+ },
+ {
+  "key": "dispensary",
+  "name": "Dispensary sign, 600 × 200 mm",
+  "w": 600,
+  "h": 200,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM, Sunset vinyl, screwed to the wall beside the dispensary counter at 1,800 mm. Plain wording only: no product names, no claims."
+ },
+ {
+  "key": "fitting-room",
+  "name": "Fitting room, 300 × 420 mm",
+  "w": 300,
+  "h": 420,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM, Sunset vinyl, on the curtain rail bracket or the wall beside it at 1,600 mm."
+ },
+ {
+  "key": "bay-wellness",
+  "name": "Bay header: CBD Wellness, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-coffee-drinks",
+  "name": "Bay header: Coffee & drinks, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-protein-nutrition",
+  "name": "Bay header: Protein & nutrition, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-skin-care",
+  "name": "Bay header: Skin care, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-collagen-supplements",
+  "name": "Bay header: Collagen & supplements, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-accessories",
+  "name": "Bay header: Accessories, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-grow",
+  "name": "Bay header: Grow, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "bay-apparel",
+  "name": "Bay header: Apparel, 1,000 × 150 mm",
+  "w": 1000,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights."
+ },
+ {
+  "key": "mural-hills",
+  "name": "Mural: Holland, meet the Hills, 2,400 × 1,600 mm",
+  "w": 2400,
+  "h": 1600,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Feature wall opposite the counter (the Christians Village and Hilton concept). Print on matte vinyl wallpaper, or paint by colour: the sky is seven flat bands, the sun is Sunset #F5913C, the hills four flat browns to black (hex values in the file; mix to match, low-sheen acrylic). Scale up or down evenly to fit the wall."
+ },
+ {
+  "key": "print-hills",
+  "name": "Framed print: Holland, meet the Hills, A1 594 × 841 mm",
+  "w": 594,
+  "h": 841,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Giclée or UV print on 300 g matte art paper, black aluminium frame with a 50 mm cream mount. A1 portrait."
+ },
+ {
+  "key": "print-mark",
+  "name": "Framed print: the Mark, A1 594 × 841 mm",
+  "w": 594,
+  "h": 841,
+  "ink": "#f5913c",
+  "ground": null,
+  "how": "Print on 300 g matte art paper, black frame, no mount (full bleed to the frame). A1 portrait."
+ },
+ {
+  "key": "print-words",
+  "name": "Framed print: Dutch heritage, African soil, A1 594 × 841 mm",
+  "w": 594,
+  "h": 841,
+  "ink": "#0c0a09",
+  "ground": null,
+  "how": "Print on 300 g matte art paper, black frame. A1 portrait. Hang as a pair with the Mark print."
  }
 ]
