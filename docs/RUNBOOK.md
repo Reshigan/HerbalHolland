@@ -112,6 +112,8 @@ Johannesburg; see the hosting notes in [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md
 2. Networking: a VCN with one public subnet. The security list stays **closed**: no inbound rules at all (not even
    SSH; use the Bastion service or OCI Cloud Shell's console connection for the first login, then Cloudflare Tunnel
    for everything). The app and Postgres are never published on the public interface.
+   Or skip the clicks in steps 2 to 4: with an Oracle API key and a Cloudflare API token, `deploy/oracle/provision.sh`
+   creates the closed network, the tunnel and its DNS records, and the VM, which runs `bootstrap.sh` on first boot.
 3. The VM: `deploy/oracle/create-vm.sh` launches `VM.Standard.A1.Flex` (4 OCPU, 24 GB, 200 GB) with an Ubuntu 24.04
    **aarch64** image and retries every ten minutes while the region answers "Out of host capacity" (normal; it usually
    lands within hours, occasionally a day or two). Leave it running in a Cloud Shell or on a laptop.

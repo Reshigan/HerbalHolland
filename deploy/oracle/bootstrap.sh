@@ -14,6 +14,8 @@ REF=${REF:-main}
 rnd() { openssl rand -hex 32; }
 setenv() { sed -i "s|^$1=.*|$1=\"$2\"|" "$3"; }
 
+export HOME=${HOME:-/root} DEBIAN_FRONTEND=noninteractive # also runs from cloud-init on first boot (provision.sh)
+echo 'DPkg::Lock::Timeout "900";' > /etc/apt/apt.conf.d/90wait-for-lock # Ubuntu's own updates hold the lock at first boot
 command -v docker >/dev/null || curl -fsSL https://get.docker.com | sh
 apt-get update -qq && apt-get install -y -qq git openssl curl postgresql-16 >/dev/null
 
