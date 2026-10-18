@@ -23,6 +23,13 @@ if [ -d "$DIR/.git" ]; then git -C "$DIR" fetch -q origin "$REF" && git -C "$DIR
 else git clone -q --branch "$REF" "$REPO_URL" "$DIR"; fi
 cd "$DIR"
 
+# Updates pull over SSH with this VM's own read-only deploy key (add the printed key: repo → Settings → Deploy keys)
+K=/root/.ssh/herbal_deploy
+[ -f $K ] || { install -d -m 700 /root/.ssh; ssh-keygen -q -t ed25519 -N '' -C herbal-holland-vm -f $K; }
+echo "DEPLOY_PUBKEY $(cat $K.pub)"
+git config core.sshCommand "ssh -i $K -o StrictHostKeyChecking=accept-new"
+git remote set-url origin git@github.com:Reshigan/HerbalHolland.git
+
 if [ ! -f .env ]; then
   PW=$(rnd)
   sudo -u postgres psql -q -c "CREATE ROLE hh LOGIN PASSWORD '$PW'" -c "CREATE DATABASE hh OWNER hh"
@@ -48,6 +55,7 @@ cat > /etc/cron.d/herbal-holland <<CRON
 */5  * * * *  root  curl -fsS -m 300  -X POST -H "$S" http://localhost:3000/api/cron/staff-push >/dev/null
 0    0 * * *  root  curl -fsS -m 2700 -X POST -H "$S" http://localhost:3000/api/cron/daily      >/dev/null
 0    1 * * *  root  curl -fsS -m 1500 -X POST -H "$S" http://localhost:3000/api/cron/operations >/dev/null
+*/10 * * * *  root  cd $DIR && flock -n /run/herbal-update.lock sh -c 'git fetch -q origin $REF && [ "\$(git rev-parse HEAD)" != "\$(git rev-parse FETCH_HEAD)" ] && bash deploy/oracle/bootstrap.sh' >>/var/log/herbal-update.log 2>&1
 CRON
 
 if [ ! -f deploy/postiz/.env ]; then
