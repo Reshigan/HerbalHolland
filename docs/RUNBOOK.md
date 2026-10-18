@@ -115,7 +115,8 @@ Johannesburg; see the hosting notes in [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md
 3. The VM: `deploy/oracle/create-vm.sh` launches `VM.Standard.A1.Flex` (4 OCPU, 24 GB, 200 GB) with an Ubuntu 24.04
    **aarch64** image and retries every ten minutes while the region answers "Out of host capacity" (normal; it usually
    lands within hours, occasionally a day or two). Leave it running in a Cloud Shell or on a laptop.
-4. On the VM, the normal [First deploy](#first-deploy) applies unchanged: Docker, Postgres 16 on 127.0.0.1, `cloudflared`,
+4. On the VM, `sudo TUNNEL_TOKEN=… ADMIN_EMAIL=… ADMIN_NAME="…" bash deploy/oracle/bootstrap.sh` does all of the
+   following in one go (and, run again, releases the latest main). The normal [First deploy](#first-deploy) applies unchanged: Docker, Postgres 16 on 127.0.0.1, `cloudflared`,
    `.env`, then `docker compose -f docker-compose.prod.yml build`. The image builds natively for arm64 (Node, Prisma
    and Playwright's `chromium-headless-shell` all ship arm64 builds), so nothing in the Dockerfile changes; the build
    takes about 10 minutes on 4 cores. Ubuntu's firewall (`ufw`) also stays closed: Oracle's Ubuntu images carry iptables
