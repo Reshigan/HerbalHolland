@@ -1,5 +1,5 @@
 // End-to-end test of what shoppers, members and staff do outside checkout (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/shop.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> node e2e/shop.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
 // First visit (18+ gate) → browse (mood, category, search) → product → bag (quantity, remove) → header store picker
 // (list, search, choose) → an existing member signs in by phone → Rewards (card, orders → tracking, points, invoices →
 // tax invoice, settings: profile, marketing consent, personalised deals) → verified review → restock alert → drop
@@ -11,7 +11,7 @@
 // Everything it changes on seeded records is put back, and what it creates is removed (the friend stays a member,
 // like the checkout test's new members). Prints how long each action takes from click to visible result.
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { execFileSync } from "node:child_process";
 import { mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -20,7 +20,7 @@ const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-shop";
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
@@ -121,12 +121,12 @@ try {
     `select c.id, c.phone, c."firstName", c."lastName", c.email, c."homeStoreId", c."memberNo", c.points, c."referralCode",
             c."consentSms", c."consentAt", c."personalisedOffers", p.id "productId", p.slug "productSlug", p.name "productName"
      from "Customer" c
-     join lateral (
-       select p.id, p.slug, p.name from "Sale" s join "SaleLine" l on l."saleId" = s.id join "Variant" v on v.id = l."variantId" join "Product" p on p.id = v."productId"
-       where s."customerId" = c.id and s.kind = 'SALE' and p.status = 'ACTIVE' and p."regClass" in ('CBD', 'HEMP', 'ACCESSORY', 'GROW', 'APPAREL')
-         and exists (select 1 from "Variant" x where x."productId" = p.id and x.active)
-         and not exists (select 1 from "Review" r where r."productId" = p.id and r."customerId" = c.id)
-       limit 1) p on true
+     join "Product" p on p.id = (
+       select b.id from "Sale" s join "SaleLine" l on l."saleId" = s.id join "Variant" v on v.id = l."variantId" join "Product" b on b.id = v."productId"
+       where s."customerId" = c.id and s.kind = 'SALE' and b.status = 'ACTIVE' and b."regClass" in ('CBD', 'HEMP', 'ACCESSORY', 'GROW', 'APPAREL')
+         and exists (select 1 from "Variant" x where x."productId" = b.id and x.active)
+         and not exists (select 1 from "Review" r where r."productId" = b.id and r."customerId" = c.id)
+       limit 1)
      where exists (select 1 from "Order" o where o."customerId" = c.id)
        and (select count(*) from "Otp" where phone = c.phone and "createdAt" > now() - interval '10 minutes') = 0
      order by random() limit 1`,
@@ -370,11 +370,14 @@ try {
 
   step("Restock alert on an out-of-stock item");
   const slug = `e2e-restock-${Date.now().toString(36)}`;
+  const tempProduct = await one(
+    `insert into "Product" (id, slug, name, "categoryId", description, "regClass", "updatedAt")
+       values (gen_random_uuid()::text, $1, 'E2E Restock Pouch', $2, 'A throwaway product for the end-to-end restock alert.', 'ACCESSORY', now()) returning id`,
+    [slug, target.categoryId],
+  );
   const temp = await one(
-    `with p as (insert into "Product" (id, slug, name, "categoryId", description, "regClass", "updatedAt")
-       values (gen_random_uuid()::text, $1, 'E2E Restock Pouch', $2, 'A throwaway product for the end-to-end restock alert.', 'ACCESSORY', now()) returning id)
-     insert into "Variant" (id, "productId", sku, name, "priceCents", "wholesaleCents", "costCents") select gen_random_uuid()::text, id, $3, 'One size', 9900, 5000, 3000 from p returning id, "productId"`,
-    [slug, target.categoryId, `E2E-${Date.now().toString(36).toUpperCase()}`],
+    `insert into "Variant" (id, "productId", sku, name, "priceCents", "wholesaleCents", "costCents") values (gen_random_uuid()::text, $1, $2, 'One size', 9900, 5000, 3000) returning id, "productId"`,
+    [tempProduct.id, `E2E-${Date.now().toString(36).toUpperCase()}`],
   );
   undo.push(() => q(`delete from "Product" where id = $1`, [temp.productId])); // its variant and alerts go with it
   await page.goto(`${BASE}/p/${slug}`);
@@ -500,7 +503,7 @@ try {
   // ── 5. Drops and events ─────────────────────────────────────────────────────────────────────────────
   step("Drops: “notify me” for an upcoming drop");
   let drop = await one(
-    `select id, slug, name from "Drop" d where d."startsAt" - make_interval(mins => d."earlyMinutes") > now() + interval '1 hour'
+    `select id, slug, name from "Drop" d where julianday(d."startsAt") - d."earlyMinutes" / 1440.0 > julianday('now') + 1.0 / 24
        and not exists (select 1 from "DropWatch" w where w."dropId" = d.id and w."customerId" = $1) order by d."startsAt" limit 1`,
     [member.id],
   );

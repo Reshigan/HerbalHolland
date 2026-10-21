@@ -29,3 +29,6 @@ __pycache__/
 *.sqlite
 *.sqlite-journal
 worker-configuration.d.ts
+
+# wrangler dev secrets (CI writes one; never commit yours)
+.dev.vars

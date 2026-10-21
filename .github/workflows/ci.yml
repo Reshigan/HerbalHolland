@@ -7,19 +7,9 @@ on:
 
 jobs:
   verify:
+    # Types, unit tests, the integration tests on a SQLite file built from migrations/, and the Worker build.
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: hh
-          POSTGRES_PASSWORD: hh
-          POSTGRES_DB: hh_ci
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U hh -d hh_ci" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://hh:hh@localhost:5432/hh_ci
       SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
       DEMO_MODE: "false"
       NEXT_TELEMETRY_DISABLED: "1"
@@ -31,48 +21,29 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - run: npx prisma migrate deploy
-      - name: The migrations build exactly the schema (no drift)
-        run: npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+      - name: The migrations apply to a local D1 and build exactly the schema (no drift)
+        run: |
+          npx wrangler d1 migrations apply DB --local
+          DATABASE_URL="file:$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite)" npx prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
       - run: npm run typecheck
       - run: npm test
-      - name: Integration tests (disposable CI database)
+      - name: Integration tests (a fresh SQLite file per run)
         run: npm run test:integration
-        env:
-          TEST_DATABASE_URL: postgresql://hh:hh@localhost:5432/hh_ci
       - run: npm run build
       - name: herbalholland.com builds (its own Cloudflare Worker; size budgets and content checks)
         run: npx tsx sites/herbalholland.com/build.ts
 
-  image:
-    # The production image (Dockerfile) builds: nothing else exercises it before a deploy.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: docker build --target runner -t herbal-holland .
-
   e2e:
-    # Every user journey (checkout, till, back office, HQ, shop & Rewards) and a crawl of every page, against a production
-    # build with demo data.
+    # Every user journey (checkout, till, back office, HQ, shop & Rewards, trade, the books) and a crawl of every page,
+    # against the Worker build under `wrangler dev` with its local D1 and R2 and the demo seed. Browser Rendering is
+    # remote-only, so PDFs come back empty locally; the journeys tolerate that.
     needs: verify
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: hh
-          POSTGRES_PASSWORD: hh
-          POSTGRES_DB: hh_e2e
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U hh -d hh_e2e" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: postgresql://hh:hh@localhost:5432/hh_e2e
       SESSION_SECRET: ci-only-secret-ci-only-secret-ci-only
       APP_URL: http://127.0.0.1:3000
       DEMO_MODE: "true" # demo logins and on-screen sign-in codes for the scripted journeys
       CRON_SECRET: ci-only-cron-secret # the books journey runs the posting queue through /api/cron/frequent
-      UPLOAD_DIR: ${{ github.workspace }}/.data/uploads # shared by the seed and the standalone server (its own cwd)
       NEXT_TELEMETRY_DISABLED: "1"
     steps:
       - uses: actions/checkout@v4
@@ -82,44 +53,54 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx prisma generate
-      - run: npx prisma migrate deploy
-      - run: npx tsx prisma/seed.ts
+      - name: Local D1 with the schema, then the demo seed (into that file, and its files into the local R2)
+        run: |
+          npx wrangler d1 migrations apply DB --local
+          D1_FILE=$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite)
+          echo "D1_FILE=$D1_FILE" >> "$GITHUB_ENV"
+          DATABASE_URL="file:$D1_FILE" npx tsx prisma/seed.ts
         env:
           SEED_DAYS: "21"
       - run: npm run build
       - run: npx playwright install --with-deps chromium
-      - name: Start the production server
+      - name: Start the Worker (wrangler dev: local D1, R2; secrets from .dev.vars)
         run: |
-          # public/'s contents, merged: the build may already have traced part of public/ into the standalone folder (the
-          # Studio's cards read the merch photos), and copying the folder itself would then nest it (no /sw.js, no offline till).
-          cp -r .next/static .next/standalone/.next/static && mkdir -p .next/standalone/public && cp -r public/. .next/standalone/public/
-          (cd .next/standalone && PORT=3000 HOSTNAME=127.0.0.1 node server.js > ../../server.log 2>&1 &)
-          for i in $(seq 1 60); do curl -sf http://127.0.0.1:3000/api/health && break; sleep 2; done
+          printf 'SESSION_SECRET=%s\nDEMO_MODE=%s\nAPP_URL=%s\nCRON_SECRET=%s\n' "$SESSION_SECRET" "$DEMO_MODE" "$APP_URL" "$CRON_SECRET" > .dev.vars
+          (npx wrangler dev --port 3000 --ip 127.0.0.1 > server.log 2>&1 &)
+          for i in $(seq 1 90); do curl -sf http://127.0.0.1:3000/api/health && break; sleep 2; done
       - run: node e2e/checkout.mjs test-results/e2e-checkout
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/pos.mjs test-results/e2e-pos
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/backoffice.mjs test-results/e2e-backoffice
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/hq.mjs test-results/e2e-hq
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/shop.mjs test-results/e2e-shop
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/trade.mjs test-results/e2e-trade
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - run: node e2e/accounting.mjs test-results/e2e-accounting
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - name: Crawl every page as every role (broken links, server errors, crashes, timings)
         run: node e2e/crawl.mjs test-results/e2e-crawl
         env:
           BASE_URL: http://127.0.0.1:3000
+          DATABASE_FILE: ${{ env.D1_FILE }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -1,7 +1,4 @@
 import { randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { postPosSale, refundSale } from "@/server/sales";
@@ -36,7 +33,6 @@ const refund = (sale: { id: string; lines: { id: string }[] }, by: { id: string;
   refundSale({ id: randomUUID(), number: `TST01-R${String(++seq).padStart(5, "0")}`, saleId: sale.id, lines: [{ saleLineId: sale.lines[0].id, qty: 1, restock: true }], method, reason: "Changed their mind", staffId: by.id, staffName: by.name, deviceId: w.device.id });
 
 beforeAll(async () => {
-  process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-uploads-"));
   await resetDb();
   w = await buildWorld();
   owner = await db.user.create({ data: { name: "Olive Owner", email: "owner@example.co.za", role: "OWNER", companyId: w.owner.id } });

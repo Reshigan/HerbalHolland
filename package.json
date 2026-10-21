@@ -27,23 +27,18 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "deploy": "opennextjs-cloudflare deploy",
     "db:migrate:prod": "wrangler d1 migrations apply DB --remote",
-    "db:diff": "prisma migrate diff --from-local-d1 --to-schema=prisma/schema.prisma --script"
+    "db:diff": "prisma migrate diff --from-config-datasource --to-schema=prisma/schema.prisma --script"
   },
   "dependencies": {
     "@fontsource-variable/inter": "5.3.0",
     "@fontsource-variable/outfit": "5.3.0",
     "@prisma/adapter-d1": "^7.10.1",
-    "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "7.10.0",
     "lucide-react": "1.48.0",
     "next": "^16.4.2",
-    "nodemailer": "^10.0.10",
-    "pg": "8.23.0",
-    "playwright-core": "1.63.0",
     "qrcode": "1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "sharp": "0.35.5",
     "tailwind-merge": "3.7.0",
     "web-push": "3.6.7",
     "zod": "4.6.5"
@@ -57,8 +52,6 @@
     "@tailwindcss/postcss": "4.3.3",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "22.20.4",
-    "@types/nodemailer": "^8.0.2",
-    "@types/pg": "8.23.1",
     "@types/qrcode": "1.5.6",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",

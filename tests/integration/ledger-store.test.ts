@@ -4,12 +4,7 @@
 // (every trial balance zero, stock equal to its valuation, HQ's franchisee accounts mirroring each store's current
 // account, and the franchise statement agreeing with what was posted).
 import { randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-ledger-store-"));
 
 import { db, tx } from "@/server/db";
 import { postSource, processLedgerQueue, queuePosting } from "@/server/ledger/core";
@@ -430,7 +425,7 @@ describe("the books", () => {
     for (const r of await db.ledgerBalance.groupBy({ by: ["companyId"], _sum: { debitCents: true, creditCents: true } })) expect(Number(r._sum.debitCents) - Number(r._sum.creditCents)).toBe(0);
 
     const stores = await db.store.findMany({ select: { id: true, companyId: true } });
-    const levels = await db.$queryRaw<{ storeId: string; v: bigint }[]>`SELECT "storeId", SUM("onHand"::bigint * "unitCostCents") AS v FROM "StockLevel" GROUP BY 1`;
+    const levels = await db.$queryRaw<{ storeId: string; v: bigint | number }[]>`SELECT "storeId", SUM("onHand" * "unitCostCents") AS v FROM "StockLevel" GROUP BY 1`;
     expect(levels.length).toBe(5);
     for (const l of levels) expect(await bal(stores.find((s) => s.id === l.storeId)!.companyId, "stock", l.storeId)).toBe(Number(l.v));
 

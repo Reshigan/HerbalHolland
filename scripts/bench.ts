@@ -1,5 +1,6 @@
-// Load test against a production-sized dataset (seed a scratch database with SEED_STORES=1000).
-//   DATABASE_URL=postgresql://…/hh_scale npx tsx scripts/bench.ts [--write] [--sales=400] [--tills=20]
+// Load test against a production-sized dataset (seed a scratch file with SEED_STORES=1000).
+//   DATABASE_URL=file:…/hh_scale.sqlite npx tsx scripts/bench.ts [--write] [--sales=400] [--tills=20]
+// The services under test read `db` (DATABASE_URL): the bench runs against a SQLite file, never the live D1.
 // Times the heaviest reads (network dashboards, month-end finance, stock, pricing, every report, the books) and, with --write,
 // peak-hour POS posting from many tills at once. --write creates real sales: never point it at production.
 import "dotenv/config";

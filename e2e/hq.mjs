@@ -1,5 +1,5 @@
 // End-to-end test of the HQ console (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/hq.mjs [outdir]   (seeded demo data)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> node e2e/hq.mjs [outdir]   (seeded demo data)
 // Signs in as the HQ administrator and drives every HQ form through the UI: onboard a store (profile, fees, status,
 // owner) → new product, variants, ranging → catalogue import (template → preview → import) → batch lab results, quarantine/release → DC orders (approve + ship,
 // reject, cancel) → recall → compliance rules and licences → pricing → promotions → drops → events → campaigns
@@ -12,14 +12,13 @@
 // Everything it creates is named "E2E …" and removed at the end; every setting it changes is put back as found.
 // Prints how long each action took, from the click to its visible result.
 import { chromium } from "@playwright/test";
-import pg from "pg";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { createDb } from "./_db.mjs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-hq";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
@@ -474,7 +473,7 @@ try {
   }
   member = await one(
     `insert into "Customer" (id, "memberNo", phone, email, "firstName", "lastName", dob, "ageCheck", "ageVerifiedAt", "homeStoreId", "referralCode", "consentSms", "consentEmail", "consentAt", points, interests, "termsVersion", "termsAcceptedAt", source)
-     values (gen_random_uuid()::text, $1, $2, $3, 'E2E', $4, '1991-03-14', 'ID_NUMBER', now(), $5, $6, true, true, now(), 25, '{CBD}', '2026-09-27', now(), 'E2E') returning id, "memberNo", phone, email`,
+     values (gen_random_uuid()::text, $1, $2, $3, 'E2E', $4, '1991-03-14T00:00:00.000+00:00', 'ID_NUMBER', now(), $5, $6, true, true, now(), 25, '{CBD}', '2026-09-27', now(), 'E2E') returning id, "memberNo", phone, email`,
     [memberNo, phone, T.memberEmail, `Member ${sfx}`, store.id, `E2EX${SFX}`],
   );
   await q(`insert into "LoyaltyEntry" (id, "customerId", points, kind, note) values (gen_random_uuid()::text, $1, 25, 'SIGNUP', 'Welcome to Herbal Holland Rewards')`, [member.id]);
@@ -529,7 +528,7 @@ try {
   // ── Distribution ──────────────────────────────────────────────────────────
   step(`Distribution: three orders from ${dc.name} to the test store (approve + ship, reject, approve + cancel)`);
   const mkOrder = async (qty) => {
-    const nn = (await one(`insert into "Counter" (key, value) values ('PO', 1) on conflict (key) do update set value = "Counter".value + 1 returning value`)).value;
+    const nn = (await one(`insert into "Counter" (key, value) values ('PO', 1) on conflict (key) do update set value = value + 1 returning value`)).value;
     const sub = qty * 9500;
     const o = await one(
       `insert into "StockOrder" (id, number, kind, status, "buyerId", "sellerId", "subtotalCents", "vatCents", "totalCents", notes, "createdById", "submittedAt")
@@ -547,7 +546,7 @@ try {
   await page.getByRole("button", { name: "Ship order" }).click();
   const sp = page.getByRole("group", { name: "Ship now?" });
   await act("distribution.actOnDcOrder (ship)", () => sp.getByRole("button", { name: "Confirm shipment" }).click(), () => notice(`Shipped 2 units to ${T.storeName}.`).waitFor());
-  const shipped = await one(`select o.status, l.shipped, (select "onHand" from "StockLevel" where "storeId" = $2 and "batchId" = $3) left from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [poShip.id, dc.id, batch.id]);
+  const shipped = await one(`select o.status, l.shipped, (select "onHand" from "StockLevel" where "storeId" = $2 and "batchId" = $3) as "left" from "StockOrder" o join "StockOrderLine" l on l."stockOrderId" = o.id where o.id = $1`, [poShip.id, dc.id, batch.id]);
   assert(shipped.status === "SHIPPED" && shipped.shipped?.[0]?.batchId === batch.id && shipped.shipped[0].qty === 2 && shipped.left === 4, `shipped 2 from batch ${batch.code} (FEFO); ${dc.code} holds 4`);
   await open(`/hq/distribution/${poReject.id}`, page.getByRole("button", { name: "Reject", exact: true }));
   await page.getByRole("button", { name: "Reject", exact: true }).click();
@@ -1545,7 +1544,6 @@ async function cleanup() {
   await run("import stock", `delete from "StockLevel" where "variantId" in (${importVariants})`, [T.importName]);
   await run("import product", `delete from "Product" where name = $1`, [T.importName]);
   for (const u of await q(`select id, key from "Upload" where "fileName" = $1`, [T.importFile]).catch(() => [])) {
-    if (!process.env.S3_BUCKET) rmSync(resolve(process.env.UPLOAD_DIR ?? ".data/uploads", u.key), { force: true });
     await run("import file", `delete from "Upload" where id = $1`, [u.id]);
   }
   await run("category", `delete from "Category" where name like $1 and not exists (select 1 from "Product" p where p."categoryId" = "Category".id)`, [`${T.categoryName}%`]);

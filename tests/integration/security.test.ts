@@ -178,9 +178,9 @@ describe("Secrets", () => {
   it("treats malformed or non-ASCII signed links as invalid, never a 500", async () => {
     expect(validOptOut(w.walkIn.id, "EMAIL", "é".repeat(22))).toBe(false);
     expect(readShare("PAT0001", { n: "Pat", s: "100", t: "GREEN", k: "ü".repeat(16) })).toBeNull();
-    putSnapshot("device-display", "abcdefabcdef", { v: 1 });
-    expect(getSnapshot("device-display", "ébcdefabcdef")).toBeNull();
-    expect(getSnapshot("device-display", "abcdefabcdef")?.snapshot).toEqual({ v: 1 });
+    await putSnapshot("device-display", "abcdefabcdef", { v: 1 });
+    expect(await getSnapshot("device-display", "ébcdefabcdef")).toBeNull();
+    expect((await getSnapshot("device-display", "abcdefabcdef"))?.snapshot).toEqual({ v: 1 });
     const r = await run(reorderLink(new Request("http://localhost/r/x/y"), { params: Promise.resolve({ id: "x", token: "ø".repeat(43) }) }));
     expect(r.to).toBe("/cart");
   });
@@ -433,7 +433,8 @@ describe("Someone else's ID number or email", () => {
     // Even a number nobody has gets no answer today.
     expect(await join(phone, { idNumber: saId("920304", "5022") })).toEqual({ step: "phone", error: COLLISION_REFUSED });
     expect(await db.customer.count({ where: { phone } })).toBe(0);
-    expect(await db.auditLog.count({ where: { action: "member.collision", data: { path: ["by"], equals: `phone:${phone}` } } })).toBe(3);
+    // (JSON path filters don't exist on SQLite: the rows are few, so filter them here.)
+    expect((await db.auditLog.findMany({ where: { action: "member.collision" }, select: { data: true } })).filter((a) => (a.data as { by?: string } | null)?.by === `phone:${phone}`)).toHaveLength(3);
     // Another phone isn't affected.
     expect((await join("+27825550402", { idNumber: saId("880808", "5033") })).step).toBe("done");
   });

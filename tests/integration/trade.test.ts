@@ -4,9 +4,6 @@
 // refusals → sign-in codes → the daily jobs → licences (mandatory at registration, verified before approval, a lapse
 // pauses trading until the renewal is verified).
 import { randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { db, tx } from "@/server/db";
 import { putStock, availability, availKey } from "@/server/inventory";
@@ -48,7 +45,6 @@ const pdf = (name = "licence.pdf") => new File([new TextEncoder().encode("%PDF-1
 const licenceFiles = () => ({ PHARMACY_LICENCE: pdf(), SAPC_RECORDING: pdf(), FOOD_COA: pdf() });
 
 beforeAll(async () => {
-  process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-trade-licences-"));
   await resetDb();
   w = await buildWorld();
   // Case packs, a trade price list (ex VAT, with a 12+ break on the oil) and coffee stock at the DC.

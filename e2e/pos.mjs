@@ -1,5 +1,5 @@
 // End-to-end test of the till (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/pos.mjs [outdir]   (seeded demo data)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> node e2e/pos.mjs [outdir]   (seeded demo data)
 // Pair PTA01 → PIN 1111 → open shift → walk-in CBD sale (ID sighted, cash) → patient flower
 // sale (card, tap on glass) → event check-in from a members' evening ticket (member attached,
 // welcome gift offered to a first-timer) → refund a line back to how they paid (cash) → a gift voucher scanned at the
@@ -8,13 +8,13 @@
 // account (prices ex VAT, R100 cash + the rest on account, tax invoice), refund a line of it
 // (credit note) → hand over a READY trade click & collect order → close the shift (Z-report).
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-pos";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 

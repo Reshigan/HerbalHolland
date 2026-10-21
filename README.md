@@ -113,7 +113,7 @@ black on cream). The browser only offers installs on HTTPS (or localhost) with `
 
 ```bash
 npm test                          # unit: pure rules (pricing, promotions, compliance, loyalty, SA calendars…)
-npm run test:integration          # domain services against a disposable DB (TEST_DATABASE_URL, migrated)
+npm run test:integration          # domain services against a fresh SQLite file (.data/hh_test.sqlite, or TEST_DATABASE_URL=file:…)
 node e2e/checkout.mjs             # phone checkout: sign-up by SMS code → collect → pay → order (DEMO_MODE, seeded)
 node e2e/pos.mjs                  # till: pair → PIN → shift → sales → refund → offline + sync → handover → Z-report
 node e2e/crawl.mjs                # every page as every role: broken links, server errors, crashes, timings

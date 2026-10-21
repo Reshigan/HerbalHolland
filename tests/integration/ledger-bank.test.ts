@@ -2,9 +2,6 @@
 // already posted and add nothing the second time, allocations (bank charges with VAT, card payouts net of fees,
 // transfers between the company's own accounts), undoing each, the reconciliation, and who may change any of it.
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 const jar = new Map<string, string>();
 vi.mock("next/headers", () => ({
@@ -12,7 +9,6 @@ vi.mock("next/headers", () => ({
   headers: async () => new Headers(),
 }));
 vi.mock("next/cache", () => ({ revalidatePath: () => undefined, refresh: () => undefined }));
-process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-ledger-bank-"));
 
 import { db, tx } from "@/server/db";
 import { sha256 } from "@/server/crypto";
@@ -20,8 +16,7 @@ import { COOKIE } from "@/server/auth";
 import { booksFor, createManualJournal, setBooksLock, syncPosting } from "@/server/ledger/core";
 import {
   allocateLine, autoMatch, bankAccountsOf, bankLinePage, bankToDo, BankError, createBankAccount, ignoreLine, importStatement, matchLine, reconciliation,
-  setBankAccountActive, unallocateLine, unignoreLine, unmatchLine, updateBankAccount,
-} from "@/server/ledger/bank";
+  setBankAccountActive, unallocateLine, unignoreLine, unmatchLine, updateBankAccount} from "@/server/ledger/bank";
 import { allocate as allocateAction } from "@/app/books/[companyId]/bank/[bankAccountId]/actions";
 import { addBankAccount } from "@/app/books/[companyId]/bank/actions";
 import { buildWorld, resetDb, type World } from "./world";

@@ -1,14 +1,14 @@
 // E2E crawl: signs in as each role (shopper, member, store manager, franchise owner, area manager, HQ, trade buyer) and visits every
 // page it can reach by following links. Fails on broken links, server errors, crashes and console errors; reports how
 // long each page took on the server (HTML fully streamed) and to paint.
-//   BASE_URL=http://127.0.0.1:3000 DATABASE_URL=... node e2e/crawl.mjs [outdir] [only-role]
+//   BASE_URL=http://127.0.0.1:3000 DATABASE_FILE=<the local D1 file> node e2e/crawl.mjs [outdir] [only-role]
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 
 const [, , outdir = "test-results/e2e-crawl", only] = process.argv;
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 mkdirSync(outdir, { recursive: true });
 
 // Route templates straight from the app directory, so each URL is counted against the page that renders it.

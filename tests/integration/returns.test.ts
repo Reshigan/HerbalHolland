@@ -5,6 +5,7 @@
 // can't come back.
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+import { asList } from "@/lib/json-list";
 import { db } from "@/server/db";
 import { advanceOrder, markOrderPaid, placeOrder, refundOrderAmount } from "@/server/orders";
 import { bookCollection, decideReturn, listReturns, receiveReturn, refundReturn, requestReturn, returnableOrder, returnCounts, returnDetail, returnWhere, ReturnError } from "@/server/returns";
@@ -58,7 +59,6 @@ async function deliveredOrder() {
 
 beforeAll(async () => {
   Object.assign(process.env, ENV);
-  process.env.UPLOAD_DIR = `${process.cwd()}/.data/uploads-test`;
   await resetDb();
   w = await buildWorld();
   who = { type: "USER", id: w.manager.id, name: w.manager.name };
@@ -90,7 +90,7 @@ describe("a faulty item comes back and is refunded through Peach", () => {
     id = ret.id;
     expect(ret).toMatchObject({ number: "RT-000001", status: "REQUESTED", orderId: order.id, customerId: c.id, storeId: order.storeId, reason: "DEFECTIVE", items: [{ variantId: w.oilV.id, qty: 1 }], note: "The dropper leaks." });
     expect(ret.photoUploadIds).toHaveLength(2);
-    expect(await db.upload.findMany({ where: { id: { in: ret.photoUploadIds } } })).toHaveLength(2);
+    expect(await db.upload.findMany({ where: { id: { in: asList(ret.photoUploadIds) } } })).toHaveLength(2);
     expect(await db.auditLog.findFirst({ where: { action: "return.request", entityId: id } })).toMatchObject({ actorType: "CUSTOMER", data: { number: "RT-000001", orderCode: order.code, units: 1, photos: 2 } });
     const mail = await db.messageLog.findFirst({ where: { to: c.email!, body: { contains: "RT-000001" } } });
     expect(mail?.body).toContain("Return RT-000001 received");

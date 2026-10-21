@@ -3,9 +3,10 @@
 // HQ → Stores → the store → Owner. Pietermaritzburg and the Bluff trade; Hillcrest and Hilton open on 1 December 2026.
 // Idempotent: a store that already exists (by code) is left exactly as HQ has it. Fill in street addresses, phones,
 // hours and licences in HQ → Stores afterwards.
-//   DATABASE_URL=postgresql://… npx tsx scripts/launch-network.ts
+//   DATABASE_URL=file:… npx tsx scripts/launch-network.ts
+// Against the live D1: set CLOUDFLARE_D1_TOKEN, CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_DATABASE_ID instead (scripts/_d1.ts).
 import "dotenv/config";
-import { db } from "@/server/db";
+import { scriptDb } from "./_d1";
 import { audit, SYSTEM } from "@/server/audit";
 
 const OPENS = new Date("2026-12-01T07:00:00+02:00");
@@ -17,6 +18,7 @@ const STORES = [
 ];
 
 async function main() {
+  const db = await scriptDb();
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" } });
   if (!hq) throw new Error("No franchisor company yet: run scripts/create-admin.ts first.");
   const region = await db.region.upsert({ where: { code: "KZN" }, update: {}, create: { code: "KZN", name: "KwaZulu-Natal" } });
@@ -38,4 +40,4 @@ async function main() {
 
 main()
   .catch((e) => { console.error(e instanceof Error ? e.message : e); process.exitCode = 1; })
-  .finally(() => db.$disconnect());
+  .finally(async () => (await scriptDb()).$disconnect());

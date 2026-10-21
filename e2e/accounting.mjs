@@ -1,5 +1,5 @@
 // End-to-end test of the books (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev [CRON_SECRET=…] node e2e/accounting.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> [CRON_SECRET=…] node e2e/accounting.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
 // Mokoena Retail's owner opens the books from the store sidebar, and the trial balance agrees with the database and
 // downloads as CSV. Their accountant drafts a manual journal, which the owner approves and then reverses. The accountant
 // adds a bank account if there isn't one and imports a statement: the cash deposits on it match themselves to their
@@ -9,14 +9,14 @@
 // without editing. Every action is timed. Re-runnable: what it creates carries a run suffix, and the month and the
 // payment are put back.
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const CRON = process.env.CRON_SECRET;
 const out = process.argv[2] ?? "test-results/e2e-accounting";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
@@ -199,7 +199,7 @@ try {
          group by j.id having sum(l."amountCents") <> 0)
        select p.id, p.number, to_char(p.date, 'YYYY-MM-DD') as day, p.cents from p
        where not exists (select 1 from "BankLine" b where b."journalId" = p.id and b.status in ('MATCHED', 'ALLOCATED'))
-         and not exists (select 1 from p o where o.id <> p.id and o.cents = p.cents and abs(o.date - p.date) <= 7)
+         and not exists (select 1 from p o where o.id <> p.id and o.cents = p.cents and abs(julianday(o.date) - julianday(p.date)) <= 7)
        order by p.date desc limit 2`,
       [company.id, bank.id],
     );
