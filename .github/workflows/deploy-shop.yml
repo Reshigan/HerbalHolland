@@ -63,7 +63,10 @@ jobs:
           echo "::add-mask::$ACCOUNT_ID"
           if ! npx wrangler d1 list --json | jq -e --arg n "$DB_NAME" '.[] | select(.name == $n)' > /dev/null; then
             echo "Creating D1 database $DB_NAME (primary location Western Europe)"
-            npx wrangler d1 create "$DB_NAME" --location weur > /dev/null
+            # With wrangler.jsonc in view, `d1 create` looks the placeholder id up first and fails: an empty config for this one call.
+            echo '{}' > .d1-create.jsonc
+            npx wrangler d1 create "$DB_NAME" --location weur --config .d1-create.jsonc > /dev/null
+            rm -f .d1-create.jsonc
           fi
           DB_ID=$(npx wrangler d1 info "$DB_NAME" --json | jq -r '.uuid')
           test -n "$DB_ID" -a "$DB_ID" != null
