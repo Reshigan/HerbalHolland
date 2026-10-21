@@ -470,8 +470,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
             </div>
 
-            {/* Availability per way of getting it */}
-            <Panel className="mt-6 divide-y divide-ink-800">
+            {/* Availability per way of getting it (once online shopping is open) */}
+            {open && <Panel className="mt-6 divide-y divide-ink-800">
               {canCollect && (
                 <div className="flex items-start gap-3 p-4">
                   <Store className={cn("mt-0.5 h-5 w-5 shrink-0", hereQty > 0 ? "text-leaf-500" : "text-ink-450")} />
@@ -528,7 +528,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   </div>
                 </div>
               )}
-            </Panel>
+            </Panel>}
 
             {deals.length > 0 && (
               <div className="mt-6 space-y-2">
@@ -618,14 +618,14 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
             )}
 
-            <DeliveryReturns
+            {open && <DeliveryReturns
               className="mt-8"
               f={{
                 regClass: product.regClass, licensed, made, canCollect, canShip,
                 sameDay: sameDayHere && store ? { store: store.name, feeCents: eco.sameDayFeeCents, cutoffHour: eco.sameDayCutoffHour } : null,
                 courier: { feeCents: eco.courierFeeCents, freeOverCents: eco.freeDeliveryOverCents, merchCents: eco.merchCourierCents, estimate: estimate.label, note: estimate.note },
               }}
-            />
+            />}
           </div>
         </div>
 
@@ -838,7 +838,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           {/* Side: stores + complete the deal */}
           <Suspense>
             <aside className="space-y-6 lg:sticky lg:top-28 lg:self-start">
-              {canCollect && (
+              {canCollect && open && (
                 <Panel id="stock-in-stores" className="scroll-mt-28 p-5">
                   <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
                     <MapPin className="h-5 w-5 text-brand-500" /> {store ? "Stock near you" : "Stock in stores"}

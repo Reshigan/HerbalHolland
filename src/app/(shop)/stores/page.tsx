@@ -73,9 +73,9 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
         <div className="eyebrow text-brand-500">Store finder</div>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{plural(trading.length, "store")}, one windmill</h1>
+        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{trading.length ? `${plural(trading.length, "store")}, one windmill` : `${plural(soon.length, "store")} opening soon`}</h1>
         <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">
-          {openNow} open right now. {services}
+          {trading.length ? `${openNow} open right now. ${services}` : "Join Rewards and choose one as your home store: we'll tell you the day its doors open. Each is independently owned and run by a local franchisee."}
         </p>
       </div>
 

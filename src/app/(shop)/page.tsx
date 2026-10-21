@@ -5,6 +5,7 @@ import { ArrowRight, Crown, FlaskConical, Gift, Leaf, Moon, QrCode, ShieldCheck,
 import { db } from "@/server/db";
 import { getCustomer } from "@/server/auth";
 import { getSettings } from "@/server/settings";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { launchState, waitlistPlace } from "@/server/launch";
 import { getClasses } from "@/server/shop/access";
 import { cardsWhere, listCatalogue } from "@/server/shop/catalogue";
@@ -85,6 +86,8 @@ export default async function Home() {
   const pickIds = new Set(picks.map((p) => p.id));
   const newIn = [...featured].sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime()).filter((p) => !pickIds.has(p.id)).slice(0, 4);
   const { trading, provinces } = footprint;
+  const open = canBuyOnline(settings.launch.phase);
+  const opening = !trading; // no store trades yet: the network is opening
   // Where the stores are, from the data: the province while there's one ("KwaZulu-Natal"), then "3 provinces".
   const where = provinces.length === 1 ? PROVINCES[provinces[0].code as ProvinceCode] : plural(provinces.length, "province");
   const moods = facets.moods.filter((m) => MOODS[m.key]);
@@ -160,7 +163,7 @@ export default async function Home() {
             </div>
             <dl className="mt-12 grid max-w-lg grid-cols-3 gap-4 border-t border-ink-850 pt-6">
               {[
-                [num(trading), `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
+                opening ? [num(footprint.total), `${footprint.total === 1 ? "store" : "stores"} opening soon`] : [num(trading), `${trading === 1 ? "store" : "stores"}${provinces.length ? ` in ${where}` : ""}`],
                 [batches.toLocaleString(), "lab-tested batches"],
                 [String(loyalty.signupBonus), "welcome points"],
               ].map(([v, l]) => (
@@ -196,8 +199,8 @@ export default async function Home() {
           {[
             [<FlaskConical key="a" className="h-5 w-5" />, "Lab-tested, every batch", "Independent COA for potency and safety"],
             [<QrCode key="b" className="h-5 w-5" />, "Batch-traceable", "Scan the pack to see its lab result"],
-            [<Store key="c" className="h-5 w-5" />, "Click & collect", `At ${plural(trading, "store")}${provinces.length ? ` in ${where}` : ""}`],
-            [<Truck key="d" className="h-5 w-5" />, "Nationwide delivery", `Free over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)} · ID checked`],
+            [<Store key="c" className="h-5 w-5" />, "Click & collect", opening ? `Soon, at ${plural(footprint.total, "store")}` : `At ${plural(trading, "store")}${provinces.length ? ` in ${where}` : ""}`],
+            [<Truck key="d" className="h-5 w-5" />, open ? "Nationwide delivery" : "Online shopping", open ? `Free over ${zarWhole(settings.ecommerce.freeDeliveryOverCents)} · ID checked` : "Opens soon. Join Rewards to hear first"],
           ].map(([icon, title, sub]) => (
             <div key={String(title)} className="flex items-start gap-3">
               <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-brand-500/10 text-brand-400">{icon}</span>
@@ -281,7 +284,7 @@ export default async function Home() {
                 </span>
               </Link>
             )}
-            <Link href="/gift" className="hh-beads-foot group relative flex flex-col justify-between overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/70 p-6 pb-8 transition hover:border-brand-500/60 sm:p-8 sm:pb-10">
+            {open && <Link href="/gift" className="hh-beads-foot group relative flex flex-col justify-between overflow-hidden rounded-[2rem] border border-ink-800 bg-ink-900/70 p-6 pb-8 transition hover:border-brand-500/60 sm:p-8 sm:pb-10">
               <div>
                 <div className="eyebrow flex items-center gap-2 text-brand-500">
                   <Gift className="h-4 w-4" /> Gift vouchers
@@ -292,7 +295,7 @@ export default async function Home() {
               <span className="mt-6 inline-flex items-center gap-1 text-sm font-semibold text-brand-400 group-hover:text-brand-300">
                 Buy a voucher <ArrowRight className="h-4 w-4" />
               </span>
-            </Link>
+            </Link>}
           </div>
         </Container>
       </Suspense>
@@ -463,9 +466,9 @@ export default async function Home() {
         <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center">
           <div>
             <div className="eyebrow text-brand-500">Find us</div>
-            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{plural(trading, "store")}. One windmill.</h2>
+            <h2 className="mt-3 font-display text-4xl font-semibold tracking-tight text-white">{opening ? `${plural(footprint.total, "store")} opening.` : `${plural(trading, "store")}.`} One windmill.</h2>
             <p className="mt-4 max-w-md leading-relaxed text-ink-300">
-              Walk in for advice from people who know the range, or order online and collect in store. Each store is independently owned and run by a local franchisee.
+              {opening ? "Walk in for advice from people who know the range. Join Rewards and pick your home store: we'll tell you the day its doors open." : open ? "Walk in for advice from people who know the range, or order online and collect in store." : "Walk in for advice from people who know the range."} Each store is independently owned and run by a local franchisee.
             </p>
             <div className="mt-6 flex flex-wrap gap-2">
               {provinces.map((p) => (
@@ -487,7 +490,7 @@ export default async function Home() {
             <Panel className="p-8 text-center">
               <Store className="mx-auto h-10 w-10 text-brand-500" strokeWidth={1.5} />
               <h3 className="mt-4 font-display text-xl font-semibold text-white">Choose your store</h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">We&apos;ll show what&apos;s on the shelf there and have your click &amp; collect orders ready to go.</p>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-ink-400">{open ? "We'll show what's on the shelf there and have your click & collect orders ready to go." : "We'll tell you the day it opens and show you what's on its shelves."}</p>
               <ButtonLink href="/stores" className="mt-6">
                 Find a store
               </ButtonLink>

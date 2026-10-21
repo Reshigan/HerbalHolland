@@ -67,7 +67,7 @@ export default async function ClubWishlist() {
                     </div>
                     {i.restocked && <Tag tone="green">Back in stock</Tag>}
                   </div>
-                  {c && <StockLine stock={c.stock} className="mt-2" />}
+                  {c && <StockLine stock={c.stock} online={open} className="mt-2" />}
                   <div className="mt-auto flex items-center justify-between gap-3 pt-3">
                     {c ? <Price cents={c.priceCents} was={c.wasCents} from={i.variantCount > 1} /> : <span />}
                     <div className="flex items-center gap-2">
