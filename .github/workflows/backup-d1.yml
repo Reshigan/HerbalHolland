@@ -4,7 +4,7 @@ name: Nightly D1 backup
 # (RUNBOOK → Backups & recovery). D1 Time Travel covers the last 30 days on its own; this is the copy we hold.
 on:
   schedule:
-    - cron: "17 0 * * *" # 02:17 SAST
+    - cron: "30 0 * * *" # 02:30 SAST
   workflow_dispatch:
 
 jobs:
