@@ -576,7 +576,15 @@ try {
   await page.getByRole("button", { name: "Done" }).click();
   // The till's service worker must control the page, with the shell in its cache (the app primes it with what it
   // loaded), before the network goes. Without one the till can't reload offline at all, so that fails plainly here.
-  const controlled = await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30_000 }).then(() => true, () => false);
+  const waitControlled = () => page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30_000 }).then(() => true, () => false);
+  let controlled = await waitControlled();
+  if (!controlled) {
+    // A page opened before the worker finished installing takes control on its next load (on a slow network the
+    // install can outlast the journey's earlier steps): one reload, as a till restart would.
+    await page.reload();
+    await page.waitForLoadState("load").catch(() => undefined);
+    controlled = await waitControlled();
+  }
   assert(controlled, "the till's service worker controls the page (/sw.js is served)");
   for (let i = 0; !(await page.evaluate(async () => !!(await caches.match("/pos")))); i++) {
     if (i === 120) fail("the till's shell never reached the offline cache");
