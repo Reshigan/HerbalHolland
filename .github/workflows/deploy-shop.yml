@@ -88,10 +88,22 @@ jobs:
           npx wrangler d1 time-travel info "$DB_NAME" || true
           npx wrangler d1 migrations apply "$DB_NAME" --remote
 
+      - name: Free the hostname from the retired tunnel's DNS record (only a CNAME to cfargotunnel.com is touched)
+        run: |
+          set -eo pipefail
+          API=https://api.cloudflare.com/client/v4
+          ZONE_ID=$(curl -sf "$API/zones?name=herbalholland.com" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id')
+          test -n "$ZONE_ID" -a "$ZONE_ID" != null
+          HOST=${SHOP_URL#https://}
+          for id in $(curl -sf "$API/zones/$ZONE_ID/dns_records?name=$HOST&type=CNAME" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[] | select(.content | endswith(".cfargotunnel.com")) | .id'); do
+            echo "Removing the old tunnel record on $HOST so the Worker's custom domain can take it"
+            curl -sf -X DELETE "$API/zones/$ZONE_ID/dns_records/$id" -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" > /dev/null
+          done
+
       - name: Deploy the Worker
         id: deploy
         run: |
-          set -e
+          set -eo pipefail
           npx wrangler deploy | tee deploy.log
           # No workers.dev address is expected (workers_dev is false); a URL here only means someone turned it on.
           echo "workers_dev_url=$(grep -o 'https://[a-z0-9.-]*workers.dev' deploy.log | head -1)" >> "$GITHUB_OUTPUT"
