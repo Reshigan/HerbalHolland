@@ -37,8 +37,9 @@ function d1Client(): PrismaClient | null {
 }
 
 // D1 fails a statement outright when its session cannot commit (locally, when another process wrote the SQLite file
-// between two of its statements: the journeys do). Nothing was written, so the statement simply runs again.
-const TRANSIENT = /commit token|SQLITE_BUSY/;
+// between two of its statements: the journeys do), and now and then with an internal error or a reset of its storage
+// object. Nothing was written, so the statement simply runs again, after a short pause the second time.
+const TRANSIENT = /commit token|SQLITE_BUSY|internal error|D1_RESET_DO|reset because its code was updated|Network connection lost|storage caused object to be reset/i;
 function retrying(c: PrismaClient): PrismaClient {
   return c.$extends({
     query: {
@@ -48,6 +49,7 @@ function retrying(c: PrismaClient): PrismaClient {
             return await query(args);
           } catch (e) {
             if (attempt >= 2 || !TRANSIENT.test(String((e as Error)?.message ?? e))) throw e;
+            if (attempt) await new Promise((r) => setTimeout(r, 250));
           }
         }
       },
