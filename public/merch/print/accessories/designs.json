@@ -133,5 +133,50 @@
   "ink": "#f5913c",
   "ground": "#0c0a09",
   "how": "Rigid black box, lid printed in Sunset (or foil); inside: grinder, small tray, Sunset Papers, tips, lighter"
+ },
+ {
+  "key": "mylar-7x10-black",
+  "name": "Mylar bag 7 × 10 cm, black, printed in Sunset (front)",
+  "w": 70,
+  "h": 100,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Matte black mylar, zip seal and tear notch above the print; one-colour flexo or screen print; the back plain. Food-safe, light-proof, smell-proof; sold in packs of 50"
+ },
+ {
+  "key": "mylar-7x10-sunset",
+  "name": "Mylar bag 7 × 10 cm, Sunset, printed in black (front)",
+  "w": 70,
+  "h": 100,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Matte Sunset mylar, zip seal and tear notch above the print; one-colour flexo or screen print; the back plain. Food-safe, light-proof, smell-proof; sold in packs of 50"
+ },
+ {
+  "key": "mylar-10x15-black",
+  "name": "Mylar bag 10 × 15 cm, black, printed in Sunset (front)",
+  "w": 100,
+  "h": 150,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Matte black mylar, zip seal and tear notch above the print; one-colour flexo or screen print; the back plain. Food-safe, light-proof, smell-proof; sold in packs of 50"
+ },
+ {
+  "key": "mylar-10x15-sunset",
+  "name": "Mylar bag 10 × 15 cm, Sunset, printed in black (front)",
+  "w": 100,
+  "h": 150,
+  "ink": "#0c0a09",
+  "ground": "#f5913c",
+  "how": "Matte Sunset mylar, zip seal and tear notch above the print; one-colour flexo or screen print; the back plain. Food-safe, light-proof, smell-proof; sold in packs of 50"
+ },
+ {
+  "key": "pen-wrap",
+  "name": "Vape pen body wrap, 33 × 70 mm (round a Ø10.5 mm pen)",
+  "w": 33,
+  "h": 70,
+  "ink": "#f5913c",
+  "ground": "#0c0a09",
+  "how": "Pad-printed in Sunset on the matte black 510 battery; the Mark at the top, the name down the body"
  }
 ]

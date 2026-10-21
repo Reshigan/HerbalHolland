@@ -1,9 +1,11 @@
 // Route-handler plumbing for /api/pos/*: device + staff authentication, JSON bodies
 // validated with zod, and domain errors mapped to { error } responses with proper codes.
 import { NextResponse } from "next/server";
+import { prismaCode } from "@/server/db";
 import { ZodError, type ZodType } from "zod";
 import { getDevice, getPosStaff } from "@/server/auth";
 import { reportFailure } from "@/server/alerts";
+import { background } from "@/server/background";
 import { SaleError } from "@/server/sales";
 import { OrderError } from "@/server/orders";
 import { CustomerError } from "@/server/customers";
@@ -17,7 +19,6 @@ import { TradeLedgerError } from "@/server/trade/ledger";
 import type { Actor } from "@/server/audit";
 import { readCapped } from "@/lib/body";
 import { sameOrigin } from "@/lib/same-origin";
-import { Prisma } from "@/generated/prisma/client";
 
 export class PosError extends Error {
   constructor(message: string, public status = 400, public code?: string) {
@@ -43,9 +44,9 @@ function handleError(e: unknown) {
     e instanceof TradeAccountError || e instanceof TradeOrderError || e instanceof TradeLedgerError
   )
     return fail(422, e.message);
-  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return fail(409, "That's already on record for another member or sale");
-  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2025") return fail(404, "Not found");
-  void reportFailure(e, "POS API"); // unexpected (a sale that won't sync, say): logged and emailed to ops, without holding up the answer
+  if (prismaCode(e) === "P2002") return fail(409, "That's already on record for another member or sale");
+  if (prismaCode(e) === "P2025") return fail(404, "Not found");
+  background("POS API report", reportFailure(e, "POS API")); // unexpected (a sale that won't sync, say): logged and emailed to ops, without holding up the answer
   return fail(500, "Something went wrong on our side. Please try again");
 }
 

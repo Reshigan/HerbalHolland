@@ -12,7 +12,7 @@ import { PageHero } from "./parts";
 const V = { cap: num(FACTS.founding.cap), tier: FACTS.founding.tier, months: FACTS.founding.months };
 const crumbs = [{ label: PRESS.meta.title, path: "/press" }];
 
-/** "2 trading: Pietermaritzburg and Umhlanga · 2 opening on Tuesday 1 December 2026: Hillcrest and Hilton, in KwaZulu-Natal." */
+/** "2 trading: Pietermaritzburg and Bluff · 2 opening on Tuesday 1 December 2026: Hillcrest and Hilton, in KwaZulu-Natal." */
 function storesLine() {
   const facts = PRESS.facts;
   const soon = openingStores();

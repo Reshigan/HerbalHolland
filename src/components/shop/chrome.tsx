@@ -200,7 +200,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
                 Dutch heritage. <span className="font-semibold text-white">African soil.</span>
               </p>
               <p className="mt-4 max-w-sm text-sm leading-relaxed text-ink-400">
-                Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")} and online.` : ", online."}
+                Lab-tested, batch-traceable CBD wellness, accessories and gear{footprint.trading ? `, in ${plural(footprint.trading, "store")} across ${plural(footprint.provinces.length, "province")}${canBuyOnline(phase) ? " and online" : ""}.` : canBuyOnline(phase) ? ", online." : "."}
               </p>
               <Link href="/club/join" className={buttonClass("outline-dark", "md", "mt-6")}>
                 Join Herbal Holland Rewards
@@ -215,7 +215,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               <FooterCol title="About Herbal Holland" links={[["About us", `${SITE}/about`], ["Own a store", `${SITE}/franchise`], ["Press", `${SITE}/press`], ["Careers", `${SITE}/careers`]]} />
             </div>
           </Container>
-          <div className="border-t border-ink-850">
+          {footprint.provinces.length > 0 && <div className="border-t border-ink-850">
           <Container className="py-6">
             <p className="text-xs leading-relaxed text-ink-400">
               <span className="font-semibold text-ink-200">Stores: </span>
@@ -228,7 +228,7 @@ export async function ShopChrome({ children }: { children: React.ReactNode }) {
               ))}
             </p>
           </Container>
-          </div>
+          </div>}
           <div className="border-t border-ink-850">
             <Container className="flex flex-col gap-4 py-6 text-xs leading-relaxed text-ink-400 md:flex-row md:items-start md:justify-between">
               <div className="flex items-start gap-3">

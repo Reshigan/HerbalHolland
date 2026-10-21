@@ -20,6 +20,7 @@ import { FilterForm, SearchField } from "@/components/hq/filter-form";
 import { ViewOnly } from "@/components/hq/ui";
 import { saveCompliance, saveLicences } from "./actions";
 import { ComplianceForm } from "./compliance-form";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Compliance" };
 
@@ -46,13 +47,13 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
   const page = pageParam(sp.page);
   const pageSize = 12;
   const q = sp.q?.trim();
-  const storeWhere = { id: { in: ids }, kind: "RETAIL" as const, ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" as const } }, { code: { contains: q, mode: "insensitive" as const } }] } : {}) };
+  const storeWhere = { id: { in: ids }, kind: "RETAIL" as const, ...(q ? { OR: [{ name: { contains: q } }, { code: { contains: q } }] } : {}) };
   const memberScope = scope.kind === "HQ" ? {} : { customer: { homeStoreId: { in: ids } } };
   const [settings, stores, totalStores, licensed, retailCount, events, expiring, expiringCount, blocks] = await Promise.all([
     getSettings(),
     db.store.findMany({ where: storeWhere, select: { id: true, code: true, name: true, status: true, licences: true, licenceRef: true }, orderBy: { name: "asc" }, skip: (page - 1) * pageSize, take: pageSize }),
     db.store.count({ where: storeWhere }),
-    db.store.count({ where: { id: { in: ids }, kind: "RETAIL", licences: { has: "THC" } } }),
+    db.store.findMany({ where: { id: { in: ids }, kind: "RETAIL" }, select: { licences: true } }).then((rows) => rows.filter((s) => asList(s.licences).includes("THC")).length),
     db.store.count({ where: { id: { in: ids }, kind: "RETAIL" } }),
     db.auditLog.findMany({ where: { action: { startsWith: "compliance." }, ...(scope.kind === "HQ" ? {} : { storeId: { in: ids } }) }, orderBy: { at: "desc" }, take: 12 }),
     db.patientAuth.findMany({
@@ -162,9 +163,9 @@ export default async function CompliancePage({ searchParams }: { searchParams: P
                     </span>
                   </div>
                   <fieldset disabled={!admin} className="min-w-0 flex flex-wrap gap-x-4 gap-y-1.5">
-                    {CLASSES.filter((cl) => c.licensedOnly.includes(cl) || s.licences.includes(cl)).map((cl) => (
+                    {CLASSES.filter((cl) => c.licensedOnly.includes(cl) || asList(s.licences).includes(cl)).map((cl) => (
                       <label key={cl} className="inline-flex cursor-pointer items-center gap-2 text-sm text-ink-800">
-                        <input type="checkbox" name="licences" value={cl} defaultChecked={s.licences.includes(cl)} className="h-4 w-4 accent-brand-500" />
+                        <input type="checkbox" name="licences" value={cl} defaultChecked={asList(s.licences).includes(cl)} className="h-4 w-4 accent-brand-500" />
                         {cl}
                       </label>
                     ))}

@@ -1,5 +1,5 @@
 // End-to-end test of the till (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/pos.mjs [outdir]   (seeded demo data)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> node e2e/pos.mjs [outdir]   (seeded demo data)
 // Pair PTA01 → PIN 1111 → open shift → walk-in CBD sale (ID sighted, cash) → patient flower
 // sale (card, tap on glass) → event check-in from a members' evening ticket (member attached,
 // welcome gift offered to a first-timer) → refund a line back to how they paid (cash) → a gift voucher scanned at the
@@ -8,13 +8,13 @@
 // account (prices ex VAT, R100 cash + the rest on account, tax invoice), refund a line of it
 // (credit note) → hand over a READY trade click & collect order → close the shift (Z-report).
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-pos";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 
@@ -78,7 +78,8 @@ try {
   await page.getByRole("button", { name: "Open shift", exact: true }).click();
   await page.getByTestId("open-shift").click();
   await page.waitForSelector("[aria-label=Catalogue]:visible");
-  const shift = (await q(`select id, "openingFloatCents" from "Shift" where "deviceId" = $1 and "closedAt" is null`, [device.id]))[0];
+  const shift = (await q(`select id, "openingFloatCents", "openedAt" from "Shift" where "deviceId" = $1 and "closedAt" is null`, [device.id]))[0];
+  const shiftOpenedAt = shift.openedAt;
   assert(shift?.openingFloatCents === 100000, "shift open with R1,000 float");
 
   step("Members only: a new shopper joins at the till (key terms accepted), then buys a CBD balm with cash");
@@ -563,15 +564,27 @@ try {
   await shot("z-report");
   const z = (await q(`select "expectedCashCents", "countedCashCents" from "Shift" where id = $1`, [shift.id]))[0];
   assert(z.countedCashCents === 140000, `shift closed: expected ${z.expectedCashCents / 100}, counted ${z.countedCashCents / 100}`);
-  await new Promise((r) => setTimeout(r, 1500));
-  const mail = (await q(`select "to", left(body, 60) b from "MessageLog" where channel = 'EMAIL' and body like 'Z-report%' order by "createdAt" desc limit 1`))[0];
+  // The report is emailed after the response (on the Worker, after it has been sent): the log row follows shortly.
+  let mail;
+  for (let i = 0; i < 60 && !mail; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    mail = (await q(`select "to", left(body, 60) b from "MessageLog" where channel = 'EMAIL' and body like 'Z-report%' and "createdAt" > $1 order by "createdAt" desc limit 1`, [shiftOpenedAt]))[0];
+  }
   assert(mail?.to === "hatfield@herbalholland.com", `Z-report emailed to ${mail?.to}`);
 
   step("Offline reload: the service worker serves the till shell and assets");
   await page.getByRole("button", { name: "Done" }).click();
   // The till's service worker must control the page, with the shell in its cache (the app primes it with what it
   // loaded), before the network goes. Without one the till can't reload offline at all, so that fails plainly here.
-  const controlled = await page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30_000 }).then(() => true, () => false);
+  const waitControlled = () => page.waitForFunction(() => !!navigator.serviceWorker.controller, null, { timeout: 30_000 }).then(() => true, () => false);
+  let controlled = await waitControlled();
+  if (!controlled) {
+    // A page opened before the worker finished installing takes control on its next load (on a slow network the
+    // install can outlast the journey's earlier steps): one reload, as a till restart would.
+    await page.reload();
+    await page.waitForLoadState("load").catch(() => undefined);
+    controlled = await waitControlled();
+  }
   assert(controlled, "the till's service worker controls the page (/sw.js is served)");
   for (let i = 0; !(await page.evaluate(async () => !!(await caches.match("/pos")))); i++) {
     if (i === 120) fail("the till's shell never reached the offline cache");

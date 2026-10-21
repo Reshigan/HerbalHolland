@@ -1,6 +1,7 @@
 // Stock-take read models: list with progress/variance, the count sheet, and the
 // live variance review (counted vs on hand right now: what approval will post).
 import { db } from "@/server/db";
+import { inBatches } from "@/lib/json-list";
 
 export async function scopeLabels() {
   const cats = await db.category.findMany({ select: { slug: true, name: true }, orderBy: { sortOrder: "asc" } });
@@ -18,10 +19,10 @@ export async function stockTakeList(storeId: string, page: number, pageSize: num
   const [stats, users] = await Promise.all([
     ids.length
       ? db.$queryRaw<{ stockTakeId: string; lines: number; counted: number; netUnits: number; absUnits: number; netValue: number }[]>`
-          SELECT "stockTakeId", COUNT(*)::int AS lines, COUNT("countedQty")::int AS counted,
-                 COALESCE(SUM("varianceQty"), 0)::int AS "netUnits", COALESCE(SUM(ABS("varianceQty")), 0)::int AS "absUnits",
-                 COALESCE(SUM("varianceQty"::float8 * "unitCostCents"), 0)::float8 AS "netValue"
-          FROM "StockTakeLine" WHERE "stockTakeId" = ANY(${ids}::text[]) GROUP BY 1`
+          SELECT "stockTakeId", COUNT(*) AS lines, COUNT("countedQty") AS counted,
+                 COALESCE(SUM("varianceQty"), 0) AS "netUnits", COALESCE(SUM(ABS("varianceQty")), 0) AS "absUnits",
+                 COALESCE(SUM("varianceQty" * 1.0 * "unitCostCents"), 0) AS "netValue"
+          FROM "StockTakeLine" WHERE "stockTakeId" IN (SELECT value FROM json_each(${JSON.stringify(ids)})) GROUP BY 1`
       : Promise.resolve([]),
     db.user.findMany({ where: { id: { in: takes.flatMap((t) => [t.createdById, t.approvedById]).filter((x): x is string => !!x) } }, select: { id: true, name: true } }),
   ]);
@@ -54,7 +55,7 @@ export async function stockTakeSheet(storeId: string, id: string) {
   });
   if (!take) return null;
   const [batches, users] = await Promise.all([
-    db.batch.findMany({ where: { id: { in: [...new Set(take.lines.map((l) => l.batchId))] } }, select: { id: true, code: true, expiresAt: true, status: true } }),
+    inBatches([...new Set(take.lines.map((l) => l.batchId))], (part) => db.batch.findMany({ where: { id: { in: part } }, select: { id: true, code: true, expiresAt: true, status: true } })),
     db.user.findMany({ where: { id: { in: [take.createdById, take.approvedById].filter((x): x is string => !!x) } }, select: { id: true, name: true } }),
   ]);
   const b = new Map(batches.map((x) => [x.id, x]));
@@ -91,9 +92,9 @@ export async function stockTakeSheet(storeId: string, id: string) {
 
 /** On-hand now for each line's lot: approval posts counted − this. */
 export async function currentOnHand(storeId: string, lines: { variantId: string; batchId: string }[]) {
-  const rows = await db.stockLevel.findMany({
-    where: { storeId, variantId: { in: [...new Set(lines.map((l) => l.variantId))] } },
+  const rows = await inBatches([...new Set(lines.map((l) => l.variantId))], (part) => db.stockLevel.findMany({
+    where: { storeId, variantId: { in: part } },
     select: { variantId: true, batchId: true, onHand: true, unitCostCents: true },
-  });
+  }));
   return new Map(rows.map((r) => [`${r.variantId}:${r.batchId}`, r]));
 }

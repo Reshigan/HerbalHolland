@@ -5,10 +5,16 @@ import { db } from "@/server/db";
 import { putStock } from "@/server/inventory";
 import { tx } from "@/server/db";
 import { DEFAULT_SETTINGS } from "@/server/settings";
+import { openSqliteFile, wipeTables } from "../../prisma/sqlite-file";
 
+/** Empties every table (foreign keys off for the deletes, as the seed does), keeping the schema the run started with. */
 export async function resetDb() {
-  const tables = await db.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%'`;
-  await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
+  const sqlite = openSqliteFile();
+  try {
+    wipeTables(sqlite);
+  } finally {
+    sqlite.close();
+  }
 }
 
 const days = (n: number) => new Date(Date.now() + n * 86_400_000);

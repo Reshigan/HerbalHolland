@@ -136,7 +136,7 @@ export default async function MarketingPage({ searchParams }: { searchParams: Pr
       visible,
       ["DRAFT", "SCHEDULED", "SENT", "CANCELLED"].includes(sp.status ?? "") ? { status: sp.status as CampaignStatus } : {},
       sp.channel && sp.channel in CHANNEL_LABEL ? { channel: sp.channel as never } : {},
-      q ? { name: { contains: q, mode: "insensitive" } } : {},
+      q ? { name: { contains: q } } : {},
     ],
   };
   const [total, campaigns, recent] = await Promise.all([

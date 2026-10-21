@@ -1,9 +1,10 @@
 // Inventory control: batch-level stock, FEFO picking, FIFO cost, immutable ledger.
-import { db, type Tx } from "./db";
+import { db, Prisma, type Tx } from "./db";
 import { allocate, allocationCost, type Allocation } from "@/lib/fefo";
 import { dayKey } from "@/lib/format";
 import { queueStoreDay } from "./ledger/core";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export class StockError extends Error {}
 
@@ -19,30 +20,32 @@ export const availKey = (storeId: string, variantId: string) => `${storeId}:${va
  * shipped or collected). `client`: a transaction that holds the stock locks (checkout re-checks under them).
  */
 export async function availability(storeIds: string[], variantIds?: string[], client: Tx | typeof db = db) {
-  const variantFilter = variantIds ? { variantId: { in: variantIds } } : {};
+  // Id lists bind as one JSON parameter each: D1 allows 100 bound parameters per statement.
   const levelsQ = () =>
-    client.stockLevel.groupBy({
-      by: ["storeId", "variantId"],
-      where: { storeId: { in: storeIds }, ...variantFilter, batch: { status: "RELEASED" } },
-      _sum: { onHand: true },
-    });
+    client.$queryRaw<{ storeId: string; variantId: string; onHand: number }[]>`
+      SELECT sl."storeId", sl."variantId", SUM(sl."onHand") AS "onHand"
+      FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId"
+      WHERE sl."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))
+        ${variantIds ? Prisma.sql`AND sl."variantId" IN (SELECT value FROM json_each(${JSON.stringify(variantIds)}))` : Prisma.empty}
+        AND b.status = 'RELEASED'
+      GROUP BY 1, 2`;
   const onlineQ = () =>
     client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
-      SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
+      SELECT o."storeId", l."variantId", SUM(l.qty) AS qty
       FROM "OrderLine" l JOIN "Order" o ON o.id = l."orderId"
-      WHERE o.status::text = ANY(${[...OPEN_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
+      WHERE o.status IN (${Prisma.join([...OPEN_ORDER_STATUSES])}) AND o."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))
       GROUP BY 1, 2`;
   const tradeQ = () =>
     client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
-      SELECT o."storeId", l."variantId", SUM(l.qty)::int AS qty
+      SELECT o."storeId", l."variantId", SUM(l.qty) AS qty
       FROM "TradeOrderLine" l JOIN "TradeOrder" o ON o.id = l."tradeOrderId"
-      WHERE o.status::text = ANY(${[...OPEN_TRADE_ORDER_STATUSES]}::text[]) AND o."storeId" = ANY(${storeIds}::text[])
+      WHERE o.status IN (${Prisma.join([...OPEN_TRADE_ORDER_STATUSES])}) AND o."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))
       GROUP BY 1, 2`;
   // In parallel on the pool; one after another inside a transaction (its single connection can't run them at once).
   const [levels, reservedOnline, reservedTrade] = client === db ? await Promise.all([levelsQ(), onlineQ(), tradeQ()]) : [await levelsQ(), await onlineQ(), await tradeQ()];
   const map = new Map<string, Avail>();
   for (const l of levels) {
-    const onHand = l._sum.onHand ?? 0;
+    const onHand = Number(l.onHand ?? 0);
     map.set(availKey(l.storeId, l.variantId), { onHand, reserved: 0, available: onHand });
   }
   for (const r of [...reservedOnline, ...reservedTrade]) {
@@ -60,11 +63,10 @@ type LockedLot = { id: string; batchId: string; onHand: number; unitCostCents: n
 
 async function lockLots(t: Tx, storeId: string, variantId: string) {
   return t.$queryRaw<LockedLot[]>`
-    SELECT s.id, s."batchId", s."onHand", s."unitCostCents", b.status::text AS status, b."expiresAt", b."packedAt"
+    SELECT s.id, s."batchId", s."onHand", s."unitCostCents", b.status AS status, b."expiresAt", b."packedAt"
     FROM "StockLevel" s JOIN "Batch" b ON b.id = s."batchId"
     WHERE s."storeId" = ${storeId} AND s."variantId" = ${variantId}
-    ORDER BY s.id
-    FOR UPDATE OF s`; // lot order, as locks.lockStock takes them: a sale and a checkout never deadlock
+    ORDER BY s.id`; // lot order, as locks.lockStock reads them (no row locks on D1: writes are serialised)
 }
 
 // `at`: when the movement happened, if not now (a till sale queued offline moves stock at the time it was made).
@@ -119,7 +121,7 @@ export async function putStock(
 ) {
   const [lot] = await t.$queryRaw<{ id: string; onHand: number; unitCostCents: number }[]>`
     SELECT id, "onHand", "unitCostCents" FROM "StockLevel"
-    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId} FOR UPDATE`;
+    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId}`;
   let revalueCents = 0; // re-averaging the lot's cost moves its value by more than this movement (rounding, a negative lot)
   if (lot) {
     const base = Math.max(lot.onHand, 0);
@@ -145,7 +147,7 @@ export async function adjustStock(
 ) {
   const [lot] = await t.$queryRaw<{ id: string; onHand: number; unitCostCents: number }[]>`
     SELECT id, "onHand", "unitCostCents" FROM "StockLevel"
-    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId} FOR UPDATE`;
+    WHERE "storeId" = ${a.storeId} AND "variantId" = ${a.variantId} AND "batchId" = ${a.batchId}`;
   const variant = await t.variant.findUniqueOrThrow({ where: { id: a.variantId } });
   const cost = lot?.unitCostCents ?? variant.wholesaleCents;
   if (a.delta < 0 && !a.allowNegative && (lot?.onHand ?? 0) + a.delta < 0) throw new StockError(`Only ${lot?.onHand ?? 0} on hand in that batch`);
@@ -185,11 +187,11 @@ export async function startStockTake(storeId: string, scope: string, blind: bool
 /** Approving posts COUNT movements for the difference between counted and current on-hand. */
 /** Saves counts, snapshotting on-hand as each line is counted so sales during the count don't read as variance. */
 export async function recordCounts(storeId: string, stockTakeId: string, counts: { lineId: string; qty: number | null }[]) {
-  const lines = await db.stockTakeLine.findMany({ where: { stockTakeId, id: { in: counts.map((c) => c.lineId) } }, select: { id: true, variantId: true, batchId: true } });
-  const levels = await db.stockLevel.findMany({
-    where: { storeId, variantId: { in: [...new Set(lines.map((l) => l.variantId))] } },
+  const lines = await inBatches(counts.map((c) => c.lineId), (part) => db.stockTakeLine.findMany({ where: { stockTakeId, id: { in: part } }, select: { id: true, variantId: true, batchId: true } }));
+  const levels = await inBatches([...new Set(lines.map((l) => l.variantId))], (part) => db.stockLevel.findMany({
+    where: { storeId, variantId: { in: part } },
     select: { variantId: true, batchId: true, onHand: true },
-  });
+  }));
   const onHand = new Map(levels.map((l) => [`${l.variantId}:${l.batchId}`, l.onHand]));
   const byId = new Map(lines.map((l) => [l.id, l]));
   await db.$transaction(

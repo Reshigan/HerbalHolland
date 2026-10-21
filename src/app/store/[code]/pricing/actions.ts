@@ -8,6 +8,7 @@ import { attempt, done, fail, manage, UserError, type ActionState } from "@/serv
 import { str } from "@/server/store/rules";
 import { marginPct } from "@/lib/pricing-rules";
 import { plural } from "@/lib/plural";
+import { inBatches } from "@/lib/json-list";
 
 // Competition Act s5(2): HQ recommends prices and never sets a franchisee's selling price (docs/COMPLIANCE.md).
 async function managePrices(code: string) {
@@ -21,10 +22,10 @@ export async function savePrices(code: string, changes: { variantId: string; pri
     const { store, actor } = await managePrices(code);
     if (!Array.isArray(changes) || !changes.length) return fail("No changes to save");
     if (changes.length > 2_000) return fail("Too many changes at once");
-    const rows = await db.storeVariant.findMany({
-      where: { storeId: store.id, variantId: { in: changes.map((c) => c.variantId) } },
+    const rows = await inBatches([...new Set(changes.map((c) => c.variantId))], (part) => db.storeVariant.findMany({
+      where: { storeId: store.id, variantId: { in: part } },
       include: { variant: { select: { sku: true, priceCents: true, wholesaleCents: true } } },
-    });
+    }));
     const by = new Map(rows.map((r) => [r.variantId, r]));
     for (const c of changes) {
       const r = by.get(c.variantId);

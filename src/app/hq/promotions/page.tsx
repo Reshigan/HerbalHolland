@@ -21,6 +21,7 @@ import { Pagination, pageParam } from "@/components/ui/pagination";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { EmptyRow } from "@/components/hq/ui";
 import type { Prisma } from "@/generated/prisma/client";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Promotions" };
 
@@ -56,7 +57,7 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
       visible,
       byTab[tab],
       sp.owner === "network" ? { ownerStoreId: null } : sp.owner === "store" ? { ownerStoreId: { not: null } } : {},
-      q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { code: { contains: q, mode: "insensitive" } }] } : {},
+      q ? { OR: [{ name: { contains: q } }, { code: { contains: q } }] } : {},
     ],
   };
   const [total, promos, counts, settings] = await Promise.all([
@@ -81,7 +82,8 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
   const ownerName = new Map(owners.map((o) => [o.id, `${o.name} (${o.code})`]));
   const href = (p: Record<string, string | number | undefined>) => `/hq/promotions${qs({ ...sp, ...p })}`;
   const when = (p: (typeof promos)[number]) => {
-    const days = p.days.length && p.days.length < 7 ? p.days.map((d) => DAYS[d]).join(", ") : null;
+    const pd = asList<number>(p.days);
+    const days = pd.length && pd.length < 7 ? pd.map((d) => DAYS[d]).join(", ") : null;
     const hours = p.startMinute != null || p.endMinute != null ? `${clock(p.startMinute ?? 0)}–${clock(p.endMinute ?? 1440)}` : null;
     return [days, hours].filter(Boolean).join(" · ");
   };
@@ -167,8 +169,8 @@ export default async function PromotionsPage({ searchParams }: { searchParams: P
                     <Badge tone={KIND[p.kind][1]}>{KIND[p.kind][0]}</Badge>
                   </Td>
                   <Td className="hidden text-ink-600 lg:table-cell">
-                    {p.ownerStoreId ? <span>{ownerName.get(p.ownerStoreId) ?? "Store"} <Badge className="ml-1">Local</Badge></span> : p.storeIds.length ? `${p.storeIds.length} stores` : "Whole network"}
-                    <span className="block text-xs text-ink-500">{p.channels.map((c) => (c === "POS" ? "In store" : "Online")).join(" + ")}</span>
+                    {p.ownerStoreId ? <span>{ownerName.get(p.ownerStoreId) ?? "Store"} <Badge className="ml-1">Local</Badge></span> : asList(p.storeIds).length ? `${asList(p.storeIds).length} stores` : "Whole network"}
+                    <span className="block text-xs text-ink-500">{asList(p.channels).map((c) => (c === "POS" ? "In store" : "Online")).join(" + ")}</span>
                   </Td>
                   <Td className="hidden whitespace-nowrap text-ink-600 md:table-cell">
                     {fmtDate(p.startsAt)} → {fmtDate(p.endsAt)}

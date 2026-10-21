@@ -2,10 +2,11 @@
 // first sign-in, as HQ → Team does. Creates the franchisor company when there is none yet (--company sets its legal
 // name; the rest is filled in on a store it owns, the distribution centre: HQ → Stores → the DC → Owner). Everyone
 // after that is added from HQ → Team.
-//   DATABASE_URL=postgresql://… npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"
+//   DATABASE_URL=file:… npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"
+// Against the live D1: set CLOUDFLARE_D1_TOKEN, CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_DATABASE_ID instead (scripts/_d1.ts).
 import "dotenv/config";
 import { parseArgs } from "node:util";
-import { db } from "@/server/db";
+import { scriptDb } from "./_d1";
 import { audit, SYSTEM } from "@/server/audit";
 import { hashSecret } from "@/server/crypto";
 import { temporaryPassword, tempPasswordUntil, TEMP_PASSWORD_HOURS } from "@/server/passwords";
@@ -16,6 +17,7 @@ const email = values.email?.trim().toLowerCase() ?? "";
 const name = values.name?.trim().replace(/\s+/g, " ") ?? "";
 
 async function main() {
+  const db = await scriptDb();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || name.length < 2) throw new Error('Usage: scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"');
   if (await db.user.count({ where: { email } })) throw new Error(`${email} already has an account. Reset its password from HQ → Team instead.`);
   const legalName = values.company!.trim();
@@ -35,4 +37,4 @@ main()
     console.error(e instanceof Error ? e.message : e);
     process.exitCode = 1;
   })
-  .finally(() => db.$disconnect());
+  .finally(async () => (await scriptDb()).$disconnect());

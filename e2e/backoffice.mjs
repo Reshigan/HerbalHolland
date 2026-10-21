@@ -1,5 +1,5 @@
 // End-to-end test of the store back office (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/backoffice.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> node e2e/backoffice.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
 // Signs in as the PTA01 manager and drives every back-office server action through the UI:
 // sidebar Menu board link → members (join with the deals question + interests, consent, age check) →
 // patient register (add/revoke an authorisation, register CSV) → events → expenses → inventory (CSV
@@ -16,14 +16,14 @@
 // (table at the end). Re-runnable: everything it creates carries a run suffix and is cleaned up or reversed
 // at the end; the new member and the sales, deliveries and messages it posts stay, like real trading records.
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
 import { createHash, randomBytes } from "node:crypto";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-backoffice";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
@@ -450,7 +450,7 @@ try {
   const cats = await q(
     `select c.slug, c.name, count(sl.id)::int as lines from "Category" c join "Product" p on p."categoryId" = c.id join "Variant" v on v."productId" = p.id
      join "StockLevel" sl on sl."variantId" = v.id and sl."storeId" = $1 and (sl."onHand" <> 0 or exists (select 1 from "StoreVariant" sv where sv."storeId" = sl."storeId" and sv."variantId" = sl."variantId"))
-     where not (c.slug = any($2::text[])) group by c.slug, c.name having count(sl.id) > 0 and bool_and(sl."onHand" >= 0) order by count(sl.id), c.slug limit 2`,
+     where not (c.slug = any($2::text[])) group by c.slug, c.name having count(sl.id) > 0 and min(sl."onHand") >= 0 order by count(sl.id), c.slug limit 2`,
     [store.id, open.map((o) => o.scope)],
   );
   if (cats.length < 2) fail("need two categories free to count");
@@ -590,12 +590,12 @@ try {
   // Another franchisee's store (same region first) with a manager to sign in as, and something both stores range that
   // it has spare (seeded stock levels are random, so the store and the item are chosen together).
   const pair = await one(
-    `select s.id, s.code, s.name, u.email, v.id as "variantId", v.sku, p.name || ' · ' || v.name as label
+    `select s.id, s.code, s.name, (select email from "User" u where u."storeId" = s.id and u.role = 'MANAGER' and u.active and u.email is not null order by u.email limit 1) as email, v.id as "variantId", v.sku, p.name || ' · ' || v.name as label
      from "Store" s
-     join lateral (select email from "User" u where u."storeId" = s.id and u.role = 'MANAGER' and u.active and u.email is not null order by u.email limit 1) u on true
      join "StoreVariant" sv on sv."storeId" = s.id join "StoreVariant" a on a."variantId" = sv."variantId" and a."storeId" = $1
      join "Variant" v on v.id = sv."variantId" join "Product" p on p.id = v."productId"
      where s.kind = 'RETAIL' and s.status = 'ACTIVE' and s.id <> $1 and s."companyId" <> $2
+       and exists (select 1 from "User" u where u."storeId" = s.id and u.role = 'MANAGER' and u.active and u.email is not null)
        and v.active and p.status = 'ACTIVE' and v."podSku" is null and p."regClass" in ('ACCESSORY', 'GROW', 'CBD', 'HEMP') and ${RELEASED("s.id")} >= 3
        and not exists (select 1 from "Listing" l where l."variantId" = v.id and l.active and l."storeId" in ($1, s.id))
        and v.id <> $4

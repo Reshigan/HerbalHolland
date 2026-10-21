@@ -5,6 +5,7 @@ import { db } from "@/server/db";
 import { salesByStore } from "@/server/finance";
 import { resolveRange, previousRange, delta } from "@/lib/ranges";
 import type { Prisma, StoreFormat, StoreKind, StoreStatus } from "@/generated/prisma/client";
+import { likeTerm } from "@/lib/search";
 
 export type StoreFilters = { q?: string; region?: string; format?: string; status?: string; kind?: string; sort?: string; dir?: string; range?: string; from?: string; to?: string };
 
@@ -19,7 +20,7 @@ export const titleCase = (s: string) => s.charAt(0) + s.slice(1).toLowerCase().r
 
 export function storeFilterWhere(ids: string[], f: StoreFilters): Prisma.StoreWhereInput {
   const kind: StoreKind = f.kind === "WAREHOUSE" ? "WAREHOUSE" : "RETAIL";
-  const q = f.q?.trim();
+  const q = likeTerm(f.q?.trim() ?? "");
   return {
     AND: [
       { id: { in: ids }, kind },
@@ -29,11 +30,11 @@ export function storeFilterWhere(ids: string[], f: StoreFilters): Prisma.StoreWh
       q
         ? {
             OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { code: { contains: q, mode: "insensitive" } },
-              { city: { contains: q, mode: "insensitive" } },
-              { suburb: { contains: q, mode: "insensitive" } },
-              { company: { name: { contains: q, mode: "insensitive" } } },
+              { name: { contains: q } },
+              { code: { contains: q } },
+              { city: { contains: q } },
+              { suburb: { contains: q } },
+              { company: { name: { contains: q } } },
             ],
           }
         : {},

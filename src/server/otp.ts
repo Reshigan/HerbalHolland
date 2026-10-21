@@ -1,10 +1,10 @@
-// One-time sign-in codes: members by SMS, trade buyers by email. Each step for an address runs under a Postgres
-// advisory lock, so the limits hold however many requests arrive at once: five codes per address per 10 minutes, five
+// One-time sign-in codes: members by SMS, trade buyers by email. D1 serialises writes, so each step for an address
+// counts in order however many requests arrive at once: five codes per address per 10 minutes, five
 // tries per code, and ten wrong tries per address per hour across all its codes (then it waits out the hour).
 // Two wider limits stop anyone running up the SMS bill (src/server/throttle.ts): thirty codes an hour from one connection (CODES_PER_IP_HOUR),
 // and a network-wide ceiling on texts an hour (OTP_SMS_HOURLY_MAX, default 500) that pauses SMS codes when reached.
 import { randomInt } from "node:crypto";
-import { db, tx, type Tx } from "./db";
+import { db, tx } from "./db";
 import { sha256 } from "./crypto";
 import { hit, ipKey } from "./throttle";
 import { audit, SYSTEM } from "./audit";
@@ -22,7 +22,6 @@ export class OtpLimitError extends Error {}
 
 const value = (a: OtpAddress) => ("phone" in a ? a.phone : a.email);
 const hashOf = (a: OtpAddress, code: string) => sha256(`${value(a)}:${code}`);
-const lock = (t: Tx, a: OtpAddress) => t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`otp:${"phone" in a ? "phone" : "email"}:${value(a)}`}))`;
 
 /**
  * A new six-digit code for the address, or null when five went out in the last 10 minutes. Pass the requester's IP
@@ -32,7 +31,6 @@ export async function issueCode(a: OtpAddress, opts?: { ip: string | null }): Pr
   if (opts && !(await hit(`otp-ip:${ipKey(opts.ip)}`, CODES_PER_IP_HOUR, HOUR_MS))) throw new OtpLimitError("Too many codes requested. Try again in an hour");
   if ("phone" in a) await smsCeiling();
   return tx(async (t) => {
-    await lock(t, a);
     const recent = await t.otp.count({ where: { ...a, createdAt: { gte: new Date(Date.now() - OTP_MINUTES * 60_000) } } });
     if (recent >= CODES_PER_WINDOW) return null;
     const code = String(randomInt(100_000, 1_000_000));
@@ -57,7 +55,6 @@ export type CodeCheck = "ok" | "wrong" | "expired" | "locked";
 /** Checks a code against the address's latest unexpired one; a right one uses up every code the address has. */
 export function checkCode(a: OtpAddress, code: string): Promise<CodeCheck> {
   return tx(async (t) => {
-    await lock(t, a);
     const now = Date.now();
     const wrong = await t.otp.aggregate({ where: { ...a, createdAt: { gte: new Date(now - 3_600_000) } }, _sum: { attempts: true } });
     if ((wrong._sum.attempts ?? 0) >= WRONG_PER_HOUR) return "locked";

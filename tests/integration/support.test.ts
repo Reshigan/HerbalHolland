@@ -5,8 +5,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { db } from "@/server/db";
 import { placeOrder } from "@/server/orders";
 import {
-  assignTicket, createTicket, listTickets, memberReply, purgeResolvedTickets, replyToTicket, resolveTicket, setTicketPriority, ticketCounts, ticketThread, ticketWhere, SupportError,
-} from "@/server/support";
+  assignTicket, createTicket, listTickets, memberReply, purgeResolvedTickets, replyToTicket, resolveTicket, setTicketPriority, ticketCounts, ticketThread, ticketWhere, SupportError} from "@/server/support";
 import { isBusinessDay, slaDue } from "@/lib/support";
 import { addDays } from "@/lib/format";
 import { buildWorld, resetDb, type World } from "./world";
@@ -138,7 +137,6 @@ describe("working a ticket", () => {
 
   it("the member's reply reopens it, with a photo; resolving tells them; a reply after 30 days is refused", async () => {
     const c = await db.customer.findUniqueOrThrow({ where: { email: to } });
-    process.env.UPLOAD_DIR = `${process.cwd()}/.data/uploads-test`;
     const jpeg = new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 70, 73, 70])], "proof.jpg", { type: "image/jpeg" });
     const t = await memberReply(id, c, "Thanks, but the points are still missing.", jpeg);
     expect(t.status).toBe("OPEN");

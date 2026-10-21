@@ -8,6 +8,7 @@ import { actOnStockOrder, createStockOrder } from "@/server/stock-orders";
 import { attempt, done, fail, manage, UserError, type ActionState } from "@/server/store/context";
 import { parseWhole, plural, receiptCheck, str } from "@/server/store/rules";
 import type { StockOrder } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 type Shipped = { batchId: string; qty: number }[];
 
@@ -25,10 +26,10 @@ export async function placeWholesaleOrder(code: string, _: ActionState, fd: Form
       if (qty > 0) lines.push({ variantId: k.slice(4), qty });
     }
     if (!lines.length) return fail("Add at least one item to the order");
-    const ranged = await db.storeVariant.findMany({
-      where: { storeId: store.id, variantId: { in: lines.map((l) => l.variantId) }, variant: { active: true, product: { status: "ACTIVE" } } },
+    const ranged = await inBatches(lines.map((l) => l.variantId), (part) => db.storeVariant.findMany({
+      where: { storeId: store.id, variantId: { in: part }, variant: { active: true, product: { status: "ACTIVE" } } },
       select: { variantId: true },
-    });
+    }));
     const ok = new Set(ranged.map((r) => r.variantId));
     const bad = lines.filter((l) => !ok.has(l.variantId));
     if (bad.length) return fail(`${bad.length} item${bad.length > 1 ? "s are" : " is"} no longer ranged or available. Refresh and try again.`);

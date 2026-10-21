@@ -18,11 +18,14 @@ const networkWide = (u: { role: string }) => u.role === "HQ_ADMIN" || u.role ===
 /** "product" for a product photo; "public" for a live review's photo; "private" when the viewer may see the record it belongs to; null otherwise. */
 async function access(uploadId: string): Promise<"product" | "public" | "private" | null> {
   if (await isProductImage(uploadId)) return "product";
-  const review = await db.review.findFirst({ where: { photoUploadIds: { has: uploadId } }, select: { hidden: true, customerId: true } });
+  // photoUploadIds is a JSON list (D1): membership through json_each, bounded to the one id
+  const [review] = await db.$queryRaw<{ hidden: number | boolean; customerId: string }[]>`
+    SELECT "hidden", "customerId" FROM "Review" WHERE EXISTS (SELECT 1 FROM json_each("photoUploadIds") WHERE value = ${uploadId}) LIMIT 1`;
   if (review && !review.hidden) return "public";
   const [customer, staff] = await Promise.all([getCustomer(), getStaff()]);
   if (review) return (customer && customer.id === review.customerId) || (staff && isHq(staff)) ? "private" : null;
-  const ret = await db.returnRequest.findFirst({ where: { photoUploadIds: { has: uploadId } }, select: { customerId: true, storeId: true } });
+  const [ret] = await db.$queryRaw<{ customerId: string; storeId: string }[]>`
+    SELECT "customerId", "storeId" FROM "ReturnRequest" WHERE EXISTS (SELECT 1 FROM json_each("photoUploadIds") WHERE value = ${uploadId}) LIMIT 1`;
   if (ret) {
     if (customer && customer.id === ret.customerId) return "private";
     if (staff && (networkWide(staff) || (await scopedStoreIds(scopeOf(staff))).includes(ret.storeId))) return "private";

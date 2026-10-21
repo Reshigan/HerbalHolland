@@ -66,7 +66,7 @@ export default async function MessagesPage({ searchParams }: { searchParams: Pro
       (STATUSES as readonly string[]).includes(sp.status ?? "") ? { status: sp.status } : {},
       (KINDS as readonly string[]).includes(sp.kind ?? "") ? { kind: sp.kind } : {},
       sp.campaign ? { campaignId: sp.campaign } : {},
-      q ? (phone ? { to: phone } : q.includes("@") ? { to: { startsWith: q.toLowerCase() } } : { OR: [{ to: { contains: q, mode: "insensitive" } }, { customer: { memberNo: q.toUpperCase() } }] }) : {},
+      q ? (phone ? { to: phone } : q.includes("@") ? { to: { startsWith: q.toLowerCase() } } : { OR: [{ to: { contains: q } }, { customer: { memberNo: q.toUpperCase() } }] }) : {},
     ],
   };
   const [total, rows, byStatus, campaigns, opened] = await Promise.all([

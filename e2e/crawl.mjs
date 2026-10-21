@@ -1,14 +1,14 @@
 // E2E crawl: signs in as each role (shopper, member, store manager, franchise owner, area manager, HQ, trade buyer) and visits every
 // page it can reach by following links. Fails on broken links, server errors, crashes and console errors; reports how
 // long each page took on the server (HTML fully streamed) and to paint.
-//   BASE_URL=http://127.0.0.1:3000 DATABASE_URL=... node e2e/crawl.mjs [outdir] [only-role]
+//   BASE_URL=http://127.0.0.1:3000 DATABASE_FILE=<the local D1 file> node e2e/crawl.mjs [outdir] [only-role]
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync, readdirSync, writeFileSync } from "node:fs";
 
 const [, , outdir = "test-results/e2e-crawl", only] = process.argv;
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 mkdirSync(outdir, { recursive: true });
 
 // Route templates straight from the app directory, so each URL is counted against the page that renders it.
@@ -119,7 +119,9 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
   const issue = (kind, detail) => problems.push({ role: role.name, url: current, kind, detail: String(detail).slice(0, 300) });
   page.on("pageerror", (e) => issue("crash", e.message));
   page.on("console", (m) => m.type() === "error" && !/Failed to load resource/.test(m.text()) && issue("console", m.text()));
-  page.on("response", (r) => r.url().startsWith(BASE) && r.status() >= 400 && r.request().resourceType() !== "document" && issue(`http ${r.status()}`, r.url().slice(BASE.length)));
+  // Studio cards come from Browser Rendering, a remote service: under wrangler dev the route answers 503 by design.
+  const noBrowserLocally = (url, status) => status === 503 && /\/hq\/marketing\/studio\/card\//.test(url);
+  page.on("response", (r) => r.url().startsWith(BASE) && r.status() >= 400 && r.request().resourceType() !== "document" && !noBrowserLocally(r.url(), r.status()) && issue(`http ${r.status()}`, r.url().slice(BASE.length)));
   if (role.login) await role.login(page);
 
   const seen = new Set();
@@ -147,7 +149,7 @@ for (const role of ROLES.filter((r) => !only || r.name === only)) {
         return { status: res.type === "opaqueredirect" ? 302 : res.status, html: Math.round(performance.now() - t0) };
       }, href);
       results.push({ role: role.name, url: key, tpl: tpl.tpl, ...r });
-      if (r.status !== 200) issue(`download ${r.status}`, key);
+      if (r.status !== 200 && !noBrowserLocally(key, r.status)) issue(`download ${r.status}`, key);
       continue;
     }
     let res;

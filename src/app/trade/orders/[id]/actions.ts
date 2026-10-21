@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { getTradeBuyer } from "@/server/trade/auth";
 import { addTradeLine } from "@/lib/trade-cart";
 import { updateTradeCart } from "../../_lib/cart";
+import { asList } from "@/lib/json-list";
 
 export type ReorderResult = { ok: boolean; count: number; summary: string };
 
@@ -20,7 +21,7 @@ export async function reorderTradeAction(orderId: string): Promise<ReorderResult
     let lines = cart;
     for (const l of order.lines) {
       const v = l.variant;
-      const ok = v.active && !v.podSku && v.product.status === "ACTIVE" && v.product.regClass !== "THC" && buyer.account.classes.includes(v.product.regClass);
+      const ok = v.active && !v.podSku && v.product.status === "ACTIVE" && v.product.regClass !== "THC" && asList(buyer.account.classes).includes(v.product.regClass);
       if (!ok) {
         skipped.push(`${v.product.name}`);
         continue;

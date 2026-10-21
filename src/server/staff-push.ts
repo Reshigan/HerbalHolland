@@ -12,6 +12,7 @@ import { addDays, dayKey, fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { FALLBACK_EMAIL } from "@/lib/contact";
 import type { Role } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export const staffVapidKey = () => process.env.WEB_PUSH_PUBLIC_KEY ?? null;
 const live = () => !!(process.env.WEB_PUSH_PUBLIC_KEY && process.env.WEB_PUSH_PRIVATE_KEY);
@@ -83,17 +84,20 @@ type StoreRef = { id: string; code: string; name: string; companyId: string; reg
 export async function subscribedStores() {
   const subs = await db.staffPushSubscription.findMany({ select: { userId: true }, distinct: ["userId"] });
   if (!subs.length) return { stores: [] as StoreRef[], people: [] as Person[] };
-  const people = await db.user.findMany({
-    where: { id: { in: subs.map((s) => s.userId) }, active: true, role: { in: STAFF_PUSH_ROLES } },
+  const people = await inBatches(subs.map((s) => s.userId), (part) => db.user.findMany({
+    where: { id: { in: part }, active: true, role: { in: STAFF_PUSH_ROLES } },
     select: { id: true, role: true, storeId: true, companyId: true, regionId: true },
-  });
+  }));
   const storeIds = people.map((p) => p.storeId).filter((x): x is string => !!x);
   const companyIds = people.filter((p) => p.role === "OWNER").map((p) => p.companyId).filter((x): x is string => !!x);
   const regionIds = people.filter((p) => p.role === "AREA_MANAGER").map((p) => p.regionId).filter((x): x is string => !!x);
-  const stores = await db.store.findMany({
-    where: { kind: "RETAIL", status: { not: "CLOSED" }, OR: [{ id: { in: storeIds } }, { companyId: { in: companyIds } }, { regionId: { in: regionIds } }] },
-    select: { id: true, code: true, name: true, companyId: true, regionId: true },
-  });
+  const select = { id: true, code: true, name: true, companyId: true, regionId: true };
+  const found = [
+    ...(await inBatches(storeIds, (part) => db.store.findMany({ where: { kind: "RETAIL", status: { not: "CLOSED" }, id: { in: part } }, select }))),
+    ...(await inBatches(companyIds, (part) => db.store.findMany({ where: { kind: "RETAIL", status: { not: "CLOSED" }, companyId: { in: part } }, select }))),
+    ...(await inBatches(regionIds, (part) => db.store.findMany({ where: { kind: "RETAIL", status: { not: "CLOSED" }, regionId: { in: part } }, select }))),
+  ];
+  const stores = [...new Map(found.map((s) => [s.id, s])).values()];
   return { stores, people };
 }
 
@@ -106,9 +110,9 @@ export const peopleFor = (store: StoreRef, people: Person[], wide = false) =>
 /** Claims event keys; only the ones not sent before are returned, so a poll never notifies twice. */
 export async function claimEvents(keys: string[]) {
   if (!keys.length) return new Set<string>();
-  const before = new Set((await db.staffPushEvent.findMany({ where: { key: { in: keys } }, select: { key: true } })).map((e) => e.key));
-  const fresh = keys.filter((k) => !before.has(k));
-  if (fresh.length) await db.staffPushEvent.createMany({ data: fresh.map((key) => ({ key })), skipDuplicates: true });
+  const before = new Set((await inBatches([...new Set(keys)], (part) => db.staffPushEvent.findMany({ where: { key: { in: part } }, select: { key: true } }))).map((e) => e.key));
+  const fresh = [...new Set(keys)].filter((k) => !before.has(k));
+  if (fresh.length) await db.staffPushEvent.createMany({ data: fresh.map((key) => ({ key })) });
   return new Set(fresh);
 }
 
@@ -119,11 +123,11 @@ const summarize = (sent: Promise<{ users: number }>[]) => Promise.all(sent).then
 export async function notifyNewOrders(now = new Date()) {
   const { stores, people } = await subscribedStores();
   if (!stores.length) return { pushed: 0 };
-  const orders = await db.order.findMany({
-    where: { storeId: { in: stores.map((s) => s.id) }, status: "PLACED", createdAt: { gte: addDays(now, -1), lte: now } },
+  const orders = await inBatches(stores.map((s) => s.id), (part) => db.order.findMany({
+    where: { storeId: { in: part }, status: "PLACED", createdAt: { gte: addDays(now, -1), lte: now } },
     select: { id: true, code: true, storeId: true, fulfilment: true, totalCents: true, customer: { select: { firstName: true } } },
     take: 500,
-  });
+  }));
   const fresh = await claimEvents(orders.map((o) => `order:${o.id}`));
   const byStore = new Map(stores.map((s) => [s.id, s]));
   const sent = orders
@@ -140,11 +144,11 @@ export async function notifyNewOrders(now = new Date()) {
 export async function notifyAlerts(now = new Date()) {
   const { stores, people } = await subscribedStores();
   if (!stores.length) return { pushed: 0 };
-  const alerts = await db.alert.findMany({
-    where: { storeId: { in: stores.map((s) => s.id) }, status: "OPEN", createdAt: { gte: addDays(now, -1), lte: now } },
+  const alerts = await inBatches(stores.map((s) => s.id), (part) => db.alert.findMany({
+    where: { storeId: { in: part }, status: "OPEN", createdAt: { gte: addDays(now, -1), lte: now } },
     select: { id: true, storeId: true, userId: true, title: true, severity: true },
     take: 500,
-  });
+  }));
   const fresh = await claimEvents(alerts.map((a) => `alert:${a.id}`));
   const byStore = new Map(stores.map((s) => [s.id, s]));
   const sent = alerts
@@ -167,7 +171,7 @@ export async function notifyAnnouncements(now = new Date()) {
     take: 100,
   });
   if (!list.length) return { pushed: 0 };
-  const formats = new Map((await db.store.findMany({ where: { id: { in: stores.map((s) => s.id) } }, select: { id: true, format: true, region: { select: { code: true } } } })).map((s) => [s.id, s]));
+  const formats = new Map((await inBatches(stores.map((s) => s.id), (part) => db.store.findMany({ where: { id: { in: part } }, select: { id: true, format: true, region: { select: { code: true } } } }))).map((s) => [s.id, s]));
   const pairs: { a: (typeof list)[number]; s: StoreRef }[] = [];
   for (const a of list)
     for (const s of stores) {
@@ -188,11 +192,11 @@ export async function notifyExpiringBatches(now = new Date()) {
   const { stores, people } = await subscribedStores();
   if (!stores.length) return { pushed: 0 };
   const { operations } = await getSettings();
-  const lots = await db.stockLevel.findMany({
-    where: { storeId: { in: stores.map((s) => s.id) }, onHand: { gt: 0 }, batch: { status: "RELEASED", expiresAt: { gt: now, lte: addDays(now, operations.batchExpiryDays) } } },
+  const lots = await inBatches(stores.map((s) => s.id), (part) => db.stockLevel.findMany({
+    where: { storeId: { in: part }, onHand: { gt: 0 }, batch: { status: "RELEASED", expiresAt: { gt: now, lte: addDays(now, operations.batchExpiryDays) } } },
     select: { storeId: true, batchId: true, onHand: true, batch: { select: { code: true, expiresAt: true, variant: { select: { name: true, product: { select: { name: true } } } } } } },
     take: 2_000,
-  });
+  }));
   const fresh = await claimEvents(lots.map((l) => `batch:${l.storeId}:${l.batchId}`));
   const byStore = new Map(stores.map((s) => [s.id, s]));
   const sent = lots

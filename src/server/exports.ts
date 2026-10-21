@@ -19,6 +19,7 @@ import type { Staff } from "./auth";
 import type { ExportCadence, Role, ScheduledExport } from "@/generated/prisma/client";
 import type { ReportDef } from "./reports/types";
 import { appSecret } from "./secret";
+import { asList, inBatches } from "@/lib/json-list";
 
 export class ExportError extends Error {
   constructor(message: string, public field?: string) {
@@ -191,7 +192,7 @@ export async function runExport(s: ScheduledExport, now = new Date()) {
       return null;
     }
   }
-  const to = await currentRecipients(s.recipients, def, await scheduleReach(user, params));
+  const to = await currentRecipients(asList<string>(s.recipients), def, await scheduleReach(user, params));
   if (!to.length) {
     await db.scheduledExport.update({ where: { id: s.id }, data: { active: false } });
     return null;
@@ -252,8 +253,7 @@ export async function runDueExports(now = new Date()) {
 export async function pruneExports(now = new Date()) {
   const old = await db.upload.findMany({ where: { key: { startsWith: "exports/" }, createdAt: { lt: addDays(now, -(LINK_DAYS + 7)) } }, select: { id: true, key: true }, take: 2_000 });
   for (const f of old) await deleteObject(f.key).catch((e) => console.error("[exports] delete failed", f.key, e));
-  const { count } = await db.upload.deleteMany({ where: { id: { in: old.map((f) => f.id) } } });
-  return count;
+  return (await inBatches(old.map((f) => f.id), (part) => db.upload.deleteMany({ where: { id: { in: part } } }).then((r) => [r.count]))).reduce((s, n) => s + n, 0);
 }
 
 export const fmtRun = (d: Date | null) => (d ? fmtDate(d) : "never");

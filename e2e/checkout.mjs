@@ -1,15 +1,15 @@
 // E2E: add to bag → checkout as a NEW member (phone OTP + one-step registration) → a gift voucher redeemed on the
 // order → simulated payment of the rest → order tracking. Needs DEMO_MODE=true (the OTP is shown on screen) and
 // DATABASE_URL (the voucher is issued straight into the database, as a paid purchase would).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev node e2e/checkout.mjs [outdir] [width] [height] [COLLECT|SAME_DAY|COURIER]
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> node e2e/checkout.mjs [outdir] [width] [height] [COLLECT|SAME_DAY|COURIER]
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync } from "node:fs";
 
 const [, , outdir = "test-results/e2e-checkout", w = "390", h = "844", fulfil = "COLLECT"] = process.argv;
 mkdirSync(outdir, { recursive: true });
 const base = process.env.BASE_URL ?? "http://localhost:3000";
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const one = async (sql, params = []) => (await db.query(sql, params)).rows[0];
 // A R100 gift voucher, issued as a paid purchase would issue it (three years' validity, CPA s63).

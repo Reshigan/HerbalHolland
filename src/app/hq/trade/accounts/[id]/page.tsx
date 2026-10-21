@@ -31,6 +31,7 @@ import { accountWhere, orderWhere, tradeScope, type TradeScope } from "../../sco
 import { addBuyer, adjustLedger, approveAccount, closeAccount, creditNote, holdAccount, recordPayment, rejectLicence, releaseAccount, removeBuyer, saveDetails, saveTerms, sendStatement, verifyLicence } from "../actions";
 import { licenceOverview } from "@/server/trade/licences";
 import { TRADE_LICENCES, type LicenceLine } from "@/lib/trade-licences";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Trade account" };
 
@@ -47,7 +48,8 @@ export default async function TradeAccountPage({ params, searchParams }: { param
   const s = await tradeScope();
   const [summary, inScope] = await Promise.all([tradeAccountSummary(id), s.networkWide ? 1 : db.tradeAccount.count({ where: { AND: [{ id }, accountWhere(s)] } })]);
   if (!summary || !inScope) notFound();
-  const { account: a, ageing, balanceCents, availableCents, openOrders, lastOrder } = summary;
+  const { ageing, balanceCents, availableCents, openOrders, lastOrder } = summary;
+  const a = { ...summary.account, classes: asList(summary.account.classes) };
   const tab = TABS.some((t) => t.key === sp.tab) ? sp.tab! : "overview";
   const base = `/hq/trade/accounts/${a.id}`;
   const edit = s.canEdit && a.status !== "CLOSED";

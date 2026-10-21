@@ -23,6 +23,7 @@ import { periodOf, supplierParty, type Line } from "@/lib/ledger";
 import { addDays, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { BankLineStatus } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export class BankError extends Error {
   constructor(message: string, public field?: string) {
@@ -56,10 +57,9 @@ const KEPT: Record<string, string> = {
 
 export const STATUS_LABEL: Record<BankLineStatus, string> = { UNMATCHED: "To do", MATCHED: "Matched", ALLOCATED: "Allocated", IGNORED: "Ignored" };
 
-const day = (d: Date) => d.toISOString().slice(0, 10);
+const day = (d: Date | string) => (typeof d === "string" ? d : d.toISOString()).slice(0, 10); // a day column, or a date() text from raw SQL
 const dateCol = (s: string) => new Date(`${s}T00:00:00Z`);
 const shift = (s: string, n: number) => day(new Date(Date.parse(`${s}T00:00:00Z`) + n * 86_400_000));
-const lock = (t: Tx, bankAccountId: string) => t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank:${bankAccountId}`}))`;
 
 /** The signed-in person, allowed to change these books, or a refusal. `by`: server code acting for someone (the demo seed). */
 async function writer(companyId: string, by?: { id: string; name: string }) {
@@ -73,7 +73,6 @@ async function writer(companyId: string, by?: { id: string; name: string }) {
 async function lockedLine(t: Tx, companyId: string, lineId: string) {
   const found = await t.bankLine.findFirst({ where: { id: lineId, companyId }, select: { bankAccountId: true } });
   if (!found) throw new BankError("That statement line isn't in these books.");
-  await lock(t, found.bankAccountId);
   const line = await t.bankLine.findUniqueOrThrow({ where: { id: lineId } });
   const acct = await t.bankAccount.findUniqueOrThrow({ where: { id: line.bankAccountId } });
   return { line, acct };
@@ -111,7 +110,6 @@ export async function createBankAccount(companyId: string, input: { bank: string
   const { name, number } = accountFields(input);
   const storeId = await ownStore(db, companyId, input.storeId);
   return tx(async (t) => {
-    await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`bank-accounts:${companyId}`}))`;
     const main = (await booksFor(t, companyId)).accounts.get("bank")!;
     let accountId = main;
     if (await t.bankAccount.count({ where: { accountId: main } })) {
@@ -180,7 +178,7 @@ export async function importStatement(companyId: string, bankAccountId: string, 
 
   const lines = hashLines(acct.id, read.lines);
   const known = new Set<string>();
-  for (const part of slices(lines, 5000))
+  for (const part of slices(lines, 90)) // D1 binds at most 100 parameters per statement
     for (const l of await db.bankLine.findMany({ where: { bankAccountId: acct.id, hash: { in: part.map((x) => x.hash) } }, select: { hash: true } })) known.add(l.hash);
   const fresh = lines.map((l, i) => ({ ...l, i })).filter((l) => !known.has(l.hash));
   const ofx = read.format === "OFX";
@@ -189,7 +187,6 @@ export async function importStatement(companyId: string, bankAccountId: string, 
   const base = Date.now(); // createdAt keeps the statement's order within a day
   const [from, to] = [lines[0].date, lines[lines.length - 1].date];
   const added = await tx(async (t) => {
-    await lock(t, acct.id);
     const upload = fresh.length
       ? await t.upload.create({
           data: {
@@ -204,7 +201,7 @@ export async function importStatement(companyId: string, bankAccountId: string, 
         companyId, bankAccountId: acct.id, date: dateCol(l.date), amountCents: l.amountCents, description: l.description, reference: l.reference ?? null,
         balanceCents: l.balanceCents == null ? null : BigInt(l.balanceCents), hash: l.hash, uploadId: upload?.id ?? null, createdAt: new Date(base + l.i),
       }));
-      count += (await t.bankLine.createMany({ data, skipDuplicates: true })).count;
+      count += (await t.bankLine.createMany({ data })).count;
     }
     await audit(t, actor, "bank.statement.add", {
       entity: "BankAccount", entityId: acct.id,
@@ -232,10 +229,11 @@ const POSTING = (j: string) => Prisma.raw(`CASE WHEN ${j}."sourceId" IS NOT NULL
 async function postings(t: Tx | typeof db, companyId: string, acct: { id: string; accountId: string }, scope: { from: string; to: string } | { journalIds: string[] }): Promise<BookPosting[]> {
   const near =
     "journalIds" in scope
-      ? Prisma.sql`SELECT j.source, j."sourceId", COALESCE(j."reversalOfId", j.id) AS root FROM "Journal" j WHERE j."companyId" = ${companyId} AND j.id = ANY(${scope.journalIds}::text[])`
+      ? Prisma.sql`SELECT j.source, j."sourceId", COALESCE(j."reversalOfId", j.id) AS root FROM "Journal" j WHERE j."companyId" = ${companyId} AND j.id IN (${Prisma.join(scope.journalIds)})`
       : Prisma.sql`SELECT DISTINCT j.source, j."sourceId", COALESCE(j."reversalOfId", j.id) AS root FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId"
-          WHERE l."companyId" = ${companyId} AND l."accountId" = ${acct.accountId} AND l.date BETWEEN ${scope.from}::date AND ${scope.to}::date AND j.status = 'POSTED'`;
-  const rows = await t.$queryRaw<{ key: string; journalId: string; number: number; date: Date; memo: string; source: string; sourceId: string | null; storeId: string | null; cents: bigint; matched: bigint }[]>`
+          WHERE l."companyId" = ${companyId} AND l."accountId" = ${acct.accountId} AND l.date BETWEEN ${dateCol(scope.from)} AND ${dateCol(scope.to)} AND j.status = 'POSTED'`;
+  // The first journal of a posting (lowest number) names it: ranked by a window, then picked while grouping.
+  const rows = await t.$queryRaw<{ key: string; journalId: string; number: number | bigint; date: string; memo: string; source: string; sourceId: string | null; storeId: string | null; cents: bigint; matched: bigint }[]>`
     WITH near AS (${near}),
     js AS (
       SELECT j.* FROM "Journal" j JOIN (SELECT DISTINCT source, "sourceId" FROM near WHERE "sourceId" IS NOT NULL) n ON j."companyId" = ${companyId} AND j.source = n.source AND j."sourceId" = n."sourceId"
@@ -248,27 +246,28 @@ async function postings(t: Tx | typeof db, companyId: string, acct: { id: string
       WHERE js.status = 'POSTED'
       GROUP BY js.id, js.number, js.date, js.memo, js.source, js."sourceId", js."storeId", js."reversalOfId"
     ),
+    ranked AS (SELECT per.*, ROW_NUMBER() OVER (PARTITION BY key ORDER BY number) AS rn FROM per),
     grp AS (
-      SELECT key, MIN(date) AS date, SUM(cents)::bigint AS cents, MIN(number) AS number, (array_agg(id ORDER BY number))[1] AS "journalId",
-        (array_agg(memo ORDER BY number))[1] AS memo, (array_agg(source ORDER BY number))[1] AS source, (array_agg("sourceId" ORDER BY number))[1] AS "sourceId",
-        (array_agg("storeId" ORDER BY number))[1] AS "storeId"
-      FROM per GROUP BY key
+      SELECT key, date(MIN(date)) AS date, SUM(cents) AS cents, MIN(number) AS number, MAX(CASE WHEN rn = 1 THEN id END) AS "journalId",
+        MAX(CASE WHEN rn = 1 THEN memo END) AS memo, MAX(CASE WHEN rn = 1 THEN source END) AS source, MAX(CASE WHEN rn = 1 THEN "sourceId" END) AS "sourceId",
+        MAX(CASE WHEN rn = 1 THEN "storeId" END) AS "storeId"
+      FROM ranked GROUP BY key
     ),
     mat AS (
-      SELECT ${POSTING("j")} AS key, SUM(b."amountCents")::bigint AS matched FROM "BankLine" b JOIN "Journal" j ON j.id = b."journalId"
+      SELECT ${POSTING("j")} AS key, SUM(b."amountCents") AS matched FROM "BankLine" b JOIN "Journal" j ON j.id = b."journalId"
       WHERE b."bankAccountId" = ${acct.id} AND b.status IN ('MATCHED', 'ALLOCATED') AND b."journalId" IN (SELECT id FROM js)
       GROUP BY 1
     )
-    SELECT grp.*, COALESCE(mat.matched, 0)::bigint AS matched FROM grp LEFT JOIN mat USING (key)`;
-  return rows.map((r) => ({ ...r, date: day(r.date), cents: Number(r.cents), matchedCents: Number(r.matched) }));
+    SELECT grp.*, COALESCE(mat.matched, 0) AS matched FROM grp LEFT JOIN mat USING (key)`;
+  return rows.map((r) => ({ ...r, number: Number(r.number), date: day(r.date), cents: Number(r.cents), matchedCents: Number(r.matched) }));
 }
 
 /** Words that help recognise a posting on a statement: its memo, and the reference of the deposit or payment it's for. */
 async function postingWords(ps: BookPosting[]) {
   const ids = (source: string) => ps.flatMap((p) => (p.source === source && p.sourceId ? [p.sourceId] : []));
   const [deposits, payments] = await Promise.all([
-    ids("deposit").length ? db.cashDeposit.findMany({ where: { id: { in: ids("deposit") } }, select: { id: true, number: true, reference: true } }) : [],
-    ids("statement-payment").length ? db.statementPayment.findMany({ where: { id: { in: ids("statement-payment") } }, select: { id: true, reference: true } }) : [],
+    inBatches(ids("deposit"), (part) => db.cashDeposit.findMany({ where: { id: { in: part } }, select: { id: true, number: true, reference: true } })),
+    inBatches(ids("statement-payment"), (part) => db.statementPayment.findMany({ where: { id: { in: part } }, select: { id: true, reference: true } })),
   ]);
   const refs = new Map<string, string>([...deposits.map((d) => [d.id, `${d.number} ${d.reference}`] as const), ...payments.map((p) => [p.id, p.reference] as const)]);
   return (p: BookPosting) => `${p.memo} ${(p.sourceId && refs.get(p.sourceId)) || ""}`;
@@ -291,7 +290,6 @@ function byAmount(items: LedgerItem[]) {
  */
 export async function autoMatch(companyId: string, bankAccountId: string, actor: Actor = SYSTEM, since?: string) {
   return tx(async (t) => {
-    await lock(t, bankAccountId);
     const acct = await t.bankAccount.findFirst({ where: { id: bankAccountId, companyId }, select: { id: true, accountId: true } });
     if (!acct) throw new BankError("That bank account isn't in these books.");
     const open = await t.bankLine.findMany({ where: { bankAccountId, status: "UNMATCHED", ...(since ? { date: { gte: dateCol(since) } } : {}) }, orderBy: [{ date: "asc" }, { createdAt: "asc" }], take: 5000 });
@@ -444,7 +442,7 @@ async function partyOf(t: Tx, companyId: string, kind: string, raw: string | nul
     if (v.length < 2) throw new BankError("Name the supplier", "party");
     return { partyId: supplierParty(v), storeId: null };
   }
-  const ci = (s: string) => ({ equals: s, mode: "insensitive" as const });
+  const ci = (s: string) => ({ equals: s });
   if (kind === "TRADE_ACCOUNT") {
     const ta = v ? await t.tradeAccount.findFirst({ where: { OR: [{ number: ci(v) }, { name: ci(v) }] }, select: { id: true } }) : null;
     if (!ta) throw new BankError("Enter the trade account's number (TA-…) or its exact name", "party");
@@ -540,16 +538,16 @@ export async function unallocateLine(companyId: string, lineId: string) {
 async function statementAt(bankAccountId: string, on: string) {
   const last = await db.bankLine.findFirst({ where: { bankAccountId, date: { lte: dateCol(on) }, balanceCents: { not: null } }, orderBy: [{ date: "desc" }, { createdAt: "desc" }, { id: "desc" }], select: { id: true, date: true, balanceCents: true } });
   if (!last) return null;
-  const [after] = await db.$queryRaw<{ cents: bigint | null; n: number }[]>`
-    SELECT SUM(b."amountCents")::bigint AS cents, COUNT(*)::int AS n FROM "BankLine" b, "BankLine" lb
-    WHERE lb.id = ${last.id} AND b."bankAccountId" = ${bankAccountId} AND b.date <= ${on}::date AND (b.date, b."createdAt", b.id) > (lb.date, lb."createdAt", lb.id)`;
-  return { cents: Number(last.balanceCents!) + Number(after?.cents ?? 0), asOf: day(last.date), later: after?.n ?? 0 };
+  const [after] = await db.$queryRaw<{ cents: bigint | null; n: number | bigint }[]>`
+    SELECT SUM(b."amountCents") AS cents, COUNT(*) AS n FROM "BankLine" b, "BankLine" lb
+    WHERE lb.id = ${last.id} AND b."bankAccountId" = ${bankAccountId} AND b.date <= ${dateCol(on)} AND (b.date, b."createdAt", b.id) > (lb.date, lb."createdAt", lb.id)`;
+  return { cents: Number(last.balanceCents!) + Number(after?.cents ?? 0), asOf: day(last.date), later: Number(after?.n ?? 0) };
 }
 
 /** The balance before the first imported line: the first balance given, less the lines up to it. */
 async function statementOpening(bankAccountId: string) {
   const [row] = await db.$queryRaw<{ cents: bigint }[]>`
-    SELECT f."balanceCents" - (SELECT SUM(b."amountCents") FROM "BankLine" b WHERE b."bankAccountId" = f."bankAccountId" AND (b.date, b."createdAt", b.id) <= (f.date, f."createdAt", f.id))::bigint AS cents
+    SELECT f."balanceCents" - (SELECT SUM(b."amountCents") FROM "BankLine" b WHERE b."bankAccountId" = f."bankAccountId" AND (b.date, b."createdAt", b.id) <= (f.date, f."createdAt", f.id)) AS cents
     FROM "BankLine" f WHERE f."bankAccountId" = ${bankAccountId} AND f."balanceCents" IS NOT NULL ORDER BY f.date, f."createdAt", f.id LIMIT 1`;
   return row ? Number(row.cents) : null;
 }
@@ -667,7 +665,9 @@ export async function allocationChoices(companyId: string, acct: { accountId: st
 /** Recent statement files imported to a bank account, with how many lines each added. */
 export async function statementFiles(companyId: string, bankAccountId: string, take = 5) {
   const added = await db.bankLine.groupBy({ by: ["uploadId"], where: { bankAccountId, companyId, uploadId: { not: null } }, _count: true, _min: { date: true }, _max: { date: true } });
-  const uploads = added.length ? await db.upload.findMany({ where: { id: { in: added.map((a) => a.uploadId!) } }, orderBy: { createdAt: "desc" }, take, select: { id: true, fileName: true, createdAt: true, sizeBytes: true, uploadedById: true } }) : [];
+  const uploads = (await inBatches(added.map((a) => a.uploadId!), (part) => db.upload.findMany({ where: { id: { in: part } }, orderBy: { createdAt: "desc" }, take, select: { id: true, fileName: true, createdAt: true, sizeBytes: true, uploadedById: true } })))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, take);
   const users = await db.user.findMany({ where: { id: { in: uploads.flatMap((u) => (u.uploadedById ? [u.uploadedById] : [])) } }, select: { id: true, name: true } });
   return uploads.map((u) => {
     const a = added.find((x) => x.uploadId === u.id)!;
@@ -716,35 +716,41 @@ export async function reconciliation(companyId: string, bankAccountId: string, o
   const statementCents = statement?.cents ?? given;
   const openingCents = opening ?? (given != null ? given - (lineTotal._sum.amountCents ?? 0) : null);
 
-  const rows = await db.$queryRaw<{ key: string; date: Date | null; cents: bigint; matched: bigint; journalId: string; number: number; memo: string; lineDate: Date | null; description: string | null; lines: number }[]>`
-    WITH led AS (
-      SELECT ${POSTING("j")} AS key, MIN(j.date) AS date, SUM(l."amountCents")::bigint AS cents, MIN(j.number) AS number,
-        (array_agg(j.id ORDER BY j.number))[1] AS "journalId", (array_agg(j.memo ORDER BY j.number))[1] AS memo
+  // Each posting is named by its first journal (lowest number), a matched posting also by its earliest line: ranked by
+  // windows, then picked while grouping.
+  const rows = await db.$queryRaw<{ key: string; date: string | null; cents: bigint; matched: bigint; journalId: string; number: number | bigint; memo: string; lineDate: string | null; description: string | null; lines: number | bigint }[]>`
+    WITH ledj AS (
+      SELECT ${POSTING("j")} AS key, j.date, j.number, j.id, j.memo, l."amountCents" AS cents
       FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId"
-      WHERE l."companyId" = ${companyId} AND l."accountId" = ${acct.accountId} AND l.date <= ${on}::date AND j.status = 'POSTED'
-      GROUP BY 1
-    ), mat AS (
-      SELECT ${POSTING("j")} AS key, SUM(b."amountCents")::bigint AS cents, COUNT(*)::int AS lines, MIN(b.date) AS "lineDate", (array_agg(b.description ORDER BY b.date))[1] AS description,
-        MIN(j.number) AS number, (array_agg(j.id ORDER BY j.number))[1] AS "journalId", (array_agg(j.memo ORDER BY j.number))[1] AS memo
+      WHERE l."companyId" = ${companyId} AND l."accountId" = ${acct.accountId} AND l.date <= ${end} AND j.status = 'POSTED'
+    ), led AS (
+      SELECT key, date(MIN(date)) AS date, SUM(cents) AS cents, MIN(number) AS number,
+        MAX(CASE WHEN rn = 1 THEN id END) AS "journalId", MAX(CASE WHEN rn = 1 THEN memo END) AS memo
+      FROM (SELECT ledj.*, ROW_NUMBER() OVER (PARTITION BY key ORDER BY number) AS rn FROM ledj) GROUP BY key
+    ), matb AS (
+      SELECT ${POSTING("j")} AS key, b."amountCents" AS cents, b.date AS "lineDate", b.description, j.number, j.id, j.memo
       FROM "BankLine" b JOIN "Journal" j ON j.id = b."journalId"
-      WHERE b."bankAccountId" = ${bankAccountId} AND b.status IN ('MATCHED', 'ALLOCATED') AND b.date <= ${on}::date
-      GROUP BY 1
+      WHERE b."bankAccountId" = ${bankAccountId} AND b.status IN ('MATCHED', 'ALLOCATED') AND b.date <= ${end}
+    ), mat AS (
+      SELECT key, SUM(cents) AS cents, COUNT(*) AS lines, date(MIN("lineDate")) AS "lineDate", MAX(CASE WHEN rd = 1 THEN description END) AS description,
+        MIN(number) AS number, MAX(CASE WHEN rn = 1 THEN id END) AS "journalId", MAX(CASE WHEN rn = 1 THEN memo END) AS memo
+      FROM (SELECT matb.*, ROW_NUMBER() OVER (PARTITION BY key ORDER BY number) AS rn, ROW_NUMBER() OVER (PARTITION BY key ORDER BY "lineDate") AS rd FROM matb) GROUP BY key
     )
-    SELECT COALESCE(led.key, mat.key) AS key, led.date, COALESCE(led.cents, 0)::bigint AS cents, COALESCE(mat.cents, 0)::bigint AS matched,
+    SELECT COALESCE(led.key, mat.key) AS key, led.date, COALESCE(led.cents, 0) AS cents, COALESCE(mat.cents, 0) AS matched,
       COALESCE(led."journalId", mat."journalId") AS "journalId", COALESCE(led.number, mat.number) AS number, COALESCE(led.memo, mat.memo) AS memo,
-      mat."lineDate", mat.description, COALESCE(mat.lines, 0)::int AS lines
+      mat."lineDate", mat.description, COALESCE(mat.lines, 0) AS lines
     FROM led FULL JOIN mat ON mat.key = led.key
     WHERE COALESCE(led.cents, 0) <> COALESCE(mat.cents, 0)
-    ORDER BY led.date NULLS LAST, 6`;
+    ORDER BY led.date IS NULL, led.date, 6`;
 
   let broughtForwardCents = 0;
   const outstanding: { journalId: string; number: number; day: string; memo: string; cents: number; matchedCents: number; leftCents: number; reversed: boolean }[] = [];
   const later: { journalId: string; number: number; day: string; description: string; lines: number; cents: number }[] = [];
   for (const r of rows) {
-    const [cents, matched] = [Number(r.cents), Number(r.matched)];
-    if (!r.date) later.push({ journalId: r.journalId, number: r.number, day: day(r.lineDate!), description: r.description ?? r.memo, lines: r.lines, cents: matched });
+    const [cents, matched, number] = [Number(r.cents), Number(r.matched), Number(r.number)];
+    if (!r.date) later.push({ journalId: r.journalId, number, day: day(r.lineDate!), description: r.description ?? r.memo, lines: Number(r.lines), cents: matched });
     else if (start && day(r.date) < start) broughtForwardCents += cents - matched;
-    else outstanding.push({ journalId: r.journalId, number: r.number, day: day(r.date), memo: r.memo, cents, matchedCents: matched, leftCents: cents - matched, reversed: cents === 0 });
+    else outstanding.push({ journalId: r.journalId, number, day: day(r.date), memo: r.memo, cents, matchedCents: matched, leftCents: cents - matched, reversed: cents === 0 });
   }
   const notIn = { status: { in: ["UNMATCHED", "IGNORED"] as BankLineStatus[] }, bankAccountId, date: { lte: end } };
   const [open, openBy] = await Promise.all([

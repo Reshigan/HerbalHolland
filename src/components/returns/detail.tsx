@@ -15,6 +15,7 @@ import { RETURN_REASON, RETURN_STATUS } from "@/lib/returns";
 import { displayPhone } from "@/lib/sa";
 import { fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
+import { asList } from "@/lib/json-list";
 
 export type ReturnView = NonNullable<Awaited<ReturnType<typeof returnDetail>>>;
 
@@ -101,9 +102,9 @@ export function ReturnPanel({ d, canWork, actions, links }: {
                 <b className="text-ink-900">The member says:</b> “{r.note}”
               </p>
             )}
-            {r.photoUploadIds.length > 0 ? (
+            {asList(r.photoUploadIds).length > 0 ? (
               <ul className="flex flex-wrap gap-2">
-                {r.photoUploadIds.map((id) => (
+                {asList(r.photoUploadIds).map((id) => (
                   <li key={id}>
                     <a href={`/media/${id}`} target="_blank" rel="noreferrer" className="block overflow-hidden rounded-xl ring-1 ring-ink-200">
                       {/* eslint-disable-next-line @next/next/no-img-element */}

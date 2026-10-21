@@ -1,0 +1,150 @@
+name: Test on Cloudflare
+
+# The whole platform on real Cloudflare: a staging Worker (herbal-holland-shop-staging on workers.dev) with its own D1
+# database and R2 bucket, Browser Rendering and the demo seed, then the four cron routes, the seven journeys and the
+# crawl of every page as every role run against it. The database is rebuilt from scratch on every run. Needs the
+# repository secret CLOUDFLARE_API_TOKEN (Workers Scripts, D1 and R2 edit on the account; the one deploy-site uses,
+# plus R2). The staging Worker stays up afterwards for a look around (demo logins, password holland) unless keep=false.
+on:
+  # Until the file is on main, GitHub won't dispatch it by hand: a push that touches this file runs it too.
+  push:
+    paths: [.github/workflows/test-cloudflare.yml, scripts/d1-dump.mjs, scripts/staging-config.mjs, scripts/prune-trace.mjs, open-next.config.ts, wrangler.jsonc, src/server/db.ts, "e2e/**"]
+  workflow_dispatch:
+    inputs:
+      keep:
+        description: Leave the staging Worker and its database up after the run
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: test-cloudflare
+  cancel-in-progress: false
+
+env:
+  NAME: herbal-holland-shop-staging
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  SESSION_SECRET: staging-only-secret-staging-only-secret
+  CRON_SECRET: staging-only-cron-secret-staging-only
+  DATABASE_URL: file:.data/ci.sqlite # for prisma.config.ts; the seed is told the local D1 file
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run generate
+
+      - name: A fresh D1 database and the R2 bucket
+        id: cf
+        run: |
+          set -e
+          ACCOUNT_ID=$(curl -sf https://api.cloudflare.com/client/v4/accounts -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id')
+          echo "::add-mask::$ACCOUNT_ID"
+          echo "account_id=$ACCOUNT_ID" >> "$GITHUB_OUTPUT"
+          if npx wrangler d1 list --json | jq -e --arg n "$NAME" '.[] | select(.name == $n)' > /dev/null; then
+            npx wrangler d1 delete "$NAME" -y
+          fi
+          npx wrangler d1 create "$NAME" > /dev/null
+          DB_ID=$(npx wrangler d1 info "$NAME" --json | jq -r '.uuid')
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+          npx wrangler r2 bucket create "$NAME-files" 2> /dev/null || true
+          node scripts/staging-config.mjs "$DB_ID" "$NAME"
+
+      - name: The demo seed into a local file (its files into the staging bucket), then into the staging D1
+        run: |
+          set -e
+          npx wrangler d1 migrations apply DB --local
+          D1_FILE=$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata)
+          DATABASE_URL="file:$D1_FILE" SEED_WRANGLER_CONFIG=wrangler.staging.jsonc SEED_REMOTE_BINDINGS=true npx tsx prisma/seed.ts
+          node scripts/d1-dump.mjs "$D1_FILE" seed.sql
+          npx wrangler d1 migrations apply "$NAME" --remote --config wrangler.staging.jsonc
+          # Each part is one atomic import (D1 rolls a failed one back), so a transient D1 error just means trying that part again.
+          for part in seed.sql.*; do
+            for try in 1 2 3; do
+              npx wrangler d1 execute "$NAME" --remote --file "$part" -y --config wrangler.staging.jsonc && break
+              test "$try" != 3 || { echo "$part failed three times"; exit 1; }
+              echo "$part: retrying ($try)"; sleep 10
+            done
+          done
+        env:
+          SEED_DAYS: "21"
+
+      - run: npm run build
+
+      - name: Deploy the staging Worker and set its secrets
+        id: deploy
+        run: |
+          set -e
+          npx wrangler deploy --config wrangler.staging.jsonc | tee deploy.log
+          URL=$(grep -o 'https://[a-z0-9.-]*workers.dev' deploy.log | head -1)
+          test -n "$URL"
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          printf '{"SESSION_SECRET":"%s","CRON_SECRET":"%s","APP_URL":"%s"}' "$SESSION_SECRET" "$CRON_SECRET" "$URL" | npx wrangler secret bulk --config wrangler.staging.jsonc
+          for i in $(seq 1 30); do curl -sf "$URL/api/health" && break; sleep 3; done
+          curl -sf "$URL/api/health" | tee health.json | jq -e '.ok and .db == "up"'
+
+      - name: The four scheduled jobs through their routes (what the Cron Triggers call)
+        run: |
+          for job in frequent staff-push daily operations; do
+            code=$(curl -s -o "cron-$job.json" -w '%{http_code}' -X POST "$URL/api/cron/$job" -H "Authorization: Bearer $CRON_SECRET")
+            echo "$job → $code: $(head -c 300 "cron-$job.json")"
+            test "$code" = 200
+          done
+        env:
+          URL: ${{ steps.deploy.outputs.url }}
+
+      - run: npx playwright install --with-deps chromium
+
+      - name: The seven journeys against the staging Worker (database checks over the D1 HTTP API)
+        run: |
+          set -e
+          for j in checkout pos backoffice hq shop trade accounting; do
+            echo "::group::$j"
+            node "e2e/$j.mjs" "test-results/e2e-$j"
+            echo "::endgroup::"
+          done
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          APP_URL: ${{ steps.deploy.outputs.url }}
+          DEMO_MODE: "true"
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          CLOUDFLARE_DATABASE_ID: ${{ steps.cf.outputs.database_id }}
+          CLOUDFLARE_D1_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - name: Crawl every page as every role (Studio cards render through Browser Rendering here)
+        run: node e2e/crawl.mjs test-results/e2e-crawl
+        env:
+          BASE_URL: ${{ steps.deploy.outputs.url }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ steps.cf.outputs.account_id }}
+          CLOUDFLARE_DATABASE_ID: ${{ steps.cf.outputs.database_id }}
+          CLOUDFLARE_D1_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cloudflare-staging-results
+          path: |
+            test-results
+            deploy.log
+            health.json
+            cron-*.json
+
+      - name: Where it is
+        if: always()
+        run: echo "Staging Worker ${{ steps.deploy.outputs.url }} (demo logins at /login, password holland)"
+
+      - name: Take the staging Worker and its database down
+        if: always() && inputs.keep == false && github.event_name == 'workflow_dispatch'
+        run: |
+          npx wrangler delete "$NAME" --force --config wrangler.staging.jsonc || true
+          npx wrangler d1 delete "$NAME" -y || true

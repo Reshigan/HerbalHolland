@@ -55,8 +55,7 @@ export async function recordStatementPayment(a: StatementPaymentInput, user: Rec
   return tx(async (t) => {
     const store = await t.store.findUnique({ where: { id: a.storeId }, select: { id: true, kind: true, companyId: true, company: { select: { kind: true } } } });
     if (!store || store.kind !== "RETAIL" || store.company.kind !== "FRANCHISEE") throw new StatementPaymentError("Statement payments are for franchise stores");
-    // One at a time per store: the same payment submitted twice is recorded once.
-    await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`statement-payment:${store.id}`}))`;
+    // The same payment submitted twice is recorded once (D1 runs writes one at a time).
     if (await t.statementPayment.count({ where: { storeId: store.id, month, amountCents, reference } }))
       throw new StatementPaymentError(`A payment of ${zar(cents)} with reference ${reference} is already recorded against this statement`, "reference");
     const p = await t.statementPayment.create({ data: { storeId: store.id, companyId: store.companyId, month, amountCents, paidOn: new Date(`${a.paidOn}T00:00:00Z`), reference, note, createdById: user.id } });

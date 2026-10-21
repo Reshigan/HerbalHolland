@@ -3,7 +3,7 @@
 // to the browser as a small product record plus its server-rendered art (instead of the whole rendered card tree in
 // the RSC payload) roughly halves what the browser has to parse and hydrate. The markup is still server-rendered.
 import Link from "next/link";
-import { Truck, Store, Package, CircleOff, ChevronRight, Shirt } from "lucide-react";
+import { Truck, Store, Package, CircleOff, ChevronRight, Shirt, Sparkles } from "lucide-react";
 import { AddToBag } from "./add-to-bag";
 import { WishlistButton } from "./wishlist-button";
 import { Price, Stars, Tag } from "./ui";
@@ -11,9 +11,11 @@ import { cn } from "@/lib/cn";
 import { zar } from "@/lib/money";
 import type { ProductCard as Card } from "@/server/shop/catalogue";
 
-export function StockLine({ stock, className }: { stock: Card["stock"]; className?: string }) {
+export function StockLine({ stock, online = true, className }: { stock: Card["stock"]; online?: boolean; className?: string }) {
   const [icon, text, tone] =
-    stock.kind === "made"
+    !online && stock.kind !== "out"
+      ? [<Sparkles key="i" className="h-3.5 w-3.5" />, "Online shopping opens soon", "text-ink-300"]
+      : stock.kind === "made"
       ? [<Shirt key="i" className="h-3.5 w-3.5" />, "Made to order · ships nationwide", "text-ink-300"]
       : stock.kind === "store"
       ? [<Store key="i" className="h-3.5 w-3.5" />, `In stock at ${stock.store}`, "text-leaf-100"]
@@ -29,7 +31,7 @@ export function StockLine({ stock, className }: { stock: Card["stock"]; classNam
  * `art` is the server-rendered picture; `buyable={false}` drops the quick-add (e.g. a limited drop that isn't open to
  * this shopper yet); `wished` (a member's wishlist state for the first variant) shows the heart (null for guests).
  */
-export function ProductCardView({ p, art, buyable = true, wished = null }: { p: Card; art: React.ReactNode; buyable?: boolean; wished?: boolean | null }) {
+export function ProductCardView({ p, art, buyable = true, online = true, wished = null }: { p: Card; art: React.ReactNode; buyable?: boolean; online?: boolean; wished?: boolean | null }) {
   const low = (p.stock.kind === "store" || p.stock.kind === "ships") && p.stock.low;
   return (
     <article className="group relative flex flex-col overflow-hidden rounded-2xl border border-ink-800 bg-ink-900/60 transition duration-300 hover:-translate-y-0.5 hover:border-ink-600 hover:shadow-[0_18px_40px_-20px_rgb(245_145_60/0.35)]">
@@ -76,7 +78,7 @@ export function ProductCardView({ p, art, buyable = true, wished = null }: { p: 
             </p>
           )}
         </div>
-        <StockLine stock={p.stock} className="mt-3 border-t border-ink-800 pt-3" />
+        <StockLine stock={p.stock} online={online} className="mt-3 border-t border-ink-800 pt-3" />
       </div>
     </article>
   );

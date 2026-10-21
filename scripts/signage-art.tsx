@@ -1,5 +1,5 @@
-// Shopfront signage, drawn at actual size in millimetres: the fascia (two sizes), the projecting blade sign, the window
-// poster and the door vinyl. Lettering is outlined (scripts/text-outline.py), so the files cut as they are; the Mark is
+// Store signage, drawn at actual size in millimetres: the fascia (two sizes), the projecting blade sign, the window
+// poster, the door vinyl, the window stickers, the in-store signs, a header for every shelving bay and the wall art. Lettering is outlined (scripts/text-outline.py), so the files cut as they are; the Mark is
 // drawn as strokes (Outline Stroke before routing). Writes SVG, PDF (actual size), a PNG preview and a preview on the
 // panel's colour per design to public/brand/signage, plus a night mock-up of a shopfront (storefront.svg/.png).
 //   npx tsx --env-file=.env scripts/signage-art.tsx [STORE_CODE]   (a store code: its door vinyl with its name and hours)
@@ -8,6 +8,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { chromium } from "@playwright/test";
 import { MarkGlyph } from "../src/components/brand/logo";
+import { CATEGORIES } from "../prisma/seed-data";
 import { hoursLine, parseHours, type Hours } from "../src/server/shop/hours";
 
 const OUT = "public/brand/signage";
@@ -152,6 +153,237 @@ const DESIGNS: Design[] = [
   },
 ];
 
+// ── Window stickers, in-store signs, bay headers and wall art ─────────────────────────────────────────────────────
+
+const CUT = "Cut vinyl, one colour, no background: weeded and applied with transfer tape.";
+const center = (text: string, weight: number, size: number, y: number, x: number, tracking = 0.04) => <T text={text} weight={weight} size={size} width={widthOf(text, weight, size, tracking)} x={x} y={y} />;
+
+const WINDOW: Design[] = [
+  {
+    key: "window-manifestation", name: "Glass manifestation band, 1,000 × 80 mm (tiles every 250 mm)", w: 1000, h: 80, ink: SUNSET, ground: null,
+    how: `${CUT} Sunset (or etch-effect frost) on every glass door and full-height pane, two bands centred 1,000 mm and 1,500 mm from the floor, so nobody walks into the glass (SANS 10400-N). The pattern repeats every 250 mm: run it the full width of the glass.`,
+    body: (
+      <>
+        {[0, 1, 2, 3].map((i) => (
+          <g key={i}>
+            <M x={i * 250 + 14} y={10} size={60} heavy />
+            <T text="HERBAL HOLLAND" weight={700} size={15} width={widthOf("HERBAL HOLLAND", 700, 15, 0.06)} x={i * 250 + 84} y={46} anchor="start" />
+          </g>
+        ))}
+      </>
+    ),
+  },
+  {
+    key: "window-mark", name: "Window Mark, Ø600 mm", w: 600, h: 600, ink: SUNSET, ground: null,
+    how: `${CUT} Sunset, on the main window, centre 1,700 mm from the floor. Reverse-cut and applied from inside for a clean face that can't be scratched off.`,
+    body: <M x={0} y={0} size={600} />,
+  },
+  {
+    key: "window-members", name: "Members-only notice, 420 × 150 mm", w: 420, h: 150, ink: SUNSET, ground: null,
+    how: `${CUT} Sunset, on the door glass beside the hours, centre 1,500 mm. Required wording: we sell to members only, adults 18+.`,
+    body: (
+      <>
+        <T text="MEMBERS ONLY" weight={800} size={46} width={400} x={210} y={58} />
+        <rect x={10} y={78} width={400} height={2.4} fill="currentColor" />
+        <T text="ADULTS 18+ · JOIN FREE IN STORE OR ONLINE" weight={600} size={15} width={400} x={210} y={110} />
+        {center("shop.herbalholland.com", 400, 15, 138, 210, 0.02)}
+      </>
+    ),
+  },
+  ...["HILLCREST", "HILTON"].map(
+    (town): Design => ({
+      key: `window-town-${town.toLowerCase()}`, name: `Store name, ${town[0] + town.slice(1).toLowerCase()}, 900 × 200 mm`, w: 900, h: 200, ink: SUNSET, ground: null,
+      how: `${CUT} Sunset, along the top of the main window (top of the letters 100 mm below the frame), or on the fanlight above the door.`,
+      body: (
+        <>
+          <M x={20} y={20} size={160} heavy />
+          <T text="HERBAL HOLLAND" weight={600} size={30} width={420} x={210} y={62} anchor="start" />
+          <T text={town} weight={800} size={92} width={widthOf(town, 800, 92, 0.06)} x={206} y={168} anchor="start" />
+        </>
+      ),
+    }),
+  ),
+];
+
+const INSIDE: Design[] = [
+  {
+    key: "feature-mark", name: "Feature-wall Mark, Ø1,200 mm (illuminated)", w: 1200, h: 1200, ink: SUNSET, ground: null,
+    how: "The Mark on the black feature wall behind the counter, centre 1,900 mm from the floor: built-up channel letters 60 mm deep, Sunset acrylic faces, face-lit with warm white LEDs (or 30 mm Sunset neon flex on a black backing routed to this shape). This file is the face, cut as drawn.",
+    body: <M x={0} y={0} size={1200} />,
+  },
+  ...([
+    ["counter-pay", "Counter sign: Pay here", "PAY HERE", "CARD · CASH · PAYSHAP"],
+    ["counter-collect", "Counter sign: Click & collect", "CLICK & COLLECT", "SHOW YOUR ORDER CODE"],
+  ] as const).map(
+    ([key, name, big, small]): Design => ({
+      key, name: `${name}, 900 × 260 mm (hanging, double-sided)`, w: 900, h: 260, ink: SUNSET, ground: INK,
+      how: "6 mm black acrylic, letters in Sunset vinyl (or UV-printed) on both faces, hung on two steel cables over the cash wrap, bottom edge 2,300 mm from the floor.",
+      body: (
+        <>
+          <rect x={14} y={14} width={872} height={232} rx={34} fill="none" stroke="currentColor" strokeWidth={8} />
+          <M x={52} y={50} size={160} heavy />
+          {(() => {
+            const size = Math.min(78, (78 * 610) / widthOf(big, 800, 78, 0.04));
+            return <T text={big} weight={800} size={size} width={widthOf(big, 800, size, 0.04)} x={250} y={140} anchor="start" />;
+          })()}
+          <T text={small} weight={600} size={24} width={widthOf(small, 600, 24, 0.16)} x={252} y={196} anchor="start" />
+        </>
+      ),
+    }),
+  ),
+  {
+    key: "dispensary", name: "Dispensary sign, 600 × 200 mm", w: 600, h: 200, ink: SUNSET, ground: INK,
+    how: "3 mm black ACM, Sunset vinyl, screwed to the wall beside the dispensary counter at 1,800 mm. Plain wording only: no product names, no claims.",
+    body: (
+      <>
+        <M x={30} y={34} size={132} heavy />
+        <T text="DISPENSARY" weight={800} size={58} width={400} x={180} y={104} anchor="start" />
+        <T text="REGISTERED PATIENTS · ASK OUR DISPENSER" weight={600} size={15} width={392} x={182} y={146} anchor="start" />
+      </>
+    ),
+  },
+  {
+    key: "fitting-room", name: "Fitting room, 300 × 420 mm", w: 300, h: 420, ink: SUNSET, ground: INK,
+    how: "3 mm black ACM, Sunset vinyl, on the curtain rail bracket or the wall beside it at 1,600 mm.",
+    body: (
+      <>
+        <rect x={10} y={10} width={280} height={400} rx={30} fill="none" stroke="currentColor" strokeWidth={6} />
+        <M x={75} y={60} size={150} />
+        <T text="FITTING" weight={800} size={46} width={220} x={150} y={300} />
+        <T text="ROOM" weight={300} size={46} width={160} x={150} y={352} />
+      </>
+    ),
+  },
+];
+
+// Licensed categories (THC) stay behind the dispensary counter, not on open shelves: no bay headers for them.
+const LICENSED = new Set(["flower", "pre-rolls", "edibles", "vapes", "concentrates"]);
+const BAYS: Design[] = CATEGORIES.filter((c) => !LICENSED.has(c.slug)).map((c) => {
+  const name = c.name.toUpperCase();
+  return {
+    key: `bay-${c.slug}`, name: `Bay header: ${c.name}, 1,000 × 150 mm`, w: 1000, h: 150, ink: SUNSET, ground: INK,
+    how: "3 mm black ACM header on top of each 1,000 mm shelving bay (Hilton layout), letters in Sunset vinyl or UV print. Clips to the bay uprights.",
+    body: (
+      <>
+        <M x={24} y={22} size={106} heavy />
+        <T text={name} weight={800} size={58} width={Math.min(800, widthOf(name, 800, 58, 0.08))} x={156} y={98} anchor="start" />
+        <rect x={156} y={116} width={820} height={3} fill="currentColor" />
+      </>
+    ),
+  };
+});
+
+// ── Wall art: "Holland, meet the Hills": a striped Sunset sun going down over the KZN hills, a windmill on the ridge ──
+const SKY = ["#0c0a09", "#1a110d", "#2b1810", "#43200f", "#6a2e12", "#9c4517", "#d16a26"];
+const HILLS = ["#5a2a14", "#3a1c10", "#22120c", "#0c0a09"];
+function hills(w: number, h: number, seed = 0) {
+  const horizon = h * 0.6, r = h * 0.27, cx = w * 0.64;
+  const band = horizon / SKY.length;
+  const ridge = (layer: number) => {
+    const base = horizon + layer * h * 0.085 - h * 0.02, amp = h * (0.05 + layer * 0.012), n = 160;
+    const ys = Array.from({ length: n + 1 }, (_, i) => {
+      const t = i / n;
+      return base - amp * (Math.sin(t * (3.1 + layer * 0.7) + seed + layer * 1.9) * 0.6 + Math.sin(t * (7.3 + layer) + layer * 0.8) * 0.25 + Math.sin(t * 13.7 + layer * 2.3) * 0.08);
+    });
+    return { d: `M0 ${h} ` + ys.map((y, i) => `L${((i / n) * w).toFixed(1)} ${y.toFixed(1)}`).join(" ") + ` L${w} ${h} Z`, ys };
+  };
+  // Sun in horizontal slices that thin towards the horizon (the striped sun of the shirt and the window).
+  const slices: [number, number][] = [];
+  let y = horizon - r;
+  slices.push([y, horizon - r * 0.42]);
+  y = horizon - r * 0.42;
+  for (let i = 0; y < horizon; i++) {
+    const gap = r * (0.03 + i * 0.012), bar = r * Math.max(0.05, 0.09 - i * 0.008);
+    y += gap;
+    if (y >= horizon) break;
+    slices.push([y, Math.min(horizon, y + bar)]);
+    y += bar;
+  }
+  const xAt = (yy: number) => Math.sqrt(Math.max(0, r * r - (horizon - yy) ** 2));
+  const slice = ([y1, y2]: [number, number]) => `M${cx - xAt(y1)} ${y1} L${cx + xAt(y1)} ${y1} A${r} ${r} 0 0 1 ${cx + xAt(y2)} ${y2} L${cx - xAt(y2)} ${y2} A${r} ${r} 0 0 1 ${cx - xAt(y1)} ${y1} Z`;
+  const layers = HILLS.map((_, i) => ridge(i));
+  // A smock mill on the third ridge, left of the sun: tapered tower, cap and four sails with their lattice.
+  const mx = w * 0.27, i3 = Math.round((mx / w) * 160), my = layers[2].ys[i3] + h * 0.012, th = h * 0.21, hubY = my - th;
+  const L = th * 0.9, sw = L * 0.2, ink = HILLS[3];
+  const sail = (deg: number) => (
+    <g key={deg} transform={`translate(${mx} ${hubY}) rotate(${deg})`}>
+      <rect x={-th * 0.012} y={-L} width={th * 0.024} height={L} fill={ink} />
+      <path
+        fillRule="evenodd"
+        fill={ink}
+        d={`M${th * 0.012} ${-L} h${sw} v${L * 0.78} h${-sw} Z ` + Array.from({ length: 7 }, (_, k) => `M${th * 0.012 + sw * 0.18} ${-L + L * 0.03 + k * L * 0.105} h${sw * 0.64} v${L * 0.07} h${-sw * 0.64} Z`).join(" ")}
+      />
+    </g>
+  );
+  return (
+    <>
+      {SKY.map((c, i) => <rect key={c} x={0} y={i * band} width={w} height={band + 0.5} fill={c} />)}
+      <rect x={0} y={horizon} width={w} height={h - horizon} fill={SKY[SKY.length - 1]} />
+      {slices.map((s, i) => <path key={i} d={slice(s)} fill={SUNSET} />)}
+      {layers.slice(0, 2).map((l, i) => <path key={i} d={l.d} fill={HILLS[i]} />)}
+      <path d={layers[2].d} fill={HILLS[2]} />
+      <path d={`M${mx - th * 0.22} ${my} L${mx - th * 0.1} ${hubY + th * 0.06} L${mx + th * 0.1} ${hubY + th * 0.06} L${mx + th * 0.22} ${my} Z`} fill={ink} />
+      <path d={`M${mx - th * 0.13} ${hubY + th * 0.08} Q${mx} ${hubY - th * 0.12} ${mx + th * 0.13} ${hubY + th * 0.08} Z`} fill={ink} />
+      {[25, 115, 205, 295].map(sail)}
+      <circle cx={mx} cy={hubY} r={th * 0.03} fill={SKY[5]} />
+      <path d={layers[3].d} fill={HILLS[3]} />
+    </>
+  );
+}
+
+const ART: Design[] = [
+  {
+    key: "mural-hills", name: "Mural: Holland, meet the Hills, 2,400 × 1,600 mm", w: 2400, h: 1600, ink: SUNSET, ground: null,
+    how: "Feature wall opposite the counter (the Christians Village and Hilton concept). Print on matte vinyl wallpaper, or paint by colour: the sky is seven flat bands, the sun is Sunset #F5913C, the hills four flat browns to black (hex values in the file; mix to match, low-sheen acrylic). Scale up or down evenly to fit the wall.",
+    body: hills(2400, 1600),
+  },
+  {
+    key: "print-hills", name: "Framed print: Holland, meet the Hills, A1 594 × 841 mm", w: 594, h: 841, ink: SUNSET, ground: null,
+    how: "Giclée or UV print on 300 g matte art paper, black aluminium frame with a 50 mm cream mount. A1 portrait.",
+    body: (
+      <>
+        <rect width={594} height={841} fill="#fbf7f3" />
+        <svg x={34} y={34} width={526} height={640} viewBox="0 0 526 640">{hills(526, 640, 1.3)}</svg>
+        <g color={INK}>
+          <T text="HOLLAND, MEET THE HILLS" weight={700} size={30} width={526} x={297} y={738} />
+          <T text={TAGLINE} weight={500} size={15} width={330} x={297} y={786} />
+        </g>
+      </>
+    ),
+  },
+  {
+    key: "print-mark", name: "Framed print: the Mark, A1 594 × 841 mm", w: 594, h: 841, ink: SUNSET, ground: null,
+    how: "Print on 300 g matte art paper, black frame, no mount (full bleed to the frame). A1 portrait.",
+    body: (
+      <>
+        <rect width={594} height={841} fill={INK} />
+        <rect x={34} y={34} width={526} height={773} rx={60} fill="none" stroke={SUNSET} strokeWidth={14} />
+        <g color={SUNSET}>
+          <M x={297 - 180} y={140} size={360} />
+          <Words x={297} y={548} width={330} size={64} />
+          <T text={TAGLINE} weight={500} size={17} width={380} x={297} y={738} />
+        </g>
+      </>
+    ),
+  },
+  {
+    key: "print-words", name: "Framed print: Dutch heritage, African soil, A1 594 × 841 mm", w: 594, h: 841, ink: INK, ground: null,
+    how: "Print on 300 g matte art paper, black frame. A1 portrait. Hang as a pair with the Mark print.",
+    body: (
+      <>
+        <rect width={594} height={841} fill={SUNSET} />
+        <g color={INK}>
+          <M x={60} y={60} size={110} heavy />
+          <T text="DUTCH" weight={800} size={118} width={474} x={60} y={380} anchor="start" />
+          <T text="HERITAGE." weight={300} size={92} width={474} x={60} y={480} anchor="start" />
+          <T text="AFRICAN" weight={800} size={118} width={474} x={60} y={640} anchor="start" />
+          <T text="SOIL." weight={300} size={92} width={240} x={60} y={740} anchor="start" />
+        </g>
+      </>
+    ),
+  },
+];
+
 // ── Night mock-up of a shopfront (6 m wide), to see the set together ───────────────────────────────────────────────
 function Storefront({ door, fasciaD, blade, poster }: { door: Design; fasciaD: Design; blade: Design; poster: Design }) {
   const W = 6800, H = 4200, f = { x: 800, y: 380, w: 4800, h: 900 };
@@ -229,7 +461,7 @@ if (code) {
   store = { code: s.code, name: s.name, hours: parseHours(s.hours) };
 }
 const door = doorVinyl(store);
-const all = code ? [door] : [...DESIGNS, door];
+const all = code ? [door] : [...DESIGNS, door, ...WINDOW, ...INSIDE, ...BAYS, ...ART];
 
 const svgOf = (d: Design, size: { width: string; height: string }, ground = false) =>
   renderToStaticMarkup(

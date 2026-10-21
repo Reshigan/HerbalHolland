@@ -35,7 +35,7 @@ export default async function EventsPage({ searchParams }: { searchParams: Promi
   const page = pageParam(sp.page);
   const q = sp.q?.trim();
   const storeFilter = sp.store && ids.includes(sp.store) ? [sp.store] : ids;
-  const base: Prisma.StoreEventWhereInput = { storeId: { in: storeFilter }, ...(q && { title: { contains: q, mode: "insensitive" } }) };
+  const base: Prisma.StoreEventWhereInput = { storeId: { in: storeFilter }, ...(q && { title: { contains: q } }) };
   const byTab: Record<string, Prisma.StoreEventWhereInput> = { upcoming: { endsAt: { gt: now } }, past: { endsAt: { lte: now } } };
   const where = { AND: [base, byTab[tab]] };
   const [stores, counts, events] = await Promise.all([

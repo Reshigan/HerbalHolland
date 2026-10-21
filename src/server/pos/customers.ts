@@ -41,8 +41,8 @@ export async function searchCustomers(raw: string, storeId: string): Promise<Cus
         : q.includes("@")
           ? { email: q.toLowerCase() }
           : words.length > 1
-            ? { firstName: { startsWith: words[0], mode: "insensitive" as const }, lastName: { startsWith: words.slice(1).join(" "), mode: "insensitive" as const } }
-            : { OR: [{ firstName: { startsWith: q, mode: "insensitive" as const } }, { lastName: { startsWith: q, mode: "insensitive" as const } }] };
+            ? { firstName: { startsWith: words[0] }, lastName: { startsWith: words.slice(1).join(" ") } }
+            : { OR: [{ firstName: { startsWith: q } }, { lastName: { startsWith: q } }] };
   const find = (w: Prisma.CustomerWhereInput) =>
     db.customer.findMany({
       where: w,

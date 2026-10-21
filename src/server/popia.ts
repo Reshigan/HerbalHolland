@@ -9,6 +9,8 @@ import { audit, type Actor } from "./audit";
 import { addPoints } from "./loyalty";
 import { deleteObject } from "./storage";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { asList, inBatches } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 /** An expected refusal, shown to HQ as it is. */
 export class ErasureError extends Error {}
@@ -20,7 +22,9 @@ const ANONYMISED = "Anonymised";
 const isAnonymised = (c: { phone: string }) => c.phone.startsWith("anon-");
 
 type Member = { id: string; phone: string; email: string | null };
-const insensitive = (email: string) => ({ equals: email, mode: "insensitive" as const });
+// SQLite compares `=` case-sensitively but LIKE not (for ASCII): a string that both starts and ends with the email is the email, any case.
+// (An address too long for a D1 LIKE pattern, 49 bytes, is matched exactly instead.)
+const insensitive = (email: string) => (likeTerm(email, 49) === email ? { startsWith: email, endsWith: email } : { equals: email });
 /** Their mobile and email, as the do-not-contact list keeps them. */
 const contactOf = (c: Member) => (c.email ? [c.phone, c.email] : [c.phone]);
 // Their herbalholland.com first-access sign-up, if it hasn't been told and deleted yet (src/server/early-access.ts).
@@ -88,8 +92,8 @@ export async function memberExport(customerId: string) {
     db.earlyAccessContact.findMany({ where: firstAccessOf(c), select: { firstName: true, email: true, mobile: true, province: true, source: true, signedUpAt: true } }),
   ]);
   const [variants, orderCodes] = await Promise.all([
-    db.variant.findMany({ where: { id: { in: [...wishlist, ...reminders].map((w) => w.variantId) } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } }),
-    db.order.findMany({ where: { id: { in: returns.map((r) => r.orderId) } }, select: { id: true, code: true } }),
+    inBatches([...wishlist, ...reminders].map((w) => w.variantId), (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } })),
+    inBatches(returns.map((r) => r.orderId), (part) => db.order.findMany({ where: { id: { in: part } }, select: { id: true, code: true } })),
   ]);
   const item = (variantId: string) => {
     const v = variants.find((x) => x.id === variantId);
@@ -99,13 +103,13 @@ export async function memberExport(customerId: string) {
   void _hash;
   return {
     ...profile,
-    reviews: reviews.map(({ photoUploadIds, ...r }) => ({ ...r, photos: photoUploadIds.length })),
+    reviews: reviews.map(({ photoUploadIds, ...r }) => ({ ...r, photos: asList(photoUploadIds).length })),
     messages,
     addresses,
     wishlist: wishlist.map((w) => ({ ...item(w.variantId), addedAt: w.createdAt })),
     reorderReminders: reminders.map(({ variantId, ...r }) => ({ ...item(variantId), ...r })),
     supportRequests: tickets.map(({ messages: thread, ...t }) => ({ ...t, messages: thread.map(({ attachmentUploadId, ...m }) => ({ ...m, photo: !!attachmentUploadId })) })),
-    returns: returns.map(({ orderId, photoUploadIds, ...r }) => ({ ...r, order: orderCodes.find((o) => o.id === orderId)?.code ?? null, photos: photoUploadIds.length })),
+    returns: returns.map(({ orderId, photoUploadIds, ...r }) => ({ ...r, order: orderCodes.find((o) => o.id === orderId)?.code ?? null, photos: asList(photoUploadIds).length })),
     giftVouchers: vouchers.map(({ purchasedByCustomerId, ...v }) => ({ ...v, boughtByThem: purchasedByCustomerId === c.id })),
     photos,
     doNotContact,
@@ -126,7 +130,8 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
   const now = new Date();
   const keys = await tx(async (t) => {
     if (c.points > 0) await addPoints(t, { customerId, points: -c.points, kind: "EXPIRE", note: "Forfeited on POPIA erasure request" });
-    await t.suppression.createMany({ data: contactOf(c).map((value) => ({ value, channel: null, source: "REFUSED" })), skipDuplicates: true });
+    const listed = new Set((await t.suppression.findMany({ where: { value: { in: contactOf(c) }, source: "REFUSED" }, select: { value: true } })).map((s) => s.value));
+    await t.suppression.createMany({ data: contactOf(c).filter((value) => !listed.has(value)).map((value) => ({ value, channel: null, source: "REFUSED" })) });
     await t.customer.update({
       where: { id: customerId },
       data: {
@@ -161,11 +166,11 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     await t.returnRequest.updateMany({ where: { customerId }, data: { note: null, photoUploadIds: [] } });
     // Support requests outlive the member (numbers and categories feed the service figures); nobody is left to answer.
     const ticketIds = (await t.supportTicket.findMany({ where: ticketsOf(c), select: { id: true } })).map((x) => x.id);
-    const attachments = await t.supportMessage.findMany({ where: { ticketId: { in: ticketIds }, attachmentUploadId: { not: null } }, select: { attachmentUploadId: true } });
-    await t.supportMessage.updateMany({ where: { ticketId: { in: ticketIds } }, data: { body: ERASED, attachmentUploadId: null } });
-    await t.supportMessage.updateMany({ where: { ticketId: { in: ticketIds }, authorType: "MEMBER" }, data: { authorName: ANONYMISED } });
-    await t.supportTicket.updateMany({ where: { id: { in: ticketIds } }, data: { name: ANONYMISED, email: null, phone: null, subject: ERASED, body: ERASED, ipHash: null } });
-    await t.supportTicket.updateMany({ where: { id: { in: ticketIds }, status: { not: "RESOLVED" } }, data: { status: "RESOLVED", resolvedAt: now } });
+    const attachments = await inBatches(ticketIds, (part) => t.supportMessage.findMany({ where: { ticketId: { in: part }, attachmentUploadId: { not: null } }, select: { attachmentUploadId: true } }));
+    await inBatches(ticketIds, (part) => t.supportMessage.updateMany({ where: { ticketId: { in: part } }, data: { body: ERASED, attachmentUploadId: null } }).then((r) => [r]));
+    await inBatches(ticketIds, (part) => t.supportMessage.updateMany({ where: { ticketId: { in: part }, authorType: "MEMBER" }, data: { authorName: ANONYMISED } }).then((r) => [r]));
+    await inBatches(ticketIds, (part) => t.supportTicket.updateMany({ where: { id: { in: part } }, data: { name: ANONYMISED, email: null, phone: null, subject: ERASED, body: ERASED, ipHash: null } }).then((r) => [r]));
+    await inBatches(ticketIds, (part) => t.supportTicket.updateMany({ where: { id: { in: part }, status: { not: "RESOLVED" } }, data: { status: "RESOLVED", resolvedAt: now } }).then((r) => [r]));
     await t.giftVoucher.updateMany({ where: vouchersOf(c), data: { recipientName: null, recipientEmail: null, message: null } }); // the money stays on the code
     await t.messageLog.updateMany({ where: messagesOf(c), data: { to: "[erased]", body: ERASED } });
     if (c.referredById) await t.loyaltyEntry.updateMany({ where: { customerId: c.referredById, kind: "REFERRAL", note: `Referral: ${c.firstName}` }, data: { note: `Referral: ${ANONYMISED}` } });
@@ -173,13 +178,16 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     // The audit trail keeps what happened, not who: their name comes off what they did, and their mobile off the
     // "already linked to another member" checks made while they joined.
     await t.auditLog.updateMany({ where: { actorType: "CUSTOMER", actorId: customerId }, data: { actorName: ANONYMISED } });
-    const probes = await t.auditLog.findMany({ where: { action: "member.collision", data: { path: ["by"], equals: `phone:${c.phone}` } }, select: { id: true, data: true } });
+    const probes = await t.auditLog.findMany({ where: { action: "member.collision", data: { path: "$.by", equals: `phone:${c.phone}` } }, select: { id: true, data: true } });
     for (const p of probes) await t.auditLog.update({ where: { id: p.id }, data: { actorName: ANONYMISED, data: { ...(p.data as Prisma.JsonObject), by: "phone:[erased]" } } });
 
     // Their photos (reviews, returns, support): the rows here, the stored files once this commits.
-    const ids = [...reviews, ...returns].flatMap((r) => r.photoUploadIds).concat(attachments.flatMap((m) => (m.attachmentUploadId ? [m.attachmentUploadId] : [])));
-    const files = await t.upload.findMany({ where: { OR: [{ id: { in: ids } }, { uploadedById: customerId }] }, select: { id: true, key: true } });
-    await t.upload.deleteMany({ where: { id: { in: files.map((f) => f.id) } } });
+    const ids = [...reviews, ...returns].flatMap((r) => asList<string>(r.photoUploadIds)).concat(attachments.flatMap((m) => (m.attachmentUploadId ? [m.attachmentUploadId] : [])));
+    const files = [...new Map([
+      ...(await inBatches([...new Set(ids)], (part) => t.upload.findMany({ where: { id: { in: part } }, select: { id: true, key: true } }))),
+      ...(await t.upload.findMany({ where: { uploadedById: customerId }, select: { id: true, key: true } })),
+    ].map((f) => [f.id, f])).values()];
+    await inBatches(files.map((f) => f.id), (part) => t.upload.deleteMany({ where: { id: { in: part } } }).then((r) => [r]));
     await audit(t, actor, "customer.anonymise", { entity: "Customer", entityId: customerId, data: { memberNo: c.memberNo, reason, pointsForfeited: Math.max(0, c.points), files: files.length, supportRequests: ticketIds.length } });
     return files.map((f) => f.key);
   });

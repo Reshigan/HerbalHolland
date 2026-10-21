@@ -1,28 +1,21 @@
-// Campaign Studio cards, drawn with next/og in the brand's own type (Outfit, Inter) and colours: the orange window frame
-// on warm black, the windmill, the KwaZulu-Natal hills, "Adults 18+" on every one. No stock photos and no AI pictures.
+// Campaign Studio cards, drawn in the brand's own type (Outfit, Inter) and colours: the orange window frame on warm
+// black, the windmill, the KwaZulu-Natal hills, "Adults 18+" on every one. No stock photos and no AI pictures.
 // Square for feeds, portrait for Instagram, story for Stories and WhatsApp Status, link for link previews. Postiz gets
 // them as JPEG (Instagram takes nothing else).
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
-import { ImageResponse } from "next/og";
-import sharp from "sharp";
+// Each card is a small HTML page laid out with flexbox, rendered by Cloudflare Browser Rendering (`withPage`, the
+// `BROWSER` binding) and screenshotted at its exact pixel size. The fonts (public/fonts/studio) and the merch photos
+// (public/social) are fetched from the app itself over HTTP, since a Worker has no filesystem.
 import { markDataUri } from "@/components/shop/mark-svg";
 import { HILLS } from "@/lib/hills";
 import type { Card } from "@/lib/studio";
+import { APP_URL } from "@/server/invoices";
+import { withPage } from "@/server/pdf";
 
 export const CARD_SIZES = { square: [1080, 1080], portrait: [1080, 1350], story: [1080, 1920], link: [1200, 630] } as const;
 export type CardSize = keyof typeof CARD_SIZES;
 export const isCardSize = (s: string | null): s is CardSize => !!s && Object.hasOwn(CARD_SIZES, s);
 
 const INK = "#0c0a09", BRAND = "#f5913c", CREAM = "#fbf7f3", SOFT = "#bdb3a9";
-
-const font = (f: string) => readFile(join(process.cwd(), "src/assets/fonts", f));
-const FONTS = Promise.all([font("outfit-700.ttf"), font("outfit-600.ttf"), font("inter-400.ttf"), font("inter-600.ttf")]).then(([o7, o6, i4, i6]) => [
-  { name: "Outfit", data: o7, weight: 700 as const, style: "normal" as const },
-  { name: "Outfit", data: o6, weight: 600 as const, style: "normal" as const },
-  { name: "Inter", data: i4, weight: 400 as const, style: "normal" as const },
-  { name: "Inter", data: i6, weight: 600 as const, style: "normal" as const },
-]);
 
 const svgUri = (svg: string) => `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 // The hills in four tones of orange, far to near, as the site draws them.
@@ -33,7 +26,28 @@ const HILLS_URI = svgUri(
 );
 const TICK_URI = svgUri(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="${BRAND}"/><path d="M7 12.5l3.2 3.2L17 9" fill="none" stroke="${INK}" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`);
 
-const picture = async (key: string) => `data:image/jpeg;base64,${(await readFile(join(process.cwd(), "public/social", `${key}.jpg`))).toString("base64")}`;
+const picture = (key: string) => `${APP_URL()}/social/${encodeURIComponent(key)}.jpg`;
+
+const FONT_FACES = () =>
+  (
+    [
+      ["Outfit", 700, "outfit-700"],
+      ["Outfit", 600, "outfit-600"],
+      ["Inter", 400, "inter-400"],
+      ["Inter", 600, "inter-600"],
+    ] as const
+  )
+    .map(([family, weight, file]) => `@font-face{font-family:"${family}";font-weight:${weight};font-style:normal;src:url("${APP_URL()}/fonts/studio/${file}.ttf") format("truetype")}`)
+    .join("");
+
+const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+const css = (style: Record<string, string | number | undefined>) =>
+  Object.entries(style)
+    .filter(([, v]) => v !== undefined)
+    .map(([k, v]) => `${k}:${typeof v === "number" && k !== "line-height" && k !== "flex" && k !== "font-weight" && k !== "flex-shrink" ? `${v}px` : v}`)
+    .join(";");
+const div = (style: Record<string, string | number | undefined>, children: string) => `<div style="${css(style)}">${children}</div>`;
+const img = (src: string, w: number, h: number, style: Record<string, string | number | undefined> = {}) => `<img src="${src}" width="${w}" height="${h}" alt="" style="${css(style)}">`;
 
 /** Type sizes per format: the link card is short, the story tall. */
 function scale(size: CardSize) {
@@ -43,140 +57,98 @@ function scale(size: CardSize) {
   return { w, h, k, pad, frame, inner, innerW: w - 2 * (pad + frame), innerH: h - 2 * (pad + frame) };
 }
 
-export async function renderCard(card: Card, size: CardSize = "square") {
+/** The card as a complete HTML document at its pixel size (what the browser screenshots). */
+export function cardHtml(card: Card, size: CardSize = "square") {
   const s = scale(size);
   const px = (n: number) => Math.round(n * s.k);
-  const eyebrow = card.eyebrow && <div style={{ fontFamily: "Inter", fontWeight: 600, fontSize: px(30), letterSpacing: px(5), color: BRAND, marginBottom: px(22) }}>{card.eyebrow.toUpperCase()}</div>;
-  const headline = (fs = 100, color = CREAM) => <div style={{ fontFamily: "Outfit", fontWeight: 700, fontSize: px(fs), lineHeight: 1.04, letterSpacing: -px(2), color }}>{card.headline}</div>;
-  const sub = card.sub && <div style={{ fontFamily: "Inter", fontWeight: 400, fontSize: px(42), lineHeight: 1.3, color: SOFT, marginTop: px(26) }}>{card.sub}</div>;
-  const mark = (n: number) => (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={markDataUri({ bg: null, size: n, inset: 0 })} width={n} height={n} alt="" />
-  );
-  const brandRow = (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: px(18) }}>
-        {mark(px(64))}
-        <div style={{ fontFamily: "Outfit", fontWeight: 700, fontSize: px(30), letterSpacing: px(6), color: BRAND }}>HERBAL HOLLAND</div>
-      </div>
-      <div style={{ display: "flex", border: `${px(3)}px solid ${BRAND}`, borderRadius: 999, padding: `${px(8)}px ${px(20)}px`, fontFamily: "Inter", fontWeight: 600, fontSize: px(24), color: CREAM }}>ADULTS 18+</div>
-    </div>
+  const col = { display: "flex", "flex-direction": "column" };
+  const eyebrow = card.eyebrow ? div({ "font-family": "Inter", "font-weight": 600, "font-size": px(30), "letter-spacing": px(5), color: BRAND, "margin-bottom": px(22) }, esc(card.eyebrow.toUpperCase())) : "";
+  const headline = (fs = 100, color = CREAM) => div({ "font-family": "Outfit", "font-weight": 700, "font-size": px(fs), "line-height": 1.04, "letter-spacing": -px(2), color }, esc(card.headline));
+  const sub = card.sub ? div({ "font-family": "Inter", "font-weight": 400, "font-size": px(42), "line-height": 1.3, color: SOFT, "margin-top": px(26) }, esc(card.sub)) : "";
+  const mark = (n: number) => img(markDataUri({ bg: null, size: n, inset: 0 }), n, n);
+  const brandRow = div(
+    { display: "flex", "align-items": "center", "justify-content": "space-between" },
+    div({ display: "flex", "align-items": "center", gap: px(18) }, mark(px(64)) + div({ "font-family": "Outfit", "font-weight": 700, "font-size": px(30), "letter-spacing": px(6), color: BRAND }, "HERBAL HOLLAND")) +
+      div({ display: "flex", border: `${px(3)}px solid ${BRAND}`, "border-radius": 999, padding: `${px(8)}px ${px(20)}px`, "font-family": "Inter", "font-weight": 600, "font-size": px(24), color: CREAM }, "ADULTS 18+"),
   );
 
-  let body: React.ReactNode;
+  let body: string;
   let top = false; // the brand row above the words, leaving the bottom to the hills
   switch (card.template) {
     case "reveal":
       top = true;
-      body = (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-            {eyebrow}
-            {headline(104)}
-            {sub}
-          </div>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={HILLS_URI} width={s.innerW} height={Math.round(Math.min((s.innerW * 440) / 1600, s.innerH * 0.32))} alt="" style={{ marginLeft: -s.inner, marginRight: -s.inner, marginBottom: -s.inner, flexShrink: 0 }} />
-        </div>
+      body = div(
+        { ...col, flex: 1 },
+        div({ ...col, flex: 1, "justify-content": "center" }, eyebrow + headline(104) + sub) +
+          img(HILLS_URI, s.innerW, Math.round(Math.min((s.innerW * 440) / 1600, s.innerH * 0.32)), { "margin-left": -s.inner, "margin-right": -s.inner, "margin-bottom": -s.inner, "flex-shrink": 0 }),
       );
       break;
     case "countdown":
-      body = (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-          {eyebrow}
-          {headline(220, BRAND)}
-          {card.sub && <div style={{ fontFamily: "Outfit", fontWeight: 600, fontSize: px(56), lineHeight: 1.15, color: CREAM, marginTop: px(24) }}>{card.sub}</div>}
-        </div>
+      body = div(
+        { ...col, flex: 1, "justify-content": "center" },
+        eyebrow + headline(220, BRAND) + (card.sub ? div({ "font-family": "Outfit", "font-weight": 600, "font-size": px(56), "line-height": 1.15, color: CREAM, "margin-top": px(24) }, esc(card.sub)) : ""),
       );
       break;
     case "promise":
-      body = (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-          {eyebrow}
-          {headline(76)}
-          <div style={{ display: "flex", flexDirection: "column", gap: px(22), marginTop: px(40) }}>
-            {(card.lines ?? []).map((l) => (
-              <div key={l} style={{ display: "flex", alignItems: "center", gap: px(22) }}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={TICK_URI} width={px(40)} height={px(40)} alt="" />
-                <div style={{ fontFamily: "Inter", fontWeight: 400, fontSize: px(36), color: CREAM, flex: 1 }}>{l}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+      body = div(
+        { ...col, flex: 1, "justify-content": "center" },
+        eyebrow +
+          headline(76) +
+          div(
+            { ...col, gap: px(22), "margin-top": px(40) },
+            (card.lines ?? []).map((l) => div({ display: "flex", "align-items": "center", gap: px(22) }, img(TICK_URI, px(40), px(40)) + div({ "font-family": "Inter", "font-weight": 400, "font-size": px(36), color: CREAM, flex: 1 }, esc(l)))).join(""),
+          ),
       );
       break;
     case "event":
-      body = (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-          {eyebrow}
-          {headline(108, BRAND)}
-          {sub}
-          {card.lines?.length ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: px(10), marginTop: px(30) }}>
-              {card.lines.map((l) => (
-                <div key={l} style={{ fontFamily: "Inter", fontWeight: 600, fontSize: px(32), color: CREAM }}>{l}</div>
-              ))}
-            </div>
-          ) : null}
-        </div>
+      body = div(
+        { ...col, flex: 1, "justify-content": "center" },
+        eyebrow +
+          headline(108, BRAND) +
+          sub +
+          (card.lines?.length ? div({ ...col, gap: px(10), "margin-top": px(30) }, card.lines.map((l) => div({ "font-family": "Inter", "font-weight": 600, "font-size": px(32), color: CREAM }, esc(l))).join("")) : ""),
       );
       break;
     case "merch": {
-      const pic = card.image ? await picture(card.image) : null;
       const side = { link: 380, square: 380, portrait: 600, story: 820 }[size];
-      const img = pic && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={pic} width={side} height={side} alt="" style={{ borderRadius: px(28), flexShrink: 0 }} />
-      );
+      const pic = card.image ? img(picture(card.image), side, side, { "border-radius": px(28), "flex-shrink": 0, "object-fit": "cover" }) : "";
       body =
-        size === "link" ? (
-          <div style={{ display: "flex", flex: 1, alignItems: "center", gap: 40 }}>
-            {img}
-            <div style={{ display: "flex", flexDirection: "column", flex: 1 }}>
-              {eyebrow}
-              {headline(80)}
-              {sub}
-            </div>
-          </div>
-        ) : (
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, alignItems: "center", justifyContent: "center" }}>
-            {img}
-            <div style={{ display: "flex", flexDirection: "column", alignSelf: "stretch", marginTop: px(40) }}>
-              {eyebrow}
-              {headline(size === "square" ? 64 : 84)}
-              {sub}
-            </div>
-          </div>
-        );
+        size === "link"
+          ? div({ display: "flex", flex: 1, "align-items": "center", gap: 40 }, pic + div({ ...col, flex: 1 }, eyebrow + headline(80) + sub))
+          : div({ ...col, flex: 1, "align-items": "center", "justify-content": "center" }, pic + div({ ...col, "align-self": "stretch", "margin-top": px(40) }, eyebrow + headline(size === "square" ? 64 : 84) + sub));
       break;
     }
     default:
-      body = (
-        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-          {eyebrow}
-          {headline(110)}
-          {sub}
-        </div>
-      );
+      body = div({ ...col, flex: 1, "justify-content": "center" }, eyebrow + headline(110) + sub);
   }
 
-  return new ImageResponse(
-    (
-      <div style={{ width: "100%", height: "100%", display: "flex", background: INK, padding: s.pad }}>
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", border: `${s.frame}px solid ${BRAND}`, borderRadius: size === "link" ? 30 : 44, padding: s.inner, overflow: "hidden", gap: px(28) }}>
-          {top && brandRow}
-          {body}
-          {!top && brandRow}
-        </div>
-      </div>
-    ),
-    { width: s.w, height: s.h, fonts: await FONTS },
+  const frame = div(
+    { width: s.w, height: s.h, display: "flex", background: INK, padding: s.pad },
+    div({ flex: 1, display: "flex", "flex-direction": "column", border: `${s.frame}px solid ${BRAND}`, "border-radius": size === "link" ? 30 : 44, padding: s.inner, overflow: "hidden", gap: px(28) }, (top ? brandRow : "") + body + (top ? "" : brandRow)),
   );
+  // Flexbox as satori (Yoga) laid it out: border-box sizes, items that don't shrink, images as blocks, no default margins.
+  return `<!doctype html><html><head><meta charset="utf-8"><style>${FONT_FACES()}
+*{box-sizing:border-box;margin:0;padding:0;flex-shrink:0;min-width:0;min-height:0}html,body{width:${s.w}px;height:${s.h}px;overflow:hidden;background:${INK}}
+div{display:block;overflow-wrap:break-word;-webkit-font-smoothing:antialiased}img{display:block}</style></head><body>${frame}</body></html>`;
+}
+
+/** Screenshots the card at its pixel size. Only inside a Cloudflare request (the `BROWSER` binding). */
+async function shoot(card: Card, size: CardSize, type: "png" | "jpeg") {
+  const [w, h] = CARD_SIZES[size];
+  return withPage(async (page) => {
+    await page.setViewport({ width: w, height: h, deviceScaleFactor: 1 });
+    await page.setContent(cardHtml(card, size), { waitUntil: "networkidle0" });
+    await page.evaluate(() => document.fonts.ready);
+    return Buffer.from(await page.screenshot({ type, ...(type === "jpeg" ? { quality: 90 } : {}), clip: { x: 0, y: 0, width: w, height: h } }));
+  });
+}
+
+/** The card as a PNG response (what HQ previews). */
+export async function renderCard(card: Card, size: CardSize = "square") {
+  return new Response(new Uint8Array(await shoot(card, size, "png")), { headers: { "Content-Type": "image/png" } });
 }
 
 /** The card as a JPEG (what Instagram takes, and what a phone saves). */
 export async function cardJpeg(card: Card, size: CardSize = "portrait") {
-  const png = Buffer.from(await (await renderCard(card, size)).arrayBuffer());
-  return sharp(png).jpeg({ quality: 90, mozjpeg: true }).toBuffer();
+  return shoot(card, size, "jpeg");
 }

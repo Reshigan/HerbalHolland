@@ -25,6 +25,7 @@ import { Drawer } from "@/components/store/drawer";
 import { ActionButton, ConfirmAction } from "@/components/ui/action-form";
 import type { Promotion } from "@/generated/prisma/client";
 import { plural } from "@/lib/plural";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Local marketing" };
 type SP = Record<string, string | string[] | undefined>;
@@ -45,14 +46,14 @@ const draftOf = (p: Promotion | null): PromoDraft => {
     getQty: p?.getQty ? String(p.getQty) : "1",
     rewardPercent: p?.rewardPercent ? String(p.rewardPercent) : "100",
     minSpend: p?.minSpendCents ? (p.minSpendCents / 100).toFixed(2) : "",
-    categoryIds: p?.categoryIds ?? [],
-    productIds: p?.productIds ?? [],
-    rewardCategoryIds: p?.rewardCategoryIds ?? [],
-    rewardProductIds: p?.rewardProductIds ?? [],
+    categoryIds: asList(p?.categoryIds),
+    productIds: asList(p?.productIds),
+    rewardCategoryIds: asList(p?.rewardCategoryIds),
+    rewardProductIds: asList(p?.rewardProductIds),
     code: p?.code ?? "",
     startsAt: toLocalInput(p?.startsAt ?? now),
     endsAt: toLocalInput(p?.endsAt ?? addDays(new Date(`${dayKey(now)}T23:59:00+02:00`), 14)),
-    days: p?.days ?? [],
+    days: asList<number>(p?.days),
     from: clockOf(p?.startMinute ?? null),
     to: clockOf(p?.endMinute ?? null),
     maxUses: p?.maxUses ? String(p.maxUses) : "",
@@ -102,7 +103,7 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
   const editId = sp1(sp.edit);
   const editing = own.find((p) => p.id === editId && p.state !== "ended") ?? null;
   const targets = (p: Promotion) => {
-    const names = [...p.categoryIds.map((id) => catName.get(id)), ...p.productIds.map((id) => prodName.get(id) ?? "a product")].filter(Boolean) as string[];
+    const names = [...asList(p.categoryIds).map((id) => catName.get(id)), ...asList(p.productIds).map((id) => prodName.get(id) ?? "a product")].filter(Boolean) as string[];
     return names.length ? names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3}` : "") : "Everything";
   };
   const row = (p: (typeof own)[number], mine: boolean) => (
@@ -122,7 +123,7 @@ async function Promotions({ store, canManage, sp }: { store: StoreCtx; canManage
       <Td className="max-w-52 text-ink-600">{targets(p)}</Td>
       <Td className="whitespace-nowrap text-ink-600">
         {fmtDate(p.startsAt)} – {fmtDate(p.endsAt)}
-        <div className="text-xs text-ink-500">{scheduleLabel(p.days, p.startMinute, p.endMinute)}</div>
+        <div className="text-xs text-ink-500">{scheduleLabel(asList<number>(p.days), p.startMinute, p.endMinute)}</div>
       </Td>
       <Td>
         <Badge tone={STATE[p.state][1]} dot>{STATE[p.state][0]}</Badge>

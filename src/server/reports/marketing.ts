@@ -2,12 +2,16 @@
 import { db, Prisma } from "../db";
 import { segmentLabel } from "../marketing";
 import { describePromo } from "@/lib/promotions";
+import { promotionRow } from "../pricing";
+import { asList, inBatches } from "@/lib/json-list";
 import { fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { bounds, n, ratio, statWhere, storeLabel, sumRows } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}` : Prisma.empty);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 
 export const promotions: ReportDef = {
   key: "promotions",
@@ -20,21 +24,24 @@ export const promotions: ReportDef = {
     const { start, end } = bounds(ctx);
     const [used, all, live] = await Promise.all([
       db.$queryRaw<{ promotionId: string; n: number; members: number; revenue: number; net: number; discount: number }[]>`
-        SELECT "promotionId", COUNT(*)::int AS n, COUNT(*) FILTER (WHERE "customerId" IS NOT NULL)::int AS members,
-          COALESCE(SUM("totalCents"), 0)::float8 AS revenue, COALESCE(SUM("totalCents" - "vatCents"), 0)::float8 AS net,
-          COALESCE(SUM("discountCents"), 0)::float8 AS discount
+        SELECT "promotionId", cast(COUNT(*) AS real) AS n, cast(COUNT(CASE WHEN "customerId" IS NOT NULL THEN 1 END) AS real) AS members,
+          cast(COALESCE(SUM("totalCents"), 0) AS real) AS revenue, cast(COALESCE(SUM("totalCents" - "vatCents"), 0) AS real) AS net,
+          cast(COALESCE(SUM("discountCents"), 0) AS real) AS discount
         FROM "Sale"
-        WHERE kind = 'SALE' AND "promotionId" IS NOT NULL AND "storeId" = ANY(${ctx.storeIds}::text[])
+        WHERE kind = 'SALE' AND "promotionId" IS NOT NULL AND "storeId" IN (${inList(ctx.storeIds)})
           AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
         GROUP BY 1`,
       db.dailyStoreStat.aggregate({ where: statWhere(ctx), _sum: { grossCents: true, sales: true } }),
-      db.promotion.findMany({
-        where: { startsAt: { lt: end }, endsAt: { gte: start }, OR: [{ storeIds: { isEmpty: true } }, { storeIds: { hasSome: ctx.storeIds } }], ...(ctx.channel && { channels: { has: ctx.channel } }) },
-        select: { id: true },
-      }),
+      // Stores and channels are JSON lists: the promotions live in the period (few) are matched here.
+      db.promotion.findMany({ where: { startsAt: { lt: end }, endsAt: { gte: start } }, select: { id: true, storeIds: true, channels: true } }).then((rows) =>
+        rows.filter((p) => {
+          const stores = asList<string>(p.storeIds);
+          return (!stores.length || stores.some((id) => ctx.storeIds.includes(id))) && (!ctx.channel || asList<string>(p.channels).includes(ctx.channel));
+        }),
+      ),
     ]);
     const ids = [...new Set([...used.map((u) => u.promotionId), ...live.map((l) => l.id)])];
-    const promos = new Map((await db.promotion.findMany({ where: { id: { in: ids } } })).map((p) => [p.id, p]));
+    const promos = new Map((await inBatches(ids, (part) => db.promotion.findMany({ where: { id: { in: part } } }))).map((p) => [p.id, promotionRow(p)]));
     const usedBy = new Map(used.map((u) => [u.promotionId, u]));
     const rows = ids
       .map((id) => {
@@ -102,13 +109,12 @@ export const campaigns: ReportDef = {
     const ids = list.map((c) => c.id);
     const since = list.reduce((m, c) => (c.sentAt && c.sentAt < m ? c.sentAt : m), end);
     const [attributed, reach] = await Promise.all([
-      ids.length
-        ? db.sale.groupBy({ by: ["campaignId"], where: { campaignId: { in: ids }, storeId: { in: ctx.storeIds }, createdAt: { gte: since } }, _sum: { totalCents: true, vatCents: true }, _count: true })
-        : Promise.resolve([]),
+      // Grouped by campaign, so the campaigns go in rounds (D1 binds at most 100 parameters) and the rounds add up.
+      inBatches(ids, (part) => db.sale.groupBy({ by: ["campaignId"], where: { campaignId: { in: part }, storeId: { in: ctx.storeIds }, createdAt: { gte: since } }, _sum: { totalCents: true, vatCents: true }, _count: true })),
       ids.length && !ctx.networkWide
         ? db.$queryRaw<{ campaignId: string; n: number }[]>`
-            SELECT m."campaignId", COUNT(*)::int AS n FROM "MessageLog" m JOIN "Customer" c ON c.id = m."customerId"
-            WHERE m."campaignId" = ANY(${ids}::text[]) AND m.status = 'SENT' AND c."homeStoreId" = ANY(${ctx.storeIds}::text[])
+            SELECT m."campaignId", cast(COUNT(*) AS real) AS n FROM "MessageLog" m JOIN "Customer" c ON c.id = m."customerId"
+            WHERE m."campaignId" IN (${inList(ids)}) AND m.status = 'SENT' AND c."homeStoreId" IN (${inList(ctx.storeIds)})
             GROUP BY 1`
         : Promise.resolve([]),
     ]);

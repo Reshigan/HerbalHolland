@@ -10,6 +10,7 @@ import type { Tone } from "@/components/ui/badge";
 import type { Drop, RegClass } from "@/generated/prisma/client";
 import { firstOpen, type DropPhase } from "@/server/hq/launch-rules";
 import type { DropValues } from "./drop-form";
+import { asList } from "@/lib/json-list";
 
 export { dropPhase, earlyLabel, firstOpen } from "@/server/hq/launch-rules";
 
@@ -47,18 +48,19 @@ export const PHASE: Record<DropPhase, [string, Tone]> = {
  */
 export async function dropStats(drops: Drop[], storeIds: string[], now = new Date()) {
   const ids = drops.map((d) => d.id);
-  const variantIds = [...new Set(drops.flatMap((d) => d.variantIds))];
+  const variantIds = [...new Set(drops.flatMap((d) => asList(d.variantIds)))];
   const [watch, stores, sold] = await Promise.all([
     ids.length ? db.dropWatch.groupBy({ by: ["dropId"], where: { dropId: { in: ids } }, _count: true }) : [],
     db.store.findMany({ where: { id: { in: storeIds } }, select: { id: true, kind: true } }),
     Promise.all(
       drops.map(async (d) => {
         const from = firstOpen(d);
-        if (from > now || !d.variantIds.length) return [] as { variantId: string; units: number }[];
+        const dropVariants = asList(d.variantIds);
+        if (from > now || !dropVariants.length) return [] as { variantId: string; units: number }[];
         const to = d.endsAt && d.endsAt < now ? d.endsAt : now;
         const rows = await db.dailyVariantStat.groupBy({
           by: ["variantId"],
-          where: { variantId: { in: d.variantIds }, storeId: { in: storeIds }, date: { gte: dateOnly(from), lte: dateOnly(to) } },
+          where: { variantId: { in: dropVariants }, storeId: { in: storeIds }, date: { gte: dateOnly(from), lte: dateOnly(to) } },
           _sum: { units: true },
         });
         return rows.map((r) => ({ variantId: r.variantId, units: r._sum.units ?? 0 }));
@@ -76,7 +78,7 @@ export async function dropStats(drops: Drop[], storeIds: string[], now = new Dat
   const watchers = new Map(watch.map((w) => [w.dropId, w._count]));
   return new Map(
     drops.map((d, i) => {
-      const variants = d.variantIds.map((v) => ({ variantId: v, sold: sold[i].find((r) => r.variantId === v)?.units ?? 0, inStores: sum(shelf, v), atDcs: sum(dc, v) }));
+      const variants = asList(d.variantIds).map((v) => ({ variantId: v, sold: sold[i].find((r) => r.variantId === v)?.units ?? 0, inStores: sum(shelf, v), atDcs: sum(dc, v) }));
       return [
         d.id,
         {
@@ -103,7 +105,7 @@ export function dropValues(d: Drop | null): DropValues {
     name: d.name,
     slug: d.slug,
     blurb: d.blurb,
-    variantIds: d.variantIds,
+    variantIds: asList(d.variantIds),
     startsAt: toLocalInput(d.startsAt),
     endsAt: toLocalInput(d.endsAt),
     earlyTier: d.earlyTier ?? "",

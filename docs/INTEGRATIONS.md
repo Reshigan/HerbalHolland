@@ -230,7 +230,7 @@ check at the door (recorded as `Order.idChecked`). Order dispatch stores `courie
 | Channel | Use | Provider slot |
 |---|---|---|
 | SMS | OTP, order updates, marketing (consented) | `MESSAGING_PROVIDER=smsportal`, **built** (REST v3 `BulkMessages`, Basic auth, ≤ 500 per call). Other gateways (Clickatell, BulkSMS) slot into `deliver()` in `messaging.ts` |
-| Email | Tax invoices, statements, campaigns | Microsoft 365 through Graph (`MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`: an Entra app with `Mail.Send` application permission and admin consent, limited to the sending mailbox by an Exchange `ApplicationAccessPolicy`; sends as the address in `EMAIL_FROM`, wins over SMTP) or `SMTP_URL` (Amazon SES af-south-1, Everlytic, Postmark; pooled connections), `EMAIL_FROM`. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
+| Email | Tax invoices, statements, campaigns | Microsoft 365 through Graph only (`MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`: an Entra app with `Mail.Send` application permission and admin consent, limited to the sending mailbox by an Exchange `ApplicationAccessPolicy`; sends as the address in `EMAIL_FROM`). Plain HTTPS, so it runs on the Worker; there is no SMTP. Campaign emails carry a signed unsubscribe link and `List-Unsubscribe` one-click headers (RFC 8058) → `/api/unsubscribe` |
 | App push | Rewards PWA: drop alerts, campaigns (consented) | Web Push, **built** (`web-push`, VAPID: `WEB_PUSH_PUBLIC_KEY`, `WEB_PUSH_PRIVATE_KEY`, `WEB_PUSH_SUBJECT`; generate keys with `npx web-push generate-vapid-keys`). Without keys pushes are only logged. iPhones need the app on the Home Screen (iOS 16.4+). When a browser rotates a subscription, the Rewards service worker re-subscribes and saves it (`/api/push/renew`); dead subscriptions are pruned on send |
 | WhatsApp | Utility only, neutral wording | Meta's policy bans drug/medical products, so `TRANSACTIONAL_CHANNEL=WHATSAPP` only after review |
 
@@ -251,7 +251,7 @@ can read the Smart ID card's PDF417 barcode (DOB + ID number) with a camera scan
 The books are kept in the platform (`/books`; ARCHITECTURE → Accounting), so there is no outside ledger to sync.
 - **Bank statements** arrive as files; there is no live bank feed. The import reads the CSV downloads of FNB, Absa,
   Standard Bank, Nedbank and Capitec (online banking → the account → download or export the transactions as CSV),
-  OFX/QFX, or any CSV once its columns are named. Each file is kept in storage (`putObject`: R2/S3 or `UPLOAD_DIR`)
+  OFX/QFX, or any CSV once its columns are named. Each file is kept in R2 (`putObject`, the `FILES` binding)
   under `bank-statements/<company>/<month>/` and served only through the app, to that company's books users.
 - **For an outside accountant or auditor:** every report downloads as CSV (trial balance, general ledger, journals,
   ageing, VAT), and the management pack and reconciliations print to PDF. The company's accountant can also sign in
@@ -363,12 +363,12 @@ with their mobile or email.
 
 **Setting up Postiz:**
 
-1. Run Postiz on the shop's server from `deploy/postiz` (Postiz's own Docker Compose file, listening on 127.0.0.1:5000
-   only, with `API_LIMIT=500`: the default 30 public API calls an hour is less than a launch day needs, an upload and
+1. Run Postiz on a small host of its own (the platform has no server: it runs on Cloudflare Workers, and Postiz needs a
+   Node process with PostgreSQL and Redis), from `deploy/postiz` (Postiz's own Docker Compose file, with `API_LIMIT=500`: the default 30 public API calls an hour is less than a launch day needs, an upload and
    a post per card and the read-back every 15 minutes). It brings PostgreSQL, Redis and Temporal (with Temporal's own
    PostgreSQL and Elasticsearch); Postiz tested it on 2 CPUs and 2 GB of memory.
    `cd deploy/postiz && cp .env.example .env`, fill in the three secrets (`openssl rand -hex 32` each), then
-   `docker compose up -d`, and route `social.herbalholland.com` → `http://localhost:5000` in the Cloudflare tunnel.
+   `docker compose up -d`, and put `social.herbalholland.com` in front of it over HTTPS (a Cloudflare Tunnel on that host is the simplest).
    Create HQ's Postiz account, then set `DISABLE_REGISTRATION="true"` in `.env` and `docker compose up -d` again so
    nobody else can sign up. The Studio holds every post, so Postiz needs no backup beyond its connected accounts.
 2. Connect the accounts, all set to adults 18+:
@@ -411,8 +411,7 @@ personal. The buttons appear under the card on `/club` only once a wallet is con
 
 - **Apple Wallet:** `GET /club/wallet/apple.pkpass` builds `pass.json` (a `storeCard`), the icons (drawn from the app
   icon), `manifest.json` (SHA-1 of every file) and a PKCS#7 detached signature, zipped (stored, no compression) as a
-  `.pkpass`. Signing uses the **openssl CLI** (`openssl smime -sign … -outform DER`): Node's `crypto` has no CMS
-  signer, so `openssl` must be on the server (it is in the Docker image's Debian base). Needs, from the Apple
+  `.pkpass`. The PKCS#7 signature is built with WebCrypto (no `openssl`, nothing to install on the Worker). Needs, from the Apple
   Developer account: a Pass Type ID (`pass.co.za.herbalholland.rewards`), the Team ID, the pass certificate and its
   private key (PEM), and Apple's WWDR G4 intermediate certificate (PEM). Passes are built on request and never stored;
   there is no pass-update web service yet (the pass shows the balance as it was when added; members re-add it, or the
@@ -440,8 +439,8 @@ Both builders are pure (`src/lib/wallet.ts`, tests in `tests/wallet.test.ts`): `
 
 Product photos come in through HQ → Catalogue → Import, in the `image_urls` column: `https://` addresses separated
 by `|`, up to six per product (the first is the main picture). After the import commits, each address is fetched
-(15 s timeout, 5 MB at most, JPG/PNG/WebP by its bytes, never by its name), kept through `@/server/storage` (R2/S3 or
-`UPLOAD_DIR`, under `products/<productId>/`) and recorded as an `Upload` plus a `ProductImage` row. The same bytes
+(15 s timeout, 5 MB at most, JPG/PNG/WebP by its bytes, never by its name), kept through `@/server/storage` (R2, under
+`products/<productId>/`) and recorded as an `Upload` plus a `ProductImage` row. The same bytes
 already on the product are skipped, so re-importing a file never doubles a gallery; failures are listed in the
 import's result and audited as `catalogue.import_images` (`data.failed`). Only public hosts are fetched (no IP
 literals, no `localhost`). Photos are served to everyone at `/media/<uploadId>` (a week's cache) and appear on cards,
@@ -451,19 +450,23 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 
 ## Environment variables
 
+The Worker reads these as `process.env.*`: secrets through `wrangler secret put NAME`, plain settings through `vars` in
+`wrangler.jsonc`; `.env.example` lists every one and marks the secrets. The database (D1), files (R2) and the browser
+are bindings in `wrangler.jsonc`, not variables ([CLOUDFLARE.md](CLOUDFLARE.md)). Locally, `.env` is read by `next dev`,
+the seed and scripts.
+
 | Variable | Purpose |
 |---|---|
-| `DATABASE_URL` | PostgreSQL connection |
-| `DATABASE_POOL_MAX` | Connections per app instance (default 10); keep instances × pool under the database's limit (or use PgBouncer) |
-| `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers |
+| `DATABASE_URL` | Local tools only (the seed, `scripts/*.ts`, vitest): the SQLite file to open, `file:…`, normally the local D1 under `.wrangler/state`. The Worker never reads it. Scripts against the live D1 use `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_TOKEN` and `CLOUDFLARE_DATABASE_ID` instead (RUNBOOK → First deploy, step 4) |
+| `SESSION_SECRET` | 32+ random bytes; signs invoice links, hashes ID numbers. Secret |
 | `APP_URL` | The shop's public https address: every link in emails and texts, and the payment return URLs (a production server won't serve without it) |
 | `SITE_ENQUIRY_SECRET` | The bearer secret for `POST /api/site/enquiries`, which files a franchise enquiry as an HQ → Franchise lead. herbalholland.com no longer takes franchise enquiries, so its Worker sends none; the enquiries it already handed over stay in HQ → Franchise leads. Unset, the endpoint refuses everything. The Worker's own secret is `IP_SALT`, which keys the IP hashes behind its rate limits (`sites/herbalholland.com/wrangler.jsonc`) |
 | `FRANCHISE_EMAIL` | Where new franchise enquiries are emailed (default `franchise@herbalholland.com`) |
 | `SUPPORT_EMAIL` | The address members are told to write to when a support request can't go through the form (default `hello@herbalholland.com`; the franchisor company's email is shown on `/support`) |
-| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen. It **must be false in production**: with it off a production server won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
+| `DEMO_MODE` | `true` enables demo logins and OTP codes on screen. It **must be false in production** (`vars` in `wrangler.jsonc`): with it off the Worker won't serve without an https `APP_URL` and a 32+ character `CRON_SECRET`; with it on it won't serve with live payment keys (`src/lib/env-check.ts`) |
 | `CONTENT_REVIEWER` | `Name\|Job title\|Registration` (e.g. `Jane Doe\|Pharmacist\|SAPC P12345`): shown as "Reviewed by" on Learn guides and as `Article.reviewedBy`. Unset = no reviewer shown ([SEO.md](SEO.md)) |
 | `ORG_SAME_AS` | Comma-separated official profile URLs for the `Organization.sameAs` schema on the home page; empty until the profiles exist |
-| `SMTP_URL` or `MS_TENANT_ID` + `MS_CLIENT_ID` + `MS_CLIENT_SECRET`, `EMAIL_FROM` | Email |
+| `MS_TENANT_ID`, `MS_CLIENT_ID`, `MS_CLIENT_SECRET`, `EMAIL_FROM` | Email through Microsoft Graph (the only transport); unset = emails only logged |
 | `MESSAGING_PROVIDER`, `SMSPORTAL_CLIENT_ID`, `SMSPORTAL_API_SECRET`, `SMS_SENDER_ID`, `TRANSACTIONAL_CHANNEL` | SMS/WhatsApp adapters |
 | `OTP_SMS_HOURLY_MAX` | Sign-in codes by SMS across the network per hour (default 500); over it, codes pause and `otp.ceiling` is audited once an hour |
 | `NEXT_PUBLIC_TAP_PROVIDER` | The till's card tender: `SIMULATED` (the default in demos and development) \| `YOCO` (stand-alone Yoco machine) \| `HALO_APPLINK` \| `EXTERNAL` (the default in production). Runtime environment only (see Card present) |
@@ -479,10 +482,8 @@ keep the generated art. Removing or reordering photos is an HQ job (delete the `
 | `POD_EMAIL`, `POD_PARTNER_NAME` | Merch partner's order inbox and name, for a variant made to order (none in the range today); unset = production orders only logged |
 | `POSTIZ_URL`, `POSTIZ_API_KEY` | Postiz public API for social posts; unset = posts only recorded |
 | `WORKERS_AI_ACCOUNT_ID`, `WORKERS_AI_TOKEN`, `WORKERS_AI_MODEL` | Optional: Studio rewrites in the brand's voice through Cloudflare Workers AI (free allowance); unset = no AI |
-| `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`) |
-| `ALERT_EMAIL` | Ops inbox for server errors and failed scheduled-job steps (by SMTP, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
+| `CRON_SECRET` | Protects `/api/cron/*`: 32+ random characters (`openssl rand -hex 32`); the Cron Triggers in `worker.ts` send it |
+| `ALERT_EMAIL` | Ops inbox for errors and failed scheduled-job steps (by Graph, throttled: one per distinct error an hour, at most 20 an hour; addresses and long numbers left out); unset = errors are only logged |
 | `TRADE_EMAIL` | Where trade applications and licences to check go (default: `FRANCHISE_EMAIL`) |
-| `S3_ENDPOINT`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_REGION` | Uploaded files (banking slips, licence documents, photos, report exports) in Cloudflare R2 (or any S3-compatible store); region `auto` for R2. Unset = files on disk |
-| `UPLOAD_DIR` | Where slips are kept when no bucket is set (default `.data/uploads`; `/data/uploads` in the Docker image, so mount a volume there). Back it up |
 | `WALLET_APPLE_PASS_TYPE_ID`, `WALLET_APPLE_TEAM_ID`, `WALLET_APPLE_CERT_PEM`, `WALLET_APPLE_KEY_PEM`, `WALLET_APPLE_WWDR_PEM` | Apple Wallet pass for the Rewards card (see Wallet passes); all five, or the button stays hidden |
 | `WALLET_GOOGLE_ISSUER_ID`, `WALLET_GOOGLE_SERVICE_ACCOUNT_JSON` | Google Wallet pass for the Rewards card; both, or the button stays hidden |

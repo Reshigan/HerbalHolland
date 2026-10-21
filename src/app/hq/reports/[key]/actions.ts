@@ -6,6 +6,7 @@ import { actorOf, fail, done, DENIED, type ActionState } from "@/server/hq/guard
 import { str, splitList } from "@/server/hq/form";
 import { createSchedule, ExportError, scheduleLabel, stopSchedule } from "@/server/exports";
 import type { ExportCadence } from "@/generated/prisma/client";
+import { asList } from "@/lib/json-list";
 
 export async function scheduleExport(reportKey: string, query: Record<string, string>, _: ActionState, fd: FormData): Promise<ActionState> {
   const user = await getStaff();
@@ -16,7 +17,7 @@ export async function scheduleExport(reportKey: string, query: Record<string, st
   try {
     const s = await createSchedule(user, { reportKey, params: { scope: "hq", ...query }, cadence, dayOfWeek: cadence === "WEEKLY" ? day : null, dayOfMonth: cadence === "MONTHLY" ? day : null, recipients }, actorOf(user));
     revalidatePath(`/hq/reports/${reportKey}`);
-    return done(`Scheduled: ${scheduleLabel(s).toLowerCase()} to ${s.recipients.join(", ")}. The CSV link arrives by email after the 03:00 run.`);
+    return done(`Scheduled: ${scheduleLabel(s).toLowerCase()} to ${asList(s.recipients).join(", ")}. The CSV link arrives by email after the 03:00 run.`);
   } catch (e) {
     if (e instanceof ExportError) return fail(e.message, e.field ? { [e.field]: e.message } : undefined);
     throw e;

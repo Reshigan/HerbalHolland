@@ -8,7 +8,10 @@ import { addDays, dateOnly, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ParamDef, ReportCtx, ReportDef, Row } from "./types";
 import { bounds, categoryVariantIds, count, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, userNames, variantMap } from "./util";
+import { inBatches } from "@/lib/json-list";
 
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 const catSql = (ctx: ReportCtx, alias = "p") => (ctx.category ? Prisma.sql`AND ${Prisma.raw(alias)}."categoryId" = ${ctx.category.id}` : Prisma.empty);
 const variantCatWhere = (ctx: ReportCtx) => (ctx.category ? { variant: { product: { categoryId: ctx.category.id } } } : {});
 
@@ -43,19 +46,19 @@ export const stockValuation: ReportDef = {
     const unsellable = Prisma.sql`(b.status <> 'RELEASED' OR b."expiresAt" <= ${ctx.now})`;
     const data = await db.$queryRaw<{ k: string; category: string; product: string; sku: string; skus: number; units: number; value: number; retail: number; blockedUnits: number; blockedValue: number; negLots: number }[]>`
       SELECT ${key} AS k, MIN(c.name) AS category, MIN(p.name || ' · ' || v.name) AS product, MIN(v.sku) AS sku,
-        COUNT(DISTINCT sl."variantId") FILTER (WHERE sl."onHand" > 0)::int AS skus,
-        COALESCE(SUM(sl."onHand") FILTER (WHERE sl."onHand" > 0), 0)::int AS units,
-        COALESCE(SUM(sl."onHand"::float8 * sl."unitCostCents") FILTER (WHERE sl."onHand" > 0), 0)::float8 AS value,
-        COALESCE(SUM(sl."onHand"::float8 * v."priceCents") FILTER (WHERE sl."onHand" > 0), 0)::float8 AS retail,
-        COALESCE(SUM(sl."onHand") FILTER (WHERE sl."onHand" > 0 AND ${unsellable}), 0)::int AS "blockedUnits",
-        COALESCE(SUM(sl."onHand"::float8 * sl."unitCostCents") FILTER (WHERE sl."onHand" > 0 AND ${unsellable}), 0)::float8 AS "blockedValue",
-        COUNT(*) FILTER (WHERE sl."onHand" < 0)::int AS "negLots"
+        cast(COUNT(DISTINCT CASE WHEN sl."onHand" > 0 THEN sl."variantId" END) AS real) AS skus,
+        cast(COALESCE(SUM(CASE WHEN sl."onHand" > 0 THEN sl."onHand" ELSE 0 END), 0) AS real) AS units,
+        cast(COALESCE(SUM(CASE WHEN sl."onHand" > 0 THEN sl."onHand" * sl."unitCostCents" ELSE 0 END), 0) AS real) AS value,
+        cast(COALESCE(SUM(CASE WHEN sl."onHand" > 0 THEN sl."onHand" * v."priceCents" ELSE 0 END), 0) AS real) AS retail,
+        cast(COALESCE(SUM(CASE WHEN sl."onHand" > 0 AND ${unsellable} THEN sl."onHand" ELSE 0 END), 0) AS real) AS "blockedUnits",
+        cast(COALESCE(SUM(CASE WHEN sl."onHand" > 0 AND ${unsellable} THEN sl."onHand" * sl."unitCostCents" ELSE 0 END), 0) AS real) AS "blockedValue",
+        cast(COUNT(CASE WHEN sl."onHand" < 0 THEN 1 END) AS real) AS "negLots"
       FROM "StockLevel" sl
       JOIN "Variant" v ON v.id = sl."variantId"
       JOIN "Product" p ON p.id = v."productId"
       JOIN "Category" c ON c.id = p."categoryId"
       JOIN "Batch" b ON b.id = sl."batchId"
-      WHERE sl."storeId" = ANY(${ctx.storeIds}::text[]) ${catSql(ctx)}
+      WHERE sl."storeId" IN (${inList(ctx.storeIds)}) ${catSql(ctx)}
       GROUP BY 1`;
     const list = data.filter((d) => d.units > 0).sort((a, b) => b.value - a.value);
     const total = list.reduce((s, d) => s + d.value, 0);
@@ -119,9 +122,9 @@ export const stockMovements: ReportDef = {
     const where: Prisma.StockMovementWhereInput = {
       storeId: { in: ctx.storeIds }, createdAt: { gte: start, lt: end },
       ...(type && { type: type as Prisma.StockMovementWhereInput["type"] }), ...(reason && { reason: reason as Prisma.StockMovementWhereInput["reason"] }),
-      ...(vids && { variantId: { in: vids } }),
+      ...(ctx.category && { variant: { product: { categoryId: ctx.category.id } } }), // the category's variants by relation: the id list may exceed D1's 100 parameters
     };
-    const extraSql = Prisma.sql`${type ? Prisma.sql`AND type::text = ${type}` : Prisma.empty} ${reason ? Prisma.sql`AND reason::text = ${reason}` : Prisma.empty} ${vids ? Prisma.sql`AND "variantId" = ANY(${vids}::text[])` : Prisma.empty}`;
+    const extraSql = Prisma.sql`${type ? Prisma.sql`AND type = ${type}` : Prisma.empty} ${reason ? Prisma.sql`AND reason = ${reason}` : Prisma.empty} ${vids ? Prisma.sql`AND "variantId" IN (${inList(vids)})` : Prisma.empty}`;
     const [list, count, byType] = await Promise.all([
       db.stockMovement.findMany({
         where,
@@ -131,19 +134,19 @@ export const stockMovements: ReportDef = {
       }),
       db.stockMovement.count({ where }),
       db.$queryRaw<{ type: string; n: number; units_in: number; units_out: number; value: number }[]>`
-        SELECT type::text AS type, COUNT(*)::int AS n,
-          COALESCE(SUM(qty) FILTER (WHERE qty > 0), 0)::int AS units_in,
-          COALESCE(-SUM(qty) FILTER (WHERE qty < 0), 0)::int AS units_out,
-          COALESCE(SUM(qty::float8 * "unitCostCents"), 0)::float8 AS value
+        SELECT type AS type, cast(COUNT(*) AS real) AS n,
+          cast(COALESCE(SUM(CASE WHEN qty > 0 THEN qty ELSE 0 END), 0) AS real) AS units_in,
+          cast(COALESCE(-SUM(CASE WHEN qty < 0 THEN qty ELSE 0 END), 0) AS real) AS units_out,
+          cast(COALESCE(SUM(qty * "unitCostCents"), 0) AS real) AS value
         FROM "StockMovement"
-        WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${extraSql}
+        WHERE "storeId" IN (${inList(ctx.storeIds)}) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${extraSql}
         GROUP BY 1 ORDER BY 2 DESC`,
     ]);
     const [users, salesRef, orderRef, takeRef] = await Promise.all([
       userNames(list.map((m) => m.userId)),
-      db.sale.findMany({ where: { id: { in: [...new Set(list.map((m) => m.saleId).filter((x): x is string => !!x))] } }, select: { id: true, number: true } }),
-      db.stockOrder.findMany({ where: { id: { in: [...new Set(list.map((m) => m.stockOrderId).filter((x): x is string => !!x))] } }, select: { id: true, number: true } }),
-      db.stockTake.findMany({ where: { id: { in: [...new Set(list.map((m) => m.stockTakeId).filter((x): x is string => !!x))] } }, select: { id: true, number: true } }),
+      inBatches([...new Set(list.map((m) => m.saleId).filter((x): x is string => !!x))], (part) => db.sale.findMany({ where: { id: { in: part } }, select: { id: true, number: true } })),
+      inBatches([...new Set(list.map((m) => m.stockOrderId).filter((x): x is string => !!x))], (part) => db.stockOrder.findMany({ where: { id: { in: part } }, select: { id: true, number: true } })),
+      inBatches([...new Set(list.map((m) => m.stockTakeId).filter((x): x is string => !!x))], (part) => db.stockTake.findMany({ where: { id: { in: part } }, select: { id: true, number: true } })),
     ]);
     const ref = new Map([...salesRef, ...orderRef, ...takeRef].map((x) => [x.id, x.number]));
     const rows: Row[] = list.map((m) => ({
@@ -217,18 +220,18 @@ export const shrinkage: ReportDef = {
   async run(ctx) {
     const { start, end } = bounds(ctx);
     const by = ctx.params.by;
-    const key = Prisma.raw(by === "store" ? `m."storeId"` : by === "product" ? `m."variantId"` : by === "category" ? `c.id` : `COALESCE(m.reason::text, 'CORRECTION')`);
+    const key = Prisma.raw(by === "store" ? `m."storeId"` : by === "product" ? `m."variantId"` : by === "category" ? `c.id` : `COALESCE(m.reason, 'CORRECTION')`);
     const [data, sales] = await Promise.all([
       db.$queryRaw<{ k: string; category: string; product: string; sku: string; events: number; lost: number; found: number; lostValue: number; foundValue: number }[]>`
         SELECT ${key} AS k, MIN(c.name) AS category, MIN(p.name || ' · ' || v.name) AS product, MIN(v.sku) AS sku,
-          COUNT(*)::int AS events,
-          COALESCE(SUM(-m.qty) FILTER (WHERE m.qty < 0), 0)::int AS lost,
-          COALESCE(SUM(m.qty) FILTER (WHERE m.qty > 0), 0)::int AS found,
-          COALESCE(SUM(-m.qty::float8 * m."unitCostCents") FILTER (WHERE m.qty < 0), 0)::float8 AS "lostValue",
-          COALESCE(SUM(m.qty::float8 * m."unitCostCents") FILTER (WHERE m.qty > 0), 0)::float8 AS "foundValue"
+          cast(COUNT(*) AS real) AS events,
+          cast(COALESCE(SUM(CASE WHEN m.qty < 0 THEN -m.qty ELSE 0 END), 0) AS real) AS lost,
+          cast(COALESCE(SUM(CASE WHEN m.qty > 0 THEN m.qty ELSE 0 END), 0) AS real) AS found,
+          cast(COALESCE(SUM(CASE WHEN m.qty < 0 THEN -m.qty * m."unitCostCents" ELSE 0 END), 0) AS real) AS "lostValue",
+          cast(COALESCE(SUM(CASE WHEN m.qty > 0 THEN m.qty * m."unitCostCents" ELSE 0 END), 0) AS real) AS "foundValue"
         FROM "StockMovement" m
         JOIN "Variant" v ON v.id = m."variantId" JOIN "Product" p ON p.id = v."productId" JOIN "Category" c ON c.id = p."categoryId"
-        WHERE m."storeId" = ANY(${ctx.storeIds}::text[]) AND m."createdAt" >= ${start} AND m."createdAt" < ${end}
+        WHERE m."storeId" IN (${inList(ctx.storeIds)}) AND m."createdAt" >= ${start} AND m."createdAt" < ${end}
           AND m.type IN ('ADJUST', 'COUNT') ${catSql(ctx)}
         GROUP BY 1`,
       db.dailyStoreStat.aggregate({ where: { storeId: { in: ctx.storeIds }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate } }, _sum: { grossCents: true, vatCents: true } }),
@@ -305,12 +308,16 @@ export const expiry: ReportDef = {
       db.stockLevel.count({ where }),
       getSettings(),
     ]);
+    // Whole days left, rounded up (ceil = the integer part, plus one when a fraction remains above it).
     const buckets = await db.$queryRaw<{ days: number; units: number; value: number; retail: number; lots: number }[]>`
-      SELECT CEIL(EXTRACT(EPOCH FROM (b."expiresAt" - ${ctx.now}::timestamp)) / 86400)::int AS days,
-        SUM(sl."onHand")::int AS units, SUM(sl."onHand"::float8 * sl."unitCostCents")::float8 AS value,
-        SUM(sl."onHand"::float8 * v."priceCents")::float8 AS retail, COUNT(*)::int AS lots
-      FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId" JOIN "Variant" v ON v.id = sl."variantId" JOIN "Product" p ON p.id = v."productId"
-      WHERE sl."storeId" = ANY(${ctx.storeIds}::text[]) AND sl."onHand" > 0 AND b."expiresAt" <= ${until} ${catSql(ctx)}
+      SELECT cast(cast(x AS integer) + (x > cast(x AS integer)) AS real) AS days,
+        cast(SUM("onHand") AS real) AS units, cast(SUM("onHand" * "unitCostCents") AS real) AS value,
+        cast(SUM("onHand" * "priceCents") AS real) AS retail, cast(COUNT(*) AS real) AS lots
+      FROM (
+        SELECT julianday(b."expiresAt") - julianday(${ctx.now}) AS x, sl."onHand", sl."unitCostCents", v."priceCents"
+        FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId" JOIN "Variant" v ON v.id = sl."variantId" JOIN "Product" p ON p.id = v."productId"
+        WHERE sl."storeId" IN (${inList(ctx.storeIds)}) AND sl."onHand" > 0 AND b."expiresAt" <= ${until} ${catSql(ctx)}
+      ) t
       GROUP BY 1`;
     const agg = new Map<string, { units: number; value: number; retail: number; lots: number }>();
     for (const b of buckets) {
@@ -377,19 +384,19 @@ export const deadStock: ReportDef = {
     const since = dateOnly(addDays(ctx.now, -(days - 1)));
     const yearAgo = dateOnly(addDays(ctx.now, -365));
     const [data, stock] = await Promise.all([
-      db.$queryRaw<{ storeId: string; variantId: string; units: number; value: number; lastSold: Date | null; lastIn: Date | null }[]>`
+      db.$queryRaw<{ storeId: string; variantId: string; units: number; value: number; lastSold: string | null; lastIn: Date | string | null }[]>`
         WITH oh AS (
-          SELECT sl."storeId", sl."variantId", SUM(sl."onHand")::int AS units, SUM(sl."onHand"::float8 * sl."unitCostCents")::float8 AS value
+          SELECT sl."storeId", sl."variantId", cast(SUM(sl."onHand") AS real) AS units, cast(SUM(sl."onHand" * sl."unitCostCents") AS real) AS value
           FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId" JOIN "Variant" v ON v.id = sl."variantId" JOIN "Product" p ON p.id = v."productId"
-          WHERE sl."storeId" = ANY(${ids}::text[]) AND sl."onHand" > 0 AND b.status = 'RELEASED' ${catSql(ctx)}
+          WHERE sl."storeId" IN (${inList(ids)}) AND sl."onHand" > 0 AND b.status = 'RELEASED' ${catSql(ctx)}
           GROUP BY 1, 2
         ), sold AS (
-          SELECT "storeId", "variantId", MAX(date) AS "lastSold", SUM(units) FILTER (WHERE date >= ${since}) AS recent
-          FROM "DailyVariantStat" WHERE "storeId" = ANY(${ids}::text[]) AND date >= ${yearAgo} AND units > 0
+          SELECT "storeId", "variantId", date(MAX(date)) AS "lastSold", SUM(CASE WHEN date >= ${since} THEN units ELSE 0 END) AS recent
+          FROM "DailyVariantStat" WHERE "storeId" IN (${inList(ids)}) AND date >= ${yearAgo} AND units > 0
           GROUP BY 1, 2
         ), recv AS (
           SELECT "storeId", "variantId", MAX("createdAt") AS "lastIn" FROM "StockMovement"
-          WHERE "storeId" = ANY(${ids}::text[]) AND "createdAt" >= ${yearAgo} AND qty > 0 AND type IN ('RECEIVE', 'TRANSFER_IN')
+          WHERE "storeId" IN (${inList(ids)}) AND "createdAt" >= ${yearAgo} AND qty > 0 AND type IN ('RECEIVE', 'TRANSFER_IN')
           GROUP BY 1, 2
         )
         SELECT oh."storeId", oh."variantId", oh.units, oh.value, sold."lastSold", recv."lastIn"
@@ -400,9 +407,9 @@ export const deadStock: ReportDef = {
           AND NOT (sold."lastSold" IS NULL AND recv."lastIn" >= ${addDays(ctx.now, -days)})
         ORDER BY oh.value DESC`,
       db.$queryRaw<{ value: number }[]>`
-        SELECT COALESCE(SUM(sl."onHand"::float8 * sl."unitCostCents"), 0)::float8 AS value
+        SELECT cast(COALESCE(SUM(sl."onHand" * sl."unitCostCents"), 0) AS real) AS value
         FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId"
-        WHERE sl."storeId" = ANY(${ids}::text[]) AND sl."onHand" > 0 AND b.status = 'RELEASED'`,
+        WHERE sl."storeId" IN (${inList(ids)}) AND sl."onHand" > 0 AND b.status = 'RELEASED'`,
     ]);
     const info = await variantMap([...new Set(data.map((d) => d.variantId))]);
     const today = dayKey(ctx.now);
@@ -410,9 +417,9 @@ export const deadStock: ReportDef = {
       const v = info.get(d.variantId);
       return {
         ...storeVals(ctx, d.storeId), product: v?.name ?? "", sku: v?.sku ?? "", category: v?.category ?? "", onHand: d.units, value: d.value,
-        lastSold: d.lastSold ? d.lastSold.toISOString().slice(0, 10) : null,
-        since: d.lastSold ? Math.round((Date.parse(`${today}T00:00:00Z`) - d.lastSold.getTime()) / 86_400_000) : null,
-        lastIn: d.lastIn,
+        lastSold: d.lastSold,
+        since: d.lastSold ? Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${d.lastSold}T00:00:00Z`)) / 86_400_000) : null,
+        lastIn: d.lastIn ? new Date(d.lastIn) : null,
       };
     });
     const units = data.reduce((s, d) => s + d.units, 0), value = data.reduce((s, d) => s + d.value, 0);
@@ -457,10 +464,14 @@ export const sellThrough: ReportDef = {
   async run(ctx) {
     const ids = retailIds(ctx);
     const vids = await categoryVariantIds(ctx);
-    const vf = vids ? { variantId: { in: vids } } : {};
+    // The category's variants: by relation where there is one, else the id list in rounds (grouped by variant, so the rounds add up): it may exceed D1's 100 parameters.
+    const vf = ctx.category ? { variant: { product: { categoryId: ctx.category.id } } } : {};
+    const soldWhere = (variantId?: { in: string[] }) => ({ storeId: { in: ids }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...(variantId && { variantId }) });
     const { start, end } = bounds(ctx);
     const [sold, onHand, received] = await Promise.all([
-      db.dailyVariantStat.groupBy({ by: ["variantId"], where: { storeId: { in: ids }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...vf }, _sum: { units: true } }),
+      vids
+        ? inBatches(vids, (part) => db.dailyVariantStat.groupBy({ by: ["variantId"], where: soldWhere({ in: part }), _sum: { units: true } }))
+        : db.dailyVariantStat.groupBy({ by: ["variantId"], where: soldWhere(), _sum: { units: true } }),
       db.stockLevel.groupBy({ by: ["variantId"], where: { storeId: { in: ids }, onHand: { gt: 0 }, batch: { status: "RELEASED" }, ...vf }, _sum: { onHand: true } }),
       db.stockMovement.groupBy({ by: ["variantId"], where: { storeId: { in: ids }, createdAt: { gte: start, lt: end }, type: { in: ["RECEIVE", "TRANSFER_IN"] }, qty: { gt: 0 }, ...vf }, _sum: { qty: true } }),
     ]);
@@ -534,9 +545,9 @@ export const lowStock: ReportDef = {
       }),
       db.dailyVariantStat.groupBy({ by: ["storeId", "variantId"], where: { storeId: { in: ids }, date: { gte: since } }, _sum: { units: true } }),
       db.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
-        SELECT o."buyerId" AS "storeId", l."variantId", SUM(l.qty)::int AS qty
+        SELECT o."buyerId" AS "storeId", l."variantId", cast(SUM(l.qty) AS real) AS qty
         FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
-        WHERE o."buyerId" = ANY(${ids}::text[]) AND o.status IN ('SUBMITTED', 'APPROVED', 'SHIPPED')
+        WHERE o."buyerId" IN (${inList(ids)}) AND o.status IN ('SUBMITTED', 'APPROVED', 'SHIPPED')
         GROUP BY 1, 2`,
       availability(ids),
     ]);
@@ -617,8 +628,8 @@ export const negativeStock: ReportDef = {
       }),
       db.stockLevel.count({ where }),
       db.$queryRaw<{ units: number; value: number }[]>`
-        SELECT COALESCE(SUM("onHand"), 0)::int AS units, COALESCE(SUM("onHand"::float8 * "unitCostCents"), 0)::float8 AS value
-        FROM "StockLevel" WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "onHand" < 0`,
+        SELECT cast(COALESCE(SUM("onHand"), 0) AS real) AS units, cast(COALESCE(SUM("onHand" * "unitCostCents"), 0) AS real) AS value
+        FROM "StockLevel" WHERE "storeId" IN (${inList(ctx.storeIds)}) AND "onHand" < 0`,
     ]);
     const rows: Row[] = lots.map((l) => ({
       ...storeVals(ctx, l.storeId), product: `${l.variant.product.name} · ${l.variant.name}`, sku: l.variant.sku, batch: l.batch.code,

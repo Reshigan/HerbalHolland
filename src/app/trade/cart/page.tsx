@@ -17,6 +17,7 @@ import { validateTradeBasket } from "@/lib/trade";
 import { zar } from "@/lib/money";
 import { clearCartAction } from "../actions";
 import { cartQuote, orderingProblem, requireBuyer } from "../_lib/context";
+import { asList } from "@/lib/json-list";
 
 export const metadata: Metadata = { title: "Cart", robots: { index: false, follow: false } };
 
@@ -56,7 +57,7 @@ export default async function TradeCartPage() {
   const byId = new Map(variants.map((v) => [v.id, v]));
   // Lines the cookie holds that the engine no longer prices (taken off sale, no trade price): shown so they can be removed.
   const gone = cart.items.filter((i) => !q.lines.some((l) => l.variantId === i.variantId));
-  const comp = evaluateTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass, productStatus: byId.get(l.variantId)?.product.status })), accountClasses: account.classes, sellerLicences: store?.licences ?? [], settings: settings.compliance });
+  const comp = evaluateTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass, productStatus: byId.get(l.variantId)?.product.status })), accountClasses: asList(account.classes), sellerLicences: asList(store?.licences), settings: settings.compliance });
   const problems = [...comp.blocks, ...validateTradeBasket(q.lines.map((l) => ({ name: l.name, qty: l.qty, unitCents: l.exCents / l.qty, caseQty: l.caseQty })), { minOrderCents: t.minOrderCents })];
   const shortAtDc = store ? q.lines.filter((l) => (avail.get(availKey(store.id, l.variantId))?.available ?? 0) < l.qty) : [];
   const progress = minOrderProgress(q.exCents ?? 0, t.minOrderCents);

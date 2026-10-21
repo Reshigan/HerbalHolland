@@ -13,6 +13,8 @@ import { MAX_INVOICE_BYTES, statementTerms } from "@/lib/supplier-invoice-rules"
 import { vatOnExcl } from "@/lib/money";
 import { addDays, dayKey } from "@/lib/format";
 import type { Prisma, SupplierInvoiceStatus } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 export class SupplierInvoiceError extends Error {
   constructor(message: string, public field?: string) {
@@ -99,7 +101,8 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (a.dueDate < a.invoiceDate) throw new SupplierInvoiceError("The due date can't be before the invoice date", "dueDate");
   if (!Number.isInteger(a.totalCents) || a.totalCents <= 0 || a.totalCents > 100_000_000) throw new SupplierInvoiceError("Enter the invoice total including VAT", "total");
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
-  if (await db.supplierInvoice.count({ where: { storeId: a.storeId, supplierName: { equals: supplierName, mode: "insensitive" }, number: { equals: number, mode: "insensitive" } } }))
+  const same = await db.supplierInvoice.findMany({ where: { storeId: a.storeId, supplierName: { contains: likeTerm(supplierName) }, number: { contains: likeTerm(number) } }, select: { supplierName: true, number: true }, take: 50 });
+  if (same.some((s) => s.supplierName.toLowerCase() === supplierName.toLowerCase() && s.number.toLowerCase() === number.toLowerCase()))
     throw new SupplierInvoiceError(`Invoice ${number} from ${supplierName} is already captured`, "number");
   const accountId = await chargedTo(a.storeId, a.accountId);
 
@@ -160,11 +163,11 @@ export async function reopenSupplierInvoice(id: string, storeId: string, actor: 
 export type InvoiceFilters = { status?: SupplierInvoiceStatus | null; q?: string; storeIds: string[] };
 
 export function invoiceWhere(f: InvoiceFilters): Prisma.SupplierInvoiceWhereInput {
-  const q = f.q?.trim();
+  const q = likeTerm(f.q?.trim() ?? "");
   return {
     storeId: { in: f.storeIds },
     ...(f.status && { status: f.status }),
-    ...(q && { OR: [{ supplierName: { contains: q, mode: "insensitive" } }, { number: { contains: q, mode: "insensitive" } }] }),
+    ...(q && { OR: [{ supplierName: { contains: q } }, { number: { contains: q } }] }),
   };
 }
 
@@ -225,16 +228,17 @@ export async function supplierInvoiceSummary(storeIds: string[], now = new Date(
 export async function supplierInvoicesByStore(storeIds: string[], now = new Date()) {
   if (!storeIds.length) return [];
   const today = dateCol(dayKey(now));
-  return db.$queryRaw<{ storeId: string; due: number; dueCents: number; overdue: number; overdueCents: number; queried: number; oldestDue: Date | null }[]>`
+  const rows = await db.$queryRaw<{ storeId: string; due: number; dueCents: number; overdue: number; overdueCents: number; queried: number; oldestDue: Date | string | null }[]>`
     SELECT "storeId",
-      COUNT(*) FILTER (WHERE status = 'DUE')::int AS due,
-      COALESCE(SUM("totalCents") FILTER (WHERE status = 'DUE'), 0)::int AS "dueCents",
-      COUNT(*) FILTER (WHERE status = 'DUE' AND "dueDate" < ${today})::int AS overdue,
-      COALESCE(SUM("totalCents") FILTER (WHERE status = 'DUE' AND "dueDate" < ${today}), 0)::int AS "overdueCents",
-      COUNT(*) FILTER (WHERE status = 'QUERIED')::int AS queried,
-      MIN("dueDate") FILTER (WHERE status = 'DUE') AS "oldestDue"
-    FROM "SupplierInvoice" WHERE "storeId" = ANY(${storeIds}::text[]) AND status IN ('DUE', 'QUERIED') AND NOT "onStatement"
+      COUNT(CASE WHEN status = 'DUE' THEN 1 END) AS due,
+      COALESCE(SUM(CASE WHEN status = 'DUE' THEN "totalCents" END), 0) AS "dueCents",
+      COUNT(CASE WHEN status = 'DUE' AND "dueDate" < ${today} THEN 1 END) AS overdue,
+      COALESCE(SUM(CASE WHEN status = 'DUE' AND "dueDate" < ${today} THEN "totalCents" END), 0) AS "overdueCents",
+      COUNT(CASE WHEN status = 'QUERIED' THEN 1 END) AS queried,
+      MIN(CASE WHEN status = 'DUE' THEN "dueDate" END) AS "oldestDue"
+    FROM "SupplierInvoice" WHERE "storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)})) AND status IN ('DUE', 'QUERIED') AND NOT "onStatement"
     GROUP BY 1`; // stock orders settle on the statements, so this is what stores owe outside suppliers
+  return rows.map((r) => ({ ...r, oldestDue: r.oldestDue ? new Date(r.oldestDue) : null }));
 }
 
 /** A stock order's invoice (shown on the order page). */
@@ -274,7 +278,7 @@ export async function settleStatementInvoices(now = new Date()) {
   for (const r of open) byMonth.set(asDay(r.invoiceDate).slice(0, 7), [...(byMonth.get(asDay(r.invoiceDate).slice(0, 7)) ?? []), r.id]);
   for (const [month, ids] of byMonth) {
     const terms = statementTerms(`${month}-01`);
-    await db.supplierInvoice.updateMany({ where: { id: { in: ids }, status: "DUE" }, data: { status: "PAID", paidAt: new Date(`${terms.settledFrom}T00:00:00+02:00`), note: terms.settled } });
+    await inBatches(ids, (part) => db.supplierInvoice.updateMany({ where: { id: { in: part }, status: "DUE" }, data: { status: "PAID", paidAt: new Date(`${terms.settledFrom}T00:00:00+02:00`), note: terms.settled } }).then((r) => [r]));
     await audit(db, SYSTEM, "supplier_invoice.settle_statement", { data: { month, invoices: ids.length } });
   }
   return { settled: open.length };

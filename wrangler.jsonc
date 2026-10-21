@@ -1,0 +1,38 @@
+{
+  // shop.herbalholland.com on Cloudflare Workers: the Next.js app (OpenNext), D1 (the database), R2 (files),
+  // Browser Rendering (PDFs and Studio cards), Cron Triggers (the scheduled jobs). docs/CLOUDFLARE.md explains the set-up.
+  // Production goes up from .github/workflows/deploy-shop.yml on every push to main (RUNBOOK → First deploy, Releases);
+  // staging (scripts/staging-config.mjs) is the same file under another name on workers.dev.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "herbal-holland-shop",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "limits": { "cpu_ms": 300000 },
+  // The shop is only reached through its custom domain (Cloudflare makes the DNS record and the certificate on deploy;
+  // the herbalholland.com zone must be in the same account, and the deploying token needs Workers Routes and DNS edit
+  // on it). No workers.dev address: the per-IP limits trust cf-connecting-ip, so there must be no other way in.
+  "routes": [{ "pattern": "shop.herbalholland.com", "custom_domain": true }],
+  "workers_dev": false,
+  // Smart placement runs the Worker near D1 (Western Europe: `wrangler d1 create herbal-holland --location weur`, which
+  // serves South Africa best) instead of at the edge, so a page's dozen queries don't each cross the world.
+  "placement": { "mode": "smart" },
+  "d1_databases": [
+    // database_id: the placeholder stays in git. deploy-shop.yml reads the real id (`wrangler d1 info herbal-holland --json`)
+    // and writes it in at run time; for a deploy by hand do the same (RUNBOOK → Releases). Local dev needs none.
+    { "binding": "DB", "database_name": "herbal-holland", "database_id": "00000000-0000-0000-0000-000000000000", "migrations_dir": "migrations" }
+  ],
+  // EU jurisdiction (R2 has no South African location; the transfer is in the POPIA register), so the bucket is
+  // created with `--jurisdiction eu` and bound with it.
+  "r2_buckets": [{ "binding": "FILES", "bucket_name": "herbal-holland-files", "jurisdiction": "eu" }],
+  "browser": { "binding": "BROWSER" },
+  "triggers": {
+    // The four jobs of src/server/jobs.ts (JOB_WINDOWS in src/lib/jobs.ts), in UTC: SAST is UTC+2 all year.
+    "crons": ["*/15 * * * *", "*/5 * * * *", "0 0 * * *", "0 1 * * *"]
+  },
+  // Plain settings. Secrets (SESSION_SECRET, CRON_SECRET, MS_CLIENT_SECRET, payment keys…) are Worker secrets
+  // (`wrangler secret put`), never here: .env.example says which is which.
+  "vars": { "DEMO_MODE": "false", "APP_URL": "https://shop.herbalholland.com" }
+}

@@ -53,7 +53,7 @@ export default async function TradeOrdersPage({ searchParams }: { searchParams: 
   const now = new Date();
   const number = q ? tradeNumberQuery(q, "TO") : null;
   const search: Prisma.TradeOrderWhereInput = q
-    ? { OR: [...(number ? [{ number }] : []), { number: { contains: q, mode: "insensitive" } }, { invoiceNumber: { contains: q, mode: "insensitive" } }, { account: { OR: [{ name: { contains: q, mode: "insensitive" } }, { number: { contains: q, mode: "insensitive" } }] } }] }
+    ? { OR: [...(number ? [{ number }] : []), { number: { contains: q } }, { invoiceNumber: { contains: q } }, { account: { OR: [{ name: { contains: q } }, { number: { contains: q } }] } }] }
     : {};
   const base: Prisma.TradeOrderWhereInput = { AND: [orderWhere(s), search] };
   const where: Prisma.TradeOrderWhereInput = { AND: [base, VIEWS[view].where(now)] };

@@ -10,6 +10,7 @@ import { putObject } from "@/server/storage";
 import { extFor, sniffType, type UploadType } from "@/lib/files";
 import { IMPORT_MAX_IMAGES } from "@/lib/catalogue-import";
 import { isPublicIp } from "@/lib/net";
+import { inBatches } from "@/lib/json-list";
 
 export const PRODUCT_IMAGE_TYPES: UploadType[] = ["image/jpeg", "image/png", "image/webp"];
 export const PRODUCT_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
@@ -26,7 +27,7 @@ export const productImages = cache(async (productId: string): Promise<ProductPho
 export async function mainImages(productIds: string[]): Promise<Map<string, ProductPhoto>> {
   const out = new Map<string, ProductPhoto>();
   if (!productIds.length) return out;
-  const rows = await db.productImage.findMany({ where: { productId: { in: productIds } }, orderBy: [{ productId: "asc" }, { sortOrder: "asc" }], select: { productId: true, uploadId: true, alt: true } });
+  const rows = await inBatches(productIds, (part) => db.productImage.findMany({ where: { productId: { in: part } }, orderBy: [{ productId: "asc" }, { sortOrder: "asc" }], select: { productId: true, uploadId: true, alt: true } }));
   for (const r of rows) if (!out.has(r.productId)) out.set(r.productId, { id: r.uploadId, alt: r.alt });
   return out;
 }

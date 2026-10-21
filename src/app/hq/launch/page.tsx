@@ -4,7 +4,7 @@ import { requireStaff, HQ_ROLES } from "@/server/auth";
 import { scopeOf, scopedStoreIds } from "@/server/scope";
 import { db } from "@/server/db";
 import { getSettings } from "@/server/settings";
-import { sast } from "@/server/sql";
+import { sastDay } from "@/server/sql";
 import { can } from "@/server/hq/guard";
 import { toLocalInput } from "@/server/hq/form";
 import { countdown } from "@/server/hq/launch-rules";
@@ -34,7 +34,7 @@ export default async function LaunchPage() {
   const hq = scope.kind === "HQ";
   const ids = await scopedStoreIds(scope, { kind: "RETAIL" });
   const members: Prisma.CustomerWhereInput = hq ? {} : { homeStoreId: { in: ids } };
-  const regionOf = (col: string) => (hq ? Prisma.empty : Prisma.sql`AND ${Prisma.raw(col)} = ANY(${ids}::text[])`);
+  const regionOf = (col: string) => (hq ? Prisma.empty : Prisma.sql`AND ${Prisma.raw(col)} IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`);
 
   const settings = await getSettings();
   const l = settings.launch;
@@ -51,7 +51,7 @@ export default async function LaunchPage() {
     db.customer.count({ where: { foundingNo: { not: null } } }),
     at
       ? db.$queryRaw<{ id: string; firstName: string; lastName: string | null; memberNo: string; foundingNo: number | null; store: string | null; friends: number }[]>`
-          SELECT r.id, r."firstName", r."lastName", r."memberNo", r."foundingNo", s.name AS store, COUNT(*)::int AS friends
+          SELECT r.id, r."firstName", r."lastName", r."memberNo", r."foundingNo", s.name AS store, COUNT(*) AS friends
           FROM "Customer" f
           JOIN "Customer" r ON r.id = f."referredById"
           LEFT JOIN "Store" s ON s.id = r."homeStoreId"
@@ -61,7 +61,7 @@ export default async function LaunchPage() {
           LIMIT 10`
       : [],
     db.$queryRaw<{ day: string; n: number; friends: number }[]>`
-      SELECT to_char(${sast('c."createdAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, (COUNT(*) FILTER (WHERE c."referredById" IS NOT NULL))::int AS friends
+      SELECT ${sastDay('c."createdAt"')} AS day, COUNT(*) AS n, COUNT(CASE WHEN c."referredById" IS NOT NULL THEN 1 END) AS friends
       FROM "Customer" c
       WHERE c."createdAt" >= ${chartStart} AND c."createdAt" < ${chartEnd} ${regionOf('c."homeStoreId"')}
       GROUP BY 1`,

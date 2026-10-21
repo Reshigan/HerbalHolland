@@ -15,6 +15,7 @@ import { Items } from "@/server/pos/schemas";
 import { pointsFor, type TierKey } from "@/lib/loyalty-rules";
 import { ACCOUNT_STATUS_PROBLEM } from "@/lib/trade";
 import type { QuoteDTO } from "@/server/pos/types";
+import { asList } from "@/lib/json-list";
 
 const Body = z.object({
   items: Items,
@@ -78,7 +79,7 @@ async function tradeQuote(pos: PosStaff, b: { items: { variantId: string; qty: n
   if (!account) throw new PosError("Unknown trade account", 404);
   if (account.status !== "APPROVED" && account.status !== "ON_HOLD") throw new PosError(ACCOUNT_STATUS_PROBLEM[account.status as keyof typeof ACCOUNT_STATUS_PROBLEM], 422);
   const q = await quote({ storeId: pos.device.storeId, channel: "WHOLESALE", items: b.items, code: b.code, tradeAccountId: account.id });
-  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass })), accountClasses: account.classes, storeLicences: pos.device.store.licences });
+  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass })), accountClasses: asList(account.classes), storeLicences: asList(pos.device.store.licences) });
   // The rule names the line at the start of each message ("<product · variant> is …").
   const blockOf = (name: string) => comp.blocks.find((m) => m.startsWith(`${name} `)) ?? null;
   return {

@@ -4,25 +4,29 @@
 
 Commerce platform for a multi-owner (franchise) cannabis retail network in South Africa, built to scale to ~1,000 stores:
 POS, inventory control, purchasing, finance, e-commerce (click & collect + delivery), Herbal Holland Rewards loyalty, marketing, HQ console, reports.
-Single Next.js 16 app (App Router) + Prisma 7 + PostgreSQL, served at shop.herbalholland.com (`APP_URL`; herbalholland.co.za redirects there). Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
+Single Next.js 16 app (App Router) + Prisma 7 + Cloudflare D1 on Workers (OpenNext; R2 for files, Browser Rendering for PDFs, Cron Triggers for jobs: `docs/CLOUDFLARE.md`), served at shop.herbalholland.com (`APP_URL`; herbalholland.co.za redirects there). Modular monolith: domain logic lives in `src/server/*` and pure rules in `src/lib/*`.
 
 ## Run it
 
 ```bash
 npm install
-npm run db:migrate     # prisma/migrations → database (DATABASE_URL in .env)
-npm run db:seed        # demo network: 24 stores, ~18k members, 60 days of trading (truncates all tables!)
-npm run dev            # http://localhost:3000
+npm run db:migrate     # migrations/*.sql → the local D1 under .wrangler/state
+DATABASE_URL=file:$(ls .wrangler/state/v3/d1/miniflare-D1DatabaseObject/*.sqlite | grep -v metadata) npm run db:seed   # demo network: 24 stores, ~18k members, 60 days of trading (truncates all tables!)
+npm run dev            # http://localhost:3000 (local D1, R2 and browser through wrangler's platform proxy)
 npm test               # vitest (pure domain rules)
 npm run typecheck
+npm run build          # OpenNext build of the Worker
+npm run start          # the built Worker in wrangler's preview
+npm run deploy         # build and deploy to Cloudflare (docs/RUNBOOK.md → Releases)
 ```
 
 User journeys (Playwright + DB checks, DEMO_MODE=true, seeded data; CI runs them against a production build):
 `BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop|trade|accounting>.mjs`, and `node e2e/crawl.mjs` visits every
 page as every role (fails on broken links, server errors and crashes; prints server and paint timings).
 
-Schema changes: edit `prisma/schema.prisma`, then `npx prisma migrate dev --name <change>` and commit the new
-folder in `prisma/migrations` (CI and deploys run `prisma migrate deploy`). Run `npx prisma generate` after pulls.
+Schema changes: edit `prisma/schema.prisma`, `npm run generate`, `npm run db:diff > migrations/NNNN_name.sql`, review the
+SQL (SQLite rewrites a table to change a column), then `npm run db:migrate`; commit the file (deploys run `npm run db:migrate:prod`).
+Run `npm run generate` after pulls.
 
 Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), or GET
 `/api/auth/demo?email=hq@herbalholland.com&next=/hq`. POS PINs: 1111 (manager, dispenser), 2222 (dispenser), 3333, 4444.
@@ -58,7 +62,7 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   `banking` (recordDeposit, reviewDeposit), `ledger` (the books: business code only calls `queuePosting` /
   `queueStoreDay` inside its own transaction; postings are rebuilt from their source, never written by hand, and manual
   journals go through `ledger/admin`), `loss` (raiseAlerts; query alerts through `visibleAlerts`, so nobody sees an
-  alert about themselves), `commission`, `storage` (putObject/getObject: R2/S3 or `UPLOAD_DIR`; serve files through the app).
+  alert about themselves), `commission`, `storage` (putObject/getObject: the R2 `FILES` binding; serve files through the app).
 - Money is integer cents (ZAR). Retail prices VAT-inclusive; wholesale/cost VAT-exclusive. Format with `zar`, `zarWhole`,
   `zarCompact` from `@/lib/money`; read typed amounts with `parseRand` and fill amount inputs with `centsToInput` (same file). Dates in SAST with `@/lib/format` helpers. Raw SQL time parts: `sast()` from `@/server/sql`.
 - Consumer pages stay light at 1,000 stores: never render or serialise the whole store list on every page (the header
@@ -75,6 +79,9 @@ Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), 
   authorisation + authorised dispenser), 18+ checks, Schedule 0 CBD limits, Medicines Act s18A (no incentives on medicines),
   POPIA consent + CPA send windows for marketing. Don't bypass it in UI code.
   Classes: `THC`, `CBD` (supplements; no incentives by default via `noIncentives`), `CBD_FOOD` (≤ 0.0075%, naturally occurring), `CBD_TOPICAL`, `HEMP`, `SUPPLEMENT` (no cannabis), `ACCESSORY`, `APPAREL`, `GROW`. Rules and product facts (net content, ingredients, R146 allergens) are in `validateProduct()`.
+- D1 (`docs/CLOUDFLARE.md`): no transactions, so every multi-row write in `tx()` must be idempotent and safe to stop halfway;
+  list columns are JSON, read with `asList` (no `has`/`hasSome` filters); raw SQL is SQLite, time parts with `sast()` / `sastDay()`
+  from `@/server/sql`; at most 100 bound parameters per statement (`chunk(ids, 90)` for raw lists).
 - No new dependencies without a strong reason. Pure logic goes in `src/lib` with a vitest test in `tests/`.
 
 ## Design language

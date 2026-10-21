@@ -4,9 +4,6 @@
 // return refunded twice; the merch job running twice; and the status-only races (returns, deposits, stock takes).
 // Gateways are never called: global fetch is mocked, and webhooks are signed here with each gateway's scheme.
 import { createHmac, randomBytes, randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import { db, tx } from "@/server/db";
 import { SYSTEM } from "@/server/audit";
@@ -170,7 +167,6 @@ async function receivedReturn() {
 beforeAll(async () => {
   Object.assign(process.env, ENV);
   delete process.env.PEACH_ENV;
-  process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-race-uploads-"));
   await resetDb();
   w = await buildWorld();
   who = { type: "USER", id: w.manager.id, name: w.manager.name };
@@ -357,7 +353,7 @@ describe("a return refunded twice at once", () => {
     await expect(refundReturn(ret.id, { restock: {} }, who, HQ)).rejects.toThrow(/is already being refunded/);
     expect(peach.posts()).toBe(0);
     // That attempt died (a crash, a timeout) and its claim went stale: the next one takes over.
-    await db.$executeRaw`UPDATE "ReturnRequest" SET "updatedAt" = now() - interval '11 minutes' WHERE id = ${ret.id}`;
+    await db.$executeRaw`UPDATE "ReturnRequest" SET "updatedAt" = ${new Date(Date.now() - 11 * 60_000)} WHERE id = ${ret.id}`;
     await refundReturn(ret.id, { restock: {} }, who, HQ);
     expect(peach.posts()).toBe(1);
     expect(await db.returnRequest.findUniqueOrThrow({ where: { id: ret.id } })).toMatchObject({ status: "REFUNDED", refundRef: peach.refunds[0].refund_id });

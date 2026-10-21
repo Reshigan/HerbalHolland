@@ -12,6 +12,7 @@ import { ViewOnly } from "@/components/hq/ui";
 import { MarketingTabs } from "../tabs";
 import { SocialComposer } from "./composer";
 import { postSocial } from "./actions";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Social" };
 
@@ -53,7 +54,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
           <ul className="mt-4 divide-y divide-ink-100 border-t border-ink-100">
             {posts.length === 0 && <li className="px-5 py-10 text-center text-sm text-ink-500">Nothing posted yet.</li>}
             {posts.map((p) => {
-              const [label, tone] = p.postizIds.length ? (MODE[p.mode as keyof typeof MODE] ?? MODE.now) : (["Recorded only", "amber"] as const);
+              const [label, tone] = asList(p.postizIds).length ? (MODE[p.mode as keyof typeof MODE] ?? MODE.now) : (["Recorded only", "amber"] as const);
               return (
                 <li key={p.id} className="flex gap-3 px-5 py-4">
                   {p.image && (
@@ -65,7 +66,7 @@ export default async function SocialPage({ searchParams }: { searchParams: Promi
                     <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-ink-500">
                       <Badge tone={tone}>{label}</Badge>
                       <span className="tnum">{fmtDateTime(p.scheduledAt ?? p.createdAt)}</span>
-                      {p.channels.length > 0 && <span>· {p.channels.join(", ")}</span>}
+                      {asList(p.channels).length > 0 && <span>· {asList(p.channels).join(", ")}</span>}
                       {p.createdBy && <span>· {p.createdBy}</span>}
                     </p>
                   </div>

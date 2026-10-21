@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Form from "next/form";
 import { Calendar, Gift, Mail, Search, Store } from "lucide-react";
+import { redirect } from "next/navigation";
 import { getCustomer } from "@/server/auth";
+import { shopPhase } from "@/server/shop/context";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { CONSENT_WORDING } from "@/server/customers";
 import { getPreferredStore, getRetailStores, homeStoreOptions } from "@/server/shop/context";
 import { voucherBalance } from "@/server/shop/vouchers";
@@ -27,7 +30,8 @@ export const metadata: Metadata = {
 };
 
 export default async function GiftPage({ searchParams }: { searchParams: Promise<{ check?: string }> }) {
-  const [{ check }, customer, stores, store] = await Promise.all([searchParams, getCustomer(), getRetailStores(), getPreferredStore()]);
+  const [{ check }, customer, stores, store, phase] = await Promise.all([searchParams, getCustomer(), getRetailStores(), getPreferredStore(), shopPhase()]);
+  if (!canBuyOnline(phase)) redirect("/shop"); // vouchers are bought online: not before the shop opens
   const checked = check ? await voucherBalance(check) : null;
   const amounts = VOUCHER_AMOUNTS_CENTS.map(zarWhole).join(", ").replace(/, ([^,]*)$/, " or $1");
   return (

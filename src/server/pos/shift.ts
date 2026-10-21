@@ -1,5 +1,6 @@
 // Till shifts: open with a counted float, close with a denomination count (expected vs
 // counted via finance.shiftCash) and a Z-report that is printable and emailed to the store.
+import { background } from "@/server/background";
 import { db } from "@/server/db";
 import { shiftCash } from "@/server/finance";
 import { audit, type Actor } from "@/server/audit";
@@ -47,13 +48,11 @@ export async function closeShift(pos: PosStaff, shiftId: string, counts: Record<
     entityId: shift.id,
     data: { expected: cash.expectedCents, counted, variance: counted - cash.expectedCents, counts: clean },
   });
-  checkShifts({ id: shift.id }, (await getSettings()).loss)
-    .then(raiseAlerts)
-    .catch((e) => console.error("[pos] cash-short check failed", shift.id, e));
+  background(`cash-short check ${shift.id}`, checkShifts({ id: shift.id }, (await getSettings()).loss).then(raiseAlerts));
   const report = await zReport(shift.id);
   const to = pos.device.store.email;
   if (to) {
-    emailZReport(report, to).catch((e) => console.error("[pos] Z-report email failed", shift.id, e));
+    background(`Z-report email ${shift.id}`, emailZReport(report, to));
     report.emailedTo = to;
   }
   return report;

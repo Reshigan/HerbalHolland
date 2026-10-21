@@ -2,6 +2,7 @@
 // R5,000; full tax invoice above (recipient name/address/VAT no.). Non-VAT vendors
 // issue a plain invoice. Each invoice also has a hosted, printable copy (/invoice/[id]?t=…).
 // The emails themselves are rendered by email-templates.ts (pure, unit-tested).
+import { background } from "@/server/background";
 import { createHmac } from "node:crypto";
 import { db } from "./db";
 import { finalizeEmail, sendEmail } from "./email";
@@ -90,9 +91,7 @@ export async function emailSaleInvoice(saleId: string, to?: string) {
 
 /** Fire-and-forget so a mail outage never blocks the till; the address is kept so the scheduler retries failures. */
 export function queueSaleInvoice(saleId: string, to?: string) {
-  (to ? db.sale.update({ where: { id: saleId }, data: { invoiceEmail: to } }) : Promise.resolve())
-    .then(() => emailSaleInvoice(saleId, to))
-    .catch((e) => console.error("[invoice] email failed", saleId, e));
+  background(`invoice email ${saleId}`, (to ? db.sale.update({ where: { id: saleId }, data: { invoiceEmail: to } }) : Promise.resolve()).then(() => emailSaleInvoice(saleId, to)));
 }
 
 export async function emailStockOrderInvoice(stockOrderId: string) {

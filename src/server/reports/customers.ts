@@ -2,7 +2,7 @@
 // transactions linked to a Rewards member), Rewards savings and where members joined.
 import { db, Prisma } from "../db";
 import { segmentWhere } from "../marketing";
-import { sast } from "../sql";
+import { sast, sastDay } from "../sql";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
 import { TIERS } from "@/lib/loyalty-rules";
 import { getSettings } from "../settings";
@@ -12,7 +12,11 @@ import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
 import { STAT_SUMS, bounds, completeDays, eachDay, isoDay, multi, n, ratio, statWhere, storeLabel, sumRows, summaryOf } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND channel = ${c}` : Prisma.empty);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
+/** The Monday (SAST) starting the week a timestamp falls in, as YYYY-MM-DD (Postgres's date_trunc('week')). */
+const sastWeek = (col: string) => Prisma.raw(`date(${col}, '+2 hours', '-6 days', 'weekday 1')`);
 
 const ORDER: SegmentKey[] = ["CHAMPION", "LOYAL", "PROMISING", "NEW", "AT_RISK", "LAPSED", "PROSPECT"];
 const CONSENTED: Prisma.CustomerWhereInput = { OR: [{ consentSms: true }, { consentWhatsapp: true }, { consentEmail: true }, { consentPush: true }] };
@@ -85,32 +89,33 @@ export const newVsReturning: ReportDef = {
   async run(ctx) {
     const { start, end } = bounds(ctx);
     const [weeks, signups] = await Promise.all([
-      db.$queryRaw<{ week: Date; newMembers: number; returning: number; walkIns: number; memberTx: number; newNet: number; retNet: number; walkNet: number }[]>`
+      // A member's first purchase (SAST wall clock) against the week's Monday: "YYYY-MM-DD HH:MM:SS" sorts after "YYYY-MM-DD".
+      db.$queryRaw<{ week: string; newMembers: number; returning: number; walkIns: number; memberTx: number; newNet: number; retNet: number; walkNet: number }[]>`
         WITH x AS (
-          SELECT date_trunc('week', ${sast('s."createdAt"')}) AS wk, s."customerId", s."totalCents" - s."vatCents" AS net, ${sast('c."firstPurchaseAt"')} AS first_local
+          SELECT ${sastWeek('s."createdAt"')} AS wk, s."customerId", s."totalCents" - s."vatCents" AS net, ${sast('c."firstPurchaseAt"')} AS first_local
           FROM "Sale" s LEFT JOIN "Customer" c ON c.id = s."customerId"
-          WHERE s.kind = 'SALE' AND s."storeId" = ANY(${ctx.storeIds}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
+          WHERE s.kind = 'SALE' AND s."storeId" IN (${inList(ctx.storeIds)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
         )
-        SELECT wk::date AS week,
-          COUNT(DISTINCT "customerId") FILTER (WHERE "customerId" IS NOT NULL AND first_local >= wk)::int AS "newMembers",
-          COUNT(DISTINCT "customerId") FILTER (WHERE "customerId" IS NOT NULL AND (first_local < wk OR first_local IS NULL))::int AS returning,
-          COUNT(*) FILTER (WHERE "customerId" IS NULL)::int AS "walkIns",
-          COUNT(*) FILTER (WHERE "customerId" IS NOT NULL)::int AS "memberTx",
-          COALESCE(SUM(net) FILTER (WHERE "customerId" IS NOT NULL AND first_local >= wk), 0)::float8 AS "newNet",
-          COALESCE(SUM(net) FILTER (WHERE "customerId" IS NOT NULL AND (first_local < wk OR first_local IS NULL)), 0)::float8 AS "retNet",
-          COALESCE(SUM(net) FILTER (WHERE "customerId" IS NULL), 0)::float8 AS "walkNet"
+        SELECT wk AS week,
+          cast(COUNT(DISTINCT CASE WHEN "customerId" IS NOT NULL AND first_local >= wk THEN "customerId" END) AS real) AS "newMembers",
+          cast(COUNT(DISTINCT CASE WHEN "customerId" IS NOT NULL AND (first_local < wk OR first_local IS NULL) THEN "customerId" END) AS real) AS "returning",
+          cast(COUNT(CASE WHEN "customerId" IS NULL THEN 1 END) AS real) AS "walkIns",
+          cast(COUNT(CASE WHEN "customerId" IS NOT NULL THEN 1 END) AS real) AS "memberTx",
+          cast(COALESCE(SUM(CASE WHEN "customerId" IS NOT NULL AND first_local >= wk THEN net ELSE 0 END), 0) AS real) AS "newNet",
+          cast(COALESCE(SUM(CASE WHEN "customerId" IS NOT NULL AND (first_local < wk OR first_local IS NULL) THEN net ELSE 0 END), 0) AS real) AS "retNet",
+          cast(COALESCE(SUM(CASE WHEN "customerId" IS NULL THEN net ELSE 0 END), 0) AS real) AS "walkNet"
         FROM x GROUP BY 1 ORDER BY 1`,
-      db.$queryRaw<{ week: Date; n: number }[]>`
-        SELECT date_trunc('week', ${sast('"createdAt"')})::date AS week, COUNT(*)::int AS n
+      db.$queryRaw<{ week: string; n: number }[]>`
+        SELECT ${sastWeek('"createdAt"')} AS week, cast(COUNT(*) AS real) AS n
         FROM "Customer"
-        WHERE "createdAt" >= ${start} AND "createdAt" < ${end} ${ctx.networkWide ? Prisma.empty : Prisma.sql`AND "homeStoreId" = ANY(${ctx.storeIds}::text[])`}
+        WHERE "createdAt" >= ${start} AND "createdAt" < ${end} ${ctx.networkWide ? Prisma.empty : Prisma.sql`AND "homeStoreId" IN (${inList(ctx.storeIds)})`}
         GROUP BY 1`,
     ]);
-    const joined = new Map(signups.map((s) => [isoDay(s.week), s.n]));
+    const joined = new Map(signups.map((s) => [s.week, s.n]));
     const rows: Row[] = weeks.map((w) => {
       const tx = w.memberTx + w.walkIns;
       return {
-        week: isoDay(w.week), signups: joined.get(isoDay(w.week)) ?? 0, newMembers: w.newMembers, returning: w.returning, walkIns: w.walkIns,
+        week: w.week, signups: joined.get(w.week) ?? 0, newMembers: w.newMembers, returning: w.returning, walkIns: w.walkIns,
         memberShare: ratio(w.memberTx, tx), newNet: w.newNet, retNet: w.retNet, walkNet: w.walkNet,
       };
     });
@@ -224,19 +229,19 @@ export const rewardsSavings: ReportDef = {
   async run(ctx) {
     const { start, end } = bounds(ctx);
     const byStore = multi(ctx);
-    const key = byStore ? Prisma.raw(`"storeId"`) : Prisma.sql`(${sast('"createdAt"')})::date`;
+    const key = byStore ? Prisma.raw(`"storeId"`) : sastDay('"createdAt"');
     const [roll, split, prev, settings] = await Promise.all([
       byStore
         ? db.dailyStoreStat.groupBy({ by: ["storeId"], where: statWhere(ctx), _sum: { memberSavingsCents: true } })
         : db.dailyStoreStat.groupBy({ by: ["date"], where: statWhere(ctx), _sum: { memberSavingsCents: true }, orderBy: { date: "asc" } }),
       db.$queryRaw<{ k: string | Date; memberTx: number; memberGross: number; walkTx: number; walkGross: number }[]>`
         SELECT ${key} AS k,
-          COUNT(*) FILTER (WHERE kind = 'SALE' AND "customerId" IS NOT NULL)::int AS "memberTx",
-          COALESCE(SUM("totalCents") FILTER (WHERE kind = 'SALE' AND "customerId" IS NOT NULL), 0)::float8 AS "memberGross",
-          COUNT(*) FILTER (WHERE kind = 'SALE' AND "customerId" IS NULL)::int AS "walkTx",
-          COALESCE(SUM("totalCents") FILTER (WHERE kind = 'SALE' AND "customerId" IS NULL), 0)::float8 AS "walkGross"
+          cast(COUNT(CASE WHEN kind = 'SALE' AND "customerId" IS NOT NULL THEN 1 END) AS real) AS "memberTx",
+          cast(COALESCE(SUM(CASE WHEN kind = 'SALE' AND "customerId" IS NOT NULL THEN "totalCents" ELSE 0 END), 0) AS real) AS "memberGross",
+          cast(COUNT(CASE WHEN kind = 'SALE' AND "customerId" IS NULL THEN 1 END) AS real) AS "walkTx",
+          cast(COALESCE(SUM(CASE WHEN kind = 'SALE' AND "customerId" IS NULL THEN "totalCents" ELSE 0 END), 0) AS real) AS "walkGross"
         FROM "Sale"
-        WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
+        WHERE "storeId" IN (${inList(ctx.storeIds)}) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
         GROUP BY 1`,
       db.dailyStoreStat.aggregate({ where: statWhere(ctx, previousRange(ctx.range)), _sum: { memberSavingsCents: true } }),
       getSettings(),

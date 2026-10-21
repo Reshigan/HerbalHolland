@@ -44,7 +44,7 @@ export default async function BatchesPage({ params, searchParams }: { params: Pr
     expired: { batch: { expiresAt: { lte: now } } },
   };
   const search: Prisma.StockLevelWhereInput = q
-    ? { OR: [{ batch: { code: { contains: q, mode: "insensitive" } } }, { variant: { sku: { contains: q, mode: "insensitive" } } }, { variant: { product: { name: { contains: q, mode: "insensitive" } } } }] }
+    ? { OR: [{ batch: { code: { contains: q } } }, { variant: { sku: { contains: q } } }, { variant: { product: { name: { contains: q } } } }] }
     : {};
   const where = { AND: [base, views[view], search] };
 

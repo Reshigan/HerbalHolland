@@ -14,7 +14,8 @@ import { Table, Th, Td, Tr, SortableTh, TableEmpty, sortParams } from "@/compone
 import { Pagination, pageParam } from "@/components/ui/pagination";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { SavedViews } from "@/components/admin/saved-views";
-import { Prisma } from "@/generated/prisma/client";
+import { Prisma, type AuditLog } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export const metadata = { title: "Audit log" };
 
@@ -81,8 +82,8 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
         await db.$queryRaw<{ id: string }[]>`
           SELECT id FROM "AuditLog"
           WHERE at >= ${searchFrom} ${to ? Prisma.sql`AND at < ${addDays(to, 1)}` : Prisma.empty}
-            ${scope.kind === "HQ" ? Prisma.empty : Prisma.sql`AND "storeId" = ANY(${ids}::text[])`}
-            AND ("entityId" = ${q} OR "actorName" ILIKE ${`%${q}%`} OR data::text ILIKE ${`%${q}%`})
+            ${scope.kind === "HQ" ? Prisma.empty : Prisma.sql`AND "storeId" IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`}
+            AND ("entityId" = ${q} OR "actorName" LIKE ${`%${q.slice(0, 40)}%`} OR data LIKE ${`%${q.slice(0, 40)}%`})
           ORDER BY at DESC LIMIT 2000`
       ).map((r) => r.id)
     : null;
@@ -93,15 +94,23 @@ export default async function AuditPage({ searchParams }: { searchParams: Promis
       ...(user.role === "HQ_ADMIN" ? [] : [{ NOT: { action: { startsWith: "ledger." } } }, { NOT: { action: { startsWith: "bank." } } }]),
       action ? { action: { startsWith: action } } : {},
       sp.store ? { storeId: (await db.store.findFirst({ where: { code: sp.store, id: { in: ids } }, select: { id: true } }))?.id ?? "__none__" } : {},
-      sp.actor?.trim() ? { actorName: { contains: sp.actor.trim(), mode: "insensitive" } } : {},
+      sp.actor?.trim() ? { actorName: { contains: sp.actor.trim() } } : {},
       from ? { at: { gte: from } } : {},
       to ? { at: { lt: addDays(to, 1) } } : {},
-      searchIds ? { id: { in: searchIds } } : {},
     ],
   };
+  // A search's matches (up to 2,000 ids) are read in rounds (D1 binds at most 100 parameters) and sorted and paged here.
+  const cmp = (a: AuditLog, b: AuditLog) => {
+    const d = dir === "asc" ? 1 : -1;
+    const byAt = (x: AuditLog, y: AuditLog) => x.at.getTime() - y.at.getTime();
+    if (sort === "action") return (a.action < b.action ? -d : a.action > b.action ? d : 0) || byAt(b, a);
+    if (sort === "actor") return (a.actorName === b.actorName ? 0 : a.actorName === null ? 1 : b.actorName === null ? -1 : a.actorName < b.actorName ? -d : d) || byAt(b, a);
+    return byAt(a, b) * d;
+  };
+  const searched = searchIds ? (await inBatches(searchIds, (part) => db.auditLog.findMany({ where: { AND: [where, { id: { in: part } }] } }))).sort(cmp) : null;
   const [total, rows, stores] = await Promise.all([
-    db.auditLog.count({ where }),
-    db.auditLog.findMany({ where, orderBy: ORDER_BY[sort](dir), skip: (page - 1) * pageSize, take: pageSize }),
+    searched ? searched.length : db.auditLog.count({ where }),
+    searched ? searched.slice((page - 1) * pageSize, page * pageSize) : db.auditLog.findMany({ where, orderBy: ORDER_BY[sort](dir), skip: (page - 1) * pageSize, take: pageSize }),
     db.store.findMany({ where: { id: { in: ids } }, select: { id: true, code: true, name: true }, orderBy: { name: "asc" } }),
   ]);
   const storeName = new Map(stores.map((s) => [s.id, s]));

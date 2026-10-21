@@ -159,8 +159,7 @@ const PAGE = 25;
 
 /** Who a history search could mean besides a receipt number: a member (number, mobile, name) or a trade account. */
 function saleMatch(q: string): Prisma.SaleWhereInput {
-  const ci = "insensitive" as const;
-  const or: Prisma.SaleWhereInput[] = [{ number: { contains: q, mode: ci } }];
+  const or: Prisma.SaleWhereInput[] = [{ number: { contains: q } }];
   const memberNo = memberNoFrom(q);
   const phone = normalisePhone(q);
   const digits = q.replace(/\D/g, "");
@@ -171,9 +170,9 @@ function saleMatch(q: string): Prisma.SaleWhereInput {
   else if (/[A-Z]/i.test(q)) {
     or.push(
       words.length > 1
-        ? { customer: { firstName: { startsWith: words[0], mode: ci }, lastName: { startsWith: words.slice(1).join(" "), mode: ci } } }
-        : { customer: { OR: [{ firstName: { startsWith: q, mode: ci } }, { lastName: { startsWith: q, mode: ci } }] } },
-      { tradeAccount: { name: { contains: q, mode: ci } } },
+        ? { customer: { firstName: { startsWith: words[0] }, lastName: { startsWith: words.slice(1).join(" ") } } }
+        : { customer: { OR: [{ firstName: { startsWith: q } }, { lastName: { startsWith: q } }] } },
+      { tradeAccount: { name: { contains: q } } },
     );
   }
   return { OR: or };

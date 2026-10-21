@@ -1,18 +1,13 @@
 // The Rewards card in Apple Wallet and Google Wallet. Pure builders live in @/lib/wallet; this file reads the
-// configuration, draws the icons, signs (Apple: PKCS#7 through the openssl CLI, as node:crypto has no CMS; Google:
-// RS256 with node:crypto) and says clearly when a wallet isn't set up yet. The pass holds the member number (QR),
-// tier, points and first name, and no other personal data.
-import { execFile } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import { promisify } from "node:util";
+// configuration, draws the icons, signs (Apple: a detached PKCS#7 signature built in memory with WebCrypto, @/lib/pkcs7;
+// Google: RS256) and says clearly when a wallet isn't set up yet. The pass holds the member number (QR), tier, points
+// and first name, and no other personal data. Nothing touches a filesystem or a process: it runs on Workers.
 import { appIcon } from "@/components/brand/app-icon";
 import { APP_URL } from "@/server/invoices";
 import { tierMeta } from "./club";
+import { importRsaPrivateKey, pemCertificate, pkcs7DetachedSignature } from "@/lib/pkcs7";
 import { applePassJson, appleManifest, googleSaveJwtClaims, googleSaveUrl, signJwtRS256, zipStore, type PassMember } from "@/lib/wallet";
 
-const run = promisify(execFile);
 export class WalletError extends Error {}
 
 const pem = (s: string | undefined) => (s ?? "").replace(/\\n/g, "\n").trim();
@@ -66,19 +61,18 @@ export async function buildApplePass(m: PassMember): Promise<Uint8Array> {
   return zipStore({ ...files, "manifest.json": manifest, signature });
 }
 
+// The signing key is imported once per configuration (the PEM never changes while the Worker lives). Only the imported
+// key is kept, never the import's promise: a promise shared across requests is cancelled as hung on Workers.
+let signingKey: { pem: string; key: CryptoKey } | undefined;
+
 /** PKCS#7 detached signature over manifest.json with the pass certificate, chained to Apple's WWDR certificate. */
 async function signManifest(manifest: Uint8Array, c: AppleWallet) {
-  const dir = await mkdtemp(join(tmpdir(), "hh-pass-"));
   try {
-    const f = (name: string) => join(dir, name);
-    await Promise.all([writeFile(f("cert.pem"), c.certPem), writeFile(f("key.pem"), c.keyPem, { mode: 0o600 }), writeFile(f("wwdr.pem"), c.wwdrPem), writeFile(f("manifest.json"), manifest)]);
-    await run("openssl", ["smime", "-binary", "-sign", "-certfile", f("wwdr.pem"), "-signer", f("cert.pem"), "-inkey", f("key.pem"), "-in", f("manifest.json"), "-out", f("signature"), "-outform", "DER"]);
-    return new Uint8Array(await readFile(f("signature")));
+    if (signingKey?.pem !== c.keyPem) signingKey = { pem: c.keyPem, key: await importRsaPrivateKey(c.keyPem) };
+    const key = signingKey.key;
+    return await pkcs7DetachedSignature({ content: manifest, signerCert: pemCertificate(c.certPem), key, certs: [pemCertificate(c.wwdrPem)] });
   } catch (e) {
-    if ((e as NodeJS.ErrnoException).code === "ENOENT") throw new WalletError("openssl isn't installed on this server: Apple passes need it to sign the manifest (PKCS#7)");
     throw new WalletError(`Signing the pass failed: ${String((e as Error).message).slice(0, 200)}`);
-  } finally {
-    await rm(dir, { recursive: true, force: true });
   }
 }
 

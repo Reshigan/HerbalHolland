@@ -1,5 +1,5 @@
 // The app's signing key (SESSION_SECRET): invoice, export, opt-out, share, reminder and phone-check links, and the keyed
-// hashes of IPs and ID numbers. A production server won't start without a real one (src/instrumentation.ts); development
+// hashes of IPs and ID numbers. A production server won't start without a real one (src/server/startup.ts); development
 // and tests fall back to a fixed key.
 const EXAMPLES = new Set(["change-me-to-32-plus-random-bytes-in-production", "dev-only-change-me-32-bytes-minimum-secret"]);
 

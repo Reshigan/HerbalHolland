@@ -5,6 +5,7 @@
 // tender like any other (sales.postPosSale; refunds go back onto the voucher first). A voucher is money, not an
 // incentive (no bonus value, allowed on everything); CPA s63(2) makes it valid for three years from issue.
 import { cache } from "react";
+import { asList, inBatches } from "@/lib/json-list";
 import { db, tx, type Tx } from "@/server/db";
 import { audit, SYSTEM, type Actor } from "@/server/audit";
 import { pinCode, shortCode } from "@/server/counters";
@@ -159,7 +160,7 @@ function voucherEmail(v: GiftVoucher, to: "buyer" | "recipient", buyer: { firstN
 }
 
 async function logEmail(to: string, subject: string, ok: boolean, customerId: string | null) {
-  await db.messageLog.create({ data: { channel: "EMAIL", to, kind: "TRANSACTIONAL", status: ok ? "SENT" : "FAILED", reason: ok ? null : "No email provider (SMTP_URL) configured", body: subject, customerId } });
+  await db.messageLog.create({ data: { channel: "EMAIL", to, kind: "TRANSACTIONAL", status: ok ? "SENT" : "FAILED", reason: ok ? null : "No email provider (MS_*) configured", body: subject, customerId } });
 }
 
 /** Emails the voucher to the buyer (and the recipient, when there is one) and texts the buyer the code. */
@@ -201,7 +202,7 @@ export async function redeemVoucherTx(t: Tx, a: { voucher: GiftVoucher; cents: n
   if (!a.orderId && !a.saleId) throw new VoucherError("A redemption belongs to an order or a sale");
   const { count } = await t.giftVoucher.updateMany({
     where: { id: a.voucher.id, status: "ACTIVE", balanceCents: { gte: a.cents } },
-    data: { balanceCents: { decrement: a.cents }, ...(a.orderId && { redeemedOrderIds: { push: a.orderId } }) },
+    data: { balanceCents: { decrement: a.cents }, ...(a.orderId && { redeemedOrderIds: [...asList<string>(a.voucher.redeemedOrderIds), a.orderId] }) },
   });
   if (!count) throw new VoucherError(`Gift voucher ${a.voucher.code} was just used somewhere else. Check its balance and try again`);
   await t.giftVoucher.updateMany({ where: { id: a.voucher.id, balanceCents: { lte: 0 } }, data: { status: "REDEEMED" } });
@@ -282,7 +283,7 @@ export async function expireVouchers(now = new Date()) {
   const due = (await db.giftVoucher.findMany({ where: { status: "ACTIVE", expiresAt: { lt: now } }, select: { id: true } })).map((v) => v.id);
   const expired = await tx(async (t) => {
     for (const id of due) await queuePosting(t, "voucher", `${id}:expiry`); // what's left on it is breakage, in HQ's books
-    return t.giftVoucher.updateMany({ where: { id: { in: due }, status: "ACTIVE" }, data: { status: "EXPIRED" } });
+    return { count: (await inBatches(due, (part) => t.giftVoucher.updateMany({ where: { id: { in: part }, status: "ACTIVE" }, data: { status: "EXPIRED" } }).then((r) => [r.count]))).reduce((s, n) => s + n, 0) };
   });
   const lapsed = await db.giftVoucher.updateMany({ where: { status: "PENDING", createdAt: { lt: new Date(now.getTime() - 2 * 86_400_000) } }, data: { status: "CANCELLED" } });
   return { expired: expired.count, lapsed: lapsed.count };

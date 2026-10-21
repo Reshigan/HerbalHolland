@@ -9,6 +9,7 @@ import { Callout, Container, Panel, Tag, type TagTone } from "@/components/shop/
 import { RETURN_REASON, RETURN_REASONS, RETURN_STATUS, RETURN_WINDOWS, type ReturnItem, type ReturnStatusKey } from "@/lib/returns";
 import { fmtDate, fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Return or report a problem" };
 
@@ -93,9 +94,9 @@ export default async function ReturnPage({ params, searchParams }: { params: Pro
                 )}
                 {x.status === "REFUNDED" && x.refundCents != null && <p className="mt-3 text-sm text-leaf-100">Refunded {zar(x.refundCents)} to the way you paid.</p>}
                 {x.status === "DECLINED" && x.decisionNote && <p className="mt-3 text-sm text-ink-300">{x.decisionNote}</p>}
-                {x.photoUploadIds.length > 0 && (
+                {asList(x.photoUploadIds).length > 0 && (
                   <ul className="mt-3 flex gap-2">
-                    {x.photoUploadIds.map((id) => (
+                    {asList(x.photoUploadIds).map((id) => (
                       <li key={id}>
                         <a href={`/media/${id}`} target="_blank" rel="noreferrer">
                           {/* eslint-disable-next-line @next/next/no-img-element */}

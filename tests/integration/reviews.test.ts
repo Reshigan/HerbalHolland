@@ -2,6 +2,7 @@
 // the copy screen, and HQ moderation. A hidden review vanishes from the product page's reviews and rating.
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { asList } from "@/lib/json-list";
 import { db } from "@/server/db";
 import { postPosSale } from "@/server/sales";
 import { moderateReview, postReview, listReviews, reviewCounts, reviewWhere, ReviewError } from "@/server/reviews";
@@ -13,7 +14,6 @@ const jpeg = () => new File([new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 16, 74, 
 const big = () => new File([new Uint8Array(5 * 1024 * 1024 + 1)], "huge.jpg", { type: "image/jpeg" });
 
 beforeAll(async () => {
-  process.env.UPLOAD_DIR = `${process.cwd()}/.data/uploads-test`;
   await resetDb();
   w = await buildWorld();
 });
@@ -39,7 +39,7 @@ describe("posting a review", () => {
     const r = await postReview({ ...base, photos: [jpeg(), jpeg()] });
     expect(r).toMatchObject({ productId: product.id, customerId: w.walkIn.id, rating: 5, verified: true, hidden: false });
     expect(r.photoUploadIds).toHaveLength(2);
-    const uploads = await db.upload.findMany({ where: { id: { in: r.photoUploadIds } } });
+    const uploads = await db.upload.findMany({ where: { id: { in: asList(r.photoUploadIds) } } });
     expect(uploads.map((u) => u.contentType)).toEqual(["image/jpeg", "image/jpeg"]);
     expect(uploads[0].key).toMatch(/^reviews\/\d{4}-\d{2}\/[0-9a-f-]+\.jpg$/);
     expect(await db.auditLog.findFirst({ where: { action: "review.post", entityId: r.id } })).toMatchObject({ data: { rating: 5, photos: 2 } });

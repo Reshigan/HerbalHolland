@@ -1,5 +1,5 @@
 // End-to-end test of the trade portal (Playwright + direct DB checks).
-//   BASE_URL=http://127.0.0.1:3700 DATABASE_URL=postgresql://…/hh_ci SESSION_SECRET=… DEMO_MODE=true node e2e/trade.mjs [outdir]
+//   BASE_URL=http://127.0.0.1:3700 DATABASE_FILE=<the local D1 file> SESSION_SECRET=… DEMO_MODE=true node e2e/trade.mjs [outdir]
 // Landing → apply (every validation path once, checked in the browser before anything is sent; the licences a
 // pharmacy needs, with a document the server refuses by its bytes; then a good application; a second application with
 // the same buyer email is refused) → sign in with the demo code while PENDING (browse, no prices, no ordering) →
@@ -11,7 +11,7 @@
 // trading name) → statements → sign out.
 // Everything it creates is removed and the two variants' case packs are put back. Prints click-to-result timings.
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync } from "node:fs";
 
 const pdf = (name) => ({ name, mimeType: "application/pdf", buffer: Buffer.from(`%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\n% ${name}\n%%EOF\n`) });
@@ -19,7 +19,7 @@ const pdf = (name) => ({ name, mimeType: "application/pdf", buffer: Buffer.from(
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/e2e-trade";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
@@ -85,11 +85,12 @@ try {
        join "Store" s on s.id = a."storeId" and s.kind = 'RETAIL' and s.status = 'ACTIVE' and s."clickCollect"
        where a.q >= 24 and not exists (select 1 from "PriceListItem" i join "PriceList" l on l.id = i."priceListId" and l.kind = 'TRADE' where i."variantId" = v.id and i."minQty" between 2 and 18))
      select s.id "storeId", s.code, s.name, s.suburb, s.city, s.province, s."addressLine",
-            (select json_agg(x) from (select id, sku, vname, pname, "wholesaleCents", "caseQty", "regClass", q from lines l where l."storeId" = s.id order by random() limit 2) x) lines
+            (select json_group_array(json_object('id', id, 'sku', sku, 'vname', vname, 'pname', pname, 'wholesaleCents', "wholesaleCents", 'caseQty', "caseQty", 'regClass', "regClass", 'q', q))
+               from (select id, sku, vname, pname, "wholesaleCents", "caseQty", "regClass", q from lines l where l."storeId" = s.id order by random() limit 2)) lines
      from "Store" s where (select count(*) from lines l where l."storeId" = s.id) >= 2 order by random() limit 1`,
   );
   if (!dc || !pick) fail("seed data: no DC, or no click & collect store with stock of two trade-priced lines");
-  const [A, B] = pick.lines;
+  const [A, B] = typeof pick.lines === "string" ? JSON.parse(pick.lines) : pick.lines; // json_group_array: text locally; parsed by the live-D1 shim
   // The trade price each line shows: the live TRADE list's base price when there is one, else the wholesale price.
   for (const L of [A, B]) {
     const listed = await one(
@@ -390,7 +391,7 @@ try {
 
   // ── 9. HQ marks the first order ready (SQL) → the tracker ──────────────────────────────────────────
   step("HQ marks the collect order ready (SQL): the tracker says so");
-  await q(`update "TradeOrder" set status = 'READY', "readyAt" = now(), events = events || jsonb_build_array(jsonb_build_object('status', 'READY', 'at', to_char(now() at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'))) where id = $1`, [order1.id]);
+  await q(`update "TradeOrder" set status = 'READY', "readyAt" = now(), events = json_insert(events, '$[#]', json_object('status', 'READY', 'at', strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))) where id = $1`, [order1.id]);
   await page.goto(`${BASE}/trade/orders/${order1.id}`);
   await page.getByRole("heading", { level: 1, name: `Ready to collect at ${store.name}` }).waitFor();
   await page.getByTestId("timeline").getByText("Ready to collect").waitFor();

@@ -107,7 +107,7 @@ describe("Franchise enquiries", () => {
     expect(r).toMatchObject({ ok: false, error: expect.stringMatching(/several enquiries from your connection in the last hour/) });
     expect((await createLead(enquiry(), { ip: ip(5) })).ok).toBe(true); // another connection
     expect((await createLead(enquiry(), {})).ok).toBe(true); // no IP known: only the email limit applies
-    await db.$executeRaw`UPDATE "FranchiseLead" SET "createdAt" = now() - interval '61 minutes' WHERE "ipHash" = ${ipHash(ip(4))}`;
+    await db.$executeRaw`UPDATE "FranchiseLead" SET "createdAt" = ${new Date(Date.now() - 61 * 60_000)} WHERE "ipHash" = ${ipHash(ip(4))}`;
     expect((await createLead(enquiry(), { ip: ip(4) })).ok).toBe(true); // an hour on
   });
 

@@ -6,7 +6,7 @@
 import { db, tx, Prisma, type Tx } from "../db";
 import { audit, type Actor } from "../audit";
 import { booksFor, LedgerError, syncPosting } from "./core";
-import { addMonths, diffLines, fiscalYearEnd, fiscalYearStart, monthEnd, monthsBetween, netLines, periodOf, vatPeriodOf, type Line } from "@/lib/ledger";
+import { addMonths, diffLines, fiscalYearEnd, fiscalYearStart, monthEnd, monthsBetween, netLines, periodOf, supplierParty, vatPeriodOf, type Line } from "@/lib/ledger";
 import {
   ageBalance, ageBounds, balanceSheetLayout, cashFlowLayout, debitCredit, incomeStatementLayout, isCashAccount, isMonth, isProfitAndLoss, keyRatios, lastYearRange,
   monthEndLabel, monthLabel, previousRange, rangeLabel, sumAged, vat201Rows, vatInputGroup, yearToDate,
@@ -14,6 +14,7 @@ import {
 } from "@/lib/ledger-reports";
 import { sourceLabel } from "@/lib/ledger-admin";
 import { dayKey } from "@/lib/format";
+import { inBatches } from "@/lib/json-list";
 
 type Client = Tx | typeof db;
 export type ChartAccount = ReportAccount & { active: boolean };
@@ -46,6 +47,10 @@ export const thisMonth = (now = new Date()) => periodOf(dayKey(now));
 const fyStartOf = (period: string, yearEndMonth: number) => fiscalYearStart(fiscalYearEnd(period, yearEndMonth));
 const onStore = (col: string, storeId?: string | null) => (storeId ? Prisma.sql`AND ${Prisma.raw(col)} = ${storeId}` : Prisma.empty);
 const zeros = (n: number): Values => Array<number>(n).fill(0);
+const dateCol = (s: string) => new Date(`${s}T00:00:00Z`); // a YYYY-MM-DD bound, bound as the ISO text the date columns hold
+const dayOf = (d: Date | string) => (typeof d === "string" ? d : d.toISOString()).slice(0, 10);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 
 // ── Names ────────────────────────────────────────────────────────────────────
 
@@ -53,7 +58,7 @@ const zeros = (n: number): Values => Array<number>(n).fill(0);
 export async function storeNames(ids: string[]) {
   const list = [...new Set(ids.filter(Boolean))];
   if (!list.length) return new Map<string, { code: string; name: string }>();
-  const rows = await db.store.findMany({ where: { id: { in: list } }, select: { id: true, code: true, name: true } });
+  const rows = await inBatches(list, (part) => db.store.findMany({ where: { id: { in: part } }, select: { id: true, code: true, name: true } }));
   return new Map(rows.map((s) => [s.id, { code: s.code, name: s.name }]));
 }
 
@@ -61,17 +66,24 @@ export async function storeNames(ids: string[]) {
 export async function partyNames(companyId: string, party: string | null | undefined, ids: string[]) {
   const list = [...new Set(ids.filter(Boolean))];
   if (!list.length || !party) return new Map<string, string>();
-  if (party === "COMPANY") return new Map((await db.company.findMany({ where: { id: { in: list } }, select: { id: true, name: true } })).map((c) => [c.id, c.name]));
+  if (party === "COMPANY") return new Map((await inBatches(list, (part) => db.company.findMany({ where: { id: { in: part } }, select: { id: true, name: true } }))).map((c) => [c.id, c.name]));
   if (party === "TRADE_ACCOUNT")
-    return new Map((await db.tradeAccount.findMany({ where: { id: { in: list } }, select: { id: true, name: true, number: true } })).map((a) => [a.id, `${a.name} (${a.number})`]));
+    return new Map((await inBatches(list, (part) => db.tradeAccount.findMany({ where: { id: { in: part } }, select: { id: true, name: true, number: true } }))).map((a) => [a.id, `${a.name} (${a.number})`]));
   // Supplier parties are the normalised name (supplierParty): match it back to how the invoices spell it, or else
   // capitalise its words.
-  const rows = await db.$queryRaw<{ key: string; name: string }[]>`
-    SELECT DISTINCT ON (key) key, name FROM (
-      SELECT lower(btrim(regexp_replace(si."supplierName", '[[:space:]]+', ' ', 'g'))) AS key, btrim(si."supplierName") AS name, si."createdAt"
-      FROM "SupplierInvoice" si JOIN "Store" s ON s.id = si."storeId" WHERE s."companyId" = ${companyId}
-    ) x WHERE key = ANY(${list}::text[]) ORDER BY key, "createdAt" DESC`;
-  const spelt = new Map(rows.map((r) => [r.key, r.name]));
+  // Each spelling once with its latest invoice (a company has a bounded set of suppliers); the latest spelling per party wins.
+  const rows = await db.$queryRaw<{ name: string; at: Date | string }[]>`
+    SELECT si."supplierName" AS name, MAX(si."createdAt") AS at
+    FROM "SupplierInvoice" si JOIN "Store" s ON s.id = si."storeId" WHERE s."companyId" = ${companyId}
+    GROUP BY si."supplierName"`;
+  const wanted = new Set(list);
+  const spelt = new Map<string, string>();
+  const latest = new Map<string, number>();
+  for (const r of rows) {
+    const key = supplierParty(r.name);
+    const at = new Date(r.at).getTime();
+    if (wanted.has(key) && (latest.get(key) ?? -Infinity) < at) (latest.set(key, at), spelt.set(key, r.name.trim()));
+  }
   return new Map(list.map((id) => [id, spelt.get(id) ?? id.replace(/(^|[\s(-])(\p{L})/gu, (_, before: string, letter: string) => before + letter.toUpperCase())]));
 }
 
@@ -90,10 +102,10 @@ export async function trialBalance(companyId: string, r: MonthRange & { storeId?
   const fyStart = fyStartOf(r.from, company.yearEndMonth);
   const sums = await db.$queryRaw<{ accountId: string; earlier: number; year: number; debit: number; credit: number }[]>`
     SELECT "accountId",
-      COALESCE(SUM("debitCents" - "creditCents") FILTER (WHERE period < ${fyStart}), 0)::float8 AS earlier,
-      COALESCE(SUM("debitCents" - "creditCents") FILTER (WHERE period >= ${fyStart} AND period < ${r.from}), 0)::float8 AS year,
-      COALESCE(SUM("debitCents") FILTER (WHERE period >= ${r.from}), 0)::float8 AS debit,
-      COALESCE(SUM("creditCents") FILTER (WHERE period >= ${r.from}), 0)::float8 AS credit
+      cast(COALESCE(SUM(CASE WHEN period < ${fyStart} THEN "debitCents" - "creditCents" ELSE 0 END), 0) AS real) AS earlier,
+      cast(COALESCE(SUM(CASE WHEN period >= ${fyStart} AND period < ${r.from} THEN "debitCents" - "creditCents" ELSE 0 END), 0) AS real) AS year,
+      cast(COALESCE(SUM(CASE WHEN period >= ${r.from} THEN "debitCents" ELSE 0 END), 0) AS real) AS debit,
+      cast(COALESCE(SUM(CASE WHEN period >= ${r.from} THEN "creditCents" ELSE 0 END), 0) AS real) AS credit
     FROM "LedgerBalance" WHERE "companyId" = ${companyId} AND period <= ${r.to} ${onStore('"storeId"', r.storeId)}
     GROUP BY 1`;
   const by = new Map(sums.map((s) => [s.accountId, s]));
@@ -118,13 +130,13 @@ export type LedgerLine = {
   id: string; journalId: string; number: number; date: string; source: string; sourceId: string | null; memo: string; lineMemo: string | null;
   storeId: string | null; partyId: string | null; cents: number; balance: number; late: boolean;
 };
-type RawLine = Omit<LedgerLine, "date" | "balance"> & { date: Date };
+type RawLine = Omit<LedgerLine, "date" | "balance" | "late"> & { date: Date | string; late: boolean | number };
 const LINE_COLUMNS = Prisma.sql`l.id, l."journalId", l.date, l."amountCents" AS cents, l.memo AS "lineMemo", l."storeId", l."partyId", j.number, j.memo, j.source, j."sourceId", j.late`;
 
 /** Debit − credit of the P&L accounts before a month: the profit of earlier years, as a (negative) balance. */
 async function profitBefore(companyId: string, period: string, storeId?: string | null) {
   const [x] = await db.$queryRaw<{ cents: number }[]>`
-    SELECT COALESCE(SUM(b."debitCents" - b."creditCents"), 0)::float8 AS cents
+    SELECT cast(COALESCE(SUM(b."debitCents" - b."creditCents"), 0) AS real) AS cents
     FROM "LedgerBalance" b JOIN "LedgerAccount" a ON a.id = b."accountId"
     WHERE b."companyId" = ${companyId} AND b.period < ${period} AND a.type IN ('INCOME', 'EXPENSE') ${onStore('b."storeId"', storeId)}`;
   return x.cents;
@@ -139,21 +151,21 @@ async function openingBalance(companyId: string, yearEndMonth: number, account: 
   const since = isProfitAndLoss(account.type) ? fyStart : "0000-00";
   if (partyId) {
     const [x] = await db.$queryRaw<{ cents: number }[]>`
-      SELECT COALESCE(SUM(l."amountCents"), 0)::float8 AS cents FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId"
+      SELECT cast(COALESCE(SUM(l."amountCents"), 0) AS real) AS cents FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId"
       WHERE l."companyId" = ${companyId} AND l."accountId" = ${account.id} AND l."partyId" = ${partyId} AND l.period >= ${since} AND l.period < ${from}
         AND j.status = 'POSTED' ${onStore('l."storeId"', storeId)}`;
     return x.cents;
   }
   const [[own], earlier] = await Promise.all([
     db.$queryRaw<{ cents: number }[]>`
-      SELECT COALESCE(SUM("debitCents" - "creditCents"), 0)::float8 AS cents FROM "LedgerBalance"
+      SELECT cast(COALESCE(SUM("debitCents" - "creditCents"), 0) AS real) AS cents FROM "LedgerBalance"
       WHERE "companyId" = ${companyId} AND "accountId" = ${account.id} AND period >= ${since} AND period < ${from} ${onStore('"storeId"', storeId)}`,
     account.key === "retained" ? profitBefore(companyId, fyStart, storeId) : 0,
   ]);
   return own.cents + earlier;
 }
 
-const toLine = (x: RawLine, balance: number): LedgerLine => ({ ...x, cents: Number(x.cents), date: x.date.toISOString().slice(0, 10), balance });
+const toLine = (x: RawLine, balance: number): LedgerLine => ({ ...x, cents: Number(x.cents), date: dayOf(x.date), late: !!x.late, balance });
 
 /**
  * One account's posted lines in a range, a page at a time, oldest first, each with the running balance, optionally
@@ -166,13 +178,13 @@ export async function accountLedger(companyId: string, accountId: string, r: Mon
     ${onStore('l."storeId"', r.storeId)} ${r.partyId ? Prisma.sql`AND l."partyId" = ${r.partyId}` : Prisma.empty}`;
   const [opening, [sum], rows] = await Promise.all([
     openingBalance(companyId, company.yearEndMonth, account, r.from, r.storeId, r.partyId),
-    db.$queryRaw<{ n: number; debit: number; credit: number }[]>`
-      SELECT COUNT(*)::int AS n, COALESCE(SUM(GREATEST(l."amountCents", 0)), 0)::float8 AS debit, COALESCE(SUM(GREATEST(-l."amountCents", 0)), 0)::float8 AS credit
+    db.$queryRaw<{ n: number | bigint; debit: number; credit: number }[]>`
+      SELECT COUNT(*) AS n, cast(COALESCE(SUM(MAX(l."amountCents", 0)), 0) AS real) AS debit, cast(COALESCE(SUM(MAX(-l."amountCents", 0)), 0) AS real) AS credit
       FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId" WHERE ${where}`,
     db.$queryRaw<(RawLine & { running: number })[]>`
-      SELECT ${LINE_COLUMNS}, (SUM(l."amountCents") OVER (ORDER BY l.date, j.number, l.id))::float8 AS running
+      SELECT ${LINE_COLUMNS}, cast(SUM(l."amountCents") OVER (ORDER BY l.date, j.number, l.id) AS real) AS running
       FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId" WHERE ${where}
-      ORDER BY l.date, j.number, l.id OFFSET ${(Math.max(1, page) - 1) * LEDGER_PAGE_SIZE} LIMIT ${LEDGER_PAGE_SIZE}`,
+      ORDER BY l.date, j.number, l.id LIMIT ${LEDGER_PAGE_SIZE} OFFSET ${(Math.max(1, page) - 1) * LEDGER_PAGE_SIZE}`,
   ]);
   const lines = rows.map((x) => toLine(x, opening + x.running));
   const [stores, parties] = await Promise.all([
@@ -182,7 +194,7 @@ export async function accountLedger(companyId: string, accountId: string, r: Mon
   return {
     company, account, range: { from: r.from, to: r.to }, storeId: r.storeId ?? null, partyId: r.partyId ?? null,
     opening, debit: sum.debit, credit: sum.credit, closing: opening + sum.debit - sum.credit,
-    total: sum.n, page, pageSize: LEDGER_PAGE_SIZE, lines, stores, parties,
+    total: Number(sum.n), page, pageSize: LEDGER_PAGE_SIZE, lines, stores, parties,
   };
 }
 
@@ -198,7 +210,7 @@ export async function* accountLedgerRows(companyId: string, account: ChartAccoun
         SELECT ${LINE_COLUMNS} FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId"
         WHERE l."companyId" = ${companyId} AND l."accountId" = ${account.id} AND l.period = ${m} AND j.status = 'POSTED'
           ${onStore('l."storeId"', r.storeId)} ${r.partyId ? Prisma.sql`AND l."partyId" = ${r.partyId}` : Prisma.empty}
-          ${after ? Prisma.sql`AND (l.date, j.number, l.id) > (${after.date}::date, ${after.number}, ${after.id})` : Prisma.empty}
+          ${after ? Prisma.sql`AND (l.date, j.number, l.id) > (${dateCol(after.date)}, ${after.number}, ${after.id})` : Prisma.empty}
         ORDER BY l.date, j.number, l.id LIMIT ${batch}`;
       if (!rows.length) break;
       const lines = rows.map((x) => toLine(x, (balance += Number(x.cents))));
@@ -215,7 +227,7 @@ export async function* accountLedgerRows(companyId: string, account: ChartAccoun
 }
 
 type RawJournalLine = {
-  id: string; number: number; date: Date; source: string; sourceId: string | null; memo: string; code: string; account: string; party: string | null;
+  id: string; number: number; date: Date | string; source: string; sourceId: string | null; memo: string; code: string; account: string; party: string | null;
   storeId: string | null; partyId: string | null; cents: number; lineMemo: string | null;
 };
 
@@ -237,7 +249,7 @@ export async function* journalRows(companyId: string, r: MonthRange, batch = 5_0
       ]);
       const parties = new Map(named.flatMap((n) => [...n]));
       yield rows.map((x) => ({
-        number: x.number, date: x.date.toISOString().slice(0, 10), source: sourceLabel(x.source), reference: x.sourceId ?? "", memo: x.memo, code: x.code, account: x.account,
+        number: x.number, date: dayOf(x.date), source: sourceLabel(x.source), reference: x.sourceId ?? "", memo: x.memo, code: x.code, account: x.account,
         store: x.storeId ? (stores.get(x.storeId)?.code ?? x.storeId) : "", party: x.partyId ? (parties.get(x.partyId) ?? x.partyId) : "", ...debitCredit(Number(x.cents)), lineMemo: x.lineMemo ?? "",
       }));
       if (rows.length < batch) break;
@@ -257,8 +269,8 @@ export async function profitAndLossColumns(companyId: string, columns: ReportCol
   const to = columns.reduce((m, c) => (c.to > m ? c.to : m), columns[0].to);
   const byStore = columns.some((c) => c.storeId || c.other);
   const rows = await db.$queryRaw<{ accountId: string; period: string; store: string; cents: number }[]>`
-    SELECT b."accountId", b.period, ${byStore ? Prisma.sql`CASE WHEN b."storeId" = ANY(${ownStores}::text[]) THEN b."storeId" ELSE '' END` : Prisma.sql`''`} AS store,
-      SUM(b."debitCents" - b."creditCents")::float8 AS cents
+    SELECT b."accountId", b.period, ${byStore && ownStores.length ? Prisma.sql`CASE WHEN b."storeId" IN (${inList(ownStores)}) THEN b."storeId" ELSE '' END` : Prisma.sql`''`} AS store,
+      cast(SUM(b."debitCents" - b."creditCents") AS real) AS cents
     FROM "LedgerBalance" b JOIN "LedgerAccount" a ON a.id = b."accountId"
     WHERE b."companyId" = ${companyId} AND a.type IN ('INCOME', 'EXPENSE') AND b.period >= ${from} AND b.period <= ${to} ${onStore('b."storeId"', storeId)}
     GROUP BY 1, 2, 3`;
@@ -316,10 +328,10 @@ export async function balanceColumns(companyId: string, asOfs: string[], yearEnd
   const all = await Promise.all(
     asOfs.map((asOf) => {
       const fyStart = fyStartOf(asOf, yearEndMonth);
-      return db.$queryRaw<{ accountId: string; pl: boolean; earlier: number; year: number }[]>`
+      return db.$queryRaw<{ accountId: string; pl: number | bigint; earlier: number; year: number }[]>`
         SELECT b."accountId", a.type IN ('INCOME', 'EXPENSE') AS pl,
-          COALESCE(SUM(b."debitCents" - b."creditCents") FILTER (WHERE b.period < ${fyStart}), 0)::float8 AS earlier,
-          COALESCE(SUM(b."debitCents" - b."creditCents") FILTER (WHERE b.period >= ${fyStart}), 0)::float8 AS year
+          cast(COALESCE(SUM(CASE WHEN b.period < ${fyStart} THEN b."debitCents" - b."creditCents" ELSE 0 END), 0) AS real) AS earlier,
+          cast(COALESCE(SUM(CASE WHEN b.period >= ${fyStart} THEN b."debitCents" - b."creditCents" ELSE 0 END), 0) AS real) AS year
         FROM "LedgerBalance" b JOIN "LedgerAccount" a ON a.id = b."accountId"
         WHERE b."companyId" = ${companyId} AND b.period <= ${asOf} ${onStore('b."storeId"', storeId)}
         GROUP BY 1, 2`;
@@ -327,7 +339,7 @@ export async function balanceColumns(companyId: string, asOfs: string[], yearEnd
   );
   all.forEach((rows, i) => {
     for (const x of rows) {
-      if (x.pl) {
+      if (Number(x.pl)) {
         priorYears[i] -= x.earlier;
         thisYear[i] -= x.year;
         continue;
@@ -380,22 +392,22 @@ export async function cashFlowColumns(companyId: string, ranges: MonthRange[], s
     ranges.map(async (r, i) => {
       const [[bal], rows] = await Promise.all([
         db.$queryRaw<{ opening: number; closing: number }[]>`
-          SELECT COALESCE(SUM("debitCents" - "creditCents") FILTER (WHERE period < ${r.from}), 0)::float8 AS opening,
-            COALESCE(SUM("debitCents" - "creditCents"), 0)::float8 AS closing
-          FROM "LedgerBalance" WHERE "companyId" = ${companyId} AND "accountId" = ANY(${cash}::text[]) AND period <= ${r.to} ${onStore('"storeId"', storeId)}`,
+          SELECT cast(COALESCE(SUM(CASE WHEN period < ${r.from} THEN "debitCents" - "creditCents" ELSE 0 END), 0) AS real) AS opening,
+            cast(COALESCE(SUM("debitCents" - "creditCents"), 0) AS real) AS closing
+          FROM "LedgerBalance" WHERE "companyId" = ${companyId} AND "accountId" IN (${inList(cash)}) AND period <= ${r.to} ${onStore('"storeId"', storeId)}`,
         // A trading day's stock sold (cost of sales against stock) rides in the same journal as its takings but moves no
         // cash: stock and cost lines that net to nil within a journal are left out.
         db.$queryRaw<{ accountId: string; cents: number }[]>`
-          SELECT x."accountId", SUM(x.cents)::float8 AS cents FROM (
-            SELECT l."accountId", l."amountCents" AS cents, a.key = ANY(${STOCK_KEYS}::text[]) AS stock,
-              SUM(l."amountCents") OVER (PARTITION BY l."journalId", COALESCE(a.key = ANY(${STOCK_KEYS}::text[]), false)) AS together
+          SELECT x."accountId", cast(SUM(x.cents) AS real) AS cents FROM (
+            SELECT l."accountId", l."amountCents" AS cents, a.key IN (${Prisma.join(STOCK_KEYS)}) AS stock,
+              SUM(l."amountCents") OVER (PARTITION BY l."journalId", COALESCE(a.key IN (${Prisma.join(STOCK_KEYS)}), 0)) AS together
             FROM "JournalLine" l JOIN "LedgerAccount" a ON a.id = l."accountId"
             WHERE l."journalId" IN (
                 SELECT c."journalId" FROM "JournalLine" c JOIN "Journal" j ON j.id = c."journalId"
-                WHERE c."companyId" = ${companyId} AND c."accountId" = ANY(${cash}::text[]) AND c.period >= ${r.from} AND c.period <= ${r.to}
+                WHERE c."companyId" = ${companyId} AND c."accountId" IN (${inList(cash)}) AND c.period >= ${r.from} AND c.period <= ${r.to}
                   AND j.status = 'POSTED' ${onStore('c."storeId"', storeId)})
-              AND NOT (l."accountId" = ANY(${cash}::text[])) ${onStore('l."storeId"', storeId)}
-          ) x WHERE NOT (COALESCE(x.stock, false) AND x.together = 0)
+              AND NOT (l."accountId" IN (${inList(cash)})) ${onStore('l."storeId"', storeId)}
+          ) x WHERE NOT (COALESCE(x.stock, 0) AND x.together = 0)
           GROUP BY 1`,
       ]);
       opening[i] = bal.opening;
@@ -437,15 +449,15 @@ export async function ageing(companyId: string, kind: AgeingKind, asOf: string) 
   const sign = account.type === "ASSET" ? 1 : -1;
   const b = ageBounds(asOf);
   const sums = await db.$queryRaw<{ partyId: string | null; balance: number; dr0: number; dr30: number; dr60: number; cr0: number; cr30: number; cr60: number }[]>`
-    SELECT l."partyId", SUM(l."amountCents")::float8 AS balance,
-      COALESCE(SUM(l."amountCents") FILTER (WHERE l."amountCents" > 0 AND l.date >= ${b.current}::date), 0)::float8 AS dr0,
-      COALESCE(SUM(l."amountCents") FILTER (WHERE l."amountCents" > 0 AND l.date >= ${b.d30}::date AND l.date < ${b.current}::date), 0)::float8 AS dr30,
-      COALESCE(SUM(l."amountCents") FILTER (WHERE l."amountCents" > 0 AND l.date >= ${b.d60}::date AND l.date < ${b.d30}::date), 0)::float8 AS dr60,
-      COALESCE(-SUM(l."amountCents") FILTER (WHERE l."amountCents" < 0 AND l.date >= ${b.current}::date), 0)::float8 AS cr0,
-      COALESCE(-SUM(l."amountCents") FILTER (WHERE l."amountCents" < 0 AND l.date >= ${b.d30}::date AND l.date < ${b.current}::date), 0)::float8 AS cr30,
-      COALESCE(-SUM(l."amountCents") FILTER (WHERE l."amountCents" < 0 AND l.date >= ${b.d60}::date AND l.date < ${b.d30}::date), 0)::float8 AS cr60
+    SELECT l."partyId", cast(SUM(l."amountCents") AS real) AS balance,
+      cast(COALESCE(SUM(CASE WHEN l."amountCents" > 0 AND l.date >= ${dateCol(b.current)} THEN l."amountCents" ELSE 0 END), 0) AS real) AS dr0,
+      cast(COALESCE(SUM(CASE WHEN l."amountCents" > 0 AND l.date >= ${dateCol(b.d30)} AND l.date < ${dateCol(b.current)} THEN l."amountCents" ELSE 0 END), 0) AS real) AS dr30,
+      cast(COALESCE(SUM(CASE WHEN l."amountCents" > 0 AND l.date >= ${dateCol(b.d60)} AND l.date < ${dateCol(b.d30)} THEN l."amountCents" ELSE 0 END), 0) AS real) AS dr60,
+      cast(COALESCE(-SUM(CASE WHEN l."amountCents" < 0 AND l.date >= ${dateCol(b.current)} THEN l."amountCents" ELSE 0 END), 0) AS real) AS cr0,
+      cast(COALESCE(-SUM(CASE WHEN l."amountCents" < 0 AND l.date >= ${dateCol(b.d30)} AND l.date < ${dateCol(b.current)} THEN l."amountCents" ELSE 0 END), 0) AS real) AS cr30,
+      cast(COALESCE(-SUM(CASE WHEN l."amountCents" < 0 AND l.date >= ${dateCol(b.d60)} AND l.date < ${dateCol(b.d30)} THEN l."amountCents" ELSE 0 END), 0) AS real) AS cr60
     FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId"
-    WHERE l."companyId" = ${companyId} AND l."accountId" = ${account.id} AND l.date <= ${asOf}::date AND j.status = 'POSTED'
+    WHERE l."companyId" = ${companyId} AND l."accountId" = ${account.id} AND l.date <= ${dateCol(asOf)} AND j.status = 'POSTED'
     GROUP BY 1 HAVING SUM(l."amountCents") <> 0`;
   const names = await partyNames(companyId, account.party, sums.flatMap((x) => (x.partyId ? [x.partyId] : [])));
   const rows: AgedParty[] = sums
@@ -513,18 +525,18 @@ export async function vatReturn(companyId: string, period: string, now = new Dat
   const [movements, supplies, inputs, posted, journals] = await Promise.all([
     vatMovements(db, companyId, ids, p),
     db.$queryRaw<{ accountId: string; cents: number }[]>`
-      SELECT l."accountId", SUM(l."amountCents")::float8 AS cents
+      SELECT l."accountId", cast(SUM(l."amountCents") AS real) AS cents
       FROM "JournalLine" l JOIN "LedgerAccount" a ON a.id = l."accountId"
       WHERE a.type = 'INCOME' AND l."journalId" IN (
         SELECT o."journalId" FROM "JournalLine" o JOIN "Journal" j ON j.id = o."journalId"
         WHERE o."companyId" = ${companyId} AND o."accountId" = ${ids.output} AND o.period >= ${p.from} AND o.period <= ${p.to} AND ${notClosing})
       GROUP BY 1`,
-    db.$queryRaw<{ source: string; capital: boolean; stock: boolean; cents: number }[]>`
-      SELECT j.source, x.capital, x.stock, SUM(x.vat)::float8 AS cents FROM (
+    db.$queryRaw<{ source: string; capital: number | bigint; stock: number | bigint; cents: number }[]>`
+      SELECT j.source, x.capital, x.stock, cast(SUM(x.vat) AS real) AS cents FROM (
         SELECT l."journalId",
-          BOOL_OR(l."amountCents" > 0 AND a.type = 'ASSET' AND a.code LIKE '15%') AS capital,
-          BOOL_OR(l."amountCents" > 0 AND a.key IN ('stock', 'transit', 'grni')) AS stock,
-          SUM(l."amountCents") FILTER (WHERE l."accountId" = ${ids.input}) AS vat
+          MAX(l."amountCents" > 0 AND a.type = 'ASSET' AND a.code LIKE '15%') AS capital,
+          MAX(l."amountCents" > 0 AND a.key IN ('stock', 'transit', 'grni')) AS stock,
+          SUM(CASE WHEN l."accountId" = ${ids.input} THEN l."amountCents" ELSE 0 END) AS vat
         FROM "JournalLine" l JOIN "LedgerAccount" a ON a.id = l."accountId"
         WHERE l."journalId" IN (
           SELECT i."journalId" FROM "JournalLine" i JOIN "Journal" j ON j.id = i."journalId"
@@ -545,7 +557,7 @@ export async function vatReturn(companyId: string, period: string, now = new Dat
   const suppliesEx = supplyRows.reduce((s, x) => s + x.exVat, 0);
   const inputBy: Partial<Record<VatInputGroup, number>> = {};
   for (const x of inputs) {
-    const g = vatInputGroup(x.source, x);
+    const g = vatInputGroup(x.source, { capital: !!Number(x.capital), stock: !!Number(x.stock) });
     inputBy[g] = (inputBy[g] ?? 0) + x.cents;
   }
   // Still to move: the difference between what closing would post now and what the closing journals posted.
@@ -577,7 +589,6 @@ export async function closeVatPeriod(companyId: string, period: string, actor: A
     const p = vatPeriodOf(period, company.vatCategory);
     if (p.to >= thisMonth(now)) throw new LedgerError(`The VAT period ${rangeLabel(p)} isn't over yet. Close it after ${monthEndLabel(p.to)}`);
     const sourceId = vatSourceId(companyId, p);
-    await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger:vat-period:${sourceId}`}))`;
     const book = await booksFor(t, companyId);
     const ids = { output: book.accounts.get("vat.output")!, input: book.accounts.get("vat.input")!, control: book.accounts.get("vat.control")! };
     const movements = await vatMovements(t, companyId, ids, p);

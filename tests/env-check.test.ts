@@ -1,7 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { envProblems } from "@/lib/env-check";
 
-const real = { APP_URL: "https://shop.example.co.za", CRON_SECRET: "x".repeat(32), SMTP_URL: "smtps://u:p@mail:465", ALERT_EMAIL: "ops@example.co.za", MESSAGING_PROVIDER: "smsportal", S3_BUCKET: "files" };
+const real = {
+  APP_URL: "https://shop.example.co.za",
+  CRON_SECRET: "x".repeat(32),
+  MS_TENANT_ID: "tenant",
+  MS_CLIENT_ID: "client",
+  MS_CLIENT_SECRET: "secret",
+  ALERT_EMAIL: "ops@example.co.za",
+  MESSAGING_PROVIDER: "smsportal",
+};
 
 describe("envProblems", () => {
   it("passes a complete production environment", () => {
@@ -14,8 +22,9 @@ describe("envProblems", () => {
     expect(envProblems({ ...real, CRON_SECRET: "short" }).fatal).toHaveLength(1);
   });
 
-  it("warns about missing email, alerts, messaging and file storage", () => {
-    expect(envProblems({ APP_URL: real.APP_URL, CRON_SECRET: real.CRON_SECRET }).warn).toHaveLength(4);
+  it("warns about missing email, alerts and messaging", () => {
+    expect(envProblems({ APP_URL: real.APP_URL, CRON_SECRET: real.CRON_SECRET }).warn).toHaveLength(3);
+    expect(envProblems({ ...real, MS_CLIENT_SECRET: "" }).warn).toEqual([expect.stringContaining("MS_CLIENT_SECRET")]);
   });
 
   it("lets a demo run on localhost, but never with live payment keys", () => {

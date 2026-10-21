@@ -8,7 +8,7 @@ import { emailLayout, esc, sendEmail } from "./email";
 import { reportFailure } from "./alerts";
 import { getSettings } from "./settings";
 import { APP_URL } from "./invoices";
-import { sast } from "./sql";
+import { sastDay } from "./sql";
 import { openState, parseHours } from "./shop/hours";
 import { aboveNorm, cashShort, median, refundFlags, type LossSettings, type Severity } from "@/lib/loss";
 import { cashToBank, isOverdue, bankBy } from "@/lib/banking";
@@ -16,6 +16,7 @@ import { addDays, dayKey, fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Staff } from "./auth";
+import { inBatches } from "@/lib/json-list";
 
 export const RULES = {
   CASH_SHORT: "Cash-up short",
@@ -47,7 +48,8 @@ export const visibleAlerts = (u: Pick<Staff, "id">, storeIds: string[]): Prisma.
 /** Raises new alerts (existing keys are skipped) and emails the high-severity ones at once. */
 export async function raiseAlerts(list: NewAlert[]) {
   if (!list.length) return 0;
-  const { count } = await db.alert.createMany({ data: list.map((a) => ({ ...a, userId: a.userId ?? null, amountCents: a.amountCents ?? null })), skipDuplicates: true });
+  const raised = new Set((await inBatches(list.map((a) => a.key), (part) => db.alert.findMany({ where: { key: { in: part } }, select: { key: true } }))).map((a) => a.key));
+  const { count } = await db.alert.createMany({ data: list.filter((a) => !raised.has(a.key)).map((a) => ({ ...a, userId: a.userId ?? null, amountCents: a.amountCents ?? null })) });
   if (list.some((a) => a.severity === "HIGH")) await notifyHigh(list.filter((a) => a.severity === "HIGH").map((a) => a.key)).catch((e) => console.error("[loss] notify failed", e));
   return count;
 }
@@ -56,23 +58,18 @@ export async function raiseAlerts(list: NewAlert[]) {
 const link = (code: string, id: string) => `${APP_URL()}/store/${code}/loss-prevention/${id}`;
 
 async function recipients(stores: { companyId: string; regionId: string }[]) {
-  return db.user.findMany({
-    where: {
-      active: true,
-      email: { not: null },
-      OR: [
-        { role: "OWNER", companyId: { in: [...new Set(stores.map((s) => s.companyId))] } },
-        { role: "AREA_MANAGER", regionId: { in: [...new Set(stores.map((s) => s.regionId))] } },
-      ],
-    },
-    select: { id: true, email: true, role: true, companyId: true, regionId: true },
-  });
+  const select = { id: true, email: true, role: true, companyId: true, regionId: true };
+  const found = [
+    ...(await inBatches([...new Set(stores.map((s) => s.companyId))], (part) => db.user.findMany({ where: { active: true, email: { not: null }, role: "OWNER", companyId: { in: part } }, select }))),
+    ...(await inBatches([...new Set(stores.map((s) => s.regionId))], (part) => db.user.findMany({ where: { active: true, email: { not: null }, role: "AREA_MANAGER", regionId: { in: part } }, select }))),
+  ];
+  return [...new Map(found.map((u) => [u.id, u])).values()];
 }
 const covers = (u: { role: string; companyId: string | null; regionId: string | null }, s: { companyId: string; regionId: string }) =>
   u.role === "OWNER" ? u.companyId === s.companyId : u.regionId === s.regionId;
 
 async function notifyHigh(keys: string[]) {
-  const alerts = await db.alert.findMany({ where: { key: { in: keys }, notifiedAt: null }, include: { store: { select: { code: true, name: true, companyId: true, regionId: true } } } });
+  const alerts = await inBatches(keys, (part) => db.alert.findMany({ where: { key: { in: part }, notifiedAt: null }, include: { store: { select: { code: true, name: true, companyId: true, regionId: true } } } }));
   if (!alerts.length) return;
   const people = await recipients(alerts.map((a) => a.store));
   for (const a of alerts) {
@@ -110,13 +107,13 @@ export async function sendDigest(now = new Date()) {
     }
   }
   const notified = alerts.filter((a) => sent.has(a.id) || !unsent.has(a.id)).map((a) => a.id);
-  await db.alert.updateMany({ where: { id: { in: notified } }, data: { notifiedAt: now } });
+  await inBatches(notified, (part) => db.alert.updateMany({ where: { id: { in: part } }, data: { notifiedAt: now } }).then((r) => [r]));
   return { emails, failed, alerts: notified.length };
 }
 
 // ── Rules ────────────────────────────────────────────────────────────────────
 const weekOf = (now: Date) => dayKey(addDays(now, -((new Date(`${dayKey(now)}T12:00:00Z`).getUTCDay() + 6) % 7))); // Monday, SAST
-const codes = async (ids: string[]) => new Map((await db.store.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, code: true } })).map((s) => [s.id, s.code]));
+const codes = async (ids: string[]) => new Map((await inBatches([...new Set(ids)], (part) => db.store.findMany({ where: { id: { in: part } }, select: { id: true, code: true } }))).map((s) => [s.id, s.code]));
 
 /** A cash-up counted short (at shift close, and nightly for tills that closed offline). */
 export async function checkShifts(where: Prisma.ShiftWhereInput, s: LossSettings) {
@@ -132,7 +129,7 @@ export async function checkShifts(where: Prisma.ShiftWhereInput, s: LossSettings
 
 async function repeatShorts(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; userId: string; n: number; short: number }[]>`
-    SELECT "storeId", "closedById" AS "userId", COUNT(*)::int AS n, (-SUM("countedCashCents" - "expectedCashCents"))::int AS short
+    SELECT "storeId", "closedById" AS "userId", COUNT(*) AS n, -SUM("countedCashCents" - "expectedCashCents") AS short
     FROM "Shift" WHERE "closedAt" >= ${addDays(now, -30)} AND "closedById" IS NOT NULL AND "countedCashCents" - "expectedCashCents" <= ${-s.cashShortCents}
     GROUP BY 1, 2 HAVING COUNT(*) >= ${s.repeatShorts}`;
   const code = await codes(rows.map((r) => r.storeId));
@@ -206,8 +203,8 @@ async function refunds(since: Date, s: LossSettings) {
 
 async function refundRates(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; userId: string; role: string; sales: number; refunds: number; value: number }[]>`
-    SELECT s."storeId", s."staffId" AS "userId", u.role::text AS role, COUNT(*) FILTER (WHERE s.kind = 'SALE')::int AS sales, COUNT(*) FILTER (WHERE s.kind = 'REFUND')::int AS refunds,
-      (-COALESCE(SUM(s."totalCents") FILTER (WHERE s.kind = 'REFUND'), 0))::int AS value
+    SELECT s."storeId", s."staffId" AS "userId", u.role AS role, COUNT(CASE WHEN s.kind = 'SALE' THEN 1 END) AS sales, COUNT(CASE WHEN s.kind = 'REFUND' THEN 1 END) AS refunds,
+      -COALESCE(SUM(CASE WHEN s.kind = 'REFUND' THEN s."totalCents" END), 0) AS value
     FROM "Sale" s JOIN "User" u ON u.id = s."staffId" WHERE s."createdAt" >= ${addDays(now, -30)} AND s.channel = 'POS' GROUP BY 1, 2, 3`;
   const rate = (r: { sales: number; refunds: number }) => r.refunds / Math.max(1, r.sales);
   // Compared with people in the same role across the network: refunds are usually a manager's job.
@@ -227,7 +224,7 @@ async function salesRefunded(now: Date, s: LossSettings) {
   const month = dayKey(now).slice(0, 7);
   const start = new Date(`${month}-01T00:00:00+02:00`);
   const rows = await db.$queryRaw<{ storeId: string; userId: string; sold: number; refunded: number; n: number }[]>`
-    SELECT o."storeId", COALESCE(o."soldById", o."staffId") AS "userId", SUM(o."totalCents")::int AS sold, (-COALESCE(SUM(r.value), 0))::int AS refunded, COALESCE(SUM(r.n), 0)::int AS n
+    SELECT o."storeId", COALESCE(o."soldById", o."staffId") AS "userId", SUM(o."totalCents") AS sold, -COALESCE(SUM(r.value), 0) AS refunded, COALESCE(SUM(r.n), 0) AS n
     FROM "Sale" o
     LEFT JOIN (SELECT "refundOfId", SUM("totalCents") AS value, COUNT(*) AS n FROM "Sale" WHERE kind = 'REFUND' AND "createdAt" >= ${start} GROUP BY 1) r ON r."refundOfId" = o.id
     WHERE o.kind = 'SALE' AND o.channel = 'POS' AND COALESCE(o."soldById", o."staffId") IS NOT NULL AND o."createdAt" >= ${start}
@@ -245,8 +242,8 @@ async function salesRefunded(now: Date, s: LossSettings) {
 async function writeOffs(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; week: number; norm: number }[]>`
     SELECT "storeId",
-      COALESCE(SUM(-qty * "unitCostCents") FILTER (WHERE "createdAt" >= ${addDays(now, -7)}), 0)::int AS week,
-      (COALESCE(SUM(-qty * "unitCostCents") FILTER (WHERE "createdAt" < ${addDays(now, -7)}), 0) / 12.0)::float8 AS norm
+      COALESCE(SUM(CASE WHEN "createdAt" >= ${addDays(now, -7)} THEN -qty * "unitCostCents" END), 0) AS week,
+      COALESCE(SUM(CASE WHEN "createdAt" < ${addDays(now, -7)} THEN -qty * "unitCostCents" END), 0) / 12.0 AS norm
     FROM "StockMovement"
     WHERE "createdAt" >= ${addDays(now, -91)} AND qty < 0 AND ((type = 'ADJUST' AND reason IN ('DAMAGED', 'THEFT', 'LOST', 'EXPIRED')) OR type = 'COUNT')
     GROUP BY 1`;
@@ -262,11 +259,11 @@ async function writeOffs(now: Date, s: LossSettings) {
 
 async function memberCards(since: Date, s: LossSettings) {
   const own = await db.$queryRaw<{ storeId: string; userId: string; customerId: string; day: string; n: number; total: number }[]>`
-    SELECT s."storeId", s."staffId" AS "userId", s."customerId", to_char(${sast('s."createdAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM(s."totalCents")::int AS total
+    SELECT s."storeId", s."staffId" AS "userId", s."customerId", ${sastDay('s."createdAt"')} AS day, COUNT(*) AS n, SUM(s."totalCents") AS total
     FROM "Sale" s JOIN "User" u ON u.id = s."staffId" AND u."memberId" = s."customerId"
     WHERE s."createdAt" >= ${since} AND s.kind = 'SALE' GROUP BY 1, 2, 3, 4`;
   const repeat = await db.$queryRaw<{ storeId: string; userId: string; customerId: string; day: string; n: number; total: number }[]>`
-    SELECT "storeId", "staffId" AS "userId", "customerId", to_char(${sast('"createdAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM("totalCents")::int AS total
+    SELECT "storeId", "staffId" AS "userId", "customerId", ${sastDay('"createdAt"')} AS day, COUNT(*) AS n, SUM("totalCents") AS total
     FROM "Sale" WHERE "createdAt" >= ${since} AND kind = 'SALE' AND channel = 'POS' AND "customerId" IS NOT NULL AND "staffId" IS NOT NULL
     GROUP BY 1, 2, 3, 4 HAVING COUNT(*) >= ${s.memberRepeat}`;
   const code = await codes([...own, ...repeat].map((r) => r.storeId));
@@ -286,8 +283,8 @@ async function memberCards(since: Date, s: LossSettings) {
 async function offlineShare(now: Date, s: LossSettings) {
   const rows = await db.$queryRaw<{ storeId: string; weekOff: number; weekAll: number; normOff: number; normAll: number }[]>`
     SELECT "storeId",
-      COUNT(*) FILTER (WHERE "createdAt" >= ${addDays(now, -7)} AND offline)::int AS "weekOff", COUNT(*) FILTER (WHERE "createdAt" >= ${addDays(now, -7)})::int AS "weekAll",
-      COUNT(*) FILTER (WHERE "createdAt" < ${addDays(now, -7)} AND offline)::int AS "normOff", COUNT(*) FILTER (WHERE "createdAt" < ${addDays(now, -7)})::int AS "normAll"
+      COUNT(CASE WHEN "createdAt" >= ${addDays(now, -7)} AND offline THEN 1 END) AS "weekOff", COUNT(CASE WHEN "createdAt" >= ${addDays(now, -7)} THEN 1 END) AS "weekAll",
+      COUNT(CASE WHEN "createdAt" < ${addDays(now, -7)} AND offline THEN 1 END) AS "normOff", COUNT(CASE WHEN "createdAt" < ${addDays(now, -7)} THEN 1 END) AS "normAll"
     FROM "Sale" WHERE "createdAt" >= ${addDays(now, -63)} AND channel = 'POS' GROUP BY 1`;
   const code = await codes(rows.map((r) => r.storeId));
   const share = (off: number, all: number) => off / Math.max(1, all);
@@ -303,7 +300,7 @@ async function offlineShare(now: Date, s: LossSettings) {
 async function afterHours(since: Date) {
   const stores = (await db.store.findMany({ where: { kind: "RETAIL", status: "ACTIVE" }, select: { id: true, code: true, hours: true } })).filter((x) => Object.keys(parseHours(x.hours)).length);
   const hours = new Map(stores.map((x) => [x.id, { code: x.code, h: parseHours(x.hours) }]));
-  const sales = await db.sale.findMany({ where: { createdAt: { gte: since }, channel: "POS", kind: "SALE", storeId: { in: stores.map((x) => x.id) } }, select: { storeId: true, staffId: true, createdAt: true, number: true } });
+  const sales = await inBatches(stores.map((x) => x.id), (part) => db.sale.findMany({ where: { createdAt: { gte: since }, channel: "POS", kind: "SALE", storeId: { in: part } }, select: { storeId: true, staffId: true, createdAt: true, number: true } }));
   const HALF_HOUR = 30 * 60_000;
   const closed = (h: ReturnType<typeof parseHours>, t: Date) => ![t, new Date(t.getTime() - HALF_HOUR), new Date(t.getTime() + HALF_HOUR)].some((x) => openState(h, x).open);
   const found = new Map<string, { storeId: string; userId: string | null; day: string; numbers: string[] }>();

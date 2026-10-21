@@ -4,6 +4,7 @@
 // (frequent: every 15 min · daily: 02:00 SAST · staff-push: every 5 min · operations: 03:00 SAST; a new job needs its
 // window in JOB_WINDOWS, @/lib/jobs)
 import { db, tx } from "./db";
+import { sweepDisplayFeeds } from "./pos/display";
 import { SYSTEM } from "./audit";
 import { reportFailure } from "./alerts";
 import { advanceOrder } from "./orders";
@@ -89,7 +90,7 @@ export async function birthdayPoints(now = new Date()) {
   const leapDay = m === 2 && d === 28 && new Date(Date.UTC(y, 1, 29)).getUTCMonth() !== 1;
   const due = await db.$queryRaw<{ id: string }[]>`
     SELECT c.id FROM "Customer" c
-    WHERE EXTRACT(MONTH FROM c.dob) = ${m} AND (EXTRACT(DAY FROM c.dob) = ${d} OR (${leapDay} AND EXTRACT(DAY FROM c.dob) = 29))
+    WHERE cast(strftime('%m', c.dob) as integer) = ${m} AND (cast(strftime('%d', c.dob) as integer) = ${d} OR (${leapDay} AND cast(strftime('%d', c.dob) as integer) = 29))
       AND NOT EXISTS (SELECT 1 FROM "LoyaltyEntry" e WHERE e."customerId" = c.id AND e.kind = 'BIRTHDAY' AND e."createdAt" > ${addDays(now, -300)})`;
   return each("birthdayPoints", due, (c) =>
     tx((t) => addPoints(t, { customerId: c.id, points: loyalty.birthdayBonus, kind: "BIRTHDAY", note: "Happy birthday from Herbal Holland" })),
@@ -109,6 +110,7 @@ export const JOBS: Record<string, Steps> = {
     founding: assignFounding,
     drops: notifyDrops,
     merchSent: submitMerchOrders,
+    displayFeeds: async () => (await sweepDisplayFeeds()).count,
     // Wishlists: note what the network ran out of and what came back ("Back in stock" on /club/wishlist).
     wishlists: refreshWishlistStock,
     // The books: whatever changed since the last run (invoices, deposits, stock orders, late till sales…), posted.

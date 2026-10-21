@@ -1,8 +1,10 @@
 // Adjustment picker data (items with their batches) and the write-off history.
 import { db } from "@/server/db";
+import { inBatches } from "@/lib/json-list";
 import { Prisma, type AdjustReason, type MovementType } from "@/generated/prisma/client";
 import { fmtDate, type DateRange } from "@/lib/format";
 import { stockRows } from "./inventory";
+import { likeTerm } from "@/lib/search";
 
 export type AdjustItem = {
   id: string;
@@ -19,8 +21,8 @@ export async function adjustableItems(storeId: string): Promise<AdjustItem[]> {
   const rows = await stockRows(storeId);
   const ids = rows.map((r) => r.variantId);
   const [lots, batches] = await Promise.all([
-    db.stockLevel.findMany({ where: { storeId, variantId: { in: ids } }, select: { variantId: true, batchId: true, onHand: true, unitCostCents: true } }),
-    db.batch.findMany({ where: { variantId: { in: ids } }, select: { id: true, code: true, variantId: true, expiresAt: true, status: true, packedAt: true }, orderBy: { packedAt: "asc" } }),
+    inBatches(ids, (part) => db.stockLevel.findMany({ where: { storeId, variantId: { in: part } }, select: { variantId: true, batchId: true, onHand: true, unitCostCents: true } })),
+    inBatches(ids, (part) => db.batch.findMany({ where: { variantId: { in: part } }, select: { id: true, code: true, variantId: true, expiresAt: true, status: true, packedAt: true }, orderBy: { packedAt: "asc" } })),
   ]);
   const lot = new Map(lots.map((l) => [`${l.variantId}:${l.batchId}`, l]));
   return rows
@@ -45,7 +47,7 @@ export async function adjustableItems(storeId: string): Promise<AdjustItem[]> {
 export type HistoryFilter = { types: MovementType[]; reason?: AdjustReason | null; q?: string; range: DateRange };
 
 function historyWhere(storeId: string, f: HistoryFilter) {
-  const words = (f.q ?? "").trim().split(/\s+/).filter(Boolean);
+  const words = (f.q ?? "").trim().split(/\s+/).filter(Boolean).map((w) => likeTerm(w));
   return {
     storeId,
     type: { in: f.types },
@@ -54,10 +56,10 @@ function historyWhere(storeId: string, f: HistoryFilter) {
     ...(words.length && {
       AND: words.map((w) => ({
         OR: [
-          { variant: { sku: { contains: w, mode: "insensitive" as const } } },
-          { variant: { name: { contains: w, mode: "insensitive" as const } } },
-          { variant: { product: { name: { contains: w, mode: "insensitive" as const } } } },
-          { batch: { code: { contains: w, mode: "insensitive" as const } } },
+          { variant: { sku: { contains: w } } },
+          { variant: { name: { contains: w } } },
+          { variant: { product: { name: { contains: w } } } },
+          { batch: { code: { contains: w } } },
         ],
       })),
     }),
@@ -84,8 +86,8 @@ export async function adjustmentHistory(storeId: string, f: HistoryFilter, page:
 /** Units and value by reason for the filter (value at the cost posted on each movement). */
 export async function adjustmentTotals(storeId: string, f: Omit<HistoryFilter, "reason" | "q">) {
   return db.$queryRaw<{ reason: AdjustReason | null; units: number; value: number; n: number }[]>`
-    SELECT reason, SUM(qty)::int AS units, SUM(qty::float8 * "unitCostCents")::float8 AS value, COUNT(*)::int AS n
+    SELECT reason, SUM(qty) AS units, SUM(qty * 1.0 * "unitCostCents") AS value, COUNT(*) AS n
     FROM "StockMovement"
-    WHERE "storeId" = ${storeId} AND type::text = ANY(${f.types}::text[]) AND "createdAt" >= ${f.range.start} AND "createdAt" < ${f.range.end}
+    WHERE "storeId" = ${storeId} AND type IN (SELECT value FROM json_each(${JSON.stringify(f.types)})) AND "createdAt" >= ${f.range.start} AND "createdAt" < ${f.range.end}
     GROUP BY reason`;
 }

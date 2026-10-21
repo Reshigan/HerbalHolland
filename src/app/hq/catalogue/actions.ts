@@ -159,7 +159,7 @@ export async function saveVariant(productId: string, variantId: string | null, _
       let ranged = 0;
       if (bool(fd, "rangeWithProduct")) {
         const stores = await t.storeVariant.findMany({ where: { variant: { productId } }, distinct: ["storeId"], select: { storeId: true } });
-        ranged = (await t.storeVariant.createMany({ data: stores.map((s) => ({ storeId: s.storeId, variantId: v.id })), skipDuplicates: true })).count;
+        ranged = (await t.storeVariant.createMany({ data: stores.map((s) => ({ storeId: s.storeId, variantId: v.id })) })).count;
       }
       await audit(t, g.actor, "variant.create", { entity: "Variant", entityId: v.id, data: { sku, priceCents: data.priceCents, ranged } });
       return v;
@@ -219,7 +219,9 @@ export async function rangeVariant(productId: string, _: ActionState, fd: FormDa
   let holding = 0;
   if (mode === "range") {
     if (!variant.active) return fail("Activate the variant before ranging it.");
-    n = (await db.storeVariant.createMany({ data: storeIds.map((storeId) => ({ storeId, variantId })), skipDuplicates: true })).count;
+    const already = new Set((await db.storeVariant.findMany({ where: { variantId, storeId: { in: storeIds } }, select: { storeId: true } })).map((s) => s.storeId));
+    const missing = storeIds.filter((id) => !already.has(id));
+    n = missing.length ? (await db.storeVariant.createMany({ data: missing.map((storeId) => ({ storeId, variantId })) })).count : 0;
   } else if (mode === "unrange") {
     n = (await db.storeVariant.deleteMany({ where: { variantId, storeId: { in: storeIds } } })).count;
     holding = (await db.stockLevel.groupBy({ by: ["storeId"], where: { variantId, storeId: { in: storeIds }, onHand: { gt: 0 } } })).length;

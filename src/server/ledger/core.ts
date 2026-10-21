@@ -8,6 +8,7 @@ import { reportError } from "../alerts";
 import { nextNumber } from "../counters";
 import { chartFor, diffLines, netLines, periodOf, postingDay, splitLarge, sumCents, type Line } from "@/lib/ledger";
 import { dayKey } from "@/lib/format";
+import { chunk, inBatches } from "@/lib/json-list";
 
 export class LedgerError extends Error {}
 
@@ -19,8 +20,8 @@ export async function booksFor(t: Tx, companyId: string): Promise<Book> {
   const template = chartFor(c.kind);
   let keyed = await t.ledgerAccount.findMany({ where: { companyId, key: { not: null } }, select: { id: true, key: true } });
   if (keyed.length < template.filter((r) => r.key).length) {
-    await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`books:${companyId}`}))`;
-    await t.ledgerAccount.createMany({ data: template.map((r) => ({ companyId, code: r.code, name: r.name, type: r.type, key: r.key ?? null, party: r.party ?? null })), skipDuplicates: true });
+    const have = new Set((await t.ledgerAccount.findMany({ where: { companyId }, select: { code: true } })).map((a) => a.code));
+    await t.ledgerAccount.createMany({ data: template.filter((r) => !have.has(r.code)).map((r) => ({ companyId, code: r.code, name: r.name, type: r.type, key: r.key ?? null, party: r.party ?? null })) });
     keyed = await t.ledgerAccount.findMany({ where: { companyId, key: { not: null } }, select: { id: true, key: true } });
   }
   return { companyId, kind: c.kind, vendor: !!c.vatNumber, lockedThrough: c.booksLockedThrough, accounts: new Map(keyed.map((a) => [a.key!, a.id])) };
@@ -73,12 +74,15 @@ async function addBalances(t: Tx, companyId: string, period: string, lines: Jour
     else row.credit -= l.cents;
     by.set(k, row);
   }
-  const values = Prisma.join([...by.values()].map((r) => Prisma.sql`(${companyId}, ${r.accountId}, ${r.storeId}, ${period}, ${r.debit}::bigint, ${r.credit}::bigint)`));
-  await t.$executeRaw`
-    INSERT INTO "LedgerBalance" ("companyId", "accountId", "storeId", "period", "debitCents", "creditCents") VALUES ${values}
-    ON CONFLICT ("companyId", "accountId", "storeId", "period") DO UPDATE SET
-      "debitCents" = "LedgerBalance"."debitCents" + EXCLUDED."debitCents",
-      "creditCents" = "LedgerBalance"."creditCents" + EXCLUDED."creditCents"`;
+  // Six bound values a row, under D1's 100 a statement.
+  for (const rows of chunk([...by.values()], 15)) {
+    const values = Prisma.join(rows.map((r) => Prisma.sql`(${companyId}, ${r.accountId}, ${r.storeId}, ${period}, ${r.debit}, ${r.credit})`));
+    await t.$executeRaw`
+      INSERT INTO "LedgerBalance" ("companyId", "accountId", "storeId", "period", "debitCents", "creditCents") VALUES ${values}
+      ON CONFLICT ("companyId", "accountId", "storeId", "period") DO UPDATE SET
+        "debitCents" = "LedgerBalance"."debitCents" + EXCLUDED."debitCents",
+        "creditCents" = "LedgerBalance"."creditCents" + EXCLUDED."creditCents"`;
+  }
 }
 
 // ── Automatic sources ──────────────────────────────────────────────────────────
@@ -126,7 +130,6 @@ export async function postSourceTx(t: Tx, source: string, sourceId: string) {
   const { SOURCES } = await import("./sources");
   const handler = SOURCES[source];
   if (!handler) throw new LedgerError(`Unknown ledger source "${source}"`);
-  await t.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`ledger:${source}:${sourceId}`}))`;
   const postings = await handler(sourceId, t);
   const companies = new Set(postings.map((p) => p.companyId));
   for (const j of await t.journal.findMany({ where: { source, sourceId }, distinct: ["companyId"], select: { companyId: true } })) companies.add(j.companyId);
@@ -148,9 +151,11 @@ export const postSource = (source: string, sourceId: string) => tx((t) => postSo
  * can never run on data from before the change).
  */
 export async function queuePosting(t: Tx | typeof db, source: string, sourceId: string) {
+  // queuedAt is bound (not left to CURRENT_TIMESTAMP) so every row holds the ISO text Prisma writes and orders by.
+  const now = new Date();
   await t.$executeRaw`
-    INSERT INTO "LedgerQueue" ("source", "sourceId") VALUES (${source}, ${sourceId})
-    ON CONFLICT ("source", "sourceId") DO UPDATE SET "queuedAt" = now(), "attempts" = 0, "error" = NULL`;
+    INSERT INTO "LedgerQueue" ("source", "sourceId", "queuedAt") VALUES (${source}, ${sourceId}, ${now})
+    ON CONFLICT ("source", "sourceId") DO UPDATE SET "queuedAt" = ${now}, "attempts" = 0, "error" = NULL`;
 }
 
 /**
@@ -186,7 +191,7 @@ export async function processLedgerQueue(opts: { limit?: number; deadline?: numb
       if (Date.now() >= deadline) break;
       try {
         const n = await tx(async (t) => {
-          const [held] = await t.$queryRaw<{ ok: number }[]>`SELECT 1 AS ok FROM "LedgerQueue" WHERE "source" = ${q.source} AND "sourceId" = ${q.sourceId} FOR UPDATE SKIP LOCKED`;
+          const [held] = await t.$queryRaw<{ ok: number }[]>`SELECT 1 AS ok FROM "LedgerQueue" WHERE "source" = ${q.source} AND "sourceId" = ${q.sourceId}`;
           if (!held) return -1; // being re-queued by a transaction still running, or posted meanwhile
           const js = await postSourceTx(t, q.source, q.sourceId);
           await t.ledgerQueue.delete({ where: { source_sourceId: q } });
@@ -223,11 +228,11 @@ export async function createManualJournal(a: {
     const book = await booksFor(t, a.companyId);
     if (book.lockedThrough && periodOf(a.date) <= book.lockedThrough) throw new LedgerError(`${periodOf(a.date)} is closed. Date the journal in an open month, or reopen it first`);
     const ids = [...new Set(a.lines.map((l) => l.accountId))];
-    const accounts = await t.ledgerAccount.findMany({ where: { id: { in: ids }, companyId: a.companyId, active: true }, select: { id: true, party: true } });
+    const accounts = await inBatches(ids, (part) => t.ledgerAccount.findMany({ where: { id: { in: part }, companyId: a.companyId, active: true }, select: { id: true, party: true } }));
     if (accounts.length !== ids.length) throw new LedgerError("One of the accounts isn't in these books (or is inactive)");
     const party = new Map(accounts.map((x) => [x.id, x.party]));
     if (a.lines.some((l) => party.get(l.accountId) && !l.partyId)) throw new LedgerError("Lines on a debtors, creditors or franchisee account need the customer, supplier or company");
-    if (a.lines.some((l) => l.storeId) && (await t.store.count({ where: { id: { in: a.lines.flatMap((l) => (l.storeId ? [l.storeId] : [])) }, companyId: { not: a.companyId } } })))
+    if (a.lines.some((l) => l.storeId) && (await inBatches([...new Set(a.lines.flatMap((l) => (l.storeId ? [l.storeId] : [])))], (part) => t.store.findMany({ where: { id: { in: part }, companyId: { not: a.companyId } }, select: { id: true } }))).length)
       throw new LedgerError("A store on the journal isn't one of this company's");
     const j = await writeJournal(t, {
       companyId: a.companyId, date: a.date, memo, source: a.source ?? "manual", status: a.post ? "POSTED" : "DRAFT", createdById: a.actor.id, approvedById: a.post ? a.actor.id : null, lines: a.lines,
@@ -295,10 +300,13 @@ export async function setBooksLock(companyId: string, through: string | null, ac
   await audit(db, actor, through && (!before || through > before) ? "ledger.close" : "ledger.reopen", { entity: "Company", entityId: companyId, data: { from: before, to: through } });
 }
 
-/** Nightly: every rule set's sources for the day just ended (and month ends), queued, then posted. */
+/**
+ * Nightly: every rule set's sources for the day just ended (and month ends), queued, then posted. Eight minutes of
+ * posting: a Cron Trigger's run must end within fifteen, and the frequent job finishes whatever is left in the queue.
+ */
 export async function ledgerNightly(now = new Date()) {
   const { NIGHTLY } = await import("./sources");
-  return queueAndPost(NIGHTLY.map((nightly) => nightly(now)), 20);
+  return queueAndPost(NIGHTLY.map((nightly) => nightly(now)), 8);
 }
 
 /** Every source with activity between two SAST days, queued, then posted: history (the demo seed) or a period re-posted. */

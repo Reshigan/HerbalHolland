@@ -1,0 +1,137 @@
+name: Deploy shop.herbalholland.com
+
+# The platform goes live on every push to main (RUNBOOK → First deploy, Releases): build the Worker with OpenNext, make
+# sure the production D1 database and the two R2 buckets exist, apply the new migrations, deploy, then check /api/health.
+# The first run creates everything from nothing: the D1 database `herbal-holland` (primary location Western Europe,
+# which serves South Africa best; the Worker runs next to it through smart placement), the EU-jurisdiction buckets
+# `herbal-holland-files` and `herbal-holland-backups`, and the custom domain (Cloudflare makes the DNS record and the
+# certificate when the Worker deploys with its route).
+#
+# Repository secrets:
+#   CLOUDFLARE_API_TOKEN  (required) Workers Scripts, D1 and R2 edit on the account; Workers Routes and DNS edit on the
+#                         herbalholland.com zone (the custom domain). The zone must be in the same account.
+#   SHOP_SESSION_SECRET, SHOP_CRON_SECRET  (optional) pushed to the Worker as SESSION_SECRET and CRON_SECRET after every
+#                         deploy when both are set; leave them empty to manage those two with `wrangler secret put` instead.
+# Every other Worker secret (MS_*, payment keys, VAPID keys…) is set once by hand: RUNBOOK → First deploy, step 2.
+# wrangler.jsonc keeps a placeholder database_id in git: this workflow reads the real one from Cloudflare and writes it
+# in for the deploy only.
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["sites/**", "docs/**", "e2e/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-shop
+  cancel-in-progress: false
+
+env:
+  DB_NAME: herbal-holland
+  FILES_BUCKET: herbal-holland-files
+  BACKUPS_BUCKET: herbal-holland-backups
+  SHOP_URL: https://shop.herbalholland.com
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  # Build-time only. The Worker reads nothing from the runner's environment: its settings are `vars` in wrangler.jsonc
+  # and its secrets are Worker secrets. prisma.config.ts needs a DATABASE_URL to load; nothing opens the file.
+  DATABASE_URL: file:.data/build.sqlite
+  SESSION_SECRET: build-only-never-uploaded-build-only-never-uploaded
+  DEMO_MODE: "false"
+  NEXT_TELEMETRY_DISABLED: "1"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run generate
+      - run: npm run build
+
+      - name: The production database and buckets (created on the first run), and the database id into wrangler.jsonc
+        id: cf
+        run: |
+          set -e
+          ACCOUNT_ID=$(curl -sf https://api.cloudflare.com/client/v4/accounts -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" | jq -r '.result[0].id')
+          echo "::add-mask::$ACCOUNT_ID"
+          if ! npx wrangler d1 list --json | jq -e --arg n "$DB_NAME" '.[] | select(.name == $n)' > /dev/null; then
+            echo "Creating D1 database $DB_NAME (primary location Western Europe)"
+            npx wrangler d1 create "$DB_NAME" --location weur > /dev/null
+          fi
+          DB_ID=$(npx wrangler d1 info "$DB_NAME" --json | jq -r '.uuid')
+          test -n "$DB_ID" -a "$DB_ID" != null
+          echo "database_id=$DB_ID" >> "$GITHUB_OUTPUT"
+          # The placeholder (or an older id) in git becomes the real one for this deploy only; the file isn't committed.
+          sed -i -E "s/(\"database_name\": \"$DB_NAME\", \"database_id\": \")[^\"]*/\1$DB_ID/" wrangler.jsonc
+          grep -q "\"database_id\": \"$DB_ID\"" wrangler.jsonc
+          for bucket in "$FILES_BUCKET" "$BACKUPS_BUCKET"; do
+            if ! npx wrangler r2 bucket info "$bucket" --jurisdiction eu > /dev/null 2>&1; then
+              echo "Creating R2 bucket $bucket (EU jurisdiction)"
+              npx wrangler r2 bucket create "$bucket" --jurisdiction eu
+            fi
+          done
+
+      - name: Migrate the database (the Time Travel bookmark first, to restore to if a release misbehaves)
+        run: |
+          set -e
+          npx wrangler d1 time-travel info "$DB_NAME" || true
+          npx wrangler d1 migrations apply "$DB_NAME" --remote
+
+      - name: Deploy the Worker
+        id: deploy
+        run: |
+          set -e
+          npx wrangler deploy | tee deploy.log
+          # No workers.dev address is expected (workers_dev is false); a URL here only means someone turned it on.
+          echo "workers_dev_url=$(grep -o 'https://[a-z0-9.-]*workers.dev' deploy.log | head -1)" >> "$GITHUB_OUTPUT"
+
+      - name: SESSION_SECRET and CRON_SECRET from the repository secrets (when both are set)
+        env:
+          SHOP_SESSION_SECRET: ${{ secrets.SHOP_SESSION_SECRET }}
+          SHOP_CRON_SECRET: ${{ secrets.SHOP_CRON_SECRET }}
+        run: |
+          if [ -z "$SHOP_SESSION_SECRET" ] || [ -z "$SHOP_CRON_SECRET" ]; then
+            echo "SHOP_SESSION_SECRET and SHOP_CRON_SECRET aren't both set: the Worker keeps the secrets it has."
+            exit 0
+          fi
+          if [ ${#SHOP_SESSION_SECRET} -lt 32 ] || [ ${#SHOP_CRON_SECRET} -lt 32 ]; then
+            echo "Both secrets must be 32 characters or more (the Worker refuses to serve otherwise)"; exit 1
+          fi
+          jq -n --arg s "$SHOP_SESSION_SECRET" --arg c "$SHOP_CRON_SECRET" '{SESSION_SECRET: $s, CRON_SECRET: $c}' | npx wrangler secret bulk
+
+      - name: Health check
+        env:
+          WORKERS_DEV_URL: ${{ steps.deploy.outputs.workers_dev_url }}
+        run: |
+          # The custom domain's DNS record and certificate are made on the first deploy and can take a few minutes.
+          ok=""
+          for i in $(seq 1 60); do
+            if curl -sf --max-time 15 "$SHOP_URL/api/health" > health.json; then ok=1; break; fi
+            sleep 5
+          done
+          if [ -z "$ok" ] && [ -n "$WORKERS_DEV_URL" ]; then
+            echo "::warning::$SHOP_URL doesn't answer yet; checking $WORKERS_DEV_URL instead"
+            curl -sf --max-time 15 "$WORKERS_DEV_URL/api/health" > health.json && ok=1
+          fi
+          if [ -z "$ok" ]; then
+            echo "::error::No answer from $SHOP_URL/api/health. First deploy: is the herbalholland.com zone in this account, and does the token have Workers Routes and DNS edit on it? Check the Worker → Settings → Domains & Routes."
+            exit 1
+          fi
+          cat health.json
+          jq -e '.ok and .db == "up"' health.json > /dev/null
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: deploy-shop
+          path: |
+            deploy.log
+            health.json
+          if-no-files-found: ignore

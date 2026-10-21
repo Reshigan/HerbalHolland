@@ -1,5 +1,5 @@
 // End-to-end test of the books (Playwright + direct DB checks).
-//   BASE_URL=http://localhost:3000 DATABASE_URL=postgresql://…/hh_dev [CRON_SECRET=…] node e2e/accounting.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
+//   BASE_URL=http://localhost:3000 DATABASE_FILE=<the local D1 file> [CRON_SECRET=…] node e2e/accounting.mjs [outdir]   (seeded demo data, DEMO_MODE=true)
 // Mokoena Retail's owner opens the books from the store sidebar, and the trial balance agrees with the database and
 // downloads as CSV. Their accountant drafts a manual journal, which the owner approves and then reverses. The accountant
 // adds a bank account if there isn't one and imports a statement: the cash deposits on it match themselves to their
@@ -9,14 +9,14 @@
 // without editing. Every action is timed. Re-runnable: what it creates carries a run suffix, and the month and the
 // payment are put back.
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync, readFileSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const CRON = process.env.CRON_SECRET;
 const out = process.argv[2] ?? "test-results/e2e-accounting";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 const one = async (sql, params = []) => (await q(sql, params))[0];
@@ -82,9 +82,15 @@ async function act(page, label, trigger, done) {
   console.log(`    ⏱ ${label}: ${ms} ms`);
 }
 async function runQueue() {
-  const r = await fetch(`${BASE}/api/cron/frequent`, { method: "POST", headers: { authorization: `Bearer ${CRON}` } });
-  if (!r.ok) throw new Error(`the frequent job answered ${r.status}`);
-  return (await r.json()).ledger;
+  // On a deployed Worker the Cron Trigger runs this job too: when it holds the lock, the route says so and we wait.
+  for (let i = 0; ; i++) {
+    const r = await fetch(`${BASE}/api/cron/frequent`, { method: "POST", headers: { authorization: `Bearer ${CRON}` } });
+    if (!r.ok) throw new Error(`the frequent job answered ${r.status}`);
+    const body = await r.json();
+    if (!body.skipped) return body.ledger;
+    if (i >= 40) throw new Error(`the frequent job stayed busy: ${body.skipped}`);
+    await new Promise((res) => setTimeout(res, 3000));
+  }
 }
 
 const company = await one(`select c.id, c.name from "Company" c join "User" u on u."companyId" = c.id where u.email = $1`, [OWNER]);
@@ -171,7 +177,7 @@ try {
   await act(op, "reverse journal", () => op.getByRole("group", { name: `Reverse journal ${draft.number}?` }).getByRole("button", { name: "Post the reversal" }).click(), () => status(op, "reverses it").waitFor());
   const reversal = await one(`select number from "Journal" where "reversalOfId" = $1`, [draft.id]);
   assert(reversal && (await balance(company.id, "exp.RENT", today.slice(0, 7))) === rentBefore, `journal ${reversal?.number} reverses it: rent back where it was`);
-  assert(Number((await one(`select count(*) from "AuditLog" where action in ('ledger.journal_draft', 'ledger.journal_approve', 'ledger.journal_reverse') and "entityId" in ($1, (select id from "Journal" where "reversalOfId" = $1))`, [draft.id])).count) >= 3, "drafted, approved and reversed (audited)");
+  assert(Number((await one(`select count(*) as count from "AuditLog" where action in ('ledger.journal_draft', 'ledger.journal_approve', 'ledger.journal_reverse') and "entityId" in ($1, (select id from "Journal" where "reversalOfId" = $1))`, [draft.id])).count) >= 3, "drafted, approved and reversed (audited)");
 
   // ── Banking: a statement imported, deposits matched, the fee allocated ──
   step("Accountant imports a bank statement");
@@ -189,17 +195,19 @@ try {
     assert(acct, "bank account added: it carries the books' Bank account");
   } else ok(`bank account ${acct.name} already there`);
   // Two postings on the bank that no statement line has matched yet, each the only one of its amount near its day (so
-  // each fits exactly one). The demo's statements match nearly everything; if two aren't left, two seeded lines are
+  // each fits exactly one, and alone in its posting: an earlier run's payment and its reversal net to nothing). The demo's
+  // statements match nearly everything; if two aren't left, two seeded lines are
   // set aside (ignored) so their postings are free again.
   const candidates = () =>
     q(
       `with p as (
          select j.id, j.number, j.date, sum(l."amountCents")::bigint as cents from "Journal" j join "JournalLine" l on l."journalId" = j.id
          where j."companyId" = $1 and l."accountId" = $2 and j.status = 'POSTED' and j.source in ('deposit', 'store-day', 'expense', 'statement-payment')
+           and not exists (select 1 from "Journal" o where o."companyId" = j."companyId" and o.source = j.source and o."sourceId" = j."sourceId" and o.id <> j.id)
          group by j.id having sum(l."amountCents") <> 0)
        select p.id, p.number, to_char(p.date, 'YYYY-MM-DD') as day, p.cents from p
        where not exists (select 1 from "BankLine" b where b."journalId" = p.id and b.status in ('MATCHED', 'ALLOCATED'))
-         and not exists (select 1 from p o where o.id <> p.id and o.cents = p.cents and abs(o.date - p.date) <= 7)
+         and not exists (select 1 from p o where o.id <> p.id and o.cents = p.cents and abs(julianday(o.date) - julianday(p.date)) <= 7)
        order by p.date desc limit 2`,
       [company.id, bank.id],
     );
@@ -256,7 +264,7 @@ try {
     await op.getByRole("button", { name: `Reopen ${monthName(lastMonth)}` }).click();
     await act(op, "reopen the month", () => op.getByRole("group", { name: `Reopen ${monthName(lastMonth)}?` }).getByRole("button", { name: "Reopen", exact: true }).click(), () => status(op, "is open again").waitFor());
     assert((await one(`select "booksLockedThrough" as l from "Company" where id = $1`, [company.id])).l === prevMonth(lastMonth), `open again; months reopen one at a time, so ${monthName(prevMonth(lastMonth))} stays closed`);
-    assert(Number((await one(`select count(*) from "AuditLog" where action in ('ledger.close', 'ledger.reopen') and "entityId" = $1 and at >= $2`, [company.id, started])).count) >= 2, "closing and reopening are audited");
+    assert(Number((await one(`select count(*) as count from "AuditLog" where action in ('ledger.close', 'ledger.reopen') and "entityId" = $1 and at >= $2`, [company.id, started])).count) >= 2, "closing and reopening are audited");
   }
 
   // ── HQ: a statement payment, in both companies' books ──

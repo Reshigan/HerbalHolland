@@ -1,6 +1,7 @@
 // Catalogue queries: paginated product list with variant counts, price ranges and
 // ranging reach; per-variant ranging by store format for the ranging tool.
 import { CLOSE_MATCHES, closeNeedle, inRankOrder, searchTerms } from "@/lib/text-search";
+import { SIMILARITY_CANDIDATES, likePatterns, likeTerm, wordSimilarity } from "@/lib/search";
 import { db } from "@/server/db";
 import { REG_CLASSES } from "@/lib/compliance";
 import { Prisma, type ProductStatus, type RegClass, type StoreFormat } from "@/generated/prisma/client";
@@ -38,7 +39,7 @@ export function productOrderBy(sort: CatalogueSort | null, dir: "asc" | "desc"):
  * "Pre-roll").
  */
 export function productWhere(f: CatalogueFilters, squashed?: string[][]): Prisma.ProductWhereInput {
-  const terms = searchTerms(f.q);
+  const terms = searchTerms(f.q).map((t) => ({ ...t, word: likeTerm(t.word) }));
   return {
     AND: [
       f.category ? { category: { slug: f.category } } : {},
@@ -47,9 +48,9 @@ export function productWhere(f: CatalogueFilters, squashed?: string[][]): Prisma
       f.flag === "heritage" ? { heritage: true } : f.flag === "featured" ? { featured: true } : f.flag === "tobacco" ? { tobaccoRelated: true } : {},
       ...terms.map((t, i) => ({
         OR: [
-          { name: { contains: t.word, mode: "insensitive" as const } },
-          { slug: { contains: t.word, mode: "insensitive" as const } },
-          { variants: { some: { OR: [{ sku: { contains: t.word, mode: "insensitive" as const } }, { barcode: t.word }] } } },
+          { name: { contains: t.word } },
+          { slug: { contains: t.word } },
+          { variants: { some: { OR: [{ sku: { contains: t.word } }, { barcode: t.word }] } } },
           ...(squashed?.[i]?.length ? [{ id: { in: squashed[i] } }] : []),
         ],
       })),
@@ -57,35 +58,52 @@ export function productWhere(f: CatalogueFilters, squashed?: string[][]): Prisma
   };
 }
 
+// A product name with its spaces and the usual punctuation taken out (SQLite has no regexp_replace): "Pre-Roll 0.5g" → "preroll05g".
+const SQUASHED_NAME = Prisma.raw(
+  [" ", "-", "'", "’", ".", ",", "/", "&", "(", ")", "+", ":", "_"].reduce((e, ch) => `replace(${e}, '${ch.replace(/'/g, "''")}', '')`, "lower(name)"),
+);
+
 /** Per search word, the products whose name contains it once punctuation and spaces are ignored. */
 export async function squashedNameMatches(q: string | undefined) {
   return Promise.all(
     searchTerms(q).map(async (t) =>
       t.squashed.length < 3
         ? []
-        : (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Product" WHERE regexp_replace(lower(name), '[^[:alnum:]]+', '', 'g') LIKE ${`%${t.squashed}%`} LIMIT 500`).map((r) => r.id),
+        : (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Product" WHERE ${SQUASHED_NAME} LIKE ${`%${likeTerm(t.squashed)}%`} LIMIT 500`).map((r) => r.id),
     ),
   );
 }
 
+/** `col` satisfies any of the patterns. */
+const likeAny = (col: string, patterns: string[]) => Prisma.join(patterns.map((p) => Prisma.sql`${Prisma.raw(col)} LIKE ${p}`), " OR ");
+
 /**
- * Products whose name, or one of whose variants' names, is close to `q` (pg_trgm word similarity, measured as the shop's
- * search measures it: "durbn" finds Durban Poison, "nothern lights" Northern Lights), closest first: at most
- * CLOSE_MATCHES ids, within `productIds` when given. For a search that found nothing as typed; any product status.
+ * Products whose name, or one of whose variants' names, is close to `q` (trigram word similarity, measured as the shop's
+ * search measures it: "durbn" finds Durban Poison, "nothern lights" Northern Lights), closest first then by name: at
+ * most CLOSE_MATCHES ids, within `productIds` when given. For a search that found nothing as typed; any product status.
+ * SQLite has no trigram index: the database prefilters candidates by `likePatterns` (at most SIMILARITY_CANDIDATES,
+ * by name) and the similarity is measured in code (@/lib/search).
  */
 export async function closeProducts(q: string | undefined, productIds?: string[]): Promise<string[]> {
   const c = closeNeedle(q);
   if (!c || productIds?.length === 0) return [];
-  const rows = await db.$transaction(async (t) => {
-    await t.$executeRawUnsafe(`SET LOCAL pg_trgm.word_similarity_threshold = ${c.threshold}`);
-    return t.$queryRaw<{ id: string }[]>`
-      SELECT p.id FROM "Product" p LEFT JOIN "Variant" v ON v."productId" = p.id
-      WHERE (${c.needle} <% p.name OR ${c.needle} <% v.name) ${productIds ? Prisma.sql`AND p.id = ANY(${productIds}::text[])` : Prisma.empty}
-      GROUP BY p.id, p.name
-      ORDER BY GREATEST(word_similarity(${c.needle}, p.name), COALESCE(MAX(word_similarity(${c.needle}, v.name)), 0)) DESC, p.name
-      LIMIT ${CLOSE_MATCHES}`;
-  });
-  return rows.map((r) => r.id);
+  const patterns = likePatterns(c.needle);
+  if (!patterns.length) return [];
+  const rows = await db.$queryRaw<{ id: string; name: string; variants: string }[]>`
+      SELECT p.id, p.name, json_group_array(v.name) AS variants
+      FROM "Product" p LEFT JOIN "Variant" v ON v."productId" = p.id
+      WHERE (${likeAny("p.name", patterns)} OR ${likeAny("v.name", patterns)}) ${productIds ? Prisma.sql`AND p.id IN (SELECT value FROM json_each(${JSON.stringify(productIds)}))` : Prisma.empty}
+      GROUP BY p.id
+      ORDER BY p.name
+      LIMIT ${SIMILARITY_CANDIDATES}`;
+  const scored: { id: string; name: string; sim: number }[] = [];
+  for (const r of rows) {
+    const variants = (JSON.parse(String(r.variants)) as (string | null)[]).filter((v): v is string => !!v);
+    const sim = Math.max(wordSimilarity(c.needle, r.name), ...variants.map((v) => wordSimilarity(c.needle, v)));
+    if (sim >= c.threshold) scored.push({ id: r.id, name: r.name, sim });
+  }
+  scored.sort((a, b) => b.sim - a.sim || a.name.localeCompare(b.name));
+  return scored.slice(0, CLOSE_MATCHES).map((r) => r.id);
 }
 
 /** A page of the catalogue; `close` when nothing matched the search as typed and these are the closest names instead. */
@@ -109,9 +127,9 @@ export async function productList(retailIds: string[], f: CatalogueFilters, page
   const productIds = products.map((p) => p.id);
   const reach = productIds.length
     ? await db.$queryRaw<{ productId: string; stores: number }[]>`
-        SELECT v."productId", COUNT(DISTINCT sv."storeId")::int AS stores
+        SELECT v."productId", COUNT(DISTINCT sv."storeId") AS stores
         FROM "StoreVariant" sv JOIN "Variant" v ON v.id = sv."variantId"
-        WHERE v."productId" = ANY(${productIds}::text[]) AND sv."storeId" = ANY(${retailIds}::text[])
+        WHERE v."productId" IN (SELECT value FROM json_each(${JSON.stringify(productIds)})) AND sv."storeId" IN (SELECT value FROM json_each(${JSON.stringify(retailIds)}))
         GROUP BY 1`
     : [];
   const reachBy = new Map(reach.map((r) => [r.productId, r.stores]));
@@ -130,9 +148,9 @@ export async function rangingSummary(variantIds: string[], retailIds: string[]) 
   const [rows, totals] = await Promise.all([
     variantIds.length
       ? db.$queryRaw<{ variantId: string; format: StoreFormat; n: number }[]>`
-          SELECT sv."variantId", s.format, COUNT(*)::int AS n
+          SELECT sv."variantId", s.format, COUNT(*) AS n
           FROM "StoreVariant" sv JOIN "Store" s ON s.id = sv."storeId"
-          WHERE sv."variantId" = ANY(${variantIds}::text[]) AND s.id = ANY(${retailIds}::text[]) AND s.status <> 'CLOSED'
+          WHERE sv."variantId" IN (SELECT value FROM json_each(${JSON.stringify(variantIds)})) AND s.id IN (SELECT value FROM json_each(${JSON.stringify(retailIds)})) AND s.status <> 'CLOSED'
           GROUP BY 1, 2`
       : [],
     db.store.groupBy({ by: ["format"], where: { id: { in: retailIds }, status: { not: "CLOSED" } }, _count: true }),

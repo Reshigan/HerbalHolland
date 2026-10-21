@@ -1,7 +1,7 @@
 // Sales reports. Daily/store/product figures come from the rollups; hour, staff,
 // refund and order analysis reads raw rows, always bounded by stores + date range.
 import { db, Prisma } from "../db";
-import { sast } from "../sql";
+import { sastHour } from "../sql";
 import { delta, previousRange } from "@/lib/ranges";
 import { dayKey, fmtDate, fmtDay } from "@/lib/format";
 import { zar, zarCompact } from "@/lib/money";
@@ -10,8 +10,11 @@ import { MANAGERS } from "./types";
 import {
   CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio, storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap, rangeQS, storeDrill,
 } from "./util";
+import { inBatches } from "@/lib/json-list";
 
-const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}` : Prisma.empty);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 
 // ── Sales overview ──────────────────────────────────────────────────────────
 export const salesOverview: ReportDef = {
@@ -90,12 +93,15 @@ export const salesOverview: ReportDef = {
 // ── By product / category (DailyVariantStat) ───────────────────────────────
 async function variantSales(ctx: Parameters<ReportDef["run"]>[0]) {
   const vids = await categoryVariantIds(ctx);
-  const rows = await db.dailyVariantStat.groupBy({
-    by: ["variantId"],
-    where: { storeId: { in: ctx.storeIds }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...(vids && { variantId: { in: vids } }) },
-    _sum: { units: true, netCents: true, costCents: true },
-    orderBy: { _sum: { netCents: "desc" } },
-  });
+  const query = (variantId?: { in: string[] }) =>
+    db.dailyVariantStat.groupBy({
+      by: ["variantId"],
+      where: { storeId: { in: ctx.storeIds }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...(variantId && { variantId }) },
+      _sum: { units: true, netCents: true, costCents: true },
+      orderBy: { _sum: { netCents: "desc" } },
+    });
+  // A category's variants go in rounds (D1 binds at most 100 parameters; grouped by variant, so the rounds add up), then back into net order.
+  const rows = vids ? (await inBatches(vids, (part) => query({ in: part }))).sort((a, b) => (b._sum.netCents ?? 0) - (a._sum.netCents ?? 0)) : await query();
   const info = await variantMap(rows.map((r) => r.variantId));
   return rows.map((r) => ({ v: info.get(r.variantId), units: r._sum.units ?? 0, net: r._sum.netCents ?? 0, cost: r._sum.costCents ?? 0 }));
 }
@@ -294,14 +300,15 @@ export const salesByHour: ReportDef = {
   params: [{ key: "measure", label: "Measure", options: [{ value: "tx", label: "Transactions" }, { value: "net", label: "Net sales" }], default: "tx" }],
   async run(ctx) {
     const { start, end } = bounds(ctx);
-    const data = await db.$queryRaw<{ dow: number; hour: number; tx: number; net: number }[]>`
-      SELECT EXTRACT(DOW FROM ${sast('"createdAt"')})::int AS dow,
-             EXTRACT(HOUR FROM ${sast('"createdAt"')})::int AS hour,
-             COUNT(*) FILTER (WHERE kind = 'SALE')::int AS tx,
-             COALESCE(SUM("totalCents" - "vatCents"), 0)::float8 AS net
+    const raw = await db.$queryRaw<{ dow: number | bigint; hour: number | bigint; tx: number; net: number }[]>`
+      SELECT cast(strftime('%w', "createdAt", '+2 hours') AS integer) AS dow,
+             ${sastHour('"createdAt"')} AS hour,
+             cast(COUNT(CASE WHEN kind = 'SALE' THEN 1 END) AS real) AS tx,
+             cast(COALESCE(SUM("totalCents" - "vatCents"), 0) AS real) AS net
       FROM "Sale"
-      WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
+      WHERE "storeId" IN (${inList(ctx.storeIds)}) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
       GROUP BY 1, 2`;
+    const data = raw.map((d) => ({ dow: Number(d.dow), hour: Number(d.hour), tx: d.tx, net: d.net }));
     const measure = ctx.params.measure === "net" ? "net" : "tx";
     const fmt = measure === "net" ? ("zar" as const) : ("number" as const);
     if (!data.length) return { columns: [{ key: "hour", label: "Hour" }], rows: [], empty: "No sales in this period." };
@@ -367,20 +374,20 @@ export const salesByStaff: ReportDef = {
     const [agg, units] = await Promise.all([
       db.$queryRaw<{ staffId: string | null; storeId: string; tx: number; members: number; refunds: number; refundCents: number; gross: number; net: number; discount: number }[]>`
         SELECT "staffId", "storeId",
-          COUNT(*) FILTER (WHERE kind = 'SALE')::int AS tx,
-          COUNT(*) FILTER (WHERE kind = 'SALE' AND "customerId" IS NOT NULL)::int AS members,
-          COUNT(*) FILTER (WHERE kind = 'REFUND')::int AS refunds,
-          COALESCE(-SUM("totalCents") FILTER (WHERE kind = 'REFUND'), 0)::float8 AS "refundCents",
-          COALESCE(SUM("totalCents") FILTER (WHERE kind = 'SALE'), 0)::float8 AS gross,
-          COALESCE(SUM("totalCents" - "vatCents"), 0)::float8 AS net,
-          COALESCE(SUM("discountCents") FILTER (WHERE kind = 'SALE'), 0)::float8 AS discount
+          cast(COUNT(CASE WHEN kind = 'SALE' THEN 1 END) AS real) AS tx,
+          cast(COUNT(CASE WHEN kind = 'SALE' AND "customerId" IS NOT NULL THEN 1 END) AS real) AS members,
+          cast(COUNT(CASE WHEN kind = 'REFUND' THEN 1 END) AS real) AS refunds,
+          cast(COALESCE(-SUM(CASE WHEN kind = 'REFUND' THEN "totalCents" ELSE 0 END), 0) AS real) AS "refundCents",
+          cast(COALESCE(SUM(CASE WHEN kind = 'SALE' THEN "totalCents" ELSE 0 END), 0) AS real) AS gross,
+          cast(COALESCE(SUM("totalCents" - "vatCents"), 0) AS real) AS net,
+          cast(COALESCE(SUM(CASE WHEN kind = 'SALE' THEN "discountCents" ELSE 0 END), 0) AS real) AS discount
         FROM "Sale"
-        WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
+        WHERE "storeId" IN (${inList(ctx.storeIds)}) AND "createdAt" >= ${start} AND "createdAt" < ${end} ${channelSql(ctx.channel)}
         GROUP BY 1, 2`,
       db.$queryRaw<{ staffId: string | null; storeId: string; units: number }[]>`
-        SELECT s."staffId", s."storeId", COALESCE(SUM(l.qty), 0)::int AS units
+        SELECT s."staffId", s."storeId", cast(COALESCE(SUM(l.qty), 0) AS real) AS units
         FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId"
-        WHERE s.kind = 'SALE' AND s."storeId" = ANY(${ctx.storeIds}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel, "s.channel")}
+        WHERE s.kind = 'SALE' AND s."storeId" IN (${inList(ctx.storeIds)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel, "s.channel")}
         GROUP BY 1, 2`,
     ]);
     const users = await userNames(agg.map((a) => a.staffId));
@@ -574,35 +581,48 @@ export const onlineOrders: ReportDef = {
   async run(ctx) {
     const { start, end } = bounds(ctx);
     const byStore = ctx.params.by === "store";
-    const cols = Prisma.raw(byStore ? `"storeId", fulfilment` : `fulfilment`);
+    // A group's rows (by store and fulfilment, then all together) with the continuous percentiles of the minutes from
+    // placed to ready: each group's waits ranked by a window, then the value at the fraction's position interpolated.
+    const grp = byStore ? Prisma.sql`COALESCE(o."storeId", '') || '|' || COALESCE(o.fulfilment, '')` : Prisma.sql`COALESCE(o.fulfilment, '')`;
+    const at = (status: string) => Prisma.sql`(SELECT MIN(json_extract(e.value, '$.at')) FROM json_each(o.events) e WHERE json_extract(e.value, '$.status') = ${status})`;
+    const pct = (q: number) => Prisma.sql`SUM(CASE
+      WHEN rn = cast(${q} * (cnt - 1) AS integer) THEN mins * (1 - (${q} * (cnt - 1) - cast(${q} * (cnt - 1) AS integer)))
+      WHEN rn = cast(${q} * (cnt - 1) AS integer) + 1 THEN mins * (${q} * (cnt - 1) - cast(${q} * (cnt - 1) AS integer))
+      ELSE 0 END)`;
+    const measures = Prisma.sql`
+        cast(COUNT(*) AS real) AS orders,
+        cast(COUNT(CASE WHEN status = 'COMPLETED' THEN 1 END) AS real) AS completed,
+        cast(COUNT(CASE WHEN status = 'CANCELLED' THEN 1 END) AS real) AS cancelled,
+        cast(COUNT(CASE WHEN status = 'PENDING_PAYMENT' THEN 1 END) AS real) AS unpaid,
+        cast(COALESCE(SUM(CASE WHEN status NOT IN ('CANCELLED', 'PENDING_PAYMENT') THEN "totalCents" ELSE 0 END), 0) AS real) AS value`;
     const rows = await db.$queryRaw<{ storeId: string | null; fulfilment: string | null; total: number; orders: number; completed: number; cancelled: number; unpaid: number; value: number; readyMedian: number | null; readyP90: number | null; doneHours: number | null }[]>`
       WITH o AS (
-        SELECT o."storeId", o.fulfilment::text AS fulfilment, o.status::text AS status, o."totalCents",
-          (SELECT MIN((e->>'at')::timestamptz) FROM jsonb_array_elements(o.events) e WHERE e->>'status' = 'PLACED') AS placed,
-          (SELECT MIN((e->>'at')::timestamptz) FROM jsonb_array_elements(o.events) e WHERE e->>'status' = 'READY') AS ready,
-          (SELECT MIN((e->>'at')::timestamptz) FROM jsonb_array_elements(o.events) e WHERE e->>'status' = 'COMPLETED') AS done
+        SELECT o."storeId", o.fulfilment, o.status, o."totalCents", ${grp} AS grp,
+          (julianday(${at("READY")}) - julianday(${at("PLACED")})) * 1440 AS mins,
+          (julianday(${at("COMPLETED")}) - julianday(${at("PLACED")})) * 24 AS hours
         FROM "Order" o
-        WHERE o."storeId" = ANY(${ctx.storeIds}::text[]) AND o."createdAt" >= ${start} AND o."createdAt" < ${end}
-      )
-      SELECT ${byStore ? Prisma.sql`"storeId"` : Prisma.sql`NULL::text AS "storeId"`}, fulfilment, GROUPING(fulfilment)::int AS total,
-        COUNT(*)::int AS orders,
-        COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS completed,
-        COUNT(*) FILTER (WHERE status = 'CANCELLED')::int AS cancelled,
-        COUNT(*) FILTER (WHERE status = 'PENDING_PAYMENT')::int AS unpaid,
-        COALESCE(SUM("totalCents") FILTER (WHERE status NOT IN ('CANCELLED', 'PENDING_PAYMENT')), 0)::float8 AS value,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ready - placed) / 60)::float8 AS "readyMedian",
-        percentile_cont(0.9) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ready - placed) / 60)::float8 AS "readyP90",
-        AVG(EXTRACT(EPOCH FROM done - placed) / 3600)::float8 AS "doneHours"
-      FROM o
-      GROUP BY GROUPING SETS ((${cols}), ())
+        WHERE o."storeId" IN (${inList(ctx.storeIds)}) AND o."createdAt" >= ${start} AND o."createdAt" < ${end}
+      ),
+      r AS (SELECT grp, mins, ROW_NUMBER() OVER (PARTITION BY grp ORDER BY mins) - 1 AS rn, COUNT(*) OVER (PARTITION BY grp) AS cnt FROM o WHERE mins IS NOT NULL),
+      rt AS (SELECT mins, ROW_NUMBER() OVER (ORDER BY mins) - 1 AS rn, COUNT(*) OVER () AS cnt FROM o WHERE mins IS NOT NULL),
+      p AS (SELECT grp, ${pct(0.5)} AS med, ${pct(0.9)} AS p90 FROM r GROUP BY grp),
+      pt AS (SELECT ${pct(0.5)} AS med, ${pct(0.9)} AS p90 FROM rt)
+      SELECT ${byStore ? Prisma.sql`o."storeId"` : Prisma.sql`NULL AS "storeId"`}, o.fulfilment, 0 AS total, ${measures},
+        cast(MAX(p.med) AS real) AS "readyMedian", cast(MAX(p.p90) AS real) AS "readyP90", cast(AVG(o.hours) AS real) AS "doneHours"
+      FROM o LEFT JOIN p ON p.grp = o.grp
+      GROUP BY o.grp
+      UNION ALL
+      SELECT NULL, NULL, 1 AS total, ${measures},
+        cast(MAX(pt.med) AS real) AS "readyMedian", cast(MAX(pt.p90) AS real) AS "readyP90", cast(AVG(o.hours) AS real) AS "doneHours"
+      FROM o CROSS JOIN pt
       ORDER BY 3, 1, 2`;
     const reasons = await db.$queryRaw<{ reason: string; n: number }[]>`
-      SELECT COALESCE(NULLIF(e->>'note', ''), 'No reason given') AS reason, COUNT(*)::int AS n
-      FROM "Order" o CROSS JOIN LATERAL jsonb_array_elements(o.events) e
-      WHERE o."storeId" = ANY(${ctx.storeIds}::text[]) AND o."createdAt" >= ${start} AND o."createdAt" < ${end}
-        AND o.status = 'CANCELLED' AND e->>'status' = 'CANCELLED'
+      SELECT COALESCE(NULLIF(json_extract(e.value, '$.note'), ''), 'No reason given') AS reason, cast(COUNT(*) AS real) AS n
+      FROM "Order" o, json_each(o.events) e
+      WHERE o."storeId" IN (${inList(ctx.storeIds)}) AND o."createdAt" >= ${start} AND o."createdAt" < ${end}
+        AND o.status = 'CANCELLED' AND json_extract(e.value, '$.status') = 'CANCELLED'
       GROUP BY 1 ORDER BY 2 DESC`;
-    const total = rows.find((r) => r.total === 1);
+    const total = rows.find((r) => Number(r.total) === 1);
     const shape = (r: (typeof rows)[number]): Row => {
       const live = r.orders - r.cancelled - r.unpaid;
       return {
@@ -612,7 +632,7 @@ export const onlineOrders: ReportDef = {
       };
     };
     const list = rows
-      .filter((r) => r.total === 0)
+      .filter((r) => Number(r.total) === 0)
       .map(shape)
       .sort((a, b) => String(a.store ?? "").localeCompare(String(b.store ?? "")) || String(a.fulfilment).localeCompare(String(b.fulfilment)));
     const t = total ? shape(total) : null;

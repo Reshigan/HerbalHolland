@@ -1,10 +1,11 @@
 // My Deals: personal, single-use offers loaded to a member's card (Checkers-style). HQ funds them from the marketing
 // fund and credits the selling store on its franchise statement. Never on medicines (excluded like every incentive).
-import { db, type Tx } from "./db";
+import { db, Prisma, type Tx } from "./db";
 import { getSettings } from "./settings";
 import { LoyaltyError } from "./loyalty";
 import { incentiveExcluded } from "@/lib/compliance";
 import type { PromoInput } from "@/lib/promotions";
+import { asList } from "@/lib/json-list";
 
 /** A deal that's no longer there to use. A Rewards error, so checkout and the till show it as they show a points shortfall. */
 export class OfferError extends LoyaltyError {}
@@ -15,8 +16,9 @@ export const isOffer = (promoId?: string | null) => !!promoId?.startsWith(OFFER)
 export const activeOffers = (customerId: string, at = new Date()) =>
   db.memberOffer.findMany({ where: { customerId, redeemedAt: null, startsAt: { lte: at }, endsAt: { gte: at } }, orderBy: { endsAt: "asc" } });
 
-export const offerPromo = (o: { id: string; title: string; kind: PromoInput["kind"]; value: number; productIds: string[]; categoryIds: string[] }): PromoInput => ({
-  id: OFFER + o.id, name: o.title, code: null, kind: o.kind, value: o.value, productIds: o.productIds, categoryIds: o.categoryIds, minSpendCents: 0,
+/** `productIds` / `categoryIds` are the row's JSON lists (or arrays already). */
+export const offerPromo = (o: { id: string; title: string; kind: PromoInput["kind"]; value: number; productIds: unknown; categoryIds: unknown }): PromoInput => ({
+  id: OFFER + o.id, name: o.title, code: null, kind: o.kind, value: o.value, productIds: asList<string>(o.productIds), categoryIds: asList<string>(o.categoryIds), minSpendCents: 0,
 });
 
 /**
@@ -38,10 +40,11 @@ export const releaseOffers = (t: Tx, orderId: string) =>
 export async function generateOffers(now = new Date()) {
   const { offers, compliance } = await getSettings();
   if (!offers.enabled) return { created: 0 };
+  const excluded = incentiveExcluded(compliance);
   const created = await db.$executeRaw`
-    INSERT INTO "MemberOffer" (id, "customerId", title, kind, value, "productIds", "startsAt", "endsAt")
-    SELECT gen_random_uuid()::text, f."customerId", ${`${offers.percent}% off `} || f.name, 'PERCENT'::"PromoKind", ${offers.percent},
-      ARRAY[f."productId"], ${now}, ${new Date(now.getTime() + offers.validDays * 86_400_000)}
+    INSERT INTO "MemberOffer" (id, "customerId", title, kind, value, "productIds", "startsAt", "endsAt", "createdAt")
+    SELECT lower(hex(randomblob(16))), f."customerId", ${`${offers.percent}% off `} || f.name, 'PERCENT', ${offers.percent},
+      json_array(f."productId"), ${now}, ${new Date(now.getTime() + offers.validDays * 86_400_000)}, ${now}
     FROM (
       SELECT s."customerId", p.id AS "productId", p.name, row_number() OVER (PARTITION BY s."customerId" ORDER BY sum(sl.qty) DESC, p.name) AS rn
       FROM "SaleLine" sl
@@ -50,7 +53,7 @@ export async function generateOffers(now = new Date()) {
       JOIN "Product" p ON p.id = v."productId"
       JOIN "Customer" c ON c.id = s."customerId"
       WHERE s.kind = 'SALE' AND s."createdAt" >= ${new Date(now.getTime() - 90 * 86_400_000)} AND c."personalisedOffers"
-        AND p.status = 'ACTIVE' AND NOT (p."regClass"::text = ANY(${incentiveExcluded(compliance)}::text[]))
+        AND p.status = 'ACTIVE' ${excluded.length ? Prisma.sql`AND p."regClass" NOT IN (${Prisma.join(excluded)})` : Prisma.empty}
       GROUP BY s."customerId", p.id, p.name
     ) f
     WHERE f.rn = 1 AND NOT EXISTS (SELECT 1 FROM "MemberOffer" o WHERE o."customerId" = f."customerId" AND o."endsAt" > ${now})`;

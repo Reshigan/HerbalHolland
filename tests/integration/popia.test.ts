@@ -2,9 +2,6 @@
 // none of it anywhere in the database (only the do-not-contact list keeps their mobile and email) while sales, the
 // points ledger, returns and vouchers' money stay; message bodies are blanked after 12 months. Also: HQ's sign-off on
 // the legal texts and the company's directors (ECTA s43) are saved and audited.
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -31,8 +28,6 @@ import { saveCompliance } from "@/app/hq/compliance/actions";
 import { saveCompany } from "@/app/hq/stores/actions";
 import { buildWorld, resetDb, type World } from "./world";
 
-process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-popia-uploads-"));
-
 const PHONE = "+27821230089";
 const EMAIL = "tek.erase@example.com";
 // Text that only this member's personal information holds: none of it may be left anywhere after the erasure.
@@ -57,13 +52,15 @@ async function signIn(u: { id: string }) {
   await db.session.create({ data: { id: sha256(token), userId: u.id, expiresAt: days(1) } });
   jar.set(COOKIE.staff, token);
 }
-/** Every table whose rows mention `text` anywhere (any column, JSON and arrays included). */
+/** Every table whose rows mention `text` anywhere (any column, JSON lists included; LIKE is case-insensitive). */
 async function tablesHolding(text: string) {
-  const tables = await db.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%' ORDER BY tablename`;
+  const tables = await db.$queryRaw<{ name: string }[]>`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite%' AND name NOT LIKE '_prisma%' AND name NOT LIKE 'd1_%' ORDER BY name`;
   const found: string[] = [];
-  for (const { tablename } of tables) {
-    const [{ n: rows }] = await db.$queryRawUnsafe<{ n: number }[]>(`SELECT count(*)::int AS n FROM "${tablename}" x WHERE x::text ILIKE $1`, `%${text}%`);
-    if (rows) found.push(tablename);
+  for (const { name } of tables) {
+    const columns = await db.$queryRawUnsafe<{ name: string }[]>(`PRAGMA table_info("${name}")`);
+    const row = columns.map((c) => `coalesce(cast("${c.name}" AS TEXT), '')`).join(" || '|' || ");
+    const [{ n: rows }] = await db.$queryRawUnsafe<{ n: number | bigint }[]>(`SELECT count(*) AS n FROM "${name}" WHERE (${row}) LIKE ?`, `%${text}%`);
+    if (Number(rows)) found.push(name);
   }
   return found;
 }

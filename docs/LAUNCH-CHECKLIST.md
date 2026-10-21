@@ -50,25 +50,29 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
 
 ## Customer channels
-- [ ] SMS and email providers live (Microsoft 365 `MS_*` or `SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
+- [ ] SMS and email providers live (Microsoft 365 `MS_*`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
 - [ ] Postiz running with Instagram, Facebook, LinkedIn, X and Threads connected; `POSTIZ_URL` / `POSTIZ_API_KEY` set; a test post scheduled and deleted
 - [ ] Social profiles say "adults 18+"; the team briefed: brand, merch, stores, events and Learn only; no products for sale, prices or orders taken in DMs
 
 ## Platform
-- [ ] Deployed with `docker-compose.prod.yml` and `.env` from `.env.example` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy)): `DEMO_MODE=false` from the start, strong `SESSION_SECRET`, `CRON_SECRET` 32+ characters, `APP_URL` the https shop address; the start-up log has no `[config]` warnings you didn't expect; Postgres and the app listen on 127.0.0.1 only
-- [ ] The origin is reachable only through the Cloudflare tunnel (no public port on the app or Postgres): the per-IP
-      limits on sign-in and SMS codes trust `cf-connecting-ip`, which anyone could forge if the server were reached
-      directly. Per-IP limits bucket IPv6 by /64. Still on the list: a bot check (Cloudflare Turnstile) on the SMS
-      code step for members and trade, so the hourly network-wide SMS ceiling can't be spent by a script
+- [ ] Go-live done in the runbook's order ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), [CLOUDFLARE.md](CLOUDFLARE.md)) on a Workers Paid plan: the API token (Workers Scripts, D1, R2, Browser Rendering on the account; Workers Routes and DNS on the herbalholland.com zone, which is in the same account) and the repository secrets `CLOUDFLARE_API_TOKEN`, `SHOP_SESSION_SECRET`, `SHOP_CRON_SECRET` and `BACKUP_PASSPHRASE` set; a merge to main ran `deploy-shop.yml` green (database and buckets created, migrated, deployed, `/api/health` ok)
+- [ ] `DEMO_MODE=false` and `APP_URL=https://shop.herbalholland.com` in `wrangler.jsonc` `vars` (they are); every other secret the code reads set with `wrangler secret put` or `wrangler secret bulk` from a secrets-only file (`MS_*`, `SMSPORTAL_*`, `WEB_PUSH_PRIVATE_KEY`, the payment keys when they come); `wrangler tail` after the first request shows no `[config]` warnings you didn't expect
+- [ ] D1 database `herbal-holland` (primary location Western Europe, `placement: smart` on the Worker): migrations applied by the deploy; Time Travel confirmed (`npx wrangler d1 time-travel info herbal-holland` prints a bookmark); the placeholder `database_id` still in git (the deploy writes the real one in)
+- [ ] R2 buckets `herbal-holland-files` and `herbal-holland-backups` (EU jurisdiction, made by the deploy, recorded in the POPIA register), `FILES` bound with `jurisdiction: eu`; a slip uploaded and served back; a lifecycle rule on the backups bucket (35 days). Scheduled report CSVs need none: the exports job deletes them
+- [ ] `shop.herbalholland.com` is the Worker's custom domain (made by the deploy; `workers_dev` off, so there is no other address); herbalholland.co.za and www redirect to it (301, path and query kept); SSL Full (strict), WAF managed rules on
+- [ ] Browser Rendering enabled on the account: a tax invoice PDF and a Studio card (`/hq/marketing/studio/card/<id>` returns a PNG) render on the live Worker
+- [ ] Cron Triggers visible under the Worker → Settings → Triggers (all four), each run once by hand and `/api/health/jobs` answering 200
+- [ ] The shop is only reached through Cloudflare (a custom domain on the Worker; no other origin): the per-IP
+      limits on sign-in and SMS codes trust `cf-connecting-ip`. Per-IP limits bucket IPv6 by /64. Still on the list: a
+      bot check (Cloudflare Turnstile) on the SMS code step for members and trade, so the hourly network-wide SMS
+      ceiling can't be spent by a script
 - [ ] Dependencies current: `npm audit --omit=dev` clean on the deployed commit (Next 16.3.8 fixed six advisories, among
       them cache poisoning and SSRF in image optimisation; keep it patched)
-- [ ] Migrations applied; backups (WAL + nightly encrypted dump to R2 + the uploads volume) running and verified with a restore test
-- [ ] Scheduler running on the server (all four jobs, [RUNBOOK → First deploy](RUNBOOK.md#first-deploy) step 9), each run once by hand
-- [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (server errors and failed jobs), external uptime checks on `/api/health` and `/api/health/jobs`
-- [ ] R2: a lifecycle rule on the backups bucket (35 days). Scheduled report CSVs need none: the exports job deletes them.
-- [ ] First HQ admin created with `scripts/create-admin.ts` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), step 5)
+- [ ] Backups: the nightly `wrangler d1 export` GitHub Action (`backup-d1.yml`) run once by hand, its object in `herbal-holland-backups` decrypted with `BACKUP_PASSPHRASE` ([RUNBOOK → Backups & recovery](RUNBOOK.md#backups--recovery)), and verified with a restore into a scratch database
+- [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (errors and failed jobs), Workers observability on, external uptime checks on `/api/health` and `/api/health/jobs`
+- [ ] First HQ admin created with `scripts/create-admin.ts` and the launch network with `scripts/launch-network.ts` against the live D1 ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), steps 4 and 5); the smoke checks of step 7 done (health, login, a till paired, the four cron routes with `CRON_SECRET`, a Studio card image)
 - [ ] Load test: peak-hour POS posting, month-end reports and the books (HQ's and a franchisee's reports and month-end
       checks) against a production-sized dataset (`SEED_STORES=1000`, which posts its last week to the books;
       `scripts/bench.ts --write`). The nightly books job on the heaviest night at 1,000 stores (a trading day plus the

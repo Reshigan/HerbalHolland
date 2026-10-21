@@ -3,7 +3,7 @@
 > **Status: approved** (27 September 2026); the platform changes in §15 are built. Revised on 7 October 2026 to match
 > the Campaign Studio's playbooks and the launch's real days (§0 and §6 to §9). The launch of our next two stores,
 > **Hillcrest** (Upper Highway, eThekwini) and **Hilton** (KZN Midlands), on **Tuesday 1 December 2026**, with the
-> online shop selling nationwide once it opens on **Tuesday 27 October** (Pietermaritzburg and Umhlanga already
+> online shop selling nationwide once it opens on **Tuesday 27 October** (Pietermaritzburg and the Bluff already
 > trade); then two years of marketing across South Africa. Builds on [STRATEGY.md](STRATEGY.md) (positioning,
 > Rewards, pricing) and runs inside the platform's rules ([COMPLIANCE.md](COMPLIANCE.md)).
 > Not legal advice: counsel signs off the playbooks' words (§7) and the event formats (§6.3) before launch.
@@ -695,7 +695,7 @@ never pay for it.
 | Contingency | 10% | Contingency | 5% |
 
 Known running costs: Postiz is free software on a small server; SMS is charged per message at the provider's bulk
-rate; email goes through the SMTP provider; team merch is bought at the partner's price. **Every campaign records its
+rate; email goes through Microsoft Graph; team merch is bought at the partner's price. **Every campaign records its
 cost in HQ → Campaigns**, so return on spend shows up in the reports.
 
 ## 13. Measurement and governance

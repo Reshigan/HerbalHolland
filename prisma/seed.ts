@@ -4,13 +4,17 @@
 // channel: accounts, portal orders, till trade sales and the trade ledger. It
 // writes rollups from the same records, so every report reconciles.
 //
-//   npm run db:seed                      # 24 named stores, 60 days
-//   SEED_DAYS=90 SEED_STORES=200 npm run db:seed   # scale test (synthetic stores)
+//   DATABASE_URL=file:… npm run db:seed                 # 24 named stores, 60 days (the file gets its schema if empty)
+//   SEED_DAYS=90 SEED_STORES=200 npm run db:seed        # scale test (synthetic stores)
+// DATABASE_URL names the SQLite file (`file:…`): for a running `next dev` that is the local D1 under
+// .wrangler/state/v3/d1/miniflare-D1DatabaseObject/ (docs/CLOUDFLARE.md).
 import "dotenv/config";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
-import { PrismaClient, type Prisma } from "../src/generated/prisma/client";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { basename } from "node:path";
+import { type Prisma } from "../src/generated/prisma/client";
+import { connectDb, db } from "../src/server/db";
+import { openSqliteFile, prepareSqliteFile, sqlitePath } from "./sqlite-file";
 import { hashSecret } from "../src/server/crypto";
 import { DEMO_PASSWORD } from "../src/lib/password";
 import { allocate } from "../src/lib/fefo";
@@ -26,8 +30,6 @@ import { DEFAULT_COMPLIANCE, DEFAULT_LEGAL_BASIS, PRODUCT_FACTS, CBD_CLASSES, TH
 import { eftReference, previousMonth, statementMonth, tradeAccountNumber, tradeBuyerBlock, tradeCreditNumber, tradeDelivery, tradeHandling, tradeInvoiceNumber, tradeLine, tradeOrderNumber, tradeStatement, tradeTotals, TRADE_CLASSES, vatHalfUp } from "../src/lib/trade";
 import { expiryOf, LICENCE_REMIND_DAYS, requiredLicences, TRADE_LICENCES, type TradeLicenceKind } from "../src/lib/trade-licences";
 import { CATEGORIES, DCS, FIRST_NAMES, HQ_COMPANY, LAST_NAMES, OWNERS, PRODUCTS, REGIONS, STORES, type StoreSeed } from "./seed-data";
-
-const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL! }) });
 
 // ── Deterministic randomness ───────────────────────────────────────────────
 function mulberry32(a: number) {
@@ -67,10 +69,63 @@ const daysAgo = (n: number) => new Date(NOW.getTime() - n * DAY);
 const dateOnly = (k: string) => new Date(`${k}T00:00:00Z`);
 
 // ── Bulk insert ───────────────────────────────────────────────────────────
-async function insert<T>(label: string, model: { createMany: (a: { data: T[] }) => Promise<unknown> }, rows: T[], chunk = 4000) {
+// SQLite binds at most 32,766 parameters per statement: rows go in chunks sized by the columns they set.
+async function insert<T extends object>(label: string, model: { createMany: (a: { data: T[] }) => Promise<unknown> }, rows: T[], maxParams = 30_000) {
+  const columns = new Set<string>();
+  for (const r of rows) for (const k of Object.keys(r)) columns.add(k);
+  const chunk = Math.max(1, Math.floor(maxParams / Math.max(1, columns.size)));
   for (let i = 0; i < rows.length; i += chunk) await model.createMany({ data: rows.slice(i, i + chunk) });
   console.log(`  ${label.padEnd(22)} ${rows.length.toLocaleString()}`);
 }
+
+// ── Demo files ────────────────────────────────────────────────────────────
+// The platform keeps files in the FILES R2 bucket of the request's Cloudflare context (src/server/storage.ts), which a
+// Node process has no part in. The seed stands one up: wrangler's local R2 under .wrangler/state (the one `next dev`
+// and `wrangler dev` serve from), opened through wrangler's platform proxy and installed as the Cloudflare context
+// (FILES only: the database stays the file DATABASE_URL names), so the seed's own files (product photos, a deposit
+// slip, trade licence documents) and the services it calls (bank statement imports) all land there. When wrangler can't
+// open it, or with SEED_FILES=skip, the records are still made and the files skipped (/media and downloads then report
+// a missing file). The proxy's connection drops during the long simulation between two files: a call that fails is
+// made once more on a fresh proxy.
+type LocalR2 = { put: (key: string, body: unknown, opts?: unknown) => Promise<unknown>; get: (key: string) => Promise<unknown>; delete: (key: string) => Promise<unknown> };
+let localR2: { bucket: LocalR2; dispose: () => Promise<void> } | null | undefined;
+let filesSkipped = 0;
+async function openLocalR2() {
+  if (process.env.SEED_FILES === "skip") return null;
+  try {
+    const { getPlatformProxy } = await import("wrangler");
+    // SEED_WRANGLER_CONFIG names another config (the staging one, whose FILES bucket is remote) and SEED_REMOTE_BINDINGS=true
+    // lets wrangler reach it: the demo files then land in that bucket instead of the local R2.
+    const proxy = await getPlatformProxy<{ FILES?: LocalR2 }>({ persist: true, configPath: process.env.SEED_WRANGLER_CONFIG, remoteBindings: process.env.SEED_REMOTE_BINDINGS === "true" });
+    if (!proxy.env.FILES) throw new Error("no FILES binding in wrangler.jsonc");
+    return { bucket: proxy.env.FILES, dispose: proxy.dispose };
+  } catch (e) {
+    console.log(`  (demo files skipped: wrangler's local R2 is not available: ${(e as Error).message.split("\n")[0]})`);
+    return null;
+  }
+}
+async function r2<T>(fn: (bucket: LocalR2) => Promise<T>, retry = true): Promise<T | null> {
+  if (localR2 === undefined) localR2 = await openLocalR2();
+  if (!localR2) return null;
+  try {
+    return await fn(localR2.bucket);
+  } catch (e) {
+    if (!retry) throw e;
+    await localR2.dispose().catch(() => undefined);
+    localR2 = undefined;
+    return r2(fn, false);
+  }
+}
+const seedFiles: LocalR2 = {
+  put: async (key, body, opts) => (await r2((b) => b.put(key, body, opts))) ?? void filesSkipped++,
+  get: (key) => r2((b) => b.get(key)), // null when there is no bucket: "no such file", as storage.ts reports it
+  delete: (key) => r2((b) => b.delete(key)),
+};
+async function installSeedFiles() {
+  localR2 = await openLocalR2();
+  (globalThis as Record<symbol, unknown>)[Symbol.for("__cloudflare-context__")] = { env: { FILES: seedFiles }, cf: {}, ctx: { waitUntil() {}, passThroughOnException() {} } };
+}
+const putFile = (key: string, body: Uint8Array, contentType: string) => seedFiles.put(key, body, { httpMetadata: { contentType } });
 
 /** A one-page A4 PDF of lines in Helvetica ([size, bold, text, grey 0–1]): the demo's stand-in for a scanned document. */
 function samplePdf(lines: [size: number, bold: boolean, text: string, grey: number][]): Uint8Array<ArrayBuffer> {
@@ -102,19 +157,34 @@ function samplePdf(lines: [size: number, bold: boolean, text: string, grey: numb
 /** Marks a database the seed made, so it can be seeded again; any other database with users is refused. */
 const SEED_MARK = "demo.seeded";
 
-/** Seeding deletes every table: run only on an empty database, one this seed made, or with --wipe=<database name>. */
-async function assertDemoDatabase() {
-  const [{ name }] = await db.$queryRaw<{ name: string }[]>`SELECT current_database() AS name`;
-  if (process.argv.includes(`--wipe=${name}`) || (await db.user.count()) === 0 || (await db.setting.count({ where: { key: SEED_MARK } }))) return;
+/**
+ * Seeding deletes every table: run only on a new or empty file, one this seed made, or with --wipe=<file name>. The
+ * check reads the file directly (before Prisma opens it), so a file without a schema yet passes as empty.
+ */
+function assertDemoDatabase() {
+  const path = sqlitePath();
+  const name = basename(path);
+  if (process.argv.includes(`--wipe=${name}`) || !existsSync(path)) return;
+  const sqlite = openSqliteFile();
+  try {
+    const has = (sql: string) => Boolean(sqlite.prepare(sql).get());
+    if (!has("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'User'")) return;
+    if (!has('SELECT 1 FROM "User" LIMIT 1') || has(`SELECT 1 FROM "Setting" WHERE key = '${SEED_MARK}'`)) return;
+  } finally {
+    sqlite.close();
+  }
   throw new Error(`Refusing to seed "${name}": it holds data the demo seed didn't make, and seeding deletes everything. To wipe it anyway, add --wipe=${name}`);
 }
 
 async function main() {
+  await connectDb();
   if (process.env.NODE_ENV === "production" && !process.argv.includes("--force")) throw new Error("Refusing to seed in production (pass --force)");
-  await assertDemoDatabase();
+  assertDemoDatabase();
   console.log(`Seeding Herbal Holland demo network: ${DAYS} days to ${TODAY}`);
-  const tables = await db.$queryRaw<{ tablename: string }[]>`SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename NOT LIKE '\\_prisma%'`;
-  await db.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} RESTART IDENTITY CASCADE`);
+  await installSeedFiles();
+  // The schema for a new file, an empty one for a file seeded before (every table deleted, parents and children alike).
+  const file = prepareSqliteFile({ wipe: true });
+  console.log(`  ${file.path}: ${file.applied.length ? `schema applied (${file.applied.join(", ")})` : file.wiped ? "emptied" : "empty"}`);
   await db.setting.create({ data: { key: SEED_MARK, value: { at: new Date().toISOString() } } });
 
   // ── Network ─────────────────────────────────────────────────────────────
@@ -1726,7 +1796,6 @@ async function main() {
   // Product photos, stored like an imported photo (Upload + ProductImage, served at /media/[id]): the studio render
   // (public/catalogue/products, scripts/render) first, then any artwork mock-ups (public/merch/print/accessories).
   {
-    const { putObject } = await import("../src/server/storage");
     const uploads: Prisma.UploadCreateManyInput[] = [];
     const images: Prisma.ProductImageCreateManyInput[] = [];
     for (const p of PRODUCTS) {
@@ -1738,7 +1807,7 @@ async function main() {
         const body = readFileSync(file);
         const id = uid().replaceAll("-", ""); // /media/[id] takes letters and digits only
         const ext = type === "image/png" ? "png" : "webp";
-        await putObject(`products/${id}.${ext}`, new Uint8Array(body), type);
+        await putFile(`products/${id}.${ext}`, new Uint8Array(body), type);
         uploads.push({ id, key: `products/${id}.${ext}`, fileName: `${p.slug}-${i + 1}.${ext}`, contentType: type, sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex") });
         images.push({ productId: productIdBySlug[p.slug], uploadId: id, alt: p.name, sortOrder: i });
       }
@@ -1758,9 +1827,8 @@ async function main() {
   await insert("price list items", db.priceListItem, priceItems);
   // ── Cash banking: each cash-up's cash goes in by the next business day and owners check deposits against the
   // statement. One store is running late (overdue alert) and one recent deposit came up short (queried).
-  const { putObject } = await import("../src/server/storage");
   const slip = readFileSync(new URL("./demo/deposit-slip.jpg", import.meta.url));
-  await putObject("demo/deposit-slip.jpg", new Uint8Array(slip), "image/jpeg");
+  await putFile("demo/deposit-slip.jpg", new Uint8Array(slip), "image/jpeg");
   const slipSha = createHash("sha256").update(slip).digest("hex");
   const uploadRows: Prisma.UploadCreateManyInput[] = [];
   const depositRows: Prisma.CashDepositCreateManyInput[] = [];
@@ -1815,10 +1883,11 @@ async function main() {
       [12, false, l.expiresAt ? `Valid until: ${dayKey(l.expiresAt)}` : "Valid until: does not lapse", 0],
     ]);
     const key = `demo/trade-licences/${l.uploadId}.pdf`;
-    await putObject(key, body, "application/pdf");
+    await putFile(key, body, "application/pdf");
     uploadRows.push({ id: l.uploadId, key, fileName: `${l.kind.toLowerCase().replaceAll("_", "-")}.pdf`, contentType: "application/pdf", sizeBytes: body.length, sha256: createHash("sha256").update(body).digest("hex"), createdAt: l.at });
   }
   await insert("uploads", db.upload, uploadRows);
+  if (filesSkipped) console.log(`  (${filesSkipped} demo files not stored)`);
   await insert("deposits", db.cashDeposit, depositRows);
   await db.counter.create({ data: { key: "DEPOSIT", value: depositRows.length } });
   await insert("shifts", db.shift, shifts);
@@ -1895,7 +1964,7 @@ async function main() {
   ];
   await db.storeEvent.createMany({ data: events });
   const guests = customers.filter((c) => chance(0.01)).slice(0, 300);
-  await db.rsvp.createMany({ data: guests.map((c, i) => ({ eventId: events[i % events.length].id, customerId: c.id, code: uid().replace(/-/g, "").slice(0, 8).toUpperCase() })), skipDuplicates: true });
+  await db.rsvp.createMany({ data: guests.map((c, i) => ({ eventId: events[i % events.length].id, customerId: c.id, code: uid().replace(/-/g, "").slice(0, 8).toUpperCase() })) });
   const offers = await (await import("../src/server/offers")).generateOffers(NOW);
   console.log(`  founding members       ${founding.assigned.toLocaleString()}`);
   console.log(`  drops · events         2 · ${events.length} (${guests.length} RSVPs, ${fans.length} drop watchers)`);
@@ -1977,8 +2046,7 @@ async function main() {
   await insert("franchise leads", db.franchiseLead, leadRows);
   await insert("franchise lead history", db.auditLog, leadAudit);
 
-  // Fresh planner statistics, as autovacuum gives a live database (without them small tables like Product have none,
-  // and the planner picks network-wide scans for store-level queries).
+  // Fresh planner statistics (without them SQLite's planner has nothing to choose indexes by).
   await db.$executeRawUnsafe("ANALYZE");
 
   // Franchise statements settled by EFT a week into the next month, all but the latest (not yet due); one store paid part.
@@ -2003,10 +2071,10 @@ async function main() {
   // the nightly job would have made them.
   const { booksFor, createManualJournal, ledgerBackfill } = await import("../src/server/ledger/core");
   const { tx } = await import("../src/server/db");
-  const [{ first }] = await db.$queryRaw<{ first: Date }[]>`SELECT MIN("createdAt") AS first FROM "StockMovement"`;
-  const start = dayKey(first);
+  const [{ first }] = await db.$queryRaw<{ first: string }[]>`SELECT MIN("createdAt") AS first FROM "StockMovement"`;
+  const start = dayKey(new Date(first));
   const openingDay = dayKey(addDays(new Date(`${start}T12:00:00+02:00`), -1));
-  const [{ points }] = await db.$queryRaw<{ points: bigint }[]>`SELECT COALESCE(SUM(points), 0)::bigint AS points FROM "LoyaltyEntry" WHERE "createdAt" < ${new Date(`${start}T00:00:00+02:00`)}`;
+  const [{ points }] = await db.$queryRaw<{ points: number }[]>`SELECT COALESCE(SUM(points), 0) AS points FROM "LoyaltyEntry" WHERE "createdAt" < ${new Date(`${start}T00:00:00+02:00`).toISOString()}`;
   if (points) {
     const hqBooks = await tx((t) => booksFor(t, hq.id as string));
     const cents = Number(points) * POINT_VALUE_CENTS;
@@ -2042,15 +2110,15 @@ async function main() {
       lines: [{ accountId: bankId, cents: 35_000_000 }, { accountId: book.accounts.get("capital")!, cents: -35_000_000 }],
     });
     const acct = await createBankAccount(coId, { bank: "FNB", name: "Gold Business Account", number: `62${int(100_000_000, 999_999_999)}` }, by);
-    const posted = await db.$queryRaw<{ id: string; source: string; memo: string; day: string; store: string | null; cents: bigint }[]>`
-      SELECT j.id, j.source, j.memo, to_char(j.date, 'YYYY-MM-DD') AS day, s.code AS store, SUM(l."amountCents")::bigint AS cents
+    const posted = await db.$queryRaw<{ id: string; source: string; memo: string; day: string; store: string | null; cents: number }[]>`
+      SELECT j.id, j.source, j.memo, substr(j.date, 1, 10) AS day, s.code AS store, SUM(l."amountCents") AS cents
       FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId" LEFT JOIN "Store" s ON s.id = j."storeId"
-      WHERE l."companyId" = ${coId} AND l."accountId" = ${bankId} AND j.status = 'POSTED' AND j.date BETWEEN ${stmtFrom}::date AND ${stmtTo}::date
+      WHERE l."companyId" = ${coId} AND l."accountId" = ${bankId} AND j.status = 'POSTED' AND substr(j.date, 1, 10) BETWEEN ${stmtFrom} AND ${stmtTo}
       GROUP BY j.id, s.code HAVING SUM(l."amountCents") <> 0`;
-    const cards = await db.$queryRaw<{ day: string; storeId: string; store: string; cents: bigint }[]>`
-      SELECT to_char(j.date, 'YYYY-MM-DD') AS day, s.id AS "storeId", s.code AS store, SUM(l."amountCents")::bigint AS cents
+    const cards = await db.$queryRaw<{ day: string; storeId: string; store: string; cents: number }[]>`
+      SELECT substr(j.date, 1, 10) AS day, s.id AS "storeId", s.code AS store, SUM(l."amountCents") AS cents
       FROM "JournalLine" l JOIN "Journal" j ON j.id = l."journalId" JOIN "Store" s ON s.id = l."storeId"
-      WHERE l."companyId" = ${coId} AND l."accountId" = ${cardId} AND j.source = 'store-day' AND j.date BETWEEN ${stmtFrom}::date AND ${stmtTo}::date
+      WHERE l."companyId" = ${coId} AND l."accountId" = ${cardId} AND j.source = 'store-day' AND substr(j.date, 1, 10) BETWEEN ${stmtFrom} AND ${stmtTo}
       GROUP BY 1, 2, 3 HAVING SUM(l."amountCents") > 0`;
     type Planned = { day: string; cents: number; d: [string, string, string]; journalId?: string; payout?: { feeCents: number; feeVatCents: number; storeId: string }; fee?: boolean };
     const plan: Planned[] = posted.filter((p) => PAID_FROM_BANK[p.source]).map((p) => ({ day: p.day, cents: Number(p.cents), d: [PAID_FROM_BANK[p.source], p.store ?? "", plain(p.memo)], journalId: p.id }));
@@ -2085,7 +2153,7 @@ async function main() {
       if (p?.payout || p?.fee) allocated++;
     }
   }
-  await db.$executeRawUnsafe(`ANALYZE "Journal", "JournalLine", "LedgerBalance", "LedgerAccount"`);
+  await db.$executeRawUnsafe("ANALYZE");
   console.log(`  books                  ${books.journals.toLocaleString()} journals from ${books.queued.toLocaleString()} postings${books.failed ? ` · ${books.failed} FAILED (see LedgerQueue)` : ""} · ${bankLines.toLocaleString()} bank statement lines, ${allocated.toLocaleString()} allocated`);
 
   // Commission: Mokoena Retail pays it at Hatfield and Brooklyn; last month is approved at Hatfield.
@@ -2130,4 +2198,7 @@ main()
     console.error(e);
     process.exit(1);
   })
-  .finally(() => db.$disconnect());
+  .finally(async () => {
+    await db.$disconnect();
+    await localR2?.dispose();
+  });

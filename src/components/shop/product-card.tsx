@@ -18,7 +18,8 @@ export { ProductCardView, StockLine } from "./product-card-view";
  */
 /** `eager`: the grid is the page's main content (the shop listing), so its first row loads at once; elsewhere every picture waits its turn. */
 export async function ProductGrid({ items, buyable, className, eager = false }: { items: Card[]; buyable?: boolean; className?: string; eager?: boolean }) {
-  if (buyable !== false && !canBuyOnline(await shopPhase())) buyable = false;
+  const online = canBuyOnline(await shopPhase());
+  if (buyable !== false && !online) buyable = false;
   const customer = await getCustomer();
   const [wished, photos] = await Promise.all([customer ? wishlistVariantIds(customer.id) : null, mainImages(items.map((p) => p.id))]);
   return (
@@ -30,6 +31,7 @@ export async function ProductGrid({ items, buyable, className, eager = false }: 
             key={p.id}
             p={p}
             buyable={buyable}
+            online={online}
             wished={wished ? wished.has(p.firstVariantId) : null}
             art={
               photo ? (

@@ -37,6 +37,7 @@ import {
 import type { Customer, SupportTicket } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
 import { FALLBACK_EMAIL } from "@/lib/contact";
+import { likeTerm } from "@/lib/search";
 
 /** An expected, user-facing failure (shown inline). */
 export class SupportError extends Error {
@@ -242,14 +243,14 @@ export const ticketView = (v: string | undefined): TicketView => ((TICKET_VIEWS 
 
 /** The queue's where clause for a scope and filters. `mine` needs the user id; `overdue` is by the SLA deadlines. */
 export function ticketWhere(scope: SupportScope, f: TicketFilters, ctx: { userId: string; now: Date }): Prisma.SupportTicketWhereInput {
-  const q = (f.q ?? "").trim();
+  const q = likeTerm((f.q ?? "").trim());
   const view: TicketView = q && !f.view ? "all" : ticketView(f.view); // a search with no view chosen looks through everything
   const byNumber = ticketNumberQuery(q);
   const search: Prisma.SupportTicketWhereInput = !q
     ? {}
     : byNumber
       ? { number: byNumber }
-      : { OR: [{ subject: { contains: q, mode: "insensitive" } }, { name: { contains: q, mode: "insensitive" } }, { email: { contains: q, mode: "insensitive" } }, { orderCode: { equals: q.toUpperCase() } }] };
+      : { OR: [{ subject: { contains: q } }, { name: { contains: q } }, { email: { contains: q } }, { orderCode: { equals: q.toUpperCase() } }] };
   const byView: Prisma.SupportTicketWhereInput =
     view === "open"
       ? { status: { not: "RESOLVED" } }
@@ -353,7 +354,7 @@ async function sendLogged(t: SupportTicket, e: Email) {
   await db.messageLog.create({
     data: {
       id: `support-${t.id}-${Date.now().toString(36)}`, channel: "EMAIL", to: e.to, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT", customerId: t.customerId,
-      body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)"),
+      body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (MS_* not set)"),
     },
   });
 }

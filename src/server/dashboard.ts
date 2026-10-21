@@ -5,7 +5,8 @@ import { previousRange, delta } from "@/lib/ranges";
 import { dayKey, fmtDay, addDays, dateOnly, rangeFromParams, type DateRange } from "@/lib/format";
 import { cashToBank, isOverdue } from "@/lib/banking";
 import { OPEN_ORDER_STATUSES } from "./inventory";
-import { sast } from "./sql";
+import { Prisma } from "./db";
+import { sastHour } from "./sql";
 import { waitingCash } from "./banking";
 import { visibleAlerts } from "./loss";
 import { getSettings } from "./settings";
@@ -66,21 +67,24 @@ export async function topProducts(storeIds: string[], r: DateRange, take = 8) {
   }));
 }
 
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
+
 /** Stock health for one or many stores: below reorder point, expiring, negative, recalled on hand. */
 export async function stockAlerts(storeIds: string[]) {
   const soon = addDays(new Date(), 30);
   const [low, expiring, negative, blocked] = await Promise.all([
-    db.$queryRaw<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM "StoreVariant" sv
+    db.$queryRaw<{ n: number | bigint }[]>`
+      SELECT COUNT(*) AS n FROM "StoreVariant" sv
       LEFT JOIN (SELECT sl."storeId", sl."variantId", SUM(sl."onHand") AS q FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId"
-                 WHERE b.status = 'RELEASED' AND sl."storeId" = ANY(${storeIds}::text[]) GROUP BY 1, 2) s
+                 WHERE b.status = 'RELEASED' AND sl."storeId" IN (${inList(storeIds)}) GROUP BY 1, 2) s
         ON s."storeId" = sv."storeId" AND s."variantId" = sv."variantId"
-      WHERE sv."storeId" = ANY(${storeIds}::text[]) AND COALESCE(s.q, 0) <= sv."reorderPoint"`,
+      WHERE sv."storeId" IN (${inList(storeIds)}) AND COALESCE(s.q, 0) <= sv."reorderPoint"`,
     db.stockLevel.aggregate({ where: { storeId: { in: storeIds }, onHand: { gt: 0 }, batch: { status: "RELEASED", expiresAt: { lte: soon, gt: new Date() } } }, _sum: { onHand: true }, _count: true }),
     db.stockLevel.count({ where: { storeId: { in: storeIds }, onHand: { lt: 0 } } }),
     db.stockLevel.aggregate({ where: { storeId: { in: storeIds }, onHand: { gt: 0 }, batch: { status: { in: ["RECALLED", "QUARANTINE"] } } }, _sum: { onHand: true } }),
   ]);
-  return { low: low[0]?.n ?? 0, expiringUnits: expiring._sum.onHand ?? 0, expiringLots: expiring._count, negative, blockedUnits: blocked._sum.onHand ?? 0 };
+  return { low: Number(low[0]?.n ?? 0), expiringUnits: expiring._sum.onHand ?? 0, expiringLots: expiring._count, negative, blockedUnits: blocked._sum.onHand ?? 0 };
 }
 
 export async function orderQueue(storeIds: string[]) {
@@ -90,12 +94,12 @@ export async function orderQueue(storeIds: string[]) {
 
 /** Transactions by weekday × hour (SAST) for the heatmap. Raw sales, bounded by range. */
 export async function hourlyHeat(storeIds: string[], r: DateRange) {
-  const rows = await db.$queryRaw<{ dow: number; hour: number; n: number }[]>`
-    SELECT EXTRACT(DOW FROM ${sast('"createdAt"')})::int AS dow,
-           EXTRACT(HOUR FROM ${sast('"createdAt"')})::int AS hour, COUNT(*)::int AS n
-    FROM "Sale" WHERE kind = 'SALE' AND "storeId" = ANY(${storeIds}::text[]) AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end}
+  const rows = await db.$queryRaw<{ dow: number | bigint; hour: number | bigint; n: number | bigint }[]>`
+    SELECT cast(strftime('%w', "createdAt", '+2 hours') AS integer) AS dow,
+           ${sastHour('"createdAt"')} AS hour, COUNT(*) AS n
+    FROM "Sale" WHERE kind = 'SALE' AND "storeId" IN (${inList(storeIds)}) AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end}
     GROUP BY 1, 2`;
-  return rows.map((x) => ({ day: x.dow, hour: x.hour, value: x.n }));
+  return rows.map((x) => ({ day: Number(x.dow), hour: Number(x.hour), value: Number(x.n) }));
 }
 
 export async function pendingAnnouncements(storeId: string, format: string, regionCode: string) {
@@ -215,12 +219,12 @@ export async function storeExceptions(user: Pick<Staff, "id">, stores: { id: str
   const [alerts, negative, low, trading, cash] = await Promise.all([
     db.alert.groupBy({ by: ["storeId", "severity"], where: { AND: [visibleAlerts(user, ids), { status: { in: ["OPEN", "INVESTIGATING"] } }] }, _count: true }),
     db.stockLevel.groupBy({ by: ["storeId"], where: { storeId: { in: ids }, onHand: { lt: 0 } }, _count: true }),
-    db.$queryRaw<{ storeId: string; n: number }[]>`
-      SELECT sv."storeId", COUNT(*)::int AS n FROM "StoreVariant" sv
+    db.$queryRaw<{ storeId: string; n: number | bigint }[]>`
+      SELECT sv."storeId", COUNT(*) AS n FROM "StoreVariant" sv
       LEFT JOIN (SELECT sl."storeId", sl."variantId", SUM(sl."onHand") AS q FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId"
-                 WHERE b.status = 'RELEASED' AND sl."storeId" = ANY(${ids}::text[]) GROUP BY 1, 2) s
+                 WHERE b.status = 'RELEASED' AND sl."storeId" IN (${inList(ids)}) GROUP BY 1, 2) s
         ON s."storeId" = sv."storeId" AND s."variantId" = sv."variantId"
-      WHERE sv."storeId" = ANY(${ids}::text[]) AND COALESCE(s.q, 0) <= sv."reorderPoint"
+      WHERE sv."storeId" IN (${inList(ids)}) AND COALESCE(s.q, 0) <= sv."reorderPoint"
       GROUP BY 1`,
     tradingToday(ids, now),
     db.shift.findMany({ where: { storeId: { in: ids }, depositId: null, closedAt: { not: null }, countedCashCents: { not: null } }, select: { storeId: true, closedAt: true, countedCashCents: true, openingFloatCents: true }, take: 2000 }),
@@ -240,7 +244,7 @@ export async function storeExceptions(user: Pick<Staff, "id">, stores: { id: str
         highAlerts,
         alerts: a.reduce((t, x) => t + x._count, 0),
         negativeLots: negative.find((x) => x.storeId === id)?._count ?? 0,
-        lowStock: low.find((x) => x.storeId === id)?.n ?? 0,
+        lowStock: Number(low.find((x) => x.storeId === id)?.n ?? 0),
         quiet: active.has(id) && hour >= 11 && !trading.has(id),
         score: 0,
       };

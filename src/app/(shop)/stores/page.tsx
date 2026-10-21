@@ -2,7 +2,8 @@ import Link from "next/link";
 import Form from "next/form";
 import type { Metadata } from "next";
 import { Search } from "lucide-react";
-import { getRetailStores, getPreferredStore } from "@/server/shop/context";
+import { getRetailStores, getPreferredStore, shopPhase } from "@/server/shop/context";
+import { canBuyOnline } from "@/lib/launch-phase";
 import { openState, parseHours } from "@/server/shop/hours";
 import { StoreCard } from "@/components/shop/store-card";
 import { NearMeButton } from "@/components/shop/nav-client";
@@ -11,6 +12,7 @@ import { pageParam } from "@/components/ui/pagination";
 import { plural } from "@/lib/plural";
 import { distanceKm } from "@/lib/routing";
 import { PROVINCES, type ProvinceCode } from "@/lib/sa";
+import { asList } from "@/lib/json-list";
 
 export const metadata: Metadata = {
   title: "Store finder",
@@ -27,16 +29,19 @@ const COORD = /^(-?\d{1,2}(?:\.\d+)?),(-?\d{1,3}(?:\.\d+)?)$/;
 const AND = new Intl.ListFormat("en-GB", { type: "conjunction" });
 
 export default async function StoresPage({ searchParams }: { searchParams: Promise<{ province?: string; page?: string; q?: string; near?: string }> }) {
-  const [stores, preferred, sp] = await Promise.all([getRetailStores(), getPreferredStore(), searchParams]);
+  const [stores, preferred, sp, phase] = await Promise.all([getRetailStores(), getPreferredStore(), searchParams, shopPhase()]);
+  const online = canBuyOnline(phase);
   const trading = stores.filter((s) => s.status === "ACTIVE");
   const soon = stores.filter((s) => s.status === "OPENING_SOON");
-  const openNow = trading.filter((s) => openState(parseHours(s.hours)).open).length;
+  const states = trading.map((s) => openState(parseHours(s.hours)));
+  const openNow = states.filter((s) => s.open).length;
+  const hoursKnown = states.some((s) => !s.unknown);
   const provinces = [...new Set(trading.map((s) => s.province))];
   // What the stores offer, from each store's own settings: what every store offers, then what only some do.
   const offers: [string, number][] = [
-    ["click & collect", trading.filter((s) => s.clickCollect).length],
-    ["an authorised dispenser for registered patients", trading.filter((s) => s.licences.length > 0).length],
-    ["same-day delivery", trading.filter((s) => s.sameDay).length],
+    ["click & collect", online ? trading.filter((s) => s.clickCollect).length : 0],
+    ["an authorised dispenser for registered patients", trading.filter((s) => asList(s.licences).length > 0).length],
+    ["same-day delivery", online ? trading.filter((s) => s.sameDay).length : 0],
   ];
   const one = trading.length === 1;
   const everywhere = offers.filter(([, n]) => n > 0 && n === trading.length).map(([what]) => what);
@@ -73,9 +78,9 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
     <Container className="pt-10 sm:pt-14">
       <div className="max-w-2xl">
         <div className="eyebrow text-brand-500">Store finder</div>
-        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{plural(trading.length, "store")}, one windmill</h1>
+        <h1 className="mt-2 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">{trading.length ? `${plural(trading.length, "store")}, one windmill` : `${plural(soon.length, "store")} opening soon`}</h1>
         <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">
-          {openNow} open right now. {services}
+          {trading.length ? `${hoursKnown ? `${openNow} open right now. ` : ""}${services}` : "Join Rewards and choose one as your home store: we'll tell you the day its doors open. Each is independently owned and run by a local franchisee."}
         </p>
       </div>
 
@@ -187,13 +192,13 @@ export default async function StoresPage({ searchParams }: { searchParams: Promi
         </section>
       )}
 
-      <p className="mt-14 text-sm text-ink-400">
+      {online && <p className="mt-14 text-sm text-ink-400">
         Can&apos;t get to a store?{" "}
         <Link href="/shop" className="font-semibold text-brand-400 hover:underline">
           We deliver nationwide
         </Link>
         , with ID (18+) checked on delivery.
-      </p>
+      </p>}
     </Container>
   );
 }

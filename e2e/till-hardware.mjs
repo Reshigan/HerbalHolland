@@ -1,18 +1,18 @@
 // End-to-end check of the till's hardware & workflow features (Playwright + direct DB checks), against a seeded database.
-//   BASE_URL=http://127.0.0.1:3600 DATABASE_URL=postgresql://…/hh_ci node e2e/till-hardware.mjs [outdir]
+//   BASE_URL=http://127.0.0.1:3600 DATABASE_FILE=<the local D1 file> node e2e/till-hardware.mjs [outdir]
 // Pair PTA01 → manager PIN → open shift → printer set-up screen (browser-print fallback shows the receipt view with the
 // masked member number, invoice QR and 18+ footer) → customer display mirrors the sale over BroadcastChannel (second
 // page, same context) and over the polling feed (a fresh context with no cookies) → training mode: tour, a practice
 // sale that creates no Sale row, exit with the manager PIN → quiet-hours dashboard after the (shortened) idle timeout
 // → camera scanner state on this browser → close the shift and unpair.
 import { chromium } from "@playwright/test";
-import pg from "pg";
+import { createDb } from "./_db.mjs";
 import { mkdirSync } from "node:fs";
 
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const out = process.argv[2] ?? "test-results/till-shots";
 mkdirSync(out, { recursive: true });
-const db = new pg.Client({ connectionString: process.env.DATABASE_URL ?? "postgresql://hh:hh@127.0.0.1:5432/hh_dev" });
+const db = createDb(); // DATABASE_FILE, or the local D1 file (e2e/_db.mjs)
 await db.connect();
 const q = async (sql, params = []) => (await db.query(sql, params)).rows;
 

@@ -32,14 +32,13 @@ const total = async (customerId: string, items: { variantId: string; qty: number
 const payments = async (saleId: string) => (await db.payment.findMany({ where: { saleId }, orderBy: { method: "asc" } })).map((p) => ({ method: p.method, amountCents: p.amountCents, cardLast4: p.cardLast4 }));
 const errorOf = (e: unknown) => (e instanceof Error ? e.message : String(e));
 
-/** Waits until `count` transactions on this database are queued behind a row lock. */
+/**
+ * Lets the sales started so far reach the held row and queue behind it. SQLite has no row locks to count (Postgres
+ * showed them in pg_stat_activity): the file's writers queue one behind another, in the order they arrived, so a short
+ * wait per queued sale keeps that order.
+ */
 async function lockWaiters(count: number) {
-  for (let i = 0; i < 400; i++) {
-    const [r] = await db.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'`;
-    if (r.n >= count) return;
-    await new Promise((res) => setTimeout(res, 25));
-  }
-  throw new Error(`Never saw ${count} transactions waiting on a lock`);
+  await new Promise((res) => setTimeout(res, 150 * count));
 }
 
 /** Holds a row lock in a transaction of its own until `release()`. */

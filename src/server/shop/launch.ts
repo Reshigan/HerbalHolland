@@ -10,6 +10,7 @@ import { STORE_SELECT } from "./context";
 import { dropPhase } from "./launch-rules";
 import { describePromo } from "@/lib/promotions";
 import type { TierKey } from "@/lib/loyalty-rules";
+import { asList } from "@/lib/json-list";
 import type { Drop, Prisma } from "@/generated/prisma/client";
 
 // ── Drops ────────────────────────────────────────────────────────────────────
@@ -17,7 +18,7 @@ export type DropView = Awaited<ReturnType<typeof withDropDetails>>[number];
 
 /** Adds the shopper's phase, the drop's (public) products for artwork and units left across the network. */
 async function withDropDetails(drops: Drop[], tier: TierKey | null, at: Date) {
-  const ids = [...new Set(drops.flatMap((d) => d.variantIds))];
+  const ids = [...new Set(drops.flatMap((d) => asList<string>(d.variantIds)))];
   if (!ids.length) return drops.map((d) => ({ ...d, ...dropPhase(d, tier, at), products: [], left: 0 }));
   const [variants, classes, net] = await Promise.all([
     db.variant.findMany({ where: { id: { in: ids } }, select: { id: true, product: { select: { id: true, slug: true, name: true, strain: true, regClass: true, status: true } } } }),
@@ -28,8 +29,8 @@ async function withDropDetails(drops: Drop[], tier: TierKey | null, at: Date) {
   const byId = new Map(variants.map((v) => [v.id, v.product]));
   return drops.map((d) => {
     // Drops never carry medicines; never show one on a public card even if misconfigured.
-    const products = [...new Map(d.variantIds.map((id) => byId.get(id)).filter((p) => !!p && p.status === "ACTIVE" && classes.public.includes(p.regClass)).map((p) => [p!.id, p!])).values()];
-    const left = d.variantIds.reduce((s, v) => s + net.all.reduce((t, st) => t + Math.max(0, avail.get(availKey(st, v))?.available ?? 0), 0), 0);
+    const products = [...new Map(asList<string>(d.variantIds).map((id) => byId.get(id)).filter((p) => !!p && p.status === "ACTIVE" && classes.public.includes(p.regClass)).map((p) => [p!.id, p!])).values()];
+    const left = asList<string>(d.variantIds).reduce((s, v) => s + net.all.reduce((t, st) => t + Math.max(0, avail.get(availKey(st, v))?.available ?? 0), 0), 0);
     return { ...d, ...dropPhase(d, tier, at), products, left };
   });
 }
@@ -128,7 +129,7 @@ export type WelcomeGift = Awaited<ReturnType<typeof welcomeGifts>>[number];
 /** The member's live My Deals with a plain label ("15% off") and the product they're for. */
 export async function memberDeals(customerId: string) {
   const offers = await activeOffers(customerId);
-  const ids = [...new Set(offers.flatMap((o) => o.productIds))];
+  const ids = [...new Set(offers.flatMap((o) => asList<string>(o.productIds)))];
   const products = ids.length ? await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, slug: true, name: true, strain: true, regClass: true } }) : [];
-  return offers.map((o) => ({ ...o, label: describePromo(offerPromo(o)), product: products.find((p) => o.productIds.includes(p.id)) ?? null }));
+  return offers.map((o) => ({ ...o, label: describePromo(offerPromo(o)), product: products.find((p) => asList<string>(o.productIds).includes(p.id)) ?? null }));
 }

@@ -6,6 +6,7 @@ import { ReportDenied, ReportView } from "@/components/reports/report-view";
 import { ScheduleExport } from "@/components/reports/schedule-export";
 import { fmtRun, mySchedules, scheduleLabel } from "@/server/exports";
 import { scheduleExport, unscheduleExport } from "./actions";
+import { asList } from "@/lib/json-list";
 
 export async function generateMetadata({ params }: { params: Promise<{ key: string }> }) {
   const def = getReport((await params).key);
@@ -40,7 +41,7 @@ export default async function HqReport({ params, searchParams }: { params: Promi
       extraActions={
         <ScheduleExport
           me={user.email ?? ""}
-          schedules={schedules.map((s) => ({ id: s.id, label: scheduleLabel(s), recipients: s.recipients, lastRun: fmtRun(s.lastRunAt), stop: unscheduleExport.bind(null, def.key, s.id) }))}
+          schedules={schedules.map((s) => ({ id: s.id, label: scheduleLabel(s), recipients: asList(s.recipients), lastRun: fmtRun(s.lastRunAt), stop: unscheduleExport.bind(null, def.key, s.id) }))}
           schedule={scheduleExport.bind(null, def.key, r.query)}
         />
       }

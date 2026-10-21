@@ -2,7 +2,7 @@
 # merch artwork mapped on, on a warm stone backdrop with soft studio light. Also one group shot per category.
 #   npx tsx scripts/render/labels.tsx <products.json> <dir>        (labels + <dir>/products.json)
 #   blender -b -P scripts/render/products.py -- <dir> <out> [slug|category:<slug> ...]
-# Writes <out>/<slug>.jpg (1000 × 1000) and <out>/category-<slug>.jpg (1440 × 900).
+# Writes <out>/<slug>.jpg (1000 × 1000) and <out>/category-<slug>.jpg (1440 × 900); SCALE=2 doubles both, SMOKE=1 is a quick check.
 import bpy, bmesh, json, math, os, sys
 from mathutils import Vector
 
@@ -37,7 +37,8 @@ def reset(w, h):
         pass
     sc.cycles.max_bounces = 8
     sc.cycles.transmission_bounces = 8
-    sc.render.resolution_x, sc.render.resolution_y = (w // 6, h // 6) if os.environ.get("SMOKE") else (w, h)
+    k = float(os.environ.get("SCALE", "1"))  # SCALE=2 for print-size renders (2000 × 2000)
+    sc.render.resolution_x, sc.render.resolution_y = (w // 6, h // 6) if os.environ.get("SMOKE") else (int(w * k), int(h * k))
     sc.render.image_settings.file_format = "JPEG"
     sc.render.image_settings.quality = 90
     try:
@@ -461,6 +462,41 @@ def m_tray(s, x=0):
 def m_softpouch(s, x=0):
     box(0.15, 0.035, 0.2, x=x, mat=mat_print({"Base Color": lin("#121010")}, acc("pouch-front"), "front", x - 0.075, x + 0.075, 0, 0.2, rough=0.85), bevel=0.012, segs=6)
     box(0.012, 0.006, 0.022, x=x + 0.06, y=-0.02, z=0.17, mat=mat_simple(SUNSET, 0.35), bevel=0.002)
+
+
+def m_mylar(s, x=0):
+    """Two stand-up mylar bags side by side, black and Sunset, the small or the large size by slug."""
+    w, h = (0.07, 0.10) if s["slug"].endswith("small") else (0.10, 0.15)
+    size = f"{round(w * 100)}x{round(h * 100)}"
+    for i, (tone, base, seal) in enumerate((("black", "#121010", "#2a2421"), ("sunset", SUNSET, "#d9772c"))):
+        bx = x + (i - 0.5) * (w + 0.015)
+        # The print covers the front below the seal; the seal strip and the tear notch sit above it.
+        bag = box(w, 0.016, h, x=bx, mat=mat_print({"Base Color": lin(base)}, acc(f"mylar-{size}-{tone}"), "front", bx - w / 2, bx + w / 2, 0, h * 0.88, rough=0.7), bevel=0.005, segs=5)
+        bag.rotation_euler = (0, 0, math.radians(-5 + 10 * i))
+        strip = box(w * 0.92, 0.0175, 0.003, x=bx, z=h * 0.93, mat=mat_simple(seal, 0.6), bevel=0.0008)
+        strip.rotation_euler = bag.rotation_euler
+
+
+def m_pen(s, x=0):
+    """A 510 battery pen in matte black with the Sunset wrap, lying across the stage, a cartridge beside it."""
+    yaw = math.radians(65)  # lying mostly left to right, angled a little towards the camera
+    axis = (math.sin(yaw), -math.cos(yaw))  # a cylinder's +Z after rotating it (90°, 0, yaw): where its length runs
+    base = (x - 0.045, 0.02)
+
+    def along(part, off):
+        part.rotation_euler = (math.radians(90), 0, yaw)
+        part.location = (base[0] + axis[0] * off, base[1] + axis[1] * off, part.dimensions.x / 2 if False else 0.00525)
+
+    along(cyl(0.00525, 0.085, mat=mat_print({"Base Color": lin("#121010")}, acc("pen-wrap"), "wrap", 0, 0.085, 1.0, rough=0.35, metal=0.1), bevel=0.0012), 0)
+    along(cyl(0.0053, 0.004, mat=mat_simple(SUNSET, 0.3)), 0.085)
+    along(cyl(0.004, 0.006, mat=mat_simple("#b8b2aa", 0.3, metal=1)), 0.089)
+    along(cyl(0.0053, 0.0025, mat=mat_simple("#2a2421", 0.5)), -0.0025)
+    cart = cyl(0.0053, 0.045, mat=mat_glass(), bevel=0.001)
+    cart.rotation_euler = (math.radians(90), 0, yaw)
+    cart.location = (base[0] + axis[0] * 0.02 - 0.012, base[1] + axis[1] * 0.02 - 0.03, 0.0053)
+    tip = cyl(0.0045, 0.014, mat=mat_simple(INK, 0.4), r2=0.003)
+    tip.rotation_euler = cart.rotation_euler
+    tip.location = (cart.location.x + axis[0] * 0.045, cart.location.y + axis[1] * 0.045, 0.0053)
 
 
 def m_uvjar(s, x=0):

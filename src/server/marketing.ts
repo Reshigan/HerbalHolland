@@ -12,6 +12,7 @@ import { INTERESTS, SEGMENTS, type InterestKey, type SegmentKey } from "@/lib/rf
 import { screenCopy } from "@/lib/compliance";
 import { fmtPoints } from "@/lib/loyalty-rules";
 import type { MsgChannel, Prisma, Tier } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export const CONSENT_FIELD = { WHATSAPP: "consentWhatsapp", SMS: "consentSms", EMAIL: "consentEmail", PUSH: "consentPush" } as const;
 
@@ -47,7 +48,11 @@ export function segmentWhere(segment: string, now = new Date()): Prisma.Customer
       return { lastPurchaseAt: { lt: d(120) } };
     default:
       if (segment.startsWith("tier:")) return { tier: segment.slice(5) as Tier };
-      if (segment.startsWith("interest:")) return { interests: { has: segment.slice(9) } };
+      if (segment.startsWith("interest:")) {
+        // interests is a JSON list of distinct INTERESTS keys, so it holds the key at one of the first few positions.
+        const key = segment.slice(9);
+        return { OR: Object.keys(INTERESTS).map((_, i) => ({ interests: { path: `$[${i}]`, equals: key } })) };
+      }
       return { id: "__none__" };
   }
 }
@@ -125,7 +130,7 @@ export async function sendCampaign(id: string, actor: Actor, now = new Date()) {
     const contact = (b: (typeof batch)[number]) => (c.channel === "EMAIL" ? b.email : b.phone);
     const values = batch.map(contact).filter((v): v is string => !!v);
     const blocked = new Set(
-      (await db.suppression.findMany({ where: { value: { in: values }, OR: [{ channel: null }, { channel: c.channel }] }, select: { value: true } })).map((s) => s.value),
+      (await inBatches(values, (part) => db.suppression.findMany({ where: { value: { in: part }, OR: [{ channel: null }, { channel: c.channel }] }, select: { value: true } }))).map((s) => s.value),
     );
     const rows = batch.flatMap((b) => {
       const to = contact(b);

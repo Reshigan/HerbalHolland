@@ -26,7 +26,7 @@ export async function replenishmentPlan(storeId: string, opts: { leadDays?: numb
     db.dailyVariantStat.groupBy({ by: ["variantId"], where: { storeId, date: { gte: since } }, _sum: { units: true } }),
     db.dailyVariantStat.findMany({ where: { storeId, date: { gte: windowFrom, lte: dateOnly(addDays(now, -1)) } }, select: { variantId: true, date: true, units: true } }),
     db.$queryRaw<{ variantId: string; qty: number }[]>`
-      SELECT l."variantId", SUM(l.qty)::int AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      SELECT l."variantId", SUM(l.qty) AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
       WHERE o."buyerId" = ${storeId} AND o.status IN ('SUBMITTED', 'APPROVED', 'SHIPPED') GROUP BY 1`,
   ]);
   const avail = await availability([storeId], ranged.map((r) => r.variantId));

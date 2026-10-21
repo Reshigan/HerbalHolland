@@ -4,7 +4,6 @@
 // read Sale and TradeLedgerEntry directly, always bounded by the report's stores and dates.
 import type { Role } from "@/generated/prisma/client";
 import { db, Prisma } from "../db";
-import { sast } from "../sql";
 import { AGE_BUCKETS, ageTradeLedger, sumAgedBalances } from "@/lib/trade-ageing";
 import { delta, previousRange } from "@/lib/ranges";
 import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
@@ -12,6 +11,10 @@ import { zar } from "@/lib/money";
 import type { Column, ReportCtx, ReportDef, ReportResult, Row } from "./types";
 import { MANAGERS } from "./types";
 import { bounds, count, multi, n, ratio, storeLabel, sumRows, variantMap } from "./util";
+import { inBatches } from "@/lib/json-list";
+
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 
 const TRADE_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF", "AREA_MANAGER"];
 const KIND_LABEL: Record<string, string> = { DISTRIBUTOR: "Distributor", PHARMACY: "Pharmacy", RETAILER: "Retailer", CAFE: "Café", PRACTICE: "Practice", ONLINE_SHOP: "Online shop", OTHER: "Other" };
@@ -22,10 +25,10 @@ const NO_ACCOUNT = "No account on file";
 type AccountInfo = { id: string; number: string; name: string; kind: string; status: string; terms: string; paymentDays: number; creditLimitCents: number; city: string; province: string };
 async function accountMap(ids: string[]) {
   if (!ids.length) return new Map<string, AccountInfo>();
-  const list = await db.tradeAccount.findMany({
-    where: { id: { in: ids } },
+  const list = await inBatches(ids, (part) => db.tradeAccount.findMany({
+    where: { id: { in: part } },
     select: { id: true, number: true, name: true, kind: true, status: true, terms: true, paymentDays: true, creditLimitCents: true, city: true, province: true },
-  });
+  }));
   return new Map<string, AccountInfo>(list.map((a) => [a.id, a]));
 }
 
@@ -36,33 +39,32 @@ async function tradeSales(ctx: ReportCtx): Promise<ReportResult> {
   const rollup = (r: { fromDate: Date; toDate: Date }, channel?: "WHOLESALE") =>
     db.dailyStoreStat.aggregate({ where: { storeId: { in: ctx.storeIds }, date: { gte: r.fromDate, lte: r.toDate }, ...(channel && { channel }) }, _sum: { grossCents: true, vatCents: true } });
   const [byAccount, byProduct, byMonth, before, all] = await Promise.all([
-    db.$queryRaw<{ accountId: string | null; orders: number; credits: number; units: number; ex: number; vat: number; incl: number; stores: number; last: Date }[]>`
+    db.$queryRaw<{ accountId: string | null; orders: number; credits: number; units: number; ex: number; vat: number; incl: number; stores: number; last: Date | string }[]>`
       SELECT s."tradeAccountId" AS "accountId",
-        COUNT(*) FILTER (WHERE s.kind = 'SALE')::int AS orders,
-        COUNT(*) FILTER (WHERE s.kind = 'REFUND')::int AS credits,
-        COALESCE(SUM(u.units), 0)::int AS units,
-        COALESCE(SUM(s."totalCents" - s."vatCents"), 0)::float8 AS ex,
-        COALESCE(SUM(s."vatCents"), 0)::float8 AS vat,
-        COALESCE(SUM(s."totalCents"), 0)::float8 AS incl,
-        COUNT(DISTINCT s."storeId")::int AS stores,
+        cast(COUNT(CASE WHEN s.kind = 'SALE' THEN 1 END) AS real) AS orders,
+        cast(COUNT(CASE WHEN s.kind = 'REFUND' THEN 1 END) AS real) AS credits,
+        cast(COALESCE(SUM((SELECT COALESCE(SUM(l.qty), 0) FROM "SaleLine" l WHERE l."saleId" = s.id)), 0) AS real) AS units,
+        cast(COALESCE(SUM(s."totalCents" - s."vatCents"), 0) AS real) AS ex,
+        cast(COALESCE(SUM(s."vatCents"), 0) AS real) AS vat,
+        cast(COALESCE(SUM(s."totalCents"), 0) AS real) AS incl,
+        cast(COUNT(DISTINCT s."storeId") AS real) AS stores,
         MAX(s."createdAt") AS last
       FROM "Sale" s
-      LEFT JOIN LATERAL (SELECT COALESCE(SUM(l.qty), 0)::int AS units FROM "SaleLine" l WHERE l."saleId" = s.id) u ON true
-      WHERE s.channel = 'WHOLESALE' AND s."storeId" = ANY(${ctx.storeIds}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
+      WHERE s.channel = 'WHOLESALE' AND s."storeId" IN (${inList(ctx.storeIds)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
       GROUP BY 1`,
     db.$queryRaw<{ variantId: string; units: number; ex: number; vat: number; incl: number; accounts: number }[]>`
-      SELECT l."variantId", COALESCE(SUM(l.qty), 0)::int AS units,
-        COALESCE(SUM(l."totalCents" - l."vatCents"), 0)::float8 AS ex, COALESCE(SUM(l."vatCents"), 0)::float8 AS vat, COALESCE(SUM(l."totalCents"), 0)::float8 AS incl,
-        COUNT(DISTINCT s."tradeAccountId")::int AS accounts
+      SELECT l."variantId", cast(COALESCE(SUM(l.qty), 0) AS real) AS units,
+        cast(COALESCE(SUM(l."totalCents" - l."vatCents"), 0) AS real) AS ex, cast(COALESCE(SUM(l."vatCents"), 0) AS real) AS vat, cast(COALESCE(SUM(l."totalCents"), 0) AS real) AS incl,
+        cast(COUNT(DISTINCT s."tradeAccountId") AS real) AS accounts
       FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId"
-      WHERE s.channel = 'WHOLESALE' AND s."storeId" = ANY(${ctx.storeIds}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
+      WHERE s.channel = 'WHOLESALE' AND s."storeId" IN (${inList(ctx.storeIds)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
       GROUP BY 1 ORDER BY 3 DESC LIMIT ${ctx.rowLimit}`,
     db.$queryRaw<{ month: string; orders: number; accounts: number; ex: number; vat: number; incl: number }[]>`
-      SELECT to_char(${sast('"createdAt"')}, 'YYYY-MM') AS month,
-        COUNT(*) FILTER (WHERE kind = 'SALE')::int AS orders, COUNT(DISTINCT "tradeAccountId")::int AS accounts,
-        COALESCE(SUM("totalCents" - "vatCents"), 0)::float8 AS ex, COALESCE(SUM("vatCents"), 0)::float8 AS vat, COALESCE(SUM("totalCents"), 0)::float8 AS incl
+      SELECT strftime('%Y-%m', "createdAt", '+2 hours') AS month,
+        cast(COUNT(CASE WHEN kind = 'SALE' THEN 1 END) AS real) AS orders, cast(COUNT(DISTINCT "tradeAccountId") AS real) AS accounts,
+        cast(COALESCE(SUM("totalCents" - "vatCents"), 0) AS real) AS ex, cast(COALESCE(SUM("vatCents"), 0) AS real) AS vat, cast(COALESCE(SUM("totalCents"), 0) AS real) AS incl
       FROM "Sale"
-      WHERE channel = 'WHOLESALE' AND "storeId" = ANY(${ctx.storeIds}::text[]) AND "createdAt" >= ${start} AND "createdAt" < ${end}
+      WHERE channel = 'WHOLESALE' AND "storeId" IN (${inList(ctx.storeIds)}) AND "createdAt" >= ${start} AND "createdAt" < ${end}
       GROUP BY 1 ORDER BY 1`,
     rollup(prevR, "WHOLESALE"),
     rollup(ctx.range),
@@ -75,7 +77,7 @@ async function tradeSales(ctx: ReportCtx): Promise<ReportResult> {
       return {
         account: acc?.name ?? NO_ACCOUNT, number: acc?.number ?? "", kind: acc ? (KIND_LABEL[acc.kind] ?? acc.kind) : "", terms: acc ? termsLabel(acc) : "", city: acc?.city ?? "",
         orders: a.orders, credits: a.credits, units: a.units, ex: a.ex, vat: a.vat, incl: a.incl, avg: a.orders ? Math.round(a.ex / a.orders) : null, share: ratio(a.ex, totalEx),
-        stores: a.stores, last: a.last,
+        stores: a.stores, last: new Date(a.last),
       };
     })
     .sort((x, y) => (y.ex as number) - (x.ex as number));
@@ -191,7 +193,7 @@ export const tradeAgedBalances: ReportDef = {
     const empty = { columns: AGED_COLUMNS, rows: [], emptyTitle: "Nothing outstanding", empty: "No trade account has a balance on the ledger." };
     if (!ids.length) return empty;
     const [entries, accounts] = await Promise.all([
-      db.tradeLedgerEntry.findMany({ where: { tradeAccountId: { in: ids } }, select: { tradeAccountId: true, kind: true, cents: true, dueAt: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
+      inBatches(ids, (part) => db.tradeLedgerEntry.findMany({ where: { tradeAccountId: { in: part } }, select: { tradeAccountId: true, kind: true, cents: true, dueAt: true, createdAt: true }, orderBy: { createdAt: "asc" } })),
       accountMap(ids),
     ]);
     const aged = ageTradeLedger(entries, ctx.now);

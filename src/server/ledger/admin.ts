@@ -18,6 +18,8 @@ import { dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { isEmail } from "@/lib/email";
 import { plural } from "@/lib/plural";
+import { inBatches } from "@/lib/json-list";
+import { background } from "@/server/background";
 
 /** A problem with one field of a books form (the action shows it under that field). */
 export class BooksFieldError extends LedgerError {
@@ -116,13 +118,14 @@ export type LineDraft = { account: string; cents: number; store?: string | null;
  */
 export async function resolveLines(companyId: string, lines: LineDraft[], where: (i: number) => string): Promise<JournalLineInput[]> {
   await tx((t) => booksFor(t, companyId));
-  const accounts = await db.ledgerAccount.findMany({ where: { companyId, OR: [{ id: { in: lines.map((l) => l.account) } }, { code: { in: lines.map((l) => l.account) } }] } });
+  const refs = [...new Set(lines.map((l) => l.account))];
+  const accounts = [...new Map((await inBatches(refs, (part) => db.ledgerAccount.findMany({ where: { companyId, OR: [{ id: { in: part } }, { code: { in: part } }] } }), 45)).map((a) => [a.id, a])).values()];
   const accountOf = (ref: string) => accounts.find((a) => a.id === ref || a.code === ref);
   const stores = await db.store.findMany({ where: { companyId }, select: { id: true, code: true } });
   const typed = (kind: Party) => [...new Set(lines.flatMap((l) => (accountOf(l.account)?.party === kind && l.party?.trim() ? [l.party.trim()] : [])))];
   const tradeRefs = typed("TRADE_ACCOUNT");
   const [trade, companies] = await Promise.all([
-    tradeRefs.length ? db.tradeAccount.findMany({ where: { OR: [{ id: { in: tradeRefs } }, { number: { in: tradeRefs.map((s) => s.toUpperCase()) } }] }, select: { id: true, number: true } }) : [],
+    inBatches(tradeRefs, (part) => db.tradeAccount.findMany({ where: { OR: [{ id: { in: part } }, { number: { in: part.map((s) => s.toUpperCase()) } }] }, select: { id: true, number: true } }), 45).then((rows) => [...new Map(rows.map((a) => [a.id, a])).values()]),
     typed("COMPANY").length ? db.company.findMany({ where: { kind: "FRANCHISEE" }, select: { id: true, name: true, legalName: true } }) : [],
   ]);
   const problems: string[] = [];
@@ -467,7 +470,7 @@ export async function booksAction(companyId: string, need: keyof BooksRole, fn: 
     unstable_rethrow(e);
     if (e instanceof LedgerError) return failed(e.message, e instanceof BooksFieldError ? e.field : undefined);
     if ((e as { code?: string })?.code === "P2002") return failed("That already exists. Check for a duplicate.");
-    void reportFailure(e, "books action"); // unexpected: logged and emailed to ops
+    background("books action report", reportFailure(e, "books action")); // unexpected: logged and emailed to ops
     return failed("Something went wrong. Please try again.");
   }
 }

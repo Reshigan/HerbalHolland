@@ -9,6 +9,7 @@ import { startOfDaySA } from "@/lib/format";
 import { maskPhone, parseOrderQr } from "@/components/pos/lib/rules";
 import { PosError } from "./http";
 import type { OrderCard } from "./types";
+import { inBatches } from "@/lib/json-list";
 
 type Event = { status: string; at: string; note?: string };
 const firstAt = (events: Event[], status: string) => events.find((e) => e.status === status)?.at ?? null;
@@ -72,10 +73,10 @@ async function tradeCards(storeId: string): Promise<OrderCard[]> {
   const today = startOfDaySA(new Date()).getTime();
   const rows = [...open.rows.filter((o) => o.fulfilment === "COLLECT" && o.status !== "PENDING_PAYMENT"), ...collected.rows.filter((o) => o.fulfilment === "COLLECT" && (o.collectedAt?.getTime() ?? 0) >= today)];
   if (!rows.length) return [];
-  const lines = await db.tradeOrderLine.findMany({
-    where: { tradeOrderId: { in: rows.map((o) => o.id) } },
+  const lines = await inBatches(rows.map((o) => o.id), (part) => db.tradeOrderLine.findMany({
+    where: { tradeOrderId: { in: part } },
     include: { variant: { select: { name: true, sku: true, product: { select: { name: true } } } } },
-  });
+  }));
   return rows.map((o) => {
     const events = o.events as Event[];
     const mine = lines.filter((l) => l.tradeOrderId === o.id);

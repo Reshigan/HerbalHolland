@@ -56,6 +56,7 @@ import { MADE_TO_ORDER_LEAD } from "@/lib/merch";
 import type { TierKey } from "@/lib/loyalty-rules";
 import type { ProvinceCode } from "@/lib/sa";
 import { cn } from "@/lib/cn";
+import { asList } from "@/lib/json-list";
 
 type Params = { slug: string };
 type SP = { v?: string; reviews?: string };
@@ -135,7 +136,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const [drop, watching] = await Promise.all([dropRows[0] ? getDrop(dropRows[0].slug, tier) : null, dropRows[0] && customer ? isWatching(dropRows[0].id, customer.id) : false]);
   const dropGated = !!drop && drop.membersOnly && !customer;
   const dropWaiting = !!drop && drop.phase === "upcoming";
-  const myDeal = offers.find((o) => o.productIds.includes(product.id) || o.categoryIds.includes(product.categoryId));
+  const myDeal = offers.find((o) => asList(o.productIds).includes(product.id) || asList(o.categoryIds).includes(product.categoryId));
 
   const q = quotes[product.variants.indexOf(variant)];
   const line = q.lines[0];
@@ -237,7 +238,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   // Product facts (food, supplements, skin care, CBD supplements): what's in it and the allergens it declares.
   const facts = PRODUCT_FACTS[product.regClass];
   const netLabel = netContentLabel(product.netContent, product.netUnit);
-  const allergenText = allergenStatement(product.allergens);
+  const allergens = asList(product.allergens);
+  const effects = asList(product.effects);
+  const flavours = asList(product.flavours);
+  const claims = asList(product.claims);
+  const allergenText = allergenStatement(allergens);
   const cbdPackNote =
     product.cbdMgPerPack == null
       ? null
@@ -262,7 +267,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const base = siteUrl();
   const reviewRows = reviews.rows;
   // Members' photos, newest first, at most eight in the gallery (every review keeps its own underneath).
-  const reviewPhotos = reviewRows.flatMap((r) => r.photoUploadIds.map((id) => ({ id, by: r.customer.firstName }))).slice(0, 8);
+  const reviewPhotos = reviewRows.flatMap((r) => asList(r.photoUploadIds).map((id) => ({ id, by: r.customer.firstName }))).slice(0, 8);
   const availabilityOf = (v: (typeof product.variants)[number]): Availability => (inStoreOnly ? "InStoreOnly" : v.podSku || stockOf(v.id) > 0 ? "InStock" : "OutOfStock");
   const jsonLd = !licensed && [
     productJsonLd({
@@ -470,8 +475,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
             </div>
 
-            {/* Availability per way of getting it */}
-            <Panel className="mt-6 divide-y divide-ink-800">
+            {/* Availability per way of getting it (once online shopping is open) */}
+            {open && <Panel className="mt-6 divide-y divide-ink-800">
               {canCollect && (
                 <div className="flex items-start gap-3 p-4">
                   <Store className={cn("mt-0.5 h-5 w-5 shrink-0", hereQty > 0 ? "text-leaf-500" : "text-ink-450")} />
@@ -528,7 +533,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                   </div>
                 </div>
               )}
-            </Panel>
+            </Panel>}
 
             {deals.length > 0 && (
               <div className="mt-6 space-y-2">
@@ -552,9 +557,9 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                 About
               </h2>
               <p className="mt-3 text-[1.02rem] leading-relaxed text-ink-300">{product.description}</p>
-              {product.effects.length > 0 && (
+              {effects.length > 0 && (
                 <div className="mt-4 flex flex-wrap gap-2">
-                  {product.effects.map((e) => (
+                  {effects.map((e) => (
                     <Link key={e} href={`/shop?mood=${e}`} className="rounded-full border border-ink-700 px-3 py-1 text-sm capitalize text-ink-100 hover:border-brand-500">
                       {licensed ? e : `For ${e}`}
                     </Link>
@@ -605,8 +610,8 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                       )}
                     </dl>
                     {allergenText && (
-                      <p className={cn("mt-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm font-medium", declaresAllergens(product.allergens) ? "bg-amber-500/10 text-amber-100" : "bg-ink-850 text-ink-200")}>
-                        {declaresAllergens(product.allergens) ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />}
+                      <p className={cn("mt-3 flex items-start gap-2 rounded-xl px-3 py-2.5 text-sm font-medium", declaresAllergens(allergens) ? "bg-amber-500/10 text-amber-100" : "bg-ink-850 text-ink-200")}>
+                        {declaresAllergens(allergens) ? <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden /> : <Info className="mt-0.5 h-4 w-4 shrink-0 text-ink-400" aria-hidden />}
                         <span>
                           <span className="sr-only">Allergens: </span>
                           {allergenText}
@@ -618,14 +623,14 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </div>
             )}
 
-            <DeliveryReturns
+            {open && <DeliveryReturns
               className="mt-8"
               f={{
                 regClass: product.regClass, licensed, made, canCollect, canShip,
                 sameDay: sameDayHere && store ? { store: store.name, feeCents: eco.sameDayFeeCents, cutoffHour: eco.sameDayCutoffHour } : null,
                 courier: { feeCents: eco.courierFeeCents, freeOverCents: eco.freeDeliveryOverCents, merchCents: eco.merchCourierCents, estimate: estimate.label, note: estimate.note },
               }}
-            />
+            />}
           </div>
         </div>
 
@@ -638,7 +643,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </Suspense>
             )}
 
-            {(terps.length > 0 || product.flavours.length > 0 || product.lineage || product.origin) && (
+            {(terps.length > 0 || flavours.length > 0 || product.lineage || product.origin) && (
               <Suspense>
                 <section aria-labelledby="profile" className="grid grid-cols-1 gap-8 md:grid-cols-2">
                   {terps.length > 0 && (
@@ -652,11 +657,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                     </div>
                   )}
                   <div className="space-y-6">
-                    {product.flavours.length > 0 && (
+                    {flavours.length > 0 && (
                       <div>
                         <h3 className="text-sm font-semibold text-ink-200">Flavours</h3>
                         <div className="mt-2 flex flex-wrap gap-2">
-                          {product.flavours.map((f) => (
+                          {flavours.map((f) => (
                             <span key={f} className="rounded-full bg-ink-850 px-3 py-1 text-sm text-ink-100">
                               {f}
                             </span>
@@ -685,7 +690,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
               </Suspense>
             )}
 
-            {(product.legalBasis || product.claims.length > 0) && (
+            {(product.legalBasis || claims.length > 0) && (
               <Suspense>
                 <section aria-labelledby="legal">
                   <div className="eyebrow text-brand-500">Legal basis</div>
@@ -705,11 +710,11 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                         </div>
                       )}
                     </dl>
-                    {product.claims.length > 0 && (
+                    {claims.length > 0 && (
                       <div className="mt-5 border-t border-ink-800 pt-5">
                         <h3 className="text-sm font-semibold text-ink-200">Approved claims</h3>
                         <ul className="mt-2 space-y-1.5">
-                          {product.claims.map((c) => (
+                          {claims.map((c) => (
                             <li key={c} className="flex items-center gap-2 text-sm text-ink-100">
                               <BadgeCheck className="h-4 w-4 shrink-0 text-leaf-500" /> {c}
                             </li>
@@ -787,9 +792,9 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
                           </div>
                           {r.title && <h3 className="mt-2 font-semibold text-white">{r.title}</h3>}
                           {r.body && <p className="mt-1 text-sm leading-relaxed text-ink-300">{r.body}</p>}
-                          {r.photoUploadIds.length > 0 && (
+                          {asList(r.photoUploadIds).length > 0 && (
                             <ul className="mt-3 flex flex-wrap gap-2" aria-label="Photos with this review">
-                              {r.photoUploadIds.map((id) => (
+                              {asList(r.photoUploadIds).map((id) => (
                                 <li key={id}>
                                   <a href={`/media/${id}`} target="_blank" rel="noreferrer" className="block h-16 w-16 overflow-hidden rounded-lg bg-ink-900 ring-1 ring-ink-700 transition hover:ring-brand-500">
                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -838,7 +843,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
           {/* Side: stores + complete the deal */}
           <Suspense>
             <aside className="space-y-6 lg:sticky lg:top-28 lg:self-start">
-              {canCollect && (
+              {canCollect && open && (
                 <Panel id="stock-in-stores" className="scroll-mt-28 p-5">
                   <h2 className="flex items-center gap-2 font-display text-lg font-semibold text-white">
                     <MapPin className="h-5 w-5 text-brand-500" /> {store ? "Stock near you" : "Stock in stores"}

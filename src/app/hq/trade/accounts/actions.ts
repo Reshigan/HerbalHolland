@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { reportFailure } from "@/server/alerts";
+import { background } from "@/server/background";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { addTradeBuyer, approveTradeAccount, closeTradeAccount, holdTradeAccount, releaseTradeHold, removeTradeBuyer, TradeAccountError, updateTradeAccount, type TradeAccountDetails, type TradeTermsInput } from "@/server/trade/accounts";
@@ -20,6 +21,7 @@ import { TRADE_CLASSES, previousMonth } from "@/lib/trade";
 import { zar, zarWhole } from "@/lib/money";
 import type { RegClass } from "@/lib/compliance";
 import type { TradeTerms } from "@/generated/prisma/client";
+import { asList, inBatches } from "@/lib/json-list";
 
 const EXPECTED = [TradeAccountError, TradeLedgerError, TradeOrderError, TradeLicenceError, StockError];
 
@@ -31,7 +33,7 @@ async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
     unstable_rethrow(e);
     if (EXPECTED.some((E) => e instanceof E)) return fail((e as Error).message);
     if ((e as { code?: string })?.code === "P2025") return fail("That no longer exists. Reload the page.");
-    void reportFailure(e, "HQ trade account action"); // unexpected: logged and emailed to ops
+    background("HQ trade account report", reportFailure(e, "HQ trade account action")); // unexpected: logged and emailed to ops
     return fail("Something went wrong. Please try again.");
   }
 }
@@ -255,7 +257,7 @@ export async function searchRange(accountId: string, q: string): Promise<{ rows:
   if (!account) return { error: "Unknown trade account" };
   try {
     const dc = (account.dcId ? await db.store.findFirst({ where: { id: account.dcId, kind: "WAREHOUSE", status: { not: "CLOSED" } } }) : null) ?? (await defaultDc());
-    const r = await tradeRange(dc.id, account, { q: q.slice(0, 60), pageSize: 24 });
+    const r = await tradeRange(dc.id, { ...account, classes: asList(account.classes) }, { q: q.slice(0, 60), pageSize: 24 });
     return {
       dc: dc.name,
       total: r.total,
@@ -277,7 +279,7 @@ export async function searchCollectStores(accountId: string, lines: { variantId:
   const account = await db.tradeAccount.findUnique({ where: { id: accountId }, select: { classes: true, province: true } });
   if (!account) return { error: "Unknown trade account" };
   const ids = [...new Set(lines.map((l) => l.variantId))].slice(0, 100);
-  const variants = await db.variant.findMany({ where: { id: { in: ids } }, select: { id: true, product: { select: { regClass: true } } } });
+  const variants = await inBatches(ids, (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, product: { select: { regClass: true } } } }));
   const cls = new Map(variants.map((v) => [v.id, v.product.regClass]));
   const r = await collectStoresFor(lines.filter((l) => cls.has(l.variantId) && l.qty > 0).map((l) => ({ variantId: l.variantId, qty: Math.floor(l.qty), regClass: cls.get(l.variantId)! })), account, { q: q.slice(0, 60), pageSize: 12 });
   return { total: r.total, rows: r.rows.map((s) => ({ id: s.id, code: s.code, name: s.name, suburb: s.suburb, city: s.city, allInStock: s.allInStock, short: s.short.length })) };

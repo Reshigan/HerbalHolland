@@ -1,6 +1,19 @@
 // Shop search: the query parser (words, measures with units, class words), the ranking and "Did you mean…".
 import { describe, expect, it } from "vitest";
-import { didYouMean, similarityFloor, measureMatches, measuresIn, normalise, parseQuery, rankSearch, withRecentSearch, RECENT_SEARCHES_MAX, type SearchDoc } from "@/lib/search";
+import { didYouMean, similarityFloor, measureMatches, measuresIn, normalise, parseQuery, rankSearch, withRecentSearch, RECENT_SEARCHES_MAX, likePatterns, likeTerm, trigramsOf, trigramSimilarity, wordSimilarity, type SearchDoc } from "@/lib/search";
+
+describe("likeTerm", () => {
+  it("keeps short terms and cuts long ones at 48 bytes of UTF-8, on a character boundary", () => {
+    expect(likeTerm("Durban Haze")).toBe("Durban Haze");
+    expect(likeTerm("a".repeat(60))).toBe("a".repeat(48));
+    expect(new TextEncoder().encode(likeTerm("é".repeat(30))).length).toBe(48);
+    expect(likeTerm("é".repeat(30))).toBe("é".repeat(24));
+    const emoji = "🌿".repeat(13); // 4 bytes each: 12 fit
+    expect(likeTerm(emoji)).toBe("🌿".repeat(12));
+    expect(likeTerm("x".repeat(60), 49)).toHaveLength(49);
+    expect(likeTerm("")).toBe("");
+  });
+});
 
 const docs: SearchDoc[] = [
   { id: "oil600", name: "Calm CBD Oil 600", tagline: "Full-spectrum drops for the evening", category: "CBD wellness", cbdMgPerPack: 600, netContent: 30, netUnit: "ml", variants: [{ name: "30ml" }] },
@@ -177,3 +190,41 @@ describe("product types written apart (\"pre roll\")", () => {
   });
 });
 
+
+describe("trigram similarity (pg_trgm's rules)", () => {
+  it("pads each word with two spaces before and one after, lower-cased, letters and digits only", () => {
+    expect(trigramsOf("Cat")).toEqual(["  c", " ca", "cat", "at "]);
+    expect(trigramsOf("a")).toEqual(["  a", " a "]);
+    expect(trigramsOf("Pre-roll 0.5g")).toEqual(trigramsOf("pre roll 0 5g"));
+    expect(trigramsOf("  ")).toEqual([]);
+  });
+
+  it("measures similarity as Postgres does: shared trigrams over the union", () => {
+    expect(trigramSimilarity("word", "two words")).toBeCloseTo(4 / 11, 6); // pg_trgm's documented example: 0.363636
+    expect(trigramSimilarity("Grinder", "grinder")).toBe(1);
+    expect(trigramSimilarity("", "")).toBe(0);
+    expect(trigramSimilarity("xqzvw", "Abrahams")).toBe(0);
+  });
+
+  it("measures word similarity against the closest run of the longer text", () => {
+    expect(wordSimilarity("word", "two words")).toBeCloseTo(0.8, 6); // pg_trgm's documented example
+    expect(wordSimilarity("durbn", "Durban Poison")).toBeCloseTo(4 / 6, 6);
+    expect(wordSimilarity("Abrahms", "Abrahams")).toBeCloseTo(5 / 8, 6); // "abrah" is the closest run
+    expect(wordSimilarity("ndlovo", "Ndlovu")).toBeCloseTo(5 / 7, 6);
+    expect(wordSimilarity("nothern lights", "Northern Lights")).toBeGreaterThanOrEqual(0.5);
+    expect(wordSimilarity("og", "OG Kush")).toBe(1);
+    expect(wordSimilarity("grindr", "Sunset Grinder")).toBeGreaterThanOrEqual(0.5);
+    expect(wordSimilarity("tez", "tea")).toBeLessThan(0.6);
+    expect(wordSimilarity("xqzvw", "Abrahams")).toBe(0);
+    expect(wordSimilarity("", "Abrahams")).toBe(0);
+  });
+
+  it("prefilters candidates by the first two letters of a word at a word start, or the whole word anywhere", () => {
+    expect(likePatterns("calm oli")).toEqual(["ca%", "% ca%", "%calm oli%", "%calm%", "ol%", "% ol%", "%oli%"]);
+    expect(likePatterns("og")).toEqual(["og%", "% og%"]);
+    expect(likePatterns("a")).toEqual(["a%", "% a%"]);
+    expect(likePatterns(" % ")).toEqual([]);
+    expect(likePatterns("50%_off")).toEqual(["50%", "% 50%", "%50off%"]);
+    expect(likePatterns("x".repeat(60))[2]).toHaveLength(42); // a LIKE pattern is at most 50 bytes
+  });
+});

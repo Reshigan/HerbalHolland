@@ -6,7 +6,6 @@ vi.mock("node:dns/promises", () => ({ lookup: async (host: string) => [{ address
 
 // Before any import: photos land in a scratch folder, and links carry the shop's public address.
 vi.hoisted(() => {
-  process.env.UPLOAD_DIR = `/tmp/hh-shop-test-uploads-${process.pid}`;
   process.env.APP_URL = "https://shop.example.co.za";
 });
 

@@ -21,6 +21,7 @@ import { ProductArt } from "@/components/product/art";
 import { FilterForm, FilterSelect, SearchField } from "@/components/hq/filter-form";
 import { SavedViews } from "@/components/admin/saved-views";
 import { PriceCell } from "./price-cell";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Catalogue" };
 
@@ -116,7 +117,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
                         {p.heritage && <Badge tone="orange">Heritage</Badge>}
                         {p.featured && <Badge tone="dark">Featured</Badge>}
                         {p.tobaccoRelated && <Badge tone="amber">Tobacco Bill</Badge>}
-                        {p.status !== "ARCHIVED" && validateProduct({ ...p, regClass: p.regClass as RegClass }).length > 0 && <Badge tone="red">Compliance data incomplete</Badge>}
+                        {p.status !== "ARCHIVED" && validateProduct({ ...p, regClass: p.regClass as RegClass, claims: asList(p.claims), allergens: asList(p.allergens) }).length > 0 && <Badge tone="red">Compliance data incomplete</Badge>}
                       </span>
                     </span>
                   </Link>

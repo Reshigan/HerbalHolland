@@ -25,6 +25,7 @@ import { Field, Input } from "@/components/ui/form";
 import { savePricingRules } from "./actions";
 import { Flash } from "@/components/hq/flash";
 import { listStatus } from "@/components/hq/tones";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Pricing" };
 
@@ -49,8 +50,11 @@ export default async function PricingPage({ searchParams }: { searchParams: Prom
   const regionName = new Map(regions.map((r) => [r.id, r.name]));
   const scopeText = (l: (typeof lists)[number]) => {
     if (l.kind === "TRADE") return "Trade accounts · wholesale channel";
-    const where = l.storeIds.length ? `${l.storeIds.length} store${l.storeIds.length === 1 ? "" : "s"}` : l.regionIds.length ? l.regionIds.map((r) => regionName.get(r) ?? "Region").join(", ") : "Whole network";
-    const who = l.kind === "MEMBER" ? (l.tiers.length ? l.tiers.map(tierName).join(", ") : "All members") : l.channel ? (l.channel === "ONLINE" ? "Online" : "In store") : "All channels";
+    const storeIds = asList(l.storeIds);
+    const regionIds = asList(l.regionIds);
+    const tiers = asList(l.tiers);
+    const where = storeIds.length ? `${storeIds.length} store${storeIds.length === 1 ? "" : "s"}` : regionIds.length ? regionIds.map((r) => regionName.get(r) ?? "Region").join(", ") : "Whole network";
+    const who = l.kind === "MEMBER" ? (tiers.length ? tiers.map(tierName).join(", ") : "All members") : l.channel ? (l.channel === "ONLINE" ? "Online" : "In store") : "All channels";
     return `${where} · ${who}`;
   };
 

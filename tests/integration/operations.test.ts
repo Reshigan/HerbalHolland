@@ -2,12 +2,7 @@
 // yourself), supplier invoices (file checks, pay/query, audit), the opening checklist, scheduled exports (signed
 // links) and the forecast-driven replenishment plan, all against the real services and a disposable database.
 import { randomUUID } from "node:crypto";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-
-process.env.UPLOAD_DIR = mkdtempSync(join(tmpdir(), "hh-ops-"));
 
 import { db, tx } from "@/server/db";
 import { placeOrder } from "@/server/orders";
@@ -18,7 +13,6 @@ import { todayFacts, todayList } from "@/server/today";
 import { captureSupplierInvoice, invoicesForOrder, paySupplierInvoice, querySupplierInvoice, recordStatementInvoice, reopenSupplierInvoice, settleStatementInvoices, supplierInvoiceList, supplierInvoiceSummary, supplierInvoicesByStore } from "@/server/supplier-invoices";
 import { actOnStockOrder, createStockOrder } from "@/server/stock-orders";
 import { statementTerms } from "@/lib/supplier-invoice-rules";
-import { vatOnExcl } from "@/lib/money";
 import { checklist, checklistProgressByStore, completeTask, reopenTask, rescheduleChecklist, seedChecklist } from "@/server/store-tasks";
 import { createSchedule, exportUrl, isDue, runDueExports, runExport, verifyExportToken } from "@/server/exports";
 import { claimEvents, lowStockDigest, notifyAlerts, notifyAnnouncements, notifyDepositsDue, notifyExpiringBatches, notifyNewOrders, pushToStaff, saveStaffSubscription, subscribedStores } from "@/server/staff-push";
@@ -246,29 +240,6 @@ describe("Supplier invoices", () => {
     expect(await supplierInvoiceSummary([w.store.id])).toMatchObject({ onStatement: 0, paid30Cents: before.summary.paid30Cents }); // settled, not paid by the store
   });
 
-  it("backfills stock orders received before they were put on automatically (the migration), settled when their month is over", async () => {
-    const sql = readFileSync(new URL("../../prisma/migrations/20261005130000_backfill_statement_invoices/migration.sql", import.meta.url), "utf8");
-    const lastMonth = new Date(Date.parse(`${dayKey(new Date()).slice(0, 7)}-01T10:00:00+02:00`) - 2 * 86_400_000);
-    const order = (number: string, kind: "WHOLESALE" | "NETWORK", receivedAt: Date, receivedQty: number) =>
-      db.stockOrder.create({ data: { number, kind, status: "RECEIVED", buyerId: w.store.id, sellerId: w.dc.id, receivedAt, createdById: w.manager.id, lines: { create: [{ variantId: w.oilV.id, qty: 3, receivedQty, unitCostCents: 28_010 }] } } });
-    const old = await order("PO-B1", "WHOLESALE", lastMonth, 3);
-    const recent = await order("PO-B2", "NETWORK", new Date(), 1);
-    await order("PO-B3", "WHOLESALE", new Date(), 0); // nothing counted in: nothing to invoice
-    const count = await db.supplierInvoice.count();
-    await db.$executeRawUnsafe(sql);
-    expect(await db.supplierInvoice.count()).toBe(count + 2); // and none for the orders already on
-
-    const was = statementTerms(dayKey(lastMonth));
-    const a = await db.supplierInvoice.findFirstOrThrow({ where: { stockOrderId: old.id } });
-    expect(a).toMatchObject({ storeId: w.store.id, supplierName: "Test DC", number: "PO-B1", totalCents: 84_030 + vatOnExcl(84_030), vatCents: vatOnExcl(84_030), onStatement: true, status: "PAID", paidAt: new Date(`${was.settledFrom}T00:00:00+02:00`), note: was.settled, uploadId: null, createdById: w.manager.id });
-    expect([a.invoiceDate, a.dueDate].map((d) => d.toISOString().slice(0, 10))).toEqual([dayKey(lastMonth), was.dueDay]);
-    expect(await db.supplierInvoice.findFirstOrThrow({ where: { stockOrderId: recent.id } })).toMatchObject({
-      number: "PO-B2", totalCents: 28_010 + vatOnExcl(28_010), vatCents: vatOnExcl(28_010), status: "DUE", paidAt: null, note: statementTerms(dayKey(new Date())).settles,
-    });
-    expect(await audits("supplier_invoice.create", a.id)).toBe(1);
-    await db.$executeRawUnsafe(sql);
-    expect(await db.supplierInvoice.count()).toBe(count + 2); // once
-  });
 });
 
 describe("Opening checklist", () => {

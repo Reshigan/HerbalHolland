@@ -14,11 +14,12 @@ import { APP_URL } from "./invoices";
 import { partnerName, sendProductionOrder } from "./pod";
 import { ART } from "@/components/merch/art";
 import { merchFor } from "@/lib/merch";
+import { inBatches } from "@/lib/json-list";
 
 /** The made-to-order variants among `ids`, with the partner's price (VAT excl.). */
 export async function madeToOrder(ids: string[], t: Tx | typeof db = db) {
   if (!ids.length) return new Map<string, number>();
-  const rows = await t.variant.findMany({ where: { id: { in: ids }, podSku: { not: null } }, select: { id: true, costCents: true } });
+  const rows = await inBatches(ids, (part) => t.variant.findMany({ where: { id: { in: part }, podSku: { not: null } }, select: { id: true, costCents: true } }));
   return new Map(rows.map((v) => [v.id, v.costCents]));
 }
 

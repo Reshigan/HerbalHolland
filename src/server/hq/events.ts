@@ -7,6 +7,7 @@ import { csvFilename, toCsv } from "@/lib/csv";
 import { dayKey } from "@/lib/format";
 import type { Prisma, StoreEvent } from "@/generated/prisma/client";
 import type { EventValues } from "@/components/hq/event-form";
+import { likeTerm } from "@/lib/search";
 
 export type EventData = { title: string; slug: string; blurb: string; startsAt: Date; endsAt: Date; capacity: number };
 
@@ -64,14 +65,14 @@ export type RsvpFilter = "all" | "in" | "waiting";
 
 /** One page of an event's RSVPs (name order), filtered by check-in and a name / member-number search. */
 export async function rsvpPage(eventId: string, filter: RsvpFilter, q: string, page: number, pageSize: number) {
-  const words = q.split(/\s+/).filter(Boolean);
+  const words = q.split(/\s+/).filter(Boolean).map((w) => likeTerm(w));
   const where: Prisma.RsvpWhereInput = {
     eventId,
     ...(filter === "in" ? { checkedInAt: { not: null } } : filter === "waiting" ? { checkedInAt: null } : {}),
     ...(words.length && {
       customer: {
         AND: words.map((w) => ({
-          OR: [{ firstName: { contains: w, mode: "insensitive" as const } }, { lastName: { contains: w, mode: "insensitive" as const } }, { memberNo: { contains: w, mode: "insensitive" as const } }],
+          OR: [{ firstName: { contains: w } }, { lastName: { contains: w } }, { memberNo: { contains: w } }],
         })),
       },
     }),

@@ -14,6 +14,7 @@ import type { listReturns, returnCounts, ReturnView } from "@/server/returns";
 import { RETURN_REASON, RETURN_REASONS } from "@/lib/returns";
 import { fmtDate, num, timeAgo } from "@/lib/format";
 import { zar } from "@/lib/money";
+import { asList } from "@/lib/json-list";
 
 type Rows = Awaited<ReturnType<typeof listReturns>>["rows"];
 type Counts = Awaited<ReturnType<typeof returnCounts>>;
@@ -104,7 +105,7 @@ export function ReturnQueue({ base, rows, total, page, pageSize, counts, view, s
                 </Td>
                 <Td className="hidden whitespace-nowrap sm:table-cell">
                   <ReasonBadge reason={r.reason} />
-                  {r.photoUploadIds.length > 0 && <span className="block text-xs text-ink-500">{r.photoUploadIds.length} photo{r.photoUploadIds.length === 1 ? "" : "s"}</span>}
+                  {asList(r.photoUploadIds).length > 0 && <span className="block text-xs text-ink-500">{asList(r.photoUploadIds).length} photo{asList(r.photoUploadIds).length === 1 ? "" : "s"}</span>}
                 </Td>
                 <Td align="right" className="hidden lg:table-cell">{r.units}</Td>
                 <Td className="whitespace-nowrap">

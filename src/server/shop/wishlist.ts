@@ -8,6 +8,7 @@ import { madeToOrder } from "@/server/merch";
 import { cardsWhere, getNetwork, type ProductCard, type Shopper } from "./catalogue";
 import { getClasses } from "./access";
 import { addDays } from "@/lib/format";
+import { inBatches } from "@/lib/json-list";
 
 export const WISHLIST_MAX = 100;
 /** How long "Back in stock" stays on an item after its stock returned. */
@@ -34,10 +35,10 @@ export type WishlistItem = { id: string; variantId: string; variantName: string;
 export async function listWishlist(customerId: string, who: Shopper, now = new Date()): Promise<WishlistItem[]> {
   const rows = await db.wishlist.findMany({ where: { customerId }, orderBy: { createdAt: "desc" }, take: WISHLIST_MAX });
   if (!rows.length) return [];
-  const variants = await db.variant.findMany({ where: { id: { in: rows.map((r) => r.variantId) } }, select: { id: true, name: true, active: true, podSku: true, productId: true, product: { select: { name: true, regClass: true, status: true, _count: { select: { variants: { where: { active: true } } } } } } } });
+  const variants = await inBatches(rows.map((r) => r.variantId), (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, name: true, active: true, podSku: true, productId: true, product: { select: { name: true, regClass: true, status: true, _count: { select: { variants: { where: { active: true } } } } } } } }));
   const byId = new Map(variants.map((v) => [v.id, v]));
   const [classes, net] = await Promise.all([getClasses(), getNetwork()]);
-  const [cards, avail] = await Promise.all([cardsWhere({ id: { in: [...new Set(variants.map((v) => v.productId))] } }, [...classes.public, ...classes.licensed], who), availability(net.all, variants.map((v) => v.id))]);
+  const [cards, avail] = await Promise.all([inBatches([...new Set(variants.map((v) => v.productId))], (part) => cardsWhere({ id: { in: part } }, [...classes.public, ...classes.licensed], who)), availability(net.all, variants.map((v) => v.id))]);
   const cardOf = new Map(cards.map((c) => [c.id, c]));
   // Stock is the variant's own (a card speaks for the whole product).
   const inStock = (v: (typeof variants)[number]) => !!v.podSku || net.all.some((storeId) => (avail.get(availKey(storeId, v.id))?.available ?? 0) > 0);
@@ -69,8 +70,8 @@ export async function refreshWishlistStock(now = new Date()) {
     (total > 0 ? back : out).push(id);
   }
   const [o, r] = await Promise.all([
-    out.length ? db.wishlist.updateMany({ where: { variantId: { in: out }, outOfStockAt: null }, data: { outOfStockAt: now } }) : { count: 0 },
-    back.length ? db.wishlist.updateMany({ where: { variantId: { in: back }, outOfStockAt: { not: null } }, data: { outOfStockAt: null, restockedAt: now } }) : { count: 0 },
+    inBatches(out, (part) => db.wishlist.updateMany({ where: { variantId: { in: part }, outOfStockAt: null }, data: { outOfStockAt: now } }).then((r) => [r.count])).then((counts) => ({ count: counts.reduce((s, n) => s + n, 0) })),
+    inBatches(back, (part) => db.wishlist.updateMany({ where: { variantId: { in: part }, outOfStockAt: { not: null } }, data: { outOfStockAt: null, restockedAt: now } }).then((r) => [r.count])).then((counts) => ({ count: counts.reduce((s, n) => s + n, 0) })),
   ]);
   return { checked: ids.length, out: o.count, restocked: r.count };
 }

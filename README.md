@@ -113,7 +113,7 @@ black on cream). The browser only offers installs on HTTPS (or localhost) with `
 
 ```bash
 npm test                          # unit: pure rules (pricing, promotions, compliance, loyalty, SA calendars…)
-npm run test:integration          # domain services against a disposable DB (TEST_DATABASE_URL, migrated)
+npm run test:integration          # domain services against a fresh SQLite file (.data/hh_test.sqlite, or TEST_DATABASE_URL=file:…)
 node e2e/checkout.mjs             # phone checkout: sign-up by SMS code → collect → pay → order (DEMO_MODE, seeded)
 node e2e/pos.mjs                  # till: pair → PIN → shift → sales → refund → offline + sync → handover → Z-report
 node e2e/crawl.mjs                # every page as every role: broken links, server errors, crashes, timings
@@ -139,6 +139,7 @@ builds the production image, then runs seven end-to-end journeys and the crawl a
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 7 + PostgreSQL 16 · Vitest · Playwright.
-Deploy with the `Dockerfile` and `docker-compose.prod.yml` ([runbook](docs/RUNBOOK.md#first-deploy)); `docker-compose.yml`
-is a local demo stack. CI in `.github/workflows/ci.yml`.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 7 + Cloudflare D1 · Vitest · Playwright.
+Runs on Cloudflare Workers (OpenNext), D1, R2 and Browser Rendering ([docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)); a merge
+to main deploys it (`.github/workflows/deploy-shop.yml`, [runbook](docs/RUNBOOK.md#first-deploy)). CI in
+`.github/workflows/ci.yml`; the whole platform on a staging Worker in `test-cloudflare.yml`.

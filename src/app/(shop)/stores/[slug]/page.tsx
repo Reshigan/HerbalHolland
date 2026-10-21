@@ -39,6 +39,7 @@ import {
   TITLE_MAX,
 } from "@/lib/seo";
 import { cn } from "@/lib/cn";
+import { asList } from "@/lib/json-list";
 
 // generateMetadata and the page share one lookup per request.
 const load = cache(async (slug: string) =>
@@ -60,7 +61,7 @@ export async function generateMetadata({
   const s = await load((await params).slug);
   if (!s) return { title: "Store not found" };
   const soon = s.status !== "ACTIVE";
-  // "Herbal Holland Umhlanga, Durban": the first of city, suburb or province that isn't already the store's name.
+  // "Herbal Holland Bluff, Durban": the first of city, suburb or province that isn't already the store's name.
   const place = [s.city, s.suburb, PROVINCES[s.province as ProvinceCode]].find(
     (p) => p && p !== s.name,
   );
@@ -69,7 +70,7 @@ export async function generateMetadata({
     TITLE_MAX,
   );
   const address = [s.addressLine, s.suburb, s.city]
-    .filter((v, i, a) => a.indexOf(v) === i)
+    .filter((v, i, a) => v && a.indexOf(v) === i)
     .join(", ");
   const path = `/stores/${s.slug}`;
   const description = metaDescription(
@@ -166,8 +167,8 @@ export default async function StorePage({
             {soon ? (
               <Tag tone="amber">Opening soon</Tag>
             ) : (
-              <Tag tone={o.open ? "green" : "neutral"}>
-                {o.open ? "Open now" : "Closed now"}
+              <Tag tone={o.open || o.unknown ? "green" : "neutral"}>
+                {o.unknown ? "Open" : o.open ? "Open now" : "Closed now"}
               </Tag>
             )}
             {s.format === "FLAGSHIP" && <Tag tone="orange">Flagship</Tag>}
@@ -177,7 +178,7 @@ export default async function StorePage({
           </h1>
           <p className="mt-3 flex items-start gap-2 text-lg text-ink-300">
             <MapPin className="mt-1 h-5 w-5 shrink-0 text-brand-500" />
-            {s.addressLine}, {s.suburb}, {s.city}, {s.postalCode}
+            {[s.addressLine, s.suburb, s.city, s.postalCode].filter(Boolean).join(", ")}
           </p>
           {!soon && (
             <p
@@ -223,7 +224,7 @@ export default async function StorePage({
         </div>
 
         <aside className="space-y-4">
-          <Panel className="p-5">
+          {!o.unknown && <Panel className="p-5">
             <h2 className="font-display text-lg font-semibold text-white">
               Opening hours
             </h2>
@@ -244,7 +245,7 @@ export default async function StorePage({
             <p className="mt-3 text-xs text-ink-450">
               Public holiday hours may differ, so call ahead.
             </p>
-          </Panel>
+          </Panel>}
           {!soon && (
             <Panel className="space-y-2.5 p-5 text-sm">
               {s.phone && (
@@ -350,7 +351,7 @@ export default async function StorePage({
                 </p>
               </div>
             </div>
-            {s.licences.length > 0 && (
+            {asList(s.licences).length > 0 && (
               <Callout
                 tone="info"
                 icon={<ShieldCheck className="h-5 w-5" />}

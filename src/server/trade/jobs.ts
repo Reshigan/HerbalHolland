@@ -9,6 +9,7 @@ import { dayOfMonthSA, overdueBeyondGrace, previousMonth } from "@/lib/trade";
 import { advanceTradeOrder } from "./orders";
 import { holdTradeAccount } from "./accounts";
 import { emailTradeStatement, ledgerEntries, statementLogId } from "./ledger";
+import { inBatches } from "@/lib/json-list";
 
 /** One item at a time; one that fails is reported (`what`: the job function) and the rest carry on. */
 async function each<T>(what: string, items: T[], fn: (x: T) => Promise<unknown>) {
@@ -64,8 +65,8 @@ export async function tradeStatements(now = new Date()) {
   if (late < 0 || late >= STATEMENT_DAYS) return { done: 0, failed: 0, skipped: "not the statement day" };
   const month = previousMonth(now);
   const accounts = await db.tradeAccount.findMany({ where: { status: { in: ["APPROVED", "ON_HOLD"] } }, select: { id: true }, orderBy: { number: "asc" }, take: 2_000 });
-  const sent = new Set((await db.messageLog.findMany({ where: { id: { in: accounts.map((a) => statementLogId(a.id, month)) }, status: "SENT" }, select: { id: true } })).map((m) => m.id));
-  const active = new Set((await db.tradeLedgerEntry.findMany({ where: { tradeAccountId: { in: accounts.map((a) => a.id) } }, select: { tradeAccountId: true }, distinct: ["tradeAccountId"] })).map((e) => e.tradeAccountId));
+  const sent = new Set((await inBatches(accounts.map((a) => statementLogId(a.id, month)), (part) => db.messageLog.findMany({ where: { id: { in: part }, status: "SENT" }, select: { id: true } }))).map((m) => m.id));
+  const active = new Set((await inBatches(accounts.map((a) => a.id), (part) => db.tradeLedgerEntry.findMany({ where: { tradeAccountId: { in: part } }, select: { tradeAccountId: true }, distinct: ["tradeAccountId"] }))).map((e) => e.tradeAccountId));
   const due = accounts.filter((a) => active.has(a.id) && !sent.has(statementLogId(a.id, month)));
   // force: so a failed send's receipt doesn't stop it going again (nothing in `due` has gone out).
   return { ...(await each("tradeStatements", due, (a) => emailTradeStatement(a.id, month, { force: true }))), month };

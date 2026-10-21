@@ -8,25 +8,34 @@ import { applyPromotions, type PromoInput, type Suggestion } from "@/lib/promoti
 import { resolvePrice, promoWindowOpen, resolveTradePrice, tradeBreaks, listLive, type PriceContext, type PriceListRule, type Tier } from "@/lib/pricing-rules";
 import { vatOf } from "@/lib/money";
 import { addDays } from "@/lib/format";
-import type { Channel, Prisma } from "@/generated/prisma/client";
+import type { Channel, Prisma, Promotion } from "@/generated/prisma/client";
+import { asList, inBatches } from "@/lib/json-list";
 import { incentiveExcluded, tradeAllowed, type RegClass } from "@/lib/compliance";
 import { rangeSearchTerms, vatHalfUp } from "@/lib/trade";
 import { similarProducts } from "./shop/search";
 import { availability, availKey, OPEN_ORDER_STATUSES } from "./inventory";
 import { lockPromotion } from "./locks";
+import { likeTerm } from "@/lib/search";
 
-export async function activePromotions(opts: { storeId?: string | null; channel: Channel; at?: Date }) {
+/** A promotion row with its JSON lists read as arrays, the shape the rules and pages work with. */
+export type PromotionRow = Omit<Promotion, "storeIds" | "channels" | "days" | "categoryIds" | "productIds" | "rewardCategoryIds" | "rewardProductIds"> & {
+  storeIds: string[]; channels: Channel[]; days: number[]; categoryIds: string[]; productIds: string[]; rewardCategoryIds: string[]; rewardProductIds: string[];
+};
+export const promotionRow = <T extends Pick<Promotion, "storeIds" | "channels" | "days" | "categoryIds" | "productIds" | "rewardCategoryIds" | "rewardProductIds">>(p: T) => ({
+  ...p,
+  storeIds: asList<string>(p.storeIds), channels: asList<Channel>(p.channels), days: asList<number>(p.days),
+  categoryIds: asList<string>(p.categoryIds), productIds: asList<string>(p.productIds),
+  rewardCategoryIds: asList<string>(p.rewardCategoryIds), rewardProductIds: asList<string>(p.rewardProductIds),
+});
+/** Runs here (channel and store are JSON lists, matched in code; the live promotions are few). */
+export const promoRunsAt = (p: { channels: string[]; storeIds: string[] }, channel: Channel, storeId?: string | null) =>
+  p.channels.includes(channel) && (!p.storeIds.length || (!!storeId && p.storeIds.includes(storeId)));
+
+export async function activePromotions(opts: { storeId?: string | null; channel: Channel; at?: Date }): Promise<PromotionRow[]> {
   const at = opts.at ?? new Date();
-  const rows = await db.promotion.findMany({
-    where: {
-      active: true,
-      startsAt: { lte: at },
-      endsAt: { gte: at },
-      channels: { has: opts.channel },
-      OR: [{ storeIds: { isEmpty: true } }, ...(opts.storeId ? [{ storeIds: { has: opts.storeId } }] : [])],
-    },
-    orderBy: { createdAt: "desc" },
-  });
+  const rows = (await db.promotion.findMany({ where: { active: true, startsAt: { lte: at }, endsAt: { gte: at } }, orderBy: { createdAt: "desc" } }))
+    .map(promotionRow)
+    .filter((p) => promoRunsAt(p, opts.channel, opts.storeId));
   // Usage caps: a use is a sale that carried the promotion (as HQ reports it).
   const capped = rows.filter((p) => p.maxUses != null).map((p) => p.id);
   const used = new Map(
@@ -67,10 +76,11 @@ export async function priceContext(c: { channel: Channel; storeId?: string | nul
 }
 
 export async function activePriceLists(at = new Date()): Promise<PriceListRule[]> {
-  return db.priceList.findMany({
+  const rows = await db.priceList.findMany({
     where: { active: true, OR: [{ startsAt: null }, { startsAt: { lte: at } }], AND: [{ OR: [{ endsAt: null }, { endsAt: { gte: at } }] }] },
     include: { items: { select: { variantId: true, priceCents: true, minQty: true } } },
   });
+  return rows.map((l) => ({ ...l, tiers: asList<Tier>(l.tiers), storeIds: asList<string>(l.storeIds), regionIds: asList<string>(l.regionIds) }));
 }
 
 /** Markdown % per variant at a store when its next-to-sell (FEFO) lot is close to expiry. */
@@ -396,12 +406,15 @@ export async function tradeRange(
   const page = Math.max(1, Math.floor(opts.page ?? 1));
   const pageSize = Math.min(100, Math.max(1, Math.floor(opts.pageSize ?? 24)));
   const [store, lists, settings] = await Promise.all([db.store.findUniqueOrThrow({ where: { id: storeId }, select: { licences: true } }), activePriceLists(at), getSettings()]);
-  const classes = account.classes.filter((c) => tradeAllowed({ accountClasses: account.classes, sellerLicences: store.licences, productClass: c as RegClass, productStatus: "ACTIVE", licensedOnly: settings.compliance.licensedOnly })) as RegClass[];
+  const classes = account.classes.filter((c) => tradeAllowed({ accountClasses: account.classes, sellerLicences: asList<string>(store.licences), productClass: c as RegClass, productStatus: "ACTIVE", licensedOnly: settings.compliance.licensedOnly })) as RegClass[];
   const empty = { rows: [] as TradeRangeRow[], total: 0, page, pageSize, didYouMean: null as string | null };
   if (!classes.length) return empty;
   const tradeLists = lists.filter((l) => l.kind === "TRADE" && listLive(l, at));
-  const priced = [...new Set(tradeLists.flatMap((l) => l.items.map((i) => i.variantId)))];
-  const q = opts.q?.trim().slice(0, 60);
+  const onLists = [...new Set(tradeLists.flatMap((l) => l.items.map((i) => i.variantId)))];
+  // Only the priced variants without a wholesale price of their own need naming in the query (a short list, and the
+  // `in:` list must stay under D1's 100 bound parameters).
+  const priced = onLists.length ? (await inBatches(onLists, (part) => db.variant.findMany({ where: { id: { in: part }, wholesaleCents: { lte: 0 } }, select: { id: true } }))).map((v) => v.id).slice(0, 80) : [];
+  const q = likeTerm(opts.q?.trim() ?? "");
   const category = opts.category?.trim();
   const base: Prisma.VariantWhereInput = {
     active: true,
@@ -416,7 +429,7 @@ export async function tradeRange(
   // Every word must match somewhere (name, SKU, barcode or product name), or the whole query must (a SKU like "HH-CBD-001").
   const matches = (spellings: string[]): Prisma.VariantWhereInput => ({
     OR: spellings.flatMap((t) => {
-      const like = { contains: t, mode: "insensitive" as const };
+      const like = { contains: t };
       return [{ name: like }, { sku: like }, { barcode: like }, { product: { name: like } }];
     }),
   });
@@ -426,7 +439,7 @@ export async function tradeRange(
   // Nothing by words (a typo: "colagen")? Fall back to products with a similar name, and say which we think was meant.
   if (q && !(await db.variant.count({ where }))) {
     const similar = await similarProducts(q, classes);
-    const hits = similar.size ? await db.product.findMany({ where: { id: { in: [...similar.keys()] }, variants: { some: base } }, select: { id: true, name: true } }) : [];
+    const hits = await inBatches([...similar.keys()], (part) => db.product.findMany({ where: { id: { in: part }, variants: { some: base } }, select: { id: true, name: true } }));
     if (hits.length) {
       where = { AND: [base, { productId: { in: hits.map((h) => h.id) } }] };
       didYouMean = hits.reduce((x, y) => ((similar.get(y.id) ?? 0) > (similar.get(x.id) ?? 0) ? y : x)).name;

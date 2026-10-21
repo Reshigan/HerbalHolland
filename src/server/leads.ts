@@ -36,6 +36,8 @@ import {
 import type { FranchiseLead, Prisma, Role } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
 import { clientIpFrom } from "@/lib/client-ip";
+import { inBatches } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 /** Who may see and work franchise leads: HQ admin and the HQ team, not area managers. */
 export const LEAD_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF"];
@@ -116,7 +118,7 @@ async function sendLogged(id: string, e: Email) {
   await db.messageLog.create({
     data: {
       id, channel: "EMAIL", to: e.to, kind: "TRANSACTIONAL", status: reason ? "FAILED" : "SENT",
-      body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (SMTP_URL not set)"),
+      body: `${e.subject}\n\n${e.text}`, reason: reason ?? (delivered ? null : "logged (MS_* not set)"),
     },
   });
 }
@@ -189,7 +191,7 @@ async function notify(l: FranchiseLead) {
 /** Blanks a lead's two emails in the message log (the enquirer's address and name, what they were told). */
 async function eraseMessages(t: Tx, leadIds: string[]) {
   if (!leadIds.length) return;
-  await t.messageLog.updateMany({ where: { id: { in: leadIds.flatMap(logIds) } }, data: { to: "[erased]", body: "[erased with the franchise enquiry]" } });
+  await inBatches(leadIds.flatMap(logIds), (part) => t.messageLog.updateMany({ where: { id: { in: part } }, data: { to: "[erased]", body: "[erased with the franchise enquiry]" } }).then((r) => [r]));
 }
 
 // ── Working a lead (HQ) ─────────────────────────────────────────────────────
@@ -301,9 +303,9 @@ export const viewWhere = (v: LeadView): Prisma.FranchiseLeadWhereInput =>
 
 /** ?q=: a lead number (however it's typed), or part of a name, email address or area. */
 export function leadSearch(raw?: string | null): Prisma.FranchiseLeadWhereInput {
-  const q = (raw ?? "").trim().slice(0, 100);
+  const q = likeTerm((raw ?? "").trim());
   if (!q) return {};
-  const like = { contains: q, mode: "insensitive" as const };
+  const like = { contains: q };
   const number = numberQuery(q);
   return { OR: [...(number ? [{ number }] : []), { number: like }, { name: like }, { email: like }, { area: like }] };
 }
@@ -328,8 +330,8 @@ export async function purgeLeads(now = new Date()) {
   if (!due.length) return { purged: 0 };
   const ids = due.map((l) => l.id);
   const purged = await tx(async (t) => {
-    const { count } = await t.franchiseLead.deleteMany({ where: { ...where, id: { in: ids } } });
-    const kept = new Set((await t.franchiseLead.findMany({ where: { id: { in: ids } }, select: { id: true } })).map((l) => l.id)); // reopened meanwhile
+    const count = (await inBatches(ids, (part) => t.franchiseLead.deleteMany({ where: { ...where, id: { in: part } } }).then((r) => [r.count]))).reduce((s, n) => s + n, 0);
+    const kept = new Set((await inBatches(ids, (part) => t.franchiseLead.findMany({ where: { id: { in: part } }, select: { id: true } }))).map((l) => l.id)); // reopened meanwhile
     await eraseMessages(t, ids.filter((x) => !kept.has(x)));
     if (count) await audit(t, SYSTEM, "lead.purge", { entity: "FranchiseLead", data: { count, lastChangedBefore: fmtDate(cutoff) } });
     return count;

@@ -1,5 +1,9 @@
 import type { NextConfig } from "next";
+import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 import { staticCsp } from "./src/lib/csp";
+
+// `next dev` gets the local Cloudflare bindings (D1, R2, Browser) through wrangler's platform proxy.
+void initOpenNextCloudflareForDev();
 
 const securityHeaders = [
   { key: "X-Content-Type-Options", value: "nosniff" },
@@ -15,15 +19,7 @@ const securityHeaders = [
 const staticPages = [{ key: "Content-Security-Policy", value: staticCsp() }];
 
 const config: NextConfig = {
-  output: "standalone",
-  // Never in the server bundle, whatever a dynamic path makes the tracer think: uploads, docs, tests and the other site.
-  // public/ too: every deploy copies it in whole (the Studio's cards read its photos from there), and a partial copy
-  // traced into the standalone folder would make `cp -r public .next/standalone/public` nest instead of land.
-  outputFileTracingExcludes: { "/*": [".data/**", "docs/**", "e2e/**", "tests/**", "sites/**", "scripts/**", "test-results/**", "public/**"] },
-  // The Campaign Studio's cards read the brand fonts from disk (src/server/studio-cards.tsx).
-  outputFileTracingIncludes: { "/hq/marketing/studio": ["./src/assets/fonts/*.ttf"], "/hq/marketing/studio/**": ["./src/assets/fonts/*.ttf"] },
   poweredByHeader: false,
-  serverExternalPackages: ["pg", "nodemailer"],
   // Banking slips (photos or PDFs up to 10 MB) and members' photos (up to three of 5 MB with a review or a return) are
   // posted through server actions.
   // (experimental.inlineCss was tried and rejected: Next also copies the 130 KB stylesheet into the RSC payload, so the

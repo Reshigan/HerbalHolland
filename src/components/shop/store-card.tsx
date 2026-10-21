@@ -8,43 +8,47 @@ import {
   Truck,
 } from "lucide-react";
 import { openState, parseHours } from "@/server/shop/hours";
+import { shopPhase } from "@/server/shop/context";
+import { canBuyOnline } from "@/lib/launch-phase";
 import type { ShopStore } from "@/server/shop/context";
 import { SetStoreButton } from "./set-store-button";
 import { Panel, Tag } from "./ui";
 import { cn } from "@/lib/cn";
+import { asList } from "@/lib/json-list";
 
 export const directionsUrl = (
   s: Pick<ShopStore, "lat" | "lng" | "addressLine" | "suburb" | "city">,
 ) =>
   s.lat != null && s.lng != null
     ? `https://www.google.com/maps/dir/?api=1&destination=${s.lat},${s.lng}`
-    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Herbal Holland ${s.addressLine}, ${s.suburb}, ${s.city}`)}`;
+    : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`Herbal Holland ${[s.addressLine, s.suburb, s.city].filter(Boolean).join(", ")}`)}`;
 
-export function StoreServices({
+export async function StoreServices({
   s,
   className,
 }: {
   s: Pick<ShopStore, "clickCollect" | "sameDay" | "licences">;
   className?: string;
 }) {
+  const online = canBuyOnline(await shopPhase());
   return (
     <ul
       className={cn("flex flex-wrap gap-1.5", className)}
       aria-label="Services"
     >
-      {s.clickCollect && (
+      {online && s.clickCollect && (
         <li>
           <Tag icon={<ShoppingBag className="h-3 w-3" />}>
             Click &amp; collect
           </Tag>
         </li>
       )}
-      {s.sameDay && (
+      {online && s.sameDay && (
         <li>
           <Tag icon={<Truck className="h-3 w-3" />}>Same-day delivery</Tag>
         </li>
       )}
-      {s.licences.length > 0 && (
+      {asList(s.licences).length > 0 && (
         <li>
           <Tag icon={<Pill className="h-3 w-3" />}>Dispensary</Tag>
         </li>
@@ -82,7 +86,7 @@ export function StoreCard({
             </Link>
           </h3>
           <p className="mt-0.5 text-sm text-ink-400">
-            {s.addressLine}, {s.suburb}, {s.city}
+            {[s.addressLine, s.suburb, s.city].filter(Boolean).join(", ")}
             {km != null && (
               <span className="text-ink-450">
                 {" "}
@@ -93,6 +97,8 @@ export function StoreCard({
         </div>
         {soon ? (
           <Tag tone="amber">Opening soon</Tag>
+        ) : o.unknown ? (
+          <Tag tone="green">Open</Tag>
         ) : (
           <Tag tone={o.open ? "green" : "neutral"}>
             {o.open ? "Open now" : "Closed"}

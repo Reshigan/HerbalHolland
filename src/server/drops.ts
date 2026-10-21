@@ -7,21 +7,26 @@ import { APP_URL } from "./invoices";
 import { dropBlock, opensFor } from "@/lib/drops";
 import { tierRank, type TierKey } from "@/lib/loyalty-rules";
 import { marketingWindow } from "@/lib/sa";
+import { asList } from "@/lib/json-list";
 import type { Drop } from "@/generated/prisma/client";
 
 /** Drops that still govern any of these variants (not ended). */
-export function dropsFor(variantIds: string[], at = new Date()) {
-  return db.drop.findMany({ where: { variantIds: { hasSome: variantIds }, OR: [{ endsAt: null }, { endsAt: { gt: at } }] }, orderBy: { startsAt: "asc" } });
+export async function dropsFor(variantIds: string[], at = new Date()) {
+  if (!variantIds.length) return [];
+  const wanted = new Set(variantIds);
+  // The drops not yet over are few; the variant match is done here (variantIds is a JSON list).
+  const drops = await db.drop.findMany({ where: { OR: [{ endsAt: null }, { endsAt: { gt: at } }] }, orderBy: { startsAt: "asc" } });
+  return drops.filter((d) => asList<string>(d.variantIds).some((v) => wanted.has(v)));
 }
 
 /** Units of a drop this member already bought or has on open orders. */
 async function boughtInDrop(customerId: string, d: Drop) {
   const since = opensFor(d, "HARVEST"); // the earliest anyone could buy
   const [sold, open] = await Promise.all([
-    db.saleLine.aggregate({ where: { variantId: { in: d.variantIds }, sale: { customerId, kind: "SALE", createdAt: { gte: since } } }, _sum: { qty: true } }),
-    db.orderLine.aggregate({ where: { variantId: { in: d.variantIds }, order: { customerId, status: { in: [...OPEN_ORDER_STATUSES] }, createdAt: { gte: since } } }, _sum: { qty: true } }),
+    db.saleLine.aggregate({ where: { variantId: { in: asList<string>(d.variantIds) }, sale: { customerId, kind: "SALE", createdAt: { gte: since } } }, _sum: { qty: true } }),
+    db.orderLine.aggregate({ where: { variantId: { in: asList<string>(d.variantIds) }, order: { customerId, status: { in: [...OPEN_ORDER_STATUSES] }, createdAt: { gte: since } } }, _sum: { qty: true } }),
   ]);
-  return (sold._sum.qty ?? 0) + (open._sum.qty ?? 0);
+  return (sold._sum?.qty ?? 0) + (open._sum?.qty ?? 0);
 }
 
 /** Reasons this basket can't be bought now because of drop rules (empty = fine). */
@@ -31,7 +36,7 @@ export async function dropBlocks(customerId: string | null | undefined, lines: {
   const c = customerId ? await db.customer.findUnique({ where: { id: customerId }, select: { tier: true } }) : null;
   const blocks: string[] = [];
   for (const d of drops) {
-    const qty = lines.filter((l) => d.variantIds.includes(l.variantId)).reduce((s, l) => s + l.qty, 0);
+    const qty = lines.filter((l) => asList<string>(d.variantIds).includes(l.variantId)).reduce((s, l) => s + l.qty, 0);
     const bought = qty && c ? await boughtInDrop(customerId!, d) : 0;
     const why = qty ? dropBlock(d, { member: !!c, tier: (c?.tier as TierKey) ?? null, bought }, qty, at) : null;
     if (why) blocks.push(why);

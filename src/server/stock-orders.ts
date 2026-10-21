@@ -1,6 +1,7 @@
 // Stores buy stock from HQ distribution centres (WHOLESALE) or from each other
 // (NETWORK). Shipping moves batches out FEFO; receiving books the same batches in
 // at the agreed cost, so traceability survives every hop.
+import { background } from "@/server/background";
 import { db, tx } from "./db";
 import { takeStock, putStock, availability, availKey } from "./inventory";
 import { nextNumber } from "./counters";
@@ -9,6 +10,7 @@ import { recordStatementInvoice } from "./supplier-invoices";
 import { queuePosting } from "./ledger/core";
 import { vatOnExcl } from "@/lib/money";
 import type { StockOrderKind, StockOrderStatus } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export class PurchaseError extends Error {}
 
@@ -27,7 +29,7 @@ export async function createStockOrder(a: {
   const lines = a.lines.filter((l) => l.qty > 0);
   if (!lines.length) throw new PurchaseError("Add at least one item");
   if (a.buyerId === a.sellerId) throw new PurchaseError("A store can't buy from itself");
-  const variants = await db.variant.findMany({ where: { id: { in: lines.map((l) => l.variantId) } } });
+  const variants = await inBatches(lines.map((l) => l.variantId), (part) => db.variant.findMany({ where: { id: { in: part } } }));
   const unit = (id: string, given?: number) => given ?? variants.find((v) => v.id === id)!.wholesaleCents;
   const priced = lines.map((l) => ({ variantId: l.variantId, qty: l.qty, unitCostCents: unit(l.variantId, l.unitCostCents) }));
   const subtotal = priced.reduce((s, l) => s + l.qty * l.unitCostCents, 0);
@@ -136,7 +138,7 @@ export async function actOnStockOrder(
     return updated;
   });
   // After commit, so the invoice bills the quantities actually received (not the ordered total).
-  if (action === "receive") queueMicrotask(() => import("./invoices").then((m) => m.emailStockOrderInvoice(id)).catch((e) => console.error("[invoice] stock order", id, e)));
+  if (action === "receive") background(`stock order invoice ${id}`, import("./invoices").then((m) => m.emailStockOrderInvoice(id)));
   return result;
 }
 

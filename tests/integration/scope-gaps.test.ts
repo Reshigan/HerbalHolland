@@ -2,8 +2,6 @@
 // area managers open only their region's trade licence files and promotions, scheduled exports reach only people who
 // may see everything in them, and tickets go only to people on the team.
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
 
 // The request's cookies, as the session readers see them; server actions' cache calls do nothing here.
 const jar = new Map<string, string>();
@@ -26,8 +24,6 @@ import { saveCampaign } from "@/app/hq/marketing/actions";
 import { GET as licenceFile } from "@/app/trade/licences/[id]/file/route";
 import { GET as exportFile } from "@/app/api/exports/[id]/route";
 import { buildWorld, resetDb, type World } from "./world";
-
-process.env.UPLOAD_DIR = join(tmpdir(), "hh-scope-gaps-uploads");
 
 let w: World;
 let other: { id: string; code: string };

@@ -9,9 +9,9 @@
 //   points             <YYYY-MM-DD>            points HQ gave (or its own stores issued) and points that expired that day
 //   trade-entry        <TradeLedgerEntry id>   payments, credit notes and adjustments HQ made
 //   trade-eft          <TradeOrder id>         an EFT paid ahead; <id>:refund refunded when the order was cancelled
-import { db, type Tx } from "../../db";
+import { db, Prisma, type Tx } from "../../db";
 import { franchiseStatement, monthRange } from "../../finance";
-import { sast } from "../../sql";
+import { sastDay } from "../../sql";
 import type { Posting, SourceHandler } from "../core";
 import { CATCH_UP_DAYS, missed } from "./catch-up";
 import { addMonths, monthEnd, monthsBetween, periodOf } from "@/lib/ledger";
@@ -253,10 +253,10 @@ export async function hqBackfill(from: string, to: string): Promise<Source[]> {
   }
 
   const days = await db.$queryRaw<{ day: string }[]>`
-    SELECT to_char(${sast('"createdAt"')}, 'YYYY-MM-DD') AS day FROM "LoyaltyEntry"
-    WHERE "createdAt" >= ${start} AND "createdAt" < ${end} AND kind::text = ANY(${[...POINTS_SOURCE_KINDS]}::text[])
+    SELECT ${sastDay('"createdAt"')} AS day FROM "LoyaltyEntry"
+    WHERE "createdAt" >= ${start} AND "createdAt" < ${end} AND kind IN (${Prisma.join([...POINTS_SOURCE_KINDS])})
     UNION
-    SELECT to_char(d."date", 'YYYY-MM-DD') FROM "DailyStoreStat" d JOIN "Store" s ON s.id = d."storeId" JOIN "Company" c ON c.id = s."companyId"
+    SELECT date(d."date") FROM "DailyStoreStat" d JOIN "Store" s ON s.id = d."storeId" JOIN "Company" c ON c.id = s."companyId"
     WHERE d."date" >= ${new Date(`${from}T00:00:00Z`)} AND d."date" <= ${new Date(`${to}T00:00:00Z`)} AND c.kind = 'FRANCHISOR' AND d."pointsIssued" <> 0
     ORDER BY day`;
   for (const d of days) add("points", d.day);

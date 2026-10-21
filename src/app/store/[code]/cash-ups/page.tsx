@@ -37,20 +37,22 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
     variance: { closedAt: { not: null }, NOT: { countedCashCents: null } },
   };
   // "Variance" = closed shifts whose count differs from expected; filtered in SQL-friendly two steps.
+  // The ids are paged here (newest first), so the list Prisma binds is one page long (D1 allows 100 parameters).
   const varianceIds =
     view === "variance"
-      ? (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS DISTINCT FROM "expectedCashCents"`).map((x) => x.id)
+      ? (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS NOT "expectedCashCents" ORDER BY "openedAt" DESC`).map((x) => x.id)
       : null;
-  const where: Prisma.ShiftWhereInput = { storeId: store.id, ...views[view], ...(varianceIds && { id: { in: varianceIds } }) };
+  const where: Prisma.ShiftWhereInput = { storeId: store.id, ...views[view] };
+  const pageWhere: Prisma.ShiftWhereInput = varianceIds ? { ...where, id: { in: varianceIds.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE) } } : where;
 
   const [total, shifts, recent, counts] = await Promise.all([
-    db.shift.count({ where }),
-    db.shift.findMany({ where, orderBy: { openedAt: "desc" }, skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE, include: { _count: { select: { sales: true } }, deposit: { select: { number: true } } } }),
+    varianceIds ? varianceIds.length : db.shift.count({ where }),
+    db.shift.findMany({ where: pageWhere, orderBy: { openedAt: "desc" }, ...(varianceIds ? {} : { skip: (page - 1) * PAGE_SIZE, take: PAGE_SIZE }), include: { _count: { select: { sales: true } }, deposit: { select: { number: true } } } }),
     db.shift.findMany({ where: { storeId: store.id, closedAt: { gte: since } }, select: { expectedCashCents: true, countedCashCents: true } }),
     Promise.all([
       db.shift.count({ where: { storeId: store.id } }),
       db.shift.count({ where: { storeId: store.id, closedAt: null } }),
-      db.$queryRaw<{ n: number }[]>`SELECT COUNT(*)::int AS n FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS DISTINCT FROM "expectedCashCents"`,
+      db.$queryRaw<{ n: number }[]>`SELECT cast(COUNT(*) AS real) AS n FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS NOT "expectedCashCents"`,
     ]),
   ]);
   const [users, devices, live, { banking }] = await Promise.all([

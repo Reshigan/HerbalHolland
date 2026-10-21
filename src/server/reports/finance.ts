@@ -1,10 +1,10 @@
 // Finance reports: P&L, VAT201 working, cash-ups, cash banking, franchise statements and the
 // Rewards points liability. Built on the finance domain service so every screen agrees.
-import { db } from "../db";
+import { db, Prisma } from "../db";
 import { expensesFor, franchiseFees, franchiseStatement, monthRange, profitAndLoss, salesByStore, vatReport } from "../finance";
 import { receivedValue } from "../stock-orders";
 import { getSettings } from "../settings";
-import { sast } from "../sql";
+import { sastDay } from "../sql";
 import { delta, previousRange } from "@/lib/ranges";
 import { applyBps, zar } from "@/lib/money";
 import { addDays, dayKey, fmtDay, fmtMonth } from "@/lib/format";
@@ -13,6 +13,9 @@ import { POINT_VALUE_CENTS, fmtPoints } from "@/lib/loyalty-rules";
 import type { Column, Option, ReportCtx, ReportDef, Row } from "./types";
 import { MANAGERS } from "./types";
 import { bounds, completeDays, count, eachDay, isoDay, mapLimit, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, summaryOf, userNames } from "./util";
+
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 
 const EXPENSE_LABEL: Record<string, string> = {
   RENT: "Rent", SALARIES: "Salaries & wages", UTILITIES: "Electricity & water", SECURITY: "Security", MARKETING: "Local marketing",
@@ -196,22 +199,22 @@ export const cashUps: ReportDef = {
       db.shift.findMany({ where, orderBy: { openedAt: "desc" }, take: ctx.rowLimit }),
       db.shift.count({ where }),
       db.$queryRaw<{ n: number; balanced: number; expected: number; counted: number; short: number; over: number }[]>`
-        SELECT COUNT(*)::int AS n,
-          COUNT(*) FILTER (WHERE "countedCashCents" = "expectedCashCents")::int AS balanced,
-          COALESCE(SUM("expectedCashCents"), 0)::float8 AS expected,
-          COALESCE(SUM("countedCashCents"), 0)::float8 AS counted,
-          COALESCE(SUM("countedCashCents" - "expectedCashCents") FILTER (WHERE "countedCashCents" < "expectedCashCents"), 0)::float8 AS short,
-          COALESCE(SUM("countedCashCents" - "expectedCashCents") FILTER (WHERE "countedCashCents" > "expectedCashCents"), 0)::float8 AS over
+        SELECT cast(COUNT(*) AS real) AS n,
+          cast(COUNT(CASE WHEN "countedCashCents" = "expectedCashCents" THEN 1 END) AS real) AS balanced,
+          cast(COALESCE(SUM("expectedCashCents"), 0) AS real) AS expected,
+          cast(COALESCE(SUM("countedCashCents"), 0) AS real) AS counted,
+          cast(COALESCE(SUM(CASE WHEN "countedCashCents" < "expectedCashCents" THEN "countedCashCents" - "expectedCashCents" ELSE 0 END), 0) AS real) AS short,
+          cast(COALESCE(SUM(CASE WHEN "countedCashCents" > "expectedCashCents" THEN "countedCashCents" - "expectedCashCents" ELSE 0 END), 0) AS real) AS over
         FROM "Shift"
-        WHERE "storeId" = ANY(${ctx.storeIds}::text[]) AND "openedAt" >= ${start} AND "openedAt" < ${end} AND "closedAt" IS NOT NULL`,
+        WHERE "storeId" IN (${inList(ctx.storeIds)}) AND "openedAt" >= ${start} AND "openedAt" < ${end} AND "closedAt" IS NOT NULL`,
     ]);
     const ids = shifts.map((s) => s.id);
     const [cash, users] = await Promise.all([
       ids.length
         ? db.$queryRaw<{ shiftId: string; cash: number }[]>`
-            SELECT s."shiftId", COALESCE(SUM(p."amountCents"), 0)::float8 AS cash
+            SELECT s."shiftId", cast(COALESCE(SUM(p."amountCents"), 0) AS real) AS cash
             FROM "Payment" p JOIN "Sale" s ON s.id = p."saleId"
-            WHERE s."shiftId" = ANY(${ids}::text[]) AND p.method = 'CASH'
+            WHERE s."shiftId" IN (${inList(ids)}) AND p.method = 'CASH'
             GROUP BY 1`
         : Promise.resolve([]),
       userNames(shifts.flatMap((s) => [s.openedById, s.closedById])),
@@ -272,13 +275,13 @@ export async function cashWaitingByStore(storeIds: string[], now = new Date()) {
   if (!storeIds.length) return [];
   const { banking } = await getSettings();
   const overdueBefore = addDays(new Date(`${lastDueDay(now, banking.dueBusinessDays)}T00:00:00+02:00`), 1);
-  return db.$queryRaw<{ storeId: string; n: number; cash: number; overdueN: number; overdue: number; oldest: Date }[]>`
-    SELECT "storeId", COUNT(*)::int AS n, SUM("countedCashCents" - "openingFloatCents")::float8 AS cash,
-      COUNT(*) FILTER (WHERE "closedAt" < ${overdueBefore})::int AS "overdueN",
-      COALESCE(SUM("countedCashCents" - "openingFloatCents") FILTER (WHERE "closedAt" < ${overdueBefore}), 0)::float8 AS overdue,
+  return db.$queryRaw<{ storeId: string; n: number; cash: number; overdueN: number; overdue: number; oldest: Date | string }[]>`
+    SELECT "storeId", cast(COUNT(*) AS real) AS n, cast(SUM("countedCashCents" - "openingFloatCents") AS real) AS cash,
+      cast(COUNT(CASE WHEN "closedAt" < ${overdueBefore} THEN 1 END) AS real) AS "overdueN",
+      cast(COALESCE(SUM(CASE WHEN "closedAt" < ${overdueBefore} THEN "countedCashCents" - "openingFloatCents" ELSE 0 END), 0) AS real) AS overdue,
       MIN("closedAt") AS oldest
     FROM "Shift"
-    WHERE "storeId" = ANY(${storeIds}::text[]) AND "depositId" IS NULL AND "closedAt" IS NOT NULL AND "countedCashCents" > "openingFloatCents"
+    WHERE "storeId" IN (${inList(storeIds)}) AND "depositId" IS NULL AND "closedAt" IS NOT NULL AND "countedCashCents" > "openingFloatCents"
     GROUP BY 1`;
 }
 
@@ -299,38 +302,38 @@ export const cashBanking: ReportDef = {
       getSettings(),
       db.$queryRaw<{ storeId: string; day: string; cashUps: number; cash: number; waiting: number; deposits: number; banked: number; shortOver: number | null; numbers: string | null; pending: number; queried: number; total: number }[]>`
         WITH c AS (
-          SELECT "storeId", to_char(${sast('"closedAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n,
-            SUM(GREATEST("countedCashCents" - "openingFloatCents", 0))::float8 AS cash,
-            COALESCE(SUM(GREATEST("countedCashCents" - "openingFloatCents", 0)) FILTER (WHERE "depositId" IS NULL), 0)::float8 AS waiting
+          SELECT "storeId", ${sastDay('"closedAt"')} AS day, cast(COUNT(*) AS real) AS n,
+            cast(SUM(MAX("countedCashCents" - "openingFloatCents", 0)) AS real) AS cash,
+            cast(COALESCE(SUM(CASE WHEN "depositId" IS NULL THEN MAX("countedCashCents" - "openingFloatCents", 0) ELSE 0 END), 0) AS real) AS waiting
           FROM "Shift"
-          WHERE "storeId" = ANY(${ids}::text[]) AND "closedAt" >= ${start} AND "closedAt" < ${end} AND "countedCashCents" IS NOT NULL
+          WHERE "storeId" IN (${inList(ids)}) AND "closedAt" >= ${start} AND "closedAt" < ${end} AND "countedCashCents" IS NOT NULL
           GROUP BY 1, 2
         ), d AS (
-          SELECT "storeId", to_char("bankedOn", 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM("amountCents")::float8 AS banked,
-            SUM("amountCents" - "expectedCents")::float8 AS diff, string_agg(number, ', ' ORDER BY number) AS numbers,
-            COUNT(*) FILTER (WHERE status = 'RECORDED')::int AS pending, COUNT(*) FILTER (WHERE status = 'QUERIED')::int AS queried
+          SELECT "storeId", date("bankedOn") AS day, cast(COUNT(*) AS real) AS n, cast(SUM("amountCents") AS real) AS banked,
+            cast(SUM("amountCents" - "expectedCents") AS real) AS diff, group_concat(number, ', ' ORDER BY number) AS numbers,
+            cast(COUNT(CASE WHEN status = 'RECORDED' THEN 1 END) AS real) AS pending, cast(COUNT(CASE WHEN status = 'QUERIED' THEN 1 END) AS real) AS queried
           FROM "CashDeposit"
-          WHERE "storeId" = ANY(${ids}::text[]) AND "bankedOn" >= ${fromDate} AND "bankedOn" <= ${toDate}
+          WHERE "storeId" IN (${inList(ids)}) AND "bankedOn" >= ${fromDate} AND "bankedOn" <= ${toDate}
           GROUP BY 1, 2
         )
         SELECT COALESCE(c."storeId", d."storeId") AS "storeId", COALESCE(c.day, d.day) AS day,
           COALESCE(c.n, 0) AS "cashUps", COALESCE(c.cash, 0) AS cash, COALESCE(c.waiting, 0) AS waiting,
           COALESCE(d.n, 0) AS deposits, COALESCE(d.banked, 0) AS banked, d.diff AS "shortOver", d.numbers,
-          COALESCE(d.pending, 0) AS pending, COALESCE(d.queried, 0) AS queried, COUNT(*) OVER ()::int AS total
+          COALESCE(d.pending, 0) AS pending, COALESCE(d.queried, 0) AS queried, cast(COUNT(*) OVER () AS real) AS total
         FROM c FULL JOIN d ON d."storeId" = c."storeId" AND d.day = c.day
         ORDER BY 2 DESC, 1
         LIMIT ${ctx.rowLimit}`,
       db.$queryRaw<{ day: string; n: number; cash: number; waiting: number }[]>`
-        SELECT to_char(${sast('"closedAt"')}, 'YYYY-MM-DD') AS day, COUNT(*)::int AS n,
-          SUM(GREATEST("countedCashCents" - "openingFloatCents", 0))::float8 AS cash,
-          COALESCE(SUM(GREATEST("countedCashCents" - "openingFloatCents", 0)) FILTER (WHERE "depositId" IS NULL), 0)::float8 AS waiting
+        SELECT ${sastDay('"closedAt"')} AS day, cast(COUNT(*) AS real) AS n,
+          cast(SUM(MAX("countedCashCents" - "openingFloatCents", 0)) AS real) AS cash,
+          cast(COALESCE(SUM(CASE WHEN "depositId" IS NULL THEN MAX("countedCashCents" - "openingFloatCents", 0) ELSE 0 END), 0) AS real) AS waiting
         FROM "Shift"
-        WHERE "storeId" = ANY(${ids}::text[]) AND "closedAt" >= ${start} AND "closedAt" < ${end} AND "countedCashCents" IS NOT NULL
+        WHERE "storeId" IN (${inList(ids)}) AND "closedAt" >= ${start} AND "closedAt" < ${end} AND "countedCashCents" IS NOT NULL
         GROUP BY 1`,
       db.$queryRaw<{ day: string; n: number; banked: number; diff: number }[]>`
-        SELECT to_char("bankedOn", 'YYYY-MM-DD') AS day, COUNT(*)::int AS n, SUM("amountCents")::float8 AS banked, SUM("amountCents" - "expectedCents")::float8 AS diff
+        SELECT date("bankedOn") AS day, cast(COUNT(*) AS real) AS n, cast(SUM("amountCents") AS real) AS banked, cast(SUM("amountCents" - "expectedCents") AS real) AS diff
         FROM "CashDeposit"
-        WHERE "storeId" = ANY(${ids}::text[]) AND "bankedOn" >= ${fromDate} AND "bankedOn" <= ${toDate}
+        WHERE "storeId" IN (${inList(ids)}) AND "bankedOn" >= ${fromDate} AND "bankedOn" <= ${toDate}
         GROUP BY 1`,
       cashWaitingByStore(ids, ctx.now),
     ]);

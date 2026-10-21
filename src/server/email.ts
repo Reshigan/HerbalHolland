@@ -1,19 +1,14 @@
-// Email transport: Microsoft 365 through Graph when MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET are set (graph-mail.ts),
-// else SMTP (any ESP, e.g. Amazon SES af-south-1, Everlytic, Postmark…) via SMTP_URL; with neither, emails are written to
-// the message log for review (HQ → Messages).
+// Email transport: Microsoft 365 through Graph when MS_TENANT_ID/MS_CLIENT_ID/MS_CLIENT_SECRET are set (graph-mail.ts,
+// HTTPS only: the platform runs on Workers, where there is no SMTP); without them, emails are written to the message log
+// for review (HQ → Messages).
 // The layout and templates live in email-templates.ts (pure, unit-tested); this file only delivers and logs.
-import { createTransport, type Transporter } from "nodemailer";
 import { db } from "./db";
 import { EMAIL_LOGO_CID, EMAIL_LOGO_PNG } from "./email-logo";
 import { graphConfigured, graphSend } from "./graph-mail";
 import { esc, emailLayout, LEGAL_MARK, legalLine } from "./email-templates";
 
-let transport: Transporter | null | undefined;
-function smtp() {
-  // Short timeouts: a mail host that hangs must fail one send in seconds, not hold up every send in a job for minutes.
-  if (transport === undefined) transport = process.env.SMTP_URL ? createTransport({ url: process.env.SMTP_URL, pool: true, connectionTimeout: 15_000, greetingTimeout: 15_000, socketTimeout: 30_000 }) : null;
-  return transport;
-}
+/** The message-log reason when no email provider is set up: the email was logged, not sent. */
+export const LOGGED_REASON = "logged (MS_* not set)";
 
 export type Email = {
   to: string;
@@ -53,23 +48,17 @@ export async function finalizeEmail(e: Email): Promise<Email> {
   return { ...e, html: e.html.replace(LEGAL_MARK, esc(line)), text: `${e.text.trimEnd()}\n\n${line}\nAdults 18+ only. Keep out of reach of children.` };
 }
 
-/** Hands an email to Microsoft 365 or SMTP; false when neither is set up (nothing sent). Throws on a send failure. */
+/** Hands an email to Microsoft 365; false when Graph isn't set up (nothing sent). Throws on a send failure. */
 export async function deliverEmail(e: Email) {
+  if (!graphConfigured()) return false;
   const m = await finalizeEmail(e);
   const from = process.env.EMAIL_FROM ?? "Herbal Holland <invoices@herbalholland.com>";
   const logo = m.html.includes(`cid:${EMAIL_LOGO_CID}`) ? [{ filename: "herbal-holland.png", content: Buffer.from(EMAIL_LOGO_PNG, "base64"), cid: EMAIL_LOGO_CID }] : [];
-  const mail = { from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers, attachments: [...logo, ...(m.attachments ?? [])] };
-  if (graphConfigured()) {
-    await graphSend(mail);
-    return true;
-  }
-  const t = smtp();
-  if (!t) return false;
-  await t.sendMail(mail);
+  await graphSend({ from, to: m.to, subject: m.subject, html: m.html, text: m.text, headers: m.headers, attachments: [...logo, ...(m.attachments ?? [])] });
   return true;
 }
 
-/** Sends and logs. An SMTP failure is logged as FAILED (with the reason) and rethrown so callers can retry or tell the user. */
+/** Sends and logs. A send failure is logged as FAILED (with the reason) and rethrown so callers can retry or tell the user. */
 export async function sendEmail(e: Email) {
   const m = await finalizeEmail(e);
   const row = { channel: "EMAIL" as const, to: m.to, kind: m.kind ?? ("TRANSACTIONAL" as const), customerId: m.customerId, body: `${m.subject}\n\n${e.logText ?? m.text}` };
@@ -80,7 +69,7 @@ export async function sendEmail(e: Email) {
     await db.messageLog.create({ data: { ...row, status: "FAILED", reason: String((err as Error)?.message ?? err).slice(0, 300) } }).catch(() => {});
     throw err;
   }
-  await db.messageLog.create({ data: { ...row, status: "SENT", reason: delivered ? null : "logged (SMTP_URL not set)" } });
+  await db.messageLog.create({ data: { ...row, status: "SENT", reason: delivered ? null : LOGGED_REASON } });
 }
 
 export { esc, emailLayout };

@@ -9,6 +9,7 @@ import { normalisePhone, PROVINCES } from "@/lib/sa";
 import { rescheduleChecklist, seedChecklist } from "@/server/store-tasks";
 import type { Province, StoreFormat, StoreStatus } from "@/generated/prisma/client";
 import { isEmail } from "@/lib/email";
+import { asList } from "@/lib/json-list";
 
 const FORMATS: StoreFormat[] = ["FLAGSHIP", "STANDARD", "EXPRESS"];
 const STATUSES: StoreStatus[] = ["ACTIVE", "OPENING_SOON", "CLOSED"];
@@ -184,12 +185,12 @@ export async function createStore(_: ActionState, fd: FormData): Promise<ActionS
     if (templateId) {
       const rows = await t.storeVariant.findMany({ where: { storeId: templateId, variant: { active: true } }, select: { variantId: true, reorderPoint: true, parLevel: true } });
       // Shelf prices are never copied: each franchisee sets its own (Competition Act s5(2)).
-      const r = await t.storeVariant.createMany({ data: rows.map((x) => ({ storeId: s.id, variantId: x.variantId, reorderPoint: x.reorderPoint, parLevel: x.parLevel })), skipDuplicates: true });
+      const r = await t.storeVariant.createMany({ data: rows.map((x) => ({ storeId: s.id, variantId: x.variantId, reorderPoint: x.reorderPoint, parLevel: x.parLevel })) });
       ranged = r.count;
     }
     await audit(t, g.actor, "store.create", { storeId: s.id, entity: "Store", entityId: s.id, data: { code, companyId, templateId, ranged } });
     // Franchisee onboarding: the opening checklist, due dates counted back from the opening day (once it's set).
-    if (s.kind === "RETAIL") await seedChecklist(t, s, g.actor);
+    if (s.kind === "RETAIL") await seedChecklist(t, { ...s, licences: asList(s.licences) }, g.actor);
     return s;
   });
   revalidatePath("/hq/stores");

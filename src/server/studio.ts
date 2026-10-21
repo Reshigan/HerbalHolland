@@ -18,6 +18,7 @@ import { siteUrl } from "@/lib/seo";
 import { dayKey } from "@/lib/format";
 import { marketingWindow } from "@/lib/sa";
 import type { Prisma, StudioItem } from "@/generated/prisma/client";
+import { asList, inBatches } from "@/lib/json-list";
 
 export class StudioError extends Error {}
 
@@ -66,7 +67,7 @@ export async function createPlan(p: { playbook: string; anchor: string; storeId:
     date: longDate(anchor),
     ...(store && { store: store.name.startsWith("Herbal Holland") ? store.name : `Herbal Holland ${store.name}`, town: store.name, towns: p.towns ?? store.name, address: [store.addressLine, store.suburb].filter(Boolean).join(", ") }),
     ...(hours && { hours }),
-    ...(product && { product: product.name, facts: productFacts(product), category: product.category.name, link: `${siteUrl()}/p/${product.slug}?src=studio` }),
+    ...(product && { product: product.name, facts: productFacts({ ...product, allergens: asList<string>(product.allergens) }), category: product.category.name, link: `${siteUrl()}/p/${product.slug}?src=studio` }),
   };
   const laid = layout(pb, anchor, fields, p.stagger);
   const blocked = laid.filter((d) => d.blocked);
@@ -124,7 +125,7 @@ export async function freeLaunchDays(now = new Date()) {
  * each product's day, or null when the plan has none left.
  */
 export async function announceProducts(p: { productIds: string[]; by: string; actor: Actor }, now = new Date()) {
-  const products = p.productIds.length ? await db.product.findMany({ where: { id: { in: p.productIds }, launches: { none: {} } }, select: { id: true, name: true, regClass: true }, orderBy: { name: "asc" } }) : [];
+  const products = (await inBatches(p.productIds, (part) => db.product.findMany({ where: { id: { in: part }, launches: { none: {} } }, select: { id: true, name: true, regClass: true }, orderBy: { name: "asc" } }))).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const free = await freeLaunchDays(now);
   const out: { product: string; day: string | null }[] = [];
   for (const pr of products.filter((x) => interestFor(x.regClass))) {
@@ -323,7 +324,7 @@ export async function syncStudio(now = new Date()) {
   const posts = new Map((await postizPosts(new Date(due[0].at.getTime() - 86_400_000), new Date(now.getTime() + 3_600_000))).map((p) => [p.id, p]));
   let social = 0;
   for (const it of due) {
-    const states = (it.socialPost?.postizIds ?? []).flatMap((id) => posts.get(id) ?? []);
+    const states = asList<string>(it.socialPost?.postizIds).flatMap((id) => posts.get(id) ?? []);
     if (!states.length) continue;
     const failed = states.find((s) => s.state === "ERROR");
     if (failed) await db.studioItem.update({ where: { id: it.id }, data: { status: "FAILED", note: failed.error?.slice(0, 300) ?? "Postiz couldn't publish it" } });

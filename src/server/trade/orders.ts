@@ -25,8 +25,10 @@ import { lockedCreditCheck, postLedgerEntry } from "./ledger";
 import { queuePosting } from "../ledger/core";
 import { licenceProblem } from "./licences";
 import { tradeActor } from "./accounts";
+import { asList } from "@/lib/json-list";
 import { tradeOrderEmail, tradePortalUrl, tradeProFormaEmail, tradeReadySms, type TradeOrderEmailInfo, type TradeOrderEvent } from "./emails";
 import type { TradeAccount, TradeOrder, TradeOrderStatus } from "@/generated/prisma/client";
+import { likeTerm } from "@/lib/search";
 
 export class TradeOrderError extends Error {}
 
@@ -102,22 +104,23 @@ export async function collectStoresFor(
   const pageSize = Math.min(50, Math.max(1, Math.floor(opts.pageSize ?? 12)));
   const settings = await getSettings();
   const needLicence = [...new Set(lines.map((l) => l.regClass).filter((c) => settings.compliance.licensedOnly.includes(c)))];
-  const q = opts.q?.trim().slice(0, 60);
+  const q = likeTerm(opts.q?.trim() ?? "");
   const where: Prisma.StoreWhereInput = {
     kind: "RETAIL", status: "ACTIVE", clickCollect: true,
-    ...(needLicence.length ? { licences: { hasEvery: needLicence } } : {}),
     ...(opts.province ? { province: opts.province as Prisma.StoreWhereInput["province"] } : {}),
-    ...(q ? { OR: [{ name: { contains: q, mode: "insensitive" } }, { suburb: { contains: q, mode: "insensitive" } }, { city: { contains: q, mode: "insensitive" } }] } : {}),
+    ...(q ? { OR: [{ name: { contains: q } }, { suburb: { contains: q } }, { city: { contains: q } }] } : {}),
   };
+  // licences is a JSON list: the stores that hold every licence needed are counted here (the network is at most ~1,000 stores).
+  const holds = (licences: unknown) => needLicence.every((c) => asList<string>(licences).includes(c));
   const [total, stores] = await Promise.all([
-    db.store.count({ where }),
+    needLicence.length ? db.store.findMany({ where, select: { licences: true } }).then((rows) => rows.filter((s) => holds(s.licences)).length) : db.store.count({ where }),
     db.$queryRaw<{ id: string; code: string; name: string; suburb: string; city: string; province: string }[]>`
-      SELECT s.id, s.code, s.name, s.suburb, s.city, s.province::text AS province FROM "Store" s
-      WHERE s.kind = 'RETAIL' AND s.status = 'ACTIVE' AND s."clickCollect" = true
-        AND s.licences::text[] @> ${needLicence}::text[]
-        ${opts.province ? Prisma.sql`AND s.province::text = ${opts.province}` : Prisma.empty}
-        ${q ? Prisma.sql`AND (s.name ILIKE ${`%${q}%`} OR s.suburb ILIKE ${`%${q}%`} OR s.city ILIKE ${`%${q}%`})` : Prisma.empty}
-      ORDER BY (s.province::text = ${account.province}) DESC, s.name ASC
+      SELECT s.id, s.code, s.name, s.suburb, s.city, s.province AS province FROM "Store" s
+      WHERE s.kind = 'RETAIL' AND s.status = 'ACTIVE' AND s."clickCollect" = 1
+        ${needLicence.length ? Prisma.sql`AND ${Prisma.join(needLicence.map((c) => Prisma.sql`EXISTS (SELECT 1 FROM json_each(s.licences) WHERE value = ${c})`), " AND ")}` : Prisma.empty}
+        ${opts.province ? Prisma.sql`AND s.province = ${opts.province}` : Prisma.empty}
+        ${q ? Prisma.sql`AND (s.name LIKE ${`%${q}%`} OR s.suburb LIKE ${`%${q}%`} OR s.city LIKE ${`%${q}%`})` : Prisma.empty}
+      ORDER BY (s.province = ${account.province}) DESC, s.name ASC
       LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,
   ]);
   const avail = await availability(stores.map((s) => s.id), lines.map((l) => l.variantId));
@@ -192,7 +195,7 @@ export async function placeTradeOrder(input: PlaceTradeOrderInput) {
     const v = byId.get(l.variantId);
     if (!v?.active || v.podSku) throw new TradeOrderError(`${l.name} isn't in the trade range`);
   }
-  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass, productStatus: byId.get(l.variantId)?.product.status })), accountClasses: account.classes, storeLicences: store.licences });
+  const comp = await checkTradeBasket({ items: q.lines.map((l) => ({ name: l.name, regClass: l.regClass, productStatus: byId.get(l.variantId)?.product.status })), accountClasses: asList<string>(account.classes), storeLicences: asList<string>(store.licences) });
   if (!comp.ok) throw new TradeOrderError(comp.blocks[0]);
   const problems = validateTradeBasket(q.lines.map((l) => ({ name: l.name, qty: l.qty, unitCents: l.exCents / l.qty, caseQty: l.caseQty })), { minOrderCents: s.minOrderCents });
   if (problems.length) throw new TradeOrderError(problems[0]);

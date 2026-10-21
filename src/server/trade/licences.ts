@@ -4,6 +4,7 @@
 // soon as a renewal is verified. Every step is audited. Documents are served through the app only, to HQ and to the
 // account's own buyers (src/app/trade/licences/[id]/file/route.ts).
 import { db, tx, type Tx } from "../db";
+import { asList } from "@/lib/json-list";
 import { audit, SYSTEM, type Actor } from "../audit";
 import { sendEmail } from "../email";
 import { franchiseEmail } from "../leads";
@@ -41,8 +42,8 @@ export async function licenceRecords(accountId: string, t: Tx | typeof db = db):
 }
 
 /** What licences turn on: the kind of business, its ranges, and whether it's a company (has a registration number). */
-export type LicensedAccount = { id: string; kind: string; classes: string[]; regNumber: string | null };
-const needs = (a: { kind: string; classes: string[]; regNumber: string | null }) => requiredLicences(a.kind, a.classes, !!a.regNumber);
+export type LicensedAccount = { id: string; kind: string; classes: unknown; regNumber: string | null }; // classes: the row's JSON list
+const needs = (a: { kind: string; classes: unknown; regNumber: string | null }) => requiredLicences(a.kind, asList<string>(a.classes), !!a.regNumber);
 
 /** Whether the account holds what its kind of business and its ranges require (or would, with `kind`/`classes`/`regNumber`). */
 export async function standingOf(account: LicensedAccount, opts: { kind?: string; classes?: string[]; regNumber?: string | null; now?: Date; t?: Tx | typeof db } = {}): Promise<LicenceStanding> {

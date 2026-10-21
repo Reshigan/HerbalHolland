@@ -224,6 +224,41 @@ const DESIGNS: Design[] = [
       </>
     ),
   },
+  // ── Mylar bags: the Mark and the name on the front, the 18+ line at the foot. Black (Sunset ink) and Sunset (black ink). ──
+  ...([
+    [70, 100, SUNSET, INK, "black"],
+    [70, 100, INK, SUNSET, "sunset"],
+    [100, 150, SUNSET, INK, "black"],
+    [100, 150, INK, SUNSET, "sunset"],
+  ] as [number, number, string, string, string][]).map(([w, h, ink, ground, tone]) => {
+    const k = w / 70; // the 10 × 15 bag scales the 7 × 10 layout
+    return {
+      key: `mylar-${w / 10}x${h / 10}-${tone}`,
+      name: `Mylar bag ${w / 10} × ${h / 10} cm, ${tone === "black" ? "black, printed in Sunset" : "Sunset, printed in black"} (front)`,
+      w, h, ink, ground,
+      how: `Matte ${tone === "black" ? "black" : "Sunset"} mylar, zip seal and tear notch above the print; one-colour flexo or screen print; the back plain. Food-safe, light-proof, smell-proof; sold in packs of 50`,
+      body: (
+        <>
+          <M x={35 * k - 15 * k} y={20 * k} size={30 * k} />
+          <Words x={35 * k} y={56 * k} width={44 * k} size={8.6 * k} />
+          <Line text={TAGLINE} x={35 * k} y={82 * k} width={54 * k} size={2.7 * k} weight={500} />
+          <Line text="ADULTS 18+ · KEEP OUT OF REACH OF CHILDREN" x={35 * k} y={91 * k} width={56 * k} size={2.1 * k} weight={600} />
+        </>
+      ),
+    };
+  }),
+  {
+    key: "pen-wrap", name: "Vape pen body wrap, 33 × 70 mm (round a Ø10.5 mm pen)", w: 33, h: 70, ink: SUNSET, ground: INK,
+    how: "Pad-printed in Sunset on the matte black 510 battery; the Mark at the top, the name down the body",
+    body: (
+      <>
+        <M x={10.5} y={4} size={12} />
+        <g transform="translate(18.6 20) rotate(90)">
+          <Line text="HERBAL HOLLAND" x={0} y={0} width={42} size={3.6} weight={800} anchor="start" />
+        </g>
+      </>
+    ),
+  },
 ];
 
 const svgOf = (d: Design, size: { width: string; height: string }, withGround = false) =>
@@ -370,6 +405,34 @@ const MOCKS: Record<string, React.ReactNode> = {
       {art("pouch-front", 200, 80, 240, 320)}
     </>
   ),
+  ...Object.fromEntries(
+    ([["7x10", 190, 270], ["10x15", 240, 360]] as [string, number, number][]).flatMap(([size, w, h]) =>
+      (["black", "sunset"] as const).map((tone) => {
+        const x = 320 - w / 2, y = 450 - h - 10, fill = tone === "black" ? "#121010" : SUNSET, edge = tone === "black" ? "#2a2421" : "#d9772c";
+        return [
+          `mylar-${size}-${tone}`,
+          <>
+            {shadow(320, 450, w * 0.6)}
+            <rect x={x} y={y} width={w} height={h} rx={10} fill={fill} stroke={edge} strokeWidth={2} />
+            <rect x={x + 10} y={y + 22} width={w - 20} height={5} rx={2.5} fill={edge} />
+            <path d={`M${x - 1} ${y + 14} l7 4 l-7 4 Z`} fill="#3a302a" />
+            {art(`mylar-${size}-${tone}`, x, y + 34, w, h - 44)}
+          </>,
+        ];
+      }),
+    ),
+  ),
+  "pen-black": (
+    <>
+      {shadow(320, 450, 60)}
+      <rect x={300} y={90} width={40} height={340} rx={20} fill="#121010" stroke="#2a2421" strokeWidth={2} />
+      <rect x={302} y={92} width={36} height={14} rx={7} fill="#1f1b19" />
+      <rect x={306} y={44} width={28} height={52} rx={9} fill="#1a1614" stroke="#2f2824" strokeWidth={2} />
+      <rect x={300} y={404} width={40} height={6} fill={SUNSET} opacity={0.9} />
+      <rect x={313} y={418} width={14} height={5} rx={2.5} fill="#3a332e" />
+      {art("pen-wrap", 300, 116, 40, 176, "8 0 17 70")}
+    </>
+  ),
   "kit": (
     <>
       {shadow(320, 430, 230)}
@@ -379,10 +442,8 @@ const MOCKS: Record<string, React.ReactNode> = {
     </>
   ),
 };
-for (const [key, body] of Object.entries(MOCKS))
-  writeFileSync(
-    `${OUT}/${key}.mockup.svg`,
-    renderToStaticMarkup(
+for (const [key, body] of Object.entries(MOCKS)) {
+  const svg = renderToStaticMarkup(
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 480" width={640} height={480}>
         <style dangerouslySetInnerHTML={{ __html: FACE }} />
         <defs>
@@ -394,6 +455,11 @@ for (const [key, body] of Object.entries(MOCKS))
         <rect width={640} height={480} fill="url(#stage)" />
         {body}
       </svg>,
-    ),
   );
+  writeFileSync(`${OUT}/${key}.mockup.svg`, svg);
+  await page.setViewportSize({ width: 1280, height: 960 });
+  await page.setContent(`<body style="margin:0">${svg.replace('width="640" height="480"', 'width="1280" height="960"')}</body>`);
+  await page.evaluate(() => document.fonts.ready);
+  writeFileSync(`${OUT}/${key}.mockup.png`, await page.screenshot({ clip: { x: 0, y: 0, width: 1280, height: 960 } }));
+}
 await browser.close();

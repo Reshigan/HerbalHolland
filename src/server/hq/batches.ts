@@ -6,19 +6,22 @@ import { Prisma } from "@/generated/prisma/client";
 
 type Batch = { id: string; variantId: string; packedAt: Date };
 
-const match = (b: Batch) => JSON.stringify([{ batchId: b.id }]);
-const storeFilter = (storeIds: string[] | null) => (storeIds ? Prisma.sql`AND s."storeId" = ANY(${storeIds}::text[])` : Prisma.empty);
+// The line drew from the batch: one of its allocations ([{ batchId, qty, … }]) names it.
+const fromBatch = (b: Batch) => Prisma.sql`EXISTS (SELECT 1 FROM json_each(l.allocations) a WHERE json_extract(a.value, '$.batchId') = ${b.id})`;
+// Units the line took from the batch.
+const unitsFrom = (b: Batch) => Prisma.sql`(SELECT COALESCE(SUM(json_extract(a.value, '$.qty')), 0) FROM json_each(l.allocations) a WHERE json_extract(a.value, '$.batchId') = ${b.id})`;
+const storeFilter = (storeIds: string[] | null) => (storeIds ? Prisma.sql`AND s."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))` : Prisma.empty);
 
 /** Totals for everyone who bought from the batch (units net of refunds). */
 export async function traceSummary(b: Batch, storeIds: string[] | null) {
   const [r] = await db.$queryRaw<{ sales: number; customers: number; anonymous: number; units: number; stores: number }[]>`
-    SELECT COUNT(DISTINCT s.id)::int AS sales,
-           COUNT(DISTINCT s."customerId")::int AS customers,
-           COUNT(DISTINCT s.id) FILTER (WHERE s."customerId" IS NULL)::int AS anonymous,
-           COALESCE(SUM((SELECT SUM((a->>'qty')::int) FROM jsonb_array_elements(l.allocations) a WHERE a->>'batchId' = ${b.id}) * CASE WHEN s.kind = 'REFUND' THEN -1 ELSE 1 END), 0)::int AS units,
-           COUNT(DISTINCT s."storeId")::int AS stores
+    SELECT COUNT(DISTINCT s.id) AS sales,
+           COUNT(DISTINCT s."customerId") AS customers,
+           COUNT(DISTINCT CASE WHEN s."customerId" IS NULL THEN s.id END) AS anonymous,
+           COALESCE(SUM(${unitsFrom(b)} * CASE WHEN s.kind = 'REFUND' THEN -1 ELSE 1 END), 0) AS units,
+           COUNT(DISTINCT s."storeId") AS stores
     FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId"
-    WHERE l."variantId" = ${b.variantId} AND s."createdAt" >= ${b.packedAt} AND l.allocations @> ${match(b)}::jsonb ${storeFilter(storeIds)}`;
+    WHERE l."variantId" = ${b.variantId} AND s."createdAt" >= ${b.packedAt} AND ${fromBatch(b)} ${storeFilter(storeIds)}`;
   return r ?? { sales: 0, customers: 0, anonymous: 0, units: 0, stores: 0 };
 }
 
@@ -27,11 +30,11 @@ export type TraceRow = { saleId: string; number: string; createdAt: Date; kind: 
 /** Sales that drew from the batch, newest first (paged). */
 export async function traceSales(b: Batch, storeIds: string[] | null, page: number, pageSize: number) {
   return db.$queryRaw<TraceRow[]>`
-    SELECT s.id AS "saleId", s.number, s."createdAt", s.kind::text AS kind,
-           (SELECT COALESCE(SUM((a->>'qty')::int), 0) FROM jsonb_array_elements(l.allocations) a WHERE a->>'batchId' = ${b.id})::int AS qty,
+    SELECT s.id AS "saleId", s.number, s."createdAt", s.kind AS kind,
+           ${unitsFrom(b)} AS qty,
            st.code AS "storeCode", st.name AS "storeName", c.id AS "customerId", c."memberNo", c."firstName", c."lastName"
     FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId" JOIN "Store" st ON st.id = s."storeId" LEFT JOIN "Customer" c ON c.id = s."customerId"
-    WHERE l."variantId" = ${b.variantId} AND s."createdAt" >= ${b.packedAt} AND l.allocations @> ${match(b)}::jsonb ${storeFilter(storeIds)}
+    WHERE l."variantId" = ${b.variantId} AND s."createdAt" >= ${b.packedAt} AND ${fromBatch(b)} ${storeFilter(storeIds)}
     ORDER BY s."createdAt" DESC
     LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`;
 }
@@ -41,5 +44,5 @@ export async function affectedCustomers(b: Batch) {
   return db.$queryRaw<{ id: string; phone: string; firstName: string }[]>`
     SELECT DISTINCT c.id, c.phone, c."firstName"
     FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId" JOIN "Customer" c ON c.id = s."customerId"
-    WHERE l."variantId" = ${b.variantId} AND s."createdAt" >= ${b.packedAt} AND s.kind = 'SALE' AND l.allocations @> ${match(b)}::jsonb`;
+    WHERE l."variantId" = ${b.variantId} AND s."createdAt" >= ${b.packedAt} AND s.kind = 'SALE' AND ${fromBatch(b)}`;
 }

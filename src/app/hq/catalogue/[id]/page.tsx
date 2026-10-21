@@ -23,6 +23,7 @@ import { saveProduct } from "../actions";
 import { ProductForm, type ProductInput } from "../product-form";
 import { VariantEditor } from "../variant-editor";
 import { RangingTool } from "../ranging-tool";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Product" };
 
@@ -41,7 +42,7 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const variantIds = product.variants.map((v) => v.id);
   const [categories, claimRows, settings, regions, batches, stock, ranging] = await Promise.all([
     db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
-    db.$queryRaw<{ claim: string }[]>`SELECT DISTINCT unnest(claims) AS claim FROM "Product" ORDER BY 1 LIMIT 200`,
+    db.$queryRaw<{ claim: string }[]>`SELECT DISTINCT j.value AS claim FROM "Product" p, json_each(p.claims) j ORDER BY 1 LIMIT 200`,
     getSettings(),
     db.region.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
     db.batch.groupBy({ by: ["variantId"], where: { variantId: { in: variantIds } }, _count: true }),
@@ -51,6 +52,10 @@ export default async function ProductPage({ params, searchParams }: { params: Pr
   const edit = can(user, "network");
   const input: ProductInput = {
     ...product,
+    flavours: asList(product.flavours),
+    effects: asList(product.effects),
+    claims: asList(product.claims),
+    allergens: asList(product.allergens),
     terpenes: Array.isArray(product.terpenes) ? (product.terpenes as { name: string; pct: number }[]) : [],
   };
 

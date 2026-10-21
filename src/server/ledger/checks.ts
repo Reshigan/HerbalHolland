@@ -8,7 +8,7 @@
 //   their registers; the DCs' stock.
 // Balances are compared at the month's last day (yesterday, for the month under way), with the registers taken back to
 // then; movements within the month leave out opening balances. Bounded: one company, one month.
-import { db, tx } from "../db";
+import { db, tx, Prisma } from "../db";
 import { booksFor } from "./core";
 import { franchiseStatement } from "../finance";
 import { POINT_VALUE_CENTS } from "@/lib/loyalty-rules";
@@ -17,6 +17,7 @@ import { addMonths, monthEnd, monthStart, periodOf } from "@/lib/ledger";
 import { addDays, dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { plural } from "@/lib/plural";
+import { chunk, inBatches } from "@/lib/json-list";
 
 export type BooksCheck = {
   key: string;
@@ -32,6 +33,8 @@ export type BooksCheck = {
 
 const n = (v: bigint | number | null | undefined) => Number(v ?? 0);
 const dateOf = (day: string) => new Date(`${day}T00:00:00Z`);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
 const monthName = (p: string) => fmtMonth(`${p}-15T12:00:00Z`);
 const dayLabel = (day: string) => fmtDate(`${day}T12:00:00Z`);
 const SHOWN = 20; // mismatches listed one by one; the rest are counted
@@ -61,14 +64,14 @@ const total = (m: Map<string, number>) => [...m.values()].reduce((s, v) => s + v
 export async function queueCounts(companyId: string) {
   const company = await db.company.findUniqueOrThrow({ where: { id: companyId }, select: { kind: true } });
   if (company.kind === "FRANCHISOR") {
-    const [r] = await db.$queryRaw<{ waiting: bigint; failed: bigint }[]>`SELECT count(*) AS waiting, count(*) FILTER (WHERE attempts > 0) AS failed FROM "LedgerQueue"`;
+    const [r] = await db.$queryRaw<{ waiting: bigint; failed: bigint }[]>`SELECT count(*) AS waiting, COUNT(CASE WHEN attempts > 0 THEN 1 END) AS failed FROM "LedgerQueue"`;
     return { waiting: n(r?.waiting), failed: n(r?.failed) };
   }
   const stores = (await db.store.findMany({ where: { companyId }, select: { id: true } })).map((s) => s.id);
   if (!stores.length) return { waiting: 0, failed: 0 };
   const [r] = await db.$queryRaw<{ waiting: bigint; failed: bigint }[]>`
-    SELECT count(*) AS waiting, count(*) FILTER (WHERE attempts > 0) AS failed FROM "LedgerQueue"
-    WHERE strpos("sourceId", ':') > 0 AND split_part("sourceId", ':', 1) = ANY(${stores}::text[])`;
+    SELECT count(*) AS waiting, COUNT(CASE WHEN attempts > 0 THEN 1 END) AS failed FROM "LedgerQueue"
+    WHERE instr("sourceId", ':') > 0 AND substr("sourceId", 1, instr("sourceId", ':') - 1) IN (${inList(stores)})`;
   return { waiting: n(r?.waiting), failed: n(r?.failed) };
 }
 
@@ -175,11 +178,11 @@ async function networkChecks(ctx: Ctx): Promise<BooksCheck[]> {
  */
 async function mirrorChecks({ companyId, period, accounts, ledger }: Ctx): Promise<BooksCheck[]> {
   const theirs = await db.ledgerAccount.findMany({ where: { key: "hq" }, select: { id: true, companyId: true } });
-  const ids = theirs.map((a) => a.id);
   const [hqLines, kept, opening] = await Promise.all([
     db.journalLine.groupBy({ by: ["partyId", "storeId"], where: { companyId, accountId: accounts.get("franchisees")!, period, journal: { status: "POSTED", source: { not: "opening" } } }, _sum: { amountCents: true } }),
-    ids.length ? db.ledgerBalance.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: theirs.map((a) => a.companyId) }, accountId: { in: ids }, period }, _sum: { debitCents: true, creditCents: true } }) : [],
-    ids.length ? db.journalLine.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: theirs.map((a) => a.companyId) }, accountId: { in: ids }, period, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }) : [],
+    // Grouped by company, so the franchisees' accounts go in rounds (D1 binds at most 100 parameters) and the rounds add up.
+    Promise.all(chunk(theirs, 45).map((part) => db.ledgerBalance.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period }, _sum: { debitCents: true, creditCents: true } }))).then((r) => r.flat()),
+    Promise.all(chunk(theirs, 45).map((part) => db.journalLine.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }))).then((r) => r.flat()),
   ]);
   const key = (c: string | null, s: string | null) => `${c ?? ""}|${s ?? ""}`;
   const actual = new Map(hqLines.map((l) => [key(l.partyId, l.storeId), n(l._sum.amountCents)]));
@@ -225,11 +228,11 @@ const OPEN_ORDER_DAYS = 120;
  */
 async function voucherCheck({ companyId, when, accounts, ledger }: Ctx): Promise<BooksCheck> {
   const [r] = await db.$queryRaw<{ left: bigint; held: bigint }[]>`
-    SELECT COALESCE(SUM(v."amountCents" - COALESCE(x.used, 0)), 0)::bigint AS left, COALESCE(SUM(x.held), 0)::bigint AS held
+    SELECT COALESCE(SUM(v."amountCents" - COALESCE(x.used, 0)), 0) AS left, COALESCE(SUM(x.held), 0) AS held
     FROM "GiftVoucher" v
     LEFT JOIN (
       SELECT r."voucherId", SUM(r.cents) AS used,
-        SUM(r.cents) FILTER (WHERE r."saleId" IS NULL AND r."orderId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "Sale" s WHERE s."orderId" = r."orderId" AND s."createdAt" < ${when.cutoff})) AS held
+        SUM(CASE WHEN r."saleId" IS NULL AND r."orderId" IS NOT NULL AND NOT EXISTS (SELECT 1 FROM "Sale" s WHERE s."orderId" = r."orderId" AND s."createdAt" < ${when.cutoff}) THEN r.cents ELSE 0 END) AS held
       FROM "VoucherRedemption" r
       WHERE NOT r.reversed AND r."createdAt" < ${when.cutoff}
       GROUP BY 1
@@ -254,17 +257,17 @@ async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<
   const from = addDays(when.cutoff, -OPEN_ORDER_DAYS);
   const asAtMonth = periodOf(when.asAt);
   const [[held], [since], [onOrders], [unbilled]] = await Promise.all([
-    db.$queryRaw<{ points: bigint }[]>`SELECT COALESCE(SUM(points), 0)::bigint AS points FROM "Customer"`,
+    db.$queryRaw<{ points: bigint }[]>`SELECT COALESCE(SUM(points), 0) AS points FROM "Customer"`,
     // Entries since the cutoff, through the (storeId, createdAt) index: HQ's own (no store) and every store's.
     db.$queryRaw<{ points: bigint }[]>`
-      SELECT COALESCE(SUM(points), 0)::bigint AS points FROM (
+      SELECT COALESCE(SUM(points), 0) AS points FROM (
         SELECT points FROM "LoyaltyEntry" WHERE "storeId" IS NULL AND "createdAt" >= ${when.cutoff}
         UNION ALL
-        SELECT points FROM "LoyaltyEntry" WHERE "storeId" = ANY(${storeIds}::text[]) AND "createdAt" >= ${when.cutoff}
+        SELECT points FROM "LoyaltyEntry" WHERE "storeId" IN (${inList(storeIds)}) AND "createdAt" >= ${when.cutoff}
       ) x`,
     // Points checkout took for online orders with no sale yet at the cutoff, and not given back by cancelling before it.
     db.$queryRaw<{ points: bigint }[]>`
-      SELECT COALESCE(SUM(o."pointsRedeemed"), 0)::bigint AS points FROM "Order" o
+      SELECT COALESCE(SUM(o."pointsRedeemed"), 0) AS points FROM "Order" o
       WHERE o."createdAt" >= ${from} AND o."createdAt" < ${when.cutoff} AND o."pointsRedeemed" > 0
         AND NOT EXISTS (SELECT 1 FROM "Sale" s WHERE s."orderId" = o.id AND s."createdAt" < ${when.cutoff})
         AND NOT (o.status = 'CANCELLED' AND o."updatedAt" < ${when.cutoff})`,
@@ -272,7 +275,7 @@ async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<
     when.asAt === monthEnd(asAtMonth)
       ? [{ points: BigInt(0) }]
       : db.$queryRaw<{ points: bigint }[]>`
-          SELECT COALESCE(SUM(d."pointsIssued"), 0)::bigint AS points FROM "DailyStoreStat" d JOIN "Store" s ON s.id = d."storeId" JOIN "Company" c ON c.id = s."companyId"
+          SELECT COALESCE(SUM(d."pointsIssued"), 0) AS points FROM "DailyStoreStat" d JOIN "Store" s ON s.id = d."storeId" JOIN "Company" c ON c.id = s."companyId"
           WHERE d.date >= ${dateOf(monthStart(asAtMonth))} AND d.date <= ${dateOf(when.asAt)} AND c.kind = 'FRANCHISEE'`,
   ]);
   const points = n(held?.points) - n(since?.points), open = n(onOrders?.points), issued = n(unbilled?.points);
@@ -295,7 +298,7 @@ async function pointsCheck({ companyId, when, accounts, ledger }: Ctx): Promise<
 async function debtorChecks({ companyId, when, accounts, ledger }: Ctx): Promise<BooksCheck[]> {
   const [register, kept] = await Promise.all([
     db.$queryRaw<{ tradeAccountId: string; cents: bigint; eft: bigint }[]>`
-      SELECT e."tradeAccountId", COALESCE(SUM(e.cents) FILTER (WHERE o."payMethod" IS DISTINCT FROM 'EFT'), 0)::bigint AS cents, count(*) FILTER (WHERE o."payMethod" = 'EFT') AS eft
+      SELECT e."tradeAccountId", COALESCE(SUM(CASE WHEN o."payMethod" IS NOT 'EFT' THEN e.cents ELSE 0 END), 0) AS cents, COUNT(CASE WHEN o."payMethod" = 'EFT' THEN 1 END) AS eft
       FROM "TradeLedgerEntry" e LEFT JOIN "TradeOrder" o ON o.id = e."tradeOrderId"
       WHERE e."createdAt" < ${when.cutoff}
       GROUP BY 1`,
@@ -324,9 +327,9 @@ async function stockChecks({ companyId, when, stores, accounts, ledger }: Ctx): 
   if (!stores.length) return [];
   const ids = stores.map((s) => s.id);
   const [levels, later, kept] = await Promise.all([
-    db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM("onHand"::bigint * "unitCostCents")::bigint AS cents FROM "StockLevel" WHERE "storeId" = ANY(${ids}::text[]) GROUP BY 1`,
+    db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM("onHand" * "unitCostCents") AS cents FROM "StockLevel" WHERE "storeId" IN (${inList(ids)}) GROUP BY 1`,
     // Each later movement at its cost, plus what it revalued the lot by (a re-averaged cost): the store-day posts both.
-    db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM(qty::bigint * "unitCostCents" + "revalueCents")::bigint AS cents FROM "StockMovement" WHERE "storeId" = ANY(${ids}::text[]) AND "createdAt" >= ${when.cutoff} GROUP BY 1`,
+    db.$queryRaw<{ storeId: string; cents: bigint }[]>`SELECT "storeId", SUM(qty * "unitCostCents" + "revalueCents") AS cents FROM "StockMovement" WHERE "storeId" IN (${inList(ids)}) AND "createdAt" >= ${when.cutoff} GROUP BY 1`,
     storeBalances(companyId, [accounts.get("stock")!], when.asAt),
   ]);
   if (stores.length === 1) {
@@ -381,16 +384,17 @@ export async function booksHealth(companies: { id: string; kind: string }[], now
   const franchisees = companies.filter((c) => c.kind === "FRANCHISEE").map((c) => c.id);
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" }, select: { id: true } });
   const [tb, drafts, bank, failedHq, failedStores, theirHq, hqMirror] = await Promise.all([
-    db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: ids } }, _sum: { debitCents: true, creditCents: true } }),
-    db.journal.groupBy({ by: ["companyId"], where: { companyId: { in: ids }, status: "DRAFT" }, _count: { _all: true } }),
-    db.bankLine.groupBy({ by: ["companyId"], where: { companyId: { in: ids }, status: "UNMATCHED" }, _count: { _all: true } }),
+    // Grouped by company, so the companies go in rounds (D1 binds at most 100 parameters) and the rounds add up.
+    Promise.all(chunk(ids).map((part) => db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: part } }, _sum: { debitCents: true, creditCents: true } }))).then((r) => r.flat()),
+    Promise.all(chunk(ids).map((part) => db.journal.groupBy({ by: ["companyId"], where: { companyId: { in: part }, status: "DRAFT" }, _count: { _all: true } }))).then((r) => r.flat()),
+    Promise.all(chunk(ids).map((part) => db.bankLine.groupBy({ by: ["companyId"], where: { companyId: { in: part }, status: "UNMATCHED" }, _count: { _all: true } }))).then((r) => r.flat()),
     db.ledgerQueue.count({ where: { attempts: { gt: 0 } } }),
     franchisees.length
       ? db.$queryRaw<{ companyId: string; failed: bigint }[]>`
-          SELECT s."companyId", count(*) AS failed FROM "LedgerQueue" q JOIN "Store" s ON s.id = split_part(q."sourceId", ':', 1)
-          WHERE q.attempts > 0 AND strpos(q."sourceId", ':') > 0 AND s."companyId" = ANY(${franchisees}::text[]) GROUP BY 1`
+          SELECT s."companyId", count(*) AS failed FROM "LedgerQueue" q JOIN "Store" s ON s.id = substr(q."sourceId", 1, instr(q."sourceId", ':') - 1)
+          WHERE q.attempts > 0 AND instr(q."sourceId", ':') > 0 AND s."companyId" IN (${inList(franchisees)}) GROUP BY 1`
       : [],
-    franchisees.length ? db.ledgerAccount.findMany({ where: { key: "hq", companyId: { in: franchisees } }, select: { id: true, companyId: true } }) : [],
+    inBatches(franchisees, (part) => db.ledgerAccount.findMany({ where: { key: "hq", companyId: { in: part } }, select: { id: true, companyId: true } })),
     hq && franchisees.length ? db.ledgerAccount.findFirst({ where: { companyId: hq.id, key: "franchisees" }, select: { id: true } }) : null,
   ]);
   const flag = (id: string, issue: string) => out.get(id)?.issues.push(issue);
@@ -402,11 +406,11 @@ export async function booksHealth(companies: { id: string; kind: string }[], now
   }
   for (const r of bank) flag(r.companyId, `${plural(r._count._all, "unmatched bank line")}`);
   if (hq && hqMirror && theirHq.length) {
-    const accountIds = theirHq.map((a) => a.id);
+    // Grouped by company (party), so the franchisees go in rounds (D1 binds at most 100 parameters) and the rounds add up.
     const [kept, opening, mirror] = await Promise.all([
-      db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: franchisees }, accountId: { in: accountIds }, period: month }, _sum: { debitCents: true, creditCents: true } }),
-      db.journalLine.groupBy({ by: ["companyId"], where: { companyId: { in: franchisees }, accountId: { in: accountIds }, period: month, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }),
-      db.journalLine.groupBy({ by: ["partyId"], where: { companyId: hq.id, accountId: hqMirror.id, period: month, partyId: { in: franchisees }, journal: { status: "POSTED", source: { not: "opening" } } }, _sum: { amountCents: true } }),
+      Promise.all(chunk(theirHq, 45).map((part) => db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period: month }, _sum: { debitCents: true, creditCents: true } }))).then((r) => r.flat()),
+      Promise.all(chunk(theirHq, 45).map((part) => db.journalLine.groupBy({ by: ["companyId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period: month, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }))).then((r) => r.flat()),
+      Promise.all(chunk(franchisees).map((part) => db.journalLine.groupBy({ by: ["partyId"], where: { companyId: hq.id, accountId: hqMirror.id, period: month, partyId: { in: part }, journal: { status: "POSTED", source: { not: "opening" } } }, _sum: { amountCents: true } }))).then((r) => r.flat()),
     ]);
     for (const id of franchisees) {
       const k = kept.find((r) => r.companyId === id);

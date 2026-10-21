@@ -3,6 +3,7 @@
 import { db } from "@/server/db";
 import { allocate } from "@/lib/fefo";
 import { addDays } from "@/lib/format";
+import { inBatches } from "@/lib/json-list";
 
 export async function dcStockHealth(dcId: string) {
   const since = addDays(new Date(), -28);
@@ -10,10 +11,10 @@ export async function dcStockHealth(dcId: string) {
     db.stockLevel.groupBy({ by: ["variantId"], where: { storeId: dcId, batch: { status: "RELEASED" } }, _sum: { onHand: true } }),
     db.stockLevel.groupBy({ by: ["variantId"], where: { storeId: dcId, onHand: { gt: 0 }, batch: { status: { not: "RELEASED" } } }, _sum: { onHand: true } }),
     db.$queryRaw<{ variantId: string; qty: number }[]>`
-      SELECT l."variantId", SUM(l.qty)::int AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      SELECT l."variantId", SUM(l.qty) AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
       WHERE o."sellerId" = ${dcId} AND o.status IN ('SUBMITTED', 'APPROVED') GROUP BY 1`,
     db.$queryRaw<{ variantId: string; qty: number }[]>`
-      SELECT l."variantId", SUM(l.qty)::int AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      SELECT l."variantId", SUM(l.qty) AS qty FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
       WHERE o."sellerId" = ${dcId} AND o.status IN ('SHIPPED', 'RECEIVED') AND o."shippedAt" >= ${since} GROUP BY 1`,
     db.stockLevel.findMany({
       where: { storeId: dcId, onHand: { gt: 0 }, batch: { status: "RELEASED", expiresAt: { not: null } } },
@@ -22,7 +23,7 @@ export async function dcStockHealth(dcId: string) {
     }),
   ]);
   const ids = [...new Set([...released, ...blocked].map((r) => r.variantId).concat(committed.map((c) => c.variantId)))];
-  const variants = await db.variant.findMany({ where: { id: { in: ids } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } });
+  const variants = await inBatches(ids, (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } }));
   const m = <T extends { variantId: string }>(rows: T[], f: (r: T) => number) => new Map(rows.map((r) => [r.variantId, f(r)]));
   const onHand = m(released, (r) => r._sum.onHand ?? 0), held = m(blocked, (r) => r._sum.onHand ?? 0);
   const commit = m(committed, (r) => r.qty), demand = m(shipped, (r) => r.qty);

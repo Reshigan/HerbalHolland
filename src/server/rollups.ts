@@ -1,6 +1,9 @@
 // Daily rollups, incremented inside the posting transaction (race-free upserts).
 import { Prisma } from "@/generated/prisma/client";
 import type { Tx } from "./db";
+import { chunk } from "@/lib/json-list";
+
+const dateCol = (day: string) => new Date(`${day}T00:00:00Z`); // a YYYY-MM-DD day as the date columns hold it
 
 export type StoreStatDelta = {
   storeId: string;
@@ -37,7 +40,7 @@ export async function bumpStoreStat(t: Tx, d: StoreStatDelta) {
   const sets = Prisma.raw(COLS.map((c) => `"${c}" = "DailyStoreStat"."${c}" + EXCLUDED."${c}"`).join(", "));
   await t.$executeRaw`
     INSERT INTO "DailyStoreStat" ("storeId", "date", "channel", ${cols})
-    VALUES (${d.storeId}, ${d.date}::date, ${d.channel}::"Channel", ${Prisma.join(values)})
+    VALUES (${d.storeId}, ${dateCol(d.date)}, ${d.channel}, ${Prisma.join(values)})
     ON CONFLICT ("storeId", "date", "channel") DO UPDATE SET ${sets}`;
 }
 
@@ -48,14 +51,17 @@ export async function bumpVariantStats(
   rows: { variantId: string; units: number; netCents: number; costCents: number }[],
 ) {
   if (!rows.length) return;
-  const values = Prisma.join(rows.map((r) => Prisma.sql`(${storeId}, ${date}::date, ${r.variantId}, ${r.units}, ${r.netCents}, ${r.costCents})`));
-  await t.$executeRaw`
-    INSERT INTO "DailyVariantStat" ("storeId", "date", "variantId", "units", "netCents", "costCents")
-    VALUES ${values}
-    ON CONFLICT ("storeId", "date", "variantId") DO UPDATE SET
-      "units" = "DailyVariantStat"."units" + EXCLUDED."units",
-      "netCents" = "DailyVariantStat"."netCents" + EXCLUDED."netCents",
-      "costCents" = "DailyVariantStat"."costCents" + EXCLUDED."costCents"`;
+  // Six bound values a row, under D1's 100 a statement.
+  for (const part of chunk(rows, 15)) {
+    const values = Prisma.join(part.map((r) => Prisma.sql`(${storeId}, ${dateCol(date)}, ${r.variantId}, ${r.units}, ${r.netCents}, ${r.costCents})`));
+    await t.$executeRaw`
+      INSERT INTO "DailyVariantStat" ("storeId", "date", "variantId", "units", "netCents", "costCents")
+      VALUES ${values}
+      ON CONFLICT ("storeId", "date", "variantId") DO UPDATE SET
+        "units" = "DailyVariantStat"."units" + EXCLUDED."units",
+        "netCents" = "DailyVariantStat"."netCents" + EXCLUDED."netCents",
+        "costCents" = "DailyVariantStat"."costCents" + EXCLUDED."costCents"`;
+  }
 }
 
 /**

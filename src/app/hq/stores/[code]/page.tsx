@@ -30,6 +30,7 @@ import { addOwner, markTaskDone, markTaskOpen, resetOwnerPassword, setOwnerActiv
 import { TodayList } from "@/components/store/today-list";
 import { OpeningChecklist } from "@/components/hq/checklist";
 import { saveLicences } from "../../compliance/actions";
+import { asList } from "@/lib/json-list";
 
 export const metadata = { title: "Store" };
 
@@ -371,7 +372,7 @@ export default async function StoreDetail({ params, searchParams }: { params: Pr
                 <fieldset disabled={!admin} className="min-w-0 space-y-3">
                   <div className="grid grid-cols-2 gap-2">
                     {CLASSES.map((cl) => (
-                      <Checkbox key={cl} name="licences" value={cl} defaultChecked={store.licences.includes(cl)} label={REG_CLASS_LABEL[cl]} />
+                      <Checkbox key={cl} name="licences" value={cl} defaultChecked={asList(store.licences).includes(cl)} label={REG_CLASS_LABEL[cl]} />
                     ))}
                   </div>
                   <Field label="Licence / permit reference" htmlFor="licenceRef" hint="Printed on receipts and tax invoices">

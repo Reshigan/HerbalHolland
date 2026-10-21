@@ -18,6 +18,8 @@ import { checkLicenceDocument, licenceProblem, standingOf, storeLicenceDocument 
 import { isTradeLicenceKind, type TradeLicenceKind } from "@/lib/trade-licences";
 import type { Prisma, TradeAccount, TradeAccountStatus, TradeBuyer, TradeTerms } from "@/generated/prisma/client";
 import { isEmail } from "@/lib/email";
+import { asList } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 export class TradeAccountError extends Error {}
 
@@ -288,15 +290,15 @@ export async function updateTradeAccount(id: string, patch: Partial<TradeAccount
     }
     const data: Prisma.TradeAccountUpdateInput = { ...cleanDetails(Object.fromEntries(detailKeys.map((k) => [k, patch[k]])) as Partial<TradeAccountDetails>) };
     if (termKeys.length) {
-      const terms = await checkTerms(t, { terms: patch.terms ?? before.terms, creditLimitCents: patch.creditLimitCents ?? before.creditLimitCents, paymentDays: patch.paymentDays ?? before.paymentDays, classes: patch.classes ?? before.classes, priceListId: patch.priceListId === undefined ? before.priceListId : patch.priceListId, dcId: patch.dcId === undefined ? before.dcId : patch.dcId, notes: patch.notes });
+      const terms = await checkTerms(t, { terms: patch.terms ?? before.terms, creditLimitCents: patch.creditLimitCents ?? before.creditLimitCents, paymentDays: patch.paymentDays ?? before.paymentDays, classes: patch.classes ?? asList<string>(before.classes), priceListId: patch.priceListId === undefined ? before.priceListId : patch.priceListId, dcId: patch.dcId === undefined ? before.dcId : patch.dcId, notes: patch.notes });
       Object.assign(data, terms);
     }
     // A new kind of business, new ranges, or adding or removing the registration number (a company or a sole
     // proprietor) can need licences the account hasn't given yet.
     const nextKind = (data.kind as string | undefined) ?? before.kind;
-    const nextClasses = (data.classes as string[] | undefined) ?? before.classes;
+    const nextClasses = (data.classes as string[] | undefined) ?? asList<string>(before.classes);
     const nextReg = data.regNumber === undefined ? before.regNumber : (data.regNumber as string | null);
-    if ((before.status === "APPROVED" || before.status === "ON_HOLD") && (nextKind !== before.kind || nextClasses.join() !== before.classes.join() || !!nextReg !== !!before.regNumber)) {
+    if ((before.status === "APPROVED" || before.status === "ON_HOLD") && (nextKind !== before.kind || nextClasses.join() !== asList<string>(before.classes).join() || !!nextReg !== !!before.regNumber)) {
       const standing = await standingOf(before, { kind: nextKind, classes: nextClasses, regNumber: nextReg, t });
       if (!standing.ok) throw new TradeAccountError(`The account needs its licences in order for that first: ${standing.problems.join("; ")}`);
     }
@@ -377,9 +379,9 @@ export async function tradeAccountSummary(id: string, now = new Date()) {
 
 /** ?q=: an account number (however typed), or part of a trading name, legal name, VAT number or billing email. */
 export function tradeAccountSearch(raw?: string | null): Prisma.TradeAccountWhereInput {
-  const q = (raw ?? "").trim().slice(0, 100);
+  const q = likeTerm((raw ?? "").trim());
   if (!q) return {};
-  const like = { contains: q, mode: "insensitive" as const };
+  const like = { contains: q };
   const number = tradeNumberQuery(q, "TA");
   return { OR: [...(number ? [{ number }] : []), { number: like }, { name: like }, { legalName: like }, { vatNumber: like }, { email: like }] };
 }
@@ -432,7 +434,7 @@ export async function tradeAccountLookup(q: string, opts: { limit?: number; incl
     const balanceCents = balance.get(r.id) ?? 0;
     const exposure = balanceCents + (openCents.get(r.id) ?? 0);
     return {
-      id: r.id, number: r.number, name: r.name, legalName: r.legalName, vatNumber: r.vatNumber, status: r.status, terms: r.terms, classes: r.classes, creditLimitCents: r.creditLimitCents, paymentDays: r.paymentDays,
+      id: r.id, number: r.number, name: r.name, legalName: r.legalName, vatNumber: r.vatNumber, status: r.status, terms: r.terms, classes: asList<string>(r.classes), creditLimitCents: r.creditLimitCents, paymentDays: r.paymentDays,
       balanceCents, availableCents: r.terms === "ACCOUNT" && r.status === "APPROVED" ? Math.max(0, r.creditLimitCents - exposure) : 0,
       licenceProblem: licence.get(r.id) ?? null,
     };
