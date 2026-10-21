@@ -8,7 +8,7 @@ name: Test on Cloudflare
 on:
   # Until the file is on main, GitHub won't dispatch it by hand: a push that touches this file runs it too.
   push:
-    paths: [.github/workflows/test-cloudflare.yml]
+    paths: [.github/workflows/test-cloudflare.yml, scripts/d1-dump.mjs, scripts/staging-config.mjs, e2e/_db.mjs]
   workflow_dispatch:
     inputs:
       keep:
