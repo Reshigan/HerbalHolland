@@ -23,7 +23,7 @@ const D1_DIR = resolve(ROOT, ".wrangler/state/v3/d1/miniflare-D1DatabaseObject")
 /** The file to open: DATABASE_FILE, else the local D1 file (there is exactly one once `wrangler d1 migrations apply --local` ran). */
 export function databaseFile() {
   if (process.env.DATABASE_FILE) return process.env.DATABASE_FILE;
-  const found = globSync("*.sqlite", { cwd: D1_DIR }).map((f) => resolve(D1_DIR, f));
+  const found = globSync("*.sqlite", { cwd: D1_DIR }).filter((f) => f !== "metadata.sqlite").map((f) => resolve(D1_DIR, f));
   if (found.length === 1) return found[0];
   throw new Error(found.length ? `Several local D1 files in ${D1_DIR}: set DATABASE_FILE to one of them` : `No local D1 file in ${D1_DIR}: run \`npm run db:migrate\` (and the seed), or set DATABASE_FILE`);
 }
