@@ -19,13 +19,15 @@ export const availKey = (storeId: string, variantId: string) => `${storeId}:${va
  * shipped or collected). `client`: a transaction that holds the stock locks (checkout re-checks under them).
  */
 export async function availability(storeIds: string[], variantIds?: string[], client: Tx | typeof db = db) {
-  const variantFilter = variantIds ? { variantId: { in: variantIds } } : {};
+  // Id lists bind as one JSON parameter each: D1 allows 100 bound parameters per statement.
   const levelsQ = () =>
-    client.stockLevel.groupBy({
-      by: ["storeId", "variantId"],
-      where: { storeId: { in: storeIds }, ...variantFilter, batch: { status: "RELEASED" } },
-      _sum: { onHand: true },
-    });
+    client.$queryRaw<{ storeId: string; variantId: string; onHand: number }[]>`
+      SELECT sl."storeId", sl."variantId", SUM(sl."onHand") AS "onHand"
+      FROM "StockLevel" sl JOIN "Batch" b ON b.id = sl."batchId"
+      WHERE sl."storeId" IN (SELECT value FROM json_each(${JSON.stringify(storeIds)}))
+        ${variantIds ? Prisma.sql`AND sl."variantId" IN (SELECT value FROM json_each(${JSON.stringify(variantIds)}))` : Prisma.empty}
+        AND b.status = 'RELEASED'
+      GROUP BY 1, 2`;
   const onlineQ = () =>
     client.$queryRaw<{ storeId: string; variantId: string; qty: number }[]>`
       SELECT o."storeId", l."variantId", SUM(l.qty) AS qty
@@ -42,7 +44,7 @@ export async function availability(storeIds: string[], variantIds?: string[], cl
   const [levels, reservedOnline, reservedTrade] = client === db ? await Promise.all([levelsQ(), onlineQ(), tradeQ()]) : [await levelsQ(), await onlineQ(), await tradeQ()];
   const map = new Map<string, Avail>();
   for (const l of levels) {
-    const onHand = l._sum.onHand ?? 0;
+    const onHand = Number(l.onHand ?? 0);
     map.set(availKey(l.storeId, l.variantId), { onHand, reserved: 0, available: onHand });
   }
   for (const r of [...reservedOnline, ...reservedTrade]) {

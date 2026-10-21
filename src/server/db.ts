@@ -27,8 +27,23 @@ function d1Client(): PrismaClient | null {
   }
   if (!d1) return null;
   let c = perBinding.get(d1);
-  if (!c) perBinding.set(d1, (c = new PrismaClient({ adapter: new PrismaD1(d1), errorFormat })));
+  if (!c) perBinding.set(d1, (c = sequentialTx(new PrismaClient({ adapter: new PrismaD1(d1), errorFormat }))));
   return c;
+}
+
+// Prisma refuses `$transaction(fn)` on D1 outright. The platform's unit of work (`tx`) runs its statements one after
+// another on the client itself instead: the same thing a D1 transaction would do, with no rollback (docs/CLOUDFLARE.md).
+// Batches (`$transaction([...])`) pass through: D1 runs those atomically.
+function sequentialTx(c: PrismaClient): PrismaClient {
+  const proxy: PrismaClient = new Proxy(c, {
+    get(target, key) {
+      const v = (target as unknown as Record<PropertyKey, unknown>)[key];
+      if (key === "$transaction")
+        return (arg: unknown, ...rest: unknown[]) => (typeof arg === "function" ? (arg as (t: PrismaClient) => unknown)(proxy) : (v as (...x: unknown[]) => unknown).apply(target, [arg, ...rest]));
+      return typeof v === "function" ? (v as (...a: unknown[]) => unknown).bind(target) : v;
+    },
+  });
+  return proxy;
 }
 
 function localClient(): Promise<PrismaClient> {
