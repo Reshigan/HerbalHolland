@@ -78,7 +78,8 @@ try {
   await page.getByRole("button", { name: "Open shift", exact: true }).click();
   await page.getByTestId("open-shift").click();
   await page.waitForSelector("[aria-label=Catalogue]:visible");
-  const shift = (await q(`select id, "openingFloatCents" from "Shift" where "deviceId" = $1 and "closedAt" is null`, [device.id]))[0];
+  const shift = (await q(`select id, "openingFloatCents", "openedAt" from "Shift" where "deviceId" = $1 and "closedAt" is null`, [device.id]))[0];
+  const shiftOpenedAt = shift.openedAt;
   assert(shift?.openingFloatCents === 100000, "shift open with R1,000 float");
 
   step("Members only: a new shopper joins at the till (key terms accepted), then buys a CBD balm with cash");
@@ -563,8 +564,12 @@ try {
   await shot("z-report");
   const z = (await q(`select "expectedCashCents", "countedCashCents" from "Shift" where id = $1`, [shift.id]))[0];
   assert(z.countedCashCents === 140000, `shift closed: expected ${z.expectedCashCents / 100}, counted ${z.countedCashCents / 100}`);
-  await new Promise((r) => setTimeout(r, 1500));
-  const mail = (await q(`select "to", left(body, 60) b from "MessageLog" where channel = 'EMAIL' and body like 'Z-report%' order by "createdAt" desc limit 1`))[0];
+  // The report is emailed after the response (on the Worker, after it has been sent): the log row follows shortly.
+  let mail;
+  for (let i = 0; i < 60 && !mail; i++) {
+    await new Promise((r) => setTimeout(r, 250));
+    mail = (await q(`select "to", left(body, 60) b from "MessageLog" where channel = 'EMAIL' and body like 'Z-report%' and "createdAt" > $1 order by "createdAt" desc limit 1`, [shiftOpenedAt]))[0];
+  }
   assert(mail?.to === "hatfield@herbalholland.com", `Z-report emailed to ${mail?.to}`);
 
   step("Offline reload: the service worker serves the till shell and assets");

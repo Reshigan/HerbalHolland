@@ -1,6 +1,7 @@
 // Stores buy stock from HQ distribution centres (WHOLESALE) or from each other
 // (NETWORK). Shipping moves batches out FEFO; receiving books the same batches in
 // at the agreed cost, so traceability survives every hop.
+import { background } from "@/server/background";
 import { db, tx } from "./db";
 import { takeStock, putStock, availability, availKey } from "./inventory";
 import { nextNumber } from "./counters";
@@ -137,7 +138,7 @@ export async function actOnStockOrder(
     return updated;
   });
   // After commit, so the invoice bills the quantities actually received (not the ordered total).
-  if (action === "receive") queueMicrotask(() => import("./invoices").then((m) => m.emailStockOrderInvoice(id)).catch((e) => console.error("[invoice] stock order", id, e)));
+  if (action === "receive") background(`stock order invoice ${id}`, import("./invoices").then((m) => m.emailStockOrderInvoice(id)));
   return result;
 }
 
