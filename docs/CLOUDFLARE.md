@@ -34,6 +34,8 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
   rows differ by driver: D1 gives numbers and parses ISO-looking text into Dates, the local driver gives BigInt for
   integer expressions (the local client converts them to numbers) and text for date expressions, so readers accept both. In raw SQL use the helpers in `@/server/sql`: `sast(col)` (SAST wall clock, `datetime(col,'+2 hours')`),
   `sastDay(col)`, `sastHour(col)`. SAST is UTC+2 all year.
+- **Raw INSERTs bind every timestamp** (`createdAt`, `updatedAt`, `queuedAt`…): the table default `CURRENT_TIMESTAMP` writes
+  `YYYY-MM-DD HH:MM:SS`, which sorts before Prisma's ISO text and breaks every `>=` comparison with it.
 - **Raw SQL is SQLite**: `strftime`/`date` instead of `date_trunc`/`extract`, `||` for concatenation, `json_each` instead
   of `unnest`/`= ANY`, `INSERT … ON CONFLICT DO UPDATE` works, `FOR UPDATE`/`SKIP LOCKED`/advisory locks do not exist
   (D1 serialises writes per database anyway; `@/server/locks` keeps its table-based lease), `::int` casts become

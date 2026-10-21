@@ -1,5 +1,6 @@
 // Adjustment picker data (items with their batches) and the write-off history.
 import { db } from "@/server/db";
+import { inBatches } from "@/lib/json-list";
 import { Prisma, type AdjustReason, type MovementType } from "@/generated/prisma/client";
 import { fmtDate, type DateRange } from "@/lib/format";
 import { stockRows } from "./inventory";
@@ -20,7 +21,7 @@ export async function adjustableItems(storeId: string): Promise<AdjustItem[]> {
   const ids = rows.map((r) => r.variantId);
   const [lots, batches] = await Promise.all([
     db.stockLevel.findMany({ where: { storeId, variantId: { in: ids } }, select: { variantId: true, batchId: true, onHand: true, unitCostCents: true } }),
-    db.batch.findMany({ where: { variantId: { in: ids } }, select: { id: true, code: true, variantId: true, expiresAt: true, status: true, packedAt: true }, orderBy: { packedAt: "asc" } }),
+    inBatches(ids, (part) => db.batch.findMany({ where: { variantId: { in: part } }, select: { id: true, code: true, variantId: true, expiresAt: true, status: true, packedAt: true }, orderBy: { packedAt: "asc" } })),
   ]);
   const lot = new Map(lots.map((l) => [`${l.variantId}:${l.batchId}`, l]));
   return rows

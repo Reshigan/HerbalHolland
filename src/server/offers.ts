@@ -42,9 +42,9 @@ export async function generateOffers(now = new Date()) {
   if (!offers.enabled) return { created: 0 };
   const excluded = incentiveExcluded(compliance);
   const created = await db.$executeRaw`
-    INSERT INTO "MemberOffer" (id, "customerId", title, kind, value, "productIds", "startsAt", "endsAt")
+    INSERT INTO "MemberOffer" (id, "customerId", title, kind, value, "productIds", "startsAt", "endsAt", "createdAt")
     SELECT lower(hex(randomblob(16))), f."customerId", ${`${offers.percent}% off `} || f.name, 'PERCENT', ${offers.percent},
-      json_array(f."productId"), ${now}, ${new Date(now.getTime() + offers.validDays * 86_400_000)}
+      json_array(f."productId"), ${now}, ${new Date(now.getTime() + offers.validDays * 86_400_000)}, ${now}
     FROM (
       SELECT s."customerId", p.id AS "productId", p.name, row_number() OVER (PARTITION BY s."customerId" ORDER BY sum(sl.qty) DESC, p.name) AS rn
       FROM "SaleLine" sl

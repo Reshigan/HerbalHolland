@@ -171,7 +171,7 @@ try {
   await act(op, "reverse journal", () => op.getByRole("group", { name: `Reverse journal ${draft.number}?` }).getByRole("button", { name: "Post the reversal" }).click(), () => status(op, "reverses it").waitFor());
   const reversal = await one(`select number from "Journal" where "reversalOfId" = $1`, [draft.id]);
   assert(reversal && (await balance(company.id, "exp.RENT", today.slice(0, 7))) === rentBefore, `journal ${reversal?.number} reverses it: rent back where it was`);
-  assert(Number((await one(`select count(*) from "AuditLog" where action in ('ledger.journal_draft', 'ledger.journal_approve', 'ledger.journal_reverse') and "entityId" in ($1, (select id from "Journal" where "reversalOfId" = $1))`, [draft.id])).count) >= 3, "drafted, approved and reversed (audited)");
+  assert(Number((await one(`select count(*) as count from "AuditLog" where action in ('ledger.journal_draft', 'ledger.journal_approve', 'ledger.journal_reverse') and "entityId" in ($1, (select id from "Journal" where "reversalOfId" = $1))`, [draft.id])).count) >= 3, "drafted, approved and reversed (audited)");
 
   // ── Banking: a statement imported, deposits matched, the fee allocated ──
   step("Accountant imports a bank statement");
@@ -256,7 +256,7 @@ try {
     await op.getByRole("button", { name: `Reopen ${monthName(lastMonth)}` }).click();
     await act(op, "reopen the month", () => op.getByRole("group", { name: `Reopen ${monthName(lastMonth)}?` }).getByRole("button", { name: "Reopen", exact: true }).click(), () => status(op, "is open again").waitFor());
     assert((await one(`select "booksLockedThrough" as l from "Company" where id = $1`, [company.id])).l === prevMonth(lastMonth), `open again; months reopen one at a time, so ${monthName(prevMonth(lastMonth))} stays closed`);
-    assert(Number((await one(`select count(*) from "AuditLog" where action in ('ledger.close', 'ledger.reopen') and "entityId" = $1 and at >= $2`, [company.id, started])).count) >= 2, "closing and reopening are audited");
+    assert(Number((await one(`select count(*) as count from "AuditLog" where action in ('ledger.close', 'ledger.reopen') and "entityId" = $1 and at >= $2`, [company.id, started])).count) >= 2, "closing and reopening are audited");
   }
 
   // ── HQ: a statement payment, in both companies' books ──
