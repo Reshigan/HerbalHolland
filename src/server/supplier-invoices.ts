@@ -13,6 +13,7 @@ import { MAX_INVOICE_BYTES, statementTerms } from "@/lib/supplier-invoice-rules"
 import { vatOnExcl } from "@/lib/money";
 import { addDays, dayKey } from "@/lib/format";
 import type { Prisma, SupplierInvoiceStatus } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export class SupplierInvoiceError extends Error {
   constructor(message: string, public field?: string) {
@@ -276,7 +277,7 @@ export async function settleStatementInvoices(now = new Date()) {
   for (const r of open) byMonth.set(asDay(r.invoiceDate).slice(0, 7), [...(byMonth.get(asDay(r.invoiceDate).slice(0, 7)) ?? []), r.id]);
   for (const [month, ids] of byMonth) {
     const terms = statementTerms(`${month}-01`);
-    await db.supplierInvoice.updateMany({ where: { id: { in: ids }, status: "DUE" }, data: { status: "PAID", paidAt: new Date(`${terms.settledFrom}T00:00:00+02:00`), note: terms.settled } });
+    await inBatches(ids, (part) => db.supplierInvoice.updateMany({ where: { id: { in: part }, status: "DUE" }, data: { status: "PAID", paidAt: new Date(`${terms.settledFrom}T00:00:00+02:00`), note: terms.settled } }).then((r) => [r]));
     await audit(db, SYSTEM, "supplier_invoice.settle_statement", { data: { month, invoices: ids.length } });
   }
   return { settled: open.length };

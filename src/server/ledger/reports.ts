@@ -14,6 +14,7 @@ import {
 } from "@/lib/ledger-reports";
 import { sourceLabel } from "@/lib/ledger-admin";
 import { dayKey } from "@/lib/format";
+import { inBatches } from "@/lib/json-list";
 
 type Client = Tx | typeof db;
 export type ChartAccount = ReportAccount & { active: boolean };
@@ -57,7 +58,7 @@ const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_eac
 export async function storeNames(ids: string[]) {
   const list = [...new Set(ids.filter(Boolean))];
   if (!list.length) return new Map<string, { code: string; name: string }>();
-  const rows = await db.store.findMany({ where: { id: { in: list } }, select: { id: true, code: true, name: true } });
+  const rows = await inBatches(list, (part) => db.store.findMany({ where: { id: { in: part } }, select: { id: true, code: true, name: true } }));
   return new Map(rows.map((s) => [s.id, { code: s.code, name: s.name }]));
 }
 
@@ -65,9 +66,9 @@ export async function storeNames(ids: string[]) {
 export async function partyNames(companyId: string, party: string | null | undefined, ids: string[]) {
   const list = [...new Set(ids.filter(Boolean))];
   if (!list.length || !party) return new Map<string, string>();
-  if (party === "COMPANY") return new Map((await db.company.findMany({ where: { id: { in: list } }, select: { id: true, name: true } })).map((c) => [c.id, c.name]));
+  if (party === "COMPANY") return new Map((await inBatches(list, (part) => db.company.findMany({ where: { id: { in: part } }, select: { id: true, name: true } }))).map((c) => [c.id, c.name]));
   if (party === "TRADE_ACCOUNT")
-    return new Map((await db.tradeAccount.findMany({ where: { id: { in: list } }, select: { id: true, name: true, number: true } })).map((a) => [a.id, `${a.name} (${a.number})`]));
+    return new Map((await inBatches(list, (part) => db.tradeAccount.findMany({ where: { id: { in: part } }, select: { id: true, name: true, number: true } }))).map((a) => [a.id, `${a.name} (${a.number})`]));
   // Supplier parties are the normalised name (supplierParty): match it back to how the invoices spell it, or else
   // capitalise its words.
   // Each spelling once with its latest invoice (a company has a bounded set of suppliers); the latest spelling per party wins.

@@ -3,6 +3,7 @@
 // timeline built from order timestamps plus the audit trail.
 import { db } from "@/server/db";
 import type { Prisma, StockOrderStatus } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export const PO_TABS: Record<string, { label: string; statuses: StockOrderStatus[] }> = {
   open: { label: "Open", statuses: ["DRAFT", "SUBMITTED", "APPROVED", "SHIPPED"] },
@@ -43,7 +44,7 @@ export async function stockOrderDetail(storeId: string, id: string) {
   type Shipped = { batchId: string; qty: number }[];
   const batchIds = [...new Set(o.lines.flatMap((l) => ((l.shipped as Shipped | null) ?? []).map((b) => b.batchId)))];
   const [batches, logs, creator] = await Promise.all([
-    db.batch.findMany({ where: { id: { in: batchIds } }, select: { id: true, code: true, expiresAt: true } }),
+    inBatches(batchIds, (part) => db.batch.findMany({ where: { id: { in: part } }, select: { id: true, code: true, expiresAt: true } })),
     db.auditLog.findMany({ where: { entity: "StockOrder", entityId: id }, orderBy: { at: "asc" }, select: { action: true, at: true, actorName: true } }),
     o.createdById ? db.user.findUnique({ where: { id: o.createdById }, select: { name: true } }) : null,
   ]);

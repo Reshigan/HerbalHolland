@@ -12,7 +12,7 @@ import { getObject, putObject } from "@/server/storage";
 import { importProductImages, type ImageImportResult } from "@/server/shop/images";
 import { IMPORT_MAX_BYTES, importKeys, planDigest, planImport, readImport, type ImportPlan, type ImportRead, type ImportSnapshot } from "@/lib/catalogue-import";
 import { dayKey, fmtDateTime } from "@/lib/format";
-import { asList } from "@/lib/json-list";
+import { asList, inBatches } from "@/lib/json-list";
 
 export class ImportError extends Error {}
 
@@ -64,17 +64,17 @@ export async function loadSnapshot(client: Tx | typeof db, read: ImportRead, loc
   const keys = importKeys(read);
   const [categories, variants, named, barcodes, batches, location, settings] = await Promise.all([
     client.category.findMany({ select: { id: true, name: true, slug: true } }),
-    client.variant.findMany({ where: { sku: { in: keys.skus } } }),
-    client.product.findMany({ where: { slug: { in: keys.slugs } } }),
-    client.variant.findMany({ where: { barcode: { in: keys.barcodes } }, select: { barcode: true, sku: true } }),
-    client.batch.findMany({ where: { code: { in: keys.batches } }, select: { id: true, code: true, variantId: true } }),
+    inBatches(keys.skus, (part) => client.variant.findMany({ where: { sku: { in: part } } })),
+    inBatches(keys.slugs, (part) => client.product.findMany({ where: { slug: { in: part } } })),
+    inBatches(keys.barcodes, (part) => client.variant.findMany({ where: { barcode: { in: part } }, select: { barcode: true, sku: true } })),
+    inBatches(keys.batches, (part) => client.batch.findMany({ where: { code: { in: part } }, select: { id: true, code: true, variantId: true } })),
     locationId ? client.store.findFirst({ where: { id: locationId, status: { not: "CLOSED" } }, select: { id: true, code: true, name: true, kind: true, licences: true } }) : null,
     getSettings(),
   ]);
   const namedIds = new Set(named.map((p) => p.id));
   const owners = [...new Set(variants.map((v) => v.productId))].filter((id) => !namedIds.has(id));
-  const products = [...named, ...(owners.length ? await client.product.findMany({ where: { id: { in: owners } } }) : [])];
-  const sizes = products.length ? await client.variant.groupBy({ by: ["productId"], where: { productId: { in: products.map((p) => p.id) } }, _count: true }) : [];
+  const products = [...named, ...(await inBatches(owners, (part) => client.product.findMany({ where: { id: { in: part } } })))];
+  const sizes = await inBatches(products.map((p) => p.id), (part) => client.variant.groupBy({ by: ["productId"], where: { productId: { in: part } }, _count: true })); // grouped by the id, so the rounds add up
   const size = new Map(sizes.map((s) => [s.productId, s._count]));
   return {
     categories,
@@ -163,7 +163,7 @@ async function applyPlan(t: Tx, plan: ImportPlan, snap: ImportSnapshot, userId: 
   // Opening stock: a new batch per new code (released, packed today), then each lot through the inventory service,
   // received at the location's cost, with the correction reason and the file named in the note.
   if (!plan.stock.length || !snap.location) return productId;
-  const ids = new Map((await t.variant.findMany({ where: { sku: { in: plan.stock.map((s) => s.sku) } }, select: { id: true, sku: true } })).map((v) => [v.sku, v.id]));
+  const ids = new Map((await inBatches([...new Set(plan.stock.map((s) => s.sku))], (part) => t.variant.findMany({ where: { sku: { in: part } }, select: { id: true, sku: true } }))).map((v) => [v.sku, v.id]));
   const batchId = new Map<string, string>();
   const packedAt = new Date();
   for (const part of chunks(plan.stock.filter((s) => !s.batchId)))

@@ -8,6 +8,7 @@ import { addDays, dateOnly, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ParamDef, ReportCtx, ReportDef, Row } from "./types";
 import { bounds, categoryVariantIds, count, multi, n, ratio, retailIds, storeCols, storeLabel, storeVals, sumRows, userNames, variantMap } from "./util";
+import { inBatches } from "@/lib/json-list";
 
 /** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
 const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
@@ -121,7 +122,7 @@ export const stockMovements: ReportDef = {
     const where: Prisma.StockMovementWhereInput = {
       storeId: { in: ctx.storeIds }, createdAt: { gte: start, lt: end },
       ...(type && { type: type as Prisma.StockMovementWhereInput["type"] }), ...(reason && { reason: reason as Prisma.StockMovementWhereInput["reason"] }),
-      ...(vids && { variantId: { in: vids } }),
+      ...(ctx.category && { variant: { product: { categoryId: ctx.category.id } } }), // the category's variants by relation: the id list may exceed D1's 100 parameters
     };
     const extraSql = Prisma.sql`${type ? Prisma.sql`AND type = ${type}` : Prisma.empty} ${reason ? Prisma.sql`AND reason = ${reason}` : Prisma.empty} ${vids ? Prisma.sql`AND "variantId" IN (${inList(vids)})` : Prisma.empty}`;
     const [list, count, byType] = await Promise.all([
@@ -143,9 +144,9 @@ export const stockMovements: ReportDef = {
     ]);
     const [users, salesRef, orderRef, takeRef] = await Promise.all([
       userNames(list.map((m) => m.userId)),
-      db.sale.findMany({ where: { id: { in: [...new Set(list.map((m) => m.saleId).filter((x): x is string => !!x))] } }, select: { id: true, number: true } }),
-      db.stockOrder.findMany({ where: { id: { in: [...new Set(list.map((m) => m.stockOrderId).filter((x): x is string => !!x))] } }, select: { id: true, number: true } }),
-      db.stockTake.findMany({ where: { id: { in: [...new Set(list.map((m) => m.stockTakeId).filter((x): x is string => !!x))] } }, select: { id: true, number: true } }),
+      inBatches([...new Set(list.map((m) => m.saleId).filter((x): x is string => !!x))], (part) => db.sale.findMany({ where: { id: { in: part } }, select: { id: true, number: true } })),
+      inBatches([...new Set(list.map((m) => m.stockOrderId).filter((x): x is string => !!x))], (part) => db.stockOrder.findMany({ where: { id: { in: part } }, select: { id: true, number: true } })),
+      inBatches([...new Set(list.map((m) => m.stockTakeId).filter((x): x is string => !!x))], (part) => db.stockTake.findMany({ where: { id: { in: part } }, select: { id: true, number: true } })),
     ]);
     const ref = new Map([...salesRef, ...orderRef, ...takeRef].map((x) => [x.id, x.number]));
     const rows: Row[] = list.map((m) => ({
@@ -463,10 +464,14 @@ export const sellThrough: ReportDef = {
   async run(ctx) {
     const ids = retailIds(ctx);
     const vids = await categoryVariantIds(ctx);
-    const vf = vids ? { variantId: { in: vids } } : {};
+    // The category's variants: by relation where there is one, else the id list in rounds (grouped by variant, so the rounds add up): it may exceed D1's 100 parameters.
+    const vf = ctx.category ? { variant: { product: { categoryId: ctx.category.id } } } : {};
+    const soldWhere = (variantId?: { in: string[] }) => ({ storeId: { in: ids }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...(variantId && { variantId }) });
     const { start, end } = bounds(ctx);
     const [sold, onHand, received] = await Promise.all([
-      db.dailyVariantStat.groupBy({ by: ["variantId"], where: { storeId: { in: ids }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...vf }, _sum: { units: true } }),
+      vids
+        ? inBatches(vids, (part) => db.dailyVariantStat.groupBy({ by: ["variantId"], where: soldWhere({ in: part }), _sum: { units: true } }))
+        : db.dailyVariantStat.groupBy({ by: ["variantId"], where: soldWhere(), _sum: { units: true } }),
       db.stockLevel.groupBy({ by: ["variantId"], where: { storeId: { in: ids }, onHand: { gt: 0 }, batch: { status: "RELEASED" }, ...vf }, _sum: { onHand: true } }),
       db.stockMovement.groupBy({ by: ["variantId"], where: { storeId: { in: ids }, createdAt: { gte: start, lt: end }, type: { in: ["RECEIVE", "TRANSFER_IN"] }, qty: { gt: 0 }, ...vf }, _sum: { qty: true } }),
     ]);

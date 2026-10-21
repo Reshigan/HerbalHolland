@@ -7,6 +7,7 @@ import { audit, type Actor } from "./audit";
 import { senderFooter } from "./marketing";
 import { sendBulk } from "./messaging";
 import { parseEarlyAccess } from "@/lib/early-access";
+import { inBatches } from "@/lib/json-list";
 
 export const earlyAccessCount = () => db.earlyAccessContact.count();
 
@@ -15,7 +16,10 @@ export async function importEarlyAccess(raw: string, actor: Actor) {
   // SQLite's createMany can't skip duplicates: leave out the emails and mobiles already on the list.
   const emails = rows.flatMap((r) => (r.email ? [r.email] : []));
   const mobiles = rows.flatMap((r) => (r.mobile ? [r.mobile] : []));
-  const have = await db.earlyAccessContact.findMany({ where: { OR: [{ email: { in: emails } }, { mobile: { in: mobiles } }] }, select: { email: true, mobile: true } });
+  const have = [
+    ...(await inBatches(emails, (part) => db.earlyAccessContact.findMany({ where: { email: { in: part } }, select: { email: true, mobile: true } }))),
+    ...(await inBatches(mobiles, (part) => db.earlyAccessContact.findMany({ where: { mobile: { in: part } }, select: { email: true, mobile: true } }))),
+  ];
   const seenEmail = new Set(have.map((h) => h.email)), seenMobile = new Set(have.map((h) => h.mobile));
   const fresh = rows.filter((r) => !(r.email && seenEmail.has(r.email)) && !(r.mobile && seenMobile.has(r.mobile)) && (!r.email || seenEmail.add(r.email)) && (!r.mobile || seenMobile.add(r.mobile)));
   const r = await db.earlyAccessContact.createMany({ data: fresh });
@@ -37,12 +41,12 @@ export async function clearEarlyAccess(actor: Actor) {
 export async function sendEarlyAccess(channel: "EMAIL" | "SMS", subject: string | null, body: string) {
   const people = await db.earlyAccessContact.findMany({ where: channel === "EMAIL" ? { email: { not: null } } : { email: null, mobile: { not: null } } });
   const to = (p: (typeof people)[number]) => (channel === "EMAIL" ? p.email! : p.mobile!);
-  const blocked = new Set((await db.suppression.findMany({ where: { value: { in: people.map(to) }, OR: [{ channel: null }, { channel }] }, select: { value: true } })).map((s) => s.value));
-  const found = await db.customer.findMany({ where: channel === "EMAIL" ? { email: { in: people.map(to) } } : { phone: { in: people.map(to) } }, select: { email: true, phone: true } });
+  const blocked = new Set((await inBatches(people.map(to), (part) => db.suppression.findMany({ where: { value: { in: part }, OR: [{ channel: null }, { channel }] }, select: { value: true } }))).map((s) => s.value));
+  const found = await inBatches(people.map(to), (part) => db.customer.findMany({ where: channel === "EMAIL" ? { email: { in: part } } : { phone: { in: part } }, select: { email: true, phone: true } }));
   const members = new Set(found.map((c) => (channel === "EMAIL" ? c.email!.toLowerCase() : c.phone)));
   const footer = await senderFooter(channel);
   const rows = people.filter((p) => !blocked.has(to(p)) && !members.has(to(p))).map((p) => ({ to: to(p), channel, subject: subject ?? undefined, body: body.replaceAll("{{firstName}}", p.firstName ?? "there") + footer }));
   const sent = await sendBulk(rows);
-  await db.earlyAccessContact.deleteMany({ where: { id: { in: people.map((p) => p.id) } } });
+  await inBatches(people.map((p) => p.id), (part) => db.earlyAccessContact.deleteMany({ where: { id: { in: part } } }).then((r) => [r]));
   return { sent, suppressed: people.filter((p) => blocked.has(to(p))).length, members: people.filter((p) => !blocked.has(to(p)) && members.has(to(p))).length };
 }

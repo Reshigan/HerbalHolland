@@ -4,6 +4,7 @@ import { allocate, allocationCost, type Allocation } from "@/lib/fefo";
 import { dayKey } from "@/lib/format";
 import { queueStoreDay } from "./ledger/core";
 import type { AdjustReason, MovementType } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export class StockError extends Error {}
 
@@ -186,11 +187,11 @@ export async function startStockTake(storeId: string, scope: string, blind: bool
 /** Approving posts COUNT movements for the difference between counted and current on-hand. */
 /** Saves counts, snapshotting on-hand as each line is counted so sales during the count don't read as variance. */
 export async function recordCounts(storeId: string, stockTakeId: string, counts: { lineId: string; qty: number | null }[]) {
-  const lines = await db.stockTakeLine.findMany({ where: { stockTakeId, id: { in: counts.map((c) => c.lineId) } }, select: { id: true, variantId: true, batchId: true } });
-  const levels = await db.stockLevel.findMany({
-    where: { storeId, variantId: { in: [...new Set(lines.map((l) => l.variantId))] } },
+  const lines = await inBatches(counts.map((c) => c.lineId), (part) => db.stockTakeLine.findMany({ where: { stockTakeId, id: { in: part } }, select: { id: true, variantId: true, batchId: true } }));
+  const levels = await inBatches([...new Set(lines.map((l) => l.variantId))], (part) => db.stockLevel.findMany({
+    where: { storeId, variantId: { in: part } },
     select: { variantId: true, batchId: true, onHand: true },
-  });
+  }));
   const onHand = new Map(levels.map((l) => [`${l.variantId}:${l.batchId}`, l.onHand]));
   const byId = new Map(lines.map((l) => [l.id, l]));
   await db.$transaction(

@@ -5,7 +5,7 @@
 // tender like any other (sales.postPosSale; refunds go back onto the voucher first). A voucher is money, not an
 // incentive (no bonus value, allowed on everything); CPA s63(2) makes it valid for three years from issue.
 import { cache } from "react";
-import { asList } from "@/lib/json-list";
+import { asList, inBatches } from "@/lib/json-list";
 import { db, tx, type Tx } from "@/server/db";
 import { audit, SYSTEM, type Actor } from "@/server/audit";
 import { pinCode, shortCode } from "@/server/counters";
@@ -283,7 +283,7 @@ export async function expireVouchers(now = new Date()) {
   const due = (await db.giftVoucher.findMany({ where: { status: "ACTIVE", expiresAt: { lt: now } }, select: { id: true } })).map((v) => v.id);
   const expired = await tx(async (t) => {
     for (const id of due) await queuePosting(t, "voucher", `${id}:expiry`); // what's left on it is breakage, in HQ's books
-    return t.giftVoucher.updateMany({ where: { id: { in: due }, status: "ACTIVE" }, data: { status: "EXPIRED" } });
+    return { count: (await inBatches(due, (part) => t.giftVoucher.updateMany({ where: { id: { in: part }, status: "ACTIVE" }, data: { status: "EXPIRED" } }).then((r) => [r.count]))).reduce((s, n) => s + n, 0) };
   });
   const lapsed = await db.giftVoucher.updateMany({ where: { status: "PENDING", createdAt: { lt: new Date(now.getTime() - 2 * 86_400_000) } }, data: { status: "CANCELLED" } });
   return { expired: expired.count, lapsed: lapsed.count };

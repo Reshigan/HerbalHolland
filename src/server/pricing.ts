@@ -9,7 +9,7 @@ import { resolvePrice, promoWindowOpen, resolveTradePrice, tradeBreaks, listLive
 import { vatOf } from "@/lib/money";
 import { addDays } from "@/lib/format";
 import type { Channel, Prisma, Promotion } from "@/generated/prisma/client";
-import { asList } from "@/lib/json-list";
+import { asList, inBatches } from "@/lib/json-list";
 import { incentiveExcluded, tradeAllowed, type RegClass } from "@/lib/compliance";
 import { rangeSearchTerms, vatHalfUp } from "@/lib/trade";
 import { similarProducts } from "./shop/search";
@@ -409,7 +409,10 @@ export async function tradeRange(
   const empty = { rows: [] as TradeRangeRow[], total: 0, page, pageSize, didYouMean: null as string | null };
   if (!classes.length) return empty;
   const tradeLists = lists.filter((l) => l.kind === "TRADE" && listLive(l, at));
-  const priced = [...new Set(tradeLists.flatMap((l) => l.items.map((i) => i.variantId)))];
+  const onLists = [...new Set(tradeLists.flatMap((l) => l.items.map((i) => i.variantId)))];
+  // Only the priced variants without a wholesale price of their own need naming in the query (a short list, and the
+  // `in:` list must stay under D1's 100 bound parameters).
+  const priced = onLists.length ? (await inBatches(onLists, (part) => db.variant.findMany({ where: { id: { in: part }, wholesaleCents: { lte: 0 } }, select: { id: true } }))).map((v) => v.id).slice(0, 80) : [];
   const q = opts.q?.trim().slice(0, 60);
   const category = opts.category?.trim();
   const base: Prisma.VariantWhereInput = {
@@ -435,7 +438,7 @@ export async function tradeRange(
   // Nothing by words (a typo: "colagen")? Fall back to products with a similar name, and say which we think was meant.
   if (q && !(await db.variant.count({ where }))) {
     const similar = await similarProducts(q, classes);
-    const hits = similar.size ? await db.product.findMany({ where: { id: { in: [...similar.keys()] }, variants: { some: base } }, select: { id: true, name: true } }) : [];
+    const hits = await inBatches([...similar.keys()], (part) => db.product.findMany({ where: { id: { in: part }, variants: { some: base } }, select: { id: true, name: true } }));
     if (hits.length) {
       where = { AND: [base, { productId: { in: hits.map((h) => h.id) } }] };
       didYouMean = hits.reduce((x, y) => ((similar.get(y.id) ?? 0) > (similar.get(x.id) ?? 0) ? y : x)).name;

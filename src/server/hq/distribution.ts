@@ -3,6 +3,7 @@
 import { db } from "@/server/db";
 import { allocate } from "@/lib/fefo";
 import { addDays } from "@/lib/format";
+import { inBatches } from "@/lib/json-list";
 
 export async function dcStockHealth(dcId: string) {
   const since = addDays(new Date(), -28);
@@ -22,7 +23,7 @@ export async function dcStockHealth(dcId: string) {
     }),
   ]);
   const ids = [...new Set([...released, ...blocked].map((r) => r.variantId).concat(committed.map((c) => c.variantId)))];
-  const variants = await db.variant.findMany({ where: { id: { in: ids } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } });
+  const variants = await inBatches(ids, (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, sku: true, name: true, product: { select: { name: true } } } }));
   const m = <T extends { variantId: string }>(rows: T[], f: (r: T) => number) => new Map(rows.map((r) => [r.variantId, f(r)]));
   const onHand = m(released, (r) => r._sum.onHand ?? 0), held = m(blocked, (r) => r._sum.onHand ?? 0);
   const commit = m(committed, (r) => r.qty), demand = m(shipped, (r) => r.qty);

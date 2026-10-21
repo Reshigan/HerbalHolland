@@ -20,7 +20,7 @@ export async function adjustableItems(storeId: string): Promise<AdjustItem[]> {
   const rows = await stockRows(storeId);
   const ids = rows.map((r) => r.variantId);
   const [lots, batches] = await Promise.all([
-    db.stockLevel.findMany({ where: { storeId, variantId: { in: ids } }, select: { variantId: true, batchId: true, onHand: true, unitCostCents: true } }),
+    inBatches(ids, (part) => db.stockLevel.findMany({ where: { storeId, variantId: { in: part } }, select: { variantId: true, batchId: true, onHand: true, unitCostCents: true } })),
     inBatches(ids, (part) => db.batch.findMany({ where: { variantId: { in: part } }, select: { id: true, code: true, variantId: true, expiresAt: true, status: true, packedAt: true }, orderBy: { packedAt: "asc" } })),
   ]);
   const lot = new Map(lots.map((l) => [`${l.variantId}:${l.batchId}`, l]));

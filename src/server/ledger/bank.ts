@@ -23,6 +23,7 @@ import { periodOf, supplierParty, type Line } from "@/lib/ledger";
 import { addDays, dayKey } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { BankLineStatus } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 export class BankError extends Error {
   constructor(message: string, public field?: string) {
@@ -177,7 +178,7 @@ export async function importStatement(companyId: string, bankAccountId: string, 
 
   const lines = hashLines(acct.id, read.lines);
   const known = new Set<string>();
-  for (const part of slices(lines, 5000))
+  for (const part of slices(lines, 90)) // D1 binds at most 100 parameters per statement
     for (const l of await db.bankLine.findMany({ where: { bankAccountId: acct.id, hash: { in: part.map((x) => x.hash) } }, select: { hash: true } })) known.add(l.hash);
   const fresh = lines.map((l, i) => ({ ...l, i })).filter((l) => !known.has(l.hash));
   const ofx = read.format === "OFX";
@@ -265,8 +266,8 @@ async function postings(t: Tx | typeof db, companyId: string, acct: { id: string
 async function postingWords(ps: BookPosting[]) {
   const ids = (source: string) => ps.flatMap((p) => (p.source === source && p.sourceId ? [p.sourceId] : []));
   const [deposits, payments] = await Promise.all([
-    ids("deposit").length ? db.cashDeposit.findMany({ where: { id: { in: ids("deposit") } }, select: { id: true, number: true, reference: true } }) : [],
-    ids("statement-payment").length ? db.statementPayment.findMany({ where: { id: { in: ids("statement-payment") } }, select: { id: true, reference: true } }) : [],
+    inBatches(ids("deposit"), (part) => db.cashDeposit.findMany({ where: { id: { in: part } }, select: { id: true, number: true, reference: true } })),
+    inBatches(ids("statement-payment"), (part) => db.statementPayment.findMany({ where: { id: { in: part } }, select: { id: true, reference: true } })),
   ]);
   const refs = new Map<string, string>([...deposits.map((d) => [d.id, `${d.number} ${d.reference}`] as const), ...payments.map((p) => [p.id, p.reference] as const)]);
   return (p: BookPosting) => `${p.memo} ${(p.sourceId && refs.get(p.sourceId)) || ""}`;
@@ -664,7 +665,9 @@ export async function allocationChoices(companyId: string, acct: { accountId: st
 /** Recent statement files imported to a bank account, with how many lines each added. */
 export async function statementFiles(companyId: string, bankAccountId: string, take = 5) {
   const added = await db.bankLine.groupBy({ by: ["uploadId"], where: { bankAccountId, companyId, uploadId: { not: null } }, _count: true, _min: { date: true }, _max: { date: true } });
-  const uploads = added.length ? await db.upload.findMany({ where: { id: { in: added.map((a) => a.uploadId!) } }, orderBy: { createdAt: "desc" }, take, select: { id: true, fileName: true, createdAt: true, sizeBytes: true, uploadedById: true } }) : [];
+  const uploads = (await inBatches(added.map((a) => a.uploadId!), (part) => db.upload.findMany({ where: { id: { in: part } }, orderBy: { createdAt: "desc" }, take, select: { id: true, fileName: true, createdAt: true, sizeBytes: true, uploadedById: true } })))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime())
+    .slice(0, take);
   const users = await db.user.findMany({ where: { id: { in: uploads.flatMap((u) => (u.uploadedById ? [u.uploadedById] : [])) } }, select: { id: true, name: true } });
   return uploads.map((u) => {
     const a = added.find((x) => x.uploadId === u.id)!;

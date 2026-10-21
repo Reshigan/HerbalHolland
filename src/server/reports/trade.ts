@@ -11,6 +11,7 @@ import { zar } from "@/lib/money";
 import type { Column, ReportCtx, ReportDef, ReportResult, Row } from "./types";
 import { MANAGERS } from "./types";
 import { bounds, count, multi, n, ratio, storeLabel, sumRows, variantMap } from "./util";
+import { inBatches } from "@/lib/json-list";
 
 /** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
 const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
@@ -24,10 +25,10 @@ const NO_ACCOUNT = "No account on file";
 type AccountInfo = { id: string; number: string; name: string; kind: string; status: string; terms: string; paymentDays: number; creditLimitCents: number; city: string; province: string };
 async function accountMap(ids: string[]) {
   if (!ids.length) return new Map<string, AccountInfo>();
-  const list = await db.tradeAccount.findMany({
-    where: { id: { in: ids } },
+  const list = await inBatches(ids, (part) => db.tradeAccount.findMany({
+    where: { id: { in: part } },
     select: { id: true, number: true, name: true, kind: true, status: true, terms: true, paymentDays: true, creditLimitCents: true, city: true, province: true },
-  });
+  }));
   return new Map<string, AccountInfo>(list.map((a) => [a.id, a]));
 }
 
@@ -192,7 +193,7 @@ export const tradeAgedBalances: ReportDef = {
     const empty = { columns: AGED_COLUMNS, rows: [], emptyTitle: "Nothing outstanding", empty: "No trade account has a balance on the ledger." };
     if (!ids.length) return empty;
     const [entries, accounts] = await Promise.all([
-      db.tradeLedgerEntry.findMany({ where: { tradeAccountId: { in: ids } }, select: { tradeAccountId: true, kind: true, cents: true, dueAt: true, createdAt: true }, orderBy: { createdAt: "asc" } }),
+      inBatches(ids, (part) => db.tradeLedgerEntry.findMany({ where: { tradeAccountId: { in: part } }, select: { tradeAccountId: true, kind: true, cents: true, dueAt: true, createdAt: true }, orderBy: { createdAt: "asc" } })),
       accountMap(ids),
     ]);
     const aged = ageTradeLedger(entries, ctx.now);

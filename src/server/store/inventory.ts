@@ -10,6 +10,7 @@ import { inRankOrder } from "@/lib/text-search";
 import { closeProducts } from "@/server/hq/catalogue";
 import { stockStatus, overstockUnits, type StockStatus } from "./rules";
 import type { RegClass } from "@/lib/compliance";
+import { inBatches } from "@/lib/json-list";
 
 type LotAgg = { variantId: string; onHand: number; blocked: number; value: number; negativeLots: number; nextExpiry: Date | string | null };
 
@@ -68,13 +69,13 @@ export async function stockRows(storeId: string): Promise<StockRow[]> {
   const soldBy = new Map(sold.map((s) => [s.variantId, s._sum.units ?? 0]));
   const ids = [...new Set([...rangedBy.keys(), ...lots.filter((l) => l.onHand !== 0 || l.blocked > 0 || l.negativeLots > 0).map((l) => l.variantId)])];
   const [variants, avail] = await Promise.all([
-    db.variant.findMany({
-      where: { id: { in: ids } },
+    inBatches(ids, (part) => db.variant.findMany({
+      where: { id: { in: part } },
       select: {
         id: true, productId: true, sku: true, barcode: true, name: true, priceCents: true, wholesaleCents: true,
         product: { select: { name: true, slug: true, strain: true, regClass: true, category: { select: { name: true, slug: true } } } },
       },
-    }),
+    })),
     availability([storeId], ids),
   ]);
 

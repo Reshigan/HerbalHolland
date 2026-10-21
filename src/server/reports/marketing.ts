@@ -3,7 +3,7 @@ import { db, Prisma } from "../db";
 import { segmentLabel } from "../marketing";
 import { describePromo } from "@/lib/promotions";
 import { promotionRow } from "../pricing";
-import { asList } from "@/lib/json-list";
+import { asList, inBatches } from "@/lib/json-list";
 import { fmtDay } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { ReportDef, Row } from "./types";
@@ -41,7 +41,7 @@ export const promotions: ReportDef = {
       ),
     ]);
     const ids = [...new Set([...used.map((u) => u.promotionId), ...live.map((l) => l.id)])];
-    const promos = new Map((await db.promotion.findMany({ where: { id: { in: ids } } })).map((p) => [p.id, promotionRow(p)]));
+    const promos = new Map((await inBatches(ids, (part) => db.promotion.findMany({ where: { id: { in: part } } }))).map((p) => [p.id, promotionRow(p)]));
     const usedBy = new Map(used.map((u) => [u.promotionId, u]));
     const rows = ids
       .map((id) => {
@@ -109,9 +109,8 @@ export const campaigns: ReportDef = {
     const ids = list.map((c) => c.id);
     const since = list.reduce((m, c) => (c.sentAt && c.sentAt < m ? c.sentAt : m), end);
     const [attributed, reach] = await Promise.all([
-      ids.length
-        ? db.sale.groupBy({ by: ["campaignId"], where: { campaignId: { in: ids }, storeId: { in: ctx.storeIds }, createdAt: { gte: since } }, _sum: { totalCents: true, vatCents: true }, _count: true })
-        : Promise.resolve([]),
+      // Grouped by campaign, so the campaigns go in rounds (D1 binds at most 100 parameters) and the rounds add up.
+      inBatches(ids, (part) => db.sale.groupBy({ by: ["campaignId"], where: { campaignId: { in: part }, storeId: { in: ctx.storeIds }, createdAt: { gte: since } }, _sum: { totalCents: true, vatCents: true }, _count: true })),
       ids.length && !ctx.networkWide
         ? db.$queryRaw<{ campaignId: string; n: number }[]>`
             SELECT m."campaignId", cast(COUNT(*) AS real) AS n FROM "MessageLog" m JOIN "Customer" c ON c.id = m."customerId"

@@ -3,6 +3,7 @@ import { db } from "../db";
 import { derived, type Totals } from "../finance";
 import { dayKey, type DateRange } from "@/lib/format";
 import type { Column, ReportCtx, Row } from "./types";
+import { inBatches } from "@/lib/json-list";
 
 /** DailyStoreStat columns summed by every rollup query. */
 export const STAT_SUMS = {
@@ -89,13 +90,11 @@ export type VariantInfo = {
 
 /** Catalogue lookup for variant ids (the catalogue is small: one query). */
 export async function variantMap(ids?: string[]) {
-  const vs = await db.variant.findMany({
-    where: ids ? { id: { in: ids } } : undefined,
-    select: {
-      id: true, sku: true, name: true, priceCents: true, wholesaleCents: true, grams: true,
-      product: { select: { name: true, regClass: true, category: { select: { name: true, slug: true } } } },
-    },
-  });
+  const select = {
+    id: true, sku: true, name: true, priceCents: true, wholesaleCents: true, grams: true,
+    product: { select: { name: true, regClass: true, category: { select: { name: true, slug: true } } } },
+  };
+  const vs = ids ? await inBatches(ids, (part) => db.variant.findMany({ where: { id: { in: part } }, select })) : await db.variant.findMany({ select });
   return new Map<string, VariantInfo>(
     vs.map((v) => [
       v.id,
@@ -118,7 +117,7 @@ export async function categoryVariantIds(ctx: ReportCtx) {
 export async function userNames(ids: (string | null | undefined)[]) {
   const list = [...new Set(ids.filter((x): x is string => !!x))];
   if (!list.length) return new Map<string, { name: string; role: string; canDispense: boolean }>();
-  const us = await db.user.findMany({ where: { id: { in: list } }, select: { id: true, name: true, role: true, canDispense: true } });
+  const us = await inBatches(list, (part) => db.user.findMany({ where: { id: { in: part } }, select: { id: true, name: true, role: true, canDispense: true } }));
   return new Map(us.map((u) => [u.id, u]));
 }
 

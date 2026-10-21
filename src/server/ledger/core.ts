@@ -8,7 +8,7 @@ import { reportError } from "../alerts";
 import { nextNumber } from "../counters";
 import { chartFor, diffLines, netLines, periodOf, postingDay, splitLarge, sumCents, type Line } from "@/lib/ledger";
 import { dayKey } from "@/lib/format";
-import { chunk } from "@/lib/json-list";
+import { chunk, inBatches } from "@/lib/json-list";
 
 export class LedgerError extends Error {}
 
@@ -228,11 +228,11 @@ export async function createManualJournal(a: {
     const book = await booksFor(t, a.companyId);
     if (book.lockedThrough && periodOf(a.date) <= book.lockedThrough) throw new LedgerError(`${periodOf(a.date)} is closed. Date the journal in an open month, or reopen it first`);
     const ids = [...new Set(a.lines.map((l) => l.accountId))];
-    const accounts = await t.ledgerAccount.findMany({ where: { id: { in: ids }, companyId: a.companyId, active: true }, select: { id: true, party: true } });
+    const accounts = await inBatches(ids, (part) => t.ledgerAccount.findMany({ where: { id: { in: part }, companyId: a.companyId, active: true }, select: { id: true, party: true } }));
     if (accounts.length !== ids.length) throw new LedgerError("One of the accounts isn't in these books (or is inactive)");
     const party = new Map(accounts.map((x) => [x.id, x.party]));
     if (a.lines.some((l) => party.get(l.accountId) && !l.partyId)) throw new LedgerError("Lines on a debtors, creditors or franchisee account need the customer, supplier or company");
-    if (a.lines.some((l) => l.storeId) && (await t.store.count({ where: { id: { in: a.lines.flatMap((l) => (l.storeId ? [l.storeId] : [])) }, companyId: { not: a.companyId } } })))
+    if (a.lines.some((l) => l.storeId) && (await inBatches([...new Set(a.lines.flatMap((l) => (l.storeId ? [l.storeId] : [])))], (part) => t.store.findMany({ where: { id: { in: part }, companyId: { not: a.companyId } }, select: { id: true } }))).length)
       throw new LedgerError("A store on the journal isn't one of this company's");
     const j = await writeJournal(t, {
       companyId: a.companyId, date: a.date, memo, source: a.source ?? "manual", status: a.post ? "POSTED" : "DRAFT", createdById: a.actor.id, approvedById: a.post ? a.actor.id : null, lines: a.lines,

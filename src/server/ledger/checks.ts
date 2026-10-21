@@ -17,6 +17,7 @@ import { addMonths, monthEnd, monthStart, periodOf } from "@/lib/ledger";
 import { addDays, dayKey, fmtDate, fmtMonth } from "@/lib/format";
 import { zar } from "@/lib/money";
 import { plural } from "@/lib/plural";
+import { chunk, inBatches } from "@/lib/json-list";
 
 export type BooksCheck = {
   key: string;
@@ -177,11 +178,11 @@ async function networkChecks(ctx: Ctx): Promise<BooksCheck[]> {
  */
 async function mirrorChecks({ companyId, period, accounts, ledger }: Ctx): Promise<BooksCheck[]> {
   const theirs = await db.ledgerAccount.findMany({ where: { key: "hq" }, select: { id: true, companyId: true } });
-  const ids = theirs.map((a) => a.id);
   const [hqLines, kept, opening] = await Promise.all([
     db.journalLine.groupBy({ by: ["partyId", "storeId"], where: { companyId, accountId: accounts.get("franchisees")!, period, journal: { status: "POSTED", source: { not: "opening" } } }, _sum: { amountCents: true } }),
-    ids.length ? db.ledgerBalance.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: theirs.map((a) => a.companyId) }, accountId: { in: ids }, period }, _sum: { debitCents: true, creditCents: true } }) : [],
-    ids.length ? db.journalLine.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: theirs.map((a) => a.companyId) }, accountId: { in: ids }, period, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }) : [],
+    // Grouped by company, so the franchisees' accounts go in rounds (D1 binds at most 100 parameters) and the rounds add up.
+    Promise.all(chunk(theirs, 45).map((part) => db.ledgerBalance.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period }, _sum: { debitCents: true, creditCents: true } }))).then((r) => r.flat()),
+    Promise.all(chunk(theirs, 45).map((part) => db.journalLine.groupBy({ by: ["companyId", "storeId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }))).then((r) => r.flat()),
   ]);
   const key = (c: string | null, s: string | null) => `${c ?? ""}|${s ?? ""}`;
   const actual = new Map(hqLines.map((l) => [key(l.partyId, l.storeId), n(l._sum.amountCents)]));
@@ -383,16 +384,17 @@ export async function booksHealth(companies: { id: string; kind: string }[], now
   const franchisees = companies.filter((c) => c.kind === "FRANCHISEE").map((c) => c.id);
   const hq = await db.company.findFirst({ where: { kind: "FRANCHISOR" }, select: { id: true } });
   const [tb, drafts, bank, failedHq, failedStores, theirHq, hqMirror] = await Promise.all([
-    db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: ids } }, _sum: { debitCents: true, creditCents: true } }),
-    db.journal.groupBy({ by: ["companyId"], where: { companyId: { in: ids }, status: "DRAFT" }, _count: { _all: true } }),
-    db.bankLine.groupBy({ by: ["companyId"], where: { companyId: { in: ids }, status: "UNMATCHED" }, _count: { _all: true } }),
+    // Grouped by company, so the companies go in rounds (D1 binds at most 100 parameters) and the rounds add up.
+    Promise.all(chunk(ids).map((part) => db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: part } }, _sum: { debitCents: true, creditCents: true } }))).then((r) => r.flat()),
+    Promise.all(chunk(ids).map((part) => db.journal.groupBy({ by: ["companyId"], where: { companyId: { in: part }, status: "DRAFT" }, _count: { _all: true } }))).then((r) => r.flat()),
+    Promise.all(chunk(ids).map((part) => db.bankLine.groupBy({ by: ["companyId"], where: { companyId: { in: part }, status: "UNMATCHED" }, _count: { _all: true } }))).then((r) => r.flat()),
     db.ledgerQueue.count({ where: { attempts: { gt: 0 } } }),
     franchisees.length
       ? db.$queryRaw<{ companyId: string; failed: bigint }[]>`
           SELECT s."companyId", count(*) AS failed FROM "LedgerQueue" q JOIN "Store" s ON s.id = substr(q."sourceId", 1, instr(q."sourceId", ':') - 1)
           WHERE q.attempts > 0 AND instr(q."sourceId", ':') > 0 AND s."companyId" IN (${inList(franchisees)}) GROUP BY 1`
       : [],
-    franchisees.length ? db.ledgerAccount.findMany({ where: { key: "hq", companyId: { in: franchisees } }, select: { id: true, companyId: true } }) : [],
+    inBatches(franchisees, (part) => db.ledgerAccount.findMany({ where: { key: "hq", companyId: { in: part } }, select: { id: true, companyId: true } })),
     hq && franchisees.length ? db.ledgerAccount.findFirst({ where: { companyId: hq.id, key: "franchisees" }, select: { id: true } }) : null,
   ]);
   const flag = (id: string, issue: string) => out.get(id)?.issues.push(issue);
@@ -404,11 +406,11 @@ export async function booksHealth(companies: { id: string; kind: string }[], now
   }
   for (const r of bank) flag(r.companyId, `${plural(r._count._all, "unmatched bank line")}`);
   if (hq && hqMirror && theirHq.length) {
-    const accountIds = theirHq.map((a) => a.id);
+    // Grouped by company (party), so the franchisees go in rounds (D1 binds at most 100 parameters) and the rounds add up.
     const [kept, opening, mirror] = await Promise.all([
-      db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: franchisees }, accountId: { in: accountIds }, period: month }, _sum: { debitCents: true, creditCents: true } }),
-      db.journalLine.groupBy({ by: ["companyId"], where: { companyId: { in: franchisees }, accountId: { in: accountIds }, period: month, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }),
-      db.journalLine.groupBy({ by: ["partyId"], where: { companyId: hq.id, accountId: hqMirror.id, period: month, partyId: { in: franchisees }, journal: { status: "POSTED", source: { not: "opening" } } }, _sum: { amountCents: true } }),
+      Promise.all(chunk(theirHq, 45).map((part) => db.ledgerBalance.groupBy({ by: ["companyId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period: month }, _sum: { debitCents: true, creditCents: true } }))).then((r) => r.flat()),
+      Promise.all(chunk(theirHq, 45).map((part) => db.journalLine.groupBy({ by: ["companyId"], where: { companyId: { in: part.map((a) => a.companyId) }, accountId: { in: part.map((a) => a.id) }, period: month, journal: { status: "POSTED", source: "opening" } }, _sum: { amountCents: true } }))).then((r) => r.flat()),
+      Promise.all(chunk(franchisees).map((part) => db.journalLine.groupBy({ by: ["partyId"], where: { companyId: hq.id, accountId: hqMirror.id, period: month, partyId: { in: part }, journal: { status: "POSTED", source: { not: "opening" } } }, _sum: { amountCents: true } }))).then((r) => r.flat()),
     ]);
     for (const id of franchisees) {
       const k = kept.find((r) => r.companyId === id);

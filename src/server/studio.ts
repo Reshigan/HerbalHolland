@@ -18,7 +18,7 @@ import { siteUrl } from "@/lib/seo";
 import { dayKey } from "@/lib/format";
 import { marketingWindow } from "@/lib/sa";
 import type { Prisma, StudioItem } from "@/generated/prisma/client";
-import { asList } from "@/lib/json-list";
+import { asList, inBatches } from "@/lib/json-list";
 
 export class StudioError extends Error {}
 
@@ -125,7 +125,7 @@ export async function freeLaunchDays(now = new Date()) {
  * each product's day, or null when the plan has none left.
  */
 export async function announceProducts(p: { productIds: string[]; by: string; actor: Actor }, now = new Date()) {
-  const products = p.productIds.length ? await db.product.findMany({ where: { id: { in: p.productIds }, launches: { none: {} } }, select: { id: true, name: true, regClass: true }, orderBy: { name: "asc" } }) : [];
+  const products = (await inBatches(p.productIds, (part) => db.product.findMany({ where: { id: { in: part }, launches: { none: {} } }, select: { id: true, name: true, regClass: true }, orderBy: { name: "asc" } }))).sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
   const free = await freeLaunchDays(now);
   const out: { product: string; day: string | null }[] = [];
   for (const pr of products.filter((x) => interestFor(x.regClass))) {

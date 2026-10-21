@@ -16,6 +16,7 @@ import { addDays, dayKey, fmtDateTime } from "@/lib/format";
 import { zar } from "@/lib/money";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Staff } from "./auth";
+import { inBatches } from "@/lib/json-list";
 
 export const RULES = {
   CASH_SHORT: "Cash-up short",
@@ -47,7 +48,7 @@ export const visibleAlerts = (u: Pick<Staff, "id">, storeIds: string[]): Prisma.
 /** Raises new alerts (existing keys are skipped) and emails the high-severity ones at once. */
 export async function raiseAlerts(list: NewAlert[]) {
   if (!list.length) return 0;
-  const raised = new Set((await db.alert.findMany({ where: { key: { in: list.map((a) => a.key) } }, select: { key: true } })).map((a) => a.key));
+  const raised = new Set((await inBatches(list.map((a) => a.key), (part) => db.alert.findMany({ where: { key: { in: part } }, select: { key: true } }))).map((a) => a.key));
   const { count } = await db.alert.createMany({ data: list.filter((a) => !raised.has(a.key)).map((a) => ({ ...a, userId: a.userId ?? null, amountCents: a.amountCents ?? null })) });
   if (list.some((a) => a.severity === "HIGH")) await notifyHigh(list.filter((a) => a.severity === "HIGH").map((a) => a.key)).catch((e) => console.error("[loss] notify failed", e));
   return count;
@@ -57,23 +58,18 @@ export async function raiseAlerts(list: NewAlert[]) {
 const link = (code: string, id: string) => `${APP_URL()}/store/${code}/loss-prevention/${id}`;
 
 async function recipients(stores: { companyId: string; regionId: string }[]) {
-  return db.user.findMany({
-    where: {
-      active: true,
-      email: { not: null },
-      OR: [
-        { role: "OWNER", companyId: { in: [...new Set(stores.map((s) => s.companyId))] } },
-        { role: "AREA_MANAGER", regionId: { in: [...new Set(stores.map((s) => s.regionId))] } },
-      ],
-    },
-    select: { id: true, email: true, role: true, companyId: true, regionId: true },
-  });
+  const select = { id: true, email: true, role: true, companyId: true, regionId: true };
+  const found = [
+    ...(await inBatches([...new Set(stores.map((s) => s.companyId))], (part) => db.user.findMany({ where: { active: true, email: { not: null }, role: "OWNER", companyId: { in: part } }, select }))),
+    ...(await inBatches([...new Set(stores.map((s) => s.regionId))], (part) => db.user.findMany({ where: { active: true, email: { not: null }, role: "AREA_MANAGER", regionId: { in: part } }, select }))),
+  ];
+  return [...new Map(found.map((u) => [u.id, u])).values()];
 }
 const covers = (u: { role: string; companyId: string | null; regionId: string | null }, s: { companyId: string; regionId: string }) =>
   u.role === "OWNER" ? u.companyId === s.companyId : u.regionId === s.regionId;
 
 async function notifyHigh(keys: string[]) {
-  const alerts = await db.alert.findMany({ where: { key: { in: keys }, notifiedAt: null }, include: { store: { select: { code: true, name: true, companyId: true, regionId: true } } } });
+  const alerts = await inBatches(keys, (part) => db.alert.findMany({ where: { key: { in: part }, notifiedAt: null }, include: { store: { select: { code: true, name: true, companyId: true, regionId: true } } } }));
   if (!alerts.length) return;
   const people = await recipients(alerts.map((a) => a.store));
   for (const a of alerts) {
@@ -111,13 +107,13 @@ export async function sendDigest(now = new Date()) {
     }
   }
   const notified = alerts.filter((a) => sent.has(a.id) || !unsent.has(a.id)).map((a) => a.id);
-  await db.alert.updateMany({ where: { id: { in: notified } }, data: { notifiedAt: now } });
+  await inBatches(notified, (part) => db.alert.updateMany({ where: { id: { in: part } }, data: { notifiedAt: now } }).then((r) => [r]));
   return { emails, failed, alerts: notified.length };
 }
 
 // ── Rules ────────────────────────────────────────────────────────────────────
 const weekOf = (now: Date) => dayKey(addDays(now, -((new Date(`${dayKey(now)}T12:00:00Z`).getUTCDay() + 6) % 7))); // Monday, SAST
-const codes = async (ids: string[]) => new Map((await db.store.findMany({ where: { id: { in: [...new Set(ids)] } }, select: { id: true, code: true } })).map((s) => [s.id, s.code]));
+const codes = async (ids: string[]) => new Map((await inBatches([...new Set(ids)], (part) => db.store.findMany({ where: { id: { in: part } }, select: { id: true, code: true } }))).map((s) => [s.id, s.code]));
 
 /** A cash-up counted short (at shift close, and nightly for tills that closed offline). */
 export async function checkShifts(where: Prisma.ShiftWhereInput, s: LossSettings) {
@@ -304,7 +300,7 @@ async function offlineShare(now: Date, s: LossSettings) {
 async function afterHours(since: Date) {
   const stores = (await db.store.findMany({ where: { kind: "RETAIL", status: "ACTIVE" }, select: { id: true, code: true, hours: true } })).filter((x) => Object.keys(parseHours(x.hours)).length);
   const hours = new Map(stores.map((x) => [x.id, { code: x.code, h: parseHours(x.hours) }]));
-  const sales = await db.sale.findMany({ where: { createdAt: { gte: since }, channel: "POS", kind: "SALE", storeId: { in: stores.map((x) => x.id) } }, select: { storeId: true, staffId: true, createdAt: true, number: true } });
+  const sales = await inBatches(stores.map((x) => x.id), (part) => db.sale.findMany({ where: { createdAt: { gte: since }, channel: "POS", kind: "SALE", storeId: { in: part } }, select: { storeId: true, staffId: true, createdAt: true, number: true } }));
   const HALF_HOUR = 30 * 60_000;
   const closed = (h: ReturnType<typeof parseHours>, t: Date) => ![t, new Date(t.getTime() - HALF_HOUR), new Date(t.getTime() + HALF_HOUR)].some((x) => openState(h, x).open);
   const found = new Map<string, { storeId: string; userId: string | null; day: string; numbers: string[] }>();

@@ -3,6 +3,7 @@
 // (queueStoreDay). So one of those from the week before that never posted, and isn't waiting in the queue, is one a
 // missed night skipped.
 import { db } from "../../db";
+import { chunk } from "@/lib/json-list";
 
 type Source = { source: string; sourceId: string };
 
@@ -12,11 +13,14 @@ export const CATCH_UP_DAYS = 7;
 /** Of these sources, the ones that never posted and aren't waiting in the queue. */
 export async function missed(list: Source[]): Promise<Source[]> {
   if (!list.length) return [];
-  const where = { OR: [...new Set(list.map((s) => s.source))].map((source) => ({ source, sourceId: { in: list.filter((s) => s.source === source).map((s) => s.sourceId) } })) };
-  const [posted, queued] = await Promise.all([
-    db.journal.findMany({ where, select: { source: true, sourceId: true }, distinct: ["source", "sourceId"] }),
-    db.ledgerQueue.findMany({ where, select: { source: true, sourceId: true } }),
-  ]);
-  const seen = new Set([...posted, ...queued].map((s) => `${s.source}|${s.sourceId}`));
+  const seen = new Set<string>();
+  for (const part of chunk(list, 80)) { // D1 binds at most 100 parameters per statement
+    const where = { OR: [...new Set(part.map((s) => s.source))].map((source) => ({ source, sourceId: { in: part.filter((s) => s.source === source).map((s) => s.sourceId) } })) };
+    const [posted, queued] = await Promise.all([
+      db.journal.findMany({ where, select: { source: true, sourceId: true }, distinct: ["source", "sourceId"] }),
+      db.ledgerQueue.findMany({ where, select: { source: true, sourceId: true } }),
+    ]);
+    for (const s of [...posted, ...queued]) seen.add(`${s.source}|${s.sourceId}`);
+  }
   return list.filter((s) => !seen.has(`${s.source}|${s.sourceId}`));
 }

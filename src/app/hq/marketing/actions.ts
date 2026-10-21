@@ -11,6 +11,7 @@ import { isAudience } from "@/lib/rfm";
 import { marketingWindow, nextMarketingSlot, normalisePhone } from "@/lib/sa";
 import { fmtDateTime } from "@/lib/format";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { inBatches } from "@/lib/json-list";
 
 const CHANNELS: MsgChannel[] = ["SMS", "EMAIL", "PUSH", "WHATSAPP"];
 const PUSH_TITLE_MAX = 40;
@@ -164,11 +165,15 @@ export async function importSuppressions(_: ActionState, fd: FormData): Promise<
   let added = 0;
   for (let i = 0; i < values.length; i += 5_000) {
     const slice = values.slice(i, i + 5_000);
-    const known = new Set((await db.suppression.findMany({ where: { source, value: { in: slice } }, select: { value: true } })).map((s) => s.value));
+    const known = new Set((await inBatches(slice, (part) => db.suppression.findMany({ where: { source, value: { in: part } }, select: { value: true } }))).map((s) => s.value));
     const fresh = slice.filter((value) => !known.has(value));
     if (fresh.length) added += (await db.suppression.createMany({ data: fresh.map((value) => ({ value, channel, source })) })).count;
   }
-  const members = await db.customer.count({ where: { OR: [{ phone: { in: values.slice(0, 10_000) } }, { email: { in: values.slice(0, 10_000) } }] } });
+  const matched = [
+    ...(await inBatches(values.slice(0, 10_000), (part) => db.customer.findMany({ where: { phone: { in: part } }, select: { id: true } }))),
+    ...(await inBatches(values.slice(0, 10_000), (part) => db.customer.findMany({ where: { email: { in: part } }, select: { id: true } }))),
+  ];
+  const members = new Set(matched.map((c) => c.id)).size;
   await audit(db, g.actor, "marketing.suppression_import", { entity: "Suppression", data: { source, channel, submitted: values.length, added, rejected: rejected.length, members } });
   revalidatePath("/hq/marketing");
   return done(

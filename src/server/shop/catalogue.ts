@@ -129,8 +129,12 @@ export type ProductCard = {
 
 async function ratingsFor(productIds: string[]) {
   if (!productIds.length) return new Map<string, { avg: number; count: number }>();
-  const rows = await db.review.groupBy({ by: ["productId"], where: { productId: { in: productIds }, verified: true, hidden: false }, _avg: { rating: true }, _count: true });
-  return new Map(rows.map((r) => [r.productId, { avg: r._avg.rating ?? 0, count: r._count }]));
+  // The whole range at once: the id list goes as one JSON parameter (D1 binds at most 100).
+  const rows = await db.$queryRaw<{ productId: string; avg: number | null; count: number | bigint }[]>`
+    SELECT "productId", AVG(rating) AS avg, COUNT(*) AS count FROM "Review"
+    WHERE "productId" IN (SELECT value FROM json_each(${JSON.stringify(productIds)})) AND verified AND NOT hidden
+    GROUP BY 1`;
+  return new Map(rows.map((r) => [r.productId, { avg: Number(r.avg ?? 0), count: Number(r.count) }]));
 }
 
 export async function buildCards(products: CatalogueProduct[], who: Shopper): Promise<ProductCard[]> {

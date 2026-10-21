@@ -42,7 +42,7 @@ export async function similarProducts(q: string, classes: RegClass[]): Promise<M
     scored.push({ id: r.id, name: r.name, sim: Math.max(name, inName, tagline * 0.8, variant * 0.7) });
   }
   scored.sort((a, b) => b.sim - a.sim || a.name.localeCompare(b.name));
-  return new Map(scored.slice(0, 100).map((r) => [r.id, r.sim]));
+  return new Map(scored.slice(0, 90).map((r) => [r.id, r.sim])); // 90: an `in:` list under D1's 100 bound parameters
 }
 
 /**

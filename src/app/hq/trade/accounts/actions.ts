@@ -20,7 +20,7 @@ import { TRADE_CLASSES, previousMonth } from "@/lib/trade";
 import { zar, zarWhole } from "@/lib/money";
 import type { RegClass } from "@/lib/compliance";
 import type { TradeTerms } from "@/generated/prisma/client";
-import { asList } from "@/lib/json-list";
+import { asList, inBatches } from "@/lib/json-list";
 
 const EXPECTED = [TradeAccountError, TradeLedgerError, TradeOrderError, TradeLicenceError, StockError];
 
@@ -278,7 +278,7 @@ export async function searchCollectStores(accountId: string, lines: { variantId:
   const account = await db.tradeAccount.findUnique({ where: { id: accountId }, select: { classes: true, province: true } });
   if (!account) return { error: "Unknown trade account" };
   const ids = [...new Set(lines.map((l) => l.variantId))].slice(0, 100);
-  const variants = await db.variant.findMany({ where: { id: { in: ids } }, select: { id: true, product: { select: { regClass: true } } } });
+  const variants = await inBatches(ids, (part) => db.variant.findMany({ where: { id: { in: part } }, select: { id: true, product: { select: { regClass: true } } } }));
   const cls = new Map(variants.map((v) => [v.id, v.product.regClass]));
   const r = await collectStoresFor(lines.filter((l) => cls.has(l.variantId) && l.qty > 0).map((l) => ({ variantId: l.variantId, qty: Math.floor(l.qty), regClass: cls.get(l.variantId)! })), account, { q: q.slice(0, 60), pageSize: 12 });
   return { total: r.total, rows: r.rows.map((s) => ({ id: s.id, code: s.code, name: s.name, suburb: s.suburb, city: s.city, allInStock: s.allInStock, short: s.short.length })) };

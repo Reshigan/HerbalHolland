@@ -10,6 +10,7 @@ import { MANAGERS } from "./types";
 import {
   CHANNEL_LABEL, FULFIL_LABEL, PAY_LABEL, ROLE_LABEL, STAT_SUMS, bounds, categoryVariantIds, count, eachDay, isoDay, n, ratio, storeCols, storeLabel, storeVals, statWhere, sumRows, summaryOf, userNames, variantMap, rangeQS, storeDrill,
 } from "./util";
+import { inBatches } from "@/lib/json-list";
 
 const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}` : Prisma.empty);
 /** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
@@ -92,12 +93,15 @@ export const salesOverview: ReportDef = {
 // ── By product / category (DailyVariantStat) ───────────────────────────────
 async function variantSales(ctx: Parameters<ReportDef["run"]>[0]) {
   const vids = await categoryVariantIds(ctx);
-  const rows = await db.dailyVariantStat.groupBy({
-    by: ["variantId"],
-    where: { storeId: { in: ctx.storeIds }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...(vids && { variantId: { in: vids } }) },
-    _sum: { units: true, netCents: true, costCents: true },
-    orderBy: { _sum: { netCents: "desc" } },
-  });
+  const query = (variantId?: { in: string[] }) =>
+    db.dailyVariantStat.groupBy({
+      by: ["variantId"],
+      where: { storeId: { in: ctx.storeIds }, date: { gte: ctx.range.fromDate, lte: ctx.range.toDate }, ...(variantId && { variantId }) },
+      _sum: { units: true, netCents: true, costCents: true },
+      orderBy: { _sum: { netCents: "desc" } },
+    });
+  // A category's variants go in rounds (D1 binds at most 100 parameters; grouped by variant, so the rounds add up), then back into net order.
+  const rows = vids ? (await inBatches(vids, (part) => query({ in: part }))).sort((a, b) => (b._sum.netCents ?? 0) - (a._sum.netCents ?? 0)) : await query();
   const info = await variantMap(rows.map((r) => r.variantId));
   return rows.map((r) => ({ v: info.get(r.variantId), units: r._sum.units ?? 0, net: r._sum.netCents ?? 0, cost: r._sum.costCents ?? 0 }));
 }
