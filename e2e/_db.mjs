@@ -129,7 +129,17 @@ export function createRemoteDb({ accountId, databaseId, token } = { accountId: p
       types ??= await columnTypes();
       const bound = Object.values(bind(params));
       const r = await run(toSqlite(sql).replace(/\$(\d+)/g, "?$1"), bound);
-      const rows = (r.results ?? []).map((row) => typed(types.filter((c) => c.name in row), row));
+      // By name only, so an alias that merely shares a column's name (`to_char(dob, …) as dob`) keeps the shape the
+      // query gave it: a DATETIME is only parsed from ISO text, a BOOLEAN only from 0/1, JSON only from text that is JSON.
+      const rows = (r.results ?? []).map((row) =>
+        typed(
+          types.filter((c) => {
+            const v = row[c.name];
+            return c.name in row && (c.type === "DATETIME" ? typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v) : c.type === "BOOLEAN" ? v === 0 || v === 1 : typeof v === "string" && /^[[{]/.test(v));
+          }),
+          row,
+        ),
+      );
       return { rows, rowCount: r.meta?.changes ?? 0 };
     },
     async end() {},
