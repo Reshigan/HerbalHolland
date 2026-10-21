@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en-ZA">
+<head>
+<meta charset="utf-8">
+<title>Tropical Cooler package deal</title>
+<style>
+  @font-face { font-family: Outfit; font-weight: 600; src: url(../../fonts/studio/outfit-600.ttf); }
+  @font-face { font-family: Outfit; font-weight: 700; src: url(../../fonts/studio/outfit-700.ttf); }
+  @font-face { font-family: Inter; font-weight: 400; src: url(../../fonts/studio/inter-400.ttf); }
+  @font-face { font-family: Inter; font-weight: 600; src: url(../../fonts/studio/inter-600.ttf); }
+  :root { --sunset: #f5913c; --ink: #0c0a09; --ink-900: #141110; --ink-850: #1a1614; --cream: #fbf7f3; --faint: #8c8077; --muted: #c9bfb6; }
+  @page { size: 297mm 420mm; margin: 0; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 297mm; height: 420mm; background: var(--ink); color: var(--cream); font-family: Inter, sans-serif; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .sheet { position: relative; width: 297mm; height: 420mm; padding: 14mm; background: var(--ink); }
+  .frame { position: relative; height: 100%; border: 5mm solid var(--sunset); border-radius: 14mm; padding: 16mm 18mm 14mm; display: flex; flex-direction: column; background: var(--ink); overflow: hidden; }
+  .glow { position: absolute; inset: auto -30% -40% -30%; height: 70%; background: radial-gradient(ellipse at center, rgba(245,145,60,.22), rgba(245,145,60,0) 60%); pointer-events: none; }
+  .top { display: flex; align-items: center; justify-content: space-between; }
+  .lockup { display: flex; align-items: center; gap: 6mm; }
+  .lockup svg { width: 22mm; height: 22mm; color: var(--sunset); }
+  .words { font-family: Outfit; text-transform: uppercase; line-height: .9; color: var(--cream); }
+  .words .a { display: block; font-weight: 600; letter-spacing: .14em; font-size: 7.4mm; opacity: .85; }
+  .words .b { display: block; font-weight: 700; letter-spacing: .06em; font-size: 10.6mm; }
+  .eyebrow { font-family: Inter; font-weight: 600; text-transform: uppercase; letter-spacing: .18em; font-size: 4.2mm; color: var(--sunset); }
+  .pill { border: .6mm solid var(--sunset); border-radius: 99mm; padding: 3mm 7mm; }
+  h1 { font-family: Outfit; font-weight: 700; text-transform: uppercase; line-height: .92; letter-spacing: -.01em; font-size: 31mm; margin-top: 14mm; color: var(--cream); }
+  h1 em { font-style: normal; color: var(--sunset); }
+  .sub { margin-top: 6mm; font-size: 6.6mm; line-height: 1.3; color: var(--muted); max-width: 215mm; }
+  .cards { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; margin-top: 12mm; }
+  .card { background: var(--ink-900); border: .5mm solid #2a2522; border-radius: 10mm; padding: 10mm 11mm 11mm; position: relative; }
+  .card.hero { background: var(--sunset); color: var(--ink); border-color: var(--sunset); }
+  .card .eyebrow { font-size: 4mm; }
+  .card.hero .eyebrow { color: var(--ink); opacity: .75; }
+  .name { font-family: Outfit; font-weight: 700; font-size: 14mm; line-height: 1; margin-top: 4mm; text-transform: uppercase; letter-spacing: -.005em; }
+  .price { display: flex; align-items: baseline; gap: 4mm; margin-top: 6mm; }
+  .now { font-family: Outfit; font-weight: 700; font-size: 30mm; line-height: 1; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+  .per { font-family: Outfit; font-weight: 600; font-size: 8mm; white-space: nowrap; }
+  .was { margin-top: 2mm; font-size: 5.8mm; color: var(--faint); }
+  .card.hero .was { color: var(--ink); opacity: .7; }
+  .was s { text-decoration-thickness: .9mm; }
+  .cond { margin-top: 5mm; font-size: 5mm; line-height: 1.35; color: var(--muted); }
+  .card.hero .cond { color: var(--ink); }
+  .cond b { font-weight: 600; color: inherit; }
+  .step { position: absolute; top: -5mm; right: 9mm; background: var(--ink); color: var(--sunset); border: .6mm solid var(--sunset); border-radius: 99mm; padding: 2mm 6mm; font-family: Outfit; font-weight: 700; font-size: 5.2mm; text-transform: uppercase; letter-spacing: .1em; }
+  .how { margin-top: 10mm; display: flex; align-items: center; gap: 8mm; font-size: 6.2mm; line-height: 1.3; color: var(--cream); }
+  .how .n { flex: none; width: 16mm; height: 16mm; border-radius: 50%; border: .7mm solid var(--sunset); display: grid; place-items: center; font-family: Outfit; font-weight: 700; font-size: 10mm; color: var(--sunset); }
+  .bottom { margin-top: auto; padding-top: 10mm; border-top: .4mm solid #2a2522; display: flex; justify-content: space-between; align-items: flex-end; gap: 10mm; }
+  .valid { font-family: Outfit; font-weight: 700; white-space: nowrap; font-size: 10mm; line-height: 1; text-transform: uppercase; letter-spacing: .02em; }
+  .valid small { display: block; font-family: Inter; font-weight: 600; font-size: 4.2mm; letter-spacing: .18em; color: var(--sunset); margin-bottom: 3mm; }
+  .fine { font-size: 3.9mm; line-height: 1.45; color: var(--faint); max-width: 112mm; text-align: right; }
+</style>
+</head>
+<body>
+<div class="sheet"><div class="frame">
+  <div class="glow"></div>
+  <div class="top">
+    <div class="lockup">
+      <svg viewBox="0 0 100 100" aria-label="Herbal Holland"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M 36.2 82.6 A 40 40 0 1 1 63.8 82.6" stroke-width="5.5"/>
+        <path d="M 33 91 L 50 44.5 L 67 91" stroke-width="5.5"/>
+        <path d="M 42.5 91 L 50 69 L 57.5 91" stroke-width="3.2"/>
+        <g transform="translate(50 40)">
+          <path d="M5 0 C 11 -9.5, 23 -9.5, 29 -1.5 C 23 4.5, 13 6.5, 5 0 Z" transform="rotate(-45)" stroke-width="3.6"/>
+          <path d="M5 0 C 11 -9.5, 23 -9.5, 29 -1.5 C 23 4.5, 13 6.5, 5 0 Z" transform="rotate(45)" stroke-width="3.6"/>
+          <path d="M5 0 C 11 -9.5, 23 -9.5, 29 -1.5 C 23 4.5, 13 6.5, 5 0 Z" transform="rotate(135)" stroke-width="3.6"/>
+          <path d="M5 0 C 11 -9.5, 23 -9.5, 29 -1.5 C 23 4.5, 13 6.5, 5 0 Z" transform="rotate(225)" stroke-width="3.6"/>
+          <circle r="3.4" stroke-width="2.4"/><circle r="0.9" fill="currentColor" stroke="none"/>
+        </g></g></svg>
+      <div class="words"><span class="a">Herbal</span><span class="b">Holland</span></div>
+    </div>
+    <div class="eyebrow pill">Package deal</div>
+  </div>
+
+  <h1>Tropical Cooler<br><em>R20 a gram.</em></h1>
+  <p class="sub">Down from R35. And for every 4 g of Tropical Cooler you take, Scented Marker comes along at R40 a gram instead of R70.</p>
+
+  <div class="cards">
+    <div class="card hero">
+      <div class="eyebrow">Now</div>
+      <div class="name">Tropical Cooler</div>
+      <div class="price"><span class="now">R20</span><span class="per">a gram</span></div>
+      <div class="was">Was <s>R35</s> a gram</div>
+      <div class="cond">Any amount, every day of the deal.</div>
+    </div>
+    <div class="card">
+      <div class="step">Add on</div>
+      <div class="eyebrow">With every 4 g of Tropical Cooler</div>
+      <div class="name">Scented Marker</div>
+      <div class="price"><span class="now" style="color:var(--sunset)">R40</span><span class="per">a gram</span></div>
+      <div class="was">Usually <s>R70</s> a gram</div>
+      <div class="cond"><b>4 g unlocks 1 g</b> of Scented Marker at the deal price. 8 g unlocks 2 g, and so on.</div>
+    </div>
+  </div>
+
+  <div class="how">
+    <div class="n">+</div>
+    <div>Ask at the counter. The add-on is priced on the same sale as your Tropical Cooler.</div>
+  </div>
+
+  <div class="bottom">
+    <div class="valid"><small>Valid</small>21 – 31 October 2026</div>
+    <div class="fine">Members only, adults 18+. In store, while stocks last. Prices include VAT. Deal price per gram applies to the quantities above; cannot be combined with other offers. herbalholland.co.za</div>
+  </div>
+</div></div>
+</body>
+</html>
