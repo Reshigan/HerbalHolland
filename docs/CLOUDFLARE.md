@@ -66,3 +66,24 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
 - Jobs: Cron Triggers call the four `/api/cron/<job>` routes with `CRON_SECRET` (`worker.ts`); nothing to install.
 - Start-up checks (`instrumentation.ts`) run on the first request instead of at boot.
 - CPU time per request is capped at 5 minutes; long reports stream, month end and exports run as jobs.
+
+## Sharding (phase 2: when the network passes about 50 stores)
+
+One D1 database holds 10 GB; the demo network writes about 0.2 MB per store per trading day, so one database carries
+roughly 50 stores for a year. Beyond that the data is split by what owns it, with the same code and the same client:
+
+- **The hub** (`DB`): everything network-wide: companies, regions, the store directory, users, settings, the catalogue
+  (products, variants, batches, price lists, promotions), members and their loyalty, online orders, trade, campaigns
+  and the Studio, announcements, the rollups (`DailyStoreStat`, `DailyVariantStat`), the audit log.
+- **One database per store** (`DB_<code>`, bindings added to `wrangler.jsonc` by `npm run shards`, 5,000 fit on a
+  Worker): the store's sales and sale lines, stock levels, movements and stock takes, shifts and cash-ups, devices,
+  loss alerts, commission runs, display feeds.
+- **One database per company** (`DB_BOOKS_<id>`): the ledger (journals, postings, balances, bank statements).
+
+`@/server/db` grows `storeDb(storeId)` and `booksDb(companyId)`; `db` stays the hub. Writes that cross a boundary go
+through an outbox row in the writer's own database and a Queue consumer that applies them to the other side
+idempotently, the way `LedgerQueue` already carries postings: a sale posts its loyalty points and its rollup deltas as
+outbox rows, the consumer applies them to the hub. Reads that cross a boundary (HQ reports, a member's purchases across
+stores) read the hub's rollups and outbox-fed tables, never the shards, as the reporting rules already require. Moving
+a store to its own database is a job: copy its rows, flip its routing row in the hub, drop the copies.
+
