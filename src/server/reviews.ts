@@ -62,8 +62,8 @@ export function reviewWhere(f: { view?: string; q?: string }): Prisma.ReviewWher
   const q = (f.q ?? "").trim();
   return {
     AND: [
-      view === "photos" ? { photoUploadIds: { isEmpty: false } } : view === "hidden" ? { hidden: true } : view === "low" ? { rating: { lte: 2 } } : {},
-      q ? { OR: [{ product: { name: { contains: q, mode: "insensitive" } } }, { title: { contains: q, mode: "insensitive" } }, { body: { contains: q, mode: "insensitive" } }] } : {},
+      view === "photos" ? { photoUploadIds: { not: [] } } : view === "hidden" ? { hidden: true } : view === "low" ? { rating: { lte: 2 } } : {},
+      q ? { OR: [{ product: { name: { contains: q } } }, { title: { contains: q } }, { body: { contains: q } }] } : {},
     ],
   };
 }
@@ -85,7 +85,7 @@ export async function listReviews(where: Prisma.ReviewWhereInput, page: number, 
 }
 
 export async function reviewCounts() {
-  const [all, photos, hidden, low] = await Promise.all([db.review.count(), db.review.count({ where: { photoUploadIds: { isEmpty: false } } }), db.review.count({ where: { hidden: true } }), db.review.count({ where: { rating: { lte: 2 } } })]);
+  const [all, photos, hidden, low] = await Promise.all([db.review.count(), db.review.count({ where: { photoUploadIds: { not: [] } } }), db.review.count({ where: { hidden: true } }), db.review.count({ where: { rating: { lte: 2 } } })]);
   return { all, photos, hidden, low };
 }
 

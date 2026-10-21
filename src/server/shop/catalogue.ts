@@ -3,7 +3,8 @@
 // shopper's store or across the network, and verified-review ratings.
 import { cache } from "react";
 import { db } from "@/server/db";
-import { activePriceLists, activePromotions, priceContext } from "@/server/pricing";
+import { activePriceLists, activePromotions, priceContext, type PromotionRow } from "@/server/pricing";
+import { asList } from "@/lib/json-list";
 import { availability, availKey } from "@/server/inventory";
 import { getClasses } from "./access";
 import { STORE_SELECT } from "./context";
@@ -14,7 +15,7 @@ import { didYouMean, parseQuery, rankSearch, type SearchDoc } from "@/lib/search
 import { similarProducts } from "./search";
 import { distanceKm } from "@/lib/routing";
 import type { RegClass } from "@/lib/compliance";
-import type { Prisma, Promotion } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
 export const PRODUCT_INCLUDE = {
   category: { select: { id: true, slug: true, name: true, sortOrder: true, icon: true } },
@@ -55,8 +56,8 @@ export function rewardsPrice(v: { id: string; priceCents: number }, regClass: Re
   return p.unitCents < p.shelfCents ? p.unitCents : null;
 }
 
-const qualifies = (d: Promotion, p: { id: string; categoryId: string }) => d.productIds.includes(p.id) || d.categoryIds.includes(p.categoryId);
-const rewards = (d: Promotion, p: { id: string; categoryId: string }) => d.rewardProductIds.includes(p.id) || d.rewardCategoryIds.includes(p.categoryId);
+const qualifies = (d: PromotionRow, p: { id: string; categoryId: string }) => d.productIds.includes(p.id) || d.categoryIds.includes(p.categoryId);
+const rewards = (d: PromotionRow, p: { id: string; categoryId: string }) => d.rewardProductIds.includes(p.id) || d.rewardCategoryIds.includes(p.categoryId);
 
 /** Targeted, live online deals that involve a product. Medicines never carry deals (s18A). */
 export function dealsFor(p: { id: string; categoryId: string; regClass: string }, pr: Pricing) {
@@ -67,13 +68,13 @@ export function dealsFor(p: { id: string; categoryId: string; regClass: string }
 /** A single-unit line deal (x% or Rx off, no minimum spend) that applies straight to the shelf price. */
 export const directDeal = (p: { id: string; categoryId: string; regClass: string }, pr: Pricing) =>
   dealsFor(p, pr).find((d) => (d.kind === "PERCENT" || d.kind === "FIXED") && !d.minSpendCents && qualifies(d, p));
-export const withDeal = (cents: number, d?: Promotion | null) => (!d ? cents : cents - (d.kind === "PERCENT" ? Math.round((cents * d.value) / 100) : Math.min(cents, d.value)));
+export const withDeal = (cents: number, d?: PromotionRow | null) => (!d ? cents : cents - (d.kind === "PERCENT" ? Math.round((cents * d.value) / 100) : Math.min(cents, d.value)));
 
 /** Plain headline for a deal; bonus buys with a different reward item read better by name. */
-export const dealHeadline = (d: Promotion) =>
+export const dealHeadline = (d: PromotionRow) =>
   d.kind === "BUY_X_GET_Y" && (d.rewardProductIds.length || d.rewardCategoryIds.length) ? d.name : describePromo(d);
 
-export const dealLabel = (d: Promotion) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d));
+export const dealLabel = (d: PromotionRow) => (d.kind === "BUY_X_GET_Y" ? "Bonus buy" : describePromo(d));
 
 // ── Stock ────────────────────────────────────────────────────────────────────
 export const getNetwork = cache(async () => {
@@ -180,7 +181,7 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
         heritage: p.heritage,
         featured: p.featured,
         category: { slug: p.category.slug, name: p.category.name, sortOrder: p.category.sortOrder },
-        effects: p.effects.map((e) => e.toLowerCase()),
+        effects: asList<string>(p.effects).map((e) => e.toLowerCase()),
         priceCents,
         wasCents: wasCents && wasCents > priceCents ? wasCents : null,
         priceNote,
@@ -191,7 +192,7 @@ export async function buildCards(products: CatalogueProduct[], who: Shopper): Pr
         stock,
         rating: ratings.get(p.id) ?? null,
         createdAt: p.createdAt,
-        search: [p.name, p.tagline, p.description, p.category.name, ...p.effects, ...p.flavours, p.origin, p.lineage].filter(Boolean).join(" ").toLowerCase(),
+        search: [p.name, p.tagline, p.description, p.category.name, ...asList<string>(p.effects), ...asList<string>(p.flavours), p.origin, p.lineage].filter(Boolean).join(" ").toLowerCase(),
       };
     });
 }
@@ -252,7 +253,7 @@ export async function listCatalogue(scope: "public" | "licensed", q: ListQuery, 
     const docs: SearchDoc[] = rows.map((c) => {
       const p = byId.get(c.id)!;
       return {
-        id: c.id, name: c.name, tagline: c.tagline, description: p.description, category: c.category.name, words: [...p.effects, ...p.flavours, p.origin ?? "", p.lineage ?? ""], effects: p.effects,
+        id: c.id, name: c.name, tagline: c.tagline, description: p.description, category: c.category.name, words: [...asList<string>(p.effects), ...asList<string>(p.flavours), p.origin ?? "", p.lineage ?? ""], effects: asList<string>(p.effects),
         netContent: p.netContent, netUnit: p.netUnit, cbdMgPerPack: p.cbdMgPerPack, variants: p.variants.map((v) => ({ name: v.name, grams: v.grams })), sim: sims.get(c.id) ?? 0,
       };
     });

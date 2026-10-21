@@ -71,7 +71,7 @@ export async function rsvpPage(eventId: string, filter: RsvpFilter, q: string, p
     ...(words.length && {
       customer: {
         AND: words.map((w) => ({
-          OR: [{ firstName: { contains: w, mode: "insensitive" as const } }, { lastName: { contains: w, mode: "insensitive" as const } }, { memberNo: { contains: w, mode: "insensitive" as const } }],
+          OR: [{ firstName: { contains: w } }, { lastName: { contains: w } }, { memberNo: { contains: w } }],
         })),
       },
     }),

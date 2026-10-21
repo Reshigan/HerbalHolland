@@ -23,11 +23,11 @@ export function authWhere(storeId: string, view: AuthView, q: string, now = new 
       byView[view],
       ...words.map((w) => ({
         OR: [
-          { authNumber: { contains: w, mode: "insensitive" as const } },
-          { prescriber: { contains: w, mode: "insensitive" as const } },
-          { customer: { firstName: { contains: w, mode: "insensitive" as const } } },
-          { customer: { lastName: { contains: w, mode: "insensitive" as const } } },
-          { customer: { memberNo: { contains: w, mode: "insensitive" as const } } },
+          { authNumber: { contains: w } },
+          { prescriber: { contains: w } },
+          { customer: { firstName: { contains: w } } },
+          { customer: { lastName: { contains: w } } },
+          { customer: { memberNo: { contains: w } } },
         ],
       })),
     ],

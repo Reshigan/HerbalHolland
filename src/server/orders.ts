@@ -4,7 +4,7 @@
 import { canBuyOnline, fulfilmentForPhase, PHASE_CLOSED } from "@/lib/launch-phase";
 import { randomUUID } from "node:crypto";
 import { madeToOrder } from "./merch";
-import { db, tx, type Tx } from "./db";
+import { db, tx, Prisma, type Tx } from "./db";
 import { promotionProblem, quote } from "./pricing";
 import { availability, availKey } from "./inventory";
 import { lockCustomer, lockStock } from "./locks";
@@ -30,7 +30,8 @@ import { yocoCheckoutRequest, yocoEventKind, yocoFacts, YOCO_MIN_CENTS, type Yoc
 import { peachEventKind, peachFacts, peachNextStep, peachPaymentFacts, peachPaymentId, peachPaymentRequest, PEACH_MIN_SESSION_SECONDS, type PeachEvent } from "@/lib/peach";
 import { addDays } from "@/lib/format";
 import { vatOf, zar } from "@/lib/money";
-import type { OrderStatus, Prisma, Province } from "@/generated/prisma/client";
+import type { OrderStatus, Province } from "@/generated/prisma/client";
+import { asList } from "@/lib/json-list";
 
 export class OrderError extends Error {
   constructor(message: string, public alternatives: { id: string; name: string }[] = []) {
@@ -61,6 +62,7 @@ export async function routingCandidates(variantIds: string[]): Promise<RouteCand
   const avail = await availability(stores.map((s) => s.id), variantIds);
   return stores.map((s) => ({
     ...s,
+    licences: asList<string>(s.licences),
     active: true,
     available: Object.fromEntries(variantIds.map((v) => [v, avail.get(availKey(s.id, v))?.available ?? 0])),
   }));
@@ -395,8 +397,12 @@ export const applyPeachEvent = (e: PeachEvent) => applyOnlineEvent("PEACH", { id
  */
 export async function onceForEvent<T>(gateway: HostedGateway, eventId: string | null, handle: () => Promise<T>): Promise<T | PaymentDecision> {
   if (!eventId) return handle();
-  const { count } = await db.paymentEvent.createMany({ data: [{ gateway, eventId }], skipDuplicates: true });
-  if (!count) return { action: "repeat", reason: "Event already handled" };
+  try {
+    await db.paymentEvent.create({ data: { gateway, eventId } });
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { action: "repeat", reason: "Event already handled" };
+    throw e;
+  }
   try {
     return await handle();
   } catch (e) {

@@ -47,7 +47,11 @@ export function segmentWhere(segment: string, now = new Date()): Prisma.Customer
       return { lastPurchaseAt: { lt: d(120) } };
     default:
       if (segment.startsWith("tier:")) return { tier: segment.slice(5) as Tier };
-      if (segment.startsWith("interest:")) return { interests: { has: segment.slice(9) } };
+      if (segment.startsWith("interest:")) {
+        // interests is a JSON list of distinct INTERESTS keys, so it holds the key at one of the first few positions.
+        const key = segment.slice(9);
+        return { OR: Object.keys(INTERESTS).map((_, i) => ({ interests: { path: `$[${i}]`, equals: key } })) };
+      }
       return { id: "__none__" };
   }
 }

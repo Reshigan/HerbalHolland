@@ -8,7 +8,9 @@ import { availability, availKey } from "@/server/inventory";
 import { tapProvider } from "@/server/payments";
 import { dropsFor } from "@/server/drops";
 import { addDays } from "@/lib/format";
-import { PRODUCT_FACTS } from "@/lib/compliance";
+import { PRODUCT_FACTS, type RegClass } from "@/lib/compliance";
+import { asList } from "@/lib/json-list";
+import { promotionRow, promoRunsAt } from "@/server/pricing";
 import { staffTiles } from "./session";
 import type { PosDevice } from "./http";
 import type { BootData, BootShift, TierKey } from "./types";
@@ -47,33 +49,20 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
     }),
     db.storeVariant.findMany({ where: { storeId: store.id }, select: { variantId: true, priceCents: true } }),
     availability([store.id]),
-    db.promotion.findMany({
-      where: {
-        active: true,
-        channels: { has: "POS" },
-        startsAt: { lte: horizon },
-        endsAt: { gte: now },
-        OR: [{ storeIds: { isEmpty: true } }, { storeIds: { equals: null } }, { storeIds: { has: store.id } }],
-      },
-      orderBy: { createdAt: "desc" },
-    }),
-    db.priceList.findMany({
-      where: {
-        active: true,
-        AND: [
-          { OR: [{ startsAt: null }, { startsAt: { lte: horizon } }] },
-          { OR: [{ endsAt: null }, { endsAt: { gte: now } }] },
-          {
-            OR: [
-              { AND: [{ OR: [{ storeIds: { isEmpty: true } }, { storeIds: { equals: null } }] }, { OR: [{ regionIds: { isEmpty: true } }, { regionIds: { equals: null } }] }] },
-              { storeIds: { has: store.id } },
-              { regionIds: { has: store.regionId } },
-            ],
-          },
-        ],
-      },
-      include: { items: { select: { variantId: true, priceCents: true, minQty: true } } },
-    }),
+    // Channel, store and region are JSON lists: the few promotions and price lists live in the window are matched here.
+    db.promotion
+      .findMany({ where: { active: true, startsAt: { lte: horizon }, endsAt: { gte: now } }, orderBy: { createdAt: "desc" } })
+      .then((rows) => rows.map(promotionRow).filter((p) => promoRunsAt(p, "POS", store.id))),
+    db.priceList
+      .findMany({
+        where: { active: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: horizon } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] },
+        include: { items: { select: { variantId: true, priceCents: true, minQty: true } } },
+      })
+      .then((rows) =>
+        rows
+          .map((l) => ({ ...l, tiers: asList<TierKey>(l.tiers), storeIds: asList<string>(l.storeIds), regionIds: asList<string>(l.regionIds) }))
+          .filter((l) => (!l.storeIds.length && !l.regionIds.length) || l.storeIds.includes(store.id) || l.regionIds.includes(store.regionId)),
+      ),
     markdowns(store.id, now, settings.pricing.markdownDays, settings.pricing.markdownPct),
     currentShift(device),
     staffTiles(store.id),
@@ -84,9 +73,10 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
 
   const shelf = new Map(ranged.map((r) => [r.variantId, r.priceCents]));
   const licensedOnly = settings.compliance.licensedOnly;
+  const licences = asList<RegClass>(store.licences);
   const catalogue = products
     // Licence-gated classes only appear where the store holds the licence.
-    .filter((p) => !licensedOnly.includes(p.regClass) || store.licences.includes(p.regClass))
+    .filter((p) => !licensedOnly.includes(p.regClass) || licences.includes(p.regClass))
     .map((p) => ({
       id: p.id,
       slug: p.slug,
@@ -98,7 +88,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       strain: p.strain,
       tobaccoRelated: p.tobaccoRelated,
       featured: p.featured,
-      facts: PRODUCT_FACTS[p.regClass] ? { netContent: p.netContent, netUnit: p.netUnit, ingredients: p.ingredients, allergens: p.allergens } : null,
+      facts: PRODUCT_FACTS[p.regClass] ? { netContent: p.netContent, netUnit: p.netUnit, ingredients: p.ingredients, allergens: asList<string>(p.allergens) } : null,
       variants: p.variants
         .filter((v) => shelf.has(v.id) || (avail.get(availKey(store.id, v.id))?.onHand ?? 0) !== 0)
         .map((v) => {
@@ -138,7 +128,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       postalCode: store.postalCode,
       phone: store.phone,
       email: store.email,
-      licences: store.licences,
+      licences,
       licenceRef: store.licenceRef,
       receiptFooter: store.receiptFooter,
       regionId: store.regionId,
@@ -154,18 +144,17 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       code: p.code,
       kind: p.kind,
       value: p.value,
-      // Scalar lists can be NULL in the database; the till expects arrays.
-      categoryIds: p.categoryIds ?? [],
-      productIds: p.productIds ?? [],
+      categoryIds: p.categoryIds,
+      productIds: p.productIds,
       minSpendCents: p.minSpendCents,
       buyQty: p.buyQty,
       getQty: p.getQty,
       rewardPercent: p.rewardPercent,
-      rewardCategoryIds: p.rewardCategoryIds ?? [],
-      rewardProductIds: p.rewardProductIds ?? [],
+      rewardCategoryIds: p.rewardCategoryIds,
+      rewardProductIds: p.rewardProductIds,
       startsAt: p.startsAt.toISOString(),
       endsAt: p.endsAt.toISOString(),
-      days: p.days ?? [],
+      days: p.days,
       startMinute: p.startMinute,
       endMinute: p.endMinute,
       firstPurchaseOnly: p.firstPurchaseOnly,
@@ -174,7 +163,7 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       id: d.id,
       slug: d.slug,
       name: d.name,
-      variantIds: d.variantIds.filter((id) => onTill.has(id)),
+      variantIds: asList<string>(d.variantIds).filter((id) => onTill.has(id)),
       startsAt: d.startsAt.toISOString(),
       endsAt: d.endsAt?.toISOString() ?? null,
       earlyTier: (d.earlyTier as TierKey | null) ?? null,
@@ -187,9 +176,9 @@ export async function buildBootstrap(device: PosDevice, origin: string): Promise
       name: l.name,
       kind: l.kind,
       channel: l.channel,
-      tiers: l.tiers ?? [],
-      storeIds: l.storeIds ?? [],
-      regionIds: l.regionIds ?? [],
+      tiers: l.tiers,
+      storeIds: l.storeIds,
+      regionIds: l.regionIds,
       adjustPct: l.adjustPct,
       active: l.active,
       priority: l.priority,

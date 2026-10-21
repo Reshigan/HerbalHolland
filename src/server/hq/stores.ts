@@ -29,11 +29,11 @@ export function storeFilterWhere(ids: string[], f: StoreFilters): Prisma.StoreWh
       q
         ? {
             OR: [
-              { name: { contains: q, mode: "insensitive" } },
-              { code: { contains: q, mode: "insensitive" } },
-              { city: { contains: q, mode: "insensitive" } },
-              { suburb: { contains: q, mode: "insensitive" } },
-              { company: { name: { contains: q, mode: "insensitive" } } },
+              { name: { contains: q } },
+              { code: { contains: q } },
+              { city: { contains: q } },
+              { suburb: { contains: q } },
+              { company: { name: { contains: q } } },
             ],
           }
         : {},

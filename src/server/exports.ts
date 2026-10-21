@@ -19,6 +19,7 @@ import type { Staff } from "./auth";
 import type { ExportCadence, Role, ScheduledExport } from "@/generated/prisma/client";
 import type { ReportDef } from "./reports/types";
 import { appSecret } from "./secret";
+import { asList } from "@/lib/json-list";
 
 export class ExportError extends Error {
   constructor(message: string, public field?: string) {
@@ -191,7 +192,7 @@ export async function runExport(s: ScheduledExport, now = new Date()) {
       return null;
     }
   }
-  const to = await currentRecipients(s.recipients, def, await scheduleReach(user, params));
+  const to = await currentRecipients(asList<string>(s.recipients), def, await scheduleReach(user, params));
   if (!to.length) {
     await db.scheduledExport.update({ where: { id: s.id }, data: { active: false } });
     return null;

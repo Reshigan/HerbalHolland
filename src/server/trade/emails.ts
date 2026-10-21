@@ -3,6 +3,7 @@
 // (accounts, orders, ledger, auth, invoices) send them.
 import { APP_URL, callout, emailLayout, esc, facts, figures, para, summaryTable, textDoc, type FigureRow, type LineRow, type Rendered, type TotalRow } from "../email-templates";
 import { zar } from "@/lib/money";
+import { asList } from "@/lib/json-list";
 import { fmtDate, fmtDateTime, fmtMonth } from "@/lib/format";
 import { REG_CLASS_LABEL, type RegClass } from "@/lib/compliance";
 import { TRADE_KINDS, addressLineOf, eftReference, type StatementLine, type Ageing } from "@/lib/trade";
@@ -20,13 +21,13 @@ export type TradeAccountInfo = {
   terms: "PREPAID" | "ACCOUNT";
   creditLimitCents: number;
   paymentDays: number;
-  classes: string[];
+  classes: unknown; // the row's JSON list (asList)
   holdReason?: string | null;
 };
 
 export type TradeTermsInfo = { minOrderCents: number; deliveryCents: number; freeDeliveryOverCents: number; collectHandlingCents: number; eftHoldDays: number };
 
-const classList = (classes: string[]) => classes.map((c) => REG_CLASS_LABEL[c as RegClass] ?? c).join(", ");
+const classList = (classes: unknown) => asList<string>(classes).map((c) => REG_CLASS_LABEL[c as RegClass] ?? c).join(", ");
 
 // ── Sign-in code ─────────────────────────────────────────────────────────────
 

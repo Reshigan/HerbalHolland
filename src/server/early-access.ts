@@ -12,7 +12,13 @@ export const earlyAccessCount = () => db.earlyAccessContact.count();
 
 export async function importEarlyAccess(raw: string, actor: Actor) {
   const { rows, skipped } = parseEarlyAccess(raw);
-  const r = await db.earlyAccessContact.createMany({ data: rows, skipDuplicates: true });
+  // SQLite's createMany can't skip duplicates: leave out the emails and mobiles already on the list.
+  const emails = rows.flatMap((r) => (r.email ? [r.email] : []));
+  const mobiles = rows.flatMap((r) => (r.mobile ? [r.mobile] : []));
+  const have = await db.earlyAccessContact.findMany({ where: { OR: [{ email: { in: emails } }, { mobile: { in: mobiles } }] }, select: { email: true, mobile: true } });
+  const seenEmail = new Set(have.map((h) => h.email)), seenMobile = new Set(have.map((h) => h.mobile));
+  const fresh = rows.filter((r) => !(r.email && seenEmail.has(r.email)) && !(r.mobile && seenMobile.has(r.mobile)) && (!r.email || seenEmail.add(r.email)) && (!r.mobile || seenMobile.add(r.mobile)));
+  const r = await db.earlyAccessContact.createMany({ data: fresh });
   await audit(db, actor, "studio.firstAccess.import", { data: { added: r.count, skipped, duplicates: rows.length - r.count } });
   return { added: r.count, skipped, duplicates: rows.length - r.count };
 }
@@ -32,7 +38,7 @@ export async function sendEarlyAccess(channel: "EMAIL" | "SMS", subject: string 
   const people = await db.earlyAccessContact.findMany({ where: channel === "EMAIL" ? { email: { not: null } } : { email: null, mobile: { not: null } } });
   const to = (p: (typeof people)[number]) => (channel === "EMAIL" ? p.email! : p.mobile!);
   const blocked = new Set((await db.suppression.findMany({ where: { value: { in: people.map(to) }, OR: [{ channel: null }, { channel }] }, select: { value: true } })).map((s) => s.value));
-  const found = await db.customer.findMany({ where: channel === "EMAIL" ? { email: { in: people.map(to), mode: "insensitive" } } : { phone: { in: people.map(to) } }, select: { email: true, phone: true } });
+  const found = await db.customer.findMany({ where: channel === "EMAIL" ? { email: { in: people.map(to) } } : { phone: { in: people.map(to) } }, select: { email: true, phone: true } });
   const members = new Set(found.map((c) => (channel === "EMAIL" ? c.email!.toLowerCase() : c.phone)));
   const footer = await senderFooter(channel);
   const rows = people.filter((p) => !blocked.has(to(p)) && !members.has(to(p))).map((p) => ({ to: to(p), channel, subject: subject ?? undefined, body: body.replaceAll("{{firstName}}", p.firstName ?? "there") + footer }));

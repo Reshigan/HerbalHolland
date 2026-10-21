@@ -9,6 +9,7 @@ import { audit, type Actor } from "./audit";
 import { addPoints } from "./loyalty";
 import { deleteObject } from "./storage";
 import type { MsgChannel } from "@/generated/prisma/client";
+import { asList } from "@/lib/json-list";
 
 /** An expected refusal, shown to HQ as it is. */
 export class ErasureError extends Error {}
@@ -20,7 +21,8 @@ const ANONYMISED = "Anonymised";
 const isAnonymised = (c: { phone: string }) => c.phone.startsWith("anon-");
 
 type Member = { id: string; phone: string; email: string | null };
-const insensitive = (email: string) => ({ equals: email, mode: "insensitive" as const });
+// SQLite compares `=` case-sensitively but LIKE not (for ASCII): a string that both starts and ends with the email is the email, any case.
+const insensitive = (email: string) => ({ startsWith: email, endsWith: email });
 /** Their mobile and email, as the do-not-contact list keeps them. */
 const contactOf = (c: Member) => (c.email ? [c.phone, c.email] : [c.phone]);
 // Their herbalholland.com first-access sign-up, if it hasn't been told and deleted yet (src/server/early-access.ts).
@@ -99,13 +101,13 @@ export async function memberExport(customerId: string) {
   void _hash;
   return {
     ...profile,
-    reviews: reviews.map(({ photoUploadIds, ...r }) => ({ ...r, photos: photoUploadIds.length })),
+    reviews: reviews.map(({ photoUploadIds, ...r }) => ({ ...r, photos: asList(photoUploadIds).length })),
     messages,
     addresses,
     wishlist: wishlist.map((w) => ({ ...item(w.variantId), addedAt: w.createdAt })),
     reorderReminders: reminders.map(({ variantId, ...r }) => ({ ...item(variantId), ...r })),
     supportRequests: tickets.map(({ messages: thread, ...t }) => ({ ...t, messages: thread.map(({ attachmentUploadId, ...m }) => ({ ...m, photo: !!attachmentUploadId })) })),
-    returns: returns.map(({ orderId, photoUploadIds, ...r }) => ({ ...r, order: orderCodes.find((o) => o.id === orderId)?.code ?? null, photos: photoUploadIds.length })),
+    returns: returns.map(({ orderId, photoUploadIds, ...r }) => ({ ...r, order: orderCodes.find((o) => o.id === orderId)?.code ?? null, photos: asList(photoUploadIds).length })),
     giftVouchers: vouchers.map(({ purchasedByCustomerId, ...v }) => ({ ...v, boughtByThem: purchasedByCustomerId === c.id })),
     photos,
     doNotContact,
@@ -126,7 +128,8 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
   const now = new Date();
   const keys = await tx(async (t) => {
     if (c.points > 0) await addPoints(t, { customerId, points: -c.points, kind: "EXPIRE", note: "Forfeited on POPIA erasure request" });
-    await t.suppression.createMany({ data: contactOf(c).map((value) => ({ value, channel: null, source: "REFUSED" })), skipDuplicates: true });
+    const listed = new Set((await t.suppression.findMany({ where: { value: { in: contactOf(c) }, source: "REFUSED" }, select: { value: true } })).map((s) => s.value));
+    await t.suppression.createMany({ data: contactOf(c).filter((value) => !listed.has(value)).map((value) => ({ value, channel: null, source: "REFUSED" })) });
     await t.customer.update({
       where: { id: customerId },
       data: {
@@ -177,7 +180,7 @@ export async function eraseMember(customerId: string, actor: Actor, reason: stri
     for (const p of probes) await t.auditLog.update({ where: { id: p.id }, data: { actorName: ANONYMISED, data: { ...(p.data as Prisma.JsonObject), by: "phone:[erased]" } } });
 
     // Their photos (reviews, returns, support): the rows here, the stored files once this commits.
-    const ids = [...reviews, ...returns].flatMap((r) => r.photoUploadIds).concat(attachments.flatMap((m) => (m.attachmentUploadId ? [m.attachmentUploadId] : [])));
+    const ids = [...reviews, ...returns].flatMap((r) => asList<string>(r.photoUploadIds)).concat(attachments.flatMap((m) => (m.attachmentUploadId ? [m.attachmentUploadId] : [])));
     const files = await t.upload.findMany({ where: { OR: [{ id: { in: ids } }, { uploadedById: customerId }] }, select: { id: true, key: true } });
     await t.upload.deleteMany({ where: { id: { in: files.map((f) => f.id) } } });
     await audit(t, actor, "customer.anonymise", { entity: "Customer", entityId: customerId, data: { memberNo: c.memberNo, reason, pointsForfeited: Math.max(0, c.points), files: files.length, supportRequests: ticketIds.length } });
