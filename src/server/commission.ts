@@ -28,18 +28,19 @@ export async function monthCommission(storeId: string, month: string, onlyUserId
   const excluded = incentiveExcluded(compliance);
   // A sale is the seller's (soldById, else whoever rang it up); a refund counts against whoever made the original sale;
   // sales on the seller's own member card don't count at all.
-  const rows = await db.$queryRaw<{ userId: string; regClass: RegClass; sold: number; refunded: number }[]>`
-    SELECT COALESCE(o."soldById", o."staffId", s."soldById", s."staffId") AS "userId", p."regClass"::text AS "regClass",
-      COALESCE(SUM(l."totalCents" - l."vatCents") FILTER (WHERE s.kind = 'SALE'), 0)::int AS sold,
-      COALESCE(SUM(l."totalCents" - l."vatCents") FILTER (WHERE s.kind = 'REFUND'), 0)::int AS refunded
+  const raw = await db.$queryRaw<{ userId: string; regClass: RegClass; sold: number | bigint; refunded: number | bigint }[]>`
+    SELECT COALESCE(o."soldById", o."staffId", s."soldById", s."staffId") AS "userId", p."regClass" AS "regClass",
+      COALESCE(SUM(CASE WHEN s.kind = 'SALE' THEN l."totalCents" - l."vatCents" ELSE 0 END), 0) AS sold,
+      COALESCE(SUM(CASE WHEN s.kind = 'REFUND' THEN l."totalCents" - l."vatCents" ELSE 0 END), 0) AS refunded
     FROM "Sale" s
     JOIN "SaleLine" l ON l."saleId" = s.id JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"
     LEFT JOIN "Sale" o ON o.id = s."refundOfId"
     JOIN "User" u ON u.id = COALESCE(o."soldById", o."staffId", s."soldById", s."staffId")
     WHERE s."storeId" = ${storeId} AND s.channel = 'POS' AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
-      AND COALESCE(o."customerId", s."customerId") IS DISTINCT FROM u."memberId"
+      AND COALESCE(o."customerId", s."customerId") IS NOT u."memberId"
       ${onlyUserId ? Prisma.sql`AND u.id = ${onlyUserId}` : Prisma.empty}
     GROUP BY 1, 2`;
+  const rows = raw.map((r) => ({ ...r, sold: Number(r.sold), refunded: Number(r.refunded) }));
   const ids = [...new Set(rows.map((r) => r.userId))];
   const [users, open] = await Promise.all([
     db.user.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }),

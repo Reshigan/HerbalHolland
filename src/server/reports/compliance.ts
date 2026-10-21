@@ -7,7 +7,11 @@ import type { Option, ParamArgs, ReportDef, Row } from "./types";
 import { MANAGERS, PATIENT_DATA } from "./types";
 import { CHANNEL_LABEL, bounds, multi, n, ratio, storeCols, storeLabel, storeVals, sumRows } from "./util";
 
-const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}::"Channel"` : Prisma.empty);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE", col = "channel") => (c ? Prisma.sql`AND ${Prisma.raw(col)} = ${c}` : Prisma.empty);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
+/** `col IN (…)` for a short, fixed list of classes; an empty list matches nothing. */
+const inSet = (xs: readonly string[]) => (xs.length ? Prisma.sql`IN (${Prisma.join(xs)})` : Prisma.sql`IN (NULL)`);
 
 // ── Age checks ──────────────────────────────────────────────────────────────
 const METHODS = [
@@ -29,13 +33,13 @@ export const ageChecks: ReportDef = {
     const { compliance } = await getSettings();
     const restricted = compliance.ageRestricted;
     const data = await db.$queryRaw<{ method: string; storeId: string; n: number; gross: number; restricted: number }[]>`
-      SELECT s."ageCheck"::text AS method, s."storeId", COUNT(*)::int AS n, COALESCE(SUM(s."totalCents"), 0)::float8 AS gross,
-        COUNT(*) FILTER (WHERE EXISTS (
+      SELECT s."ageCheck" AS method, s."storeId", cast(COUNT(*) AS real) AS n, cast(COALESCE(SUM(s."totalCents"), 0) AS real) AS gross,
+        cast(COUNT(CASE WHEN EXISTS (
           SELECT 1 FROM "SaleLine" l JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"
-          WHERE l."saleId" = s.id AND p."regClass"::text = ANY(${restricted}::text[])
-        ))::int AS restricted
+          WHERE l."saleId" = s.id AND p."regClass" ${inSet(restricted)}
+        ) THEN 1 END) AS real) AS restricted
       FROM "Sale" s
-      WHERE s.kind = 'SALE' AND s."storeId" = ANY(${ctx.storeIds}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel, "s.channel")}
+      WHERE s.kind = 'SALE' AND s."storeId" IN (${inList(ctx.storeIds)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel, "s.channel")}
       GROUP BY 1, 2`;
     const total = data.reduce((s, d) => s + d.n, 0);
     const restrictedTotal = data.reduce((s, d) => s + d.restricted, 0);
@@ -92,36 +96,37 @@ export const dispensingRegister: ReportDef = {
     const licensed = compliance.licensedOnly;
     const from = Prisma.sql`FROM "SaleLine" l JOIN "Sale" s ON s.id = l."saleId" JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"`;
     const where = Prisma.sql`
-      WHERE s."storeId" = ANY(${ctx.storeIds}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
-        AND p."regClass"::text = ANY(${licensed}::text[]) ${channelSql(ctx.channel, "s.channel")}`;
+      WHERE s."storeId" IN (${inList(ctx.storeIds)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end}
+        AND p."regClass" ${inSet(licensed)} ${channelSql(ctx.channel, "s.channel")}`;
     const [lines, agg] = await Promise.all([
-      db.$queryRaw<{ at: Date; number: string; kind: string; storeId: string; channel: string; memberNo: string | null; firstName: string | null; lastName: string | null; authNumber: string | null; prescriber: string | null; prescriberRegNo: string | null; product: string; sku: string; qty: number; grams: number | null; dispenser: string | null; canDispense: boolean | null; batches: string | null }[]>`
-        SELECT s."createdAt" AS at, s.number, s.kind::text AS kind, s."storeId", s.channel::text AS channel,
+      // pa: the authorisation covering the sale (an active one first, then the latest to expire), picked by a correlated subquery.
+      db.$queryRaw<{ at: Date; number: string; kind: string; storeId: string; channel: string; memberNo: string | null; firstName: string | null; lastName: string | null; authNumber: string | null; prescriber: string | null; prescriberRegNo: string | null; product: string; sku: string; qty: number; grams: number | null; dispenser: string | null; canDispense: boolean | number | null; batches: string | null }[]>`
+        SELECT s."createdAt" AS at, s.number, s.kind AS kind, s."storeId", s.channel AS channel,
           c."memberNo", c."firstName", c."lastName", pa."authNumber", pa.prescriber, pa."prescriberRegNo",
           p.name || ' · ' || v.name AS product, v.sku, l.qty, v.grams * l.qty AS grams, u.name AS dispenser, u."canDispense",
-          (SELECT string_agg(b.code || ' ×' || (a->>'qty'), ', ') FROM jsonb_array_elements(l.allocations) a JOIN "Batch" b ON b.id = a->>'batchId') AS batches
+          (SELECT group_concat(b.code || ' ×' || json_extract(a.value, '$.qty'), ', ') FROM json_each(l.allocations) a JOIN "Batch" b ON b.id = json_extract(a.value, '$.batchId')) AS batches
         ${from}
         LEFT JOIN "Customer" c ON c.id = s."customerId"
         LEFT JOIN "User" u ON u.id = s."staffId"
-        LEFT JOIN LATERAL (
-          SELECT "authNumber", prescriber, "prescriberRegNo" FROM "PatientAuth" x
+        LEFT JOIN "PatientAuth" pa ON pa.id = (
+          SELECT x.id FROM "PatientAuth" x
           WHERE x."customerId" = s."customerId" AND x."validFrom" <= s."createdAt" AND x."validTo" >= s."createdAt"
           ORDER BY (x.status = 'ACTIVE') DESC, x."validTo" DESC LIMIT 1
-        ) pa ON true
+        )
         ${where}
         ORDER BY s."createdAt" DESC
         LIMIT ${ctx.rowLimit}`,
       db.$queryRaw<{ n: number; units: number; grams: number; patients: number; sales: number; noAuth: number; noDispenser: number }[]>`
-        SELECT COUNT(*)::int AS n, COALESCE(SUM(l.qty), 0)::int AS units, COALESCE(SUM(l.qty * COALESCE(v.grams, 0)), 0)::float8 AS grams,
-          COUNT(DISTINCT s."customerId")::int AS patients, COUNT(DISTINCT s.id)::int AS sales,
-          COUNT(*) FILTER (WHERE s.kind = 'SALE' AND NOT EXISTS (
+        SELECT cast(COUNT(*) AS real) AS n, cast(COALESCE(SUM(l.qty), 0) AS real) AS units, cast(COALESCE(SUM(l.qty * COALESCE(v.grams, 0)), 0) AS real) AS grams,
+          cast(COUNT(DISTINCT s."customerId") AS real) AS patients, cast(COUNT(DISTINCT s.id) AS real) AS sales,
+          cast(COUNT(CASE WHEN s.kind = 'SALE' AND NOT EXISTS (
             SELECT 1 FROM "PatientAuth" x WHERE x."customerId" = s."customerId" AND x."validFrom" <= s."createdAt" AND x."validTo" >= s."createdAt"
-          ))::int AS "noAuth",
-          COUNT(*) FILTER (WHERE s.kind = 'SALE' AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = s."staffId" AND u."canDispense"))::int AS "noDispenser"
+          ) THEN 1 END) AS real) AS "noAuth",
+          cast(COUNT(CASE WHEN s.kind = 'SALE' AND NOT EXISTS (SELECT 1 FROM "User" u WHERE u.id = s."staffId" AND u."canDispense") THEN 1 END) AS real) AS "noDispenser"
         ${from} ${where}`,
     ]);
     const rows: Row[] = lines.map((x) => {
-      const issues = x.kind === "SALE" ? [!x.authNumber && "No valid authorisation", x.canDispense === false || !x.dispenser ? "Not an authorised dispenser" : null].filter(Boolean) : [];
+      const issues = x.kind === "SALE" ? [!x.authNumber && "No valid authorisation", (x.canDispense != null && !x.canDispense) || !x.dispenser ? "Not an authorised dispenser" : null].filter(Boolean) : [];
       return {
         at: x.at, ...storeVals(ctx, x.storeId), number: x.number, type: x.kind === "REFUND" ? "Return" : CHANNEL_LABEL[x.channel] ?? x.channel,
         who: `${x.firstName ? `${x.firstName} ${x.lastName ?? ""}`.trim() : "Unknown"}${x.memberNo ? ` · ${x.memberNo}` : ""}`,
@@ -249,16 +254,16 @@ export const recalls: ReportDef = {
       ? await Promise.all([
           db.$queryRaw<{ batchId: string; sold: number; returned: number; members: number; walkIn: number }[]>`
             SELECT m."batchId",
-              COALESCE(-SUM(m.qty) FILTER (WHERE m.type IN ('SALE', 'ONLINE')), 0)::int AS sold,
-              COALESCE(SUM(m.qty) FILTER (WHERE m.type = 'REFUND'), 0)::int AS returned,
-              COUNT(DISTINCT s."customerId") FILTER (WHERE m.type IN ('SALE', 'ONLINE'))::int AS members,
-              COALESCE(-SUM(m.qty) FILTER (WHERE m.type IN ('SALE', 'ONLINE') AND s."customerId" IS NULL), 0)::int AS "walkIn"
+              cast(COALESCE(-SUM(CASE WHEN m.type IN ('SALE', 'ONLINE') THEN m.qty ELSE 0 END), 0) AS real) AS sold,
+              cast(COALESCE(SUM(CASE WHEN m.type = 'REFUND' THEN m.qty ELSE 0 END), 0) AS real) AS returned,
+              cast(COUNT(DISTINCT CASE WHEN m.type IN ('SALE', 'ONLINE') THEN s."customerId" END) AS real) AS members,
+              cast(COALESCE(-SUM(CASE WHEN m.type IN ('SALE', 'ONLINE') AND s."customerId" IS NULL THEN m.qty ELSE 0 END), 0) AS real) AS "walkIn"
             FROM "StockMovement" m LEFT JOIN "Sale" s ON s.id = m."saleId"
-            WHERE m."batchId" = ANY(${ids}::text[]) AND m."storeId" = ANY(${ctx.storeIds}::text[])
+            WHERE m."batchId" IN (${inList(ids)}) AND m."storeId" IN (${inList(ctx.storeIds)})
             GROUP BY 1`,
           db.$queryRaw<{ batchId: string; units: number; stores: number }[]>`
-            SELECT "batchId", SUM("onHand")::int AS units, COUNT(DISTINCT "storeId")::int AS stores
-            FROM "StockLevel" WHERE "batchId" = ANY(${ids}::text[]) AND "storeId" = ANY(${ctx.storeIds}::text[]) AND "onHand" > 0
+            SELECT "batchId", cast(SUM("onHand") AS real) AS units, cast(COUNT(DISTINCT "storeId") AS real) AS stores
+            FROM "StockLevel" WHERE "batchId" IN (${inList(ids)}) AND "storeId" IN (${inList(ctx.storeIds)}) AND "onHand" > 0
             GROUP BY 1`,
           db.auditLog.findMany({ where: { entity: "Batch", entityId: { in: ids }, action: { in: ["batch.recall", "batch.quarantine", "batch.status"] } }, select: { entityId: true, at: true }, orderBy: { at: "desc" } }),
         ])
@@ -312,9 +317,9 @@ const STATUS_LABEL: Record<string, string> = { RECALLED: "Recalled", QUARANTINE:
 
 async function batchOptions({ storeIds }: ParamArgs): Promise<Option[]> {
   const rows = await db.$queryRaw<{ id: string; code: string; status: string; product: string; variant: string }[]>`
-    SELECT b.id, b.code, b.status::text AS status, p.name AS product, v.name AS variant
+    SELECT b.id, b.code, b.status AS status, p.name AS product, v.name AS variant
     FROM "Batch" b JOIN "Variant" v ON v.id = b."variantId" JOIN "Product" p ON p.id = v."productId"
-    WHERE EXISTS (SELECT 1 FROM "StockLevel" sl WHERE sl."batchId" = b.id AND sl."storeId" = ANY(${storeIds}::text[]))
+    WHERE EXISTS (SELECT 1 FROM "StockLevel" sl WHERE sl."batchId" = b.id AND sl."storeId" IN (${inList(storeIds)}))
     ORDER BY CASE b.status WHEN 'RECALLED' THEN 0 WHEN 'QUARANTINE' THEN 1 ELSE 2 END, p.name, v.name, b.code`;
   return [{ value: "", label: "Choose a batch…" }, ...rows.map((r) => ({ value: r.id, label: `${r.code}: ${r.product} · ${r.variant}`, group: STATUS_LABEL[r.status] ?? r.status }))];
 }
@@ -342,30 +347,30 @@ export const batchTrace: ReportDef = {
       { key: "email", label: "Email" },
     ];
     if (!id) return { columns, rows: [], emptyTitle: "Choose a batch", empty: "Pick a batch above to see where it went and who bought it." };
-    const saleIds = Prisma.sql`SELECT DISTINCT "saleId" FROM "StockMovement" WHERE "batchId" = ${id} AND "saleId" IS NOT NULL AND "storeId" = ANY(${ctx.storeIds}::text[])`;
+    const saleIds = Prisma.sql`SELECT DISTINCT "saleId" FROM "StockMovement" WHERE "batchId" = ${id} AND "saleId" IS NOT NULL AND "storeId" IN (${inList(ctx.storeIds)})`;
     const [batch, held, received, sales, agg] = await Promise.all([
       db.batch.findUnique({ where: { id }, include: { variant: { select: { name: true, product: { select: { name: true } } } } } }),
       db.stockLevel.findMany({ where: { batchId: id, storeId: { in: ctx.storeIds } }, select: { storeId: true, onHand: true, updatedAt: true } }),
       db.stockMovement.groupBy({ by: ["storeId"], where: { batchId: id, storeId: { in: ctx.storeIds }, type: { in: ["RECEIVE", "TRANSFER_IN"] } }, _sum: { qty: true } }),
       db.$queryRaw<{ at: Date; number: string; kind: string; storeId: string; channel: string; memberNo: string | null; firstName: string | null; lastName: string | null; phone: string | null; email: string | null; units: number }[]>`
-        SELECT s."createdAt" AS at, s.number, s.kind::text AS kind, s."storeId", s.channel::text AS channel,
-          c."memberNo", c."firstName", c."lastName", c.phone, c.email, SUM((a->>'qty')::int)::int AS units
+        SELECT s."createdAt" AS at, s.number, s.kind AS kind, s."storeId", s.channel AS channel,
+          c."memberNo", c."firstName", c."lastName", c.phone, c.email, cast(SUM(cast(json_extract(a.value, '$.qty') AS integer)) AS real) AS units
         FROM "Sale" s
         JOIN "SaleLine" l ON l."saleId" = s.id
-        CROSS JOIN LATERAL jsonb_array_elements(l.allocations) a
+        CROSS JOIN json_each(l.allocations) a
         LEFT JOIN "Customer" c ON c.id = s."customerId"
-        WHERE s.id IN (${saleIds}) AND a->>'batchId' = ${id}
+        WHERE s.id IN (${saleIds}) AND json_extract(a.value, '$.batchId') = ${id}
         GROUP BY s.id, c.id
         ORDER BY s."createdAt" DESC
         LIMIT ${ctx.rowLimit}`,
       db.$queryRaw<{ lines: number; sold: number; returned: number; members: number; walkIn: number }[]>`
-        SELECT COUNT(DISTINCT s.id)::int AS lines,
-          COALESCE(SUM((a->>'qty')::int) FILTER (WHERE s.kind = 'SALE'), 0)::int AS sold,
-          COALESCE(SUM((a->>'qty')::int) FILTER (WHERE s.kind = 'REFUND'), 0)::int AS returned,
-          COUNT(DISTINCT s."customerId") FILTER (WHERE s.kind = 'SALE')::int AS members,
-          COALESCE(SUM((a->>'qty')::int) FILTER (WHERE s.kind = 'SALE' AND s."customerId" IS NULL), 0)::int AS "walkIn"
-        FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id CROSS JOIN LATERAL jsonb_array_elements(l.allocations) a
-        WHERE s.id IN (${saleIds}) AND a->>'batchId' = ${id}`,
+        SELECT cast(COUNT(DISTINCT s.id) AS real) AS lines,
+          cast(COALESCE(SUM(CASE WHEN s.kind = 'SALE' THEN cast(json_extract(a.value, '$.qty') AS integer) ELSE 0 END), 0) AS real) AS sold,
+          cast(COALESCE(SUM(CASE WHEN s.kind = 'REFUND' THEN cast(json_extract(a.value, '$.qty') AS integer) ELSE 0 END), 0) AS real) AS returned,
+          cast(COUNT(DISTINCT CASE WHEN s.kind = 'SALE' THEN s."customerId" END) AS real) AS members,
+          cast(COALESCE(SUM(CASE WHEN s.kind = 'SALE' AND s."customerId" IS NULL THEN cast(json_extract(a.value, '$.qty') AS integer) ELSE 0 END), 0) AS real) AS "walkIn"
+        FROM "Sale" s JOIN "SaleLine" l ON l."saleId" = s.id CROSS JOIN json_each(l.allocations) a
+        WHERE s.id IN (${saleIds}) AND json_extract(a.value, '$.batchId') = ${id}`,
     ]);
     if (!batch) return { columns, rows: [], emptyTitle: "Batch not found", empty: "That batch no longer exists." };
     const rec = new Map(received.map((r) => [r.storeId, r._sum.qty ?? 0]));

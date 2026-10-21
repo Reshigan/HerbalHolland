@@ -9,9 +9,15 @@ import { dayKey } from "@/lib/format";
 import { MANAGERS, type ReportDef, type Row } from "./types";
 import { bounds, n, retailIds } from "./util";
 
-const ymSql = (expr: Prisma.Sql) => Prisma.sql`to_char(${expr}, 'YYYY-MM')`;
-const homeSql = (ctx: { networkWide: boolean }, ids: string[]) => (ctx.networkWide ? Prisma.empty : Prisma.sql`AND c."homeStoreId" = ANY(${ids}::text[])`);
-const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND s.channel = ${c}::"Channel"` : Prisma.empty);
+/** A list of ids as one JSON parameter (any length under D1's 100 bound values): `col IN (${inList(ids)})`. */
+const inList = (ids: readonly string[]) => Prisma.sql`SELECT value FROM json_each(${JSON.stringify(ids)})`;
+const ymSql = (expr: Prisma.Sql) => Prisma.sql`strftime('%Y-%m', ${expr})`;
+/** A month as a number (year × 12 + month) of a SAST timestamp, so months between two dates are a subtraction. */
+const ymNum = (expr: Prisma.Sql) => Prisma.sql`(cast(strftime('%Y', ${expr}) AS integer) * 12 + cast(strftime('%m', ${expr}) AS integer))`;
+/** A timestamp column moved by a SQLite modifier ('+1 day'), in the ISO text the columns hold, for exact comparisons. */
+const shifted = (col: string, modifier: string) => Prisma.raw(`(strftime('%Y-%m-%dT%H:%M:%f', ${col}, '${modifier}') || '+00:00')`);
+const homeSql = (ctx: { networkWide: boolean }, ids: string[]) => (ctx.networkWide ? Prisma.empty : Prisma.sql`AND c."homeStoreId" IN (${inList(ids)})`);
+const channelSql = (c?: "POS" | "ONLINE" | "WHOLESALE") => (c ? Prisma.sql`AND s.channel = ${c}` : Prisma.empty);
 
 export const cohorts: ReportDef = {
   key: "cohorts",
@@ -30,17 +36,17 @@ export const cohorts: ReportDef = {
     const maxMonths = Math.min(24, Math.max(3, monthsBetween(months[0], asOf) + 1));
     const [sizes, cells] = await Promise.all([
       db.$queryRaw<{ cohort: string; members: number }[]>`
-        SELECT ${ymSql(sast('c."createdAt"'))} AS cohort, COUNT(*)::int AS members
+        SELECT ${ymSql(sast('c."createdAt"'))} AS cohort, cast(COUNT(*) AS real) AS members
         FROM "Customer" c WHERE c."createdAt" >= ${start} AND c."createdAt" < ${end} ${homeSql(ctx, ids)}
         GROUP BY 1`,
       db.$queryRaw<{ cohort: string; month: number; buyers: number }[]>`
         WITH m AS (
-          SELECT c.id, ${ymSql(sast('c."createdAt"'))} AS cohort, (EXTRACT(YEAR FROM ${sast('c."createdAt"')}) * 12 + EXTRACT(MONTH FROM ${sast('c."createdAt"')}))::int AS ym
+          SELECT c.id, ${ymSql(sast('c."createdAt"'))} AS cohort, ${ymNum(sast('c."createdAt"'))} AS ym
           FROM "Customer" c WHERE c."createdAt" >= ${start} AND c."createdAt" < ${end} ${homeSql(ctx, ids)}
         )
-        SELECT m.cohort, ((EXTRACT(YEAR FROM ${sast('s."createdAt"')}) * 12 + EXTRACT(MONTH FROM ${sast('s."createdAt"')}))::int - m.ym) AS month, COUNT(DISTINCT s."customerId")::int AS buyers
+        SELECT m.cohort, cast(${ymNum(sast('s."createdAt"'))} - m.ym AS real) AS month, cast(COUNT(DISTINCT s."customerId") AS real) AS buyers
         FROM "Sale" s JOIN m ON m.id = s."customerId"
-        WHERE s.kind = 'SALE' AND s."storeId" = ANY(${ids}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${ctx.now} ${channelSql(ctx.channel)}
+        WHERE s.kind = 'SALE' AND s."storeId" IN (${inList(ids)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${ctx.now} ${channelSql(ctx.channel)}
         GROUP BY 1, 2`,
     ]);
     const grid = cohortGrid(sizes, cells, { asOf, maxMonths });
@@ -98,28 +104,28 @@ export const retention: ReportDef = {
     const ninety = new Date(ctx.now.getTime() - 90 * 86_400_000);
     const [joined, buying, overall, ret, aov] = await Promise.all([
       db.$queryRaw<{ month: string; members: number }[]>`
-        SELECT ${ymSql(sast('c."createdAt"'))} AS month, COUNT(*)::int AS members
+        SELECT ${ymSql(sast('c."createdAt"'))} AS month, cast(COUNT(*) AS real) AS members
         FROM "Customer" c WHERE c."createdAt" >= ${start} AND c."createdAt" < ${end} ${homeSql(ctx, ids)} GROUP BY 1`,
       db.$queryRaw<{ month: string; buyers: number; repeat: number; sales: number }[]>`
-        SELECT month, COUNT(*)::int AS buyers, COUNT(*) FILTER (WHERE k >= 2)::int AS repeat, SUM(k)::int AS sales FROM (
+        SELECT month, cast(COUNT(*) AS real) AS buyers, cast(COUNT(CASE WHEN k >= 2 THEN 1 END) AS real) AS repeat, cast(SUM(k) AS real) AS sales FROM (
           SELECT s."customerId", ${ymSql(sast('s."createdAt"'))} AS month, COUNT(*) AS k
-          FROM "Sale" s WHERE s.kind = 'SALE' AND s."customerId" IS NOT NULL AND s."storeId" = ANY(${ids}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel)}
+          FROM "Sale" s WHERE s.kind = 'SALE' AND s."customerId" IS NOT NULL AND s."storeId" IN (${inList(ids)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel)}
           GROUP BY 1, 2) x GROUP BY 1`,
       db.$queryRaw<{ buyers: number; repeat: number }[]>`
-        SELECT COUNT(*)::int AS buyers, COUNT(*) FILTER (WHERE k >= 2)::int AS repeat FROM (
+        SELECT cast(COUNT(*) AS real) AS buyers, cast(COUNT(CASE WHEN k >= 2 THEN 1 END) AS real) AS repeat FROM (
           SELECT s."customerId", COUNT(*) AS k FROM "Sale" s
-          WHERE s.kind = 'SALE' AND s."customerId" IS NOT NULL AND s."storeId" = ANY(${ids}::text[]) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel)}
+          WHERE s.kind = 'SALE' AND s."customerId" IS NOT NULL AND s."storeId" IN (${inList(ids)}) AND s."createdAt" >= ${start} AND s."createdAt" < ${end} ${channelSql(ctx.channel)}
           GROUP BY 1) x`,
       db.$queryRaw<{ month: string; eligible: number; retained: number }[]>`
-        SELECT ${ymSql(sast('c."createdAt"'))} AS month, COUNT(*)::int AS eligible,
-          COUNT(*) FILTER (WHERE EXISTS (
-            SELECT 1 FROM "Sale" s WHERE s."customerId" = c.id AND s.kind = 'SALE' AND s."storeId" = ANY(${ids}::text[])
-              AND s."createdAt" > c."createdAt" + interval '1 day' AND s."createdAt" <= c."createdAt" + interval '90 days' ${channelSql(ctx.channel)}))::int AS retained
+        SELECT ${ymSql(sast('c."createdAt"'))} AS month, cast(COUNT(*) AS real) AS eligible,
+          cast(COUNT(CASE WHEN EXISTS (
+            SELECT 1 FROM "Sale" s WHERE s."customerId" = c.id AND s.kind = 'SALE' AND s."storeId" IN (${inList(ids)})
+              AND s."createdAt" > ${shifted('c."createdAt"', "+1 day")} AND s."createdAt" <= ${shifted('c."createdAt"', "+90 days")} ${channelSql(ctx.channel)}) THEN 1 END) AS real) AS retained
         FROM "Customer" c WHERE c."createdAt" >= ${start} AND c."createdAt" < ${end} AND c."createdAt" <= ${ninety} ${homeSql(ctx, ids)}
         GROUP BY 1`,
       db.$queryRaw<{ month: string; grossCents: number; sales: number }[]>`
-        SELECT to_char("date", 'YYYY-MM') AS month, SUM("grossCents")::float8 AS "grossCents", SUM(sales)::int AS sales
-        FROM "DailyStoreStat" WHERE "storeId" = ANY(${ids}::text[]) AND "date" >= ${ctx.range.fromDate} AND "date" <= ${ctx.range.toDate} ${ctx.channel ? Prisma.sql`AND channel = ${ctx.channel}::"Channel"` : Prisma.empty}
+        SELECT strftime('%Y-%m', "date") AS month, cast(SUM("grossCents") AS real) AS "grossCents", cast(SUM(sales) AS real) AS sales
+        FROM "DailyStoreStat" WHERE "storeId" IN (${inList(ids)}) AND "date" >= ${ctx.range.fromDate} AND "date" <= ${ctx.range.toDate} ${ctx.channel ? Prisma.sql`AND channel = ${ctx.channel}` : Prisma.empty}
         GROUP BY 1`,
     ]);
     const by = <T extends { month: string }>(xs: T[]) => new Map(xs.map((x) => [x.month, x]));

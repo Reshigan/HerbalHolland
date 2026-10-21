@@ -170,8 +170,8 @@ export default async function StatementsPage({ searchParams }: { searchParams: P
     franchiseFees(ids, r),
     salesSummary(ids, r),
     db.$queryRaw<{ ex: number }[]>`
-      SELECT COALESCE(SUM(l."receivedQty" * l."unitCostCents"), 0)::float8 AS ex FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
-      WHERE o.kind = 'WHOLESALE' AND o.status = 'RECEIVED' AND o."receivedAt" >= ${r.start} AND o."receivedAt" < ${r.end} AND o."buyerId" = ANY(${ids}::text[])`,
+      SELECT cast(COALESCE(SUM(l."receivedQty" * l."unitCostCents"), 0) AS real) AS ex FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      WHERE o.kind = 'WHOLESALE' AND o.status = 'RECEIVED' AND o."receivedAt" >= ${r.start} AND o."receivedAt" < ${r.end} AND o."buyerId" IN (SELECT value FROM json_each(${JSON.stringify(ids)}))`,
     paidByStore(slice.map((s) => s.id), month),
   ]);
   const wholesaleIncl = Math.round((wholesale[0]?.ex ?? 0) * 1.15);

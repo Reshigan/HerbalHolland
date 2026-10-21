@@ -40,10 +40,10 @@ export default async function FinancePage({ searchParams }: { searchParams: Prom
     db.campaign.findMany({ where: { status: "SENT", sentAt: { gte: r.start, lt: r.end }, ...(scope.kind === "HQ" ? {} : { storeId: { in: rids } }) }, select: { id: true, name: true, costCents: true }, orderBy: { costCents: "desc" } }),
     db.loyaltyEntry.groupBy({ by: ["kind"], where: { createdAt: { gte: r.start, lt: r.end }, ...(scope.kind === "HQ" ? {} : { storeId: { in: rids } }) }, _sum: { points: true } }),
     db.$queryRaw<{ ex: number }[]>`
-      SELECT COALESCE(SUM(l."receivedQty" * l."unitCostCents"), 0)::float8 AS ex FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
-      WHERE o.kind = 'WHOLESALE' AND o.status = 'RECEIVED' AND o."receivedAt" >= ${r.start} AND o."receivedAt" < ${r.end} AND o."buyerId" = ANY(${rids}::text[])`,
+      SELECT cast(COALESCE(SUM(l."receivedQty" * l."unitCostCents"), 0) AS real) AS ex FROM "StockOrderLine" l JOIN "StockOrder" o ON o.id = l."stockOrderId"
+      WHERE o.kind = 'WHOLESALE' AND o.status = 'RECEIVED' AND o."receivedAt" >= ${r.start} AND o."receivedAt" < ${r.end} AND o."buyerId" IN (SELECT value FROM json_each(${JSON.stringify(rids)}))`,
     db.customer.aggregate({ where: scope.kind === "HQ" ? {} : { homeStoreId: { in: rids } }, _sum: { points: true } }),
-    db.$queryRaw<{ cents: number }[]>`SELECT COALESCE(SUM("memberSavingsCents"), 0)::float8 AS cents FROM "DailyStoreStat" WHERE "storeId" = ANY(${rids}::text[]) AND "date" >= ${r.fromDate} AND "date" <= ${r.toDate}`,
+    db.$queryRaw<{ cents: number }[]>`SELECT cast(COALESCE(SUM("memberSavingsCents"), 0) AS real) AS cents FROM "DailyStoreStat" WHERE "storeId" IN (SELECT value FROM json_each(${JSON.stringify(rids)})) AND "date" >= ${r.fromDate} AND "date" <= ${r.toDate}`,
     // Cash banking, as of now: one aggregated row per store with unbanked cash, and deposit checks by status.
     cashWaitingByStore(rids),
     db.cashDeposit.groupBy({ by: ["status"], where: { storeId: { in: rids }, status: { in: ["RECORDED", "QUERIED"] } }, _count: true, _sum: { amountCents: true } }),

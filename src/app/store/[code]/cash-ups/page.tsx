@@ -39,7 +39,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
   // "Variance" = closed shifts whose count differs from expected; filtered in SQL-friendly two steps.
   const varianceIds =
     view === "variance"
-      ? (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS DISTINCT FROM "expectedCashCents"`).map((x) => x.id)
+      ? (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS NOT "expectedCashCents"`).map((x) => x.id)
       : null;
   const where: Prisma.ShiftWhereInput = { storeId: store.id, ...views[view], ...(varianceIds && { id: { in: varianceIds } }) };
 
@@ -50,7 +50,7 @@ export default async function CashUpsPage({ params, searchParams }: { params: Pr
     Promise.all([
       db.shift.count({ where: { storeId: store.id } }),
       db.shift.count({ where: { storeId: store.id, closedAt: null } }),
-      db.$queryRaw<{ n: number }[]>`SELECT COUNT(*)::int AS n FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS DISTINCT FROM "expectedCashCents"`,
+      db.$queryRaw<{ n: number }[]>`SELECT cast(COUNT(*) AS real) AS n FROM "Shift" WHERE "storeId" = ${store.id} AND "closedAt" IS NOT NULL AND "countedCashCents" IS NOT "expectedCashCents"`,
     ]),
   ]);
   const [users, devices, live, { banking }] = await Promise.all([

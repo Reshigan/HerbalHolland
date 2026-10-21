@@ -38,9 +38,9 @@ const SORTS = ["number", "name", "kind", "status", "terms", "limit", "balance", 
 const ORDER_BY: Record<(typeof SORTS)[number], Prisma.Sql> = {
   number: Prisma.sql`a.number`,
   name: Prisma.sql`lower(a.name)`,
-  kind: Prisma.sql`a.kind::text`,
-  status: Prisma.sql`a.status::text`,
-  terms: Prisma.sql`a.terms::text`,
+  kind: Prisma.sql`a.kind`,
+  status: Prisma.sql`a.status`,
+  terms: Prisma.sql`a.terms`,
   limit: Prisma.sql`a."creditLimitCents"`,
   balance: Prisma.sql`COALESCE(l.balance, 0)`,
   created: Prisma.sql`a."createdAt"`,
@@ -62,17 +62,19 @@ export default async function TradeAccountsPage({ searchParams }: { searchParams
   const number = q ? tradeNumberQuery(q, "TA") : null;
   const like = `%${q}%`;
   const conds: Prisma.Sql[] = [];
-  if (status !== "ALL") conds.push(Prisma.sql`a.status = ${status}::"TradeAccountStatus"`);
+  if (status !== "ALL") conds.push(Prisma.sql`a.status = ${status}`);
   if (checking) conds.push(Prisma.sql`a.status <> 'CLOSED' AND EXISTS (SELECT 1 FROM "TradeLicence" t WHERE t."tradeAccountId" = a.id AND t.status = 'SUBMITTED')`);
-  if (q) conds.push(Prisma.sql`(a.number ILIKE ${like} OR a.name ILIKE ${like} OR a."legalName" ILIKE ${like} OR a."vatNumber" ILIKE ${like} OR a.email ILIKE ${like}${number ? Prisma.sql` OR a.number = ${number}` : Prisma.empty})`);
+  if (q) conds.push(Prisma.sql`(a.number LIKE ${like} OR a.name LIKE ${like} OR a."legalName" LIKE ${like} OR a."vatNumber" LIKE ${like} OR a.email LIKE ${like}${number ? Prisma.sql` OR a.number = ${number}` : Prisma.empty})`);
+  // The scope's store ids as one JSON parameter (any length under D1's 100 bound values).
+  const scopeIds = Prisma.sql`SELECT value FROM json_each(${JSON.stringify(s.ids)})`;
   if (!s.networkWide)
-    conds.push(Prisma.sql`(a."dcId" = ANY(${s.ids}::text[]) OR EXISTS (SELECT 1 FROM "TradeOrder" o WHERE o."tradeAccountId" = a.id AND o."storeId" = ANY(${s.ids}::text[])) OR EXISTS (SELECT 1 FROM "Sale" x WHERE x."tradeAccountId" = a.id AND x."storeId" = ANY(${s.ids}::text[])))`);
+    conds.push(Prisma.sql`(a."dcId" IN (${scopeIds}) OR EXISTS (SELECT 1 FROM "TradeOrder" o WHERE o."tradeAccountId" = a.id AND o."storeId" IN (${scopeIds})) OR EXISTS (SELECT 1 FROM "Sale" x WHERE x."tradeAccountId" = a.id AND x."storeId" IN (${scopeIds})))`);
   const sqlWhere = conds.length ? Prisma.sql`WHERE ${Prisma.join(conds, " AND ")}` : Prisma.empty;
   const [total, ids, counts, toCheck] = await Promise.all([
     db.tradeAccount.count({ where }),
     db.$queryRaw<{ id: string }[]>`
       SELECT a.id FROM "TradeAccount" a
-      LEFT JOIN (SELECT "tradeAccountId", SUM(cents)::int AS balance FROM "TradeLedgerEntry" GROUP BY 1) l ON l."tradeAccountId" = a.id
+      LEFT JOIN (SELECT "tradeAccountId", SUM(cents) AS balance FROM "TradeLedgerEntry" GROUP BY 1) l ON l."tradeAccountId" = a.id
       ${sqlWhere}
       ORDER BY ${ORDER_BY[sort]} ${dir === "asc" ? Prisma.sql`ASC` : Prisma.sql`DESC`}, a."createdAt" DESC
       LIMIT ${pageSize} OFFSET ${(page - 1) * pageSize}`,

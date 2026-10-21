@@ -2,7 +2,7 @@
 // orders, in its company's books, and in HQ's for what HQ collected, funds or supplied. Each handler reads one
 // source's facts and returns what it should show now (the lines come from @/lib/ledger-store); the core posts only the
 // difference. Business code queues these inside its own transactions; storeNightly queues the day that ended.
-import { db, type Tx } from "../../db";
+import { db, Prisma, type Tx } from "../../db";
 import type { Posting, SourceHandler } from "../core";
 import { shiftCash } from "../../finance";
 import { receivedValue } from "../../stock-orders";
@@ -42,20 +42,20 @@ const storeDay: SourceHandler = async (sourceId, t) => {
   const days = await t.dailyStoreStat.findMany({ where: { storeId, date: r.fromDate } });
   // A trade order's sale was collected by HQ (EFT to HQ's bank, or HQ's trade ledger): its EFT is HQ's money, as in the
   // rollup (postSaleTx's collectedByHq). Refunds keep their tenders' own columns.
-  const tenders = await t.$queryRaw<{ method: string; tradeAccountId: string | null; byHq: boolean; cents: bigint }[]>`
-    SELECT p.method::text AS method, s."tradeAccountId", (s.kind = 'SALE' AND o.id IS NOT NULL) AS "byHq", SUM(p."amountCents")::bigint AS cents
+  const tenders = await t.$queryRaw<{ method: string; tradeAccountId: string | null; byHq: number | bigint; cents: bigint }[]>`
+    SELECT p.method AS method, s."tradeAccountId", (s.kind = 'SALE' AND o.id IS NOT NULL) AS "byHq", SUM(p."amountCents") AS cents
     FROM "Payment" p JOIN "Sale" s ON s.id = p."saleId" LEFT JOIN "TradeOrder" o ON o."saleId" = s.id
     WHERE s."storeId" = ${storeId} AND s."createdAt" >= ${r.start} AND s."createdAt" < ${r.end} AND p.method IN ('ONLINE', 'VOUCHER', 'LOYALTY', 'ACCOUNT', 'EFT')
     GROUP BY 1, 2, 3`;
   const stock = await t.$queryRaw<{ type: string; cents: bigint }[]>`
-    SELECT type::text AS type, SUM(qty::bigint * "unitCostCents")::bigint AS cents FROM "StockMovement"
-    WHERE "storeId" = ${storeId} AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end} AND type::text = ANY(${DAY_STOCK_TYPES}::text[])
+    SELECT type AS type, SUM(qty * "unitCostCents") AS cents FROM "StockMovement"
+    WHERE "storeId" = ${storeId} AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end} AND type IN (${Prisma.join([...DAY_STOCK_TYPES])})
     GROUP BY 1
     UNION ALL
-    SELECT 'REVALUE', SUM("revalueCents")::bigint FROM "StockMovement" WHERE "storeId" = ${storeId} AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end}`;
+    SELECT 'REVALUE', SUM("revalueCents") FROM "StockMovement" WHERE "storeId" = ${storeId} AND "createdAt" >= ${r.start} AND "createdAt" < ${r.end}`;
   const out = storeDayLines({
     store, hqCompanyId: await hqCompanyId(t), label: `${store.code} ${day}`, days,
-    tenders: tenders.map((x) => ({ method: x.method, tradeAccountId: x.tradeAccountId, collectedByHq: x.byHq, cents: Number(x.cents) })),
+    tenders: tenders.map((x) => ({ method: x.method, tradeAccountId: x.tradeAccountId, collectedByHq: !!Number(x.byHq), cents: Number(x.cents) })),
     stock: stock.map((x) => ({ type: x.type, cents: Number(x.cents) })),
   });
   return out.map((c) => ({ ...c, date: day, storeId, memo: c.companyId === store.companyId ? `Trading day at ${store.label}` : `Collected and funded by HQ at ${store.label}` }));
@@ -164,17 +164,21 @@ export const STORE_SOURCES: Record<string, SourceHandler> = {
 
 /** Store-days with trading (a rollup row) or stock movements, each day from `from` to `to` (SAST, inclusive). */
 async function storeDays(from: string, to: string): Promise<Source[]> {
-  // Movements: one probe of the store × time index per store and day (a scan by time alone would read them all).
+  // Movements: one probe of the store × time index per store and day (a scan by time alone would read them all). The
+  // days and their UTC bounds are worked out here and passed as one JSON list; a bound without its zone suffix compares
+  // exactly against the stored ISO text ("…T22:00:00.000+00:00" sorts after "…T22:00:00.000").
+  const r = rangeFromParams({ from, to });
+  const days: { day: string; start: string; end: string }[] = [];
+  for (let d = r.from; d <= r.to; d = dayKey(addDays(new Date(`${d}T12:00:00+02:00`), 1))) {
+    const x = rangeFromParams({ from: d, to: d });
+    days.push({ day: d, start: x.start.toISOString().slice(0, -1), end: x.end.toISOString().slice(0, -1) });
+  }
   const rows = await db.$queryRaw<{ storeId: string; day: string }[]>`
-    SELECT "storeId", to_char(date, 'YYYY-MM-DD') AS day FROM "DailyStoreStat" WHERE date BETWEEN ${from}::date AND ${to}::date
+    SELECT "storeId", date(date) AS day FROM "DailyStoreStat" WHERE date BETWEEN ${r.fromDate} AND ${r.toDate}
     UNION
-    SELECT s.id, to_char(d.day, 'YYYY-MM-DD')
-    FROM generate_series(${from}::timestamp, ${to}::timestamp, interval '1 day') AS d(day) CROSS JOIN "Store" s
-    CROSS JOIN LATERAL (
-      SELECT 1 FROM "StockMovement" m WHERE m."storeId" = s.id
-        AND m."createdAt" >= ((d.day AT TIME ZONE 'Africa/Johannesburg') AT TIME ZONE 'UTC')
-        AND m."createdAt" < (((d.day + interval '1 day') AT TIME ZONE 'Africa/Johannesburg') AT TIME ZONE 'UTC')
-      LIMIT 1) moved
+    SELECT s.id, d.day
+    FROM (SELECT json_extract(value, '$.day') AS day, json_extract(value, '$.start') AS start, json_extract(value, '$.end') AS "end" FROM json_each(${JSON.stringify(days)})) d CROSS JOIN "Store" s
+    WHERE EXISTS (SELECT 1 FROM "StockMovement" m WHERE m."storeId" = s.id AND m."createdAt" >= d.start AND m."createdAt" < d."end")
     ORDER BY 1, 2`;
   return rows.map((r) => ({ source: "store-day", sourceId: `${r.storeId}:${r.day}` }));
 }

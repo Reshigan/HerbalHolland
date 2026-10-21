@@ -73,7 +73,7 @@ type StoreCtx = Awaited<ReturnType<typeof storeForUser>>;
 
 async function Marketplace({ store, canManage, q, page, sp, path }: { store: StoreCtx; canManage: boolean; q: string; page: number; sp: SP; path: string }) {
   const like = `%${q}%`;
-  const filter = q ? Prisma.sql`AND (p.name ILIKE ${like} OR v.sku ILIKE ${like} OR v.name ILIKE ${like} OR s.name ILIKE ${like})` : Prisma.empty;
+  const filter = q ? Prisma.sql`AND (p.name LIKE ${like} OR v.sku LIKE ${like} OR v.name LIKE ${like} OR s.name LIKE ${like})` : Prisma.empty;
   const [ids, [{ n }]] = await Promise.all([
     db.$queryRaw<{ id: string }[]>`
       SELECT l.id FROM "Listing" l
@@ -82,7 +82,7 @@ async function Marketplace({ store, canManage, q, page, sp, path }: { store: Sto
       ORDER BY (s."regionId" = ${store.regionId}) DESC, l."createdAt" DESC
       LIMIT ${PAGE_SIZE} OFFSET ${(page - 1) * PAGE_SIZE}`,
     db.$queryRaw<{ n: number }[]>`
-      SELECT COUNT(*)::int AS n FROM "Listing" l
+      SELECT cast(COUNT(*) AS real) AS n FROM "Listing" l
       JOIN "Store" s ON s.id = l."storeId" JOIN "Variant" v ON v.id = l."variantId" JOIN "Product" p ON p.id = v."productId"
       WHERE l.active AND l.qty > 0 AND l."storeId" <> ${store.id} AND s.status = 'ACTIVE' AND s.kind = 'RETAIL' ${filter}`,
   ]);

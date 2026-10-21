@@ -92,8 +92,7 @@ export async function recordTradePayment(accountId: string, a: { cents: number; 
   const reference = a.reference.trim().slice(0, 80);
   if (!reference) throw new TradeLedgerError("Enter the bank reference");
   const result = await tx(async (t) => {
-    // Under the account's row lock: the same payment submitted twice is recorded once.
-    await t.$queryRaw`SELECT 1 FROM "TradeAccount" WHERE id = ${accountId} FOR UPDATE`;
+    // The same payment submitted twice is recorded once (D1 runs writes one at a time).
     const account = await t.tradeAccount.findUniqueOrThrow({ where: { id: accountId } });
     await checkLinks(t, accountId, a);
     const same = await t.tradeLedgerEntry.findFirst({ where: { tradeAccountId: accountId, kind: "PAYMENT", reference, cents: -cents, createdAt: { gte: new Date(Date.now() - 30 * 86_400_000) } }, select: { createdAt: true } });
