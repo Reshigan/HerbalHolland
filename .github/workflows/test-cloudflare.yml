@@ -68,7 +68,14 @@ jobs:
           DATABASE_URL="file:$D1_FILE" SEED_WRANGLER_CONFIG=wrangler.staging.jsonc SEED_REMOTE_BINDINGS=true npx tsx prisma/seed.ts
           node scripts/d1-dump.mjs "$D1_FILE" seed.sql
           npx wrangler d1 migrations apply "$NAME" --remote --config wrangler.staging.jsonc
-          for part in seed.sql.*; do npx wrangler d1 execute "$NAME" --remote --file "$part" -y --config wrangler.staging.jsonc; done
+          # Each part is one atomic import (D1 rolls a failed one back), so a transient D1 error just means trying that part again.
+          for part in seed.sql.*; do
+            for try in 1 2 3; do
+              npx wrangler d1 execute "$NAME" --remote --file "$part" -y --config wrangler.staging.jsonc && break
+              test "$try" != 3 || { echo "$part failed three times"; exit 1; }
+              echo "$part: retrying ($try)"; sleep 10
+            done
+          done
         env:
           SEED_DAYS: "21"
 
