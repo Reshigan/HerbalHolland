@@ -68,7 +68,7 @@ jobs:
           DATABASE_URL="file:$D1_FILE" SEED_WRANGLER_CONFIG=wrangler.staging.jsonc SEED_REMOTE_BINDINGS=true npx tsx prisma/seed.ts
           node scripts/d1-dump.mjs "$D1_FILE" seed.sql
           npx wrangler d1 migrations apply "$NAME" --remote --config wrangler.staging.jsonc
-          npx wrangler d1 execute "$NAME" --remote --file seed.sql -y --config wrangler.staging.jsonc
+          for part in seed.sql.*; do npx wrangler d1 execute "$NAME" --remote --file "$part" -y --config wrangler.staging.jsonc; done
         env:
           SEED_DAYS: "21"
 
