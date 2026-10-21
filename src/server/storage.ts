@@ -1,49 +1,37 @@
-// File storage for uploads (banking slips). Cloudflare R2 (or any S3-compatible store, e.g. MinIO on your own
-// server) when S3_BUCKET is set; otherwise files on this server's disk under UPLOAD_DIR (include it in backups).
-// Files are always served through the app (auth-checked, audited), never linked to the store directly.
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { presign } from "@/lib/sigv4";
+// File storage (deposit slips, licence documents, photos, report exports): the R2 bucket bound as `FILES`
+// (wrangler.jsonc), read through the request's Cloudflare context. Files are always served through the app
+// (auth-checked, audited), never linked to the bucket directly. Outside a Cloudflare request (a script, vitest) there
+// is no bucket: the functions throw, and tests that store files mock this module.
+import type { R2Bucket } from "@cloudflare/workers-types";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
 
-function bucket() {
-  const name = process.env.S3_BUCKET;
-  if (!name) return null;
-  const { S3_ENDPOINT: endpoint, S3_ACCESS_KEY_ID: accessKeyId, S3_SECRET_ACCESS_KEY: secretAccessKey } = process.env;
-  if (!endpoint || !accessKeyId || !secretAccessKey) throw new Error("S3_BUCKET is set but S3_ENDPOINT / S3_ACCESS_KEY_ID / S3_SECRET_ACCESS_KEY are missing");
-  const creds = { region: process.env.S3_REGION ?? "auto", accessKeyId, secretAccessKey };
-  return (method: "GET" | "PUT" | "DELETE", key: string, expires: number) => presign({ method, url: `${endpoint.replace(/\/$/, "")}/${name}/${key}`, expires, ...creds });
+function files(): R2Bucket {
+  let bucket: R2Bucket | undefined;
+  try {
+    bucket = (getCloudflareContext().env as { FILES?: R2Bucket }).FILES;
+  } catch {
+    bucket = undefined; // not inside a Cloudflare request
+  }
+  if (!bucket) throw new Error("File storage needs the FILES R2 binding, which only exists inside a Cloudflare request (wrangler.jsonc)");
+  return bucket;
 }
 
-const onDisk = (key: string) => {
-  // turbopackIgnore: a path only known at run time, so the build mustn't trace (and ship) the whole project for it.
-  const root = resolve(/* turbopackIgnore: true */ process.env.UPLOAD_DIR ?? ".data/uploads");
-  const file = resolve(/* turbopackIgnore: true */ root, key);
-  if (!file.startsWith(root + "/")) throw new Error("Bad storage key");
-  return file;
-};
+/** A key is a relative path (`folder/2026-10/uuid.jpg`): no absolute paths, no `..`, so keys can't wander. */
+function checkKey(key: string) {
+  if (!key || key.startsWith("/") || key.split("/").some((p) => p === "" || p === "." || p === "..")) throw new Error("Bad storage key");
+  return key;
+}
 
 export async function putObject(key: string, body: Uint8Array<ArrayBuffer>, contentType: string) {
-  const signed = bucket();
-  if (!signed) {
-    const file = onDisk(key);
-    await mkdir(dirname(file), { recursive: true });
-    return writeFile(file, body);
-  }
-  const res = await fetch(signed("PUT", key, 300), { method: "PUT", body, headers: { "content-type": contentType } });
-  if (!res.ok) throw new Error(`Storage upload failed (${res.status})`);
+  await files().put(checkKey(key), body, { httpMetadata: { contentType } });
 }
 
 export async function getObject(key: string): Promise<Uint8Array> {
-  const signed = bucket();
-  if (!signed) return readFile(onDisk(key));
-  const res = await fetch(signed("GET", key, 60));
-  if (!res.ok) throw new Error(`Storage read failed (${res.status})`);
-  return new Uint8Array(await res.arrayBuffer());
+  const obj = await files().get(checkKey(key));
+  if (!obj) throw new Error(`Storage read failed (no such file: ${key})`);
+  return new Uint8Array(await obj.arrayBuffer());
 }
 
 export async function deleteObject(key: string) {
-  const signed = bucket();
-  if (!signed) return rm(onDisk(key), { force: true });
-  const res = await fetch(signed("DELETE", key, 60), { method: "DELETE" });
-  if (!res.ok && res.status !== 404) throw new Error(`Storage delete failed (${res.status})`);
+  await files().delete(checkKey(key)); // deleting a missing key is not an error on R2
 }

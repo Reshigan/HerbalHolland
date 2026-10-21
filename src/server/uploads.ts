@@ -1,5 +1,5 @@
 // Photos members send us (review photos, return photos, a picture with a support message): JPEG or PNG only, told
-// apart by their bytes, at most 5 MB each, kept through @/server/storage (R2/S3 or UPLOAD_DIR) and served only through
+// apart by their bytes, at most 5 MB each, kept in R2 through @/server/storage and served only through
 // the app (/media/[id]) after an access check. POPIA: a photo is personal information. It stays with the record it
 // belongs to and is never linked to the store directly.
 import { createHash, randomUUID } from "node:crypto";
