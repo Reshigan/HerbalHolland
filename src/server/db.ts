@@ -14,20 +14,25 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 const errorFormat = process.env.NODE_ENV === "production" ? ("minimal" as const) : undefined; // no query arguments in logs
 
-const perBinding = new WeakMap<object, PrismaClient>();
+// One client per request: workerd gives every request its own I/O context, and a client shared across requests makes
+// one request await promises that belong to another, which the runtime reports as a hung Worker.
+const perRequest = new WeakMap<object, PrismaClient>();
 let local: Promise<PrismaClient> | undefined;
 let localReady: PrismaClient | undefined;
 
 function d1Client(): PrismaClient | null {
   let d1: D1Database | undefined;
+  let key: object | undefined;
   try {
-    d1 = (getCloudflareContext().env as { DB?: D1Database }).DB;
+    const cf = getCloudflareContext();
+    d1 = (cf.env as { DB?: D1Database }).DB;
+    key = (cf.ctx as object | undefined) ?? (cf.env as object);
   } catch {
     d1 = undefined; // not inside a Cloudflare request (a script, a test)
   }
-  if (!d1) return null;
-  let c = perBinding.get(d1);
-  if (!c) perBinding.set(d1, (c = sequentialTx(new PrismaClient({ adapter: new PrismaD1(d1), errorFormat }))));
+  if (!d1 || !key) return null;
+  let c = perRequest.get(key);
+  if (!c) perRequest.set(key, (c = sequentialTx(new PrismaClient({ adapter: new PrismaD1(d1), errorFormat }))));
   return c;
 }
 

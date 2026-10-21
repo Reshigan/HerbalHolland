@@ -10,9 +10,16 @@ import { DEMO_PASSWORD } from "@/lib/password";
 export async function GET(req: Request) {
   if (process.env.DEMO_MODE !== "true") return new NextResponse("Not found", { status: 404 });
   const url = new URL(req.url);
+  const t0 = Date.now();
+  const mark = (m: string) => console.log(`[demo] ${m} +${Date.now() - t0}ms`);
+  mark("start");
   const user = await db.user.findUnique({ where: { email: url.searchParams.get("email") ?? "" } });
-  if (!user || !(await verifySecret(DEMO_PASSWORD, user.passwordHash))) return new NextResponse("Unknown demo user", { status: 404 });
+  mark(`user ${user?.id}`);
+  const okPw = !!user && (await verifySecret(DEMO_PASSWORD, user.passwordHash));
+  mark(`verify ${okPw}`);
+  if (!user || !okPw) return new NextResponse("Unknown demo user", { status: 404 });
   await startSession("staff", { userId: user.id }, 24);
+  mark("session");
   const next = url.searchParams.get("next") ?? "";
   // Relative Location (req.url names localhost in the standalone server); same-site paths only.
   return new NextResponse(null, { status: 307, headers: { Location: safePath(next) ?? (await homeFor(user)) } });

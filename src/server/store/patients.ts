@@ -1,6 +1,7 @@
 // SAHPRA patient register for a store's members, and the Schedule 6 dispensing
 // register (every licensed sale line with patient, authorisation, batch and dispenser).
 import { db } from "@/server/db";
+import { inBatches } from "@/lib/json-list";
 import { gramsSince } from "@/server/compliance";
 import { getSettings } from "@/server/settings";
 import { addDays, type DateRange } from "@/lib/format";
@@ -79,8 +80,8 @@ export async function dispensingRegister(storeId: string, r: DateRange, page = 1
   const customerIds = [...new Set(lines.map((l) => l.sale.customerId).filter((x): x is string => !!x))];
   const batchIds = [...new Set(lines.flatMap((l) => ((l.allocations as Alloc | null) ?? []).map((a) => a.batchId)))];
   const [auths, batches] = await Promise.all([
-    db.patientAuth.findMany({ where: { customerId: { in: customerIds } }, orderBy: { validTo: "desc" } }),
-    db.batch.findMany({ where: { id: { in: batchIds } }, select: { id: true, code: true } }),
+    inBatches(customerIds, (part) => db.patientAuth.findMany({ where: { customerId: { in: part } }, orderBy: { validTo: "desc" } })),
+    inBatches(batchIds, (part) => db.batch.findMany({ where: { id: { in: part } }, select: { id: true, code: true } })),
   ]);
   const code = new Map(batches.map((b) => [b.id, b.code]));
   return {

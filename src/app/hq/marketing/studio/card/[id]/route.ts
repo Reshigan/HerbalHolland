@@ -15,10 +15,24 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const raw = q.get("size");
   const size: CardSize = isCardSize(raw) ? raw : "square";
   const card = it.card as Card;
+  // Browser Rendering is a remote service: wrangler dev has none, so the card answers 503 there instead of an image.
+  const noBrowser = (e: unknown) => /browser/i.test(String((e as Error).message)) ? new Response("Browser Rendering is not available here", { status: 503, headers: { "Cache-Control": "private, no-store" } }) : null;
   if (q.has("download"))
-    return new Response(new Uint8Array(await cardJpeg(card, size)), {
-      headers: { "Content-Type": "image/jpeg", "Content-Disposition": `attachment; filename="herbal-holland-${it.key}-${size}.jpg"`, "Cache-Control": "private, no-store" },
-    });
-  const png = await renderCard(card, size);
-  return new Response(png.body, { headers: { "Content-Type": "image/png", "Cache-Control": "private, max-age=300" } });
+    try {
+      return new Response(new Uint8Array(await cardJpeg(card, size)), {
+        headers: { "Content-Type": "image/jpeg", "Content-Disposition": `attachment; filename="herbal-holland-${it.key}-${size}.jpg"`, "Cache-Control": "private, no-store" },
+      });
+    } catch (e) {
+      const r = noBrowser(e);
+      if (r) return r;
+      throw e;
+    }
+  try {
+    const png = await renderCard(card, size);
+    return new Response(png.body, { headers: { "Content-Type": "image/png", "Cache-Control": "private, max-age=300" } });
+  } catch (e) {
+    const r = noBrowser(e);
+    if (r) return r;
+    throw e;
+  }
 }
