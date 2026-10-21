@@ -50,25 +50,27 @@ A fresh database starts in step 1 (the demo seed starts at step 3); the shop, it
 - [ ] Training: POS (sale, split tenders, offline, refunds), handover with ID checks, stock takes, receiving, recalls
 
 ## Customer channels
-- [ ] SMS and email providers live (Microsoft 365 `MS_*` or `SMTP_URL`, `MESSAGING_PROVIDER`); sender footer details correct
+- [ ] SMS and email providers live (Microsoft 365 `MS_*`, `MESSAGING_PROVIDER`); sender footer details correct
 - [ ] Storefront content (Learn articles, store pages, hours) reviewed; age gate on
 - [ ] Herbal Holland Rewards rules and liability policy approved by finance
 - [ ] Postiz running with Instagram, Facebook, LinkedIn, X and Threads connected; `POSTIZ_URL` / `POSTIZ_API_KEY` set; a test post scheduled and deleted
 - [ ] Social profiles say "adults 18+"; the team briefed: brand, merch, stores, events and Learn only; no products for sale, prices or orders taken in DMs
 
 ## Platform
-- [ ] Deployed with `docker-compose.prod.yml` and `.env` from `.env.example` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy)): `DEMO_MODE=false` from the start, strong `SESSION_SECRET`, `CRON_SECRET` 32+ characters, `APP_URL` the https shop address; the start-up log has no `[config]` warnings you didn't expect; Postgres and the app listen on 127.0.0.1 only
-- [ ] The origin is reachable only through the Cloudflare tunnel (no public port on the app or Postgres): the per-IP
-      limits on sign-in and SMS codes trust `cf-connecting-ip`, which anyone could forge if the server were reached
-      directly. Per-IP limits bucket IPv6 by /64. Still on the list: a bot check (Cloudflare Turnstile) on the SMS
-      code step for members and trade, so the hourly network-wide SMS ceiling can't be spent by a script
+- [ ] Deployed to Cloudflare with `npm run deploy` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), [CLOUDFLARE.md](CLOUDFLARE.md)) on a Workers Paid plan: `DEMO_MODE=false` and `APP_URL` the https shop address in `wrangler.jsonc` `vars` from the start; every secret set with `wrangler secret put` (strong `SESSION_SECRET`, `CRON_SECRET` 32+ characters, `MS_*`, the payment keys); `wrangler tail` after the first request shows no `[config]` warnings you didn't expect
+- [ ] D1 database `herbal-holland` created, its id in `wrangler.jsonc`, migrations applied with `npm run db:migrate:prod`; Time Travel confirmed (`wrangler d1 time-travel info DB` prints a bookmark)
+- [ ] R2 bucket `herbal-holland-files` created (EU jurisdiction, recorded in the POPIA register) and bound as `FILES`; a slip uploaded and served back; a lifecycle rule on the backups bucket (35 days). Scheduled report CSVs need none: the exports job deletes them
+- [ ] Browser Rendering enabled on the account: a tax invoice PDF and a Studio card render on the live Worker
+- [ ] Cron Triggers visible under the Worker → Settings → Triggers (all four), each run once by hand and `/api/health/jobs` answering 200
+- [ ] The shop is only reached through Cloudflare (a custom domain on the Worker; no other origin): the per-IP
+      limits on sign-in and SMS codes trust `cf-connecting-ip`. Per-IP limits bucket IPv6 by /64. Still on the list: a
+      bot check (Cloudflare Turnstile) on the SMS code step for members and trade, so the hourly network-wide SMS
+      ceiling can't be spent by a script
 - [ ] Dependencies current: `npm audit --omit=dev` clean on the deployed commit (Next 16.3.8 fixed six advisories, among
       them cache poisoning and SSRF in image optimisation; keep it patched)
-- [ ] Migrations applied; backups (WAL + nightly encrypted dump to R2 + the uploads volume) running and verified with a restore test
-- [ ] Scheduler running on the server (all four jobs, [RUNBOOK → First deploy](RUNBOOK.md#first-deploy) step 9), each run once by hand
-- [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (server errors and failed jobs), external uptime checks on `/api/health` and `/api/health/jobs`
-- [ ] R2: a lifecycle rule on the backups bucket (35 days). Scheduled report CSVs need none: the exports job deletes them.
-- [ ] First HQ admin created with `scripts/create-admin.ts` ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), step 5)
+- [ ] Backups: the nightly `wrangler d1 export` GitHub Action to R2 running ([RUNBOOK → Backups & recovery](RUNBOOK.md#backups--recovery)) and verified with a restore into a scratch database
+- [ ] Monitoring, alerting and on-call rota in place; runbook shared: `ALERT_EMAIL` set (errors and failed jobs), Workers observability on, external uptime checks on `/api/health` and `/api/health/jobs`
+- [ ] First HQ admin created with `scripts/create-admin.ts` against the live D1 ([RUNBOOK → First deploy](RUNBOOK.md#first-deploy), steps 4 and 5)
 - [ ] Load test: peak-hour POS posting, month-end reports and the books (HQ's and a franchisee's reports and month-end
       checks) against a production-sized dataset (`SEED_STORES=1000`, which posts its last week to the books;
       `scripts/bench.ts --write`). The nightly books job on the heaviest night at 1,000 stores (a trading day plus the

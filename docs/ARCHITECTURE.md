@@ -2,7 +2,7 @@
 
 ## Shape: a modular monolith
 
-One Next.js 16 application, one PostgreSQL database, one codebase. Every surface (storefront, Herbal Holland Rewards, POS,
+One Next.js 16 application, one D1 (SQLite) database, one codebase. Every surface (storefront, Herbal Holland Rewards, POS,
 store back office, HQ console, the books, the trade portal, reports, menu boards) shares the same domain layer, so a sale, a stock movement or a
 loyalty point means exactly the same thing everywhere.
 
@@ -22,7 +22,7 @@ prisma/         schema.prisma, seed.ts (+ seed-data.ts)
 ```
 
 Why a monolith: one team, strong consistency requirements (money and stock), and a data volume a well-indexed
-Postgres handles comfortably. Services are separated by module, not by network hop; a module can be extracted later
+SQLite database on D1 handles comfortably (10 GB; the big tables are append-only and bounded by store and date). Services are separated by module, not by network hop; a module can be extracted later
 (the POS sync API and the campaign worker are the natural first candidates) without changing its interface.
 
 ## Tenancy & access
@@ -37,8 +37,8 @@ Postgres handles comfortably. Services are separated by module, not by network h
 
 `src/server/scope.ts` turns a user into a scope and every query into a scoped `where`. Pages *and* server actions re-check
 access (`storeForUser`), so a crafted request can't reach another franchisee's data. Other franchisees' retail prices
-are never exposed (competition-law hygiene). For defence in depth at 1,000 owners, Postgres row-level security keyed on a
-per-request `app.store_ids` setting can be layered under the same scopes.
+are never exposed (competition-law hygiene). D1 has no row-level security, so the scopes in
+`src/server/scope.ts` are the one place access is decided; keep every query going through them.
 
 Analytics follow the same scopes (`tests/integration/scope.test.ts` pins them down):
 
@@ -99,8 +99,8 @@ any time. Stock takes snapshot lots, collect (blind) counts and post COUNT varia
 - `Upload` rows hold members' photos (JPEG/PNG by their bytes, ≤ 5 MB), stored through `src/server/storage.ts` and
   served by `/media/[id]` after an access check (public for a live review's photo; the member and the staff in scope
   for a return's or a ticket's).
-- Search: `pg_trgm` with GIN trigram indexes on `Product.name`, `Product.tagline` and `Variant.name`; the database
-  returns similarity for typos (`similarProducts`), the pure parser and ranking (`src/lib/search.ts`) understand
+- Search: `LIKE '%q%'` on the indexed `Product.name`, `Product.tagline` and `Variant.name` columns (D1 has no
+  trigram index, so `similarProducts` matches substrings and prefixes), the pure parser and ranking (`src/lib/search.ts`) understand
   measures ("600mg", "30ml", "3.5g") and class words (oil, cream, coffee…), rank exact > prefix > words > similar >
   text, and offer "Did you mean…" when the best hit was found by similarity alone. Always bounded to the classes the
   shopper may see.
@@ -207,10 +207,10 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
 | Concern | Approach |
 |---|---|
 | Reporting load | Daily rollups (`DailyStoreStat`, `DailyVariantStat`) are incremented inside the posting transaction with `INSERT … ON CONFLICT DO UPDATE`, so network dashboards and most reports never scan raw sales. Raw queries are always bounded by store(s) and dates. A sale rolls up under its channel (`POS`, `ONLINE`, or `WHOLESALE` for trade sales: the trade portal's orders, fulfilled by a DC or collected at a store, and trade sales rung up at a till), with each tender in its own column. `accountCents` holds trade sales on account (invoiced on HQ's trade ledger, not money), so finance derives money taken (`moneyCents`) and what HQ collected for a store (`hqCollectedCents` = online, vouchers, trade) from the same rows (`src/server/finance.ts`). The trade reports (sales by account, product and month, and the FIFO aged balances in `src/lib/trade-ageing.ts`) read `Sale` and `TradeLedgerEntry` directly: trade volume is a fraction of retail and the queries stay bounded by stores and dates. `DailyVariantStat` has no channel column (product figures are per store and day across channels). |
-| Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; partition them by month (Postgres declarative partitioning) once they pass ~100M rows. |
-| Read traffic | Stateless app servers scale horizontally; send reports and the menu boards to a read replica. |
+| Big tables | `Sale`, `SaleLine`, `Payment`, `StockMovement`, `LoyaltyEntry`, `MessageLog`, `AuditLog` are append-only and indexed by store/date; archive closed years to R2 (exported, then deleted) long before the database nears D1's 10 GB. |
+| Read traffic | The Worker scales on its own (one isolate per request wherever it is needed); reports and the menu boards read the rollups, and D1 read replication can be turned on for them. |
 | Hot rows | Stock rows are per store × SKU × batch; loyalty balances per customer; rollup rows per store × day, so contention stays local to one store. Counters are only used for low-volume sequences (POs, members). |
-| Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily`, `/api/cron/staff-push` and `/api/cron/operations`, in `src/server/jobs.ts`), statement emails, invoice emails, staff pushes and scheduled exports run outside the request path; at scale move them to a Postgres-backed queue (e.g. pg-boss/Graphile Worker) or SQS with a worker process built from the same codebase. |
+| Background work | Campaign sends, scheduled jobs (`/api/cron/frequent`, `/api/cron/daily`, `/api/cron/staff-push` and `/api/cron/operations`, in `src/server/jobs.ts`), statement emails, invoice emails, staff pushes and scheduled exports run outside the request path; at scale move them to Cloudflare Queues with a consumer built from the same codebase. |
 | Operations models | `StaffPushSubscription` (a staff phone's Web Push subscription) and `StaffPushEvent` (sent-event keys, so polls never notify twice); `SupplierInvoice` (a store's supplier invoice with its `Upload`, paid/queried; a stock order's invoice, from a DC or another store, is put on when it's received, with no upload and `onStatement`, and settled by the daily job once its month's statement is drawn up); `StoreTask` (one line of a store's opening checklist); `ScheduledExport` (a report to email as a signed CSV link weekly or monthly). Plain id columns, no relations, so they append to the schema without touching the core models. |
 | Segments over millions of members | Denormalised customer stats (visits, lifetime, first/last purchase, points, tier) are updated on every purchase, so RFM segments are indexed range queries. |
 | Catalogue sync to devices | Bootstrap payload per store (a few hundred SKUs); move to delta sync (updatedAt watermark) if the range grows past a few thousand SKUs. |
@@ -235,7 +235,7 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
   per connection an hour; a network-wide SMS ceiling (`OTP_SMS_HOURLY_MAX`, audited `otp.ceiling`). The reply is the
   same whether or not an email belongs to a trade buyer, and an "already linked to another member" answer (ID number
   or email) is limited to three a day per person (`member.collision`), so membership can't be probed.
-- Client IPs come from Cloudflare (`cf-connecting-ip`; the origin is reachable only through the Cloudflare Tunnel), else
+- Client IPs come from Cloudflare (`cf-connecting-ip`; the Worker is only ever reached through Cloudflare), else
   the hop our own proxy appended (`src/lib/client-ip.ts`), and are stored only as keyed hashes.
 - Content-Security-Policy with a per-request nonce (`src/proxy.ts`, `src/lib/csp.ts`): a script runs only when it
   carries the nonce Next stamps on its own scripts, or is the one hashed inline snippet; 'strict-dynamic' trusts what
@@ -277,9 +277,9 @@ years, SARS VAT periods), `src/server/ledger/core.ts` (posting), `sources/` (the
 
 ## Hosting
 
-Our own server in South Africa runs the app (the Dockerfile's standalone Next.js server, `docker-compose.prod.yml`)
-and Postgres 16 (WAL archiving and nightly encrypted dumps); Cloudflare sits in front through a tunnel (DNS, TLS, WAF,
-static caching), so the server has no open inbound ports; files and backups go to Cloudflare R2 in the EU
-jurisdiction (a cross-border transfer recorded in the POPIA register); a cron on the server calls the job endpoints.
-When one server isn't enough: more app containers behind the tunnel (the app is stateless), and a read replica for
-reports and menu boards. Step by step: [RUNBOOK.md](RUNBOOK.md#first-deploy).
+Everything is Cloudflare, nothing is a server of ours: the app runs on Workers (built with OpenNext, `wrangler.jsonc`),
+the database is D1 (SQLite; Time Travel keeps 30 days of history, a nightly export goes to R2), files are in R2 in the
+EU jurisdiction (a cross-border transfer recorded in the POPIA register), PDFs and Studio cards come from Browser
+Rendering, the four scheduled jobs are Cron Triggers, and email goes out through Microsoft Graph over HTTPS. The
+bindings, D1's limits (no transactions, JSON list columns, SQLite SQL, 100 bound parameters) and what replaced each
+piece of the server are in [CLOUDFLARE.md](CLOUDFLARE.md); step by step: [RUNBOOK.md](RUNBOOK.md#first-deploy).

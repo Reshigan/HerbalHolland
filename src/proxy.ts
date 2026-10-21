@@ -1,12 +1,16 @@
-// Per-request Content-Security-Policy with a nonce (production only; development needs eval and the HMR socket).
+// The request proxy: the start-up checks on the first request (src/server/startup.ts: a Worker has no boot hook), then
+// a per-request Content-Security-Policy with a nonce (production only; development needs eval and the HMR socket).
 // See src/lib/csp.ts. Static files, API routes, prefetches and the build-time /brand page are left alone.
 import { createHash, randomBytes } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { INSTALL_SNIPPET, nonceCsp } from "@/lib/csp";
+import { ensureStartupChecks } from "@/server/startup";
 
 const SNIPPET_HASH = `sha256-${createHash("sha256").update(INSTALL_SNIPPET).digest("base64")}`;
 
 export function proxy(request: NextRequest) {
+  const notServing = ensureStartupChecks(); // the reason is in the log (console.error), never in the response
+  if (notServing) return new NextResponse("The shop is not configured to serve: see the log", { status: 500 });
   if (process.env.NODE_ENV !== "production") return NextResponse.next();
   const nonce = randomBytes(16).toString("base64");
   const csp = nonceCsp(nonce, SNIPPET_HASH);

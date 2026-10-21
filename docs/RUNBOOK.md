@@ -2,36 +2,42 @@
 
 ## Environments
 
-| | Local | Staging | Production |
+Everything runs on Cloudflare ([CLOUDFLARE.md](CLOUDFLARE.md)): the app on Workers, the database on D1, files on R2.
+
+| | Local | Preview | Production |
 |---|---|---|---|
-| Database | Postgres 16 (`docker compose up db` or local cluster) | Postgres on the staging server | Postgres 16 on our own server in South Africa, WAL archiving + nightly dumps |
-| Files (banking slips) | `.data/uploads` on disk | R2 bucket `…-staging` | Cloudflare R2 bucket (EU jurisdiction), or `UPLOAD_DIR` on the server |
-| Data | `npm run db:seed` demo network | Anonymised copy or seed | Real. Never seed it (the seed truncates every table, so it refuses a database with users it didn't create itself unless given `--wipe=<database name>`, and refuses `NODE_ENV=production` unless given `--force`) |
-| `DEMO_MODE` | true | true (clearly labelled) | **false**. With it off, a production server won't serve (every request answers 500 and the log says why) without an https `APP_URL` and a 32+ character `CRON_SECRET`, and warns about missing email, alerts, messaging and file storage; with it on, it refuses live payment keys the same way |
-| `SESSION_SECRET` | any | 32+ random characters | 32+ random characters (`openssl rand -base64 48`): a production server won't serve without one |
+| Database | A local D1 (SQLite) under `.wrangler/state`, made by `npm run db:migrate` | The same live D1 (there is one database): a preview version of the Worker (`wrangler versions upload --preview-alias preview`) is for checking a build, not for test data | D1 database `herbal-holland` (10 GB; Time Travel keeps 30 days of history), nightly exports to R2 |
+| Files (banking slips, licences, photos, exports) | A local R2 under `.wrangler/state` | R2 bucket `herbal-holland-files` | R2 bucket `herbal-holland-files` (EU jurisdiction: R2 has no South African location, so the cross-border transfer is in the POPIA register) |
+| Data | `npm run db:seed` demo network (`DATABASE_URL=file:…` names the local D1 file; see CLAUDE.md) | Real | Real. Never seed it (the seed truncates every table, so it refuses a database with users it didn't create itself unless given `--wipe=<database name>`, and refuses `NODE_ENV=production` unless given `--force`) |
+| `DEMO_MODE` | true (`.env`) | **false** | **false** (`vars` in wrangler.jsonc). With it off, the Worker won't serve (every request answers 500 and the log says why) without an https `APP_URL` and a 32+ character `CRON_SECRET`, and warns about missing email, alerts and messaging; with it on, it refuses live payment keys the same way |
+| `SESSION_SECRET` | any | the production secret | 32+ random characters (`openssl rand -base64 48`), a Worker secret: the Worker won't serve without one |
+
+Secrets (`SESSION_SECRET`, `CRON_SECRET`, `MS_CLIENT_SECRET`, payment keys…) are Worker secrets (`wrangler secret put NAME`);
+plain settings (`APP_URL`, `DEMO_MODE`, `EMAIL_FROM`, provider choices) are `vars` in `wrangler.jsonc`. `.env.example`
+lists every one and says which is which; `.env` itself is only read on a laptop (`next dev`, the seed, scripts).
 
 ## First deploy
 
-Hosting: our own server in South Africa runs the app and Postgres; Cloudflare sits in front (DNS, TLS, WAF and bot
-protection, caching of `/_next/static`) through a Cloudflare Tunnel, so the server has no open inbound ports. Keep it
-that way: the app trusts Cloudflare's `cf-connecting-ip` for its per-connection limits, which is only safe while nothing
-but the tunnel can reach it. Files go to Cloudflare R2. The app itself doesn't run on Cloudflare Workers (it's a Node server with Postgres, SMTP and long
-reports) and Postgres can't live on Cloudflare.
+Hosting: Cloudflare, nothing else ([Hosting: Cloudflare](#hosting-cloudflare)). The Worker `herbal-holland-shop`
+(`wrangler.jsonc`) serves the app, D1 holds the database, R2 the files, Browser Rendering prints the PDFs, Cron
+Triggers run the jobs. Cloudflare is also the edge (DNS, TLS, WAF and bot protection), and the app only ever sees
+requests through it, so `cf-connecting-ip` is trustworthy for the per-connection limits. Once:
 
-1. Server: Docker, Postgres 16 on the server itself (listening on 127.0.0.1 only), a `cloudflared` tunnel to
-   `http://localhost:3000`, and `/srv/herbal-holland/.env` made from `.env.example` with every production value
-   ([INTEGRATIONS.md](INTEGRATIONS.md#environment-variables)): `DEMO_MODE=false` from the start, `APP_URL` the shop's
-   https address, `SESSION_SECRET` (`openssl rand -base64 48`), `CRON_SECRET` (`openssl rand -hex 32`),
-   `DATABASE_URL=postgresql://…@127.0.0.1:5432/…` with a generated password. Never publish Postgres or the app on a
-   public interface: Docker's port rules bypass the host firewall. `docker-compose.prod.yml` uses the server's own
-   network, so the app listens on 127.0.0.1:3000 and reaches Postgres at 127.0.0.1; the plain `docker-compose.yml` is
-   a local demo (it seeds demo data and turns demo mode on) and must not run on the server. Cloudflare: the shop at
-   `shop.herbalholland.com` (`APP_URL=https://shop.herbalholland.com`), a proxied record for the tunnel, SSL "Full
-   (strict)", WAF managed rules on, a cache rule for `/_next/static/*`; Postiz at `social.herbalholland.com` through the
-   same tunnel (`deploy/postiz`, [INTEGRATIONS.md](INTEGRATIONS.md)). Both are only ever served over HTTPS:
-   herbalholland.com's HSTS covers its subdomains. herbalholland.co.za (and www) is a Cloudflare zone whose redirect
-   rule sends every request to `https://shop.herbalholland.com` with its path and query (301), so anything printed or
-   shared with .co.za still lands in the right place.
+1. Cloudflare account: `wrangler login` (a Workers Paid plan, see Hosting). Then
+   `wrangler d1 create herbal-holland` and paste the `database_id` it prints into `wrangler.jsonc`;
+   `wrangler r2 bucket create herbal-holland-files --jurisdiction eu`; enable Browser Rendering on the account
+   (dashboard → Workers & Pages → Browser Rendering). Set `APP_URL` to `https://shop.herbalholland.com` and
+   `DEMO_MODE` to `false` in `wrangler.jsonc` `vars` (they are from the start), and every secret with
+   `wrangler secret put NAME` ([INTEGRATIONS.md](INTEGRATIONS.md#environment-variables)): `SESSION_SECRET`
+   (`openssl rand -base64 48`), `CRON_SECRET` (`openssl rand -hex 32`), `MS_CLIENT_SECRET` and the rest of the Graph
+   mail settings, the payment keys when they come. The shop at `shop.herbalholland.com` is a custom domain on the
+   Worker (dashboard → Workers & Pages → the Worker → Settings → Domains & Routes → add `shop.herbalholland.com`;
+   Cloudflare makes the DNS record and the certificate). Keep SSL "Full (strict)", WAF managed rules on. Both
+   herbalholland.com and the shop are only ever served over HTTPS: herbalholland.com's HSTS covers its subdomains.
+   herbalholland.co.za (and www) is a Cloudflare zone whose redirect rule sends every request to
+   `https://shop.herbalholland.com` with its path and query (301), unchanged by the move, so anything printed or
+   shared with .co.za still lands in the right place. Postiz (`social.herbalholland.com`) is not on the Worker: it runs
+   wherever it is hosted ([INTEGRATIONS.md](INTEGRATIONS.md)) and the app only needs `POSTIZ_URL` and `POSTIZ_API_KEY`.
    herbalholland.com (the corporate site) is not this app: it's its own Cloudflare Worker, `herbalholland-com`
    (`sites/herbalholland.com`: static pages plus `/api/early-access`, D1 database `herbalholland-com-eu`, EU jurisdiction). Already set
    up in the Cloudflare account: the Worker's custom domain, a redirect rule www → herbalholland.com, Always Use HTTPS,
@@ -58,75 +64,48 @@ reports) and Postgres can't live on Cloudflare.
    in HQ → Franchise leads, and the Worker's daily clean-up deletes the site's own copies (a year after they came in, or
    30 days after HQ had them). The Worker's only secret is `IP_SALT`: the enquiry-era `NOTIFY_TO`, `APP_ENQUIRY_URL`
    and `APP_ENQUIRY_SECRET` were deleted on 7 October 2026.
-2. R2: create a bucket with the **EU jurisdiction** (R2 has no South African location, so record the cross-border
-   transfer in the POPIA register), an API token limited to that bucket (Object Read & Write), and set `S3_ENDPOINT`
-   (`https://<account-id>.eu.r2.cloudflarestorage.com`), `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`.
-   Without them slips are stored on the server under `UPLOAD_DIR` (the image's `/data/uploads` volume); include it in backups.
-3. From a checkout of the release on the server: `docker compose -f docker-compose.prod.yml build`, then the
-   migrations: `docker compose -f docker-compose.prod.yml run --rm migrate`.
-4. Start the app: `docker compose -f docker-compose.prod.yml up -d app` (restarts with the server; behind the
-   tunnel). `GET /api/health` is the liveness check (the container's own health check uses it); it should answer 200
-   and the log shows no `[config]` warnings you didn't expect.
-5. Create the first HQ admin: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"`
-   (the franchisor company too, if there's none yet). It prints a temporary password once; they choose their own at
-   first sign-in, and everyone after them is added from HQ → Team. `--company "…(Pty) Ltd"` sets the franchisor's
-   legal name; its other details (registration and VAT numbers, address, phone, email, directors) are edited on a
-   store it owns: create the distribution centre (step 7), then HQ → Stores → the DC → Owner. Tax invoices, the
-   legal pages and emails print them.
+2. The database: `npm run db:migrate:prod` applies every file in `migrations/` to the live D1 (`wrangler d1 migrations
+   apply DB --remote`; it lists what it is about to apply and asks).
+3. Deploy: `npm run deploy` builds the app with OpenNext and uploads the Worker, its assets and the Cron Triggers.
+   `GET https://shop.herbalholland.com/api/health` should answer 200, and `wrangler tail` shows no `[config]` warnings
+   you didn't expect (the start-up checks run on the first request; a fatal one makes every page answer 500 and says
+   why in the log).
+4. Scripts against the live D1 run from a laptop over Cloudflare's API (`PrismaD1Http`, `scripts/_d1.ts`): set
+   `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_TOKEN` (an API token with D1 edit, nothing else) and
+   `CLOUDFLARE_DATABASE_ID` (the id in `wrangler.jsonc`) in the shell, not in `.env`, and leave `DATABASE_URL` unset.
+   The same three let `npx wrangler d1 execute DB --remote --command "…"` answer a one-off query.
+5. Create the first HQ admin: `npx tsx scripts/create-admin.ts --email you@herbalholland.com --name "Your Name"`
+   (with the three variables of step 4; the franchisor company too, if there's none yet). It prints a temporary
+   password once; they choose their own at first sign-in, and everyone after them is added from HQ → Team.
+   `--company "…(Pty) Ltd"` sets the franchisor's legal name; its other details (registration and VAT numbers,
+   address, phone, email, directors) are edited on a store it owns: create the distribution centre (step 7), then
+   HQ → Stores → the DC → Owner. Tax invoices, the legal pages and emails print them.
 6. HQ → Compliance: confirm `thcMode`, channel matrix and store licences with counsel.
 7. HQ → Stores: onboard DCs and stores (ranging template, fees, licences). The launch network (KwaZulu-Natal, the Durban DC,
    Pietermaritzburg and the Bluff trading, Hillcrest and Hilton opening 1 December) is one command, `npx tsx scripts/launch-network.ts`
-   (idempotent; stores it created still need their address, phone, hours, licences and owner in HQ → Stores); Catalogue: products, variants, batches with COAs
+   (against the live D1 with the three variables of step 4; idempotent; stores it created still need their address, phone, hours, licences and owner in HQ → Stores); Catalogue: products, variants, batches with COAs
    (HQ → Catalogue → Import loads the range from a spreadsheet, with the warehouse's opening stock, after a dry run).
-   After any bulk import (catalogue, members, opening stock) run `ANALYZE;`. Autovacuum is slow to gather statistics
-   on small tables, and without them the planner scans the whole network for single-store queries.
+   After any bulk import (catalogue, members, opening stock) run `npx wrangler d1 execute DB --remote --command "ANALYZE"`
+   so SQLite's planner has statistics for the new rows.
 8. Pair POS devices per store (`/pos/pair`), create staff with PINs, designate dispensers.
-9. Configure the scheduler with `Authorization: Bearer $CRON_SECRET`: `POST /api/cron/frequent` every 15 min,
-   `POST /api/cron/daily` at 02:00 SAST, `POST /api/cron/staff-push` every 5 min and `POST /api/cron/operations` at
-   03:00 SAST (see [Scheduled jobs](#scheduled-jobs-apicron)). Run it on the server itself, calling
-   `http://localhost:3000`, not through Cloudflare: Cloudflare cuts requests at 100 s, and the nightly books run at
-   1,000 stores takes about 2½ minutes. SAST is UTC+2 with no daylight saving, so in a UTC crontab
-   (`/etc/cron.d/herbal-holland`, the secret in a root-only file):
-   ```
-   */15 * * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/frequent   >/dev/null
-   */5  * * * *  root  curl -fsS -m 300  -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/staff-push >/dev/null
-   0    0 * * *  root  curl -fsS -m 2700 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/daily      >/dev/null
-   0    1 * * *  root  curl -fsS -m 1500 -X POST -H "Authorization: Bearer $(cat /etc/herbal-holland/cron-secret)" http://localhost:3000/api/cron/operations >/dev/null
-   ```
-   Check it works: run each line once by hand (a JSON summary, HTTP 200), then point an uptime monitor at
-   `GET /api/health/jobs`, which answers 503 when a job hasn't succeeded in time (a dead scheduler, a wrong
-   `CRON_SECRET`, or a step that keeps failing).
+9. The scheduled jobs need nothing: the Cron Triggers in `wrangler.jsonc` went up with the deploy and call
+   `/api/cron/frequent` every 15 min, `/api/cron/staff-push` every 5 min, `/api/cron/daily` at 02:00 SAST and
+   `/api/cron/operations` early morning with `CRON_SECRET` ([Scheduled jobs](#scheduled-jobs-apicron)). Check they
+   run: the dashboard (the Worker → Settings → Triggers) lists the four schedules, `wrangler tail` shows each run, and
+   `GET /api/health/jobs` answers 200 once every job has succeeded (503 when one hasn't in time: a wrong
+   `CRON_SECRET`, or a step that keeps failing). Point an uptime monitor at it.
 
-## Free hosting: Oracle Cloud Always Free (Johannesburg)
+## Hosting: Cloudflare
 
-Until the stores trade, the whole platform (app, Postgres, Postiz) can run free on Oracle Cloud's Always Free tier in
-`af-johannesburg-1`: one Ampere A1 ARM VM with up to 4 cores, 24 GB RAM and 200 GB of boot volume, plus 20 GB of
-Object Storage for backups. It's the only free offer with a South African region and enough memory; Vercel's hobby
-plan forbids commercial use, the free Postgres services (Neon, Supabase) have no SA region and pause, and the AWS,
-Google and Azure free tiers are 12 months of 1 GB machines. No SLA: move to a paid SA server (xneelo, Vultr
-Johannesburg; see the hosting notes in [LAUNCH-CHECKLIST.md](LAUNCH-CHECKLIST.md)) once the stores open.
+The whole platform is Cloudflare: [CLOUDFLARE.md](CLOUDFLARE.md) is the architecture note (bindings, what D1 changes
+for the code, what replaced the server). No server of ours, nothing to patch, back up or keep awake, no region to
+choose: the Worker runs in Cloudflare's South African points of presence, D1 and R2 where their jurisdiction says
+(R2 EU; D1 wherever Cloudflare places it, recorded in the POPIA register as a cross-border transfer).
 
-1. Sign up at cloud.oracle.com with the home region **South Africa Central (Johannesburg)**: the free VM can only live
-   in the home region, and it can't be changed later. A card is needed to verify the account. Upgrade the account to
-   Pay As You Go straight away: Always Free resources stay free, the account is no longer subject to the idle-reclaim
-   rule (free-only accounts lose a VM that sits under 20% CPU for seven days), and capacity requests are served ahead of
-   free-only accounts. Set a budget alert at R50 so a mistake can't cost anything quietly.
-2. Networking: a VCN with one public subnet. The security list stays **closed**: no inbound rules at all (not even
-   SSH; use the Bastion service or OCI Cloud Shell's console connection for the first login, then Cloudflare Tunnel
-   for everything). The app and Postgres are never published on the public interface.
-3. The VM: `deploy/oracle/create-vm.sh` launches `VM.Standard.A1.Flex` (4 OCPU, 24 GB, 200 GB) with an Ubuntu 24.04
-   **aarch64** image and retries every ten minutes while the region answers "Out of host capacity" (normal; it usually
-   lands within hours, occasionally a day or two). Leave it running in a Cloud Shell or on a laptop.
-4. On the VM, the normal [First deploy](#first-deploy) applies unchanged: Docker, Postgres 16 on 127.0.0.1, `cloudflared`,
-   `.env`, then `docker compose -f docker-compose.prod.yml build`. The image builds natively for arm64 (Node, Prisma
-   and Playwright's `chromium-headless-shell` all ship arm64 builds), so nothing in the Dockerfile changes; the build
-   takes about 10 minutes on 4 cores. Ubuntu's firewall (`ufw`) also stays closed: Oracle's Ubuntu images carry iptables
-   rules of their own, so don't flush them.
-5. Backups: the nightly `pg_dump -Fc` ([Backups & recovery](#backups--recovery)) goes to an Object Storage bucket with
-   `oci os object put` (20 GB free) and a 30-day lifecycle rule. Take a boot-volume backup before each release (the
-   free tier includes five).
-6. Postiz runs on the same VM ([deploy/postiz](../deploy/postiz)); it's comfortable within 24 GB alongside the app and
-   Postgres.
+The plan: **Workers Paid** (about $5 a month plus usage). It is needed for a D1 database of 10 GB (the free plan stops
+at 500 MB), the 5-minute CPU limit per request (`limits.cpu_ms` in `wrangler.jsonc`: the nightly books at 1,000
+stores, long reports and exports; the free plan allows 10 ms), Browser Rendering beyond the free allowance (every
+PDF and Studio card), and the 30-day D1 Time Travel window. Set a billing alert in the dashboard.
 
 ## Peach Payments go-live (online payments)
 
@@ -218,16 +197,19 @@ Vantax (Pty) Ltd if online). See the acceptable-use note in INTEGRATIONS.md. Don
 
 ## Releases
 
-- Before every release: a fresh dump (`pg_dump -Fc`) or a server snapshot. Migrations only go forward (there are no
-  down migrations): to undo one, restore the dump. Then `docker compose -f docker-compose.prod.yml build`,
-  `… run --rm migrate`, `… up -d app`.
-- Migrations (`prisma migrate deploy`) run before the new app version starts. Schema changes take table locks: apply
-  them outside trading hours (after 22:00 SAST). Tills keep selling offline and sync afterwards. A load test showed a
-  migration during peak posting stalls tills behind the lock. Once the tables hold real data: start hand-edited
-  migrations with `SET lock_timeout = '5s';` (a migration that can't get its lock fails fast instead of queueing every
-  till behind it), put `CREATE INDEX CONCURRENTLY` in a migration file of its own (it can't run inside a transaction),
-  and add a column with a default in two steps on the big tables (`Sale`, `SaleLine`, `StockMovement`, `JournalLine`).
-- Capacity (1,000-store dataset: 998 stores, 175k members, 425k sales; one app instance, 10 DB connections):
+- Before every release: note the time (D1 Time Travel restores the database to any point in the last 30 days:
+  [Backups & recovery](#backups--recovery)), or take a bookmark: `npx wrangler d1 time-travel info DB`. Migrations
+  only go forward (there are no down migrations): to undo one, restore to the bookmark. Then
+  `npm run db:migrate:prod` (the new migrations in `migrations/`), then `npm run deploy`. A deploy is live within
+  seconds everywhere; `wrangler rollback` puts the previous Worker version back if a release misbehaves (the
+  database stays as it is, so only roll back a release whose migration was additive).
+- Migrations run before the new Worker version goes up. D1 serialises writes, so a long migration (rewriting a big
+  table, a new index on `Sale`, `SaleLine`, `StockMovement` or `JournalLine`) holds every till's posting until it is
+  done: apply those outside trading hours (after 22:00 SAST). Tills keep selling offline and sync afterwards. SQLite
+  has no `ALTER COLUMN`: a changed column is a new table copied over, which `npm run db:diff` writes out; read what it
+  generated before applying it, and keep each migration file to one concern.
+- Capacity (1,000-store dataset: 998 stores, 175k members, 425k sales; measured on the Postgres build before the move
+  to D1, so re-measure after it):
   POS posting p50 ≈ 170 ms, p95 ≈ 440 ms, ≈ 45 sales/s. `e2e/crawl.mjs` (every page as every role, production build):
   storefront ≈ 50–130 ms (home ≈ 90 ms, store finder ≈ 140 ms), HQ console and store back office p50 ≈ 60 ms.
   Network-wide HQ reports over 30 days are mostly < 1 s; slowest: age checks ≈ 2.5 s (reads raw sales; give it a
@@ -362,7 +344,7 @@ gets their stores ranked with an exceptions column (overdue cash-ups, alerts, ne
 
 | When | Task | Where |
 |---|---|---|
-| Continuous | Liveness (`/api/health`), scheduler heartbeat (`/api/health/jobs`), error alerts (`ALERT_EMAIL`), disk and DB connections | Uptime monitor + server monitoring |
+| Continuous | Liveness (`/api/health`), job heartbeat (`/api/health/jobs`), error alerts (`ALERT_EMAIL`), errors and CPU time per request (Workers observability) | Uptime monitor + the Cloudflare dashboard |
 | Every 15 min | Release campaigns held for a legal send window; cancel unpaid online orders (stock released after `unpaidHoldMinutes`); retry failed invoice emails; number Founding Members once the list closes; drop alerts to watchers; email paid made-to-order orders (if any variant is made to order) to the merch partner | `/api/cron/frequent` |
 | Every 5 min | Staff push notifications: new online orders (polled; nothing hooks the checkout), loss alerts about other people, HQ updates that need acknowledging | `/api/cron/staff-push` |
 | Daily 03:00 | Staff push digests (lots entering the expiry window, cash due at the bank, low stock per store); scheduled report exports emailed as signed CSV links; pruning of old push-event keys and export files | `/api/cron/operations` |
@@ -387,10 +369,10 @@ wholesale invoices, Z-reports, loss-prevention alerts, franchise-enquiry replies
 and a footer whose legal line comes from the franchisor Company record (HQ → Stores → the distribution centre → Owner: legal name, registration
 and VAT numbers, address). Every email has a plain-text twin, and campaign emails alone carry the unsubscribe link and
 `List-Unsubscribe` headers. To preview them without a mail server: `npx tsx scripts/preview-emails.ts` writes each
-template with sample data to `test-results/emails/index.html`, and on the server `npx tsx --env-file=.env scripts/preview-emails.ts --send you@example.com`
-sends all of them ("[Test] …") through the live transport to check them in Outlook and Gmail. The logo travels inside each
+template with sample data to `test-results/emails/index.html`, and with the live `MS_*` settings in the shell, `npx tsx scripts/preview-emails.ts --send you@example.com`
+sends all of them ("[Test] …") through Graph to check them in Outlook and Gmail. The logo travels inside each
 email (an inline image), so it shows without "download pictures". `npx vitest run tests/email.test.ts` checks subjects,
-buttons, escaping, text alternatives and the 102 KB Gmail limit. With neither `SMTP_URL` nor the Microsoft 365 `MS_*` settings (demos, staging) nothing is
+buttons, escaping, text alternatives and the 102 KB Gmail limit. Without the Microsoft 365 `MS_*` settings (demos, local development) nothing is
 sent: every email is written to the message log, so HQ → Messages (`/hq/messages`) is the place to read what a member would have got.
 `EMAIL_FROM` sets the sender (with Microsoft 365, the mailbox it sends from); keep it on a domain with SPF/DKIM for the provider.
 
@@ -404,9 +386,9 @@ attached as a PDF and a signed link to the hosted copy (`/invoice/<sale id>?t=�
 line, VAT per rate, the payment and its reference, and a QR back to the order. Print it on A4, save it as a PDF (the
 print dialog's "Save as PDF") or print it on 80 mm till paper with the "Print receipt" button. A walk-in customer can
 have it emailed from the till (receipt → Email invoice). Failed sends are retried by `/api/cron/frequent` for three days.
-The PDF is printed from the hosted page by headless Chromium in the app image (`src/server/pdf.ts`), and statements
+The PDF is printed from the hosted page by Cloudflare Browser Rendering (`src/server/pdf.ts`, the `BROWSER` binding), and statements
 (franchise and trade) and stock-order invoices carry a PDF of their branded email the same way. Printing only runs when
-email is set up; if Chromium is missing or a print fails, the email still goes with its link and the log says why
+email is set up; if the browser is unavailable or a print fails, the email still goes with its link and the log says why
 (`[pdf] couldn't print`).
 
 **Statements and Z-reports.** Store → Money → Franchise statement (and HQ → Statements → a store) shows the month as a
@@ -451,8 +433,13 @@ label shows the price on the day it was printed, the member price where there is
 
 ## Scheduled jobs (`/api/cron`)
 
-`POST` with `Authorization: Bearer $CRON_SECRET`; the response is a JSON summary of what each step did. Jobs live in
-`src/server/jobs.ts`. Each job runs single-flight (a 45-minute lock), and every step runs on its own: a step that
+The jobs are Cron Triggers: `wrangler.jsonc` `triggers.crons` holds the four schedules (in UTC; SAST is UTC+2 all
+year) and `worker.ts` maps each one to its route, so a run is a `POST` to `/api/cron/<job>` with
+`Authorization: Bearer $CRON_SECRET` from inside the Worker, exactly as a host cron used to make it. Nothing to install
+or keep alive: the schedules deploy with the app and show under the Worker → Settings → Triggers. To watch a run,
+`wrangler tail` (filter on `[cron]`); to run a job by hand, `curl -fsS -X POST -H "Authorization: Bearer $CRON_SECRET"
+https://shop.herbalholland.com/api/cron/<job>`, or the dashboard's "Trigger" button on the schedule. The response is a
+JSON summary of what each step did. Jobs live in `src/server/jobs.ts`. Each job runs single-flight (a 45-minute lock), and every step runs on its own: a step that
 fails is reported (`ALERT_EMAIL`), the rest still run, and the job then answers 500 naming the failed steps, so
 `curl --fail` notices. A doubled run does nothing twice. Every run is recorded (`JobRun`), and `GET /api/health/jobs`
 answers 503 when a job hasn't finished cleanly within its window (`frequent` 30 minutes, `staff-push` 15 minutes,
@@ -462,8 +449,8 @@ A missed night is made up by the next one: the books post any store-day of the l
 the points of all 7 days again, which is harmless), last month's franchise statements still unposted during the first
 week of a month, and trade statements go out on the statement day or any of the six days after it to accounts that
 haven't had theirs. Birthday points and the Monday My Deals refresh are only for their own day. For a longer gap,
-re-post a period with `npx tsx scripts/ledger-backfill.ts 2026-10-01 2026-10-07` (in the `migrate` container on the
-server: `docker compose -f docker-compose.prod.yml run --rm migrate npx tsx scripts/ledger-backfill.ts …`); it prints
+re-post a period with `npx tsx scripts/ledger-backfill.ts 2026-10-01 2026-10-07` (from a laptop against the live D1
+with `CLOUDFLARE_ACCOUNT_ID`, `CLOUDFLARE_D1_TOKEN` and `CLOUDFLARE_DATABASE_ID` set, [First deploy](#first-deploy) step 4); it prints
 what it queued and posted, and exits 1 if anything failed.
 
 | Endpoint | When | What it does |
@@ -492,7 +479,7 @@ name, account number, branch code, printed on every pro forma; **fill these in b
 
 **Licences.** Every application carries the licences its kind of business needs for the ranges it asks for (the
 matrix: `src/lib/trade-licences.ts`, docs/COMPLIANCE.md), each with its number, expiry where it lapses, and the document (PDF, JPG
-or PNG, ≤ 5 MB, stored under `trade-licences/` in R2/S3 or `UPLOAD_DIR`; back it up). Each new document emails the
+or PNG, ≤ 5 MB, stored under `trade-licences/` in R2). Each new document emails the
 trade team ("licence to check"). HQ → Trade shows **Licences to check** (oldest first; the accounts list has the same
 tab). On the account's Overview, **View document**, check it against the issuer's register (SAPC, BHF PCNS, CIPC, SARS,
 SAHPRA, the municipality), then **Verify** or **Not accepted** with the reason (emailed; the buyer uploads another
@@ -697,13 +684,18 @@ the feature gets a checklist from **Start the opening checklist** on its page. A
 
 ## Incidents
 
-**Alerts.** Server errors are logged with `[error]` (method, path without its query string, route, digest and
+**Where the logs are.** Workers observability is on (`observability` in `wrangler.jsonc`): every request, log line
+and exception of the last few days is in the dashboard (the Worker → Logs, searchable by path, status and text,
+with CPU time per request), and `wrangler tail` streams them live (`wrangler tail --status error`, or
+`--search "[cron]"`). D1's own query metrics are under the database in the dashboard.
+
+**Alerts.** Errors are logged with `[error]` (method, path without its query string, route, digest and
 stack): page and route errors, unexpected errors behind the till API and the back-office, books and trade actions,
-and every failed step of a scheduled job. With `ALERT_EMAIL` set (and `SMTP_URL`), they're also emailed there,
+and every failed step of a scheduled job. With `ALERT_EMAIL` set (and the `MS_*` mail settings), they're also emailed there,
 without email addresses or long numbers: one email per distinct error an hour, and no more than 20 an hour in all,
 so an outage can't flood the inbox (`src/server/alerts.ts`). Errors a person sees as a message (a wrong PIN, a field
 to fix) aren't alerts. The app can't report its own absence: add an external uptime check on `GET /api/health`
-(every minute, alert after two failures), which also catches the tunnel or the database being down, and one on
+(every minute, alert after two failures), which also catches D1 being unreachable, and one on
 `GET /api/health/jobs` (every 15 minutes), which fails when a scheduled job hasn't succeeded in time.
 
 **POS offline (power/network).** Tills keep selling (cash, or card on a Yoco machine or bank terminal) and queue sales
@@ -740,24 +732,34 @@ refresh; refunds via POS → Sales history.
 
 ## Backups & recovery
 
-Postgres WAL archiving (point-in-time recovery ≥ 7 days) plus a nightly encrypted `pg_dump` copied off the server to
-R2 and kept 35 days; files on disk (when `S3_BUCKET` isn't set) are copied with it. Quarterly restore drill into
-staging. Target RPO 5 minutes, RTO 1 hour. On the server:
+Two layers. **D1 Time Travel** keeps 30 days of point-in-time history of the live database on its own (nothing to
+set up): any moment in that window can be restored. **Nightly exports** to R2 cover what Time Travel can't (a deleted
+database, a mistake found after 30 days, a copy to read offline): a GitHub Action runs `wrangler d1 export` after the
+02:00 jobs and keeps 35 days in a separate bucket. Files in `herbal-holland-files` are not in either: R2 is durable
+on its own, and an object the app deletes is gone, so the bucket keeps versions (see below). Target RPO: Time Travel
+is continuous; the export is a night. RTO: minutes for a Time Travel restore, about an hour for an import.
 
-- WAL: in `postgresql.conf`, `archive_mode = on` and
-  `archive_command = 'test ! -f /var/backups/pg/wal/%f && cp %p /var/backups/pg/wal/%f'`, plus a weekly base backup
-  (`pg_basebackup -D /var/backups/pg/base/$(date +%F) -Ft -z -X stream`); delete base backups and WAL older than the
-  oldest base backup you keep.
-- Nightly dump (cron, after the 02:00 jobs): `pg_dump -Fc "$DATABASE_URL" | gpg --batch --symmetric --cipher-algo
-  AES256 --passphrase-file /etc/herbal-holland/backup-passphrase -o /var/backups/pg/hh-$(date +%F).dump.gpg`, then copy it
-  to a separate R2 bucket for backups (EU jurisdiction, a lifecycle rule deleting objects after 35 days) with `rclone`
-  or the AWS CLI pointed at the R2 endpoint. Keep the passphrase off the server too: without it the dumps are useless.
-- Files on disk: the app's `uploads` volume (`docker volume ls`), e.g. `docker run --rm -v <volume>:/data:ro -v
-  /var/backups:/backup busybox tar czf /backup/uploads-$(date +%F).tgz -C /data .`, copied with the dump.
-- Restore: `gpg -d hh-….dump.gpg > hh.dump && pg_restore --no-owner -d <empty database> hh.dump`, then point
-  `DATABASE_URL` at it. The backups hold every member's details and patient authorisations: record the R2 copy as a
-  cross-border transfer in the POPIA register, like the files. The stock ledger and loyalty ledger are append-only, so balances can be
-rebuilt from movements if ever required (see the reconciliation queries in `prisma/seed.ts` comments / reports).
+- Time Travel: `npx wrangler d1 time-travel info DB --timestamp 2026-10-21T01:55:00Z` shows the bookmark for a
+  moment, `npx wrangler d1 time-travel restore DB --timestamp …` (or `--bookmark …`) restores to it, in place,
+  for every store at once; the current state is itself bookmarked first, so a restore can be undone. Deploy nothing
+  between taking the decision and restoring, and tell the tills to stay offline for the minutes it takes.
+- Nightly export: `.github/workflows/backup-d1.yml` (`cron: "30 0 * * *"`, 02:30 SAST) runs
+  `npx wrangler d1 export DB --remote --output hh-$(date +%F).sql`, encrypts it (`gpg --batch --symmetric
+  --cipher-algo AES256`, the passphrase a repository secret) and copies it to the R2 bucket `herbal-holland-backups`
+  (EU jurisdiction) with `npx wrangler r2 object put`. It needs the repository secrets `CLOUDFLARE_API_TOKEN` (D1 read,
+  R2 write on that bucket) and `BACKUP_PASSPHRASE`; keep the passphrase in the password manager too, because without
+  it the exports are useless. A lifecycle rule on the bucket deletes objects after 35 days, and the workflow fails loudly
+  (GitHub emails the owner) when the export or the upload does.
+- Files: turn on **object versioning**-style protection the way R2 offers it, a lifecycle rule that keeps deleted and
+  overwritten versions 30 days, on `herbal-holland-files`; the exports job's CSVs are deleted by the app after 37 days
+  and need nothing. Report exports and deposit slips are small; licence documents and product photos are the bulk.
+- Restore from an export: a new database (`wrangler d1 create herbal-holland-restore`), `gpg -d hh-….sql.gpg >
+  hh.sql`, `npx wrangler d1 execute herbal-holland-restore --remote --file hh.sql`, check it, then point
+  `wrangler.jsonc` at its id and `npm run deploy` (or import into the live database the same way after emptying it).
+  The exports hold every member's details and patient authorisations: record the R2 copy as a cross-border transfer
+  in the POPIA register, like the files. Quarterly restore drill: import the latest export into a scratch database and
+  run the reconciliation checks against it. The stock ledger and loyalty ledger are append-only, so balances can be
+  rebuilt from movements if ever required (see the reconciliation queries in `prisma/seed.ts` comments / reports).
 
 ## Exceptions to review (HQ → Audit log)
 

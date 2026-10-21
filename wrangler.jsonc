@@ -17,7 +17,7 @@
   "browser": { "binding": "BROWSER" },
   "triggers": {
     // The four jobs of src/server/jobs.ts (JOB_WINDOWS in src/lib/jobs.ts), in UTC: SAST is UTC+2 all year.
-    "crons": ["*/15 * * * *", "*/5 * * * *", "0 0 * * *", "30 3 * * *"]
+    "crons": ["*/15 * * * *", "*/5 * * * *", "0 0 * * *", "0 1 * * *"]
   },
   "vars": { "DEMO_MODE": "false" }
 }

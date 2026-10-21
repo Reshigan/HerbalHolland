@@ -8,7 +8,7 @@ const JOB_BY_CRON: Record<string, string> = {
   "*/15 * * * *": "frequent",
   "*/5 * * * *": "staff-push",
   "0 0 * * *": "daily", // 02:00 SAST
-  "30 3 * * *": "operations", // 05:30 SAST
+  "0 1 * * *": "operations", // 03:00 SAST
 };
 
 type Env = { CRON_SECRET?: string; APP_URL?: string };
