@@ -25,6 +25,12 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
   key children by ids chosen up front, never rely on rollback), **100 bound parameters per statement** (Prisma chunks its
   own `in:` lists at 98; raw SQL with a list of ids must chunk by hand: `chunk(ids, 90)` from `@/lib/chunk`),
   **100 columns per table**, **2 MB per row**, **30 s per query**, 10 GB per database.
+- **One client per request**: `db` builds its Prisma client per request context (workerd gives every request its own I/O
+  context; a client shared across requests makes one request await another's promises, which the runtime cancels as
+  hung). Never cache a client, a query promise or a Prisma result across requests at module scope.
+- **Id lists in Prisma queries** that can exceed 90 ids (`in: [...]` on variants, customers, orders, batches) go through
+  `inBatches` from `@/lib/json-list` (findMany) or raw SQL with `json_each` (counts, sums, groupBy): Prisma does not
+  split them and D1 refuses the statement.
 - **List columns are JSON**: what was `String[]` / `RegClass[]` is now `Json` holding a JSON array (`@default("[]")`).
   Read with `asList(row.field)` (`@/lib/json-list`), write plain arrays. Filters `has`, `hasSome`, `hasEvery`, `isEmpty`
   no longer exist: filter in code after a bounded query, or in raw SQL with `EXISTS (SELECT 1 FROM json_each(col) WHERE
