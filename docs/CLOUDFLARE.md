@@ -41,7 +41,7 @@ payment keys…) are Worker secrets (`wrangler secret put`), read as `process.en
   recursive CTE, `COALESCE`/`SUM`/`CASE` are the same. No `pg_trgm`: member and product search use `LIKE '%q%'` on the
   indexed name columns (a LIKE pattern is at most 50 bytes).
 - Migrations are plain SQL in `migrations/` (`NNNN_name.sql`), applied with `npm run db:migrate` (local) and
-  `npm run db:migrate:prod`. After a schema change: `npx prisma generate`, then `npm run db:diff > migrations/NNNN_x.sql`
+  `npm run db:migrate:prod`. After a schema change: `npm run generate`, then `npm run db:diff > migrations/NNNN_x.sql`
   and review it (the script quotes the `'[]'` defaults of the JSON list columns, which Prisma writes unquoted; a raw
   INSERT that leaves such a column out would otherwise store an empty value).
 - Node-side tools (the seed, `scripts/*.ts`, vitest) open the SQLite file `DATABASE_URL` names (`file:…`) through

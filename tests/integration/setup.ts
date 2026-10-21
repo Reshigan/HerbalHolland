@@ -1,3 +1,4 @@
+import { connectDb } from "@/server/db";
 // Loaded in every integration suite (vitest.integration.config.ts). File storage is the FILES R2 bucket, which exists
 // only inside a Cloudflare request: here it is a Map, with the same signatures and the same error for a missing key.
 import { vi } from "vitest";
@@ -29,3 +30,5 @@ vi.mock("@/server/studio-cards", async (orig) => {
   const jpeg = Buffer.from("/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==", "base64");
   return { ...real, cardJpeg: async () => jpeg, renderCard: async () => new Response(jpeg, { headers: { "content-type": "image/png" } }) };
 });
+
+await connectDb();

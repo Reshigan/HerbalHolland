@@ -13,7 +13,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { basename } from "node:path";
 import { type Prisma } from "../src/generated/prisma/client";
-import { db } from "../src/server/db";
+import { connectDb, db } from "../src/server/db";
 import { openSqliteFile, prepareSqliteFile, sqlitePath } from "./sqlite-file";
 import { hashSecret } from "../src/server/crypto";
 import { DEMO_PASSWORD } from "../src/lib/password";
@@ -175,6 +175,7 @@ function assertDemoDatabase() {
 }
 
 async function main() {
+  await connectDb();
   if (process.env.NODE_ENV === "production" && !process.argv.includes("--force")) throw new Error("Refusing to seed in production (pass --force)");
   assertDemoDatabase();
   console.log(`Seeding Herbal Holland demo network: ${DAYS} days to ${TODAY}`);

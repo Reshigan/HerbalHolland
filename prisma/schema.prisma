@@ -3,9 +3,18 @@
 // wholesale/cost prices are VAT-exclusive. Stock is tracked per batch so every
 // unit is traceable (FEFO picking, FIFO valuation, recalls).
 
+// The app's client runs on Cloudflare Workers (the query compiler is WASM loaded as a module); Node-side tools (the
+// seed, scripts, vitest) use the second one, which src/server/db.ts loads only outside a Cloudflare request.
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
+  runtime  = "workerd"
+}
+
+generator node {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma-node"
+  runtime  = "nodejs"
 }
 
 datasource db {

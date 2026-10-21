@@ -24,9 +24,9 @@ User journeys (Playwright + DB checks, DEMO_MODE=true, seeded data; CI runs them
 `BASE_URL=http://localhost:3000 node e2e/<checkout|pos|backoffice|hq|shop|trade|accounting>.mjs`, and `node e2e/crawl.mjs` visits every
 page as every role (fails on broken links, server errors and crashes; prints server and paint timings).
 
-Schema changes: edit `prisma/schema.prisma`, `npx prisma generate`, `npm run db:diff > migrations/NNNN_name.sql`, review the
+Schema changes: edit `prisma/schema.prisma`, `npm run generate`, `npm run db:diff > migrations/NNNN_name.sql`, review the
 SQL (SQLite rewrites a table to change a column), then `npm run db:migrate`; commit the file (deploys run `npm run db:migrate:prod`).
-Run `npx prisma generate` after pulls.
+Run `npm run generate` after pulls.
 
 Demo (DEMO_MODE=true): `/login` has one-click role logins (password `holland`), or GET
 `/api/auth/demo?email=hq@herbalholland.com&next=/hq`. POS PINs: 1111 (manager, dispenser), 2222 (dispenser), 3333, 4444.

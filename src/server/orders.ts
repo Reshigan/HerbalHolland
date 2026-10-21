@@ -2,6 +2,7 @@
 // Stock is reserved while an order is open and posted as a Sale (at the fulfilling
 // store, which is merchant of record) on handover/dispatch.
 import { canBuyOnline, fulfilmentForPhase, PHASE_CLOSED } from "@/lib/launch-phase";
+import { prismaCode } from "@/server/db";
 import { randomUUID } from "node:crypto";
 import { madeToOrder } from "./merch";
 import { db, tx, Prisma, type Tx } from "./db";
@@ -400,7 +401,7 @@ export async function onceForEvent<T>(gateway: HostedGateway, eventId: string | 
   try {
     await db.paymentEvent.create({ data: { gateway, eventId } });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") return { action: "repeat", reason: "Event already handled" };
+    if (prismaCode(e) === "P2002") return { action: "repeat", reason: "Event already handled" };
     throw e;
   }
   try {

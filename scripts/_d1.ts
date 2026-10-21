@@ -8,7 +8,7 @@
 // scripts that reach into those (ledger-backfill, bench) pass the D1 client where they can and otherwise need the
 // file. Pass `--d1` or set the variables; nothing else is read.
 import { PrismaClient } from "@/generated/prisma/client";
-import { db } from "@/server/db";
+import { connectDb, db } from "@/server/db";
 
 const D1_VARS = ["CLOUDFLARE_D1_TOKEN", "CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_DATABASE_ID"] as const;
 
@@ -20,7 +20,10 @@ export const liveD1 = () => D1_VARS.every((k) => process.env[k]);
 /** A PrismaClient on the live D1 (over HTTP) when the CLOUDFLARE_* variables are set, else the shared `db`. */
 export async function scriptDb(): Promise<PrismaClient> {
   const missing = D1_VARS.filter((k) => !process.env[k]);
-  if (missing.length === D1_VARS.length) return db;
+  if (missing.length === D1_VARS.length) {
+    await connectDb();
+    return db;
+  }
   if (missing.length) throw new Error(`Set all of ${D1_VARS.join(", ")} to use the live D1 (missing: ${missing.join(", ")})`);
   if (!live) {
     const { PrismaD1Http } = await import("@prisma/adapter-d1");

@@ -20,7 +20,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx prisma generate
+      - run: npm run generate
       - name: The migrations apply to a local D1 and build exactly the schema (no drift)
         run: |
           npx wrangler d1 migrations apply DB --local
@@ -52,7 +52,7 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx prisma generate
+      - run: npm run generate
       - name: Local D1 with the schema, then the demo seed (into that file, and its files into the local R2)
         run: |
           npx wrangler d1 migrations apply DB --local
