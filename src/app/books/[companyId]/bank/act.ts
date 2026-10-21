@@ -3,6 +3,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { reportFailure } from "@/server/alerts";
+import { background } from "@/server/background";
 import { fail, type ActionState } from "@/server/store/context";
 import { BankError } from "@/server/ledger/bank";
 import { LedgerError } from "@/server/ledger/core";
@@ -16,7 +17,7 @@ export async function act(fn: () => Promise<ActionState>): Promise<ActionState> 
     if (e instanceof BankError) return fail(e.message, e.field);
     if (e instanceof StatementError) return fail(e.message, "file");
     if (e instanceof LedgerError) return fail(e.message);
-    void reportFailure(e, "books bank action");
+    background("books bank report", reportFailure(e, "books bank action"));
     return fail("Something went wrong. Please try again.");
   }
 }

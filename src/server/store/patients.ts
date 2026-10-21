@@ -6,6 +6,7 @@ import { gramsSince } from "@/server/compliance";
 import { getSettings } from "@/server/settings";
 import { addDays, type DateRange } from "@/lib/format";
 import type { Prisma } from "@/generated/prisma/client";
+import { likeTerm } from "@/lib/search";
 
 export type AuthView = "active" | "expiring" | "expired" | "revoked";
 
@@ -17,7 +18,7 @@ export function authWhere(storeId: string, view: AuthView, q: string, now = new 
     expired: { status: "ACTIVE", validTo: { lt: now } },
     revoked: { status: "REVOKED" },
   };
-  const words = q.split(/\s+/).filter(Boolean);
+  const words = q.split(/\s+/).filter(Boolean).map((w) => likeTerm(w));
   return {
     AND: [
       { customer: { homeStoreId: storeId } },

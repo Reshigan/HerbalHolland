@@ -4,6 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { reportFailure } from "@/server/alerts";
+import { background } from "@/server/background";
 import { db } from "@/server/db";
 import { advanceTradeOrder, confirmTradePayment, nextTradeActions, TradeOrderError } from "@/server/trade/orders";
 import { TradeAccountError } from "@/server/trade/accounts";
@@ -21,7 +22,7 @@ async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
     unstable_rethrow(e);
     if (EXPECTED.some((E) => e instanceof E)) return fail((e as Error).message);
     if ((e as { code?: string })?.code === "P2025") return fail("That order no longer exists. Reload the page.");
-    void reportFailure(e, "HQ trade order action"); // unexpected: logged and emailed to ops
+    background("HQ trade order report", reportFailure(e, "HQ trade order action")); // unexpected: logged and emailed to ops
     return fail("Something went wrong. Please try again.");
   }
 }

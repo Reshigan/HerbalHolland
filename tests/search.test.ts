@@ -1,6 +1,19 @@
 // Shop search: the query parser (words, measures with units, class words), the ranking and "Did you mean…".
 import { describe, expect, it } from "vitest";
-import { didYouMean, similarityFloor, measureMatches, measuresIn, normalise, parseQuery, rankSearch, withRecentSearch, RECENT_SEARCHES_MAX, likePatterns, trigramsOf, trigramSimilarity, wordSimilarity, type SearchDoc } from "@/lib/search";
+import { didYouMean, similarityFloor, measureMatches, measuresIn, normalise, parseQuery, rankSearch, withRecentSearch, RECENT_SEARCHES_MAX, likePatterns, likeTerm, trigramsOf, trigramSimilarity, wordSimilarity, type SearchDoc } from "@/lib/search";
+
+describe("likeTerm", () => {
+  it("keeps short terms and cuts long ones at 48 bytes of UTF-8, on a character boundary", () => {
+    expect(likeTerm("Durban Haze")).toBe("Durban Haze");
+    expect(likeTerm("a".repeat(60))).toBe("a".repeat(48));
+    expect(new TextEncoder().encode(likeTerm("é".repeat(30))).length).toBe(48);
+    expect(likeTerm("é".repeat(30))).toBe("é".repeat(24));
+    const emoji = "🌿".repeat(13); // 4 bytes each: 12 fit
+    expect(likeTerm(emoji)).toBe("🌿".repeat(12));
+    expect(likeTerm("x".repeat(60), 49)).toHaveLength(49);
+    expect(likeTerm("")).toBe("");
+  });
+});
 
 const docs: SearchDoc[] = [
   { id: "oil600", name: "Calm CBD Oil 600", tagline: "Full-spectrum drops for the evening", category: "CBD wellness", cbdMgPerPack: 600, netContent: 30, netUnit: "ml", variants: [{ name: "30ml" }] },

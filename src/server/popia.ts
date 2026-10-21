@@ -10,6 +10,7 @@ import { addPoints } from "./loyalty";
 import { deleteObject } from "./storage";
 import type { MsgChannel } from "@/generated/prisma/client";
 import { asList, inBatches } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 /** An expected refusal, shown to HQ as it is. */
 export class ErasureError extends Error {}
@@ -22,7 +23,8 @@ const isAnonymised = (c: { phone: string }) => c.phone.startsWith("anon-");
 
 type Member = { id: string; phone: string; email: string | null };
 // SQLite compares `=` case-sensitively but LIKE not (for ASCII): a string that both starts and ends with the email is the email, any case.
-const insensitive = (email: string) => ({ startsWith: email, endsWith: email });
+// (An address too long for a D1 LIKE pattern, 49 bytes, is matched exactly instead.)
+const insensitive = (email: string) => (likeTerm(email, 49) === email ? { startsWith: email, endsWith: email } : { equals: email });
 /** Their mobile and email, as the do-not-contact list keeps them. */
 const contactOf = (c: Member) => (c.email ? [c.phone, c.email] : [c.phone]);
 // Their herbalholland.com first-access sign-up, if it hasn't been told and deleted yet (src/server/early-access.ts).

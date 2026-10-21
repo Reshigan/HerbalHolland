@@ -37,6 +37,7 @@ import {
 import type { Customer, SupportTicket } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
 import { FALLBACK_EMAIL } from "@/lib/contact";
+import { likeTerm } from "@/lib/search";
 
 /** An expected, user-facing failure (shown inline). */
 export class SupportError extends Error {
@@ -242,7 +243,7 @@ export const ticketView = (v: string | undefined): TicketView => ((TICKET_VIEWS 
 
 /** The queue's where clause for a scope and filters. `mine` needs the user id; `overdue` is by the SLA deadlines. */
 export function ticketWhere(scope: SupportScope, f: TicketFilters, ctx: { userId: string; now: Date }): Prisma.SupportTicketWhereInput {
-  const q = (f.q ?? "").trim();
+  const q = likeTerm((f.q ?? "").trim());
   const view: TicketView = q && !f.view ? "all" : ticketView(f.view); // a search with no view chosen looks through everything
   const byNumber = ticketNumberQuery(q);
   const search: Prisma.SupportTicketWhereInput = !q

@@ -61,14 +61,15 @@ export async function buildApplePass(m: PassMember): Promise<Uint8Array> {
   return zipStore({ ...files, "manifest.json": manifest, signature });
 }
 
-// The signing key is imported once per configuration (the PEM never changes while the Worker lives).
-let signingKey: { pem: string; key: Promise<CryptoKey> } | undefined;
+// The signing key is imported once per configuration (the PEM never changes while the Worker lives). Only the imported
+// key is kept, never the import's promise: a promise shared across requests is cancelled as hung on Workers.
+let signingKey: { pem: string; key: CryptoKey } | undefined;
 
 /** PKCS#7 detached signature over manifest.json with the pass certificate, chained to Apple's WWDR certificate. */
 async function signManifest(manifest: Uint8Array, c: AppleWallet) {
   try {
-    if (signingKey?.pem !== c.keyPem) signingKey = { pem: c.keyPem, key: importRsaPrivateKey(c.keyPem) };
-    const key = await signingKey.key.catch((e) => ((signingKey = undefined), Promise.reject(e)));
+    if (signingKey?.pem !== c.keyPem) signingKey = { pem: c.keyPem, key: await importRsaPrivateKey(c.keyPem) };
+    const key = signingKey.key;
     return await pkcs7DetachedSignature({ content: manifest, signerCert: pemCertificate(c.certPem), key, certs: [pemCertificate(c.wwdrPem)] });
   } catch (e) {
     throw new WalletError(`Signing the pass failed: ${String((e as Error).message).slice(0, 200)}`);

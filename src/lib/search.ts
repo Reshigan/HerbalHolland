@@ -188,6 +188,23 @@ export function wordSimilarity(a: string, b: string): number {
   return best;
 }
 
+/**
+ * A search term as a LIKE pattern on D1 may carry it: at most `maxBytes` of UTF-8 (a pattern is 50 bytes at most, and
+ * `contains` wraps the term in two `%`), cut at a character boundary. Every `contains` / `startsWith` on typed text goes
+ * through it, or D1 refuses the statement ("LIKE or GLOB pattern too complex") instead of finding nothing.
+ */
+export function likeTerm(s: string, maxBytes = 48): string {
+  let bytes = 0;
+  let out = "";
+  for (const ch of s) {
+    const n = ch.length === 1 ? (ch.charCodeAt(0) < 0x80 ? 1 : ch.charCodeAt(0) < 0x800 ? 2 : 3) : 4;
+    if (bytes + n > maxBytes) break;
+    bytes += n;
+    out += ch;
+  }
+  return out;
+}
+
 /** The most candidate names one similarity search scores (the database prefilters with `likePatterns`). */
 export const SIMILARITY_CANDIDATES = 2000;
 

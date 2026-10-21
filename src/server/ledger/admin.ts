@@ -19,6 +19,7 @@ import { zar } from "@/lib/money";
 import { isEmail } from "@/lib/email";
 import { plural } from "@/lib/plural";
 import { inBatches } from "@/lib/json-list";
+import { background } from "@/server/background";
 
 /** A problem with one field of a books form (the action shows it under that field). */
 export class BooksFieldError extends LedgerError {
@@ -469,7 +470,7 @@ export async function booksAction(companyId: string, need: keyof BooksRole, fn: 
     unstable_rethrow(e);
     if (e instanceof LedgerError) return failed(e.message, e instanceof BooksFieldError ? e.field : undefined);
     if ((e as { code?: string })?.code === "P2002") return failed("That already exists. Check for a duplicate.");
-    void reportFailure(e, "books action"); // unexpected: logged and emailed to ops
+    background("books action report", reportFailure(e, "books action")); // unexpected: logged and emailed to ops
     return failed("Something went wrong. Please try again.");
   }
 }

@@ -83,16 +83,16 @@ export const getNetwork = cache(async () => {
 });
 
 // Listing badges read stock across the whole network (~60k rows at 1,000 stores), so one read is shared for 30 seconds
-// per server. Badges only: the product page, cart and checkout read live stock.
-let networkStock: { at: number; stock: ReturnType<typeof availability> } | null = null;
-function networkAvailability() {
-  if (!networkStock || Date.now() - networkStock.at > 30_000) {
-    const stock = getNetwork().then((n) => availability(n.all));
-    stock.catch(() => (networkStock = null));
-    networkStock = { at: Date.now(), stock };
-  }
-  return networkStock.stock;
-}
+// per isolate. Badges only: the product page, cart and checkout read live stock. Only the finished result is kept at
+// module scope: on Workers a promise awaited by a request other than the one that made it is cancelled as hung, so a
+// read in flight is shared within one request (`cache`) and never across requests.
+let networkStock: { at: number; stock: Awaited<ReturnType<typeof availability>> } | null = null;
+const networkAvailability = cache(async () => {
+  if (networkStock && Date.now() - networkStock.at <= 30_000) return networkStock.stock;
+  const stock = await availability((await getNetwork()).all);
+  networkStock = { at: Date.now(), stock };
+  return stock;
+});
 
 export type StockBadge =
   | { kind: "made" } // made to order by the merch partner: always available, ships by courier

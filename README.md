@@ -139,6 +139,7 @@ builds the production image, then runs seven end-to-end journeys and the crawl a
 
 ## Stack
 
-Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 7 + PostgreSQL 16 · Vitest · Playwright.
-Deploy with the `Dockerfile` and `docker-compose.prod.yml` ([runbook](docs/RUNBOOK.md#first-deploy)); `docker-compose.yml`
-is a local demo stack. CI in `.github/workflows/ci.yml`.
+Next.js 16 (App Router) · React 19 · TypeScript · Tailwind CSS 4 · Prisma 7 + Cloudflare D1 · Vitest · Playwright.
+Runs on Cloudflare Workers (OpenNext), D1, R2 and Browser Rendering ([docs/CLOUDFLARE.md](docs/CLOUDFLARE.md)); a merge
+to main deploys it (`.github/workflows/deploy-shop.yml`, [runbook](docs/RUNBOOK.md#first-deploy)). CI in
+`.github/workflows/ci.yml`; the whole platform on a staging Worker in `test-cloudflare.yml`.

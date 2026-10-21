@@ -5,7 +5,7 @@ import { db } from "@/server/db";
 import { segmentWhere } from "@/server/marketing";
 import { SEGMENTS, type SegmentKey } from "@/lib/rfm";
 import { NAME_SIMILARITY, nameWords, parseMemberQuery } from "@/lib/member-search";
-import { SIMILARITY_CANDIDATES, likePatterns, wordSimilarity } from "@/lib/search";
+import { SIMILARITY_CANDIDATES, likePatterns, likeTerm, wordSimilarity } from "@/lib/search";
 import { CLOSE_MATCHES } from "@/lib/text-search";
 import { addDays } from "@/lib/format";
 import { Prisma, type Tier } from "@/generated/prisma/client";
@@ -52,18 +52,18 @@ export function memberSearchWhere(raw: string | undefined): Prisma.CustomerWhere
     case "phone":
       return { phone: q.phone };
     case "email":
-      return { email: { startsWith: q.email } };
+      return { email: { startsWith: likeTerm(q.email, 49) } };
     case "memberNo":
       return { memberNo: q.memberNo };
     case "digits":
       return {
         OR: [
           ...(q.memberNo ? [{ memberNo: q.memberNo }] : []),
-          ...(q.tail ? [{ phone: { endsWith: q.tail } }, { memberNo: { endsWith: q.tail } }] : []),
+          ...(q.tail ? [{ phone: { endsWith: likeTerm(q.tail, 49) } }, { memberNo: { endsWith: likeTerm(q.tail, 49) } }] : []),
         ],
       };
     case "names":
-      return { AND: q.words.map((w) => ({ OR: [{ firstName: { startsWith: w } }, { lastName: { startsWith: w } }] })) };
+      return { AND: q.words.map((w) => ({ OR: [{ firstName: { startsWith: likeTerm(w, 49) } }, { lastName: { startsWith: likeTerm(w, 49) } }] })) };
   }
 }
 

@@ -5,6 +5,7 @@
 import { unstable_rethrow } from "next/navigation";
 import { requireStaff, type Staff } from "@/server/auth";
 import { reportFailure } from "@/server/alerts";
+import { background } from "@/server/background";
 import { canManageStore, storeForUser } from "@/server/scope";
 import { StockError } from "@/server/inventory";
 import { PurchaseError } from "@/server/stock-orders";
@@ -47,7 +48,7 @@ export async function attempt(fn: () => Promise<ActionState>): Promise<ActionSta
     unstable_rethrow(e);
     if (EXPECTED.some((E) => e instanceof E)) return fail((e as Error).message, (e as UserError).field);
     if ((e as { code?: string })?.code === "P2002") return fail("That already exists. Check for a duplicate.");
-    void reportFailure(e, "store back-office action"); // unexpected: logged and emailed to ops
+    background("store action report", reportFailure(e, "store back-office action")); // unexpected: logged and emailed to ops
     return fail("Something went wrong. Please try again.");
   }
 }

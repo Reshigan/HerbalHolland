@@ -1,7 +1,7 @@
 // Catalogue queries: paginated product list with variant counts, price ranges and
 // ranging reach; per-variant ranging by store format for the ranging tool.
 import { CLOSE_MATCHES, closeNeedle, inRankOrder, searchTerms } from "@/lib/text-search";
-import { SIMILARITY_CANDIDATES, likePatterns, wordSimilarity } from "@/lib/search";
+import { SIMILARITY_CANDIDATES, likePatterns, likeTerm, wordSimilarity } from "@/lib/search";
 import { db } from "@/server/db";
 import { REG_CLASSES } from "@/lib/compliance";
 import { Prisma, type ProductStatus, type RegClass, type StoreFormat } from "@/generated/prisma/client";
@@ -39,7 +39,7 @@ export function productOrderBy(sort: CatalogueSort | null, dir: "asc" | "desc"):
  * "Pre-roll").
  */
 export function productWhere(f: CatalogueFilters, squashed?: string[][]): Prisma.ProductWhereInput {
-  const terms = searchTerms(f.q);
+  const terms = searchTerms(f.q).map((t) => ({ ...t, word: likeTerm(t.word) }));
   return {
     AND: [
       f.category ? { category: { slug: f.category } } : {},
@@ -69,7 +69,7 @@ export async function squashedNameMatches(q: string | undefined) {
     searchTerms(q).map(async (t) =>
       t.squashed.length < 3
         ? []
-        : (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Product" WHERE ${SQUASHED_NAME} LIKE ${`%${t.squashed.slice(0, 40)}%`} LIMIT 500`).map((r) => r.id),
+        : (await db.$queryRaw<{ id: string }[]>`SELECT id FROM "Product" WHERE ${SQUASHED_NAME} LIKE ${`%${likeTerm(t.squashed)}%`} LIMIT 500`).map((r) => r.id),
     ),
   );
 }

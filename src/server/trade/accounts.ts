@@ -19,6 +19,7 @@ import { isTradeLicenceKind, type TradeLicenceKind } from "@/lib/trade-licences"
 import type { Prisma, TradeAccount, TradeAccountStatus, TradeBuyer, TradeTerms } from "@/generated/prisma/client";
 import { isEmail } from "@/lib/email";
 import { asList } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 export class TradeAccountError extends Error {}
 
@@ -378,7 +379,7 @@ export async function tradeAccountSummary(id: string, now = new Date()) {
 
 /** ?q=: an account number (however typed), or part of a trading name, legal name, VAT number or billing email. */
 export function tradeAccountSearch(raw?: string | null): Prisma.TradeAccountWhereInput {
-  const q = (raw ?? "").trim().slice(0, 100);
+  const q = likeTerm((raw ?? "").trim());
   if (!q) return {};
   const like = { contains: q };
   const number = tradeNumberQuery(q, "TA");

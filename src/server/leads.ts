@@ -37,6 +37,7 @@ import type { FranchiseLead, Prisma, Role } from "@/generated/prisma/client";
 import { appSecret } from "./secret";
 import { clientIpFrom } from "@/lib/client-ip";
 import { inBatches } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 /** Who may see and work franchise leads: HQ admin and the HQ team, not area managers. */
 export const LEAD_ROLES: Role[] = ["HQ_ADMIN", "HQ_STAFF"];
@@ -302,7 +303,7 @@ export const viewWhere = (v: LeadView): Prisma.FranchiseLeadWhereInput =>
 
 /** ?q=: a lead number (however it's typed), or part of a name, email address or area. */
 export function leadSearch(raw?: string | null): Prisma.FranchiseLeadWhereInput {
-  const q = (raw ?? "").trim().slice(0, 100);
+  const q = likeTerm((raw ?? "").trim());
   if (!q) return {};
   const like = { contains: q };
   const number = numberQuery(q);

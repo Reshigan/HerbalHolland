@@ -6,6 +6,7 @@
 import { revalidatePath } from "next/cache";
 import { unstable_rethrow } from "next/navigation";
 import { reportFailure } from "@/server/alerts";
+import { background } from "@/server/background";
 import { db } from "@/server/db";
 import { audit } from "@/server/audit";
 import { addTradeBuyer, approveTradeAccount, closeTradeAccount, holdTradeAccount, releaseTradeHold, removeTradeBuyer, TradeAccountError, updateTradeAccount, type TradeAccountDetails, type TradeTermsInput } from "@/server/trade/accounts";
@@ -32,7 +33,7 @@ async function attempt(fn: () => Promise<ActionState>): Promise<ActionState> {
     unstable_rethrow(e);
     if (EXPECTED.some((E) => e instanceof E)) return fail((e as Error).message);
     if ((e as { code?: string })?.code === "P2025") return fail("That no longer exists. Reload the page.");
-    void reportFailure(e, "HQ trade account action"); // unexpected: logged and emailed to ops
+    background("HQ trade account report", reportFailure(e, "HQ trade account action")); // unexpected: logged and emailed to ops
     return fail("Something went wrong. Please try again.");
   }
 }

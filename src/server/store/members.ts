@@ -4,6 +4,7 @@
 import { db, Prisma } from "@/server/db";
 import { closeNameMatches } from "@/server/hq/crm";
 import { nameWords } from "@/lib/member-search";
+import { likeTerm } from "@/lib/search";
 
 export type HereStats = { spendCents: number; visits: number; firstAt: Date | null; lastAt: Date | null; savedCents: number };
 export const NO_STATS: HereStats = { spendCents: 0, visits: 0, firstAt: null, lastAt: null, savedCents: 0 };
@@ -63,9 +64,9 @@ export async function homeMemberTotals(storeId: string, since: Date) {
  * and a run of 4+ digits also matches the mobile (stored without the leading 0). "Mpho Baloyi", "082 555 0101".
  */
 export function customerSearch(q: string): Prisma.CustomerWhereInput {
-  const words = q.split(/\s+/).filter(Boolean);
+  const words = q.split(/\s+/).filter(Boolean).map((w) => likeTerm(w));
   if (!words.length) return {};
-  const digits = q.replace(/\D/g, "");
+  const digits = likeTerm(q.replace(/\D/g, ""));
   return {
     AND: words.map((w) => ({
       OR: [

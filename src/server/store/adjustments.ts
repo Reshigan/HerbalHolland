@@ -4,6 +4,7 @@ import { inBatches } from "@/lib/json-list";
 import { Prisma, type AdjustReason, type MovementType } from "@/generated/prisma/client";
 import { fmtDate, type DateRange } from "@/lib/format";
 import { stockRows } from "./inventory";
+import { likeTerm } from "@/lib/search";
 
 export type AdjustItem = {
   id: string;
@@ -46,7 +47,7 @@ export async function adjustableItems(storeId: string): Promise<AdjustItem[]> {
 export type HistoryFilter = { types: MovementType[]; reason?: AdjustReason | null; q?: string; range: DateRange };
 
 function historyWhere(storeId: string, f: HistoryFilter) {
-  const words = (f.q ?? "").trim().split(/\s+/).filter(Boolean);
+  const words = (f.q ?? "").trim().split(/\s+/).filter(Boolean).map((w) => likeTerm(w));
   return {
     storeId,
     type: { in: f.types },

@@ -6,6 +6,7 @@ import type { Instrumentation } from "next";
 // Every server error reaches the log, and the ops inbox when ALERT_EMAIL is set (throttled): @/server/alerts.
 export const onRequestError: Instrumentation.onRequestError = async (err, request, context) => {
   if (process.env.NEXT_RUNTIME !== "nodejs") return;
-  const { reportError } = await import("./server/alerts");
-  await reportError(err, { method: request.method, path: request.path, route: context.routePath, kind: context.routeType });
+  // The alert email mustn't be cut off with the response on Workers: handed to the request's waitUntil (@/server/background).
+  const [{ reportError }, { background }] = await Promise.all([import("./server/alerts"), import("./server/background")]);
+  background("error report", reportError(err, { method: request.method, path: request.path, route: context.routePath, kind: context.routeType }));
 };

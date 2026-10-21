@@ -2,7 +2,8 @@
 // invoice is printed from its hosted page, so the PDF is the same document the link opens; statements and stock-order
 // invoices are printed from their branded email. Never in the way of the email: no browser (outside a Cloudflare
 // request, or the binding missing), or a failed print, gives null and the email goes without the attachment (its link
-// still works). The browser session is shared by the calls of one Worker while it stays connected; pages always close.
+// still works). One request connects to the browser once and prints all its pages on it; the session itself outlives
+// the request (keep_alive) and the next request connects to it by id; pages always close.
 import puppeteer, { type Browser, type BrowserWorker, type Page } from "@cloudflare/puppeteer";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import { EMAIL_LOGO_CID, EMAIL_LOGO_PNG } from "./email-logo";
@@ -16,53 +17,67 @@ tr,td{break-inside:avoid}.hh-card>tbody>tr,.hh-card>tbody>tr>td{break-inside:aut
 const PAGE_TIMEOUT = 20_000;
 
 /** The Browser Rendering binding of the current request, or undefined outside a Cloudflare request. */
-function binding(): BrowserWorker | undefined {
+function binding(): { browser: BrowserWorker; key: object } | undefined {
   try {
-    return (getCloudflareContext().env as { BROWSER?: BrowserWorker }).BROWSER;
+    const cf = getCloudflareContext();
+    const browser = (cf.env as { BROWSER?: BrowserWorker }).BROWSER;
+    return browser ? { browser, key: (cf.ctx as object | undefined) ?? (cf.env as object) } : undefined;
   } catch {
     return undefined;
   }
 }
 
-// One browser per binding (bindings only exist inside a request; the same Worker gets the same object back), dropped
-// when the session ends so the next call launches a fresh one.
+// The browser connection belongs to the request that opened it (its WebSocket is that request's I/O: on Workers a
+// promise or socket shared across requests is cancelled as hung), so connections are kept per request context. The
+// session id is a plain string, so the next request reconnects to the same browser instead of launching one: a
+// session keeps running KEEP_ALIVE ms after its connection drops. A session that is gone or still held by another
+// request fails to connect, and a fresh one is launched.
+const KEEP_ALIVE = 120_000;
 const browsers = new WeakMap<object, Promise<Browser>>();
-const open = (b: BrowserWorker) => {
-  let p = browsers.get(b);
+let session: string | undefined;
+function open(b: BrowserWorker, key: object) {
+  let p = browsers.get(key);
   if (!p) {
-    p = puppeteer.launch(b).then(
-      (br) => {
-        br.on("disconnected", () => browsers.delete(b));
-        return br;
-      },
-      (e) => {
-        browsers.delete(b);
-        throw e;
-      },
+    p = (async () => {
+      if (session) {
+        try {
+          return await puppeteer.connect(b, session);
+        } catch {
+          session = undefined;
+        }
+      }
+      const br = await puppeteer.launch(b, { keep_alive: KEEP_ALIVE });
+      session = br.sessionId();
+      return br;
+    })();
+    p.then(
+      (br) => br.on("disconnected", () => browsers.delete(key)),
+      () => browsers.delete(key),
     );
-    browsers.set(b, p);
+    browsers.set(key, p);
   }
   return p;
-};
+}
 
 /** Whether a browser can be reached from here (a Cloudflare request with the `BROWSER` binding). */
 export const browserAvailable = () => !!binding();
 
 /**
- * Runs `fn` on a fresh page of the shared browser and closes the page afterwards. Throws outside a Cloudflare request
- * or when the binding is missing. A session that ended since the last call is replaced once.
+ * Runs `fn` on a fresh page of the request's browser and closes the page afterwards. Throws outside a Cloudflare
+ * request or when the binding is missing. A session that ended since the last call is replaced once.
  */
 export async function withPage<T>(fn: (page: Page) => Promise<T>): Promise<T> {
   const b = binding();
   if (!b) throw new Error("No browser: Browser Rendering is only available inside a Cloudflare request (binding BROWSER)");
-  const reused = browsers.has(b);
+  const reused = browsers.has(b.key) || !!session;
   let page: Page;
   try {
-    page = await (await open(b)).newPage();
+    page = await (await open(b.browser, b.key)).newPage();
   } catch (e) {
-    browsers.delete(b);
+    browsers.delete(b.key);
+    session = undefined;
     if (!reused) throw e;
-    page = await (await open(b)).newPage(); // the cached session had ended: one more go on a new one
+    page = await (await open(b.browser, b.key)).newPage(); // the kept session had ended: one more go on a new one
   }
   try {
     page.setDefaultTimeout(PAGE_TIMEOUT);

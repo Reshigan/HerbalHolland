@@ -28,6 +28,7 @@ import { tradeActor } from "./accounts";
 import { asList } from "@/lib/json-list";
 import { tradeOrderEmail, tradePortalUrl, tradeProFormaEmail, tradeReadySms, type TradeOrderEmailInfo, type TradeOrderEvent } from "./emails";
 import type { TradeAccount, TradeOrder, TradeOrderStatus } from "@/generated/prisma/client";
+import { likeTerm } from "@/lib/search";
 
 export class TradeOrderError extends Error {}
 
@@ -103,7 +104,7 @@ export async function collectStoresFor(
   const pageSize = Math.min(50, Math.max(1, Math.floor(opts.pageSize ?? 12)));
   const settings = await getSettings();
   const needLicence = [...new Set(lines.map((l) => l.regClass).filter((c) => settings.compliance.licensedOnly.includes(c)))];
-  const q = opts.q?.trim().slice(0, 60);
+  const q = likeTerm(opts.q?.trim() ?? "");
   const where: Prisma.StoreWhereInput = {
     kind: "RETAIL", status: "ACTIVE", clickCollect: true,
     ...(opts.province ? { province: opts.province as Prisma.StoreWhereInput["province"] } : {}),

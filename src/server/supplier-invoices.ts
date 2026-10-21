@@ -14,6 +14,7 @@ import { vatOnExcl } from "@/lib/money";
 import { addDays, dayKey } from "@/lib/format";
 import type { Prisma, SupplierInvoiceStatus } from "@/generated/prisma/client";
 import { inBatches } from "@/lib/json-list";
+import { likeTerm } from "@/lib/search";
 
 export class SupplierInvoiceError extends Error {
   constructor(message: string, public field?: string) {
@@ -100,7 +101,7 @@ export async function captureSupplierInvoice(a: CaptureInput, actor: Actor & { i
   if (a.dueDate < a.invoiceDate) throw new SupplierInvoiceError("The due date can't be before the invoice date", "dueDate");
   if (!Number.isInteger(a.totalCents) || a.totalCents <= 0 || a.totalCents > 100_000_000) throw new SupplierInvoiceError("Enter the invoice total including VAT", "total");
   if (!Number.isInteger(a.vatCents) || a.vatCents < 0 || a.vatCents > a.totalCents) throw new SupplierInvoiceError("VAT can't be more than the total", "vat");
-  const same = await db.supplierInvoice.findMany({ where: { storeId: a.storeId, supplierName: { contains: supplierName }, number: { contains: number } }, select: { supplierName: true, number: true }, take: 50 });
+  const same = await db.supplierInvoice.findMany({ where: { storeId: a.storeId, supplierName: { contains: likeTerm(supplierName) }, number: { contains: likeTerm(number) } }, select: { supplierName: true, number: true }, take: 50 });
   if (same.some((s) => s.supplierName.toLowerCase() === supplierName.toLowerCase() && s.number.toLowerCase() === number.toLowerCase()))
     throw new SupplierInvoiceError(`Invoice ${number} from ${supplierName} is already captured`, "number");
   const accountId = await chargedTo(a.storeId, a.accountId);
@@ -162,7 +163,7 @@ export async function reopenSupplierInvoice(id: string, storeId: string, actor: 
 export type InvoiceFilters = { status?: SupplierInvoiceStatus | null; q?: string; storeIds: string[] };
 
 export function invoiceWhere(f: InvoiceFilters): Prisma.SupplierInvoiceWhereInput {
-  const q = f.q?.trim();
+  const q = likeTerm(f.q?.trim() ?? "");
   return {
     storeId: { in: f.storeIds },
     ...(f.status && { status: f.status }),

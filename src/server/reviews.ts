@@ -5,6 +5,7 @@ import { db, type Prisma } from "./db";
 import { audit, type Actor } from "./audit";
 import { storePhotos, UploadError } from "./uploads";
 import { screenCopy } from "@/lib/compliance";
+import { likeTerm } from "@/lib/search";
 
 export class ReviewError extends Error {
   constructor(
@@ -59,7 +60,7 @@ export const reviewView = (v: string | undefined): ReviewView => ((REVIEW_VIEWS 
 
 export function reviewWhere(f: { view?: string; q?: string }): Prisma.ReviewWhereInput {
   const view = reviewView(f.view);
-  const q = (f.q ?? "").trim();
+  const q = likeTerm((f.q ?? "").trim());
   return {
     AND: [
       view === "photos" ? { photoUploadIds: { not: [] } } : view === "hidden" ? { hidden: true } : view === "low" ? { rating: { lte: 2 } } : {},

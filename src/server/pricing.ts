@@ -15,6 +15,7 @@ import { rangeSearchTerms, vatHalfUp } from "@/lib/trade";
 import { similarProducts } from "./shop/search";
 import { availability, availKey, OPEN_ORDER_STATUSES } from "./inventory";
 import { lockPromotion } from "./locks";
+import { likeTerm } from "@/lib/search";
 
 /** A promotion row with its JSON lists read as arrays, the shape the rules and pages work with. */
 export type PromotionRow = Omit<Promotion, "storeIds" | "channels" | "days" | "categoryIds" | "productIds" | "rewardCategoryIds" | "rewardProductIds"> & {
@@ -413,7 +414,7 @@ export async function tradeRange(
   // Only the priced variants without a wholesale price of their own need naming in the query (a short list, and the
   // `in:` list must stay under D1's 100 bound parameters).
   const priced = onLists.length ? (await inBatches(onLists, (part) => db.variant.findMany({ where: { id: { in: part }, wholesaleCents: { lte: 0 } }, select: { id: true } }))).map((v) => v.id).slice(0, 80) : [];
-  const q = opts.q?.trim().slice(0, 60);
+  const q = likeTerm(opts.q?.trim() ?? "");
   const category = opts.category?.trim();
   const base: Prisma.VariantWhereInput = {
     active: true,
